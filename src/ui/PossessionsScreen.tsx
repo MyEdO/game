@@ -40,8 +40,6 @@ import { CarrierInventory } from './CarrierInventory';
 import { MediaSelect } from './MediaSelect';
 import { SearchFilterField, filterByLabel } from './SearchFilterField';
 import { TraitChips } from './EntityChip';
-import { ShipPreview } from './ShipPreview';
-import { CreaturePreview } from './compendium/CreaturePreview';
 import { findCreatureById } from '../data';
 import { woundsTone, encumbranceTone } from './gaugeTones';
 import {
@@ -135,16 +133,6 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const refusDebarquer = refusDe('debarquer');
   const refusAbandonner = refusDe('abandonner');
 
-  // Aperçu visuel de la possession (#620 DoD) — `CreaturePreview` (Codex, `CodexEntry.tsx:140`) route
-  // vers le BON gabarit (bipède/quadrupède/ailé…) via `resolveRender` : jamais `CharacterPreview`
-  // (squelette bipède FIXE, faux pour une bête à 4 pattes). Statbloc custom sans apparence exploitable
-  // (`CustomStatblock` n'en porte aucune, `src/engine/statblock.ts`) → pas de topper, aucun crash.
-  const livingPreview = !selected || (selected.nature !== 'bete' && selected.nature !== 'serviteur')
-    ? undefined
-    : 'creatureId' in selected.ref
-      ? { label: selected.ref.creatureId, appearance: findCreatureById(selected.ref.creatureId)?.appearance }
-      : undefined;
-
   const list = (
     <>
       <SearchFilterField value={search} onChange={setSearch} placeholder="Filtrer les possessions…" icon />
@@ -223,16 +211,6 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
       <Tabs tabs={tabs} active={tab} onChange={setTab} label="Détail de la possession" />
       {tab === 'apercu' ? (
         <DetailFrame
-          topper={
-            livingPreview ? (
-              <CreaturePreview label={livingPreview.label} appearance={livingPreview.appearance} />
-            ) : selected.nature === 'navire' ? (
-              // `ShipPreview` (gabarit `navire`, réutilisé de ShipDossier — chemin prouvé) : coques navigantes.
-              // Un VÉHICULE (chariot terrestre OU barge à profil `ship`) n'a pas de rig fiable ici — `ShipPreview`
-              // force le plan `navire` et produit une texture manquante hors coque → pas de topper (#726).
-              <ShipPreview vehicleId={selected.vehicleId} label={possessionLabel(selected)} sunk={selected.destroyed} />
-            ) : undefined
-          }
           label={labelOf(selected)}
           sub={selectedOwner ? `Possession de ${selectedOwner.label}` : undefined}
           meta={

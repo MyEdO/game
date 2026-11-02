@@ -11,9 +11,6 @@
  *  2. ANTI-JARGON — liste FERMÉE de lexèmes de MOTEUR qui n'ont rien à faire sous les yeux d'un
  *     joueur. `index` en est ABSENT à dessein : « index » est un mot français ordinaire (« Index du
  *     mois », `calendarIntercalary`), comme « Source », « Type » et « Table ».
- *     MESURÉ À LA NAISSANCE (2026-08-28) : la garde a trouvé 4 offenseurs, pas zéro — `id` dans
- *     `arcane-phenomena`/`driving-mishap`, `override` dans `hairs`/`renduMonte`. Les 4 sont corrigés
- *     dans le commit qui pose la garde ; le chiffre attendu était faux, la mesure fait foi.
  *  3. QUASI-DOUBLONS INTRA-DEF — deux champs d'un MÊME document ne peuvent pas porter deux libellés
  *     que la normalisation forte (minuscules, sans accents, sans ponctuation ni espaces) confond :
  *     à l'écran, l'utilisateur ne saurait pas lequel il édite.

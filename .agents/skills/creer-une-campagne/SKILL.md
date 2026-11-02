@@ -45,7 +45,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
 - `lib.mjs` porte les helpers des générateurs existants et les validateurs id-only (`creatureId`,
   `skillId`, `spellId`, `speciesId`, `tenueId`, `weaponId` ; banc `src/scenes/arene/lib-validators.test.ts`).
   `creatureId` accepte créature ∪ véhicule ; `poste(trappingId, side, crewIds?)` émet la référence de
-  poste et lève si `trappingId` n'est pas une pièce POSABLE (`siegeRig`).
+  poste et lève si `trappingId` n'est pas une pièce POSABLE (sous-type `armes-de-siege`).
   Consommateurs : `scripts/arene/`, `scripts/barge-du-sel/generate.mjs`, `scripts/loup-et-saumure/generate.mjs`
   et ce banc. Il ne sert à un contenu neuf que pour du contenu CALCULÉ non authorable à la main, jamais
   pour un projet de campagne ; « enrichir un JSON manuscrit par script » est interdit.
@@ -66,14 +66,14 @@ valide ; un bloc mal formé fait échouer `parseProject`.
 
 - **Coques de navire** : une coque se pose en `entities`, `ref` = id de véhicule à coque (`vehicles.json`),
   et s'enrôle par `encounters[].members` ; `validateScene` refuse une `ref` que `refEntiteResolue`
-  (`src/data/index.ts` : créature, véhicule à coque, pièce d'affût `siegeRig`) ne résout pas. Une coque
+  (`src/data/index.ts` : créature, véhicule à coque, engin de siège, sous-type `armes-de-siege`) ne résout pas. Une coque
   RICHE porte `crewIds`, `upgrades` et `postes`. Un poste est une RÉFÉRENCE JSON
   `{ trappingId, side, crewIds?, uid?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
   hydratée au spawn par `hydratePoste` (`src/engine/items.ts`), qui lève sur un `trappingId` inconnu.
   `src/scenes/bundled-projects.test.ts` contrôle l'équipage exposé (chaque `crewIds` de la coque = une
   entité de la scène), les améliorations (catalogue naval) et le coffre (`ammo` en munitions de quantité
   non nulle, `ammoUid` dans le coffre) ; rien ne contrôle qu'un `trappingId` de poste désigne une pièce
-  POSABLE (art d'affût `siegeRig`, Compendium → Objets, armes de siège) : le vérifier à l'écriture.
+  POSABLE (sous-type `armes-de-siege`, Compendium → Objets, armes de siège) : le vérifier à l'écriture.
 - **Navire de campagne = Effect `setVessel`** (`vehicleId`, PV, moral) : une coque spawnée dont
   `creatureId === vessel.vehicleId` est réconciliée aux PV du navire à l'ouverture du combat et réécrit
   ses dégâts dans `vessel.wounds` à la fin. Sans `setVessel`, chaque combat spawn une coque fraîche.

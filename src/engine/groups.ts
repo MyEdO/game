@@ -15,6 +15,9 @@ import { findCareerById, findClassById, findCreatureById, findGodById, findGroup
 /** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.56, l.181. */
 const GROUPE_DES_MUTANTS = 'mutants';
 
+/** Groupe de tout combattant monté (`Combatant.mountId`, `groups.json`). AA 04 l.204 ; Q13 A, #3045 */
+const GROUPE_DE_LA_CAVALERIE = 'cavalerie';
+
 /** Groupes DÉCLARÉS, posés une fois sur `Combatant.groups` : espèce (`SpeciesData.grantGroups`) ∪ entrée du
  *  bestiaire (`CreatureData.grantGroups`, sa catégorie, puis ceux de son `genre`, de genre en genre) ∪ extras
  *  (déjà des ids — `groups` d'un statbloc, saisie d'éditeur). Dédupliqué par id EXACT, ordre stable. */
@@ -31,19 +34,20 @@ export function groupsFor(src: { speciesId?: string; creature?: Pick<CreatureDat
 }
 
 /** Ce que `groupesDe` lit d'un porteur : ses Groupes déclarés, ses Traits par leur désignation, sa carrière,
- *  la VUE de ses Talents (`talentId` + `spec` suffisent au culte) et ses mutations. */
+ *  la VUE de ses Talents (`talentId` + `spec` suffisent au culte), ses mutations et sa monture. */
 export interface PorteurDeGroupes {
   groups?: readonly string[];
   traits?: readonly Pick<TraitInstance, 'id' | 'hidden'>[];
   career?: string;
   talents?: readonly { talentId: string; spec?: string }[];
   mutations?: readonly unknown[];
+  mountId?: string;
 }
 
 /** Groupes EFFECTIFS d'un porteur, lus en direct : Groupes DÉCLARÉS (`Combatant.groups`) ∪ Traits portés,
  *  octroyés compris (`TraitData.capabilities.grantGroups`) ∪ carrière et classe (`grantGroups`) ∪ culte du
  *  Talent de Prière (`GodData.grantGroups`, via `TalentData.grantSpecGroups`) ∪ Mutants pour le porteur d'au
- *  moins une mutation. Dédupliqué par id EXACT, ordre stable. */
+ *  moins une mutation ∪ Cavalerie pour le combattant monté. Dédupliqué par id EXACT, ordre stable. */
 export function groupesDe(c: PorteurDeGroupes): string[] {
   const out: string[] = [];
   const pushAll = (gs?: readonly string[]) => {
@@ -61,6 +65,7 @@ export function groupesDe(c: PorteurDeGroupes): string[] {
     pushAll(findGodById(norm(t.spec))?.grantGroups);
   }
   if (c.mutations?.length) pushAll([GROUPE_DES_MUTANTS]);
+  if (c.mountId) pushAll([GROUPE_DE_LA_CAVALERIE]);
   return out;
 }
 
@@ -93,9 +98,18 @@ export function racesDe(groupIds: readonly string[]): string[] {
  *  sous-type sans Groupe dédié dans `groups.json` (ex. « Menteurs, trompeurs, sophistes ») reste INERTE
  *  plutôt que de dériver un sous-groupe inventé (YAGNI). Un Groupe-cible JOKER (`GroupData.matchesAll`,
  *  `groups.json` : `tout` = n'importe qui — Animosité « toutes les créatures !!! » ; `vivant` =
- *  `matchesAll` moins ses `exceptGroups`) est résolu ICI, sur la donnée du Groupe visé. */
+ *  `matchesAll` moins ses `exceptGroups`) et un Groupe-cible COMPOSITE (`GroupData.inclut`, Q13 A, #3045 :
+ *  tout membre de l'un des Groupes inclus) sont résolus ICI, sur la donnée du Groupe visé ; un Groupe déjà
+ *  traversé sur le chemin (cycle d'`inclut` ou d'`exceptGroups`) ne correspond pas. */
 export function groupMatch(cibleId: string, groupIds: readonly string[]): boolean {
+  return correspond(cibleId, groupIds, []);
+}
+
+function correspond(cibleId: string, groupIds: readonly string[], chemin: readonly string[]): boolean {
+  if (chemin.includes(cibleId)) return false;
+  const suite = [...chemin, cibleId];
   const cible = findGroupById(cibleId);
-  if (cible?.matchesAll) return !(cible.exceptGroups ?? []).some((g) => groupIds.includes(g));
+  if (cible?.matchesAll) return !(cible.exceptGroups ?? []).some((g) => correspond(g, groupIds, suite));
+  if (cible?.inclut) return cible.inclut.some((g) => correspond(g, groupIds, suite));
   return groupIds.includes(cibleId);
 }

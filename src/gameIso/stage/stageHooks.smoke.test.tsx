@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useRef } from 'react';
 import { Combatant } from '../../engine/types';
 import type { BattleState } from '../../noyau/etat';
-import { useStageCamera, stageFocus, adoucirFocal, computeViewBounds, cameraTargeting, VW, VH } from './useStageCamera';
+import { useStageCamera, stageFocus, adoucirFocal, cameraTargeting } from './useStageCamera';
 import { useStagePointer } from './useStagePointer';
 import { useHoverTargeting } from './useHoverTargeting';
 import type { Dims } from '../../geometry/iso';
@@ -54,7 +54,7 @@ const cbt = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }):
   ({ id, name: id, kind, pos, size: 'moyenne', conditions: [], wounds: { current: 10, max: 10 } } as unknown as Combatant);
 const walkStill = (_id: string, x: number, y: number) => ({ x, y, walking: false });
 
-describe('stageFocus / computeViewBounds / cameraTargeting — helpers purs de caméra', () => {
+describe('stageFocus / cameraTargeting — helpers purs de caméra', () => {
   const base = {
     mode: 'exploration',
     battle: null,
@@ -108,15 +108,5 @@ describe('stageFocus / computeViewBounds / cameraTargeting — helpers purs de c
     expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'charge' })?.melee).toBe(true);
     expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'ranged' })?.melee).toBe(false);
     expect(cameraTargeting(battle, null)).toBeNull();
-  });
-
-  it('computeViewBounds : AABB de tuiles couvrant la fenêtre (contient le centre visé)', () => {
-    const cam = { x: 0, y: 0 };
-    const b = computeViewBounds(cam, 1, DIMS);
-    expect(b.minX).toBeLessThanOrEqual(b.maxX);
-    expect(b.minY).toBeLessThanOrEqual(b.maxY);
-    expect(Number.isFinite(b.minX + b.maxX + b.minY + b.maxY)).toBe(true);
-    expect(VW).toBeGreaterThan(0);
-    expect(VH).toBeGreaterThan(0);
   });
 });

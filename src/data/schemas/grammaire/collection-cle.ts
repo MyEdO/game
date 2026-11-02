@@ -424,7 +424,9 @@ export type LectureDEspace = { readonly ids: readonly string[] } | { readonly un
 
 /** Le filtre est-il un paramètre `espace` déclaré par la marque ? */
 const filtreDeclare = (espace: EspaceDeNoms, filtre: FiltreDEspace): boolean =>
-  filtre.vaut === undefined ? (espace.marqueurs ?? []).includes(filtre.champ) : champsDiscriminants(espace).includes(filtre.champ);
+  filtre.horsMarqueurs
+    ? filtre.horsMarqueurs.every((m) => (espace.marqueurs ?? []).includes(m))
+    : filtre.vaut === undefined ? (espace.marqueurs ?? []).includes(filtre.champ) : champsDiscriminants(espace).includes(filtre.champ);
 
 /** La SOURCE de spécialisations (`grammaire/sourcesDeSpecs.ts`) dont l'espace lu `lue` est l'espace des
  *  `specs` d'une entrée, `undefined` s'il ne l'est pas. */

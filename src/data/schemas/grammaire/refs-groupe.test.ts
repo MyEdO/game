@@ -1,6 +1,6 @@
 /**
  * Champs de Groupe typés au parse (#1463, #3045 A0-a) : toute feuille `idDe('groupe')` des schémas refuse un
- * id fantôme ; un champ de PORTEUR (`DECLARABLE_PAR_UN_PORTEUR`) refuse un Groupe-Cible joker ou relatif, un
+ * id fantôme ; un champ de PORTEUR (`DECLARABLE_PAR_UN_PORTEUR`) refuse un Groupe-Cible joker, composite ou relatif, un
  * champ de Cible d'APPARTENANCE (`CIBLE_D_APPARTENANCE`) refuse un relatif, un champ de Cible psy admet les deux ; la Condition `has` résout `value` dans le registre de son `what`, et la `spec` d'un Talent
  * dans les spécialisations de ce Talent.
  */
@@ -13,7 +13,7 @@ import { descendre, ouverts, pasDeDonnee } from './descente';
 import { valeursDe } from './meta';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { tableTotale } from '../../../lib/tableTotale';
-import { groups } from '../../index';
+import { groups, SPEC_SOURCES, talents } from '../../index';
 
 /** Chaque feuille `idDe('groupe')` atteinte depuis les documents et les payloads d'op, avec son path de schéma. */
 const FEUILLES: readonly { path: string; noeud: z.ZodType; decl: FeuilleDId }[] = (() => {
@@ -33,6 +33,7 @@ const DECLARABLES = new Set(idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR
 /** Par la FORME de la donnée, jamais par la sous-liste qu'on éprouve. */
 const RELATIFS = groups.filter((g) => g.relatif).map((g) => g.id);
 const JOKERS = groups.filter((g) => g.matchesAll).map((g) => g.id);
+const COMPOSITES = groups.filter((g) => g.inclut).map((g) => g.id);
 const FANTOME = 'groupe-fantome-qu-aucun-registre-ne-porte';
 
 /** Le dernier champ nommé d'un path de schéma (`.groups[]` → `groups`). */
@@ -62,10 +63,11 @@ describe('feuilles `idDe(\'groupe\')` — un id de Groupe résout au parse', () 
     expect(declarants.filter((f) => !PORTEUSES.includes(f)).map((f) => f.path)).toEqual([]);
   });
 
-  it('un joker est refusé par chaque feuille porteuse, admis par chaque feuille d’appartenance ou cible', () => {
+  it('un joker ou un composite est refusé par chaque feuille porteuse, admis par chaque feuille d’appartenance ou cible', () => {
     expect(JOKERS.length).toBeGreaterThan(0);
+    expect(COMPOSITES.length).toBeGreaterThan(0);
     const [declarable] = DECLARABLES;
-    for (const joker of JOKERS) {
+    for (const joker of [...JOKERS, ...COMPOSITES]) {
       expect(PORTEUSES.filter((f) => f.noeud.safeParse(joker).success).map((f) => `${f.path} ← ${joker}`)).toEqual([]);
       expect([...APPARTENANCE, ...CIBLES].filter((f) => !f.noeud.safeParse(joker).success).map((f) => `${f.path} ← ${joker}`)).toEqual([]);
     }
@@ -78,6 +80,14 @@ describe('feuilles `idDe(\'groupe\')` — un id de Groupe résout au parse', () 
       expect([...PORTEUSES, ...APPARTENANCE].filter((f) => f.noeud.safeParse(relatif).success).map((f) => `${f.path} ← ${relatif}`)).toEqual([]);
       expect(CIBLES.filter((f) => !f.noeud.safeParse(relatif).success).map((f) => `${f.path} ← ${relatif}`)).toEqual([]);
     }
+  });
+});
+
+describe('Sans Peur (Ennemi) — sa source est la sous-liste d’appartenance (LDB 10 l.1051 ; Q13 A, #3045)', () => {
+  it('le pool de la source du Talent qui vise un ennemi est exactement `CIBLE_D_APPARTENANCE`, dans l’ordre du registre', () => {
+    const sansPeur = talents.find((t) => t.combat?.fearImmune && t.specsSource);
+    expect(sansPeur).toBeDefined();
+    expect(SPEC_SOURCES[sansPeur!.specsSource!].pool()).toEqual([...idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE)]);
   });
 });
 

@@ -27,7 +27,6 @@ import { EXTS_CITANTES } from './lib/fichiersCitants.mjs'
 
 export const ROOTS = ['src', 'scripts', 'docs']
 export const SKIP_DIRS = new Set(['node_modules', '.git', 'plans', 'superpowers'])
-export const EXCLUDE_PREFIX = ['src/gameIso/rig/parts/tenues/defs/'] // art de couverture (cf. check-code-refs)
 const RAWDIR = 'docs/raw'
 /** ACCEPTATION déclarée à la couture : les pages qui portent des réfs d'AUTEUR — ni rapport
  *  ré-généré (bornes de ligne, pas des citations), ni épreuve datée. */
@@ -69,7 +68,6 @@ export function auditChapter(abbr, nn, roots = ROOTS) {
   for (const root of roots) {
     for (const f of fichiersScannes(root)) {
       const rel = f.split('\\').join('/')
-      if (EXCLUDE_PREFIX.some((x) => rel.startsWith(x))) continue
       let src
       try { src = readFileSync(f, 'utf8').split('\n') } catch { continue }
       src.forEach((ln, i) => {

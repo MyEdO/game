@@ -12,7 +12,7 @@ import { pickNearestTarget, propEntityAtHit, type PickTarget, type PropVertexRan
  * qu'un cutaway (qui réécrit l'index de dessin, jamais les sommets) ne peut pas périmer.
  *
  * L'invariant #1297 est l'autre moitié du contrat : la géométrie NON-prop du monde (mur, sol, toit)
- * n'entre jamais dans les candidats, donc un acteur derrière un mur reste cliquable.
+ * n'entre jamais dans les candidats : seules les plages de décor répondent.
  */
 const CAMERA = new OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
 CAMERA.updateMatrixWorld(true);
@@ -154,7 +154,7 @@ describe('Le picking lit le monde que l’écran monte VRAIMENT', () => {
     expect(pickNearestTarget(cameraSur(geometry, 'table-1'), [], mesh, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
   });
 
-  it('…et un jeton PLUS PROCHE que le meuble le reprend, sur ce même maillage', () => {
+  it('un décor billboardé plus proche occulte le meuble sur ce même maillage', () => {
     const scene = sceneWith(volumeEntity('table-1'));
     const { geometry, mesh } = mondeDeLEcran(scene);
     const camera = cameraSur(geometry, 'table-1');
@@ -162,7 +162,7 @@ describe('Le picking lit le monde que l’écran monte VRAIMENT', () => {
     quad.position.copy(camera.position).add(camera.getWorldDirection(new Vector3()).multiplyScalar(5));
     quad.quaternion.copy(camera.quaternion);
     quad.updateMatrixWorld(true);
-    expect(pickNearestTarget(camera, [{ cid: 'hero-1', object: quad }], mesh, NDC)).toEqual({ kind: 'combatant', id: 'hero-1' });
+    expect(pickNearestTarget(camera, [{ object: quad }], mesh, NDC)).toBeNull();
   });
 });
 
@@ -194,12 +194,12 @@ function mondeCuit(quads: readonly number[], retirés: readonly number[], ranges
   return mesh;
 }
 
-/** Quad de billboard d'un combattant, à `z`. */
-function combatantBillboard(cid: string, z = -5): PickTarget {
+/** Quad de décor billboardé à `z`. */
+function decorBillboard(z = -5): PickTarget {
   const m = new Mesh(new PlaneGeometry(2, 2), new MeshBasicMaterial());
   m.position.set(0, 0, z);
   m.updateMatrixWorld(true);
-  return { cid, object: m };
+  return { object: m };
 }
 
 /** Première intersection du rayon central avec le maillage monde. */
@@ -220,17 +220,33 @@ describe('pickNearestTarget — le décor volumique se clique par ses sommets', 
     expect(pickNearestTarget(CAMERA, [], mesh, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
   });
 
-  it('arbitre combattants et faces de prop par distance globale', () => {
+  it('arbitre billboards et faces de prop par distance globale', () => {
     const monde = mondeCuit([-5], [], [{ entId: 'table-1', vertexStart: 0, vertexCount: 6 }]);
-    expect(pickNearestTarget(CAMERA, [combatantBillboard('hero-1', -7)], monde, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
-    expect(pickNearestTarget(CAMERA, [combatantBillboard('hero-1', -3)], monde, NDC)).toEqual({ kind: 'combatant', id: 'hero-1' });
+    expect(pickNearestTarget(CAMERA, [decorBillboard(-7)], monde, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    expect(pickNearestTarget(CAMERA, [decorBillboard(-3)], monde, NDC)).toBeNull();
+    expect(pickNearestTarget(CAMERA, [decorBillboard(-5)], monde, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
   });
 
-  it('ignore une face monde non-prop et conserve le clic acteur derrière le mur', () => {
+  it('ignore une face monde non-prop et désigne le décor derrière le mur', () => {
     // Quad 0 = MUR devant (aucune plage) ; quad 1 = un décor loin derrière — le monde EST donc balayé.
     const wallFirst = mondeCuit([-2, -8], [], [{ entId: 'table-1', vertexStart: 6, vertexCount: 6 }]);
     const wallHit = raycastProp(wallFirst);
     expect(propEntityAtHit(wallFirst.geometry.userData.propVertexRanges!, wallHit.face!)).toBeNull();
-    expect(pickNearestTarget(CAMERA, [combatantBillboard('hero-1')], wallFirst, NDC)).toEqual({ kind: 'combatant', id: 'hero-1' });
+    expect(pickNearestTarget(CAMERA, [], wallFirst, NDC)).toEqual({ kind: 'entity', id: 'table-1' });
+    expect(pickNearestTarget(CAMERA, [], mondeCuit([-2], [], []), NDC)).toBeNull();
+  });
+
+  it('retient le décor le plus proche quelle que soit la disposition des plages', () => {
+    const plages = [{ entId: 'loin', vertexStart: 0, vertexCount: 6 }, { entId: 'proche', vertexStart: 6, vertexCount: 6 }];
+    for (const ranges of [plages, [...plages].reverse()])
+      expect(pickNearestTarget(CAMERA, [], mondeCuit([-8, -3], [], ranges), NDC)).toEqual({ kind: 'entity', id: 'proche' });
+  });
+
+  it('départage les décors coplanaires par id indépendamment de leur ordre géométrique', () => {
+    for (const ids of [['a', 'z'], ['z', 'a']]) {
+      const plages = ids.map((entId, i) => ({ entId, vertexStart: i * 6, vertexCount: 6 }));
+      for (const ranges of [plages, [...plages].reverse()])
+        expect(pickNearestTarget(CAMERA, [], mondeCuit([-5, -5], [], ranges), NDC)).toEqual({ kind: 'entity', id: 'a' });
+    }
   });
 });

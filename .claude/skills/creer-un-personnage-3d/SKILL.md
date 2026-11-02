@@ -1,6 +1,6 @@
 ---
 name: creer-un-personnage-3d
-description: Produire depuis une illustration un élément 3D du jeu (GLB et manifeste schéma 3 sur la base imposée). Pas pour les rigs SVG ni les règles.
+description: Produire depuis une illustration un élément 3D du jeu (GLB et manifeste schéma 3 sur la base imposée). Pas pour les règles.
 ---
 
 # Produire un élément 3D
@@ -29,8 +29,7 @@ Interdits : générateur image → 3D, retopologie automatique, illustration pro
 coque moulée pour un vêtement de silhouette, couleur cuite, emblème modelé ou peint, mouvement des
 chaînes recalculé par l'hôte. Une couleur appartient à la palette ou à la teinte, jamais à une
 variante de géométrie ; un emblème se pose au montage sur une surface `blason`, neutre, déclarée
-`blason: true` au manifeste et dépliée sur le carré UV (#3111). Le rig SVG
-(`src/gameIso/rig/`) est abandonné (#2794) : il ne fournit à un élément ni id, ni forme, ni modèle.
+`blason: true` au manifeste et dépliée sur le carré UV (#3111).
 
 Statut **NON VÉRIFIÉ par défaut**. Un juge neuf statue par signe identitaire ; la revue utilisateur
 consigne verbatim et date au ticket ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans

@@ -5,16 +5,10 @@
  * à la frame, une seule liste de marques — les deux vues ne peuvent pas diverger sur ce que le monde
  * contient, seulement sur le REGARD porté dessus (`frame`, cf. `StageFrame`).
  *
- * Composant à part, et c'est STRUCTUREL : les abonnements au store qui n'ont de sens qu'ici y vivent.
- * `facing` en est le cas d'école — toute écriture de cap reforge la référence de la table
- * (`noyau/orientation.ts`, à chaque pas et à chaque attaque) : lu par l'hôte, il re-rendrait le stage ENTIER.
- * Un hook conditionnel est interdit ; un composant conditionnel, non.
- *
  * Les ACTEURS se dérivent des ÉLÉMENTS DU BUILDER (`tokenEls`), pas de `battle.combatants` : les
  * filtres du builder valent pour eux (passager de navire abstrait, structure de siège rendue sur son
- * arête, étage isolé, surplomb, brouillard). Un couple MONTÉ y entre comme UN acteur : la monture porte
- * la case et l'échelle, le cavalier voyage avec elle (`ActorPose.rider`) et les deux sortent en UN seul
- * billboard composite (loi de selle `seatRiderOnMount`, `backends/webgl/sceneMeshes`).
+ * arête, étage isolé, surplomb, brouillard). Un couple MONTÉ y entre comme UN acteur, à la case de la
+ * monture (`actorPoses`, `backends/webgl/sceneMeshes`).
  */
 import { useMemo, useState, type MutableRefObject } from 'react';
 import { useGame } from '../../state/store';
@@ -33,8 +27,7 @@ import { actorPoseKey, actorPoses, partyActorPose, type ActorPose, type KeepEl, 
 import type { PartyToken } from '../builders/tokens';
 import { combatHighlightsView, type HighlightOpts } from './highlightLayer';
 import type { ChromeAt } from './boardPose';
-import { GameStage3D, type PercageEntrees, type StageFrame, type StageWalkAnim } from './GameStage3D';
-import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
+import { GameStage3D, type StageFrame, type StageWalkAnim } from './GameStage3D';
 
 /**
  * REGARD porté sur le monde, à l'échelle de l'hôte. Même union que celle de la caméra (`StageFrame`),
@@ -63,7 +56,7 @@ export type WorldFrame =
       eyeH?: number;
     };
 
-export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, tokenEls, propEls, walksRef, partyToken, gameTime, lightLevel, lights, battle, highlightOpts, dynMarks, halos, chromes, percage, pionsEnDisques }: {
+export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, tokenEls, propEls, walksRef, partyToken, gameTime, lightLevel, lights, battle, highlightOpts, dynMarks, halos, chromes, pionsEnDisques }: {
   scene: Scene;
   mpt: number;
   /** Le REGARD de cet hôte — et la seule chose qui distingue les deux vues (cf. `WorldFrame`). */
@@ -98,36 +91,24 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   /** CHROME des jetons déjà dérivé par l'hôte — cet écran n'en consomme que l'ALLURE (le reste se
    *  peint en overlay SVG, `stage/TokenChromeOverlay`). */
   chromes?: readonly TokenChromeMark[];
-  /** DÉCOUPE LOCALE PAR OCCLUSION (#1176, M3) — les entrées du verdict que l'hôte tient déjà pour son
-   *  dégagement (nappes projetées + capsules d'alliés). Cette couche ne les dérive pas : elle passe. */
-  percage?: PercageEntrees | null;
-  /** Verdict `pionsEnDisques` de l'hôte (#1176, P3-5c) : sous lui le monde ne monte AUCUN sujet
-   *  `kind:'personnage'` — c'est l'hôte qui les peint, en disques SVG. Cette couche PASSE le verdict,
-   *  elle ne le dérive pas : le POV et l'éditeur regardent d'autres plateaux. */
+  /** Verdict `pionsEnDisques` de l'hôte (#1176, P3-5c ; `stage/viewPolicy`). Cette couche PASSE le
+   *  verdict, elle ne le dérive pas : le POV et l'éditeur regardent d'autres plateaux. */
   pionsEnDisques?: boolean;
 }) {
-  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
-  const facings = useGame((s) => s.facing); // orientation MONDE vivante par acteur (Dir8)
   // VOILE D'ENTRÉE EN SCÈNE (#1372) : l'écran volumique dit quand il tient son chargement, cette
   // couche le PEINT — un simple élément de DOM par-dessus le canevas (même boîte, `.iso-stage`), et
   // aucun chemin de rendu de plus. Il vit ici et pas dans un hôte : les deux vues (plateau, première
   // personne) montent ce même monde, et un voile par hôte en ferait deux à tenir d'accord.
   const [voile, setVoile] = useState(false);
-  const poses: ActorPose[] = actorPoses(tokenEls, facings);
-  if (partyToken) poses.push(partyActorPose(partyToken, facings));
-  // RÉFÉRENCE STABLE tant que rien de ce que le billboard dessine n'a bougé — même patron de clé que
-  // `visualAllies` (`stage/MondeDeCampagne`). Un tableau neuf démonte puis remonte les quads de TOUS les sujets ; la
-  // clé porte donc tout ce dont la POSE et le DESSIN dépendent : identité, case LOGIQUE, orientation,
-  // et la SIGNATURE des entrées de dessin (garde-robe, équipement, apparence vivante, état au sol,
-  // échelle). `actorPoseKey` la compose depuis la MÊME signature que l'identité de cache de texture
-  // (`BillboardSubject.identity`) : une entrée de dessin ne peut plus périmer l'une sans l'autre.
-  // Le GLISSEMENT de marche n'y entre PAS (#1176, P2-4) : la boucle de rendu le lit elle-même et décale
-  // des quads déjà montés, là où la clé fractionnaire les remontait tous soixante fois par seconde.
+  const poses: ActorPose[] = actorPoses(tokenEls);
+  if (partyToken) poses.push(partyActorPose(partyToken));
+  // RÉFÉRENCE STABLE tant qu'aucun acteur ne change d'identité ni de case LOGIQUE (`actorPoseKey`). Le
+  // GLISSEMENT de marche n'y entre PAS (#1176, P2-4) : la boucle de rendu le lit elle-même.
   const posesKey = poses.map((p) => actorPoseKey(p)).join('|');
   const actors = useMemo(() => poses, [posesKey]);
   // Les éléments du DÉCOR passent tels quels : leur rétention par CONTENU vit au socle
   // (`GameStage3D`, `memesBillboardEls`) — l'éditeur monte cet écran sans passer par ici.
-  const els = useMemo(() => ({ tokens: tokenEls, props: propEls }), [tokenEls, propEls]);
+  const els = useMemo(() => ({ props: propEls }), [propEls]);
   // MARQUES DE CASES (P3-0c) : le builder PUR `builders/highlights`, sur la vue assemblée
   // (`combatHighlightsView`). L'écran volumique n'en connaît que la liste — il la pose à plat au sol.
   const highlights = useMemo<HighlightEl[]>(
@@ -149,14 +130,13 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
     },
     cam: () => (frame.mode === 'plateau' ? frame.camAt(performance.now()) : { x: 0, y: 0 }),
   };
-  // ALLURE des quads : la table du rendu courant, interrogée PAR FRAME dans la passe de pose — un
-  // survol change trois nombres de matériau, rien de monté. RETENUE sur la SIGNATURE des allures
+  // Allure des anneaux interrogée par frame, retenue sur sa signature
   // (#1371) : la fonction est une DÉPENDANCE du redessin de l'écran, et une fermeture neuve sur une
   // `Map` neuve y faisait peindre une image à chaque commit de l'hôte, quelle qu'en fût la cause.
-  const cléAllures = (chromes ?? []).map((m) => `${m.id}:${m.ghost ? 1 : 0}${m.dim ? 1 : 0}:${m.highlight ?? ''}`).join('|');
+  const cléAllures = (chromes ?? []).map((m) => `${m.id}:${m.ghost ? 1 : 0}:${m.endState ?? ''}:${m.highlight ?? ''}`).join('|');
   const chromeAt = useMemo<ChromeAt>(
     () => {
-      const allures = new Map((chromes ?? []).map((m) => [m.id, { ghost: m.ghost, dim: m.dim, highlight: m.highlight }]));
+      const allures = new Map((chromes ?? []).map((m) => [m.id, { ghost: m.ghost, endState: m.endState, highlight: m.highlight }]));
       return (cid) => allures.get(cid) ?? null;
     },
     [cléAllures],
@@ -181,7 +161,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   );
   return (
     <>
-      <GameStage3D resolveTrapping={resolveTrapping} scene={scene} lecture="jeu" mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} percage={percage ?? null} pionsEnDisques={pionsEnDisques} onEntreeEnScene={setVoile} />
+      <GameStage3D scene={scene} lecture="jeu" mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} pionsEnDisques={pionsEnDisques} onEntreeEnScene={setVoile} />
       {/* Le chargement de l'app, RÉUTILISÉ tel quel (`.lazy-fallback`, repli de `Suspense` dans
           `ui/App.tsx`) : `role="status"` et le mot « Chargement… », rien de plus — aucune classe de
           domaine de plus (cliquet `ui-ratchets` xii). Ce qui lui est PROPRE tient en trois réglages

@@ -1,7 +1,6 @@
 /**
- * CACHE BORNÉ à budget d'OCTETS (#1374) — la machinerie d'éviction que le cuiseur de planches tenait
- * pour lui seul, extraite ici pour servir les DEUX populations de textures : les planches de flipbook
- * (`atlasBake`) et les textures statiques de billboard (`svgTexture`). Module PUR : il ne connaît ni
+ * CACHE BORNÉ à budget d'OCTETS (#1374) — la machinerie d'éviction des textures statiques de
+ * billboard (`svgTexture`). Module PUR : il ne connaît ni
  * three, ni le DOM — ce qu'il libère lui est donné (`disposer`), ce qu'il pèse aussi (`bytesDe`).
  *
  * INVARIANTS :
@@ -18,8 +17,8 @@
  *
  * ANGLES MORTS :
  *  - une entrée EN VOL pèse son ESTIMATION (`bytesEst`) et non son poids réel, remplacé à la
- *    résolution ; les deux consommateurs l'estiment à la MÊME formule que le poids réel (textures
- *    statiques : `octetsTextureStatique` ; planches : `atlasBytesEstimés`), une demande SANS
+ *    résolution ; le consommateur l'estime à la MÊME formule que le poids réel
+ *    (`octetsTextureStatique`), une demande SANS
  *    estimation pèserait zéro tant qu'elle court ;
  *  - une entrée en vol n'est jamais évincée : le stock ne retombe sous sa borne qu'une fois les
  *    cuissons servies ;

@@ -85,16 +85,9 @@ export interface Mutation {
   note?: string;
   /** Provenance livre/page — LDB 19 IMPLICITE si absent ; EXPLICITE pour les suppléments (EDO Appendice 2…). */
   source?: { book: string; page: number };
-  /** Mutation PHYSIQUE sans manifestation CORPORELLE visible (Souffle du feu, Sang acide, Cri
-   *  assourdissant…) : pas de calque rig attendu — déclaré explicitement (≠ visuel à dessiner). */
-  nonVisual?: boolean;
   /** Pointeur de SOUS-TABLE (ex. « Tête bestiale » EDOC → re-tirer sur la sous-table Tête Bestiale) :
    *  `rollMutation` re-tire sur `${subTable}-${alignement}` (suffixe hérité de la table courante). */
   subTable?: string;
-  /** Apparence COSMÉTIQUE déclarée en DONNÉE (calques du catalogue via `features` + `colors` + `eyes`) —
-   *  fusionnée sur le rig quand la mutation est présente (cf. `combatantVisuals`). Type erased : le
-   *  moteur ne la lit jamais (comme `Combatant.appearance` côté types). */
-  appearance?: import('./authoringAppearance').EntityAppearance;
   /** PROVENANCE, posée par `attachMutation` sur l'instance ATTACHÉE : les niveaux de Talent que son
    *  attache a effectivement acquis (`acquerirTalent` rendu `true`). `detachMutation` ne retire qu'eux. */
   talentsAcquis?: RefDesignee[];
@@ -232,7 +225,7 @@ export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutatio
 }
 
 /** INVERSE structurel d'`attachMutation` : retire l'instance de `c.mutations` (ses passifs charMod/moveMod/
- *  ap/skillMod/grantNaturalWeapon/apparence — lus EN DIRECT sur `c.mutations` par passiveMods/le rig/le
+ *  ap/skillMod/grantNaturalWeapon/apparence — lus EN DIRECT sur `c.mutations` par passiveMods/le
  *  loadout — disparaissent avec elle) et RÉVERSE les grants STRUCTURELS posés à l'attache (Trait, Trait psy,
  *  Talent). Sert la mutation TEMPORISÉE de l'op `rollMutation` (Allure démoniaque « pour toute la durée du
  *  Sort », EDOC 13 l.276-277) ; le chemin CORRUPTION (corruptionFlow → `attachMutation` direct, sans effet

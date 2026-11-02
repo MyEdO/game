@@ -525,6 +525,13 @@ Exemples de groupes : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmar
 
 **Mécanique** : ce Talent ne confère **pas** l'immunité automatique — il accorde **un seul Test de Calme Accessible (+20)** pour ignorer les effets. En cas d'échec, le personnage est sujet aux règles normales de Peur (avec Tests à Intermédiaire +0 les Rounds suivants).
 
+**L'Ennemi est un Groupe**, lecture recommandée, révisable (Q13 A, #3045) : la spécialisation de Sans Peur est un id de `groups.json` hors des Groupes relatifs (source `groupesDAppartenance`, la sous-liste `CIBLE_D_APPARTENANCE`), lue par `sansPeurVs` comme une Cible de Groupe.
+- Pluriel ramené au Groupe existant : Criminels → `criminel`, Gardes → `garde`, Hommes-bêtes → `homme-bete`, Morts-vivants → `mort-vivant`, Peaux-vertes → `peau-verte`.
+- Groupes de spécialisation : Animaux (`LDB 08 l.3514`), Hors-la-loi (`LDB 08 l.1852`, `LDB 10 l.1051`), Hérétiques (`LDB 08 l.1732`), Intrus (`LDB 08 l.1203`), Miliciens (`LDB 08 l.490`), Naufrageurs (`LDB 08 l.2928`), Patrouilleurs fluviaux (`LDB 08 l.2582`), Patrouilleurs routiers (`LDB 08 l.3125`), Primes (`LDB 08 l.1559`), Rats (`LDB 08 l.596`), Sorciers dissidents et Vampires (`LDB 10 l.1051`), Sorcières (`LDB 08 l.1907`), Chaos (`AA 03 l.420`), Cavalerie (`AA 04 l.204`), Grandes bêtes (`ADE II 02 l.927`).
+- Composites (`inclut`) : Animaux = animaux sauvages, animaux domestiques et bêtes ; Chaos = démons, cultistes et mutants. Lecture contraire : les hommes-bêtes dans Chaos (« les véritables enfants du Chaos », `LDB 83 l.11`).
+- Cavalerie : tout combattant monté (`mountId`), dérivée comme Mutants. Lecture contraire : un Groupe déclaré par les seules troupes montées du bestiaire.
+- Choix du joueur, lecture révisable (#3045) : le pool propose toute cette sous-liste, étiquettes du Tableau des Obsessions comprises (feu, eau, pauvreté, bonheur, richesse, objets inanimés, `EDOC 12 l.170`), qui ne sont pas des ennemis au sens de « l'ennemi spécifié quand vous le rencontrez » (`LDB 10 l.1051`). Lecture contraire : un pool restreint aux Groupes de personnes et de créatures.
+
 **Sources RAW** :
 - `LDB 10 l.1051` — définition, Test Accessible (+20), liste d'ennemis courants
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rotTile, unrotTile, effDims, tileCenter, screenToTile, stageSize, depth, footprintDepth, projectOccluder, occludesActor, capsuleCenter, screenBasis, Z_STEP, BASE_SCALE, CELL, LEVEL_H, TW, screenToTileAtZ, screenToTileF, diamondPath, diamondCorners, billboardScale, type ActorCapsule, type Dims, type ProjectedOccluder } from './iso';
+import { rotTile, unrotTile, effDims, tileCenter, screenToTile, stageSize, depth, footprintDepth, projectOccluder, capsuleCenter, Z_STEP, BASE_SCALE, CELL, LEVEL_H, screenToTileAtZ, screenToTileF, diamondPath, diamondCorners, billboardScale, type Dims } from './iso';
 
 describe('screenToTileF — picking FRACTIONNAIRE (arêtes éditeur)', () => {
   for (const rot of [0, 1, 2, 3] as const) {
@@ -125,134 +125,16 @@ describe('depth rot-aware', () => {
   });
 });
 
-describe('occlusion locale par panneau', () => {
-  const ACTOR_CAPSULE: ActorCapsule = {
-    segment: [{ x: 100, y: 150 }, { x: 100, y: 100 }],
-    radius: 12,
-    depth: 10,
-    vertical: [0, 0.5],
-  };
-  const makeOccluder = ({
-    front,
-    overlap,
-    vertical,
-  }: {
-    front: boolean;
-    overlap: boolean;
-    vertical: boolean;
-  }): ProjectedOccluder => ({
-    polygons: [{
-      points: [
-        { x: overlap ? 90 : 180, y: 90 },
-        { x: overlap ? 110 : 200, y: 90 },
-        { x: overlap ? 110 : 200, y: 160 },
-        { x: overlap ? 90 : 180, y: 160 },
-      ],
-      bounds: { left: overlap ? 90 : 180, right: overlap ? 110 : 200, top: 90, bottom: 160 },
-      depths: new Array(4).fill(front ? 11 : 9),
-      lifts: new Array(4).fill(vertical ? 0.25 : -0.75),
-      vertical: vertical ? [0, 1] : [-1, -0.5],
-    }],
-    bounds: { left: overlap ? 90 : 180, right: overlap ? 110 : 200, top: 90, bottom: 160 },
-  });
-
-  it.each([
-    ['derrière', { front: false, overlap: true, vertical: true }],
-    ['sans recouvrement', { front: true, overlap: false, vertical: true }],
-    ['sous les pieds', { front: true, overlap: true, vertical: false }],
-  ])('ne masque pas un panneau %s', (_label, fixture) => {
-    expect(occludesActor(makeOccluder(fixture), ACTOR_CAPSULE)).toBe(false);
-  });
-
-  it('masque seulement lorsque devant, intersection 2D et hauteur coïncident', () => {
-    expect(occludesActor(
-      makeOccluder({ front: true, overlap: true, vertical: true }),
-      ACTOR_CAPSULE,
-    )).toBe(true);
-  });
-
-  it('évalue la profondeur du polygone qui intersecte, jamais le maximum global du panneau', () => {
-    expect(occludesActor({
-      polygons: [{
-        points: [
-          { x: 90, y: 90 },
-          { x: 200, y: 90 },
-          { x: 200, y: 160 },
-          { x: 90, y: 160 },
-        ],
-        bounds: { left: 90, right: 200, top: 90, bottom: 160 },
-        depths: [9, 11, 11, 9],
-        lifts: [0.25, 0.25, 0.25, 0.25],
-        vertical: [0, 1],
-      }],
-      bounds: { left: 90, right: 200, top: 90, bottom: 160 },
-    }, ACTOR_CAPSULE)).toBe(false);
-  });
-
-  it('traite la tangence exacte comme non occlusive et une pénétration comme occlusive', () => {
-    const tangent = makeOccluder({ front: true, overlap: true, vertical: true });
-    tangent.polygons[0].points = [
-      { x: 70, y: 90 },
-      { x: 88, y: 90 },
-      { x: 88, y: 160 },
-      { x: 70, y: 160 },
-    ];
-    tangent.polygons[0].bounds = { left: 70, right: 88, top: 90, bottom: 160 };
-    tangent.bounds = tangent.polygons[0].bounds;
-    expect(occludesActor(tangent, ACTOR_CAPSULE)).toBe(false);
-
-    tangent.polygons[0].points[1].x = 88.001;
-    tangent.polygons[0].points[2].x = 88.001;
-    tangent.polygons[0].bounds.right = 88.001;
-    tangent.bounds.right = 88.001;
-    expect(occludesActor(tangent, ACTOR_CAPSULE)).toBe(true);
-  });
-
-  it('#907 — occulte le sujet couvert à l’écran par une nappe ENTIÈREMENT au-dessus de sa tête et peinte après lui', () => {
-    const dims: Dims = { w: 16, h: 16, rot: 0 };
-    // Sujet debout sur le sol de sa case : capsule pieds→tête d'UN niveau (cf. `actorCapsuleOf`).
-    const foot = tileCenter(5, 5, dims, 0);
-    const head = tileCenter(5, 5, dims, 1);
-    const capsule: ActorCapsule = {
-      segment: [{ x: foot.cx, y: foot.cy }, { x: head.cx, y: head.cy }],
-      radius: TW * 0.28,
-      depth: depth(5, 5, dims, 0),
-      vertical: [0, 1],
-    };
-    // Nappe de toit à 2 niveaux, 3 cases plus loin en diagonale : à l'écran elle retombe SUR le sujet.
-    const roof = projectOccluder({
-      polygons: [[
-        { x: 6.5, y: 6.5, lift: 2 },
-        { x: 9.5, y: 6.5, lift: 2 },
-        { x: 9.5, y: 9.5, lift: 2 },
-        { x: 6.5, y: 9.5, lift: 2 },
-      ]],
-    }, dims);
-    const poly = roof.polygons[0];
-    expect(poly.vertical[0]).toBeGreaterThan(capsule.vertical[1]); // bande verticale entièrement au-dessus de la tête
-    expect(Math.min(...poly.depths)).toBeGreaterThan(capsule.depth); // peinte APRÈS le sujet
-    expect(poly.bounds.left).toBeLessThan(head.cx);
-    expect(poly.bounds.right).toBeGreaterThan(head.cx);
-    expect(poly.bounds.top).toBeLessThan(head.cy);
-    expect(poly.bounds.bottom).toBeGreaterThan(head.cy); // et elle couvre la tête à l'écran
-
-    expect(occludesActor(roof, capsule)).toBe(true);
-  });
-
+describe('projection écran d’un panneau et capsule d’acteur', () => {
   it('capsuleCenter : le milieu du segment pieds→tête, une demi-capsule au-dessus des pieds', () => {
     const dims: Dims = { w: 8, h: 8, rot: 0 };
     const pieds = tileCenter(3, 4, dims, 0), tete = tileCenter(3, 4, dims, 1);
-    const centre = capsuleCenter({
-      segment: [{ x: pieds.cx, y: pieds.cy }, { x: tete.cx, y: tete.cy }],
-      radius: TW * 0.28,
-      depth: depth(3, 4, dims, 0),
-      vertical: [0, 1],
-    });
+    const centre = capsuleCenter({ segment: [{ x: pieds.cx, y: pieds.cy }, { x: tete.cx, y: tete.cy }] });
     expect(centre.x).toBe(pieds.cx);
     expect(pieds.cy - centre.y).toBe(LEVEL_H / 2);
   });
 
-  it('projette polygones, bornes et profondeur avec les primitives iso aux quatre rotations', () => {
+  it('projette polygones et bornes avec les primitives iso aux quatre rotations', () => {
     const panel = {
       polygons: [[
         { x: 4.5, y: 4.5, lift: 0 },
@@ -269,54 +151,12 @@ describe('occlusion locale par panneau', () => {
         return { x: cx, y: cy };
       });
       expect(projected.polygons[0].points).toEqual(expected);
-      expect(projected.polygons[0].depths).toEqual(
-        panel.polygons[0].map((point) => depth(point.x, point.y, dims, point.lift)),
-      );
-      expect(projected.polygons[0].lifts).toEqual(panel.polygons[0].map((point) => point.lift));
       expect(projected.bounds).toEqual({
         left: Math.min(...expected.map((point) => point.x)),
         right: Math.max(...expected.map((point) => point.x)),
         top: Math.min(...expected.map((point) => point.y)),
         bottom: Math.max(...expected.map((point) => point.y)),
       });
-    }
-  });
-
-  it('décide devant et derrière aux quatre rotations', () => {
-    const actor = { x: 5, y: 5 };
-    for (const rot of [0, 1, 2, 3] as const) {
-      const dims: Dims = { w: 11, h: 11, rot };
-      const actorCenter = tileCenter(actor.x, actor.y, dims);
-      const actorHead = tileCenter(actor.x, actor.y, dims, 1);
-      const capsule: ActorCapsule = {
-        segment: [
-          { x: actorCenter.cx, y: actorCenter.cy },
-          { x: actorHead.cx, y: actorHead.cy },
-        ],
-        radius: 18,
-        depth: depth(actor.x, actor.y, dims),
-        vertical: [0, 1],
-      };
-      const basis = screenBasis(actor.x, actor.y, dims);
-      const candidates = [
-        { x: 4, y: 4 },
-        { x: 4, y: 6 },
-        { x: 6, y: 4 },
-        { x: 6, y: 6 },
-      ].filter((point) => screenBasis(point.x, point.y, dims).col === basis.col);
-      const front = candidates.find((point) => depth(point.x, point.y, dims) > capsule.depth)!;
-      const behind = candidates.find((point) => depth(point.x, point.y, dims) < capsule.depth)!;
-      const panelAt = (point: { x: number; y: number }) => projectOccluder({
-        polygons: [[
-          { x: point.x - 0.2, y: point.y - 0.2, lift: 0 },
-          { x: point.x + 0.2, y: point.y + 0.2, lift: 0 },
-          { x: point.x + 0.2, y: point.y + 0.2, lift: 1 },
-          { x: point.x - 0.2, y: point.y - 0.2, lift: 1 },
-        ]],
-      }, dims);
-
-      expect(occludesActor(panelAt(front), capsule)).toBe(true);
-      expect(occludesActor(panelAt(behind), capsule)).toBe(false);
     }
   });
 });

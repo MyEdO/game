@@ -3,7 +3,7 @@
  * qu'avec l'écran de campagne ; une vue n'est pas un écran, c'est un `frame` servi à un monde déjà là.
  *
  * LA FRONTIÈRE, DITE SANS FARD : est une VÉRITÉ MONDE tout ce qui ENTRE DANS LE CANEVAS — vision,
- * exploré, teinte, lumières, éléments (jetons/décors), marche, dégagement, perçage, cadre de regard.
+ * exploré, teinte, lumières, éléments (jetons/décors), marche, dégagement, cadre de regard.
  * Ça vit ICI, et une feuille n'en recalcule aucune. Le reste est de l'OVERLAY : la surcouche de
  * plateau dérive bel et bien sa propre géométrie d'affordance (grille, murs au trait `wallTraitObjs`,
  * arêtes utilisables `aretesUtilisables`, réticules, FX) — rien de tout cela n'atteint le canevas, et un
@@ -14,7 +14,7 @@
  * des décors dans `propEls`, le jeton de groupe `partyToken` (on ne se voit pas soi-même). Une de
  * CADRE — `frameMonde` (plateau : `dims`/`camAt`/zoom ; œil : case, cap, intérieur, sujet suivi). Deux
  * de STYLE — `politique` et `dims.view`, parce que la vue du DESSUS est un regard de plateau et ne
- * saurait s'hériter à hauteur d'homme. Les sorties anticipées de `cleared`/`lids`/`percage`/`roofEls`
+ * saurait s'hériter à hauteur d'homme. Les sorties anticipées de `cleared`/`roofEls`
  * n'ajoutent aucune règle : elles ne font pas payer à un regard ce qu'il ne lit pas.
  *
  * LE CHANGEMENT DE REGARD EST UNE REPOSE — toute reconstruction à la bascule est un défaut, sauf le
@@ -31,7 +31,6 @@ import { aretesOffertes, gestesDeplacantsOuverts } from '../../noyau/gesteDArete
 import { Dims, capsuleCenter } from '../../geometry/iso';
 import { etageActif, getViewZ, subscribeViewZ } from '../../state/viewLevel';
 import { setStageFrame } from './spritePicker';
-import { setVisibleTileBounds } from '../viewport';
 import { useWalkAnim } from '../fx/useWalkAnim';
 import { subscribeStageFrames, subscribeStagePrelude, battreStageFrames, demanderFrames, relacherFrames, useBattementContinu } from './stageFrames';
 import { getStagePan, subscribeStagePan } from '../../state/stagePan';
@@ -42,7 +41,6 @@ import { nappePorteuse } from '../builders/types';
 import { buildTokens, partyTokenOf } from '../builders/tokens';
 import { RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
 import { seatedEyeH } from '../pov/camera';
-import { elOccluder } from './occluders';
 import { tireurSurvole, type HighlightOpts } from './highlightLayer';
 import { dynamicMarks } from '../builders/dynamicMarks';
 import { interactionHalos, NO_INTERACTION_HALOS, type InteractHalo } from '../builders/interactHalos';
@@ -59,8 +57,7 @@ import { useExploreCourant } from './exploreCourant';
 import { roomZonesByElKey, type KeepEl, type TintAt } from '../backends/webgl/sceneMeshes';
 import { stageCamTransform, stageYawCorrection } from './stageCam';
 import { NO_CLEARED_SPACE, frontFacadeCutaway, cutawayForSection, cutawayOverhead, spaceCellKey } from './architectureVisibility';
-import { clePercage } from './percage';
-import { useStageCamera, cameraTargeting, stageFocus, computeViewBounds, adoucirFocal, DUREE_FOCALE_MS, VW, VH, type LissageFocal } from './useStageCamera';
+import { useStageCamera, cameraTargeting, stageFocus, adoucirFocal, DUREE_FOCALE_MS, VW, VH, type LissageFocal } from './useStageCamera';
 import { useStagePointer } from './useStagePointer';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { aretesUtilisables } from '../../noyau/aretes';
@@ -75,7 +72,6 @@ import { SurcouchePov } from '../pov/SurcouchePov';
 // pastilles d'état des jetons, faune et ambiance. Elles servent les DEUX regards, donc elles entrent
 // par l'hôte — la feuille qui les porte peut se démonter, le monde non.
 import '../anim.css';
-import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 /** À HAUTEUR D'ŒIL, TOUT SE DESSINE (#1176, P3-1a) : le dégagement d'architecture est une loi de la vue
  *  de PLATEAU (retirer ce qui coiffe le groupe pour voir dedans depuis le dessus). Appliqué en première
@@ -99,7 +95,6 @@ export function MondeDeCampagne() {
 function CorpsDuMonde() {
   // ── État (store) ────────────────────────────────────────────────────────────────────────────────
   const scene = useGame((s) => s.scene);
-  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   const mode = useGame((s) => s.mode);
   const partyPos = useGame((s) => s.partyPos);
   const flags = useGame((s) => s.flags); // B4 : masquer le halo d'un décor déjà fouillé (__fouille_<id>)
@@ -300,7 +295,7 @@ function CorpsDuMonde() {
   /** Point focal ÉCRAN à un instant (avant décalage manuel), sans adoucissement : la cible VIVE. */
   const focalBrutAt = (now: number) => {
     const focus = stageFocus({ ...argsFocal, walkPosOf: walkPosAt(now) });
-    // Visée du SUJET : le milieu de sa capsule (`actorCapsuleOf`, la même que consomme l'occlusion), et
+    // Visée du SUJET : le milieu de sa capsule (`actorCapsuleOf`), et
     // non le sol de sa case — viser le sol décale le cadre d'une demi-capsule vers le haut de la scène,
     // donc vers ce qui SURPLOMBE le sujet (biais multiplié par le zoom).
     // Projection VIVE (`dimsAt`) et non celle du commit : la caméra volumique cadre le point MONDE que
@@ -375,8 +370,7 @@ function CorpsDuMonde() {
   // Le monde glisse dans la boucle de rendu et React ne rend plus rien entre deux pas — ni pendant un
   // glisser-caméra, ni pendant l'approche d'une focale. Ce que l'hôte écrit HORS de React suit donc
   // le BATTEMENT (`stage/stageFrames`) : la caméra que lisent les handlers du pointeur (`camRef` —
-  // seule source de l'inversion pixel→tuile, `useStagePointer`), le cadre de tuiles visibles
-  // (`setVisibleTileBounds`) et le transform du groupe d'overlays SVG (curseur, aperçu de chemin,
+  // seule source de l'inversion pixel→tuile, `useStagePointer`) et le transform du groupe d'overlays SVG (curseur, aperçu de chemin,
   // télégraphes), qui décrocheraient du monde d'une case entière.
   // Le FRANCHISSEMENT d'une case, lui, n'est pas une affaire d'image : c'est l'événement DISCRET dont
   // dépendent les vérités de pièce et de dégagement (`visualAllies` → `roomFocus`/`cleared`/`propEls`).
@@ -396,7 +390,6 @@ function CorpsDuMonde() {
     const dimsImage = dimsAt();
     camRef.current = c;
     focalRef.current = focal;
-    setVisibleTileBounds(computeViewBounds(c, zoom, dimsImage));
     const g = camGRef.current;
     // Le groupe d'overlays porte sa caméra ET, pendant une rotation, la reprojection d'écran de ce que
     // le lacet a parcouru depuis le commit (`stageYawCorrection`, chaîne vide hors rotation).
@@ -436,45 +429,13 @@ function CorpsDuMonde() {
   // qui l'ABRITE est RETIRÉ, à l'échelle de la MASSE, jamais voilé ni découpé panneau par panneau :
   // sa pièce, l'emprise qui l'abrite, les niveaux au-dessus de lui (`clearedSpace`). Les façades
   // frontales de cet espace tombent du même geste (`frontFacadeCutaway`), et rien au niveau du groupe
-  // n'est retiré. Une masse qui le CACHE à l'écran sans l'abriter n'est PAS retirée — elle reçoit un
-  // trou local (#1176, M3, `stage/percage.ts`).
+  // n'est retiré. Une masse qui le CACHE à l'écran sans l'abriter n'est PAS retirée.
   const roofGeom = useMemo(() => (scene ? buildRoofs(scene) : []), [scene]);
-  const lids = useMemo(
-    () => (pov ? [] : roofGeom.map((el) => ({
-      sectionId: el.sectionId ?? el.key, // nappe hors masse authorée : elle est sa propre section
-      z: el.cell.z,
-      cells: el.cells,
-      occluder: elOccluder(el, dims),
-    }))),
-    [roofGeom, dims, pov],
-  );
-  // ALLIÉS COIFFABLES : leur case VISUELLE, leur `cid` et leur capsule d'écran — les entrées du trou
-  // local (#1176, M3), résolues ICI parce qu'elles exigent la projection (donc l'hôte, jamais le
-  // builder).
-  const alliesCoiffables = useMemo(
-    () => (scene
-      ? visualTilesAt(wnow).map((t) => ({
-        cid: t.id,
-        capsule: actorCapsuleOf({ x: t.x, y: t.y, h: heightAt(scene, t.x, t.y, t.z) }, dims),
-        z: t.z,
-      }))
-      : []),
-    [scene, visualAlliesKey, dims],
-  );
   // À hauteur d'œil, RIEN n'est dégagé (`keepEl` y rend tout) : la résolution du dégagement — la
   // passe la plus chère de la chaîne, rejouée à chaque pas — n'aurait aucun lecteur.
   const cleared = useMemo(
     () => (scene && !pov && debugRoofCut ? clearedSpace(scene, visualAllies, exploredSet) : NO_CLEARED_SPACE),
     [scene, visualAllies, exploredSet, pov, debugRoofCut],
-  );
-  // DÉCOUPE LOCALE PAR OCCLUSION (#1176, M3) : ce que la boucle de rendu volumique reprend à la CLÉ
-  // (pas franchi, quart de tour, étage) pour percer un trou dans la masse qui cache un héros à
-  // l'écran. Les entrées sont celles ci-dessus, sans un seul second calcul.
-  const percage = useMemo(
-    () => (scene && !pov
-      ? { cle: clePercage({ tuiles: visualTilesAt(wnow), rot: dims.rot ?? 0, view: dims.view ?? 'iso', activeZ }), lids, heros: alliesCoiffables }
-      : null),
-    [scene, visualAlliesKey, dims, activeZ, lids, alliesCoiffables, pov],
   );
   // Les MÊMES vérités, dans la forme que consomme la voie VOLUMIQUE (#1176) : le dégagement en canal
   // GÉOMÉTRIE (une masse dégagée ne se rend pas), la visibilité en canal TEINTE. Un seul jeu de lois.
@@ -557,8 +518,8 @@ function CorpsDuMonde() {
   );
   const propEls = useMemo(() => propsEmis.filter(keepEl), [propsEmis, keepEl]);
   const tokenEls = useMemo(
-    () => (scene ? buildTokens(scene, visible, mode === 'battle' && battle ? battle : null, { activeZ, viewZ: layerZ, top: politique.montesDissocies }) : []),
-    [scene, visible, mode, battle, activeZ, layerZ, politique],
+    () => (scene ? buildTokens(scene, visible, mode === 'battle' && battle ? battle : null, { activeZ, viewZ: layerZ, top: politique.montesDissocies }, party.map((h) => h.id)) : []),
+    [scene, visible, mode, battle, activeZ, layerZ, politique, party],
   );
 
   // Les vérités de surbrillance sont assemblées par le monde volumique lui-même
@@ -638,8 +599,8 @@ function CorpsDuMonde() {
   // caméra lisent la MÊME pose. `partyPos` reste la position LOGIQUE (brouillard, chemins) ; le RENDU
   // suit l'ancre de la place.
   const partyToken = useMemo(
-    () => (pov || combatBattle || !scene ? null : partyTokenOf(scene, partyLeader, partyPos)),
-    [pov, combatBattle, scene, partyLeader, partyPos],
+    () => (pov || combatBattle || !scene ? null : partyTokenOf(scene, partyLeader, partyPos, party.map((h) => h.id))),
+    [pov, combatBattle, scene, partyLeader, partyPos, party],
   );
   const marquesDyn = useMemo(
     () => dynamicMarks(mode === 'battle' ? battle : null, mode === 'exploration' && !dialogue ? partyPos : null, tokenEls, partyToken),
@@ -647,12 +608,12 @@ function CorpsDuMonde() {
   );
   // JETONS POSTÉS (P3-0f, P3-5c) : même dérivation, même population que les marques dynamiques (les
   // jetons du builder, plus le meneur du groupe hors combat). La surcouche SVG en peint le chrome, et
-  // le CORPS sous le verdict `pionsEnDisques` ; le monde volumique n'en reprend que l'allure, au
-  // matériau de ses quads. Dérivée SANS condition de mode : un figurant d'exploration est un jeton, et
-  // sous ce verdict c'est ici qu'il se dessine (le chrome, lui, reste vide pour lui).
+  // le PION (disque, `TokenDisc`) sous le verdict `pionsEnDisques` ; le monde volumique n'en reprend
+  // que l'allure, sur ses anneaux. Dérivée SANS condition de mode : un figurant d'exploration est un
+  // jeton, et sous ce verdict c'est ici que son pion se pose (le chrome, lui, reste vide pour lui).
   const chromes = useMemo<TokenChromeMark[]>(
     () => tokenChromes(tokenEls, { ghostIds: visée.ghostIds, hoveredId: visée.hoveredId }, partyToken),
-    [tokenEls, visée.ghostIds, visée.hoveredId, partyToken, resolveTrapping],
+    [tokenEls, visée.ghostIds, visée.hoveredId, partyToken],
   );
   // PASTILLES D'ENTITÉ (#1411 P2-C, spec zone 4) : ce que les CHOSES du champ offrent — en combat à
   // l'actif contrôlé, lu au REGISTRE (`state/entityGestes`, aucun id d'action ici) ; hors combat au
@@ -666,7 +627,7 @@ function CorpsDuMonde() {
   );
   const gesteEls = useMemo<GesteMark[]>(
     () => tokenGesteMarks(tokenEls, propEls, offresDEntite),
-    [tokenEls, propEls, offresDEntite, resolveTrapping],
+    [tokenEls, propEls, offresDEntite],
   );
   // HALOS D'INTERACTION (P3-0g ; régime de révélation #1687) : même partage que les marques dynamiques
   // — dérivés UNE fois (`builders/interactHalos`), et servis aux DEUX peintres (anneaux du monde
@@ -677,7 +638,7 @@ function CorpsDuMonde() {
   // ne dépend pas du combat.
   const halos = useMemo<readonly InteractHalo[]>(
     () => (scene ? interactionHalos(tokenEls, propEls, scene, flags, { survol: pointeur.entiteSurvolee, reveler }) : NO_INTERACTION_HALOS),
-    [tokenEls, propEls, scene, flags, pointeur.entiteSurvolee, reveler, resolveTrapping],
+    [tokenEls, propEls, scene, flags, pointeur.entiteSurvolee, reveler],
   );
 
   if (!scene) return null;
@@ -688,10 +649,9 @@ function CorpsDuMonde() {
   // (sinon elle « chasse » une cible mobile et traîne ~0,3 s derrière).
   const anyWalking = Object.keys(walksRef.current).length > 0;
 
-  // ── Caméra : point focal (paire de visée / actif / leader) + culling d'animation ────────────────
+  // ── Caméra : point focal (paire de visée / actif / leader) ──────────────────────────────────────
   const cam = camAt(wnow);
   camRef.current = cam;
-  setVisibleTileBounds(computeViewBounds(cam, zoom, dimsVue)); // écriture dans un module = pas de re-rendu
 
   // Transform CAMÉRA (pan/zoom/rotation) — partagée par le groupe principal ET l'overlay d'étiquettes
   // de zone (Bug lisibilité #782 : ce dernier doit suivre la même projection).
@@ -723,7 +683,6 @@ function CorpsDuMonde() {
         halos={halos}
         partyToken={partyToken}
         chromes={chromes}
-        percage={percage}
         pionsEnDisques={politique.pionsEnDisques}
       />
       {/* LA SURCOUCHE — ce que le regard ADRESSE : overlays d'interaction et picking du plateau,

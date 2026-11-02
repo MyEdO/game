@@ -9,14 +9,13 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   lightTones: 'configuration de rendu — teintes de lumière du monde volumique',
   props:
     'catalogue des placeables de décor — le DOCUMENT est de l’art (volume, libellé, empreinte, et la solidité physique de l’objet : aucune table ne chiffre qu’un tonneau bloque le passage). Trois de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `light` (éclairage, LDB 74 l.43/56/58), `cover` et `opaque` (couvert, LDB 14 l.72/81/86) — les entrées qui en portent un exigent `source` OU `maison` À L’ENTRÉE, par `affinerEntree` de `schemas/defs/props.ts`, et chacune porte son `maison`',
-  raceAppearance: 'configuration de rendu — apparences par race pour le rig, art maison',
-  gabarits: 'configuration de rendu — carrures du rig (facteurs du squelette de référence), art maison',
+  raceAppearance: 'configuration de rendu — apparences par race, art maison',
+  gabarits: 'configuration de rendu — carrures (facteurs du squelette de référence), art maison',
   'garde-robe': 'configuration de rendu — clés des éléments 3D portés sur le corps (têtes, coiffures, emplacements, pièces et ensembles d’habit), et les emblèmes posés sur leurs surfaces, art maison',
   materials:
     'configuration de rendu — LES matières du monde (décor volumique, toiture, relief : couleur, réponse à la lumière, recettes de détail de surface) ; aucun folio n’imprime une teinte de surface',
   apparences:
     'configuration de rendu — LE catalogue des apparences d’objet (formes et leurs variantes : id, libellé, étiquettes de naissance) ; aucun folio n’imprime à quoi ressemble un objet',
-  renduMonte: 'configuration de rendu — réglages d’assiette de la monture à l’écran',
   structureAppearance: 'configuration de rendu — apparences de structures bâties',
   buildings:
     'catalogue des TYPES DE BÂTIMENT — le DOCUMENT est de l’art (empreinte offerte à la pose, matière de couverture, ornements d’identité posés en billboard) ; aucun folio n’imprime de catalogue de bâtiments. Chaque entrée EXIGE `maison` (`exiges` de `schemas/defs/buildings.ts`) : ce qu’un bâtiment vaut en cases et sous quelle couverture est un arbitrage, et il se dit à l’entrée',
@@ -64,7 +63,7 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
   names:
     'listes de PRÉNOMS et noms d’authoring par race — aucune mécanique mesurable, aucune règle à sourcer',
   speciesRace:
-    'table de résolution race → défauts d’authoring (`default`/`rules`) — câblage d’application, pas une donnée RAW',
+    'race d’apparence par défaut de l’authoring — câblage d’application, pas une donnée RAW',
   pregens: 'pré-tirés d’app (compositions maison de fiches jouables) — contenu app-inventé, pas une règle RAW',
   merchants:
     'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`), et les valeurs maison porteront leur champ `maison` par entrée',

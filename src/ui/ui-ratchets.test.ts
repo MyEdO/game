@@ -202,11 +202,10 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
 // ── (viii) Couleurs `fill=`/`stroke=` LITTÉRALES dans le JSX de `src/ui` : un fill/stroke codé en dur
 //    (hex/rgb/hsl) hors token `var(--…)` est de la dette — hors thème, illisible quand la surface change
 //    de fond (bug « texte noir sur noir » du hub de voyage, user 2026-07-11). BASELINE = surfaces d'ART /
-//    de CARTE existantes (aperçu de personnage, canevas de l'éditeur, carte du monde parcheminée) gelées
+//    de CARTE existantes (canevas de l'éditeur, carte du monde parcheminée) gelées
 //    nominativement ; tout NOUVEAU .tsx reste à ZÉRO. Les defs d'art de `gameIso` sont hors périmètre
 //    (scan borné aux `.tsx` de `src/ui`). `fill="none"`/`url(#…)`/`currentColor` ne sont pas des littéraux.
 const FILL_LITERAL_BASELINE: Record<string, number> = {
-  'AppearancePanel.tsx': 1,
   // Restent les teintes de CARTE sans token dédié (vert d'entité de zone, cyan d'entrée et d'aperçu de
   // rectangle, rouge d'exclusion de toiture) ; le jaune de sélection et l'encre de texte composent
   // `--iso-active-halo` / `--shadow-ink`.
@@ -214,7 +213,6 @@ const FILL_LITERAL_BASELINE: Record<string, number> = {
   // après #1176, qui ne touche aucun `fill`/`stroke` de ce fichier) — le cliquet exige
   // l'abaissement d'une baseline devenue plus haute que le réel.
   'editor/EditorCanvas.tsx': 7,
-  'editor/Inspector.tsx': 1,
 };
 
 // ── (ix) Redéfinition de `.panel` hors `components.css` : la primitive canonique (#306) n'a qu'UNE
@@ -269,7 +267,7 @@ const BARE_BUTTON_EXEMPT_FILES = new Set([
   // que OptionChooser/Tabs, à charge à l'appelant (MainMenu/GameMenu) de la composer, jamais de recoder
   // un `<button className="btn">` de menu à la main.
   'MenuCard.tsx',
-  // FigTile.tsx : primitive canon de tuile-figurine cliquable (`.fig-tile`, #412) — même famille que
+  // FigTile.tsx : primitive canon de tuile de zone cliquable (`.fig-tile`, #412) — même famille que
   // PortraitTile.tsx, sa propre classe de composant.
   'FigTile.tsx',
   // PlaqueRow.tsx : primitive canon de la rangée-plaque (`.plaque-row`, #393 amendement 3) — même
@@ -702,14 +700,12 @@ const ECARTS_RESPONSIVE_STOCK: Record<string, number> = {
   'base.css|@media (max-width: 700px)': 2,
   'components.css|@media (max-width: 560px)': 2,
   'components.css|@media (max-width: 700px)': 2,
-  'creator-presentation.css|1100': 1,
   'creator.css|@media (max-width: 560px)': 2,
   'creator.css|@media (max-width: 700px)': 5,
   'layout.css|@media (max-width: 700px)': 2,
   'party.css|@media (max-width: 700px)': 3,
   // #1847 : la tranche ≤900px du registre est SOLDÉE — une seule section, après les règles de base
   // qu'elle recouvre (`party.css`, `.party-main`/`.party-rail`/`.party-company`).
-  'sheet.css|@media (max-width: 700px)': 2,
   'world-meta.css|@media (max-width: 560px)': 6,
   'world-meta.css|@media (max-width: 700px)': 2,
   'world-meta.css|@media (max-width: 900px)': 3,
@@ -1139,13 +1135,8 @@ function scanNumberInputs(files: readonly Fichier[]): Record<string, number> {
 //    stricte 4 d'AGENTS.md vaut pour tout `src/ui`. Canon VERS LE BAS : `max-width` ∈ {900,700,560}.
 //    Canon VERS LE HAUT : `min-width` ∈ {561,701,901} (complément exact d'une tranche basse) et 1440
 //    (docs/charte-ui.md § « Politique grand écran (≥1440px) »).
-//    EXEMPTIONS NOMINATIVES (2026-08-16) — chacune porte sa raison, aucune n'est un blanc-seing :
-//      - `creator-presentation.css` @media (max-width: 1100px) : ramener ce seuil à 900 changerait la
-//        GÉOMÉTRIE de l'écran de présentation entre 900 et 1100px (grille ⇄ colonne, `order` de la
-//        scène, hauteur de figurine) — une décision d'écran, hors lot d'outillage.
 const WIDTH_CANON_MAX = ['900', '700', '560'];
 const WIDTH_CANON_MIN = ['561', '701', '901', '1440'];
-const BREAKPOINT_EXEMPT = new Map<string, string[]>([['styles/creator-presentation.css', ['max:1100']]]);
 
 /** TOUTES les conditions de largeur de CHAQUE prélude `@media` — une règle peut en porter
  *  plusieurs (`@media (min-width: 561px) and (max-width: 900px)`) : ne lire que la première
@@ -1336,9 +1327,7 @@ describe('#1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints)', ()
     const hors: string[] = [];
     for (const f of FICHIERS_UI().filter(estCss)) {
       const r = rel(f);
-      const exempt = BREAKPOINT_EXEMPT.get(r) ?? [];
       for (const bp of new Set(widthBreakpoints(f.text))) {
-        if (exempt.includes(bp)) continue;
         const [sens, px] = bp.split(':');
         const canon = sens === 'max' ? WIDTH_CANON_MAX : WIDTH_CANON_MIN;
         if (!canon.includes(px)) hors.push(`${r} : @media (${sens}-width: ${px}px)`);
@@ -1352,13 +1341,6 @@ describe('#1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints)', ()
       'min:561',
       'max:1234',
     ]);
-  });
-
-  it('(xviii) chaque exemption nominative de breakpoint est encore RÉELLE', () => {
-    for (const [r, bps] of BREAKPOINT_EXEMPT) {
-      const réels = new Set(widthBreakpoints(readFileSync(join(UI, r), 'utf8')));
-      for (const bp of bps) expect([...réels], `${r} : exemption ${bp} périmée — la retirer`).toContain(bp);
-    }
   });
 });
 

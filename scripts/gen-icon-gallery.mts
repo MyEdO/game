@@ -5,6 +5,7 @@
  * Lancer : npx tsx scripts/gen-icon-gallery.mts
  */
 import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { Icon } from '../src/ui/Icon';
@@ -12,6 +13,7 @@ import { ICON_FAMILIES } from '../src/ui/icons/_registry.generated';
 
 const ALL = ICON_FAMILIES.flat();
 const families = [...new Set(ALL.map((d) => d.id.split('/')[0]))];
+export const OUT = fileURLToPath(new URL('../public/icon-gallery.html', import.meta.url));
 
 const cell = (id: string, label: string) => {
   const at = (size: number) => renderToStaticMarkup(React.createElement(Icon, { id, size }));
@@ -22,6 +24,7 @@ const cell = (id: string, label: string) => {
   </figure>`;
 };
 
+export function build(): string {
 const sections = families
   .map((fam) => {
     const defs = ALL.filter((d) => d.id.startsWith(`${fam}/`));
@@ -30,7 +33,7 @@ const sections = families
   })
   .join('\n');
 
-const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Icônes UI QC</title>
+return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="./favicon.svg" /><title>Icônes UI QC</title>
 <style>
   :root { color-scheme: dark; --gold: #b8912f; }
   body { background:#11141c; color:#e8ecf4; font:13px/1.4 system-ui,sans-serif; padding:16px }
@@ -50,5 +53,9 @@ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>
 Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/ui/icons/icons.test.ts.</p>
 ${sections}
 </body></html>`;
-writeFileSync('public/icon-gallery.html', html);
-console.log(`OK: public/icon-gallery.html (${ALL.length} icônes, ${families.length} familles)`);
+}
+
+if (import.meta.main) {
+  writeFileSync(OUT, build());
+  console.log(`OK: public/icon-gallery.html (${ALL.length} icônes, ${families.length} familles)`);
+}

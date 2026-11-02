@@ -36,7 +36,7 @@ import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageValue } from '../../PlageField';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
-import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from '../MonsterPartsFields';
+import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
 import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
 import { ctxDeCatalogue } from '../EffectList';
@@ -45,10 +45,6 @@ import { opsMissingRefs } from '../refsDOp';
 import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
-import { QUAD_SPECIES, WINGED_SPECIES } from '../../../gameIso/rig/creatures';
-import { apparenceSuivante } from '../../../gameIso/rig/parts/cosmetic';
-import { CreaturePreview } from '../../compendium/CreaturePreview';
-import { porteurDApercu } from '../../compendium/apercuPorteur';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
@@ -63,7 +59,6 @@ import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
-import { isSwarm } from '../../../engine/traits/dispatch';
 import type { DomainData } from '../../../data';
 import type { CharKey, Difficulty } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
@@ -315,7 +310,7 @@ const porteAlsoIn = (categoryKey: string): boolean => {
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
-  if (['creatures', 'traits', 'mutations'].includes(categoryKey)) add('appearance');
+  if (categoryKey === 'creatures') add('appearance');
   if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations'].includes(categoryKey)) add('effects');
   if (categoryKey === 'maneuvers') add(...MANEUVER_PROFILE_KEYS);
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
@@ -480,11 +475,11 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // sérialisée ne parse pas son schéma zod — l'écriture disque est bloquée. Effacé à toute ré-édition.
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  // L'apparence (MonsterPartsFields) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
+  // L'apparence (`AppearanceField`) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
   // sort du formulaire générique (sinon rendus en JSON brut). Les autres champs gardent le formulaire
-  // inféré. Même patron : on filtre le champ et on rend l'éditeur spécialisé. L'apparence est éditable sur
-  // les créatures ET les difformités déclarées en donnée (traits / mutations → fragment `appearance`).
-  const hasAppearance = categoryKey === 'creatures' || categoryKey === 'traits' || categoryKey === 'mutations';
+  // inféré. Même patron : on filtre le champ et on rend l'éditeur spécialisé. Seul le schéma des
+  // créatures porte `appearance`.
+  const hasAppearance = categoryKey === 'creatures';
   const isSpell = categoryKey === 'spells';
   // Porteurs d'effets DÉCLENCHÉS (mêmes `TriggeredEffect` éditables) : Traits, Atouts d'arme, Domaines
   // (riders « à la touche »…) ET Talents (Assaut féroce onHit, Frappe réactive onCharged…).
@@ -695,7 +690,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField traits={categoryKey === 'creatures' ? entry.traits as TraitPose[] : undefined} label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitPose[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField traits={entry.traits as TraitPose[]} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -904,28 +899,19 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 }
 
 /** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
-function AppearanceField({ label, porteur, nuee, value, onChange, traits }: { traits?: readonly TraitPose[]; label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+function AppearanceField({ value, onChange, traits }: { traits?: readonly TraitPose[]; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
-  // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
-  // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
-  const quadrupede = !!a.species && (a.species in QUAD_SPECIES || a.species in WINGED_SPECIES);
   return (
     <>
       <div className="ed-field">
         <span>Apparence</span>
-        <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex', 'build', 'hairstyle']} nuee={nuee} />
+        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex']} />
         <label className="dr">
           <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => onChange(apparenceSuivante(a, { armurePortee: e.target.checked || undefined }))} />
-          {' '}Armure du profil visible sur la figurine
+          {' '}Porter l’armure du profil
         </label>
       </div>
       <ApparencesObjetsField appearance={a} onChange={onChange} weapons={armesDEntite(findTrappingById, undefined, { traits })} />
-      <MonsterPartsFields
-        appearance={a}
-        onChange={onChange}
-        reglages={quadrupede ? ['monster', 'eyes', 'features', 'tenue', 'harnais', 'colors'] : ['monster', 'eyes', 'features', 'tenue', 'colors']}
-      />
     </>
   );
 }
@@ -1974,7 +1960,7 @@ function retenirLesCles(rangees: readonly RangeeDeRecord[]): RangeeDeRecord[] {
 const horsDeLaRef = (champs: readonly FieldDesc[], aSpec: boolean): readonly FieldDesc[] =>
   aSpec ? champs.filter((f) => f.key !== 'id' && f.key !== 'spec') : champs;
 
-/** Objet de config hétérogène (`interludeEvents.fx`, `raceAppearance.eyes`…) : SOUS-FORMULAIRE inféré
+/** Objet de config hétérogène (`interludeEvents.fx`) : SOUS-FORMULAIRE inféré
  *  (récursif) — chaque sous-champ retrouve son kind structuré (number/checkbox/stringList/recordText/…)
  *  via le MÊME `inferFields` + `Field`, sans repli JSON pour les objets plats. Une référence à
  *  spécialisation se choisit par `RefField` (`spec`). */

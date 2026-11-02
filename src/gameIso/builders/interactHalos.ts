@@ -66,8 +66,8 @@ export function haloRadiusK(rxPx: number): number {
  *  `survole` = la même, agrandie. Un état N+1 s'ajoute ici et à son mapping de pose. */
 export type HaloEtat = 'muet' | 'survole' | 'revele';
 
-/** Halo d'un utilisable du champ. Il EST un ancrage (`builders/tokenChrome.Ancrage`, cell/n/scaleK/
- *  bodyTopFrac) : la plaque de nom se pose donc à la hauteur de tête que la pastille de gestes utilise
+/** Halo d'un utilisable du champ. Il EST un ancrage (`builders/tokenChrome.Ancrage`, cell/n/scaleK)
+ *  : la plaque de nom se pose donc à la hauteur de tête que la pastille de gestes utilise
  *  déjà, sans un second calcul. */
 export interface InteractHalo extends Ancrage {
   /** Id de l'ENTITÉ de scène (`PropEl.entId`) — la clé des drapeaux d'épuisement (`cleActionJouee`). */

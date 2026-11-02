@@ -1,7 +1,7 @@
 /**
  * ASSEMBLEUR DU MONDE VOLUMIQUE : les builders du pivot (`builders/floors|walls|roofs|props`)
  * deviennent (a) UNE géométrie de monde fusionnée (positions + couleurs de sommet), (b) une liste de
- * SUJETS de billboard (personnages riggés + décor), chacun capable de rendre SA chaîne SVG pour une vue.
+ * SUJETS de billboard (le décor), chacun capable de rendre SA chaîne SVG pour une vue.
  *
  * Deux invariants de ce module :
  *  - FUSION : toutes les faces de la scène tiennent dans UNE `BufferGeometry` (la couleur de face est
@@ -9,8 +9,7 @@
  *    est INDEXÉE, d'un index IDENTITÉ (un sommet par usage : `computeVertexNormals` donne toujours la
  *    normale de FACE) que le masque de dégagement compacte sans toucher aux sommets ;
  *  - DÉLÉGATION : aucune couleur, aucune vue, aucun seuil n'est décidé ici — `faceSurface`, le champ
- *    de teinte (`visibilityTint`), `facesGeometry` (biais coplanaire compris), `propSvg`,
- *    `resolveRender`/`resolveRig` font foi.
+ *    de teinte (`visibilityTint`), `facesGeometry` (biais coplanaire compris), `propSvg` font foi.
  *
  * Sans DOM et sans renderer (la rasterisation vit dans `svgTexture.ts`) : ce module tourne donc sous
  * VITEST, où les gardes le montent tel quel. Il n'est en revanche PAS chargeable en Node CLI nu
@@ -18,13 +17,10 @@
  * — mesuré C6, l'import échoue à `Cannot read properties of undefined (reading 'DEV')`.
  */
 import * as THREE from 'three';
-import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { buildFloors } from '../../builders/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs, ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildProps } from '../../builders/props';
-import { buildTokens } from '../../builders/tokens';
-import { teamRingDecor } from '../../builders/dynamicMarks';
 import { estPropVolumique, type CellSide, type Face, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
 import { findPropById, findPropMaterialById, matieresDe, refEstVolumique } from '../../../data';
 import { roofMaterial } from '../../catalog/roofs';
@@ -39,39 +35,16 @@ import { faceSurface, shadeFactorOf, tintVarFactor } from './faceColors';
 import { faceDepthOf } from './faceRelief';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { povDepth } from '../../pov/camera';
-import { type BillboardKind } from './billboardMath';
 import { defsGlobaux } from '../../sprites';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { propSvg } from '../../catalog/decor';
 import { AMBIANCE, METEO_SANS_EFFET, type WeatherLight } from '../../catalog/ambiance';
-import { bonesToSvg } from '../../rig/renderBones';
-import { poseRig, rigComposition, type RigComposition } from '../../rig/composeRig';
-import { entityRigProfileFor, refOf, rigDuCombattant, type RigDuCombattant } from '../../rig/enemyProfile';
-import { planById, planOptsForRecord, type RenderResolution, type ResolveOpts, type WingState } from '../../rig/bodyPlan';
-import { armePrincipale } from '../../../noyau/equipementDessine';
-import { harnaisDeMonture, mountedRest, seatPlacement, seatRiderOnMount, seatedRest } from '../../rig/mountedRig';
-import { seatSitHeight, type SeatPose } from '../../../noyau/monde/seating';
-import { diagOnce } from '../../rig/devDiag';
-import { addPose } from '../../rig/poses';
-import { seatedPose, weaponRest } from '../../rig/anim/weaponClips';
-import { boxUnitsPerM } from './billboardMath';
-import { COLLAPSE_MS, clipTotalMs, easeOutCubic, frameSampleMs, planPoseAt, rigPoseAtFrame, type ClipDef } from '../../rig/anim/actorAnimSelect';
-import { isStructure } from '../../../engine/structures';
 import type { Combatant } from '../../../engine/types';
-import { hasLeap } from '../../../engine/traits/dispatch';
-import { combatantRender, combatantTokenScale, entityRender, entityTokenScale, sceneEntityForRender } from '../../sizeScale';
-import { RIG_GROUND_PIVOT, groundStateOf, planGroundPose, rigGroundPose, rigGroundTiltDeg, type GroundState, type Pose } from '../../groundPose';
-import { hash32 } from '../../../data/hash';
-import { versionDesDatasets } from '../../../data/versionDataset';
-import { entitySize } from '../../../noyau/monde/spawn';
-import { sizeFootprint } from '../../../noyau/monde/footprint';
-import { VIEWS, type View } from '../../rig/facing';
+import type { View } from '../../facing';
 import type { Rot } from '../../../geometry/iso';
 import type { Dir8 } from '../../../geometry/dir8';
-import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type SceneEntity, type WallSide } from '../../../noyau/monde/scene';
+import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type WallSide } from '../../../noyau/monde/scene';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
-import { PERCABLE_ATTRIBUT } from './percageLocal';
-import type { TrappingResolver } from '../../../engine/items';
 
 /** ÉCHANTILLONNEUR du champ de teinte de visibilité (1 = pleine), fourni par l'appelant
  *  (`visibilityTint.visibilityField`). `x`/`y` sont des coordonnées de GRILLE CONTINUES — un sommet de
@@ -291,13 +264,6 @@ export interface BakedWorld {
    *  (71,1 % des triangles) portent au moins deux familles, jusqu'à 5 dans un seul span — un facteur
    *  par span aurait donné aux deux joues d'un mur la même valeur. */
   shades: Float32Array;
-  /** PERÇABILITÉ (#1176) : ce que la découpe locale a le droit de trouer, PAR SOMMET — `0` pour une
-   *  nappe de SOL, `1` pour tout ce qui se dresse ou coiffe (murs, toits). L'exclusion du sol est
-   *  STRUCTURELLE : elle se lit sur le `kind` de l'élément de provenance à la cuisson, jamais sur une
-   *  liste tenue à la main ailleurs — un trou dans le sol ouvrirait un puits sur le fond de la scène.
-   *  PAR SOMMET pour la même raison que `shades` : c'est l'attribut que le shader lit (`aPercable`,
-   *  `percageLocal.ts`), et un attribut est par sommet. */
-  percables: Float32Array;
 }
 
 /** PORTE du modelé : ce que le facteur de famille devient sous un soleil allumé à la part `fade`
@@ -437,7 +403,7 @@ function terrainDeps(): readonly unknown[] {
 }
 
 /** READ-SET de `heightAt` (`noyau/monde/scene.ts`) — la SEULE lecture de scène des passes de billboards
- *  (`collectBillboards`, `actorBillboards` : elles prennent tout le reste de leurs éléments). */
+ *  (`collectBillboards` : il prend tout le reste de ses éléments). */
 export function sceneHeightDeps(scene: Scene): readonly unknown[] {
   return [scene.layers, scene.dimensions];
 }
@@ -495,7 +461,6 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   const uv1s: number[] = [];
   const spans: FaceSpan[] = [];
   const shades: number[] = [];
-  const percables: number[] = [];
   // ORIENTATION des triangles : la LOI est `worldTris.ts:orienterPoly`, seule définition du dehors —
   // la cuisson en tire le sens de parcours et la famille d'ombrage, l'instrument de QC son cull et sa
   // teinte (`scripts/qc/lib/plancheVolumique.ts`). Sous le régime `oriented`, l'heuristique de
@@ -512,8 +477,6 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   const pousser = (i: number, groupe: number) => {
     const g = geoms[i];
     const début = positions.length / 3;
-    // PERÇABILITÉ (#1176) : le `kind` de l'élément de provenance, et lui seul — le SOL ne se troue pas.
-    const perçable = listées[i].el.kind === 'floor' ? 0 : 1;
     g.tris.forEach((tri, t) => {
       const { versLExterieur, normale } = orienterPoly(tri, g.oriented, centreCarte);
       // MODELÉ DE FORME (#1300) : la famille se lit sur la normale TELLE QUE LA LOI LA PRÉSENTE — la
@@ -530,7 +493,6 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
         uvs.push(g.uv[t][k].u, g.uv[t][k].v);
         uv1s.push(g.uv1[t][k].u, g.uv1[t][k].v);
         shades.push(s);
-        percables.push(perçable);
       }
     });
     // La couleur de sommet porte l'albédo du matériau × la variance de teinte de la surface (un aplat
@@ -575,9 +537,6 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   // cuits par face). Les deux jeux voyagent dans LA géométrie fusionnée — jamais un mesh par surface.
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('uv1', new THREE.Float32BufferAttribute(uv1s, 2));
-  // PERÇABILITÉ : l'attribut que le fragment de découpe locale lit (`percageLocal.ts`). Il voyage dans
-  // LA géométrie fusionnée comme les uv — un matériau qui ne porte pas le défine ne le déclare même pas.
-  geometry.setAttribute(PERCABLE_ATTRIBUT, new THREE.Float32BufferAttribute(percables, 1));
   groupSpans.forEach(([début, count], k) => geometry.addGroup(début, count, k));
   geometry.userData = { surfaceGroups: groups, propVertexRanges };
   geometry.computeVertexNormals();
@@ -589,7 +548,7 @@ export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDAr
   const identité = new Uint32Array(nbSommets);
   for (let i = 0; i < nbSommets; i++) identité[i] = i;
   geometry.setIndex(new THREE.BufferAttribute(identité, 1));
-  return { geometry, spans, mpt, shades: new Float32Array(shades), percables: new Float32Array(percables) };
+  return { geometry, spans, mpt, shades: new Float32Array(shades) };
 }
 
 /** Applique le DÉGAGEMENT d'architecture à un monde cuit : l'index de dessin est ré-écrit EN PLACE en
@@ -692,31 +651,15 @@ export function buildWorldGeometry(scene: Scene, mpt: number, lecture: LectureDA
   return applyVisibilityTint(bakeWorldGeometry(scene, mpt, lecture), tintAt, fade).geometry;
 }
 
-/** Un sujet de billboard prêt à texturer : où il se pose, à quelle échelle, et comment il se dessine. */
+/** Un décor prêt à texturer : sa position, son échelle et son dessin. */
 export interface BillboardSubject {
   /** Identité de cache (hors vue/miroir/palier — cf. `billboardTextureKey`). */
   identity: string;
-  /** Id du COMBATTANT dessiné, quand ce sujet en est un (`actorBillboards`) — ce que le hit-test de
-   *  sprite rend au pointeur (`stage/spritePicker.ts`). Absent pour un figurant ou un décor : ni l'un
-   *  ni l'autre n'est cliquable. */
-  cid?: string;
-  /** Id du CAVALIER d'un couple MONTÉ, dont `cid` est la monture — un occupant que le couple COUVRE
-   *  avec elle (`stage/successionDesCorps.occupantsDe`). */
-  cavalier?: string;
-  /** Id de l'ENTITÉ DE SCÈNE dessinée, quand ce figurant JOUE une ambiance authorée
-   *  (`SceneEntity.anim`) — ce qui le fait jouer au flipbook (avec sa couture `frameSvg`), et
-   *  rien d'autre : il ne devient ni cliquable ni glissable pour autant. */
-  eid?: string;
-  /** COULEUR D'ÉQUIPE du jeton (#1297) — celle de son anneau aux pieds (`teamRingDecor`), portée ici
-   *  pour que sa SILHOUETTE à travers les murs en soit teintée. Absente pour un figurant ou un décor,
-   *  qui n'appartiennent à aucune équipe et ne se silhouettent pas. */
-  teamColor?: string;
-  kind: BillboardKind;
   /** Ancre PIEDS en repère three (mètres). */
   anchor: THREE.Vector3;
   /** Orientation MONDE d'auteur. */
   facing: Dir8;
-  /** Multiplicateur de taille (espèce × Taille pour un personnage, empreinte de décor pour un prop). */
+  /** Multiplicateur de taille (empreinte de décor). */
   scaleK: number;
   /** CASE d'ancrage — celle dont la teinte de visibilité s'applique au quad. Le sujet porte la case,
    *  jamais la teinte : la teinte est une VALEUR DE FRAME, que la passe de pose échantillonne
@@ -727,178 +670,36 @@ export interface BillboardSubject {
   box: { w: number; h: number };
   /** Fragment SVG pour une vue (défs globaux inclus : le blob de rasterisation est un document isolé). */
   svg: (view: View, mirror: boolean, camRot: Rot) => string;
-  /**
-   * MÊME chaîne de dessin que `svg`, à la FRAME `k` d'une planche de `n` frames du geste `def` — ce
-   * qu'un flipbook cuit frame par frame (`backends/webgl/atlasBake.ts`), là où `svg` fige la pose du
-   * sujet à l'instant du build.
-   *
-   * C'est ICI que vit tout ce que l'écran n'a pas : le `BodyPlan` d'un gabarit (`planPoseAt`), la
-   * PRISE D'ARME d'un bipède (`addPose(holdPose, pose)`, parité `RigToken`), les opts d'apparence et
-   * l'équipement. L'appelant ne fournit qu'un geste et un rang de frame — jamais une pose d'os.
-   *
-   * CONTRAT : porté par les sujets à UN corps (rig bipède, gabarit de créature). Le couple MONTÉ ne le
-   * porte pas — son fragment est un composite (cavalier assis sur les os de la monture), dont
-   * l'animation demande DEUX poses. Un `def` d'une AUTRE voie que celle du corps rend son REPOS.
-   *
-   * `opts.ground` : l'effondrement d'un bipède n'est pas un clip mais une interpolation vers la pose
-   * au sol visée (`rigPoseAtFrame`) — un gabarit, lui, la porte dans son def (`planDyingDef`).
-   */
-  frameSvg?: (view: View, mirror: boolean, def: ClipDef, k: number, n: number, opts?: { ground?: Exclude<GroundState, null> }) => string;
-  /** Ce que le FLIPBOOK doit savoir du CORPS de ce sujet — le contrat qui évite à l'écran de
-   *  connaître `BodyPlan`, le store, ou la garde-robe (#1176, L4). */
-  anim?: SubjectAnim;
 }
 
-/** Ce qu'un sujet dit de son corps au flipbook : de quoi CHOISIR ses gestes, jamais de quoi les
- *  dessiner (le dessin reste derrière `frameSvg`). */
-export interface SubjectAnim {
-  /** Voie de corps : bipède rigué, ou gabarit de créature. */
-  voie: 'rig' | 'plan';
-  /** Clip d'AMBIANCE authoré (`SceneEntity.anim`) — figurant de scène seulement, et seulement quand
-   *  ce corps sait le jouer. */
-  ambient?: string;
-  /** État AU SOL du corps au montage (mort / À Terre) : le geste joué est l'EFFONDREMENT. */
-  ground?: Exclude<GroundState, null>;
-  /** Déplacement par BOND (trait LDB 85) plutôt que pas de marche — gabarits. */
-  leap?: boolean;
-}
-
-
-/** DESSIN d'un personnage de scène depuis ses entrées FIGÉES (`figurantDrawInputs`, copiées dans
- *  l'instantané du sujet) : rig humanoïde ou gabarit de créature, avec les MÊMES opts d'apparence que
- *  l'acteur (`ActorDrawInputs.plan`). Rend le corps AU REPOS (`draw`) et la couture de flipbook du
- *  MÊME corps (`frame`). `null` = gabarit introuvable. */
-function personnageDraw(inputs: ActorDrawInputs, assis: number | null): {
-  voie: 'rig' | 'plan';
-  /** Ce corps sait-il jouer une boucle d'ambiance ? Un gabarit sans `idlePose` cuirait N frames
-   *  identiques — il reste statique. */
-  animable: boolean;
-  draw: (view: View, mirror: boolean) => string;
-  frame: (view: View, mirror: boolean, def: ClipDef, k: number, n: number) => string;
-} | null {
-  if (inputs.rig) {
-    const composer = composeur(inputs.rig);
-    // PRISE D'ARME du figurant, composée à chaque frame comme sur un corps de rig (`RigToken`) : sans
-    // elle, un garde animé lâche sa hallebarde dès la première cellule de sa planche.
-    const arme = armePrincipale(inputs.rig.equip);
-    const hold = weaponRest(arme);
-    const at = (view: View, mirror: boolean, pose: Pose) => bonesToSvg(poseRig(composer(view, mirror), pose));
-    // ASSIS (`Scene.seatAssignments`) : le corps est POSÉ sur sa place à la hauteur d'assise reçue
-    // (`assis`, unités de boîte), arme RANGÉE (`seatedRest`). Un geste d'ambiance s'y compose par le
-    // dessus, filtré par `seatedPose` — les jambes restent celles de l'assise, aucune boucle
-    // authorée ne peut redresser un attablé.
-    const repos = (view: View): Pose => (assis === null ? {} : seatedRest(view, composer(view, false), assis, arme));
-    const geste = (view: View, def: Parameters<typeof rigPoseAtFrame>[0], k: number, n: number): Pose =>
-      assis !== null
-        ? addPose(repos(view), seatedPose(addPose(hold, rigPoseAtFrame(def, k, n))))
-        : addPose(hold, rigPoseAtFrame(def, k, n));
-    return {
-      voie: 'rig',
-      animable: true,
-      draw: (view, mirror) => at(view, mirror, repos(view)),
-      frame: (view, mirror, def, k, n) =>
-        def.voie === 'rig' ? at(view, mirror, geste(view, def, k, n)) : at(view, mirror, repos(view)),
-    };
-  }
-  const { render: r } = inputs;
-  const plan = planById(r.plan);
-  if (!plan) return null;
-  const opts = inputs.plan ?? {};
-  const at = (view: View, mirror: boolean, pose: Pose, wings?: WingState) => {
-    const body = bonesToSvg(plan.resolve(r.species, view, pose, { ...opts, ...(wings === 'spread' ? { wings } : {}) }));
-    // Miroir de la boîte 120×150 (centre en x=60), MÊME convention que `propSvg` pour un profil gauche.
-    return mirror ? `<g transform="translate(${BB_W},0) scale(-1,1)">${body}</g>` : body;
-  };
-  return {
-    voie: 'plan',
-    animable: !!plan.idlePose,
-    draw: (view, mirror) => at(view, mirror, plan.restPose()),
-    frame: (view, mirror, def, k, n) => {
-      if (def.voie !== 'plan') return at(view, mirror, plan.restPose());
-      const { pose, wings } = planPoseAt(plan, def, frameSampleMs(k, n, clipTotalMs(def)));
-      return at(view, mirror, pose, wings);
-    },
-  };
-}
-
-/** Éléments de scène à billboarder : la sortie des BUILDERS, donc les MÊMES filtres que la voie
- *  affine (embuscade `hiddenUntilCombat`, entité enrôlée que son combattant rend déjà, case couverte
- *  par un combattant, étage isolé/actif, hors-vue). Il n'y a PAS de second jeu de lois côté volumique :
+/** Éléments de scène à billboarder : les décors de la sortie des BUILDERS, donc les MÊMES filtres que
+ *  la voie affine (étage isolé/actif, hors-vue). Il n'y a PAS de second jeu de lois côté volumique :
  *  l'écran de jeu passe les éléments de SON stage. */
 export interface SceneBillboardEls {
-  tokens: readonly TokenEl[];
   props: readonly PropEl[];
 }
 
 /** Éléments de la scène ENTIÈRE — pour un appelant SANS loi de vue ni combat en cours (les planches QC :
  *  elles jugent l'ENVIRONNEMENT, pas le brouillard), au même titre que `keepEl` absent.
- *  Un écran de JEU ne passe JAMAIS ceci : c'est là que se perdraient l'embuscade et le combat. */
+ *  Un écran de JEU ne passe JAMAIS ceci : c'est là que se perdrait sa loi de vue. */
 export function wholeSceneBillboardEls(scene: Scene): SceneBillboardEls {
-  const maxZ = Math.max(...scene.layers.map((l) => l.z));
   return {
-    tokens: buildTokens(scene, undefined, null, { activeZ: maxZ, viewZ: null, top: false }),
     // Un décor volumique est cuit dans la masse du monde : il n'a pas de sujet de billboard à poser.
     props: buildProps(scene).filter((el) => !estPropVolumique(el)),
   };
 }
 
-/** Sujets de billboard de la scène : personnages FIGURANTS (`kind:'personnage'`) puis décor. Les
- *  COMBATTANTS n'entrent pas ici — ils passent par `actorBillboards`, à leur position visuelle ; c'est
- *  le builder qui garantit qu'une entité enrôlée n'est pas dessinée deux fois. */
-export function collectBillboards(resolveTrapping: TrappingResolver, scene: Scene, mpt: number, els: SceneBillboardEls): BillboardSubject[] {
+/** Sujets de billboard de la scène : le DÉCOR. */
+export function collectBillboards(scene: Scene, mpt: number, els: SceneBillboardEls): BillboardSubject[] {
   const out: BillboardSubject[] = [];
   const defs = `<defs>${defsGlobaux()}</defs>`;
-  for (const tk of els.tokens) {
-    if (tk.subject.kind !== 'figurant') continue;
-    const { ent, enrolled, seat } = tk.subject;
-    if (ent.kind !== 'personnage') continue;
-    const entrées = figurantDrawInputs(resolveTrapping, ent, enrolled);
-    if (!entrées) continue;
-    const instantané = structuredClone(drawSnapshot(entrées, undefined, seat));
-    const scaleK = instantané.inputs.scaleK;
-    // Hauteur d'ASSISE portée par la POSTURE, dans le repère du RIG : la mesure du monde (mètres au
-    // catalogue de décor) entre dans la boîte de corps par l'échelle du quad (`boxUnitsPerM`) — un
-    // ogre voit le même tabouret plus bas que ne le voit un halfling.
-    const assise = instantané.seat ? instantané.seat.sit * boxUnitsPerM('personnage', scaleK) : null;
-    const corps = personnageDraw(instantané.inputs, assise);
-    if (!corps) continue;
-    // Empreinte multi-cases : le corps se centre sur l'empreinte.
-    const off = (sizeFootprint(entitySize(ent)) - 1) / 2;
-    // ASSIS : le corps se POSE sur l'ancre de sa place (fraction de case), pas sur sa case logique —
-    // celle-ci reste sa case d'abord (`SceneEntity.pos`), d'où il se lève. En HAUTEUR il reste ancré
-    // au SOL : la hauteur d'assise (`seatSitHeight`) est portée par la POSTURE, pas par l'ancre. La
-    // CASE (`cell`, teinte de visibilité) ne bouge pas : un corps est éclairé par la case qu'il occupe.
-    const gx = seat ? seat.anchor.x : ent.pos.x + off;
-    const gy = seat ? seat.anchor.y : ent.pos.y + off;
-    const z = tk.cell.z;
-    // AMBIANCE AUTHORÉE (`SceneEntity.anim`, catalogue `gameIso/sceneAnims`) : ce figurant JOUE sa
-    // boucle, ses frames cuites dans sa planche. Sans ambiance — ou sur un corps qui ne sait pas la
-    // jouer — il reste une texture d'UNE frame.
-    const ambient = ent.anim && corps.animable ? ent.anim : undefined;
-    out.push({
-      // L'ambiance entre dans l'IDENTITÉ : c'est ce qui périme la texture d'un figurant dont l'auteur
-      // change l'anim à l'inspecteur, et ce qui interdit à deux ambiances de partager une planche.
-      // Le reste est la signature de l'INSTANTANÉ (`drawSnapshot`), comme pour l'acteur (#2113).
-      identity: `perso:${ent.id}${ambient ? `|${ambient}` : ''}|${signatureDe(instantané)}`,
-      ...(ambient ? { eid: ent.id, anim: { voie: corps.voie, ambient } } : {}),
-      kind: 'personnage',
-      anchor: new THREE.Vector3(gx * mpt, seat ? seat.ground : heightAt(scene, ent.pos.x, ent.pos.y, z), gy * mpt),
-      facing: seat ? seat.facing : ent.facing ?? 'S',
-      scaleK,
-      cell: { x: ent.pos.x, y: ent.pos.y, z },
-      box: { w: BB_W, h: BB_H },
-      svg: (view, mirror) => defs + corps.draw(view, mirror),
-      ...(ambient ? { frameSvg: (view, mirror, def, k, n) => defs + corps.frame(view, mirror, def, k, n) } : {}),
-    });
-  }
   for (const el of els.props) {
     if (estPropVolumique(el)) continue; // cuit dans la masse du monde, jamais billboardé
     const gx = el.cell.x + el.foot.offX;
     const gy = el.cell.y + el.foot.offY;
     const h = heightAt(scene, el.cell.x, el.cell.y, el.cell.z) + (el.liftM ?? 0);
     out.push({
-      // IDENTITÉ = la clé de l'élément ET sa SIGNATURE DE DESSIN (#1176) — même doctrine que
-      // l'acteur (`ActorDrawInputs`/`actorRenderSignature`). La clé seule ne suffit PAS : elle
+      // IDENTITÉ = la clé de l'élément ET sa SIGNATURE DE DESSIN (#1176). La clé seule ne suffit PAS : elle
       // porte l'id de l'ENTITÉ (`prop:decor-1`) ou la CASE d'un overlay de terrain (`ov:x,y,z`), donc
       // deux modèles de décor différents — ou deux terrains à décor différents sur la même case —
       // partageaient une entrée de cache et le premier dessin restait à l'écran. Le cache de textures
@@ -910,7 +711,6 @@ export function collectBillboards(resolveTrapping: TrappingResolver, scene: Scen
       // L'ABSENCE de type est NOMMÉE dans l'identité de cache (#877) : deux décors, l'un sans type et
       // l'autre au type littéralement nommé « undefined », ne partagent pas une texture.
       identity: `prop:${el.key}|${el.ref ?? REF_NON_NOMMEE}|${el.facing ?? ''}|${el.foot.scale}`,
-      kind: 'prop',
       anchor: new THREE.Vector3(gx * mpt, h, gy * mpt),
       facing: el.facing ?? 'S',
       scaleK: el.foot.scale,
@@ -925,45 +725,18 @@ export function collectBillboards(resolveTrapping: TrappingResolver, scene: Scen
 
 /**
  * DEUX LOTS D'ÉLÉMENTS DONNENT-ILS LES MÊMES SUJETS ? — le read-set de `collectBillboards` ci-dessus,
- * et lui seul : ce qu'un figurant apporte de lui-même passe par la RÉFÉRENCE de son entité de scène
- * (une retouche d'auteur en produit une neuve), le reste est primitif.
+ * et lui seul, tout primitif.
  *
- * Sa raison d'être : les builders rendent des tableaux NEUFS à chaque calcul de vue (`buildTokens`/
- * `buildProps` prennent le champ de visibilité), si bien qu'un pas du groupe passait des éléments
- * identiques sous une référence neuve — et remontait tous les quads du monde. Le pendant exact de la
- * clé de pose des acteurs (`actorPoseKey`, `stage/VolumetricWorld`), du côté du décor.
+ * Sa raison d'être : les builders rendent des tableaux NEUFS à chaque calcul de vue (`buildProps` prend
+ * le champ de visibilité), si bien qu'un pas du groupe passait des éléments identiques sous une
+ * référence neuve — et remontait tous les quads du monde.
  *
  * IL VIT ICI, contre le collecteur : c'est la même lecture, et deux fichiers ne peuvent pas la tenir
  * d'accord.
  */
-/** Deux places résolues sont-elles la MÊME (identité + géométrie posée) ? `undefined` des deux côtés
- *  = même absence de place. */
-function memePlace(a: SeatPose | undefined, b: SeatPose | undefined): boolean {
-  if (!a || !b) return !a && !b;
-  return a.propId === b.propId && a.slotId === b.slotId && a.facing === b.facing
-    && a.anchor.x === b.anchor.x && a.anchor.y === b.anchor.y && a.anchor.h === b.anchor.h && a.ground === b.ground;
-}
-
 export function memesBillboardEls(a: SceneBillboardEls, b: SceneBillboardEls): boolean {
   if (a === b) return true;
-  if (a.tokens.length !== b.tokens.length || a.props.length !== b.props.length) return false;
-  for (let i = 0; i < a.tokens.length; i++) {
-    const x = a.tokens[i];
-    const y = b.tokens[i];
-    if (x === y) continue;
-    if (x.cell.z !== y.cell.z) return false;
-    const sx = x.subject;
-    const sy = y.subject;
-    if (sx.kind !== sy.kind) return false;
-    // Seuls les FIGURANTS deviennent des sujets ici (les combattants passent par `actorBillboards`) :
-    // un token d'une autre nature ne se compare pas au-delà de sa nature.
-    if (sx.kind !== 'figurant' || sy.kind !== 'figurant') continue;
-    if (sx.ent !== sy.ent || sx.enrolled !== sy.enrolled) return false;
-    // La PLACE fait partie de ce que le sujet dessine (ancre, cap, corps plié) : deux lots qui ne
-    // s'accordent pas dessus ne donnent pas les mêmes sujets. Comparée par VALEUR — la pose est
-    // reforgée à chaque résolution (`seatPoseOf`), sa référence ne dit rien.
-    if (!memePlace(sx.seat, sy.seat)) return false;
-  }
+  if (a.props.length !== b.props.length) return false;
   for (let i = 0; i < a.props.length; i++) {
     const x = a.props[i];
     const y = b.props[i];
@@ -978,546 +751,39 @@ export function memesBillboardEls(a: SceneBillboardEls, b: SceneBillboardEls): b
   return true;
 }
 
-/** ACTEUR à billboarder : le combattant (groupe en exploration, combattants en combat) et sa case
- *  LOGIQUE — l'ancre CUITE du quad. Le GLISSEMENT de marche n'entre pas ici : la boucle de rendu le
- *  redemande par frame (`StageWalkAnim.glide`) et ne décale que la matrice du quad (#1176). */
+/** ACTEUR posé du monde volumique : le combattant (groupe en exploration, combattants en combat) et sa
+ *  case LOGIQUE. Lecteurs : la proximité de montage (`stage/GameStage3D.centreDuGroupe`) et la base du
+ *  glissement de marche (`stage/VolumetricWorld`, `StageWalkAnim.glide`). */
 export interface ActorPose {
   c: Combatant;
   x: number;
   y: number;
   z: number;
-  /** Orientation MONDE vivante (store `facing`, jamais un champ du combattant). */
-  facing?: Dir8;
-  /** CAVALIER du couple, quand `c` est une MONTURE portée (`TokenSubjectEl` `mounted`) : le sujet
-   *  devient alors UN billboard COMPOSITE (cavalier assis sur la monture, trié à l'os), à la case et
-   *  à l'échelle de la monture — UN corps, UN quad. */
-  rider?: Combatant;
-  /** ORDINAL d'anneau de héros (`TokenSubjectEl.heroIndex`) — l'identité d'équipe du jeton, dont sa
-   *  couleur d'anneau ET la teinte de sa silhouette se dérivent (`teamRingDecor`). Pour un couple
-   *  MONTÉ, c'est l'ordinal du CAVALIER : il se lit avec `rider`, jamais avec la monture. */
-  heroIndex?: number;
-  /** PLACE ASSISE tenue par ce corps (`noyau/monde/seating`) — le meneur du groupe attablé. Elle porte
-   *  l'ancre du quad, le cap du corps et sa pose ; `x`/`y` ci-dessus restent la case LOGIQUE (l'abord),
-   *  celle du brouillard et de la teinte. Aucun `mountId` : une chaise n'est pas une monture. */
-  seat?: SeatPose;
 }
 
-/** Poses d'acteur des ÉLÉMENTS DU BUILDER — la SEULE dérivation acteurs du monde volumique (l'écran
- *  n'a aucun second jeu de lois : les filtres de rendu sont déjà ceux du builder). Un couple MONTÉ
- *  donne UNE pose : la monture porte case et échelle, le cavalier voyage avec elle. */
-export function actorPoses(tokenEls: readonly TokenEl[], facings: Record<string, Dir8 | undefined>): ActorPose[] {
+/** Poses d'acteur des ÉLÉMENTS DU BUILDER — la SEULE dérivation acteurs du monde volumique (les filtres
+ *  de rendu sont déjà ceux du builder). Un couple MONTÉ donne UNE pose : celle de la monture, qui porte
+ *  la case. */
+export function actorPoses(tokenEls: readonly TokenEl[]): ActorPose[] {
   const out: ActorPose[] = [];
   for (const tk of tokenEls) {
     const s = tk.subject;
     const unit = s.kind === 'combatant' ? s.c : s.kind === 'mounted' ? s.mount : null;
     if (!unit?.pos) continue;
-    // `heroIndex` : l'ordinal d'anneau du builder, la SEULE entrée de la couleur d'équipe d'un héros
-    // (`teamRingDecor`) — il voyage avec la pose, sinon la silhouette du corps et l'anneau aux pieds
-    // d'un même jeton se peindraient de deux couleurs. Un couple MONTÉ porte celui de son cavalier.
-    const heroIndex = s.kind === 'combatant' || s.kind === 'mounted' ? s.heroIndex : undefined;
-    out.push({ c: unit, x: unit.pos.x, y: unit.pos.y, z: tk.cell.z, facing: facings[unit.id], ...(heroIndex !== undefined ? { heroIndex } : {}), ...(s.kind === 'mounted' ? { rider: s.rider } : {}) });
+    out.push({ c: unit, x: unit.pos.x, y: unit.pos.y, z: tk.cell.z });
   }
   return out;
 }
 
 /** POSE du jeton de GROUPE hors combat — la seule que le builder de jetons ne produit pas (le groupe
- *  n'est pas un combattant posté). Son CAP se lit à la clé que PUBLIE le constructeur du jeton
- *  (`builders/tokens.partyTokenOf` → `capKey`), jamais à l'id du meneur : le regard est une valeur du
- *  GROUPE, que le changement de meneur ne fait pas sauter. Assis, c'est le cap de la PLACE qui sert
- *  (`capActeur`). */
-export function partyActorPose(
-  partyToken: { leader: Combatant; pos: { x: number; y: number; z?: number }; seat?: SeatPose; capKey: string },
-  facings: Record<string, Dir8 | undefined>,
-): ActorPose {
-  return {
-    c: partyToken.leader,
-    x: partyToken.pos.x,
-    y: partyToken.pos.y,
-    z: partyToken.pos.z ?? 0,
-    facing: facings[partyToken.capKey],
-    ...(partyToken.seat ? { seat: partyToken.seat } : {}),
-  };
+ *  n'est pas un combattant posté). */
+export function partyActorPose(partyToken: { leader: Combatant; pos: { x: number; y: number; z?: number } }): ActorPose {
+  return { c: partyToken.leader, x: partyToken.pos.x, y: partyToken.pos.y, z: partyToken.pos.z ?? 0 };
 }
 
-/** Tout ce dont le DESSIN d'un acteur dépend, résolu à UN seul endroit : le tracé (`actorBillboards`)
- *  et la SIGNATURE (`actorRenderSignature`) lisent la MÊME structure. Aucun des deux ne peut donc
- *  consommer une entrée que l'autre ignore — c'était la double péremption mesurée (#1176) : une tenue,
- *  une arme ou une Taille changeaient le dessin sans changer ni la clé de mémo du monde volumique ni
- *  l'identité de cache de texture. */
-export interface ActorDrawInputs {
-  render: RenderResolution;
-  ground: GroundState;
-  /** Multiplicateur de taille du jeton (espèce × Taille, ou empreinte propre). */
-  scaleK: number;
-  /** Branche RIG (humanoïde) — absente pour un gabarit de créature. */
-  rig?: RigDuCombattant;
-  /** Branche GABARIT (`plan.resolve`) — opts d'apparence du record + override d'authoring. */
-  plan?: ResolveOpts;
-}
-
-/** Entrées de dessin d'un combattant : profil d'ennemi ou inventaire propre, garde-robe, calques
- *  d'état (mutations, blessures, métamorphose vivante), pose au sol, échelle de jeton. */
-export function actorDrawInputs(c: Combatant): ActorDrawInputs {
-  const render = combatantRender(c);
-  const ground = groundStateOf(c);
-  const scaleK = combatantTokenScale(c);
-  if (render.kind !== 'rig') return { render, ground, scaleK, plan: planOptsForRecord(c.creatureId, c.appearanceOverride) };
-  return { render, ground, scaleK, rig: rigDuCombattant(c) };
-}
-
-/** Entrées de dessin d'un FIGURANT de scène : la MÊME valeur que celles d'un acteur, résolue par la
- *  même donnée que le jeu — preset de PNJ (`sceneEntityForRender`), classe de corps (`entityRender`),
- *  profil et équipement (`entityRigProfileFor`, dont l'appartenance à une rencontre : `enrolled`), opts
- *  d'apparence d'un gabarit (`planOptsForRecord`, précédence de l'entité sur son record). `null` = aucun
- *  profil de rig résoluble. */
-function figurantDrawInputs(resolveTrapping: TrappingResolver, ent: SceneEntity, enrolled: boolean): ActorDrawInputs | null {
-  const e = sceneEntityForRender(ent);
-  const render = entityRender(e);
-  const scaleK = entityTokenScale(ent);
-  if (render.kind !== 'rig') return { render, ground: null, scaleK, plan: planOptsForRecord(refOf(e), e.appearance) };
-  const prof = entityRigProfileFor(resolveTrapping, e, enrolled);
-  if (!prof) return null;
-  return { render, ground: null, scaleK, rig: { appearance: prof.appearance, equip: prof.equip, tenue: prof.tenue, overlays: [] } };
-}
-
-/** INSTANTANÉ de dessin d'un sujet de billboard (#2097, #2113) : tout l'état VIVANT que sa fermeture
- *  lit — combattant, place —, copié (`structuredClone`) et jamais relu après la construction. Les
- *  CATALOGUES, eux, sont lus à la première composition d'un couple (vue, sens) : à la `version` hachée
- *  ou à une version postérieure. Une identité périmée n'est plus redemandée : le stage s'abonne au
- *  témoin (`abonnerAuxDatasets`), et `versionDesDatasets` ne décroît jamais. */
-export interface DrawSnapshot {
-  inputs: ActorDrawInputs;
-  /** Cavalier d'un couple MONTÉ. */
-  riderInputs?: ActorDrawInputs;
-  /** Place ASSISE : son identité et sa hauteur d'assise (`seatSitHeight`). L'ancre, elle, est de la POSE. */
-  seat?: { propId: string; slotId: string; sit: number };
-  version: number;
-}
-
-function drawSnapshot(inputs: ActorDrawInputs, riderInputs: ActorDrawInputs | undefined, seat: SeatPose | undefined): DrawSnapshot {
-  return {
-    inputs,
-    ...(riderInputs ? { riderInputs } : {}),
-    ...(seat ? { seat: { propId: seat.propId, slotId: seat.slotId, sit: seatSitHeight(seat) } } : {}),
-    version: versionDesDatasets(),
-  };
-}
-
-function actorSnapshot(p: ActorPose): DrawSnapshot {
-  return drawSnapshot(actorDrawInputs(p.c), p.rider ? actorDrawInputs(p.rider) : undefined, p.seat);
-}
-
-/** SIGNATURE d'un instantané de dessin — `hash32` de sa sérialisation entière (#1176, #2113). */
-function signatureDe(s: DrawSnapshot): string {
-  return hash32(jsonCanonique(s)).toString(16);
-}
-
-/** SIGNATURE de dessin d'un acteur : celle de son instantané (`DrawSnapshot`, #2097). Consommée par
- *  l'identité de texture (`actorBillboards`), `actorIdentityKey` et `actorPoseKey`. */
-export function actorRenderSignature(p: ActorPose): string {
-  return signatureDe(actorSnapshot(p));
-}
-
-/** L'uniforme de cadre d'un matériau de corps, tel que l'écrivain de frames (`stage/boardPose`) le pilote. */
-export type FrameRectUniform = { value: THREE.Vector4 };
-
-/** Uniforme de cadre porté par un matériau, s'il en a un (corps de billboard ou son jumeau). */
-export function frameRectOf(material: THREE.Material): FrameRectUniform | undefined {
-  return material.userData.frameRect as FrameRectUniform | undefined;
-}
-
-/** Id(s) du sujet et signature de son instantané — l'identité d'un acteur (#1396). */
-function cléActeur(p: ActorPose, signature: string): string {
-  return `${p.c.id}${p.rider ? `+${p.rider.id}` : ''}|${signature}`;
-}
-
-/** Préfixe de l'identité de texture d'un acteur (`actorBillboards`), que porte le nom de son quad. */
-const PREFIXE_ACTEUR = 'acteur:';
-
-/** DÉCODEUR de l'identité d'un acteur (`PREFIXE_ACTEUR` + `cléActeur`) : l'ensemble EXACT des ids qu'elle
- *  porte — le sujet, et son cavalier s'il est monté. Vide pour toute autre identité (#2198). */
-export function idsDeLActeur(identite: string): string[] {
-  if (!identite.startsWith(PREFIXE_ACTEUR)) return [];
-  const fin = identite.indexOf('|', PREFIXE_ACTEUR.length);
-  return identite.slice(PREFIXE_ACTEUR.length, fin < 0 ? undefined : fin).split('+');
-}
-
-/** Clé de MÉMO d'un acteur du monde volumique (`stage/VolumetricWorld`) : son identité
- *  (`actorIdentityKey`), plus la case, le cap et le sol de sa place — l'ancre du quad. */
+/** Clé de MÉMO d'un acteur du monde volumique (`stage/VolumetricWorld`) : son id et sa case. */
 export function actorPoseKey(p: ActorPose): string {
-  return `${actorIdentityKey(p)}:${p.x},${p.y},${p.z}:${capActeur(p)}${p.seat ? `:${p.seat.ground}` : ''}`;
-}
-
-/** Cap MONDE servi au quad d'un acteur : celui de sa PLACE s'il est assis (le corps regarde la table,
- *  pas la direction où il marchait), sinon son orientation vivante. Définition UNIQUE, partagée par le
- *  montage, la repose de cap et la clé de mémo. */
-function capActeur(p: ActorPose): Dir8 {
-  return p.seat ? p.seat.facing : p.facing ?? 'S';
-}
-
-/**
- * Clé d'IDENTITÉ d'un acteur — QUI est ce sujet et QUEL ART il porte, jamais OÙ il est ni de quel
- * côté il regarde (#1396).
- *
- * C'est elle qui décide du MONTAGE des quads. La position et le cap n'y entrent pas : ils
- * appartiennent à la POSE, que la passe de frame relit (`stage/boardPose.poseBoards` pour la case,
- * `choisirFrame` pour la vue d'un corps animé) et que la repose ci-dessous porte aux sujets déjà
- * montés. Position comprise, un seul pas — d'un héros comme d'un PNJ — détruisait et remontait TOUS
- * les quads du monde, décor inclus (mesuré : 13 matériaux libérés, 0 survivant sur un banc de douze
- * décors).
- *
- * Même valeur que l'identité de texture du sujet (`actorBillboards`), préfixe `acteur:` en moins.
- */
-export function actorIdentityKey(p: ActorPose): string {
-  return cléActeur(p, actorRenderSignature(p));
-}
-
-/** Ancre PIEDS (mètres) et CASE d'un acteur posé — la SEULE définition de cette géométrie, partagée
- *  par le montage (`actorBillboards`) et la repose de position. Le glissement de marche n'y est pas :
- *  il se compte DEPUIS ce point, par la boucle de rendu. */
-function ancreActeur(p: ActorPose, scene: Scene, mpt: number): { anchor: THREE.Vector3; cell: { x: number; y: number; z: number } } {
-  const off = (sizeFootprint(p.c.size) - 1) / 2;
-  const cell = { x: Math.round(p.x), y: Math.round(p.y), z: p.z };
-  // ASSIS : l'ancre est celle de la PLACE en plan (fraction de case) et le SOL en hauteur — la
-  // hauteur d'assise appartient à la posture (`seatSitHeight`). La case, elle, reste la case logique
-  // du corps : c'est elle qui porte la teinte de visibilité et la profondeur de tri.
-  if (p.seat) return { anchor: new THREE.Vector3(p.seat.anchor.x * mpt, p.seat.ground, p.seat.anchor.y * mpt), cell };
-  return {
-    anchor: new THREE.Vector3((p.x + off) * mpt, heightAt(scene, cell.x, cell.y, cell.z), (p.y + off) * mpt),
-    cell,
-  };
-}
-
-/**
- * REPOSE DE POSE des acteurs : les sujets DÉJÀ MONTÉS suivent la case et le cap où le store vient de
- * les poser, en place — aucun quad démonté, aucune texture périmée (l'art ne dépend ni de l'une ni de
- * l'autre : la case se lit à la frame, la vue se choisit à la frame).
- *
- * Rend ce qui a bougé : `ancres` = au moins une case (une image à peindre, une carte d'ombre à
- * redemander) ; `caps` = les sujets dont le cap a tourné, que l'appelant repose au regard courant
- * (seuls les corps SANS flipbook en ont besoin — un corps animé choisit sa vue par image).
- */
-export function reposerActeurs(
-  subjects: readonly BillboardSubject[],
-  actors: readonly ActorPose[],
-  scene: Scene,
-  mpt: number,
-): { ancres: boolean; caps: BillboardSubject[] } {
-  const caps: BillboardSubject[] = [];
-  if (!subjects.length) return { ancres: false, caps };
-  const parCid = new Map<string, BillboardSubject>();
-  for (const s of subjects) if (s.cid) parCid.set(s.cid, s);
-  let ancres = false;
-  for (const p of actors) {
-    const sujet = parCid.get(p.c.id);
-    if (!sujet) continue;
-    const cap = capActeur(p);
-    if (sujet.facing !== cap) {
-      sujet.facing = cap;
-      caps.push(sujet);
-    }
-    const { anchor, cell } = ancreActeur(p, scene, mpt);
-    if (sujet.anchor.equals(anchor) && sujet.cell.x === cell.x && sujet.cell.y === cell.y && sujet.cell.z === cell.z) continue;
-    sujet.anchor.copy(anchor);
-    sujet.cell = cell;
-    ancres = true;
-  }
-  return { ancres, caps };
-}
-
-
-/** Couple MONTÉ (LDB 14 l.175-187) rendu comme UN SEUL corps : le cavalier est ASSIS sur les os réels
- *  de la monture (`seatRiderOnMount` : ancre de selle dérivée de l'os `tronc`, z du cavalier remappé
- *  dans l'échelle du quadrupède), et le composite trié à l'os sort en UN fragment SVG. La monture donne
- *  la vue et le miroir du couple ; le cavalier prend la pose montée (`mountedRest`, selon l'arme
- *  tenue). Aucune animation ici : la loi de selle, et elle seule.
- *
- *  Le couple est le premier sujet à DÉBORDER la boîte canonique : assis, le cavalier monte au-dessus
- *  du garrot, et son crâne sortait par le haut d'une boîte de rasterisation 120×150 (mesuré #1176 :
- *  −18,6 en face). La boîte rendue est donc HAUSSÉE du débord et le fragment descend d'autant — pieds
- *  de la monture au bas de la boîte, ancre inchangée, quad plus haut (`subjectQuad`).
- *
- *  `null` = monture sans gabarit ou cavalier sans rig : l'appelant retombe sur le corps SEUL de la
- *  monture (le cavalier disparaît — défaut de DONNÉE, dit une fois en dev). */
-function mountedSvg(
-  mount: ActorDrawInputs,
-  rider: ActorDrawInputs,
-  couple: { cle: string; monture: string; cavalier: string },
-): { draw: (view: View, mirror: boolean) => string; box: { w: number; h: number } } | null {
-  const mr = mount.render;
-  const plan = planById(mr.plan);
-  if (!plan || !rider.rig) {
-    if (import.meta.env?.DEV)
-      diagOnce(`monté:${couple.cle}`, () =>
-        console.error(
-          `[bodyPlan] couple monté « ${couple.monture} » + « ${couple.cavalier} » : ${plan ? 'cavalier sans rig humanoïde' : 'monture sans gabarit'} — seule la monture est dessinée, donnée à corriger.`,
-        ),
-      );
-    return null;
-  }
-  const composer = composeur(rider.rig);
-  const { ground } = mount;
-  const couché = planGroundPose(plan, ground);
-  const opts: ResolveOpts = {
-    ...harnaisDeMonture(mount.plan ?? {}),
-    ...(ground ? { wings: 'spread' as const } : {}),
-  };
-  const arme = armePrincipale(rider.rig.equip);
-  // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille ou
-  // empreinte, `combatantTokenScale`),
-  // jamais une constante (un cheval recalibré ou une autre monture garde un couple proportionné).
-  const k = rider.render.scale / mount.scaleK;
-  const osMonture = (view: View) => plan.resolve(mr.species, view, couché ?? plan.restPose(), opts);
-  const assise = (view: View) => ({ view, mountScale: 1, riderScale: k });
-  // Haut de la boîte du cavalier (0..150, contrat du rig) ramenée dans la boîte de la monture, pris
-  // à la vue la plus haute : négatif = ce qui manque de ciel au-dessus des 150 px. La boîte d'un sujet
-  // est UNE (le quad ne change pas quand la caméra tourne) : elle se mesure sur toutes les vues.
-  const haut = Math.min(...VIEWS.map((v) => seatPlacement(osMonture(v), assise(v))[5]));
-  const débord = Math.max(0, Math.ceil(-haut));
-  return {
-    box: { w: BB_W, h: BB_H + débord },
-    draw: (view, mirror) => {
-      const riderBones = poseRig(composer(view, mirror), mountedRest(view, arme));
-      const body = bonesToSvg(seatRiderOnMount(osMonture(view), riderBones, assise(view)));
-      const posé = mirror ? `<g transform="translate(${BB_W},0) scale(-1,1)">${body}</g>` : body;
-      return débord ? `<g transform="translate(0,${débord})">${posé}</g>` : posé;
-    },
-  };
-}
-
-/** COMPOSITIONS d'un corps de rig, retenues par (vue, sens) dans la fermeture d'UN sujet, faites à la
- *  première demande de chaque couple : entrées de rig de l'instantané, catalogues à leur version de ce
- *  moment (`DrawSnapshot`). */
-function composeur(rig: NonNullable<ActorDrawInputs['rig']>): (view: View, mirror: boolean) => RigComposition {
-  const faites = new Map<string, RigComposition>();
-  return (view, mirror) => {
-    const clé = `${view}|${mirror}`;
-    let comp = faites.get(clé);
-    if (!comp) faites.set(clé, (comp = rigComposition(rig.appearance, rig.equip, rig.tenue, view, rig.overlays, mirror)));
-    return comp;
-  };
-}
-
-/**
- * BASCULE AU SOL d'un rig en BILLBOARD (#1334) — la rotation de tout le corps autour de ses pieds
- * (`rigGroundTiltDeg` : 82° cadavre, 72° À Terre ; pivot `RIG_GROUND_PIVOT`), portée dans la boîte de
- * rasterisation du sujet.
- *
- * SANS elle, un corps au sol ne reçoit que sa POSE d'os (`CORPSE_POSE`/`PRONE_POSE`) : membres
- * écartés, mais corps DEBOUT. C'est ce qui se voyait à l'écran — un mis hors de combat planté sur ses
- * jambes. La pose dit comment le corps s'affaisse ; la bascule dit qu'il est À TERRE.
- *
- * DEUX grandeurs se dérivent ici, et rien d'autre n'en décide :
- *  - la BOÎTE : la rotation sort le corps d'une boîte de `BB_W`×`BB_H` (tête à x≈208 à 82°, et une
- *    boîte tournée de 20° est HAUTE de 182), donc la boîte du sujet prend le BALAYAGE ENTIER de la
- *    chute — la boîte est UNE pour toutes les cellules d'une planche, et des bornes prises au seul
- *    angle final trancheraient les frames du milieu. Agrandir la boîte n'agrandit PAS le corps :
- *    l'échelle art→monde du quad se prend sur la boîte (`subjectQuad`), donc un pixel de boîte garde
- *    sa taille monde et la boîte ne gagne que du ciel et des marges ;
- *  - le PLACEMENT : le corps basculé se recentre sur la case et se POSE sur le bas de la boîte —
- *    c'est-à-dire sur l'ancre du quad, c'est-à-dire au sol. À bascule nulle, la transformation n'est
- *    que ce placement : la première cellule d'une chute reste EXACTEMENT le corps debout.
- *
- * Le SENS suit le corps : une vue miroitée bascule de l'autre côté (`resolveRig` a déjà retourné les
- * os), sans quoi un profil et son miroir tomberaient du même côté de l'écran.
- */
-export interface RigGroundTilt {
-  /** Boîte (px) qui contient le corps sur TOUTE la bascule. */
-  boxW: number;
-  boxH: number;
-  /** Transformation SVG du corps à la fraction `frac` de la bascule (0 = debout, 1 = posé). */
-  at: (frac: number, mirror: boolean) => string;
-}
-
-/** Échantillons du balayage — les bornes d'une rotation ne tombent pas forcément à l'angle final (le
- *  coin le plus lointain passe par son maximum d'abscisse en route, et la boîte tournée est plus
- *  HAUTE à mi-chemin qu'à ses deux bouts). */
-const TILT_ECHANTILLONS = 32;
-
-/** Boîte rasterisée du rig, tournée de `deg` autour du pivot des pieds. */
-function tiltBounds(deg: number): { xmin: number; xmax: number; ymin: number; ymax: number } {
-  const a = (deg * Math.PI) / 180;
-  const cos = Math.cos(a);
-  const sin = Math.sin(a);
-  let xmin = Infinity;
-  let xmax = -Infinity;
-  let ymin = Infinity;
-  let ymax = -Infinity;
-  for (const [x, y] of [[0, 0], [BB_W, 0], [0, BB_H], [BB_W, BB_H]] as const) {
-    const dx = x - RIG_GROUND_PIVOT.x;
-    const dy = y - RIG_GROUND_PIVOT.y;
-    const px = RIG_GROUND_PIVOT.x + dx * cos - dy * sin;
-    const py = RIG_GROUND_PIVOT.y + dx * sin + dy * cos;
-    xmin = Math.min(xmin, px);
-    xmax = Math.max(xmax, px);
-    ymin = Math.min(ymin, py);
-    ymax = Math.max(ymax, py);
-  }
-  return { xmin, xmax, ymin, ymax };
-}
-
-/** Arrondi d'affichage des transformations (le fragment est une clé de cache : il doit être STABLE). */
-const r3 = (n: number): number => Math.round(n * 1000) / 1000;
-
-export function rigGroundTilt(ground: Exclude<GroundState, null>): RigGroundTilt {
-  const total = rigGroundTiltDeg(ground);
-  let boxW = BB_W;
-  let boxH = BB_H;
-  for (let i = 0; i <= TILT_ECHANTILLONS; i++) {
-    const b = tiltBounds((total * i) / TILT_ECHANTILLONS);
-    boxW = Math.max(boxW, Math.ceil(b.xmax - b.xmin));
-    boxH = Math.max(boxH, Math.ceil(b.ymax - b.ymin));
-  }
-  return {
-    boxW,
-    boxH,
-    at: (frac, mirror) => {
-      const deg = total * Math.max(0, Math.min(1, frac)) * (mirror ? -1 : 1);
-      const b = tiltBounds(deg);
-      const dx = boxW / 2 - (b.xmin + b.xmax) / 2;
-      const dy = boxH - b.ymax;
-      return `translate(${r3(dx)},${r3(dy)}) rotate(${r3(deg)},${RIG_GROUND_PIVOT.x},${RIG_GROUND_PIVOT.y})`;
-    },
-  };
-}
-
-/** Fraction de bascule à la frame `k` d'une planche d'effondrement de `n` cellules — la MÊME courbe
- *  et le MÊME instant que la pose d'os de cette cellule (`rigPoseAtFrame` → `rigCollapsePoseAt`),
- *  sinon le corps s'affaisse à une cadence et se couche à une autre. */
-function tiltFracAtFrame(k: number, n: number): number {
-  return easeOutCubic(frameSampleMs(k, n, COLLAPSE_MS) / COLLAPSE_MS);
-}
-
-/** Billboards des ACTEURS (héros, ennemis, alliés) — le pendant volumique de ce que le stage affine
- *  monte en corps React. Les entrées de dessin sont celles d'`actorDrawInputs` (classifieur de corps,
- *  profil d'ennemi, équipement, garde-robe, calques d'état, échelle de jeton), l'ÉTAT AU SOL passe par
- *  les deux moteurs d'animation (`rigGroundPose` / `planGroundPose`) et la FORME rendue est celle de
- *  `personnageSvg` ci-dessus. Une structure de siège est sautée : elle se rend sur son arête, pas en
- *  jeton (cf. `tokenBodyKind`).
- *
- *  La BASCULE d'un corps au sol y est portée par `rigGroundTilt` (#1334) : un hors de combat est À
- *  TERRE, et la pose d'os seule ne le couche pas — un rig sous `CORPSE_POSE` sans rotation reste
- *  DEBOUT, membres écartés (mesuré à l'écran : un Gobelin mis hors de combat restait planté). */
-export function actorBillboards(actors: readonly ActorPose[], scene: Scene, mpt: number): BillboardSubject[] {
-  const defs = `<defs>${defsGlobaux()}</defs>`;
-  const out: BillboardSubject[] = [];
-  for (const p of actors) {
-    const { c, x, y, z, facing, rider, heroIndex, seat } = p;
-    if (isStructure(c)) continue;
-    // INSTANTANÉ du sujet (`DrawSnapshot`) : tout ce que ses fermetures liront, copié une fois ici.
-    const instantané = structuredClone(actorSnapshot(p));
-    const { inputs, riderInputs } = instantané;
-    const { render: r, ground } = inputs;
-    // Couple MONTÉ : UN sujet composite (jamais deux quads superposés), à la case et à l'échelle de
-    // la monture — un seul corps composite. Une monture
-    // sans gabarit ou un cavalier sans rig retombe sur le corps SEUL de la monture, ci-dessous.
-    const monté = rider && riderInputs
-      ? mountedSvg(inputs, riderInputs, { cle: `${c.id}+${rider.id}`, monture: c.creatureId ?? c.label, cavalier: rider.creatureId ?? rider.label })
-      : null;
-    let draw: ((view: View, mirror: boolean) => string) | null = monté?.draw ?? null;
-    // MÊME chaîne de dessin, FRAME de geste (`BillboardSubject.frameSvg`) : le corps figé ci-dessous
-    // en est l'échantillon à la pose du build. La voie de corps décide de ce qu'une frame échantillonne
-    // — un clip pour un bipède, les fonctions de pose du `BodyPlan` pour un gabarit — et ni l'une ni
-    // l'autre ne sort d'ici : l'écran ne connaît que des gestes et des rangs de frame.
-    let frameAt: BillboardSubject['frameSvg'] = undefined;
-    let voie: SubjectAnim['voie'] | null = null;
-    // BOÎTE de rasterisation du sujet : la canonique, agrandie quand un rig au sol BASCULE (#1334).
-    let boxW = BB_W;
-    let boxH = BB_H;
-    if (!draw && inputs.rig) {
-      const composer = composeur(inputs.rig);
-      const couché = rigGroundPose(ground);
-      const arme = armePrincipale(inputs.rig.equip);
-      const hold = weaponRest(arme);
-      // BASCULE (#1334) : un corps au sol se couche pour de bon. Elle appartient au SUJET (sa boîte
-      // en dépend), et chaque fragment la porte — y compris à fraction nulle, où elle n'est que le
-      // recentrage dans la boîte élargie.
-      const bascule = ground ? rigGroundTilt(ground) : null;
-      if (bascule) {
-        boxW = bascule.boxW;
-        boxH = bascule.boxH;
-      }
-      const drawAt = (view: View, mirror: boolean, pose: Pose, frac = 0) => {
-        const body = bonesToSvg(poseRig(composer(view, mirror), pose));
-        return bascule ? `<g transform="${bascule.at(frac, mirror)}">${body}</g>` : body;
-      };
-      // ASSIS (le meneur attablé) : corps plié sur sa place, arme RANGÉE (`seatedRest`). Un corps AU
-      // SOL n'est jamais assis — l'effondrement prime, et `releaseSeat` l'aura de toute façon levé.
-      const place = instantané.seat;
-      const drop = place ? place.sit * boxUnitsPerM('personnage', inputs.scaleK) : 0;
-      const assise = !ground && place
-        ? (view: View) => seatedRest(view, composer(view, false), drop, arme)
-        : null;
-      draw = (view, mirror) => drawAt(view, mirror, assise ? assise(view) : couché ?? {}, 1);
-      voie = 'rig';
-      // PRISE D'ARME composée à CHAQUE frame, comme sur un corps de rig (`RigToken`) : la pose de geste
-      // seule dessine un corps qui a lâché sa garde. Assis, le geste passe par `seatedPose` : aucune
-      // cellule de planche ne peut redresser les jambes du corps posé sur sa chaise.
-      frameAt = (view, mirror, def, k, n, o) =>
-        def.voie === 'rig'
-          ? drawAt(
-            view,
-            mirror,
-            assise
-              ? addPose(assise(view), seatedPose(addPose(hold, rigPoseAtFrame(def, k, n, o?.ground))))
-              : addPose(hold, rigPoseAtFrame(def, k, n, o?.ground)),
-            o?.ground ? tiltFracAtFrame(k, n) : 0,
-          )
-          : drawAt(view, mirror, assise ? assise(view) : couché ?? {}, 1);
-    } else if (!draw) {
-      const plan = planById(r.plan);
-      if (plan) {
-        // Gabarit AU SOL : pose de mort (ou affaissement À Terre) et ailes ÉTALÉES, comme `usePlanAnim`.
-        const couché = planGroundPose(plan, ground);
-        const opts = inputs.plan ?? {};
-        const drawAt = (view: View, mirror: boolean, pose: Pose, wings?: WingState) => {
-          const body = bonesToSvg(plan.resolve(r.species, view, pose, { ...opts, ...(wings === 'spread' ? { wings } : {}) }));
-          return mirror ? `<g transform="translate(${BB_W},0) scale(-1,1)">${body}</g>` : body;
-        };
-        draw = (view, mirror) => drawAt(view, mirror, couché ?? plan.restPose(), ground ? 'spread' : undefined);
-        voie = 'plan';
-        frameAt = (view, mirror, def, k, n) => {
-          if (def.voie !== 'plan') return drawAt(view, mirror, couché ?? plan.restPose(), ground ? 'spread' : undefined);
-          const pp = planPoseAt(plan, def, frameSampleMs(k, n, clipTotalMs(def)));
-          return drawAt(view, mirror, pp.pose, pp.wings);
-        };
-      }
-    }
-    if (!draw) continue;
-    const trace = draw;
-    const traceAt = frameAt;
-    const pose: ActorPose = { c, x, y, z, ...(facing ? { facing } : {}), ...(seat ? { seat } : {}) };
-    const { anchor, cell } = ancreActeur(pose, scene, mpt);
-    out.push({
-      // la signature de l'INSTANTANÉ (`actorRenderSignature`) — la MÊME valeur que `actorIdentityKey`.
-      identity: `${PREFIXE_ACTEUR}${cléActeur(p, signatureDe(instantané))}`,
-      cid: c.id,
-      ...(rider ? { cavalier: rider.id } : {}),
-      // TEINTE D'ÉQUIPE (#1297) : la MÊME dérivation que l'anneau aux pieds du jeton et que le jeton
-      // affine — une seule loi de couleur d'équipe, quelle que soit la voie qui la peint. Un couple
-      // MONTÉ se lit au CAVALIER (avec l'ordinal qu'il a réservé) : le record de la monture porte
-      // souvent un autre camp que celui qu'elle transporte (`builders/tokens`).
-      teamColor: teamRingDecor(rider ?? c, heroIndex).color,
-      kind: 'personnage',
-      anchor,
-      facing: capActeur(pose),
-      scaleK: inputs.scaleK,
-      // Un CORPS prend la teinte de SA case (position logique arrondie), pas celle du point où il
-      // glisse : un acteur est un objet du système de jeu, posé sur une case, et son quad porte UNE
-      // couleur. Le champ continu est la matière du MONDE, qui, lui, a des sommets à échantillonner.
-      cell,
-      box: monté?.box ?? { w: boxW, h: boxH },
-      svg: (view, mirror) => defs + trace(view, mirror),
-      ...(traceAt ? { frameSvg: (view, mirror, def, k, n, o) => defs + traceAt(view, mirror, def, k, n, o) } : {}),
-      // CE QUE LE FLIPBOOK DOIT SAVOIR DU CORPS : sa voie, son état au sol, et — pour un gabarit — son
-      // BOND (trait LDB 85, `hasLeap`). L'écran n'a aucune de ces trois lectures : ni `BodyPlan`, ni
-      // état de combattant, ni traits.
-      ...(voie
-        ? { anim: { voie, ...(ground ? { ground } : {}), ...(voie === 'plan' && hasLeap(c.traits) ? { leap: true } : {}) } }
-        : {}),
-    });
-  }
-  return out;
+  return `${p.c.id}:${p.x},${p.y},${p.z}`;
 }
 
 // ————————————————————————————————————————————————————————————————
@@ -1981,57 +1247,4 @@ export function contentBox(
   fallback: THREE.Box3,
 ): THREE.Box3 {
   return worldShadowBox(builtFacesBox(scene, mpt, lecture) ?? fallback, subjects, quadOf);
-}
-
-/** Le disque d'ombre de contact n'a lieu d'être qu'en couleur CUITE : en mode éclairé, le billboard
- *  projette sa VRAIE ombre (`castShadow`) et le disque en ferait une seconde, à l'aplomb. */
-export function wantsContactShadow(kind: BillboardKind, lit: boolean): boolean {
-  return kind === 'personnage' && !lit;
-}
-
-/** Décollement (m) du disque d'ombre au-dessus du sol qui le porte. */
-export const CONTACT_SHADOW_LIFT_M = 0.02;
-/** Rayon de l'ombre de contact, en part de la largeur CANONIQUE du sujet (`contactShadowWidthM`). */
-export const CONTACT_SHADOW_RADIUS_K = 0.35;
-export const CONTACT_SHADOW_OPACITY = 0.28;
-
-/** Largeur (m) sur laquelle se taille le socle d'un sujet : celle qu'aurait sa boîte DEBOUT — `BB_W`
- *  ramené au monde par la MÊME chaîne d'échelle que le quad (`subjectQuad` : un pixel de boîte vaut
- *  `heightM / box.h` mètres). La boîte d'ART courante ne convient pas : la chute la BALAIE (193×193
- *  pour un corps au sol contre 120×150 debout), et le disque du mort sortirait ×1,61 plus large que
- *  celui du même sujet vivant à côté — alors qu'il est centré sur les pieds. Un couple MONTÉ n'y perd
- *  rien : `mountedSvg` ne hausse que la HAUTEUR de sa boîte (`box.w === BB_W`), sa largeur de socle
- *  était déjà canonique. */
-export function contactShadowWidthM(
-  sub: Pick<BillboardSubject, 'box'>,
-  quad: { heightM: number },
-): number {
-  return (quad.heightM / sub.box.h) * BB_W;
-}
-
-/** Ombre de CONTACT d'un billboard : un disque sombre plaqué au sol, à l'aplomb EXACT de l'ancre pieds
- *  (mêmes x/z que le sujet — un décalage y laisse une ellipse orpheline à côté du personnage). Il ne
- *  prend PAS la largeur du quad : le sujet et son quad entrent entiers, la largeur du socle se dérive
- *  ici (`contactShadowWidthM`) — aucun appelant n'a de largeur à choisir. */
-export function contactShadow(
-  sub: Pick<BillboardSubject, 'anchor' | 'box'>,
-  quad: { heightM: number },
-): THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial> {
-  const geo = new THREE.CircleGeometry(contactShadowWidthM(sub, quad) * CONTACT_SHADOW_RADIUS_K, 24);
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0x000000,
-    transparent: true,
-    opacity: CONTACT_SHADOW_OPACITY,
-    depthWrite: false,
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.rotation.x = -Math.PI / 2;
-  poseContactShadow(mesh, sub.anchor);
-  return mesh;
-}
-
-/** (Re)plaque un disque d'ombre sous une ancre pieds — le SEUL endroit qui décide de son aplomb, que
- *  le disque vienne d'être monté ou qu'il suive un sujet qui glisse (`stage/boardPose.ts`). */
-export function poseContactShadow(disque: THREE.Object3D, anchor: THREE.Vector3): void {
-  disque.position.set(anchor.x, anchor.y + CONTACT_SHADOW_LIFT_M, anchor.z);
 }

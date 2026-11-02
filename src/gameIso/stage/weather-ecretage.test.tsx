@@ -132,10 +132,14 @@ afterAll(() => {
 });
 afterEach(() => {
   // Le drapeau de recette est un SINGLETON d'état que la suite partage : un cas qui le débraye le
-  // rend ici, jamais en dernière ligne d'un `it` (une assertion qui lève avant sauterait la remise).
-  useGame.setState({ debugRoofCut: true });
-  if (root) { act(() => root!.unmount()); root = null; }
-  if (conteneur) { conteneur.remove(); conteneur = null; }
+  // rend ici, jamais en dernière ligne d'un `it` (une assertion qui lève avant sauterait la remise),
+  // et un démontage qui lève ne la saute pas non plus.
+  try {
+    if (root) { act(() => root!.unmount()); root = null; }
+    if (conteneur) { conteneur.remove(); conteneur = null; }
+  } finally {
+    useGame.setState({ debugRoofCut: true });
+  }
 });
 
 describe('Météo volumique — écrêtage au cutaway (#1247)', () => {

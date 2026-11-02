@@ -1,8 +1,8 @@
 /**
  * Schéma de `groups.json` — registre des Groupes d'APPARTENANCE (LDB 21, Traits psy ciblés), miroir de
  * `GroupData` (`src/data/index.ts`). Une entrée porte `id`+`label` ; un Groupe JOKER (`tout`, `vivant`)
- * porte le couple `matchesAll`/`exceptGroups` ; un Groupe RELATIF, son `relatif` ; une Race, son marqueur
- * `race` (ADE II 09 l.15).
+ * porte le couple `matchesAll`/`exceptGroups` ; un Groupe RELATIF, son `relatif` ; un Groupe COMPOSITE, son
+ * `inclut` ; une Race, son marqueur `race` (ADE II 09 l.15).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -37,21 +37,25 @@ const doc = document(
     relatif: relatifSchema.optional(),
     /** Ce Groupe est une Race (ADE II 09 l.15), lue par les Groupes relatifs de Race. #3045 */
     race: z.literal(true).optional(),
+    /** Groupe-CIBLE COMPOSITE : il vise tout membre de l'un des Groupes qu'il inclut (`groupMatch`) ;
+     *  personne ne le déclare. Q13 A, #3045 */
+    inclut: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   },
   {
     matchesAll: { label: 'Groupe joker', hint: 'Vise tout combattant, hormis les porteurs d’un Groupe exclu' },
     exceptGroups: { label: 'Groupes exclus', hint: 'Groupes qui retranchent leur porteur du joker' },
     relatif: { label: 'Groupe relatif', hint: 'Ses membres se lisent par rapport au porteur du Trait psy qui le vise' },
     race: { label: 'Race', hint: 'Ce Groupe est une Race' },
+    inclut: { label: 'Groupes inclus', hint: 'Le Groupe vise tout membre de l’un de ces Groupes' },
   },
   {
     codex: { keys: ['groups'] },
     edit: { dataset: 'groups' },
   },
-  // `matchesAll`, `relatif` : marqueurs des sous-listes `DECLARABLE_PAR_UN_PORTEUR`, `CIBLE_D_APPARTENANCE`
+  // `matchesAll`, `relatif`, `inclut` : marqueurs des sous-listes `DECLARABLE_PAR_UN_PORTEUR`, `CIBLE_D_APPARTENANCE`
   // (`grammaire/sousListes.ts`).
   {
-    espace: { marqueurs: ['matchesAll', 'relatif'] },
+    espace: { marqueurs: ['matchesAll', 'relatif', 'inclut'] },
     idDocument: z.string().regex(MOTIF_D_ID_DE_GROUPE, `id de Groupe : minuscules, chiffres et tirets (${MOTIF_D_ID_DE_GROUPE.source}).`),
   },
 );

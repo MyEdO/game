@@ -1,86 +1,48 @@
-import { afterEach, describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemIcon } from './ItemIcon';
 import { iconSvg } from './Icon';
-import { itemFromGive, itemFromTrappingById, weaponFromItem } from '../engine/items';
-import { setDataset } from '../data/overrides';
-import { trappings } from '../data';
-import { tokensOf } from '../gameIso/rig/palette';
+import { itemFromTrappingById } from '../engine/items';
 import type { ItemInstance, Weapon } from '../engine/types';
 
-/** Objet minimal (catégories sans art : munition/cape/consommable/divers). */
+/** Objet minimal d'une catégorie donnée. */
 const mk = (p: Partial<ItemInstance>): ItemInstance =>
   ({ uid: 'x', label: '?', kind: 'misc', qualities: [], enc: 0, equipped: false, ...p } as ItemInstance);
 
-const html = (item: ItemInstance) => renderToStaticMarkup(<ItemIcon item={item} />);
+const html = (item: ItemInstance | Weapon) => renderToStaticMarkup(<ItemIcon item={item} />);
 
-describe('ItemIcon', () => {
-  it('arme du registre (en jetons) : SVG en diagonale, sans <defs>', () => {
-    const h = html(itemFromTrappingById('hallebarde')!);
-    expect(h).toContain('item-icon-weapon');
-    expect(h).toContain('rotate(-40)'); // arme en diagonale
-    expect(h).not.toContain('<defs'); // art en jetons résolus en hex → pas de dégradé
+describe('ItemIcon : le glyphe de la catégorie de l’objet', () => {
+  it('arme du catalogue → item/weapon', () => {
+    expect(html(itemFromTrappingById('hallebarde')!)).toContain(iconSvg('item/weapon'));
   });
 
-  it('arme générique hors-catalogue (Weapon directe) : repli avec dégradé → <defs> injecté', () => {
-    const w: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] }; // synonyme → art de repli url(#g_steelD)
-    const h = renderToStaticMarkup(<ItemIcon item={w} />);
-    expect(h).toContain('item-icon-weapon');
-    expect(h).toContain('<defs');
+  it('arme de combat hors catalogue (`Weapon`) → item/weapon', () => {
+    const w: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] };
+    expect(html(w)).toContain(iconSvg('item/weapon'));
   });
 
-  it('armure : SVG droit (pas de rotation), classe armor', () => {
-    const h = html(itemFromTrappingById('plastron')!);
-    expect(h).toContain('item-icon-armor');
-    expect(h).not.toContain('rotate(-40)');
+  it('bouclier → item/armour', () => {
+    expect(html(itemFromTrappingById('bouclier')!)).toContain(iconSvg('item/armour'));
   });
 
-  it('munition → icône item/ammo', () => {
+  it('armure → item/armour', () => {
+    expect(html(itemFromTrappingById('plastron')!)).toContain(iconSvg('item/armour'));
+  });
+
+  it('munition → item/ammo', () => {
     expect(html(mk({ kind: 'ammo', label: 'Flèches' }))).toContain(iconSvg('item/ammo'));
   });
 
-  it('cape → icône item/cloak', () => {
+  it('cape → item/cloak', () => {
     expect(html(itemFromTrappingById('cape')!)).toContain(iconSvg('item/cloak'));
   });
 
-  it('consommable (Flow structuré) → icône item/consumable', () => {
+  it('consommable (Flow structuré) → item/consumable', () => {
     const potion = mk({ kind: 'misc', label: 'Potion de guérison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
     expect(html(potion)).toContain(iconSvg('item/consumable'));
   });
 
-  it('objet divers → icône item/misc', () => {
+  it('objet divers → item/misc', () => {
     expect(html(mk({ kind: 'misc', label: 'Corde', desc: 'Trois mètres de corde.' }))).toContain(iconSvg('item/misc'));
-  });
-
-  it('rend en SSR sans getBBox (repli viewBox, aucune exception)', () => {
-    expect(() => html(itemFromTrappingById('hallebarde')!)).not.toThrow();
-  });
-
-  it('objet sans porteur (coup-de-poing) : chair du porteur par défaut, aucun jeton `@` rendu (#1903)', () => {
-    const poing = weaponFromItem(itemFromTrappingById('coup-de-poing')!);
-    const out = renderToStaticMarkup(<ItemIcon item={poing} />);
-    expect(tokensOf(out)).toEqual([]);
-    expect(out).toContain('url(#dg-v-ffd4a5-b08c6d)');
-  });
-});
-
-describe('ItemIcon — même forme que le pion (#2113)', () => {
-  const catalogueDOrigine = trappings.slice();
-  afterEach(() => setDataset('trappings', catalogueDOrigine));
-  const arme = (w: Weapon) => renderToStaticMarkup(<ItemIcon item={w} />);
-
-  it('la forme CHOISIE se dessine sur l’objet comme sur l’arme tenue', () => {
-    const it = itemFromGive({ trappingId: 'arme-simple', apparence: { id: 'hache' } });
-    expect(html(it), 'la sonde mord : le choix change l’icône').not.toBe(html(itemFromTrappingById('arme-simple')!));
-    expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
-  });
-
-  it('une édition du catalogue décide de la forme des nouvelles naissances et conserve celle de l’objet porté', () => {
-    const it = itemFromTrappingById('arbalete')!;
-    const avant = html(it);
-    setDataset('trappings', trappings.map((t) => (t.id === 'arbalete' ? { ...t, shape: { id: 'hache_lancer' } } : t)));
-    expect(html(it)).toBe(avant);
-    expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
-    expect(html(itemFromTrappingById('arbalete')!)).not.toBe(avant);
   });
 });

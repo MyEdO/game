@@ -75,9 +75,11 @@ test('les références RAW datées, verbatim seul et citations sans date restent
   ]) assert.deepEqual(verbatimsUtilisateur('docs/raw/4e/tests.md', texte), [], texte)
 })
 
+const plan = (rel) => ['docs/plans', rel].join('/')
+
 test('périmètre et exclusions de principe, y compris plans non datés', () => {
-  for (const chemin of ['AGENTS.md', '.claude/credo.md', '.claude/sous-agents.md', '.claude/rules/x.md', '.claude/skills/x/ref.md', '.claude/agents/x.md', '.agents/skills/x/SKILL.md', '.codex/agents/x.toml', 'docs/raw/4e/tests.md', 'docs/plans/vivant.md']) assert.equal(estContexteVivant(chemin), true, chemin)
-  for (const chemin of ['.claude/memory/user-x.md', '.claude/soldes/1.md', 'docs/plans/2026-10-31-design.md', 'docs/plans/lot/2026-10-31/x.md', 'Source/livre.md', 'src/engine/x.ts']) assert.equal(estContexteVivant(chemin), false, chemin)
+  for (const chemin of ['AGENTS.md', '.claude/credo.md', '.claude/sous-agents.md', '.claude/rules/x.md', '.claude/skills/x/ref.md', '.claude/agents/x.md', '.agents/skills/x/SKILL.md', '.codex/agents/x.toml', 'docs/raw/4e/tests.md', plan('vivant.md')]) assert.equal(estContexteVivant(chemin), true, chemin)
+  for (const chemin of ['.claude/memory/user-x.md', '.claude/soldes/1.md', plan('2026-10-31-design.md'), plan('lot/2026-10-31/x.md'), 'Source/livre.md', 'src/engine/x.ts']) assert.equal(estContexteVivant(chemin), false, chemin)
 })
 
 test('scan disque : fichier neuf et dérivé présent, archives écartées', (t) => {
@@ -93,7 +95,7 @@ test('scan disque : fichier neuf et dérivé présent, archives écartées', (t)
   poser('.claude/sous-agents.md', parole)
   poser('docs/raw/implemente.generated.md', parole)
   poser('.claude/memory/user-x.md', parole)
-  poser('docs/plans/2026-10-31-design.md', parole)
+  poser(plan('2026-10-31-design.md'), parole)
   assert.deepEqual(verbatimsDuCorpus({ racine }).map(({ chemin, ligne }) => ({ chemin, ligne })), [{ chemin: '.claude/sous-agents.md', ligne: 1 }, { chemin: 'AGENTS.md', ligne: 1 }, { chemin: 'docs/raw/implemente.generated.md', ligne: 1 }])
   poser('AGENTS.md', 'Consigne — #3175')
   poser('.claude/sous-agents.md', 'Consigne — #3175')

@@ -70,7 +70,7 @@ const jumeauxMuets = (vocabulaires: Map<string, CompteDeNoeuds>): string[] =>
 
 /** Les vocabulaires NOMMÉS, par leurs options — un par `enumNomme` atteint depuis le registre. */
 const NOMMES = [
-  // `sexeSchema` (#1897) : le sexe d'une apparence, porté par `entityAppearanceSchema`, `pregens`, `raceAppearance`.
+  // `sexeSchema` (#1897) : le sexe d'une apparence, porté par `entityAppearanceSchema` et `pregens`.
   'M|F',
   'N|NE|E|SE|S|SO|O|NO',
   // `domainCircumstanceSchema` (#1715) : les circonstances (météo, saison, relief, lieu, bâti) qu'un
@@ -150,7 +150,7 @@ const NOMMES = [
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
-  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
+  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|groupesDAppartenance|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',
@@ -251,7 +251,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ladder|surface',
   'ldb|aa',
   'le-plus-lent|aucun',
-  'lisses|griffues',
   'localisation|porteur',
   'majeure|mineure-x2',
   'metal|leather|chaos',
@@ -272,7 +271,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'party|hero|caster|target',
   'pas|trot|galop',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent',
-  'peau|peauO|peauH|cheveux|cheveuxO|cheveuxH|yeux|yeuxO|yeuxH',
   'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',

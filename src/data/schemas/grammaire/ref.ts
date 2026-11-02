@@ -11,7 +11,7 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
+import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, type SousListeMarquee } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -86,7 +86,7 @@ export const TYPES = {
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
   classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
-  // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
+  // GABARIT (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
   // RACE DE RENDU (#3113) : `garde-robe.json › race` d'une tête résout AU PARSE.
   raceAppearance: { espace: 'raceAppearance.json', catalogue: 'races de rendu' },
@@ -167,10 +167,6 @@ function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string 
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
-/** Sous-liste MARQUÉE : l'espace d'un type PRIVÉ des entrées qui portent l'un de ses marqueurs
- *  (paramètre `espace.marqueurs` du def) — `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`). */
-type SousListeMarquee = { readonly horsMarqueurs: readonly string[] };
-
 /**
  * SOUS-LISTE qu'une feuille `idDe` retient de l'espace de son type : une chaîne, la sous-liste
  * DISCRIMINÉE de cette valeur (`idDe('material', 'prop')`) ; une `SousListeMarquee`, l'espace PRIVÉ des
@@ -192,10 +188,6 @@ function refusDuMarqueur(type: TypeEntite, sousListe: SousListeMarquee, site: st
   return refusDeMarqueur(type, id, sousListe.horsMarqueurs.find((m) => idsDesignes(cleDuMarqueur(type, m), site).has(id)));
 }
 
-/** Le premier marqueur de la sous-liste que porte l'ENTRÉE (`porteLeChampMarqueur`), `undefined` sinon. */
-const marqueurDeLEntree = (sousListe: SousListeMarquee, entree: object): string | undefined =>
-  sousListe.horsMarqueurs.find((m) => porteLeChampMarqueur(entree as Readonly<Record<string, unknown>>, m));
-
 /** Le refus d'un id par une sous-liste DISCRIMINÉE — `null` s'il est ADMIS. */
 const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string): string | null =>
   idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
@@ -203,12 +195,12 @@ const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string,
     : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
 
 /** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
- *  marquée sur ses champs (`marqueurDeLEntree`), la discriminée sur son id —, lu par le sélecteur qui
+ *  marquée sur ses champs (`marqueurPorte`), la discriminée sur son id —, lu par le sélecteur qui
  *  résout une saisie hors du registre (`ui/compendium/refField/RefField.tsx`). */
 export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
-    : refusDeMarqueur(type, entree.id, marqueurDeLEntree(sousListe, entree));
+    : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
 }
 
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
@@ -220,11 +212,11 @@ function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: strin
 
 /**
  * L'ENTRÉE résolue appartient-elle à la sous-liste marquée ? Le runtime juge l'entrée elle-même (objet
- * du catalogue OU de la campagne, `noyau/monde/resolveursDuNarratif.ts`) par `porteLeChampMarqueur`, le prédicat
- * qui bâtit les clés `<espace>?<marqueur>` que `refusDuMarqueur` lit au schéma.
+ * du catalogue OU de la campagne, `noyau/monde/resolveursDuNarratif.ts`) par `marqueurPorte`, le prédicat
+ * qui bâtit les clés `<espace>?!<marqueur>,…` que `refusDuMarqueur` lit au schéma.
  */
 export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): boolean {
-  return marqueurDeLEntree(sousListe, entree) === undefined;
+  return marqueurPorte(sousListe, entree) === undefined;
 }
 
 /** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au registre (régime

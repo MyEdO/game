@@ -152,7 +152,14 @@ describe('infirmerie ouverte depuis la fiche — le dialogue du dessus est celui
     bouton(infirmerie(), 'Lancer').focus();
     await frappe('Tab');
     expect(infirmerie().contains(document.activeElement), `Tab → « ${actif()} »`).toBe(true);
-    bouton(infirmerie(), 'Lancer').focus();
+    const lancer = bouton(infirmerie(), 'Lancer');
+    lancer.focus();
+    act(() => {
+      puce.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: lancer }));
+      puce.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: lancer }));
+    });
+    await vider();
+    expect(sommet(), 'la puce survolée après la navigation reprend la couche du sommet').toBe('infobulle');
     await frappe('Enter');
     await laisserRouler();
     expect(sommet(), 'la bulle survolée est toujours au sommet').toBe('infobulle');

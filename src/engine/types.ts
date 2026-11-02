@@ -398,7 +398,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   range?: WeaponRangeSpec | null;
   qualities: QualityInstance[];
   /** `id` du Groupe d'arme/famille de munition (`WeaponGroupData.id`) — réf, ≠ libellé. Pilote la
-   *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`), le rendu (rig). */
+   *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`). */
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
@@ -465,14 +465,14 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   teinte?: string;
   /** #2967 */
   apparence?: string;
-  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
-   *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
+  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue, la clé `natural`
+   *  d'`equipementDessine` le dit au dessinateur. Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
   /** Taille PRÉVUE pour l'arme (ADE II 2 l.706-710) — propagée depuis `ItemInstance.sizeFor`. Différente
    *  de la Taille du porteur → −20 à tous les Tests avec cette arme (`attackModifiers`). */
   sizeFor?: import('./size').SizeCategory;
   /** Trait « Arme +N » générique SANS objet de catalogue identifié (`creatureEquip.weaponFromTrait`) :
-   *  ≠ `natural` (le rendu garde sa silhouette générique, `weaponFamily`) — exempte SEULEMENT du
+   *  ≠ `natural` — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
   /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
@@ -856,9 +856,8 @@ export interface ActiveEffect {
    *  (`dropExpiredGrantedMutations`, engine/corruption). Une mutation de CORRUPTION (permanente) n'a pas
    *  d'effet porteur — elle vit seule dans `c.mutations`, jamais détachée. */
   grantedMutation?: import('./corruption').Mutation;
-  /** Apparence de REMPLACEMENT le temps de l'effet (op `polymorph`) : id de créature dont la couche rig
-   *  rend l'apparence (`combatantAppearance` via `liveMorphRef`). Le moteur ne porte QUE l'id (pureté —
-   *  aucune dépendance au rig) ; l'override est auto-restitué à l'expiration (effet retiré → plus de morphRef). */
+  /** Forme de REMPLACEMENT le temps de l'effet (op `polymorph`/`transform`) : id de créature, lu par
+   *  `liveMorphRef` ; auto-restitué à l'expiration (effet retiré → plus de morphRef). */
   morphRef?: string;
   /** Arme INVOQUÉE temporaire (op `grantWeapon` — Arme aethyrique, Faux de Shyish, Épée ardente) :
    *  l'objet `conjured` est posé dans un SET d'armes DÉDIÉ (réutilise le système de loadouts) rendu
@@ -1432,7 +1431,7 @@ export interface Combatant {
   followsCharacterRules?: boolean;
   /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
    *  bestiaire (`noyau/monde/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —
-   *  clé de résolution du rig/apparence (« plus de label » : on ne re-résout plus par `name`). */
+   *  clé de résolution de l’apparence (« plus de label » : on ne re-résout plus par `name`). */
   creatureId?: string;
   /** Le porteur de fiche dont ce combattant a été spawné (`noyau/monde/spawn.spawnEnemy`, #1882) — ce qui le
    *  re-spawne à l'identique (`scheduleRespawn ref:'self'`). Absent : un héros, né de sa création. */
@@ -1873,8 +1872,8 @@ export interface Combatant {
   /** Apparence visuelle RÉSOLUE (cosmétique, ignorée par le moteur ; lue directement par le rendu pour
    *  un PJ rendu depuis son propre inventaire). Référence de TYPE seulement → élidée à la compilation. */
   appearance?: import('./authoringAppearance').Appearance;
-  /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187) : figé
-   *  PARESSEUSEMENT par le rig (`enemyRigProfile`) au premier rendu, jamais dans `state`. */
+  /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187), lu par
+   *  `equipementDessine` et `deciderApparencesDesArmes` (`noyau/monde/spawn.ts`). */
   appearanceOverride?: import('./authoringAppearance').EntityAppearance;
 }
 

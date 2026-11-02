@@ -364,13 +364,6 @@ export function footprintDepth(x: number, y: number, w: number, h: number, dims:
   return d;
 }
 
-/** Base ÉCRAN (colonne, profondeur) d'une case dans la projection COURANTE — même repère que `depth`/
- *  `tileCenter` : losange = anti-diagonale (col) / diagonale (dep) ; edge-on ou dessus = colonne x / rangée y. */
-export function screenBasis(x: number, y: number, dims: Dims): { col: number; dep: number } {
-  const r = rotTile(x, y, dims);
-  return dims.view === 'top' || dims.edge ? { col: r.x, dep: r.y } : { col: r.x - r.y, dep: r.x + r.y };
-}
-
 export interface ScreenPoint {
   x: number;
   y: number;
@@ -390,9 +383,6 @@ export interface OccluderPanel {
 export interface ProjectedOccluderPolygon {
   points: ScreenPoint[];
   bounds: ScreenBounds;
-  depths: number[];
-  lifts: number[];
-  vertical: [number, number];
 }
 
 export interface ProjectedOccluder {
@@ -402,9 +392,6 @@ export interface ProjectedOccluder {
 
 export interface ActorCapsule {
   segment: [ScreenPoint, ScreenPoint];
-  radius: number;
-  depth: number;
-  vertical: [number, number];
 }
 
 /** Centre ÉCRAN d'une capsule d'acteur : milieu du segment pieds→tête. Ce que la CAMÉRA doit viser —
@@ -422,7 +409,6 @@ export function projectOccluder(panel: OccluderPanel, dims: Dims): ProjectedOccl
     });
     const xs = points.map((point) => point.x);
     const ys = points.map((point) => point.y);
-    const lifts = poly.map((point) => point.lift);
     return {
       points,
       bounds: {
@@ -431,9 +417,6 @@ export function projectOccluder(panel: OccluderPanel, dims: Dims): ProjectedOccl
         top: Math.min(...ys),
         bottom: Math.max(...ys),
       },
-      depths: poly.map((point) => depth(point.x, point.y, dims, point.lift)),
-      lifts,
-      vertical: [Math.min(...lifts), Math.max(...lifts)],
     };
   });
   return {
@@ -445,149 +428,4 @@ export function projectOccluder(panel: OccluderPanel, dims: Dims): ProjectedOccl
       bottom: Math.max(...polygons.map((polygon) => polygon.bounds.bottom)),
     },
   };
-}
-
-const OCCLUSION_EPS = 1e-6;
-
-function pointInPolygon(point: ScreenPoint, polygon: readonly ScreenPoint[]): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const a = polygon[i], b = polygon[j];
-    if (pointSegmentDistance(point, a, b) <= OCCLUSION_EPS) return false;
-    if ((a.y > point.y) !== (b.y > point.y)
-      && point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
-  }
-  return inside;
-}
-
-function pointSegmentDistance(point: ScreenPoint, a: ScreenPoint, b: ScreenPoint): number {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const length2 = dx * dx + dy * dy;
-  if (!length2) return Math.hypot(point.x - a.x, point.y - a.y);
-  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2));
-  return Math.hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy));
-}
-
-function closestPointOnSegment(point: ScreenPoint, a: ScreenPoint, b: ScreenPoint): ScreenPoint {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const length2 = dx * dx + dy * dy;
-  if (!length2) return a;
-  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2));
-  return { x: a.x + t * dx, y: a.y + t * dy };
-}
-
-function orient(a: ScreenPoint, b: ScreenPoint, c: ScreenPoint): number {
-  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-}
-
-function localValuesInPolygon(
-  point: ScreenPoint,
-  polygon: ProjectedOccluderPolygon,
-): { depth: number; lift: number } | null {
-  const p0 = polygon.points[0];
-  for (let i = 1; i < polygon.points.length - 1; i++) {
-    const p1 = polygon.points[i], p2 = polygon.points[i + 1];
-    const det = orient(p0, p1, p2);
-    if (Math.abs(det) <= OCCLUSION_EPS) continue;
-    const w1 = orient(p0, point, p2) / det;
-    const w2 = orient(p0, p1, point) / det;
-    const w0 = 1 - w1 - w2;
-    if (w0 < -OCCLUSION_EPS || w1 < -OCCLUSION_EPS || w2 < -OCCLUSION_EPS) continue;
-    return {
-      depth: w0 * polygon.depths[0] + w1 * polygon.depths[i] + w2 * polygon.depths[i + 1],
-      lift: w0 * polygon.lifts[0] + w1 * polygon.lifts[i] + w2 * polygon.lifts[i + 1],
-    };
-  }
-  return null;
-}
-
-function localValuesOnEdge(
-  point: ScreenPoint,
-  polygon: ProjectedOccluderPolygon,
-  index: number,
-): { depth: number; lift: number } {
-  const next = (index + 1) % polygon.points.length;
-  const a = polygon.points[index], b = polygon.points[next];
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const length2 = dx * dx + dy * dy;
-  const t = length2
-    ? Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length2))
-    : 0;
-  return {
-    depth: polygon.depths[index] + (polygon.depths[next] - polygon.depths[index]) * t,
-    lift: polygon.lifts[index] + (polygon.lifts[next] - polygon.lifts[index]) * t,
-  };
-}
-
-/** `band=true` : le point doit tomber DANS la bande verticale pieds→tête (occulteur qui coupe le
- *  corps — mur au niveau du buste, etc.). `band=false` : la profondeur suffit — l'occulteur est
- *  ENTIÈREMENT au-dessus de la tête (toit, mur d'étage, #907) : plus de bande à vérifier, il n'y a
- *  qu'à confirmer qu'il est peint après le sujet. */
-function locallyOccludes(
-  values: { depth: number; lift: number },
-  capsule: ActorCapsule,
-  band: boolean,
-): boolean {
-  if (values.depth <= capsule.depth + OCCLUSION_EPS) return false;
-  if (!band) return true;
-  return values.lift > capsule.vertical[0] + OCCLUSION_EPS
-    && values.lift < capsule.vertical[1] - OCCLUSION_EPS;
-}
-
-function polygonOccludesCapsule(polygon: ProjectedOccluderPolygon, capsule: ActorCapsule, band: boolean): boolean {
-  const [a, b] = capsule.segment;
-  const axisCandidates = [
-    a,
-    b,
-    { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
-  ];
-  for (const point of axisCandidates) {
-    if (!pointInPolygon(point, polygon.points)) continue;
-    const values = localValuesInPolygon(point, polygon);
-    if (values && locallyOccludes(values, capsule, band)) return true;
-  }
-  for (let i = 0; i < polygon.points.length; i++) {
-    const p = polygon.points[i], q = polygon.points[(i + 1) % polygon.points.length];
-    const candidates = [
-      p,
-      q,
-      closestPointOnSegment(a, p, q),
-      closestPointOnSegment(b, p, q),
-    ];
-    for (const point of candidates) {
-      if (pointSegmentDistance(point, a, b) >= capsule.radius - OCCLUSION_EPS) continue;
-      if (locallyOccludes(localValuesOnEdge(point, polygon, i), capsule, band)) return true;
-    }
-  }
-  return false;
-}
-
-export function occludesActor(occluder: ProjectedOccluder, actorCapsule: ActorCapsule): boolean {
-  const [a, b] = actorCapsule.segment;
-  const capsuleBounds = {
-    left: Math.min(a.x, b.x) - actorCapsule.radius,
-    right: Math.max(a.x, b.x) + actorCapsule.radius,
-    top: Math.min(a.y, b.y) - actorCapsule.radius,
-    bottom: Math.max(a.y, b.y) + actorCapsule.radius,
-  };
-  if (
-    occluder.bounds.right < capsuleBounds.left
-    || occluder.bounds.left > capsuleBounds.right
-    || occluder.bounds.bottom < capsuleBounds.top
-    || occluder.bounds.top > capsuleBounds.bottom
-  ) return false;
-  return occluder.polygons.some((polygon) => {
-    // Entièrement SOUS LES PIEDS (plancher, soubassement) : ne peut jamais occulter un sujet debout.
-    if (polygon.vertical[1] <= actorCapsule.vertical[0] + OCCLUSION_EPS) return false;
-    // Entièrement AU-DESSUS DE LA TÊTE (toit, mur d'étage, #907) : occulte quand même s'il recouvre
-    // le sujet à l'écran et se peint après lui — `band=false` : pas de bande verticale à vérifier.
-    const overhead = polygon.vertical[0] >= actorCapsule.vertical[1] - OCCLUSION_EPS;
-    if (
-      polygon.bounds.right <= capsuleBounds.left + OCCLUSION_EPS
-      || polygon.bounds.left >= capsuleBounds.right - OCCLUSION_EPS
-      || polygon.bounds.bottom <= capsuleBounds.top + OCCLUSION_EPS
-      || polygon.bounds.top >= capsuleBounds.bottom - OCCLUSION_EPS
-    ) return false;
-    return polygonOccludesCapsule(polygon, actorCapsule, !overhead);
-  });
 }

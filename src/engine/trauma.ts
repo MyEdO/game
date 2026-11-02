@@ -66,24 +66,6 @@ export interface TraumaCumul {
 }
 
 /**
- * Routage d'APPARENCE de la séquelle sur le rig (LDB 18 / prothèses LDB 73) — pur affichage, lu par
- * `injuryOverlaysFor` (`gameIso/rig/parts/injuries.ts`) : le rig ne nomme plus aucune séquelle.
- */
-export interface TraumaRig {
-  /** Os porteur du calque (`BoneId`) ; suffixé `G`/`D` d'après la Localisation si `lateral`. */
-  bone: string;
-  lateral?: boolean;
-  /** Art par défaut (`PROSTHESIS`) ; absent = rien tant qu'aucune prothèse n'est portée. */
-  art?: string;
-  /** Art substitué quand la prothèse `trappingId` est PORTÉE (première portée gagne). */
-  byProsthesis?: { trappingId: string; art: string }[];
-  /** Os effacé en plus du calque (même latéralité). */
-  hidesBone?: string;
-  view?: 'front';
-  replace?: boolean;
-}
-
-/**
  * Fiche de Traumatisme (registre `traumas.json`, app-owned) : mécanique = `ops` (OpPassive[]), `desc` =
  * texte canon LDB 18 VERBATIM (DISPLAY-ONLY, jamais parsé). Couvre déchirures/fractures par localisation
  * et toutes les séquelles permanentes d'amputation (+ Cécité/Surdité agrégées). `kind`/`severity` portés
@@ -100,8 +82,6 @@ export interface TraumaFiche {
   prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
   /** Séquelle CUMULATIVE : sa règle de comptage/agrégation, en donnée (LDB 18 l.247/251/273/277/281). */
   cumul?: TraumaCumul;
-  /** Routage d'apparence sur le rig (affichage pur). */
-  rig?: TraumaRig;
   needsSurgery?: boolean;
   /** Séquelle COSMÉTIQUE (cicatrice) : n'est PAS une Blessure critique comptée (`criticalWounds`) — cf. `Trauma.cosmetic`. */
   cosmetic?: boolean;
@@ -127,13 +107,6 @@ export function traumaFicheById(id: string): TraumaFiche {
   return f;
 }
 
-/** Fiche de Traumatisme, ou `undefined` si l'id n'est plus au catalogue — porte TOLÉRANTE réservée aux
- *  canaux d'AFFICHAGE (rendu de rig, écrans) : une entrée supprimée/renommée au Codex laisse des
- *  `traumaId` orphelins dans les saves, et un écran ne doit pas planter pour un visuel manquant. Toute
- *  lecture MÉCANIQUE passe par `traumaFicheById`, qui lève (une règle silencieusement absente = bug). */
-export function findTraumaFiche(id: string | undefined): TraumaFiche | undefined {
-  return ficheById(id);
-}
 
 /** Ops PASSIVES d'une séquelle (lecteur UNIQUE de `t.ops` — vocab GameOp partagé). */
 function traumaOps(t: Trauma): OpPassive[] {

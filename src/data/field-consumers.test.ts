@@ -174,8 +174,8 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
 
 /**
  * CLIQUET des « 0 lecteur » : la liste des champs PROPRES sans aucun lecteur, écrite NOMINATIVEMENT
- * et comparée à l'identique. Il ne DESCEND que par le retrait d'une ligne, et ce retrait exige le
- * lecteur qui l'annule ; un zéro NOUVEAU (champ dont le dernier lecteur disparaît) est rouge sous
+ * et comparée à l'identique. Une ligne sort quand le champ disparaît ou retrouve un lecteur ;
+ * un zéro NOUVEAU (champ dont le dernier lecteur disparaît) est rouge sous
  * son nom, jamais avalé par un plafond. Ne sont ici ni les champs HÉRITÉS (leur « 0 » est
  * tautologique) ni les champs ABSENTS du type TS — ce ne sont pas des mesures de lecture.
  */

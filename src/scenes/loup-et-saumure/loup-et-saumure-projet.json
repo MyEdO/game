@@ -251,9 +251,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "noble",
-      "sex": "M",
-      "build": 0.5,
-      "seed": 5120
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -270,9 +268,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "pretre",
-      "sex": "M",
-      "build": 0.6,
-      "seed": 31207
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -289,9 +285,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "marchand",
-      "sex": "F",
-      "build": 0.45,
-      "seed": 20471
+      "sex": "F"
      },
      "ref": "humain"
     },
@@ -308,9 +302,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artiste",
-      "sex": "F",
-      "build": 0.4,
-      "seed": 44810
+      "sex": "F"
      },
      "ref": "humain"
     },
@@ -329,8 +321,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "bourgeois",
-      "sex": "F",
-      "build": 0.55
+      "sex": "F"
      },
      "ref": "humain"
     },
@@ -349,8 +340,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artisan",
-      "sex": "M",
-      "build": 0.6
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -369,8 +359,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "bourgeois",
-      "sex": "M",
-      "build": 0.5
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -1491,9 +1480,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "pretre",
-      "sex": "M",
-      "build": 0.6,
-      "seed": 31207
+      "sex": "M"
      },
      "statblock": {
       "type": "statblock",
@@ -1534,9 +1521,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artiste",
-      "sex": "F",
-      "build": 0.4,
-      "seed": 44810
+      "sex": "F"
      },
      "statblock": {
       "type": "statblock",
@@ -2064,9 +2049,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "debardeur",
-      "sex": "M",
-      "build": 0.6,
-      "seed": 8830
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -2083,9 +2066,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "marchand",
-      "sex": "F",
-      "build": 0.45,
-      "seed": 20471
+      "sex": "F"
      },
      "ref": "humain"
     },
@@ -2102,9 +2083,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artisan",
-      "sex": "M",
-      "build": 0.6,
-      "seed": 3312
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -2913,9 +2892,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "pretre",
-      "sex": "M",
-      "build": 0.6,
-      "seed": 31207
+      "sex": "M"
      },
      "statblock": {
       "type": "statblock",
@@ -2956,9 +2933,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artiste",
-      "sex": "F",
-      "build": 0.4,
-      "seed": 44810
+      "sex": "F"
      },
      "statblock": {
       "type": "statblock",
@@ -3486,9 +3461,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "noble",
-      "sex": "M",
-      "build": 0.5,
-      "seed": 5120
+      "sex": "M"
      },
      "ref": "humain"
     }

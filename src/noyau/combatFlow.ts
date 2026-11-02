@@ -2822,7 +2822,7 @@ function appliquerLaTouche(
   if (attacker.pos && target.pos) {
     set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
   }
-  // `weapon`/`parryWeapon` voyagent dans l'événement : le rig joue le geste de l'arme EMPLOYÉE
+  // `weapon`/`parryWeapon` voyagent dans l'événement : le geste est celui de l'arme EMPLOYÉE
   // (2e frappe de dague gauche, tentacule…) et la parade de l'arme QUI A PARÉ (main-gauche,
   // bouclier) — pas ceux de l'arme principale.
   bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind, defense, weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
@@ -4124,9 +4124,8 @@ export function resolveFreeAttacks(get: Get, set: SetFn, actor: Combatant, trigg
 // Morsure/Caudale (Indice) avant Piétinement (BF+0) — cf. exemple Aventures à Ubersreik.
 // ---------------------------------------------------------------------------
 
-/** Type de pose d'attaque (rendu créature) : l'id STABLE `weapon.attackKind` stampé à la construction.
- *  undefined = arme manufacturée → pose générique du gabarit. Sert au tintage de l'animation d'attaque
- *  (AnimatedPlanToken) et à la Condition Flow `attackKind`. */
+/** Type d'attaque de créature : l'id STABLE `weapon.attackKind` stampé à la construction ; undefined =
+ *  arme manufacturée. Lu par `EVT.ANIM_ATTACK` (`creatureAttack`) et la Condition Flow `attackKind`. */
 export function creatureAttackKind(weapon: { attackKind?: string }): string | undefined {
   return weapon.attackKind;
 }
@@ -6240,7 +6239,7 @@ export function applyCast(
     }
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
     // Sort de SOUTIEN (bénédiction/soin/buff) ou prière non-projectile : émet aussi l'event
-    // d'incantation → geste de canalisation (RigToken) + halo/aura tinté à l'école (IsoStage).
+    // d'incantation → halo/aura tinté à l'école.
     // Soutien : le lanceur se tourne vers la cible ; pas de réaction de la cible (ce n'est pas une frappe).
     // Hors combat (pas de file/token tactique), on n'anime pas le geste iso.
     if (battle && caster.pos && target.pos && caster.id !== target.id) {

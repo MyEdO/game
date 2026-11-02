@@ -205,7 +205,7 @@ export function CarrierInventory({
                   (c): MediaOption =>
                     'uid' in c
                       ? { key: c.uid, media: prefixOf(c), label: possessionLabel(c) }
-                      : { key: c.id, media: <CharFrame c={c} variant="identity" size="xs" />, label: c.label },
+                      : { key: c.id, media: <CharFrame c={c} variant="identity" size="xs" decoratif />, label: c.label },
                 )}
                 onSelect={(cid) => transferItem(it.uid, carrierId, cid)}
               />

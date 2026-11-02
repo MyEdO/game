@@ -36,13 +36,12 @@ async function monter(initialScene: Scene): Promise<HTMLDivElement> {
 const MESSAGE = "Le monde de l'éditeur a rencontré une erreur de rendu";
 
 /**
- * UNE ESPÈCE D'AUTEUR HORS DOMAINE NE FAIT PLUS TOMBER LE MONDE — le schéma la nomme (onglet
- * Validation), le rendu la route vers le corps d'erreur `manquant` (`resolveRender`) : le canevas reste
- * monté, aucune levée n'atteint le filet (`SceneErrorBoundary`).
+ * Une espèce d'auteur hors domaine reste éditable : le canevas monte et l'onglet Validation nomme
+ * la faute portée par l'entité.
  */
 describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () => {
-  it('le canevas tient, le rendu signale le corps d’erreur, la Validation nomme l’espèce', async () => {
-    const erreurs = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  it('le canevas et l’entité restent montés, la Validation nomme l’espèce', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const initialScene: Scene = {
       ...emptyScene('scene-test', 6, 6),
       id: 'filet',
@@ -52,19 +51,17 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
 
     expect(container.textContent).not.toContain(MESSAGE);
     expect(container.querySelector('.editor-canvas-wrap svg'), 'le canevas est monté').not.toBeNull();
-    expect(erreurs.mock.calls.map((c) => String(c[0])).filter((m) => m.includes('« espece-hors-vocabulaire »') && m.includes("silhouette d'erreur")).length).toBeGreaterThan(0);
+    expect(editeur.listerEntites!().map((e) => e.id)).toEqual(['pnj-faute']);
 
     const onglet = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Validation'))!;
     await act(async () => { onglet.click(); });
-    expect(container.querySelector('.ed-validation')?.textContent).toContain('espèce « espece-hors-vocabulaire » inconnue : ni espèce jouable, ni espèce dessinée');
+    expect(container.querySelector('.ed-validation')?.textContent).toContain('espèce « espece-hors-vocabulaire » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.');
   });
 });
 
 /**
- * LE FILET DE CRASH NE CONTOURNE PLUS RIEN — la relecture de l'autosave passe par le schéma de scène
- * (`parseSceneDeProjet`) : une scène qui porte un décor volumique au cap refusé est ÉCARTÉE, la
- * modale de reprise la dit d'un autre format, la faute et son lieu au détail, et rien n'entre dans
- * l'éditeur.
+ * La relecture de l'autosave passe par le schéma de scène (`parseSceneDeProjet`) : un décor volumique
+ * au cap refusé écarte la sauvegarde, et la modale de reprise nomme la faute et son lieu.
  */
 describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
   it('la modale dit la scène d’un autre format, la faute et son lieu au détail, sans « Restaurer » ; la scène chargée reste', async () => {

@@ -30,7 +30,7 @@ const narratif: NarratifBlock = {
     lignes: [{ espece: 'nain', sexe: 'F', valeurs: [{ repere: 'sal', valeur: 'Chère Frau Linkassniz', adapteDe: P27 }, { repere: 'complet', valeur: 'Kallar Linkassniz', source: P27 }] }],
   } } }],
 };
-const heros = (id: string, speciesId: string, sex: 'M' | 'F') => ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, apparence: { sex, build: 0.5 } }), id });
+const heros = (id: string, speciesId: string, sex: 'M' | 'F') => ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, apparence: { sex } }), id });
 const get = () => useGame.getState();
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;

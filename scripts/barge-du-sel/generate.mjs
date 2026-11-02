@@ -66,9 +66,7 @@ function seaRows(w, h, footprints) {
 const HELM_SKILLS = [{ id: 'voile', value: 55 }, { id: 'ramer', value: 45 }];
 const GUN_SKILLS = [{ id: 'projectiles', spec: 'poudre-noire', value: 55 }];
 /** Marin d'équipage COMPÉTENT (passager, hors rendu à la Mer) — CustomStatblock sourcé (règle stricte 7).
- *  `tenue` : id de garde-robe du rig (`src/gameIso/rig/parts/tenues/defs/`). Sans réf de bestiaire, une
- *  entité `personnage` n'a d'apparence à résoudre que par son Espèce — `entityRigProfileFor`
- *  (`src/gameIso/rig/enemyProfile.ts:270-274`) n'en dérive AUCUNE sans l'une des deux. */
+ *  `tenue` : id de garde-robe de l'entité. */
 function marine(id, x, y, label, skills, tenue) {
   return { id, kind: 'personnage', pos: { x, y }, label,
     appearance: { species: 'humains-reiklander', tenue },

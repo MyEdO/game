@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 // @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';
-import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 
 /** Scène MER minimale (eau, 6×6) portant une rencontre terse d'un seul ennemi `ref` — sert à exercer
  *  `creatureId()` (branché dans `normalizeEnemy`) sans dépendre d'un catalogue de créature particulier. */
@@ -39,22 +38,23 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
     expect(() => NPC('t', 0, 0, 'Test', { appearance: { species: 'Humains (Reiklander)' } })).toThrow(/species/i);
   });
 
-  it('NPC : chaque forme de nuée du domaine de saisie passe ; un id inconnu → throw', () => {
-    for (const forme of domaineDEspeces().nuees)
-      expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: forme } }).appearance.species).toBe(forme);
-    expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: 'espece-imaginaire' } })).toThrow(/species/i);
+  it('NPC : espèce jouable, créature et race de rendu passent ; une coquille → throw', () => {
+    for (const espece of ['halflings', 'rat-geant', 'skaven', 'araignee-geante'])
+      expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: espece } }).appearance.species).toBe(espece);
+    expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: 'rat-geants' } })).toThrow(/species.*« rat-geants » inconnue/);
   });
 
   it('NPC : un LIBELLÉ de tenue → throw', () => {
     expect(() => NPC('t', 0, 0, 'Test', { appearance: { tenue: 'Mendiant' } })).toThrow(/tenue/i);
   });
 
-  it('NPC : un LIBELLÉ d’arme → throw', () => {
-    expect(() => NPC('t', 0, 0, 'Test', { weapon: 'Arc' })).toThrow(/weapon/i);
+  it('NPC : une tenue par id de CARRIÈRE, de CLASSE ou « nu » reste valide', () => {
+    for (const tenue of ['archer', 'roublards', 'nu'])
+      expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue } }).appearance.tenue).toBe(tenue);
   });
 
-  it('NPC : une tenue par id de CARRIÈRE (sans tenue dédiée) reste valide (résolue par classe)', () => {
-    expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue: 'archer' } }).appearance.tenue).toBe('archer');
+  it('NPC : un LIBELLÉ d’arme → throw', () => {
+    expect(() => NPC('t', 0, 0, 'Test', { weapon: 'Arc' })).toThrow(/weapon/i);
   });
 
   it('NPC : sans fiche, la `ref` est le profil standard de son espèce, posée en QUEUE (LDB 77 l.7, #1882)', () => {
@@ -104,8 +104,8 @@ describe('lib.mjs — creatureId : créature ∪ véhicule (coque terse #218)', 
 });
 
 // #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }` et valide
-// que `trappingId` désigne une pièce POSABLE (art d'affût `siegeRig`).
-describe('lib.mjs — poste() : forme référence #222, trappingId à art d’affût', () => {
+// que `trappingId` désigne un trapping du sous-type `armes-de-siege`.
+describe('lib.mjs — poste() : forme référence #222, trappingId du sous-type armes-de-siege', () => {
   it('une pièce d’artillerie valide → { trappingId, uid, side, crewIds }, base NON matérialisée', () => {
     const p = poste('canon-moyen', 'tribord');
     expect(p.trappingId).toBe('canon-moyen');
@@ -120,8 +120,8 @@ describe('lib.mjs — poste() : forme référence #222, trappingId à art d’af
     expect(poste('pierrier', 'proue', ['bob']).crewIds).toEqual(['bob']);
   });
 
-  it('un trappingId SANS art d’affût (arme ordinaire) → throw', () => {
-    expect(() => poste('arc', 'tribord')).toThrow(/poste/i);
+  it('un trappingId hors du sous-type armes-de-siege → refus nommé', () => {
+    expect(() => poste('arc', 'tribord')).toThrow(/sous-type armes-de-siege/i);
   });
 
   it('un trappingId inconnu → throw', () => {

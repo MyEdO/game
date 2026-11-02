@@ -2,7 +2,7 @@
  * Schéma de `weaponGroups.json` — registre des Groupes d'objet (armes/munitions/armures/inventaire),
  * miroir de `WeaponGroupData` (`src/data/index.ts`). La CHARGE de chaque `kind` (`chargeParDiscriminant`,
  * bornée au parse par `document()`) : un Groupe d'armure porte son `material` (exemptions de Magie des
- * Arcanes, LDB 46 l.150-152 ; VDM 02 l.169), sa `couche`, son `art` et son `palierPA` ; un
+ * Arcanes, LDB 46 l.150-152 ; VDM 02 l.169), sa `couche` et son `palierPA` ; un
  * Groupe d'arme sa `forme` et son `maniement`, son `combat` éventuel (SOURCE des pools
  * `weaponGroupsMelee`/`weaponGroupsRanged`, absent sur les Groupes de siège) ; une arme ou une munition à
  * poudre le marqueur `poudre`. `couche` et `palierPA` sont uniques parmi les Groupes d'armure.
@@ -13,7 +13,6 @@ import { enumNomme, maniementSchema } from '../grammaire/valeurs';
 import { qualityRefSchema } from '../grammaire/reference';
 import { ref } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
-import { estArtDArmure } from '../grammaire/art';
 import { tableTotale } from '../../../lib/tableTotale';
 
 export const file = 'weaponGroups.json';
@@ -25,11 +24,11 @@ type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'art', 'palierPA'] : kind === 'weapon' ? ['combat', 'forme', 'maniement', 'poudre'] : kind === 'ammo' ? ['poudre'] : [],
+  kind === 'armour' ? ['material', 'couche', 'palierPA'] : kind === 'weapon' ? ['combat', 'forme', 'maniement', 'poudre'] : kind === 'ammo' ? ['poudre'] : [],
 );
 /** Clés EXIGÉES de la charge (`espace.requisesParDiscriminant`). */
 const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'art', 'palierPA'] : kind === 'weapon' ? ['forme', 'maniement'] : [],
+  kind === 'armour' ? ['material', 'couche', 'palierPA'] : kind === 'weapon' ? ['forme', 'maniement'] : [],
 );
 /** Rangs d'un Groupe d'armure UNIQUES parmi les Groupes d'armure : deux couches égales laisseraient l'ordre
  *  d'inventaire trancher l'affichage, deux paliers égaux la matière d'une armure de statbloc. */
@@ -49,8 +48,6 @@ const doc = document(
     /** PA à partir desquels une armure de statbloc portée se dessine dans la matière du Groupe ; `null` :
      *  aucune armure de statbloc ne s'y dessine (#2948). */
     palierPA: z.number().int().min(0).nullable().optional(),
-    /** Def d'art (`src/gameIso/rig/parts/armour/defs/`) qui peint la matière d'un Groupe d'armure. */
-    art: z.string().refine(estArtDArmure, { error: (iss) => `« ${String(iss.input)} » n’est aucun def d’art d’armure (\`src/gameIso/rig/parts/armour/defs/\`).` }).optional(),
     /** Forme dessinée d'une arme du Groupe sans forme propre ; `null` : rien en main. */
     forme: ref('apparence', undefined, RACINE_D_APPARENCE).nullable().optional(),
     maniement: maniementSchema.optional(),
@@ -73,7 +70,6 @@ const doc = document(
     qualities: { label: 'Qualités communes', hint: 'Qualités communes à toute la famille, fusionnées à celles de l’objet' },
     couche: { label: 'Rang de couche (armure)', hint: 'La pièce d’armure de rang le plus haut s’affiche par-dessus les autres' },
     palierPA: { label: 'Palier de PA (armure)', hint: 'PA à partir desquels une armure de statbloc portée se dessine dans cette matière — vide : jamais' },
-    art: { label: 'Art de matière (armure)', hint: 'Def d’art qui peint la matière de l’armure' },
     forme: { label: 'Forme par défaut (arme)', hint: 'Forme dessinée d’une arme du Groupe sans forme propre — vide : rien en main' },
     maniement: { label: 'Maniement (arme)', hint: 'Animation d’une arme du Groupe dont la forme ne déclare pas de maniement' },
     poudre: { label: 'À poudre', hint: 'Arme ou munition à Poudre noire et d’Ingénierie' },

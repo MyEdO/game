@@ -60,8 +60,8 @@ test('cleDeSite : la ligne du fichier PORTEUR n’entre pas dans la clé — seu
 // (`scripts/hooks/stocks-nominatifs.test.mjs`) ; ici, le contrat de la clé.
 test('cleDeSite : le FICHIER est dans la clé, avant la réf et l’occurrence', () => {
   assert.equal(
-    cleDeSite({ fichier: 'src/gameIso/rig/parts/tenues/defs/Bailli.ts', ref: 'bailli:torse:front', occurrence: 3 }),
-    ' :: src/gameIso/rig/parts/tenues/defs/Bailli.ts :: bailli:torse:front :: 3',
+    cleDeSite({ fichier: 'src/gameIso/catalog/decor/index.ts', ref: 'missingPropSvg', occurrence: 3 }),
+    ' :: src/gameIso/catalog/decor/index.ts :: missingPropSvg :: 3',
   )
   assert.equal(
     cleDeSite({ famille: 'graphy', fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }),

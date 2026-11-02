@@ -24,12 +24,12 @@
      utile est arrondie AU PAS INFÉRIEUR (`round(down)`), et chaque tuile est un point d'arrêt
      (`scroll-snap`, porté par la PISTE). La déclaration simple qui précède reste le repli des
      moteurs sans `round()`. */
-  /* Pas de la tuile = BOÎTE de la carte : portrait 56px (`CHAR_SIZE_PX.md`) + 3px d'écart + colonne
-     d'États (1 × 20px d'alvéole) + 2 × 3px de plaque + 2 × 1px de filet = 87px, borné à 88px — le
-     NOM VISIBLE de la planche (11px de corps display) se pose SOUS la boîte, sur le fond du bandeau,
-     et tient dans le même pas : R-M2, jamais un mot tranché (un nom plus long que le budget
-     s'ellipse, le nom complet restant en `title` de la tuile). */
-  --pd-tile: 88px;
+  /* Le pas de la carte réunit l'identité nommée, les États et les deux flancs du cadre. */
+  --ptile-name-width: 72px;
+  --pd-state: 20px;
+  --pd-plate: 3px;
+  --pd-card-gap: 3px;
+  --pd-tile: calc(var(--ptile-name-width) + var(--pd-state) + var(--pd-card-gap) + 2 * var(--pd-plate) + 2px);
   --pd-gap: 8px;
   --pd-pad: 10px;
   /* Bord de la piste = rembourrage + filet de cadre (la boîte est en `border-box`). */
@@ -62,23 +62,18 @@
 .pd-handle {
   display: none;
 }
-/* La carte du groupe = portrait À GAUCHE, COLONNE D'ÉTATS à sa droite (planche 2026-08-17) :
-   1 colonne, 3 alvéoles TOUJOURS dessinées. La colonne n'est plus posée SUR le portrait (elle
-   masquait le visage) et son emprise ne varie pas d'un héros à l'autre.
-   C'est elle, la BOÎTE de la carte : elle porte la plaque, son filet et le liseré d'actif — le nom
-   se pose SOUS elle, sur le fond du bandeau (planche 2026-08-17 ; le liseré ENCERCLAIT le nom quand
-   la plaque vivait sur la `figure`). */
+/* La carte pose la tuile à gauche et sa colonne d'États à droite. */
 .party-dock .ptile-wrap {
   position: relative;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 3px;
+  gap: var(--pd-card-gap);
   box-sizing: border-box;
   width: 100%;
   /* Carte de poids IDENTIQUE (spécimen B) : même cadre pour tous, aucun liseré doré, et la HACHURE
      de la planche derrière le portrait (la carte est une plaque, pas un vide). */
-  padding: 3px;
+  padding: var(--pd-plate);
   background: repeating-linear-gradient(135deg, var(--cc-brass-cell-hi) 0 6px, var(--hud-frise-edge) 6px 12px);
   border: 1px solid var(--atelier-wood-etch);
 }
@@ -97,13 +92,9 @@
   background: rgba(0, 0, 0, 0.82);
   text-shadow: none;
 }
-/* Colonne d'États calée sur la HAUTEUR du portrait : à 15px de côté, ses 3 alvéoles laissaient sous
-   elles une bande de hachure MORTE (densité, grief du juge vision) — et l'alvéole y était trop
-   petite pour que son glyphe se lise. Le côté est borné par le budget de largeur de la tuile
-   (`--pd-tile` 88 = filet 2 + plaque 6 + vignette 56 + écart 3 + alvéole).
-   `--alv` : même spécificité que `.ptile-states[data-reserve]` (state-chips.css) — importé avant. */
+/* `--alv` : même spécificité que `.ptile-states[data-reserve]` (state-chips.css), importé avant. */
 .party-dock .ptile-states {
-  --alv: 20px;
+  --alv: var(--pd-state);
   display: grid;
   grid-template-columns: var(--alv);
   grid-auto-rows: var(--alv);
@@ -111,9 +102,7 @@
   gap: 2px;
   z-index: 2;
 }
-/* Une carte de groupe = la TUILE (portrait + Blessures + États) et le NOM sous elle (planche
-   2026-08-17). L'enveloppe `figure` porte le pas de défilement, sa `figcaption` porte le nom —
-   visé par la STRUCTURE, aucune classe de plus (cliquet xii). */
+/* L'enveloppe de la tuile porte le pas de défilement. */
 .pd-track > figure {
   margin: 0;
   display: flex;
@@ -128,30 +117,6 @@
 }
 /* Le bandeau ne marque PAS l'acteur du tour (spec §1c-bis BANDEAU, arbitrage user 2026-08-17) :
    aucune règle de situation sur la carte — la frise d'initiative porte seule l'actif. */
-/* NOM du héros, sous sa carte (planche 2026-08-17) : R-M2 — il ne se coupe qu'ENTRE MOTS, sur DEUX
-   lignes au plus (à une seule ligne, 12 noms sur 13 s'ellipsaient — mesure 1280 du lot) ; un mot seul
-   trop long s'ellipse et le nom complet reste en `title` de la tuile. La boîte suit son CONTENU, avec
-   une ligne au minimum : la réserve de deux lignes était permanente (densité, grief du juge vision),
-   et les tuiles s'alignent par le HAUT de leur boîte, pas par le pied de leur légende. */
-.pd-track > figure > figcaption {
-  max-width: 100%;
-  margin-top: 2px;
-  min-height: 1.3em;
-  font-family: var(--font-display);
-  font-size: 11px;
-  line-height: 1.3;
-  letter-spacing: 0.3px;
-  color: var(--atelier-brass-vif);
-  text-align: center;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: normal;
-  word-break: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* ══ Matrice responsive (canon 900 / 700 / 560) — UN bloc par tranche ══ */
 @media (max-width: 900px) {
@@ -168,21 +133,18 @@
      groupe et la vie de chacun en micro-jauges ; le tap sur la poignée déplie la piste ENTIÈRE.
      Rien ne quitte le DOM. */
   .party-dock {
-    /* R-M1 à 360 : tuile PLEINE de 79px (vignette 44 + écart 3 + colonne d'États 1 × 12 + cadre 6,
-       le reste allant au NOM sous la carte) — la vignette reste au-dessus du minimum digne de 44px,
-       et la largeur de bande est arrondie au pas inférieur. MÊME pas pour la bande repliée et pour le volet déplié : la carte
-       ne change pas de taille en s'ouvrant. */
-    --pd-tile: 79px;
+    /* Quatre tuiles tiennent dans la piste dépliée à 360 : le nom se resserre avec le repère. */
+    --ptile-context-px: 44px;
+    --ptile-name-width: 52px;
+    --pd-state: 18px;
+    --pd-plate: 2px;
     --pd-gap: 6px;
     --pd-pad: 6px;
     padding: 3px var(--pd-pad);
   }
-  /* Alvéole d'État à 360 : la colonne garde ses 3 cases dessinées, c'est le CÔTÉ qui cède — jamais
-     le compte. 18px et non 12 : à 12 le glyphe tombait à 10px, illisible (sonde du juge vision), et
-     la colonne laissait une bande de hachure morte sous elle. Le budget de la tuile du volet
-     (`--pd-tile` 79 = filet 2 + plaque 4 + vignette 44 + écart 3 + alvéole) le porte. */
+  /* Le rack réservé et le rack rempli lisent le même côté d'alvéole. */
   .party-dock .ptile-states[data-reserve] {
-    --alv: 18px;
+    --alv: var(--pd-state);
   }
   /* La poignée COMPOSE la primitive `.chip` (cadre, cible, états) — elle n'en règle que la densité
      et l'alignement de ses deux lectures : le compte, puis les micro-jauges. */
@@ -234,23 +196,5 @@
     padding: 2px;
     background: linear-gradient(180deg, var(--atelier-wood-top), var(--atelier-wood-bottom));
     border: 1px solid var(--atelier-wood-etch);
-  }
-  /* Vignettes du volet à 44px : la hauteur totale (poignée 24 + volet 56) tient dans la bande
-     libre au-dessus de la rangée d'outils — le volet ne mord jamais sur le rail. */
-  .party-dock.on .pd-track .ptile,
-  .party-dock.on .pd-track .ptile-face {
-    width: 44px !important;
-  }
-  .party-dock.on .pd-track .ptile-face {
-    height: 44px !important;
-  }
-  .party-dock.on .pd-track .rig-portrait {
-    width: 44px !important;
-    height: 44px !important;
-  }
-  /* La plaque vit sur la BOÎTE de la carte (`.ptile-wrap`), pas sur l'enveloppe : c'est elle qui
-     resserre son rembourrage dans le volet. */
-  .party-dock.on .pd-track .ptile-wrap {
-    padding: 2px;
   }
 }

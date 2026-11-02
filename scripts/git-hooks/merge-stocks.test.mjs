@@ -10,7 +10,7 @@ import { threeWay } from './three-way.mjs'
 import { FORMAT_JSON, FORMAT_MJS, formatDe } from '../guards/lib/stockDeSites.mjs'
 import { ecartDuVolet, groupeDeSite, refusDeCroissance, sitesEnEntrees } from '../guards/lib/stock.mjs'
 
-const PALETTE = 'scripts/guards/lib/paletteLiteralStock.mjs'
+const STOCK_MJS = 'scripts/guards/lib/entityOrphanStock.mjs'
 const TABLES = 'scripts/raw/source-tables-stock.json'
 const FORMAT = 'scripts/raw/source-format-stock.json'
 const lu = (chemin) => readFileSync(chemin, 'utf8')
@@ -33,43 +33,43 @@ const sans = (...groupes) => (es) => es.filter((e) => !groupes.includes(groupeDe
 const groupes = (es) => [...new Set(es.map(groupeDeSite))]
 
 test('deux soldes disjoints → les deux', () => {
-  const O = lu(PALETTE)
-  const [g1, g2] = groupes(entrees(PALETTE, O))
-  const r = fusion(PALETTE, O, varie(PALETTE, O, sans(g1)), varie(PALETTE, O, sans(g2)))
+  const O = lu(STOCK_MJS)
+  const [g1, g2] = groupes(entrees(STOCK_MJS, O))
+  const r = fusion(STOCK_MJS, O, varie(STOCK_MJS, O, sans(g1)), varie(STOCK_MJS, O, sans(g2)))
   assert.equal(r.conflict, false)
-  assert.equal(r.text, varie(PALETTE, O, sans(g1, g2)))
+  assert.equal(r.text, varie(STOCK_MJS, O, sans(g1, g2)))
 })
 
 test('un ajout d’un seul côté → gardé', () => {
-  const O = lu(PALETTE)
-  const [g1] = groupes(entrees(PALETTE, O))
-  const neuf = { fichier: 'src/gameIso/rig/parts/tenues/defs/Neuf.ts', ref: 'neuf:torse:front', occurrence: 1 }
-  const r = fusion(PALETTE, O, varie(PALETTE, O, (es) => [...es, neuf]), varie(PALETTE, O, sans(g1)))
+  const O = lu(STOCK_MJS)
+  const [g1] = groupes(entrees(STOCK_MJS, O))
+  const neuf = { fichier: 'src/data/creatures.json', ref: 'neuf', occurrence: 1 }
+  const r = fusion(STOCK_MJS, O, varie(STOCK_MJS, O, (es) => [...es, neuf]), varie(STOCK_MJS, O, sans(g1)))
   assert.equal(r.conflict, false)
-  assert.equal(r.text, varie(PALETTE, O, (es) => [...sans(g1)(es), neuf]))
+  assert.equal(r.text, varie(STOCK_MJS, O, (es) => [...sans(g1)(es), neuf]))
 })
 
 test('un retrait des deux côtés du même site → une fois', () => {
-  const O = lu(PALETTE)
-  const [g1, g2] = groupes(entrees(PALETTE, O))
-  const r = fusion(PALETTE, O, varie(PALETTE, O, sans(g1)), varie(PALETTE, O, sans(g1, g2)))
+  const O = lu(STOCK_MJS)
+  const [g1, g2] = groupes(entrees(STOCK_MJS, O))
+  const r = fusion(STOCK_MJS, O, varie(STOCK_MJS, O, sans(g1)), varie(STOCK_MJS, O, sans(g1, g2)))
   assert.equal(r.conflict, false)
-  assert.equal(r.text, varie(PALETTE, O, sans(g1, g2)))
+  assert.equal(r.text, varie(STOCK_MJS, O, sans(g1, g2)))
 })
 
 test('homonymes : le groupe se recompte par ordinal, la porte reste verte, la régénération répare', () => {
-  const site = { file: 'src/gameIso/rig/parts/tenues/defs/Soldat.ts', ref: 'soldat:homonyme:front' }
+  const site = { file: 'src/data/creatures.json', ref: 'homonyme' }
   const avec = (n) => (es) => [...es, ...sitesEnEntrees(Array.from({ length: n }, () => site))]
-  const O = varie(PALETTE, lu(PALETTE), avec(3))
+  const O = varie(STOCK_MJS, lu(STOCK_MJS), avec(3))
   for (const [nA, nB, attendu, code] of [[2, 4, 3, 3], [2, 2, 2, 1]]) {
-    const r = fusion(PALETTE, O, varie(PALETTE, lu(PALETTE), avec(nA)), varie(PALETTE, lu(PALETTE), avec(nB)))
+    const r = fusion(STOCK_MJS, O, varie(STOCK_MJS, lu(STOCK_MJS), avec(nA)), varie(STOCK_MJS, lu(STOCK_MJS), avec(nB)))
     assert.equal(r.conflict, false)
-    const stock = entrees(PALETTE, r.text).filter((e) => e.ref === site.ref)
+    const stock = entrees(STOCK_MJS, r.text).filter((e) => e.ref === site.ref)
     assert.deepEqual(stock.map((e) => e.occurrence), Array.from({ length: attendu }, (_, i) => i + 1), `${nA}/${nB}`)
     const sites = Array.from({ length: code }, () => site)
-    assert.equal(ecartDuVolet({ sites, stock, ou: PALETTE }).neuves.length, 0, 'porte verte')
-    assert.equal(refusDeCroissance(sitesEnEntrees(sites), stock, { nom: 'PALETTE', motif: '-' }), null, 'jamais REFUS')
-    if (code < attendu) assert.equal(ecartDuVolet({ sites, stock, ou: PALETTE }).perimees.length, attendu - code, 'périmée')
+    assert.equal(ecartDuVolet({ sites, stock, ou: STOCK_MJS }).neuves.length, 0, 'porte verte')
+    assert.equal(refusDeCroissance(sitesEnEntrees(sites), stock, { nom: 'STOCK_MJS', motif: '-' }), null, 'jamais REFUS')
+    if (code < attendu) assert.equal(ecartDuVolet({ sites, stock, ou: STOCK_MJS }).perimees.length, attendu - code, 'périmée')
   }
 })
 
@@ -190,9 +190,9 @@ test('un tableau hors forme de site (lignes `{ dataset, champ, … }`) est du te
 })
 
 test('des en-têtes changés des deux côtés différemment → 3-voies', () => {
-  const O = lu(PALETTE)
+  const O = lu(STOCK_MJS)
   const [A, B] = [O.replace('// STOCK', '// A STOCK'), O.replace('// STOCK', '// B STOCK')]
-  assert.deepEqual(fusion(PALETTE, O, A, B), ordinaire(O, A, B))
+  assert.deepEqual(fusion(STOCK_MJS, O, A, B), ordinaire(O, A, B))
 })
 
 test('un `.mjs` à effet de bord au niveau module n’est jamais exécuté', () => {
@@ -208,15 +208,15 @@ test('un `.mjs` à effet de bord au niveau module n’est jamais exécuté', () 
 test('des temporaires %O/%A/%B sans extension, %P en `.mjs` → lus par `FORMAT_MJS`', () => {
   const dir = mkdtempSync(join(tmpdir(), 'merge-stocks-test-'))
   try {
-    const O = lu(PALETTE)
-    const [g1, g2] = groupes(entrees(PALETTE, O))
+    const O = lu(STOCK_MJS)
+    const [g1, g2] = groupes(entrees(STOCK_MJS, O))
     const [fO, fA, fB] = ['O', 'A', 'B'].map((n) => join(dir, n))
     writeFileSync(fO, O)
-    writeFileSync(fA, varie(PALETTE, O, sans(g1)))
-    writeFileSync(fB, varie(PALETTE, O, sans(g2)))
-    const r = spawnSync(process.execPath, ['scripts/git-hooks/merge-stocks.mjs', fO, fA, fB, PALETTE], { encoding: 'utf8' })
+    writeFileSync(fA, varie(STOCK_MJS, O, sans(g1)))
+    writeFileSync(fB, varie(STOCK_MJS, O, sans(g2)))
+    const r = spawnSync(process.execPath, ['scripts/git-hooks/merge-stocks.mjs', fO, fA, fB, STOCK_MJS], { encoding: 'utf8' })
     assert.equal(r.status, 0, r.stderr)
-    assert.equal(readFileSync(fA, 'utf8'), varie(PALETTE, O, sans(g1, g2)))
+    assert.equal(readFileSync(fA, 'utf8'), varie(STOCK_MJS, O, sans(g1, g2)))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

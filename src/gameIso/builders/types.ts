@@ -208,10 +208,11 @@ export function nappePorteuse(el: SceneEl): { sectionId: string; cells: readonly
   if (el.kind === 'prop' && estPropVolumique(el) && el.nappe) return el.nappe;
   return null;
 }
-/** Le SUJET d'un token — la donnée d'identité que le stage transforme en corps React (tokenBodyKind/
- *  le pion-disque). La position INTERPOLÉE de marche est PAR-FRAME : elle reste au stage ; l'élément ne
- *  porte que la position LOGIQUE (`cell`) et les décisions de scène (filtres, ordre d'anneau héros). */
-export type TokenSubjectEl =
+/** Le SUJET d'un token — la donnée d'identité que le stage transforme en pion-disque
+ *  (`stage/TokenChromeOverlay.TokenDisc`). La position INTERPOLÉE de marche est PAR-FRAME : elle reste
+ *  au stage ; l'élément ne porte que la position LOGIQUE (`cell`) et les décisions de scène (filtres,
+ *  ordre d'anneau héros). */
+type TokenSubjectEl =
   /** PNJ/créature d'AMBIANCE — `inBattle` : rendu estompé + non interactif. `seat` : la place assise
    *  que ce corps tient (`noyau/monde/seating`), ancre métrique et cap COMPRIS — aucun `mountId`, aucun
    *  porteur : un attablé n'est pas un cavalier. Absent = debout sur sa case. */
@@ -219,8 +220,8 @@ export type TokenSubjectEl =
   /** Combattant (branche combat). `heroIndex` = ordinal d'anneau héros ; `overhang` = jeton de
    *  muraille rendu AU-DESSUS de la zone active (chemin de ronde vu d'en bas). */
   | { kind: 'combatant'; c: Combatant; heroIndex?: number; overhang: boolean }
-  /** Couple monté (iso) : UN corps composite à la tuile/empreinte de la monture. `heroIndex` = ordinal
-   *  d'anneau du CAVALIER (celui qu'il a réservé sans être dessiné) — l'identité d'équipe du couple se
+  /** Couple monté (iso) : UN pion à la tuile/empreinte de la monture. `heroIndex` = ordinal
+   *  d'anneau du CAVALIER (celui qu'il a réservé sans pion propre) — l'identité d'équipe du couple se
    *  lit au cavalier, le record de la monture pouvant porter un autre camp. */
   | { kind: 'mounted'; mount: Combatant; rider: Combatant; heroIndex?: number };
 export interface TokenEl extends ElBase {

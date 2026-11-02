@@ -144,7 +144,7 @@ export function CoopAssignList() {
         <CoopAssignRow
           key={h.id}
           /* Tuile + nom : lobby coop = écran méta (un invité découvre les héros par leur NOM). */
-          portrait={<CharFrame c={h} variant="identity" size="xs" />}
+          portrait={<CharFrame c={h} variant="identity" size="xs" decoratif />}
           libelle={h.label}
           valeur={net.ownership[h.id] ?? 0}
           options={options}

@@ -137,8 +137,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    propriétaire unique d'un id, drapeau lu → producteur, réfs canoniques.
 8. **Production par tranche verticale** — contenu posé à la main dans le paquet : skill
    `creer-une-campagne` ; cartes : skill `creer-une-map` ; créature ou PNJ neuf : skill
-   `creer-une-creature` (gabarits existants, aucune vague d'art sans demande) ; rencontres à difficulté
-   ciblée ; intégration.
+   `ajouter-une-donnee` (statbloc au bestiaire) ; rencontres à difficulté ciblée ; intégration.
    - Textes : répliques maison taguées, descriptions au MJ reformulées à l'écran, documents et règles
      verbatim.
    - Juge esprit : un `juge` (opus) par lot de textes maison, réplique comme narration reformulée ; il

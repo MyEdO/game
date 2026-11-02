@@ -12,8 +12,8 @@ const noop = {
 };
 const base = { entityId: 'p', archetype: 'armurier', settlement: 'ville' as const, resaleRate: 0.5, stock: [] as { id: string; qty: number }[], cart: [] as { id: string; qty: number }[], bargainLocked: false };
 
-/** Stub RIGGABLE : le marchand rend des tuiles-portraits (CharFrame/TeamPortrait) — le rig a
- *  besoin d'armour/wounds/conditions/characteristics pour dessiner le héros. */
+/** Stub de héros : le marchand compare l'équipement et rend des tuiles-portraits (CharFrame), qui
+ *  lisent wounds/conditions. */
 const stubHero = (id: string, label: string, items: ItemInstance[] = []) =>
   (blessuresSurLeProfil({
     id, label, kind: 'hero', wounds: blessuresDeBase(12, 10), conditions: [], advantage: 0,

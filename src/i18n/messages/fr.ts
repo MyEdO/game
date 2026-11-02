@@ -538,7 +538,7 @@ export const fr = {
   'party.campaign.pick.close': 'Fermer',
   'party.launch.refused': 'Lancement impossible',
   'party.launch.refused.close': 'Fermer',
-  // Sélecteur d'aventurier dédié (HeroSelector) et cartes-portraits (CandidateCard).
+  // Sélecteur d'aventurier dédié (HeroSelector) et cartes de candidat (CandidateCard).
   'picker.title.replace': 'Remplacer {name}',
   'picker.tab.roster': 'Mes personnages',
   'picker.tab.pregens': 'Pré-tirés',
@@ -970,7 +970,7 @@ export const fr = {
   'out.consWounds': '{n} Blessure(s) perdue(s).',
   'out.consHeal': '{n} Blessure(s) récupérée(s).',
   // État gagné, DÉRIVÉ de l'op `condition` réellement appliqué (opConsequenceLine, comme wounds/heal) —
-  // sans nom d'acteur (le portrait de la rangée porte l'attribution).
+  // sans nom d'acteur (la tuile de la rangée porte l'attribution).
   'out.consCondition': 'État {cond} subi.',
   // Activité de voyage SANS Test exécutée (EDOC 8 l.131) — le nom est porté en var (la rangée batch/poste
   // n'a pas toujours d'actorId pour l'attribution).
@@ -3183,6 +3183,7 @@ export const fr = {
   'specSrc.cult': 'Culte',
   'specSrc.shanty': 'Chanson',
   'specSrc.target': 'Cible',
+  'specSrc.group': 'Groupe',
   'specSrc.disease': 'Maladie',
   'specSrc.size': 'Taille',
   'specSrc.mutation': 'Mutation',
@@ -3314,7 +3315,7 @@ export const fr = {
   // GESTE SECONDAIRE d'une alvéole de la console (spec HUD §1d) — les QUATRE surfaces qui l'ouvrent
   // se disent en UNE phrase, ici : le nom accessible de l'alvéole la compose, aucune recopie.
   'cc.geste2eSurfaces': 'geste secondaire (clic droit, appui long, touche Menu, RB à la manette) : {gestes}',
-  // Le GESTE SECONDAIRE d'un portrait (`PortraitTile.onInspect`) : ses trois surfaces, dans son nom accessible.
+  // Le GESTE SECONDAIRE d'une tuile de personnage (`PortraitTile.onInspect`) : ses trois surfaces, dans son nom accessible.
   'ptile.geste2eInspecter': 'geste secondaire (clic droit, appui long, touche Menu) : inspecter',
   'cc.geste2eIndisponible': 'geste secondaire : {geste} — indisponible : {raison}',
   // Alvéole VIDE : rien ne s'y écrit à l'écran (arbitrage user 2026-08-24) — ce nom n'existe que pour

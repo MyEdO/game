@@ -9,15 +9,15 @@
 .rose text {
   font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
 }
-/* Poignée d'ancrage en coin (figurine/carte) — le glyphe reste posé au coin bas-droit, hors flux. */
-.rose-corner {
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  z-index: 2;
+/* Glyphe de rose d'une carte de héros, dans le flux : centré au-dessus de l'identité (candidat), en
+   tête de rangée (siège). */
+.rose-glyph {
+  display: flex;
+  justify-content: center;
+  flex: none;
   pointer-events: none;
 }
-.rose-corner.sm .rose {
+.rose-glyph.sm .rose {
   width: 36px;
   height: 36px;
 }

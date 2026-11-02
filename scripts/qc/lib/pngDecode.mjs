@@ -5,8 +5,7 @@
  * `Page.captureScreenshot` (CDP) en RGB, et les deux se mesurent au même endroit.
  *
  * Format `.mjs` (+ sidecar `pngDecode.d.mts`) : importable par un module node NU
- * (`scripts/recette/*.mjs`) COMME par un CLI `tsx`
- * (`scripts/qc/mesure-volume.mts`) — les deux consommateurs du décodeur.
+ * (`scripts/recette/*.mjs`) COMME par un CLI `tsx`.
  */
 import { inflateSync } from 'node:zlib';
 

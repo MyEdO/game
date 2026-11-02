@@ -48,7 +48,6 @@ import { RewardRecap } from '../RewardRecap';
 import { SceneErrorBoundary } from '../SceneErrorBoundary';
 import type { LootGear } from '../../noyau/pendings';
 import { SpectatorChip } from '../SpectatorChip';
-import { RigPortrait } from '../RigPortrait';
 import { FxChip } from '../FxChip';
 import { EffectChips } from '../EffectChips';
 import { PortraitTile } from '../PortraitTile';
@@ -61,11 +60,10 @@ import { ConsoleArch, ConsoleCell, PhaseBanner } from '../console/CombatConsole'
 import { DrBar } from '../DrBar';
 import { Coins } from '../Coins';
 import { LifeBar } from '../LifeBar';
-import { CharacterPreview } from '../CharacterPreview';
 import { MetalStatus } from '../MetalStatus';
 import { WaxSeal, SealedPlaque } from '../WaxSeal';
 import { CareerPath } from '../CareerPath';
-import { FigTile, type ZoneBadgeSpec } from '../FigTile';
+import { FigTile, FigZoneBadges, type ZoneBadgeSpec } from '../FigTile';
 import { PlaqueRow, PlaqueGrid } from '../PlaqueRow';
 import { DieFace } from '../DiceRoll';
 import { CHAR_KEYS, CHAR_LABELS, type ConditionId } from '../../engine/types';
@@ -83,12 +81,12 @@ import { MenuCard, MenuSection, MenuButton, MenuToggle } from '../MenuCard';
 import { CreatorDice } from '../creator/CreatorDice';
 import { GameOpEditor } from '../editor/GameOpEditor';
 import { ObjetDonneField, type ObjetDonne } from '../editor/ObjetDonneField';
-import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
+import { ReglagesApparence } from '../editor/ReglagesApparence';
 import { CouvreField } from '../editor/CouvreField';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
+import { species, careers, levelsForCareer, stars, mutations, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTrait, parseSkillRef } from '../editor/refFormatLivre';
@@ -140,7 +138,6 @@ export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] 
     items: list.slice(0, 3).map((sp) => ({
       id: sp.id,
       label: sp.label,
-      preview: { appearance: { species: rigSpeciesId(sp.id), sex: 'M' as const, build: 0.5, seed: 7 } },
     })),
   }));
 });
@@ -325,7 +322,7 @@ function objetsExemple(): ItemInstance[] {
     .filter((i): i is ItemInstance => i !== null);
 }
 
-/** Silhouette de rig pour arme/armure/bouclier, glyphe de catégorie sinon — aux trois tailles nommées. */
+/** Glyphe de catégorie d'objet, aux trois tailles nommées. */
 function ItemIconDemo() {
   const objets = objetsExemple();
   if (!objets.length) return <p className="hint">Aucun objet du catalogue n'a pu être instancié.</p>;
@@ -588,8 +585,7 @@ function GroupedPickGridDemo() {
   return <GroupedPickGrid sections={sectionsDEspeces()} selectedId={sel} onSelect={setSel} label="Choix d'espèce" />;
 }
 
-/** Cadre-figurine unique (#430/#431) — patron `.fam-tile` de la planche : rivets d'or, boîte-figurine
- *  à hauteur FIXE sur sa lueur de sol, nom et compte DESSOUS. Les trois états de la tuile `compact`
+/** Tuile d'identité à rivets d'or (#430/#431) : nom et sous-titre. Les trois états de la tuile `compact`
  *  (repos, élue au liseré doré, scellée) + la variante `big` (grille de race, prop `fig`) — aucun
  *  cadre imbriqué, aucune ambiance : la tuile porte sa propre matière. */
 function FigTileDemo() {
@@ -597,7 +593,6 @@ function FigTileDemo() {
     <Row>
       <div style={{ width: 140 }}>
         <FigTile
-          preview={{ appearance: { species: rigSpeciesId(especeHumaine().id), sex: 'M', build: 0.5, seed: 7 } }}
           label={especeHumaine().label}
           sub="Non sélectionné"
           onClick={() => {}}
@@ -606,7 +601,6 @@ function FigTileDemo() {
       </div>
       <div style={{ width: 140 }}>
         <FigTile
-          preview={{ appearance: { species: rigSpeciesId(especeHumaine().id), sex: 'F', build: 0.5, seed: 7 } }}
           label={especeHumaine().label}
           sub="Sélectionné"
           selected
@@ -616,7 +610,6 @@ function FigTileDemo() {
       </div>
       <div style={{ width: 140 }}>
         <FigTile
-          preview={{ appearance: { species: rigSpeciesId(especeHumaine().id), sex: 'M', build: 0.5, seed: 9 } }}
           label={especeHumaine().label}
           sub="Scellé"
           sealed
@@ -626,7 +619,6 @@ function FigTileDemo() {
       </div>
       <div style={{ width: 213 }}>
         <FigTile
-          preview={{ appearance: { species: rigSpeciesId(especeHumaine().id), sex: 'F', build: 0.5, seed: 11 } }}
           label={especeHumaine().label}
           sub="Variante pleine zone"
           fig="big"
@@ -634,23 +626,24 @@ function FigTileDemo() {
           tabIndex={0}
         />
       </div>
-      <div style={{ width: 180 }}>
-        <FigTile
-          preview={{ appearance: { species: rigSpeciesId(especeHumaine().id), sex: 'M', build: 0.5, seed: 13 } }}
-          fig="hero"
-          zoneBadges={FIG_ZONE_BADGES_PA}
-        />
-        <p className="hint">Colonne-index (#492) : PA d'armure</p>
-      </div>
-      <div style={{ width: 180 }}>
-        <FigTile
-          preview={{ appearance: { species: rigSpeciesId(especeHumaine().id), sex: 'M', build: 0.5, seed: 13 } }}
-          fig="hero"
-          zoneBadges={FIG_ZONE_BADGES_CRIT}
-        />
-        <p className="hint">Colonne-index (#492) : critiques/séquelles</p>
-      </div>
     </Row>
+  );
+}
+
+/** Badges de Localisation (#492) : la primitive `FigZoneBadges` seule, aux deux langages que la
+ *  fiche lui fournit — PA d'armure (badges statiques) et critiques/séquelles (badges-boutons). */
+function FigZoneBadgesDemo() {
+  return (
+    <Stack>
+      <div>
+        <FigZoneBadges badges={FIG_ZONE_BADGES_PA} />
+        <p className="hint">PA d'armure : six Localisations, `or` chargée, `sang` entamée, `dim` vide (masquée)</p>
+      </div>
+      <div>
+        <FigZoneBadges badges={FIG_ZONE_BADGES_CRIT} />
+        <p className="hint">Critiques/séquelles : zones touchées seules, `sang` critique, `warn` séquelle, clic = bouton</p>
+      </div>
+    </Stack>
   );
 }
 
@@ -761,7 +754,7 @@ function HeroSheetDemo() {
   if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
   return (
     <Stack>
-      <p className="hint">`header` (bande figurine+identité+rose) : composé tel quel par le détail candidat de l'écran d'équipe.</p>
+      <p className="hint">`header` (bande identité+rose) : composé tel quel par le détail candidat de l'écran d'équipe.</p>
       <HeroSheet hero={herosExemple()} />
       <p className="hint">`header={false}` : composé par la fiche vivante du créateur (alcôve propre à l'appelant).</p>
       <HeroSheet hero={herosExemple()} header={false} />
@@ -830,16 +823,11 @@ function PortraitTileDemo() {
   if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
   return (
     <Row>
-      <PortraitTile c={herosExemple()} ring="var(--gold)" variant="identity" size="md" />
-      <PortraitTile c={herosExemple()} ring="var(--gold)" variant="vital" size="md" />
-      <PortraitTile c={herosExemple()} ring="var(--gold)" variant="full" size="md" active />
+      <PortraitTile c={herosExemple()} variant="identity" size="md" />
+      <PortraitTile c={herosExemple()} variant="vital" size="md" />
+      <PortraitTile c={herosExemple()} variant="full" size="md" active />
     </Row>
   );
-}
-
-function CharacterPreviewDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
-  return <CharacterPreview hero={herosExemple()} size="lg" ambiance="panel" />;
 }
 
 function ScreenMetaDemo() {
@@ -979,7 +967,7 @@ function CoopAssignRowDemo() {
   return (
     <section className="panel">
       <CoopAssignRow
-        portrait={heros ? <CharFrame c={heros} variant="identity" size="xs" /> : undefined}
+        portrait={heros ? <CharFrame c={heros} variant="identity" size="xs" decoratif /> : undefined}
         libelle={heros?.label ?? 'Héros'}
         valeur={0}
         options={sieges}
@@ -1341,12 +1329,11 @@ function CouvreFieldDemo() {
 }
 
 function ReglagesApparenceDemo() {
-  const [a, setA] = useState<EntityAppearance>({ sex: 'F', build: 0.4 });
+  const [a, setA] = useState<EntityAppearance>({ sex: 'F' });
   return (
     <div className="ed-field">
       <span>Apparence</span>
-      <ReglagesApparence appearance={a} onChange={setA} reglages={['species', 'sex', 'build', 'hairstyle', 'variante']} />
-      <MonsterPartsFields appearance={a} onChange={setA} reglages={['monster', 'eyes', 'tenue']} />
+      <ReglagesApparence appearance={a} onChange={setA} reglages={['species', 'sex']} />
     </div>
   );
 }
@@ -1618,20 +1605,6 @@ function CombatStartSplashDemo() {
   );
 }
 
-/** Visage d'un combattant : trait PLEIN et anneau d'équipe pour un héros, trait en TIRETS pour un
- *  ennemi (R9 — la forme encode l'équipe autant que la couleur), et la taille en variable. */
-function RigPortraitDemo() {
-  const h = herosExemple();
-  if (!h) return <p className="hint">Aucun pregen disponible.</p>;
-  return (
-    <Row>
-      <RigPortrait combatant={h} size={42} />
-      <RigPortrait combatant={h} size={64} ring="var(--hud-camp-ally-hi)" />
-      <RigPortrait combatant={{ ...h, kind: 'enemy' }} size={64} ring="var(--combat-enemy)" />
-    </Row>
-  );
-}
-
 /** Deux États RÉELS du catalogue — la pastille NE fabrique aucune règle, elle rend ce que la donnée dit. */
 const etatsExemples = memoParVersion('etats', () => etats.slice(0, 2).map((e) => ({ id: e.id as ConditionId, value: 1 })));
 
@@ -1752,7 +1725,6 @@ function CombatConsoleMock() {
           </div>
           <ConsoleArch
             active={actif}
-            ring="var(--gold)"
             move={{ value: 3, max: 4, spend: 1, geste: { key: 'undo-move', id: 'undo-move', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
             action={{ value: 1, max: 1 }}
           />
@@ -1786,7 +1758,7 @@ function CombatConsoleMock() {
             à l'autre, et c'est sur elle que la forme spectatrice éteint la matière. Une vignette qui
             pendrait l'arche à la racine ne montrerait PAS ce que la CSS fait. */}
         <div className="cc-dock skin-pont">
-          <ConsoleArch active={adverse} ring="var(--danger)" move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />
+          <ConsoleArch active={adverse} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />
         </div>
       </div>
     </div></div>
@@ -1926,7 +1898,6 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'viewcontrols', label: 'ViewControls', file: 'src/ui/ViewControls.tsx', category: 'Combat', render: ViewControlsDemo },
   { id: 'objectivebanner', label: 'ObjectiveBanner', file: 'src/ui/ObjectiveBanner.tsx', category: 'Écrans & layout', render: ObjectiveBannerDemo },
   { id: 'statechips', label: 'StateChips', file: 'src/ui/StateChips.tsx', category: 'Personnages', render: StateChipsDemo },
-  { id: 'rigportrait', label: 'RigPortrait', file: 'src/ui/RigPortrait.tsx', category: 'Personnages', render: RigPortraitDemo },
   { id: 'fxchip', label: 'FxChip / EffectChips', file: 'src/ui/FxChip.tsx', category: 'Personnages', render: FxChipDemo },
   { id: 'spectatorchip', label: 'SpectatorChip', file: 'src/ui/SpectatorChip.tsx', category: 'Écrans & layout', render: SpectatorChipDemo },
   { id: 'drbar', label: 'DrBar', file: 'src/ui/DrBar.tsx', category: 'Jets', render: DrBarDemo },
@@ -1935,7 +1906,6 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'equipmentpanel', label: 'EquipmentPanel', file: 'src/ui/EquipmentPanel.tsx', category: 'Personnages', render: EquipmentPanelDemo },
   { id: 'portraittile', label: 'PortraitTile', file: 'src/ui/PortraitTile.tsx', category: 'Personnages', render: PortraitTileDemo },
   { id: 'lifebar', label: 'LifeBar', file: 'src/ui/LifeBar.tsx', category: 'Personnages', render: LifeBarDemo },
-  { id: 'characterpreview', label: 'CharacterPreview', file: 'src/ui/CharacterPreview.tsx', category: 'Personnages', render: CharacterPreviewDemo },
   { id: 'creatordice', label: 'CreatorDice', file: 'src/ui/creator/CreatorDice.tsx', category: 'Personnages', render: CreatorDiceDemo },
   { id: 'creatorstepframe', label: 'CreatorStepFrame', file: 'src/ui/creator/CreatorStepFrame.tsx', category: 'Personnages', note: 'gabarit plein-champ — s’observe sur les 7 pas du créateur, pas en vignette', render: CreatorStepFrameNote },
   { id: 'roseaxes', label: 'RoseAxes', file: 'src/ui/RoseAxes.tsx', category: 'Personnages', render: RoseAxesDemo },
@@ -1951,7 +1921,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'objetdonnefield', label: 'ObjetDonneField', file: 'src/ui/editor/ObjetDonneField.tsx', category: 'Éditeur', render: ObjetDonneFieldDemo, note: 'Objet de campagne de démonstration dérivé de l’Arme simple, de forme Hache.' },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
   { id: 'couvrefield', label: 'CouvreField', file: 'src/ui/editor/CouvreField.tsx', category: 'Éditeur', render: CouvreFieldDemo },
-  { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
+  { id: 'reglagesapparence', label: 'ReglagesApparence', file: 'src/ui/editor/ReglagesApparence.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
   { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
@@ -1965,6 +1935,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'waxseal-sealedplaque', label: 'WaxSeal / SealedPlaque', file: 'src/ui/WaxSeal.tsx', category: 'Atelier du scribe', render: WaxSealDemo },
   { id: 'careerpath', label: 'CareerPath', file: 'src/ui/CareerPath.tsx', category: 'Atelier du scribe', render: () => <CareerPath levels={niveauxDeLaCarriereExemple()} currentLevel={2} /> },
   { id: 'figtile', label: 'FigTile', file: 'src/ui/FigTile.tsx', category: 'Atelier du scribe', render: FigTileDemo },
+  { id: 'figzonebadges', label: 'FigZoneBadges', file: 'src/ui/FigTile.tsx', category: 'Atelier du scribe', render: FigZoneBadgesDemo },
   { id: 'plaquerow-plaquegrid', label: 'PlaqueRow / PlaqueGrid', file: 'src/ui/PlaqueRow.tsx', category: 'Atelier du scribe', render: PlaqueRowDemo },
   { id: 'groupedpickgrid', label: 'GroupedPickGrid', file: 'src/ui/GroupedPickGrid.tsx', category: 'Atelier du scribe', render: GroupedPickGridDemo },
   { id: 'detailframe', label: 'DetailFrame', file: 'src/ui/DetailFrame.tsx', category: 'Atelier du scribe', render: DetailFrameDemo },

@@ -647,8 +647,8 @@ export const ECRIT_LU = {
       'aucune écriture dans l’arbre : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS (#2603) par ' +
       '`build-implemente.mjs` → `ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés), n’écrivent ' +
       'que sous la porte `import.meta.main` de scripts/raw/build-implemente.mjs, que la gate n’appelle pas ; ' +
-      'LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
-      'scripts/raw/empty-line-code-refs-stock.json, absents quand ils sont soldés, et scripts/raw/graphy-stock.json (sites différés)',
+      'LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json, ' +
+      'scripts/raw/empty-line-code-refs-stock.json et scripts/raw/graphy-stock.json (sites différés), absents quand ils sont soldés',
   },
   'raw:check-ancres': {
     ecrit: [],

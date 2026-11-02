@@ -1,73 +1,15 @@
 /**
- * CUISEUR D'ATLAS de flipbook (#1176, L2) — la couture NAVIGATEUR qui remplit la planche dont
- * `billboardMath` tient la géométrie pure (`atlasLayout`/`frameUvRect`).
- *
- * Trois responsabilités, et rien d'autre :
- *  1. CUISSON : rasteriser `n` frames par la chaîne EXISTANTE (`rasterizeSvg`) et les ranger dans la
- *     grille, gouttière comprise — les texels de bord y sont DUPLIQUÉS (`ATLAS_GUTTER_PX`), ce que la
- *     géométrie réservait et qu'aucun cuiseur ne faisait ;
- *  2. CADENCE : des tranches d'inactivité à COÛT borné (`BUDGET_TRANCHE_MS_DEFAUT`), jamais un burst ;
- *  3. CACHE : le stock BORNÉ de `cacheBorne` (LRU à budget d'octets, épingles), clé = chaîne de signature complète.
+ * FILE CADENCÉE des rasterisations du monde volumique (#1176) : textures statiques de billboard
+ * (`stage/texturesStatiques`) et gabarits de face (`faceBake`, `periodTexture`) se rangent derrière la
+ * même horloge et le même barème de priorités. Des tranches d'inactivité à COÛT borné
+ * (`BUDGET_TRANCHE_MS_DEFAUT`), jamais un burst.
  */
-import * as THREE from 'three';
-import { ATLAS_GUTTER_PX, atlasLayout, type AtlasLayout } from './billboardMath';
-import { CacheBorne } from './cacheBorne';
-import { rasterizeSvg, type SvgBox } from './svgTexture';
-import type { View } from '../../rig/facing';
-import type { GroundState } from '../../groundPose';
-
-// ————————————————————————————————————————————————————————————————
-// 1. COUTURES DE CANEVAS — décrites par ce dont le cuiseur a besoin, testables hors DOM
-// ————————————————————————————————————————————————————————————————
-
-/** Source de dessin (le canevas d'une frame rasterisée). */
-export interface BakeImage {
-  width: number;
-  height: number;
-}
-
-/** Le seul geste de dessin du cuiseur : une copie de rectangle à rectangle. */
-export interface BakeCtx {
-  drawImage(
-    src: BakeImage,
-    sx: number,
-    sy: number,
-    sw: number,
-    sh: number,
-    dx: number,
-    dy: number,
-    dw: number,
-    dh: number,
-  ): void;
-}
-
-/** Le canevas de la planche. */
-export interface BakeCanvas extends BakeImage {
-  getContext(id: '2d'): BakeCtx | null;
-}
-
-/** Couches basses injectables : la rasterisation d'une frame et la fabrication du canevas de planche. */
-export interface BakeDeps {
-  rasterize?: (svg: string, box: SvgBox, pxHeight: number) => Promise<{ canvas: BakeImage }>;
-  makeCanvas?: (w: number, h: number) => BakeCanvas;
-}
-
-const defaultCanvas = (w: number, h: number): BakeCanvas => {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  return c as unknown as BakeCanvas;
-};
-
-// ————————————————————————————————————————————————————————————————
-// 2. FILE CADENCÉE — une rasterisation par tranche
-// ————————————————————————————————————————————————————————————————
 
 /**
- * Rasterisations lancées par tranche d'inactivité AVANT que le budget de temps ne décide de la suite
+ * Tâches lancées par tranche d'inactivité AVANT que le budget de temps ne décide de la suite
  * (`BUDGET_TRANCHE_MS_DEFAUT`) : le PLANCHER de service d'une tranche. Sonde navigateur (#1176,
- * 2026-08-14) : ~9,3 ms par frame en 109×136 et ~10,1 ms en 217×271 — un réchauffage complet en burst
- * mesurait ≈ 2,4 s de mur.
+ * 2026-08-14) : ~9,3 ms par rasterisation en 109×136 et ~10,1 ms en 217×271 — un réchauffage complet en
+ * burst mesurait ≈ 2,4 s de mur.
  */
 export const FRAMES_PAR_TRANCHE = 1;
 
@@ -77,7 +19,7 @@ export const FRAMES_PAR_TRANCHE = 1;
  * bornait le COMPTE, pas le COÛT : 85 gabarits de monde (médiane 1,47 ms de calcul chacun, 368 ms en
  * tout) prenaient 86 tranches, soit 1 112 ms de mur — le temps passé à ATTENDRE la tranche suivante,
  * pas à cuire. Une tâche LONGUE (une rasterisation de billboard) épuise le budget à elle seule et
- * garde donc sa tranche entière, comme avant.
+ * garde donc sa tranche entière.
  *
  * Le budget compte le temps SYNCHRONE consommé dans la tranche : c'est exactement ce qui fait la
  * durée d'une tâche longue pour le thread. Ce qu'une tâche poursuit APRÈS son point d'attente (le
@@ -86,9 +28,9 @@ export const FRAMES_PAR_TRANCHE = 1;
 export const BUDGET_TRANCHE_MS_DEFAUT = 6;
 let budgetTrancheMs = BUDGET_TRANCHE_MS_DEFAUT;
 
-/** Change le budget de tranche (réglage de mesure/garde, même patron que `setAtlasBudgetBytes`) —
- *  rend l'ancien. À `0`, la tranche sert exactement `FRAMES_PAR_TRANCHE` tâche : la cadence stricte
- *  dont un banc d'ORDRE a besoin pour lire la file coup par coup. */
+/** Change le budget de tranche (réglage de mesure/garde) — rend l'ancien. À `0`, la tranche sert
+ *  exactement `FRAMES_PAR_TRANCHE` tâche : la cadence stricte dont un banc d'ORDRE a besoin pour lire
+ *  la file coup par coup. */
 export function setBudgetTrancheMs(n: number): number {
   const avant = budgetTrancheMs;
   budgetTrancheMs = n;
@@ -106,16 +48,10 @@ export const PRIORITE_VUE_COURANTE = 100;
 export const PRIORITE_FOND = 90;
 export const PRIORITE_RECHAUFFAGE = 0;
 
-/**
- * Priorité MUTABLE d'une cuisson, partagée par TOUTES ses frames — celles déjà en file comme celles
- * qu'elle y mettra ensuite (une planche n'y pose qu'une frame à la fois). C'est ce qui permet à
- * `enqueueBake` de faire remonter une planche déjà en attente quand la vue courante la réclame.
- */
+/** Priorité MUTABLE d'une tâche : son appelant peut la relever tant qu'elle attend en file. */
 export interface BakePriority {
   value: number;
 }
-
-const bakePriority = (p: number | BakePriority): BakePriority => (typeof p === 'number' ? { value: p } : p);
 
 interface Job {
   prio: BakePriority;
@@ -154,28 +90,18 @@ function pump(): void {
   if (QUEUE.length) requestSlice();
 }
 
-/** Passe une tâche de frame par la file : elle ne s'exécute qu'à son tour de tranche.
+/** Passe une tâche par la file : elle ne s'exécute qu'à son tour de tranche.
  *
  *  Le JET SYNCHRONE de la tâche (une couture navigateur devenue indisponible entre la mise en file et
- *  la tranche — un contexte perdu, un banc démonté) rejette la planche comme n'importe quel échec.
- *  Laissé nu, il s'échappait de la tranche : ni la promesse ni la mémoïsation ne l'apprenaient, et il
- *  remontait en erreur non gérée depuis un `requestIdleCallback`. */
-function queueFrame<T>(prio: BakePriority, task: () => Promise<T>): Promise<T> {
+ *  la tranche — un contexte perdu, un banc démonté) rejette sa promesse comme n'importe quel échec.
+ *  Laissé nu, il s'échappait de la tranche et remontait en erreur non gérée depuis un
+ *  `requestIdleCallback`. */
+export function queueBakeTask<T>(priority: number | BakePriority, task: () => Promise<T>): Promise<T> {
+  const prio = typeof priority === 'number' ? { value: priority } : priority;
   return new Promise<T>((resolve, reject) => {
     QUEUE.push({ prio, seq: seq++, run: () => { try { void task().then(resolve, reject); } catch (e) { reject(e); } } });
     requestSlice();
   });
-}
-
-/**
- * LA MÊME FILE, pour une rasterisation qui n'est pas une frame de planche — la texture STATIQUE d'un
- * billboard à un cran de vue (`stage/GameStage3D`). Une seconde file cadencerait sa moitié du travail
- * en ignorant l'autre : les deux populations rasterisent par la même couture (`rasterizeSvg`) et se
- * disputent le même thread, donc elles se rangent derrière la même horloge et le même barème de
- * priorités.
- */
-export function queueBakeTask<T>(priority: number | BakePriority, task: () => Promise<T>): Promise<T> {
-  return queueFrame(bakePriority(priority), task);
 }
 
 /** Tranches servies depuis le chargement — instrument de garde de la CADENCE. */
@@ -188,212 +114,9 @@ export function bakeQueueLength(): number {
   return QUEUE.length;
 }
 
-/** Abandonne les cuissons en attente et désarme la tranche (changement de scène, teardown de garde) :
- *  les planches déjà en file ne seront jamais servies, leurs promesses restent en suspens. */
+/** Abandonne les tâches en attente et désarme la tranche (changement de scène, teardown de garde) :
+ *  leurs promesses restent en suspens. */
 export function resetBakeQueue(): void {
   QUEUE.length = 0;
   sliceArmed = false;
-}
-
-// ————————————————————————————————————————————————————————————————
-// 3. CUISSON
-// ————————————————————————————————————————————————————————————————
-
-/** Une planche cuite : sa texture, sa géométrie, et son POIDS (ce que le budget du cache compte). */
-export interface BakedAtlas {
-  texture: THREE.CanvasTexture;
-  layout: AtlasLayout;
-  bytes: number;
-}
-
-/** Poids GPU d'une planche : 4 octets par texel (RGBA, sans mipmaps — le cuiseur les désactive). */
-const atlasBytes = (l: AtlasLayout): number => l.texW * l.texH * 4;
-
-/**
- * Dessine une frame dans son rectangle de contenu PUIS duplique ses texels de bord dans la gouttière
- * (4 bandes étirées à `ATLAS_GUTTER_PX` + 4 coins). C'est la promesse que la géométrie réservait : au
- * filtrage linéaire, un bord ne mélange que sa propre couleur — ni frame voisine, ni frange transparente.
- */
-function drawFrameWithGutter(ctx: BakeCtx, frame: BakeImage, r: { x: number; y: number; w: number; h: number }): void {
-  const G = ATLAS_GUTTER_PX;
-  const fw = frame.width;
-  const fh = frame.height;
-  ctx.drawImage(frame, 0, 0, fw, fh, r.x, r.y, r.w, r.h);
-  ctx.drawImage(frame, 0, 0, 1, fh, r.x - G, r.y, G, r.h);
-  ctx.drawImage(frame, fw - 1, 0, 1, fh, r.x + r.w, r.y, G, r.h);
-  ctx.drawImage(frame, 0, 0, fw, 1, r.x, r.y - G, r.w, G);
-  ctx.drawImage(frame, 0, fh - 1, fw, 1, r.x, r.y + r.h, r.w, G);
-  ctx.drawImage(frame, 0, 0, 1, 1, r.x - G, r.y - G, G, G);
-  ctx.drawImage(frame, fw - 1, 0, 1, 1, r.x + r.w, r.y - G, G, G);
-  ctx.drawImage(frame, 0, fh - 1, 1, 1, r.x - G, r.y + r.h, G, G);
-  ctx.drawImage(frame, fw - 1, fh - 1, 1, 1, r.x + r.w, r.y + r.h, G, G);
-}
-
-/** GÉOMÉTRIE de la planche d'une cuisson — SEULE formule : la cuisson la suit, et l'ESTIMATION de
- *  poids (`atlasBytesEstimés`) doit la suivre à l'octet près. PURE. */
-export function atlasLayoutPour(box: SvgBox, n: number, pxHeight: number): AtlasLayout {
-  const px = Math.max(1, Math.round(pxHeight));
-  const pxWidth = Math.max(1, Math.round(px * (box.w / box.h)));
-  return atlasLayout(pxWidth + 2 * ATLAS_GUTTER_PX, px + 2 * ATLAS_GUTTER_PX, n);
-}
-
-/**
- * Poids GPU de la planche que cuirait (boîte, `n` frames, palier) — ce que le stock borné compte
- * AVANT que la texture n'existe (`bytesEst`). MÊME formule que le poids RÉEL. PUR.
- *
- * NE LÈVE JAMAIS : une planche que la cuisson refusera (cellule au-delà du plafond de texture, boîte
- * dégénérée) pèse ZÉRO ici. Une estimation est une écriture de COMPTABILITÉ, pas une garde — la
- * planche impossible ne se résout jamais, donc elle ne pèse jamais rien de réel non plus, et son
- * erreur reste celle de la CUISSON, levée dans la tâche de file où l'appelant la traite déjà (sujet
- * sauté, warn). Estimer au site d'appel, lui, est SYNCHRONE : y laisser filer l'erreur en ferait une
- * exception non gérée.
- */
-export function atlasBytesEstimés(box: SvgBox, n: number, pxHeight: number): number {
-  let bytes: number;
-  try {
-    bytes = atlasBytes(atlasLayoutPour(box, n, pxHeight));
-  } catch {
-    return 0;
-  }
-  return Number.isFinite(bytes) ? bytes : 0;
-}
-
-/**
- * Cuit la planche d'un geste : `n` frames dessinées par `drawFrame(k)` (fragments SVG en boîte `box`),
- * rasterisées à `pxHeight` pixels de haut. La planche peut en porter MOINS que demandé (plafond de
- * texture) : `layout.n` fait foi, l'appelant ré-échantillonne son geste dessus.
- *
- * Chaque rasterisation passe par la file cadencée : cuire une planche ne bloque jamais une frame de jeu.
- */
-export async function bakeAtlas(
-  drawFrame: (k: number) => string,
-  box: SvgBox,
-  n: number,
-  pxHeight: number,
-  opts: { priority?: number | BakePriority; deps?: BakeDeps } = {},
-): Promise<BakedAtlas> {
-  const rasterize = opts.deps?.rasterize ?? rasterizeSvg;
-  const makeCanvas = opts.deps?.makeCanvas ?? defaultCanvas;
-  const prio = bakePriority(opts.priority ?? PRIORITE_RECHAUFFAGE);
-  const px = Math.max(1, Math.round(pxHeight));
-  const layout = atlasLayoutPour(box, n, pxHeight);
-  const canvas = makeCanvas(layout.texW, layout.texH);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('bakeAtlas: contexte 2D indisponible');
-  for (let k = 0; k < layout.n; k++) {
-    const { canvas: frame } = await queueFrame(prio, () => rasterize(drawFrame(k), box, px));
-    drawFrameWithGutter(ctx, frame, layout.rects[k]);
-  }
-  const texture = new THREE.CanvasTexture(canvas as unknown as HTMLCanvasElement);
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  return { texture, layout, bytes: atlasBytes(layout) };
-}
-
-// ————————————————————————————————————————————————————————————————
-// 4. CLÉS — une planche par (corps, geste, vue, miroir, palier), effondrement ÉNUMÉRÉ
-// ————————————————————————————————————————————————————————————————
-
-/** De quoi une planche dépend. `signature` = la CHAÎNE complète des entrées de dessin : un hash seul
- *  ferait collisionner deux corps dans un cache à éviction, silencieusement et pour toute la session. */
-export interface AtlasKeyParts {
-  signature: string;
-  clip: string;
-  view: View;
-  mirror: boolean;
-  pxHeight: number;
-  frames: number;
-  /** État AU SOL visé — voir `collapseAtlasKeys`. */
-  ground?: Exclude<GroundState, null>;
-}
-
-export function atlasKey(p: AtlasKeyParts): string {
-  return `${p.signature}|${p.clip}|${p.ground ?? '-'}|${p.view}|${p.mirror ? 'm' : 'd'}|${p.pxHeight}|${p.frames}`;
-}
-
-/**
- * Clés d'un EFFONDREMENT : `corpse` ET `prone`, deux planches. La pose au sol est un état du RENDU
- * (`planRenderPose` la lit au rendu, pas à l'évènement) — une planche cuite sur la clé du def `dying`
- * seule rendrait le cadavre là où le rendu veut l'affaissé.
- */
-export function collapseAtlasKeys(p: Omit<AtlasKeyParts, 'ground'>): string[] {
-  return (['corpse', 'prone'] as const).map((ground) => atlasKey({ ...p, ground }));
-}
-
-// ————————————————————————————————————————————————————————————————
-// 5. CACHE LRU À BUDGET D'OCTETS (machinerie : `cacheBorne`)
-// ————————————————————————————————————————————————————————————————
-
-/**
- * Budget du cache d'atlas. Sonde navigateur (#1176, 2026-08-14) : la marche d'UN acteur (8 frames ×
- * 3 vues) pèse ≈ 1,36 Mo à mpt=2 et ≈ 5,38 Mo à mpt=1 ; un combat mesuré tenait 4-6 signatures
- * distinctes pour 10 combattants. 96 Mo laissent donc plusieurs gestes par signature en réserve, loin
- * des 219 Mo qu'un réchauffage non borné atteignait.
- */
-export const ATLAS_BUDGET_BYTES_DEFAUT = 96 * 1024 * 1024;
-
-/** Le stock de planches : LRU à budget d'octets, poignée de priorité par entrée. */
-const CACHE = new CacheBorne<BakedAtlas, BakePriority>({
-  budget: ATLAS_BUDGET_BYTES_DEFAUT,
-  bytesDe: (a) => a.bytes,
-  disposer: (a) => a.texture.dispose(),
-});
-
-/** Change le budget (réglage de mesure/garde) — rend l'ancien. */
-export function setAtlasBudgetBytes(n: number): number {
-  return CACHE.définirBudget(n);
-}
-
-/** Clés ÉPINGLÉES (atlas des boards montés) : jamais évincées, quel que soit leur âge. */
-export function setAtlasPins(keys: Iterable<string>): void {
-  CACHE.épingler(keys);
-}
-
-/**
- * Planche mémoïsée d'une clé, cuite par la file cadencée. `make` reçoit la POIGNÉE de priorité à
- * passer à `bakeAtlas`. Un ÉCHEC n'est pas mémoïsé (loi du cache borné : un SVG illisible une fois ne
- * condamne pas le sujet pour la session).
- *
- * RE-PRIORISATION : une planche déjà en file en priorité basse et redemandée plus haut (le
- * réchauffage rattrapé par la vue courante) voit sa poignée RELEVÉE — sinon la frame que la caméra
- * attend resterait derrière tout le réchauffage déjà posé.
- *
- * `bytesEst` (`atlasBytesEstimés`, la MÊME formule que le poids réel) est ce que la planche pèse au
- * budget TANT QU'ELLE CUIT : une planche connaît sa géométrie avant sa première frame, et sans cette
- * estimation une rafale de cuissons ne pèserait rien jusqu'à son service.
- */
-export function enqueueBake(
-  key: string,
-  make: (priority: BakePriority) => Promise<BakedAtlas>,
-  priority: number = PRIORITE_RECHAUFFAGE,
-  bytesEst?: number,
-): Promise<BakedAtlas> {
-  return CACHE.obtenir(key, make, {
-    poignée: { value: priority },
-    servir: (p) => { if (priority > p.value) p.value = priority; },
-    ...(bytesEst === undefined ? {} : { bytesEst }),
-  });
-}
-
-/**
- * Planche DÉJÀ CUITE d'une clé, en SYNCHRONE — la seule lecture qu'une IMAGE de rendu s'autorise
- * (`stage/boardPose.writeBoardFrames`). `undefined` tant que la cuisson court : le cache tient une
- * promesse, et une image n'attend pas. Ce sont les ÉPINGLES (`setAtlasPins`, posées sur les atlas des
- * boards montés) qui protègent ce qui est à l'écran.
- */
-export function getCachedAtlas(key: string): BakedAtlas | undefined {
-  return CACHE.valeur(key);
-}
-
-/** Compteur de debug du cache d'atlas. */
-export function atlasCacheStats(): { entries: number; bytes: number } {
-  return CACHE.stats();
-}
-
-/** Vide le cache et libère les textures (changement de scène, garde de test). */
-export function clearAtlasCache(): void {
-  CACHE.vider();
 }

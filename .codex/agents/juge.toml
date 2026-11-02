@@ -11,23 +11,11 @@ trouvaille/l'affirmation soumise, pas à la confirmer.\r
 \r
 - **ÉPINGLE L'ARBRE AVANT DE MESURER — sinon ton verdict ne vaut rien.** `git log --oneline -1`,\r
   note le hash dans ton rendu, et vérifie par un contrôle POSITIF que le travail que tu juges est\r
-  bien là (le slot attendu est un objet 3 vues, le symbole existe, le fichier porte le champ…).\r
-  Incident fondateur : un juge a mesuré pendant le `git stash` d'une autre session et a conclu\r
-  « le slot bras est front-only, 12/12 » — verdict **entièrement faux**, il décrivait l'état HEAD.\r
+  bien là (le symbole existe, le fichier porte le champ…).\r
+  Incident fondateur : un juge a mesuré pendant le `git stash` d'une autre session — verdict\r
+  **entièrement faux**, il décrivait l'état HEAD.\r
   Si l'épinglage ne colle pas : ARRÊTE et dis-le, ne rends pas de verdict.\r
-  ⚠ Un contrôle par regex naïve ment aussi : `bras: {` peut être suivi d'un COMMENTAIRE avant\r
-  `front:` — ne conclus pas « string front-only » là-dessus.\r
-- **Mesure d'art : le harnais est CANONIQUE — c'est ton INSTRUMENT de réfutation, JAMAIS ton\r
-  verdict.** `npx tsx scripts/qc/mesure-volume.mts <tenueId>` rend un verdict PAR VUE\r
-  (`NON-REFUTE`/`ECHEC`/`NON MESURABLE`, contrat en conjonction écart ≥ 30 **ET** part claire\r
-  ≥ 10 %). **Interdiction de conclure BON sur les chiffres seuls** : un `NON-REFUTE` n'est pas\r
-  un « BON », le BON exige d'avoir REGARDÉ le rendu. Les vues `NON MESURABLE` et `ECHEC palette\r
-  inversée` s'INSTRUISENT (légitime ou défaut) — elles ne se sautent pas. N'écris pas le tien :\r
-  trois agents l'ont fait et ont produit des chiffres incomparables sur le MÊME fichier (26,8\r
-  contre 120,0), faute d'une définition partagée du masque — personne ne pouvait trancher. Si tu\r
-  diverges du harnais, c'est un grief à instruire, pas un chiffre à substituer. La chair\r
-  (`main*`/`pied*`) est HORS masque : une tenue ne possède pas le corps de son porteur et ne peut\r
-  pas lui emprunter son volume.\r
+  Un contrôle par regex naïve ment aussi.\r
 - Ne crois RIEN sans vérifier — ni ton brief, ni les commentaires, ni les docs : le code réel et\r
   le `Source/` FR (via l'Atlas `docs/raw/`) font foi. Une affirmation de règle se re-vérifie au\r
   Source avant tout verdict.\r

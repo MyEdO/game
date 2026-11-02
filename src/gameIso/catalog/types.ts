@@ -1,7 +1,7 @@
 import type { Dims } from '../../geometry/iso';
 import type { FacadeFeature } from '../../noyau/monde/scene';
 import type { Dir4, Dir8 } from '../../geometry/dir8';
-import type { ViewArt } from '../rig/viewArt';
+import type { ViewArt } from './viewArt';
 
 export type ParamField =
   | { key: string; label: string; type: 'number'; min?: number; max?: number; step?: number }
@@ -12,7 +12,7 @@ export interface RenderCtx {
   dims: Dims;
   /** Orientation du bâtiment (place la porte visible côté façade) — modèle 4 directions. */
   facing?: Dir4;
-  /** Orientation MONDE d'une entité/prop (Dir8, même repère que le rig). La MACHINERIE (`propSvg`) la
+  /** Orientation MONDE d'une entité/prop (Dir8, repère de `facing.ts`). La MACHINERIE (`propSvg`) la
    *  projette dans le repère caméra via `project(dir, dims.rot)` pour sélectionner la vue d'un prop
    *  ORIENTÉ (`PropViz.views`) → il PIVOTE avec la caméra ; une def ne projette JAMAIS elle-même. */
   dir?: Dir8;
@@ -40,7 +40,7 @@ export interface FacadeAppearanceDef {
 }
 
 /** Vues d'un prop ORIENTÉ — variante PARAMÉTRÉE (args `(params, ctx)`) du contrat d'art orienté
- *  PARTAGÉ `ViewArt` (le MÊME que les engins/navire/gabarit terrestre). Chaque vue dessine dans la boîte
+ *  PARTAGÉ `ViewArt`. Chaque vue dessine dans la boîte
  *  locale 120×150 (pieds en 60,150), le PROFIL tourné vers la DROITE ; le profil gauche s'obtient par
  *  MIROIR dans la machinerie (`propSvg`), jamais dans la def. Une vue peut être ABSENTE → la vue demandée
  *  REPLIE sur la plus proche déclarée (`nearestView`) ; une def ne sélectionne JAMAIS sa vue elle-même. */

@@ -33,8 +33,6 @@ const doc = document(
     age: z.number().optional(),
     /** Sexe visuel (cosmétique). Défaut 'M'. */
     sex: sexeSchema.optional(),
-    /** Morphologie 0..1 (cosmétique). Défaut 0.5. */
-    build: z.number().optional(),
   },
   {
     species: { label: 'Espèce', hint: 'Espèce du pré-tiré, prise au catalogue des espèces' },
@@ -45,7 +43,6 @@ const doc = document(
     ambitionLong: { label: 'Ambition à long terme', hint: 'Ambition à long terme affichée sur la fiche' },
     age: { label: 'Âge', hint: 'Âge du pré-tiré ; absent sur toutes les entrées observées' },
     sex: { label: 'Sexe', hint: 'Sexe visuel du pré-tiré (cosmétique)' },
-    build: { label: 'Morphologie', hint: 'Corpulence visuelle du pré-tiré (cosmétique)' },
   },
   {
     codex: { keys: ['pregens'] },

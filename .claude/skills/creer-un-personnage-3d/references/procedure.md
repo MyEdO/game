@@ -86,7 +86,7 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | rigide | apparence | `src/data/apparences.json` | rigide | teinte |
 | trait | trait | non résolu à l'import | squelette | palette |
 | decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide | teinte |
-| vehicule | definition | non résolu à l'import ; design : défs rig de plan `engin` (`src/gameIso/rig/creatures/defs/`) | rigide | teinte |
+| vehicule | definition | non résolu à l'import | rigide | teinte |
 
 Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce

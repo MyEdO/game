@@ -4,8 +4,7 @@ import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../composites/Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
-import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
-import { isSwarm } from '../../engine/traits/dispatch';
+import { ApparencesObjetsField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite } from '../../noyau/equipementDessine';
 import { mergeCreatureProfile, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { charAbr, creatures, findCreatureById, memoParVersion } from '../../data';
@@ -1058,7 +1057,8 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
     patchProfil({ char: Object.keys(char).length ? char : undefined });
   };
   /** Pose l'apparence suivante (retire `apparence` si elle redevient vide). */
-  const poserApparence = (next: EntityAppearance) => onPatch({ apparence: Object.keys(next).length ? next : undefined });
+  const poserApparence = (next: EntityAppearance) =>
+    onPatch({ apparence: Object.keys(next).length ? (next as PresetPnj['apparence']) : undefined });
   const [onglet, setOnglet] = useState<OngletDuPnj>('profil');
 
   return (
@@ -1114,12 +1114,10 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
           <>
             <div className="ed-field">
               <span>Apparence</span>
-              <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
-                nuee={isSwarm(fusion.traits)} />
+              <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex']} />
             </div>
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)} appearance={appearance} onChange={poserApparence}
               weapons={armesDEntite(objetDuNarratif(narratif), undefined, { traits: fusion.traits, char: fusion.char })} />
-            <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
             <label className="ed-field">
               Portrait (id d'illustration)
               <input

@@ -56,10 +56,8 @@ describe('EquipmentPanel (rendu)', () => {
     expect(html).toContain('eq-slot'); // cellules-emplacements (nom des pièces portées = popover au survol)
   });
 
-  it('mannequin MORT (#492, rig grand format = colonne de fiche) + damier 4 localisations + ligne Cape', () => {
+  it('damier 4 localisations + ligne Cape', () => {
     const html = renderToStaticMarkup(<EquipmentPanel hero={mkHero()} />);
-    expect(html).not.toContain('equip-figure');
-    expect(html).not.toContain('equip-doll');
     expect(html).toContain('equip-slots');
     expect(html).toContain('eq-slot'); // cellules-emplacements
     for (const zone of ['Tête', 'Bras', 'Corps', 'Jambes']) expect(html).toContain(zone);

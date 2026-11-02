@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { equipementDessine, equipementDEntite } from './index';
-import { armeDeDessin, bouclierDeDessin, pieceDeDessin, armesDEntite } from './equipementDessine';
+import { armeDeDessin, pieceDeDessin, armesDEntite } from './equipementDessine';
 import { deciderApparencesDesArmes, emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { creatures, findCreatureById } from '../data';
@@ -193,9 +193,8 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
     expect(equip.shield?.candidats).toEqual(['bouclier_blason', 'rond']);
   });
 
-  it('ignore une apparence non admise sur l’arme et le bouclier projetés', () => {
+  it('ignore une apparence non admise sur l’arme projetée', () => {
     expect(armeDeDessin({ ...weaponFromItem(porte('arme-simple')), apparence: 'zweihander' }).candidats).toEqual(['epee']);
-    expect(bouclierDeDessin({ ...porte('bouclier'), apparence: 'hache_naine' }).candidats).toEqual(['rond']);
   });
 });
 

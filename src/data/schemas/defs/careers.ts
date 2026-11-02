@@ -27,9 +27,6 @@ const doc = document(
     /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
      *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
-    /** id d'une tenue spécifique (`TENUE_BY_ID`) réutilisée par cette carrière quand son rendu
-     *  reprend la tenue d'une autre carrière (variants MDG « (Côtier) », MDG 09 l.255/343/458). */
-    tenue: z.string().optional(),
     /** Clé = `refCareerIdSchema` (id stable, #313) → borne haute d100 ; clé ABSENTE = carrière
      *  indisponible pour cette espèce (partiel : toutes les carrières ne portent pas les 11 colonnes). */
     rand: z.partialRecord(refCareerIdSchema, z.number().nullable()),
@@ -37,7 +34,6 @@ const doc = document(
   {
     class: { label: 'Classe' },
     grantGroups: { label: 'Groupes accordés' },
-    tenue: { label: 'Tenue réutilisée', hint: 'Identifiant d’une tenue spécifique reprise par cette carrière' },
     rand: { label: 'Seuil aléatoire (d100)', hint: 'Borne haute par colonne d’espèce du Tableau des Classes et Carrières' },
   },
   {

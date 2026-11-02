@@ -1,17 +1,12 @@
 /**
  * Migration #1467 L1b V-P4 — `raceAppearance.json` : l'`id` devient un SLUG, l'ancien id devient le
- * `label` ; `speciesRace.json` (le pont species→rig) suit dans le MÊME passage.
+ * `label` ; la race par défaut de `speciesRace.json` suit dans le MÊME passage.
  *
- * MOTIF MESURÉ : les 21 races de rig portaient un `id` capitalisé en français (« Haut-Elfe »,
+ * MOTIF MESURÉ : les 21 races d'apparence portaient un `id` capitalisé en français (« Haut-Elfe »,
  * « Homme-bête », « Guerrier du Chaos »…) — un LIBELLÉ tenant lieu d'identité, et aucune entrée ne
  * portait de `label` (stock des structures, rôle « libellé », motif « clé absente », 21 entrées).
  * L'id passe au slug canonique et le libellé d'affichage prend le champ qui lui revient.
- * `speciesRace.json` (`default` + `rules[].race`) désigne CES ids : ses valeurs sont converties dans
- * le même geste — sans quoi `baseSpeciesOf` renverrait un id qui n'existe plus.
- *
- * COUPLAGE VÉRIFIÉ : `baseSpeciesOf` (`src/gameIso/rig/skeletons.ts:81-89`) matche sur l'ENTRÉE
- * (espèce, minusculée), jamais sur la valeur `race` — slugger les valeurs est transparent pour la
- * résolution ; seul l'ensemble d'arrivée (les ids de `raceAppearance.json`) doit rester accordé.
+ * `speciesRace.json` (`default`) désigne CES ids : sa valeur est convertie dans le même geste.
  *
  * SLUG : mécanique RECOPIÉE de `slugId` (`src/data/slug.ts:7-15`) — NFD + retrait des diacritiques,
  * minuscules, œ/æ, `[^a-z0-9]+` → `-`, tirets de bord retirés. Recopiée et non importée : une
@@ -113,8 +108,6 @@ const convertirRace = (valeur, ou) => {
 
 const sortiePont = { ...pont.data };
 sortiePont.default = convertirRace(pont.data.default, '`default`');
-if (!Array.isArray(pont.data.rules)) echecs.push('speciesRace : `rules` absent ou non tableau');
-else sortiePont.rules = pont.data.rules.map((r, i) => ({ ...r, race: convertirRace(r.race, `rules[${i}]`) }));
 
 if (echecs.length) {
   console.error(`ARBITRAGE REQUIS — ${echecs.length} anomalie(s), AUCUNE écriture (les 2 fichiers restent intacts) :`);
@@ -137,7 +130,7 @@ for (const e of apresRaces) {
   else if (e.id !== slugId(e.label)) rouges.push(`raceAppearance ${e.id} : id ≠ slugId(label ${JSON.stringify(e.label)})`);
 }
 const existants = new Set(apresRaces.map((e) => e.id));
-for (const [ou, v] of [['default', apresPont.default], ...apresPont.rules.map((r, i) => [`rules[${i}]`, r.race])])
+for (const [ou, v] of [['default', apresPont.default]])
   if (!existants.has(v)) rouges.push(`speciesRace ${ou} : race ${JSON.stringify(v)} absente de raceAppearance`);
 if (rouges.length) {
   console.error(`VÉRIFICATION POST-ÉCRITURE ROUGE :\n  ${rouges.join('\n  ')}`);
@@ -146,5 +139,5 @@ if (rouges.length) {
 
 console.log(`raceAppearance.json — id capitalisé → slug + \`label\` : ${migres.length} ; déjà migrées (no-op) : ${dejaMigres.length}`);
 for (const m of migres) console.log(`  ${m}`);
-console.log(`speciesRace.json : default = ${apresPont.default} ; ${apresPont.rules.length} règle(s), toutes accordées à un id existant`);
+console.log(`speciesRace.json : default = ${apresPont.default}, accordée à un id existant`);
 console.log(`Fichiers : raceAppearance ${plans[0].out !== plans[0].brut ? 'réécrit' : 'INCHANGÉ'}, speciesRace ${plans[1].out !== plans[1].brut ? 'réécrit' : 'INCHANGÉ'}`);

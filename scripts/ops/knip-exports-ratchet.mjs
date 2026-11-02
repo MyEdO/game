@@ -5,7 +5,7 @@
 // doit être RETIRÉE de la baseline (`--sync` ne sait que retirer, jamais ajouter).
 //
 // Périmètre du gel (2026-08-16) : `src/gameIso/**` est EXCLU de la baseline — chantier de rendu en
-// cours (backends WebGL, rig/anim), son stock d'exports bouge d'heure en heure et gèlerait un
+// cours (backends WebGL), son stock d'exports bouge d'heure en heure et gèlerait un
 // cliquet en faux rouge permanent. Il reste dans le GRAPHE knip (ses imports comptent, sinon un
 // export consommé par le seul `gameIso` passerait pour mort) : seule sa colonne de dette est hors gel.
 //

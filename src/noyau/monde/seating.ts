@@ -3,7 +3,7 @@
  *
  * Le catalogue de décor (`props.json`) déclare les places d'un TYPE de meuble dans son repère local
  * (`PropSeatSlot`) ; une Scène déclare QUI les occupe (`Scene.seatAssignments`). Ce module fait le
- * pont, et lui seul : la persistance, l'interaction, le rig, l'éditeur et `MapSpec` le CONSOMMENT.
+ * pont, et lui seul : la persistance, l'interaction, l'éditeur et `MapSpec` le CONSOMMENT.
  * PUR — aucune écriture de store, aucun rendu, aucune caméra, aucune dépendance `gameIso`.
  *
  * FORME PERSISTÉE : `propId → slotId → occupant`. Deux niveaux imbriqués (et non une clé composée)
@@ -81,9 +81,6 @@ export interface ResolvedSeatSlot {
   facing: Dir8;
   approach: Pt;
 }
-
-/** Hauteur d'ASSISE au-dessus du sol (m) d'une place résolue — ce que la POSTURE consomme. */
-export const seatSitHeight = (s: Pick<ResolvedSeatSlot, 'anchor' | 'ground'>): number => s.anchor.h - s.ground;
 
 /** Une place résolue et son occupant. */
 export interface SeatPose extends ResolvedSeatSlot { occupant: SeatOccupant }
@@ -273,7 +270,7 @@ export function seatSlotsOf(scene: Scene, propId: string): ResolvedSeatSlot[] {
  * (`gameIso/stage/useStagePointer`), assise au clic (`store.interactEntity`).
  *
  * La GÉOMÉTRIE ne dépend d'aucune activation : `seatSlotsOf` reste inchangé et sert l'éditeur, le
- * placement d'un PNJ authoré assis, la validation de document et le rig — un tabouret non activé
+ * placement d'un PNJ authoré assis, et la validation de document — un tabouret non activé
  * porte toujours ses places, et un PNJ authoré peut y être assis.
  *
  * L'assise est la SEULE capacité qui vive sur le TYPE (`PropData.seatSlots`), donc la seule qu'un

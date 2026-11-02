@@ -301,7 +301,6 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
           <div key={h.id} className={`interlude-synth-hero${h.id === activeId ? ' active' : ''}`}>
             <CharFrame c={h} variant="full" size="sm" maxStates={3} />
             <div className="interlude-synth-meta">
-              <span className="interlude-synth-name">{h.label}</span>
               <ActivityPips st={st} />
               {!ownsHero(h.id) && (
                 <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName(h.id)}</span>
@@ -398,7 +397,6 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
               <ParchmentCard key={h.id} title="Le dé n’est pas encore tombé">
                 <header className="interlude-chronicle-head">
                   <CharFrame c={h} variant="identity" size="sm" />
-                  <span className="interlude-chronicle-who">{h.label}</span>
                 </header>
                 <p className="interlude-event">Son Événement de la période reste à tirer.</p>
               </ParchmentCard>
@@ -410,7 +408,6 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
             <ParchmentCard key={h.id} seal={{ label: 'd100', roll: st.eventRoll }} title={ev.label}>
               <header className="interlude-chronicle-head">
                 <CharFrame c={h} variant="identity" size="sm" />
-                <span className="interlude-chronicle-who">{h.label}</span>
               </header>
               <p className="interlude-event">{ev.desc}</p>
               {chips.length > 0 && (
@@ -544,7 +541,6 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
     <section className={`interlude-hero panel${pane ? ' active' : ''}`}>
       <h3>
         <CharFrame c={hero} variant="identity" size="sm" />
-        <b className="interlude-name">{hero.label}</b>
         <span className="interlude-left">
           {!canDrive && <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
           {t('interlude.statut', { echelon: libelleDEchelon(status.tier), standing: status.standing })}

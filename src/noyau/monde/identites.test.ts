@@ -35,7 +35,7 @@ const narratif = (): NarratifBlock => ({
 });
 
 const heros = (id: string, speciesId: string, sex?: 'M' | 'F') =>
-  ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex, build: 0.5 } } : {}) }), id });
+  ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex } } : {}) }), id });
 
 const get = () => useGame.getState();
 const enVigueur = () => identitesResolues(get());

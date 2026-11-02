@@ -3,7 +3,7 @@
  * écran 'dataEditor'). Les *.json de ce dossier sont la SOURCE CANONIQUE app-owned, curée à la main :
  * aucune migration ne les régénère.
  */
-import type { EntityAppearance, RigSpeciesId } from '../engine/authoringAppearance';
+import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement } from './schemas/grammaire/valeurs';
@@ -850,10 +850,6 @@ export interface SpeciesData {
    *  Elfe 0, Nain 5, Halfling 10, Humain 50. Ogre 10 (ADE II « Ogres et Mutations »). ABSENT = défaut
    *  Humain (50) — le Gnome y est rattaché par NADJ « Gnomes et Corruption » (« mutent comme les humains »). */
   mutationBodyMax?: number;
-  /** Habillage de l'APERÇU (créateur, carte de race #431) — id de carrière ICONIQUE et COMMUNE à
-   *  l'espèce (flavor de vitrine, pas une règle) : la tuile de famille montre un personnage vêtu
-   *  plutôt qu'une tunique nue. Absent = pas de tenue (repli existant). */
-  previewCareer?: { id: string };
   /** Trait RACIAL de l'espèce (#572) — MÊME forme posée que les Traits de créature du bestiaire
    *  (`TraitPose`, jamais une glose de règle en `desc`) : Ogre porte
    *  `{id:'ogre'}` (ADE2 « Ogres et Mutations » l.708 « Un Lourd Fardeau », encombrance/consommation
@@ -897,9 +893,6 @@ export interface CareerData {
   /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
    *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
   grantGroups?: string[];
-  /** id d'une tenue spécifique (`TENUE_BY_ID`) réutilisée par cette carrière quand son rendu
-   *  reprend la tenue d'une autre carrière (variants MDG « (Côtier) », MDG 09 l.255/343/458). */
-  tenue?: string;
   /** Tableau des Classes et Carrières aléatoires (LDB 05 l.197+) : borne haute d100 par colonne
    *  d'espèce (`SpeciesData.refCareer`). Clé ABSENTE = carrière INDISPONIBLE pour cette espèce (l.360). */
   rand: Partial<Record<RefCareerId, number | null>>;
@@ -951,6 +944,7 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  nom du dieu), `seaShanties` (Chanson de marin — ids de `sea-shanties.json`). Sources d'ARGUMENT de Trait
  *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `ciblesPsy` (Cible d'un Trait psy ciblé — un Groupe de `groups.json` ; une scène admet en plus `@id`, un
  *  individu, `refusDuTraitPose` de `grammaire/reference.ts`),
+ *  `groupesDAppartenance` (Ennemi de Sans Peur — la sous-liste `CIBLE_D_APPARTENANCE` de `groups.json`),
  *  `diseases` (Maladie — `maladies.json`), `sizes` (catégorie de Taille — `engine/size`), `mutations`
  *  (Mutation — `mutations.json`), `breathTypes` (Type de Souffle — `breath-types.json`), `damageTypes`
  *  (Immunité aux Dégâts — `damage-types.json`, lue par la Condition `has … what:'immunity'`), `weaponsMelee`/
@@ -968,6 +962,7 @@ export type SpecsSource =
   | 'cultChaos'
   | 'seaShanties'
   | 'ciblesPsy'
+  | 'groupesDAppartenance'
   | 'diseases'
   | 'sizes'
   | 'mutations'
@@ -1222,10 +1217,6 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** Engin de siège POSABLE : id de la def rig `creatures/defs/<Engin>.ts` (plan 'engin') dessinant
-   *  l'affût rendu en emplacement. Pur ROUTAGE D'APPARENCE (≠ règle), comme `shape` route l'art d'arme.
-   *  Absent ⇒ l'arme n'est pas posable comme emplacement (pas d'art d'affût). */
-  siegeRig?: string;
   /** `id` de munition REPRÉSENTATIVE (`TrappingData.id`, `categorie:'ammunition'`) d'une arme de siège — les
    *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
    *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
@@ -1367,8 +1358,6 @@ export interface GroupeDArme extends GroupeDObjet {
   /** `melee` = Spé de Corps à corps, `ranged` = Spé de Projectiles : SOURCE des pools
    *  `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES) ; absent sur les Groupes de siège. */
   combat?: 'melee' | 'ranged';
-  /** Forme dessinée d'une arme du Groupe sans forme propre (`null` : rien en main). */
-  forme: { id: string } | null;
   maniement: Maniement;
   poudre?: true;
 }
@@ -1386,8 +1375,6 @@ export interface GroupeDArmure extends GroupeDObjet {
   material: 'metal' | 'leather' | 'chaos';
   /** Rang de couche affichée, unique parmi les Groupes d'armure. */
   couche: number;
-  /** Def d'art (`src/gameIso/rig/parts/armour/defs/`) qui peint la matière. */
-  art: string;
   /** PA à partir desquels une armure de statbloc portée se dessine dans cette matière, unique ; `null` :
    *  aucune (#2948). */
   palierPA: number | null;
@@ -1412,6 +1399,8 @@ export interface GroupData {
   relatif?: Relatif;
   /** Ce Groupe est une Race (ADE II 09 l.15). #3045 */
   race?: true;
+  /** Groupe-CIBLE COMPOSITE : il vise tout membre de l'un des Groupes qu'il inclut (`groupMatch`). Q13 A, #3045 */
+  inclut?: string[];
 }
 /** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
  *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
@@ -1430,7 +1419,7 @@ export type HarvestRarity = Availability | 'Unique';
 export type HarvestDanger = 'Inoffensive' | 'Inquiétante' | 'Menaçante' | 'Mortelle';
 
 export interface CreatureData {
-  /** `id` STABLE (slug) — clé de résolution runtime/données (scènes, encounters, rig). « Plus de label » :
+  /** `id` STABLE (slug) — clé de résolution runtime/données (scènes, encounters). « Plus de label » :
    *  les références pointent l'id (robuste au renommage/multilangue) ; le `label` ne sert qu'à l'affichage. */
   id: string;
   label: string;
@@ -1458,10 +1447,9 @@ export interface CreatureData {
   spells: string[];
   desc?: string;
   source: SourceRef;
-  /** Apparence par défaut UNIFIÉE (plan P2) — UN seul bloc éditable porté par l'enregistrement :
-   *  espèce, tenue, parts monstrueux, couleurs, coiffure, sexe/carrure, yeux. Le rig la lit comme
-   *  couche de défaut (sous une éventuelle surcharge de scène). Même format que `EntityAppearance`
-   *  (éditeur de scène) → une SEULE structure d'apparence dans toute l'app. */
+  /** Apparence par défaut UNIFIÉE (plan P2) — UN seul bloc éditable porté par l'enregistrement, couche
+   *  de défaut sous une éventuelle surcharge de scène. Même format que `EntityAppearance` (éditeur de
+   *  scène) → une SEULE structure d'apparence dans toute l'app. */
   appearance?: EntityAppearance;
   /** Récolte « Précieuses Entrailles » (ZI) : rareté + dangerosité (→ coût par Enc des pièces,
    *  cf. engine/harvest) et usages supposés des organes. Porté par la créature (pas de table //). */
@@ -1780,8 +1768,8 @@ export interface TraitCapabilities {
    *  (singulier, table générique 'physique'/'mentale') — les deux capacités coexistent sans collision. */
   markMutations?: { countDie: number; countDivide: number; first: 'physique' | 'mentale'; mentalTable: string; physTable: string };
   swarm?: boolean;
-  /** Attaque NATURELLE (LDB 85) : le trait EST une arme (morsure, cornes, tentacules…) — pas d'objet
-   *  tenu par le rig. La reconnaissance est TYPÉE, jamais découpée du libellé
+  /** Attaque NATURELLE (LDB 85) : le trait EST une arme (morsure, cornes, tentacules…), pas un objet
+   *  tenu. La reconnaissance est TYPÉE, jamais découpée du libellé
    *  (`statEntry` interdit le parsing de chaîne au runtime). `ranged` pour les attaques à distance (crachat). */
   naturalWeapon?: { ranged?: boolean };
   /** Lanceur de Sorts (LDB 85 l.182-183 : « La créature peut lancer des Sorts ») — autorise
@@ -1930,10 +1918,6 @@ export interface TraitData {
    *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
    *  → liveTraits) qui leur AFFECTE le `kind` `intrinseque` (comme la séquelle dérive le sien). */
   passive?: import('../engine/ops').OpPassive[];
-  /** Apparence COSMÉTIQUE déclarée en DONNÉE (calques du catalogue via `features` + `colors` + `eyes`) —
-   *  fusionnée sur le rig quand le trait est présent (cf. `combatantVisuals`). Même fragment éditable
-   *  (`AppearanceField`) que les créatures/mutations. */
-  appearance?: EntityAppearance;
   /** Drapeaux de CAPACITÉ irréductibles (décisions IA/psy, résolution, build/déplacement/vision) —
    *  lus PAR ID par `engine/traits/dispatch`. Édité au Codex. */
   capabilities?: TraitCapabilities;
@@ -2096,7 +2080,7 @@ export interface DomainData {
   label: string;
   desc?: string;
   source?: SourceRef;
-  /** Raison d'un arbitrage maison de l'entrée (le Type de Souffle de `arcane`, LDB 47 l.509). */
+  /** Motif de la valeur maison de l'entrée. */
   maison?: string;
   /** Emplacements SECONDAIRES du même Domaine — republication à l'identique (doctrine « UNE entité,
    *  N livres ») : l'attribut du Domaine de la Lumière est reparu tel quel dans les Vents de Magie
@@ -2349,33 +2333,15 @@ export interface BookData {
   folder: string | null;
   desc?: string;
 }
-/**
- * Apparence de base d'une espèce de rig (Humain, Ogre, Skaven…) — éditable dans le Compendium.
- * PAR RÉFÉRENCE : `featureKeys` (catalogue d'éléments, résolus par `feat()`), id de gabarit
- * (`gabarits.json`), ids de tête/jambes, libellé de tenue, couleurs. Les SVG restent des registres CODE
- * (résolus par le rig). Le rig (`raceById`) lit ce dataset comme SOURCE et le résout en `RaceDef`.
- */
+/** Apparence de base d'une espèce (Humain, Ogre, Skaven…) — éditable dans le Compendium. PAR
+ *  RÉFÉRENCE : id de gabarit (`gabarits.json`). */
 export interface RaceAppearanceData {
   id: string;
   label: string;
   gabarit: { id: GabaritId };
   gabaritOverride?: SurchargeDeGabarit;
-  palette?: import('./palette.types').PaletteDEspece;
-  paletteF?: import('./palette.types').PaletteDEspece;
   head?: string;
-  legs?: string;
-  armG?: string;
-  armD?: string;
-  dropHeadgear?: boolean;
-  tirageIndividuel?: Partial<Record<import('./palette.types').Slot, string[]>>;
-  featureKeys?: string[];
-  pose?: Record<string, number>;
-  tenue?: string;
-  colors?: Record<string, string>;
-  sex?: Sexe;
-  parts?: { cheveux?: number; visage?: number };
   scale?: number;
-  eyes?: { G?: string; D?: string };
 }
 /** Banque de noms d'UNE race jouable : prénoms M/F + noms de famille (LDB 05). L'`id` est le
  *  `RaceKey` de la race (`species.refChar`) ; le `label` est de l'AFFICHAGE. */
@@ -2533,12 +2499,9 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
 
-/** Engins de siège POSABLES = trappings portant un art d'affût (`siegeRig`). FOYER UNIQUE du filtre :
- *  l'invariant « posable ⇔ l'engin a un art d'affût, et c'est ce rig qui rend l'affût inerte en
- *  éditeur comme en combat » ne vit QU'ICI — partagé par l'outil emplacement de l'éditeur
- *  (Palette/Inspecteur/StatusBar) ET la catégorie Codex « Engins de siège », plus aucun
- *  `trappings.filter(siegeRig)` dupliqué ailleurs. */
-export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => !!t.siegeRig));
+/** Engins de siège posables : trappings du sous-type `armes-de-siege`. Foyer du filtre partagé par
+ *  les emplacements, les références d'entité et la catégorie du Codex. */
+export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => t.subType === 'armes-de-siege'));
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -2980,10 +2943,11 @@ export const stars = starsJson as StarData[];
 /** Les 5 demeures célestes (ADE II 3 l.502-512, « Déterminer les demeures célestes ») — ossature
  *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
-/** Apparences d'espèce de rig (app-owned, éditable) — SOURCE lue+résolue par `raceById` (rig). */
+/** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`ui/compendium/registry.ts`), la
+ *  garde-robe (`schemas/defs/garde-robe.ts`, `race`) et `scripts/personnage-3d/base/declaration.mjs`. */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
-/** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
+/** Carrures (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
 /** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113, #3111, #3116) : têtes, coiffures, tenues, emplacements, pièces, ensembles, emblèmes. */
@@ -3142,11 +3106,11 @@ export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
 /** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
- *  (`vehicles.json` facette `hull`, MDG 13), affût d'engin de siège (`trappings.json` `siegeRig`, AA 10).
+ *  (`vehicles.json` facette `hull`, MDG 13), engin du sous-type `armes-de-siege` (`trappings.json`, AA 10).
  *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
  *  spawn (`spawnEnemy`) la lisent ici. */
 export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || findTrappingById(ref)?.siegeRig);
+  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || siegeEngines().some((t) => t.id === ref));
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son
@@ -3182,18 +3146,18 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, tailleDuTalent) ?? 'moyenne';
 }
-/** Tailles DISTINCTES (`speciesSize`) des espèces d'une race de rig, jointes par `species.refChar`
+/** Tailles DISTINCTES (`speciesSize`) des espèces d'une race d'apparence, jointes par `species.refChar`
  *  (`names-species-keyspaces.test.ts`) : une seule est la Taille de la race ; aucune ou plusieurs, elle est indéterminée. */
 export function taillesDeLaRace(race: string): import('../engine/size').SizeCategory[] {
   return [...new Set(species.filter((sp) => sp.refChar === race).map(speciesSize))];
 }
-/** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
+/** Race d'apparence par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
 export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
-/** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel (un id
- *  `species.json` est un id du domaine de saisie, `grammaire/art.ts`) ; sans argument, `DEFAULT_RACE_ID`.
- *  Pont UNIQUE rules→rig (pregens/draft/creator/defaultAppearance). */
-export function rigSpeciesId(rulesId: string | undefined): RigSpeciesId {
-  return (rulesId ?? DEFAULT_RACE_ID) as RigSpeciesId;
+/** Espèce d'APPARENCE (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel ; sans
+ *  argument, `DEFAULT_RACE_ID`.
+ *  Pont UNIQUE règles→apparence (pregens/draft/creator/defaultAppearance). */
+export function especeDApparence(rulesId: string | undefined): EspeceDApparence {
+  return (rulesId ?? DEFAULT_RACE_ID) as EspeceDApparence;
 }
 /** Seuil d100 de mutation PHYSIQUE d'une espèce par `id` (LDB 19 l.78-81). Défaut **50** = colonne
  *  Humain (LDB) — couvre aussi le Gnome (NADJ « Gnomes et Corruption » : « mutent comme les humains »)
@@ -3396,7 +3360,7 @@ export function damageTypeLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? typeDegatsParId(id)?.label : '', id ?? '');
 }
 const creatureParId = indexParId('creatures', creatures);
-/** Résout une créature par son `id` STABLE — référence runtime/données (scènes, encounters, rig). */
+/** Résout une créature par son `id` STABLE — référence runtime/données (scènes, encounters). */
 export function findCreatureById(id: string | undefined): CreatureData | undefined {
   return creatureParId(id);
 }

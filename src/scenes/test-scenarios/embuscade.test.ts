@@ -106,7 +106,7 @@ describe('embuscade — Scene produite par buildScene', () => {
     // avec le Trait de combat (dédoublonnage #145, cf. `renderWeaponsFromTraits`).
     expect(chef?.statblock?.traits).toContainEqual({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 });
     expect(chef?.weapon).toBeUndefined();
-    expect(chef?.appearance).toEqual({ species: 'humains-reiklander', monster: { tete: 'lezard' } });
+    expect(chef?.appearance).toEqual({ species: 'humains-reiklander' });
     // VISIBLE : hidden par défaut → pas de hiddenUntilCombat sur les mutants qu'on voit se repaître.
     expect(chef?.combat?.hiddenUntilCombat).toBeUndefined();
 

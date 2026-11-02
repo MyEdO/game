@@ -18,7 +18,6 @@ const parEmplacement = tableTotale(emplacements, (id) => objets.filter((o) => o.
 
 const traits = (o) => [
   !o.shape && 'sans shape',
-  o.siegeRig && 'siegeRig',
   o.unarmed && 'unarmed',
   o.improvised && 'improvised',
   `categorie=${o.categorie}`,

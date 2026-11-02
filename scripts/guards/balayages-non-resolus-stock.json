@@ -33,24 +33,6 @@
     },
     {
       "famille": "URL",
-      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
-      "ref": "listerDossier : URL new URL(`./${part}/defs`, import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
-      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
-      "ref": "readFileSync : URL new URL(`./${part}/defs`, import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
-      "fichier": "src/gameIso/rig/quadruped/quad-vues-ratchet.test.ts",
-      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
       "fichier": "src/noyau/sequence-socle-naval.test.ts",
       "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
       "occurrence": 1
