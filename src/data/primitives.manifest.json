@@ -306,6 +306,15 @@
     "verrou": "hero-debout-guard.test.ts"
   },
   {
+    "id": "sourcesEnVue",
+    "type": "primitives.manifest",
+    "label": "sourcesEnVue",
+    "fichier": "src/noyau/monde/porteurs.ts",
+    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent",
+    "perimetre": "toute collecte des combattants vus d'un porteur : Tests de Psychologie (Peur, Terreur, Traits ciblés, héros et IA), fin d'une affliction ciblée (`cibleEnVue`), Condition `foeInLoS`, cible imposée de Frénésie (`frenzyTarget`) ; la visée de tir, qui juge la case visée d'une structure, n'en est pas",
+    "verrou": "src/noyau/monde/porteurs.test.ts"
+  },
+  {
     "id": "applyOps",
     "type": "primitives.manifest",
     "label": "applyOps/GameOp",
