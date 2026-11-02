@@ -85,6 +85,9 @@ const { anneaux, silhouettes: mesuresDesSilhouettes, carrure } = fiche.mesures.s
 console.log(`silhouettes : ${anneaux} anneau(x) articulaire(s)`)
 for (const s of mesuresDesSilhouettes) console.log(`  ${s.nom} : déplacement max ${s.deplacementMax.toFixed(4)} m ; centre ${s.centrePire ? `${s.centrePire.os} à ${s.centrePire.rapport.toFixed(4)} du rayon` : '—'}`)
 if (carrure) console.log(`  carrure (${carrure.os}, rayon ${carrure.rayonDeRepos.toFixed(4)} m) : ${carrure.points.map((p) => `st=${p.st} → ${p.rapport.toFixed(4)}`).join(', ')} ; écart relatif à st ${carrure.ecartASt.toFixed(4)}, au segment ${carrure.ecartAuSegment.toFixed(4)}`)
+const { segments } = fiche.mesures
+const triplet = (t) => `(${t.map((v) => (v === null ? '—' : v.toFixed(4))).join(', ')})`
+if (segments) console.log(`segments du gabarit (S_b → rapport par axe local) : ${segments.segments.map((s) => `${s.os} (${s.attendu.join(', ')}) → ${triplet(s.rapport)}`).join(', ')} ; écart relatif à S_b ${segments.ecartALEchelle.toFixed(4)}`)
 for (const e of fiche.ecarts) console.log(ligneDEcart(e))
 const parGarde = fiche.ecarts.reduce((n, e) => ({ ...n, [e.garde]: (n[e.garde] ?? 0) + 1 }), {})
 console.log(`${fiche.ecarts.length} écart(s)${fiche.ecarts.length ? ` : ${Object.entries(parGarde).map(([g, n]) => `${g} ${n}`).join(', ')}` : ''}`)
