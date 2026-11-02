@@ -4,8 +4,7 @@
 // texte approchant ni un silence. `desc` et `descRef` sont EXCLUSIFS : les deux ensemble = adresse
 // et copie en concurrence, donc levée.
 import { resoudreAdresse } from '../../src/data/source/decoupe.ts'
-import { lireChapitre } from './lecteur-fs.mjs'
-import { chapterFile, sigleDe } from '../raw/_lib.mjs'
+import { cheminChapitre, lireChapitre } from './lecteur-fs.mjs'
 
 /**
  * Prose d'une entrée.
@@ -29,21 +28,6 @@ export function resoudreProse(entree, lecteur = lireChapitre, ou) {
   const res = resoudreAdresse(chapitre, ref)
   if (res.error) throw new Error(`${res.error} : ${res.detail}`)
   return { etat: 'resolue', md: res.md, folios: res.folios }
-}
-
-/**
- * Chemin du fichier de chapitre d'un livre, ou `null` — l'adresse d'un `descRef` ramenée au disque.
- * RELATIF à la racine du dépôt, tel que `chapterFile` le compose depuis le `dir` de `books.json`
- * — `path.join`, donc au SÉPARATEUR DE LA PLATEFORME :
- * `Source/Warhammer v4 - Livre de base version corrigee/21 - Psychologie.md` sous POSIX, le même
- * chemin à l'antislash sous Windows. C'est cette forme que chokidar rend, et c'est elle
- * qui sert de clé à l'index de dépendance du plugin Vite. `fichierChapitre` (`lecteur-fs.mjs`) ne rend
- * que le NOM du fichier.
- * @param {string} bookId @param {string|number} ch @returns {string|null}
- */
-export function cheminChapitre(bookId, ch) {
-  const abbr = sigleDe(bookId)
-  return (abbr ? chapterFile(abbr, ch) : null)?.path ?? null
 }
 
 /**

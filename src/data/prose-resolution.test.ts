@@ -3,8 +3,10 @@ import { describe, it, expect } from 'vitest';
 // sonde de matérialisation et l'outil de réparation prennent au même endroit — un second walk local
 // ici et le périmètre des trois divergerait en silence.
 import { RACINES_PAR_DEFAUT, adressesDuDepot, fichiersJsonDe } from '../../scripts/source/adresses.mjs';
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+import { cheminChapitre } from '../../scripts/source/lecteur-fs.mjs';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { cheminChapitre, resoudreProse } from '../../scripts/source/resoudre.mjs';
+import { resoudreProse } from '../../scripts/source/resoudre.mjs';
 import { fragmentBlocs, fragmentCellule, graphieDuFichier, parseChapitre, type ChapitreParse, type Fragment, type FragmentBlocs } from './source/decoupe';
 // Le prédicat de la règle 5, là où il est DÉFINI (partagé avec `no-html-in-prose.test.ts`).
 import { HTML_TAG } from './source/normalize';

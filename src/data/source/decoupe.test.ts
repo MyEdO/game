@@ -5,10 +5,11 @@
 // le prédicat de couverture d'une CELLULE se verrouille sur une fixture (deux tables SANS titre).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { REGISTRE_LIVRES, chapterFile, estLivreExtrait, sigleDe } from '../../../scripts/guards/lib/rawRefIntegrity.mjs';
+import { REGISTRE_LIVRES, estLivreExtrait } from '../../../scripts/guards/lib/rawRefIntegrity.mjs';
+import { cheminDuDepot } from '../../../scripts/source/adresses.mjs';
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+import { cheminChapitre as cheminDuLecteur } from '../../../scripts/source/lecteur-fs.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import {
   type ChapitreParse, type Fragment, type FragmentBlocs, type FragmentCellule, type Resolu,
@@ -21,7 +22,6 @@ import {
 } from './decoupe.ts';
 import { foliosRoulants } from './ancre-vide.ts';
 
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const LDB = 'livre-de-base';
 const EDO = 'ennemi-dans-l-ombre';
 
@@ -29,15 +29,14 @@ const _cache = new Map<string, ChapitreParse>();
 
 /** Chemin du fichier de chapitre `NN` d'un livre. */
 function cheminChapitre(bookId: string, ch: string): string {
-  const abbr = sigleDe(bookId);
-  const f = abbr ? chapterFile(abbr, ch) : null;
-  if (!f) throw new Error(`chapitre introuvable : ${bookId} ch.${ch}`);
-  return join(RACINE, f.path);
+  const chemin: string | null = cheminDuLecteur(bookId, ch);
+  if (!chemin) throw new Error(`chapitre introuvable : ${bookId} ch.${ch}`);
+  return cheminDuDepot(chemin);
 }
 
 /** Chaque chapitre de chaque livre extrait : `{ bookId, graphie }`. */
 function chapitresDuCorpus(): { bookId: string; graphie: string }[] {
-  return REGISTRE_LIVRES.filter(estLivreExtrait).flatMap((livre) => listerDossier(join(RACINE, livre.dir!))
+  return REGISTRE_LIVRES.filter(estLivreExtrait).flatMap((livre) => listerDossier(cheminDuDepot(livre.dir!))
     .map((f) => graphieDuFichier(f))
     .filter((g): g is string => g != null)
     .map((graphie) => ({ bookId: livre.id, graphie })));
