@@ -2081,9 +2081,9 @@
   {
     "id": "ciblePsy",
     "type": "primitives.manifest",
-    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/ciblePsyLue/cibleDeLArg/individuDe/individusNommes/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/libelleDePsy/NomDIndividu/estCibleType/RefDeCible/cibleDeRef/refDeCible/varianteDe/varianteAdmise",
+    "label": "CiblePsy/ciblePsy/selonCible/ciblePsyLue/cibleDeLArg/individuDe/individusNommes/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/libelleDePsy/NomDIndividu/estCibleType/RefDeCible/cibleDeRef/refDeCible/varianteDe/varianteAdmise",
     "fichier": "src/engine/psych/ciblage.ts",
-    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, ou un individu par son id de combattant (`@id`), chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (`groupe` au motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes ; `individu` sur un id non vide sans `@`), lue par le seul `selonCible`, tirée d’un porteur par `cibleDuPorteur`, lue d’une chaîne de donnée (spécialisation, Cible persistée) par `ciblePsyLue`, de l’`arg` d’un Trait posé par le seul `cibleDeLArg` (source `ciblesPsy`), comparée par `identiteDeCiblage` (type et Cible), affichée par `libelleDeCible` (l’individu par le `NomDIndividu` de l’appelant, dans l’UI `useNomDIndividu`) et, avec son type, par `libelleDePsy` (« Haine (Nains) ») ; un Trait posé s’affiche par `traitLisible` (`engine/traits/dispatch.ts`), `formatTrait` restant la forme d’aller-retour de l’éditeur ; `individuDe` rend l’id d’un individu visé, `individusNommes` les individus qu’une donnée nomme à toute profondeur, que refuse une péripétie de route (`refuserLesIndividus`) et que `validateScene` juge dans une scène (l’individu ne se pose en donnée que par l’`arg` d’un Trait de statbloc de scène) ; `estCibleType` dit si un type de psychologie porte une Cible, `varianteAdmise` si une variante (`varianteDe` d’une Cible) est de celles que déclare `psychology.json` (`cibles`) ; `cibleDeRef` est la seule couture de la référence d’op (`RefDeCible` : `{ id }` d’un Groupe, seule forme de la donnée, ou `{ personnage }`, l’individu d’une op que pose le moteur) vers la Cible, `refDeCible` sa réciproque",
+    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, ou un individu par son id de combattant (`@id`), chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (`groupe` au motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes ; `individu` sur un id non vide sans `@`), lue par le seul `selonCible`, lue d’une chaîne de donnée (spécialisation, Cible persistée) par `ciblePsyLue`, de l’`arg` d’un Trait posé par le seul `cibleDeLArg` (source `ciblesPsy`), comparée par `identiteDeCiblage` (type et Cible), affichée par `libelleDeCible` (l’individu par le `NomDIndividu` de l’appelant, dans l’UI `useNomDIndividu`) et, avec son type, par `libelleDePsy` (« Haine (Nains) ») ; un Trait posé s’affiche par `traitLisible` (`engine/traits/dispatch.ts`), `formatTrait` restant la forme d’aller-retour de l’éditeur ; `individuDe` rend l’id d’un individu visé, `individusNommes` les individus qu’une donnée nomme à toute profondeur, que refuse une péripétie de route (`refuserLesIndividus`) et que `validateScene` juge dans une scène (l’individu ne se pose en donnée que par l’`arg` d’un Trait de statbloc de scène) ; `estCibleType` dit si un type de psychologie porte une Cible, `varianteAdmise` si une variante (`varianteDe` d’une Cible) est de celles que déclare `psychology.json` (`cibles`) ; `cibleDeRef` est la seule couture de la référence d’op (`RefDeCible` : `{ id }` d’un Groupe, seule forme de la donnée, ou `{ personnage }`, l’individu d’une op que pose le moteur) vers la Cible, `refDeCible` sa réciproque",
     "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
     "verrou": "src/engine/psych/ciblage.test.ts, src/noyau/psych-individu.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
@@ -2108,11 +2108,11 @@
   {
     "id": "traitPsyAccorde",
     "type": "primitives.manifest",
-    "label": "grantPsychTrait/memeTraitPsy/dropExpiredGrantedPsych",
+    "label": "grantPsychTrait/memeTraitPsy/dropExpiredGrantedPsych/desactiverLAfflictionSansTrait",
     "fichier": "src/engine/grantedTraits.ts",
-    "concept": "Trait psy accordé (#1463) : `grantPsychTrait` le pose et rend l’instance posée, `memeTraitPsy` la retrouve (identité de ciblage et provenance), `dropExpiredGrantedPsych` le retire à l’expiration de son effet porteur (`ActiveEffect.grantedPsychTrait`), suspendu compris, avec l’affliction de même identité",
-    "perimetre": "op `grantPsychTrait` à durée et `removePsychTrait` (`engine/ops.ts`), `attachMutation`, retrait d’effets actifs (`removeActiveEffects` : Rounds, horloge, dissipation)",
-    "verrou": "src/engine/psych-horloge.test.ts, src/noyau/colerique.hors-store.test.ts"
+    "concept": "Trait psy accordé (#1463) : `grantPsychTrait` le pose et rend l’instance posée, `memeTraitPsy` la retrouve (identité de ciblage et provenance), `dropExpiredGrantedPsych` le retire à l’expiration de son effet porteur (`ActiveEffect.grantedPsychTrait`), suspendu compris, avec l’affliction de même identité (`desactiverLAfflictionSansTrait`, partagée avec le Trait acquis qui en remplace un autre)",
+    "perimetre": "op `grantPsychTrait` à durée et `removePsychTrait` (`engine/ops.ts`), `attachMutation`, retrait d’effets actifs (`removeActiveEffects` : Rounds, horloge, dissipation), Trait acquis (`poserLeTraitAcquis`, `noyau/cibleAcquise.ts`)",
+    "verrou": "src/engine/psych-horloge.test.ts, src/noyau/colerique.hors-store.test.ts, src/noyau/psych-acquisition.hors-store.test.ts"
   },
   {
     "id": "personneChoisie",
@@ -2122,5 +2122,32 @@
     "concept": "la personne choisie d’un Trait psy accordé `envers: 'personneChoisie'` (VDM 10 l.327) : les personnes désignables (combattants en action, ou groupe et personnages de la scène hors combat), l’amitié (même camp), la désignation d’un décideur non surfacé (allié le plus proche de la cible), et le Flow qui pose le Trait derrière son Test de résistance ; l’étape `personneChoisie` du walker d’acteur (`combat/triggeredTest.ts`) les compose — lectures révisables #3045",
     "perimetre": "Sorts dont un `grantPsychTrait` vise une personne que le lanceur désigne (Colérique), en combat comme hors combat",
     "verrou": "src/noyau/colerique.hors-store.test.ts"
+  },
+  {
+    "id": "ordreDesGroupes",
+    "type": "primitives.manifest",
+    "label": "selonLOrdreDesGroupes",
+    "fichier": "src/engine/groups.ts",
+    "concept": "des ids de Groupe, ceux que connaît `groups.json`, dans son ordre : un id inconnu ou en double se retire",
+    "perimetre": "Cibles d’un Trait psy acquis (`ciblesDAnimositeAcquise`, `ciblesDePhobieDuNoir`)",
+    "verrou": "src/engine/groups.test.ts"
+  },
+  {
+    "id": "ciblesAcquises",
+    "type": "primitives.manifest",
+    "label": "CiblesAcquises/ciblesDAnimositeAcquise/ciblesDePhobieDuNoir/traitAcquis/traitsPsyPossedes/TypeAcquis",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psych-acquisition-optional`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) et de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
+    "perimetre": "Animosité sur un Destin dépensé, Phobie du noir sur une Terreur ratée",
+    "verrou": "src/engine/animosite-acquise.test.ts, src/engine/phobie-du-noir.test.ts"
+  },
+  {
+    "id": "cibleAcquise",
+    "type": "primitives.manifest",
+    "label": "acquerirLeTrait/poserLeTraitAcquis/subirLaTerreur",
+    "fichier": "src/noyau/cibleAcquise.ts",
+    "concept": "la Cible d’un Trait psy acquis envers une Cible, retenue par le porteur surfacé à l’étape `cibleAcquise` (`combat/triggeredTest.ts`) quand plusieurs s’offrent, sinon la Cible par défaut posée d’office (`acquerirLeTrait`) ; seul poseur d’un Trait acquis envers une Cible et de sa ligne de journal (`poserLeTraitAcquis`, par `grantPsychTrait`) ; seul point d’écriture d’une Terreur subie, par un combattant qui suit les règles de Personnage (`subirLaTerreur`, `followsCharacterRules`)",
+    "perimetre": "Animosité sur un Destin dépensé (`combatSlice.ts`), Phobie du noir sur une Terreur ratée (`combatFlow.ts`, `combat/turnHooks.ts`, `encounterPsychFlow.ts`, sa cause parmi les sources de la scène)",
+    "verrou": "src/noyau/psych-acquisition.hors-store.test.ts"
   }
 ]

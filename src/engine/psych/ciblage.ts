@@ -7,7 +7,6 @@ import { dataLabel, findGroupById, findPsychologyById, findTraitById, groupLabel
 import type { VarianteDeCible } from '../../data/schemas/grammaire/valeurs';
 import { t } from '../../i18n';
 import type { NonAffichable, PlayerText } from '../../i18n/playerText';
-import { groupesDe, type PorteurDeGroupes } from '../groups';
 
 declare const CIBLE_PSY: unique symbol;
 
@@ -56,12 +55,6 @@ export const ciblePsy = {
 export function selonCible<R>(cible: CiblePsy, lecteurs: { groupe: (id: string) => R; individu: (id: string) => R }): R {
   const { variante, id } = formeDe(cible);
   return lecteurs[variante](id);
-}
-
-/** La Cible que désigne un porteur : son 1er Groupe (`groupesDe`), `undefined` s'il n'en porte aucun. */
-export function cibleDuPorteur(p: PorteurDeGroupes): CiblePsy | undefined {
-  const [groupe] = groupesDe(p);
-  return groupe === undefined ? undefined : ciblePsy.groupe(groupe);
 }
 
 /** La Cible qu'écrit une chaîne de donnée (`arg` d'un Trait, spécialisation, Cible persistée) : `@id` donne

@@ -1,6 +1,5 @@
 import type { Combatant } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
-import type { CiblePsy } from '../engine/psych/ciblage';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from './actionRegistry';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -547,9 +546,9 @@ export interface EtatDeJeu {
   preemptAiming: string | null;
   /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
   pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
-    /** Cible (id de Groupe de l'adversaire, `groupesDe`) de l'Animosité acquise si le héros dépense le Destin
-     *  (ADE II (VO) 09 l.14). */
-    foeCible?: CiblePsy } | null;
+    /** L'auteur du coup direct, dont se lisent les Cibles de l'Animosité acquise si le héros dépense le Destin
+     *  (`ciblesDAnimositeAcquise`, ADE II 09 l.15). */
+    foeId?: string } | null;
   /** Récompenses de victoire capturées (écran de fin de combat) ; null hors victoire. */
   pendingVictory: PendingVictory | null;
   /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —

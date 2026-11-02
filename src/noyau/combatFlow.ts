@@ -222,9 +222,9 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
-import type { PorteurDeGroupes } from '../engine/groups';
-import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { subirLaTerreur } from './cibleAcquise';
+import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -1646,14 +1646,13 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
 
 /** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
  *  (LDB 17 l.29) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
- *  `foe` : l'auteur du coup direct, d'où se dérive la Cible d'une Animosité si le Destin est dépensé
- *  (son 1er Groupe, `groupesDe`, ADE II (VO) 09 l.14) ; absent pour la mort lente. */
-export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: PorteurDeGroupes): void {
+ *  `foe` : l'auteur du coup direct, d'où se lisent les Cibles d'une Animosité si le Destin est dépensé
+ *  (`ciblesDAnimositeAcquise`, ADE II 09 l.15) ; absent pour la mort lente. */
+export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: Combatant): void {
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? cibleDuPorteur(foe) : undefined;
-    set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
+    set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foe ? { foeId: foe.id } : {}) } });
   } else {
     hero.dead = true;
   }
@@ -7964,7 +7963,7 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
  * l'Indice (vainc à ≥ Indice). SOURCE UNIQUE de la résolution par héros — l'applier de bande l'appelle
  * pour CHACUNE de ses rangées.
  */
-function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
+function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
   const battle = get().battle;
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE — la Peur/Terreur/Trait est IGNORÉE ce Round,
   // PAS vaincue. On NE cumule PAS le DR, on NE pose PAS de Brisé, on N'active PAS le trait ciblé : le
@@ -7988,17 +7987,7 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
     const brise = r.success ? 0 : failConditionAmount(res.failAmount, cp.indice, r.sl);
     line = r.success ? tr('out.terreurHold', { name: hero.label }) : tr('cf.terreurThenFear', { name: hero.label, foe: cp.sourceName, brise, indice: cp.indice });
-    // Phobie du noir (ADE II 09 l.9, LDB 21 l.87) : Cible = Groupe de la source de la Terreur.
-    if (brise > 0 && res.failCondition === COND.brise) {
-      hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
-      const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? cibleDuPorteur(foe) : undefined);
-      if (gained) {
-        hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
-        hero.briseFromTerreur = 0;
-        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: libelleDeCible(gained.phobie.cible) });
-      }
-    }
+    phobieLine = subirLaTerreur(get, set, hero, { etat: res.failCondition, nombre: brise }, inBattleId(battle, cp.sourceId));
   } else if (cible) {
     // Trait ciblé : échec → affliction active ; succès → marqueur inerte (pas de re-déclenchement).
     const psych = psychologyLabel(cp.kind);
@@ -8686,7 +8675,7 @@ export const TABLES = {
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
         if (!hero || !part.result) { part.outcome = []; continue; }
-        const lines = resultLines(resolveCombatPsychRow(get, hero, cp, psychRowMeta(part), part.result, !!part.immune));
+        const lines = resultLines(resolveCombatPsychRow(get, set, hero, cp, psychRowMeta(part), part.result, !!part.immune));
         part.outcome = lines;
         for (const l of lines) get().log(l.text);
       }

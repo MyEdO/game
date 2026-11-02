@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf, racesDe } from './groups';
+import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf, racesDe, selonLOrdreDesGroupes } from './groups';
 import { targetedTrigger } from './psychology';
 import type { Combatant } from './types';
 import { creatures, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
@@ -203,5 +203,13 @@ describe('racesDe : les Groupes marqués Race (ADE II 09 l.15 ; #3045)', () => {
 
   it('les Groupes que nomme race un livre sont marqués : LDB 84 l.63, LDB 83 l.11', () => {
     expect(racesDe(['skaven', 'homme-bete'])).toEqual(['skaven', 'homme-bete']);
+  });
+});
+
+describe('selonLOrdreDesGroupes — l’ordre de `groups.json`', () => {
+  it('range les ids connus dans l’ordre de la donnée, retire les inconnus et les doublons', () => {
+    expect(selonLOrdreDesGroupes(['skaven', 'groupe-perime', 'humain', 'skaven'])).toEqual(['humain', 'skaven']);
+    const ordre = groups.map((g) => g.id);
+    expect(ordre.indexOf('humain')).toBeLessThan(ordre.indexOf('skaven'));
   });
 });

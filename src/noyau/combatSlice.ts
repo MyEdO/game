@@ -60,7 +60,7 @@ import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurat
 import { resolveOpposed, extendedTestStep, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
+import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
 import { weaponLoaded, reloadProgressOf, aRecharger } from '../engine/weaponLoad';
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
@@ -91,7 +91,7 @@ import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
-import { identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
+import { acquerirLeTrait } from './cibleAcquise';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
@@ -153,15 +153,15 @@ function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatan
   return true;
 }
 
-/** Animosité & Haine sur Destin dépensé (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : pose le Trait que décide `animositeOrHaine` sur la Cible
- *  `foeCible` (id de Groupe de l'adversaire) et rend la ligne de journal ; `null` sans Trait. */
-function acquireAnimositeOnFate(hero: Combatant, foeCible: CiblePsy | undefined): string | null {
-  const res = animositeOrHaine(hero, foeCible, battleRng());
-  if (!res?.trait) return null;
-  const animosite = identiteDeCiblage('animosite', res.trait.cible);
-  if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => identiteDeCiblage(p.type, p.cible) !== animosite);
-  hero.psychTraits = [...(hero.psychTraits ?? []), res.trait];
-  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, groupe: libelleDeCible(res.trait.cible) });
+/** Animosité & Haine sur Destin dépensé (ADE II 09 l.15) : sur un Test de Calme raté (`calmeDeLAnimositeAcquise`), le
+ *  Trait envers l'une des Cibles qu'offre le tueur `foeId` (`ciblesDAnimositeAcquise`, `acquerirLeTrait`) ; rend
+ *  sa ligne de journal, `null` sans Trait posé d'office. */
+function acquireAnimositeOnFate(get: Get, set: Set, hero: Combatant, foeId: string | undefined): string | null {
+  const tueur = foeId === undefined ? undefined : inBattleId(get().battle, foeId);
+  if (!tueur) return null;
+  const calme = calmeDeLAnimositeAcquise(hero, battleRng());
+  if (!calme || calme.success) return null;
+  return acquerirLeTrait(get, set, hero, 'animosite', ciblesDAnimositeAcquise(hero, tueur));
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
@@ -1806,7 +1806,7 @@ export function createCombatSlice(get: Get, set: Set) {
       hero.fate = (hero.fate ?? 0) - 1;
       if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
       hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
-      const anim = acquireAnimositeOnFate(hero, p.foeCible); // ADE II Annexe I (règle facultative)
+      const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
       set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
       resumeEnemyTurn(get, set);
     },
@@ -1821,7 +1821,7 @@ export function createCombatSlice(get: Get, set: Set) {
       hero.outOfRencontre = true; // survit mais éjecté de la rencontre (vivant)
       hero.exitReason = 'destin'; // #237 : lu « hors-combat » (endState)
       if (!hero.conditions.some((c) => c.id === COND.inconscient)) addCondition(hero, COND.inconscient);
-      const anim = acquireAnimositeOnFate(hero, p.foeCible); // ADE II Annexe I (règle facultative)
+      const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
       set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateFlee', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
       if (source === 'slow') resolveRoundBoundary(get, set);
       else resumeEnemyTurn(get, set);

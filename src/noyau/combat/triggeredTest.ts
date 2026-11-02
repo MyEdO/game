@@ -26,7 +26,7 @@ import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skill
 import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/types';
-import { derivedStake, testSkillLabel } from '../../data';
+import { dataLabel, derivedStake, testSkillLabel } from '../../data';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { type EffectOp, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../../engine/flowCore';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './flowEval';
@@ -44,9 +44,10 @@ import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../trigger
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId } from '../monde/combatants';
 import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
+import { poserLeTraitAcquis } from '../cibleAcquise';
+import { ciblePsyLue } from '../../engine/psych/ciblage';
 import { touchActors } from '../combatOrParty';
 import { campSpend, spendableAdvantage } from './advantagePool';
-import { dataLabel } from '../../data';
 import { t } from '../../i18n';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { accorderLAttaqueGratuite, applyFocusInterruption, applyBladeTrap } from '../combatFlow';
@@ -846,7 +847,7 @@ export function handleConditionGained(get: Get, set: SetFn, c: Combatant, name: 
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['triggeredBatchTest', 'triggeredTest', 'triggeredChoice', 'personneChoisie'] as const;
+export const GENRES_D_ETAPE = ['triggeredBatchTest', 'triggeredTest', 'triggeredChoice', 'personneChoisie', 'cibleAcquise'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -967,6 +968,22 @@ export const TABLES = {
       queueLines(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
       runCombatFlow(ctx, { kind: 'seq', steps: [fluxDEnvers(feuille.effect, personne, !!personne && sontAmis(cible, personne)), step.meta?.after ?? EMPTY_FLOW] });
       return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.text)) };
+    },
+    /**
+     * Étape `cibleAcquise` (ADE II 09 l.9, l.15 ; #3045) : le porteur a choisi (`chosen`), parmi les options de
+     * l'étape, la Cible du Trait qu'il acquiert (`meta.psychAcquis`), posé par `poserLeTraitAcquis`. Un porteur
+     * qui n'est plus en jeu refuse la conséquence ; une Cible hors des options laisse le Trait sans effet, et le
+     * journal le dit.
+     */
+    cibleAcquise: (get, set, step, hero) => {
+      const type = step.meta?.psychAcquis;
+      if (!type) return;
+      if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const choisie = step.options?.find((o) => o.key === step.chosen)?.key;
+      const cible = choisie === undefined ? undefined : ciblePsyLue(choisie);
+      const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: hero.label });
+      set(touchActors(get()));
+      return { consequences: freeCons([ligne]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

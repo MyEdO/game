@@ -4,7 +4,7 @@
  * exemples du livre l'utilisent). P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
-import { Combatant, type Difficulty, type EffectSource } from './types';
+import { Combatant, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG } from './dice';
@@ -16,11 +16,11 @@ import { findGroupById, findPsychologyById, psychologyLabel, refLabel, talents }
 import type { Relatif } from '../data/schemas/defs/groups';
 import { isEngagedWith } from './engagement';
 import type { PlayerText } from '../i18n/playerText';
-import { ciblePsyLue, estCibleType, identiteDeCiblage, selonCible, varianteDe, type CiblePsy } from './psych/ciblage';
+import { ciblePsy, ciblePsyLue, estCibleType, identiteDeCiblage, selonCible, varianteDe, type CiblePsy } from './psych/ciblage';
 import { opPsy } from './psych/opsPsy';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction, removeActiveEffects } from './conditions';
-import { groupMatch, groupesDe, groupesPercus, racesDe } from './groups';
+import { groupMatch, groupesDe, groupesPercus, racesDe, selonLOrdreDesGroupes, type PorteurDeGroupes } from './groups';
 import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
@@ -556,7 +556,7 @@ function peurHeriteeSurmontee(r: { success: boolean; sansPeur?: boolean }): bool
  *  son porteur sujet au Trait tant que la maladie dure et le perd à la guérison, SANS attache/détache (re-
  *  dérivé à chaque lecture, comme les pénalités continues `diseasePassiveOps`). Lu par les déclencheurs
  *  (`targetedTrigger`) et la pénalité sociale (`skills.containedSocialPenalty`). Les manipulations qui
- *  ÉCRIVENT la donnée persistée (acquisition `animositeOrHaine`, suppression « Baume », sérialisation)
+ *  ÉCRIVENT la donnée persistée (acquisition `poserLeTraitAcquis`, suppression « Baume », sérialisation)
  *  restent sur `c.psychTraits` brut — un Trait transitoire de maladie ne s'acquiert ni ne se suspend.
  *
  *  « Vous êtes mon meilleur ami ! » (Ivresse 3-4, LDB 09 l.480) : « Ignorez tous vos Préjugés et
@@ -719,35 +719,69 @@ export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
 // fonctions PURES qui DÉCIDENT du Trait à poser ; sa pose et son déclenchement vivent dans `noyau/`.
 // ---------------------------------------------------------------------------
 
-/** Phobie du noir (ADE II 09 l.9, LDB 21 l.85-87) : la Phobie à POSER (+ `resetCounter`), `null` sous le seuil, règle
- *  éteinte ou `cause` absente. `cause` : id de Groupe de la source de la Terreur. PUR ; compteur et
- *  pose à l'appelant. */
-export function gainPhobieIfThreshold(
-  c: Combatant,
-  cumulativeBriseFromTerreur: number,
-  cause: CiblePsy | undefined,
-): { phobie: PsychTrait & { cible: CiblePsy }; resetCounter: true } | null {
-  if (!cause || !rule('psych-acquisition-optional')) return null;
-  if (cumulativeBriseFromTerreur < bonus(effectiveChar(c, 'force-mentale'))) return null;
-  return { phobie: { type: 'phobie', cible: cause, indice: 1 }, resetCounter: true };
+/** Les Cibles qu'offre l'acquisition d'un Trait psy : `candidats` au choix du joueur, `parDefaut` celle que
+ *  prend un décideur non surfacé (l'un des candidats). */
+export interface CiblesAcquises {
+  readonly candidats: readonly CiblePsy[];
+  readonly parDefaut: CiblePsy;
 }
 
-/** Animosité & Haine (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : Test de Calme Intermédiaire (+0) seedé, et le Trait à poser sur un
- *  échec (`haine` REMPLACE l'Animosité de même Cible, `replacesAnimosite`). `cible` : id de Groupe
- *  de l'adversaire ; `null` si la règle est éteinte ou `cible` absente. PUR. */
-export function animositeOrHaine(
-  c: Combatant,
-  cible: CiblePsy | undefined,
-  rng: RNG,
-): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait & { cible: CiblePsy }; replacesAnimosite?: boolean } | null {
-  if (!cible || !rule('psych-acquisition-optional')) return null;
-  const test = resolveCalmeSimple(calmeValue(c), rng); // Calme Intermédiaire (+0)
-  if (test.success) return { test };
+/** Les Cibles des Groupes `ids` dans l'ordre de `groups.json`, `parDefaut` par défaut. */
+const ciblesOrdonnees = (ids: readonly string[], parDefaut: string): CiblesAcquises =>
+  ({ candidats: selonLOrdreDesGroupes(ids).map((id) => ciblePsy.groupe(id)), parDefaut: ciblePsy.groupe(parDefaut) });
+
+/** Les Cibles des Groupes `ids` dans l'ordre de `groups.json`, la première par défaut ; `undefined` sans Groupe. */
+function ciblesDeGroupes(ids: readonly string[]): CiblesAcquises | undefined {
+  const [premier] = selonLOrdreDesGroupes(ids);
+  return premier === undefined ? undefined : ciblesOrdonnees(ids, premier);
+}
+
+/** L'individu `id`, seule Cible offerte. */
+const seulIndividu = (id: string): CiblesAcquises => ({ candidats: [ciblePsy.individu(id)], parDefaut: ciblePsy.individu(id) });
+
+/** Les Cibles de l'Animosité que `porteur` acquiert envers `tueur`, lues sur les Races (`racesDe`) de
+ *  l'appartenance du porteur et de la vue perçue du tueur (`groupesPercus`), dans l'ordre de `groups.json`. PUR.
+ *  ADE II 09 l.15 ; Q16 A, #3045 */
+export function ciblesDAnimositeAcquise(porteur: PorteurDeGroupes, tueur: PorteurDeGroupes & { readonly id: string }): CiblesAcquises {
+  const percus = selonLOrdreDesGroupes(groupesPercus(tueur));
+  const races = racesDe(percus);
+  if (!races.length) return ciblesDeGroupes(percus) ?? seulIndividu(tueur.id);
+  const sousGroupes = percus.filter((g) => !races.includes(g));
+  if (races.some((r) => racesDe(groupesDe(porteur)).includes(r))) return ciblesDeGroupes(sousGroupes) ?? seulIndividu(tueur.id);
+  return ciblesOrdonnees(percus, races[0]);
+}
+
+/** Les Cibles de la Phobie du noir au cumul des `terreurs` subies, lues sur les Groupes perçus de leurs causes
+ *  que connaît `groups.json` ; `undefined` sans Phobie. PUR. ADE II 09 l.9 ; #3045 */
+export function ciblesDePhobieDuNoir(c: Combatant, terreurs: readonly TerreurSubie[]): CiblesAcquises | undefined {
+  if (terreurs.reduce((n, s) => n + s.brise, 0) < bonus(effectiveChar(c, 'force-mentale'))) return undefined;
+  const frequence = new Map<string, number>();
+  for (const s of terreurs) for (const g of selonLOrdreDesGroupes(s.groupes)) frequence.set(g, (frequence.get(g) ?? 0) + 1);
+  const max = Math.max(0, ...frequence.values());
+  const recente = selonLOrdreDesGroupes(terreurs[terreurs.length - 1]?.groupes ?? []);
+  const frequentes = [...frequence].filter(([, n]) => n === max).map(([g]) => g);
+  return recente[0] === undefined ? ciblesDeGroupes(frequentes) : ciblesOrdonnees([...recente, ...frequentes], recente[0]);
+}
+
+/** Le Test de Calme seedé de l'Animosité acquise, `null` règle éteinte. PUR. ADE II 09 l.15 */
+export function calmeDeLAnimositeAcquise(c: Combatant, rng: RNG): { success: boolean; roll: number; sl: number; target: number } | null {
+  return rule('psych-acquisition-optional') ? resolveCalmeSimple(calmeValue(c), rng) : null;
+}
+
+/** Les Traits psy qu'une acquisition pose. ADE II 09 l.9, l.15 */
+export type TypeAcquis = 'animosite' | 'phobie';
+
+/** Les Traits psy que `c` possède : ceux de sa fiche et ceux que suspend un effet actif (`suppressedPsych`). */
+export const traitsPsyPossedes = (c: Pick<Combatant, 'psychTraits' | 'activeEffects'>): PsychTrait[] =>
+  [...(c.psychTraits ?? []), ...(c.activeEffects ?? []).flatMap((e) => e.suppressedPsych ?? [])];
+
+/** Le type du Trait que `c` acquiert envers `cible`, et les Traits possédés (`traitsPsyPossedes`) qu'il
+ *  `remplace`. PUR. ADE II 09 l.15 */
+export function traitAcquis(c: Pick<Combatant, 'psychTraits' | 'activeEffects'>, type: TypeAcquis, cible: CiblePsy): { type: PsychType; remplace: readonly PsychTrait[] } {
+  if (type === 'phobie') return { type, remplace: [] };
   const animosite = identiteDeCiblage('animosite', cible);
-  const hasAnimosite = (c.psychTraits ?? []).some((p) => identiteDeCiblage(p.type, p.cible) === animosite);
-  return hasAnimosite
-    ? { test, trait: { type: 'haine', cible }, replacesAnimosite: true }
-    : { test, trait: { type: 'animosite', cible }, replacesAnimosite: false };
+  const possedees = traitsPsyPossedes(c).filter((p) => identiteDeCiblage(p.type, p.cible) === animosite);
+  return possedees.length ? { type: 'haine', remplace: possedees } : { type, remplace: [] };
 }
 
 /** Un porteur PERSISTÉ, tel qu'il arrive du stockage : ses Traits psy, ceux que suspendent ses effets, ses
@@ -792,10 +826,8 @@ export function sansCiblesPsyInconnues<P extends PorteurDeCiblesPsy>(p: P): P {
   };
 }
 
-/** Trauma (ADE II Annexe I) : « Si un Personnage est témoin d'un événement qui rend l'une de ses Ambitions
- *  complètement irréalisable, il doit effectuer un Test de Calme Accessible (+20). En cas d'échec, il
- *  développe un Trauma Psychologique. » PUR / seedé : lance le Test de Calme Accessible et renvoie sa
- *  résolution + le Trait `trauma` à poser sur un échec. Réussite (ou règle éteinte) → aucun Trait. */
+/** Le Test de Calme seedé d'une Ambition rendue irréalisable et le Trait `trauma` que pose son échec ; `null`
+ *  règle éteinte. PUR. ADE II 09 l.21 */
 export function traumaOnImpossibleAmbition(
   c: Combatant,
   rng: RNG,

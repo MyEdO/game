@@ -10,7 +10,7 @@
  */
 import { norm } from '../lib/normalize';
 import type { TraitInstance } from './statEntry';
-import { findCareerById, findClassById, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, type CreatureData } from '../data';
+import { findCareerById, findClassById, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, groups, type CreatureData } from '../data';
 
 /** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.56, l.181. */
 const GROUPE_DES_MUTANTS = 'mutants';
@@ -87,6 +87,9 @@ export function hiddenGroupsOf(c: Pick<PorteurDeGroupes, 'traits'>): string[] {
   }
   return out;
 }
+
+/** Les ids de `ids` que connaît `groups.json`, dans son ordre ; un id inconnu se retire. */
+export const selonLOrdreDesGroupes = (ids: readonly string[]): string[] => groups.map((g) => g.id).filter((id) => ids.includes(id));
 
 /** Les Races (`GroupData.race`) parmi `groupIds`, dans leur ordre. ADE II 09 l.15 ; #3045 */
 export function racesDe(groupIds: readonly string[]): string[] {

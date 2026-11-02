@@ -6,6 +6,11 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { setRule, resetRule } from '../engine/policy';
+import { ciblePsy } from '../engine/psych/ciblage';
+import { groupesPercus } from '../engine/groups';
+import { groupLabel } from '../data';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -49,6 +54,60 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.conditions.some((c) => c.id === 'brise')).toBe(true);
     expect((e.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === H.id)).toBe(true);
+  });
+
+  /** L'ennemi (FM 10) face au héros Énorme (Terreur 2), règle allumée : rate son Calme et devient Brisé. */
+  const ennemiTerrifie = (regles: boolean | undefined) => {
+    banc.getState().seedRng(2);
+    const { H, E } = setup();
+    H.size = 'enorme';
+    E.characteristics['force-mentale'] = 10;
+    E.followsCharacterRules = regles;
+    setRule('psych-acquisition-optional', true);
+    try {
+      resolvePsychAI(banc.getState, banc.setState, E);
+    } finally {
+      resetRule('psych-acquisition-optional');
+    }
+    const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
+    expect(e.conditions.find((c) => c.id === 'brise')!.value, 'au-delà du Bonus de FM 1').toBeGreaterThan(1);
+    return { e, H };
+  };
+
+  it('un ennemi qui ne suit pas les règles de Personnage ne mémorise pas sa Terreur (ADE II 09 l.9)', () => {
+    const { e } = ennemiTerrifie(undefined);
+    expect(e.terreursSubies).toBeUndefined();
+    expect((e.psychTraits ?? []).filter((p) => p.type === 'phobie')).toEqual([]);
+  });
+
+  it('un ennemi qui suit les règles de Personnage (`followsCharacterRules`) la mémorise (ADE II 09 l.9)', () => {
+    const { e, H } = ennemiTerrifie(true);
+    const phobies = (e.psychTraits ?? []).filter((p) => p.type === 'phobie');
+    expect(phobies).toHaveLength(1);
+    expect(groupesPercus(H).map((g) => ciblePsy.groupe(g))).toContain(phobies[0].cible);
+    expect(e.terreursSubies).toEqual([]);
+  });
+
+  it('un héros sous contrôle de l’IA est un Personnage : sa Terreur subie se mémorise (ADE II 09 l.9)', () => {
+    banc.getState().seedRng(2);
+    const { H, E } = setup();
+    E.size = 'enorme';
+    H.aiControlled = true;
+    H.characteristics['force-mentale'] = 10;
+    H.terreursSubies = [];
+    setRule('psych-acquisition-optional', true);
+    try {
+      resolvePsychAI(banc.getState, banc.setState, H);
+    } finally {
+      resetRule('psych-acquisition-optional');
+    }
+    const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    const brise = h.conditions.find((c) => c.id === 'brise')?.value ?? 0;
+    expect(brise).toBeGreaterThan(0);
+    expect(E.groups).toEqual(['cultiste']);
+    expect(h.psychTraits, 'au-delà du Bonus de FM 1 : la Phobie de sa cause').toEqual([{ type: 'phobie', cible: ciblePsy.groupe('cultiste') }]);
+    expect(h.terreursSubies).toEqual([]);
+    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.phobieGain', { name: h.label, groupe: groupLabel('cultiste') }));
   });
 
   it('un ennemi Immunité (Psychologie) n’est pas affecté', () => {
