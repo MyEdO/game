@@ -3,7 +3,7 @@
  * Couvre les drogues (LDB 71), herbes/potions (LDB 72) et herbes MSRC 2, au format FLOW :
  *  - flows purement `do` → aplatis (`flattenFlow`) et appliqués par `applyOps` (moteur pur) ;
  *  - flows à nœud `test`/`delayed` → assertions de STRUCTURE (le runtime cadence-aware est couvert
- *    par `state/consumable-flow.test.ts`).
+ *    par `noyau/consumable-flow.hors-store.test.ts`).
  */
 import { describe, it, expect } from 'vitest';
 import { Combatant } from './types';

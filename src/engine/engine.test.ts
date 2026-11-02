@@ -824,7 +824,7 @@ describe('Magie — compétences Avancées (gating)', () => {
       const out = resolveCounterspell(fort, castT, makeRNG(seed));
       expect(out.casterNetSL).toBe(castT.sl - out.counter.sl); // « le DR du Test opposé »
       // Aucune ÉGALITÉ de DR sur ces 12 graines (mesuré) : les deux branches sont strictes ici, et le
-      // départage à DR égal (LDB 12 l.160) se joue dans `magie-departage-nue.test.ts`.
+      // départage à DR égal (LDB 12 l.160) se joue dans `magie-departage-nue.hors-store.test.ts`.
       if (out.dispelled) {
         dispelCount++;
         expect(out.counter.sl, 'dissipation obtenue sans battre le DR du lanceur').toBeGreaterThan(castT.sl);

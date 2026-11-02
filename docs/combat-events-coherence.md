@@ -57,10 +57,16 @@ couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouv
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le
 même `sink`.
 
-**Attaques gratuites — kind-agnostique.** `resolveFreeAttacks` itère `freeAttackSourcesOf` (Talents +
-Traits + Atouts + États, chacun tagué `key`/`cap`) et ne joue que les Flows à `grantFreeAttack`
-(`flowHasFreeAttack`) — les autres effets de ces triggers passent par le dispatcher générique. Un
-**Trait/État** de créature qui riposte `onCharged`/`onHit` fonctionne comme un talent, sans chemin
+**Attaques gratuites — un seul émetteur, kind-agnostique.** Un Flow qui porte `grantFreeAttack`
+(`flowHasFreeAttack`) est SAUTÉ par le bus (`applyTriggeredEffects`) et joué ENTIER par
+`resolveFreeAttacks`, une fois par déclencheur (LDB 10 l.500). Celui-ci itère `freeAttackSourcesOf(actor,
+arme)` (les sources d'`effectSourcesOf`, arme de la touche comprise, chacune taguée `key`/`cap`) et lit la MÊME
+enveloppe d'effet que le bus (`ciblesDeLEffet` : `condition`/`attackType`/`coupCritique`/`optional`/hors
+de combat, cible `on`). Sites : `onCharged` → `subirLaCharge` (charge de l'IA, recette `charge`) — la Charge d'un héros manuel n'émet
+pas `onCharged` (dette `4e/combat#reperes-de-conversion-grille`, `src/data/raw.manifest.json`) ;
+`onHit` → la suite du coup PRINCIPAL (`gratuitesALaTouche`, héros et IA). Les effets de manœuvre et de
+Domaine (`applyTriggeredEffects` hors bus) ne portent aucun `grantFreeAttack` (`data-wellformed`, famille 6ter).
+Un **Trait/État** de créature qui riposte `onCharged`/`onHit` fonctionne comme un talent, sans chemin
 spécifique.
 
 **FAIT (#316) — le bus est l'UNIQUE porte.** Tous les sites de dispatch DIRECT de production ont migré
@@ -77,9 +83,9 @@ restent des hooks ordonnés (interleave par `order`, y compris le cross-phase `o
   affordance morte.
 
 Triggers CÂBLÉS par #316 (jadis orphelins) : `onAttackResolved` (fin de résolution d'attaque),
-`onCastResolved` (post-`runCastFlow`/`applyCast`), `onMiscast` (`applyMiscast`), `onCharged` (site de
-charge — les effets NON-attaque-gratuite ; les Flows `grantFreeAttack` restent inertes via la voie pure →
-pas de double frappe, la Frappe réactive part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
+`onCastResolved` (post-`runCastFlow`/`applyCast`), `onMiscast` (`applyMiscast`), `onCharged`
+(`subirLaCharge` — les Flows `grantFreeAttack` sont sautés par le bus, la Frappe réactive part de
+`resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
 (LDB 14 l.7) / dévié (`applyOpposedCritical`, `resolveDeviation` mode `self`) émet désormais `onCrit` via le
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
 Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Blessure critique non létale, avec

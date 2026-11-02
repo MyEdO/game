@@ -20,15 +20,31 @@ import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
-import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, mesurerEtirement } from './gardes/etirement.ts';
+import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement } from './gardes/etirement.ts';
+import { libellesDesMeshes } from './ecart.ts';
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
 import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, sousLesFormes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
+import { etenduesDesSegments, gardeSegments } from './gardes/segments.ts';
 import { BORNES, jouet } from '../../../../scripts/personnage-3d/base/gabarit.testkit.ts';
 import { preparerGabarit } from '../../../../scripts/personnage-3d/base/gabarit.ts';
 import { copierSommet, hauteurDesCandidats, peauxDesCandidats } from './candidatsDAppui.ts';
 import { grilleDesAppuis, selectionnerAppuis } from './selectionAppuis.ts';
+
+/** La scène three du jouet `c` (`gabarit.testkit.ts`), ses formes `formes` en shape keys relatives, et les appuis de son pied. */
+function sceneDuJouet(c: ReturnType<typeof jouet>, formes: readonly { readonly nom: string; readonly deltas: readonly Vector3[] }[]) {
+  const geometrie = new BufferGeometry();
+  geometrie.setAttribute('position', new Float32BufferAttribute(c.positions.flatMap((p) => p.toArray()), 3));
+  geometrie.setAttribute('skinIndex', new Uint16BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[0] ?? 0)), 4));
+  geometrie.setAttribute('skinWeight', new Float32BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[1] ?? 0)), 4));
+  geometrie.morphAttributes.position = formes.map((f) => Object.assign(new Float32BufferAttribute(f.deltas.flatMap((d) => d.toArray()), 3), { name: f.nom }));
+  geometrie.morphTargetsRelative = true;
+  const mesh = new SkinnedMesh(geometrie, new MeshBasicMaterial()), scene = new Group();
+  scene.add(c.squelette.bones[0], mesh); mesh.bind(c.squelette, new Matrix4());
+  const manifeste = { gabarit: c.table, appuis: { pieds: ['foot'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'foot', poids: 1 }], deltas: {} }], vitessesAuSol: {} } };
+  return { scene, mesh, manifeste };
+}
 
 describe('repos posé A·P (#3104)', () => {
   it.each(['repos', 'propre à chaque os'] as const)('reconstruit H5 par les clés cuites et les binds compensés, bind %s', (bind) => {
@@ -45,15 +61,8 @@ describe('repos posé A·P (#3104)', () => {
       const direct = h5.resoudre(facteurs, repos);
       const peau = c.squelette.bones.map((b, i) => b.matrixWorld.clone().multiply(c.squelette.boneInverses[i]));
       const avant = c.squelette.bones[0].matrixWorld.clone();
-      const geometrie = new BufferGeometry();
-      geometrie.setAttribute('position', new Float32BufferAttribute(c.positions.flatMap((p) => p.toArray()), 3));
-      geometrie.setAttribute('skinIndex', new Uint16BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[0] ?? 0)), 4));
-      geometrie.setAttribute('skinWeight', new Float32BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[1] ?? 0)), 4));
-      geometrie.morphAttributes.position = [...c.silhouettes, ...cles].map((f) => Object.assign(new Float32BufferAttribute(f.deltas.flatMap((d) => d.toArray()), 3), { name: f.nom }));
-      geometrie.morphTargetsRelative = true;
-      const mesh = new SkinnedMesh(geometrie, new MeshBasicMaterial()), scene = new Group();
-      scene.add(c.squelette.bones[0], mesh); mesh.bind(c.squelette, new Matrix4());
-      appliquerGabarit(scene, facteurs, { gabarit: c.table, appuis: { pieds: ['foot'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'foot', poids: 1 }], deltas: {} }], vitessesAuSol: {} } });
+      const { scene, mesh, manifeste } = sceneDuJouet(c, [...c.silhouettes, ...cles]);
+      appliquerGabarit(scene, facteurs, manifeste);
       poserFormes(scene, { ...poidsSil, ...poidsDuGabarit(facteurs, BORNES, poidsSil) });
       scene.updateMatrixWorld(true);
       const a = c.squelette.bones[0].matrixWorld.clone().multiply(avant.invert());
@@ -63,6 +72,44 @@ describe('repos posé A·P (#3104)', () => {
       }));
       expect(max, `repos posé A·P, bind ${bind}, état ${JSON.stringify(etat)}, écart max ${max} m`).toBeLessThanOrEqual(1e-6);
     }
+  });
+});
+
+describe('gardeSegments (#3097)', () => {
+  it('un segment dont l’os n’a pas d’os enfant suit S_b sur ses trois axes, comme les segments à enfant', () => {
+    const c = jouet();
+    expect(c.squelette.bones.find((b) => b.name === 'Head')?.children.some((n) => (n as Bone).isBone)).toBe(false);
+    const facteurs = { ...FACTEURS_NEUTRES, legs: 0.62, arms: 1.6, head: 1.9 };
+    const pose = poseDuGabarit({ gabarit: c.table }, facteurs);
+    const os = Object.keys(pose.echellesDesOs);
+    for (const nom of os) {
+      const b = c.squelette.bones.findIndex((o) => o.name === nom), monde = c.squelette.bones[b].matrixWorld;
+      for (const colonne of [0, 1, 2]) for (const d of [-0.03, 0.05]) {
+        c.positions.push(c.squelette.bones[b].getWorldPosition(new Vector3()).addScaledVector(new Vector3().setFromMatrixColumn(monde, colonne).normalize(), d));
+        c.poids.push([[b, 1]]);
+      }
+    }
+    const h5 = preparerGabarit(c);
+    const { scene, mesh, manifeste } = sceneDuJouet(c, sensCuitsDuGabarit(BORNES).map(({ cle, sens }) => h5.cuire(cle, sens)));
+    const sansGabarit = etenduesDesSegments(poseDeRepos(scene, [mesh]), [mesh], os);
+    poserFormes(scene, poidsDuGabarit(facteurs, BORNES, {}));
+    appliquerGabarit(scene, facteurs, manifeste);
+    const { mesures, ecarts } = gardeSegments(sansGabarit, etenduesDesSegments(poseDeRepos(scene, [mesh]), [mesh], os), pose);
+    expect(ecarts).toEqual([]);
+    expect(mesures.segments.map((s) => [s.os, s.attendu, s.rapport.map((r) => +(r ?? 0).toFixed(6))])).toEqual([
+      ['thigh', [1, 0.62, 1], [1, 0.62, 1]], ['calf', [1, 0.62, 1], [1, 0.62, 1]],
+      ['upperarm', [1, 1.6, 1], [1, 1.6, 1]], ['lowerarm', [1, 1.6, 1], [1, 1.6, 1]], ['Head', [1.9, 1.9, 1.9], [1.9, 1.9, 1.9]]]);
+  });
+
+  it('ROUGE : une tête étirée en Y seulement, un axe sans étendue mesurable', () => {
+    const { mesures, ecarts } = gardeSegments(
+      new Map([['tete', [0.2, 0.2, 0.2]], ['cuisse', [0.1, 0.4, 0]]] as const),
+      new Map([['tete', [0.2, 0.38, 0.2]], ['cuisse', [0.1, 0.2, 0]]] as const),
+      { echellesDesOs: { tete: [1.9, 1.9, 1.9], cuisse: [1, 0.5, 1] } });
+    expect(mesures.ecartALEchelle).toBeCloseTo(0.9 / 1.9, 9);
+    expect(ecarts.map((e) => [e.code, e.detail.split(' ')[0]])).toEqual([
+      ['segment-hors-echelle', 'tete.x'], ['segment-hors-echelle', 'tete.z'], ['segment-indetectable', 'aucune']]);
+    expect(ecarts[2].valeur).toBe('cuisse.z');
   });
 });
 
@@ -102,10 +149,13 @@ const clip = (nom: string, piste: string, de: number[], a: number[]) => new Anim
 
 const OS_DU_CYLINDRE = new Set(['racine', 'haut']);
 
+/** Un libellé de test, distinct du nom three du mesh. */
+const libelle = (m: Mesh): string => `«${m.name}»`;
+
 describe('gardePoids', () => {
   it('VERT : poids à 4 influences, somme à 1, os de la base, jumeaux de couture identiques', () => {
     const { mesh } = cylindre();
-    expect(gardePoids({ meshes: [mesh], osDeLaBase: OS_DU_CYLINDRE, influencesEtendues: new Map() })).toEqual([]);
+    expect(gardePoids({ meshes: [mesh], osDeLaBase: OS_DU_CYLINDRE, libelle })).toEqual([]);
   });
 
   it('ROUGE : somme ≠ 1, somme nulle, os hors de la base, jumeaux divergents', () => {
@@ -117,21 +167,21 @@ describe('gardePoids', () => {
     poids.setXYZW(jumeau ?? 0, 0.5, 0.5, 0, 0);
     poids.setXYZW(1, 0.3, 0.3, 0, 0);
     poids.setXYZW(2, 0, 0, 0, 0);
-    const codes = gardePoids({ meshes: [mesh], osDeLaBase: new Set(['racine']), influencesEtendues: new Map() }).map((e) => e.code);
-    expect(codes.sort()).toEqual(['jumeaux-divergents', 'os-hors-base', 'somme', 'somme-nulle']);
+    const ecarts = gardePoids({ meshes: [mesh], osDeLaBase: new Set(['racine']), libelle });
+    expect(ecarts.map((e) => e.code).sort()).toEqual(['jumeaux-divergents', 'os-hors-base', 'somme', 'somme-nulle']);
+    expect(new Set(ecarts.map((e) => e.mesh))).toEqual(new Set(['«Corps»']));
   });
 
-  it('ROUGE : un jeu JOINTS_1 du binaire est au-delà de 4 influences', async () => {
-    const octets = glbFabrique({ jeuEtendu: true });
-    const { skinnes } = await chargerScene(octets);
-    const ecarts = gardePoids({ meshes: skinnes, osDeLaBase: new Set(['racine']), influencesEtendues: lireGlb(octets).influencesEtendues });
-    expect(ecarts.map((e) => [e.code, e.mesh, e.seuil])).toEqual([['influences-au-dela-de-4', 'Corps', INFLUENCES_MAX]]);
+  it('ROUGE : un jeu JOINTS_1 du binaire est au-delà de 4 influences, sur la seule primitive qui le porte', async () => {
+    const scene = await chargerScene(glbFabrique({ jeuEtendu: true, primitives: 2 }));
+    const ecarts = gardePoids({ meshes: scene.skinnes, osDeLaBase: new Set(['racine']), libelle: libellesDesMeshes([scene]) });
+    expect(ecarts.map((e) => [e.code, e.mesh, e.valeur, e.seuil])).toEqual([['influences-au-dela-de-4', 'base/Corps#0', 'JOINTS_1, WEIGHTS_1', INFLUENCES_MAX]]);
   });
 });
 
 describe('gardeEnroulement', () => {
   it('VERT : un cylindre aux normales sortantes', () => {
-    expect(gardeEnroulement([cylindre().mesh])).toEqual([]);
+    expect(gardeEnroulement([cylindre().mesh], libelle)).toEqual([]);
   });
 
   it('ROUGE : un triangle à l’enroulement inversé', () => {
@@ -140,7 +190,7 @@ describe('gardeEnroulement', () => {
     const [a, b] = [index.getX(0), index.getX(1)];
     index.setX(0, b);
     index.setX(1, a);
-    expect(gardeEnroulement([mesh]).map((e) => [e.code, e.valeur])).toEqual([['triangle-retourne', 1]]);
+    expect(gardeEnroulement([mesh], libelle).map((e) => [e.code, e.mesh, e.valeur])).toEqual([['triangle-retourne', '«Corps»', 1]]);
   });
 });
 
@@ -148,8 +198,8 @@ describe('gardeBudget', () => {
   it('VERT au plafond, ROUGE au-delà', () => {
     const { mesh } = cylindre();
     const total = trianglesDe(mesh);
-    expect(gardeBudget([mesh], total)).toEqual([]);
-    expect(gardeBudget([mesh], total - 1).map((e) => [e.code, e.valeur])).toEqual([['plafond-assemble', total]]);
+    expect(gardeBudget([mesh], libelle, total)).toEqual([]);
+    expect(gardeBudget([mesh], libelle, total - 1).map((e) => [e.code, e.valeur, e.detail])).toEqual([['plafond-assemble', total, `${total} triangles («Corps» ${total})`]]);
   });
 });
 
@@ -190,22 +240,31 @@ describe('échantillonnage et gardePiedsAuSol', () => {
     const plongeon = new AnimationClip('Plongeon', 1, [
       new VectorKeyframeTrack('racine.position', [0, 0.2, 0.25, 0.3, 1], [0, 0, 0, 0, 0, 0, 0, -0.1, 0, 0, 0, 0, 0, 0, 0]),
     ]);
-    const niveaux = [...echantillonner(scene, [mesh], [plongeon], 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, ['Corps']) }));
+    const niveaux = [...echantillonner(scene, [mesh], [plongeon], 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, [mesh]) }));
     const ecarts = gardePiedsAuSol(niveaux);
     expect(ecarts.map((e) => [e.code, e.clip, e.t])).toEqual([['sous-le-sol', 'Plongeon', 0.25]]);
     expect(ecarts[0].valeur).toBeCloseTo(-0.1, 5);
   });
 
+  it('deux meshes du même nom gardent chacun leurs positions', () => {
+    const a = cylindre(), b = cylindre();
+    b.scene.position.y = -1;
+    a.scene.add(b.scene);
+    const repos = poseDeRepos(a.scene, [a.mesh, b.mesh]);
+    expect(repos.positions.size).toBe(2);
+    expect(plusBas(repos.positions, [a.mesh, b.mesh])).toBeCloseTo(-1, 6);
+  });
+
   it('VERT : un clip immobile garde le corps au sol ; ROUGE : un clip qui l’enfonce, la pose de repos rendue ensuite', () => {
     const { scene, mesh } = cylindre();
-    const repos = poseDeRepos(scene, [mesh]).positions.get('Corps');
+    const repos = poseDeRepos(scene, [mesh]).positions.get(mesh);
     const clips = [clip('Repos', 'racine.position', [0, 0, 0], [0, 0, 0]), clip('Plonge', 'racine.position', [0, 0, 0], [0, -0.1, 0])];
-    const niveaux = [...echantillonner(scene, [mesh], clips, 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, ['Corps']) }));
+    const niveaux = [...echantillonner(scene, [mesh], clips, 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, [mesh]) }));
     expect(niveaux.map((n) => [n.clip, n.t])).toEqual([['Repos', 0], ['Repos', 0.5], ['Repos', 1], ['Plonge', 0], ['Plonge', 0.5], ['Plonge', 1]]);
     const ecarts = gardePiedsAuSol(niveaux);
     expect(ecarts.map((e) => [e.code, e.clip, e.t])).toEqual([['sous-le-sol', 'Plonge', 1]]);
     expect(ecarts[0].valeur).toBeCloseTo(-0.1, 5);
-    expect(poseDeRepos(scene, [mesh]).positions.get('Corps')).toEqual(repos);
+    expect(poseDeRepos(scene, [mesh]).positions.get(mesh)).toEqual(repos);
   });
 
   it('ROUGE : un clip au sol qui décolle', () => {
@@ -219,9 +278,24 @@ describe('gardeEtirement', () => {
   const mesurer = (c: AnimationClip) => {
     const { scene, mesh } = cylindre();
     const repos = poseDeRepos(scene, [mesh]);
-    const aretes = new Map([[mesh.name, aretesDe(mesh)]]);
-    return gardeEtirement([...echantillonner(scene, [mesh], [c], 1)].map((e) => mesurerEtirement(aretes, repos, e)));
+    const aretes = new Map([[mesh, aretesDe(mesh)]]);
+    return gardeEtirement([...echantillonner(scene, [mesh], [c], 1)].map((e) => mesurerEtirement(aretes, repos, e)), libelle);
   };
+
+  it('agrège par mesh : deux meshes au même libellé ont chacun leur écart, au repos comme en clip', () => {
+    const a = cylindre(), b = cylindre();
+    a.scene.add(b.scene);
+    const meshes = [a.mesh, b.mesh];
+    const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
+    const repos = poseDeRepos(a.scene, meshes);
+    for (const c of [a, b]) c.haut.scale.setScalar(10);
+    const gonfle = poseDeRepos(a.scene, meshes);
+    const auRepos = gardeEtirementAuRepos(aretes, () => 'même', repos, gonfle);
+    expect(auRepos.map((e) => [e.code, e.mesh])).toEqual([['arete-repos-enflee', 'même'], ['arete-repos-enflee', 'même']]);
+    expect(auRepos[0].detail).toBe(gardeEtirementAuRepos(new Map([[a.mesh, aretes.get(a.mesh) as Uint32Array]]), () => 'même', repos, gonfle)[0].detail);
+    const enClip = gardeEtirement([mesurerEtirement(aretes, repos, { clip: 'Gonfle', t: 0, ...gonfle })], () => 'même');
+    expect(enClip.map((e) => [e.code, e.mesh])).toEqual([['arete-etiree', 'même'], ['arete-etiree', 'même']]);
+  });
 
   it('VERT : un clip qui déplace le corps sans le déformer', () => {
     expect(mesurer(clip('Glisse', 'racine.position', [0, 0, 0], [0.3, 0, 0]))).toEqual([]);
@@ -240,7 +314,7 @@ describe('gardeEchelleDuRigide', () => {
     racine.add(Object.assign(new Mesh(new CylinderGeometry(), new MeshBasicMaterial()), { name: 'Bouclier' }));
     haut.scale.setScalar(echelle);
     racine.scale.setScalar(echelle);
-    return gardeEchelleDuRigide(rigidesTenus(scene, new Set(['haut'])));
+    return gardeEchelleDuRigide(rigidesTenus(scene, new Set(['haut'])), libelle);
   };
 
   it('VERT : le rigide sous la prise garde l’échelle 1', () => {
@@ -248,7 +322,7 @@ describe('gardeEchelleDuRigide', () => {
   });
 
   it('ROUGE : le rigide sous la prise hérite d’une échelle ; un rigide hors prise n’est pas mesuré', () => {
-    expect(tenu(1.5).map((e) => [e.code, e.mesh])).toEqual([['echelle-du-rigide', 'Epee']]);
+    expect(tenu(1.5).map((e) => [e.code, e.mesh])).toEqual([['echelle-du-rigide', '«Epee»']]);
   });
 });
 
@@ -257,7 +331,7 @@ describe('gabarit', () => {
     const hauteur = (facteurs: typeof FACTEURS_NEUTRES) => {
       const { scene, mesh } = cylindre();
       appliquerGabarit(scene, facteurs, gabaritEtAppuis(TABLE));
-      return Math.max(...(poseDeRepos(scene, [mesh]).positions.get('Corps') ?? []).filter((_, i) => i % 3 === 1));
+      return Math.max(...(poseDeRepos(scene, [mesh]).positions.get(mesh) ?? []).filter((_, i) => i % 3 === 1));
     };
     expect(hauteur(FACTEURS_NEUTRES)).toBeCloseTo(1, 5);
     expect(hauteur({ ...FACTEURS_NEUTRES, legs: 2 })).toBeCloseTo(1, 5);
@@ -485,10 +559,10 @@ describe('gabarit', () => {
     expect(binds[0].elements[13]).toBeCloseTo(-0.7, 9);
     expect(element.skeleton.bones).toEqual([haut]);
     expect(haut.parent).toBe(racine);
-    const avant = poseDeRepos(scene, [element]).positions.get(element.name);
+    const avant = poseDeRepos(scene, [element]).positions.get(element);
     appliquerGabarit(scene, { ...FACTEURS_NEUTRES, legs: 1.4 }, gabaritEtAppuis(TABLE));
     expect(element.skeleton.boneInverses).toEqual(binds);
-    const apres = poseDeRepos(scene, [element]).positions.get(element.name);
+    const apres = poseDeRepos(scene, [element]).positions.get(element);
     expect(apres).toBeDefined();
     apres?.forEach((v, i) => expect(v).toBeCloseTo(avant?.[i] ?? Infinity, 6));
   });
@@ -519,10 +593,12 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
  *  deux triangles de pied et leur cycle appui/vol ; en
  *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
  *  nom, en déplacements à plat de ses neuf sommets ; en bande, le triangle `Corps` au sommet (0, 1, 0) skinné sur `pelvis`
- *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets. */
+ *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets ; en `primitives`, le mesh en autant de
+ *  primitives identiques, le jeu `JOINTS_1` sur la première seule ; en `instances`, d'autres nœuds de ces noms qui portent
+ *  le même mesh, le même skin et la même zone. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
+function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[] } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -594,12 +670,15 @@ function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boole
   const image = options.image ? { images: [{ bufferView: vue(PNG), mimeType: 'image/png' }], textures: [{ source: 0, sampler: 0 }], samplers: [{}] } : {};
   const bin = new Uint8Array(decalage);
   morceaux.reduce((n, m) => (bin.set(m, n), n + m.byteLength), 0);
+  const noeudDuMesh = (name: string) => ({ name, mesh: 0, skin: 0, extras: { zone: 'torse' } });
+  const noeuds = [noeudDuMesh(options.nom ?? 'Corps'), { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])];
+  const premierJeu = Object.fromEntries(Object.entries(attributes).filter(([nom]) => nom !== 'JOINTS_1' && nom !== 'WEIGHTS_1'));
   return ecrireGlb({
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ nodes: [0, 1] }],
-    nodes: [{ name: options.nom ?? 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])],
-    meshes: [{ primitives: [{ attributes, material: 0, ...(targets.length ? { targets } : {}) }], extras: { targetNames: formes ? Object.keys(formes) : ['feminin'] } }],
+    scenes: [{ nodes: [0, 1, ...(options.instances ?? []).map((_, k) => noeuds.length + k)] }],
+    nodes: [...noeuds, ...(options.instances ?? []).map(noeudDuMesh)],
+    meshes: [{ primitives: Array.from({ length: options.primitives ?? 1 }, (_, j) => ({ attributes: j ? premierJeu : attributes, material: 0, ...(targets.length ? { targets } : {}) })), extras: { targetNames: formes ? Object.keys(formes) : ['feminin'] } }],
     materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
     skins: [{ joints, inverseBindMatrices }],
     ...(animations.length ? { animations } : {}),
@@ -685,11 +764,23 @@ describe('candidats du corps entier', () => {
     const sans = await chargerScene(base);
     const reference = [...echantillonner(sans.scene, sans.meshes, sans.clips, 0.5)];
     const poses = [...echantillonner(b.scene, b.meshes, b.clips, 0.5, g)];
-    poses.forEach((p, i) => expect(Math.abs(plusBas(p.positions, ['Corps']) - facteurs.sl * plusBas(reference[i].positions, ['Corps']))).toBeLessThan(1e-6));
+    const corpsDe = (s: typeof b) => s.meshes.filter((m) => m.name === 'Corps');
+    poses.forEach((p, i) => expect(Math.abs(plusBas(p.positions, corpsDe(b)) - facteurs.sl * plusBas(reference[i].positions, corpsDe(sans)))).toBeLessThan(1e-6));
     const complet = await evaluer({ base, manifeste: { ...m, appuis: { ...m.appuis, plusBas: candidats } }, facteurs, pas: 0.5 });
     expect(complet.ecarts.filter((e) => e.garde === 'piedsAuSol')).toEqual([]);
     const incomplet = await evaluer({ base, manifeste: m, facteurs, pas: 0.5 });
     expect(incomplet.ecarts.some((e) => e.garde === 'piedsAuSol' && e.code === 'sous-le-sol')).toBe(true);
+  });
+
+  it('retient le sommet le plus bas de chaque mesh, même de deux meshes au même nom three.js', async () => {
+    const formes = formesAvecGabarit({ feminin: new Array<number>(9).fill(0) });
+    const candidats = async (options: Parameters<typeof glbFabrique>[0]) => {
+      const base = glbFabrique({ bande: formes, clips: { Repos: [0, 0] }, ...options });
+      return (await selectionnerAppuis(base, { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: ['feminin'] })).length;
+    };
+    const seul = await candidats({});
+    expect(seul).toBeGreaterThan(0);
+    expect(await candidats({ primitives: 2, instances: ['Bis'] })).toBe(4 * seul);
   });
 
   it('copie en espace de bind même avec une matrice de bind affine', () => {
@@ -723,14 +814,43 @@ describe('chargerScene et lireGlb', () => {
     expect(charge.skinnes).toHaveLength(1);
     expect(charge.squelette?.bones.map((b) => b.name)).toEqual(['racine']);
     expect(charge.clips.map((c) => c.name)).toEqual(['Repos']);
-    expect(charge.userData.get('Corps')).toMatchObject({ zone: 'torse' });
+    expect([...charge.origines].map(([m, o]) => [m, o.objet, o.noeud, o.primitive])).toEqual([[charge.meshes[0], charge.meshes[0], 'Corps', 0]]);
   });
 
-  it('lit les jeux d’influence étendus, les zones et les shape keys', () => {
+  it('lit les zones et les shape keys', () => {
     const contenu = lireGlb(glbFabrique({ jeuEtendu: true }));
-    expect(contenu.influencesEtendues).toEqual(new Map([['Corps', ['JOINTS_1', 'WEIGHTS_1']]]));
     expect(contenu.zones).toEqual(new Map([['torse', ['Corps']]]));
     expect(contenu.formes).toEqual(new Set(['feminin']));
+  });
+});
+
+describe('libellesDesMeshes (#3229)', () => {
+  it('un nœud glTF à deux primitives, instancié par deux nœuds : quatre meshes, quatre libellés', async () => {
+    const scene = await chargerScene(glbFabrique({ primitives: 2, instances: ['Bis'] }));
+    expect(new Set(scene.meshes.map((m) => m.name)).size).toBe(2);
+    expect(scene.meshes.map(libellesDesMeshes([scene]))).toEqual(['base/Corps#0', 'base/Corps#1', 'base/Bis#0', 'base/Bis#1']);
+  });
+
+  it('des noms glTF distincts que three.js confond gardent leur nom glTF', async () => {
+    const scene = await chargerScene(glbFabrique({ nom: 'a b', instances: ['a_b', 'a_b_1'] }));
+    expect(scene.meshes.map((m) => m.name)).toEqual(['a_b', 'a_b_1', 'a_b_1']);
+    expect(scene.meshes.map(libellesDesMeshes([scene]))).toEqual(['base/a b#0', 'base/a_b#0', 'base/a_b_1#0']);
+  });
+
+  it('le même GLB en base et en élément : chaque mesh sous son fichier ; un mesh hors des scènes est refusé', async () => {
+    const octets = glbFabrique();
+    const [base, element] = [await chargerScene(octets), await chargerScene(octets)];
+    const libelle = libellesDesMeshes([base, element]);
+    expect([...base.meshes, ...element.meshes].map(libelle)).toEqual(['base/Corps#0', 'élément 1/Corps#0']);
+    expect(() => libelle(cylindre().mesh)).toThrow('hors des scènes évaluées');
+  });
+
+  it('evaluer compte chaque mesh d’un nœud instancié à plusieurs primitives, sous son libellé', async () => {
+    const fiche = await evaluer({ base: glbFabrique({ primitives: 2, instances: ['Bis'], clips: { Repos: [0, 0] } }), pas: 0.5, plafond: 1 });
+    const libelles = ['base/Corps#0', 'base/Corps#1', 'base/Bis#0', 'base/Bis#1'];
+    expect(fiche.mesures.triangles.parMesh).toEqual(libelles.map((mesh) => ({ mesh, triangles: 1 })));
+    expect(fiche.mesures.corps).toEqual(libelles);
+    expect(fiche.ecarts.find((e) => e.garde === 'budget')?.detail).toBe(`4 triangles (${libelles.map((l) => `${l} 1`).join(', ')})`);
   });
 });
 
@@ -934,11 +1054,19 @@ describe('validerManifesteDeBase', () => {
 });
 
 describe('evaluer', () => {
+  it('une base et un élément aux mêmes noms comptent chacun leurs triangles et leurs influences', async () => {
+    const g = glbFabrique({ jeuEtendu: true, clips: { Repos: [0, 0] } });
+    const seul = await evaluer({ base: g, pas: 0.5 });
+    const double = await evaluer({ base: g, elements: [g], pas: 0.5 });
+    expect(double.mesures.triangles.parMesh).toEqual([...seul.mesures.triangles.parMesh, ...seul.mesures.triangles.parMesh.map((m) => ({ ...m, mesh: 'élément 1/Corps#0' }))]);
+    expect(double.mesures.triangles.total).toBe(2 * seul.mesures.triangles.total);
+    expect(double.ecarts.filter((e) => e.code === 'influences-au-dela-de-4').map((e) => e.mesh)).toEqual(['base/Corps#0', 'élément 1/Corps#0']);
+  });
   it('mesure une base au sol sans aucun écart, silhouettes comprises', async () => {
     const base = glbFabrique({ image: true, anneau: JUSTES, clips: { Repos: [0, 0] }, cibleDuClip: 'racine' });
     const fiche = await evaluer({ base, pas: 0.5 });
     expect(fiche.ecarts).toEqual([]);
-    expect(fiche.mesures).toMatchObject({ triangles: { total: 3, parMesh: { Corps: 3 } }, sommets: 9, os: 2, images: 1, corps: ['Corps'] });
+    expect(fiche.mesures).toMatchObject({ triangles: { total: 3, parMesh: [{ mesh: 'base/Corps#0', triangles: 3 }] }, sommets: 9, os: 2, images: 1, corps: ['base/Corps#0'] });
     expect(fiche.mesures.silhouettes.anneaux).toBe(1);
     expect(fiche.mesures.silhouettes.silhouettes.map((s) => s.nom)).toEqual(Object.keys(JUSTES));
     expect(fiche.mesures.silhouettes.carrure).toBeNull();
@@ -986,7 +1114,7 @@ describe('evaluer : clés cuites du gabarit', () => {
     expect(f.mesures.silhouettes.silhouettes[0].deplacementMax).toBeCloseTo(0.11, 6);
     const element = glbFabrique({ nom: 'Element', bande: { [croisee]: [0, 0, 0, 0, 0, 0, 0, 40, 0] } });
     const avecElement = await evaluer({ base, manifeste, elements: [element], facteurs: { arms: 1.25 }, silhouettes: { feminin: 0.4 }, pas: 0.5 });
-    expect(avecElement.ecarts.find((e) => e.mesh === 'Element' && e.code === 'arete-repos-enflee')?.valeur).toBeCloseTo(9, 6);
+    expect(avecElement.ecarts.find((e) => e.mesh === 'élément 1/Element#0' && e.code === 'arete-repos-enflee')?.valeur).toBeCloseTo(9, 6);
   });
 
   it('calcule la référence d’étirement avec les clés propres et les croisées nulles', async () => {
@@ -1001,6 +1129,16 @@ describe('evaluer : clés cuites du gabarit', () => {
     delete formes[absente];
     const base = glbFabrique({ bande: formes, clips: { Repos: [0, 0] } });
     await expect(evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), facteurs: { arms: 1.25 }, pas: 0.5 })).rejects.toThrow(new RegExp('\\[gabarit-absent\\].*' + absente));
+  });
+
+  it('mesure le segment d’un os du gabarit à S_b sur ses trois axes, contre le repos sans les clés gabarit_* (#3097)', async () => {
+    const tete = nomDeCleDuGabarit('head', 'plus'), teteFeminin = nomDeCleDuGabarit('head', 'plus', FEMININ);
+    const feminin = [0, 0, 0, 0, 0.3, 0.4, 0, 0, 0];
+    const base = glbFabrique({ bande: formesAvecGabarit({ feminin }, { [tete]: [0, 0, 0, 1, 0, 0, 0, 0, 0], [teteFeminin]: feminin }), clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), gabarit: { ...TABLE, legs: [], head: ['racine'] } };
+    const f = await evaluer({ base, manifeste, facteurs: { head: 1.5 }, silhouettes: { feminin: 1 }, pas: 0.5 });
+    expect(f.ecarts.filter((e) => e.garde === 'segments' || e.garde === 'manifeste')).toEqual([]);
+    expect(f.mesures.segments?.segments.map((s) => [s.os, s.attendu, s.rapport.map((r) => +(r ?? 0).toFixed(6))])).toEqual([['racine', [1.5, 1.5, 1.5], [1.5, 1.5, 1.5]]]);
   });
 
   it('les poids explicites de carrure priment sur st avant le calcul des croisées', async () => {
@@ -1185,7 +1323,7 @@ describe('gardeSilhouettes', () => {
       const mesurer = () => sousLesFormes(scene, [FEMININ], (poser) => {
         const repos = poser({}, [mesh]);
         expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
-        expect(repos.positions.get(mesh.name)?.[0]).toBeCloseTo(x + 1, 6);
+        expect(repos.positions.get(mesh)?.[0]).toBeCloseTo(x + 1, 6);
         expect(() => poser({ [FEMININ]: 1, [nom]: 0 }, [mesh])).toThrow(nom);
         expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
         poser({ [FEMININ]: 1 }, [mesh]);
@@ -1317,7 +1455,7 @@ describe('gardeSilhouettes', () => {
     const vidage = {
       os: mesh.skeleton.bones.map((b) => ({ nom: b.name, parent: b.parent instanceof Bone ? b.parent.name : null, matrice: b.matrixWorld.toArray() })),
       corps: [{
-        nom: mesh.name, positions: Array.from(repos.positions.get(mesh.name) ?? []),
+        nom: mesh.name, positions: Array.from(repos.positions.get(mesh) ?? []),
         indices: Array.from(mesh.geometry.attributes.skinIndex.array), poids: Array.from(mesh.geometry.attributes.skinWeight.array),
       }],
     };
@@ -1328,7 +1466,7 @@ describe('gardeSilhouettes', () => {
     const sections = sectionsDeRepos(anneaux, repos);
     expect(anneaux.map((a) => a.os)).toEqual(['haut', 'bout']);
     expect(anneauLePlusEpais(sections)).toBe(1);
-    expect(JSON.parse(r.stdout)).toEqual({ anneaux: anneaux.map((a, i) => ({ ...a, ...sections[i] })), lePlusEpais: anneauLePlusEpais(sections) });
+    expect(JSON.parse(r.stdout)).toEqual({ anneaux: anneaux.map((a, i) => ({ ...a, sommets: a.sommets.map(({ mesh: m, indice }) => ({ mesh: m.name, indice })), ...sections[i] })), lePlusEpais: anneauLePlusEpais(sections) });
   });
 
   it('l’épaisseur suit st en écart relatif : 1,5 % de 1,7 passe, 2,5 % non', () => {

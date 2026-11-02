@@ -731,6 +731,7 @@ export const fr = {
   'op.cibleAcquiseAbsente': '{name} : aucune Cible retenue pour son Trait psychologique acquis, sans effet.',
   'op.removePsychTrait': '{name} se défait du Trait {psych}.',
   'op.noPsychToRemove': "{name} n'a aucun Trait psychologique à retirer.",
+  'op.noPsychInstance': '{name} n’a aucun état psychologique en cours ici.',
   'op.noSinToRemove': '{name} n’a aucun Point de Péché à expier.',
   'op.noCondPionToRemove': '{name} n’a aucun pion {cond} qui puisse être retiré.',
   'op.noTraitToRemove': '{name} ne porte pas le Trait {trait}.',

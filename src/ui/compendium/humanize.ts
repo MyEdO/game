@@ -277,6 +277,7 @@ export function humanizeCondition(c: Condition, neg = false): string {
     case 'engagedAdvantageGap': return `l'écart d'Avantage avec les ennemis engagés ${opWord(c.op, neg)} ${c.value}`;
     case 'engagedAdvantageLead': return `l'avance d'Avantage sur les ennemis engagés ${opWord(c.op, neg)} ${c.value}`;
     case 'foeInLoS': return neg ? "aucun ennemi n'est en vue" : 'un ennemi est en vue';
+    case 'cibleEnVue': return `${neg ? "aucun membre de sa Cible n'est" : 'un membre de sa Cible est'} en vue${c.hostiles ? ', hostile' : ''}`;
     case 'hiddenFromFoes': return `la cible ${neg ? "n'est pas cachée" : 'est cachée'} de l'ennemi`;
     case 'engaged': return `la cible ${neg ? "n'est pas engagée" : 'est engagée'} avec un ennemi`;
     case 'crewTest': return neg ? "ce n'est pas un Test d'équipage" : "il s'agit d'un Test d'équipage";
@@ -414,7 +415,7 @@ export function humanizeOp(o: GameOp): string {
       return `gagne ${o.value != null && o.value !== 1 ? `${humanizeFormula(o.value)} × ` : ''}l'État ${stateItal(o.id)}${perSL}${duree}${o.perRound ? ' à chaque Round' : ''}${determination}`;
     }
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
-    case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type.id)}`;
+    case 'endPsych': return 'instance' in o ? "n'est plus sous l'effet de cet état" : `n'est plus sous l'effet de ${psychologyLabel(o.type.id)}`;
     case 'beginPsych': return `tombe sous ${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
     case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;

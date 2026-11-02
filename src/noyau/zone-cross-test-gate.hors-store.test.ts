@@ -3,7 +3,7 @@
  * « quiconque tente de traverser la zone à pied sans posséder le Talent Magie des Arcanes (Vie) doit
  * réussir un Test d'Agilité Difficile (-20). Un échec signifie qu'il gagne 1 État Hémorragique et un
  * État Empêtré, qui utilise votre Force Mentale pour sa Force. » Exécution RUNTIME (complète le test
- * data-only `l11-sorts-zones.test.ts`, ba77a269) : héros manuel → cascade influençable ; exemption par
+ * data-only `l11-sorts-zones.hors-store.test.ts`, ba77a269) : héros manuel → cascade influençable ; exemption par
  * Talent → aucun jet ; IA/auto → jet inline journalisé (jamais silencieux).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -74,7 +74,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
     const p = banc.getState().pendingCascade!;
     const step = p.participants.find((s) => s.kind === 'triggeredTest')! as CascadeStep;
-    // Force le jet ÉCHOUÉ (pattern forcé du repo — `gesundheit-sl-scene.test.ts` — bypass le d100).
+    // Force le jet ÉCHOUÉ (pattern forcé du repo — `gesundheit-sl-scene.hors-store.test.ts` — bypass le d100).
     banc.setState({
       pendingCascade: {
         ...p,

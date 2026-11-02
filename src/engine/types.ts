@@ -1584,8 +1584,10 @@ export interface Combatant {
   /** File transitoire d'attaques gratuites de créature restant à résoudre ce tour (kinds :
    *  morsure/caudale/pietinement) — pilotée par aiCreatureFreeAttacks à travers la modale de défense. */
   pendingFreeAttacks?: AttackKind[];
-  /** A chargé ce tour → ouvre une Attaque gratuite de Cornes (LDB 85) si la créature a le trait. */
+  /** A Chargé ce tour (LDB 15 l.35). */
   chargedThisTurn?: boolean;
+  /** Sa Charge de ce tour lui a rapporté l'Avantage (LDB 15 l.37) — Attaque gratuite de Cornes, LDB 85 l.83. */
+  chargeAvecAvantage?: boolean;
   /** Déplacements COMPLETS (départ→arrivée) accomplis ce tour, EN ATTENTE du déclencheur d'approche
    *  (LDB 21 l.27) : l'événement s'évalue à l'IRRÉVOCABILITÉ du déplacement — Action prise
    *  (`markActed`) ou fin de tour (`advanceTurn`). Un déplacement DÉFAIT les purge. */

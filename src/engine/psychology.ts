@@ -19,7 +19,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { ciblePsy, ciblePsyLue, estCibleType, identiteDeCiblage, selonCible, varianteDe, type CiblePsy } from './psych/ciblage';
 import { opPsy } from './psych/opsPsy';
 import { SizeCategory, sizeGap } from './size';
-import { isOutOfAction, removeActiveEffects } from './conditions';
+import { COND, hasCondition, isOutOfAction, removeActiveEffects } from './conditions';
 import { groupMatch, groupesDe, groupesPercus, racesDe, selonLOrdreDesGroupes, type PorteurDeGroupes } from './groups';
 import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
@@ -460,19 +460,36 @@ export function spendResolveForPsychImmunity(c: Combatant): string | null {
   return t('psy.determinationImmune', { name: c.label });
 }
 
-/** Retire de TOUS les combattants les afflictions psychologiques (Peur/Terreur/traits ciblés)
- *  générées par la créature `deadId` — LDB : les effets psy d'une créature prennent fin à sa mort.
- *  Mute `psychState`. (Les États génériques déjà acquis, ex. Brisé, restent — ils ont leur propre
- *  récupération ; seul le lien Peur↔source disparaît, donc plus de re-Test ni de −1 DR vs la source.)
- *  EXCEPTION : une affliction dont la porte est le GROUPE `cible`, pas l'individu (`immuneWhileActive` —
- *  Amour, LDB 21 l.75 : « les êtres aimés », au pluriel), ne s'arbitre PAS ici — la chute d'UN aimé ne la
- *  clôt pas tant qu'un autre est défendable. Son verdict est celui de `refreshDefendedPsych`, que les
- *  appelants enchaînent avec le roster en main. */
+/** Retire de TOUS les combattants les afflictions générées par la créature `deadId`, hors d'action : Peur, Terreur et
+ *  famille défense (`triggerOn: 'threatened'`), hors `immuneWhileActive` que juge `refreshDefendedPsych`. Les États
+ *  déjà acquis restent. Une autre affliction ciblée finit par sa donnée (`endPsych`). LDB 21 l.25 ; #3045 */
 export function clearPsychOf(all: Combatant[], deadId: string): void {
   for (const c of all) {
     if (!c.psychState?.length) continue;
-    c.psychState = c.psychState.filter((p) => p.sourceId !== deadId || !!findPsychologyById(p.type)?.immuneWhileActive);
+    c.psychState = c.psychState.filter((p) => {
+      if (p.sourceId !== deadId) return true;
+      const d = findPsychologyById(p.type);
+      return (estCibleType(p.type) && d?.triggerOn !== 'threatened') || !!d?.immuneWhileActive;
+    });
   }
+}
+
+/** Ce qu'un porteur voit encore de la Cible de son affliction : un membre `present`, un membre `hostile`. Lu par
+ *  la Condition `cibleEnVue`. LDB 21 l.19, l.39, l.48 ; #3045 */
+export interface CibleEnVue { present: boolean; hostile: boolean }
+
+/** Hors d'action, sauf Inconscient resté dans la rencontre. LDB 21 l.39, l.48 ; #3045 */
+const disparu = (s: Combatant): boolean => isOutOfAction(s) && (s.dead === true || s.outOfRencontre === true || !hasCondition(s, COND.inconscient));
+
+/** En action, pas Brisé, agressif envers le porteur. LDB 21 l.19 ; Q11 A, #3045 */
+const hostile = (s: Combatant, porteur: Combatant): boolean => !isOutOfAction(s) && !hasCondition(s, COND.brise) && agressifEnvers(s, porteur);
+
+/** Le verdict `cibleEnVue` de l'instance `affliction` de `porteur`, parmi les `sources` en Ligne de Vue, lui
+ *  exclu. Pur. LDB 21 l.19, l.39, l.48 ; #3045 */
+export function cibleEnVue(porteur: Combatant, affliction: PsychAffliction, sources: readonly Combatant[]): CibleEnVue {
+  const cible = affliction.cible;
+  const membres = cible === undefined ? [] : sources.filter((s) => !disparu(s) && vise(cible, { genre: 'combattant', c: s }, 'percu', porteur));
+  return { present: membres.length > 0, hostile: membres.some((s) => hostile(s, porteur)) };
 }
 
 /** Le combattant peut-il entrer en Frénésie (LDB 21 l.31) ? Trait de créature, Talent « Frénésie »,

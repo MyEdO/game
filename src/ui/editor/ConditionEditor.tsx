@@ -11,7 +11,7 @@ import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import { actorFieldSchema, actorRefSchema, CONDITIONS_RESERVEES, conditionSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
@@ -74,6 +74,7 @@ const KIND_OPTIONS: [Condition['kind'], string][] = [
   ['engagedAdvantageGap', 'Écart d’Avantage (engagés)'],
   ['engagedAdvantageLead', 'Avance d’Avantage (sur tous les engagés)'],
   ['foeInLoS', 'Ennemi en Ligne de Vue'],
+  ['cibleEnVue', 'Cible de l’affliction en vue (psychologie)'],
   ['hiddenFromFoes', 'Caché de l’ennemi (hors de vue)'],
   ['engaged', 'Engagé avec un ennemi'],
   ['crewTest', 'Au sein d’un Test d’équipage (à bord)'],
@@ -121,6 +122,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'engagedAdvantageGap': return cond.kind === 'engagedAdvantageGap' ? cond : { kind: 'engagedAdvantageGap', op: '>', value: 0 };
     case 'engagedAdvantageLead': return cond.kind === 'engagedAdvantageLead' ? cond : { kind: 'engagedAdvantageLead', op: '>', value: 0 };
     case 'foeInLoS': return { kind: 'foeInLoS' };
+    case 'cibleEnVue': return cond.kind === 'cibleEnVue' ? cond : { kind: 'cibleEnVue' };
     case 'visiblePassive': return cond.kind === 'visiblePassive' ? cond : { kind: 'visiblePassive', who: 'target' };
     case 'hiddenFromFoes': return { kind: 'hiddenFromFoes' };
     case 'engaged': return { kind: 'engaged' };
@@ -159,9 +161,12 @@ function TimeWindowFields({ window: w, onChange }: { window: TemporalCondition; 
   );
 }
 
-export function ConditionEditor({ cond, onChange, kinds, narratif }: {
+export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = conditionSchema }: {
   cond: Condition;
   onChange: (c: Condition) => void;
+  /** Schéma de la Condition dans son contexte (l'algèbre de la famille mécanique du porteur ; défaut : la famille
+   *  fermée). Une Condition RÉSERVÉE (`CONDITIONS_RESERVEES`) n'est offerte que s'il l'admet. */
+  noeud?: { safeParse: (v: unknown) => { success: boolean } };
   /** Sous-ensemble de kinds offert (défaut : tous). Le porteur du `when` le fournit quand son
    *  contexte d'évaluation n'en couvre qu'une partie — ex. `CONDITION_KINDS_CARTE`. */
   kinds?: ReadonlySet<Condition['kind']>;
@@ -169,7 +174,9 @@ export function ConditionEditor({ cond, onChange, kinds, narratif }: {
    *  CATALOGUE, aucun état offert (`Ctx.narratif`). */
   narratif?: NarratifBlock;
 }) {
-  const options = kinds ? KIND_OPTIONS.filter(([k]) => kinds.has(k)) : KIND_OPTIONS;
+  const admise = (k: Condition['kind']) =>
+    k === cond.kind || !(CONDITIONS_RESERVEES as readonly string[]).includes(k) || noeud.safeParse({ kind: k }).success;
+  const options = KIND_OPTIONS.filter(([k]) => (!kinds || kinds.has(k)) && admise(k));
   return (
     <div className="cond-node tf-row">
       <select className="cond-kind" value={cond.kind} onChange={(e) => onChange(recast(cond, e.target.value as Condition['kind']))}>
@@ -250,6 +257,10 @@ export function ConditionEditor({ cond, onChange, kinds, narratif }: {
           </select>
           <NumberField variant="nu" label="Marge en Degrés de Réussite" min={0} value={cond.value} onChange={(value) => onChange({ ...cond, value })} /> DR
         </span>
+      )}
+      {cond.kind === 'cibleEnVue' && (
+        <label className="cond-time"><input type="checkbox" checked={cond.hostiles === true}
+          onChange={(e) => onChange(e.target.checked ? { kind: 'cibleEnVue', hostiles: true } : { kind: 'cibleEnVue' })} /> hostiles seulement</label>
       )}
       {cond.kind === 'nearestFoe' && (
         <span className="cond-time">ennemi proche
@@ -398,7 +409,7 @@ export function ConditionEditor({ cond, onChange, kinds, narratif }: {
         <div className={`cond-children ${cond.kind}`}>
           {cond.of.map((c, i) => (
             <div className="cond-child" key={i}>
-              <ConditionEditor cond={c} kinds={kinds} narratif={narratif} onChange={(nc) => onChange({ ...cond, of: cond.of.map((x, j) => (j === i ? nc : x)) })} />
+              <ConditionEditor cond={c} kinds={kinds} narratif={narratif} noeud={noeud} onChange={(nc) => onChange({ ...cond, of: cond.of.map((x, j) => (j === i ? nc : x)) })} />
               <button className="btn small danger" title="Retirer cette sous-condition" onClick={() => onChange({ ...cond, of: cond.of.filter((_, j) => j !== i) })}>✕</button>
             </div>
           ))}
@@ -409,7 +420,7 @@ export function ConditionEditor({ cond, onChange, kinds, narratif }: {
       )}
       {cond.kind === 'not' && (
         <div className="cond-children not">
-          <ConditionEditor cond={cond.of} kinds={kinds} narratif={narratif} onChange={(nc) => onChange({ kind: 'not', of: nc })} />
+          <ConditionEditor cond={cond.of} kinds={kinds} narratif={narratif} noeud={noeud} onChange={(nc) => onChange({ kind: 'not', of: nc })} />
         </div>
       )}
     </div>

@@ -86,7 +86,7 @@ import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEnt
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
-import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from './triggeredEffects';
+import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
 import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
@@ -214,6 +214,7 @@ import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
+import { sourcesEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
@@ -1535,9 +1536,7 @@ export function aiApproachPlan(
 export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
   const { battle, scene } = get();
   if (!battle || !scene || !isFrenzied(c) || !c.pos) return null;
-  const visible = battle.combatants.filter(
-    (e) => e.kind !== c.kind && !isOutOfAction(e) && e.pos && losClear(scene, c.pos!, e.pos!, smokeOf(battle)),
-  );
+  const visible = [...sourcesEnVue(battle, scene, c, (e) => e.kind !== c.kind && !isOutOfAction(e))];
   if (!visible.length) return null;
   return visible.sort((a, b) => {
     const da = combatDistance(c, a), db = combatDistance(c, b);
@@ -2920,7 +2919,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
           return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.shieldReactionDamage', { name: target.label, foe: attacker.label }));
         break;
       case 'suite':
-        if (jouerLaSuiteDuCoup(get, set, attacker, target, q.res, q.suite)) return true;
+        if (jouerLaSuiteDuCoup(get, set, attacker, target, q.weapon, q.res, q.suite)) return true;
         break;
     }
   }
@@ -3764,7 +3763,9 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme EMPLOYÉE contre
   // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
   if (!aiHandGate(get, set, attacker, firedWeapon(attacker, target).uid)) return undefined;
-  if (maybeOpenDefense(get, set, attacker, target, undefined, undefined, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via defenseConfirm/Cancel ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
+  // Coup PRINCIPAL : ses gratuites `onHit` (LDB 10 l.72) suivent la touche, comme celles du héros (`attackConfirm`).
+  const suite: SuiteDeCoup = { gratuitesALaTouche: true };
+  if (maybeOpenDefense(get, set, attacker, target, undefined, suite, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via defenseConfirm/Cancel ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
   // Tir ennemi : l'annoncer dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision — un tir
   // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d). Avant, l'annonce
   // partait dans le journal du GROUPE (invisible en combat).
@@ -3782,7 +3783,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   }
   // r.victim = allié touché par un tir dévié (LDB 14 l.116) ; l'enchaînement non déclaré est le balayage
   // de la machine (`autoCleave`), joué par l'après-coup.
-  return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res);
+  return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res, { suite });
 }
 
 /**
@@ -3950,7 +3951,7 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
  * un maillon qui suspend l'emporte, et cette fonction rend alors `true` sans la jouer ; la chaîne d'un
  * héros (`pendingCleave`) l'emporte de même, jusqu'à sa fermeture.
  */
-function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: Combatant, res: AttackResult, suite?: SuiteDeCoup): boolean {
+function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: Combatant, weapon: Weapon, res: AttackResult, suite?: SuiteDeCoup): boolean {
   const touche = res.sauvegarde?.sauve ? toucheSauvee(res) : res;
   if (suite?.manoeuvre) applyFreeAttackEffects(get, attacker, target, suite.manoeuvre.kind, touche);
   const enAction = !isOutOfAction(attacker);
@@ -3986,9 +3987,9 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
-  // Gratuites `onHit` du héros (LDB 10 l.72), sur la touche RÉELLE : après la restitution, sauf chaîne
+  // Gratuites `onHit` du coup principal (LDB 10 l.72), sur la touche RÉELLE : après la restitution, sauf chaîne
   // ouverte (`portee`), qui la garde jusqu'à sa fermeture.
-  return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target);
+  return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
 }
 
 // ---------------------------------------------------------------------------
@@ -4090,27 +4091,30 @@ export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant,
   return applyTalentFreeAttack(get, set, actor, op, fa);
 }
 
-/** Résout les attaques gratuites DÉCLENCHÉES des talents de `actor` pour `trigger` (contre `victim`) —
- *  source : les `effects` du talent (donnée). Le Flow de chaque talent est JOUÉ par `runCombatFlow` (le
- *  nœud `choice`/`test` éventuel y est cadence-aware ; le `do`/`grantFreeAttack` ouvre la frappe via le
- *  hook contre `victim`, le tiers threadé dans `ctx.freeAttack`). Vaut héros ET IA. */
-export function resolveFreeAttacks(get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger, victim: Combatant | undefined): boolean {
+/** SEUL émetteur des Flows qui accordent une attaque gratuite (`flowHasFreeAttack`) de `actor` pour
+ *  `trigger` (contre `victim`, le tiers threadé dans `ctx.freeAttack`) : le bus les saute
+ *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choice`/`test`
+ *  cadence-aware, `do`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
+ *  (`ciblesDeLEffet`). `ctx` = le contexte de l'événement (arme de la touche, type d'attaque). Vaut héros
+ *  ET IA. LDB 10 l.500. */
+export function resolveFreeAttacks(
+  get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger, victim: Combatant | undefined,
+  ctx: Pick<TriggerCtx, 'weapon' | 'attackType' | 'conditionName' | 'origine'> = {},
+): boolean {
   if (!victim) return false;
-  // TOUTES les sources (Talent/Trait/Atout/État), pas seulement les talents : une réaction `grantFreeAttack`
-  // (Frappe réactive `onCharged`, Assaut féroce `onHit`, et demain un Trait de créature) est jouée
-  // indifféremment du KIND. On NE garde que les Flows qui accordent une attaque gratuite (`flowHasFreeAttack`) :
-  // ils ciblent le TIERS via `freeAttack` ; les autres effets de ces triggers sont déjà joués par `fireTriggers`.
-  for (const src of freeAttackSourcesOf(actor)) {
+  for (const src of freeAttackSourcesOf(actor, ctx.weapon)) {
     for (const eff of src.effects) {
-      if (eff.trigger !== trigger || !flowHasFreeAttack(eff.flow)) continue;
-      if (defenseEnCours(get())) return true; // #1858
-      // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
-      // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
-      runCombatFlow(
-        { get, set, target: actor, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
-        eff.flow,
-      );
-      if (defenseEnCours(get())) return true; // #1858
+      if (!flowHasFreeAttack(eff.flow)) continue;
+      for (const t of ciblesDeLEffet(get, actor, eff, trigger, { ...ctx, victim })) {
+        if (defenseEnCours(get())) return true; // #1858
+        // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
+        // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
+        runCombatFlow(
+          { get, set, target: t, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
+          flowOffert(eff),
+        );
+        if (defenseEnCours(get())) return true; // #1858
+      }
     }
   }
   return false;
@@ -4407,13 +4411,13 @@ function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspe
 /** La file des attaques gratuites d'une créature, telle que son tour la pose (`aiCreatureFreeAttacks`) :
  *  - `zone` : ses attaques de ZONE/spéciales, dans l'ordre Souffle → Vomi → Langue → Hurlement, jouées d'abord ; une
  *    manœuvre de zone qui touche des HÉROS ouvre une cascade de défense INFLUENÇABLE (elle SUSPEND) ;
- *  - `melee` : Cornes quand elle a chargé ce tour (LDB 85), puis une entrée par gratuite de MÊLÉE RESTANTE de ses
+ *  - `melee` : Cornes quand sa Charge de ce tour lui a rapporté l'Avantage (LDB 85 l.83), puis une entrée par gratuite de MÊLÉE RESTANTE de ses
  *    traits (`gratuitesRestantes`, même plafond que le héros), dans l'ordre de `attaquesNaturelles`.
  *  LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405 */
 export function fileDesGratuites(enemy: Combatant): { zone: AttackKind[]; melee: AttackKind[] } {
   const atks = attaquesNaturelles(enemy.traits ?? []);
   const zone = (['souffle', 'vomi', 'langue', 'hurlement'] as const).filter((k) => atks.some((a) => a.kind === k));
-  const cornes: AttackKind[] = enemy.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : [];
+  const cornes: AttackKind[] = enemy.chargeAvecAvantage && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : [];
   const traits = atks
     .filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind))
     .flatMap((a) => Array.from({ length: gratuitesRestantes(enemy, a.kind, a) }, () => a.kind));
@@ -4458,6 +4462,7 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
     // d'init sauté, on enchaîne l'unité suivante).
     const file = fileDesGratuites(enemy);
     enemy.chargedThisTurn = false; // consommée
+    enemy.chargeAvecAvantage = false;
     enemy.pendingFreeAttacks = [...file.zone, ...file.melee];
   }
   while (enemy.pendingFreeAttacks.length) {
@@ -7215,6 +7220,7 @@ export function advanceTurn(get: Get, set: SetFn) {
   // passer la main fige ce qui a été parcouru → les approches en attente sont dues (LDB 21 l.27).
   sealApproachMoves(get, set, prevActive);
   if (prevActive?.chargedThisTurn) prevActive.chargedThisTurn = false;
+  if (prevActive?.chargeAvecAvantage) prevActive.chargeAvecAvantage = false;
   if (prevActive?.freeAttacksThisTurn) prevActive.freeAttacksThisTurn = undefined; // Attaques gratuites de manœuvre : 1/tour (compteur remis à zéro)
   fireTurnEndTriggers(get, set, prevActive); // effets de bord « fin de tour » authorés (inerte sans donnée)
 
@@ -7601,25 +7607,27 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
-  // Charge de l'IA : se ruer au contact depuis une position non-Engagée donne l'Avantage (LDB 15 l.35-37).
-  if (!mv.etaitEngage) {
+  // LDB 15 l.35-37 ; LDB 16 l.35
+  if (mv.charge) {
     const adv = chargeAdvantage(effectiveMovement(geom), mv.distAvant);
     if (adv) {
       campGain(get, enemy, adv);
       enemy.gainedAdvThisRound = true;
-      enemy.chargedThisTurn = true; // Charge → Attaque gratuite de Cornes (LDB 85), résolue par aiCreatureFreeAttacks
-      // Effets `onCharged` NON-attaque-gratuite (donnée : Trait/État/Talent) → dispatcher générique
-      // via le bus. Les Flows `grantFreeAttack` restent inertes ici (voie pure `applyTriggeredEffects`,
-      // cf. ~2554) — pas de double frappe : la Frappe réactive part de `resolveFreeAttacks` ci-dessous.
-      const chargedLines: string[] = [];
-      emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: tgt, sink: (line) => chargedLines.push(line), triggerCtx: { victim: enemy, rng: battleRng() } });
-      if (chargedLines.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(chargedLines, 'condition', tgt.id)] } });
-      // Frappe réactive (LDB 10) : la cible CHARGÉE peut riposter HORS séquence (Test d'Init) avant
-      // l'attaque du chargeur — talent d'attaque déclenchée en donnée (`grantFreeAttack onCharged`).
-      resolveFreeAttacks(get, set, tgt, 'onCharged', enemy);
+      enemy.chargeAvecAvantage = true; // LDB 85 l.83
     }
+    enemy.chargedThisTurn = true; // LDB 15 l.35
+    subirLaCharge(get, set, tgt, enemy);
   }
   armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: tgt.id }, Math.max(TEMPO.preAttack, approachMs(get, path)));
+}
+
+/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
+ *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500). */
+export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): void {
+  const lignes: string[] = [];
+  emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
+  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
+  resolveFreeAttacks(get, set, charge, 'onCharged', chargeur);
 }
 
 /** CLÉ d'un tour d'IA : CE combattant, à CE tour de CE Round — l'unité que `battle.tourIA` décide une fois. */
@@ -7726,11 +7734,6 @@ export function markActed(get: Get, set: SetFn): BattleState {
 /** Forme commune d'un Test de Psychologie de combat DÛ pour un héros (cumul `prevDR` = 0 sauf Peur étendue). */
 type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
 
-/** Combattants en Ligne de Vue de `c` (hors lui-même, debout). Mutualisé par les deux collectes. */
-function visibleFoesAndAllies(battle: BattleState, scene: import('./monde/scene').Scene, c: Combatant): Combatant[] {
-  return battle.combatants.filter((v) => v.id !== c.id && v.pos && !isOutOfAction(v) && losClear(scene, c.pos!, v.pos, smokeOf(battle)));
-}
-
 /** Test de Psychologie de DÉBUT de Round dû à `c` (LDB 21 l.9) : un Trait ciblé (re-test d'un actif
  *  OU nouveau déclenchement) ou une NOUVELLE Terreur en Ligne de Vue. Pur de lecture. La Peur (simple
  *  Taille/causesPeur) NE se teste PAS ici : c'est un Test étendu de FIN de Round (cf. collectHeroRoundEndPsych). */
@@ -7740,15 +7743,13 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   if (!battle || !scene || !c.pos || isPsychImmune(c)) return null; // Immunité psy (trait/Frénésie/Détermination temp)
   const state = c.psychState ?? [];
   // NOUVELLE Terreur en Ligne de Vue (1ʳᵉ rencontre → Brisé, puis devient une Peur — LDB 21 l.54-56).
-  for (const foe of battle.combatants) {
-    if (foe.id === c.id || isOutOfAction(foe) || !foe.pos) continue; // « chez les autres créatures » (LDB 85 l.264-266) : seule exclusion, soi-même
-    if (!losClear(scene, c.pos, foe.pos, smokeOf(battle))) continue;
+  for (const foe of sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
     const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
     if (!src || src.kind !== 'terreur' || state.some((p) => p.sourceId === foe.id)) continue;
     return { kind: 'terreur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
   }
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
-  const visible = visibleFoesAndAllies(battle, scene, c);
+  const visible = [...sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))];
   for (const p of state) {
     if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', c)))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
@@ -7767,9 +7768,7 @@ export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue |
   if (!battle || !scene || !c.pos || isPsychImmune(c)) return null;
   const state = c.psychState ?? [];
   // NOUVELLE source de Peur (pas Terreur — celle-ci passe par le début de Round) en Ligne de Vue.
-  for (const foe of battle.combatants) {
-    if (foe.id === c.id || isOutOfAction(foe) || !foe.pos) continue; // « chez les autres créatures » (LDB 85 l.264-266) : seule exclusion, soi-même
-    if (!losClear(scene, c.pos, foe.pos, smokeOf(battle))) continue;
+  for (const foe of sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
     const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
     if (!src || src.kind !== 'peur' || state.some((p) => p.sourceId === foe.id)) continue;
     return { kind: 'peur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
@@ -8426,7 +8425,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // sinon Course (Test de `course` instantané, pas d'attaque ce tour) — cf. aiApproachPlan.
       const { plan, ran } = aiApproachPlan(input, geom, action, battleRng());
       const mv = plan.kind === 'move' ? plan : action;
-      const wasEngaged = isEngaged(enemy);
+      const charge = !refusDeCharge(battle, enemy); // LDB 15 l.35 : verdict lu AVANT le déplacement
       const distBefore = combatDistance(enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
       const fromPos = { ...enemy.pos! }; // position AVANT déplacement (déclenchement de Peur à l'approche)
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
@@ -8441,7 +8440,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       set({ actorMove: { id: enemy.id, path: path ?? [{ ...mv.to }] }, battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, {
-        kind: 'deplacer', vers: { ...mv.to }, chemin: path, thenTargetId: mv.thenTargetId, couru: !!ran, etaitEngage: wasEngaged, distAvant: distBefore, depuis: fromPos, mouvementAvant: battle.movementUsed ?? 0,
+        kind: 'deplacer', vers: { ...mv.to }, chemin: path, thenTargetId: mv.thenTargetId, couru: !!ran, charge, distAvant: distBefore, depuis: fromPos, mouvementAvant: battle.movementUsed ?? 0,
       }, beatHold(get, 'moveTelegraph'));
       return;
     }

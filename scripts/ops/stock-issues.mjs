@@ -1,5 +1,5 @@
 // COMPTEUR DU TRAVAIL RESTANT du backlog (#2561), joué à la main par `npm run ops:stock-issues`.
-// Credo, puce « Le poison se corrige DANS LE GESTE » : un ticket émis par une vague naît SOUS-ISSUE
+// Credo, puce « Le poison se corrige dans le geste » : un ticket émis par une vague naît SOUS-ISSUE
 // native de son épique (`parent_issue_url`, `scripts/guards/lib/epique.mjs`). Le stock sans parent
 // d'avant ne se rattache pas : seule l'ÉMISSION se mesure.
 //

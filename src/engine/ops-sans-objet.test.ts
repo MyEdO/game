@@ -28,6 +28,8 @@ const FICHES: Record<string, () => Combatant> = {
   deuxHaines: () => ({ ...FICHES.vierge(), psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('nain') }, { type: 'haine', cible: ciblePsy.groupe('elfe') }] }),
   haineux: () => ({ ...FICHES.vierge(), psychTraits: [{ type: 'haine' }] }),
   enPeur: () => ({ ...FICHES.vierge(), psychState: [{ type: 'peur' }] }),
+  enHaine: () => ({ ...FICHES.vierge(), psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: true }] }),
+  haineFinie: () => ({ ...FICHES.vierge(), psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: false }] }),
   extenue: () => { const c = FICHES.vierge(); addCondition(c, 'extenue', 2); return c; },
   aTerreVerrouille: () => { const c = FICHES.vierge(); c.wounds = { ...c.wounds, current: 0 }; addCondition(c, 'a-terre', 1); return c; },
   aTerre: () => { const c = FICHES.vierge(); addCondition(c, 'a-terre', 1); return c; },
@@ -42,7 +44,7 @@ const OPS: GameOp[] = [
   { op: 'sinMod', amount: -2 }, { op: 'sinMod', amount: 0 }, { op: 'sinMod', amount: 1 },
   { op: 'removePsychTrait' }, { op: 'removePsychTrait', psychType: { id: 'peur' } }, { op: 'removePsychTrait', psychType: { id: 'haine' } },
   { op: 'removePsychTrait', psychType: { id: 'haine' }, cible: { id: 'elfe' } }, { op: 'removePsychTrait', psychType: { id: 'haine' }, cible: { id: 'gobelin' } },
-  { op: 'endPsych', type: { id: 'peur' } },
+  { op: 'endPsych', type: { id: 'peur' } }, { op: 'endPsych', type: { id: 'haine' } },
   { op: 'removeCondition', id: 'extenue' }, { op: 'removeCondition', id: 'a-terre' }, { op: 'removeCondition' },
   { op: 'removeTrait', trait: { id: 'amphibie' } },
   { op: 'cureDisease' }, { op: 'reduceDiseaseDays', days: 1 }, { op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }, { op: 'reduceDiseaseDays', days: 0 },
@@ -79,6 +81,23 @@ describe('opSansObjet ≡ applyOps ne change rien', () => {
     expect(JSON.stringify(c) !== avant).toBe(!sansObjet);
     expect(opSansObjet(FICHES.vierge(), o, { avantLeJet: true }), 'sans la maladie, rien à juger : sans objet').not.toBeNull();
     expect(opSansObjet({ ...FICHES.vierge(), diseases: [{ ...maladie(5 * MINUTES_PER_DAY), id: 'blessure-purulente' }] }, o, { avantLeJet: true }), 'avant le Test, le DR peut raccourcir').toBeNull();
+  });
+
+  it('`endPsych` d’une affliction CIBLÉE la désactive et garde son marqueur de rencontre (LDB 21 l.9)', () => {
+    const c = FICHES.enHaine();
+    applyOps(c, [{ op: 'endPsych', type: { id: 'haine' } }], ctx());
+    expect(c.psychState).toEqual([{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: false }]);
+  });
+
+  it('`endPsych` de l’instance courante ne finit QUE l’instance du contexte ; sans elle, sans objet', () => {
+    const elfes = { type: 'haine' as const, cible: ciblePsy.groupe('elfe'), active: true };
+    const nains = { type: 'haine' as const, cible: ciblePsy.groupe('nain'), active: true };
+    const c = { ...FICHES.vierge(), psychState: [{ ...elfes }, { ...nains }] };
+    const o: GameOp = { op: 'endPsych', instance: 'courante' };
+    expect(opSansObjet(c, o, ctx())).not.toBeNull();
+    applyOps(c, [o], { ...ctx(), affliction: { ...nains } });
+    expect(c.psychState).toEqual([elfes, { ...nains, active: false }]);
+    expect(opSansObjet(c, o, { ...ctx(), affliction: nains })).not.toBeNull();
   });
 
   it('une maladie de quelques heures ne s’allonge jamais à un jour', () => {

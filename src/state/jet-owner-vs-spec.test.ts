@@ -18,7 +18,7 @@
  * ANGLE MORT ÉNONCÉ : la confrontation prouve l'ACCORD des deux sources, pas leur justesse RAW — si
  * `spec.actor` lui-même désignait le mauvais combattant, les deux côtés mentiraient de concert et ce
  * test serait vert. C'est l'échantillonnage de flux RÉEL (`jet-owner-real-flows.hors-store.test.ts`, plus
- * `attack-intent-ownership.test.ts`) qui couvre ce plan-là.
+ * `attack-intent-ownership.hors-store.test.ts`) qui couvre ce plan-là.
  */
 import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, type JetOwnerRef } from '../noyau/flowVerbs';

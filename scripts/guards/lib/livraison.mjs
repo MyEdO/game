@@ -12,11 +12,16 @@ import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, jou
  *  pour un commit courant ou une résolution de fusion. */
 export const SUBSTANTIVE_MIN_LINES = 10
 
-/** Trailers de livraison : motif de ligne, titre de section du solde et seuil de texte.
- *  Chaque ligne porte sa clé majuscule, précédée éventuellement de blancs horizontaux ;
- *  seuls les blancs horizontaux entourent son séparateur. */
+/** Trailers de livraison : motif de ligne, titre de section du solde, seuil de texte et, pour `JUGE`,
+ *  la forme de son début (`forme`, dite à l'agent par `formeAttendue`) : le nombre de rondes de juge,
+ *  deux au plus (#3223). Chaque ligne porte sa clé majuscule, précédée éventuellement de blancs
+ *  horizontaux ; seuls les blancs horizontaux entourent son séparateur. */
 export const TRAILERS = Object.freeze({
-  JUGE: Object.freeze({ ligne: /^[ \t]*JUGE[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge', min: 40 }),
+  JUGE: Object.freeze({
+    ligne: /^[ \t]*JUGE[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge', min: 40,
+    forme: /^(?:[-*][ \t]+)?(?:JUGE[ \t]*:[ \t]*)?(?:aucun juge|[12] rondes?)\b/i,
+    formeAttendue: '« aucun juge ; <preuve> » ou « <1|2> ronde(s) ; <verdicts> » — au 2e rejet, le lot se recadre (redécoupé ou réduit dans ce qu’il prétend fermer) et se juge comme un livrable neuf (#3223)',
+  }),
   REFUTATION: Object.freeze({ ligne: /^[ \t]*REFUTATION[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'R[ée]futation', min: 40 }),
   'JUGE-VISION': Object.freeze({ ligne: /^[ \t]*JUGE-VISION[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge-Vision', min: 40 }),
 })
@@ -67,6 +72,7 @@ export function sectionDeLivraison(contenu, nom) {
     refuted = verdict === 'REFUTE'
     if (refuted) problems.push('verdict RÉFUTÉ : un ticket réfuté ne se ferme pas')
   }
+  if (TRAILERS[nom].forme && !synthese.split('\n').some((ligne) => TRAILERS[nom].forme.test(ligne.trim()))) problems.push(`"## ${titre}" doit porter une ligne qui commence par ${TRAILERS[nom].formeAttendue}`)
   if (synthese.length < TRAILERS[nom].min) problems.push(`"## ${titre}" trop maigre (${synthese.length} car.${nom === 'REFUTATION' ? ' hors verdict' : ''}, ${TRAILERS[nom].min} requis)`)
   return { problems, refuted }
 }
@@ -77,12 +83,12 @@ const SHA_COURT_MIN = 9
 /** `true` si `texte` porte un sha d'au moins `SHA_COURT_MIN` caractères qui préfixe `sha`. PURE. */
 const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\b/gi)].some((m) => m[0].length >= SHA_COURT_MIN && sha.startsWith(m[0].toLowerCase()))
 
-/** Textes des lignes reconnues par le motif de `TRAILERS[nom]` et atteignant son seuil. PURE. */
+/** Textes des lignes reconnues par le motif de `TRAILERS[nom]`, atteignant son seuil et de sa forme. PURE. */
 const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
   .map((ligne) => TRAILERS[nom].ligne.exec(ligne))
   .filter((m) => m !== null)
   .map((m) => m[1].trim())
-  .filter((texte) => texte.length >= TRAILERS[nom].min)
+  .filter((texte) => texte.length >= TRAILERS[nom].min && (TRAILERS[nom].forme?.test(texte) ?? true))
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
  *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */

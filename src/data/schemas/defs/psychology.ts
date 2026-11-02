@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { difficultySchema, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
-import { passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { mecaniqueDe, passifsDe } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'psychology.json';
@@ -14,7 +14,9 @@ const doc = document(
   famille,
   {
     passive: passifsDe().optional(),
-    effects: z.array(triggeredEffectSchema).optional(),
+    /** Effets d'une affliction : seuls à lire son instance (`endPsych.instance`) et sa Cible en vue (Condition
+     *  `cibleEnVue`). LDB 21 l.19, l.39, l.48 */
+    effects: z.array(mecaniqueDe({ 'endPsych.instance': 'admis', 'condition.cibleEnVue': 'admis' }).triggeredEffect).optional(),
     gating: nommerChamps(z
       .strictObject({
         action: z.literal('none').optional(),

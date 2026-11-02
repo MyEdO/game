@@ -1,0 +1,61 @@
+/**
+ * Sort « Souffle » (LDB 47 l.509) : « Vous effectuez immédiatement une attaque de Souffle, comme
+ * si vous aviez dépensé 2 Avantages pour activer le Trait de créature Souffle (voir page 341).
+ * Souffle est un Projectile magique dont les Dégâts sont égaux à votre Bonus d'Endurance. Le MJ
+ * détermine quel type d'attaque de Souffle correspond le mieux à votre Talent Magie des Arcanes. »
+ * — délégué à l'attaque de ZONE du trait (applyAreaAttack), centrée sur la cible du sort.
+ */
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { applyCast, castSpell } from './combatFlow';
+import { createHero } from '../engine/character';
+import { findSpellById } from '../data';
+import { testScene } from '../scenes/test-fixture';
+import type { CastResult } from '../engine/magic';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const okRes = (sl: number): CastResult => ({ cast: true, roll: 30, target: 70, sl, isCritical: false, isFumble: false, log: 'lance Souffle' });
+
+describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509)', () => {
+  function setup() {
+    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    banc.setState({ party: [W] });
+    banc.getState().startScene(testScene());
+    banc.getState().startCombat('enc-mutants');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    banc.getState().seedRng(2);
+    const b = banc.getState().battle!;
+    const caster = b.combatants.find((c) => c.label === 'W')!;
+    caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
+    caster.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
+    caster.characteristics.endurance = 60; // BE 6 → Dégâts du Souffle
+    caster.characteristics['capacite-de-tir'] = 100;
+    caster.pos = { x: 10, y: 10 };
+    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const T = foes[0];
+    T.pos = { x: 12, y: 10 };
+    T.characteristics.agilite = 5;
+    T.skills = T.skills.filter((s) => s.id !== 'esquive');
+    foes.slice(1).forEach((e) => { e.pos = { x: 30, y: 30 }; }); // hors zone
+    return { caster, T };
+  }
+
+  it('lancé avec succès : attaque de zone Souffle (Feu) centrée sur la cible du sort', () => {
+    const { caster, T } = setup();
+    const souffle = findSpellById('souffle')!;
+    applyCast(banc.getState, banc.setState, caster, T, souffle, okRes(6), false, false);
+    const log = banc.getState().battle!.log.map((e) => e.text).join('\n');
+    expect(log).toMatch(/déclenche Souffle \(Feu\)/);
+  });
+
+  it('castSpell : la portée du sort suit le TRAIT (BE+20 m), pas le champ « 1 mètre »', () => {
+    const { caster, T } = setup();
+    T.pos = { x: 16, y: 10 }; // 6 cases = 12 m — hors « 1 mètre », dans BE+20 (26 m)
+    castSpell(banc.getState, banc.setState, caster, T, 'souffle');
+    expect(banc.getState().pendingCast).not.toBeNull();
+    expect(banc.getState().pendingCast!.missile).toBe(false); // résolu comme zone, pas Projectile
+  });
+});

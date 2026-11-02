@@ -95,6 +95,43 @@ describe('lireGlb', () => {
     expect(() => lireGlb(GLB.subarray(0, 30))).toThrow(/longueur déclarée/);
     expect(() => lireGlb(new Uint8Array(4))).toThrow(/en-tête incomplet/);
   });
+  /** Un GLB de nœuds `nodes` et d'un mesh à une primitive au matériau 0. */
+  const arbre = (nodes: readonly unknown[], extra: Record<string, unknown> = {}) =>
+    ecrireGlb({ asset: { version: '2.0' }, nodes, meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'm' }], ...extra }, null);
+  it.each<[string, Uint8Array, string]>([
+    ['deux nœuds à mesh du même nom', glb(['corps', 'corps'], []), 'nœuds 0 et 1 nommés corps'],
+    ['deux articulations du même nom, un rigide pendu à la seconde', arbre([{ name: 'root' }, { name: 'root', children: [2] }, { name: 'lame', mesh: 0 }], { skins: [{ joints: [0] }, { joints: [1] }] }), 'nœuds 0 et 1 nommés root'],
+    ['un nœud à deux parents', arbre([{ name: 'a', children: [2] }, { name: 'b', children: [2] }, { name: 'c' }]), 'nœud 2 enfant des nœuds 0 et 1'],
+    ['un enfant listé deux fois par le même parent', arbre([{ name: 'a', children: [1, 1] }, { name: 'b' }]), 'nœud 1 listé deux fois parmi les enfants du nœud 0'],
+    ['une parenté en cycle', arbre([{ name: 'a', children: [1] }, { name: 'b', children: [0], mesh: 0 }]), 'la chaîne des parents du nœud 0 boucle'],
+    ['une parenté en cycle sous une racine saine', arbre([{ name: 'r' }, { name: 'a', children: [2] }, { name: 'b', children: [1], mesh: 0 }]), 'la chaîne des parents du nœud 1 boucle'],
+    ['un nœud enfant de lui-même', arbre([{ name: 'a', children: [0], mesh: 0 }]), 'la chaîne des parents du nœud 0 boucle'],
+    ['une racine de scène qui a un parent', arbre([{ name: 'r', children: [1] }, { name: 'e', mesh: 0 }], { scenes: [{ nodes: [0, 1] }], scene: 0 }), 'racine 1 de la scène 0 enfant du nœud 0'],
+    ['une racine de scène hors des nœuds', arbre([{ name: 'r' }], { scenes: [{ nodes: [4] }] }), 'scène 0 : racine 4 hors des 1 nœuds'],
+    ['un enfant hors des nœuds', arbre([{ name: 'a', children: [9], mesh: 0 }]), 'nœud 0 : enfant 9 hors des 1 nœuds'],
+    ['un mesh hors des meshes', arbre([{ name: 'a', mesh: 3 }]), 'nœud 0 : mesh 3 hors des 1 meshes'],
+    ['un skin hors des skins', arbre([{ name: 'a', mesh: 0, skin: 0 }]), 'nœud 0 : skin 0 hors des 0 skins'],
+    ['une articulation hors des nœuds', arbre([{ name: 'a' }], { skins: [{ joints: [2] }] }), 'skin 0 : articulation 2 hors des 1 nœuds'],
+    ['un matériau hors des matériaux', arbre([{ name: 'a', mesh: 0 }], { materials: [] }), 'mesh 0, primitive 0 : matériau 0 hors des 0 matériaux'],
+    ['un nœud à mesh sans nom, porteur de zone et d’un second jeu d’influences', arbre([{ mesh: 0, extras: { zone: 'torse' } }], { meshes: [{ primitives: [{ material: 0, attributes: { JOINTS_1: 0, WEIGHTS_1: 0 } }] }] }), 'nœud 0 à mesh sans nom'],
+    ['un enfant qui n’est pas un indice', arbre([{ name: 'a', children: ['1'] }, { name: 'b' }]), 'nœud 0 : enfant "1" hors des 2 nœuds'],
+    ['un mesh sans primitives', arbre([{ name: 'a' }], { meshes: [{}] }), 'mesh 0 : primitives : tableau attendu'],
+    ['un skin sans articulations', arbre([{ name: 'a' }], { skins: [{}] }), 'skin 0 : joints : tableau attendu'],
+    ['des enfants hors d’un tableau', arbre([{ name: 'a', children: 1 }]), 'nœud 0 : children : tableau attendu'],
+    ['des racines de scène hors d’un tableau', arbre([{ name: 'a' }], { scenes: [{ nodes: 0 }] }), 'scène 0 : nodes : tableau attendu'],
+    ['des nœuds hors d’un tableau', ecrireGlb({ asset: { version: '2.0' }, nodes: {} }, null), 'nodes : tableau attendu'],
+    ['un nœud qui n’est pas un objet', arbre([null]), 'nœud 0 : objet attendu'],
+    ['un nœud à mesh au nom vide', arbre([{ name: '', mesh: 0 }]), 'nœud 0 à mesh sans nom'],
+    ['une scène du document hors des scènes', arbre([{ name: 'r' }], { scenes: [{ nodes: [0] }], scene: 4 }), 'scène du document 4 hors des 1 scènes'],
+  ])('refuse %s, le défaut dit', (_, octets, raison) => {
+    expect(() => lireGlb(octets)).toThrow(new GlbIllisible(raison));
+  });
+  it('lit une articulation au nom vide comme une articulation sans nom', () => {
+    expect(lireGlb(arbre([{ name: '', children: [1] }, { name: 'lame', mesh: 0 }], { skins: [{ joints: [0] }] })).meshes).toEqual([{ nom: 'lame', skinne: false, articulation: 0, os: null }]);
+  });
+  it('lit un matériau au nom qui n’est pas une chaîne comme un matériau sans nom', () => {
+    expect([...lireGlb(arbre([{ name: 'a', mesh: 0 }], { materials: [{ name: 42 }] })).materiaux]).toEqual(['']);
+  });
   it.each<[string, (vue: DataView) => void, RegExp]>([
     ['un premier chunk autre que JSON', (vue) => vue.setUint32(16, 0x004e4942, true), /premier chunk autre que JSON/],
     ['un chunk JSON plus long que le fichier', (vue) => vue.setUint32(12, GLB.byteLength, true), /chunk JSON tronqué/],
