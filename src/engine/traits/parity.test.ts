@@ -79,6 +79,13 @@ const COUVERT_AILLEURS = new Map<string, string>([
   // Dressé (Magie) : trait MARQUEUR sans effet propre — lu par le gate `startleCause` de Nerveux
   // (Condition Flow `has dresse-magie` → exemption de l'effarouchement magique, LDB 85 l.110, données).
   ['Dressé (Magie)', 'marqueur lu par le gate `startleCause` de Nerveux (exemption magie, données)'],
+  // Porteurs de Groupe (#3045) : le Trait octroie son Groupe, le reste de la discipline reste narratif.
+  ['Béni', 'Groupe `religion` (capabilities.grantGroups, lu par groupesDe) ; Bénédictions de PNJ sans liste de prières dans la donnée'],
+  ['Dressé (Monture)', 'Groupe `animaux-domestiques` (groupesDe) ; mountabilité posée par l’encounter (m.mount/ridesEntityId)'],
+  ['Dressé (Cavalerie de choc)', 'Groupe `animaux-domestiques` (groupesDe) ; charge en bon ordre (Aux Armes, formations) non modélisée'],
+  ['Dressé (Rapporteur)', 'Groupe `animaux-domestiques` (groupesDe) ; discipline narrative (rapport)'],
+  ['Dressé (Revenir à la maison)', 'Groupe `animaux-domestiques` (groupesDe) ; discipline narrative (retour au bercail)'],
+  ['Dressé (Trait)', 'Groupe `animaux-domestiques` (groupesDe) ; discipline narrative (animal de trait, LDB 85 l.118)'],
 ]);
 
 // Journal/MJ EN CONSCIENCE : pas d'effet moteur câblable sans système support — la desc (verbatim)
@@ -86,19 +93,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
 const JOURNAL_MJ = new Map<string, string>([
   ['Arboricole', 'bonus Escalade/Discrétion en forêt — pas de biome forêt mécanisé'],
   ['Limicole', 'pas de terrain marécageux à pénalité de Mouvement'],
-  ['Béni', 'Bénédictions de PNJ — pas de liste de prières dans la donnée (MJ)'],
   ['Miracles', 'Miracles de PNJ — pas de liste dans la donnée (MJ)'],
-  // Dressé : chaque discipline est un trait à part entière (anti-pattern chaîne supprimé). Phase 1 =
-  // STRUCTURE ; Phase 2 a CÂBLÉ Guerre/Magie (exemption Nerveux + CC) ; Phase 3 a CÂBLÉ Dompté (ignore
-  // Bestial) et Garde (Territorial). Restent narratives/non modélisées : Monture, Cavalerie, Rapporteur…
-  // Monture : la mountabilité réelle est posée par l'ENCOUNTER (`m.mount`/`ridesEntityId`, choix d'auteur
-  // de scène) ; le trait reste le marqueur RAW. Cavalerie de choc : règle « charger en bon ordre » (Aux
-  // Armes, formations d'unités) NON modélisée. Les deux = narratif/auteur, pas d'effet moteur isolé.
-  ['Dressé (Monture)', 'marqueur RAW ; mountabilité posée par l’encounter (m.mount/ridesEntityId)'],
-  ['Dressé (Cavalerie de choc)', 'charge en bon ordre (Aux Armes, formations) — non modélisé'],
-  ['Dressé (Rapporteur)', 'discipline narrative (rapport) — arbitrage MJ'],
-  ['Dressé (Revenir à la maison)', 'discipline narrative (retour au bercail) — arbitrage MJ'],
-  ['Dressé (Trait)', 'discipline narrative (animal de trait : tire carrosse/chariot/charrue, LDB 85 l.118) — arbitrage MJ'],
   ['Increvable', 'recousue/ressuscitée post-combat — arbitrage MJ'],
   // Traits des Horreurs de Tzeentch (EDO) — flavor de statbloc sans système support, desc verbatim.
   ['Dédoublement', 'scission en 2 horreurs bleues à la mort/Critique — pas de spawn-on-death dans le moteur (MJ/auteur)'],

@@ -401,7 +401,10 @@
       "tenue": "hors-la-loi",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "hors-la-loi"
+    ]
   },
   {
     "id": "pol-dankels",
@@ -749,7 +752,8 @@
       "species": "araignee-geante"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "predateur"
     ]
   },
   {
@@ -827,7 +831,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -937,7 +942,8 @@
       "species": "chien"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -1034,7 +1040,8 @@
       "species": "loup"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "predateur"
     ]
   },
   {
@@ -1128,7 +1135,8 @@
       "species": "ours"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "predateur"
     ]
   },
   {
@@ -1196,7 +1204,8 @@
       "species": "pigeon"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -1484,7 +1493,8 @@
     },
     "grantGroups": [
       "bete",
-      "serpent"
+      "serpent",
+      "predateur"
     ]
   },
   {
@@ -1748,7 +1758,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2108,7 +2119,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2288,7 +2300,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2471,7 +2484,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2922,7 +2936,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -9409,7 +9424,10 @@
     },
     "appearance": {
       "species": "chimere"
-    }
+    },
+    "grantGroups": [
+      "predateur"
+    ]
   },
   {
     "id": "la-bete-de-l-oblast",
@@ -10527,7 +10545,10 @@
     },
     "appearance": {
       "species": "chat-sauvage"
-    }
+    },
+    "grantGroups": [
+      "predateur"
+    ]
   },
   {
     "id": "lion-de-guerre-de-chrace",
@@ -10628,7 +10649,10 @@
     },
     "appearance": {
       "species": "lion-de-guerre-de-chrace"
-    }
+    },
+    "grantGroups": [
+      "predateur"
+    ]
   },
   {
     "id": "griffon-zoo-imperial",
@@ -12387,7 +12411,10 @@
       "species": "ogre",
       "tenue": "ogre",
       "armurePortee": true
-    }
+    },
+    "grantGroups": [
+      "hors-la-loi"
+    ]
   },
   {
     "id": "nazzaalta-affabule",
@@ -14697,7 +14724,11 @@
       "species": "humain",
       "tenue": "sorcier-dissident"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "sorcieres",
+      "sorciers-dissidents"
+    ]
   },
   {
     "id": "frere-bengt",
@@ -15955,7 +15986,11 @@
       "species": "humain",
       "tenue": "flagellant"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "religion",
+      "figures-symboles-religieux"
+    ]
   },
   {
     "id": "beate-moser",
@@ -20012,7 +20047,8 @@
       "species": "chien"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20081,7 +20117,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20154,7 +20191,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20286,7 +20324,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20374,7 +20413,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20440,7 +20480,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20568,7 +20609,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20730,7 +20772,10 @@
     },
     "appearance": {
       "species": "poulet"
-    }
+    },
+    "grantGroups": [
+      "animaux-domestiques"
+    ]
   },
   {
     "id": "singe",
@@ -20756,7 +20801,10 @@
     },
     "appearance": {
       "species": "singe"
-    }
+    },
+    "grantGroups": [
+      "animaux-domestiques"
+    ]
   },
   {
     "id": "vers",

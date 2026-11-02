@@ -69,7 +69,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     expect(groupesDe({ career: 'garde' })).toContain('garde');
     expect(groupesDe({ career: 'chevalier' })).toContain('chevalier');
     // Cavalier est aussi classe Guerriers mais N'EST PAS une des 3 carrières militaires ciblées.
-    expect(groupesDe({ career: 'cavalier' })).toEqual([]);
+    for (const g of ['soldat', 'garde', 'chevalier']) expect(groupesDe({ career: 'cavalier' })).not.toContain(g);
   });
 
   it('groupMatch : appartenance STRICTE par id (plus de tolérance pluriel/casse/sous-type)', () => {
@@ -96,7 +96,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
   it('Talent Béni(Sigmar/Ulric) → Groupe religieux (comble le trou Phase 2 : sigmarite n’était dérivé de rien)', () => {
     expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'sigmar' }] })).toContain('sigmarite');
     expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'ulric' }] })).toContain('ulricain');
-    expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'manann' }] })).toEqual([]); // culte sans Groupe dédié
+    expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'manann' }] })).toEqual(findGodById('manann')?.grantGroups ?? []); // le culte, rien d'autre
     expect(groupesDe({ talents: [{ talentId: 'autre-talent' }] })).toEqual([]); // pas Béni → rien
   });
 
@@ -105,7 +105,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     // même dieu, un seul des deux ouvre le Groupe.
     expect(findTalentById('beni')?.grantSpecGroups).toBe(true);
     expect(findTalentById('invocation')?.grantSpecGroups).toBeUndefined();
-    expect(findGodById('sigmar')?.grantGroups).toEqual(['sigmarite']);
+    expect(findGodById('sigmar')?.grantGroups).toContain('sigmarite');
     expect(groupesDe({ talents: [{ talentId: 'invocation', spec: 'sigmar' }] })).toEqual([]);
   });
 

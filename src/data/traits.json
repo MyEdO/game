@@ -203,6 +203,11 @@
     "source": {
       "book": "livre-de-base",
       "page": 338
+    },
+    "capabilities": {
+      "grantGroups": [
+        "religion"
+      ]
     }
   },
   {
@@ -494,7 +499,12 @@
         "char": "capacite-de-combat",
         "mod": 10
       }
-    ]
+    ],
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
+    }
   },
   {
     "id": "dresse-magie",
@@ -504,6 +514,11 @@
     "source": {
       "book": "livre-de-base",
       "page": 339
+    },
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
@@ -517,7 +532,12 @@
     },
     "suppressesCapabilities": [
       "bestial"
-    ]
+    ],
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
+    }
   },
   {
     "id": "dresse-monture",
@@ -527,6 +547,11 @@
     "source": {
       "book": "livre-de-base",
       "page": 339
+    },
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
@@ -539,7 +564,10 @@
       "page": 339
     },
     "capabilities": {
-      "territorial": true
+      "territorial": true,
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
@@ -550,6 +578,11 @@
     "source": {
       "book": "livre-de-base",
       "page": 339
+    },
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
@@ -560,6 +593,11 @@
     "source": {
       "book": "livre-de-base",
       "page": 339
+    },
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
@@ -570,6 +608,11 @@
     "source": {
       "book": "aux-armes",
       "page": 107
+    },
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
@@ -1073,7 +1116,10 @@
       "page": 340
     },
     "capabilities": {
-      "spellcaster": true
+      "spellcaster": true,
+      "grantGroups": [
+        "magie"
+      ]
     }
   },
   {
@@ -1158,7 +1204,12 @@
           }
         }
       }
-    ]
+    ],
+    "capabilities": {
+      "grantGroups": [
+        "maladie"
+      ]
+    }
   },
   {
     "id": "meneur",
@@ -1909,7 +1960,12 @@
           }
         }
       }
-    ]
+    ],
+    "capabilities": {
+      "grantGroups": [
+        "vampires"
+      ]
+    }
   },
   {
     "id": "venin",
@@ -2972,7 +3028,12 @@
         },
         "mod": 10
       }
-    ]
+    ],
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
+    }
   },
   {
     "id": "dresse-trait",
@@ -2982,6 +3043,11 @@
     "source": {
       "book": "livre-de-base",
       "page": 339
+    },
+    "capabilities": {
+      "grantGroups": [
+        "animaux-domestiques"
+      ]
     }
   },
   {
