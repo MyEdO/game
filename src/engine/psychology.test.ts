@@ -1,8 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, resolvePeurTest, resolveTerreurTest, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue } from './psychology';
+import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue } from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
+import { applyOps } from './ops';
 import { deFixe } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -34,16 +35,19 @@ describe('Psychologie (pur)', () => {
     expect(peurTerreurFromSize('moyenne', 'moyenne')).toBeNull();
     expect(peurTerreurFromSize('petite', 'grande')).toBeNull(); // plus petit ne fait pas peur
   });
-  it('resolvePeurTest : cumule le DR jusqu’à l’Indice (surmontée)', () => {
-    const r = resolvePeurTest(80, 2, 0, makeRNG(2));
-    expect(r.dr).toBeGreaterThanOrEqual(0);
-    expect(typeof r.calmeDR).toBe('number');
-    expect(r.calmeDR >= 2).toBe(r.surmontee); // surmontée ⟺ DR cumulé ≥ Indice
+  it('pasDePeur : cumule le DR jusqu’à l’Indice (surmontée), LDB 21 l.25', () => {
+    expect(pasDePeur(0, { success: true, sl: 1 }, 2)).toEqual({ calmeDR: 1, surmontee: false });
+    expect(pasDePeur(1, { success: true, sl: 1 }, 2)).toEqual({ calmeDR: 2, surmontee: true });
+    expect(pasDePeur(1, { success: false, sl: -3 }, 2)).toEqual({ calmeDR: 0, surmontee: false });
   });
-  it('resolveTerreurTest : échec → Brisé = Indice + |DR négatifs| ; la Peur héritée n’est pas surmontée', () => {
-    const r = resolveTerreurTest(1, 3, makeRNG(2)); // FM 1 → échec quasi sûr
-    if (!r.success) expect(r.brise).toBeGreaterThanOrEqual(3);
-    expect(r.peurSurmontee).toBe(false);
+  it('Terreur ratée : Brisé = Indice + |DR négatifs| ; la Peur héritée n’est pas surmontée, LDB 21 l.54-56', () => {
+    const c = blessuresSurLeProfil({
+      id: 'c', label: 'c', kind: 'hero', characteristics: { 'force-mentale': 30 }, skills: [], talents: [], psychTraits: [], psychState: [], traits: [], groups: [],
+      wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, armour: {} as never, weapons: [],
+    }) as unknown as Combatant;
+    applyOps(c, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 3 }, { success: false }), { rng: makeRNG(2), sl: -2 });
+    expect(c.conditions.find((k) => k.id === 'brise')?.value).toBe(5);
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'o', indice: 3, calmeDR: 0, surmontee: false }]);
   });
   it('isFrenzyCapable : trait OU talent « Frénésie »', () => {
     expect(isFrenzyCapable({ traits: [{ id: 'frenesie' }], talents: [] } as unknown as Combatant)).toBe(true);

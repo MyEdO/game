@@ -70,7 +70,8 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(f.etape?.interaction, 'témoin : l’étape courante est un tirage sur table').toBe('table');
       expect(f.pid).toBe(f.etape!.id);
       expect(f.verbes).toEqual(expect.arrayContaining(['cascadeTableRoll', 'cascadeTableSetForcedRoll', 'cascadeNext']));
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll(pid: id d’étape de cascade) · cascadeTableSetForcedRoll(pid: id d’étape de cascade, roll: nombre)`);
+      // La vue replie une ligne trop large en continuations indentées de deux espaces (`BORNES.largeur`).
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll(pid: id d’étape de cascade) · cascadeTableSetForcedRoll(pid: id d’étape de cascade, roll: nombre)`);
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascade : \S+ .+ à tirer$/m);
     });
   });

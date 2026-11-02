@@ -137,7 +137,7 @@ export interface CombatFeature {
   /** Sans peur (LDB 10 l.1051) : PAS une immunité — détecte que le porteur a le Talent contre
    *  l'Ennemi spécifié (`ctx.spec` ; sans spec — talent ACCORDÉ par Flambeau de Vertu/Cœurs
    *  ardents — toutes sources). L'effet réel (un seul Test de Calme Accessible (+20), qui PEUT
-   *  échouer) est résolu par `sansPeurVs`/`resolvePeurTest`/`resolveTerreurTest` (psychology.ts). */
+   *  échouer) est résolu par `sansPeurVs`/`psychTest`/`pasDePeur` (psychology.ts). */
   fearImmune?: boolean;
   /** Endurci : ignore niveau Points de Blessure perdus par l'État Hémorragique. */
   bleedIgnore?: boolean;

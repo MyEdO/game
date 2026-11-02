@@ -19,10 +19,8 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Psychologie de COMBAT — régime CASCADE de Round (LDB 21). Les Traits ciblés et les NOUVELLES
- * Terreurs se testent au DÉBUT du Round (l.9 : « un Test de Calme au début du Round »,
- * `openRoundStartPsych`) ; la Peur est un Test ÉTENDU testé à la FIN de chaque Round (l.25,
- * `openRoundEndCascade`). Depuis la VAGUE MULTI (#1117 L2) : chaque collecte ouvre UNE cascade
+ * Psychologie de COMBAT — passes de Round (LDB 21 l.9, l.25) : `openRoundStartPsych`,
+ * `openRoundEndCascade`. Depuis la VAGUE MULTI (#1117 L2) : chaque collecte ouvre UNE cascade
  * `purpose:'combat'` de BANDES — une étape `kind:'combatPsych'` PAR ENTRÉE DE RÈGLE (type psy +
  * source + cible + Indice), une RANGÉE (`participants`) par héros appelé, ce qui diverge par héros
  * (DR déjà cumulé, Sans Peur) vivant sur la rangée (`meta`). On vérifie ce contrat.
@@ -126,9 +124,9 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     banc.getState().seedRng(2);
     const { H, E } = setup('grande'); // E est une source de Peur (Taille)
     H.resolve = 2;
-    const round = banc.getState().battle!.round;
+    const clos = banc.getState().battle!.round - 1; // le Round que clôt `openRoundEndCascade`
     // Peur déjà ENTAMÉE (Test étendu) : 1 DR cumulé sur 3 requis, Test de ce Round non encore effectué.
-    H.psychState = [{ type: 'peur', sourceId: E.id, indice: 3, calmeDR: 1, lastTestRound: round - 1 }];
+    H.psychState = [{ type: 'peur', sourceId: E.id, indice: 3, calmeDR: 1, lastTestRound: clos - 1 }];
     openRoundEndCascade(banc.getState, banc.setState);
     expect(band().combatPsych?.kind).toBe('peur');
     // Le DR déjà cumulé est une divergence PAR HÉROS : il vit sur la rangée (charge utile + barre).
@@ -155,8 +153,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     banc.getState().seedRng(2);
     const { H, E } = setup('grande');
     H.resilience = 2;
-    const round = banc.getState().battle!.round;
-    H.psychState = [{ type: 'peur', sourceId: E.id, indice: 6, calmeDR: 0, lastTestRound: round - 1 }];
+    const clos = banc.getState().battle!.round - 1; // le Round que clôt `openRoundEndCascade`
+    H.psychState = [{ type: 'peur', sourceId: E.id, indice: 6, calmeDR: 0, lastTestRound: clos - 1 }];
     openRoundEndCascade(banc.getState, banc.setState);
     expect(band().combatPsych?.kind).toBe('peur');
 
@@ -245,11 +243,12 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
-  it('la Peur ne se teste PAS au début de Round (réservée à la fin) ; la Terreur PAS à la fin', () => {
+  it('la Peur s’enregistre au début du Round sans Test (LDB 21 l.25) ; la Terreur ne se teste PAS à la fin', () => {
     banc.getState().seedRng(2);
-    setup('grande'); // Peur 1
-    openRoundStartPsych(banc.getState, banc.setState); // Peur exclue du début → aucune cascade
+    const { H, E } = setup('grande'); // Peur 1
+    openRoundStartPsych(banc.getState, banc.setState); // Peur enregistrée, testée à la fin → aucune cascade
     expect(banc.getState().pendingCascade).toBeNull();
+    expect(heroOf(H.id).psychState).toEqual([{ type: 'peur', sourceId: E.id, indice: 1, calmeDR: 0 }]);
 
     setup('enorme'); // Terreur 2
     openRoundEndCascade(banc.getState, banc.setState); // Terreur exclue de la fin → aucune cascade
@@ -348,8 +347,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     expect(bandes.length).toBe(1);
     expect(bandes[0].participants!.map((p) => p.id)).toEqual([A.id, B.id]);
 
-    // Deux sources DISTINCTES (deux entrées de règle) → deux fenêtres. Un héros ne teste qu'UNE Peur
-    // par Round (`collectHeroRoundEndPsych`) : A a déjà vaincu celle de E1, sa Peur DUE est celle de E2.
+    // Deux sources DISTINCTES (deux entrées de règle) → deux fenêtres ; chaque Peur due a sa rangée
+    // (LDB 21 l.25) : A a déjà vaincu celle de E1, B craint les deux.
     banc.setState({ pendingCascade: null });
     E1.causesPeur = 2;
     E2!.causesPeur = 3;
@@ -360,8 +359,9 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     openRoundEndCascade(banc.getState, banc.setState);
     const deux = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'combatPsych');
     expect(deux.length).toBe(2);
-    expect(deux.map((s) => s.combatPsych!.sourceId)).toEqual([E2!.id, E1.id]); // ordre de première rencontre
-    expect(deux.map((s) => s.participants!.map((p) => p.id))).toEqual([[A.id], [B.id]]);
+    expect(deux.map((s) => s.combatPsych!.sourceId).sort()).toEqual([E1.id, E2!.id].sort());
+    const rangees = Object.fromEntries(deux.map((s) => [s.combatPsych!.sourceId, s.participants!.map((p) => p.id)]));
+    expect(rangees).toEqual({ [E1.id]: [B.id], [E2!.id]: [A.id, B.id] });
   });
 
   it('Test ÉTENDU par rangée (LDB 21 l.25) : le cumul progresse d’un Round à l’autre, la bande suivante part du DR déjà gagné', () => {
@@ -423,7 +423,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     const { A, E1 } = duo();
     E1.causesPeur = 6;
     const b0 = banc.getState().battle!;
-    A.psychState = [{ type: 'peur', sourceId: E1.id, indice: 6, calmeDR: 1, lastTestRound: b0.round - 1 }];
+    A.psychState = [{ type: 'peur', sourceId: E1.id, indice: 6, calmeDR: 1, lastTestRound: b0.round - 2 }]; // avant le Round que clôt `openRoundEndCascade`
     openRoundEndCascade(banc.getState, banc.setState);
     const bande1 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatPsych')!;
     // Jet POSÉ : échec à DR −3 sur la rangée de A (1 + (−3) → planché à 0).

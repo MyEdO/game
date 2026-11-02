@@ -758,9 +758,8 @@ export interface PendingDispel {
   result: JetPose | null;
   rerolled?: boolean;
 }
-// Psychologie de COMBAT (Peur/Terreur/Traits ciblés, LDB 21) : CASCADE de Round — étapes
-//  `kind:'combatPsych'` (cf. CascadeStep.combatPsych) ; Traits/Terreur au DÉBUT de Round, Peur
-//  (Test étendu) à la FIN.
+// Psychologie de COMBAT (Peur/Terreur/Traits ciblés, LDB 21) : passes de DÉBUT et de FIN de Round —
+//  étapes `kind:'combatPsych'` (cf. CascadeStep.combatPsych). LDB 21 l.9, l.25
 /** Entrée en Frénésie en attente (LDB 21 l.31) : Test de FM. Lancer → Chance → Appliquer (entre si succès). */
 export interface PendingFrenzy {
   combatantId: string;
@@ -2223,12 +2222,12 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   encounterPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
-   *  (`participants`, `aggregate:'none'`). Les Traits ciblés ET les NOUVELLES Terreurs se testent au
-   *  DÉBUT du Round (l.14) ; la Peur est un Test ÉTENDU testé à la FIN de chaque Round (l.25), dont le
-   *  DR déjà cumulé (`meta.prevDR`) et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
+   *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
+   *  `lastTestRound`). Moments : LDB 21 l.9, l.19, l.25, l.39, l.48. Le DR déjà cumulé (`meta.prevDR`)
+   *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`encounterPsych` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  combatPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
+  combatPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy; round: number };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/

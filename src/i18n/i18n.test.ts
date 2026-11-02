@@ -67,14 +67,14 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     const psy: string = psychologies[0].id;
     const groupe: string = groups[0].id;
     // @ts-expect-error — un id de psychologie n'est pas un libellé
-    void t('turn.recompose', { name: 'n', psych: psy });
+    void t('turn.psychSuperseded', { name: 'n', psych: psy });
     // @ts-expect-error — un id de Groupe n'est pas un libellé
     void t('turn.rageHate', { name: 'n', groupe });
     // @ts-expect-error — des ids de Groupe ne sont pas un libellé
     void t('eff.socialPsychEnvers', { mods: 'm', groupes: groupe });
     // @ts-expect-error — un nom de Talent écrit en dur n'est pas un libellé
     void t('cf.fearIgnored', { name: 'n', talent: 'Sans Peur' });
-    expect(t('turn.recompose', { name: 'n', psych: psychologyLabel(psy) })).toContain(psychologyLabel(psy));
+    expect(t('turn.psychSuperseded', { name: 'n', psych: psychologyLabel(psy) })).toContain(psychologyLabel(psy));
     expect(t('turn.rageHate', { name: 'n', groupe: groupLabel(groupe) })).toContain(groupLabel(groupe));
     expect(t('eff.socialPsychEnvers', { mods: 'm', groupes: groupesLabel([groupe]) })).toContain(groupLabel(groupe));
   });

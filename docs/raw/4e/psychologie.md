@@ -133,6 +133,8 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 
 > « La *Peur* représente une aversion extrême pour quelque chose. Les créatures qui causent la *Peur* possèdent un *Indice* de *Peur* ; cette valeur représente le DR que vous devez atteindre lorsque vous effectuez votre Test étendu de Calme pour vaincre cette *Peur*. » — `LDB 21 l.25`
 
+- Moment, lecture recommandée, révisable (#3045) : la Peur pèse dès la rencontre (« Tant que ce n'est pas le cas, vous êtes sujet à la *Peur* », `LDB 21 l.25`), posée sans Test au début du Round ; son Test étendu, premier compris, se joue à la fin de chaque Round, de même pour la Peur héritée d'une Terreur (`LDB 21 l.56`). Une source apparue en cours de Round se pose et se teste à la fin de ce Round. Lecture contraire : le premier Test se joue à la rencontre, au début du Round.
+
 **Effets tant que sous Peur** :
 - **-1 DR** à tous les Tests en rapport avec la source de la Peur.
 - Impossible de se rapprocher de la source sans réussir un **Test de Calme Intermédiaire (+0)**.
@@ -245,6 +247,8 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 
 **Fin des Préjugés** : à partir du Round suivant, peut tenter un nouveau Test. Sinon, cessent d'eux-mêmes lorsque tous les membres du groupe en Ligne de Vue ont disparu, que le personnage gagne l'État *Sonné* ou *Inconscient*, ou tombe sous un autre Trait Psychologique.
 
+- Nouveau Test, lecture recommandée, révisable (#3045) : au début de chaque Round qui suit le déclenchement (« À partir du Round qui suivra », `LDB 21 l.48` ; `retestAt` absent), là où l'Animosité et la Haine se re-testent à la fin (`retestAt: roundEnd`, `LDB 21 l.19`, `l.39`). Lecture contraire : à la fin de chaque Round suivant, comme elles.
+
 - Disparu, lecture recommandée, révisable (#3045) : seuls comptent les membres dans la Ligne de Vue du porteur au moment où elle se juge, si bien qu'un membre qui en sort ne la retient plus ; un membre Inconscient n'est ni mort ni disparu, il reste en vue ; un membre mort, rendu ou sorti de la rencontre a disparu (`cibleEnVue`). Lecture contraire : tout membre hors d'action a disparu.
 - « Qui étaient dans votre Ligne de Vue » (`LDB 21 l.48`), lecture recommandée, révisable (#3045) : les membres dans la Ligne de Vue ACTUELLE du porteur, comme pour l'Animosité et la Haine. Lecture contraire : les membres vus au déclenchement, qui retiennent le Préjugé où qu'ils soient tant qu'ils n'ont pas disparu.
 - Fin naturelle, lecture recommandée, révisable (#3045) : l'affliction se désactive et garde son marqueur de rencontre (`LDB 21 l.9`), si bien que le Groupe ne redéclenche aucun Test dans la même rencontre. Lecture contraire : un membre du Groupe qui entre ensuite en vue redéclenche un Test.
@@ -306,7 +310,7 @@ Peur spécifique envers un Type de créature, un objet ou une situation.
 > « Cette *Phobie* est liée à la cause de la *Terreur* qu'il a subi le plus récemment ou le plus souvent. Elle doit avoir un rapport avec une créature ou une situation que le Personnage peut rencontrer fréquemment. » — `ADE II 09 l.9`
 
 - Seul un combattant qui suit les règles de Personnage mémorise (`followsCharacterRules` : un héros, sous contrôle de l'IA compris, ou un PNJ modélisé qui les déclare ; « Personnages », `ADE II 09 l.5`, l.9) ; un autre PNJ ne mémorise aucune Terreur.
-- Chaque Terreur subie se mémorise avec ses États *Brisé* et les Groupes perçus de sa cause (`Combatant.terreursSubies`), par un seul point d'écriture (`subirLaTerreur`) qu'empruntent la bande de combat d'un héros, le tour d'un combattant mené par l'IA et la rencontre hors combat, où la cause est le PNJ de la scène qui la porte ; la Phobie vient quand leur cumul atteint le Bonus de Force Mentale, et la mémoire se vide dès la Phobie acquise, avant même le choix de sa Cible (`ADE II 09 l.11`).
+- Chaque Terreur subie se mémorise avec ses États *Brisé* et les Groupes perçus de sa cause (`Combatant.terreursSubies`), par un seul point d'écriture (`subirLaTerreur`) qu'empruntent la passe de Round d'un combattant en combat (rangée surfacée ou jet sans pilote) et la rencontre hors combat, où la cause est le PNJ de la scène qui la porte ; la Phobie vient quand leur cumul atteint le Bonus de Force Mentale, et la mémoire se vide dès la Phobie acquise, avant même le choix de sa Cible (`ADE II 09 l.11`).
 - Lecture recommandée, révisable (#3045) : le joueur choisit, à l'étape `cibleAcquise`, entre les Groupes de la cause la plus récente et les Groupes les plus fréquents des causes, tous les ex æquo compris (`ciblesDePhobieDuNoir`), dans l'ordre de `groups.json` ; un porteur non surfacé prend le premier Groupe de la plus récente, ou, si elle n'en offre aucun, le premier des plus fréquents. Lecture contraire : toujours la cause la plus récente ; ou, à fréquence égale, aucun Groupe n'est « le plus souvent » subi et seule la plus récente s'offre.
 - Terreur sans créature pour cause (Terreur d'auteur, `inflictPsychology`), lecture recommandée, révisable (#3045) : ses États *Brisé* comptent au seuil, sa cause n'offre aucun Groupe ; tant qu'aucune cause mémorisée n'offre de Groupe, aucune Phobie ne vient et le compteur reste. Lecture contraire : une Phobie de la situation elle-même.
 - Un Groupe mémorisé puis retiré de `groups.json` ne compte ni comme cause la plus récente ni comme la plus fréquente.
@@ -567,6 +571,8 @@ Exemples de groupes : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmar
 
 **Mécanique** : ce Talent ne confère **pas** l'immunité automatique — il accorde **un seul Test de Calme Accessible (+20)** pour ignorer les effets. En cas d'échec, le personnage est sujet aux règles normales de Peur (avec Tests à Intermédiaire +0 les Rounds suivants).
 
+- Moment, lecture recommandée, révisable (#3045) : le Test allégé se joue au début du Round de la rencontre et tient lieu du Test étendu de la Peur pour ce Round (pas de second Test à sa fin). Lecture contraire : un Test en plus du pas de fin de Round.
+
 **L'Ennemi est un Groupe**, lecture recommandée, révisable (Q13 A, #3045) : la spécialisation de Sans Peur est un id de `groups.json` hors des Groupes relatifs (source `groupesDAppartenance`, la sous-liste `CIBLE_D_APPARTENANCE`), lue par `sansPeurVs` comme une Cible de Groupe.
 - Pluriel ramené au Groupe existant : Criminels → `criminel`, Gardes → `garde`, Hommes-bêtes → `homme-bete`, Morts-vivants → `mort-vivant`, Peaux-vertes → `peau-verte`.
 - Groupes de spécialisation : Animaux (`LDB 08 l.3514`), Hors-la-loi (`LDB 08 l.1852`, `LDB 10 l.1051`), Hérétiques (`LDB 08 l.1732`), Intrus (`LDB 08 l.1203`), Miliciens (`LDB 08 l.490`), Naufrageurs (`LDB 08 l.2928`), Patrouilleurs fluviaux (`LDB 08 l.2582`), Patrouilleurs routiers (`LDB 08 l.3125`), Primes (`LDB 08 l.1559`), Rats (`LDB 08 l.596`), Sorciers dissidents et Vampires (`LDB 10 l.1051`), Sorcières (`LDB 08 l.1907`), Chaos (`AA 03 l.420`), Cavalerie (`AA 04 l.204`), Grandes bêtes (`ADE II 02 l.927`).
@@ -623,7 +629,7 @@ Cette immunité ne supprime pas les afflictions déjà actives de façon permane
 | **Terreur (Indice)** | Calme (unique) | Intermédiaire (+0) | Aucun effet supp. ; puis Peur d'Indice équiv. | Brisé × (Indice + |DR négatifs|) ; puis Peur d'Indice équiv. | Test unique à la 1ʳᵉ rencontre |
 | **Frénésie** | Force Mentale | Intermédiaire (+0) | Entre en Frénésie (+1BF, attaque gratuite, immunité psy) | Pas de Frénésie | Ennemis LoV neutralisés ou Sonné/Inconscient → Exténué |
 | **Haine** | Calme | MJ | Interaction limitée ; -0 (comportement libre) | Doit détruire (+1 DR Combat, immunité Peur/Intimidation sauf Terreur) | Re-test fin de Round ou groupe mort/disparu/Inconscient |
-| **Préjugé** | Calme | MJ | -10 Sociabilité seul. | Doit insulter la cible à voix haute | Re-test fin de Round ou groupe disparu/Sonné/Inconscient |
+| **Préjugé** | Calme | MJ | -10 Sociabilité seul. | Doit insulter la cible à voix haute | Re-test au Round suivant ou groupe disparu/Sonné/Inconscient |
 | **Phobie** | Calme (étendu) | Intermédiaire (+0) | — | Comme Peur 1 (ou Indice supérieur) | Même que Peur |
 | **Amour/Camaraderie** | — | — | — | Obligation d'aide, +1 DR, immunité Peur/Intimidation (Amour) | Selon circonstances |
 

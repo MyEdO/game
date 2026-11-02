@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openRoundStartPsych } from './combatFlow';
-import { resolvePsychAI } from './combat/turnHooks';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { ciblePsy } from '../engine/psych/ciblage';
@@ -13,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Traits psy CIBLÉS en COMBAT (Animosité/Haine/…, LDB 21 l.9 : Test de Calme « au début du Round »).
  * Depuis la VAGUE MULTI (#1117 L2) : c'est une cascade `purpose:'combat'` ouverte par
  * `openRoundStartPsych` en BANDES (une étape par entrée de règle, applier 'combatPsych', une RANGÉE par
- * héros), résolue par les handlers `cascadeBatch*`. L'IA reste instantanée (resolvePsychAI).
+ * héros), résolue par les handlers `cascadeBatch*`. L'IA, que personne ne tient, est résolue dans la MÊME passe.
  */
 describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)', () => {
   beforeEach(() => {
@@ -76,13 +75,13 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
     expect(banc.getState().pendingCascade).toBeNull(); // déjà testé ce Round → pas de re-déclenchement
   });
 
-  it('IA : resolvePsychAI pose une affliction ciblée active sur échec (Haine)', () => {
+  it('IA : la passe de début de Round pose une affliction ciblée active sur échec (Haine, LDB 21 l.9)', () => {
     banc.getState().seedRng(7);
     const { H, E } = setup();
     E.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('humain') }];
     H.groups = ['humain'];
     E.characteristics['force-mentale'] = 1; // échec quasi sûr
-    resolvePsychAI(banc.getState, banc.setState, E);
+    openRoundStartPsych(banc.getState, banc.setState);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect((e.psychState ?? []).some((p) => p.type === 'haine' && p.cible === ciblePsy.groupe('humain') && p.active)).toBe(true);
   });

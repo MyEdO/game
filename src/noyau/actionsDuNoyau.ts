@@ -688,9 +688,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   oocFocusSpell: (casterId: IdDeCombattant, spellId: string) => void;
   /** Dissipation de sort permanent HORS COMBAT (couture D, LDB 46 l.160-162, #461). */
   oocDispelSpell: (casterId: IdDeCombattant, spellId: string, spellCasterId: IdDeCombattant) => void;
-  // (Psychologie de combat (Peur/Terreur/Traits ciblés, LDB 21) : CASCADE de Round — Traits/Terreur au
-  //  DÉBUT (openRoundStartPsych), Peur à la FIN (openRoundEndCascade) — résolue par les handlers `cascade*`,
-  //  applier 'combatPsych'.)
+  // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
+  //  résolues par les handlers `cascade*`, applier 'combatPsych'.)
   /** Entrée en Frénésie d'un héros (LDB 21 l.31) : ouvrir la modale, lancer le Test de FM, Chance/Résilience, appliquer. */
   battleFrenzy: () => void;
   // frenzy{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).

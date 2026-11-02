@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fearSourceFor, agressifEnvers } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
-import { collectHeroRoundStartPsych, collectHeroRoundEndPsych } from '../noyau/combatFlow';
+import { collectRoundStartPsych, collectRoundEndPsych } from '../noyau/combatFlow';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -54,8 +54,8 @@ describe('Peur — les DEUX portes du RAW (Trait LDB 85 l.264-266 / Taille LDB 8
   it('TAILLE : le héros qui AGRESSE un allié Grand teste la Peur de sa victime (l’Engagement vaut des deux côtés)', () => {
     const victime = at(mk('victime', 'hero', { size: 'grande', engagedWith: ['h'] }), 11, 10);
     const agresseur = at(mk('h', 'hero', { size: 'moyenne', engagedWith: ['victime'] }), 10, 10);
-    expect(collectHeroRoundEndPsych(getOf([agresseur, victime]), agresseur))
-      .toEqual({ kind: 'peur', sourceId: 'victime', sourceName: 'victime', indice: 1, prevDR: 0 });
+    expect(collectRoundEndPsych(getOf([agresseur, victime]), agresseur, 1))
+      .toEqual([{ kind: 'peur', sourceId: 'victime', sourceName: 'victime', indice: 1, prevDR: 0 }]);
   });
 
   it('TAILLE : un allié FRÉNÉTIQUE ne vise que les ennemis — rien pour les siens', () => {
@@ -77,24 +77,24 @@ describe('Peur — les DEUX portes du RAW (Trait LDB 85 l.264-266 / Taille LDB 8
     const necro = at(mk('necro', 'hero'), 10, 10);
     const skel = at(mk('skel', 'hero', { causesPeur: 2 }), 11, 10);
     const get = getOf([necro, skel]);
-    expect(collectHeroRoundEndPsych(get, necro)).toEqual({ kind: 'peur', sourceId: 'skel', sourceName: 'skel', indice: 2, prevDR: 0 });
-    expect(collectHeroRoundEndPsych(get, skel)).toBeNull();
+    expect(collectRoundEndPsych(get, necro, 1)).toEqual([{ kind: 'peur', sourceId: 'skel', sourceName: 'skel', indice: 2, prevDR: 0 }]);
+    expect(collectRoundEndPsych(get, skel, 1)).toEqual([]);
   });
 
   it('DÉBUT DE ROUND : une Terreur ALLIÉE (statbloc) est due ; un allié de grande Taille non agressif, non', () => {
     const hero = at(mk('h', 'hero', { size: 'moyenne' }), 10, 10);
     const spectre = at(mk('spectre', 'hero', { causesTerreur: 3 }), 11, 10);
-    expect(collectHeroRoundStartPsych(getOf([hero, spectre]), hero))
-      .toEqual({ kind: 'terreur', sourceId: 'spectre', sourceName: 'spectre', indice: 3, prevDR: 0 });
+    expect(collectRoundStartPsych(getOf([hero, spectre]), hero, 1))
+      .toEqual([{ kind: 'terreur', sourceId: 'spectre', sourceName: 'spectre', indice: 3, prevDR: 0 }]);
     const geant = at(mk('geant', 'hero', { size: 'enorme' }), 11, 10); // allié calme : aucune agression
-    expect(collectHeroRoundStartPsych(getOf([hero, geant]), hero)).toBeNull();
-    expect(collectHeroRoundEndPsych(getOf([hero, geant]), hero)).toBeNull();
+    expect(collectRoundStartPsych(getOf([hero, geant]), hero, 1)).toEqual([]);
+    expect(collectRoundEndPsych(getOf([hero, geant]), hero, 1)).toEqual([]);
   });
 
   it('CAMP ADVERSE : comportement inchangé (Peur de Taille de fin de Round face à un ennemi Grand)', () => {
     const hero = at(mk('h', 'hero', { size: 'moyenne' }), 10, 10);
     const ogre = at(mk('ogre', 'enemy', { size: 'grande' }), 11, 10);
-    expect(collectHeroRoundEndPsych(getOf([hero, ogre]), hero))
-      .toEqual({ kind: 'peur', sourceId: 'ogre', sourceName: 'ogre', indice: 1, prevDR: 0 });
+    expect(collectRoundEndPsych(getOf([hero, ogre]), hero, 1))
+      .toEqual([{ kind: 'peur', sourceId: 'ogre', sourceName: 'ogre', indice: 1, prevDR: 0 }]);
   });
 });

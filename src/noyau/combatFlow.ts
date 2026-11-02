@@ -91,7 +91,7 @@ import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReac
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain,
+  isSkittishMount, immuneToSpellDomain, isColdBlooded,
 } from '../engine/traits/dispatch';
 import {
   isMagicMissile,
@@ -152,10 +152,10 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -223,7 +223,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, coldBloodedAdjust, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -286,7 +286,7 @@ import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBorde
 import { APRES_COUP, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import {
-  freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
+  freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
   stepDetail, stepPrecision, stepPsych, stepSansPeur,
   type ChoiceSpec, type Consequence, type TableSpec,
@@ -7303,8 +7303,7 @@ export function advanceTurn(get: Get, set: SetFn) {
   set({ battle: { ...battle, ...etatDeTourNeuf(), turn, movementUsed, acted } });
   if (checkBattleOver(get, set)) return;
   bus.emit(EVT.SCENE_DIRTY);
-  // La Psychologie ne se teste PLUS par tour (LDB 21 : Traits ciblés/Terreur au DÉBUT du Round l.14,
-  // Peur à la FIN de chaque Round l.27) → cascades de Round (openRoundStartPsych/openRoundEndCascade).
+  // Psychologie de combat : passes de Round (openRoundStartPsych/openRoundEndCascade). LDB 21 l.9, l.25
   maybeRunEnemyTurn(get, set);
 }
 
@@ -7369,8 +7368,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   // (4) Le combat est-il terminé à ce franchissement ? (morts lentes finalisées ci-dessus → victoire/défaite,
   //     capture des récompenses incluse). On tranche AVANT de proposer la fenêtre d'initiative.
   if (checkBattleOver(get, set)) return;
-  // (4bis) Psychologie de FIN de Round (LDB 21 l.25) : la PEUR est un Test ÉTENDU de Calme « à la fin
-  //     de chaque Round ». APRÈS le Destin (résolu en (1), peut avoir suspendu/re-rappelé) ET les
+  // (4bis) Psychologie de FIN de Round (LDB 21 l.19, l.25, l.39). APRÈS le Destin (résolu en (1), peut avoir suspendu/re-rappelé) ET les
   //     décomptes UNE-FOIS-PAR-ROUND ci-dessus (Avantage/Nuée/Engagement/zones — DÉJÀ appliqués), on
   //     ouvre UNE cascade (une BANDE par entrée de règle, applier 'combatPsych') qui SUSPEND la suite jusqu'à
   //     résolution. À sa fermeture (`roundBoundary`), le store enchaîne DIRECTEMENT sur `enterRoundStartPause`
@@ -7731,56 +7729,94 @@ export function markActed(get: Get, set: SetFn): BattleState {
   return { ...garanti(get().battle, 'battle', 'markActed'), acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
 }
 
-/** Forme commune d'un Test de Psychologie de combat DÛ pour un héros (cumul `prevDR` = 0 sauf Peur étendue). */
-type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
+/** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue). */
+type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
 
-/** Test de Psychologie de DÉBUT de Round dû à `c` (LDB 21 l.9) : un Trait ciblé (re-test d'un actif
- *  OU nouveau déclenchement) ou une NOUVELLE Terreur en Ligne de Vue. Pur de lecture. La Peur (simple
- *  Taille/causesPeur) NE se teste PAS ici : c'est un Test étendu de FIN de Round (cf. collectHeroRoundEndPsych). */
-export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue | null {
-  const battle = get().battle;
-  const scene = get().scene;
-  if (!battle || !scene || !c.pos || isPsychImmune(c)) return null; // Immunité psy (trait/Frénésie/Détermination temp)
-  const state = c.psychState ?? [];
-  // NOUVELLE Terreur en Ligne de Vue (1ʳᵉ rencontre → Brisé, puis devient une Peur — LDB 21 l.54-56).
-  for (const foe of sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
-    const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
-    if (!src || src.kind !== 'terreur' || state.some((p) => p.sourceId === foe.id)) continue;
-    return { kind: 'terreur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
-  }
-  // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
-  const visible = [...sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))];
-  for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', c)))
-      return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
-  }
-  const tt = targetedTrigger(c, visible);
-  if (tt) return { kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible };
-  return null;
+/** Une source de Peur ou de Terreur en vue absente de la `psychState` du porteur. */
+type SourceNeuve = { foe: Combatant; kind: 'peur' | 'terreur'; indice: number };
+
+/** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
+function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
+  const adv = (c.engagedWith ?? [])
+    .map((id) => inBattleId(battle, id))
+    .filter((e): e is Combatant => !!e && !isOutOfAction(e))
+    .map((e) => e.advantage ?? 0);
+  return adv.length ? Math.max(...adv) : undefined;
 }
 
-/** Test de Psychologie de FIN de Round dû à `c` (LDB 21 l.25) : une PEUR — nouvelle source de Peur en
- *  Ligne de Vue (Taille gap 1 / causesPeur), ou Peur active non encore vaincue ni testée ce Round. Test
- *  ÉTENDU de Calme (`prevDR` = DR cumulé). Pur de lecture. */
-export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue | null {
+/** Ce qu'une passe de Psychologie de combat lit de `c` : ses sources en Ligne de Vue et ses sources
+ *  neuves ; `null` s'il est immunisé (Belliqueux compris). Pur de lecture. */
+function lecturePsy(get: Get, c: Combatant): { battle: BattleState; visible: Combatant[]; neuves: SourceNeuve[] } | null {
   const battle = get().battle;
   const scene = get().scene;
-  if (!battle || !scene || !c.pos || isPsychImmune(c)) return null;
+  if (!battle || !scene || !c.pos || isPsychImmune(c, avantageDesEngages(battle, c))) return null;
+  const visible = [...sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))]; // LDB 85 l.264-266
   const state = c.psychState ?? [];
-  // NOUVELLE source de Peur (pas Terreur — celle-ci passe par le début de Round) en Ligne de Vue.
-  for (const foe of sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
-    const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
-    if (!src || src.kind !== 'peur' || state.some((p) => p.sourceId === foe.id)) continue;
-    return { kind: 'peur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
-  }
-  // `sousPeur`, une fois par Round. LDB 21 l.25
-  for (const p of state) {
-    if (sousPeur(p) && p.lastTestRound !== battle.round) {
-      const src = inBattleId(battle, p.sourceId);
-      return { kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(src, 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0 };
-    }
-  }
-  return null;
+  const neuves = visible.flatMap((foe): SourceNeuve[] => {
+    const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // AA 13 l.25
+    return src && !state.some((p) => p.sourceId === foe.id) ? [{ foe, ...src }] : [];
+  });
+  return { battle, visible, neuves };
+}
+
+function dueDeSource(n: SourceNeuve): PsychDue {
+  return { kind: n.kind, sourceId: n.foe.id, sourceName: n.foe.label, indice: n.indice, prevDR: 0 };
+}
+
+/** Re-tests des afflictions ciblées actives de `c` dus au `moment` du Round `round`, tant qu'un membre de
+ *  leur Cible est en vue. LDB 21 l.19, l.39, l.48 */
+function retestsCibles(c: Combatant, visible: Combatant[], round: number, moment: 'roundStart' | 'roundEnd'): PsychDue[] {
+  return (c.psychState ?? []).flatMap((p): PsychDue[] => {
+    const cible = p.cible;
+    if (!p.active || !cible || !estCibleType(p.type) || p.lastTestRound === round) return [];
+    if ((findPsychologyById(p.type)?.retestAt ?? 'roundStart') !== moment) return [];
+    if (!visible.some((v) => vise(cible, { genre: 'combattant', c: v }, 'percu', c))) return [];
+    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible }];
+  });
+}
+
+/** Tests de Psychologie dus à `c` au DÉBUT du Round `round`. Terreur : LDB 21 l.54-56 ; Peur neuve face à
+ *  Sans Peur : LDB 10 l.1051, #3045 ; re-test : LDB 21 l.48 ; premier Test d'un Trait ciblé : LDB 21 l.9.
+ *  Pur de lecture. */
+export function collectRoundStartPsych(get: Get, c: Combatant, round: number): PsychDue[] {
+  const l = lecturePsy(get, c);
+  if (!l) return [];
+  return [
+    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.foe)).map(dueDeSource),
+    ...retestsCibles(c, l.visible, round, 'roundStart'),
+    ...targetedTriggers(c, l.visible).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible })),
+  ];
+}
+
+/** Tests de Psychologie dus à `c` à la FIN du Round `round` : Test étendu de chaque Peur non surmontée pas
+ *  encore testée ce Round (LDB 21 l.25), source apparue en cours de Round comprise (#3045) ; re-tests
+ *  LDB 21 l.19, l.39. Pur de lecture. */
+export function collectRoundEndPsych(get: Get, c: Combatant, round: number): PsychDue[] {
+  const l = lecturePsy(get, c);
+  if (!l) return [];
+  return [
+    ...l.neuves.filter((n) => n.kind === 'peur').map(dueDeSource),
+    ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
+      kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(inBattleId(l.battle, p.sourceId), 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0,
+    })),
+    ...retestsCibles(c, l.visible, round, 'roundEnd'),
+  ];
+}
+
+/** Pose sans Test les Peurs neuves de `c` (Sans Peur excepté, testé par `collectRoundStartPsych`) et rend
+ *  les lignes de journal. LDB 21 l.25 ; #3045 */
+function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
+  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.foe));
+  if (!neuves.length) return [];
+  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.foe.id, indice: n.indice, calmeDR: 0 }))];
+  return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.foe.label })), ...supersededLines(c, c.label)];
+}
+
+/** Verse les lignes de Psychologie de `c` au journal de combat. */
+function journaliserPsy(get: Get, set: SetFn, c: Combatant, lines: string[]): void {
+  if (!lines.length) return;
+  const b = garanti(touchActors(get()).battle, 'battle', 'journaliserPsy');
+  set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'fear', c.id)] } });
 }
 
 /** DÉCLARATION COMMUNE d'une bande de Psychologie de combat — telle qu'elle vit sur l'ÉTAPE. */
@@ -7799,12 +7835,9 @@ function psychRowMeta(part: BatchParticipant): CombatPsychRowMeta {
  *  l'appelle (clé de bande), sa RANGÉE, et la présentation qui en découle (commune à toute la bande). */
 interface CombatPsychDue { decl: CombatPsychDecl; row: BatchParticipant; icon: string; label: PlayerText }
 
-/** Le Test de Psychologie de combat dû au héros `c` selon `collect` (début ou fin de Round), sous forme
- *  de RANGÉE + déclaration de règle. La sortie de Frénésie est un effet `onTurnStart` en DONNÉES
- *  (diffusé par `fireTurnStartTriggers`) — plus de force-exit ici. Renvoie `null` sinon. */
-function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) => HeroPsychDue | null): CombatPsychDue | null {
-  const t = collect(get, c);
-  if (!t) return null;
+/** Le Test de Psychologie de combat `t` dû à `c` au Round `round`, sous forme de RANGÉE + déclaration de
+ *  règle. */
+function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): CombatPsychDue {
   const isCible = estCibleType(t.kind);
   const cl = isCible ? cibleLabel(t.kind) : null;
   const sansPeur = sansPeurFace(c, t.kind, inBattleId(get().battle, t.sourceId)); // LDB 10 l.1051
@@ -7816,7 +7849,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
   // recalcule rien depuis `combatPsych` (aucune arithmétique dupliquée, #329 marque 9).
   const extended = psychResolution(t.kind).mode === 'extended';
   return {
-    decl: { kind: t.kind, sourceId: t.sourceId, sourceName: t.sourceName, indice: t.indice, cible: t.cible },
+    decl: { kind: t.kind, sourceId: t.sourceId, sourceName: t.sourceName, indice: t.indice, cible: t.cible, round },
     row: {
       id: c.id, interactive: true, result: null,
       // Le Test allégé se lit SUR LA RANGÉE qui en profite (sa Difficulté, son libellé de ligne) : deux
@@ -7867,48 +7900,51 @@ function roundCascadeBlocked(get: Get): boolean {
   return !battle || !!battle.over || !!get().pendingCascade || !!get().pendingFateSave;
 }
 
-/** Construit la cascade de Psychologie de combat (UNE BANDE par entrée de règle, une RANGÉE par héros
- *  dû) à partir d'un collecteur. No-op si une cascade/modale bloquante est ouverte. Met l'IA en pause
- *  (purpose:'combat') jusqu'à résolution ; la reprise est gérée par `cascadeNext`/`cascadeFinish`
- *  (→ resumeSuspendedAI). */
-function openCombatPsychCascade(
-  get: Get,
-  set: SetFn,
-  collect: (get: Get, c: Combatant) => HeroPsychDue | null,
-  title: string,
-  icon: string,
-  roundBoundary = false,
-): void {
-  if (roundCascadeBlocked(get)) return; // Maladresse = étape de pendingCascade (déjà couverte)
-  const dues: CombatPsychDue[] = [];
+/** Une passe de Psychologie de combat du Round `round` : chaque Test dû à un combattant debout devient sa
+ *  RANGÉE ; surfacée, elle rejoint les bandes rendues, sinon elle est jetée et résolue sur-le-champ, au même
+ *  moment (`surfaceRow`, patron `deferInteractiveTest`). LDB 21 l.9, l.25 */
+function passeDePsy(get: Get, set: SetFn, collect: (get: Get, c: Combatant, round: number) => PsychDue[], round: number): CombatPsychDue[] {
+  const surfacees: CombatPsychDue[] = [];
   for (const c of get().battle!.combatants) {
-    // SURFACE (#1262), pas affordance locale : le porteur d'un AUTRE siège entre dans la cascade — sa
-    // rangée l'attend, c'est SON joueur qui la roule. `isOutOfAction` reste le critère MÉTIER du site.
-    if (!surfaceOf(get, c.id) || isOutOfAction(c)) continue;
-    const due = psychDueFor(get, c, collect);
-    if (due) dues.push(due);
+    if (isOutOfAction(c)) continue;
+    for (const t of collect(get, c, round)) {
+      const due = psychDueFor(get, c, t, round);
+      const row = surfaceRow(get, c.id, due.row);
+      if (row.interactive) surfacees.push({ ...due, row });
+      else resoudreEnLigne(get, set, c, due.decl, row);
+    }
   }
-  const steps = combatPsychBands(dues);
-  if (!steps.length) return;
-  openSequence(get, set, { title, icon, purpose: 'combat', steps, roundBoundary });
+  return surfacees;
 }
 
-/** Cascade de Psychologie de DÉBUT de Round (Traits ciblés + nouvelles Terreurs, LDB 21 l.9) — une
- *  bande par entrée de règle. Appelée APRÈS `confirmRoundStart` (acteur posé) ; suspend l'IA jusqu'à
- *  résolution. */
+/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes.
+ *  À sang-froid ne vaut que sur ce jet sans pilote : LDB 85 l.13 ; #3045 */
+function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDecl, row: BatchParticipant): void {
+  const jet = garanti(row.result, c.id, 'rangée de Psychologie jetée');
+  const r = estJete(jet) ? coldBloodedAdjust(jet, isColdBlooded(c.traits)) : jet;
+  journaliserPsy(get, set, c, resultLines(resolveCombatPsychRow(get, set, c, decl, psychRowMeta(row), r, false)).map((l) => l.text));
+}
+
+/** Passe de Psychologie de DÉBUT de Round (LDB 21 l.9, l.25) : les Peurs neuves s'enregistrent, puis les
+ *  Tests dus se jouent, une bande par entrée de règle pour les rangées surfacées. Appelée APRÈS
+ *  `confirmRoundStart` (acteur posé) ; la cascade suspend l'IA jusqu'à résolution. */
 export function openRoundStartPsych(get: Get, set: SetFn): void {
+  const battle = get().battle;
+  if (!battle || battle.over) return;
   // « tant que vous défendez les êtres aimés » (LDB 21 l.75) : le Round est l'un des DEUX seuls
   // détenteurs du roster — il rafraîchit ici le verdict de présence porté par `active`, que les
   // résolutions d'attaque (sans roster) liront ensuite.
-  const battle = get().battle;
-  if (battle && refreshAllDefendedPsych(battle.combatants)) set(touchActors(get()));
-  openCombatPsychCascade(get, set, collectHeroRoundStartPsych, 'Sang-froid', 'resource/resolve');
+  if (refreshAllDefendedPsych(battle.combatants)) set(touchActors(get()));
+  for (const c of battle.combatants) if (!isOutOfAction(c)) journaliserPsy(get, set, c, enregistrerLesPeursNeuves(get, c));
+  const dues = passeDePsy(get, set, collectRoundStartPsych, battle.round);
+  if (!dues.length || roundCascadeBlocked(get)) return; // Maladresse = étape de pendingCascade (déjà couverte)
+  openSequence(get, set, { title: 'Sang-froid', icon: 'resource/resolve', purpose: 'combat', steps: combatPsychBands(dues) });
 }
 
 /**
  * Cascade de FIN de Round (combat) — un SEUL `pendingCascade` fusionnant les Tests d'upkeep
- * INFLUENÇABLES (Empoisonné → récupération du Brisé → se-fatiguer, LDB 16) PUIS les BANDES de Peur
- * (Test étendu de Calme, LDB 21 l.25). Les ENNEMIS sont déjà résolus en silence par les hooks
+ * INFLUENÇABLES (Empoisonné → récupération du Brisé → se-fatiguer, LDB 16) PUIS les BANDES de la passe
+ * de Psychologie de fin de Round (`passeDePsy`, LDB 21 l.19, l.25, l.39). Les ENNEMIS sont déjà résolus en silence par les hooks
  * `roundBoundary` (poison-resist/broken-recovery/se-fatiguer). Ordre choisi : upkeep AVANT la
  * Peur (les effets de Round RAW — dont les hooks ennemi — précèdent la révélation/Psychologie de fin
  * de Round, et la sortie d'un État Sonné/Brisé peut influer sur l'état d'esprit) ; ENTRE familles cet
@@ -7926,7 +7962,6 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
   const upkeepLines: { line: string; id?: string }[] = [];
   const sink = (line: string, c?: Combatant) => upkeepLines.push({ line, id: c?.id });
   const steps: BuiltCascadeStep[] = [];
-  const dues: CombatPsychDue[] = [];
   for (const c of get().battle!.combatants) {
     // SURFACE (#1262), pas affordance locale : le porteur d'un AUTRE siège entre dans la cascade — c'est
     // SON joueur qui roulera. Prédicat MIROIR des hooks `roundBoundary` (roundHooks) et du dispatcher
@@ -7935,19 +7970,16 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
     // (`openCombatEndCascade`) le fait tomber dans la voie INLINE — ÉCART AU RAW suivi par #1265
     // (Test d'entretien de fin de Round : LDB 16 l.68-78).
     if (!surfaceOf(get, c.id) || isOutOfAction(c)) continue;
-    // 1) Upkeep du combattant (effets RNG-free). 2) Peur de fin de Round, regroupée en bandes ci-dessous.
-    //    (La sortie de Frénésie est un effet `onTurnStart` en données, jouée au début du tour du héros.)
     steps.push(...collectHeroRoundEndUpkeep(get, c, sink));
-    const due = psychDueFor(get, c, collectHeroRoundEndPsych);
-    if (due) dues.push(due);
   }
-  steps.push(...combatPsychBands(dues));
   // Lignes déterministes d'upkeep → journal de combat (les Tests influençables iront au journal de la
   // cascade à leur validation). On applique AVANT d'ouvrir la cascade pour garder l'ordre de lecture.
   if (upkeepLines.length) {
     const b = get().battle!;
     set({ battle: { ...b, log: [...b.log, ...upkeepLines.map((u) => ev('condition', u.line, u.id))] } });
   }
+  // Psychologie du Round qui se CLÔT (le franchissement a déjà incrémenté `round`). LDB 21 l.19, l.25, l.39
+  steps.push(...combatPsychBands(passeDePsy(get, set, collectRoundEndPsych, battle.round - 1)));
   // Séquence d'accueil : celle en vol, quel que soit son `purpose` (doctrine de `revealPurpose`), jamais parquée.
   if (steps.length) openSequence(get, set, { title: tr('step.finDeRound'), icon: 'time/clock', purpose: revealPurpose('combat', false)(get()), steps, roundBoundary: true });
   // Une révélation d'entretien du franchissement a pu l'ouvrir seule : sa fermeture ouvre le Round (#2916).
@@ -7980,7 +8012,7 @@ function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: Combat
   // CONSÉQUENCES de la branche réalisée, en ops dérivées de `psychology.json` — les MÊMES que la
   // surface annonce (`meta.onSuccess`/`onFail`). Le DR du jet est versé au contexte : la quantité
   // d'État de l'échec (`valuePerSL{onFailure}`) s'y résout, même arithmétique que `failConditionAmount`.
-  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR: pas?.calmeDR, surmontee: pas?.surmontee, sansPeur: rm.sansPeur, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
+  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR: pas?.calmeDR, surmontee: pas?.surmontee, sansPeur: rm.sansPeur, round: cp.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
   if (res.mode === 'terreur') {
     // 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → État `failCondition` = Indice + |DR négatifs| ; devient
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
@@ -8144,9 +8176,8 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);
-  // Cycle de tour ennemi (LDB 21/85) en hooks `turnStart` ordonnés (noyau/combat/turnHooks) : fin de
-  // Frénésie 10 → Rage 20 → tentative de Frénésie IA 30 → psychologie 40. La dépendance d'ordre RAW
-  // (Frénésie/Rage AVANT la psychologie — la Frénésie en rend immunisé) est encodée par les `order`.
+  // Cycle de tour ennemi (LDB 21/85) en hooks `turnStart` ordonnés (noyau/combat/turnHooks) : Rage 20 →
+  // tentative de Frénésie IA 30. La psychologie de combat se joue aux passes de Round (LDB 21 l.9, l.25).
   // Ces hooks journalisent eux-mêmes (kinds `frenzy`/`fear`) ; `sink` n'est pas utilisé par eux.
   // Unique porte (#316) : émission via le bus. `self: enemy` alimente les hooks (Rage) ; `audience: []`
   // SUPPRIME la diffusion data ICI (l'`onTurnStart` DATA est diffusé par `fireTurnStartTriggers`, non
