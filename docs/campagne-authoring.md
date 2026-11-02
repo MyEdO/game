@@ -141,7 +141,7 @@ Une coque RICHE (équipage exposé `crewIds`, artillerie `postes`, amélioration
 et l'abordage se joue à la case. L'Allonge, elle, est le SEUL endroit où 2 m/case est figé : `reachTiles`
 (`src/engine/engagement.ts`) traduit les mètres de LDB 62 l.163/164 en cases avec le facteur RAW
 `LDB 15 l.12`, sans lire `metresPerTile`. Tout le reste SUIT l'échelle de la scène — bandes de portée,
-géométrie des recettes de décor, ancres de place, rayons de lumière (#1507). Échelle de la Diligence : l’utilisateur a retenu le 2 m/case du livre (arbitrage 2026-09-04, option A de #1507 : « A — 2 m/case, RAW ») — rien ne bouge à l’écran, l’option « auberge deux fois plus petite » est écartée.
+géométrie des recettes de décor, ancres de place, rayons de lumière (#1507). Échelle de la Diligence : l’utilisateur a retenu le 2 m/case du livre (#1507) — rien ne bouge à l’écran, l’option « auberge deux fois plus petite » est écartée.
 Les grilles d'ABORDAGE restent à 2 m/case : le modèle MER exige une IA de manœuvre de coque ENNEMIE qui
 n'existe pas encore (`runEnemyAI` ne pilote aucun `bodyShape:'vehicule'` → la coque adverse ne s'avance ni ne
 vire), et la bordée (portée en mètres) tombe hors d'atteinte sans manœuvre d'approche. L'échelle mer vaut
@@ -510,7 +510,7 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 - **Op psy** (`beginPsych`, `grantPsychTrait`) : la Cible est un Groupe, `"cible": { "id": "nain" }`, dans tout
   document. Seul un Sort vise une personne que son lanceur désigne au lancement : `grantPsychTrait` y porte
   `"envers": "personneChoisie"` à la place de la Cible (Colérique, VDM 10 l.327 ; `noyau/personneChoisie.ts`).
-  Lectures adoptées à titre révisable (#3045, utilisateur, 2026-10-27 : « reco. ») : deux personnes sont amies
+  Lectures adoptées à titre révisable (#3045) : deux personnes sont amies
   quand elles sont du même camp ; un lanceur que personne ne pilote désigne, dans le camp de la cible, la
   personne la plus proche d'elle, et prend le plus haut palier offert ; sans personne, le Trait reste sans
   effet ; hors combat, la cible est un héros du groupe.

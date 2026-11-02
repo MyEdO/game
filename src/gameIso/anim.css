@@ -3,11 +3,6 @@
    pivot se résout contre la view-box du SVG entier → l'anim part au loin / est
    invisible — c'est exactement ce qui faisait que le sang « ne bougeait pas »).
    ambush.html le fait en style inline sur chaque groupe ; ici on le met en CSS. */
-.breathe {
-  animation: breathe 3s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-}
 .warm {
   animation: flicker 3.6s ease-in-out infinite;
 }
@@ -24,15 +19,6 @@
 .smoke {
   animation: smoke 4s linear infinite;
   transform-box: fill-box;
-}
-@keyframes breathe {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  50% {
-    transform: scaleY(1.035);
-  }
 }
 @keyframes flicker {
   0%,

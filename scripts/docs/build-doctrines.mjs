@@ -1,16 +1,12 @@
 /**
  * Écrit `docs/doctrines.md` — les doctrines utilisateur DÉRIVÉES des fiches `.claude/memory/user-*.md`
- * suivies par git : une fiche = une ligne (nom, date, compte de verbatims, extrait, chemin de la fiche).
+ * suivies par git : une fiche = une ligne (nom, date, description, compte de verbatims, chemin).
  *
  * POURQUOI UN GÉNÉRATEUR : une doctrine utilisateur recopiée À LA MAIN dérive de sa fiche
  * (paraphrase, date perdue, ligne oubliée) ; le doc ment alors avec l'autorité du canon. La fiche
  * reste la SOURCE, ce doc n'en est que le reflet — une doctrine neuve s'écrit en fiche.
  *
- * CE QUE LE DOC EST : UN EXTRAIT par fiche, jamais tous ses verbatims (une fiche en porte souvent
- * plusieurs ; les rendre tous ferait une page que personne ne lit). La ligne DIT combien la fiche en
- * porte, et le chapeau renvoie à la fiche, qui fait foi. L'extrait est un VERBATIM (texte entre « »
- * du corps), jamais un résumé : coupé à 240 caractères sur une FIN DE PHRASE quand la fiche en offre
- * une, sinon sur un mot — jamais sur un mot-outil, qui laisserait la phrase en suspens.
+ * CE QUE LE DOC EST : un index de fiches ; les verbatims restent dans leur fiche (#3175).
  *
  * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, jamais commité, #2203) :
  * `AGENTS.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
@@ -34,28 +30,25 @@ const AVERTISSEMENT = [
 ].join('\n')
 /** Le chapeau porte SA source : la règle qu'il applique est déjà écrite dans le canon manuscrit. */
 const CHAPEAU =
-  'Un EXTRAIT par fiche — la FICHE fait foi : avant tout brief, tout verdict ou tout code sur un ' +
+  'Une ligne par fiche — la FICHE fait foi : avant tout brief, tout verdict ou tout code sur un ' +
   'socle, lire les fiches concernées (`.claude/memory/user-*.md`). Ces doctrines PRIMENT sur tout ' +
   "réflexe et sur toute prose de brief ; un brief qui les contredit ment. Une doctrine neuve s'écrit " +
-  'en FICHE `user-*`, jamais ici. Règle appliquée : « Tout arbitrage UTILISATEUR consigné (doc, ' +
-  'mémoire, ticket) porte sa CITATION verbatim + date. » (AGENTS.md § Pour TOUT agent).'
+  'en FICHE `user-*`, jamais ici. Les verbatims datés vivent au ticket ou dans leur fiche ; ' +
+  'cet index ne les recopie pas (AGENTS.md § Pour TOUT agent, #3175).'
 const MIN_VERBATIM = 40
-const MAX_VERBATIM = 240
 /** Le doc dit ce qu'il ne couvre PAS : sans ça, un généré se lit comme exhaustif (#908). Les bornes
  *  citées sont les CONSTANTES ci-dessus — jamais un nombre recopié à la main. */
 const PERIMETRE = () =>
   '**Périmètre mesuré / angles morts** — mesuré : les fiches `.claude/memory/user-*.md` SUIVIES par ' +
   'git (`git ls-files`), une ligne par fiche. Une fiche neuve NON stagée n’y est donc pas, et elle y ' +
   'entre au commit qui la suit ; une doctrine qui vit ailleurs qu’en fiche `user-*` (ticket, fil de ' +
-  'session) est invisible ici. Chaque ligne porte UN extrait, jamais tous les verbatims de la fiche ' +
-  `— la citation la plus longue parmi les PRESCRIPTIVES, tronquée à ${MAX_VERBATIM} caractères sur une fin de ` +
-  `phrase, les citations de moins de ${MIN_VERBATIM} caractères étant écartées tant qu’une plus longue existe, ` +
-  'et une ligne marquée `non-verbatim utilisateur` comme un paragraphe `**Why**` ou `**How to apply**` — le ' +
-  'texte de l’assistant — n’en fournissant jamais : ' +
-  'le compte de verbatims dit quand la fiche en porte d’autres, et la FICHE fait foi. La DATE est ' +
-  'celle du paragraphe du verbatim, à défaut celle de l’en-tête, à défaut la date d’AJOUT git de la ' +
-  'fiche — dite comme telle, parce qu’elle date le fichier et non la parole. Rien ici ne vérifie que ' +
-  'la fiche dit vrai, ni qu’elle est à jour du code.'
+  'session) est invisible ici. Chaque ligne porte le nom, la date, la description de l’en-tête, le ' +
+  'compte de verbatims quand la fiche en porte plusieurs et son chemin. Les citations restent dans les fiches. Le comptage écarte ' +
+  `les citations de moins de ${MIN_VERBATIM} caractères tant qu’une plus longue existe, ainsi que le texte ` +
+  'de l’assistant (`non-verbatim utilisateur`, paragraphes `**Why**` et `**How to apply**`). La DATE est ' +
+  'celle du paragraphe du verbatim prescriptif le plus long, à défaut du plus long verbatim, puis de ' +
+  'l’en-tête, puis de l’AJOUT git de la fiche — dit comme tel, parce qu’il date le fichier et non la ' +
+  'parole. Rien ici ne vérifie que la fiche dit vrai, ni qu’elle est à jour du code.'
 
 export function abandon(msg) {
   console.error(`${OUTIL} — ${msg}`)
@@ -71,76 +64,9 @@ export function decouperFiche(texte) {
 
 const compacter = (s) => s.replace(/\s+/g, ' ').trim()
 
-/** Mots qui ne terminent pas une pensée : couper là rend un extrait suspendu (« face a … »). */
-const MOT_OUTIL = /(?:^|\s)(?:un|une|le|la|les|des|du|de|d'|l'|à|a|au|aux|et|ou|que|qu'|qui|tu|je|il|on|ce|cet|cette|ca|ça|en|dans|pour|par|sur|avec|sans|face|comme|si|est|sont)$/i
-
-/** Retire la ponctuation faible PUIS les mots-outils terminaux, tant qu'il en reste. */
-function nettoyerFin(texte) {
-  let out = texte.replace(/[\s,;:.…—–-]+$/, '')
-  while (MOT_OUTIL.test(out)) out = out.replace(MOT_OUTIL, '').replace(/[\s,;:.…—–-]+$/, '')
-  return out
-}
-
-/** Ouvrant → fermant : couper entre les deux laisserait une parenthèse ou une citation ouverte. */
-const PAIRES = { '(': ')', '[': ']', '«': '»' }
-const FERMANTS = new Set(Object.values(PAIRES))
-
-/** `"` ne fait paire que s'il est ÉQUILIBRÉ dans le texte entier : un guillemet droit isolé (pouce,
- *  faute de frappe) ouvrirait sinon une citation jusqu'à la fin de la fenêtre. */
-const droitsEquilibres = (texte) => (texte.match(/"/g) ?? []).length % 2 === 0
-
-/** Pour chaque position de `fenetre` : `true` si elle est HORS de toute paire ouverte (`()`, `[]`,
- *  `«»`, et `"…"` quand `droits` les compte) ; `fermants` = ce qui referme les paires encore
- *  ouvertes en fin de fenêtre, de la plus intérieure à la plus extérieure. */
-function horsPaires(fenetre, { droits: compterDroits }) {
-  const libre = []
-  const pile = []
-  let droits = false
-  for (const c of fenetre) {
-    if (c === '"') { if (compterDroits) droits = !droits }
-    else if (PAIRES[c]) pile.push(PAIRES[c])
-    else if (FERMANTS.has(c) && pile.length) pile.pop()
-    libre.push(pile.length === 0 && !droits)
-  }
-  return { libre, fermants: `${droits ? '"' : ''}${[...pile].reverse().join('')}` }
-}
-
-/** `.`/`!`/`?`/`;` qui clôt une phrase : jamais un point de suspension (`...`, dont un point voisin). */
-function finDePhrase(texte, i) {
-  const c = texte[i]
-  if (c === '.') return texte[i - 1] !== '.' && texte[i + 1] !== '.'
-  return c === '!' || c === '?' || c === ';'
-}
-
-/**
- * Coupe à `max` caractères : d'abord à la dernière FIN DE PHRASE (`finDePhrase`) de la fenêtre —
- * l'extrait reste alors une phrase entière, et sa ponctuation dit qu'il s'arrête là ; à défaut, sur
- * une frontière de mot, mots-outils terminaux retirés, suivie de « … ». Jamais dans une paire ouverte
- * (`horsPaires`) : la dernière frontière de mot hors paire est celle qui précède l'ouvrant. Quand la
- * paire s'ouvre en TÊTE (aucune frontière hors paire dans la seconde moitié de la fenêtre), la coupe
- * tombe sur le dernier mot de la fenêtre, et « … » suivi des fermants DIT que la paire continue
- * au-delà : un extrait ne laisse ni parenthèse ni citation ouverte, et ne se réduit pas aux mots qui
- * précèdent l'ouvrant.
- */
-export function tronquer(texte, max = MAX_VERBATIM) {
-  if (texte.length <= max) return texte
-  const fenetre = texte.slice(0, max)
-  const { libre, fermants } = horsPaires(fenetre, { droits: droitsEquilibres(texte) })
-  const derniere = (ok) => {
-    for (let i = fenetre.length - 1; i >= 0; i--) if (libre[i] && ok(i)) return i
-    return -1
-  }
-  const phrase = derniere((i) => finDePhrase(texte, i))
-  if (phrase > max / 3) return fenetre.slice(0, phrase + 1)
-  const espace = derniere((i) => fenetre[i] === ' ')
-  if (espace >= max / 2) return `${nettoyerFin(fenetre.slice(0, espace))} …`
-  const mot = fenetre.lastIndexOf(' ')
-  return `${nettoyerFin(mot > 0 ? fenetre.slice(0, mot) : fenetre)} …${fermants}`
-}
-
 /** Le MARQUEUR unique du texte de l'ASSISTANT dans une fiche (question AskUserQuestion, option non
- *  retenue, évaluation d'ingénierie) : jamais la parole de l'utilisateur. Une ligne qui le porte ne
- *  fournit aucun extrait, et elle ne porte aucun « » (convention des fiches, #1993). */
+ *  retenue, évaluation d'ingénierie) : jamais la parole de l'utilisateur. Une ligne qui le porte
+ *  ne fournit pas le verbatim qui date la ligne, et elle ne porte aucun « » (convention des fiches, #1993). */
 const MARQUEUR_ASSISTANT = /non-verbatim utilisateur/
 
 /** Une ligne telle que `ANNONCES_ASSISTANT` la lit : apostrophe typographique rendue droite, gras et
@@ -192,7 +118,7 @@ const TETE_PROSE_ASSISTANT = /^\s*\*\*(?:why|how to apply)\b/i
 const TETE_LIBELLE = /^\s*\*\*/
 
 /** Le corps sans son texte de l'assistant — lignes marquées (`MARQUEUR_ASSISTANT`) et paragraphes
- *  **Why** / **How to apply** : ce qui reste est la seule matière des extraits. */
+ *  **Why** / **How to apply** : ce qui reste fournit les verbatims qui datent les lignes. */
 function horsAssistant(corps) {
   let prose = false
   return String(corps).split('\n').map((l) => {
@@ -245,7 +171,7 @@ export function verbatimsDe(corps) {
 }
 
 /**
- * L'EXTRAIT retenu : le plus long des verbatims PRESCRIPTIFS s'il y en a, sinon le plus long tout
+ * Le verbatim qui date la ligne : le plus long des verbatims PRESCRIPTIFS s'il y en a, sinon le plus long tout
  * court. Une fiche dont le grief est plus bavard que sa règle rendrait sinon le grief.
  * @returns {string|null} `null` si la fiche ne porte aucune citation.
  */
@@ -301,8 +227,8 @@ export function nomDe(entete, fichier) {
 
 /**
  * Ligne de doctrine d'une fiche `{ fichier, texte }` : la date, le COMPTE de verbatims quand la
- * fiche en porte plusieurs (l'extrait n'est alors qu'un extrait, et la ligne le dit), l'extrait, la
- * fiche. `dateAjout(fichier)` n'est appelée QUE si ni le paragraphe ni l'en-tête ne datent la parole
+ * fiche en porte plusieurs, la description de l'en-tête et le chemin. `dateAjout(fichier)` n'est appelée QUE si ni
+ * le paragraphe ni l'en-tête ne datent la parole
  * (un `git log` par fiche coûte, et ment sur la date de la parole).
  */
 export function ligneDe({ fichier, texte }, dateAjout = () => '') {
@@ -315,7 +241,8 @@ export function ligneDe({ fichier, texte }, dateAjout = () => '') {
   if (!date) abandon(`${fichier} — aucune date lisible (paragraphe, en-tête, ni ajout git)`)
   const n = verbatimsDe(corps).length
   const quand = [source === 'ajout' ? `${date}, date d'ajout` : date, ...(n > 1 ? [`${n} verbatims`] : [])].join(', ')
-  return `- **${nomDe(entete, fichier)}** (${quand}) : « ${tronquer(citation)} » — \`${fichier}\``
+  const description = (/^description:\s*(.+)$/m.exec(entete)?.[1] ?? '').trim().replace(/^(["'])(.*)\1$/, '$2')
+  return `- **${nomDe(entete, fichier)}** (${quand}) — ${description} — \`${fichier}\``
 }
 
 /** Le doc entier. `fiches` = `[{ fichier, texte }]`, rendues triées par chemin (ordre total). */

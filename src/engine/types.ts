@@ -757,8 +757,8 @@ export function effectRef(e: ActiveEffect): CodexTarget | undefined {
   return e.sourceSpellId ? { category: 'spells', id: e.sourceSpellId } : undefined;
 }
 
-/** IDENTITÉ de ce qui a produit un effet — « les GameOps sont rattachés à quelque chose » (arbitrage
- *  user 2026-07-18). Portée par l'`OpsCtx` du déclencheur et stampée par `applyOps` sur tout
+/** IDENTITÉ de ce qui a produit un effet (#492).
+ *  Portée par l'`OpsCtx` du déclencheur et stampée par `applyOps` sur tout
  *  `ActiveEffect` posé : c'est ELLE qui relie une pastille à sa règle, par id STABLE (jamais le label). */
 export interface EffectSource {
   kind: EffectSourceKind;

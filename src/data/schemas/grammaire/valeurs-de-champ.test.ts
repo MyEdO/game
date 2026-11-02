@@ -104,6 +104,7 @@ const NOMMES = [
   'capacite-de-combat|capacite-de-tir',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
+  'feeding|praying|cowering|standing|howling',
   'fixed|variable|all',
   'gable|stone-entry|chimney|sign|window-band|belfry',
   'flag|param|mode',

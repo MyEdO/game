@@ -20,6 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
+import { roleAmbiantSchema } from '../grammaire/valeurs';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
@@ -129,8 +130,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   upgrades: z.array(navalTraitRefSchema).optional(),
   dialogueId: z.string().optional(),
   appearance: entityAppearanceSchema.optional(),
-  /** Animation d'ambiance en boucle (clé de `SCENE_ANIMS`). */
-  anim: z.string().optional(),
+  anim: roleAmbiantSchema.optional(),
   /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
   weapon: z.string().optional(),
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;

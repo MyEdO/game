@@ -4,6 +4,7 @@
  * Le tirage du d100 et l'application des effets restent à l'appelant (boucle de voyage).
  */
 import { findTableEntry } from './tables';
+import { parseDiceRequired } from './dice';
 import type { StageOutcome } from './activities';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -75,6 +76,7 @@ export function rollVehicleProblem(roll: number): TravelTableEntry {
 export type EncounterCategory = 'positives' | 'fortuites' | 'dangereuses';
 
 const ENCOUNTERS = (rencontresJson as { tables: Record<EncounterCategory, TravelTableEntry[]> }).tables;
+export const ENCOUNTER_DIE = parseDiceRequired(rencontresJson.die, 'rencontres-edoc.die');
 
 export function encounterTable(category: EncounterCategory): TravelTableEntry[] {
   return ENCOUNTERS[category];

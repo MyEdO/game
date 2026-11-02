@@ -2,7 +2,7 @@
  * LES KEYFRAMES DU STAGE SONT BRANCHÉES — `gameIso/anim.css` porte les animations que les surcouches
  * du monde RÉCLAMENT par leur `className` : projectiles et halos de FX (`.proj`), fourmis du gabarit
  * de zone d'effet (`.zde-ants`), pastilles d'état des jetons (`.token-endmark`/`.es-*`), faune et
- * ambiance (`.fly`, `.sway`, `.smoke`, `.glow`, `.breathe`, `.warm`). Une feuille de style
+ * ambiance (`.fly`, `.sway`, `.smoke`, `.glow`, `.warm`). Une feuille de style
  * n'entre dans le bundle que si un module l'IMPORTE : personne ne l'important, toutes ces classes
  * restent des noms morts, sans une seule erreur — les projectiles cessent de voler en silence.
  *

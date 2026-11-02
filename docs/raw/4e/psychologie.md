@@ -106,7 +106,7 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 - *Haine* déjà possédée envers la Cible retenue, lecture recommandée, révisable (#3045) : l'Animosité s'acquiert à côté de la *Haine*. Lecture contraire : la *Haine* l'absorbe et rien ne s'acquiert.
 - *Haine* qui remplace une Animosité suspendue par un effet ou accordée pour une durée, lecture recommandée, révisable (#3045) : elle se pose sur la fiche, permanente et non suspendue, et l'affliction active de l'Animosité remplacée se désactive (`desactiverLAfflictionSansTrait`). Lecture contraire : la *Haine* hérite de la suspension ou de la durée de l'Animosité.
 - Tueur de la Race du Personnage : le joueur choisit parmi ses sous-groupes, à l'étape `cibleAcquise` ; un porteur non surfacé prend le premier dans l'ordre de `groups.json`.
-- Tueur d'une autre Race, lecture recommandée, révisable (Q16 A, #3045 ; utilisateur, 2026-10-27 15:09 : « reco. ») : le joueur choisit entre sa Race et ses sous-groupes ; un porteur non surfacé prend la Race. Lecture contraire : la Race seule.
+- Tueur d'une autre Race, lecture recommandée, révisable (#3045) : le joueur choisit entre sa Race et ses sous-groupes ; un porteur non surfacé prend la Race. Lecture contraire : la Race seule.
 - Tueur sans sous-groupe, lecture révisable (#3045) : de même Race, l'individu (« en prenant pour cible l'individu ou l'élément qui l'a presque tué », `ADE II 09 l.15`) ; d'une autre Race, la Race. Lecture contraire : de même Race, la Race.
 - Tueur sans Race, lecture révisable (#3045) : ses Groupes perçus au choix, sinon l'individu. Lecture contraire : toujours l'individu.
 
@@ -238,7 +238,7 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 **Sources RAW** :
 - `LDB 21 l.43-50` — définition, succès/échec, comportement obligatoire, conditions de fin
 
-**Préjugé (Étrangers)**, lecture recommandée, révisable (#3045 ; utilisateur, 2026-10-27 15:10 : « les questions de régles c'est de la reco jusqu'au jour on décide de mettre le nez dedans ») : le Groupe relatif `etranger` (`VDM 05 l.142` ; `relatif: etrangersAuPorteur`) vise tout combattant hors du camp du porteur et que ne vise pas un de ses liens (Amour, Camaraderie : `triggerOn: threatened`, `LDB 21 l.75`, `l.81`) ; le « groupe » d'un PNJ est son camp. Un interlocuteur de Test social est étranger, sauf si ses Groupes sont visés par un de ces liens (Q15 A). Lecture contraire : les non-natifs de la région de la scène.
+**Préjugé (Étrangers)**, lecture recommandée, révisable (#3045) : le Groupe relatif `etranger` (`VDM 05 l.142` ; `relatif: etrangersAuPorteur`) vise tout combattant hors du camp du porteur et que ne vise pas un de ses liens (Amour, Camaraderie : `triggerOn: threatened`, `LDB 21 l.75`, `l.81`) ; le « groupe » d'un PNJ est son camp. Un interlocuteur de Test social est étranger, sauf si ses Groupes sont visés par un de ces liens (Q15 A). Lecture contraire : les non-natifs de la région de la scène.
 
 **Implémente :** [État calculé](../implemente.generated.md#4epsychologieprejuge-cible)
 
@@ -437,7 +437,7 @@ Deux options de dépense d'Avantages :
 - **Minimum 1 Avantage** : Avantages remplacés par *Haine* vs adversaires en mêlée.
 - **Minimum 3 Avantages** : entrée directe en *Frénésie*.
 
-**Cible de la Haine**, lecture recommandée, révisable (#3045 ; utilisateur, 2026-10-27 15:10 : « les questions de régles c'est de la reco jusqu'au jour on décide de mettre le nez dedans ») : une seule *Haine*, envers le Groupe relatif `adversaires-engages` (`groups.json`, `relatif: engagesAvecPorteur`) : tout combattant Engagé avec la créature tant que dure la *Haine*, sans filtre de camp (Q12 B). Pas de nouvelle dépense tant que cette *Haine* est active, ni sans adversaire Engagé. Lecture contraire, citable : les seuls individus Engagés au moment de la dépense.
+**Cible de la Haine**, lecture recommandée, révisable (#3045) : une seule *Haine*, envers le Groupe relatif `adversaires-engages` (`groups.json`, `relatif: engagesAvecPorteur`) : tout combattant Engagé avec la créature tant que dure la *Haine*, sans filtre de camp (Q12 B). Pas de nouvelle dépense tant que cette *Haine* est active, ni sans adversaire Engagé. Lecture contraire, citable : les seuls individus Engagés au moment de la dépense.
 
 **Sources RAW** : `LDB 85 l.282`
 
@@ -552,7 +552,7 @@ Exemples de groupes : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmar
 
 **Mécanique** : ce Talent ne confère **pas** l'immunité automatique — il accorde **un seul Test de Calme Accessible (+20)** pour ignorer les effets. En cas d'échec, le personnage est sujet aux règles normales de Peur (avec Tests à Intermédiaire +0 les Rounds suivants).
 
-**L'Ennemi est un Groupe**, lecture recommandée, révisable (Q13 A, #3045 ; utilisateur, 2026-10-27 15:09 : « reco. ») : la spécialisation de Sans Peur est un id de `groups.json` hors des Groupes relatifs (source `groupesDAppartenance`, la sous-liste `CIBLE_D_APPARTENANCE`), lue par `sansPeurVs` comme une Cible de Groupe.
+**L'Ennemi est un Groupe**, lecture recommandée, révisable (Q13 A, #3045) : la spécialisation de Sans Peur est un id de `groups.json` hors des Groupes relatifs (source `groupesDAppartenance`, la sous-liste `CIBLE_D_APPARTENANCE`), lue par `sansPeurVs` comme une Cible de Groupe.
 - Pluriel ramené au Groupe existant : Criminels → `criminel`, Gardes → `garde`, Hommes-bêtes → `homme-bete`, Morts-vivants → `mort-vivant`, Peaux-vertes → `peau-verte`.
 - Groupes de spécialisation : Animaux (`LDB 08 l.3514`), Hors-la-loi (`LDB 08 l.1852`, `LDB 10 l.1051`), Hérétiques (`LDB 08 l.1732`), Intrus (`LDB 08 l.1203`), Miliciens (`LDB 08 l.490`), Naufrageurs (`LDB 08 l.2928`), Patrouilleurs fluviaux (`LDB 08 l.2582`), Patrouilleurs routiers (`LDB 08 l.3125`), Primes (`LDB 08 l.1559`), Rats (`LDB 08 l.596`), Sorciers dissidents et Vampires (`LDB 10 l.1051`), Sorcières (`LDB 08 l.1907`), Chaos (`AA 03 l.420`), Cavalerie (`AA 04 l.204`), Grandes bêtes (`ADE II 02 l.927`).
 - Composites (`inclut`) : Animaux = animaux sauvages, animaux domestiques et bêtes ; Chaos = démons, cultistes et mutants. Lecture contraire : les hommes-bêtes dans Chaos (« les véritables enfants du Chaos », `LDB 83 l.11`).

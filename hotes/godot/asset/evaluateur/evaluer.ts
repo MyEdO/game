@@ -2,7 +2,7 @@
  * L'ÉVALUATEUR D'UNE BASE ET DE SES ÉLÉMENTS (#2972) : charge les GLB (`chargerScene`), monte les éléments sur le
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
- * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `silhouettes`, `appuis`, `piedsAuSol`, `etirement`.
+ * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `silhouettes`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -25,6 +25,7 @@ import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSo
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids } from './gardes/poids.ts';
 import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
+import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { meshesDuCorps } from './corps.ts';
 
 export interface EntreeDEvaluation {
@@ -136,6 +137,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   for (const e of elements) monter(base, e);
   const meshes = [base, ...elements].flatMap((s) => s.meshes);
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
+
+  ecarts.push(...gardeSuiviDuCorps(base.scene, meshesDuCorps(base), elements.flatMap((e) => e.skinnes)));
 
   poserFormes(base.scene, poids);
   const gabarit = manifeste ? appliquerGabarit(base.scene, facteurs, manifeste, base.squelette ?? undefined) : null;

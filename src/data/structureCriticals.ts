@@ -1,4 +1,7 @@
 import structureCriticalsJson from './structure-criticals.json';
+import { parseDiceRequired } from '../engine/dice';
+
+export const STRUCTURE_CRITICALS_DIE = parseDiceRequired(structureCriticalsJson.die, 'structure-criticals.die');
 
 /**
  * Blessures critiques sur une STRUCTURE — Aux Armes « Tableau des Blessures critiques sur une Structure »

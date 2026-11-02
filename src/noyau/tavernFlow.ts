@@ -35,7 +35,7 @@ import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, estJete, type TestR
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps, avantageDeCampSansFiche } from '../engine/ops';
-import { testValue } from '../engine/skills';
+import { idsDuTest, testValue } from '../engine/skills';
 import { advantageCap, advantageCapFor } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { touchActors } from './combatOrParty';
@@ -164,6 +164,10 @@ function enOption(t: { skill?: string; spec?: string; char?: CharKey }): TavernO
     ...(t.skill ? { skill: { id: t.skill, ...(t.spec ? { spec: t.spec } : {}) } } : {}),
     ...(t.char ? { char: t.char } : {}),
   };
+}
+
+function testDeSequence(test: Pick<TavernOption, 'skill' | 'char'>): { skill?: string; spec?: string; char?: CharKey } {
+  return test.skill ? idsDuTest({ skill: test.skill }) : { char: test.char };
 }
 
 function tavernTestSpec(game: TavernGame): { skill?: string; char?: CharKey; spec?: string } {
@@ -434,9 +438,10 @@ export function playTavernGame(
 function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, difficulty: Difficulty, nue: number): CascadeSecondRead | undefined {
   const regles = game.combined;
   if (!regles) return undefined;
+  const test = testDeSequence(regles.second);
   return {
     label: testSkillLabel(regles.second) ?? game.label,
-    base: acteur ? testValue(acteur, regles.second.skill, regles.second.char, regles.second.spec) : nue,
+    base: acteur ? testValue(acteur, test.skill, test.char, test.spec) : nue,
     target: combinedSecondTarget(regles, acteur, difficulty, nue),
     difficulty,
   };
@@ -738,6 +743,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   const game = p ? findTavernGameById(p.gameId) : undefined;
   const regles = seq?.params.throwerPenalty;
   if (!seq || !p || !game || !regles || game.roundShape !== 'thrower') return [];
+  const test = testDeSequence(regles.test);
   const lanceur = p.throwers?.[seq.round - 1];
   const jet = rows.find((r) => r.id === lanceur?.id);
   const danseur = rows.find((r) => r.id.startsWith('danseur-'));
@@ -754,10 +760,10 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
       id,
       kind: TAVERN_DRINK_KIND,
       icon: 'nav/dice',
-      label: composeRollLabel(heros, regles.label ?? game.label, regles.test),
+      label: composeRollLabel(heros, regles.label ?? game.label, test),
       actor: heros,
       difficulty: regles.difficulty,
-      ligne: { test: regles.test },
+      ligne: { test },
       stake: combatStakeRef('tavernGame', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
       meta: { camp: lanceur.camp, who: lanceur.label } satisfies PinteDuLanceur,
     })
@@ -771,11 +777,11 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   // figurant, dont la fiche ne suit pas la séquence (valeur dérivée à l'ouverture). Jamais un jet forgé à la main.
   const pinte: BatchParticipant = heros
     ? {
-      id, label: testSkillLabel(regles.test) ?? lanceur.label, ...(regles.test.skill ? { skillId: regles.test.skill } : {}),
+      id, label: testSkillLabel(regles.test) ?? lanceur.label, ...(test.skill ? { skillId: test.skill } : {}),
       difficulty: regles.difficulty, result: null, interactive: false,
-      ...rollStep({ actor: heros, test: regles.test, difficulty: regles.difficulty }),
+      ...rollStep({ actor: heros, test, difficulty: regles.difficulty }),
     }
-    : figurantRow(id, lanceur.label, lanceur.value ?? p.opponentValue, { ...enOption(regles.test), difficulty: regles.difficulty }, 0);
+    : figurantRow(id, lanceur.label, lanceur.value ?? p.opponentValue, { ...regles.test, difficulty: regles.difficulty }, 0);
   const jete = pinte.result ?? rollBatchParticipant(pinte, battleRng());
   return torchonBoit(get, set, lanceur.id, lanceur.camp, lanceur.label, jete.success);
 }
@@ -2322,9 +2328,10 @@ function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: T
 /** La SECONDE cible d'un camp : la valeur DÉCLARÉE (`combined.second`) montée par l'accesseur canon
  *  pour un porteur, ou la valeur de table pour un adversaire abstrait. */
 function combinedSecondTarget(regles: SequenceCombinedRules, acteur: Combatant | undefined, difficulty: Difficulty, nue: number): number {
+  const test = testDeSequence(regles.second);
   return acteur
-    ? effectiveTarget(acteur, regles.second, difficulty)
-    : effectiveTarget(undefined, regles.second, difficulty, nue);
+    ? effectiveTarget(acteur, test, difficulty)
+    : effectiveTarget(undefined, test, difficulty, nue);
 }
 
 /**

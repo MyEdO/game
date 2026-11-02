@@ -1359,7 +1359,6 @@
       "src/gameIso/stage/",
       "src/gameIso/fx/",
       "src/gameIso/SurcoucheIso.tsx",
-      "src/gameIso/sceneAnims.ts",
       "src/gameIso/TokenChromeMarks.tsx",
       "src/gameIso/catalog/decor/defs/"
     ],
@@ -2149,5 +2148,14 @@
     "concept": "la Cible d’un Trait psy acquis envers une Cible, retenue par le porteur surfacé à l’étape `cibleAcquise` (`combat/triggeredTest.ts`) quand plusieurs s’offrent, sinon la Cible par défaut posée d’office (`acquerirLeTrait`) ; seul poseur d’un Trait acquis envers une Cible et de sa ligne de journal (`poserLeTraitAcquis`, par `grantPsychTrait`) ; seul point d’écriture d’une Terreur subie, par un combattant qui suit les règles de Personnage (`subirLaTerreur`, `followsCharacterRules`)",
     "perimetre": "Animosité sur un Destin dépensé (`combatSlice.ts`), Phobie du noir sur une Terreur ratée (`combatFlow.ts`, `combat/turnHooks.ts`, `encounterPsychFlow.ts`, sa cause parmi les sources de la scène)",
     "verrou": "src/noyau/psych-acquisition.hors-store.test.ts"
+  },
+  {
+    "id": "schemaFieldConsumers",
+    "type": "primitives.manifest",
+    "label": "champsDeclares/mesurerChampsDeSchema",
+    "fichier": "scripts/guards/lib/schemaFieldConsumers.mjs",
+    "concept": "mesure des lecteurs et des vues explicites des champs déclarés par les schémas de datasets, avec provenance par dataset",
+    "perimetre": "toute garde ou tout diagnostic de consommation des champs de schéma",
+    "verrou": "src/data/field-consumers.test.ts"
   }
 ]

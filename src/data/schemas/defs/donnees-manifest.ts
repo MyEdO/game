@@ -16,14 +16,12 @@ const entreeSchema = nommerChamps(z.strictObject({
 }), { files: { label: 'fichiers' }, desc: { label: 'texte' } });
 
 const rubriqueSchema = nommerChamps(z.strictObject({
-  id: z.string().min(1),
   label: z.string().min(1),
   /** Note de rubrique imprimée sous son tableau (`build-donnees.mjs`) — CHAMP, jamais un cas
    *  particulier câblé dans le générateur : toute rubrique peut en porter une. */
   note: z.string().min(1).optional(),
   entrees: z.array(entreeSchema),
 }), {
-  id: { label: 'identifiant' },
   label: { label: 'libellé' },
   note: { label: 'note' },
   entrees: { label: 'entrées' },

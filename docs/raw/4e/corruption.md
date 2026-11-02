@@ -576,7 +576,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 
 ### Lectures de Pulsions de haine, recommandées, révisables
 
-#3045 ; utilisateur, 2026-10-27 15:10 : « les questions de régles c'est de la reco jusqu'au jour on décide de mettre le nez dedans ».
+#3045 : lectures recommandées et révisables.
 
 - **Qui est d'une autre race** : lecture littérale de `LDB 19 l.152`, « tous ceux qui ne sont pas de votre race ». Toute source qui ne porte aucune des Races du porteur est visée, une source sans Race comprise (une bête, un démon). Lecture contraire, citable (`EDOC 12 l.219`, « envers toutes autres races ») : seules les sources qui portent une autre Race.
 - **Un porteur sans Race** : il n'a aucune Race à partager, donc il vise toute source sauf lui-même. C'est la même lecture littérale de `LDB 19 l.152`, appliquée à un porteur sans marqueur `race`. Lecture contraire : un porteur sans Race ne vise personne.

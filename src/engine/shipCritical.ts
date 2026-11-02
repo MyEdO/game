@@ -13,7 +13,7 @@
  * Les Éclats (Indice → équipage) et les Critiques de Coque supplémentaires sont RENDUS (l'équipage et la
  * récursion de Coque relèvent de la boucle de combat naval, qui connaît l'équipage du navire).
  */
-import { d10, d100, rollDice, parseDice, type RNG } from './dice';
+import { d100, rollDice, parseDice, type RNG } from './dice';
 import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
@@ -72,8 +72,8 @@ export interface ShipCriticalResolved {
   /** id STABLE du Critique (slug) — pour toute logique/réf ; `label` reste l'affichage. */
   id: string;
   label: string;
-  /** Jet d10 effectif. */
-  roll: number;
+  /** MDG 13 l.696 ; MSRC 07 l.72-94 */
+  roll: number | null;
   /** Effets « État » à appliquer AU NAVIRE (En flammes / Voie d'eau) — langue unique `GameOp`. */
   ops: GameOp[];
   /** Éclats (Indice) : `shrapnel` membres d'équipage subissent l'effet Éclats du jeu (`set.shrapnelHit` — 9
@@ -88,16 +88,16 @@ export interface ShipCriticalResolved {
   log: string;
 }
 
-/** Résout un Critique de navire sur la `location` touchée (Localisation déterminée en amont via
- *  `shipHitLocation` ; l'Équipage, lui, passe par le marin qui encaisse le coup). `forcedRoll` = d10 imposé (tests). PUR. */
+/** MDG 13 l.664/696 ; MSRC 07 l.72-94 */
 export function rollShipCritical(location: ShipCritKey, rng: RNG, forcedRoll?: number, set: ShipCritSet = SHIP_CRIT_SET): ShipCriticalResolved {
-  const roll = forcedRoll ?? d10(rng);
   const table = set.tables[location];
+  const roll = set.die ? forcedRoll ?? rollDice(set.die, rng) : null;
   if (!table) {
     // La table de Localisation appariée à ce jeu ne produit jamais une Localisation absente du jeu ; garde-fou.
     return { location, id: 'aucun', label: '—', roll, ops: [], shrapnel: 0, extraHullCrits: 0, note: '', log: t('shipCrit.noTable', { loc: shipLocationLabel(location) }) };
   }
-  const entry = structuredClone(findTableEntry(table, roll)); // #2097
+  if (set.die === null && table.length !== 1) throw new Error(`${set.id}.${location} : un effet certain exige une seule rangée`);
+  const entry = structuredClone(roll === null ? table[0] : findTableEntry(table, roll)); // #2097
   // Effets « État » : AUTHORÉS en donnée (`entry.ops`, GameOp) — le résolveur n'a plus aucun couplage nom-d'État.
   const ops: GameOp[] = entry.ops ?? [];
   const extraHullCrits = entry.hullCrits ? rollDice(parseDice(entry.hullCrits)!, rng) : 0;

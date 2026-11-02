@@ -2,6 +2,32 @@ import { describe, it, expect } from 'vitest';
 // @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';
+import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
+import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
+import { testScenarios } from '../test-scenarios';
+import type { Scene } from '../../noyau/monde/scene';
+
+it('les ambiances de toutes les scènes livrées appartiennent aux rôles ambiants', () => {
+  const cles = new Set<string>(roleAmbiantSchema.options);
+  const scenes = [
+    ...listerProjetsLivres().flatMap((rel) => (lireProjetLivre(rel) as { scenes: Scene[] }).scenes),
+    ...testScenarios.flatMap((scenario) => {
+      const construit = scenario.construire();
+      return [construit.scene, ...(construit.extraScenes ?? [])];
+    }),
+  ];
+  const inconnues = scenes.flatMap((s) => s.entities.flatMap((e) =>
+    e.anim !== undefined && !cles.has(e.anim) ? [`${s.id}.${e.id}: ${e.anim}`] : []));
+  expect(inconnues).toEqual([]);
+});
+
+it('le schéma admet chaque rôle ambiant et refuse une animation étrangère', () => {
+  const entite = { id: 'fixture', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } };
+  for (const anim of roleAmbiantSchema.options) expect(sceneEntitySchema.safeParse({ ...entite, anim }).success).toBe(true);
+  expect(sceneEntitySchema.safeParse({ ...entite, anim: 'animation-etrangere' }).success).toBe(false);
+});
 
 /** Scène MER minimale (eau, 6×6) portant une rencontre terse d'un seul ennemi `ref` — sert à exercer
  *  `creatureId()` (branché dans `normalizeEnemy`) sans dépendre d'un catalogue de créature particulier. */

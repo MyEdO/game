@@ -11,18 +11,16 @@ import type { FormeDArme } from './equipementDessine';
 import { racineDesCandidats } from '../engine/items';
 import { findApparenceById, findWeaponGroupById } from '../data';
 import type { Maniement } from '../data/schemas/grammaire/valeurs';
+import { roleAmbiantSchema } from '../data/schemas/grammaire/valeurs';
 
 /** Rôles de combat : un clip chacun. */
 export const ROLES_DE_COMBAT = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle'] as const);
-
-/** Rôles ambiants en boucle. */
-export const ROLES_AMBIANTS = Object.freeze(['feeding', 'praying', 'cowering', 'standing', 'howling'] as const);
 
 /** Styles d'incantation. */
 export const STYLES_DE_SORT = Object.freeze(['bolt', 'blessing'] as const);
 export type StyleDeSort = (typeof STYLES_DE_SORT)[number];
 
-export const ROLES_D_ANIMATION = Object.freeze([...ROLES_DE_COMBAT, 'death', ...ROLES_AMBIANTS, ...STYLES_DE_SORT] as const);
+export const ROLES_D_ANIMATION = Object.freeze([...ROLES_DE_COMBAT, 'death', ...roleAmbiantSchema.options, ...STYLES_DE_SORT] as const);
 export type RoleDAnimation = (typeof ROLES_D_ANIMATION)[number];
 
 /** Arme naturelle typée (`Weapon.attackKind`, id stable du trait) → maniement dédié. */

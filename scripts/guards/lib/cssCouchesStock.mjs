@@ -43,8 +43,6 @@
 
 /** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const CSS_IDENTITE_ECRAN_RATCHET = [
-  { fichier: 'src/gameIso/anim.css', ref: '.breathe :: animation', occurrence: 1 },
-  { fichier: 'src/gameIso/anim.css', ref: '.breathe :: transform-box', occurrence: 1 },
   { fichier: 'src/gameIso/anim.css', ref: '.fly :: animation', occurrence: 1 },
   { fichier: 'src/gameIso/anim.css', ref: '.fly :: transform-box', occurrence: 1 },
   { fichier: 'src/gameIso/anim.css', ref: '.fly.f1 :: animation-delay', occurrence: 1 },
