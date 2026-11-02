@@ -10,12 +10,11 @@ import { Coins } from './Coins';
 import { DrBar } from './DrBar';
 import { useHealJetProps } from './jetProps/useHealJetProps';
 import { EmbeddedShell, useRollShell } from './RollShell';
-import { isHealable, lodgedAmmoCount, type HealMode } from '../engine/healing';
-import { hasTreatableTrauma, hasSurgeryTrauma, recoverableTraumas, hasLimbAwaitingAid } from '../engine/trauma';
-import { bestHealerFor, fenetreDeLOperation, HEAL_STAKE } from '../noyau/medicFlow';
+import { isHealable, lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
+import { stacks } from '../engine/conditions';
+import { bestHealerFor, fenetreDeLOperation, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { toMoney } from '../engine/money';
-import type { Combatant } from '../engine/types';
 import { Icon } from './Icon';
 import { VsHeader } from './VsHeader';
 import { HEAL_ACT } from './healSubtitle';
@@ -30,31 +29,6 @@ const ACT_META: Record<HealMode, { icon: ReactNode; label: string }> = {
   recovery: { icon: <Icon id="medical/crutch" size="sm" />, label: 'Rééduquer un membre' },
   ammo: { icon: <Icon id="item/ammo" size="sm" />, label: 'Retirer une munition' },
 };
-
-/** Pourquoi un acte est grisé — affiché en title (info de décision, pas de texte tuto). */
-function actBlockReason(patient: Combatant, act: HealMode, hasSurgeon: boolean): string | null {
-  switch (act) {
-    case 'wounds':
-      if (patient.wounds.current >= patient.wounds.max) return 'Blessures au maximum';
-      if (patient.soinRencontreUtilise) return 'A déjà reçu son soin de Blessures (une fois par rencontre)'; // LDB 09 l.233
-      return null;
-    case 'bleed':
-      return (patient.conditions ?? []).some((c) => c.id === 'hemorragique' && c.value > 0) ? null : 'Aucune Hémorragie';
-    case 'trauma':
-      return hasTreatableTrauma(patient) ? null : 'Aucune déchirure à traiter';
-    case 'surgery':
-      if (!hasSurgeryTrauma(patient)) return 'Aucune blessure ne relève de la chirurgie';
-      if (!hasSurgeon) return 'Aucun soigneur avec le Talent Chirurgie'; // prérequis LDB 10
-      return null;
-    case 'recovery':
-      if (recoverableTraumas(patient).length) return null;
-      if (hasLimbAwaitingAid(patient)) return 'Aide Médicale requise d’abord'; // LDB 18 l.120/179 : « Après application de cette Aide… »
-      return 'Aucun membre désactivé à rééduquer';
-    case 'ammo':
-      return lodgedAmmoCount(patient) > 0 ? null : 'Aucune munition logée';
-  }
-}
-
 
 /**
  * INFIRMERIE — modale de soins PERSISTANTE (hors combat) : bandeau patients (tuiles full, la jauge
@@ -88,11 +62,10 @@ export function MedicModal() {
   const busy = !!ph || !!sg || !!ps; // jet posé ou opération en cours : patients verrouillés, pas de sortie
   const npc = medic.npc;
   const paid = npc?.acts.some((a) => a.cost);
-  const hasSurgeon = npc ? true : !!bestHealerFor(party, 'surgery');
 
-  // Les actes proposés : ceux du PNJ (tarifés) ou les 4 actes du groupe — grisés avec leur raison.
+  // Les actes proposés : ceux du PNJ (tarifés) ou tous ceux du groupe — grisés avec la raison du geste (`refusDActeDeSoin`).
   const offers: { act: HealMode; cost?: { gold?: number; silver?: number; brass?: number } }[] =
-    npc ? npc.acts : (['wounds', 'bleed', 'ammo', 'trauma', 'surgery', 'recovery'] as HealMode[]).map((a) => ({ act: a }));
+    npc ? npc.acts : HEAL_MODES.map((a) => ({ act: a }));
 
   // PIED de la fenêtre (`docs/charte-ui.md`, `.cadre-pied`) : les gestes du jet posé ; ceux d'une
   // opération armée ; sinon, la sortie.
@@ -182,12 +155,10 @@ export function MedicModal() {
           })()}
           <div className="medic-acts">
             {offers.map(({ act: a, cost }) => {
-              if (sg && (a === 'surgery' || a === 'trauma' || a === 'recovery')) return null; // pendant l'op : Bander/Hémorragie seulement
-              const reason = actBlockReason(patient, a, hasSurgeon);
+              const raison = refusDActeDeSoin({ medic, party, pendingHeal: ph, pendingSurgery: ps }, a) ?? undefined;
               const healer = npc ? undefined : bestHealerFor(party, a)?.actor;
               const meta = ACT_META[a];
-              const stacks = a === 'bleed' ? (patient.conditions ?? []).find((c) => c.id === 'hemorragique')?.value ?? 0
-                : a === 'ammo' ? lodgedAmmoCount(patient) : 0;
+              const pions = a === 'bleed' ? stacks(patient, 'hemorragique') : a === 'ammo' ? lodgedAmmoCount(patient) : 0;
               // L'acte est SA propre porte de règle (#1078) : le bouton s'englobe dans `CodexRef wrap`,
               // dont la cible est le FOYER de l'enjeu de CE jet (`HEAL_STAKE`) et l'`instance` le nom de
               // l'acte. Un acte qui ARME une opération (`surgery`/`recovery`) n'a pas de cible au Codex avant
@@ -199,7 +170,6 @@ export function MedicModal() {
               // La raison d'un refus ne peut PAS naître d'un second `CodexRef` imbriqué dans celui de
               // la porte de règle (une seule infobulle par ancrage) : elle passe par `refus` de CE
               // popover, et l'action prend la forme `reasonId` — sans conteneur ni doublon.
-              const raison = reason ?? (!npc && !healer ? 'Aucun soigneur (Compétence Guérison) dans le groupe.' : undefined);
               const rid = `medic-act-${a}`;
               const bouton = (
                 <GatedAction
@@ -207,7 +177,7 @@ export function MedicModal() {
                   reasonId={rid}
                   label={<>
                     {meta.icon} {meta.label}
-                    {(a === 'bleed' || a === 'ammo') && stacks > 0 ? ` ×${stacks}` : ''}
+                    {pions > 0 ? ` ×${pions}` : ''}
                     {cost && <span className="medic-price"><Coins money={toMoney(cost)} /></span>}
                   </>}
                   ariaLabel={meta.label}
