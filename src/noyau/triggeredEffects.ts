@@ -15,7 +15,7 @@ import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps, resolveTestDifficulty } from '../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps, resolveTestDifficulty } from '../engine/flowCore';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
@@ -175,8 +175,8 @@ export function triggerEffectOps(actor: Combatant, trigger: EffectTrigger): { op
 export interface TriggerSource { effects: TriggeredEffect[]; cap: number; key: string; label: string; stacks?: number; }
 
 /** Sources d'attaque gratuite DÉCLENCHÉE = LES MÊMES sources que le dispatcher (`effectSourcesOf`, source
- *  unique) — `resolveFreeAttacks` filtre celles qui portent un `grantFreeAttack` (`flowHasFreeAttack`), quel
- *  que soit le KIND (Atout d'arme/Trait/Qualité/Talent/État/psy). NB : l'attaque libre « disponible » de la
+ *  unique, arme de la touche comprise) — `resolveFreeAttacks` joue celles qui portent un `grantFreeAttack`
+ *  (`flowHasFreeAttack`), que le bus saute, quel que soit le KIND (Atout d'arme/Trait/Qualité/Talent/État/psy). NB : l'attaque libre « disponible » de la
  *  Frénésie vit dans son `passive` (`when:'available'`) → `availableFreeAttackOps`/`aiAvailableFreeAttack`, pas ici. */
 export function freeAttackSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
   return effectSourcesOf(actor, weapon);
@@ -379,11 +379,51 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   return { hiddenFromFoes, engaged: isEngaged(actor), nearestFoeDist };
 }
 
+/** ENVELOPPE d'un effet déclenché : les combattants où `eff` s'exerce pour `trigger` dans `ctx` — vide
+ *  quand l'effet ne réagit pas à cet événement. SOURCE UNIQUE lue par le bus (`applyTriggeredEffects`) et par le
+ *  résolveur des attaques gratuites (`resolveFreeAttacks`, combatFlow) : un effet s'exerce aux MÊMES conditions
+ *  quel que soit son émetteur. */
+export function ciblesDeLEffet(
+  get: Get, actor: Combatant, eff: TriggeredEffect, trigger: EffectTrigger,
+  ctx: Pick<TriggerCtx, 'victim' | 'conditionName' | 'attackType' | 'origine'>,
+): Combatant[] {
+  if (eff.trigger !== trigger) return [];
+  // Filtre `onGainCondition` : ne réagit qu'à l'État effectivement gagné (Mâchoires → 'sonne').
+  if (eff.condition && eff.condition !== ctx.conditionName) return [];
+  // Filtre par TYPE d'attaque (onHit/onWoundLoss) : un effet `attackType` ne réagit qu'à ce type.
+  if (eff.attackType && eff.attackType !== ctx.attackType) return [];
+  if (eff.coupCritique && !estUnCoupCritique(ctx.origine)) return [];
+  return targetsFor(get, actor, eff.on, ctx.victim).filter((t) =>
+    // On n'applique pas un effet à une cible DÉJÀ hors de combat (pas d'éclaboussure sur un cadavre) —
+    // SAUF le PORTEUR réagissant à SON PROPRE événement (`on:'self'`) : une unité doit pouvoir réagir à
+    // sa propre chute (Démoniaque banni à 0 PB, futur « éclate/se dédouble à la mort »). Les déclencheurs
+    // de FRONTIÈRE de round (`onRoundEnd`/`onRoundStart`) filtrent eux-mêmes les hors-combat côté appelant.
+    !(isOutOfAction(t) && t.id !== actor.id)
+    // Effet OPT-IN (`optional`, RAW « Vous pouvez… » — Contrôle de la Frénésie LDB 10) : seul un porteur
+    // SURFACÉ décide (`surfaceOf` — le siège qui le tient, quel qu'il soit, en cadence manuelle ; fin de
+    // Round : sauté par le bus, COLLECTÉ en étape de CHOIX par
+    // `collectRoundEndTestSteps`). IA / cadence auto ne l'exercent JAMAIS — ni décision silencieuse ni
+    // jet caché (la sortie rationnelle de l'IA — plus d'ennemi en vue — est déjà l'effet AUTO de
+    // psychology.json). MÊME prédicat que la porte du choix (`resolveFlowChoice`) et que celle du Test
+    // (`resolveFlowTest`) : décider, dépenser et rouler appartiennent au MÊME siège.
+    && !(eff.optional && !surfaceOf(get, t.id)));
+}
+
+/** Le Flow qu'un porteur SURFACÉ joue pour `eff` : un effet OPT-IN est emballé dans un nœud `choice`
+ *  (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix. */
+export function flowOffert(eff: TriggeredEffect): Flow {
+  return eff.optional
+    ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', yes: eff.flow, no: EMPTY_FLOW }
+    : eff.flow;
+}
+
 /** CŒUR d'application : applique une LISTE d'effets `TriggeredEffect` de `actor` correspondant à
  *  `trigger`, chacun via `runPureFlowLines` aux cibles résolues (`on`). Source UNIQUE : utilisé par
  *  `fireTriggers` (effets de traits/atouts) ET par les manœuvres (effets du profil de manœuvre).
  *  Un effet dont le Flow est un nœud `test` ET pour lequel `ctx.set` est fourni (hook
- *  `onGainCondition`) est ROUTÉ vers la voie cadence-aware (jamais la branche succès silencieuse). */
+ *  `onGainCondition`) est ROUTÉ vers la voie cadence-aware (jamais la branche succès silencieuse).
+ *  Un Flow qui accorde une attaque gratuite (`flowHasFreeAttack`) n'est PAS joué ici : son seul émetteur
+ *  est `resolveFreeAttacks` (combatFlow), qui tient le tiers visé (LDB 10 l.500). */
 export function applyTriggeredEffects(
   get: Get, actor: Combatant, effects: TriggeredEffect[], trigger: EffectTrigger, ctx: TriggerCtx,
 ): string[] {
@@ -399,26 +439,8 @@ export function applyTriggeredEffects(
   // pour ne pas peser sur les déclencheurs d'attaque. Neutre hors `onRoundEnd` (Conditions → false/+∞).
   const geom = trigger === 'onRoundEnd' ? recoveryGeometry(get, actor) : undefined;
   for (const eff of effects) {
-    if (eff.trigger !== trigger) continue;
-    // Filtre `onGainCondition` : ne réagit qu'à l'État effectivement gagné (Mâchoires → 'sonne').
-    if (eff.condition && eff.condition !== ctx.conditionName) continue;
-    // Filtre par TYPE d'attaque (onHit/onWoundLoss) : un effet `attackType` ne réagit qu'à ce type.
-    if (eff.attackType && eff.attackType !== ctx.attackType) continue;
-    if (eff.coupCritique && !estUnCoupCritique(ctx.origine)) continue;
-    for (const t of targetsFor(get, actor, eff.on, ctx.victim)) {
-      // On n'applique pas un effet à une cible DÉJÀ hors de combat (pas d'éclaboussure sur un cadavre) —
-      // SAUF le PORTEUR réagissant à SON PROPRE événement (`on:'self'`) : une unité doit pouvoir réagir à
-      // sa propre chute (Démoniaque banni à 0 PB, futur « éclate/se dédouble à la mort »). Les déclencheurs
-      // de FRONTIÈRE de round (`onRoundEnd`/`onRoundStart`) filtrent eux-mêmes les hors-combat côté appelant.
-      if (isOutOfAction(t) && t.id !== actor.id) continue;
-      // Effet OPT-IN (`optional`, RAW « Vous pouvez… » — Contrôle de la Frénésie LDB 10) : seul un porteur
-      // SURFACÉ décide (`surfaceOf` — le siège qui le tient, quel qu'il soit, en cadence manuelle ; fin de
-      // Round : sauté ici, COLLECTÉ en étape de CHOIX par
-      // `collectRoundEndTestSteps`). IA / cadence auto ne l'exercent JAMAIS — ni décision silencieuse ni
-      // jet caché (la sortie rationnelle de l'IA — plus d'ennemi en vue — est déjà l'effet AUTO de
-      // psychology.json). MÊME prédicat que la porte du choix (`resolveFlowChoice`) et que celle du Test
-      // (`resolveFlowTest`) : décider, dépenser et rouler appartiennent au MÊME siège.
-      if (eff.optional && !surfaceOf(get, t.id)) continue;
+    if (flowHasFreeAttack(eff.flow)) continue;
+    for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
       // Flow PORTANT un nœud `test` (à n'importe quelle profondeur — top-level Mâchoires, ou enfoui sous
       // `if`/`seq` : Venin/Hurlement/2 enchants) routé vers la voie cadence-aware (héros manuel → cascade
       // influençable ; ennemi/auto → inline) plutôt qu'avalé silencieusement — seulement si l'appelant
@@ -444,12 +466,8 @@ export function applyTriggeredEffects(
         // Hors fin de Round : voie cadence-aware `routeTriggeredTest` quand le contexte porte `set`
         // (onGainCondition / attaques → cascade influençable pour un héros manuel, inline + file différée
         // sinon) ; SANS `set` (entretien HORS COMBAT) → INLINE. Jamais avalé. GÉNÉRIQUE : tout État à `onRoundEnd` test (Empoisonné…).
-        // Un effet OPT-IN atteint ici un héros MANUEL (les autres sont filtrés plus haut) : son Flow est
-        // emballé dans un nœud `choice` (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix.
-        const flow: Flow = eff.optional
-          ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', yes: eff.flow, no: EMPTY_FLOW }
-          : eff.flow;
-        if (ctx.set) { routeTriggeredTest(get, ctx.set, t, actor, flow, flowCtx); continue; }
+        // Un effet OPT-IN atteint ici un héros MANUEL (les autres sont filtrés par l'enveloppe) : `flowOffert`.
+        if (ctx.set) { routeTriggeredTest(get, ctx.set, t, actor, flowOffert(eff), flowCtx); continue; }
         if (eff.optional) continue; // opt-in SANS voie de choix (entretien hors combat) → non exercé
         lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
         continue;

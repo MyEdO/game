@@ -20,6 +20,10 @@
  *                      branche — ailleurs, le walker pur `runPureFlowLines` (noyau/combat/flowEval) les
  *                      avalerait en silence. `grantFreeAttack` top-level reste légitime (résolu par
  *                      `resolveFreeAttacks`).
+ *  6ter. GRATUITE HORS RÉSOLVEUR — les `effects` des fichiers de `HORS_SOURCES_DE_GRATUITES` (manœuvres,
+ *                      Domaines) sont joués par `applyTriggeredEffects` hors `effectSourcesOf` : le bus y
+ *                      saute un Flow à `grantFreeAttack` (`flowHasFreeAttack`) et `resolveFreeAttacks` ne
+ *                      l'énumère pas — il y serait perdu en silence (LDB 10 l.500).
  *
  * EXCLUSION `miscast.json` (famille 3) : ce fichier est un DIALECTE source (`JsonOp`/`JsonFormula` :
  * `{sinPlus1:true}`, `sinPlus1Value`, noms paramétrés par `sinPoints`) COMPILÉ en `GameOp` réels par
@@ -32,7 +36,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isValidFormula } from '../engine/ops';
 import { ICON_DEFS } from '../ui/icons';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, flowHasImpureOpOutsideTest } from '../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE, flowHasImpureOpOutsideTest, flowHasFreeAttack } from '../engine/flowCore';
 import type { Flow } from '../engine/flowCore';
 import { ruleDef } from '../engine/policy';
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
@@ -55,6 +59,10 @@ const INDEX_SRC = readFileSync(resolve(__dirname, 'index.ts'), 'utf8');
 const TRIGGERED_EFFECT_FIELDS = new Set(
   [...INDEX_SRC.matchAll(/(\w+)\?:\s*(?:import\('\.\.\/engine\/flowCore'\)\.)?TriggeredEffect(?:<\w+>)?\[\]/g)].map((m) => m[1]),
 );
+
+/** Fichiers dont les `effects` sont joués par `applyTriggeredEffects` HORS `effectSourcesOf` — profil de
+ *  manœuvre (`maneuverEffects`) et Domaine (`domainOnHitEffects`) : famille 6ter. */
+const HORS_SOURCES_DE_GRATUITES = new Set(['maneuvers.json', 'domains.json']);
 
 // Fichier DIALECTE compilé (cf. en-tête) : exclu de la famille Formule.
 const MISCAST = 'miscast.json';
@@ -89,7 +97,7 @@ const isTemplate = (v: unknown, file: string, path: string): boolean =>
 const isGameOp = (o: Record<string, unknown>): boolean => typeof o.op === 'string' && !('kind' in o);
 
 interface Issue { file: string; path: string; detail: string }
-interface Scan { parseErrors: Issue[]; unknownOps: Issue[]; badFormulas: Issue[]; badPlaceholders: Issue[]; strayImpureOps: Issue[] }
+interface Scan { parseErrors: Issue[]; unknownOps: Issue[]; badFormulas: Issue[]; badPlaceholders: Issue[]; strayImpureOps: Issue[]; strayFreeAttacks: Issue[] }
 
 function walk(node: unknown, file: string, path: string, scan: Scan): void {
   if (Array.isArray(node)) { node.forEach((v, i) => walk(v, file, `${path}[${i}]`, scan)); return; }
@@ -120,6 +128,8 @@ function walk(node: unknown, file: string, path: string, scan: Scan): void {
         if (te && typeof te === 'object' && 'flow' in te) {
           if (flowHasImpureOpOutsideTest(te.flow as Flow))
             scan.strayImpureOps.push({ file, path: `${path}.${k}[${i}].flow`, detail: `op impure (interruptFocus/breakBlade/delayed) HORS branche success/fail d'un test — avalée en silence par runPureFlowLines` });
+          if (HORS_SOURCES_DE_GRATUITES.has(file) && flowHasFreeAttack(te.flow as Flow))
+            scan.strayFreeAttacks.push({ file, path: `${path}.${k}[${i}].flow`, detail: `grantFreeAttack hors des sources de resolveFreeAttacks — sauté par le bus, jamais joué` });
         }
       });
     }
@@ -127,7 +137,7 @@ function walk(node: unknown, file: string, path: string, scan: Scan): void {
   }
 }
 
-const scan: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [] };
+const scan: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
 for (const f of files) {
   let data: unknown;
   try { data = JSON.parse(readFileSync(join(DIR, f), 'utf8')); }
@@ -155,7 +165,7 @@ describe('Intégrité des données src/data/*.json', () => {
   });
   it("4bis — le périmètre de template est PAR FICHIER : `$arg` dans une qualité est un placeholder (contre-épreuve)", () => {
     const probe = (file: string, gabarit: string) => {
-      const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [] };
+      const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
       walk({ effects: [{ trigger: 'onCrit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'a-terre', durationRounds: gabarit }] } } }] }, file, '', s);
       return s.badPlaceholders;
     };
@@ -174,6 +184,19 @@ describe('Intégrité des données src/data/*.json', () => {
   });
   it("6bis — aucun flow d'effet DÉCLENCHÉ ne porte d'op impure hors branche success/fail d'un test", () => {
     expect(scan.strayImpureOps, `Op(s) impure(s) inexprimable(s) hors test :\n${fmt(scan.strayImpureOps)}`).toEqual([]);
+  });
+  it("6ter — aucun grantFreeAttack dans les effects d'une manœuvre ou d'un Domaine (hors sources de resolveFreeAttacks)", () => {
+    expect(scan.strayFreeAttacks, `Attaque(s) gratuite(s) jamais jouée(s) :\n${fmt(scan.strayFreeAttacks)}`).toEqual([]);
+  });
+  it("6ter bis — la porte lit le FICHIER : un grantFreeAttack dans une manœuvre est refusé, dans un talent non (contre-épreuve)", () => {
+    const probe = (file: string) => {
+      const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
+      walk({ effects: [{ trigger: 'onHit', on: 'self', flow: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', when: 'immediate' }] } } }] }, file, '', s);
+      return s.strayFreeAttacks;
+    };
+    expect(probe('maneuvers.json')).toHaveLength(1);
+    expect(probe('domains.json')).toHaveLength(1);
+    expect(probe('talents.json'), 'un talent est une source de resolveFreeAttacks.').toEqual([]);
   });
   it('7 — species.json : family non vide sur chaque espèce (groupage du rail créateur — remplace la regex sur label)', () => {
     const species = JSON.parse(readFileSync(join(DIR, 'species.json'), 'utf8')) as { id: string; family?: string }[];
