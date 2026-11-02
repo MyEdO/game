@@ -77,7 +77,8 @@
     "fx": {
       "revenueBlockedClasses": [
         "roublards"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -93,7 +94,8 @@
     "label": "Le Prévôt arrive",
     "desc": "Le collecteur d’impôts sillonne la communauté : tous les Personnages perdent 30 % de leur argent avant de pouvoir le dépenser.",
     "fx": {
-      "moneyPct": -30
+      "moneyPct": -30,
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -110,7 +112,8 @@
     "desc": "Un trafic de pièces contrefaites sévit : un cinquième de toutes les pièces est concerné — Opérations bancaires et Revenus réduits de 20 %.",
     "fx": {
       "revenuePct": -20,
-      "bankPct": -20
+      "bankPct": -20,
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -129,7 +132,8 @@
       "revenuePct": 50,
       "revenueClasses": [
         "riverains"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -206,7 +210,8 @@
     "fx": {
       "revenueBlockedClasses": [
         "ruraux"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -238,7 +243,8 @@
     "fx": {
       "revenueBlockedClasses": [
         "*"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -270,7 +276,8 @@
       "revenuePct": 20,
       "revenueClasses": [
         "roublards"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -306,7 +313,8 @@
       "revenueClasses": [
         "citadins",
         "ruraux"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -382,7 +390,8 @@
       "revenueBlockedClasses": [
         "courtisans"
       ],
-      "bankCrashCheck": true
+      "bankCrashCheck": true,
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",
@@ -431,7 +440,8 @@
       "loseActivity": true,
       "revenueBlockedClasses": [
         "roublards"
-      ]
+      ],
+      "partyWide": true
     },
     "source": {
       "book": "livre-de-base",

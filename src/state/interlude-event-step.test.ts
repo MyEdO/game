@@ -1,6 +1,6 @@
 /**
  * ÉVÉNEMENT d'interlude en étapes à TABLE (#942 L7, #1426) — LDB 22 : le d100 « Entre deux aventures »
- * se tire PAR HÉROS, puis les bourses du groupe encaissent le pire tirage de la période. Les dés passent
+ * se tire PAR HÉROS, puis chaque bourse encaisse les pertes d'argent de la période (l.5, l.36, l.115). Les dés passent
  * par le résolveur d'étape UNIQUE (`rollTableStep`) : une étape par héros, le dénouement de GROUPE en
  * étape FINALE.
  *
@@ -19,6 +19,7 @@ import { makeRNG, d100 } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { createHero } from '../engine/character';
+import { bourseOf } from '../engine/bourse';
 import { testScene } from '../scenes/test-fixture';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from '../noyau/netOwnership';
@@ -45,6 +46,7 @@ function groupe(): Combatant[] {
   return useGame.getState().party;
 }
 
+const partyBourse = (i: number) => bourseOf(useGame.getState().party[i]);
 const perHeroOf = (id: string) => useGame.getState().interlude!.perHero[id];
 const steps = () => useGame.getState().pendingCascade!.participants;
 
@@ -82,7 +84,6 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('SONDE DIFFÉRENTIELLE (option ÉTEINTE) : mêmes événements, mêmes effets, même bourse, même flux RNG', () => {
     for (let seed = 1; seed <= 12; seed++) {
       const party = groupe();
-      const avant = toBrass(partyMoneyTotal(useGame.getState));
       const fortunes = party.map((h) => h.fortune ?? 0);
       // Référence : le chemin d'AVANT tirait un d100 par héros, dans l'ordre du groupe.
       seedBattleRng(seed);
@@ -105,10 +106,15 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
         expect(perHeroOf(h.id).left, `seed ${seed} : Activités de ${h.label}`).toBe(Math.max(0, 2 - (ev.fx?.loseActivity ? 1 : 0)));
         expect(useGame.getState().party[i].fortune ?? 0).toBe(fortunes[i] + (ev.fx?.fortuneMaxDelta ?? 0));
       });
-      // Bourse : le PIRE `moneyPct` de la période, ponctionné UNE fois sur le total du groupe.
-      const pire = rolls.reduce((w, r) => Math.min(w, interludeEventFor(r).fx?.moneyPct ?? 0), 0);
-      expect(toBrass(partyMoneyTotal(useGame.getState)), `seed ${seed} : bourse`)
-        .toBe(avant - Math.floor((avant * -pire) / 100));
+      // Bourses (LDB 22 l.36, l.115) : le Prévôt, tiré par qui que ce soit, ôte 30 % à chacun, une fois ;
+      // le Kleptomane ôte 50 % au seul héros qui l'a tiré. Oracle par id d'Événement.
+      const ids = rolls.map((r) => interludeEventFor(r).id);
+      const prevot = ids.includes('le-prevot-arrive') ? 30 : 0;
+      party.forEach((h, i) => {
+        const pct = Math.min(100, prevot + (ids[i] === 'kleptomane' ? 50 : 0));
+        expect(toBrass(partyBourse(i)), `seed ${seed} : bourse de ${h.label}`)
+          .toBe(2000 - Math.floor((2000 * pct) / 100));
+      });
     }
   });
 
@@ -172,11 +178,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(useGame.getState().interlude!.phase).toBe('activities');
   });
 
-  it('deux événements d’argent : UNE seule ponction au dénouement de groupe (portée provisoire, #991)', () => {
-    // CE QUI EST VERROUILLÉ ICI : la ponction est UNIQUE et tombe au dénouement de GROUPE, jamais à
-    // chaque héros. Le CHOIX du pourcentage (le pire, appliqué au total du groupe) est un ARBITRAGE
-    // PROVISOIRE — la PORTÉE RAW diffère par événement (cf. docblock de `finishInterludeDraw`) et se
-    // règle en #991 ; ce test ne l'affirme pas comme une règle.
+  it('deux événements d’argent : le Prévôt frappe chaque bourse, le Kleptomane la seule du héros qui l’a tiré (LDB 22 l.36, l.115)', () => {
     const party = groupe();
     const avant = toBrass(partyMoneyTotal(useGame.getState));
     setDesFixes(true);
@@ -188,8 +190,8 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(toBrass(partyMoneyTotal(useGame.getState)), 'ponctionné avant le dénouement de groupe').toBe(avant);
     useGame.getState().cascadeNext(); // étape des bourses
     expect(party.map((h) => perHeroOf(h.id).eventRoll)).toEqual([PREVOT, KLEPTO]);
-    expect(toBrass(partyMoneyTotal(useGame.getState)), 'ponction DOUBLE (une par héros) au lieu d’une seule')
-      .toBe(avant - Math.floor((avant * 50) / 100)); // comportement provisoire : le pire pct, une fois — #991
+    expect(party.map((_, i) => toBrass(partyBourse(i))), 'A : −30 % (Prévôt) ; B : −30 % et −50 % de sa bourse d’avant les Activités')
+      .toEqual([1400, 400]);
   });
 
   it('perte d’Activité (Festivités) : la ligne posée décrémente le budget du héros de l’étape', () => {
@@ -276,7 +278,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     useGame.getState().cascadeNext();
     useGame.getState().cascadeNext();
     expect(useGame.getState().interlude!.phase).toBe('activities');
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(avant - Math.floor((avant * 50) / 100));
+    expect(toBrass(partyMoneyTotal(useGame.getState)), 'le Kleptomane de B n’entame que sa bourse').toBe(avant - 1000);
   });
 
   it('#973 : la ligne du DÉNOUEMENT de groupe ne porte pas « (dé fixé) » — aucun dé n’y est jeté', () => {
@@ -290,7 +292,8 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     useGame.setState({ journal: [] });
     useGame.getState().cascadeNext(); // étape des bourses : conséquence journalisée
     const bourse = useGame.getState().journal.join('\n');
-    expect(bourse).toMatch(/bourses du groupe perdent/);
+    expect(bourse).toContain('La bourse de A perd 30 %');
+    expect(bourse).toContain('La bourse de B perd 30 %');
     expect(bourse, 'la marque d’un dé posé a fui sur une ligne sans dé').not.toContain('dé fixé');
   });
 });

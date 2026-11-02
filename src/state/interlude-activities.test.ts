@@ -530,7 +530,9 @@ describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE,
     expect(malade.id, 'le sujet ne doit JAMAIS être `party[0]`').toBe('h3');
     malade.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }];
     const itl = useGame.getState().interlude!;
-    itl.perHero[malade.id] = { ...itl.perHero[malade.id], fx: undefined, left: 2 };
+    // Période sans Événement : un Événement de groupe tiré par un camarade vaudrait aussi pour le malade.
+    for (const id of Object.keys(itl.perHero)) itl.perHero[id] = { ...itl.perHero[id], fx: undefined };
+    itl.perHero[malade.id] = { ...itl.perHero[malade.id], left: 2 };
     useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party] });
 
     useGame.getState().interludeActivity(malade.id, 'revenus');

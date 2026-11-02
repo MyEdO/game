@@ -1,15 +1,8 @@
 /**
  * « Entre deux aventures » (LDB 22-23 — Jalon 5) : flux d'interlude.
  *
- * Séquence RAW (LDB 22 l.5) : Événement d100 par héros → Activités (« un maximum d'une Activité
- * par semaine, et […] un maximum de trois Activités au total », LDB 23 l.5) → « Argent à
- * gaspiller » (LDB 23 l.13 : tout l'argent non sécurisé disparaît ; les Revenus sont remis
- * « seulement une fois que vous avez disposé de l'argent de votre dernière aventure », l.191).
- *
- * Arbitrages jeu-sans-MJ (spec 2026-06-11) : les bourses étant PERSONNELLES (#531), les pertes
- * d'argent d'événements (`moneyPct`) s'appliquent UNE fois sur le total du groupe (le pire tirage,
- * ponctionné glouton par `payFromGroup`) ; le « +1 Chance max » est crédité directement ; la clôture
- * passe par le flux de repos standard (récupération, convalescence, horloge — weeks × 7 jours).
+ * Séquence : Événements (LDB 22 l.5), Activités (LDB 23 l.5), pertes d'argent des Événements
+ * (`pertesDArgentDuTirage`), clôture (`devisDeCloture` ; LDB 23 l.15, l.191).
  */
 import type { Jeu } from './etat';
 import { battleRng } from './battleRng';
@@ -20,16 +13,15 @@ import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
-import { partyMoneyTotal, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
-import { bourseOf } from '../engine/bourse';
+import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
 import { refuserGeste } from './refusVisible';
 import {
-  ciblesDActivite, eventLabelOf, heroClass, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, type CiblesChoisies, type TraitPsyVise,
+  ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
@@ -172,7 +164,7 @@ function eventStep(hero: Combatant): CascadeStep {
 }
 
 /** Étape FINALE de la séquence : le dénouement de GROUPE (bourses), après TOUS les dénouements par
- *  héros — c'est le pire `moneyPct` de la période qui ponctionne, une fois. */
+ *  héros (`pertesDArgentDuTirage`). */
 function purseStep(): CascadeStep {
   return {
     id: 'interlude-purse',
@@ -233,7 +225,7 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const ev = structuredClone(interludeEventFor(roll)); // #2097
   const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
   let left = st.left;
-  if (ev.fx?.loseActivity) left -= 1;
+  if (ev.fx?.loseActivity && !ev.fx.partyWide) left -= 1; // l'Événement de groupe ôte au dénouement de groupe
   // LDB 23 l.56 ; règle optionnelle `interlude-elf-duty` (LDB 23 l.54).
   const elfDuty = rule('interlude-elf-duty') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
   if (elfDuty) {
@@ -254,23 +246,33 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   return lines;
 }
 
-/** DÉNOUEMENT de GROUPE, une fois TOUS les dés tombés : le `moneyPct` de la période est ponctionné,
- *  puis les Activités ouvrent (`phase`, verdict `refusDuTirage`). Commun aux deux chemins (dernier
- *  maillon : après tous les dénouements par héros).
- *
- *  ARBITRAGE PROVISOIRE → #991 : les `moneyPct` de la donnée n'ont PAS tous la même PORTÉE au RAW —
- *  `LDB 22 l.34-36` (Le Prévôt arrive) vise tous les Personnages, `LDB 22 l.113-115` (Kleptomane) vise
- *  le seul héros qui l'a tiré ; le champ ne porte aucune portée. Ce que #991 tranche. Ici : le PIRE
- *  pourcentage, appliqué UNE fois au total du groupe (comportement d'avant #942 L7, préservé tel quel). */
+/** DÉNOUEMENT de GROUPE, une fois TOUS les dés tombés : pertes d'argent, Activités ôtées par les
+ *  Événements de groupe, vérification de faillite des dépôts déjà placés, puis les Activités ouvrent
+ *  (`phase`, verdict `refusDuTirage`). Commun aux deux chemins (dernier maillon : après tous les
+ *  dénouements par héros). LDB 22 l.36, l.111, l.115, l.123 */
 function finishInterludeDraw(get: Get, set: Set): string[] {
   const itl = get().interlude;
   if (!itl) return [];
   const lines: string[] = [];
-  const worstMoneyPct = Object.values(itl.perHero).reduce((worst, st) => Math.min(worst, st.fx?.moneyPct ?? 0), 0);
-  if (worstMoneyPct < 0) {
-    const lost = Math.floor((toBrass(partyMoneyTotal(get)) * -worstMoneyPct) / 100);
-    payFromGroup(get, set, fromBrass(lost), { purpose: 'perte-evenement' });
-    lines.push(msg('if.pursesLoss', { pct: -worstMoneyPct, money: formatMoney(fromBrass(lost)) }));
+  const nom = (heroId: string) => libelleOuAbsence(get().party.find((h) => h.id === heroId), 'heros', heroId);
+  for (const { heroId, pct, brass } of pertesDArgentDuTirage(get())) {
+    debitBourse(get, set, heroId, fromBrass(brass));
+    lines.push(msg('if.purseLoss', { name: nom(heroId), pct, money: formatMoney(fromBrass(brass)) }));
+  }
+  const perHero = { ...itl.perHero };
+  for (const heroId of Object.keys(perHero)) {
+    const perdues = activitesPerduesAuGroupe(get(), heroId);
+    if (!perdues.length) continue;
+    const left = Math.max(0, perHero[heroId].left - perdues.length);
+    perHero[heroId] = { ...perHero[heroId], left, granted: left };
+    for (const { label } of perdues) lines.push(msg('if.groupActivityLost', { name: nom(heroId), event: label }));
+  }
+  const faillite = Object.keys(perHero).some((heroId) => verificationDeFaillite(get(), heroId));
+  set({ interlude: { ...get().interlude!, perHero } });
+  if (faillite) {
+    for (let i = (get().bank ?? []).length - 1; i >= 0; i--) {
+      if (get().bank[i].kind === 'invest') lines.push(...bankWithdrawInner(get, set, i, true));
+    }
   }
   set({ interlude: { ...get().interlude!, phase: 'activities' } });
   return lines;
@@ -578,10 +580,11 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const { tier, standing } = actorStatus(h);
       let brass = toBrass(statusIncome(tier, standing, battleRng(), outcome));
       const lines: string[] = [];
-      // Événements : ±% sur les Revenus (Fausse monnaie −20, Profits +50 pour une Classe…, LDB 22).
-      if (st.fx?.revenuePct && (!st.fx.revenueClasses || st.fx.revenueClasses.includes(heroClass(h)))) {
-        brass = Math.max(0, Math.floor((brass * (100 + st.fx.revenuePct)) / 100));
-        lines.push(msg('if.eventRevenue', { event: eventLabelOf(st), sign: st.fx.revenuePct > 0 ? '+' : '', pct: st.fx.revenuePct }));
+      // Événements de la période : leurs pourcentages s'additionnent sur le gain de base. LDB 22
+      const parEvenement = revenusDeLaPeriode(get(), h.id);
+      if (parEvenement.effets.length) {
+        brass = Math.max(0, Math.floor((brass * (100 + parEvenement.pct)) / 100));
+        for (const { label, fx } of parEvenement.effets) lines.push(msg('if.eventRevenue', { event: label, sign: fx.revenuePct! > 0 ? '+' : '', pct: fx.revenuePct! }));
       }
       lines.push(msg('if.incomeWeek', { name: h.label, money: formatMoney(fromBrass(brass)) }));
       return { lines, patch: { didRevenus: true, revenueBrass: st.revenueBrass + brass } };
@@ -1046,7 +1049,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   if (!st || !h) return;
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
-  if (st.fx?.bankPct) lines.push(msg('if.eventBankPct', { pct: st.fx.bankPct, event: eventLabelOf(st) }));
+  for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(msg('if.eventBankPct', { pct: fx.bankPct, event: label }));
   const r = kind === 'invest' ? Math.max(1, Math.min(10, rate ?? d10(battleRng()))) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   set({ bank: [...(get().bank ?? []), { heroId, kind, brass: deposited, rate: r }] });
@@ -1057,8 +1060,8 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
     kind === 'invest' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
     { name: h.label, money: formatMoney(fromBrass(deposited)), rate: r },
   ));
-  // Émeutes (LDB 22) : « les dépôts des banques réputées doivent vérifier immédiatement la faillite ».
-  if (kind === 'invest' && st.fx?.bankCrashCheck) {
+  // Un dépôt en banque réputée vérifie la faillite sous la période qui l'exige. LDB 22 l.111
+  if (kind === 'invest' && verificationDeFaillite(get(), heroId)) {
     lines.push(...bankWithdrawInner(get, set, get().bank.length - 1, true));
   }
   for (const l of lines) get().log(l);
@@ -1117,58 +1120,37 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
   })];
 }
 
-/** Clôture : « Avec le pouvoir » (Niveaux 3-4 sans Revenus → −1 Niveau, LDB 23 l.33), Argent à
- *  gaspiller (l.14), crédit des Revenus (l.179), puis le temps passe (repos standard). */
+/** Clôture : applique le devis (`devisDeCloture`) que le récap affiche, puis le temps passe (repos
+ *  standard). Touche toutes les bourses : geste du groupe. LDB 23 l.15, l.33, l.191 */
 export function interludeEnd(get: Get, set: Set): void {
-  const itl = get().interlude;
-  if (!itl) return;
-  // Issues d'Activité DIFFÉRÉES (« le premier jour de votre prochaine aventure », ACE 12 l.15) —
-  // capturées avant de fermer, appliquées APRÈS le repos de clôture (cf. plus bas). On mémorise
-  // l'ID (pas la référence) : l'Argent à gaspiller ré-instancie les bourses (clone), le héros est
-  // re-résolu au moment de l'application.
-  const deferred = get().party
-    .map((h) => ({ id: h.id, dead: h.dead, lots: itl.perHero[h.id]?.closeOps ?? [] }))
-    .filter((x) => x.lots.length > 0 && !x.dead);
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
+  const devis = devisDeCloture(get());
+  if (!devis) return;
   const lines: string[] = [];
-  for (const h of get().party) {
-    const st = itl.perHero[h.id];
-    if (!st) continue;
-    if ((h.careerLevel ?? 1) >= 3 && !st.didRevenus) {
-      h.careerLevel = (h.careerLevel ?? 1) - 1;
-      lines.push(msg('if.careerDemotion', { name: h.label, level: h.careerLevel }));
-    }
+  for (const { heroId, niveau } of devis.retrogradations) {
+    const h = get().party.find((x) => x.id === heroId)!;
+    h.careerLevel = niveau;
+    lines.push(msg('if.careerDemotion', { name: h.label, level: niveau }));
   }
-  const wastedBefore = partyMoneyTotal(get);
-  if (toBrass(wastedBefore) > 0) {
-    lines.push(msg('if.moneyWasted', { money: formatMoney(wastedBefore) }));
-  }
-  let revenue = 0;
-  for (const h of get().party) revenue += itl.perHero[h.id]?.revenueBrass ?? 0;
-  // Chaque bourse est REMISE à son revenu de période (arbitrage user 2026-07-20, #531) : le solde
-  // antérieur est gaspillé individuellement, le revenu perso crédité — plus aucune bourse commune.
-  for (const h of get().party) {
-    const prior = bourseOf(h);
-    if (toBrass(prior) > 0) debitBourse(get, set, h.id, prior);
-    const rev = itl.perHero[h.id]?.revenueBrass ?? 0;
-    if (rev > 0) creditBourse(get, set, h.id, fromBrass(rev));
-  }
-  if (revenue > 0) lines.push(msg('if.revenueAvailable', { money: formatMoney(fromBrass(revenue)) }));
+  if (devis.gaspille > 0) lines.push(msg('if.moneyWasted', { money: formatMoney(fromBrass(devis.gaspille)) }));
+  for (const g of devis.gaspillages) debitBourse(get, set, g.heroId, fromBrass(g.brass));
+  for (const r of devis.revenus) creditBourse(get, set, r.heroId, fromBrass(r.brass));
+  if (devis.revenu > 0) lines.push(msg('if.revenueAvailable', { money: formatMoney(fromBrass(devis.revenu)) }));
   // Faveurs (LDB 23 l.149, #509) : la « consécutivité » se mesure à l'interlude — granularité posée
   // par `Favor.progress` (`favorFlow.ts`), reset AVANT de refermer l'interlude, pendant qu'il est
   // encore lisible.
   resetInterruptedFavorProgress(get, set);
   set({ interlude: null, screen: 'campaign', party: [...get().party] });
   for (const l of lines) get().log(l);
-  // Le temps de l'interlude s'écoule (récupération, convalescence, horloge — moteur de nuit
-  // unique). `fedDaily` : la vie en ville (gîte ET couvert) est couverte par l'Argent à
-  // gaspiller — la Faim RAW ne s'applique pas à la période (LDB 23, « le coût de la vie »).
-  sleepParty(get, set, itl.weeks * 7, { fedDaily: true });
-  // Issues DIFFÉRÉES à la clôture (États « le premier jour de votre prochaine aventure », ACE 12 l.15) :
-  // posées APRÈS le repos de clôture — un État posé avant serait dissipé par la récupération.
-  if (deferred.length) {
+  // Le temps de l'interlude s'écoule par le moteur de nuit unique ; `fedDaily` : le gîte et le couvert
+  // de la période sont payés par l'argent gaspillé. LDB 23 l.15-17
+  sleepParty(get, set, devis.jours, { fedDaily: true });
+  // Issues DIFFÉRÉES à la clôture (ACE 12 l.15) : posées APRÈS le repos de clôture — un État posé avant
+  // serait dissipé par la récupération. Le héros se relit par son id : les bourses ont été réécrites.
+  if (devis.lots.length) {
     const after: string[] = [];
-    for (const { id, lots } of deferred) {
-      const h = get().party.find((x) => x.id === id);
+    for (const { heroId, lots } of devis.lots) {
+      const h = get().party.find((x) => x.id === heroId);
       if (!h) continue;
       for (const lot of lots) after.push(...applyOps(h, lot.ops, { ...lot.ctx, rng: battleRng(), now: get().gameTime }));
     }
