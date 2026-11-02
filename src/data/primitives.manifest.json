@@ -2066,7 +2066,7 @@
     "fichier": "src/engine/items.ts",
     "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
     "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
-    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
+    "verrou": "src/engine/apparenceNaissance.test.ts, src/noyau/apparence-naissance.hors-store.test.ts"
   },
   {
     "id": "vise",
