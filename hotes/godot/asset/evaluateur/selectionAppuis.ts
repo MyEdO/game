@@ -7,6 +7,7 @@ import { copierSommet } from './candidatsDAppui.ts';
 import { appliquerGabarit, poserFormes } from './gabarit.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos, type Pose } from './echantillonnage.ts';
 import { meshesDuCorps } from './corps.ts';
+import { libellesDesMeshes } from './ecart.ts';
 
 export function grilleDesAppuis(manifeste: Pick<ManifesteDeBase, 'gabarit' | 'silhouettes'>) {
   let facteurs: GabaritResolu[] = [{ ...FACTEURS_NEUTRES }];
@@ -34,15 +35,16 @@ export async function selectionnerAppuis(base: Uint8Array, manifeste: Pick<Manif
     if (!corps.length) throw new Error('appuis : aucun corps skinné');
     poserFormes(b.scene, { ...silhouettes, ...poidsDuGabarit(facteurs, manifeste.gabarit.bornes, silhouettes) });
     const gabarit = appliquerGabarit(b.scene, facteurs, manifeste, b.squelette ?? undefined, false);
+    const libelle = libellesDesMeshes([b]);
     const choisir = (pose: Pose) => {
       let y = Infinity;
       for (const p of pose.positions.values()) for (let i = 1; i < p.length; i += 3) y = Math.min(y, p[i]);
-      for (const [nom, p] of pose.positions) for (let i = 1; i < p.length; i += 3) if (p[i] === y) {
-        const indice = (i - 1) / 3, cle = `${nom}/${indice}`;
-        if (!retenus.has(cle)) {
-          const m = corps.find((m) => m.name === nom);
-          if (!m) throw new Error(`appuis : mesh absent ${nom}`);
-          retenus.set(cle, copierSommet(m, indice));
+      for (const m of corps) {
+        const p = pose.positions.get(m);
+        if (!p) throw new Error(`appuis : mesh absent ${m.name}`);
+        for (let i = 1; i < p.length; i += 3) if (p[i] === y) {
+          const indice = (i - 1) / 3, cle = `${libelle(m)}/${indice}`;
+          if (!retenus.has(cle)) retenus.set(cle, copierSommet(m, indice));
         }
       }
     };

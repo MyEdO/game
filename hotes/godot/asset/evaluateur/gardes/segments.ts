@@ -40,7 +40,7 @@ export function etenduesDesSegments(pose: Pose, corps: readonly SkinnedMesh[], n
   }));
   const sommet = new Vector3();
   for (const m of corps) {
-    const positions = pose.positions.get(m.name);
+    const positions = pose.positions.get(m);
     if (!positions) throw new Error(`segments : mesh absent ${m.name}`);
     const indices = m.geometry.attributes.skinIndex;
     const poids = m.geometry.attributes.skinWeight;

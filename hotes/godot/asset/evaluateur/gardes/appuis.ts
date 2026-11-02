@@ -10,7 +10,7 @@ export const MAJORITE_DU_POIDS: number = seuils.MAJORITE_DU_POIDS;
 type Point = readonly [number, number, number];
 export interface SurfaceDuPied {
   readonly pied: string;
-  readonly sommets: readonly { readonly mesh: string; readonly indice: number }[];
+  readonly sommets: readonly { readonly mesh: SkinnedMesh; readonly indice: number }[];
 }
 export interface PoseDuPied {
   readonly clip: string;
@@ -46,7 +46,7 @@ export function surfacesDesPieds(meshes: readonly SkinnedMesh[], pieds: readonly
     return Array.from({ length: indices.count }, (_, indice) => {
       let somme = 0;
       for (let k = 0; k < indices.itemSize; k++) if (joints.has(indices.getComponent(indice, k))) somme += poids.getComponent(indice, k);
-      return somme >= MAJORITE_DU_POIDS ? [{ mesh: m.name, indice }] : [];
+      return somme >= MAJORITE_DU_POIDS ? [{ mesh: m, indice }] : [];
     }).flat();
   }) }));
 }
@@ -60,7 +60,7 @@ export function poserPieds(e: Echantillon, surfaces: readonly SurfaceDuPied[], r
   return surfaces.map((s) => ({ clip: e.clip, t: e.t, pied: s.pied, racine: position(racine), os: position(s.pied),
     sommets: s.sommets.map(({ mesh, indice }): Point => {
       const p = e.positions.get(mesh);
-      if (!p) throw new Error(`appuis : mesh absent ${mesh}`);
+      if (!p) throw new Error(`appuis : mesh absent ${mesh.name}`);
       return [p[indice * 3], p[indice * 3 + 1], p[indice * 3 + 2]];
     }),
   }));

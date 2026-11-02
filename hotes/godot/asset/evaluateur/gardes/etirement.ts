@@ -8,7 +8,7 @@
  * `seuils.json`.
  */
 import type { Mesh } from 'three';
-import type { Ecart } from '../ecart.ts';
+import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import seuils from './seuils.json';
 
@@ -36,18 +36,18 @@ interface Codes {
 const CODES_EN_CLIP: Codes = { bas: 'arete-ecrasee', haut: 'arete-etiree' };
 const CODES_AU_REPOS: Codes = { bas: 'arete-repos-effondree', haut: 'arete-repos-enflee' };
 
-/** Une arête à un instant : ses deux sommets, le rapport l_c/l_b. */
-export interface RapportDArete {
-  readonly mesh: string;
+/** Une arête à un instant : son mesh, ou son libellé (`libellesDesMeshes`) dans une mesure rendue, ses deux sommets, le rapport l_c/l_b. */
+export interface RapportDArete<M = Mesh> {
+  readonly mesh: M;
   readonly a: number;
   readonly b: number;
   readonly t: number;
   readonly rapport: number;
 }
 
-/** Les arêtes d'un mesh hors d'une borne : le code et le seuil de la borne, leur nombre, le pire rapport. */
+/** Les arêtes d'un mesh hors d'une borne : le mesh, le code et le seuil de la borne, leur nombre, le pire rapport. */
 export interface HorsBornes {
-  readonly mesh: string;
+  readonly mesh: Mesh;
   readonly code: string;
   readonly seuil: number;
   readonly nombre: number;
@@ -91,7 +91,7 @@ const gravite = (rapport: number): number => Math.abs(Math.log(rapport));
 function pires(liste: readonly RapportDArete[], n: number): RapportDArete[] {
   const vues = new Set<string>();
   return [...liste].sort((x, y) => gravite(y.rapport) - gravite(x.rapport)).filter((r) => {
-    const cle = `${r.mesh}:${r.a}:${r.b}`;
+    const cle = `${r.mesh.id}:${r.a}:${r.b}`;
     if (vues.has(cle)) return false;
     vues.add(cle);
     return true;
@@ -99,7 +99,7 @@ function pires(liste: readonly RapportDArete[], n: number): RapportDArete[] {
 }
 
 /** Pour chaque arête de `aretes` (par mesh) de longueur non nulle dans `base`, son rapport de longueur `pose` / `base`. */
-function parcourir(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, pose: Pose, visiter: (mesh: string, a: number, b: number, rapport: number) => void): void {
+function parcourir(aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, pose: Pose, visiter: (mesh: Mesh, a: number, b: number, rapport: number) => void): void {
   for (const [mesh, liste] of aretes) {
     const p0 = base.positions.get(mesh);
     const p = pose.positions.get(mesh);
@@ -113,14 +113,15 @@ function parcourir(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, pose: P
 
 /** Le décompte, par mesh et par borne franchie de `bornes`, des rapports hors de `bornes`. */
 function decompte(bornes: Intervalle, codes: Codes) {
-  const parCle = new Map<string, { mesh: string; code: string; seuil: number; nombre: number; pire: number }>();
+  const parCle = new Map<string, { mesh: Mesh; code: string; seuil: number; nombre: number; pire: number }>();
   return {
-    compter(mesh: string, rapport: number): void {
+    compter(mesh: Mesh, rapport: number): void {
       const cote = rapport < bornes[0] ? 0 : rapport > bornes[1] ? 1 : null;
       if (cote === null) return;
       const code = cote === 0 ? codes.bas : codes.haut;
-      const courant = parCle.get(`${mesh}|${code}`);
-      if (!courant) parCle.set(`${mesh}|${code}`, { mesh, code, seuil: bornes[cote], nombre: 1, pire: rapport });
+      const cle = `${mesh.id}|${code}`;
+      const courant = parCle.get(cle);
+      if (!courant) parCle.set(cle, { mesh, code, seuil: bornes[cote], nombre: 1, pire: rapport });
       else {
         courant.nombre++;
         if (gravite(rapport) > gravite(courant.pire)) courant.pire = rapport;
@@ -131,7 +132,7 @@ function decompte(bornes: Intervalle, codes: Codes) {
 }
 
 /** L'étirement de l'échantillon `e` contre la pose `base` (gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée), sur les arêtes `aretes` (par mesh). */
-export function mesurerEtirement(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, e: Echantillon): MesureDEtirement {
+export function mesurerEtirement(aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, e: Echantillon): MesureDEtirement {
   const hors = decompte(ETIREMENT_EN_CLIP, CODES_EN_CLIP);
   let candidates: RapportDArete[] = [];
   parcourir(aretes, base, e, (mesh, a, b, rapport) => {
@@ -142,19 +143,19 @@ export function mesurerEtirement(aretes: ReadonlyMap<string, Uint32Array>, base:
   return { clip: e.clip, t: e.t, horsBornes: hors.horsBornes(), pires: pires(candidates, PIRES_ARETES_PAR_CLIP) };
 }
 
-/** Les cinq pires arêtes de chaque clip de `mesures`. */
-export function piresAretes(mesures: readonly MesureDEtirement[]): Record<string, RapportDArete[]> {
+/** Les cinq pires arêtes de chaque clip de `mesures`, chaque mesh sous son libellé. */
+export function piresAretes(mesures: readonly MesureDEtirement[], libelle: LibelleDeMesh): Record<string, RapportDArete<string>[]> {
   const parClip: Record<string, RapportDArete[]> = {};
   for (const m of mesures) parClip[m.clip] = pires([...(parClip[m.clip] ?? []), ...m.pires], PIRES_ARETES_PAR_CLIP);
-  return parClip;
+  return Object.fromEntries(Object.entries(parClip).map(([clip, liste]) => [clip, liste.map((r) => ({ ...r, mesh: libelle(r.mesh) }))]));
 }
 
 /** Les écarts en clip : par mesh, clip et borne, le pire rapport l_c/l_b, son instant, et le nombre d'instants. */
-export function gardeEtirement(mesures: readonly MesureDEtirement[]): Ecart[] {
+export function gardeEtirement(mesures: readonly MesureDEtirement[], libelle: LibelleDeMesh): Ecart[] {
   const parCle = new Map<string, HorsBornes & { clip: string; instants: number; aretes: number; t: number }>();
   for (const m of mesures) {
     for (const h of m.horsBornes) {
-      const cle = `${h.mesh}|${m.clip}|${h.code}`;
+      const cle = `${h.mesh.id}|${m.clip}|${h.code}`;
       const courant = parCle.get(cle);
       if (!courant) parCle.set(cle, { ...h, clip: m.clip, instants: 1, aretes: h.nombre, t: m.t });
       else {
@@ -166,19 +167,19 @@ export function gardeEtirement(mesures: readonly MesureDEtirement[]): Ecart[] {
   }
   const [bas, haut] = ETIREMENT_EN_CLIP;
   return [...parCle.values()].map((s) => ({
-    garde: 'etirement', code: s.code, mesh: s.mesh, clip: s.clip, t: s.t, valeur: s.pire, seuil: s.seuil,
+    garde: 'etirement', code: s.code, mesh: libelle(s.mesh), clip: s.clip, t: s.t, valeur: s.pire, seuil: s.seuil,
     detail: `jusqu’à ${s.aretes} arête(s) en l_c/l_b (longueur à l’échantillon / longueur de repos sous gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée) hors de [${bas} ; ${haut}], à ${s.instants} instant(s)`,
   }));
 }
 
 /** Les écarts au repos posé `repos` contre la pose `base` (gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée) : par mesh et borne, le pire rapport
  *  l_k/l_b hors de `ETIREMENT_AU_REPOS`. */
-export function gardeEtirementAuRepos(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, repos: Pose): Ecart[] {
+export function gardeEtirementAuRepos(aretes: ReadonlyMap<Mesh, Uint32Array>, libelle: LibelleDeMesh, base: Pose, repos: Pose): Ecart[] {
   const hors = decompte(ETIREMENT_AU_REPOS, CODES_AU_REPOS);
   parcourir(aretes, base, repos, (mesh, _a, _b, rapport) => hors.compter(mesh, rapport));
   const [bas, haut] = ETIREMENT_AU_REPOS;
   return hors.horsBornes().map((h) => ({
-    garde: 'etirement', code: h.code, mesh: h.mesh, valeur: h.pire, seuil: h.seuil,
+    garde: 'etirement', code: h.code, mesh: libelle(h.mesh), valeur: h.pire, seuil: h.seuil,
     detail: `${h.nombre} arête(s) en l_k/l_b (longueur de repos posée / longueur de repos sous gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée) hors de [${bas} ; ${haut}]`,
   }));
 }

@@ -14,8 +14,8 @@ export const IMAGES_PAR_SECONDE: number = seuils.IMAGES_PAR_SECONDE;
 export const PAS_PAR_DEFAUT = 1 / IMAGES_PAR_SECONDE;
 
 export interface Pose {
-  /** Par nom de mesh, les positions monde de ses sommets, à plat (x, y, z). */
-  readonly positions: ReadonlyMap<string, Float32Array>;
+  /** Par mesh, les positions monde de ses sommets, à plat (x, y, z). */
+  readonly positions: ReadonlyMap<Mesh, Float32Array>;
   /** Par nom d'os, sa matrice monde. */
   readonly os: ReadonlyMap<string, Matrix4>;
 }
@@ -29,7 +29,7 @@ const sommet = new Vector3();
 
 function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
   scene.updateMatrixWorld(true);
-  const positions = new Map<string, Float32Array>();
+  const positions = new Map<Mesh, Float32Array>();
   for (const m of meshes) {
     const n = m.geometry.attributes.position.count;
     const p = new Float32Array(n * 3);
@@ -39,7 +39,7 @@ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
       p[i * 3 + 1] = sommet.y;
       p[i * 3 + 2] = sommet.z;
     }
-    positions.set(m.name, p);
+    positions.set(m, p);
   }
   const os = new Map<string, Matrix4>();
   scene.traverse((n) => { if ((n as Bone).isBone) os.set(n.name, n.matrixWorld.clone()); });

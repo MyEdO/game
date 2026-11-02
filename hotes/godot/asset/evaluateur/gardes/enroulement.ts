@@ -3,7 +3,7 @@
  * des normales de ses sommets (produit scalaire < 0) est retourné. Seuil : `TRIANGLES_RETOURNES_MAX`.
  */
 import { Vector3, type Mesh } from 'three';
-import type { Ecart } from '../ecart.ts';
+import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 
 export const TRIANGLES_RETOURNES_MAX = 0;
 
@@ -35,11 +35,11 @@ function retournes(m: Mesh): number[] {
   return trouves;
 }
 
-export function gardeEnroulement(meshes: readonly Mesh[]): Ecart[] {
+export function gardeEnroulement(meshes: readonly Mesh[], libelle: LibelleDeMesh): Ecart[] {
   return meshes.flatMap((m) => {
     const t = retournes(m);
     return t.length > TRIANGLES_RETOURNES_MAX
-      ? [{ garde: 'enroulement', code: 'triangle-retourne', mesh: m.name, valeur: t.length, seuil: TRIANGLES_RETOURNES_MAX, detail: `${t.length} triangle(s) à normale opposée à celle de leurs sommets, premier #${t[0]}` }]
+      ? [{ garde: 'enroulement', code: 'triangle-retourne', mesh: libelle(m), valeur: t.length, seuil: TRIANGLES_RETOURNES_MAX, detail: `${t.length} triangle(s) à normale opposée à celle de leurs sommets, premier #${t[0]}` }]
       : [];
   });
 }
