@@ -320,8 +320,7 @@
       "page": 312
     },
     "appearance": {
-      "species": "ogre",
-      "tenue": "ogre"
+      "species": "ogre"
     }
   },
   {
@@ -3715,8 +3714,7 @@
       "page": 329
     },
     "appearance": {
-      "species": "squelette",
-      "tenue": "squelette"
+      "species": "squelette"
     },
     "grantGroups": [
       "mort-vivant"
@@ -3830,8 +3828,7 @@
       "page": 330
     },
     "appearance": {
-      "species": "vampire",
-      "tenue": "vampire"
+      "species": "vampire"
     },
     "grantGroups": [
       "mort-vivant"
@@ -3999,8 +3996,7 @@
       "page": 331
     },
     "appearance": {
-      "species": "chamane-brey",
-      "tenue": "chamane-bray"
+      "species": "chamane-brey"
     },
     "grantGroups": [
       "homme-bete"
@@ -4317,7 +4313,6 @@
     },
     "appearance": {
       "species": "humain",
-      "tenue": "cultiste",
       "armurePortee": true
     },
     "followsCharacterRules": true,
@@ -4458,7 +4453,6 @@
     },
     "appearance": {
       "species": "guerrier-du-chaos",
-      "tenue": "guerrier-du-chaos",
       "armurePortee": true
     },
     "followsCharacterRules": true,
@@ -4540,8 +4534,7 @@
       "page": 335
     },
     "appearance": {
-      "species": "demon",
-      "tenue": "sanguinaire"
+      "species": "demon"
     },
     "grantGroups": [
       "demon",
@@ -4613,8 +4606,7 @@
       "page": 335
     },
     "appearance": {
-      "species": "demonette-de-slaanesh",
-      "tenue": "demonette"
+      "species": "demonette-de-slaanesh"
     },
     "grantGroups": [
       "demon",
@@ -5179,7 +5171,6 @@
     },
     "appearance": {
       "species": "skaven",
-      "tenue": "skaven",
       "armurePortee": true
     },
     "grantGroups": [
@@ -5281,8 +5272,7 @@
       "page": 337
     },
     "appearance": {
-      "species": "rat-ogre",
-      "tenue": "rat-ogre"
+      "species": "rat-ogre"
     },
     "grantGroups": [
       "skaven"
@@ -5351,7 +5341,6 @@
     },
     "appearance": {
       "species": "vermine-de-choc",
-      "tenue": "vermine-de-choc",
       "armurePortee": true
     },
     "grantGroups": [
@@ -9674,7 +9663,6 @@
     },
     "appearance": {
       "species": "humain",
-      "tenue": "cultiste",
       "armurePortee": true
     },
     "followsCharacterRules": true
@@ -12200,7 +12188,6 @@
     },
     "appearance": {
       "species": "ogre",
-      "tenue": "ogre",
       "armurePortee": true
     }
   },
@@ -12385,7 +12372,6 @@
     },
     "appearance": {
       "species": "ogre",
-      "tenue": "ogre",
       "armurePortee": true
     }
   },
@@ -12519,8 +12505,7 @@
       "page": 26
     },
     "appearance": {
-      "species": "ogre",
-      "tenue": "ogre"
+      "species": "ogre"
     }
   },
   {
@@ -12677,8 +12662,7 @@
       "page": 26
     },
     "appearance": {
-      "species": "ogre",
-      "tenue": "ogre"
+      "species": "ogre"
     }
   },
   {
@@ -19084,7 +19068,6 @@
     ],
     "appearance": {
       "species": "humain",
-      "tenue": "guerrier-du-chaos",
       "armurePortee": true
     },
     "followsCharacterRules": true
@@ -19389,7 +19372,6 @@
     },
     "appearance": {
       "species": "skaven",
-      "tenue": "vermine-de-choc",
       "armurePortee": true
     }
   },

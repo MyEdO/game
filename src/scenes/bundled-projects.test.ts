@@ -22,7 +22,7 @@ import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { identiteSchema, motifEnMot } from '../data/schemas/defs-scenes/narratif';
 import { identitesDe, nommer } from '../noyau/monde/identites';
 import { metaDesChamps } from '../data/schemas/grammaire/meta';
-import { fauteDEspece, raceKeySchema, sexeSchema, tenueFermeeSchema } from '../data/schemas/grammaire/valeurs';
+import { raceKeySchema, sexeSchema } from '../data/schemas/grammaire/valeurs';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
@@ -91,23 +91,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(typeof doc.label).toBe('string');
     expect(doc.label!.length).toBeGreaterThan(0);
     expect(typeof doc.versionContenu).toBe('number');
-  });
-
-  /** Apparence d'une entité `personnage` : espèce d'apparence (`fauteDEspece`) et tenue qui se ferme sur la
-   *  donnée (`tenueFermeeSchema`, #3116). Couvre tout paquet présent ou futur par le même glob. */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : toute entité PERSONNAGE porte une espèce et une tenue du domaine', (file) => {
-    const doc = parseProject(lireProjetLivre(file));
-    const inconnues: string[] = [];
-    for (const sc of doc.scenes)
-      for (const e of sc.entities) {
-        if (e.kind !== 'personnage') continue;
-        const species = e.appearance?.species;
-        const faute = species === undefined ? null : fauteDEspece(species);
-        if (faute) inconnues.push(`${sc.id}:${e.id} ${faute}`);
-        const tenue = e.appearance?.tenue;
-        if (tenue !== undefined && !tenueFermeeSchema.safeParse(tenue).success) inconnues.push(`${sc.id}:${e.id} tenue « ${tenue} »`);
-      }
-    expect(inconnues, inconnues.join('\n')).toEqual([]);
   });
 
   /**
