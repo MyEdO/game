@@ -7,8 +7,8 @@
  * Sa fermeture s'enregistre par `onTestFinished` à son OUVERTURE : les `onTestFinished` jouent en ordre inverse, et la
  * restauration d'`avecLesTables` (`noyau.testkit.ts`), posée après, joue avant elle (`branchement.ts`).
  *
- * Écart au store : le propriétaire planifie le tick automatique à chaque écriture (`planifierLeTickAuto`), le store
- * seulement après `initCombatAuto` (`src/state/store.ts`).
+ * Le propriétaire planifie le tick automatique à chaque écriture (`planifierLeTickAuto`), comme le store de production
+ * après `initCombatAuto` (`src/main.tsx`). Écart : un test du store qui n'appelle pas `initCombatAuto` ne le planifie pas.
  */
 import { onTestFinished } from 'vitest';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -39,6 +39,9 @@ export interface Banc {
   jusquALaProchaine: () => number;
   /** Reprend tout, ceux que chaque reprise programme compris, jusqu'à ce qu'aucun n'attende (`vi.runAllTimers`). */
   reprendreTout: () => number;
+  /** Reprend la prochaine échéance (`jusquALaProchaine`) tant que `cond` est faux sur l'état, au plus `max` fois, et
+   *  s'arrête dès qu'aucun jeton n'attend ; rend le nombre d'échéances reprises. */
+  jusquA: (cond: (etat: Jeu) => boolean, max?: number) => number;
   /** Abandonne tous les jetons en attente, sans les reprendre (≈ `vi.clearAllTimers`). */
   abandonner: () => void;
   /** Le nombre de jetons en attente. */
@@ -96,6 +99,14 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     reprendreLesEnAttente: horloge.reprendreLesEnAttente,
     jusquALaProchaine: horloge.jusquALaProchaine,
     reprendreTout: horloge.vider,
+    jusquA: (cond, max = 50) => {
+      let pas = 0;
+      while (pas < max && !cond(proprietaire.get()) && horloge.enAttente() > 0) {
+        horloge.jusquALaProchaine();
+        pas++;
+      }
+      return pas;
+    },
     abandonner: () => {
       proprietaire.abandonner();
       horloge.abandonner();

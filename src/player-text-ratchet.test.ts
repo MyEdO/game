@@ -64,7 +64,7 @@ export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/noyau/cascade.test.ts': 2,
   'src/noyau/combat-tables-choix-porte.hors-store.test.ts': 1,
   'src/noyau/departage-etats-non-fondus.hors-store.test.ts': 3,
-  'src/state/miscast-step.test.ts': 1,
+  'src/noyau/miscast-step.hors-store.test.ts': 1,
   'src/noyau/rest-flow.hors-store.test.ts': 1,
   'src/noyau/zone-cross-test-gate.hors-store.test.ts': 1,
   'src/ui/CascadeTableMode.test.tsx': 1,

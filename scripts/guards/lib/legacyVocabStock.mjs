@@ -665,13 +665,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/cast-resilience-prejet.test.ts",
-    motif: "désormais",
-    ancre: "résout désormais contre la cible que le jet naturel aurait employée (`castTestTarget`).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/combat-hardcode-guard.test.ts",
     motif: "désormais",
     ancre: "désormais COMPTÉ. Stock révélé (aucun de ces sites n'était du hardcode NOUVEAU, seulement",
@@ -759,13 +752,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/state/interlude-activities.test.ts",
     motif: "désormais",
     ancre: "`blocked` au catalogue, la porte `interludeActivity`/`openCatalogActivity` refuse désormais.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/state/magic-composant.test.ts",
-    motif: "désormais",
-    ancre: "// #152 : la rencontre `enc-mutants` spawne le Mutant du bestiaire, désormais flagué",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
