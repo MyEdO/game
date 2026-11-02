@@ -117,6 +117,11 @@
     "id": "teutogen",
     "type": "groups",
     "label": "Teutogen",
+    "source": {
+      "book": "middenheim",
+      "page": 159,
+      "note": "Middenheim 10 l.97"
+    },
     "maison": "Porté par les Humains de Middenheim et du Middenland, d'ascendance teutogène (#3045). Lecture révisable."
   },
   {
@@ -154,12 +159,21 @@
     "id": "religion",
     "type": "groups",
     "label": "Religion",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 65
+    },
     "maison": "Porté par les gens d'Église : carrières religieuses (Q14 A), cultes qui accordent des Bénédictions, Trait Béni (#3045). Lecture révisable."
   },
   {
     "id": "predateur",
     "type": "groups",
     "label": "Prédateur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 322,
+      "note": "LDB 79 l.160"
+    },
     "maison": "Porté par les bêtes carnivores du bestiaire et leurs genres (#3045). Lecture révisable."
   },
   {

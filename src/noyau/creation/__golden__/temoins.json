@@ -282,7 +282,8 @@
   "xp": 50,
   "size": "moyenne",
   "groups": [
-   "humain"
+   "humain",
+   "teutogen"
   ],
   "designations": {
    "artisan": [
@@ -734,6 +735,8 @@
   "size": "moyenne",
   "groups": [
    "humain",
+   "figures-symboles-religieux",
+   "religion",
    "ulricain"
   ],
   "designations": {
