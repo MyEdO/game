@@ -37,6 +37,7 @@ import { gameOpSchema, CHAMPS_EXCLUS_DE_CARRIED } from '../data/schemas/grammair
 import { entree as spellEntreeSchema } from '../data/schemas/defs/spells';
 import type { Combatant, ActiveEffect } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const CHAMON = 'transmutation-de-chamon';
 const ETATS = ['aveugle', 'assourdi', 'sonne'] as const;
@@ -45,14 +46,14 @@ const SRC = { category: 'spells', id: CHAMON } as const;
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 };
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, characteristics: { ...CHARS },
-    wounds: { current: 40, max: 40 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(40), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, resolve: 3, engagedWith: [], size: 'moyenne', activeEffects: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 function setBattle(combatants: Combatant[]): void {
   const battle = {

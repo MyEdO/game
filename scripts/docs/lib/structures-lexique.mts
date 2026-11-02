@@ -192,7 +192,7 @@ export const TERMES_COLLECTION_A_CLE: readonly (readonly [terme: string, definit
   ],
   [
     'clé d’espace',
-    'le nom d’un espace de noms (`src/data/schemas/grammaire/cle-d-espace.ts`) : la clé de collection d’une collection à clé dont la marque porte `espace` (`skills.json`, `skills.json#[art].specs`), suffixée d’un FILTRE — `?champ=valeur` pour le paramètre `discriminant` (`materials.json?domain=prop`), `?champ` pour un des `marqueurs` (`props.json?volume`). Un pas `[clé]`, une valeur ou un marqueur ne porte jamais `[`, `]`, `#`, `?` ni `=` (`src/data/schemas/espaces-contrat.test.ts`).',
+    'le nom d’un espace de noms (`src/data/schemas/grammaire/cle-d-espace.ts`) : la clé de collection d’une collection à clé dont la marque porte `espace` (`skills.json`, `skills.json#[art].specs`), suffixée d’un FILTRE — `?champ=valeur` pour le paramètre `discriminant` (`materials.json?domain=prop`), `?champ` pour un des `marqueurs` (`props.json?volume`), `?!champ,…` pour une SOUS-LISTE MARQUÉE, les éléments qui ne portent aucun de ces marqueurs (`SousListeMarquee`, `marqueurPorte` ; `groups.json?!relatif`). Un pas `[clé]`, une valeur ou un marqueur ne porte jamais `[`, `]`, `#`, `?`, `=`, `!` ni `,` (`src/data/schemas/espaces-contrat.test.ts`).',
   ],
   [
     '`IDS_PAR_ESPACE`',
@@ -994,17 +994,15 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   // ainsi (`z.string().nullable()`), l'absence de sous-titre étant un ÉTAT MODÉLISÉ du dataset. Le
   // devenir de ces 437 nuls et des 53 valeurs réelles se tranche en #1541, pas dans le détecteur.
   'sous-titre': { cible: 'title', divergentes: [] },
-  // `effect`, `rules` et `hint` ont été RETIRÉS des divergentes (#1467 L1b V-P2) : le détecteur
-  // classait par NOM de clé, pas par TYPE, et ces trois-là ne portent pas de prose.
+  // `effect` et `hint` ne sont pas des divergentes (#1467 L1b V-P2) : le détecteur classe par TYPE,
+  // pas par NOM de clé, et ces deux-là ne portent pas de prose.
   //   `crew-morale.json › factors[].effect` = expression de dés lue par `rollExpr`
   //     (`src/data/schemas/defs/crew-morale.ts`) ;
   //   `sea-events.json › manann.factors[].effect` = objet `{sign, flat, d10}`
   //     (`manannFactor` de `src/data/schemas/defs/sea-events.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
   //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
-  //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`) ;
-  //   `speciesRace.json › rules` = tableau de règles (`speciesRuleSchema` de
-  //   `src/data/schemas/defs/speciesRace.ts`).
+  //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`).
   // Les `effect` qui ÉTAIENT des issues ou une clé de registre ont, eux, été migrés (`outcome`,
   // `potEffectId`, `ops`) plutôt que retirés de la mesure.
   prose: { cible: 'desc', divergentes: ['text', 'description'] },

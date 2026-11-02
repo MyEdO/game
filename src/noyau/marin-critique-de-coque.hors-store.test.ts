@@ -13,6 +13,7 @@ import { findSpellById } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
 import { draineCascade } from './cascade.testkit';
 import { makeRNG } from '../engine/dice';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -22,11 +23,11 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (MDG 13 l.584 ; LDB 85 l.360-361 ; LDB 14 l.183 ; #1595 c.6228605059 (b), C12).
  */
 const CARAC = { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 51, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 };
-const perso = (id: string, over: Partial<Combatant> = {}): Combatant => ({
+const perso = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind: 'npc', characteristics: { ...CARAC }, pos: { x: 5, y: 5 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
-  armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: { current: 13, max: 13, base: 13 }, advantage: 0, ...over,
-}) as unknown as Combatant;
+  armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(13), advantage: 0, ...over,
+})) as unknown as Combatant;
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 /** CC réussi, DR 2 ; 43 sans double, 44 en double (Coup Critique, LDB 13). */
 const jet = (roll: number) => ({ label: 'CC', base: 60, modifier: 0, target: 60, roll, success: true, sl: 2 });
@@ -87,7 +88,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
 
   it('attaquant plus grand que le marin : le multiplicateur de Taille joue contre le marin (LDB 85 l.360-361)', () => {
     const ogre = perso('ogre', { size: 'enorme' as Combatant['size'] });
-    const marin = perso('marin', { important: true, wounds: { current: 40, max: 40, base: 40 } as Combatant['wounds'] });
+    const marin = perso('marin', { important: true, wounds: blessuresDeBase(40) });
     const nav = navire(marin);
     const attendu = contreLeMarin(ogre, marin, 43);
     expect(attendu).toBeGreaterThan(contreLeMarin(perso('humain'), marin, 43));
@@ -97,7 +98,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
 
   it('Charge montée : la Force et la Taille de la monture portent jusqu’au marin (LDB 14 l.183)', () => {
     const att = perso('att');
-    const marin = perso('marin', { important: true, wounds: { current: 40, max: 40, base: 40 } as Combatant['wounds'] });
+    const marin = perso('marin', { important: true, wounds: blessuresDeBase(40) });
     const nav = navire(marin);
     const monture = { sb: 8, size: 'grande' as Combatant['size'] };
     const attendu = contreLeMarin(att, marin, 43, monture);
@@ -108,7 +109,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
 
   it('Projectile magique : les Dégâts se recalculent contre le marin', () => {
     const mage = perso('mage');
-    const marin = perso('marin', { important: true, wounds: { current: 40, max: 40, base: 40 } as Combatant['wounds'], armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 } });
+    const marin = perso('marin', { important: true, wounds: blessuresDeBase(40), armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 } });
     const nav = navire(marin);
     const sort = findSpellById('carreau')!;
     const incantation: CastResult = { cast: true, roll: 21, target: 90, sl: 4, isCritical: false, isFumble: false, log: 'jet' };

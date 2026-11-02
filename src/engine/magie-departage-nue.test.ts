@@ -20,20 +20,21 @@ import {
   resolveCasting, type CastResult, type SpellLike,
 } from './magic';
 import type { Characteristics, Combatant, SkillInstance } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const ARCANE: SpellLike = { label: 'Sort d’essai', ecole: 'Magie des Arcanes', family: 'arcane', cn: 1, duration: { kind: 'instant' }, desc: '' };
 
 function mage(intelligence: number, advances: number, over: Partial<Combatant> = {}, id = 'c'): Combatant {
   const base: Characteristics = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const skills: SkillInstance[] = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances }];
-  return {
+  return blessuresSurLeProfil({
     id, label: `Mage ${id}`, kind: 'hero',
     characteristics: { ...base, intelligence },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills, talents: [], traits: [], spells: [], xp: 0, movement: 4,
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Jet d'incantation FIGÉ d'un lanceur de Niveau 45, obtenu par la composition réelle (dé 13, cible 25

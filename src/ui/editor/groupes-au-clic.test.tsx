@@ -2,7 +2,8 @@
 /**
  * Les champs de Groupe de l'atelier (#3045 A0-a) se choisissent AU CLIC dans le registre `groups.json`, par le
  * nœud de schéma du champ : un champ de PORTEUR n'offre pas les jokers (`DECLARABLE_PAR_UN_PORTEUR`), un champ
- * de CIBLE les offre ; le document porte des ids.
+ * de CIBLE d'appartenance les offre sans les Groupes relatifs (`CIBLE_D_APPARTENANCE`, #3045) ; le document porte
+ * des ids.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState } from 'react';
@@ -23,7 +24,7 @@ import { banishNarrationSchema, hasWhatSchema } from '../../data/schemas/grammai
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { isSocialTest } from '../../engine/skills';
-import { skills } from '../../data';
+import { groups, skills } from '../../data';
 import { CodexEdit } from './codex/CodexEdit';
 import { datasetArray, resetData, setDataset } from '../../data/overrides';
 
@@ -37,7 +38,11 @@ afterEach(() => {
 
 const GROUPES = [...idsDe('groupe')];
 const DECLARABLES = idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR);
-const JOKER = GROUPES.find((id) => !DECLARABLES.includes(id));
+/** Jokers et relatifs par la FORME de la donnée, jamais par la sous-liste qu'on éprouve. */
+const RELATIFS = groups.filter((g) => g.relatif).map((g) => g.id);
+const APPARTENANCE = GROUPES.filter((id) => !RELATIFS.includes(id));
+const JOKER = groups.find((g) => g.matchesAll)?.id;
+const [RELATIF] = RELATIFS;
 const [DECLARABLE] = DECLARABLES;
 
 /** Les valeurs d'option d'un `<select>`, choix vide exclu. */
@@ -62,9 +67,10 @@ async function choisir(container: HTMLElement, nom: string, valeur: string) {
 
 const selectNomme = (container: HTMLElement, nom: string) => container.querySelector<HTMLSelectElement>(`select[aria-label="${nom}"]`)!;
 
-it('le registre a des Groupes déclarables et des jokers', () => {
+it('le registre a des Groupes déclarables, des jokers et des Groupes relatifs', () => {
   expect(DECLARABLE).toBeDefined();
   expect(JOKER).toBeDefined();
+  expect(RELATIF).toBeDefined();
 });
 
 describe('statbloc personnalisé — `groups` (porteur)', () => {
@@ -124,7 +130,7 @@ describe('barrière d’une zone — `blockGroups` (cible)', () => {
     expect(nom).toBeDefined();
     await cliquer(container, nom!);
     const rangee = nom!.replace(/^Ajouter à /, '') + ' — valeur 1';
-    expect(options(selectNomme(container, rangee)).sort()).toEqual([...GROUPES].sort());
+    expect(options(selectNomme(container, rangee)).sort()).toEqual([...APPARTENANCE].sort());
     await choisir(container, rangee, JOKER!);
     expect(dernier.effectZones?.[0].barrier?.blockGroups).toEqual([JOKER]);
   });
@@ -142,7 +148,7 @@ describe('op `banish` — `onlyGroups` (cible) et `narration` au clic', () => {
     expect(nom).toBeDefined();
     await cliquer(container, nom!);
     const rangee = nom!.replace(/^Ajouter à /, '') + ' — valeur 1';
-    expect(options(selectNomme(container, rangee)).sort()).toEqual([...GROUPES].sort());
+    expect(options(selectNomme(container, rangee)).sort()).toEqual([...APPARTENANCE].sort());
     await choisir(container, rangee, JOKER!);
     expect(dernier).toEqual([{ op: 'banish', onlyGroups: [JOKER] }]);
 
@@ -158,7 +164,7 @@ describe('op `banish` — `onlyGroups` (cible) et `narration` au clic', () => {
 });
 
 describe('Condition `has` — la valeur se choisit dans le registre de `what`', () => {
-  it('Groupe : tout le registre, jokers compris ; changer de `what` change de registre et vide la valeur', async () => {
+  it('Groupe : le registre d’appartenance, jokers compris ; changer de `what` change de registre et vide la valeur', async () => {
     let dernier: Condition = { kind: 'has', who: 'target', what: 'group', value: '' };
     function Banc() {
       const [cond, setCond] = useState(dernier);
@@ -166,7 +172,7 @@ describe('Condition `has` — la valeur se choisit dans le registre de `what`', 
     }
     const { container } = monterRacine(<Banc />);
     const nomGroupe = libelleDeValeur(hasWhatSchema, 'group');
-    expect(options(selectNomme(container, nomGroupe)).sort()).toEqual([...GROUPES].sort());
+    expect(options(selectNomme(container, nomGroupe)).sort()).toEqual([...APPARTENANCE].sort());
     await choisir(container, nomGroupe, JOKER!);
     expect(dernier).toEqual({ kind: 'has', who: 'target', what: 'group', value: JOKER });
 
@@ -202,11 +208,12 @@ describe('atelier du Codex — listes de Groupes', () => {
     expect(posee.grantGroups).toEqual([DECLARABLE]);
   });
 
-  it('`exceptGroups` d’un Groupe joker (cible) : tout le registre est offert, jokers compris ; l’id est posé', async () => {
+  it('`exceptGroups` d’un Groupe joker (cible) : le registre d’appartenance est offert, jokers compris, relatifs exclus ; l’id est posé', async () => {
     const banc = { id: 'joker-de-banc', type: 'groups', label: 'Joker de banc', matchesAll: true, exceptGroups: [] };
     setDataset('groups', [...datasetArray('groups'), banc] as never);
     const { offertes, posee } = await choisirAuCodex('groups', 'groups', banc.id, 'Groupes exclus', JOKER!);
     expect(offertes).toContain(JOKER);
+    expect(offertes).not.toContain(RELATIF);
     expect(DECLARABLES.filter((g) => !offertes.includes(g))).toEqual([]);
     expect(posee.exceptGroups).toEqual([JOKER]);
   });

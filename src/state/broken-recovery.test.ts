@@ -3,6 +3,7 @@ import { fireConditionEffects } from '../noyau/triggeredEffects';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * Récupération du Brisé (LDB 16 l.54-58) — désormais 100 % DATA-DRIVEN (etats.json `brise.effects`,
@@ -19,9 +20,9 @@ const scene = () =>
 const getFn = (battle: unknown, scn: unknown) => () => ({ battle, scene: scn } as never);
 
 function broken(_over: Partial<Combatant>): Combatant {
-  return { id: 'h', kind: 'hero', name: 'H', pos: { x: 1, y: 1 }, conditions: [{ id: 'brise', value: 2 }], characteristics: { 'force-mentale': 90 }, skills: [], engagedWith: [], wounds: { current: 10, max: 10 } } as unknown as Combatant;
+  return blessuresSurLeProfil({ id: 'h', kind: 'hero', name: 'H', pos: { x: 1, y: 1 }, conditions: [{ id: 'brise', value: 2 }], characteristics: profilDeTest({ 'force-mentale': 90 }), skills: [], engagedWith: [], wounds: blessuresDeBase(10) }) as unknown as Combatant;
 }
-const foe = (over: Partial<Combatant>): Combatant => ({ id: 'e', kind: 'enemy', name: 'E', pos: { x: 9, y: 9 }, conditions: [], wounds: { current: 10, max: 10 }, ...over } as unknown as Combatant);
+const foe = (over: Partial<Combatant>): Combatant => (blessuresSurLeProfil({ id: 'e', kind: 'enemy', name: 'E', pos: { x: 9, y: 9 }, conditions: [], wounds: blessuresDeBase(10), ...over }) as unknown as Combatant);
 
 describe('Récupération du Brisé en fin de Round (LDB 16 l.54-58) — data-driven', () => {
   it('non Engagé, ennemi loin, Calme réussi → retire ≥ 1 État Brisé', () => {

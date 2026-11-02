@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { BargainModal, BargainModalView } from './BargainModal';
-import { TeamPortrait } from './TeamPortrait';
+import { BargainModalView } from './BargainModal';
 import { useGame } from '../state/store';
 import { type PendingBargain } from '../noyau/pendings';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
@@ -12,6 +11,7 @@ import { findMutationById } from '../data';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { presetPnjById } from '../state/campaignData';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 const base: PendingBargain = {
   playerId: 'h',
@@ -31,18 +31,15 @@ const noop = () => {};
 /** #1882 — le marchand est un PNJ de scène : sa ligne adverse porte SA fiche (`sceneNpc`), preset compris,
  *  résolue à l'ouverture (`startBargain`) et lue par la modale dans le pending. */
 describe('BargainModal — le marchand à preset joue sa fiche', () => {
-  // Le rendu SERVEUR lit l'état INITIAL du store (patron `refus-au-survol.test.tsx`), les couches hors React l'état courant.
-  const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-  const avant = { pendingBargain: initial.pendingBargain, party: initial.party };
-  afterEach(() => { Object.assign(initial, avant); useGame.setState({ campaignNarratif: null, merchant: null, pendingBargain: null }); });
+  afterEach(() => { useGame.setState({ campaignNarratif: null, merchant: null, pendingBargain: null }); });
 
-  it('le portrait adverse est celui de la fiche du preset, pas d’un profil de repli', () => {
+  it('la ligne adverse porte la fiche du preset, pas un profil de repli', () => {
     const scene = {
       type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
       entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: 'armurier' } }],
     } as unknown as Scene;
-    const negociateur = { id: 'h', label: 'H', kind: 'hero', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
+    const negociateur = blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', items: [], characteristics: profilDeTest({ sociabilite: 40 }), skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] }, scene, party: [negociateur] });
     useGame.getState().openMerchant('marchand');
     useGame.getState().startBargain('buy');
@@ -50,9 +47,6 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
     const fiche = sceneNpc(scene, 'marchand', presetPnjById)!;
     expect(fiche.creatureId).toBe('nain');
     expect(pb.opposant.portrait?.creatureId).toBe('nain');
-    Object.assign(initial, { pendingBargain: pb, party: [] });
-    const html = renderToStaticMarkup(<BargainModal />);
-    expect(html).toContain(renderToStaticMarkup(<TeamPortrait combatant={fiche} size={28} />));
   });
 });
 
@@ -90,7 +84,7 @@ describe('BargainModal (#2c)', () => {
   it('base AFFICHÉE = la Compétence NUE, État et Soutien en chips nommées, cible invariante', () => {
     const negociateur: Combatant = {
       id: 'h', label: 'Maître d’armes', kind: 'hero', speciesId: 'humains-reiklander',
-      characteristics: { sociabilite: 40 } as Combatant['characteristics'],
+      characteristics: profilDeTest({ sociabilite: 40 }),
       skills: [{ id: 'marchandage', advances: 15 }], talents: [], items: [],
       conditions: [{ id: 'empoisonne', value: 1 }], advantage: 0,
       // Cas KO de la recette : DEUX postes distincts (État + mutation char-qualifiée) doivent se lire

@@ -13,14 +13,15 @@ import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', label: 'C', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
-  wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   ...over,
-} as Combatant);
+}) as Combatant);
 
 describe('Formula {indiceOf} — Dégâts « Indice » en GameOp', () => {
   it('resolveFormula lit ctx.indice', () => {

@@ -12,17 +12,18 @@ import { schema as etatsSchema } from '../data/schemas/defs/etats';
 import { etats, findConditionById } from '../data';
 import { resetData, setDataset } from '../data/overrides';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Toutes les rangées de Blessure critique, les 8 documents-tables confondus (LDB + Aux Armes) —
  *  la lecture ne nomme aucune famille : un 9ᵉ tableau y entre sans une ligne. */
 const rangees = () => CRITIQUE_DOCS.flatMap((d) => d.entries);
 
 function mk(): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'x', name: 'X', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     conditions: [], activeEffects: [], skills: [], talents: [], traits: [], weapons: [], armour: [],
-    wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
-  } as unknown as Combatant;
+    wounds: blessuresDeBase(10), advantage: 0,
+  }) as unknown as Combatant;
 }
 
 const noHemo: Condition = { kind: 'compare', subject: { who: 'target', condition: 'hemorragique' }, op: '==', value: 0 };

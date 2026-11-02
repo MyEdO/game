@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 85 */
 import { z } from 'zod';
-import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
@@ -150,7 +150,6 @@ const doc = document(
     grantsManeuvers: z.array(ref('maneuver')).optional(),
     /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`noyau/monde/advancement.ts`). */
     passive: passifsDe(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
-    appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),
     suppressesCapabilities: z.array(z.string()).optional(),
     aura: nommerChamps(z
@@ -199,7 +198,6 @@ const doc = document(
     effects: { label: 'Effets déclenchés' },
     grantsManeuvers: { label: 'Manœuvres accordées' },
     passive: { label: 'Effets passifs' },
-    appearance: { label: 'Apparence' },
     capabilities: {
       label: 'Capacités mécaniques (liste fermée)',
       hint: 'Sac de flags fermé (vol, immunités, résistances structurelles…)',

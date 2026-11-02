@@ -184,8 +184,6 @@ export const STRUCTURES_REDECLARATIONS = [
   { def: "miscast.ts", champ: "", concept: "test", signature: "characteristic,difficulty,skill+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "oups.ts", champ: "", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "psychology.ts", champ: "test", concept: "test", signature: "difficulty,skill", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "raceAppearance.ts", champ: "eyes", concept: "", signature: "D,G", statut: "hors lexique", commun: "entityAppearanceSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
-  { def: "raceAppearance.ts", champ: "parts", concept: "", signature: "cheveux,visage", statut: "hors lexique", commun: "entityAppearanceSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "river-navigation.ts", champ: "temporaryRepair", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "sea-cargo.ts", champ: "producesGossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "sea-cargo.ts", champ: "surplusGossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },

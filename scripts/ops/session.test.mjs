@@ -11,7 +11,8 @@ import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { syncBuiltinESMExports } from 'node:module'
 import { setTimeout as delai } from 'node:timers/promises'
-import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent, controleur, rejouer, refusSession } from './session-runtime.mjs'
+import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent, controleur } from './session-runtime.mjs'
+import { rejouer, refusSession } from './session-rejeu.mjs'
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, attendreSuivi } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
@@ -515,6 +516,114 @@ test('autorité refuse absent, étranger, ambigu, jeton absent/faux, PID recycl�
   assert.ok(b.sessions.lister().cartes.some((c) => c.sessionId === 'etrangere'))
   b.sessions.ecrireCarte({ sessionId: 'ambigue', producteur: 'autre', ticket: 2461, nom: 'autre2' })
   assert.throws(() => b.sessions.demanderArret('2461', r.jeton), /AMBIGUË/)
+})
+
+test('#3178 : ticket partagé, noms uniques et refus commun des cibles ambiguës', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => { appels.push(p); return { ok: true } }, veiller: async (p) => { appels.push(p); return { type: 'fin', sessionId: p.sessionId } } })
+  const parent = b.reserver({ nom: 's2461' }); b.revendiquer(parent)
+  const enfant = b.reserver({ nom: 's2461-c1', agent: 'codex' }); b.revendiquer(enfant)
+  assert.deepEqual(b.sessions.lister().cartes.map((c) => [c.ticket, c.agent, c.etat]).sort(), [[2461, 'claude', 'vivante'], [2461, 'codex', 'vivante']])
+  for (const ticket of [2461, 3178]) assert.throws(() => b.reserver({ ticket, nom: 's2461' }), /COLLISION.*s2461.*--nom/)
+  const ambigu = (e) => {
+    assert.match(e.message, /CIBLE AMBIGUË/)
+    for (const r of [parent, enfant]) { assert.ok(e.message.includes(r.carte.nom)); assert.ok(e.message.includes(r.carte.sessionId)) }
+    assert.match(e.message, /nom ou l’UUID/)
+    return true
+  }
+  for (const argv of [['etat', '2461'], ['fermer', '2461'], ['envoyer', '2461', '--message', 'ajuste'], ['attendre', '2461', '--timeout-ms', '0']]) {
+    await assert.rejects(commandeSession(argv, { stdout: { write() {} }, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions, env: {}, stdin: (async function* () { yield JSON.stringify({ jeton: enfant.jeton }) })() }), ambigu)
+  }
+  assert.equal(appels.length, 0)
+  assert.equal(b.sessions.lire(parent.carte.sessionId).etat, 'vivante')
+  assert.equal(b.sessions.lire(enfant.carte.sessionId).etat, 'vivante')
+  for (const r of [parent, enfant]) for (const cible of [r.carte.nom, r.carte.sessionId]) assert.equal(b.sessions.etat(cible).sessionId, r.carte.sessionId)
+  for (const cible of [enfant.carte.nom, enfant.carte.sessionId]) {
+    assert.equal((await b.sessions.envoyer(cible, enfant.jeton, { message: 'ajuste' })).ok, true)
+    assert.equal((await b.sessions.attendre(cible)).sessionId, enfant.carte.sessionId)
+  }
+  for (const nom of ['2461', parent.carte.sessionId, parent.carte.sessionId.toUpperCase(), '00000000-0000-0000-0000-000000000000']) assert.throws(() => b.reserver({ ticket: 3178, nom }), /NOM INVALIDE.*--nom/)
+  assert.equal(b.sessions.etat(parent.carte.sessionId).sessionId, parent.carte.sessionId)
+})
+
+test('#3178 : noms historiques numériques et UUID restent lisibles, résolution par union', async (t) => {
+  for (const fermee of [false, true]) {
+    const b = banc(t), legacy = b.reserver({ ticket: 3178, nom: 'ancien' })
+    b.sessions.muter(legacy.carte.sessionId, (c) => { c.nom = '2461' })
+    if (fermee) b.sessions.demanderArret(legacy.carte.sessionId, legacy.jeton)
+    else b.revendiquer(legacy)
+    const courante = b.reserver({ nom: 's2461' }); b.revendiquer(courante)
+    assert.deepEqual(b.sessions.lister().anomalies, [])
+    if (fermee) {
+      assert.equal(b.sessions.etat('2461').sessionId, courante.carte.sessionId)
+      assert.equal((await b.sessions.attendre('2461', { timeoutMs: 0 })).carte.sessionId, courante.carte.sessionId)
+      assert.equal(b.sessions.demanderArret('2461', courante.jeton).sessionId, courante.carte.sessionId)
+    } else {
+      assert.throws(() => b.sessions.etat('2461'), /CIBLE AMBIGUË/)
+      await assert.rejects(b.sessions.attendre('2461', { timeoutMs: 0 }), /CIBLE AMBIGUË/)
+      assert.throws(() => b.sessions.demanderArret('2461', courante.jeton), /CIBLE AMBIGUË/)
+    }
+    b.sessions.muter(legacy.carte.sessionId, (c) => { c.nom = courante.carte.sessionId })
+    assert.equal(b.sessions.etat(courante.carte.sessionId).sessionId, courante.carte.sessionId)
+    assert.deepEqual(b.sessions.lister().anomalies, [])
+  }
+})
+
+test('#3178 : ticket et PID étranger restent ambigus même après fermeture du ticket', async (t) => {
+  const b = banc(t), autre = b.reserver({ ticket: 999, nom: 'autre' })
+  b.vivants.set(3176, identite(3176))
+  b.sessions.revendiquer(autre.carte.sessionId, autre.nonce, { controleur: identite(3176), jobHost: identite(30) })
+  assert.equal(b.sessions.etat('3176').sessionId, autre.carte.sessionId)
+  const ticket = b.reserver({ ticket: 3176, nom: 'ticket' })
+  b.sessions.demanderArret(ticket.carte.sessionId, ticket.jeton)
+  for (const vivant of [false, true]) {
+    if (vivant) b.revendiquer(b.reserver({ ticket: 3176, nom: 'nouveau' }))
+    assert.throws(() => b.sessions.etat('3176'), /CIBLE AMBIGUË/)
+    assert.throws(() => b.sessions.demanderArret('3176', ticket.jeton), /CIBLE AMBIGUË/)
+    await assert.rejects(b.sessions.attendre('3176', { timeoutMs: 0, processusSeulement: true }), /CIBLE AMBIGUË/)
+  }
+})
+
+test('#3178 : réservation retente une carte tenue sous verrou sans écrire de carte', (t) => {
+  const b = banc(t), r = b.reserver(), fichier = join(b.dossier, `${r.carte.sessionId}.json`)
+  const avant = fs.readdirSync(b.dossier).sort(), lireVrai = fs.readFileSync
+  t.mock.method(fs, 'readFileSync', (chemin, ...reste) => {
+    if (chemin === fichier && existsSync(join(b.dossier, 'registre.lock'))) throw Object.assign(new Error('tenu'), { code: 'EBUSY' })
+    return lireVrai(chemin, ...reste)
+  })
+  assert.throws(() => b.reserver({ nom: 'autre' }), (e) => refusSession(e).categorie === 'transitoire')
+  t.mock.restoreAll()
+  assert.deepEqual(fs.readdirSync(b.dossier).sort(), avant)
+})
+
+test('#3178 : veille CLI épinglée malgré enfant créé et parent fermé', async (t) => {
+  for (const fermerParent of [false, true]) {
+    let tours = 0
+    const vues = []
+    const b = banc(t, { veiller: async (p) => {
+      vues.push(p.sessionId)
+      if (++tours === 1) {
+        if (fermerParent) b.sessions.muter(parent.carte.sessionId, (c) => { c.etat = 'fermee'; c.issueSortie = 'echec'; c.raison = 'parent en échec' })
+        b.revendiquer(b.reserver({ nom: 'enfant', agent: 'codex' }))
+        return { type: 'aucune', etat: 'indeterminee', curseur: 1 }
+      }
+      return { type: 'fin', etat: 'inactif', sessionId: p.sessionId, curseur: 2 }
+    } })
+    const parent = b.reserver({ nom: 'parent', agent: 'codex' }); b.revendiquer(parent)
+    let sortie = ''
+    const code = await commandeSession(['attendre', '2461', '--suivre', '--timeout-ms', '500'], { cwd: b.dossier, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions, stdout: { write: (s) => { sortie += s } } })
+    assert.ok(vues.length > 0)
+    assert.ok(vues.every((id) => id === parent.carte.sessionId), JSON.stringify(vues))
+    const fin = JSON.parse(sortie)
+    if (fermerParent) {
+      assert.equal(code, 1)
+      assert.equal(fin.carte.sessionId, parent.carte.sessionId)
+      assert.equal(fin.carte.issueSortie, 'echec')
+    } else {
+      assert.equal(code, 0)
+      assert.equal(fin.sessionId, parent.carte.sessionId)
+    }
+  }
 })
 
 test('réservation bornée, nonce distinct, double revendication et collisions', (t) => {
@@ -1083,6 +1192,34 @@ test('politique : schéma strict lu une fois ; sandbox et approbation à leur se
   }
 })
 
+test('#3178 : lanceur refuse le worktree occupé sans carte ni réservation orpheline', async (t) => {
+  for (const argv of [
+    ['lancer', '2461.md', '--nom', 's2461-c1'],
+    ['lancer', '2461.md', '--nom', 's2461-c1', '--worktree', '.'],
+    ['lancer', '2461.md', '--ticket', '2462'],
+  ]) {
+    const b = banc(t), worktree = join(b.dossier, 'W')
+    mkdirSync(worktree); writeFileSync(join(worktree, '2461.md'), 'faire')
+    const parent = b.reserver({ nom: 's2461', worktree }); b.revendiquer(parent)
+    const avant = fs.readdirSync(b.dossier).sort()
+    let lances = 0
+    await assert.rejects(lancerSession(optionsSession(argv), {
+      cwd: worktree, contexte: (w) => ({ racine: b.dossier, gitCommun: b.dossier, worktree: w, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+      terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, preflight: async () => hooksBanc.claude,
+      sessionsDe: () => b.sessions, lancerWT: () => { lances++; return { status: 0 } }, env: {},
+    }), /COLLISION.*--worktree.*ops:chantier/)
+    assert.equal(lances, 0)
+    assert.deepEqual(fs.readdirSync(b.dossier).sort(), avant)
+    assert.equal(b.sessions.lire(parent.carte.sessionId).etat, 'vivante')
+  }
+  const b = banc(t), worktree = join(b.dossier, 'W')
+  mkdirSync(worktree); mkdirSync(join(b.dossier, 'W2'))
+  b.reserver({ nom: 'reservee', worktree })
+  assert.throws(() => b.reserver({ nom: 'autre', worktree: join(worktree, '.'), ticket: 9 }), /COLLISION.*--worktree/)
+  const distinct = b.reserver({ nom: 'distinct', worktree: join(b.dossier, 'W2') })
+  assert.equal(distinct.carte.etat, 'reservee')
+})
+
 test('correction 2 : lancer consigne relative, Claude défaut depuis main, Codex hors chantier comme Claude, worktree absent refusé aux deux', async (t) => {
   const b = banc(t), consigne = join(b.dossier, '2461.md'); writeFileSync(consigne, 'ouvrir le chantier'); writeFileSync(join(b.dossier, '2462.md'), 'ouvrir le chantier')
   const options = optionsSession(['lancer', '2461.md'])
@@ -1095,6 +1232,14 @@ test('correction 2 : lancer consigne relative, Claude défaut depuis main, Codex
   const r = await lancerSession(options, gestes), c = b.sessions.lire(r.sessionId)
   assert.equal(c.agent, 'claude'); assert.equal(c.nom, 's2461'); assert.equal(c.ticket, 2461); assert.equal(c.worktree, b.dossier); assert.equal(c.branche, 'main')
   assert.equal(wt, 1)
+  await assert.rejects(lancerSession(options, gestes), /COLLISION.*s2461.*--nom/)
+  assert.equal(wt, 1)
+  const worktreeEnfant = join(b.dossier, 'enfant'); mkdirSync(worktreeEnfant)
+  const enfant = await lancerSession(optionsSession(['lancer', '2461.md', '--agent', 'codex', '--nom', 's2461-c1', '--worktree', 'enfant']), { ...gestes, natif: () => b.fichiers.codex, preflight: async () => hooksBanc.codex })
+  const carteEnfant = b.sessions.lire(enfant.sessionId)
+  assert.equal(carteEnfant.ticket, c.ticket); assert.equal(carteEnfant.nom, 's2461-c1'); assert.equal(carteEnfant.worktree, worktreeEnfant)
+  assert.equal(b.sessions.lire(r.sessionId).etat, 'vivante'); assert.equal(carteEnfant.etat, 'vivante')
+  assert.equal(wt, 2)
   assert.throws(() => optionsSession(['lancer', 'lettre.md']), /TICKET/)
   assert.equal(optionsSession(['lancer', 'lettre.md', '--ticket', '3']).ticket, 3)
   const accepte = { ticket: 2462, consigne: '2462.md', nom: 's2462', agent: 'codex' }, absent = { ticket: 2463, consigne: '2463.md', nom: 's2463', worktree: 'absent' }
@@ -1102,7 +1247,7 @@ test('correction 2 : lancer consigne relative, Claude défaut depuis main, Codex
     const lancement = lancerSession(cas, { ...gestes, natif: () => b.fichiers[cas.agent] })
     if (cas.worktree) await assert.rejects(lancement, /WORKTREE ABSENT/, cas.agent)
     else { const carteCodex = b.sessions.lire((await lancement).sessionId); assert.equal(carteCodex.agent, 'codex'); assert.equal(carteCodex.branche, 'main'); assert.equal(carteCodex.worktree, b.dossier) }
-    assert.equal(wt, 2)
+    assert.equal(wt, 3)
   }
 })
 

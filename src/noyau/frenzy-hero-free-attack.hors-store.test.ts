@@ -11,7 +11,7 @@ import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { aiAvailableFreeAttack } from './combatFlow';
 import { hasFreeWeaponAttack } from './combatManeuvers';
 import { setCadence } from '../engine/cadence';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,7 +30,7 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
     const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;
     hero.psychState = [{ type: 'frenesie' } as never];   // frénétique → attaque libre d'Arme (LDB 21 l.33)
     foe.pos = { x: hero.pos!.x + 1, y: hero.pos!.y };      // ennemi AU CONTACT (cible de l'attaque gratuite)
-    foe.wounds = blessuresDeBase(99);  // survit pour qu'on mesure l'attaque, pas la mort
+    foe.wounds = blessuresDeBase(99, 99, foe);  // survit pour qu'on mesure l'attaque, pas la mort
     banc.setState({ battle: { ...b } });
     return { heroId: hero.id, foeId: foe.id };
   }

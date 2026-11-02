@@ -10,6 +10,7 @@ import type { Combatant } from '../../engine/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * MARQUES DE CASES — ÉCRITURE EN PLACE (#1176, P3-0c). La parité (`marques-parite.test.tsx`) mesure la
@@ -26,12 +27,12 @@ import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-vo
 const TAILLE = { w: 800, h: 600 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Témoin SANS arme à distance : le survol n'a alors aucune incidence sur les marques (pas de bande de

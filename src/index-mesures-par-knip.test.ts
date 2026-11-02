@@ -61,7 +61,7 @@ describe('aucun `index` de `src/` n’est une entrée de knip', () => {
     expect(designesPar('src/data/x.test.ts', url('.'))).toEqual(['src/data']);
     expect(designesPar('src/noyau/x.test.ts', `import.meta.${'resolve'}('./index.ts')`)).toEqual([SURFACE_DU_NOYAU]);
     expect(designesPar('scripts/a/b.mjs', `require.${'resolve'}('../../src/data')`)).toEqual(['src/data']);
-    expect(['src/noyau', 'src/data', SURFACE_DU_NOYAU, 'src/gameIso/rig/races/index'].every((c) => designeUnIndex(c))).toBe(true);
+    expect(['src/noyau', 'src/data', SURFACE_DU_NOYAU, 'src/data/index'].every((c) => designeUnIndex(c))).toBe(true);
     expect(designeUnIndex('src/scenes'), 'un dossier sans `index` n’est pas une surface').toBe(false);
     expect(designeUnIndex('src/noyau/rollFlowSpecs.ts')).toBe(false);
   });

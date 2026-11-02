@@ -162,7 +162,7 @@ describe('terrains — la façade et le catalogue de rendu lisent VIVANT', () =>
     const apres = defsGlobaux();
     expect(apres, 'les `<defs>` ont été assemblés UNE fois au chargement').not.toBe(avantEdition);
     expect(apres).toContain(`<linearGradient id="g_herbe" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${neuf}"/>`);
-    // Les dégradés des AUTRES terrains et ceux du rig/FX traversent l'édition intacts.
+    // Les dégradés des AUTRES terrains et ceux des FX traversent l'édition intacts.
     expect(apres).toContain(`<linearGradient id="g_bois"`);
     expect(apres).toContain(MISSING_GRADIENT);
   });

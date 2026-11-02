@@ -10,6 +10,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { BattementModal } from './BattementModal';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -17,10 +18,10 @@ beforeAll(() => {
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({ id, name: id, label: id, kind: 'enemy', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-     weapons: [], advantage: 2, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 18, max: 18 }, resilience: 0, fortune: 0,
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'enemy', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+     weapons: [], advantage: 2, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18), resilience: 0, fortune: 0,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4, traits: [],
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over } as unknown as Combatant);
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
 
 let host: HTMLDivElement;
 let root: Root;

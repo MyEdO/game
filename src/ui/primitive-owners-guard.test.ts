@@ -155,8 +155,8 @@ const POSEUR_ABSENT_STOCK: readonly string[] = [
   'src/ui/styles/gauges.css|sea-voyage-orders',
   // Groupe de jauges posé par le tableau de bord État, pas par une primitive de jauge.
   'src/ui/styles/gauges.css|notch-gauge-stack',
-  // Coin de rose gravé posé par la carte de héros, pas par `RoseAxes`.
-  'src/ui/styles/rose.css|rose-corner',
+  // Glyphe de rose posé par la carte de héros, pas par `RoseAxes`.
+  'src/ui/styles/rose.css|rose-glyph',
   // Textures d'ambiance : posées par 4+ écrans — identité PARTAGÉE restée au module d'`Ornaments`.
   'src/ui/styles/ornaments.css|tx-parchment',
   'src/ui/styles/ornaments.css|tx-ink',
@@ -178,7 +178,7 @@ function classesDefiniesPar(cssRel: string): Set<string> {
 /** classe → fichiers `.tsx` qui la POSENT (token d'un littéral de `className`) — scan PRÉCIS : il
  *  répond « qui pose », et sert donc au jugement du nombre de poseurs ÉTRANGERS.
  *  ANGLE MORT assumé : seul `className=` est lu — une classe posée par TABLE de correspondance
- *  (`src/ui/CharacterPreview.tsx:86`) n'est pas comptée ici ; c'est `mentionsParFichier` qui la voit. */
+ *  n'est pas comptée ici ; c'est `mentionsParFichier` qui la voit. */
 function posesParFichier(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
   for (const { rel, text } of readCorpus(['src'], { exts: ['.tsx'] })) {

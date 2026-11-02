@@ -2,8 +2,8 @@
  * Pointeur du stage iso :
  *  - `pickVerdict` : écran → VERDICT (case d'ancrage + nature + identité, `pickResolve.ts`). Ce hook
  *    n'y apporte que les COORDONNÉES du `PointerEvent` React
- *    (`ev.clientX/clientY`) et interroge la voie de rendu (`targetUnderPointer` : `elementFromPoint`
- *    en affine, lancer de rayon en volumique). L'inversion du pixel (`pointStageSousPixel`) comme la
+ *    (`ev.clientX/clientY`) et interroge la voie de rendu (`targetUnderPointer` : le lancer de rayon
+ *    volumique). L'inversion du pixel (`pointStageSousPixel`) comme la
  *    CHAÎNE de résolution — rayon, meuble dessiné, pas inter-étages, case marchable, sol cross-couche
  *    — sont `stage/pickResolve.ts`, que la sonde de recette (`stage/pickProbe.ts`) appelle aussi :
  *    une seule règle, deux porteurs, aucun étage propre à l'un des deux ; l'ENTITÉ que ce verdict fait
@@ -170,11 +170,7 @@ export function useStagePointer({
   const stagePointOf = (ev: PixelDEvenement): { x: number; y: number } | null =>
     pointStageSousPixel(svgRef.current, ev.clientX, ev.clientY, camRef.current!, zoom);
 
-  // Picking SPRITE-aware : si un TOKEN (ou un décor volumique) est réellement dessiné sous le curseur,
-  // on cible SA tuile — pas la tuile « derrière » le sprite (ancré au-dessus de sa case en iso, d'où
-  // l'ancienne « chasse aux pieds »). Le hit-test lui-même appartient à la VOIE DE RENDU
-  // (`targetUnderPointer` : `elementFromPoint` en affine, lancer de rayon en volumique) — l'empilement
-  // s'y tranche, de la seule façon que la voie sait trancher.
+  // Le rayon nomme le décor sous le pixel.
   //
   // La CHAÎNE ELLE-MÊME (condition de tir, nature nommée, inversion du pixel, meuble dessiné, pas
   // inter-étages, case marchable, sol cross-couche) vit en UN lieu : `stage/pickResolve.ts`, que la

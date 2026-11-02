@@ -15,9 +15,8 @@
 import { buildScene } from '../../src/noyau/mapSpec.ts';
 import { documentDeProjet } from '../../src/noyau/worldMap.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
-import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, species as SPECIES_CATALOG } from '../../src/data/index.ts';
-import { fauteDEspece } from '../../src/data/schemas/grammaire/art.ts';
-import { wardrobeKeyResolves } from '../../src/gameIso/rig/parts/career.ts';
+import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, siegeEngines, species as SPECIES_CATALOG } from '../../src/data/index.ts';
+import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
 
 // ── VALIDATION id-only, à l'AUTHORING ───────────────────────────────────────────────────────
 // L'auteur écrit des IDS STABLES (`snotling`, `resistance`, `arc`, `mendiant`) — le libellé est de
@@ -42,18 +41,17 @@ function spellId(id) {
   if (findSpellById(id)) return id;
   throw new Error(`campagne : sort introuvable « ${id} » — attendu un id de spells.json (Compendium → Sorts).`);
 }
-/** `appearance.species` : id du domaine de saisie (`fauteDEspece`, `grammaire/art.ts`). Valide → passe ;
- *  tout le reste → throw. */
+/** `appearance.species` : espèce d'apparence (`especeDApparenceSchema`). Valide → passe ; tout le reste → throw. */
 function speciesId(id) {
   const faute = fauteDEspece(id);
   if (faute === null) return id;
   throw new Error(`campagne : appearance.species — ${faute}`);
 }
-/** `appearance.tenue` : id STABLE de garde-robe (tenue ∪ carrière ∪ classe ∪ 'nu'). Valide → passe ;
- *  tout le reste → throw (chercher au Compendium → Carrières / au registre des tenues). */
+/** `appearance.tenue` : tenue qui se ferme sur la donnée (`tenueFermeeSchema`). Valide → passe ; tout le
+ *  reste → throw (Compendium → Carrières). */
 function tenueId(id) {
-  if (wardrobeKeyResolves(id)) return id;
-  throw new Error(`campagne : appearance.tenue introuvable « ${id} » — attendu un id de tenue/carrière/classe (Compendium → Carrières).`);
+  if (tenueFermeeSchema.safeParse(id).success) return id;
+  throw new Error(`campagne : appearance.tenue — ${messageDeTenueInconnue(id)}`);
 }
 /** `weapon` d'entité de scène : `trappingId` STABLE du catalogue d'armes. Valide → passe ; tout le reste
  *  → throw (chercher au Compendium → Objets). */
@@ -203,9 +201,7 @@ export function resetIds() {
 }
 
 /** Personnage (PNJ) : apparence/dialogue/marchand via opts. `weapon`/`appearance.species`/`appearance.tenue`
- *  sont VALIDÉS (ids stables, fail-fast). `species` absent n'est PAS un défaut : sans réf de créature, le
- *  rendu retombe sur la race par défaut de `speciesRace.json` EN DIAGNOSTIQUANT la donnée manquante
- *  (`resolveRender`, `src/gameIso/rig/bodyPlan.ts`) — l'espèce se pose au site d'authoring.
+ *  sont VALIDÉS (ids stables, fail-fast).
  *  FICHE (#1882) : sans `ref`/`statblock`/`presetId`, la `ref` est le profil standard de son espèce
  *  (`LDB 77 l.7`, `species.json › profilStandard`), posée en QUEUE ; une espèce sans profil → throw. */
 export function NPC(id, x, y, label, opts = {}, knownPresetIds) {
@@ -232,11 +228,10 @@ let posteSeq = 0;
 /** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }`
  *  — la base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée, elle est HYDRATÉE au spawn depuis
  *  `trappingId` (`hydratePoste`, `src/engine/items.ts`). VALIDE `trappingId` : doit être une pièce POSABLE
- *  (trapping à art d'affût `siegeRig`, cf. `siegeEngines`/`findVehicleById` du naval) — sinon throw. `crewIds`
+ *  du sous-type `armes-de-siege`, sélectionné par `siegeEngines` — sinon throw. `crewIds`
  *  vide par défaut : aucun id de héros n'est connu à l'authoring, le poste est servable en jeu (`serveAtPoste`). */
 export function poste(trappingId, side, crewIds = []) {
-  const t = findTrappingById(trappingId);
-  if (!t?.siegeRig) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId de pièce POSABLE (art d'affût siegeRig ; Compendium → Objets, armes de siège).`);
+  if (!siegeEngines().some((t) => t.id === trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId du sous-type armes-de-siege (Compendium → Objets, armes de siège).`);
   return { trappingId, uid: `poste-${++posteSeq}`, side, crewIds };
 }
 
@@ -289,11 +284,8 @@ export function fouille(effectsOrFlow, consume = false) {
 }
 
 /** Statblocks d'AUTEUR (sourcés à leur création). Sans réf de bestiaire, une entité `personnage` n'a
- *  d'apparence à résoudre que par son Espèce — `entityRigProfileFor`
- *  (`src/gameIso/rig/enemyProfile.ts:270-274`) n'en dérive AUCUNE sans l'une des deux : chaque statbloc
- *  d'auteur voyage donc avec l'apparence à poser sur l'entité qui le porte. La nuée porte une VRAIE
- *  espèce (`rat-geant`), pas un id de forme : `swarmFormOf` (`src/gameIso/rig/swarm/forms.ts:51-64`)
- *  la route par le `plan` de sa def de créature (quadruped → forme « rats »). */
+ *  d'Espèce que par son apparence : chaque statbloc d'auteur voyage donc avec l'apparence à poser sur
+ *  l'entité qui le porte. La nuée porte une VRAIE espèce (`rat-geant`), pas un id de forme. */
 export const NUEE_DE_RATS = {
   type: 'statblock',
   label: 'Nuée de rats',

@@ -20,15 +20,16 @@ import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 import { RollShell } from '../RollShell';
 import { useDefenseJetProps } from './useDefenseJetProps';
 import { ANONYMES } from '../RollLine';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', subType: 'base', qualities: [] } as unknown as Weapon;
 const mk = (id: string, label: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
-  ({ id, name: label, label, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 },
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, resilience: 1 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: label, label, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, resilience: 1 }) as unknown as Combatant);
 
 function Probe() {
   const props = useDefenseJetProps();
@@ -79,7 +80,7 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
 function openBiteDefense(): HTMLDivElement {
   const enemy = mk('e', 'Rat géant', 'enemy', { x: 1, y: 0 });
   const hero = mk('h', 'Gunnar', 'hero', { x: 0, y: 0 });
-  hero.wounds = { current: 200, max: 200 } as Combatant['wounds'];
+  hero.wounds = blessuresDeBase(200, 200, hero);
   enemy.traits = [{ id: 'morsure', value: 14 }];
   enemy.advantage = 1;
   const battle: BattleState = {

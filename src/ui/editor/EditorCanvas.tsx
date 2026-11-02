@@ -32,11 +32,9 @@ import {
 } from './editorState';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
-import { buildTokens } from '../../gameIso/builders/tokens';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
 import { calageActif } from '../../gameIso/backends/webgl/calageProps';
 import { mapLights, type LightSource } from '../../noyau/monde/vision';
-import type { TrappingResolver } from '../../engine/items';
 
 /** Jaune d'ACCENT de SÉLECTION de l'éditeur (arêtes/zones/toits/entités sélectionnés) — même teinte que
  *  l'anneau d'unité active en combat, mais concept distinct (édition, pas tour de jeu). */
@@ -176,7 +174,6 @@ function buildZoneDraws(zones: readonly SceneEffectZone[] | undefined, dims: Dim
 }
 
 export function EditorCanvas({
-  resolveTrapping,
   scene,
   view,
   setScene,
@@ -207,7 +204,6 @@ export function EditorCanvas({
   traceCalibStep,
   onTraceCalibClick,
 }: {
-  resolveTrapping: TrappingResolver;
   scene: Scene;
   view: ReturnType<typeof useEditorView>;
   setScene: (s: Scene) => void;
@@ -276,9 +272,8 @@ export function EditorCanvas({
   const modeMonde = effectiveLowerLayerMode(lowerLayerMode, lowerLayerOpacity);
   const zHiddenMonde = (z: number) => layerHidden(z, currentLayer, modeMonde);
 
-  // CE SVG NE PEINT PLUS LA SCÈNE (#1176, P3-4) : le canevas volumique la peint DESSOUS (sols, murs,
-  // toits de matière, décor, corps des jetons). Il reste monté, et reçoit tout : les 14 familles de
-  // surcouches d'authoring et TOUS les événements pointeur. Le picking est purement GÉOMÉTRIQUE
+  // Le canevas volumique peint les sols, murs, toits et décors sous ce SVG, qui reçoit les
+  // surcouches d'authoring et tous les événements pointeur. Le picking est purement GÉOMÉTRIQUE
   // (`localXY` → `screenToTileAtZ`), et cet écran n'inscrit AUCUN picker de sprite (`spritePicking={false}`).
 
   // ZONES : chemins bâtis 1× par (emprise, caméra) — le tableau `effectZones` est remplacé à chaque
@@ -667,40 +662,20 @@ export function EditorCanvas({
   // deux matières différentes, cf. le seuil de bascule) ; sous le seuil, on n'y arrive plus et c'est
   // le dégagement qui prend la main, la couche disparaît au lieu de noircir.
   // Il porte les DEUX matières du monde d'un seul geste : les FACES (`applyVisibilityTint`) et les
-  // CORPS — `collectBillboards` pose `tint: tintAt(...)` sur chaque figurant et chaque décor. Un
-  // jeton de couche basse s'assombrit donc par le même canal que sa case, sans une ligne de plus.
+  // billboards du décor (`stage/boardPose.poseBoards`, teinte prise à la case du sujet).
   const tintAt = useMemo<TintAt>(
     () => (_x, _y, z) => gabaritTint(z, currentLayer, lowerLayerOpacity),
     [currentLayer, lowerLayerOpacity],
   );
   // ÉLÉMENTS à billboarder : c'est l'ÉDITEUR qui les fabrique, avec SES options de couche — le monde
-  // volumique n'a aucun second jeu de lois. Jetons d'entité BRUTS (leurs décorations d'auteur restent
-  // au SVG) et décor par le MÊME `buildProps` que le jeu.
+  // volumique n'a aucun second jeu de lois : le décor passe par le MÊME `buildProps` que le jeu.
   // Le builder n'émet AUCUNE loi d'étage (#1317) : c'est le PRÉDICAT UNIQUE du canevas qui tranche, ici
   // comme pour les 14 surcouches SVG et les deux autres canaux du monde volumique.
   const propEls3d = useMemo(
     () => buildProps(sceneMonde).filter((el) => !zHiddenMonde(el.cell.z)),
     [sceneMonde, currentLayer, modeMonde],
   );
-  // Les JETONS, eux, demandent encore au builder son cadrage de couche (`activeZ`/`viewZ` de
-  // `buildTokens`) avant le prédicat unique ; le décor ci-dessus a seulement le prédicat (#1317).
-  // Le prédicat reste indispensable ici : sans lui, un corps de couche basse restait sur le canevas
-  // alors que TOUTES ses décorations d'auteur avaient disparu du SVG — un jeton fantôme, inéditable.
-  // `ambush` : l'auteur voit le CORPS de ses embusqueurs (`hiddenUntilCombat`), que la loi de JEU
-  // coupe avant le combat ; le SVG continue de poser leur empreinte pointillée par-dessus.
-  const tokenEls3d = useMemo(
-    () => buildTokens(sceneMonde, undefined, null, {
-      activeZ: currentLayer,
-      viewZ: modeMonde === 'isolee' ? currentLayer : null,
-      top: viewMode === 'top',
-      ambush: true,
-    }).filter((el) => !zHiddenMonde(el.cell.z)),
-    [sceneMonde, currentLayer, viewMode, modeMonde],
-  );
-  // Pas de `chromeAt` ici : l'ALLURE d'un board se lit par `cid`, et un `cid` n'est posé QUE sur les
-  // acteurs de combat (`actorBillboards`) — l'éditeur n'en monte aucun. C'est le canal TEINTE qui
-  // assombrit ses corps de couche basse, ci-dessus, et il suffit.
-  const els3d = useMemo(() => ({ tokens: tokenEls3d, props: propEls3d }), [tokenEls3d, propEls3d]);
+  const els3d = useMemo(() => ({ props: propEls3d }), [propEls3d]);
   // ÉCHELLE RÉELLEMENT RENDUE : le SVG est à TAILLE DE CONTENU et la mise en page le rétrécit
   // (`.editor-iso { max-width: 100% }`), donc ce que l'auteur voit vaut `zoom × ce rétrécissement` —
   // c'est cette valeur, et pas le zoom du viewBox, que l'HUD doit annoncer (mesuré #1176 : 40,3 px de
@@ -759,7 +734,7 @@ export function EditorCanvas({
             (2304×1312 px mesurés sur La Diligence en iso), pas la seule fenêtre — le défilement reste
             NATIF, sans un écouteur de plus, et `setPixelRatio` n'est posé qu'au montage. Un cadrage
             à la fenêtre est une piste tickée, pas une promesse de ce lot. */}
-        <GameStage3D resolveTrapping={resolveTrapping}
+        <GameStage3D
           scene={sceneMonde}
           lecture="auteur"
           mpt={mpt}
@@ -887,10 +862,9 @@ export function EditorCanvas({
                 // d'embuscade ne vivait que dans la branche enrôlée, donc un embusqueur posé seul
                 // n'avait AUCUN signe distinctif (mesuré : zéro pixel d'écart avec un figurant).
                 const marque = isCombat || hidden;
-                // AUCUN APLAT : le corps est un billboard DEBOUT et ce SVG se peint AU-DESSUS du
-                // canevas — un losange plein y barrait le personnage en travers des jambes (mesuré à
-                // y=646). La marque reste au SOL — un CONTOUR, la même convention que les anneaux du
-                // jeu au pied des billboards (`builders/dynamicMarks`).
+                // AUCUN APLAT : ce SVG se peint AU-DESSUS du canevas et un losange plein y masquerait
+                // le décor de la case. La marque reste au SOL — un CONTOUR, la même convention que les
+                // anneaux du jeu (`builders/dynamicMarks`).
                 if (marque) {
                   objs.push({
                     d: depth(en.pos.x, en.pos.y, dims, ez) + 0.45,
@@ -906,9 +880,7 @@ export function EditorCanvas({
                             strokeDasharray={hidden ? '4 3' : undefined}
                           />
                         ))}
-                        {/* CORPS du jeton : peint par le canevas volumique (billboard). Les
-                            décorations d'auteur (empreinte, tirets d'embuscade, liseré de sélection)
-                            restent au SVG. */}
+                        {/* Décorations d'auteur au SVG : empreinte, tirets d'embuscade, liseré de sélection. */}
                       </g>
                     ),
                   });

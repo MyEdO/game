@@ -9,7 +9,10 @@ export function regenerations(sites?: readonly Site[]): RegenerationDeStock[];
 export function predicatDeConsommation(dataDir: string, srcDir: string): (cat: string, id: string) => boolean;
 export function buildConsumerCorpus(dataDir: string, srcDir: string, files?: Record<string, string>): string;
 export function sceneConsumerCorpus(srcDir: string): string;
-export function isConsumed(corpus: string, id: string): boolean;
+export interface CleDObjet { cle: string; loc: string }
+export function clesDObjet(srcDir: string): CleDObjet[];
+export function enregistrementsPropres(dataDir: string, files?: Record<string, string>): Map<string, string>;
+export function isConsumed(corpus: string, id: string, propre?: string): boolean;
 export const META_CATALOG_ENTRIES: ReadonlySet<string>;
 export interface FieldPredicateRecognized { category: string; loc: string; predicate: string; matched: string[] }
 export interface FieldPredicateSkipped { category: string; loc: string; raw: string; reason: string }

@@ -15,6 +15,7 @@ import { CODEX } from '../ui/compendium/registry';
 import type { CodexItem } from '../ui/compendium/registry';
 import { arcaneDomainsOf, eligibleTalent, learnableSpells, spellCost } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const RITUELS = spells.filter((s) => s.isRitual);
 const items = new Map<string, CodexItem>(CODEX.find((c) => c.key === 'spells')!.items.map((i) => [i.id, i]));
@@ -25,15 +26,15 @@ const factOf = (item: CodexItem, label: string): string | undefined => (item.met
 /** Lanceur témoin : un Talent Magie des Arcanes sur `domainId`, plus les Talents supplémentaires
  *  fournis (Magie du Chaos pour la clause `chaosMagic` d'une valeur réduite). */
 const sorcierDe = (domainId: string, plus: { talentId: string; spec?: string; times?: number }[] = []): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'w', label: 'Sorcier', kind: 'hero', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
-    conditions: [], traits: [], groups: [], weapons: [], movement: 4, wounds: { current: 12, max: 12 },
+    conditions: [], traits: [], groups: [], weapons: [], movement: 4, wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'langue', spec: 'magick', advances: 30 }],
     talents: [{ talentId: 'magie-des-arcanes', spec: domainId, times: 1 }, ...plus],
     spells: [],
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 const rituel = (id: string) => spells.find((s) => s.id === id)!;
 
 describe('donnée — les Rituels de VDM portent leur anatomie', () => {

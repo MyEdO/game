@@ -6,6 +6,7 @@ import { rule, setRule } from '../engine/policy';
 import { isDoubleRoll } from '../engine/tests';
 import type { PendingTest } from './pendings';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -18,13 +19,13 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const hero = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', label: 'Hilda', kind: 'hero',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 50, endurance: 50, initiative: 50, agilite: 50, dexterite: 50, intelligence: 50, 'force-mentale': 50, sociabilite: 50 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     fate: 3, fortune: 0, resilience: 0, ...p,
-  } as Combatant);
+  }) as Combatant);
 
 const basePending = (over: Partial<PendingTest> = {}): PendingTest => ({
   actorId: 'h', actorName: 'Hilda', label: 'Test', skill: 'Athlétisme', skillValue: 50,

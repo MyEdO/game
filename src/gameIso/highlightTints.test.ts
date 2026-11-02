@@ -21,7 +21,7 @@ import {
   THREAT_TINT,
   ACTIVE_HALO_TINT,
 } from './highlightTints';
-import { ACTIVE_RING, ENEMY_RING, HERO_RING, ALLY_TINT, ENEMY_TINT, ACTIVE_TINT, NEUTRAL_TINT } from './teamColors';
+import { ACTIVE_RING, ENEMY_RING, OUT_OF_PARTY_RING, HERO_RING, ALLY_TINT, ENEMY_TINT, ACTIVE_TINT, NEUTRAL_TINT } from './teamColors';
 import { CALAGE_APLAT, CALAGE_ARETES } from './backends/webgl/calageProps';
 import { teintesJeu } from '../data';
 /** Le DOCUMENT entier (enveloppe + `entries`) — ce que le schéma parse depuis #1467 L1b V-FLIP-RECORD. */
@@ -94,6 +94,7 @@ const RELAIS_IDENTITE: [string, TeinteId, string][] = [
   ['ACTIVE_RING', 'anneau-actif', ACTIVE_RING],
   ['ACTIVE_TINT', 'anneau-actif', ACTIVE_TINT],
   ['ENEMY_RING', 'anneau-ennemi', ENEMY_RING],
+  ['OUT_OF_PARTY_RING', 'anneau-hors-groupe', OUT_OF_PARTY_RING],
   ['ALLY_TINT', 'equipe-allie', ALLY_TINT],
   ['ENEMY_TINT', 'equipe-ennemi', ENEMY_TINT],
   ['NEUTRAL_TINT', 'equipe-neutre', NEUTRAL_TINT],
@@ -205,6 +206,15 @@ describe('teintes de jeu — RÔLES DISJOINTS (surbrillance ⇄ identité), inva
     expect(Math.min(...distances)).toBeGreaterThanOrEqual(SEUIL_IDENTITE_HEROS);
     const forge = { ...teintesJeu, 'identite-heros-4': teintesJeu['identite-heros-3'] };
     expect(schema.safeParse(doc(forge)).success).toBe(false);
+  });
+
+  it('l’anneau hors groupe se distingue des anneaux actif, ennemi et des quatre héros', () => {
+    const reperes = ['anneau-actif', 'anneau-ennemi', ...IDENTITE_HEROS_KEYS] as const;
+    for (const id of reperes) {
+      expect(distanceTeinte(OUT_OF_PARTY_RING, teintesJeu[id]), id).toBeGreaterThanOrEqual(SEUIL_IDENTITE_HEROS);
+      const tropProche = teintesJeu[id].slice(0, 5) + (parseInt(teintesJeu[id].slice(5), 16) ^ 1).toString(16).padStart(2, '0');
+      expect(schema.safeParse(doc({ ...teintesJeu, 'anneau-hors-groupe': tropProche })).success, id).toBe(false);
+    }
   });
 
   it('une clé MANQUANTE ou une couleur mal formée échoue au chargement', () => {

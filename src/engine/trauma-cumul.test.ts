@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { traumaById, consolidateAmputations, setTraumaCount, traumaCumulOps, traumaCharPenalties, traumaFicheById, permanentAmputations } from './trauma';
 import type { Combatant, Trauma, HitLocation } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * #1318 E4/C-γ — la règle de COMPTAGE d'une séquelle vit sur SON entrée de `traumas.json`
@@ -11,11 +12,11 @@ import type { Combatant, Trauma, HitLocation } from './types';
  * l.281 (« pour chaque orteil perdu, −1 Agilité et −1 Capacité de Combat »).
  */
 const C = (traumas: Trauma[]): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'c', label: 'C', kind: 'hero', conditions: [], skills: [], items: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, traumas,
-  } as unknown as Combatant);
+    wounds: blessuresDeBase(10), traumas,
+  }) as unknown as Combatant);
 
 const pose = (id: string, loc: HitLocation, n?: number): Trauma => {
   const t = traumaById(id, undefined, loc);

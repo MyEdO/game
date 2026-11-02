@@ -78,7 +78,7 @@ SP1 standard).
 
 Après dessin : rendu **PNG** (resvg, `scripts/qc/`) d'une planche des 5 props → **agents aveugles**
 devinent chaque prop **sans son nom** → corrections **best-of-N** (silhouette/contraste/échelle)
-jusqu'à reconnaissable. Runbook : `docs/qc-reconnaissabilite-sprites.md`. Critère de sortie : chaque
+jusqu'à reconnaissable. Critère de sortie : chaque
 prop deviné correctement par ≥ une passe d'agents aveugles (au moins « coffre/lettre/bourse/clé/
 étagère » non confondus avec caisse/tas/sac).
 

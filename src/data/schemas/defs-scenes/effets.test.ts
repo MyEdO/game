@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { listerArbre } from '../../../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres, PROJETS_LIVRES } from '../../../../scripts/guards/lib/projetsLivres.mjs';
 import type { z } from 'zod';
+import { noeudDuChamp } from '../validate';
 import {
   effectSchema, sceneFlowSchema, setFlagSchema, setObjectiveSchema, delayedEffectSchema,
   petitePriereSchema, setTimeSchema, pursuitFoeSchema, massBattleSpecSchema, favorLevelSchema,
@@ -94,6 +95,21 @@ function cheminsParFiltreDeChemin(): string[] {
   return out;
 }
 
+/** Le Flow que déclare le def d'un dataset de `src/data` sous `effects` : sa famille mécanique admet ses champs
+ *  RÉSERVÉS (`grammaire/mecanique.ts`, `CHAMPS_RESERVES`), que la famille fermée d'`effectSchema` refuse. */
+const flowDuDataset = (chemin: string): z.ZodType | undefined => {
+  const m = /^src\/data\/([^/:]+\.json):/.exec(chemin);
+  return m ? (noeudDuChamp(m[1], 'effects') as z.ZodType | undefined) : undefined;
+};
+
+/** Un effet posé parse contre `effectSchema` ; une feuille `ops` d'un dataset, contre la famille de son def. */
+function parseDuPose(p: { chemin: string; noeud: unknown }): z.ZodSafeParseResult<unknown> {
+  const r = effectSchema.safeParse(p.noeud);
+  if (r.success || (p.noeud as { type?: unknown }).type !== 'ops') return r;
+  const flow = flowDuDataset(p.chemin);
+  return flow ? flow.safeParse({ kind: 'do', effect: p.noeud }) : r;
+}
+
 describe('effectSchema — le corpus RÉELLEMENT posé dans les deux racines authorées', () => {
   const poses = effetsPoses();
 
@@ -125,9 +141,9 @@ describe('effectSchema — le corpus RÉELLEMENT posé dans les deux racines aut
 
   it('CHAQUE effet posé parse contre `effectSchema` — le refus NOMME son chemin', () => {
     const ko = poses
-      .filter((p) => !effectSchema.safeParse(p.noeud).success)
+      .filter((p) => !parseDuPose(p).success)
       .map((p) => {
-        const r = effectSchema.safeParse(p.noeud);
+        const r = parseDuPose(p);
         return `${p.chemin} — ${r.success ? '' : r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' ; ')}`;
       });
     expect(ko, `Effect(s) posé(s) que le schéma refuse :\n${ko.join('\n')}`).toEqual([]);

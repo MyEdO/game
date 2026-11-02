@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { testValue } from './skills';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 function mk(opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', label: 'c', kind: 'hero',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as never,
     conditions: [], skills: [], talents: [], items: [], activeEffects: [],
-    advantage: 0, armour: {} as never, weapons: [], movement: 4, wounds: { current: 10, max: 10 },
+    advantage: 0, armour: {} as never, weapons: [], movement: 4, wounds: blessuresDeBase(10),
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('testValue HORS COMBAT — mêmes modulations qu’en combat (audit, LDB 16/18/61)', () => {

@@ -7,7 +7,7 @@ import type { Combatant, Weapon } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { makeRNG } from './dice';
 import { deFixe } from './dice.testkit';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 /**
  * « Retenir vos coups » — LDB 18 l.30 en 'ldb' ; Aux Armes (`Source/WH - V4 - Aux Armes/07 - MISES A JOUR DE L'ETAT HEMORRAGIQUE.md` l.59-61) :
@@ -20,12 +20,12 @@ import { blessuresDeBase } from './characteristics';
  */
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x',
     name: 'X',
     kind: 'enemy',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -34,7 +34,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
     talents: [],
     movement: 4,
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const empaleuseSword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empaleuse' }] };
 const percutanteSword: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'percutante' }] };

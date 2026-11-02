@@ -26,9 +26,7 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   weapon?: string;
   facing?: Dir8;
   label?: string;
-  /** Animation d'ambiance en boucle (clé de AMBIENT_CLIPS, ex. 'feeding'/'howl') — portée par l'entité
-   *  VISIBLE enrôlée (l'ennemi se repaît/hurle en exploration, puis combat aux mêmes cases). */
-  anim?: string;
+  anim?: SceneEntity['anim'];
   /** Camp au spawn (défaut 'enemy'). */
   side?: 'enemy' | 'ally';
   /** PNJ allié piloté par l'IA (avec `side:'ally'`) : agit seul, le joueur ne le micro-gère pas. */

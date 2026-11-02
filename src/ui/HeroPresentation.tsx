@@ -1,6 +1,5 @@
 import type { Combatant } from '../engine/types';
 import { Modal } from './Modal';
-import { CharacterPreview } from './CharacterPreview';
 import { ParchmentCard } from './ParchmentCard';
 import { heroSubtitle, heroRoles, heroKeySkills, heroKeyTalents } from './CharCard';
 import { t } from '../i18n';
@@ -8,9 +7,9 @@ import { Row } from './Layout';
 
 /**
  * PRÉSENTATION d'un personnage — la vue qui RACONTE (avant/après recrutement), distincte de la
- * `CharacterSheet` de gestion (grilles de stats). Portrait en grand, archétype, ce qui l'anime
+ * `CharacterSheet` de gestion (grilles de stats). Archétype, ce qui l'anime
  * (motivation/ambitions, données pré-tiré), rôle/forces + compétences & talents CLÉS en clair, puis
- * un accès « Fiche complète » pour les chiffres. Compose Modal + CharacterPreview + ParchmentCard
+ * un accès « Fiche complète » pour les chiffres. Compose Modal + ParchmentCard
  * (aucun 3e format de carte) — accessible d'un clic depuis toute carte (candidat ou membre d'équipe).
  */
 export function HeroPresentation({ hero, onFullSheet, onClose }: {
@@ -41,9 +40,6 @@ export function HeroPresentation({ hero, onFullSheet, onClose }: {
     >
       <div className="hero-present-body">
         <aside className="hero-present-aside">
-          <div className="hero-present-fig">
-            <CharacterPreview hero={hero} size="fill" ambiance="spotlight" />
-          </div>
           <span className="hero-present-sub">{heroSubtitle(hero)}</span>
         </aside>
         <div className="hero-present-detail">

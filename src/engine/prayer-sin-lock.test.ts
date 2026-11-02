@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { prayerSinLock, priestCult, type SpellLike } from './magic';
 import { findGodById } from '../data';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * VERROU de Péché des cultes (MDG 11 l.148, verbatim) : « Stromfels retire à un suivant la capacité
@@ -11,12 +12,12 @@ import type { Combatant } from './types';
  * flux de Prière (`castSpell`/`castZoneSpell` → refus AVANT la modale).
  */
 const priest = (cult: string, sin: number, kind: 'beni' | 'invocation' = 'invocation'): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'p1', name: 'Prêtre', kind: 'hero', sinPoints: sin,
     talents: [{ talentId: kind, spec: cult, times: 1 }],
     skills: [], characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, weapons: [], movement: 4,
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(12), weapons: [], movement: 4,
+  })) as unknown as Combatant;
 
 const miracle: SpellLike = { label: 'Lame de fond', ecole: 'Miracle', cn: null, desc: '', family: 'invocation' };
 const blessing: SpellLike = { label: 'Bénédiction de Bataille', ecole: 'Bénédiction', cn: null, desc: '', family: 'beni' };

@@ -9,7 +9,7 @@ import { setCadence } from '../engine/cadence';
 import { pickActiveModalKey } from './modalArbiter';
 import { avanceEtapeCascade } from './cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -29,7 +29,7 @@ function monte(opts: { heroAi: boolean; fate?: number; wounds?: number }) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
     const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0; c.fate = kind === 'hero' ? (opts.fate ?? 0) : 0;
-    c.wounds = blessuresDeBase(opts.wounds ?? 6);
+    c.wounds = blessuresDeBase(opts.wounds ?? 6, opts.wounds ?? 6, c);
     if (kind === 'hero' && opts.heroAi) c.aiControlled = true;
     c.weapons = [ARC()];
     return c;

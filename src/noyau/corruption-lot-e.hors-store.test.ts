@@ -39,13 +39,17 @@ describe('Âme pure (LDB 10) — seuil de Corruption +niveau', () => {
 });
 
 describe('« Je te renie ! » (LDB 17 l.67)', () => {
-  /** Franchit le seuil : le Test `corrompu` est une MODALE (kind 'seuil') —
+  /** Le héros du groupe, relu par son id : une écriture copie le combattant dont le maximum des Blessures
+   *  bouge (`noyau/transitionDuJeu.ts`). */
+  const lu = (): Combatant => banc.getState().party[0];
+  /** Pose `h` au groupe et franchit le seuil : le Test `corrompu` est une MODALE (kind 'seuil') —
    *  on lance puis on FORCE l'échec (déterministe) avant d'acquitter. */
   function corruptPastThreshold(h: Combatant): void {
     h.characteristics.endurance = 1;
     h.characteristics['force-mentale'] = 1;
     h.corruption = 10; // largement au-delà du seuil (BFM+BE = 0)
-    gainCorruption(banc.getState, banc.setState, h, 1);
+    banc.setState({ party: [h] });
+    gainCorruption(banc.getState, banc.setState, lu(), 1);
     expect(banc.getState().pendingCorruption?.kind).toBe('seuil'); // le jet est VISIBLE
     banc.getState().corruptionRoll();
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
@@ -54,34 +58,31 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
   it('héros avec Résilience → la mutation est SUSPENDUE (pendingRenounce)', () => {
     const h = hero();
     h.resilience = 1;
-    banc.setState({ party: [h] });
     corruptPastThreshold(h);
     expect(banc.getState().pendingRenounce).toBeTruthy();
-    expect(h.mutations ?? []).toEqual([]);
-    const before = h.corruption!;
+    expect(lu().mutations ?? []).toEqual([]);
+    const before = lu().corruption!;
     banc.getState().renounceResolve(true);
     expect(banc.getState().pendingRenounce).toBeNull();
-    expect(h.resilience).toBe(0); // 1 Point de Résilience dépensé
-    expect(h.mutations ?? []).toEqual([]); // pas de mutation
-    expect(h.corruption).toBe(before); // « vous ne perdez aucun Point de Corruption »
+    expect(lu().resilience).toBe(0); // 1 Point de Résilience dépensé
+    expect(lu().mutations ?? []).toEqual([]); // pas de mutation
+    expect(lu().corruption).toBe(before); // « vous ne perdez aucun Point de Corruption »
   });
   it('« Subir » → la mutation s’applique (−BFM Points, tirage)', () => {
     const h = hero();
     h.resilience = 1;
-    banc.setState({ party: [h] });
     corruptPastThreshold(h);
     expect(banc.getState().pendingRenounce).toBeTruthy();
     banc.getState().renounceResolve(false);
     draineCascade(banc.getState); // les dés de la mutation sont des étapes : elle tombe en les jouant
-    expect((h.mutations ?? []).length).toBe(1);
+    expect((lu().mutations ?? []).length).toBe(1);
   });
   it('sans Résilience → mutation à l’acquittement (pas de « Je te renie ! »)', () => {
     const h = hero();
     h.resilience = 0;
-    banc.setState({ party: [h] });
     corruptPastThreshold(h);
     expect(banc.getState().pendingRenounce).toBeNull();
     draineCascade(banc.getState); // idem : l'acquittement pousse les étapes, il ne mute pas sur place
-    expect((h.mutations ?? []).length).toBe(1);
+    expect((lu().mutations ?? []).length).toBe(1);
   });
 });

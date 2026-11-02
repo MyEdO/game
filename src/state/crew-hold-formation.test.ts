@@ -4,6 +4,7 @@ import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { itemFromTrappingById } from '../engine/items';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ShipPoste } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * #196 — un servant PNJ (`ai: true`) membre du crew d'un poste d'engin de siège ACTIF (bélier, batterie de
@@ -17,12 +18,12 @@ import type { Combatant, ShipPoste } from '../engine/types';
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind: 'enemy', side: 'ally', ai: true, characteristics: CHARS,
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   ({
@@ -34,11 +35,11 @@ const mkPoste = (crewIds: string[] = []): ShipPoste =>
   ({ item: itemFromTrappingById('belier-ade2')!, crewIds });
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
-    characteristics: { ...CHARS, endurance: 30 }, wounds: { current: 12, max: 12 }, advantage: 0,
+    characteristics: { ...CHARS, endurance: 30 }, wounds: blessuresDeBase(12), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const input = (enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput => ({
   enemy, heroes, scene: emptyScene('scene-test', 20, 20),

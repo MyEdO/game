@@ -1,6 +1,6 @@
 ---
 name: user-doctrine-orchestrateur-de-sessions-max5
-description: "Régime MAX x5 : l'orchestrateur ne fait jamais le travail d'un chantier ; au plus 2 sessions Claude exécutantes, Codex par le pont à l'effectif de l'annexe codex.md ; une session neuve par ticket, jamais --resume"
+description: "Régime MAX x5 : l'orchestrateur ne fait jamais le travail d'un chantier ; au plus 2 sessions Claude exécutantes, Codex par le pont à l'effectif de l'annexe codex.md ; une session neuve par lot, jamais --resume"
 metadata:
   type: user
 ---
@@ -31,4 +31,6 @@ metadata:
 
 **Verbatim (2026-10-31)** : « on lance claude automatiquement a la derniere version et ca ne gene pas, pourquoi on bloque le lancement ce codex a la derniere version, c'est sutpide »
 
-**How to apply :** l'orchestrateur attribue et relaie, jamais le travail d'un chantier. Au plus 2 sessions Claude exécutantes ; Codex par le pont, à sa dernière version complète (mise à jour côte à côte détachée), à l'effectif de l'annexe `codex.md` du skill `orchestrer-des-agents`. Une session NEUVE par ticket, consigne courte, fermée dès qu'elle rend (publié, bloqué ou en attente), jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`. Lancer, lister, fermer : `npm run ops:session`.
+**Verbatim (2026-11-01)** : « tu as le droit de lancer un claude, comme tu lance du codex. Mais un seul doit etre l'orchestrateurs de sessions, l'autre, comme les codex, doivent etre des orchestrateurs d'agents »
+
+**How to apply :** un seul orchestrateur de sessions ; il attribue et relaie, jamais le travail d'un chantier, et ne lance que des orchestrateurs d'agents (Claude ou Codex), qui n'ouvrent aucune session. Plafond, cycle et régime Codex : skill `orchestrer-des-sessions`. Codex à sa dernière version complète. Une session NEUVE par lot, fermée dès qu'elle rend, jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`.

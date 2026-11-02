@@ -12,6 +12,7 @@ import { REFUS_FRANCHISSEMENT } from '../noyau/gesteDArete';
 import { setRule, resetRule } from '../engine/policy';
 import type { TombantParticipant } from '../noyau/pendings';
 import { t } from '../i18n';
+import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /**
  * Câblage de la chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : `fallAcross` ouvre une étape À
@@ -228,7 +229,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
   });
 
   it('maison `refus` (défaut) : un membre vivant non debout → refus NOMMÉ du geste', () => {
-    useGame.setState({ party: g().party.map((h) => (h.id === B ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) });
+    useGame.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
     g().fallAcross(top, foot);
     expect(g().pendingFall).toBeNull();
     expect(g().journal.slice(-1)[0]).toBe(t('fall.refus.nonDebout', { name: 'B' }));
@@ -237,7 +238,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
 
   it('maison `chute-pleine` : le membre non debout est une rangée TÉMOIN qui tombe de toute la hauteur, sans Test', () => {
     setRule('chute-tombant-non-debout', 'chute-pleine');
-    useGame.setState({ party: g().party.map((h) => (h.id === B ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) });
+    useGame.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
     g().fallAcross(top, foot);
     expect(rangee(B)).toEqual({ id: B, interactive: false, attempt: false, result: null });
     g().fallChoose(B, true);

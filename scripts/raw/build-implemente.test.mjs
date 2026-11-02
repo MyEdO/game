@@ -1,6 +1,6 @@
 // Test du générateur `build-implemente` (node --test) : fixtures en chaînes, aucune dépendance aux
 // fiches réelles. Re-verrouille les comportements hérités de check-implemente (graphies du libellé,
-// tableau de bilan jamais scanné, exclusion de l'art de rig) + les nouveaux (#487). Lancé par `npm run test:raw`.
+// tableau de bilan jamais scanné, exclusion des manifests éditoriaux) + les nouveaux (#487). Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { refRe, buildFolioMap, folioRangeIn, allAbbrAlternation, REGISTRE_LIVRES, estLivreExtrait } from './_lib.mjs'
@@ -202,8 +202,7 @@ test('declNameOf : reconnaît function/const/class/type', () => {
   assert.equal(declNameOf('  const notTopLevel = 1'), null)
 })
 
-test('estHorsImplementation : art de rig (tenues/defs) et manifests ÉDITORIAUX exclus — une méta n’implémente rien', () => {
-  assert.equal(estHorsImplementation('src/gameIso/rig/parts/tenues/defs/Loup.ts'), true)
+test('estHorsImplementation : manifests ÉDITORIAUX exclus — une méta n’implémente rien', () => {
   assert.equal(estHorsImplementation('src/data/raw.manifest.json'), true)
   assert.equal(estHorsImplementation('src/data/donnees.manifest.json'), true)
   assert.equal(estHorsImplementation('src/engine/combat.ts'), false)

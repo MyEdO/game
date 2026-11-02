@@ -6,7 +6,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from './monde/scene';
 import type { Scene } from './monde/scene';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -105,7 +105,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       startFixtureCombat();
       const b = banc.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
-      enemy.wounds = blessuresDeBase(10, 4); // 40% < 50%
+      enemy.wounds = blessuresDeBase(10, 4, enemy); // 40% < 50%
       banc.setState({
         battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
       });
@@ -122,7 +122,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       startFixtureCombat();
       const b = banc.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
-      enemy.wounds = blessuresDeBase(10, 8); // 80% ≥ 50%
+      enemy.wounds = blessuresDeBase(10, 8, enemy); // 80% ≥ 50%
       banc.setState({
         battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
       });
@@ -137,7 +137,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       startFixtureCombat();
       const b = banc.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
-      enemy.wounds = blessuresDeBase(10, 0);
+      enemy.wounds = blessuresDeBase(10, 0, enemy);
       enemy.dead = true;
       banc.setState({
         battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },

@@ -5,7 +5,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { effectTables, findEffectTableById, mutationTables } from './index';
 import { TABLE_ORPHAN_RATCHET } from '../../scripts/guards/lib/tableConsumerStock.mjs';
 import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
-import { MOTIF_DECLARATION, regenerations, sitesTableOrpheline } from '../../scripts/guards/lib/tableConsumerAudit';
+import { regenerations, sitesTableOrpheline } from '../../scripts/guards/lib/tableConsumerAudit';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 
 /**
@@ -81,29 +81,16 @@ describe('cliquet — toute table d’effets a un CONSOMMATEUR (donnée écrite,
 
   /** Les orphelines MESURÉES en SITES `{ file, ref }` — `file` = le dataset où la table est
    *  DÉCLARÉE —, confrontées au stock par la primitive partagée, dans les deux sens. La MESURE
-   *  (corpus des consommateurs, motif de déclaration, jeton cité) vit dans
+   *  (corpus des consommateurs, enregistrement propre, jeton cité) vit dans
    *  `scripts/guards/lib/tableConsumerAudit.ts` : la garde et la régénération (`regenerations`) en
    *  partagent la SEULE lecture. */
   const sites = sitesTableOrpheline();
   const ecartOrphelines = (stock: Iterable<EntreeDeSite> = TABLE_ORPHAN_RATCHET) =>
     ecartDuVolet({ sites, stock, ou: STOCK });
 
-  // #1467 L1b V-FLIP-ENTITE-b — le MOTIF de retrait est ce qui tient tout le cliquet : s'il rate
-  // une déclaration, la table qui la porte devient sa propre consommatrice et sort du décompte des
-  // orphelines EN SILENCE. Il se vérifie donc sur la donnée RÉELLE, pas seulement par son effet.
-  it('le motif de DÉCLARATION retire exactement une déclaration par table — jamais une de moins', () => {
-    const raw = readFileSync(join(DIR, 'tables.json'), 'utf8');
-    const trouves = raw.match(MOTIF_DECLARATION) ?? [];
-    expect(trouves.length, 'une déclaration par table : le motif ne doit en rater AUCUNE').toBe(effectTables.length);
-    // Et il ne laisse aucun `"id"` de PREMIER NIVEAU derrière lui : ce qui reste appartient aux rangées.
-    for (const t of effectTables) {
-      expect(raw.replace(MOTIF_DECLARATION, ''), `déclaration de « ${t.id} » non retirée`).not.toContain(`"${t.id}",`);
-    }
-  });
-
   it('le stock d’orphelines est INCLUS dans les orphelines mesurées — un solde à tort est impossible', () => {
     const { perimees } = ecartOrphelines();
-    expect(perimees, `entrée(s) du stock qui ne sont PLUS mesurées orphelines — vérifier le MOTIF avant de solder :\n${perimees.join('\n')}`).toEqual(
+    expect(perimees, `entrée(s) du stock qui ne sont PLUS mesurées orphelines — vérifier le retrait de l'enregistrement propre avant de solder :\n${perimees.join('\n')}`).toEqual(
       [],
     );
   });

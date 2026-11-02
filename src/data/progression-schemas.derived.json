@@ -27,20 +27,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 119.3,
-            "mark": "glyphe"
+            "x": 119.3
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           }
         ],
         "2": [
@@ -96,20 +93,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 72.5,
-            "mark": "glyphe"
+            "x": 72.5
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 163.8,
-            "mark": "glyphe"
+            "x": 163.8
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 232.2,
-            "mark": "glyphe"
+            "x": 232.2
           }
         ],
         "2": [
@@ -165,20 +159,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           }
         ],
         "2": [
@@ -234,20 +225,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 72.5,
-            "mark": "glyphe"
+            "x": 72.5
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 163.8,
-            "mark": "glyphe"
+            "x": 163.8
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 209.4,
-            "mark": "glyphe"
+            "x": 209.4
           }
         ],
         "2": [
@@ -303,20 +291,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           }
         ],
         "2": [
@@ -372,20 +357,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 119.3,
-            "mark": "glyphe"
+            "x": 119.3
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           }
         ],
         "2": [
@@ -441,20 +423,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -510,20 +489,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 121.5,
-            "mark": "glyphe"
+            "x": 121.5
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 211,
-            "mark": "glyphe"
+            "x": 211
           }
         ],
         "2": [
@@ -579,20 +555,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 121.5,
-            "mark": "glyphe"
+            "x": 121.5
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 211,
-            "mark": "glyphe"
+            "x": 211
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           }
         ],
         "2": [
@@ -648,20 +621,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 121.5,
-            "mark": "glyphe"
+            "x": 121.5
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 255.8,
-            "mark": "glyphe"
+            "x": 255.8
           }
         ],
         "2": [
@@ -717,20 +687,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 255.8,
-            "mark": "glyphe"
+            "x": 255.8
           }
         ],
         "2": [
@@ -786,20 +753,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 166.3,
-            "mark": "glyphe"
+            "x": 166.3
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 211,
-            "mark": "glyphe"
+            "x": 211
           }
         ],
         "2": [
@@ -855,20 +819,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.9,
-            "mark": "glyphe"
+            "x": 143.9
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 278.2,
-            "mark": "glyphe"
+            "x": 278.2
           }
         ],
         "2": [
@@ -924,20 +885,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 211,
-            "mark": "glyphe"
+            "x": 211
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 300.7,
-            "mark": "glyphe"
+            "x": 300.7
           }
         ],
         "2": [
@@ -993,20 +951,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 98.5,
-            "mark": "glyphe"
+            "x": 98.5
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 143.3,
-            "mark": "glyphe"
+            "x": 143.3
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.7,
-            "mark": "glyphe"
+            "x": 165.7
           }
         ],
         "2": [
@@ -1062,20 +1017,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.9,
-            "mark": "glyphe"
+            "x": 143.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           }
         ],
         "2": [
@@ -1131,20 +1083,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.9,
-            "mark": "glyphe"
+            "x": 143.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           }
         ],
         "2": [
@@ -1200,20 +1149,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.9,
-            "mark": "glyphe"
+            "x": 143.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           }
         ],
         "2": [
@@ -1269,20 +1215,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 166.3,
-            "mark": "glyphe"
+            "x": 166.3
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 211,
-            "mark": "glyphe"
+            "x": 211
           }
         ],
         "2": [
@@ -1338,20 +1281,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.9,
-            "mark": "glyphe"
+            "x": 143.9
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 166.3,
-            "mark": "glyphe"
+            "x": 166.3
           }
         ],
         "2": [
@@ -1407,20 +1347,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 121.5,
-            "mark": "glyphe"
+            "x": 121.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.9,
-            "mark": "glyphe"
+            "x": 143.9
           }
         ],
         "2": [
@@ -1476,20 +1413,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 255.8,
-            "mark": "glyphe"
+            "x": 255.8
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 300.7,
-            "mark": "glyphe"
+            "x": 300.7
           }
         ],
         "2": [
@@ -1546,20 +1480,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           }
         ],
         "2": [
@@ -1615,20 +1546,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 73.9,
-            "mark": "glyphe"
+            "x": 73.9
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 210.8,
-            "mark": "glyphe"
+            "x": 210.8
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 256.5,
-            "mark": "glyphe"
+            "x": 256.5
           }
         ],
         "2": [
@@ -1684,20 +1612,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           }
         ],
         "2": [
@@ -1753,20 +1678,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 210.8,
-            "mark": "glyphe"
+            "x": 210.8
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 256.5,
-            "mark": "glyphe"
+            "x": 256.5
           }
         ],
         "2": [
@@ -1822,20 +1744,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           }
         ],
         "2": [
@@ -1891,20 +1810,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 256.5,
-            "mark": "glyphe"
+            "x": 256.5
           }
         ],
         "2": [
@@ -1960,20 +1876,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -2029,20 +1942,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 256.5,
-            "mark": "glyphe"
+            "x": 256.5
           }
         ],
         "2": [
@@ -2098,20 +2008,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 119.3,
-            "mark": "glyphe"
+            "x": 119.3
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -2167,20 +2074,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           }
         ],
         "2": [
@@ -2236,20 +2140,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           }
         ],
         "2": [
@@ -2305,20 +2206,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -2374,20 +2272,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -2443,20 +2338,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 159.5,
-            "mark": "glyphe"
+            "x": 159.5
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 228,
-            "mark": "glyphe"
+            "x": 228
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 250.8,
-            "mark": "glyphe"
+            "x": 250.8
           }
         ],
         "2": [
@@ -2512,20 +2404,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 144.9,
-            "mark": "glyphe"
+            "x": 144.9
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 167.7,
-            "mark": "glyphe"
+            "x": 167.7
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 281.8,
-            "mark": "glyphe"
+            "x": 281.8
           }
         ],
         "2": [
@@ -2581,20 +2470,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           }
         ],
         "2": [
@@ -2650,20 +2536,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           }
         ],
         "2": [
@@ -2719,20 +2602,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -2788,20 +2668,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           }
         ],
         "2": [
@@ -2857,20 +2734,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -2926,20 +2800,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           }
         ],
         "2": [
@@ -2995,20 +2866,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -3064,20 +2932,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -3133,20 +2998,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -3202,20 +3064,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -3271,20 +3130,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -3340,20 +3196,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 119.3,
-            "mark": "glyphe"
+            "x": 119.3
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -3409,20 +3262,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -3478,20 +3328,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           }
         ],
         "2": [
@@ -3547,20 +3394,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -3616,20 +3460,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 119.3,
-            "mark": "glyphe"
+            "x": 119.3
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           }
         ],
         "2": [
@@ -3685,20 +3526,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -3754,20 +3592,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -3823,20 +3658,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 210.8,
-            "mark": "glyphe"
+            "x": 210.8
           }
         ],
         "2": [
@@ -3892,20 +3724,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -3961,20 +3790,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 73.9,
-            "mark": "glyphe"
+            "x": 73.9
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 210.8,
-            "mark": "glyphe"
+            "x": 210.8
           }
         ],
         "2": [
@@ -4030,20 +3856,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           }
         ],
         "2": [
@@ -4099,20 +3922,17 @@
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 210.8,
-            "mark": "glyphe"
+            "x": 210.8
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -4168,20 +3988,17 @@
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -4237,20 +4054,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -4306,20 +4120,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 256.2,
-            "mark": "glyphe"
+            "x": 256.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -4375,20 +4186,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -4444,20 +4252,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -4513,20 +4318,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           }
         ],
         "2": [
@@ -4582,20 +4384,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           }
         ],
         "2": [
@@ -4651,20 +4450,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 256.5,
-            "mark": "glyphe"
+            "x": 256.5
           }
         ],
         "2": [
@@ -4720,20 +4516,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           }
         ],
         "2": [
@@ -4789,20 +4582,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           }
         ],
         "2": [
@@ -4858,20 +4648,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 119.3,
-            "mark": "glyphe"
+            "x": 119.3
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -4927,20 +4714,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 256.5,
-            "mark": "glyphe"
+            "x": 256.5
           }
         ],
         "2": [
@@ -4996,20 +4780,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -5065,20 +4846,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           }
         ],
         "2": [
@@ -5134,20 +4912,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -5203,20 +4978,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           }
         ],
         "2": [
@@ -5272,20 +5044,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -5341,20 +5110,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -5410,20 +5176,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 279,
-            "mark": "glyphe"
+            "x": 279
           }
         ],
         "2": [
@@ -5479,20 +5242,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 51.1,
-            "mark": "glyphe"
+            "x": 51.1
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -5548,20 +5308,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           }
         ],
         "2": [
@@ -5617,20 +5374,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 165.2,
-            "mark": "glyphe"
+            "x": 165.2
           }
         ],
         "2": [
@@ -5686,20 +5440,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           }
         ],
         "2": [
@@ -5755,20 +5506,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 96.7,
-            "mark": "glyphe"
+            "x": 96.7
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 233.6,
-            "mark": "glyphe"
+            "x": 233.6
           }
         ],
         "2": [
@@ -5824,20 +5572,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 187.7,
-            "mark": "glyphe"
+            "x": 187.7
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 233.4,
-            "mark": "glyphe"
+            "x": 233.4
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 301.8,
-            "mark": "glyphe"
+            "x": 301.8
           }
         ],
         "2": [
@@ -5893,20 +5638,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 119.6,
-            "mark": "glyphe"
+            "x": 119.6
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 142.4,
-            "mark": "glyphe"
+            "x": 142.4
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 188,
-            "mark": "glyphe"
+            "x": 188
           }
         ],
         "2": [
@@ -5962,20 +5704,17 @@
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           }
         ],
         "2": [
@@ -6031,20 +5770,17 @@
           {
             "col": "CT",
             "characteristic": "capacite-de-tir",
-            "x": 121.4,
-            "mark": "glyphe"
+            "x": 121.4
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 211,
-            "mark": "glyphe"
+            "x": 211
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 255.8,
-            "mark": "glyphe"
+            "x": 255.8
           }
         ],
         "2": [
@@ -6100,20 +5836,17 @@
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 473.9,
-            "mark": "glyphe"
+            "x": 473.9
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 496.3,
-            "mark": "glyphe"
+            "x": 496.3
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 541.3,
-            "mark": "glyphe"
+            "x": 541.3
           }
         ],
         "2": [
@@ -6169,20 +5902,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 232.9,
-            "mark": "glyphe"
+            "x": 232.9
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 300.3,
-            "mark": "glyphe"
+            "x": 300.3
           }
         ],
         "2": [
@@ -6238,20 +5968,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.8,
-            "mark": "glyphe"
+            "x": 143.8
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           }
         ],
         "2": [
@@ -6307,20 +6034,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 166.2,
-            "mark": "glyphe"
+            "x": 166.2
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           }
         ],
         "2": [
@@ -6376,20 +6100,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.4,
-            "mark": "glyphe"
+            "x": 98.4
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 255.4,
-            "mark": "glyphe"
+            "x": 255.4
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 300.3,
-            "mark": "glyphe"
+            "x": 300.3
           }
         ],
         "2": [
@@ -6445,20 +6166,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 165.7,
-            "mark": "glyphe"
+            "x": 165.7
           },
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.5,
-            "mark": "glyphe"
+            "x": 210.5
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 277.8,
-            "mark": "glyphe"
+            "x": 277.8
           }
         ],
         "2": [
@@ -6514,20 +6232,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.9,
-            "mark": "glyphe"
+            "x": 98.9
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.6,
-            "mark": "glyphe"
+            "x": 188.6
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 255.8,
-            "mark": "glyphe"
+            "x": 255.8
           }
         ],
         "2": [
@@ -6583,20 +6298,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 98.4,
-            "mark": "glyphe"
+            "x": 98.4
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 143.3,
-            "mark": "glyphe"
+            "x": 143.3
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 188.1,
-            "mark": "glyphe"
+            "x": 188.1
           }
         ],
         "2": [
@@ -6652,20 +6364,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 96.5,
-            "mark": "glyphe"
+            "x": 96.5
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 142.1,
-            "mark": "glyphe"
+            "x": 142.1
           },
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 164.9,
-            "mark": "glyphe"
+            "x": 164.9
           }
         ],
         "2": [
@@ -6721,20 +6430,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 167.7,
-            "mark": "glyphe"
+            "x": 167.7
           },
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 231.1,
-            "mark": "glyphe"
+            "x": 231.1
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.2,
-            "mark": "glyphe"
+            "x": 252.2
           }
         ],
         "2": [
@@ -6790,20 +6496,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 104.2,
-            "mark": "glyphe"
+            "x": 104.2
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.2,
-            "mark": "glyphe"
+            "x": 252.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.3,
-            "mark": "glyphe"
+            "x": 273.3
           }
         ],
         "2": [
@@ -6859,20 +6562,17 @@
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 246.3,
-            "mark": "glyphe"
+            "x": 246.3
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 267.4,
-            "mark": "glyphe"
+            "x": 267.4
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 288.6,
-            "mark": "glyphe"
+            "x": 288.6
           }
         ],
         "2": [
@@ -6928,20 +6628,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 104.2,
-            "mark": "glyphe"
+            "x": 104.2
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.2,
-            "mark": "glyphe"
+            "x": 252.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.3,
-            "mark": "glyphe"
+            "x": 273.3
           }
         ],
         "2": [
@@ -6997,20 +6694,17 @@
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 189.3,
-            "mark": "glyphe"
+            "x": 189.3
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.6,
-            "mark": "glyphe"
+            "x": 252.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.8,
-            "mark": "glyphe"
+            "x": 273.8
           }
         ],
         "2": [
@@ -7066,20 +6760,17 @@
           {
             "col": "E",
             "characteristic": "endurance",
-            "x": 167.7,
-            "mark": "glyphe"
+            "x": 167.7
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.2,
-            "mark": "glyphe"
+            "x": 252.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.3,
-            "mark": "glyphe"
+            "x": 273.3
           }
         ],
         "2": [
@@ -7135,20 +6826,17 @@
           {
             "col": "Ag",
             "characteristic": "agilite",
-            "x": 210.4,
-            "mark": "glyphe"
+            "x": 210.4
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.6,
-            "mark": "glyphe"
+            "x": 252.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.8,
-            "mark": "glyphe"
+            "x": 273.8
           }
         ],
         "2": [
@@ -7204,20 +6892,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 104.7,
-            "mark": "glyphe"
+            "x": 104.7
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.6,
-            "mark": "glyphe"
+            "x": 252.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.8,
-            "mark": "glyphe"
+            "x": 273.8
           }
         ],
         "2": [
@@ -7273,20 +6958,17 @@
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.2,
-            "mark": "glyphe"
+            "x": 252.2
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.3,
-            "mark": "glyphe"
+            "x": 273.3
           },
           {
             "col": "Soc",
             "characteristic": "sociabilite",
-            "x": 294.5,
-            "mark": "glyphe"
+            "x": 294.5
           }
         ],
         "2": [
@@ -7342,20 +7024,17 @@
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 231.5,
-            "mark": "glyphe"
+            "x": 231.5
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.6,
-            "mark": "glyphe"
+            "x": 252.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.8,
-            "mark": "glyphe"
+            "x": 273.8
           }
         ],
         "2": [
@@ -7411,20 +7090,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 104.7,
-            "mark": "glyphe"
+            "x": 104.7
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.6,
-            "mark": "glyphe"
+            "x": 252.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.8,
-            "mark": "glyphe"
+            "x": 273.8
           }
         ],
         "2": [
@@ -7480,20 +7156,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 104.7,
-            "mark": "glyphe"
+            "x": 104.7
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 252.6,
-            "mark": "glyphe"
+            "x": 252.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 273.8,
-            "mark": "glyphe"
+            "x": 273.8
           }
         ],
         "2": [
@@ -7551,20 +7224,17 @@
           {
             "col": "CC",
             "characteristic": "capacite-de-combat",
-            "x": 345.6,
-            "mark": "glyphe"
+            "x": 345.6
           },
           {
             "col": "F",
             "characteristic": "force",
-            "x": 388,
-            "mark": "glyphe"
+            "x": 388
           },
           {
             "col": "I",
             "characteristic": "initiative",
-            "x": 430.2,
-            "mark": "glyphe"
+            "x": 430.2
           }
         ],
         "2": [
@@ -7622,20 +7292,17 @@
           {
             "col": "Dex",
             "characteristic": "dexterite",
-            "x": 472.5,
-            "mark": "glyphe"
+            "x": 472.5
           },
           {
             "col": "Int",
             "characteristic": "intelligence",
-            "x": 493.6,
-            "mark": "glyphe"
+            "x": 493.6
           },
           {
             "col": "FM",
             "characteristic": "force-mentale",
-            "x": 514.7,
-            "mark": "glyphe"
+            "x": 514.7
           }
         ],
         "2": [

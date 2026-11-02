@@ -1,6 +1,6 @@
 // STOCK NOMINATIF DATÉ (2026-08-25) des sites qui RE-TAPENT une forme de la grammaire, ou qui
 // ÉTENDENT une de ses portes — le dénominateur de la garde `src/data/grammaire-guard.test.ts`
-// (#1466 L1a). Patron whitelist-en-lib du dépôt (`tableConsumerStock.mjs`, `paletteLiteralStock.mjs`).
+// (#1466 L1a). Patron whitelist-en-lib du dépôt (`tableConsumerStock.mjs`, `horsStrateStock.mjs`).
 //
 // Clé = `<fichier>:<symbole>[.<champ>]|<motif>|<detail>` — jamais un numéro de ligne : une ligne
 // bouge à chaque édition du module et ferait rougir la garde sans qu'aucune forme n'ait changé
@@ -25,8 +25,7 @@
 //
 // Les LOTS reprennent ceux du dénominateur L0 (`structuresStock.mjs`, `STRUCTURES_REDECLARATIONS`)
 // quand le site y correspond : concept Compétence → `L2 #1463`, Talent/Objet/Créature/Véhicule →
-// `L3 #1463`, valeurs (dé, monnaie, cellule) → `L4 #1463`, source → `L1d #1469`, formes possédées
-// par la grammaire elle-même → `L1a #1466`.
+// `L3 #1463`, valeurs (dé, monnaie, cellule) → `L4 #1463`, source → `L1d #1469`.
 
 /** Graphie historique de référence à une COMPÉTENCE (`skill`/`skillId` + `spec`) — meurt quand le
  *  site adopte `specRef('skill')`. */
@@ -37,8 +36,6 @@ const L3 = 'L3 #1463';
 /** Forme de VALEUR re-tapée (dé, monnaie, cellule de grille) — meurt quand le site compose le
  *  schéma de `grammaire/valeurs.ts`. */
 const L4 = 'L4 #1463';
-/** Forme POSSÉDÉE par la grammaire (Formula, apparence d'entité, porte étendue) — lot courant. */
-const L1a = 'L1a #1466';
 /** Concept SOURCE (`{book, page}` et ses dérivés) — chantier des réfs de source. */
 const L1d = 'L1d #1469';
 const DATE = '2026-08-25';
@@ -75,7 +72,6 @@ export const GRAMMAIRE_STOCK = {
   // ── Graphies historiques de RÉFÉRENCE à une autre entité (`ref`, `talentId`, `trappingId`) ────
   'src/data/schemas/defs/reglesOptionnelles.ts:doc|alias|ref': e('Règle optionnelle désignant l’entité concernée par une enveloppe `ref`.', L3),
   'src/data/schemas/defs/river-perils.ts:doc.perils|alias|ref': e('Péril fluvial désignant son entité (créature/structure) par une enveloppe `ref`.', L3),
-  'src/data/schemas/defs/traumas.ts:rigSchema.byProsthesis|alias|trappingId': e('Rig de trauma keyé par `trappingId` (prothèse) — graphie d’objet de catalogue.', L3),
   'src/data/schemas/defs/traumas.ts:doc.prosthesis|alias|trappingId': e('Prothèse d’un trauma désignée par `trappingId`.', L3),
   'src/data/schemas/defs-scenes/effets.ts:giveTrappingSchema|alias|trappingId': e('Effet `giveTrapping` désignant l’objet donné par `trappingId` (migration de LIBELLÉ soldée en T3-b, la graphie reste).', L3),
   'src/data/schemas/defs-scenes/effets.ts:pursuitFoeSchema|alias|ref': e('Adversaire de Poursuite désignant sa fiche (bête ou statbloc) par l’enveloppe `ref` — la MÊME `livingRefSchema` que `givePossession`.', L3),
@@ -90,7 +86,5 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/worldmap.ts:mapPlaceSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un lieu de la carte du monde : point en % du CANEVAS, forme propre au worldMap — PAS une cell2. MÊME requalification que `placePoiSchema.pos` au lot L4 valeurs.', L4),
 
   // ── Formes POSSÉDÉES par la grammaire, re-tapées ou étendues ─────────────────────────────────
-  'src/data/schemas/defs/raceAppearance.ts:doc.parts|redeclaration|entityAppearanceSchema {cheveux,visage}': e('`parts` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
-  'src/data/schemas/defs/raceAppearance.ts:doc.eyes|redeclaration|entityAppearanceSchema {D,G}': e('`eyes` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
   'src/data/schemas/grammaire/valeurs.ts:secondarySourceRefSchema|extend|sourceRefSchema.extend(…)': e('Réf de source SECONDAIRE construite en ÉTENDANT `sourceRefSchema` — meurt avec la refonte du concept source.', L1d),
 };

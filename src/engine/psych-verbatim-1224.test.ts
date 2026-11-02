@@ -21,7 +21,7 @@ import { findPsychologyById } from '../data';
 import type { Combatant } from './types';
 import { opPsy } from './psych/opsPsy';
 import { ciblePsy } from './psych/ciblage';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase } from './combattantDeTest.testkit';
 
 const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
 

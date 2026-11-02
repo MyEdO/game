@@ -9,6 +9,7 @@ import { trappings, findTrappingById } from '../data';
 import type { Possession } from '../engine/possession';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party`+`possessions` — `resolveCarrier` (#620) lit
  *  les deux ; `choisirApparence` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
@@ -32,10 +33,10 @@ function makeMulePossession(items: ItemInstance[]): Possession {
 function heroWithArmeSimple(): Combatant {
   const it = itemFromTrappingById('arme-simple')!;
   it.equipped = true;
-  const hero = {
+  const hero = blessuresSurLeProfil({
     id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
-    items: [it], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    items: [it], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
   recomputeLoadout(hero);
   return hero;
 }
@@ -172,16 +173,16 @@ describe('choisirApparence — apparence d’un objet', () => {
 
 /** Deux héros minimaux pour transferItem : `from` porteur des items donnés, `to` sans rien. */
 function twoHeroes(fromItems: ItemInstance[]): { from: Combatant; to: Combatant } {
-  const from = {
+  const from = blessuresSurLeProfil({
     id: 'h1', label: 'Aldric', name: 'Aldric', kind: 'hero',
     characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
-    items: fromItems, talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
-  const to = {
+    items: fromItems, talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
+  const to = blessuresSurLeProfil({
     id: 'h2', label: 'Brenna', name: 'Brenna', kind: 'hero',
     characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
   recomputeLoadout(from);
   recomputeLoadout(to);
   return { from, to };
@@ -237,10 +238,10 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     // part non-équipé, aucun `weapons` actif tant que toggleEquip n'a pas tourné.
     const it = itemFromTrappingById('arme-simple')!;
     it.equipped = false;
-    const hero = {
+    const hero = blessuresSurLeProfil({
       id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
-      items: [it], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-    } as unknown as Combatant;
+      items: [it], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+    }) as unknown as Combatant;
     const uid = it.uid;
     const { get, set } = makeHarness([hero]);
 
@@ -349,7 +350,7 @@ describe('stowItem — ranger l’arme TENUE dans un sac', () => {
 // Un objet mis en main sort de son contenant : l'arme achetée (rangée d'office, `autoStowNewItem`) se choisit au set.
 describe('setLoadoutSlot — une arme ACHETÉE, rangée dans un sac, choisie au set', () => {
   it('elle est en main, et n’est plus dans le sac', () => {
-    const base = { id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 } } as unknown as Combatant;
+    const base = blessuresSurLeProfil({ id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10) }) as unknown as Combatant;
     recomputeLoadout(base);
     const hero = avecObjet(base, itemFromTrappingById('arme-simple')!);
     const achat = hero.items!.find((i) => i.kind === 'melee')!;

@@ -6,11 +6,12 @@ import { firstLevel } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { groupesDe } from '../../engine/groups';
 import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './brouillon';
+import { blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 /** Ce que la création produit — la forme des choix (clés, désignations) n'y figure pas : seules leurs
  *  conséquences sur le héros. */
 function empreinte(h: Combatant) {
-  return {
+  return blessuresSurLeProfil({
     id: h.id,
     species: h.species,
     career: h.career,
@@ -27,7 +28,7 @@ function empreinte(h: Combatant) {
     size: h.size,
     groups: groupesDe(h),
     designations: Object.fromEntries(Object.entries(h.careerSlotChoices ?? {}).map(([c, m]) => [c, Object.values(m).sort()])),
-  };
+  });
 }
 
 /** Un témoin sans `skillAdvances` porte la répartition par défaut (`evenCareerSkillAdvances`). */

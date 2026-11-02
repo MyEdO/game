@@ -1,16 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { collisionIndex, resolveCollision } from './collision';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Coque minimale (forme d'un Combattant-coque) : seuls Endurance + Blessures restantes sont lus par collisionIndex. */
 const mkHull = (E: number, wounds: number): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', name: 'coque', kind: 'npc',
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
-    wounds: { current: wounds, max: wounds }, advantage: 0,
+    wounds: blessuresDeBase(wounds), advantage: 0,
     conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 0,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /**
  * COLLISIONS & ÉPERONNAGE (MDG 13 l.423-465). Indice de Collision = Bonus d'Endurance + Bonus de

@@ -64,8 +64,7 @@ import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesP
 // Émission d'animation + énumération
 // ---------------------------------------------------------------------------
 
-/** Émet l'animation d'attaque d'une attaque SPÉCIALE de créature → AnimatedPlanToken joue la pose
- *  dédiée (creatureAttackPoses) ; les biped/spectraux jouent leur clip d'attaque générique. */
+/** Émet l'animation d'attaque d'une attaque SPÉCIALE de créature (`EVT.ANIM_ATTACK`, `creatureAttack`). */
 export function emitCreatureAttackAnim(attacker: Combatant, kind: string): void {
   bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: attacker.id, kind: 'creature', defense: 'none', result: { hit: true }, creatureAttack: kind });
 }

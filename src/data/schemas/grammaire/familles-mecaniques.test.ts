@@ -50,7 +50,7 @@ const effetPortant = (op: unknown) => [{ trigger: 'onDayStart', on: 'self', flow
 
 describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (EDO 11 l.190 ; #1853)', () => {
   it('les champs réservés sont DÉRIVÉS des déclarations d’op ; `charMod` est typé', () => {
-    expect([...CHAMPS_RESERVES]).toEqual(['charMod.min']);
+    expect([...CHAMPS_RESERVES].sort()).toEqual(['charMod.min', 'grantPsychTrait.durationHours', 'grantPsychTrait.envers', 'grantPsychTrait.resistanceSiAmis']);
     expect(OPS_NON_TYPEES).not.toContain('charMod');
     expect(gameOpSchema.safeParse({ ...sansPlancher, champInvente: 1 }).success).toBe(false);
   });
@@ -71,5 +71,34 @@ describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (ED
 
   it('un régime inconnu est nommé', () => {
     expect(() => mecaniqueDe({ 'charMod.max': 'admis' } as never)).toThrow(/charMod\.max/);
+  });
+});
+
+const haine = { op: 'grantPsychTrait', psychType: { id: 'haine' } };
+const envers = { ...haine, envers: 'personneChoisie' };
+const duree = { ...haine, durationHours: 2 };
+const resistance = { skill: { id: 'calme' }, difficulty: 'accessible' };
+const effetDeSort = (op: unknown) => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: [op] } });
+
+describe('champs RÉSERVÉS aux Sorts — `grantPsychTrait` envers, résistance, durée (VDM 10 l.324-327 ; #1463)', () => {
+  it('contrat positif : ADMIS dans les `effects` d’un Sort', () => {
+    expect(noeud('spells.json', 'effects').safeParse(effetDeSort({ ...envers, resistanceSiAmis: resistance, durationHours: 2 })).success).toBe(true);
+  });
+
+  it('test opposé : REFUSÉS par la famille fermée, les Mutations et les Symptômes', () => {
+    for (const op of [envers, duree]) {
+      expect(gameOpSchema.safeParse(op).success).toBe(false);
+      expect(noeud('mutations.json', 'passive').safeParse([op]).success).toBe(false);
+      expect(noeud('symptoms.json', 'passive').safeParse([op]).success).toBe(false);
+    }
+    expect(noeud('mutations.json', 'passive').safeParse([haine]).success).toBe(true);
+    expect(noeud('symptoms.json', 'passive').safeParse([haine]).success).toBe(true);
+  });
+
+  it('`envers` exclut une `cible`, exige une variante individuelle ; la résistance exige `envers`', () => {
+    const sort = noeud('spells.json', 'effects');
+    expect(sort.safeParse(effetDeSort({ ...envers, cible: { id: 'skaven' } })).success).toBe(false);
+    expect(sort.safeParse(effetDeSort({ ...envers, psychType: { id: 'frenesie' } })).success).toBe(false);
+    expect(sort.safeParse(effetDeSort({ ...haine, resistanceSiAmis: resistance })).success).toBe(false);
   });
 });

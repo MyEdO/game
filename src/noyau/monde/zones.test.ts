@@ -9,18 +9,19 @@ import { wallTiles, discTiles, decayZones, crossZones, zonesRoundTick, losBlocki
 import type { SceneEffectZone } from './scene';
 import { findSpellById } from '../../data';
 import { deFixe } from '../../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const rng: RNG = deFixe(5) as RNG;
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', name: 'Cobaye', kind: 'enemy', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    movement: 4, wounds: { current: 12, max: 12 }, pos: { x: 5, y: 5 },
+    movement: 4, wounds: blessuresDeBase(12), pos: { x: 5, y: 5 },
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('wallTiles — Mur de feu perpendiculaire à l’axe lanceur→centre', () => {

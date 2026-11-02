@@ -8,6 +8,7 @@ import { findStructureById } from '../data';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * SIÈGE-B — l'IA ennemie prend les STRUCTURES (porte/mur) pour cible avec ses armes de siège (AA 10 l.138 :
@@ -19,9 +20,9 @@ import type { GameState } from './store';
 const CHARS = (CT = 70) => ({ 'capacite-de-combat': 35, 'capacite-de-tir': CT, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
 const mkActor = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
-  ({ id, name: id, kind, characteristics: CHARS(), wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+  (blessuresSurLeProfil({ id, name: id, kind, characteristics: CHARS(), wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     skills: [], talents: [], weapons, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    movement: 0, pos, loaded: true }) as unknown as Combatant;
+    movement: 0, pos, loaded: true })) as unknown as Combatant;
 
 // Mur d'enceinte sur l'arête N de (14,38) : champ au nord (y<38), cour au sud. Porte de ville (Impénétrable).
 const GATE = 'porte-de-ville';

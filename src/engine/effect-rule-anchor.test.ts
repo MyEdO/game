@@ -6,6 +6,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import type { Combatant } from './types';
 import { applyOps } from './ops';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
 
 /**
  * GARDE DE CLASSE — tout `ActiveEffect` posé doit porter un ANCRAGE DE RÈGLE.
@@ -172,7 +173,7 @@ describe('ancrage de règle des ActiveEffect posés', () => {
   });
 
   it('applyOps stampe l’ENTITÉ SOURCE du ctx sur les effets qu’il pose (ancrage général)', () => {
-    const target = { id: 'c', name: 'C', characteristics: {}, conditions: [], activeEffects: [], wounds: { current: 10, max: 10, base: 10 } } as unknown as Combatant;
+    const target = blessuresSurLeProfil({ id: 'c', name: 'C', characteristics: profilDeTest(), conditions: [], activeEffects: [], wounds: blessuresDeBase(10) }) as unknown as Combatant;
     applyOps(target, [{ op: 'charMod', char: 'force', mod: 10 }], { rng: desDuTest,
       label: 'Force du taureau', source: { kind: 'spell', id: 'benediction-de-puissance' },
     });

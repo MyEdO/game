@@ -6,18 +6,19 @@ import {
   casterTalents, spellCost, learnableSpells, canCastFromGrimoire, knownCount,
 } from './grimoire';
 import { blessingsOf, spells, findSpellById } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const sp = (id: string) => findSpellById(id)!;
 
 function hero(p: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 42, 'force-mentale': 35, sociabilite: 30 },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], spells: [], xp: 1000,
     ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('casterTalents — extraction des specs', () => {

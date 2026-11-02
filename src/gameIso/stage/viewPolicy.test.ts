@@ -5,15 +5,15 @@
  *  - la FRONTIÈRE : la politique ne dit rien de la projection — les vérités géométriques
  *    (`isSquareView` de l'authoring SVG) ne lui demandent rien et ne lui doivent rien ;
  *  - le RÉGIME SANS SOLEIL, dit UNE fois dans `stageLightScalars` : `fade = 0`, donc `lit` faux,
- *    ambiante PLEINE, aucune part solaire dans l'exposition, modelé de forme PLEIN et disque de
- *    contact des pions rendu. Aucun consommateur n'a de porte à poser : c'est la thèse du lot.
+ *    ambiante PLEINE, aucune part solaire dans l'exposition, modelé de forme PLEIN. Aucun
+ *    consommateur n'a de porte à poser : c'est la thèse du lot.
  */
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { setNorthDeg } from '../../noyau/sceneEdit';
 import { ambientScalar } from '../../noyau/monde/vision';
-import { AMBIENT_INTENSITY, shadeSousSoleil, wantsContactShadow } from '../backends/webgl/sceneMeshes';
+import { AMBIENT_INTENSITY, shadeSousSoleil } from '../backends/webgl/sceneMeshes';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { stageLightScalars, stageLights } from './stageLights';
 import { viewPolicy } from './viewPolicy';
@@ -101,18 +101,13 @@ describe('RÉGIME SANS SOLEIL — la loi se dit dans les lampes, les consommateu
     expect(scalaires(true).surfaceLuminance).toBeGreaterThan(top.surfaceLuminance);
   });
 
-  it('MODELÉ DE FORME plein et DISQUE DE CONTACT rendu : les deux descendent du même régime', () => {
+  it('MODELÉ DE FORME plein : il descend du même régime', () => {
     const top = scalaires(false);
     // `shadeSousSoleil` est le NEUTRE en plein soleil (le facteur de famille s'efface, la
     // directionnelle modèle seule) et l'IDENTITÉ sans lui : le monde du dessus garde donc son modelé
     // d'orientation, sans aucune porte au site d'appel de `applyVisibilityTint`.
     expect(shadeSousSoleil(0.62, top.fade)).toBe(0.62);
     expect(shadeSousSoleil(0.62, scalaires(true).fade)).toBe(1);
-    // …et le socle de figurine revient sur les BILLBOARDS de ce régime (intérieur, nuit, plateau iso),
-    // exactement là où l'ombre portée cesse d'ancrer le corps. La vue du DESSUS, elle, n'a plus aucun
-    // billboard de personnage (`pionsEnDisques`) : son pion porte son propre socle, en SVG.
-    expect(wantsContactShadow('personnage', top.lit)).toBe(true);
-    expect(wantsContactShadow('personnage', scalaires(true).lit)).toBe(false);
   });
 
   it('le PALIER jour/nuit ne dépend d’aucun regard : la nuit reste la nuit', () => {

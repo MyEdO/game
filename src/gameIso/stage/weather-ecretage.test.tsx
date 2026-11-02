@@ -12,6 +12,7 @@ import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
 import { clearedSpace, massFootprintCells, massSpaceCells, shelterField, shelterSectionAt } from '../builders/roofs';
 import { cutawayForSection } from './architectureVisibility';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * ÉCRÊTAGE DE LA PLUIE AU CUTAWAY (#1247) — la précipitation s'arrête sous le couvert du PLAN
@@ -51,12 +52,12 @@ let conteneur: HTMLDivElement | null = null;
 brancherArdoise();
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function scèneCouverte(): Scene {
@@ -131,10 +132,14 @@ afterAll(() => {
 });
 afterEach(() => {
   // Le drapeau de recette est un SINGLETON d'état que la suite partage : un cas qui le débraye le
-  // rend ici, jamais en dernière ligne d'un `it` (une assertion qui lève avant sauterait la remise).
-  useGame.setState({ debugRoofCut: true });
-  if (root) { act(() => root!.unmount()); root = null; }
-  if (conteneur) { conteneur.remove(); conteneur = null; }
+  // rend ici, jamais en dernière ligne d'un `it` (une assertion qui lève avant sauterait la remise),
+  // et un démontage qui lève ne la saute pas non plus.
+  try {
+    if (root) { act(() => root!.unmount()); root = null; }
+    if (conteneur) { conteneur.remove(); conteneur = null; }
+  } finally {
+    useGame.setState({ debugRoofCut: true });
+  }
 });
 
 describe('Météo volumique — écrêtage au cutaway (#1247)', () => {

@@ -9,7 +9,7 @@ export interface EntryTab {
 }
 
 /**
- * Présentation PARTAGÉE d'une fiche d'entité « riche » : en-tête (figurine + titre + accroche) puis
+ * Présentation PARTAGÉE d'une fiche d'entité « riche » : en-tête (titre + accroche) puis
  * ONGLETS internes (Profil / Description / …) qui répartissent le contenu — donc tout se voit SANS
  * scroller un long pavé. SOURCE UNIQUE de la page d'espèce du créateur ET de la fiche du Codex
  * (réutilise `.main-head` de `creator.css` + la primitive `<Tabs>`).
@@ -20,7 +20,6 @@ export interface EntryTab {
  * égalité d'id (l'onglet absent retombe sur le 1er). Ne PAS remonter le composant via `key` côté appelant.
  */
 export function TabbedEntry({
-  figure,
   title,
   aside,
   blurb,
@@ -28,8 +27,6 @@ export function TabbedEntry({
   band,
   tabs,
 }: {
-  /** Figurine/aperçu à gauche du titre (rig, illustration…). */
-  figure?: ReactNode;
   title: ReactNode;
   /** Élément à droite du titre (badge source, sous-titre…). */
   aside?: ReactNode;
@@ -46,7 +43,6 @@ export function TabbedEntry({
   return (
     <>
       <div className="main-head">
-        {figure}
         <div>
           <h2>
             {title}

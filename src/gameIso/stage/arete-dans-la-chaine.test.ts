@@ -80,9 +80,10 @@ describe('L’étage `arete` : le seuil se résout dans la chaîne, plus par un 
     expect(aCote, 'l’étage d’arête et les surfaces partagent le MÊME point inversé').toHaveBeenCalledTimes(1);
 
     // Aucune arête offerte ET un rayon qui nomme sa cible : le pixel n'est pas inversé du tout.
-    const enCombat = { ...etat(scene), mode: 'battle', battle: { combatants: [acteur], order: ['e1'], turn: 0 } } as unknown as EtatDePick;
+    const surDecor = { ...scene, entities: [{ id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'S' }] };
+    const enCombat = { ...etat(scene), scene: surDecor, mode: 'battle', battle: { combatants: [acteur], order: ['e1'], turn: 0 } } as unknown as EtatDePick;
     const jamais = vi.fn(() => milieu(aretes[0].a, aretes[0].b));
-    expect(resoudrePixel(enCombat, { kind: 'combatant', id: 'e1' }, jamais, sansAretes).nature).toBe('combattant');
+    expect(resoudrePixel(enCombat, { kind: 'entity', id: 'table-1' }, jamais, sansAretes).nature).toBe('entite');
     expect(jamais).not.toHaveBeenCalled();
   });
 

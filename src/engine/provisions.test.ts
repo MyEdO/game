@@ -3,7 +3,8 @@ import { itemFromTrappingById } from './items';
 import { Characteristics, Combatant, ItemInstance, type UpkeepDeferTest } from './types';
 import { makeRNG, RNG } from './dice';
 import { dailyFoodUpkeep, applyFaimTest, isStarving, hungerCharPenalties, rationCount, isRation, dailyWaterUpkeep, applySoifTest, isThirsty, isDeprived, thirstCharPenalties, provisioningManifest } from './provisions';
-import { effectiveChar, blessuresDeBase } from './characteristics';
+import { effectiveChar } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { RULE_REF } from './ruleRefs';
 import { restRecovery, needsRecoveryRoll } from './rest';
 import { addCondition, stacks } from './conditions';
@@ -16,7 +17,7 @@ const chars = (E = 30): Characteristics => ({
 const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
 
 function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; traits?: { id: string }[] } = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'Gunnar', kind: 'hero',
     characteristics: chars(opts.endurance),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
@@ -24,7 +25,7 @@ function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; tr
     items: Array.from({ length: opts.rations ?? 0 }, (_, i) => ration(`r${i}`)),
     skills: [], talents: opts.brouet ? [{ talentId: 'brouet', times: 1 }] : [], movement: 4,
     ...(opts.traits ? { traits: opts.traits } : {}),
-  };
+  });
 }
 
 /** RNG forcé : d100 → toujours `roll` (échec/réussite déterministe), d10 → 10. */
@@ -328,6 +329,6 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
     expect(isStarving(c)).toBe(false);
     expect(isThirsty(c)).toBe(true);
     expect(isDeprived(c)).toBe(true);
-    expect(needsRecoveryRoll({ ...c, wounds: { current: 5, max: 12 } } as typeof c)).toBe(false);
+    expect(needsRecoveryRoll(blessuresSurLeProfil({ ...c, wounds: blessuresDeBase(12, 5) }) as typeof c)).toBe(false);
   });
 });

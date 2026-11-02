@@ -28,6 +28,7 @@ import { resolveCasting, resolveFocus, castLandProbability } from './magic';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
 import { datasetObject, setObjectDataset } from '../data/overrides';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const RULE = 'magic-vdm-environnementale';
 
@@ -349,15 +350,15 @@ describe('câblage — resolveCasting / castLandProbability / resolveFocus lisen
   afterEach(() => resetRule(RULE));
 
   const mk = (p: Partial<Combatant> = {}): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'c', label: 'Sujet', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 90, sociabilite: 30 },
-      wounds: { current: 14, max: 14 }, advantage: 0, conditions: [], movement: 4,
+      wounds: blessuresDeBase(14), advantage: 0, conditions: [], movement: 4,
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       skills: [{ id: 'langue', spec: 'magick', advances: 5 }, { id: 'focalisation', advances: 5 }],
       talents: [], spells: [], xp: 0,
       ...p,
-    } as unknown as Combatant);
+    }) as unknown as Combatant);
 
   const feu = { id: 's', label: 'Flamme d’essai', ecole: 'Magie des Arcanes', domainId: 'feu', cn: 0, range: null, target: 1, duration: null, damage: 0, desc: '' };
   const lieu = { saturationLevelId: 'elevee', dominantWinds: ['feu'] };

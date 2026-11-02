@@ -8,7 +8,6 @@ import { useGame } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import { Combatant } from '../../engine/types';
 import { isOutOfAction } from '../../engine/conditions';
-import { Dims, screenToTile } from '../../geometry/iso';
 import { accorderPan } from '../../state/stagePan';
 import type { WalkPos } from '../fx/walkPose';
 
@@ -29,7 +28,7 @@ export function useStageCamera(): {
   attacherMolette: (svg: SVGSVGElement | null) => void;
 } {
   const zoom = useGame((s) => s.zoom);
-  // Rotation caméra (cran de 90°). `camRot` = cible (store, lu en live par le rig) ; `shownRot` =
+  // Rotation caméra (cran de 90°). `camRot` = cible (store) ; `shownRot` =
   // orientation AFFICHÉE, retardée. `camEdge` : cran impair, vue « de face » (edge-on) axis-alignée 3D.
   const camRot = useGame((s) => s.camRot);
   const camEdge = useGame((s) => s.camEdge);
@@ -81,7 +80,7 @@ export function useStageCamera(): {
 
   // Le décalage manuel COMMIS descend au panoramique VIVANT que `camAt` lit à la frame : c'est ici
   // qu'une remise à zéro (nouveau tour, touche de recentrage) et le commit du relâchement d'un glisser
-  // atteignent la vue. Écriture dans un module = pas de re-rendu (même patron que `setVisibleTileBounds`).
+  // atteignent la vue. Écriture dans un module = pas de re-rendu.
   accorderPan(camPan);
   return { shownRot, shownEdge, turning, zoom, attacherMolette };
 }
@@ -215,11 +214,3 @@ export function adoucirFocal(l: LissageFocal | null, cible: { x: number; y: numb
   return { x: l.depart.x + (cible.x - l.depart.x) * e, y: l.depart.y + (cible.y - l.depart.y) * e };
 }
 
-/** Cadre VISIBLE en tuiles (AABB des 4 coins de la fenêtre projetés) : culling d'animation
- *  (setVisibleTileBounds), borné par la fenêtre et non par la scène. */
-export function computeViewBounds(cam: { x: number; y: number }, zoom: number, dims: Dims): { minX: number; maxX: number; minY: number; maxY: number } {
-  const toTile = (sx: number, sy: number) => screenToTile((sx - VW / 2) / zoom + VW / 2 - cam.x, (sy - VH / 2) / zoom + VH / 2 - cam.y, dims);
-  const cs = [toTile(0, 0), toTile(VW, 0), toTile(0, VH), toTile(VW, VH)];
-  const xs = cs.map((c) => c.x), ys = cs.map((c) => c.y);
-  return { minX: Math.floor(Math.min(...xs)), maxX: Math.ceil(Math.max(...xs)), minY: Math.floor(Math.min(...ys)), maxY: Math.ceil(Math.max(...ys)) };
-}

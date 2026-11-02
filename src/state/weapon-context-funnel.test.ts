@@ -4,6 +4,7 @@ import { hasQuality } from '../engine/qualities/dispatch';
 import type { Combatant, Weapon, Trauma } from '../engine/types';
 import { armeDeTest } from '../engine/objetsDeTest.testkit';
 import type { AttackResult } from '../engine/combat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // Funnel UNIQUE des règles d'arme contextuelles (LDB 62) : `firedWeapon` lie attaquant ⊕ arme ⊕ contexte.
 // La MÊME arme transformée sert la touche/les Dégâts (resolveAttack) ET la Maladresse sur un RATÉ
@@ -13,13 +14,13 @@ const CHARS = { 'capacite-de-combat': 50, 'capacite-de-tir': 35, force: 40, endu
 const fleau: Weapon = { label: 'Fléau', type: 'melee', subType: 'fleau', reach: 'Moyenne', uid: 'fl', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'perturbante' }] };
 const lance = armeDeTest('lance-de-cavalerie', { uid: 'la' });
 
-const mk = (p: Partial<Combatant>): Combatant => ({
+const mk = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
   id: 'a', name: 'X', kind: 'hero', characteristics: CHARS,
-  wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+  wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   ...p,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 const target = mk({ id: 't', kind: 'enemy', pos: { x: 1, y: 0 } });
 const fingers = (loc: 'brasG' | 'brasD', count: number): Trauma => ({ label: '', traumaId: 'doigt-ampute', location: loc, count });
 // Arme à 1 main tenue à DROITE par défaut (hand indéfini ≠ 'off') → n'implique QUE brasD (weaponUsesHand, LDB 18).

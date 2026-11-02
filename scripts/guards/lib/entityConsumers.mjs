@@ -27,7 +27,9 @@
 // 2026-09 — le CONTENU JOUÉ cite des entités par id : `entities[].ref`, `statblock.traits[].id`,
 // `flow.test.skill.id`, `effect.trappingId`… ; frontière « déclaré SIEN » vs « référencé » et bruit
 // mesuré : cf. le JSDoc de `stripSceneOwnIdentities`). Jamais une sous-chaîne nue (prose, id plus
-// long, mention non citée en commentaire).
+// long, mention non citée en commentaire). Une CLÉ de littéral d'objet du code de prod égale à l'id
+// en est une occurrence, citée ou non (`clesDObjet`, mesurée par l'AST) : `{ manticore: 'oiseau' }`
+// et `{ 'chauve-souris-vampire-varghulf': 'oiseau' }` rendent le même verdict.
 //
 // MODE 2 — sélection dynamique par PRÉDICAT DE CHAMP (`computeFieldPredicateConsumers`) : un
 // consommateur qui ne cite JAMAIS l'id, mais SÉLECTIONNE le catalogue par ses champs (ex.
@@ -64,13 +66,16 @@
 // Amélioration sur `tableConsumerStock.mjs` : au lieu d'une regex fragile sur l'ORDRE des clés
 // (`"id": "…", (?="label")`), la déclaration de l'entité dans SON PROPRE catalogue est retirée par
 // PARSE JSON (suppression de la seule clé top-level `id` avant re-sérialisation) — robuste à
-// n'importe quel ordre/forme de champs, généralisable aux 8 catalogues sans regex par fichier.
+// n'importe quel ordre/forme de champs, généralisable aux 8 catalogues sans regex par fichier. Toute
+// AUTRE occurrence de l'id dans ce même enregistrement (un champ qui cite son propre id) est
+// décomptée pour cette seule entité (`enregistrementsPropres`, `isConsumed`).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerArbre, listerDossier } from './lister.mjs';
 import { dirname, join } from 'node:path';
 import { dossierDesProjetsLivres, listerProjetsLivres } from './projetsLivres.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
+import { analyserCorpus, typescript } from './dialecte.mjs';
 import { DECROISSANT } from './stockDeSites.mjs';
 
 /** Catalogues `src/data/*.json` adressés par `id`, retenus pour la mesure d'orphelines — MÊME
@@ -156,9 +161,10 @@ export function regenerations(sites = orphelinesMesurees(
  */
 export function predicatDeConsommation(dataDir, srcDir) {
   const corpus = buildConsumerCorpus(dataDir, srcDir);
+  const propres = enregistrementsPropres(dataDir);
   const { consumed } = computeFieldPredicateConsumers(dataDir, srcDir);
   return (cat, id) =>
-    isConsumed(corpus, id) || !!consumed.get(cat)?.has(id) || META_CATALOG_ENTRIES.has(`${cat}:${id}`);
+    isConsumed(corpus, id, propres.get(`${cat}:${id}`)) || !!consumed.get(cat)?.has(id) || META_CATALOG_ENTRIES.has(`${cat}:${id}`);
 }
 
 /** `{ [category]: string[] }` — tous les ids de chaque catalogue de `files` (retenus par défaut). */
@@ -191,10 +197,38 @@ function isGeneratedFile(path, text) {
   return /GÉNÉRÉ[\s\S]{0,120}?NE PAS ÉDITER/i.test(head);
 }
 
-/** Fichiers `.ts(x)` de PRODUCTION sous `srcDir`, chemins RELATIFS à `srcDir`, en ORDRE TOTAL :
- *  l'ordre décide de celui des sites `recognized`, donc du `.md` rendu. */
+/** Fichiers `.ts(x)` de PRODUCTION sous `srcDir`, hors fichiers GÉNÉRÉS, `{ rel, chemin, text }` (`rel`
+ *  RELATIF à `srcDir`), en ORDRE TOTAL : l'ordre décide de celui des sites `recognized` et des clés
+ *  `clesDObjet`, donc du `.md` rendu. */
 function fichiersDeProduction(srcDir) {
-  return listerArbre(srcDir, { filtre: (rel) => /\.(ts|tsx)$/.test(rel) && !estFichierVitest(rel) });
+  return listerArbre(srcDir, { filtre: (rel) => /\.(ts|tsx)$/.test(rel) && !estFichierVitest(rel) })
+    .map((rel) => { const chemin = join(srcDir, rel); return { rel, chemin, text: readFileSync(chemin, 'utf8') }; })
+    .filter(({ chemin, text }) => !isGeneratedFile(chemin, text));
+}
+
+/** Les CLÉS des littéraux d'objet du code de PRODUCTION (`fichiersDeProduction`), lues par l'AST : nom
+ *  identifiant (`manticore:`, `{ cle }`, méthode, accesseur) ou chaîne (`'chauve-souris': …`), en
+ *  `{ cle, loc }`, `loc` = `<chemin relatif à srcDir>:<ligne>`. Une clé égale à un id est une OCCURRENCE
+ *  de cet id (`.claude/rules/donnees.md`), quelle que soit sa graphie. Une clé CALCULÉE (`[x]`) n'est
+ *  pas un nom : hors liste. */
+export function clesDObjet(srcDir) {
+  const ts = typescript();
+  const cles = [];
+  for (const { fichier, sourceFile } of analyserCorpus(fichiersDeProduction(srcDir))) {
+    const visiter = (n) => {
+      if (ts.isObjectLiteralExpression(n)) {
+        for (const membre of n.properties) {
+          const nom = membre.name;
+          if (!nom || !(ts.isIdentifier(nom) || ts.isStringLiteral(nom))) continue;
+          const ligne = sourceFile.getLineAndCharacterOfPosition(nom.getStart(sourceFile)).line + 1;
+          cles.push({ cle: nom.text, loc: `${fichier.rel.replaceAll('\\', '/')}:${ligne}` });
+        }
+      }
+      n.forEachChild(visiter);
+    };
+    visiter(sourceFile);
+  }
+  return cles;
 }
 
 /** Documents de PROJET de scène : le corpus des projets livrés (`projetsLivres.mjs`), sous la racine
@@ -251,12 +285,31 @@ export function sceneConsumerCorpus(srcDir) {
   return [...values].map((v) => JSON.stringify(v)).join('\n');
 }
 
-/** Corpus texte de tous les consommateurs possibles : `src/data/*.json` (catalogues cibles PRIVÉS de
- *  la déclaration `id` de LEURS PROPRES entités, sinon chaque entité « se consomme elle-même » via
- *  sa propre ligne JSON) + `src/**\/*.ts(x)` de PRODUCTION (hors tests, commentaires retirés) + les
- *  documents de PROJET DE SCÈNE (`sceneConsumerCorpus`, cf. sa frontière juste au-dessus).
- *  `files` = les catalogues ainsi privés de leur propre `id` (les retenus par défaut ; le rapport
- *  passe `EXCLUDED_CATEGORY_FILES` pour dériver les comptes bruts des écartés). */
+/** L'ENREGISTREMENT PROPRE d'une entrée de catalogue, tel que le corpus l'agrège : l'entrée privée de
+ *  sa clé `id` (sa déclaration, qui n'est pas une citation). */
+const enregistrementPropre = (e) => JSON.stringify({ ...e, id: undefined });
+
+/** `Map<'catégorie:id', texte>` — l'enregistrement propre de chaque entrée des catalogues `files`.
+ *  FRONTIÈRE « soi » vs « citation », générale à tout champ : une occurrence de l'id d'une entité
+ *  DANS SON PROPRE enregistrement (ex. `creatures:x` dont `appearance.species` vaut `"x"`) ne la
+ *  consomme pas. Le retrait vaut pour la SEULE entité `(catégorie, id)` de l'enregistrement, jamais
+ *  pour la chaîne : la même occurrence reste une citation de l'entrée homonyme d'un AUTRE catalogue
+ *  (`isConsumed` décompte, il ne retire rien du corpus). */
+export function enregistrementsPropres(dataDir, files = CATEGORY_FILES) {
+  const out = new Map();
+  for (const [cat, file] of Object.entries(files)) {
+    for (const e of JSON.parse(readFileSync(join(dataDir, file), 'utf8'))) out.set(`${cat}:${e.id}`, enregistrementPropre(e));
+  }
+  return out;
+}
+
+/** Corpus texte de tous les consommateurs possibles : `src/data/*.json` (catalogues cibles réduits à
+ *  l'ENREGISTREMENT PROPRE de leurs entités, `enregistrementsPropres`) + `src/**\/*.ts(x)` de
+ *  PRODUCTION (hors tests, commentaires retirés) + ses clés de littéral d'objet en jetons cités
+ *  (`clesDObjet`) + les documents de PROJET DE SCÈNE
+ *  (`sceneConsumerCorpus`, cf. sa frontière juste au-dessus). `files` = les catalogues ainsi réduits
+ *  (les retenus par défaut ; le rapport passe `EXCLUDED_CATEGORY_FILES` pour dériver les comptes
+ *  bruts des écartés). */
 export function buildConsumerCorpus(dataDir, srcDir, files = CATEGORY_FILES) {
   let corpus = '';
   const dataFiles = listerDossier(dataDir).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
@@ -265,22 +318,34 @@ export function buildConsumerCorpus(dataDir, srcDir, files = CATEGORY_FILES) {
     const raw = readFileSync(join(dataDir, f), 'utf8');
     if (targetFiles.has(f)) {
       const arr = JSON.parse(raw);
-      corpus += arr.map((e) => JSON.stringify({ ...e, id: undefined })).join('\n');
+      corpus += arr.map(enregistrementPropre).join('\n');
     } else {
       corpus += raw;
     }
   }
-  for (const rel of fichiersDeProduction(srcDir)) {
-    const p = join(srcDir, rel);
-    const src = readFileSync(p, 'utf8');
-    if (!isGeneratedFile(p, src)) corpus += stripComments(src);
-  }
+  for (const { text } of fichiersDeProduction(srcDir)) corpus += stripComments(text);
+  corpus += `\n${clesDObjet(srcDir).map(({ cle }) => JSON.stringify(cle)).join('\n')}`;
   corpus += `\n${sceneConsumerCorpus(srcDir)}`;
   return corpus;
 }
 
-/** Un id compte comme consommé s'il apparaît comme jeton de chaîne CITÉ complet. */
-export const isConsumed = (corpus, id) => corpus.includes(`"${id}"`) || corpus.includes(`'${id}'`);
+/** Occurrences de `id` en jeton de chaîne CITÉ complet (`"<id>"` ou `'<id>'`) dans `texte`, comptées
+ *  jusqu'à `borne` au plus. */
+function citations(texte, id, borne = Infinity) {
+  let n = 0;
+  for (const jeton of [`"${id}"`, `'${id}'`]) {
+    for (let i = texte.indexOf(jeton); i !== -1 && n < borne; i = texte.indexOf(jeton, i + jeton.length)) n++;
+  }
+  return n;
+}
+
+/** Un id compte comme consommé s'il apparaît comme jeton de chaîne CITÉ complet HORS de `propre`,
+ *  l'enregistrement propre de l'entité (`enregistrementsPropres`) inclus dans `corpus` : le corpus
+ *  doit le citer plus souvent que son propre enregistrement. */
+export const isConsumed = (corpus, id, propre = '') => {
+  const soi = citations(propre, id);
+  return citations(corpus, id, soi + 1) > soi;
+};
 
 /** Entités de catalogue MÉTA — une ligne de TABLE RAW transcrite en entrée de catalogue pour son
  *  vocabulaire de tirage (ex. `talents:talent-aleatoire`, LDB 10 p.132 : motif « N Talent(s)
@@ -414,10 +479,6 @@ export function computeFieldPredicateConsumers(dataDir, srcDir) {
     }
   };
 
-  for (const rel of fichiersDeProduction(srcDir)) {
-    const p = join(srcDir, rel);
-    const src = readFileSync(p, 'utf8');
-    if (!isGeneratedFile(p, src)) scanFile(p, src);
-  }
+  for (const { chemin, text } of fichiersDeProduction(srcDir)) scanFile(chemin, text);
   return { consumed, recognized, skipped };
 }

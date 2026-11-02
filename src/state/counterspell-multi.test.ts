@@ -5,7 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Contre-sort à plusieurs CANDIDATS (Dissipation, LDB 46 l.156) — flux MULTI : le Sort ENNEMI est
@@ -44,7 +44,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 15 }];
       e.spells = ['carreau'];
     }
-    heroes.forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = blessuresDeBase(99); });
+    heroes.forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = blessuresDeBase(99, 99, h); });
     E.pos = { x: 12, y: 10 }; // ≤ FM mètres de chaque héros
     if (E2) E2.pos = { x: 12, y: 11 };
     useGame.setState({ battle: { ...b } });

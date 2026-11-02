@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForSkills, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
 import { Combatant, SkillInstance } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
-  ({
-    kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [],
+  (blessuresSurLeProfil({
+    kind: 'hero', wounds: blessuresDeBase(10), conditions: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('skills — testValue / partyBest / skillCharKeyById', () => {
   it('caractéristique fournie → valeur de la caractéristique', () => {

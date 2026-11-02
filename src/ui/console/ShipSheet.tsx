@@ -6,7 +6,6 @@ import { exposedCrew } from '../../engine/shipCritical';
 import { hullNavalTraits } from '../../engine/navalTraits';
 import { shipMoraleScore } from '../../noyau/shipCrew';
 import { Planche } from '../Planche';
-import { PortraitTile } from '../PortraitTile';
 import { CharFrame } from '../CharFrame';
 import { ShipRolesPanel } from '../ShipRolesPanel';
 import { StationSheet } from '../StationSheet';
@@ -200,7 +199,7 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
       aside={(
         <>
           <div className="sheet-portrait">
-            <PortraitTile c={hull} ring="var(--gold)" variant="full" size="xl" />
+            <CharFrame c={hull} variant="identity" size="xl" decoratif />
             <span className="char-sub">{vehicle ? 'Navire' : 'Emplacement de siège'}{cap ? ` · cap ${libelleDeValeur(dir8Schema, cap)}` : ''}</span>
           </div>
           <ShipStateBlock ship={hull} cap={cap} morale={shipMoraleScore(useGame.getState, hull)} crew={crew} />

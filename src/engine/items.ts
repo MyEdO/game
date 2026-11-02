@@ -558,7 +558,7 @@ export function armourLayer(it: ItemInstance): ArmourLayer {
 }
 
 /** Cape/manteau (« Vêtements et Accessoires », sans stats) : PORTABLE dans l'emplacement Cape de la
- *  fiche — purement cosmétique (rendu dorsal du rig), une seule à la fois. Détecté par la capacité
+ *  fiche — purement cosmétique, une seule à la fois. Détecté par la capacité
  *  par-OBJET `weatherProtection` (catalogue, ≠ nom — un objet `misc` qui protège des intempéries =
  *  un vêtement de dos). */
 export function isCapeItem(it: ItemInstance): boolean {

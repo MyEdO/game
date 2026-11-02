@@ -15,7 +15,7 @@ import { setDataset } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import type { SpellTarget } from '../engine/spellRange';
 import type { CastResult } from '../engine/magic';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const SPELL = 'regiment-monstrueux-de-merciw';
 
@@ -24,7 +24,7 @@ const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isC
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
   const h = pregen(PREGEN.sorcier);
   h.id = id; h.label = id; h.pos = { x, y, z: 0 };
-  h.wounds = blessuresDeBase(99);
+  h.wounds = blessuresDeBase(99, 99, h);
   const sk = h.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 40);
   else h.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 40 } as never);
@@ -33,9 +33,9 @@ function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant
 }
 
 const mk = (id: string, kind: 'hero' | 'enemy', x: number, y: number, traits: { id: string }[] = []): Combatant =>
-  ({ id, label: id, name: id, kind, pos: { x, y, z: 0 }, wounds: { current: 40, max: 40 }, advantage: 0,
+  (blessuresSurLeProfil({ id, label: id, name: id, kind, pos: { x, y, z: 0 }, wounds: blessuresDeBase(40), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits, talents: [], skills: [], weapons: [] }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits, talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 // Ennemi hors ZdE, présent pour que le combat reste actif (une Victoire immédiate purgerait les
 // `activeEffects` de fin de combat, faussant la mesure).
 const distantFoe = (): Combatant => mk('FOE', 'enemy', 40, 40);

@@ -3,8 +3,6 @@ import { Combatant } from './types';
 import {
   talentCharBonusById,
   applyTalentAcquisition,
-  extraWounds,
-  heroMaxWounds,
   fortuneMax,
   resolveMax,
   careerSkillAdditions,
@@ -12,14 +10,16 @@ import {
   baseWithTalents,
 } from './talentEffects';
 import { effectiveMovement } from './encumbrance';
+import { blessuresPosees } from './characteristics';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 13, max: 13 },
+    wounds: blessuresDeBase(13),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -31,7 +31,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
     resilience: 1,
     charAdvances: {},
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('« +5 à votre Caractéristique de départ » (LDB 10 — ne compte pas comme Augmentation)', () => {
   it('mapping addCharacteristic → clé courte pour les 10 talents', () => {
@@ -68,12 +68,13 @@ describe('« +5 à votre Caractéristique de départ » (LDB 10 — ne compte pa
 });
 
 describe('attributs dérivés des talents', () => {
-  it('Dur à cuire : +BE Points de Blessure par acquisition (LDB 10)', () => {
+  it('Dur à cuire : +BE Points de Blessure par acquisition, qui suivent le BE (LDB 10 l.384)', () => {
     const h = hero({ talents: [{ talentId: 'dur-a-cuire', times: 1 }] });
-    expect(extraWounds(h)).toBe(3); // BE 3
-    expect(heroMaxWounds(h)).toBe(3 + 2 * 3 + 3 + 3); // BF+2BE+BFM + Dur à cuire
+    expect(blessuresPosees(h).max).toBe(3 + 2 * 3 + 3 + 3); // BF+2BE+BFM + Dur à cuire
     h.talents[0].times = 2;
-    expect(extraWounds(h)).toBe(6);
+    expect(blessuresPosees(h).max).toBe(3 + 2 * 3 + 3 + 6);
+    h.characteristics.endurance = 40;
+    expect(blessuresPosees(h).max).toBe(3 + 2 * 4 + 3 + 8);
   });
   it('Chanceux : Chance max = Destin + niveaux (LDB 10)', () => {
     expect(fortuneMax(hero())).toBe(2);

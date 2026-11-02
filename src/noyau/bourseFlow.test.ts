@@ -18,6 +18,7 @@ import type { Combatant } from '../engine/types';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { subtract, type Money } from '../engine/money';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party` — même patron que `partyFlow.test.ts`. */
 function makeHarness(party: Combatant[]): { get: Get; set: Set } {
@@ -28,11 +29,11 @@ function makeHarness(party: Combatant[]): { get: Get; set: Set } {
 }
 
 function makeHero(id: string): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero',
     characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
 }
 
 const M = (gold: number, silver: number, brass: number): Money => ({ gold, silver, brass });

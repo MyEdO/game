@@ -37,14 +37,6 @@ const TABLES = mutationTablesJson as MutationTable[];
 const mutationParId = indexParId('mutations', MUTATIONS);
 const tableParId = indexParId('mutationTables', TABLES);
 
-/** `id`s par nature de mutation — pour le registre visuel du rig et son test d'exhaustivité.
- *  ACCESSEURS (#1692) : le jeu de mutations est celui de la donnée À CET INSTANT — une mutation
- *  ajoutée/retirée au Codex entre et sort de ces listes sans rechargement. */
-export const idsPhysiques = memoParVersion('mutations', (): readonly string[] =>
-  MUTATIONS.filter((m) => m.kind === 'physique').map((m) => m.id));
-export const idsMentales = memoParVersion('mutations', (): readonly string[] =>
-  MUTATIONS.filter((m) => m.kind === 'mentale').map((m) => m.id));
-
 /** Une LIGNE d'étape d'une table de Corruption : la fourchette d100 de `mutationTables.json` projetée
  *  sur l'**id** STABLE de la mutation référencée, plus son `label` (AFFICHAGE seul — picker de lignes).
  *  Forme compatible `TableStepRow` (`noyau/cascade.ts`) : la DONNÉE reste la seule source des plages. */

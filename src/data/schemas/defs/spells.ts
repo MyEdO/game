@@ -4,12 +4,12 @@ import { nommerChamps } from '../grammaire/meta';
  * `SpellData` (`src/data/index.ts`), `SpellRange`/`SpellTarget` (`src/engine/spellRange.ts`),
  * `SpellDuration` (`src/engine/spellDuration.ts`) et `Formula` (`src/engine/ops.ts`).
  * `effects` (`Flow<EffectOp>`) : MÊME algèbre que talents/etats (`engine/flowCore.ts`), PROMUE dans
- * `grammaire/mecanique.ts` (`flowSchema`/`conditionSchema`) et `grammaire/valeurs.ts` (`formulaSchema`).
+ * `grammaire/mecanique.ts` (famille `mecaniqueDe`, `conditionSchema`) et `grammaire/valeurs.ts` (`formulaSchema`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
-import { flowSchema, conditionSchema } from '../grammaire/mecanique';
+import { conditionSchema, mecaniqueDe } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
@@ -129,7 +129,8 @@ const champs = {
     char: charKeySchema.optional(),
     skill: refOuSpec('skill').optional(),
   }), { kind: { label: 'Type' }, char: { label: 'Caractéristique' }, skill: { label: 'Compétence' } }).optional(),
-  effects: flowSchema.optional(),
+  /** Famille des sorts : le Trait psy d'un sort vise une personne choisie, à durée d'horloge (VDM 10 l.327-330). */
+  effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis' }).flow.optional(),
 };
 
 /**

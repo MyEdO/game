@@ -3,6 +3,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { traumaDodgePenalty, cannotWieldTwoHanded, amputationCombatPenalty } from '../engine/trauma';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -11,13 +12,13 @@ const legSequela = { label: 'Membre inférieur amputé (jambeD)', location: 'jam
 const fausseJambe = (over: Partial<ItemInstance> = {}): ItemInstance => ({ ...itemFromTrappingById('fausse-jambe')!, uid: 'fj', equipped: true, ...over });
 
 const hero = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', label: 'Manchot', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     traumas: [legSequela], items: [fausseJambe()], ...p,
-  } as Combatant);
+  }) as Combatant);
 
 describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 l.23)', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration' }); });

@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, HitLocation, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -16,9 +17,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: { current: 200, max: 200 }, fortune: 3,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(200), fortune: 3,
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
 /** Un ennemi à CC 95 frappe un héros à CC/Ag 5 ; `gmSeat` pose un siège MJ (attaquant piloté). */
 function duel(seed: number, gmSeat?: number) {
@@ -60,7 +61,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     H.resilience = 1;
     H.fortune = 2;
     E.pos = { x: 11, y: 10 };
-    E.wounds = { current: 0, max: 30 } as never;
+    E.wounds = blessuresDeBase(30, 0, E);
     E.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
     banc.getState().battleClickEntity(E.id, { confirm: true });

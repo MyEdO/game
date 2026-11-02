@@ -13,7 +13,7 @@
  */
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
-import { bonus, effectiveChar, blessuresDeBase } from '../../engine/characteristics';
+import { bonus, effectiveChar, blessuresPosees } from '../../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
@@ -89,13 +89,13 @@ export function isNeutralized(h: Combatant): boolean {
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Cible neutre STABLE pour `bestAttackEV` quand aucun ennemi de référence n'existe (carac. moyennes). */
-const GENERIC_DUMMY: Combatant = {
+const DUMMY_SANS_BLESSURES: Omit<Combatant, 'wounds'> = {
   id: '__ai-dummy__', label: 'cible', kind: 'enemy',
   characteristics: tableTotale(CHAR_KEYS, () => 30),
-  wounds: blessuresDeBase(12),
   advantage: 0, conditions: [], weapons: [], armour: {} as ArmourPoints,
   skills: [], talents: [], movement: 4,
 };
+const GENERIC_DUMMY: Combatant = { ...DUMMY_SANS_BLESSURES, wounds: blessuresPosees(DUMMY_SANS_BLESSURES) };
 
 /** Contexte de scoring d'UNE op : ennemi de référence (cible des buffs offensifs) + horizon de buff. */
 export interface OpEvalCtx { refEnemy: Combatant | null; horizon: number }

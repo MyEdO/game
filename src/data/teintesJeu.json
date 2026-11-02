@@ -23,6 +23,7 @@
     "or-halo": "#ffe27a",
     "anneau-actif": "#ffe066",
     "anneau-ennemi": "#c0392b",
+    "anneau-hors-groupe": "#c8ccd4",
     "equipe-allie": "#37c07a",
     "equipe-ennemi": "#c0392b",
     "equipe-neutre": "#ffd75e",

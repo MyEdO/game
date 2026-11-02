@@ -1,16 +1,16 @@
 /**
- * TEXTURES STATIQUES d'un billboard (décor, corps sans couture de frame) et leur RANG dans la file
+ * TEXTURES STATIQUES d'un billboard de décor et leur RANG dans la file
  * cadencée du cuiseur (#1373).
  *
  * Une texture statique se mémoïse sur sa clé (`getBillboardTexture`) et s'obtient à un REGARD donné :
- * l'identité de cache d'un décor porte son cran, celle d'un personnage l'ignore (`identiteAuCran`).
+ * l'identité de cache d'un décor porte son cran (`identiteAuCran`).
  * Ce module tient la carte des POIGNÉES : le rang d'une clé qui ATTEND encore son tour, pour que la
  * caméra puisse le relever ou le rendre au réchauffage sans jamais reconstruire la file.
  */
 import type * as THREE from 'three';
 import type { Rot } from '../../geometry/iso';
 import { billboardTextureKey } from '../backends/webgl/billboardMath';
-import type { View } from '../rig/facing';
+import type { View } from '../facing';
 import { clearBillboardTextures, getBillboardTexture, octetsTextureStatique, setStaticTexturePins, svgToTexture } from '../backends/webgl/svgTexture';
 import { PRIORITE_RECHAUFFAGE, queueBakeTask, type BakePriority } from '../backends/webgl/atlasBake';
 import type { BillboardSubject } from '../backends/webgl/sceneMeshes';
@@ -23,8 +23,7 @@ import { identiteAuCran } from './regard';
  * Sans elle, une clé posée en réchauffage puis redemandée par la caméra restait servie en dernier : la
  * mémoïsation (`getBillboardTexture`) rend la promesse DÉJÀ en file sans jamais toucher à son rang, et
  * la relève du cran franchi passait derrière toute la pré-chauffe (mesuré : rang 31/31 contre 1/31 à
- * froid ; 56 rasterisations pour 20 décors utiles). Le cuiseur a la même carte pour ses planches
- * (`enqueueBake`) — c'est le même geste, pour l'autre population.
+ * froid ; 56 rasterisations pour 20 décors utiles).
  *
  * Elle ne tient QUE ce qui attend : la poignée se pose à l'entrée en file et se retire au départ de la
  * tâche. Une clé déjà servie par le cache n'y entre pas — une poignée fantôme se ferait relire par

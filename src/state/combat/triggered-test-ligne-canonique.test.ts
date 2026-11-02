@@ -10,6 +10,7 @@ import { clampTarget, evaluateTest, rollTest } from '../../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../../engine/types';
 import { ligneDe } from '../../engine/modLine.testkit';
 import { refLabel } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * LIGNE des étapes produites par le canal `triggeredTest` (#1153 L3) — les quatre producteurs de ce
@@ -37,13 +38,13 @@ const CHARS = {
 };
 
 function actor(p: Partial<Combatant> & { id: string }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     label: p.id, kind: 'hero', characteristics: { ...CHARS },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'resistance', advances: 8, characteristic: 'endurance' }],
     talents: [], fortune: 0, resilience: 0, pos: { x: 1, y: 1 }, ...p,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Les postures d'État de la sonde : sain, États généraux (Sonné, Exténué, Brisé), État restreint à

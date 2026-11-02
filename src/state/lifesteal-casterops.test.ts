@@ -7,6 +7,7 @@ import { applyOps } from '../engine/ops';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Champs de SpellSpec B4 : `lifeSteal` (Projectile drainant — le lanceur récupère une fraction des
@@ -50,7 +51,7 @@ describe('Caresse de Laniph — lifeSteal ⌊dégâts/2⌋', () => {
 describe('zone de soin (op:heal) — Sang de la Terre', () => {
   it('rend (BFM) Blessures à qui stationne dans la zone, sans dépasser le max', () => {
     const caster = pregen(PREGEN.sorcier); // BFM connu via ses caracs
-    const victim = { ...caster, id: 'v', label: 'V', wounds: { current: 5, max: 30 } } as Combatant;
+    const victim = blessuresSurLeProfil({ ...caster, id: 'v', label: 'V', wounds: blessuresDeBase(30, 5) }) as Combatant;
     const bfm = Math.floor(caster.characteristics['force-mentale'] / 10);
     const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { rng: desDuTest, caster, label: 'Sang de la Terre' });
     expect(victim.wounds.current).toBe(5 + bfm);

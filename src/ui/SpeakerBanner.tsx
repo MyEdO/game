@@ -1,18 +1,13 @@
 import { forwardRef, type AriaAttributes, type AriaRole, type ReactNode } from 'react';
 import type { SceneEntity } from '../noyau/monde/scene';
-import { tokenBodyKind } from '../gameIso/tokenBodyKind';
 import { Fleuron } from './Ornaments';
-import { useVersionDesDatasets } from './useVersionDesDatasets';
-import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { useGame } from '../state/store';
 
 /**
  * Bandeau d'interlocuteur (#371 lot 1) — gabarit visuel UNIQUE d'un PNJ qui s'adresse au joueur :
- * portrait (même pipeline que le rendu iso, `tokenBodyKind` en vue de face) + nom + texte.
- *  - `dialogue` : arbre de choix (`DialogueBox`) — zone de choix rendue si fournie ; portrait ABSENT
- *    tant qu'aucune entité n'est liée (comportement historique : une ligne narrateur sans portrait).
- *  - `boniment` : réplique STATIQUE, sans arbre (marchand, aubergiste…) — portrait TOUJOURS montré,
- *    replié sur un fleuron neutre si aucune entité de scène n'incarne l'interlocuteur.
+ * repère (fleuron neutre) + nom + texte.
+ *  - `dialogue` : arbre de choix (`DialogueBox`) — zone de choix rendue si fournie ; repère ABSENT
+ *    tant qu'aucune entité n'est liée (une ligne narrateur sans repère).
+ *  - `boniment` : réplique STATIQUE, sans arbre (marchand, aubergiste…) — repère TOUJOURS montré.
  * La SÉMANTIQUE de la boîte appartient à son porteur (`DialogueBox`, porteur de `useModalA11y`) : le
  * bandeau transmet à sa boîte les attributs ARIA reçus, comme son `ref`, et pose sur le nom et la
  * réplique les ids que le porteur lui donne.
@@ -20,7 +15,7 @@ import { useGame } from '../state/store';
 export interface SpeakerBannerProps extends AriaAttributes {
   /** Rôle de la boîte, posé par son porteur. */
   role?: AriaRole;
-  /** Entité de scène incarnant l'interlocuteur (portrait rig) — absente = pas d'entité liée. */
+  /** Entité de scène incarnant l'interlocuteur — absente = pas d'entité liée. */
   ent?: SceneEntity;
   label?: ReactNode;
   variant?: 'dialogue' | 'boniment';
@@ -39,20 +34,13 @@ export const SpeakerBanner = forwardRef<HTMLDivElement, SpeakerBannerProps>(func
   { ent, label, variant = 'dialogue', children, choices, className, labelId, textId, ...aria },
   ref,
 ) {
-  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
-  useVersionDesDatasets();
-  const portrait = ent ? tokenBodyKind(resolveTrapping, { kind: 'sceneEntity', ent }, 'top') : null;
-  const showPortraitSlot = portrait != null || variant === 'boniment';
+  const showRepere = ent != null || variant === 'boniment';
   return (
     <div ref={ref} {...aria} className={`dialogue-box${variant === 'boniment' ? ' dlg-boniment' : ''}${className ? ` ${className}` : ''}`}>
       <div className="dlg-head">
-        {showPortraitSlot && (
-          <span className="dlg-portrait">
-            {portrait ? (
-              <svg viewBox={portrait.portraitBox} preserveAspectRatio="xMidYMid slice">{portrait.body}</svg>
-            ) : (
-              <Fleuron size={14} />
-            )}
+        {showRepere && (
+          <span className="dlg-repere">
+            <Fleuron size={14} />
           </span>
         )}
         <div className="dlg-body">

@@ -48,8 +48,7 @@
       "flechette",
       "choc"
     ],
-    "sex": "F",
-    "build": 0.42
+    "sex": "F"
   },
   {
     "id": "frere-anselm",
@@ -97,8 +96,7 @@
     "motivation": "Connaissance",
     "ambitionShort": "Composer un remède contre la fièvre rouge",
     "ambitionLong": "Ouvrir son propre comptoir d’apothicaire",
-    "sex": "F",
-    "build": 0.45
+    "sex": "F"
   },
   {
     "id": "klein-burger",

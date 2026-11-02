@@ -135,14 +135,22 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
 }
 
 /** DRAINE la cascade active jusqu'à sa clôture (ou `max` étapes — garde d'emballement), en jouant
- *  chaque étape par `avanceEtapeCascade`. Rend les `kind` rencontrés, dans l'ordre. */
-export function draineCascade(get: () => Jeu, max = 200, poser?: PoseDe, choisir?: ChoisitCle): string[] {
-  const kinds: string[] = [];
+ *  chaque étape par `avanceEtapeCascade`. Rend les étapes jouées, telles que la fenêtre les OFFRAIT, dans
+ *  l'ordre. */
+export function draineEtapes(get: () => Jeu, max = 200, poser?: PoseDe, choisir?: ChoisitCle): CascadeStep[] {
+  const etapes: CascadeStep[] = [];
   for (let i = 0; i < max && get().pendingCascade; i++) {
-    const k = avanceEtapeCascade(get, poser, choisir);
-    if (k !== undefined) kinds.push(k);
+    const p = get().pendingCascade!;
+    const cur = p.participants[p.cursor];
+    if (cur) etapes.push(cur);
+    avanceEtapeCascade(get, poser, choisir);
   }
-  return kinds;
+  return etapes;
+}
+
+/** `draineEtapes`, réduit aux `kind` rencontrés. */
+export function draineCascade(get: () => Jeu, max = 200, poser?: PoseDe, choisir?: ChoisitCle): string[] {
+  return draineEtapes(get, max, poser, choisir).map((e) => e.kind);
 }
 
 /**

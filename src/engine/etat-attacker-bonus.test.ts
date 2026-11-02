@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { meleeAttackerBonus, incomingMeleeAdvantage, addCondition, COND } from './conditions';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Combattant nu (le bonus dépend UNIQUEMENT des États portés, lus en données via passiveMods). */
-const mk = (): Combatant => ({
+const mk = (): Combatant => (blessuresSurLeProfil({
   id: 'x', name: 'X', kind: 'enemy', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
-  wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
-}) as unknown as Combatant;
+  wounds: blessuresDeBase(10), advantage: 0,
+})) as unknown as Combatant;
 
 describe('meleeAttackerBonus — bonus à l’attaquant lu en DONNÉES (etats.json, plus de branche par-nom)', () => {
   it('À Terre → +20', () => {

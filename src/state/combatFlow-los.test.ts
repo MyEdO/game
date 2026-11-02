@@ -9,15 +9,16 @@ import type { GameState } from './store';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { RULE_REF } from '../engine/ruleRefs';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 
 const shooter = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'A',
     name: 'Tireur',
     kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 55, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }],
@@ -27,7 +28,7 @@ const shooter = (over: Partial<Combatant> = {}): Combatant =>
     movement: 4,
     pos: { x: 0, y: 0 },
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const target = (over: Partial<Combatant> = {}): Combatant =>
   ({ ...shooter({ id: 'B', label: 'Cible', kind: 'enemy', weapons: [], pos: { x: 5, y: 0 } }), ...over }) as Combatant;

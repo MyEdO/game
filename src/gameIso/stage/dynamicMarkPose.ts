@@ -4,8 +4,8 @@
  * lien d'engagement recalculé au rendu React attendrait le marcheur sur sa case d'arrivée ; le contour
  * de l'actif y resterait collé à la case qu'il vient de quitter, et l'anneau d'équipe avec lui.
  *
- * MÊME CANAL DE GLISSEMENT que les billboards : la `GlideAt` que la boucle donne à `poseBoards`, donc
- * la courbe UNIQUE de `fx/walkPose.walkGlideM`. Aucune seconde interpolation n'est calculée ici.
+ * CANAL DE GLISSEMENT UNIQUE : la `GlideAt` de la boucle de rendu (`StageWalkAnim.glide`), donc la
+ * courbe UNIQUE de `fx/walkPose.walkGlideM`. Aucune seconde interpolation n'est calculée ici.
  *
  * PURE : ni DOM ni contexte WebGL — elle ne fait que réécrire les matrices d'instance de pools déjà
  * montés (`backends/webgl/dynamicMarkMeshes`), au compte près. CÔTÉ ALLOCATION : rien de GPU ni de
@@ -17,9 +17,10 @@ import * as THREE from 'three';
 import { TEAM_RING_WIDTH_K, TETHER_DASH_K, TETHER_GAP_K, TETHER_WIDTH_K, dashPattern, ringAxesPx, ringPhaseRad, type DynamicMarks, type MarkCell } from '../builders/dynamicMarks';
 import type { ProjKind } from '../../geometry/iso';
 import { dynSlotLiftM, silhouetteTwinOf, type DynMarkSlot } from '../backends/webgl/dynamicMarkMeshes';
-import { diagOnce } from '../rig/devDiag';
+import { diagOnce } from '../devDiag';
 import { poserCompteInstances } from '../backends/webgl/instancePools';
-import { boardChromeOpacity, AUCUN_CHROME, type ChromeAt, type GlideAt } from './boardPose';
+import { GHOST_OPACITY, AUCUN_CHROME, type ChromeAt, type GlideAt } from './boardPose';
+import { applyEndStateColor } from '../endStateAppearance';
 
 /** Les pools montés, par slot — un slot absent n'est simplement pas peint. */
 export type DynMarkPools = Partial<Record<DynMarkSlot, THREE.InstancedMesh>>;
@@ -253,10 +254,11 @@ function poserAnneaux(mesh: THREE.InstancedMesh, marks: DynamicMarks, f: DynMark
     }
     const rM = rK * f.mpt;
     poseCase(anneau.cell, f.glide(anneau.id) ?? IMMOBILE, 'anneau', f, CENTRE);
-    // ALLURE du jeton portée sur SON anneau : le pool n'a qu'un canal par instance (la teinte), donc
-    // l'atténuation s'y lit en luminosité — un anneau à teinte pleine sous un fantôme le rendrait plus
-    // présent que le corps qu'il ceint.
-    TEINTE.set(anneau.color).multiplyScalar(boardChromeOpacity((f.chromeAt ?? AUCUN_CHROME)(anneau.id)));
+    // Le pool porte l'allure dans sa couleur d'instance : l'opacité devient une luminosité.
+    const chrome = (f.chromeAt ?? AUCUN_CHROME)(anneau.id);
+    TEINTE.set(anneau.color);
+    if (chrome?.endState) applyEndStateColor(TEINTE, chrome.endState);
+    else if (chrome?.ghost) TEINTE.multiplyScalar(GHOST_OPACITY);
     n = writeRingChords(mesh, n, CENTRE, rM, largeurM, tirets, phase + lacet, TEINTE);
   }
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

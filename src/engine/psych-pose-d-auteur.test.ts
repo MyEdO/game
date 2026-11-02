@@ -14,11 +14,12 @@ import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { groups, psychologies } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
 
-const porteur = (psychState: PsychAffliction[] = []): Combatant => ({
-  id: 'h1', label: 'h1', kind: 'hero', advantage: 0, conditions: [], characteristics: {} as never, psychState, psychTraits: [],
-  groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 },
-} as unknown as Combatant);
+const porteur = (psychState: PsychAffliction[] = []): Combatant => (blessuresSurLeProfil({
+  id: 'h1', label: 'h1', kind: 'hero', advantage: 0, conditions: [], characteristics: profilDeTest(), psychState, psychTraits: [],
+  groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10),
+}) as unknown as Combatant);
 
 const devenant = psychologies.find((p) => !!p.becomes);
 const devenue = psychologies.find((p) => p.id === devenant?.becomes);

@@ -21,7 +21,7 @@
   border-color: var(--ok);
   color: var(--ok);
 }
-/* Siège requis SANS héros vivant à montrer : le glyphe remplace le portrait, à son échelle. */
-.ready-noportrait {
+/* Glyphe de siège de la chip. */
+.ready-seat {
   font-size: 18px;
 }

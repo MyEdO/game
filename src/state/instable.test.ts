@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Instable (LDB 85 l.177) — MIGRÉ en DONNÉES (trait `instable` effects onRoundEnd) : « Chaque fois qu'elle
@@ -41,7 +40,7 @@ describe('Instable — perte de PB = écart d’Avantage avec l’adversaire Eng
     expect(z.wounds.current).toBe(8);
   });
   it('amené à 0 PB par la poussée → « se délite » (dead) — narration unravel', () => {
-    const z = mk({ traits: [{ id: 'instable' }] as never, advantage: 0, engagedWith: ['h'] as never, wounds: { current: 2, max: 8, base: 8 } as never });
+    const z = mk({ traits: [{ id: 'instable' }] as never, advantage: 0, engagedWith: ['h'] as never, wounds: blessuresDeBase(8, 2) });
     const h = mk({ id: 'h', kind: 'hero', advantage: 3, engagedWith: ['u'] as never });
     const lines = roundEnd(battle([z, h]) as never, z);
     expect(z.wounds.current).toBeLessThanOrEqual(0);

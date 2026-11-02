@@ -14,7 +14,7 @@ import { outnumberMod } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -26,13 +26,13 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endu
 const ARMOUR = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos,
-    wounds: { current: 12, max: 12 }, weapons: [MELEE],
+    wounds: blessuresDeBase(12), weapons: [MELEE],
     characteristics: { ...CHARS }, advantage: 0, conditions: [], armour: { ...ARMOUR },
     skills: [], talents: [], movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 const scene = emptyScene('scene-test', 20, 20);

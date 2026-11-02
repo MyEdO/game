@@ -6,19 +6,20 @@ import { locationLabel, type Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** LDB 17 l.68 ; LDB 18 l.53 ; #1595 c.6226467544. */
 const mk = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'T', name: 'Cible', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], traumas: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('applyCriticalToTarget — la Localisation fournie est utilisée verbatim (résolue en amont)', () => {
   it('localisation fournie → le Critique est résolu à cette localisation', () => {
@@ -67,7 +68,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     H.pos = { x: 10, y: 10 };
     H.resilience = 1;
     E.pos = { x: 11, y: 10 };
-    E.wounds = { current, max: 30 } as never;
+    E.wounds = blessuresDeBase(30, current, E);
     E.armour = { tete: autresPA, brasG: paBrasG, brasD: autresPA, corps: autresPA, jambeG: autresPA, jambeD: autresPA };
     E.talents = chanceux ? [{ talentId: 'chanceux', times: 1 }] as never : []; // AA 07 l.67
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });

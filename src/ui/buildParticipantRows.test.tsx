@@ -8,6 +8,7 @@ import { RollShell } from './RollShell';
 import { refLabel } from '../data';
 import { refusNePeutTenter } from '../engine/skills';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * #1117 G1 — SOURCE UNIQUE du libellé de LIGNE d'une rangée-participant (Z5) : il se DÉRIVE de la
@@ -134,12 +135,12 @@ describe('#1262 L0 — la rangée-participant vient du NOYAU (contrat mesuré su
  * #2588 Q1) annonce son refus ; un dé JETÉ s'affiche tel qu'il est tombé, contre sa cible.
  */
 describe('crewRoleRow — refus du rôle non tentable, dé jeté contre sa cible', () => {
-  const marin = {
+  const marin = blessuresSurLeProfil({
     id: 'm1', label: 'Gunnar', kind: 'hero', conditions: [{ id: 'inconscient', value: 1 }], skills: [], talents: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, weapons: [], items: [], movement: 4,
+    wounds: blessuresDeBase(12), advantage: 0, weapons: [], items: [], movement: 4,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   const part = { id: 'm1', roleId: 'timonier', essential: true, result: null, interactive: true, navigation: { id: 'voile', spec: 'cogue' } };
 
   it('non jetée : la rangée annonce le refus nommé, aucun jet en attente', () => {

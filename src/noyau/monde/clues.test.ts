@@ -13,6 +13,7 @@ import { type SaveGame } from '../persistance/save';
 import { withActingSeat } from '../netOwnership';
 import { emettreIntentInvite, interceptGuestActions, restoreGuestActions } from '../../state/netFlow';
 import { poserLeLocalStorage } from '../../lib/stockage.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const IND: Indice = {
   id: 'ind-lettre',
@@ -239,13 +240,13 @@ const narratif: NarratifBlock = {
 };
 
 function hero(): Combatant {
-  return ({
+  return (blessuresSurLeProfil({
     id: 'a', label: 'A', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: [], skills: [], talents: [], movement: 4,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 }
 
 function fixtureScene(id: string): Scene {

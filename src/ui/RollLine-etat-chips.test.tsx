@@ -28,15 +28,16 @@ import { useGame, type GameState } from '../state/store';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Disease } from '../engine/disease';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /** Arme de mêlée minimale — l'attaque n'est ici qu'un PORTEUR de modificateurs. */
 const SWORD: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
-const mk = (): Combatant => ({
-  id: 'x', name: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
+const mk = (): Combatant => (blessuresSurLeProfil({
+  id: 'x', name: 'X', kind: 'hero', characteristics: profilDeTest(), skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
-  wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
-}) as unknown as Combatant;
+  wounds: blessuresDeBase(10), advantage: 0,
+})) as unknown as Combatant;
 
 /** Une maladie ACTIVE portant le symptôme voulu (même fabrique que `engine/disease.test.ts`). */
 const activeDisease = (symptomId: string): Disease => ({

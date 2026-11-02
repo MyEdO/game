@@ -15,6 +15,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
 import type { TraitList } from '../engine/statEntry';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -40,7 +41,7 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   H.size = o.tailleH; H.traits = o.traitsH ?? [];
   E.characteristics['capacite-de-combat'] = 85; E.advantage = o.advantageE ?? 6;
   H.advantage = 6;
-  H.wounds = { current: 200, max: 200, base: 200 } as never;
+  H.wounds = blessuresDeBase(200, 200, H);
   H.conditions = [{ id: 'surpris', value: 1 }] as never;
   const porteur = tourDe === 'heros' ? H : E;
   banc.setState({ battle: { ...b, turn: b.order.indexOf(porteur.id), action: null, movementUsed: o.movementUsed ?? 0, acted: false } });

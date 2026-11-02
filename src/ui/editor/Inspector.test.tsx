@@ -10,9 +10,6 @@ import { catalogueSpecs, entreeOuverte, idsDe } from '../../data/schemas/grammai
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
 import type { Sel } from './editorState';
-import { validateScene } from '../../noyau/validateScene';
-import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
-import { MISSING_TONE } from '../../gameIso/rig/viewArt';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign } from '../../scenes/campaign';
@@ -926,52 +923,6 @@ describe("Inspector — le type d'un ornement de façade est nommé par le NŒUD
     expect(select).toBeTruthy();
     expect(Array.from(select.options).map((o) => [o.value, o.textContent ?? ''])).toEqual(attendu);
     expect(select.value).toBe('belfry');
-  });
-});
-
-/** Une coiffure imposée (`appearance.hairstyle`, #637) ne fait plus lever l'aperçu et ne devient plus une
- *  faute par un geste de l'Inspecteur (verdict 5805847379 de #1897, sections A2, A3 et E). */
-describe('Inspector — la coiffure imposée suit le pool du sexe', () => {
-  const coiffureM = hairstylesForSex('M')[0].id;
-  const choisir = async (container: HTMLElement, libelle: string, valeur: string) => {
-    const select = Array.from(container.querySelectorAll('select'))
-      .find((el) => el.closest('label')?.textContent?.trim().startsWith(libelle)) as HTMLSelectElement;
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, valeur);
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-  };
-
-  it('coiffure M choisie : la clé écrite passe le schéma de la scène', async () => {
-    const h = mount({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'mutant', appearance: { sex: 'M' } });
-    await h.mount();
-    await choisir(h.container, 'Coiffure', coiffureM);
-    expect(h.entOf().appearance?.hairstyle).toBe(coiffureM);
-    expect(validateScene([h.sceneOf()]).filter((w) => w.message.includes('hairstyle'))).toEqual([]);
-  });
-
-  it('PNJ sans sexe posé, coiffure F choisie : le sexe F est écrit avec elle, le schéma de la scène passe', async () => {
-    const coiffureF = hairstylesForSex('F')[0].id;
-    const h = mount({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'mutant' });
-    await h.mount();
-    await choisir(h.container, 'Coiffure', coiffureF);
-    expect(h.entOf().appearance).toMatchObject({ hairstyle: coiffureF, sex: 'F' });
-    expect(validateScene([h.sceneOf()]).filter((w) => w.message.includes('hairstyle'))).toEqual([]);
-  });
-
-  it('coiffure M puis sexe F : la coiffure retombe dans le MÊME patch, l’aperçu tient', async () => {
-    const h = mount({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'mutant', appearance: { sex: 'M', hairstyle: coiffureM } });
-    await h.mount();
-    await choisir(h.container, 'Sexe', 'F');
-    expect(h.entOf().appearance).toMatchObject({ sex: 'F' });
-    expect(h.entOf().appearance).not.toHaveProperty('hairstyle');
-    expect(h.container.querySelector('.ent-preview svg')?.innerHTML).not.toContain(MISSING_TONE);
-  });
-
-  it('coiffure M déjà posée sur un PNJ F (donnée importée) : l’aperçu montre la chevelure d’erreur', async () => {
-    const h = mount({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'mutant', appearance: { sex: 'F', hairstyle: coiffureM } });
-    await h.mount();
-    expect(h.container.querySelector('.ent-preview svg')?.innerHTML).toContain(MISSING_TONE);
   });
 });
 

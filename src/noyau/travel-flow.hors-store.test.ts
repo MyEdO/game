@@ -31,7 +31,7 @@ import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engi
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { ligneAllureForcee } from '../engine/vehicle';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -40,13 +40,13 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
-const hero = (p: Partial<Combatant> = {}): Combatant => ({
+const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'h', label: 'Hilda', kind: 'hero',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
-  wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   items: [], movement: 4, ...p,
-} as Combatant);
+}) as Combatant);
 function sceneA(): Scene {
   const s = emptyScene('scene-test', 10, 10); s.id = 'lieu-a-scene'; s.label = 'A';
   const enc = buildEncounter({ id: 'enc-test', enemies: [{ statblock: { type: 'statblock', label: 'Brigand', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });

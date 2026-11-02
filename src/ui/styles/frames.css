@@ -1,23 +1,7 @@
-/* ══════════════════ Cadre-figurine UNIQUE (FigTile, #430/#431) ══════════════════
-   SOURCE UNIQUE — et SEULE — définition de la tuile-figurine (races, carrières, candidats du lobby).
-   Valeurs du patron `.fam-tile` de la planche ratifiée (§ « Tuile-FIGURINE de famille »), en tokens.
-
-   LA TUILE EST UNE COLONNE : boîte-figurine à HAUTEUR FIXE (figurine ancrée au sol sur sa lueur),
-   puis nom, puis compte — DESSOUS, jamais un bandeau superposé. La hauteur fixe est ce qui tient la
-   tuile à toute largeur d'écran : un `aspect-ratio` la fait grandir avec sa colonne et noie la
-   figurine (verdict user 2026-07-15, verbatim : « le vide là il est présent sur tout le monde, et
-   les cadres sont moches, la couleur de fond aussi »). Deux tailles de boîte, par PROP `fig` :
-   `compact` (104px, rangées de carrière) et `big` (172px, grille de race pleine zone) — l'appelant
-   choisit une VARIANTE, jamais une classe par écran.
-
-   Règle n°1 (directive user 2026-07-15, verbatim, #430) : « le soucis sur ces cellules […] c'est
-   d'avoir 2 cadres, le cadre principale avec le nom de la carrière/race, et un 2nd cadre avec
-   l'apparence du personnage, ce qui fait beaucoup de vide et des petits models ». La boîte-figurine
-   n'est donc PAS un cadre : ni bordure ni fond de panneau, seulement la lueur de sol. Corollaire
-   porté par `FigTile.tsx` : la tuile n'expose AUCUNE ambiance de `CharacterPreview` — elle porte SA
-   matière (dégradé + rivets + lueur) et une ambiance de plus y peindrait la seconde boîte. C'est
-   d'ailleurs par là que les deux peaux divergeaient (« la carrière a un fond mais pas la race,
-   c'est pourtant la même primitive ? ») : la race passait `panel`, la carrière `spotlight`. */
+/* ══════════════════ Tuile UNIQUE (FigTile, #430/#431) ══════════════════
+   SOURCE UNIQUE — et SEULE — définition de la tuile (`GroupedPickGrid`, créateur, ouverture de
+   campagne et galerie). Valeurs du patron `.fam-tile` de la planche ratifiée, en tokens. Une COLONNE : nom, puis
+   compte ; variante par PROP `fig`, jamais une classe par écran. */
 /* RANGÉE de tuiles (`FigRow`, #717) — grille UNIFORME : colonnes égales (jamais dimensionnées par le
    libellé le plus long), 2 colonnes sous le breakpoint canon 700. `auto-fit` : une compagnie plus
    courte que la rangée ne laisse aucune piste vide qui la collerait à gauche. */
@@ -49,7 +33,7 @@
   box-sizing: border-box;
   /* `overflow: visible` — le CACHET FRANCHIT LE BORD (patron `.seat-card-seal`, carte-contrat) : un
      `overflow:hidden` sur l'enceinte rognerait le sceau en quartier de disque au coin. Ce qui doit
-     être rogné, c'est la FIGURINE — elle le fait pour elle-même (`.charprev`, components.css). */
+     être rogné le fait pour lui-même. */
   overflow: visible;
 }
 /* Les DEUX RIVETS D'OR vissés en haut — l'identité des tuiles de la planche. */
@@ -71,25 +55,8 @@
   outline: 2px solid var(--gold2);
   outline-offset: 1px;
 }
-/* Boîte-figurine : hauteur FIXE, figurine posée au sol (`flex-end`) sur sa lueur chaude. */
-.fig-tile-fig {
-  position: relative; /* ancre `.fig-zone-badges` (inset) À CETTE BOÎTE, jamais à la tuile entière
-                          (qui inclut nom/compte dessous) — sinon chevauchement du cadre (#492). */
-  height: 104px;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: radial-gradient(70px 16px at 50% 100%, rgba(255, 196, 110, 0.1), transparent 72%);
-}
-/* La figurine n'est pas un cadre (règle n°1) : aucune bordure ni fond propre — la lueur de la boîte
-   se voit AU TRAVERS. */
-.fig-tile-fig > .charprev {
-  border: none;
-  background: none;
-}
 /* Typographie de légende — charte Atelier : nom en famille titrante gravée + or brass, compte en
-   méta discrète, tous deux CENTRÉS sous la figurine. */
+   méta discrète, tous deux CENTRÉS. */
 .fig-tile-name {
   font-family: var(--font-display);
   font-size: 14px;
@@ -110,12 +77,11 @@
   white-space: nowrap;
 }
 /* Variante PLEINE ZONE (`fig="big"`) — la grille de race est la surface PRINCIPALE de son étape :
-   tuiles qui respirent, figurines à leur échelle vraie (`scaleRef`). */
+   tuiles qui respirent. */
 .fig-tile.big {
   padding: 18px 10px 15px;
   gap: 6px;
 }
-.fig-tile.big .fig-tile-fig { height: 172px; }
 .fig-tile.big .fig-tile-name {
   font-size: 17px;
   /* Pas de 2e ligne réservée ICI : la réserve de `.fig-tile-name` est un acquis des tuiles de
@@ -125,50 +91,24 @@
   min-height: 0;
 }
 .fig-tile.big .fig-tile-sub { font-size: 12px; }
-/* Variante PRÉSENCE PLEIN FORMAT (`fig="hero"`) — colonne aside de la fiche (#492 lot « colonne
-   présence »), rig grand format sur sa lueur (verdict user 2026-07-17). Boîte plus haute, STATIQUE
-   (l'appelant compose la tuile sans `onClick`) : ni nom ni sceau, l'identité vit à côté (`h3`/
-   `char-sub` de `CharacterSheet.tsx`). */
-.fig-tile.hero {
-  padding: 10px 8px 8px;
-  gap: 0;
-  cursor: default;
-}
-.fig-tile.hero .fig-tile-fig { height: 320px; }
-.fig-tile.hero:hover { border-color: var(--atelier-wood-etch); }
-/* Badges de zone ANCRÉS (#492 lot « corps-index », arbitrage 2026-07-17) — la colonne devient l'INDEX
-   de la fiche : un badge PAR Localisation, positionné UNE fois ici en attribut `data-loc` (silhouette
-   du chevet) ; le TON en attribut `data-tone`
-   (jamais une classe par ton, patron déjà tenu par `sheet.css`/`NotchGauge`). */
-.fig-zone-badges {
-  position: absolute;
-  /* Marge interne (juge vision 2026-07-17) : les badges au bord ne mordent plus sur le cadre — ancré
-     à `.fig-tile-fig` (pas la tuile entière), lui-même sans bordure propre (règle n°1). */
-  inset: 6px;
-  pointer-events: none;
-}
-/* Taille FIXE (lot #492 « chevet », verdict user 2026-07-17 : badges « de taille variable ») —
-   `width` égal à `height` quelle que soit la valeur (compte à 2 chiffres compris) : plus de
-   `min-width`/`padding` horizontal qui gonflait le badge au contenu. */
+/* Badges de zone (#492 lot « corps-index », arbitrage 2026-07-17) — l'INDEX de la fiche : un badge
+   NOMMÉ par Localisation, en liste (`Row`, layout.css) ; le TON en attribut `data-tone` (jamais une
+   classe par ton). */
 .fig-zone-badge {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  padding: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: 999px;
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
   color: var(--muted);
   background: var(--bg2);
   border: 1.5px solid var(--border);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
 }
+.fig-zone-name { font-weight: 400; }
 button.fig-zone-badge { cursor: pointer; }
 button.fig-zone-badge:hover { border-color: var(--gold2); }
 button.fig-zone-badge:focus-visible { outline: 2px solid var(--gold2); outline-offset: 1px; }
@@ -176,14 +116,6 @@ button.fig-zone-badge:focus-visible { outline: 2px solid var(--gold2); outline-o
 .fig-zone-badge[data-tone='warn'] { border-color: var(--gold2); color: var(--gold2); }
 .fig-zone-badge[data-tone='sang'] { border-color: var(--blood); color: var(--danger-soft); }
 .fig-zone-badge[data-tone='dim'] { border-color: var(--border); color: var(--muted); }
-/* Positions anatomiques (silhouette du chevet) — tête haut-centre, bras aux flancs, corps au centre,
-   jambes en bas. */
-.fig-zone-badge[data-loc='tete'] { top: 4%; left: 50%; transform: translate(-50%, 0); }
-.fig-zone-badge[data-loc='brasG'] { top: 38%; left: 4%; transform: translate(0, -50%); }
-.fig-zone-badge[data-loc='brasD'] { top: 38%; right: 4%; left: auto; transform: translate(0, -50%); }
-.fig-zone-badge[data-loc='corps'] { top: 56%; left: 50%; transform: translate(-50%, -50%); }
-.fig-zone-badge[data-loc='jambeG'] { bottom: 4%; left: 30%; transform: translate(-50%, 0); }
-.fig-zone-badge[data-loc='jambeD'] { bottom: 4%; left: 70%; transform: translate(-50%, 0); }
 /* Sceau de cire optionnel (le choix est SCELLÉ, patron `SealedPlaque`) — déborde au coin haut-droit,
    PAR-DESSUS le rivet (`::after`, z-index auto) : un cachet se voit ou n'est pas un cachet. */
 .fig-tile-seal {

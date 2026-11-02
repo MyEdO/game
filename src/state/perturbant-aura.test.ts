@@ -2,20 +2,21 @@ import { describe, it, expect } from 'vitest';
 import { combatHooksOf } from '../noyau/combatHooks';
 import { combatTestPenalty } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Perturbant (LDB 85 l.260-262) — MIGRÉ en DONNÉES : l'aura (−20 aux Tests à BE mètres, « Toute personne »,
  * NON cumulable) vit dans `TraitData.aura` ; le hook GÉNÉRIQUE `recompute-auras` la projette (par géométrie)
  * dans `Combatant.auraMods`, lu par `passiveMods` (kind `etat`) → `combatTestPenalty`. Aucun trait nommé.
  */
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', name: 'C', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [], traits: [],
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4,
   pos: { x: 5, y: 5 },
   ...over,
-}) as unknown as Combatant;
+})) as unknown as Combatant;
 
 const recompute = (combatants: Combatant[]) => {
   const hook = combatHooksOf('onRoundEnd').find((h) => h.id === 'recompute-auras')!;

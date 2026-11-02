@@ -16,14 +16,15 @@ import { makeRNG } from '../engine/dice';
 import { buildWeapon } from '../engine/items';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', label: 'C', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
-  wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(30), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   ...over,
-} as Combatant);
+}) as Combatant);
 
 const get = (() => ({ battle: undefined })) as never;
 const cond = (c: Combatant, name: string) => c.conditions.find((x) => x.id === name);

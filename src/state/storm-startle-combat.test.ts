@@ -4,8 +4,7 @@ import { startleOnStormAtCombatStart } from '../noyau/combatFlow';
 import { stacks, hasCondition, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * #341 — Éclairs de la pluie diluvienne (EDOC 8 l.82). À l'OUVERTURE d'un combat pendant un jour de

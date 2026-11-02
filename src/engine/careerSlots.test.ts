@@ -19,17 +19,18 @@ import {
   talentSlotsUpTo,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
     career: 'C1',
     careerLevel: 1,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -38,7 +39,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
     talents: [],
     movement: 4,
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 // Carrière factice C1 : « Sens aiguisé (Au choix) » aux niveaux 1 ET 2 (comme Érudit avec
 // Savoir) — le scénario complet de désignation se joue dessus.

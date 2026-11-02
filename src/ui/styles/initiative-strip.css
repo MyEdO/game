@@ -56,6 +56,8 @@
      CONTENU — porté ici, il laisserait voir une entrée défilée au-dessus de la tête. La grandeur est
      nommée ici, `.is-round` la porte (#1867). */
   --is-head-air: 9px;
+  --ptile-name-width: 80px;
+  --ptile-name-reserve: calc(2 * var(--ptile-name-line));
   /* Le FLANC de la piste, même statut que l'air de tête : ce rembourrage vit DANS le champ
      défilant, donc le cartouche collé doit le couvrir. La grandeur est nommée ici, `.is-round` la
      reprend en négatif (#1867). */
@@ -71,23 +73,20 @@
   scrollbar-width: none;
   overflow-y: auto;
   overflow-x: visible;
-  /* Chaque entrée est un point d'ARRÊT : la colonne ne s'immobilise jamais au milieu d'un visage. */
+  /* Chaque entrée est un point d'ARRÊT : la colonne ne s'immobilise jamais au milieu d'une entrée. */
   scroll-snap-type: y mandatory;
   /* Grandeurs MESURÉES de la colonne (DOM 1280×800), chacune nommée UNE fois : le pas, la tête et le
      calage du défilement s'en DÉRIVENT, et une tranche qui change un rembourrage les recale toutes
      (#1867). La déclaration `max-height` simple reste le repli des moteurs sans `round()`. */
-  --is-entry: 50px;
-  --is-gap: 6px;
+  /* Face de 44px, rembourrage de 4px, filets de 2px et écart de 2px avant le nom. */
+  --is-entry: calc(52px + var(--ptile-name-reserve));
+  --is-gap-air: 6px;
+  /* En colonne, le chevron reste dans l'écart entre deux cartes (#1867). */
+  --is-gap: max(var(--is-gap-air), var(--ptile-caret-air));
   --is-round-h: 26px;
-  /* RELIEF de la vignette AU TRAIT sur l'axe de BLOC : le grossissement est un `transform`, il ne
-     réserve rien. Ce que sa PEINTURE prend se réserve ICI, aux grandeurs nommées par la primitive
-     (portrait-tile.css) — en HAUT le chevron, qui vit au-dessus de la tuile ; en BAS le demi-surcroît
-     d'échelle plus le liseré : sans cela l'anneau or de la DERNIÈRE entrée est rogné par le bord du
-     champ et le chevron de la PREMIÈRE passe sous le cartouche (#1867). Chaque réserve se paie UNE
-     fois : un rembourrage qui couvre déjà le relief le PORTE (`max`), il ne s'y ajoute pas. La base
-     de bloc est la hauteur d'entrée, que seule la frise connaît — une propriété personnalisée
-     dérivée à `:root` s'y résout et hérite résolue. */
-  --is-relief-bas: calc(var(--is-entry) * (var(--ptile-active-scale) - 1) / 2 + var(--ptile-lisere));
+  /* Relief de bloc (#1867) : le chevron se réserve en tête, le liseré au pied. La carte garde sa
+     taille nominale ; une réserve déjà portée par le rembourrage se compose par `max`. */
+  --is-relief-bas: var(--ptile-lisere);
   --is-round-air: 3px;
   --is-round-margin: max(var(--is-round-air), var(--ptile-caret-air));
   --is-foot-air: 12px;
@@ -97,8 +96,8 @@
   /* HORS ENTRÉES : l'air de tête, le cartouche et sa marge, le rembourrage du pied, les filets. Les
      écarts s'annulent — la pile en porte un de moins qu'elle n'a d'entrées. La hauteur utile est
      arrondie AU PAS INFÉRIEUR sur cette base : la colonne s'arrête sur une entrée ENTIÈRE, jamais
-     sur un visage coupé. Le pas est CONSTANT — la mise en évidence de l'unité au trait est un
-     `transform`, qui ne change aucune boîte (portrait-tile.css, #1867). */
+     sur une entrée coupée. Le pas est CONSTANT — la mise en évidence de l'unité au trait est un
+     liseré, qui ne change aucune boîte (portrait-tile.css, #1867). */
   --is-head: calc(var(--is-head-air) + var(--is-round-h) + var(--is-round-margin) + var(--is-foot) + var(--is-frame));
   /* L'entrée visée par un défilement se cale SOUS le cartouche collé : la même tête, moins le pied
      et les filets, plus l'écart qui la sépare du cartouche. Un calage plus court que la tête réelle
@@ -136,7 +135,7 @@
   pointer-events: none;
   background: linear-gradient(180deg, rgba(20, 15, 10, 0) 0%, var(--atelier-wood-bottom) 78%);
 }
-/* Chaque entrée est un point d'ARRÊT : la colonne ne s'immobilise jamais au milieu d'un visage. */
+/* Chaque entrée est un point d'ARRÊT : la colonne ne s'immobilise jamais au milieu d'une entrée. */
 .is-cell {
   scroll-snap-align: start;
 }
@@ -163,18 +162,8 @@
 .is-cell:has(.ptile.team-ally)::before {
   background: linear-gradient(180deg, var(--hud-camp-ally-hi), var(--hud-camp-ally-lo));
 }
-/* Vignette d'ENNEMI : entrée PLEINE hachurée à liseré de camp (spécimen A). Le contour POINTILLÉ
-   de `RigPortrait` (canal de forme, posé en style inline) se lisait « débogage » dans la colonne ;
-   ici le camp est déjà porté par la réglette de gauche — un canal non coloré, et le seul de la
-   frise. Sur le TERRAIN, le pointillé des pions reste intact. */
-.is-tiles .ptile.team-enemy .rig-portrait {
-  border-style: solid !important;
-  border-color: var(--combat-enemy) !important;
-  background: repeating-linear-gradient(135deg, var(--cc-brass-cell-hi) 0 6px, var(--hud-frise-edge) 6px 12px);
-}
-.is-tiles .ptile.team-ally .rig-portrait {
-  border-color: var(--hud-camp-ally-hi) !important;
-  background: repeating-linear-gradient(135deg, var(--cc-brass-cell-hi) 0 6px, var(--hud-frise-edge) 6px 12px);
+.is-cell:not(:has(.ptile.team-ally, .ptile.team-enemy))::before {
+  display: none;
 }
 /* UN SEUL traitement « au trait » dans la frise : le liseré doré de la vignette active. Le survol
    (écho carte↔frise) garde son halo NEUTRE, jamais un deuxième or. */
@@ -283,7 +272,7 @@
   /* Cartes de la frise compactées : seules les respirations tombent — portrait, Blessures et
      alertes restent. Les deux grandeurs qui changent ici (écart, rembourrage du pied) traversent le
      pas, la tête et le calage par dérivation — rien à recopier. */
-  .is-tiles { --is-gap: 5px; --is-head-air: 6px; --is-foot-air: 6px; --is-flank: 5px; padding: 0 var(--is-flank) var(--is-foot); }
+  .is-tiles { --is-gap-air: 5px; --is-head-air: 6px; --is-foot-air: 6px; --is-flank: 5px; padding: 0 var(--is-flank) var(--is-foot); }
 }
 @media (max-width: 700px) {
   /* La frise quitte la colonne latérale pour une BANDE HORIZONTALE défilable sous le groupe,
@@ -310,6 +299,7 @@
   .is-tiles {
     flex-direction: row;
     align-items: center;
+    --is-gap: var(--is-gap-air);
     --is-head-air: 5px;
     /* En BANDE, l'axe de bloc est transverse : la même réserve y porte le badge en débord ET le
        chevron de la vignette au trait — la plus exigeante des deux gagne, elle ne les additionne pas. */
@@ -382,16 +372,8 @@
     left: 58px;
     right: 4px;
   }
-  .is-tiles .ptile,
-  .is-tiles .ptile-face {
-    width: 34px !important;
-  }
-  .is-tiles .ptile-face {
-    height: 34px !important;
-  }
-  .is-tiles .rig-portrait {
-    width: 34px !important;
-    height: 34px !important;
+  .is-tiles {
+    --ptile-context-px: 34px;
   }
   .is-round {
     font-size: 11px;

@@ -26,6 +26,7 @@ import { setCadence, cadenceAuto } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -35,9 +36,9 @@ const NET0 = initialNet();
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 }, corruption: 0,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), corruption: 0,
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
 
 const arena = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), baseOrder: combatants.map((c) => c.id),

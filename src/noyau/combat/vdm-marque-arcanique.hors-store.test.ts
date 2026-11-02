@@ -9,7 +9,7 @@ import { hasTalent, talentTestSLBonus } from '../../engine/magic';
 import { effectiveTalents } from '../../engine/talentEffects';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -41,7 +41,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.wounds = blessuresDeBase(400);
+    H.wounds = blessuresDeBase(400, 400, H);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return H;
   }

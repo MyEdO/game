@@ -2,12 +2,12 @@ import type { JSX } from 'react';
 /**
  * PEINTRE UNIQUE du chrome d'écran d'un jeton (#1176, P3-0f) : la barre de PV, la rangée d'icônes
  * d'états/buffs avec son report « +N », et la pastille d'état de FIN (#237).
- * L'unique surcouche des jetons le monte (`stage/TokenChromeOverlay`), au bord du disque d'un pion ou
- * au-dessus de la tête d'un billboard — et c'est structurel : deux peintres divergeraient d'un pixel,
+ * L'unique surcouche des jetons le monte (`stage/TokenChromeOverlay`), au bord supérieur du repère
+ * au sol — et c'est structurel : deux peintres divergeraient d'un pixel,
  * d'une couleur de seuil ou d'un `<title>` d'accessibilité.
  *
- * Le repère est celui du JETON : origine au centre de son bloc d'empreinte, `badgeY` = l'ordonnée de
- * la TÊTE — le rayon du disque pour un pion, la hauteur du quad pour un billboard (`chromeHeadPx`).
+ * Le repère est celui du JETON : origine au centre de son bloc d'empreinte, `badgeY` = l'ordonnée du
+ * bord supérieur de l'anneau ou du disque (`chromeHeadPx`).
  */
 import { hpColor } from './teamColors';
 import { CHROME_SLOTS } from './builders/tokenChrome';

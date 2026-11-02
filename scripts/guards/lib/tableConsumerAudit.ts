@@ -16,6 +16,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from './lister.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
+import { enregistrementsPropres, isConsumed } from './entityConsumers.mjs';
 import { effectTables } from '../../../src/data/index';
 import type { Site } from './stock.mjs';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
@@ -25,25 +26,20 @@ const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 export const DOSSIER_DONNEES = join(RACINE, 'src/data');
 export const DATASET_TABLES = 'src/data/tables.json';
 
-/** DÉCLARATION d'une table dans `tables.json` : `"id"`, la clé d'ENVELOPPE `"type"`, puis `"label"`.
- *  Retirée du corpus pour qu'une table ne se compte pas elle-même. `type` reste OPTIONNEL dans le
- *  motif : le fichier a vécu sans lui, et un motif qui l'exigerait mentirait sur l'historique. */
-export const MOTIF_DECLARATION = /"id":\s*"[^"]*"\s*,\s*(?:"type":\s*"[^"]*"\s*,\s*)?(?="label")/g;
+/** L'ENREGISTREMENT PROPRE de chaque table (`enregistrementsPropres`, `entityConsumers.mjs`), clé
+ *  `tables:<id>` : la table privée de sa clé `id`, sa déclaration. */
+const propresDesTables = (): Map<string, string> => enregistrementsPropres(DOSSIER_DONNEES, { tables: 'tables.json' });
 
-/** Corpus des consommateurs : `tables.json` privé de ses seules DÉCLARATIONS d'id (pour que les
- *  `tableId` d'une table vers une autre comptent), les autres données `src/data/*.json`, + le code
- *  de prod `src/**` (hors tests, COMMENTAIRES retirés — sinon un id cité en commentaire « solde »
+/** Corpus des consommateurs : `tables.json` réduit aux ENREGISTREMENTS PROPRES de ses tables (pour
+ *  que les `tableId` d'une table vers une autre comptent), les autres données `src/data/*.json`, + le
+ *  code de prod `src/**` (hors tests, COMMENTAIRES retirés — sinon un id cité en commentaire « solde »
  *  une orpheline sans câblage réel ; hors `*.generated.ts` — un INDEX généré de la donnée énumère
  *  tous les ids sans en consommer aucun, cf. `schemas/_ids.generated.ts`). */
-export function consumerCorpus(): string {
+export function consumerCorpus(propres: Map<string, string> = propresDesTables()): string {
   let corpus = '';
   const fichiers = listerDossier(DOSSIER_DONNEES).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
   for (const f of fichiers) {
-    const raw = readFileSync(join(DOSSIER_DONNEES, f), 'utf8');
-    // Sans le maillon `type` (#1467 L1b V-FLIP-ENTITE-b), le retrait ne mordait plus : la
-    // déclaration RESTAIT dans le corpus et chaque table s'y comptait comme sa propre
-    // consommatrice. Le motif est VERROUILLÉ par un test de `src/data/tables.test.ts`.
-    corpus += f === 'tables.json' ? raw.replace(MOTIF_DECLARATION, '') : raw;
+    corpus += f === 'tables.json' ? [...propres.values()].join('\n') : readFileSync(join(DOSSIER_DONNEES, f), 'utf8');
   }
   const sansCommentaires = (src: string): string =>
     src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
@@ -54,16 +50,14 @@ export function consumerCorpus(): string {
   return corpus;
 }
 
-/** Un id compte comme consommé s'il apparaît comme jeton de chaîne CITÉ complet (`"<id>"` ou
- *  `'<id>'`) — jamais une sous-chaîne nue (prose, id plus long, mention non citée). */
-export const isConsumed = (corpus: string, id: string): boolean =>
-  corpus.includes(`"${id}"`) || corpus.includes(`'${id}'`);
-
-/** Les tables d'effets orphelines, en SITES `{ file, ref }`. */
+/** Les tables d'effets orphelines, en SITES `{ file, ref }` : le prédicat `isConsumed` PARTAGÉ
+ *  (`entityConsumers.mjs`), qui décompte les citations de son propre id qu'une table porte dans
+ *  son enregistrement. */
 export function sitesTableOrpheline(): Site[] {
-  const corpus = consumerCorpus();
+  const propres = propresDesTables();
+  const corpus = consumerCorpus(propres);
   return effectTables
-    .filter((t) => !isConsumed(corpus, t.id))
+    .filter((t) => !isConsumed(corpus, t.id, propres.get(`tables:${t.id}`)))
     .map((t) => ({ file: DATASET_TABLES, ref: t.id }));
 }
 

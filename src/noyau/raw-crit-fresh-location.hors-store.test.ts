@@ -8,6 +8,7 @@ import { hitLocationByShape, reverseRoll } from '../engine/combat';
 import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
 import { emptyScene } from './monde/scene';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -20,21 +21,21 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * défense opposée (`applyOpposedCritical`).
  */
 const mkTarget = (armour: Partial<Record<string, number>> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'T', name: 'Cible', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0, ...armour },
     skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const caster = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'C', name: 'Mage', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [], armour: {} as never,
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], armour: {} as never,
     skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const missile = (): SpellData =>
   ({ id: 'dard', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 }) as SpellData;

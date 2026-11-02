@@ -26,8 +26,8 @@ export function corpusTypeScriptDesGardes(): readonly import('./sourceCorpus.mjs
 /** Les commentaires d'un fichier par l'extracteur de son dialecte (TypeScript, JavaScript, GDScript). */
 export function commentairesDe(rel: string, contenu: string): Comment[];
 export function estFichierScanne(cheminRelatifOuAbsolu: string): boolean;
-/** L'ensemble `ART` : les fichiers de l'art du rig, par dossier. */
-export function estArtDuRig(rel: string): boolean;
+/** L'outillage de QC : les fichiers sous `scripts/qc/`. */
+export function estOutillageDeQc(rel: string): boolean;
 
 export const TOMBSTONE_FAMILIES: { rx: RegExp; label: string }[];
 export function tombstonesIn(text: string): string[];

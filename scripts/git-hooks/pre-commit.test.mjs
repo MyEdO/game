@@ -33,7 +33,6 @@ const SCRIPTS_PAR_CHEMIN = [
   'scripts/raw/build-implemente.mjs',
   'scripts/docs/build-doctrines.mjs',
   'scripts/guards/validate-data.mts',
-  'scripts/rig/compile-dessin-quad.mts',
 ]
 /** Un chemin stagé par déclencheur d'étape lourde (#2327 §0). */
 const DECLENCHEURS = {
@@ -41,7 +40,6 @@ const DECLENCHEURS = {
   'docs/raw/4e/talents.md': '# t\n',
   '.claude/memory/user-x.md': '---\nname: user-x\ndescription: "d"\n---\n\nrègle\n',
   'src/data/etats.json': '{}\n',
-  'src/gameIso/rig/quadruped/atelier/boeuf-profile.dessin.mts': 'export const DESSIN = []\n',
   'scripts/recette/x.mjs': 'export const x = 1\n',
   'scripts/raw/x.mjs': 'export const x = 1\n',
   '.codex/hooks.json': '{}\n',

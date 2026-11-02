@@ -29,6 +29,7 @@ import type { AttackResult } from '../engine/combat';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Le genre de la bande de prose : une clé de fixture, typée comme une étape la porte. */
 const KIND_PROSE = cleDeFixture<GenreDeCascade>('uiBandProse');
@@ -625,13 +626,13 @@ describe('BILAN — un tirage joué se VOIT, même sans conséquence écrite (#1
 describe('Blessure critique — le dé en tête, le Critique, les voies dessous (#1426)', () => {
   const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const combattant = (p: Partial<Combatant>): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'x', label: 'X', kind: 'hero', characteristics: CHARS,
-      wounds: { current: 15, max: 15 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+      wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       ...p,
-    } as unknown as Combatant);
+    }) as unknown as Combatant);
   const gourdin: Weapon = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] };
   const coupCritique: AttackResult = {
     hit: true, attackerRoll: 12, netSL: 4, location: 'corps', critLocation: 'corps', damage: 8, woundsLost: 3,

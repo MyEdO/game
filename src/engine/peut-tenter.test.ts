@@ -4,6 +4,7 @@ import { partyAssisted, partyBest, bestSkilledOption, peutTenter } from './skill
 import { crewRoleValue } from './crewMorale';
 import { findCrewRoleById } from '../data';
 import { propulsionDuNavire } from './shipBuild';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -16,14 +17,14 @@ function hero(id: string, soc: number, opts: { ragot?: number; evaluation?: numb
     ...(opts.evaluation != null ? [{ id: 'evaluation', characteristic: 'intelligence', advances: opts.evaluation }] : []),
     ...(opts.voile != null ? [{ id: 'voile', characteristic: 'agilite', advances: opts.voile }] : []),
   ];
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: soc, 'force-mentale': 30, sociabilite: soc },
-    wounds: { current: 10, max: 10 }, advantage: 0, movement: 4,
+    wounds: blessuresDeBase(10), advantage: 0, movement: 4,
     conditions: opts.inconscient ? [{ id: 'inconscient', value: 1 }] : [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills, talents: [],
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('peutTenter — l\'élection du meneur et le Soutien', () => {

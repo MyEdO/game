@@ -119,7 +119,7 @@ surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par
 `poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, uid, side,
 crewIds }`. La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
 depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` doit désigner une pièce
-POSABLE (trapping à art d'affût `siegeRig`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
+POSABLE (trapping de sous-type `armes-de-siege`, `siegeEngines()`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
 héros adjacent (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.
 Garde-fou : les projets ne portent AUCUN poste en forme ancienne (base copiée), cf. la garde #222 de
 `src/data/refs-migrated.test.ts`.
@@ -141,7 +141,7 @@ Une coque RICHE (équipage exposé `crewIds`, artillerie `postes`, amélioration
 et l'abordage se joue à la case. L'Allonge, elle, est le SEUL endroit où 2 m/case est figé : `reachTiles`
 (`src/engine/engagement.ts`) traduit les mètres de LDB 62 l.163/164 en cases avec le facteur RAW
 `LDB 15 l.12`, sans lire `metresPerTile`. Tout le reste SUIT l'échelle de la scène — bandes de portée,
-géométrie des recettes de décor, ancres de place, rayons de lumière (#1507). Échelle de la Diligence : l’utilisateur a retenu le 2 m/case du livre (arbitrage 2026-09-04, option A de #1507 : « A — 2 m/case, RAW ») — rien ne bouge à l’écran, l’option « auberge deux fois plus petite » est écartée.
+géométrie des recettes de décor, ancres de place, rayons de lumière (#1507). Échelle de la Diligence : l’utilisateur a retenu le 2 m/case du livre (#1507) — rien ne bouge à l’écran, l’option « auberge deux fois plus petite » est écartée.
 Les grilles d'ABORDAGE restent à 2 m/case : le modèle MER exige une IA de manœuvre de coque ENNEMIE qui
 n'existe pas encore (`runEnemyAI` ne pilote aucun `bodyShape:'vehicule'` → la coque adverse ne s'avance ni ne
 vire), et la bordée (portée en mètres) tombe hors d'atteinte sans manœuvre d'approche. L'échelle mer vaut
@@ -435,8 +435,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`src/noyau/monde/resolveursDuNarratif.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
-  passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
-  dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
+  passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant). Couche non chargée / preset irrésoluble → `FicheAbsente`
   (`src/noyau/monde/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
   narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
@@ -509,7 +508,12 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
   `{ "id": "haine", "arg": "@kirstin" }` ; un Groupe s'écrit par son id nu. C'est la seule pose d'un individu
   en donnée : les cas du livre sont tous des statblocs.
 - **Op psy** (`beginPsych`, `grantPsychTrait`) : la Cible est un Groupe, `"cible": { "id": "nain" }`, dans tout
-  document.
+  document. Seul un Sort vise une personne que son lanceur désigne au lancement : `grantPsychTrait` y porte
+  `"envers": "personneChoisie"` à la place de la Cible (Colérique, VDM 10 l.327 ; `noyau/personneChoisie.ts`).
+  Lectures adoptées à titre révisable (#3045) : deux personnes sont amies
+  quand elles sont du même camp ; un lanceur que personne ne pilote désigne, dans le camp de la cible, la
+  personne la plus proche d'elle, et prend le plus haut palier offert ; sans personne, le Trait reste sans
+  effet ; hors combat, la cible est un héros du groupe.
 - **Portée** : le personnage est une entité de la MÊME scène, `validateScene` refuse un id qu'aucune ne porte.
   Le Trait posé du catalogue `src/data` et la péripétie de route (`worldMap.routes[].perils`) refusent `@id`.
 - **Affichage** : le nom de l'individu, à défaut « une personne de la scène », jamais son id.

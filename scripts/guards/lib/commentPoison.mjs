@@ -68,14 +68,10 @@ export function estFichierScanne(cheminRelatifOuAbsolu) {
   return racines.some((d) => p === d || p.startsWith(`${d}/`) || p.includes(`/${d}/`));
 }
 
-/** L'ensemble `ART` : les fichiers de l'art du rig, par DOSSIER — sous `src/gameIso/rig/`,
- *  `scripts/rig/` ou `scripts/qc/`, un `scripts/_qc-*` ou `scripts/_tokenize-*`. Seule écriture de cet
- *  ensemble du dépôt. `scripts/qc/` porte aussi des scripts qui ne dessinent pas le rig (rendu de
- *  mobilier, de props, de siège, captures) : ils sont dans l'ensemble, où les formes de l'art sont
- *  lues quel que soit leur sens.
+/** L'outillage de QC : les fichiers sous `scripts/qc/`, où les formes de l'art (jetons, gammes, vues,
+ *  dégradés) se lisent quel que soit leur sens. Seule écriture de cet ensemble du dépôt.
  * @param {string} rel chemin POSIX depuis la racine @returns {boolean} */
-export const estArtDuRig = (rel) =>
-  /^(?:src\/gameIso\/rig\/|scripts\/rig\/|scripts\/qc\/|scripts\/_qc-|scripts\/_tokenize-)/.test(rel);
+export const estOutillageDeQc = (rel) => rel.startsWith('scripts/qc/');
 
 /**
  * @typedef {{ text: string, line: number, start: number, end: number }} Comment
@@ -667,7 +663,7 @@ const NB_APRES = '(?![a-zA-ZÀ-ÿ0-9])';
 const FICHIER_APRES = '(?!\\.(?:mjs|mts|tsx?|jsx?|json))';
 const MOT = '[a-zA-ZÀ-ÿ]+';
 
-// SECOND NOM d'un concept de l'art du rig (le jeton, le dégradé, la gamme, l'art orienté) et de la
+// SECOND NOM d'un concept de l'art (le jeton, le dégradé, la gamme, l'art orienté) et de la
 // table totale (#1903) : trois familles, chacune une déclaration gardée dont le périmètre s'écrit par
 // son `domaine` (absent : tous les fichiers), lu par `sAppliqueA` (`sourceCorpus.mjs`) comme toute
 // déclaration gardée. Dans son domaine, les emplois vivants restent écartés par le contexte
@@ -702,7 +698,7 @@ const FORMES_DE_L_ART_SEUL = [
 const FORMES_DE_L_ART_SANS_FIN = [String.raw`familles?\s+@`, String.raw`familles?\s+\x60[\wÀ-ÿ]+\*?\x60`].join('|');
 const FORMES_D_UN_CONCEPT_DE_L_ART = [
   String.raw`token\s*→\s*hex`, String.raw`tokens?\s+de\s+palette`, String.raw`gradients?\s+partagés`,
-  String.raw`gradients?\s+du\s+rig`, String.raw`\(base,\s*O,\s*H\)`, String.raw`nuances?\s+O\/H`,
+  String.raw`\(base,\s*O,\s*H\)`, String.raw`nuances?\s+O\/H`,
   String.raw`familles?\s+de\s+jetons?`, String.raw`jetons?\s+de\s+famille`, String.raw`variantes?\s+(?:O|sombre)`,
   String.raw`arts?\s+tokenis[\wÀ-ÿ]*`, String.raw`arts?\s+(?:dédiés?\s+)?à\s+gradients?`, String.raw`multi-?vues?`,
   String.raw`(?:arts?|props?|décors?|pieds?|mains?|parts?)(?:\s+\([^)]*\))?(?:\s+|\s+[\wÀ-ÿ]+\/)(?:non[- ])?directionnel(?:le)?s?`,
@@ -743,12 +739,12 @@ export const LEGACY_VOCAB_FAMILIES = [
       'im',
     ),
     label: "second nom de l'art",
-    domaine: estArtDuRig,
+    domaine: estOutillageDeQc,
   },
   {
     rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_D_UN_CONCEPT_DE_L_ART), 'im'),
     label: "second nom d'un concept de l'art",
-    domaine: (rel) => !estArtDuRig(rel),
+    domaine: (rel) => !estOutillageDeQc(rel),
   },
   { rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_DE_LA_TABLE_TOTALE), 'im'), label: 'second nom de la table totale' },
   // #2199 : le REPLI justifié par un état qui précède la forme courante — une save jetée à la lecture

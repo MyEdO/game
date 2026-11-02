@@ -9,6 +9,7 @@ import { makeRNG } from '../dice';
 import { rollTest } from '../tests';
 import type { Combatant, Weapon } from '../types';
 import { parseQualityInstance } from './normalize';
+import { blessuresSurLeProfil, blessuresDeBase } from '../combattantDeTest.testkit';
 
 /**
  * Lot A — les 10 derniers Atouts/Défauts d'armes (LDB 62 l.229-302 / LDB 62 l.313-331) :
@@ -19,14 +20,14 @@ const w = (qualities: string[], over: Partial<Weapon> = {}): Weapon =>
   ({ label: 'Arme', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: qualities.map((s) => parseQualityInstance(s)!), ...over });
 
 function fighter(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'x', label: 'X', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 40, agilite: 30, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, items: [],
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('préséance `beats` (LDB 62 l.302/323)', () => {

@@ -3,6 +3,7 @@ import { effectiveWeapon, effectiveWeaponDamage } from './weaponDamage';
 import { areInContact, setContact, clearContact, disengageFrom, decayEngagement, engage } from './engagement';
 import { hasQuality } from './qualities/dispatch';
 import type { Weapon, Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Au Contact (Issue #42.5, LDB 62 l.176) :
 // « Pendant un combat au contact, n'importe quelle arme plus longue que Courte est considérée comme
@@ -66,14 +67,14 @@ describe('effectiveWeapon — improvisation par CONTEXTE générique (funnel)', 
   });
 });
 
-const C = (id: string, p?: Partial<Combatant>): Combatant => ({
+const C = (id: string, p?: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'hero',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+  wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   ...p,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 describe('areInContact / setContact / clearContact — relation symétrique + purge', () => {
   it('areInContact est SYMÉTRIQUE après setContact (posé par paire)', () => {

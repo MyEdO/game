@@ -2,11 +2,10 @@ import type { ReactNode } from 'react';
 import type { Combatant } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
 import { RollLine, PendingRollLine, type PendingRoll } from './RollLine';
-import { TeamPortrait } from './TeamPortrait';
 
 /**
  * LE panneau de jet unique — même géométrie AVANT et APRÈS le jet (l'avant-jet est le même bloc
- * que le résultat, pré-rempli). Une ligne par participant : portrait d'équipe · compétence ·
+ * que le résultat, pré-rempli). Une ligne par participant : compétence ·
  * base+mods=cible · dé · DR. Utilisé par TOUTES les modales de jet (attaque, défense, tests,
  * flux `RollShell`…).
  *
@@ -36,7 +35,6 @@ export function RollPanel({
 }) {
   const shown = rows.filter((r) => r.d || r.pending || r.note);
   if (!shown.length) return null;
-  const withPortraits = shown.some((r) => r.combatant);
   return (
     <div className="roll-panel">
       {shown.map((r, i) => (
@@ -44,9 +42,6 @@ export function RollPanel({
           key={i}
           className={`rr-row ${winnerIndex == null ? '' : winnerIndex === i ? 'rr-win' : 'rr-lose'}`}
         >
-          {withPortraits && (
-            <span className="rr-port">{r.combatant && <TeamPortrait combatant={r.combatant} size={28} />}</span>
-          )}
           <div className="rr-main">
             {(r.d || r.pending) && (
               <div className="rr-line">{r.d ? <RollLine d={r.d} /> : <PendingRollLine p={r.pending!} />}</div>

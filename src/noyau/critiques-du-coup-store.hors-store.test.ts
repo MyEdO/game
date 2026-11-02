@@ -18,6 +18,7 @@ import { spawnEnemy } from './monde/spawn';
 import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -47,7 +48,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   const [cible, pretre] = ennemis;
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
   pretre.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
-  pretre.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+  pretre.wounds = blessuresDeBase(20, 20, pretre);
   if (martyr) cible.activeEffects = [{ label: 'Martyr', bonus: 0, duration: { scale: 'rounds', left: 4 }, martyrGuard: pretre.id }] as never;
   if (demoniaque != null) cible.traits = [...(cible.traits ?? []), { id: 'demoniaque', value: demoniaque }] as never;
   if (!vehicule) {
@@ -55,7 +56,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
     cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
     if (pieces.length) recomputeLoadout(cible);
     if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
-    cible.wounds = { current, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, current, cible);
     cible.important = important;
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
   }
@@ -396,7 +397,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     cible.important = true;
     cible.items = [...(cible.items ?? []), ...structuredClone(pieces(touche.location!))];
     recomputeLoadout(cible);
-    cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 1, cible);
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
     try {
@@ -483,7 +484,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const { mage, cible } = carreauEnCombat();
     cible.armour = { tete: 1, corps: 1, brasG: 1, brasD: 1, jambeG: 1, jambeD: 1 };
     cible.important = false;
-    cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 1, cible);
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     expect(res.woundsLost ?? 0, 'le Projectile dépasse la Blessure restante').toBeGreaterThan(1);
     applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
@@ -498,7 +499,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
   it('la Localisation de la touche ne se relance pas (LDB 18 l.44, l.53 ; #1595 c.6219992594)', () => {
     const { mage, cible } = carreauEnCombat();
     cible.important = false;
-    cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 1, cible);
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     const lieux: (string | undefined)[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; result: MissileResult }) => { if (p.kind === 'spell') lieux.push(p.result.location); });
@@ -518,7 +519,7 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
-    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 20, cible);
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }] as never;
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, choix);
@@ -569,7 +570,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     c.items = (c.items ?? []).filter((i) => i.kind !== 'armor');
     c.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
     c.important = true;
-    c.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    c.wounds = blessuresDeBase(20, 20, c);
   }
 
   /** Le Projectile en Incantation critique (`'critique'`) par `applyCast`, la cascade drainée au dé 50. */
@@ -630,7 +631,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
-    cible.wounds = { current: 2, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 2, cible);
     cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
     const emis: (number | undefined)[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => {
@@ -690,7 +691,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     cible.important = true;
     cible.items = [...(cible.items ?? []), piece([], 2)];
     recomputeLoadout(cible);
-    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 20, cible);
     const emis: (number | undefined)[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques); });
     let kinds: string[];
@@ -772,7 +773,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     cible.important = true;
     cible.items = [...(cible.items ?? []), piece([], 2)];
     recomputeLoadout(cible);
-    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 20, cible);
     if (o.demoniaque != null) cible.traits = [...(cible.traits ?? []), { id: 'demoniaque', value: o.demoniaque }] as never;
     const sort = findSpellById('carreau')!;
     const touches = () => journal().filter((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`));
@@ -905,7 +906,7 @@ describe('la ligne de touche qualifie la Localisation relancée, au jet comme au
     const { mage, cible } = carreauEnCombat();
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     cible.important = true;
-    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    cible.wounds = blessuresDeBase(20, 20, cible);
     const sort = findSpellById('carreau')!;
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });

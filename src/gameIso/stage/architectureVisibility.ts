@@ -1,4 +1,4 @@
-import { depth, type Dims, type ProjectedOccluder } from '../../geometry/iso';
+import { depth, type Dims } from '../../geometry/iso';
 import type { WallSide } from '../../noyau/monde/scene';
 
 export type Cutaway = 'hidden' | 'visible';
@@ -70,22 +70,6 @@ export function cutawayForSection(section: EnclosedSpace, cleared: ClearedSpace)
  *  entier ou reste entier. */
 export function cutawayOverhead(cell: { x: number; y: number; z?: number }, cleared: ClearedSpace): boolean {
   return cleared.overheadCells.has(spaceCellKey(cell.x, cell.y, cell.z ?? 0));
-}
-
-/** Un COUVERCLE candidat : la nappe d'une masse, son niveau, l'emprise qu'elle coiffe et sa
- *  projection écran.
- *
- *  LA RIPOSTE À L'OCCLUSION D'ÉCRAN N'EST PAS UN RETRAIT (#1176, M3, 2026-08-16) : une masse peut
- *  cacher un héros sans l'abriter — il est DEVANT elle ou À CÔTÉ, pas dessous. Cette occlusion-là ne
- *  retire RIEN de l'architecture ; elle ouvre un TROU local autour du héros (`stage/percage.ts`),
- *  sur cette MÊME géométrie (`occludesActor`). Ce qui se retire (`cutawayForSection`,
- *  `cutawayOverhead`) se retire pour ABRI RÉEL et pour lui seul : la pièce, l'emprise, le couvercle
- *  au-dessus de la tête. */
-export interface Lid {
-  sectionId: string;
-  z: number;
-  cells: readonly { x: number; y: number }[];
-  occluder: ProjectedOccluder;
 }
 
 export function exteriorWallViewZ(activeZ: number, interiorFocused: boolean, layerZs: readonly number[]): number {

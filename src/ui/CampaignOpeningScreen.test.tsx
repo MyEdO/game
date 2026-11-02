@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Ouverture cérémonielle (#717) — contrats POSITIFS du rendu : le pitch passe par `<Prose>` (donnée
- * VERBATIM, jamais du texte en dur), la compagnie est une rangée de tuiles-figurines STATIQUES (pas
+ * VERBATIM, jamais du texte en dur), la compagnie est une rangée de tuiles d’identité STATIQUES (pas
  * un picker), l'ambiance par défaut est la veillée, et « Prendre la route » borne le chapitre.
  *
  * Rendu CLIENT (`createRoot`) et non `renderToStaticMarkup` : en SSR, zustand sert l'état INITIAL
@@ -15,17 +15,18 @@ import { CampaignOpeningScreen } from './CampaignOpeningScreen';
 import { useGame } from '../state/store';
 import type { OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 function hero(id: string, label: string): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label, kind: 'hero', career: 'repurgateur',
-    characteristics: {} as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    characteristics: profilDeTest(),
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
 }
 
 const ouverture: OuvertureBlock = {
@@ -66,7 +67,7 @@ describe('CampaignOpeningScreen (#717)', () => {
     expect(container.querySelector('.parchment-seal')).toBeNull(); // ni médaillon d100
   });
 
-  it('rend UNE tuile-figurine par héros, en STATIQUE (aucune sémantique de picker)', async () => {
+  it('rend UNE tuile d’identité par héros, en STATIQUE (aucune sémantique de picker)', async () => {
     await mount();
     const tuiles = container.querySelectorAll('.fig-row .fig-tile');
     expect(tuiles).toHaveLength(2);

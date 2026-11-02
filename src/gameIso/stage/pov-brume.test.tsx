@@ -17,7 +17,6 @@ import { FOG_GAMMA_DEFINE, type MatériauEmbrumable } from '../backends/webgl/sc
 import { GameStage3D, setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
 import { toHex } from '../shade';
-import { findTrappingById } from '../../data';
 
 /**
  * BRUME & CIEL DE LA PREMIÈRE PERSONNE (#1176, P3-1c) — l'horizon du POV volumique cesse d'être tranché
@@ -257,13 +256,13 @@ describe('POV volumique — la météo module la brume du milieu (#1247)', () =>
     const s = useGame.getState().scene!;
     const mpt = sceneMetresPerTile(s);
     monter(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={s}
         mpt={mpt}
         frame={{ mode: 'pov', partyPos: { x: 4, y: 4 }, facing: 'N', indoor, cid: null }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={1}
@@ -319,13 +318,13 @@ describe('POV volumique — la météo module la brume du milieu (#1247)', () =>
       return n;
     };
     const monterVue = (view: Dims['view']) => monter(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={s}
         mpt={sceneMetresPerTile(s)}
         frame={{ mode: 'plateau', dims: { w: s.dimensions.w, h: s.dimensions.h, rot: 0, view }, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={1}
@@ -348,13 +347,13 @@ describe('Vue de PLATEAU — pas d’horizon, donc pas de brume (#1176 P3-1c)', 
     const scene = poser('exterieur');
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' };
     monter(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={{ mode: 'plateau', dims, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={null}

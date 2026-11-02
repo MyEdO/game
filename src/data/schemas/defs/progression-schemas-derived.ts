@@ -24,19 +24,19 @@ export const famille = 'config';
 /** Une marque lue sur la page : sa colonne imprimée, la Caractéristique correspondante, son abscisse
  *  et — pour les niveaux 2/3/4, imprimés en aplat — la couleur RVB MESURÉE qui donne le niveau. Le
  *  niveau 1 est un glyphe de police (`crossbatstfb`), sans aplat donc sans teinte. */
-const markSchema = nommerChamps(z.strictObject({
+export const markSchema = nommerChamps(z.strictObject({
   col: z.enum(['CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc']),
   characteristic: charKeySchema,
   x: z.number(),
   teinte: z.tuple([z.number(), z.number(), z.number()]).optional(),
-  mark: z.literal('glyphe').optional(),
 }), {
   col: { label: 'Colonne' },
   characteristic: { label: 'Caractéristique' },
   x: { label: 'Abscisse' },
   teinte: { label: 'Teinte' },
-  mark: { label: 'Marque' },
 });
+
+const { note: _note, ...sourceMetas } = metaDesChamps(sourceRefSchema, { exigees: true });
 
 const doc = document(
   'progression-schemas.derived',
@@ -45,7 +45,7 @@ const doc = document(
   livres: z.array(z.string()),
   schemas: z.array(
     nommerChamps(z.strictObject({
-      ...sourceRefSchema.shape,
+      ...sourceRefSchema.omit({ note: true }).shape,
       /** VDM */
       career: z.string().nullable(),
       titresPage: z.array(z.string()),
@@ -63,7 +63,7 @@ const doc = document(
         "4": { label: 'Quatrième niveau' },
       }),
     }), {
-      ...metaDesChamps(sourceRefSchema, { exigees: true }),
+      ...sourceMetas,
       career: { label: 'Carrière' },
       titresPage: { label: 'Titres de page' },
       pdfpage: { label: 'Page PDF' },

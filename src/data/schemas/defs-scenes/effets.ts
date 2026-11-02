@@ -466,8 +466,9 @@ export const learnSpellSchema = nommerChamps(z.strictObject({
  *  (le lanceur doit alors être en combat). `targetId` absent = le lanceur (soi/zone). `mode:'jet'`
  *  (défaut) route par le flux d'incantation STANDARD (`castSpell`, cadence-aware ; modale influençable
  *  si le lanceur est piloté par un humain — jamais un jet silencieux). `mode:'forceSuccess'` = arbitrage
- *  D'AUTEUR explicite (rituel garanti, sans jet) : applique directement les effets du sort (`GameOp`,
- *  `ctx.caster` = le lanceur) — dérogation VOULUE, jamais un défaut. */
+ *  D'AUTEUR explicite (rituel garanti, sans jet) : le sort réussit à DR = NI et son Flow se joue par le
+ *  walker d'acteur, choix et paliers compris (`combatFlow.lancerLeSortGaranti`) — dérogation VOULUE,
+ *  jamais un défaut. */
 export const castSpellSchema = nommerChamps(z.strictObject({
   type: z.literal('castSpell'),
   casterId: z.string(),

@@ -1,4 +1,4 @@
-/* Réglages d'apparence (ReglagesApparence, MonsterPartsFields) : libellé et contrôle sur une ligne ;
+/* Réglages d'apparence (ReglagesApparence) : libellé et contrôle sur une ligne ;
    le contrôle prend la place restante et se BRIDE à sa piste (un `<select>` se dimensionne sinon sur
    son option la plus longue et déborde de la colonne). */
 .reglage-apparence {
@@ -10,8 +10,7 @@
   color: var(--muted);
 }
 .reglage-apparence select,
-.reglage-apparence .media-select,
-.reglage-apparence input[type='range'] {
+.reglage-apparence .media-select {
   flex: 1 1 auto;
   min-width: 0;
   max-width: 100%;

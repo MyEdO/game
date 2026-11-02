@@ -8,7 +8,7 @@ import { hasCondition } from '../../engine/conditions';
 
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -34,8 +34,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.wounds = blessuresDeBase(200);
-    E.wounds = blessuresDeBase(200);
+    H.wounds = blessuresDeBase(200, 200, H);
+    E.wounds = blessuresDeBase(200, 200, E);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E };
   }

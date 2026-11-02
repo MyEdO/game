@@ -7,7 +7,7 @@ import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
 
 const mk = (id: string, x: number, y: number, size?: SizeCategory): Combatant =>
-  ({ id, name: id, pos: { x, y }, size, wounds: { current: 10, max: 10, base: 10 }, conditions: [] }) as unknown as Combatant;
+  ({ id, name: id, pos: { x, y }, size, wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
 const battle = (cs: Combatant[]): BattleState => ({ combatants: cs }) as unknown as BattleState;
 const flatScene = (w: number, h: number): Scene =>
   ({ id: 's', name: 's', dimensions: { w, h }, ambiance: 'jour', layers: [{ z: 0, tiles: new Array(w * h).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;

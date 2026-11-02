@@ -6,7 +6,6 @@ import { CodexRef } from './compendium/CodexRef';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
 import { CharFrame } from './CharFrame';
-import { TeamPortrait } from './TeamPortrait';
 import { Coins } from './Coins';
 import { DrBar } from './DrBar';
 import { useHealJetProps } from './jetProps/useHealJetProps';
@@ -210,7 +209,6 @@ export function MedicModal() {
                     {meta.icon} {meta.label}
                     {(a === 'bleed' || a === 'ammo') && stacks > 0 ? ` ×${stacks}` : ''}
                     {cost && <span className="medic-price"><Coins money={toMoney(cost)} /></span>}
-                    {healer && <TeamPortrait combatant={healer} size={20} />}
                   </>}
                   ariaLabel={meta.label}
                   descOfferte={npc ? `Soigné par ${npc.label} · ${skillRefLabel(npc.skill)}` : healer ? `Soigné par ${healer.label}` : undefined}

@@ -98,9 +98,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "repurgateur"
     }
   },
   {
@@ -203,9 +200,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "repurgateur"
     }
   },
   {
@@ -314,9 +308,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "repurgateur"
     }
   },
   {
@@ -439,9 +430,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "repurgateur"
     }
   },
   {
@@ -550,9 +538,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "repurgateur"
     }
   },
   {
@@ -672,9 +657,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "marin-cotier"
     }
   },
   {
@@ -795,9 +777,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "marin-cotier"
     }
   },
   {
@@ -918,9 +897,6 @@
     ],
     "profilStandard": {
       "id": "humain"
-    },
-    "previewCareer": {
-      "id": "marin-cotier"
     }
   },
   {
@@ -1021,10 +997,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-cendreplaine",
@@ -1136,10 +1109,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-basseronce",
@@ -1249,10 +1219,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-tuilecaramel",
@@ -1363,10 +1330,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-piedfoin",
@@ -1476,10 +1440,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-piedpaille",
@@ -1590,10 +1551,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-piedfoin-piedpaille",
@@ -1702,10 +1660,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-pochegaree",
@@ -1813,10 +1768,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-havrebas",
@@ -1929,10 +1881,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-rumster",
@@ -2042,10 +1991,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-bordecharde",
@@ -2155,10 +2101,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-pavederonces",
@@ -2272,10 +2215,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "halflings-fraisedebois",
@@ -2386,10 +2326,7 @@
     "profilStandard": {
       "id": "halfling"
     },
-    "mutationBodyMax": 10,
-    "previewCareer": {
-      "id": "colporteur"
-    }
+    "mutationBodyMax": 10
   },
   {
     "id": "nains",
@@ -2506,10 +2443,7 @@
     "profilStandard": {
       "id": "nain"
     },
-    "mutationBodyMax": 5,
-    "previewCareer": {
-      "id": "tueur"
-    }
+    "mutationBodyMax": 5
   },
   {
     "id": "nains-norse",
@@ -2628,10 +2562,7 @@
     "profilStandard": {
       "id": "nain"
     },
-    "mutationBodyMax": 5,
-    "previewCareer": {
-      "id": "tueur"
-    }
+    "mutationBodyMax": 5
   },
   {
     "id": "gnomes",
@@ -2763,10 +2694,7 @@
     },
     "grantGroups": [
       "gnome"
-    ],
-    "previewCareer": {
-      "id": "sorcier"
-    }
+    ]
   },
   {
     "id": "ogres",
@@ -2895,10 +2823,7 @@
       {
         "id": "ogre"
       }
-    ],
-    "previewCareer": {
-      "id": "gladiateur"
-    }
+    ]
   },
   {
     "id": "hauts-elfes",
@@ -3016,10 +2941,7 @@
     "profilStandard": {
       "id": "elfe-haut-et-sylvain"
     },
-    "mutationBodyMax": 0,
-    "previewCareer": {
-      "id": "noble"
-    }
+    "mutationBodyMax": 0
   },
   {
     "id": "elfes-sylvains",
@@ -3136,9 +3058,6 @@
     "profilStandard": {
       "id": "elfe-haut-et-sylvain"
     },
-    "mutationBodyMax": 0,
-    "previewCareer": {
-      "id": "eclaireur"
-    }
+    "mutationBodyMax": 0
   }
 ]

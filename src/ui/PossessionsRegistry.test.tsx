@@ -6,15 +6,16 @@ import { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { PossessionsRegistry } from './PossessionsRegistry';
 import { useGame } from '../state/store';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const hero = (id: string): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id,
     label: 'H',
     kind: 'hero',
     species: 'humains-reiklander',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -24,7 +25,7 @@ const hero = (id: string): Combatant =>
     movement: 4,
     xp: 0,
     charAdvances: {},
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const mount = (node: React.ReactElement) => {
   const container = document.createElement('div');

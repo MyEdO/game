@@ -7,7 +7,8 @@
 //   `reconcile.mjs`, jamais ré-ancrée. Zéro tolérance, PAS de stock ;
 // - (j) réf au FOLIO `<ABRÉV> [<chap>] p.<folio>` (`refFolioRe`, _lib.mjs, chapitre présent ou non).
 //   Invariant zéro ; cliquet NOMINATIF à double sens dans `graphy-stock.json`, qui ne porte que des
-//   sites différés. Les graphies du folio que `refFolioRe` ne voit pas relèvent de #1912.
+//   sites différés ; soldé, il est ABSENT, lu comme zéro entrée (`lireEntreesDeSite`). Les graphies
+//   du folio que `refFolioRe` ne voit pas relèvent de #1912.
 // Les fiches `docs/raw/*.md` ont leurs classes propres (a/c/d/f/h/i) ; (b), (e) et (g) lisent les
 // deux corpus. Toute occurrence hors stock fait échouer le run avec la liste `fichier:ligne`.
 // Re-run : node scripts/raw/citation-graphy-guard.mjs
@@ -388,7 +389,7 @@ const QUOI =
   "ou texte de la citation, occurrence dans ce fichier) — jamais un numéro de ligne, qui dérive à " +
   "chaque édition. La FAMILLE est un champ de l'entrée, jamais une rubrique : une famille vidée " +
   "disparaît sans laisser de coquille. Le lot et la date d'une entrée sont ceux du geste qui l'a " +
-  "DIFFÉRÉE (#1898 : sites de src/gameIso/rig/**, tenus par le fil de la palette des rigs, #1882). Se " +
+  "DIFFÉRÉE. Se " +
   "solde en corrigeant la citation, " +
   "PUIS en régénérant ce fichier (`npx tsx scripts/guards/lib/regenStock.mts " +
   "scripts/raw/citation-graphy-guard.mjs`), qui en retire l'entrée ; un site DIFFÉRÉ y entre par " +

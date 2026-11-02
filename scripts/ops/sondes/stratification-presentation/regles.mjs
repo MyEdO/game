@@ -24,16 +24,16 @@ export const CATEGORIES = Object.freeze([
 /** @type {ReadonlyArray<Readonly<Regle>>} */
 export const REGLES = Object.freeze([
   {
-    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee)\.test\.ts$`),
+    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/renderer-no-hardcoded-color\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee)\.test\.ts$`),
     categorie: 'outillage',
     raison: 'Gardes de dépôt (garde structurelle, cliquet à stock, lint de source) : outillage de développement dans les trois zones, quel que soit le code gardé.',
-    preuve: 'src/gameIso/catalog/decor/defs-directional-guard.test.ts:8 (« Garde STRUCTURELLE ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts',
+    preuve: 'src/gameIso/catalog/decor/defs-directional-guard.test.ts:8 (« Garde STRUCTURELLE ») ; src/ui/ui-ratchets.test.ts',
   },
   {
     motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(\.testkit|\.fixture|\.bench|TestKit)\.tsx?$|^src/gameIso/stage/banc-volumique(\.test)?\.ts$`),
     categorie: 'outillage',
     raison: 'Soutien de test PARTAGÉ (kits, fixtures, bancs de mesure, harnais de banc) : servi à plusieurs sujets de plusieurs zones, outillage de développement ; les tests eux-mêmes suivent leur sujet.',
-    preuve: 'src/state/pieces.fixture.ts (importé par 8 tests de src/gameIso/stage) ; src/noyau/sceneEdit.testkit.ts (tests de state, gameIso/builders, ui/editor) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
+    preuve: 'src/state/pieces.fixture.ts (importé par 8 tests de src/gameIso/stage) ; src/state/sceneEdit.testkit.ts (tests de state, gameIso/builders, ui/editor) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(devtools|devtoolsTimers|scenarioFlow|editorAutosave|editeurBridge|projectLibrary|mapQC|planDefects|validateScene)(\.|-)`),
@@ -46,12 +46,6 @@ export const REGLES = Object.freeze([
     categorie: 'outillage',
     raison: 'Tests de la porte de projet de l\'éditeur.',
     preuve: 'noms ; src/noyau/persistance/bibliotheque.ts (parseProject)',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/qc-contrat(\.test)?\.ts$`),
-    categorie: 'outillage',
-    raison: 'Contrat du harnais de mesure QC de volume (scripts/qc), module pur d\'outillage.',
-    preuve: 'src/gameIso/rig/qc-contrat.ts:1-4',
   },
   {
     motif: new RegExp(String.raw`^src/gameIso/stage/(DebugOverlay|pickProbe)\.`),
@@ -258,14 +252,14 @@ export const REGLES = Object.freeze([
   {
     motif: new RegExp(String.raw`^src/gameIso/fx/`),
     categorie: 'moteur-generique',
-    raison: 'Pistes d\'animation d\'acteur et courbe de marche (animation generique).',
-    preuve: 'src/gameIso/fx/walkPose.ts:2 ; src/gameIso/fx/animTracks.ts:2',
+    raison: 'Marche visuelle et courbe de pas, horloges d\'impact (animation generique).',
+    preuve: 'src/gameIso/fx/walkPose.ts:2 ; src/gameIso/fx/useWalkAnim.ts:2 ; src/gameIso/fx/impactClock.ts',
   },
   {
     motif: new RegExp(String.raw`^src/gameIso/catalog/(decor|facades)/(.*defs/|_registry\.generated|index\.ts$)`),
     categorie: 'douteux',
     famille: 'contenu-art',
-    raison: 'CONTENU d\'art SVG des décors et façades, et leur registre id → def (même classe que src/ui/icons/index.ts et src/gameIso/rig/parts/*/index.ts).',
+    raison: 'CONTENU d\'art SVG des décors et façades, et leur registre id → def (même classe que src/ui/icons/index.ts).',
     preuve: 'src/gameIso/catalog/decor/defs/chaise.ts:1-20 ; src/gameIso/catalog/decor/index.ts:2 (« DÉRIVÉ du registre defs/ »)',
   },
   {
@@ -275,54 +269,7 @@ export const REGLES = Object.freeze([
     preuve: 'src/gameIso/catalog/ambiance.ts:1-5 ; src/gameIso/catalog/missing.ts:1',
   },
   {
-    motif: new RegExp(String.raw`^src/gameIso/rig/.*/defs/`),
-    categorie: 'douteux',
-    famille: 'contenu-art',
-    raison: 'CONTENU d\'art vectoriel (creatures, tenues, coiffures, armes, navires, engins, gabarits...) que le moteur ne fournit pas.',
-    preuve: 'src/gameIso/rig/creatures/defs/Cheval.ts:1-15 ; src/gameIso/rig/ship/defs/caraque.ts:1-10',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/(creatures|parts/(appendages|armour|bodies|capes|elements|eyes|hairstyles|heads|monster|prosthesis|shields|tenues|weapons|wings))/`),
-    categorie: 'douteux',
-    famille: 'contenu-art',
-    raison: 'Index/types/tests du CONTENU d\'art (registres de creatures, kits de parts) et golden masters de rendu : le moteur ne les fournit pas.',
-    preuve: 'src/gameIso/rig/creatures/defs/Cheval.ts:1 ; src/gameIso/rig/golden/biped-golden.test.ts:1-12',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/quadruped/(heads|manes|tails|harnais)/|^src/gameIso/rig/quadruped/(boeufCompile|chevalCompile|partArt|quadParts)\.ts$`),
-    categorie: 'douteux',
-    famille: 'contenu-art',
-    raison: 'Kits d\'art de quadrupedes (tetes, cranieres, queues, harnais) et dessins compiles.',
-    preuve: 'src/gameIso/rig/creatures/defs/Cheval.ts:7-10',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/(races|plans)/`),
-    categorie: 'douteux',
-    famille: 'contenu-art',
-    raison: 'Registres de races/plans (donnees WFRP de morphologie) : ni fourni par un moteur ni UI.',
-    preuve: 'src/gameIso/rig/races/index.ts:3 ; src/gameIso/rig/bodyPlan.ts:1-8',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/(engin|land|ship|swarm)/`),
-    categorie: 'douteux',
-    famille: 'contenu-art',
-    raison: 'Composeurs + artkits dedies a des familles d\'art WFRP (navires, engins de siege, chariots, nuees).',
-    preuve: 'src/gameIso/rig/ship/defs/caraque.ts:9-10',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/parts/(career|equipment|combatantVisuals|injuries|traitVisuals|cosmetic|monstrous|weaponForms|tirageIndividuel|dorsal)\.|^src/gameIso/rig/(appearance|enemyProfile)\.ts$|^src/gameIso/rig/(enemyProfile|enemyRender|tirage-individuel|palettes-declarees|plan-species-vocabulaire|siege-rig-resolution).*\.test\.tsx?$`),
-    categorie: 'interface-wfrp',
-    raison: 'Colle propre a WFRP : etat de Combatant / carriere / blessures / traits / equipement -> apparence a rendre.',
-    preuve: 'src/gameIso/rig/parts/combatantVisuals.ts:1-10 ; src/gameIso/rig/enemyProfile.ts:1-8 ; src/gameIso/rig/appearance.ts:1-5',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/rig/`),
-    categorie: 'moteur-generique',
-    raison: 'Runtime de rig/squelette/animation : os, cinematique, poses, facing, composite par os, composeurs, palette, clips.',
-    preuve: 'src/gameIso/rig/kinematics.ts:1-14 ; src/gameIso/rig/composite.ts:1-12 ; src/gameIso/rig/anim/tween.ts',
-  },
-  {
-    motif: new RegExp(String.raw`^src/gameIso/(TargetReticle|TokenChromeMarks|TopoScene|SurcoucheIso)\.|^src/gameIso/(combatNarration|effectIcons|groundPose|highlightTints|teamColors|sizeScale|topoMarkers)\.|^src/gameIso/(reticule-teinte|token-chrome-alveoles|TopoScene)[.-]|^src/gameIso/toise\.test\.ts$`),
+    motif: new RegExp(String.raw`^src/gameIso/(TargetReticle|TokenChromeMarks|TopoScene|SurcoucheIso)\.|^src/gameIso/(combatNarration|effectIcons|highlightTints|teamColors|sizeScale|topoMarkers)\.|^src/gameIso/(reticule-teinte|token-chrome-alveoles|TopoScene)[.-]`),
     categorie: 'interface-wfrp',
     raison: 'Affichage propre aux regles WFRP : reticule de ciblage, chrome PV/etats, narration de combat, icones d\'etats, teintes d\'arene, couleurs d\'equipe, echelle par Taille LDB 85, minimap de stations, surcouche d\'interaction du plateau.',
     preuve: 'src/gameIso/sizeScale.ts:2 (LDB 85) ; src/gameIso/TokenChromeMarks.tsx:2 ; src/gameIso/effectIcons.ts:2 ; src/gameIso/SurcoucheIso.tsx:2',
@@ -330,7 +277,7 @@ export const REGLES = Object.freeze([
   {
     motif: new RegExp(String.raw`^src/gameIso/[^/]+$`),
     categorie: 'moteur-generique',
-    raison: 'Jetons rig, sprites SVG, ombrage, conversion iso, viewport, animations de plan : rendu et animation generiques.',
-    preuve: 'src/gameIso/RigToken.tsx:2 ; src/gameIso/shade.ts:2 ; src/gameIso/iso.ts:2',
+    raison: 'Degrades SVG partages, ombrage, conversion iso, orientation : rendu generique.',
+    preuve: 'src/gameIso/sprites.ts ; src/gameIso/shade.ts:2 ; src/gameIso/iso.ts:2',
   },
 ].map((r) => Object.freeze(r)))

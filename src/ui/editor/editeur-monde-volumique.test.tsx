@@ -19,7 +19,6 @@ import type { WorldGeometry } from '../../gameIso/backends/webgl/sceneMeshes';
 import { effectiveLowerLayerMode, layerHidden, LOWER_LAYER_ISOLATE_BELOW } from './lowerLayerGabarit';
 import type { PlanDefectAt } from '../../noyau/planDefects';
 import { brancherArdoise } from '../../gameIso/stage/banc-volumique';
-import { findTrappingById } from '../../data';
 const scenarioToitsConstruit = scenarioToits.construire();
 
 /**
@@ -219,7 +218,7 @@ async function monter(
   const vue = vueTop();
   const rendre = () =>
     root!.render(
-      <EditorCanvas resolveTrapping={findTrappingById}
+      <EditorCanvas
         scene={scene}
         view={vue as never}
         {...baseProps()}
@@ -264,7 +263,7 @@ async function monter(
     /** Rendu de l'éditeur AVEC une nouvelle référence de scène qui ne change QUE les entités —
      *  ce que produit un déplacement d'entité, de zone ou de trigger au pointeur. */
     bougerUneEntite: () => act(async () => { scene = { ...scene, entities: [...scene.entities] }; rendre(); }),
-    /** SUJETS de billboard que l'hôte a donnés à peindre (décor + jetons d'entité). */
+    /** SUJETS de billboard que l'hôte a donnés à peindre (le décor). */
     sujets: () => Number((container!.querySelector('canvas.iso-stage') as HTMLCanvasElement).dataset.sujets),
     faces: () => facesDessinees(),
     /**
@@ -383,29 +382,27 @@ describe('Éditeur — cadence de la cuisson (#1176, P3-3)', () => {
 });
 
 /**
- * CE QUE L'AUTEUR DOIT VOIR — les trois trous qu'une voie volumique naïve ouvre dans l'éditeur : un
- * embusqueur sans corps, un jeton d'une couche masquée qui reste au canevas, un calque d'authoring
- * devenu inerte. Aucun ne se voit dans le SVG : ils se mesurent aux traces du canevas.
+ * CE QUE L'AUTEUR DOIT VOIR — les trous qu'une voie volumique naïve ouvre dans l'éditeur : un
+ * embusqueur invisible, un jeton d'une couche masquée qui reste à l'écran, un calque d'authoring devenu
+ * inerte. Le canevas peint le décor, il se mesure à ses traces ; la marque d'un jeton vit au SVG.
  */
 describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', () => {
-  it('les EMBUSQUEURS ont un corps : la loi de JEU les coupe, l’authoring les montre', async () => {
+  it('les EMBUSQUEURS se voient : la loi de JEU les coupe, l’authoring pose leur marque', async () => {
     // La loi de JEU (aucune option d'authoring) coupe bien l'entité — sans quoi ce test ne dirait rien.
-    expect(buildTokens(sceneEmbuscade(), undefined, null, { activeZ: 0, viewZ: null, top: true })).toEqual([]);
+    expect(buildTokens(sceneEmbuscade(), undefined, null, { activeZ: 0, viewZ: null, top: true }, [])).toEqual([]);
     const h = await monter({ mode: 'select' }, { scene: sceneEmbuscade() });
-    expect(h.sujets()).toBe(1);
-    // …et l'empreinte pointillée de l'auteur reste posée par-dessus, sur le SVG.
-    expect(h.svg.querySelectorAll('path[stroke-dasharray]').length).toBeGreaterThan(0);
+    expect(h.empreintes().length).toBeGreaterThan(0);
   });
 
-  it('mode ISOLÉ : un jeton d’une couche masquée ne reste pas au canevas (aucun corps fantôme)', async () => {
+  it('mode ISOLÉ : un jeton d’une couche masquée ne laisse aucune marque (aucun jeton fantôme)', async () => {
     const gabarit = await monter({ mode: 'select' }, { scene: sceneEmbuscade(), currentLayer: 1, lowerLayerMode: 'gabarit' });
-    expect(gabarit.sujets()).toBe(1); // couche du dessous : gabarit d'alignement, le corps est là
+    expect(gabarit.empreintes().length).toBeGreaterThan(0); // couche du dessous : gabarit d'alignement, le jeton est là
     await act(async () => root!.unmount());
     root = null;
     container!.remove();
     container = null;
     const isolee = await monter({ mode: 'select' }, { scene: sceneEmbuscade(), currentLayer: 1, lowerLayerMode: 'isolee' });
-    expect(isolee.sujets()).toBe(0); // couche isolée : rien du dessous, ni décoration ni corps
+    expect(isolee.empreintes()).toHaveLength(0); // couche isolée : rien du dessous
   });
 
   /**
@@ -450,15 +447,15 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
   /**
    * LA GOMME — mesurée au CODE, pas au brief : `eraseAt` (`noyau/sceneEdit.ts:461`) retire une
    * ENTITÉ à la case, JAMAIS du terrain. Il n'y a donc rien à « dé-peindre » du monde cuit : ce qui
-   * doit disparaître est un BILLBOARD, et il disparaît au tick, sans gel de cadence ni recuisson
-   * (les entités ne sont pas dans le read-set de la cuisson).
+   * doit disparaître est la MARQUE du jeton, et elle disparaît dans le geste, sans recuisson (les
+   * entités ne sont pas dans le read-set de la cuisson).
    */
-  it('la GOMME retire le sujet à l’instant du clic — sans geler la cadence, sans recuire le monde', async () => {
+  it('la GOMME retire le jeton à l’instant du clic — sans recuire le monde', async () => {
     const h = await monter({ mode: 'erase' }, { scene: sceneEmbuscade() });
     const facesAvant = h.faces();
-    expect(h.sujets()).toBe(1);
+    expect(h.empreintes().length).toBeGreaterThan(0);
     await h.down(3, 3); // la case de l'embusqueur
-    expect(h.sujets()).toBe(0); // le corps a quitté le canevas dans le geste, pas au relâché
+    expect(h.empreintes()).toHaveLength(0); // la marque a quitté l'écran dans le geste, pas au relâché
     expect(h.cuissons()).toBe(1); // …et pas une seule recuisson : `entities` est hors read-set
     expect(h.faces()).toBe(facesAvant); // le terrain, lui, n'a pas bougé — la gomme n'y touche pas
     await h.up(3, 3);

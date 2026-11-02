@@ -12,7 +12,8 @@
  * nomme sa clé, ses paramètres `discriminant`/`marqueurs` ses espaces filtrés, et une entrée à
  * `specsSource` l'espace de ses `specs` ; chaque VOCABULAIRE du moteur (`grammaire/vocabulaires.ts`) qu'une
  * source de spécialisations prend pour univers ou pool a son espace — celui qui ne lui donne que ses
- * libellés porte exactement les ids de son univers —, et le catalogue de spécialisations de chaque
+ * libellés porte exactement les ids de son univers —, la SOUS-LISTE MARQUÉE (`?!champ,…`) qu'une
+ * source prend pour univers ou pool a la sienne, et le catalogue de spécialisations de chaque
  * entrée OUVERTE son espace de LIBELLÉS. Les ids de chaque clé sont ceux d'`idsDeLEspace`, le calcul
  * que le régime vivant fait sur les racines vivantes (`src/data/overrides.ts`), dans l'ORDRE DE LA
  * DONNÉE. Aucune validation n'y lit l'index : un espace neuf et son premier désignateur entrent dans
@@ -67,7 +68,7 @@ function clesDe(c: CollectionDeFichier): string[] {
     for (const [el, cle] of elementsCles(c)) {
       const vaut = el[champ];
       if (typeof vaut !== 'string') continue;
-      if (HORS_DE_LA_GRAPHIE.test(vaut)) throw new Error(`gen-espaces: ${c.cle} « ${cle} » : la valeur de discriminant « ${vaut} » porte ?, = ou #.`);
+      if (HORS_DE_LA_GRAPHIE.test(vaut)) throw new Error(`gen-espaces: ${c.cle} « ${cle} » : la valeur de discriminant « ${vaut} » porte ?, =, # ou !.`);
       valeurs.add(vaut);
     }
     if (!valeurs.size) throw new Error(`gen-espaces: ${c.cle} : discriminant « ${champ} » qu'aucun élément ne porte.`);
@@ -174,8 +175,11 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   for (const cle of new Set(sources.flatMap(([, source]) => [source.univers, source.pool ?? source.univers]))) if (lectureDuVocabulaire(cle)) poser(cle);
   for (const c of collectionsDesDocuments(SCHEMA_DEFS, brutParNom)) if (c.marque.espace) for (const cle of clesDe(c)) poser(cle);
   for (const [nom, source] of sources) {
-    for (const cle of [source.univers, source.pool ?? source.univers])
-      if (!table.has(cle)) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : « ${cle} » n'est aucun espace mesuré.`);
+    for (const cle of [source.univers, source.pool ?? source.univers]) {
+      if (table.has(cle)) continue;
+      if (!lireCleDEspace(cle).filtre?.horsMarqueurs) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : « ${cle} » n'est aucun espace mesuré.`);
+      poser(cle);
+    }
     if (!idsDeLEspace(cleDesLibellesDeLaSource(source), lire)?.length) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : son libellé ne se lit sur aucun élément de son univers.`);
     if (!('vocabulaire' in source.libelle)) continue;
     const univers = new Set(table.get(source.univers));

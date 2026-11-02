@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Rangée de fauteuils d'opéra (3×1) : velours rouge + dorures, quatre sièges alignés — remplit le
 // parterre. Prop ORIENTÉ : il déclare ses trois vues ; la machinerie (`propSvg`) choisit la vue +
-// le miroir via `project(dir, camRot)` (cf. `PropViz.views` / `rig/facing.ts`). Le profil (rangée vue
+// le miroir via `project(dir, camRot)` (cf. `PropViz.views` / `facing.ts`). Le profil (rangée vue
 // de bout, un siège dans la profondeur) est dessiné tourné vers la DROITE — le profil gauche = miroir.
 
 /** Un fauteuil vu de FACE (assise + dossier vers la caméra). */

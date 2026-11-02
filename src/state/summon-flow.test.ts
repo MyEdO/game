@@ -6,6 +6,7 @@ import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecaniqu
 import { spells } from '../data';
 import { atteignables, cheminsVersLeCatalogue } from '../scenes/partage.testkit';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Moteur d'invocation (SpellSpec.summon) : la créature entre en combat dans le camp du lanceur,
@@ -13,13 +14,13 @@ import { desDuTest } from '../engine/dice.testkit';
  * ou si le lanceur (pour les minions liés) tombe.
  */
 const caster = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'necro', label: 'Nécromancien', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     pos: { x: 5, y: 5 }, ...over,
-  } as Combatant);
+  }) as Combatant);
 
 const scene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 14, h: 14 }, ambiance: 'exterieur', layers: [{ z: 0, tiles: new Array(14 * 14).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as unknown as Scene);

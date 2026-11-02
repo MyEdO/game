@@ -20,16 +20,16 @@ import { bus, EVT } from './bus';
 import { spawnEnemy } from './monde/spawn';
 import { setCadence } from '../engine/cadence';
 import { isOutOfAction } from '../engine/conditions';
-import { blessuresDeBase } from '../engine/characteristics';
 import { pregen, PREGEN } from '../data/pregens';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = [sword], pv = 40): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons, advantage: 0, size: 'moyenne', pos, wounds: { current: pv, max: pv },
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(pv),
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
 
@@ -338,7 +338,7 @@ function lanceur(banc: Banc, seed: number, sort: string, heros: Combatant[]): vo
 }
 const pretire = (id: string, pos: { x: number; y: number }): Combatant => {
   const h = pregen(PREGEN.soldat);
-  h.id = id; h.label = id; h.pos = pos; h.wounds = blessuresDeBase(99);
+  h.id = id; h.label = id; h.pos = pos; h.wounds = blessuresDeBase(99, 99, h);
   return h;
 };
 /** Compte les incantations ouvertes par `id`. */
@@ -448,7 +448,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
     const h = pregen(PREGEN.sorcier);
-    h.id = 'h'; h.label = 'h'; h.pos = { x: 1, y: 1 }; h.wounds = blessuresDeBase(99);
+    h.id = 'h'; h.label = 'h'; h.pos = { x: 1, y: 1 }; h.wounds = blessuresDeBase(99, 99, h);
     h.characteristics.intelligence = 60;
     h.skills = [...h.skills.filter((sk) => sk.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];
     h.spells = ['flechette'];

@@ -6,6 +6,7 @@ import { compteDuCoup, resolveStrayRangedHit, toucheAuJetPose, toucheDuTestDeDef
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -29,7 +30,7 @@ function combat(current: number): { H: Combatant; cible: Combatant } {
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const cible = b.combatants.find((c) => c.kind === 'enemy')!;
-  cible.wounds = { current, max: 20 } as Combatant['wounds'];
+  cible.wounds = blessuresDeBase(20, current, cible);
   cible.important = true;
   return { H, cible };
 }

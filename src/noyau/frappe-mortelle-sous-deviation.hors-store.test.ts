@@ -14,6 +14,7 @@ import { setRule } from '../engine/policy';
 import { bus, EVT } from './bus';
 import { draineCascade, type ChoisitCle } from './cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -41,7 +42,7 @@ function monte() {
   const cases = [{ x: 10, y: 10 }, { x: 11, y: 11 }, { x: 10, y: 11 }];
   [H1, H2, H3].forEach((H, i) => {
     H.pos = cases[i]; H.size = 'moyenne';
-    H.wounds = { current: 1, max: 60, base: 60 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(60, 1, H);
     H.items = [harnois()];
     H.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
     H.conditions = [{ id: 'surpris', value: 1 }];

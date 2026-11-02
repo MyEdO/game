@@ -33,9 +33,7 @@ import { detenteur } from '../../detenteur.testkit';
  * (catalogues et façades de donnée), et `src/state/**` avec `src/noyau/**` ENTIERS — la DÉRIVATION des masses de toit y
  * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 volet b : il se résout corps > type de
  * bâtiment > scène), et le reste du store pose les mutations de scène que le rendu consomme.
- * Hors périmètre : le rig, les backends et le stage, où `plan` n'est pas une matière de toiture mais
- * la VOIE DE CORPS d'une créature (`bodyPlan.ts`) — un scan naïf de `src/gameIso/**` y compte 42
- * homonymes qui ne sont pas des émissions de matière.
+ * Hors périmètre : les backends et le stage, qui peignent la matière que ces couches émettent.
  *
  * Le vocabulaire interdit est DÉRIVÉ du dataset — aucune liste récitée ici : une matière ajoutée
  * demain est gardée le jour même. Les fichiers de TEST sont hors scan : ils POSENT des matières en
@@ -460,11 +458,6 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const partie = materials.find((m) => brut.includes(`part === '${m.id}'`) || brut.includes(`part !== '${m.id}'`));
     expect(partie, 'plus aucune comparaison `part === <homonyme d’une matière>` : le cas n’est plus exercé.').toBeDefined();
     expect(new RegExp(`'${partie!.id}'`).test(codeSeul(brut)), `« ${partie!.id} » compté comme matière alors que c’est une PARTIE.`).toBe(false);
-  });
-
-  it('l’homonyme `plan` du RIG est hors périmètre : la voie de corps n’est pas une couverture', () => {
-    expect(materials.some((m) => m.id === 'plan' && m.domain === 'roof'), '`plan` n’est plus une matière de toiture : reformuler la garde.').toBe(true);
-    expect(fichiers().some((f) => /bodyPlan|sceneMeshes|actorAnimSelect|enemyProfile|tokenBodyKind/.test(f.rel))).toBe(false);
   });
 
   it('aucun id de `materials.json` n’apparaît en littéral dans les couches émettrices', () => {

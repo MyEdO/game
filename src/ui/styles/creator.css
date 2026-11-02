@@ -92,7 +92,7 @@
 .lore-text b {
   color: var(--gold);
 }
-/* En-tête du détail : grande figurine + titre + description (TabbedEntry, Codex). */
+/* En-tête du détail : titre + description (TabbedEntry, Codex). */
 .main-head {
   display: flex;
   gap: 16px;
@@ -144,18 +144,11 @@
   color: var(--muted);
 }
 
-/* ── Panneau d'apparence (créateur, étape Détails) : GRAND aperçu + réglages + couleurs ── */
+/* ── Corps figure + contrôles (étape Signe astral) ── */
 .appear-panel {
   display: flex;
   gap: 20px;
   align-items: flex-start;
-}
-.appear-figure {
-  flex: 0 0 auto;
-  width: 184px;
-  height: 230px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
 }
 .appear-controls {
   flex: 1;
@@ -164,92 +157,10 @@
   flex-direction: column;
   gap: 12px;
 }
-.appear-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 4px 14px;
-}
-.appear-fields .btn {
-  align-self: flex-start;
-}
-/* Couleurs : grille de pastilles compactes (fini les 7 longues rangées). */
-.color-pickers-title {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-.color-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-  gap: 8px;
-}
-.color-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  position: relative;
-}
-.color-chip.custom {
-  border-color: var(--accent2);
-}
-.color-chip input[type='color'] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-.color-chip input[type='color']::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-.color-chip input[type='color']::-webkit-color-swatch {
-  border: none;
-  border-radius: 50%;
-}
-.color-chip-label {
-  font-size: 12px;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.color-chip-reset {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--bg2);
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
 @media (max-width: 700px) {
   .appear-panel {
     flex-direction: column;
     align-items: center;
-  }
-  .appear-figure {
-    width: 200px;
-    height: 250px;
   }
   .appear-controls {
     width: 100%;
@@ -551,9 +462,8 @@
 /* Corps de l'étape Signe astral — le découpage de la planche FINALE (mock « 4 ») : l'astrolabe à
    GAUCHE, le sens du signe à sa DROITE (description pleine hauteur, jamais coupée). C'est le patron
    figure+contrôles déjà canon de ce fichier : l'étape COMPOSE `.appear-panel`/`.appear-controls`
-   (même flex, même empilement ≤700px) — seule la COLONNE de la roue lui est propre, `.appear-figure`
-   étant une vignette de 184px là où l'astrolabe veut la moitié de la zone (il porte vingt noms :
-   c'est sa largeur qui les rend lisibles). */
+   (même flex, même empilement ≤700px) — seule la COLONNE de la roue lui est propre : l'astrolabe veut
+   la moitié de la zone (il porte vingt noms : c'est sa largeur qui les rend lisibles). */
 /* `flex-grow: 0` : `.appear-controls` est un `flex: 1` (base 0) — laisser la roue GRANDIR aussi lui
    ferait rafler la moitié de l'espace libre EN PLUS de ses 55 %, et le sens du signe finirait en
    ruban de 190px (chips à la verticale, prose en colonne de trois mots — mesuré). La roue prend sa
@@ -1071,8 +981,8 @@
   padding: 0;
 }
 
-/* -- Grille de cartes de RACE (7 familles, `.chip` de base surchargée en grande carte-figurine) --
-   quatre colonnes à 1600px large (gabarit de la maquette ratifiée), rétrécit avec le conteneur. */
+/* -- Grille de cartes de RACE --
+   `auto-fill` adapte le nombre de colonnes de 180 à 213px à la largeur du conteneur. */
 .creator-pick-count {
   font-variant-caps: small-caps;
   letter-spacing: 1.2px;
@@ -1089,19 +999,13 @@
 .creator-pick-filters .creator-pick-count {
   margin: 0 0 0 auto;
 }
-/* Grille de cartes de race — les cartes elles-mêmes sont `FigTile` (cadre UNIQUE, styles
-   `frames.css`, prop `fig="big"`). La grille ne borne PAS sa largeur : c'est la HAUTEUR FIXE de la
-   boîte-figurine (`.fig-tile.big`, patron `.fam-grid.big` de la planche — `repeat(4,1fr)` sans
-   plafond) qui tient la tuile, à toute largeur d'écran. Seul modificateur DOMAINE : `.rolled`
+/* Grille de cartes de race — les cartes sont `FigTile` (`frames.css`, prop `fig="big"`).
+   Seul modificateur DOMAINE : `.rolled`
    (liseré de borne du tirage COURANT, #393 P3 — distinct du `.sel` doré posé par `FigTile`
    lui-même) — classe ADDITIVE (`FigTile.className`), jamais un second cadre. */
 .creator-race-grid {
   display: grid;
-  /* La tuile garde la TAILLE de la planche à toute largeur de zone : une zone plus large donne PLUS
-     DE COLONNES, jamais des tuiles ballonnées (`repeat(4, 1fr)` donnait 381px de large sur une zone
-     de 1540 — la boîte-figurine restant à 172px, la figurine flottait : « les modeles sont encore
-     plus petit qu'avant », user 2026-07-15). La colonne est donc BORNÉE à la mesure de la planche
-     (213px), et `auto-fill` en pose autant que la zone en porte : ~940 → 4 (la planche), ~1540 → 6. */
+  /* Colonnes bornées à 213px ; `auto-fill` en pose autant que la zone en porte. */
   grid-template-columns: repeat(auto-fill, minmax(180px, 213px));
   justify-content: start;
   /* Les rangées se dimensionnent par leur CONTENU. Sans ceci, `align-content` vaut `normal` (≈

@@ -6,6 +6,7 @@ import { totalEncumbrance } from './items';
 import { parseQualityInstance } from './qualities/normalize';
 import { slugId } from '../data/slug';
 import type { Combatant, QualityInstance } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Fixture : libellés FR ou prose de pénalité de port (« -10% en Discrétion ») → `QualityInstance[]` structurées.
  *  La prose de port mappe `en-<skillId>` + magnitude (forme réelle de la donnée d'armure). */
@@ -17,13 +18,13 @@ const q_ = (labels: string[]): QualityInstance[] => labels.map((l) => {
 
 function mkWearer(labels: string[]): Combatant {
   const qualities = q_(labels);
-  return {
+  return blessuresSurLeProfil({
     id: 'h', name: 'A', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: [{ uid: 'a1', name: 'Heaume', kind: 'armor', qualities, pa: 2, locs: ['tete'], enc: 2, equipped: true }],
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('wornArmourPenalty', () => {
@@ -51,13 +52,13 @@ describe('wornArmourPenalty', () => {
 
 describe('testValue + port d’armure', () => {
   function hero(id: string, ag: number, items: unknown[]): Combatant {
-    return {
+    return blessuresSurLeProfil({
       id, name: id, kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: ag, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+      wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
       skills: [{ id: 'discretion', characteristic: 'agilite', advances: 0 }], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items,
-    } as unknown as Combatant;
+    }) as unknown as Combatant;
   }
   it('testValue soustrait la pénalité de Discrétion d’une cotte équipée', () => {
     const c = hero('h1', 40, [{ uid: 'a', name: 'Cotte de mailles', kind: 'armor', qualities: q_(['-10% en Discrétion']), enc: 3, equipped: true }]);

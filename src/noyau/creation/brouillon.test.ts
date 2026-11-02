@@ -42,10 +42,8 @@ import {
   withSpeciesTalentChoice,
 } from './brouillon';
 import { CHAR_KEYS } from '../../engine/types';
-import { rigSpeciesId, trappingRefLabel } from '../../data';
+import { especeDApparence, trappingRefLabel } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
-import { SEXE_DE_COIFFURE } from '../../data/schemas/_art.generated';
-import { garanti } from '../../lib/garanti';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { emplacementsDeDotation } from '../../engine/trappingChoices';
@@ -415,12 +413,11 @@ describe('validation des étapes', () => {
 });
 
 describe('buildHero — bout en bout', () => {
-  it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue, coiffure comprise', () => {
-    const coiffureF = garanti(Object.keys(SEXE_DE_COIFFURE).find((id) => SEXE_DE_COIFFURE[id] === 'F'), 'F', 'coiffure du sexe');
+  it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue', () => {
     const d = readyDraft();
-    const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: coiffureF, colors: { cheveux: '#aa3300' } };
+    const apparence = { sex: 'F' as const };
     const hero = buildHero({ ...d, apparence }, 'h-apparence');
-    expect(hero.appearance).toEqual({ ...apparence, species: rigSpeciesId(d.speciesId) });
+    expect(hero.appearance).toEqual({ ...apparence, species: especeDApparence(d.speciesId) });
     expect(draftFromHero(hero, 7).apparence).toEqual(apparence);
   });
   it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
@@ -431,7 +428,7 @@ describe('buildHero — bout en bout', () => {
     expect(Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0)).toBe(5);
     for (const s of hero.skills) expect(`${s.spec ?? ''}`).not.toMatch(/au choix/i);
     expect(hero.details?.age).toBe(20);
-    expect(hero.appearance?.species).toBe(rigSpeciesId(d.speciesId));
+    expect(hero.appearance?.species).toBe(especeDApparence(d.speciesId));
     // Le total des dix Caractéristiques = somme du brouillon (transferts +5 de talents possibles).
     const sum = CHAR_KEYS.reduce((a, k) => a + hero.characteristics[k], 0);
     const draftSum = CHAR_KEYS.reduce((a, k) => a + draftChars(d)[k], 0);

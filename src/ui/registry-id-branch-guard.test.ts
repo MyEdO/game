@@ -2,7 +2,7 @@ import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY, VOCABULARY_TYPES } from '../../scripts/guards/lib/registryIdBranch.mjs';
+import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY } from '../../scripts/guards/lib/registryIdBranch.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
@@ -68,8 +68,6 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
  * factorisation d'un littéral en constante n'assainit pas un site et ne le masque pas.
  */
 const RAW_KNOWN: Record<string, number> = {
-  'scripts/gen-bestiary-gallery.mts': 1,
-  'scripts/gen-creature-attacks-gallery.mts': 2,
   'scripts/qc/opera-furniture-check.mts': 1,
   'src/engine/activities.ts': 1,
   // SAIN (#1612) : `bourseInstanceOf` RETROUVE l'instance de la Bourse dans l'inventaire par l'id
@@ -100,12 +98,8 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/trauma.ts': 7,
   'src/engine/weaponDamage.ts': 1,
   'src/engine/windsOfMagic.ts': 1,
-  'src/gameIso/rig/mountedRig.ts': 1,
-  'src/gameIso/rig/parts/career.ts': 3,
-  'src/gameIso/rig/parts/injuries.ts': 2, // reste le canal APPARENCE (œil remplacé en place), hors `rig` (calques)
   'src/gameIso/stage/Ambiance.tsx': 1,
   'src/gameIso/stage/CrewTooltip.tsx': 1,
-  'src/gameIso/tokenBodyKind.tsx': 1,
   'src/noyau/monde/aiSpellValue.ts': 2,
   'src/noyau/combatEffects.ts': 3,
   'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
@@ -295,8 +289,8 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       "function paint(el: El) { return el.kind === 'roof' ? roof(el) : wall(el); }",
       // (8) SQUELETTE `Partial<Record<Union, …>>` : clé FERMÉE déclarée en type — l'indexer par un os
       //     reçu n'est pas une table de valeurs par entrée de registre.
-      'const SK: Partial<Record<BoneId, Bone>> = { tronc: b1, croupe: b2 };',
-      'export function zOf(id: BoneId) { return SK[id]!.z; }',
+      'const SK: Partial<Record<OsId, Bone>> = { tronc: b1, croupe: b2 };',
+      'export function zOf(id: OsId) { return SK[id]!.z; }',
     ].join('\n');
     expect(rules(sain, 'fixture.tsx')).toEqual([]);
   });
@@ -321,64 +315,10 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     expect(rules("function pick(id: string) { return id === '' ? null : byId.get(id); }")).toEqual([]);
   });
 
-  it('CONTRE-ÉPREUVE : une liste de VOCABULAIRE FERMÉ (`BoneId[]` importé de son module) sort du champ — pas une liste d’ids de registre, pas un type HOMONYME', () => {
-    // Ids de GÉOMÉTRIE : `BoneId` est une UNION DE LITTÉRAUX déclarée (`src/gameIso/rig/bones.ts`) — la
-    // liste est bornée par son TYPE, pas par un registre de données. Annotation ET argument de type.
-    // L'exemption exige l'IMPORT depuis le module canonique : ici `./bones` depuis `src/gameIso/rig/`.
-    const geometrie = [
-      "import { BONE_IDS, type BoneId } from './bones';",
-      "const WAIST_BONES: BoneId[] = ['cuisseG', 'cuisseD'];",
-      "const TORSO: Set<BoneId> = new Set<BoneId>(['torse']);",
-      'export function build(sk: Skeleton) {',
-      '  for (const id of BONE_IDS) { if (WAIST_BONES.includes(id) || TORSO.has(id)) narrow(id); }',
-      '}',
-    ].join('\n');
-    expect(rules(geometrie, 'src/gameIso/rig/fixture.ts')).toEqual([]);
-    // Même source, depuis l'OUTILLAGE : le spécificateur relatif est résolu contre le fichier scanné.
-    const depuisOutillage = geometrie.replace("'./bones'", "'../../src/gameIso/rig/bones'");
-    expect(rules(depuisOutillage, 'scripts/qc/fixture.mts')).toEqual([]);
-
-    // SHADOW : le même NOM, redéclaré localement en alias de `string` — l'ancrage à l'origine est ce
-    // qui empêche de blanchir une liste d'ids de registre en la baptisant `BoneId`. Reste COMPTÉ.
-    const shadow = [
-      'type BoneId = string;',
-      "const PERSISTENTS: BoneId[] = ['hemorragique', 'aveugle'];",
-      'export function keep(list: Cond[]) {',
-      '  for (const c of list) { if (PERSISTENTS.includes(c.id)) garder(c); }',
-      '}',
-    ].join('\n');
-    expect(rules(shadow, 'src/state/fixture.ts')).toEqual(['id-membership']);
-
-    // …et le même nom IMPORTÉ D'AILLEURS (module homonyme) : pas davantage exempté.
-    const autreModule = shadow.replace('type BoneId = string;', "import type { BoneId } from './mesOs';");
-    expect(rules(autreModule, 'src/state/fixture.ts')).toEqual(['id-membership']);
-
-    // Le nom EXPORTÉ fait foi (`origineImportee`) : `BoneId` importé sous un autre nom reste exempté…
-    const renomme = geometrie
-      .replace(/BoneId/g, 'Os')
-      .replace('type Os }', 'type BoneId as Os }');
-    expect(rules(renomme, 'src/gameIso/rig/fixture.ts')).toEqual([]);
-    // …et un autre type du module importé SOUS le nom `BoneId` ne l'est pas.
-    const usurpe = shadow.replace('type BoneId = string;', "import { type Skeleton as BoneId } from '../gameIso/rig/bones';");
-    expect(rules(usurpe, 'src/state/fixture.ts')).toEqual(['id-membership']);
-
-    // MÊME forme, annotée par un type d'IDENTITÉ DE REGISTRE : `ConditionId` (`src/engine/types.ts`) est
-    // un alias `= string`, donc OUVERT — c'est ce qui interdit le proxy lexical général « l'annotation
-    // nomme un type non primitif » et impose la table `VOCABULARY_TYPES`. Le site reste COMPTÉ.
-    const registre = [
-      "const PERSISTENTS: ConditionId[] = ['hemorragique', 'aveugle'];",
-      'export function keep(list: Cond[]) {',
-      '  for (const c of list) { if (PERSISTENTS.includes(c.id)) garder(c); }',
-      '}',
-    ].join('\n');
-    expect(rules(registre)).toEqual(['id-membership']);
-  });
-
-  it('FIGEAGE : le CONTENU des deux vocabulaires exemptés est dit, pas seulement leur mécanique', () => {
-    // Étendre l'une de ces listes SE FAIT JUGER, jamais au geste de confort : un mot de plus
+  it('FIGEAGE : le CONTENU du vocabulaire exempté est dit, pas seulement sa mécanique', () => {
+    // Étendre cette liste SE FAIT JUGER, jamais au geste de confort : un mot de plus
     // blanchirait des branchements réels sans que rien ne le dise. Le contenu est donc figé ICI.
     expect([...OP_VOCABULARY].sort()).toEqual(['']);
-    expect([...VOCABULARY_TYPES.entries()]).toEqual([['BoneId', 'src/gameIso/rig/bones.ts']]);
   });
 
   it('CONTRE-ÉPREUVE : un nom déclaré littéral ICI et calculé LÀ n’accuse plus le second', () => {

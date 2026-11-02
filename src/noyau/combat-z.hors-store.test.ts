@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * le relief de la scène à CHAQUE placement. DISCIPLINE : le sol reste byte-identique (z ET h OMIS à 0).
  */
 const mk = (id: string, x: number, y: number, z?: number): Combatant =>
-  ({ id, name: id, pos: z ? { x, y, z } : { x, y }, wounds: { current: 10, max: 10, base: 10 }, conditions: [] }) as unknown as Combatant;
+  ({ id, name: id, pos: z ? { x, y, z } : { x, y }, wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
 const battle = (cs: Combatant[]): BattleState => ({ combatants: cs }) as unknown as BattleState;
 
 describe('occupied — un bloqueur n’occupe que SON étage (clé z-aware)', () => {

@@ -3,7 +3,7 @@
  * le flux d'incantation STANDARD (`castSpell`, combatFlow) — même chemin que l'IA. HORS COMBAT, un
  * héros du groupe route par `oocCastSpell` (couture D, jet réel) ; un PNJ hors combat (pas de
  * Combatant) est refusé — pas de pseudo-combat inventé. `mode:'forceSuccess'` (arbitrage d'auteur)
- * applique directement les effets du sort, sans jet, en combat comme hors combat.
+ * joue le Flow du sort à DR = NI, sans jet, en combat comme hors combat.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from './store';

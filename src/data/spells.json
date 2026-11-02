@@ -22119,44 +22119,6 @@
       "kind": "seq",
       "steps": [
         {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "grantPsychTrait",
-                "psychType": {
-                  "id": "prejuge"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "if",
-          "cond": {
-            "kind": "slThreshold",
-            "op": ">=",
-            "value": 4
-          },
-          "then": {
-            "kind": "do",
-            "effect": {
-              "type": "ops",
-              "on": "target",
-              "ops": [
-                {
-                  "op": "grantPsychTrait",
-                  "psychType": {
-                    "id": "animosite"
-                  }
-                }
-              ]
-            }
-          }
-        },
-        {
           "kind": "if",
           "cond": {
             "kind": "slThreshold",
@@ -22164,32 +22126,189 @@
             "value": 8
           },
           "then": {
-            "kind": "do",
-            "effect": {
-              "type": "ops",
-              "on": "target",
-              "ops": [
-                {
-                  "op": "grantPsychTrait",
-                  "psychType": {
-                    "id": "haine"
+            "kind": "choice",
+            "prompt": "Soumettre la cible à la Haine pendant (Bonus de Force Mentale) semaines ?",
+            "yes": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "grantPsychTrait",
+                    "psychType": {
+                      "id": "haine"
+                    },
+                    "envers": "personneChoisie",
+                    "resistanceSiAmis": {
+                      "skill": {
+                        "id": "calme"
+                      },
+                      "difficulty": "accessible"
+                    },
+                    "durationHours": {
+                      "times": {
+                        "of": {
+                          "bonusOf": "force-mentale"
+                        },
+                        "factor": 168
+                      }
+                    }
                   }
-                }
-              ]
-            }
-          }
-        },
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "narrative",
-                "text": "Colérique : la cible du Préjugé est nommée ou désignée par le lanceur ; la durée est de (Bonus de Force Mentale) heures, jours (+4 DR, Animosité) ou semaines (+8 DR, Haine) ; deux amis laissent à la cible un Test de Calme Accessible (+20) pour résister — cible nommée et durées longues non modélisées, arbitrage MJ."
+                ]
               }
-            ]
+            },
+            "no": {
+              "kind": "choice",
+              "prompt": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
+              "yes": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "target",
+                  "ops": [
+                    {
+                      "op": "grantPsychTrait",
+                      "psychType": {
+                        "id": "animosite"
+                      },
+                      "envers": "personneChoisie",
+                      "resistanceSiAmis": {
+                        "skill": {
+                          "id": "calme"
+                        },
+                        "difficulty": "accessible"
+                      },
+                      "durationHours": {
+                        "times": {
+                          "of": {
+                            "bonusOf": "force-mentale"
+                          },
+                          "factor": 24
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "no": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "target",
+                  "ops": [
+                    {
+                      "op": "grantPsychTrait",
+                      "psychType": {
+                        "id": "prejuge"
+                      },
+                      "envers": "personneChoisie",
+                      "resistanceSiAmis": {
+                        "skill": {
+                          "id": "calme"
+                        },
+                        "difficulty": "accessible"
+                      },
+                      "durationHours": {
+                        "bonusOf": "force-mentale"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "kind": "if",
+            "cond": {
+              "kind": "slThreshold",
+              "op": ">=",
+              "value": 4
+            },
+            "then": {
+              "kind": "choice",
+              "prompt": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
+              "yes": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "target",
+                  "ops": [
+                    {
+                      "op": "grantPsychTrait",
+                      "psychType": {
+                        "id": "animosite"
+                      },
+                      "envers": "personneChoisie",
+                      "resistanceSiAmis": {
+                        "skill": {
+                          "id": "calme"
+                        },
+                        "difficulty": "accessible"
+                      },
+                      "durationHours": {
+                        "times": {
+                          "of": {
+                            "bonusOf": "force-mentale"
+                          },
+                          "factor": 24
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "no": {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "target",
+                  "ops": [
+                    {
+                      "op": "grantPsychTrait",
+                      "psychType": {
+                        "id": "prejuge"
+                      },
+                      "envers": "personneChoisie",
+                      "resistanceSiAmis": {
+                        "skill": {
+                          "id": "calme"
+                        },
+                        "difficulty": "accessible"
+                      },
+                      "durationHours": {
+                        "bonusOf": "force-mentale"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "else": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "grantPsychTrait",
+                    "psychType": {
+                      "id": "prejuge"
+                    },
+                    "envers": "personneChoisie",
+                    "resistanceSiAmis": {
+                      "skill": {
+                        "id": "calme"
+                      },
+                      "difficulty": "accessible"
+                    },
+                    "durationHours": {
+                      "bonusOf": "force-mentale"
+                    }
+                  }
+                ]
+              }
+            }
           }
         }
       ]

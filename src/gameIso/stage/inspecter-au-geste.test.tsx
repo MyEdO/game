@@ -29,8 +29,6 @@ import { useHoverTargeting } from './useHoverTargeting';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
-// jsdom n'a pas de layout : aucun corps peint sous le pixel, la chaîne retombe sur la CASE.
-Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => null });
 beforeEach(() => {
   vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
 });

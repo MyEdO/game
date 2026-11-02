@@ -76,11 +76,6 @@
       "book": "mer-des-griffes",
       "page": 123
     },
-    "rigs": [
-      "avirons",
-      "voile",
-      "mixte"
-    ],
     "entries": [
       {
         "min": 1,
@@ -131,11 +126,6 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 28
     },
-    "rigs": [
-      "avirons",
-      "voile",
-      "mixte"
-    ],
     "entries": [
       {
         "min": 1,

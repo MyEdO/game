@@ -5,6 +5,7 @@ import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { type RNG } from '../engine/dice';
 import { deSelonLaPlage, desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * DISPATCHER UNIQUE des effets déclenchés (principe : « peu importe le KIND — Trait, Talent, Atout, État,
@@ -14,14 +15,14 @@ import { deSelonLaPlage, desDuTest } from '../engine/dice.testkit';
  */
 // Caractéristiques COMPLÈTES (un vrai Combatant en a 10) : sans FM, le Test de Calme de récupération du
 // Brisé — joué au même `onRoundEnd` — calculait sur une carac absente (NaN) et corrompait l'État.
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'x', name: 'X', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: { corps: 0 },
-  wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
+  wounds: blessuresDeBase(10), advantage: 0,
   ...over,
-}) as unknown as Combatant;
+})) as unknown as Combatant;
 
 const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
 const fire = (c: Combatant, rng: RNG = desDuTest) =>

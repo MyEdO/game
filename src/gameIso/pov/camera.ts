@@ -8,7 +8,7 @@
  * Repère CAMÉRA : `fwd` (avant, vers l'écran) et `right` (tribord) sont des vecteurs SOL unitaires en
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
-import type { View } from '../rig/facing';
+import type { View } from '../facing';
 import { WALL_H_M } from '../iso';
 import { mix, parseHex } from '../shade';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
@@ -228,7 +228,7 @@ export function tileCornersWorld(scene: Scene, x: number, y: number, z: number, 
   ];
 }
 
-/** Vue à présenter d'une entité (sprite paper-doll) selon son cap MONDE vu par la caméra. PUR.
+/** Vue à présenter d'une entité selon son cap MONDE vu par la caméra. PUR.
  *  f = e·fwd (aligné avec l'avant caméra), s = e·right (composante latérale) : latéral net → profil,
  *  sinon f<0 (l'entité regarde vers nous) → face, f≥0 (elle nous tourne le dos) → dos. mirror = elle
  *  regarde vers bâbord écran. */

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { combatValue, defenseValue, hasWeaponGroupSkill, weaponGroupSkillMode, weaponUnmastered } from './combat';
 import type { Combatant, ItemInstance, Weapon } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * Jalon ② — la Spécialisation de Corps à corps / Projectiles compte enfin.
@@ -8,14 +9,14 @@ import type { Combatant, ItemInstance, Weapon } from './types';
  * Spécialisation correspondant au Groupe de l'arme tenue (exemple Sigrid, LDB 09 l.44).
  */
 function hero(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, items: [],
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 const wpn = (subType: string, type: Weapon['type'] = 'melee'): Weapon =>
   ({ label: subType, type, damage: { plusBF: true, flat: 0, bare: true }, qualities: [], subType });

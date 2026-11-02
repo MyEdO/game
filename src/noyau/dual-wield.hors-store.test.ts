@@ -9,6 +9,7 @@ import { seedBattleRng } from './battleRng';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -19,19 +20,19 @@ const W = (uid: string, hand: 'main' | 'off'): Weapon =>
 const CHARS = (cc: number) => ({ 'capacite-de-combat': cc, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 const ARM = () => ({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
 
-const mkHero = (over: Partial<Combatant> = {}): Combatant => ({
+const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'h', name: 'H', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
   characteristics: CHARS(50), skills: [], talents: [], advantage: 0, conditions: [],
-  wounds: { base: 12, max: 12, current: 12 },
+  wounds: blessuresDeBase(12),
   weapons: [W('m', 'main'), W('o', 'off')], armour: ARM(), ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
-const mkFoe = (id: string, x: number): Combatant => ({
+const mkFoe = (id: string, x: number): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'enemy', pos: { x, y: 0 }, size: 'moyenne',
   characteristics: CHARS(30), skills: [], talents: [], advantage: 0, conditions: [],
-  wounds: { base: 10, max: 10, current: 10 },
+  wounds: blessuresDeBase(10),
   weapons: [{ name: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }], armour: ARM(),
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 function setupBattle(heroOver: Partial<Combatant> = {}) {
   seedBattleRng(1);

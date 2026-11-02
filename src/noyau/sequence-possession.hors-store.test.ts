@@ -34,6 +34,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from './combatEffects';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -181,7 +182,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
   function blinde(c: Combatant): void {
     c.armour = PA(3);
-    c.wounds = { current: 40, max: 40, base: 40 } as never;
+    c.wounds = blessuresDeBase(40, 40, c);
   }
 
   it('héros de l’HÔTE : le choix Dévier/Subir est offert (témoin de contrôle)', () => {

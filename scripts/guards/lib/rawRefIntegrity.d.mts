@@ -22,7 +22,6 @@ export interface EmptyLineRef {
   files: Set<string>;
 }
 
-export const EXCLUDE_SRC_PREFIX: string;
 export const WINDOW: number;
 export const MIN_WORD_LEN: number;
 export const STEM_LEN: number;

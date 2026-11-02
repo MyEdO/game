@@ -9,6 +9,8 @@ import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { BattleState } from './etat';
 import { draineCascade } from './cascade.testkit';
+import { reluDans } from './combatDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -18,12 +20,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // ---------------------------------------------------------------------------
 
 const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id,
     name: id,
     kind,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [{ name: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
@@ -33,7 +35,7 @@ const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Part
     movement: 4,
     pos: { x, y },
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('cleaveTargets — cibles de balayage adjacentes (pur)', () => {
   it('renvoie les adversaires vivants adjacents non déjà frappés ; exclut alliés, lointains, morts', () => {
@@ -83,13 +85,13 @@ describe('Balayage en combat (store)', () => {
     H2.pos = { x: 11, y: 10 };
     for (const h of [H1, H2]) {
       h.conditions = [{ id: 'surpris', value: 1 }]; // ne peuvent pas se défendre → résolution instantanée
-      h.wounds = { current: 60, max: 60, base: 60 } as Combatant['wounds'];
+      h.wounds = blessuresDeBase(60, 60, h);
       h.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     }
     banc.setState({ battle: { ...b } });
 
     // L'IA attaque H1 ; la Frappe Mortelle enchaîne sur H2 (adjacent).
-    doAttack(banc.getState, banc.setState, E, H1);
+    doAttack(banc.getState, banc.setState, reluDans(banc.getState, E), reluDans(banc.getState, H1));
     // Porteurs tenus : chaque Blessure critique ouvre son étape, l'enchaînement attend sa fermeture (LDB 63 l.30).
     draineCascade(banc.getState);
 
@@ -117,7 +119,7 @@ describe('Balayage en combat (store)', () => {
     primary.pos = { x: 9, y: 10 }; // E se recale ICI après le kill (LDB 14 l.9)
     h2.pos = { x: 8, y: 10 }; // adjacent à la case du MORT (où E se déplace), pas à la case d'origine de E
     h2.conditions = [{ id: 'surpris', value: 1 }]; // pas de défense → enchaînement instantané
-    h2.wounds = { current: 60, max: 60, base: 60 } as Combatant['wounds'];
+    h2.wounds = blessuresDeBase(60, 60, h2);
     h2.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     banc.setState({ battle: { ...b } });
 
@@ -146,7 +148,7 @@ describe('Balayage en combat (store)', () => {
     E1.pos = { x: 9, y: 10 };
     E2.pos = { x: 11, y: 10 };
     for (const e of [E1, E2]) {
-      e.wounds = { current: 40, max: 40, base: 40 } as Combatant['wounds'];
+      e.wounds = blessuresDeBase(40, 40, e);
       e.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     }
     const turn = b.order.indexOf(H.id);
@@ -187,7 +189,7 @@ describe('Balayage en combat (store)', () => {
     E1.pos = { x: 9, y: 10 };
     E2.pos = { x: 11, y: 10 };
     for (const e of [E1, E2]) {
-      e.wounds = { current: 40, max: 40, base: 40 } as Combatant['wounds'];
+      e.wounds = blessuresDeBase(40, 40, e);
       e.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     }
     const turn = b.order.indexOf(H.id);
@@ -241,14 +243,14 @@ describe('Balayage en combat (store)', () => {
     deadPrimary.pos = { x: 10, y: 10 };
     small.size = 'moyenne';
     small.pos = { x: 11, y: 11 }; // SOUS l’empreinte 3×3 ancrée en (10,10) → (10..12, 10..12)
-    small.wounds = { current: 200, max: 200, base: 200 } as Combatant['wounds'];
+    small.wounds = blessuresDeBase(200, 200, small);
     small.conditions = [{ id: 'surpris', value: 1 }]; // pas de défense → enchaînement instantané, survit
     small.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     banc.setState({ battle: { ...b } });
 
     expect(occupiesTile({ x: 10, y: 10 }, 3, 11, 11)).toBe(true); // sanity (3 = énorme) : small était bien sous l’empreinte
 
-    autoCleave(banc.getState, banc.setState, E, deadPrimary, { cleave: true } as AttackResult);
+    autoCleave(banc.getState, banc.setState, reluDans(banc.getState, E), reluDans(banc.getState, deadPrimary), { cleave: true } as AttackResult);
 
     const st = banc.getState().battle!;
     const e = st.combatants.find((c) => c.id === E.id)!;

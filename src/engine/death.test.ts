@@ -2,18 +2,18 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { isOutOfAction, usesSuddenDeath, applyZeroWounds, tickDeath, hasCondition, inDeathCondition } from './conditions';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     name: 'C',
     kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, // BE=3
-    wounds: { current: 10, max: 12 },
+    wounds: blessuresDeBase(12, 10),
     conditions: [],
     skills: [],
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('Modèle de mort (LDB 18-Traumatisme)', () => {
   it("héros à 0 PB n'est PAS hors de combat (À Terre, agit encore)", () => {
@@ -110,8 +110,8 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
 
 describe("OBJET INERTE (affût d'artillerie) — immune à la cascade de Blessures (0 PB permanent)", () => {
   const engin = (over: Partial<Combatant> = {}): Combatant =>
-    mk({ inert: true, bodyShape: 'engin', wounds: { current: 0, max: 0 },
-      characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, ...over } as unknown as Partial<Combatant>);
+    mk(blessuresSurLeProfil({ inert: true, bodyShape: 'engin', wounds: blessuresDeBase(0),
+      characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, ...over }) as unknown as Partial<Combatant>);
   it("inert allié (kind:'hero') à 0 PB : applyZeroWounds ne pose PAS À Terre", () => {
     const e = engin({ kind: 'hero' });
     applyZeroWounds(e);

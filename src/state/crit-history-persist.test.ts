@@ -13,15 +13,16 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'T', name: 'Cible', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], traumas: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 }, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('#194 — applyCriticalToTarget appende l\'entrée subie à critEntriesSuffered', () => {
   it('une résolution → l\'id de l\'entrée est enregistré (une entrée)', () => {

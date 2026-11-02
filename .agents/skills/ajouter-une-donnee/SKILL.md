@@ -1,6 +1,6 @@
 ---
 name: ajouter-une-donnee
-description: À utiliser quand on ajoute ou cure une entrée dans un src/data/*.json (trapping, qualité, carrière, machine de guerre, trait naval, activité, critique, lieu…), ou dès qu'on est tenté d'ajouter un id/label sans avoir vérifié qu'il existe déjà ailleurs. Route vers le skill de domaine dédié si l'ajout est un sort, une créature, un effet mécanique, une icône ou un livre.
+description: À utiliser quand on ajoute ou cure une entrée dans un src/data/*.json (trapping, qualité, carrière, machine de guerre, trait naval, activité, critique, lieu…), ou dès qu'on est tenté d'ajouter un id/label sans avoir vérifié qu'il existe déjà ailleurs. Route vers le skill de domaine dédié si l'ajout est un sort, un effet mécanique, une icône ou un livre.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/ajouter-une-donnee/SKILL.md -->
 

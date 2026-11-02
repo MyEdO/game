@@ -4,7 +4,7 @@
  * coup d'œil les nouveaux assets. Sortie : public/qc-decor.html (servi par Vite : /qc-decor.html).
  * Lancer : npx tsx scripts/_qc-decor-sheet.mts [--new=id1,id2] (met en avant ces props et n'affiche qu'eux)
  */
-import { VIEWS } from '../src/gameIso/rig/facing';
+import { VIEWS } from '../src/gameIso/facing';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,11 +12,11 @@ import { PROPS, propSvg, propViewSvg } from '../src/gameIso/catalog/decor/index'
 import { defsGlobaux } from '../src/gameIso/sprites';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const anim = readFileSync(join(ROOT, 'src/gameIso/anim.css'), 'utf8');
+export const OUT = join(ROOT, 'public/qc-decor.html');
 
-// Props MIS EN AVANT : liste d'ids donnée EN ARGUMENT (`--new=id1,id2`) — réglage de lecture de
-// l'outil, jamais une liste d'ids figée dans le source. Vide = planche complète, sans mise en avant.
-const HIGHLIGHT = new Set((process.argv.find((a) => a.startsWith('--new='))?.slice('--new='.length) ?? '').split(',').filter(Boolean));
+export function build(highlight: readonly string[] = []): string {
+const anim = readFileSync(join(ROOT, 'src/gameIso/anim.css'), 'utf8');
+const HIGHLIGHT = new Set(highlight);
 
 const onlyNew = HIGHLIGHT.size > 0;
 const all = Object.keys(PROPS).sort((a, b) => (HIGHLIGHT.has(b) ? 1 : 0) - (HIGHLIGHT.has(a) ? 1 : 0) || a.localeCompare(b));
@@ -31,7 +31,7 @@ const cells = ids.map((id) => {
   return `<figure class="${HIGHLIGHT.has(id) ? 'neuf' : ''}">${svgBox(svg)}<figcaption>${id}${HIGHLIGHT.has(id) ? ' ✦' : ''}</figcaption></figure>`;
 }).join('\n');
 
-// Props ORIENTÉS : trois vues brutes (face/profil/dos) côte à côte, comme head-views/tenue-views.
+// Props ORIENTÉS : trois vues brutes (face/profil/dos) côte à côte.
 // La machinerie (`propSvg`) sélectionne la vue + le miroir selon `dir`/`camRot` ; ici on rend l'art brut.
 const directional = all.filter((id) => PROPS[id].views);
 const dirRows = directional.map((id) => {
@@ -43,7 +43,7 @@ const dirRows = directional.map((id) => {
   return `<div class="dir-row"><div class="dir-name">${id}</div><div class="grid">${cells3}</div></div>`;
 }).join('\n');
 
-const html = `<!doctype html><meta charset="utf8"><title>QC décors</title><style>
+return `<!doctype html><meta charset="utf8"><title>QC décors</title><style>
 body{margin:0;background:#2a2620;color:#cfc8ba;font:13px system-ui;padding:16px}
 h1{font-size:15px;color:#e8dcc0}
 h2{font-size:14px;color:#e8dcc0;margin-top:22px}
@@ -59,6 +59,10 @@ svg{display:block;background:linear-gradient(#7a6a4a,#5a4d35);border-radius:4px}
 <div class="grid">${cells}</div>
 ${directional.length ? `<h2>Props orientés — 3 vues (face / profil / dos)</h2>${dirRows}` : ''}
 <style>${anim}</style>`;
+}
 
-writeFileSync(join(ROOT, 'public/qc-decor.html'), html, 'utf8');
-console.log(`QC décor écrit : public/qc-decor.html (${ids.length} props)`);
+if (import.meta.main) {
+  const highlight = (process.argv.find((a) => a.startsWith('--new='))?.slice('--new='.length) ?? '').split(',').filter(Boolean);
+  writeFileSync(OUT, build(highlight), 'utf8');
+  console.log('QC décor écrit : public/qc-decor.html');
+}

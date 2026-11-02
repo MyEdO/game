@@ -14,8 +14,7 @@ import type { Scene } from './monde/scene';
 import { desDuTest } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

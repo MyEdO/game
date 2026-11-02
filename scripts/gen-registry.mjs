@@ -17,10 +17,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
-import { litteralJs } from './guards/lib/litteralJs.mjs';
 import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 
-import { REGISTRIES, SORTIE_ART } from './docs/lib/cibles-registres.mjs';
+import { REGISTRIES } from './docs/lib/cibles-registres.mjs';
 export { REGISTRIES, SORTIES_DES_ESPACES, SORTIES } from './docs/lib/cibles-registres.mjs';
 
 
@@ -157,7 +156,7 @@ function genOne(r, check) {
 
 /**
  * Valeurs du champ `champ` écrites en LITTÉRAL (guillemets simples ou doubles, en tête de ligne) dans
- * la source d'un def — SEULE règle de lecture d'un littéral du générateur (`idUnion`, `projection`).
+ * la source d'un def — SEULE règle de lecture d'un littéral du générateur (`idUnion`).
  * Un compte hors de la `cardinalite`, ou une mention du champ qui n'est pas un tel littéral, LÈVE en
  * nommant le def : un id calculé, absent ou doublé ne sort pas du registre en silence.
  * @param {string} src source du def
@@ -185,51 +184,6 @@ export function unionDesIds(dir, files, field) {
   return [...new Set(ids)].sort();
 }
 
-/**
- * Projection d'un registre de defs : `[id]` par def, ou `[id, valeur de champ]` avec `projection.champ`.
- * FAIL-FAST nominatif : un id porté par deux defs lève.
- * @param {string} dir dossier des defs
- * @param {{ nom:string, champ?:string }} projection
- * @returns {string[][]}
- */
-export function projeterDefs(dir, projection) {
-  const lignes = modulesDeDefs(dir).map((f) => {
-    const src = readFileSync(join(dir, f), 'utf8');
-    const [id] = champsLitteraux(src, 'id', join(dir, f), 'un');
-    return projection.champ ? [id, ...champsLitteraux(src, projection.champ, join(dir, f), 'un')] : [id];
-  });
-  const vus = new Set();
-  for (const [id] of lignes) {
-    if (vus.has(id)) throw new Error(`gen-registry: ${dir} : id « ${id} » porté par deux defs — ${projection.nom} ne peut pas se projeter.`);
-    vus.add(id);
-  }
-  return lignes.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-}
-
-/** Le module des projections (`projection` des `REGISTRIES`) rendu, et le compte de chaque bloc. */
-function renduDesProjections(registres = REGISTRIES) {
-  const blocs = registres.filter((r) => r.projection).map((r) => {
-    const lignes = projeterDefs(r.dir, r.projection);
-    const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
-    if (!r.projection.champ)
-      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}];\n` };
-    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map((v) => litteralJs(v)).join(' | ');
-    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}};\n` };
-  });
-  const body =
-    `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
-    `// Régénérer : \`npm run gen\` (option \`projection\` des REGISTRIES).\n\n` +
-    blocs.map((b) => b.texte).join('\n');
-  return { body, blocs: blocs.map((b) => `${b.nom}=${b.n}`) };
-}
-
-/** Module des projections, écrit seulement s'il change. */
-function genArt(check, out = SORTIE_ART) {
-  const { body, blocs } = renduDesProjections();
-  const changed = !ecrireOuVerifier({ out: body, path: out, check, ...MESSAGES_DE(out) });
-  return { out, blocs, changed };
-}
-
 /** Un processus enfant `node --import tsx <args>` à la racine du dépôt : la PHASE 2 (`scripts/gen-espaces.mts`)
  *  parse les documents par leurs schémas TypeScript. */
 const sousTsx = (args, options) =>
@@ -253,7 +207,6 @@ export function rendre() {
     rendu.set(r.out, c.body);
     if (c.union) rendu.set(c.union.out, c.union.body);
   }
-  rendu.set(SORTIE_ART, renduDesProjections().body);
   for (const [chemin, texte] of espacesRendus()) rendu.set(chemin, texte);
   return rendu;
 }
@@ -274,7 +227,7 @@ function genEspaces(verbose, check) {
 }
 
 /**
- * Régénère TOUS les registres (phase 1), les projections d'art (`genArt`), puis l'INDEX DES IDS
+ * Régénère TOUS les registres (phase 1), puis l'INDEX DES IDS
  * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite de
  * `vite.config.ts`, que chaque run Vitest déclenche), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
  * (dossier absent), + UNE ligne agrégée pour le reste — évite les ~15 lignes « [inchangé] » qui
@@ -310,12 +263,6 @@ export function genAll(verbose = false, { check = false } = {}) {
     } else {
       unchangedCount++;
     }
-  }
-  const artRes = jouer(() => genArt(check));
-  if (artRes && (artRes.changed || verbose)) {
-    console.log(libelle("projections d'art", `${artRes.blocs.join(', ')}, ${artRes.out}`, artRes.changed));
-  } else if (artRes) {
-    unchangedCount++;
   }
   if (!verbose && unchangedCount > 0) {
     console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);

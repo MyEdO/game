@@ -37,7 +37,6 @@ export {
   livreExtraitDe, sigleDe,
 }
 
-export const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture (cf. check-code-refs)
 export const WINDOW = 2
 export const MIN_WORD_LEN = 5
 /** Longueur du préfixe sur lequel se juge le recouvrement (tolère pluriel/dérivé, pas le synonyme). */
@@ -146,7 +145,7 @@ export function* refsInLine(ln) {
   }
 }
 
-export const isExcludedSrc = (rel) => rel.startsWith(EXCLUDE_SRC_PREFIX) || SELF_FILES.includes(rel)
+export const isExcludedSrc = (rel) => SELF_FILES.includes(rel)
 
 const _chapterLines = new Map() // path -> string[] (une lecture par chapitre)
 function chapterLinesOf(path) {

@@ -1,11 +1,11 @@
 import { weaponGroups, type GroupeDArmure, type GroupeDArmureId, type WeaponGroupData } from './index';
 import { setDataset } from './overrides';
 
-const armureDeFixture = (id: string, art: string, material: GroupeDArmure['material'], couche: number, palierPA: number): GroupeDArmure => ({
-  id: id as GroupeDArmureId, type: 'weaponGroups', label: `Armure de fixture (${art})`, kind: 'armour', material, couche, art, palierPA,
+const armureDeFixture = (id: string, nom: string, material: GroupeDArmure['material'], couche: number, palierPA: number): GroupeDArmure => ({
+  id: id as GroupeDArmureId, type: 'weaponGroups', label: `Armure de fixture (${nom})`, kind: 'armour', material, couche, palierPA,
 });
 
-/** Groupes d'armure de FIXTURE, un par def d'art d'armure, aux paliers de PA 0, 2 et 4 (#2948). */
+/** Groupes d'armure de FIXTURE, un par matière, aux paliers de PA 0, 2 et 4 (#2948). */
 export const PALIERS_DE_FIXTURE = [
   armureDeFixture('cuir-de-fixture', 'cuir', 'leather', 100, 0),
   armureDeFixture('maille-de-fixture', 'maille', 'metal', 101, 2),

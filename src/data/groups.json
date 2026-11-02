@@ -2,32 +2,38 @@
   {
     "id": "humain",
     "type": "groups",
-    "label": "Humain"
+    "label": "Humain",
+    "race": true
   },
   {
     "id": "nain",
     "type": "groups",
-    "label": "Nain"
+    "label": "Nain",
+    "race": true
   },
   {
     "id": "elfe",
     "type": "groups",
-    "label": "Elfe"
+    "label": "Elfe",
+    "race": true
   },
   {
     "id": "halfling",
     "type": "groups",
-    "label": "Halfling"
+    "label": "Halfling",
+    "race": true
   },
   {
     "id": "gnome",
     "type": "groups",
-    "label": "Gnome"
+    "label": "Gnome",
+    "race": true
   },
   {
     "id": "ogre",
     "type": "groups",
-    "label": "Ogre"
+    "label": "Ogre",
+    "race": true
   },
   {
     "id": "mort-vivant",
@@ -42,12 +48,14 @@
   {
     "id": "peau-verte",
     "type": "groups",
-    "label": "Peau-Verte"
+    "label": "Peau-Verte",
+    "race": true
   },
   {
     "id": "homme-bete",
     "type": "groups",
-    "label": "Homme-bête"
+    "label": "Homme-bête",
+    "race": true
   },
   {
     "id": "bete",
@@ -57,7 +65,8 @@
   {
     "id": "skaven",
     "type": "groups",
-    "label": "Skaven"
+    "label": "Skaven",
+    "race": true
   },
   {
     "id": "cultiste",
@@ -193,7 +202,38 @@
   {
     "id": "etranger",
     "type": "groups",
-    "label": "Étrangers"
+    "label": "Étrangers",
+    "relatif": "etrangersAuPorteur",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 70,
+      "note": "VDM 05 l.142"
+    },
+    "maison": "Groupe relatif (#3045) : un combattant hors du camp du porteur et que ne vise pas son Amour ni sa Camaraderie ; un interlocuteur, sauf si ses Groupes sont visés par cet Amour ou cette Camaraderie. Lecture révisable."
+  },
+  {
+    "id": "adversaires-engages",
+    "type": "groups",
+    "label": "Adversaires engagés",
+    "relatif": "engagesAvecPorteur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341,
+      "note": "LDB 85 l.282"
+    },
+    "maison": "Groupe relatif (#3045) : tout combattant Engagé avec le porteur, tant que dure la Haine, sans filtre de camp. Lecture révisable."
+  },
+  {
+    "id": "autres-races",
+    "type": "groups",
+    "label": "Autres races",
+    "relatif": "autresRacesQueLePorteur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 185,
+      "note": "LDB 19 l.152 ; EDOC 12 l.219"
+    },
+    "maison": "Groupe relatif (#3045) : toute source qui ne porte aucune des Races du porteur, une source sans Race comprise. Lecture révisable."
   },
   {
     "id": "personnes-qui-ne-leur-offrent-rien",
@@ -350,6 +390,178 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
+    }
+  },
+  {
+    "id": "animaux",
+    "type": "groups",
+    "label": "Animaux",
+    "inclut": [
+      "animaux-sauvages",
+      "animaux-domestiques",
+      "bete"
+    ],
+    "source": {
+      "book": "livre-de-base",
+      "page": 110,
+      "note": "LDB 08 l.3514"
+    },
+    "maison": "Groupe composite (Q13 A, #3045) : il vise les animaux sauvages, les animaux domestiques et les bêtes. Lecture révisable."
+  },
+  {
+    "id": "hors-la-loi",
+    "type": "groups",
+    "label": "Hors-la-loi",
+    "source": {
+      "book": "livre-de-base",
+      "page": 82,
+      "note": "LDB 08 l.1852"
+    }
+  },
+  {
+    "id": "heretiques",
+    "type": "groups",
+    "label": "Hérétiques",
+    "source": {
+      "book": "livre-de-base",
+      "page": 80,
+      "note": "LDB 08 l.1732"
+    }
+  },
+  {
+    "id": "intrus",
+    "type": "groups",
+    "label": "Intrus",
+    "source": {
+      "book": "livre-de-base",
+      "page": 71,
+      "note": "LDB 08 l.1203"
+    }
+  },
+  {
+    "id": "miliciens",
+    "type": "groups",
+    "label": "Miliciens",
+    "source": {
+      "book": "livre-de-base",
+      "page": 58,
+      "note": "LDB 08 l.490"
+    }
+  },
+  {
+    "id": "naufrageurs",
+    "type": "groups",
+    "label": "Naufrageurs",
+    "source": {
+      "book": "livre-de-base",
+      "page": 100,
+      "note": "LDB 08 l.2928"
+    }
+  },
+  {
+    "id": "patrouilleurs-fluviaux",
+    "type": "groups",
+    "label": "Patrouilleurs fluviaux",
+    "source": {
+      "book": "livre-de-base",
+      "page": 94,
+      "note": "LDB 08 l.2582"
+    }
+  },
+  {
+    "id": "patrouilleurs-routiers",
+    "type": "groups",
+    "label": "Patrouilleurs routiers",
+    "source": {
+      "book": "livre-de-base",
+      "page": 103,
+      "note": "LDB 08 l.3125"
+    }
+  },
+  {
+    "id": "primes",
+    "type": "groups",
+    "label": "Primes",
+    "source": {
+      "book": "livre-de-base",
+      "page": 77
+    }
+  },
+  {
+    "id": "rats",
+    "type": "groups",
+    "label": "Rats",
+    "source": {
+      "book": "livre-de-base",
+      "page": 60,
+      "note": "LDB 08 l.596"
+    }
+  },
+  {
+    "id": "sorciers-dissidents",
+    "type": "groups",
+    "label": "Sorciers dissidents",
+    "source": {
+      "book": "livre-de-base",
+      "page": 145,
+      "note": "LDB 10 l.1051"
+    }
+  },
+  {
+    "id": "sorcieres",
+    "type": "groups",
+    "label": "Sorcières",
+    "source": {
+      "book": "livre-de-base",
+      "page": 83,
+      "note": "LDB 08 l.1907"
+    }
+  },
+  {
+    "id": "vampires",
+    "type": "groups",
+    "label": "Vampires",
+    "source": {
+      "book": "livre-de-base",
+      "page": 145,
+      "note": "LDB 10 l.1051"
+    }
+  },
+  {
+    "id": "chaos",
+    "type": "groups",
+    "label": "Chaos",
+    "inclut": [
+      "demon",
+      "cultiste",
+      "mutants"
+    ],
+    "source": {
+      "book": "aux-armes",
+      "page": 36,
+      "note": "AA 03 l.420"
+    },
+    "maison": "Groupe composite (Q13 A, #3045) : il vise les démons, les cultistes et les mutants. Lecture révisable."
+  },
+  {
+    "id": "cavalerie",
+    "type": "groups",
+    "label": "Cavalerie",
+    "source": {
+      "book": "aux-armes",
+      "page": 46,
+      "note": "AA 04 l.204"
+    },
+    "maison": "Groupe dérivé (Q13 A, #3045) : tout combattant monté le porte. Lecture révisable."
+  },
+  {
+    "id": "grandes-betes",
+    "type": "groups",
+    "label": "Grandes bêtes",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 36,
+      "note": "ADE II 02 l.927"
     }
   }
 ]

@@ -3,6 +3,7 @@ import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { seedBattleRng } from '../battleRng';
 import { REPLIS_DEUX_CIBLES, evaluateTest, resolveOpposed } from '../../engine/tests';
 import type { Combatant } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -24,14 +25,14 @@ const CHARS = (force: number) => ({
 });
 
 function combatant(p: Partial<Combatant> & { id: string; force: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     label: p.label ?? p.id, kind: p.kind ?? 'hero',
     characteristics: CHARS(p.force) as never,
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], fortune: 0, resilience: 0, pos: { x: 1, y: 1 },
     ...p,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function setBattle(combatants: Combatant[], activeId: string) {

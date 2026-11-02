@@ -5,13 +5,14 @@ import { findVehicleById } from '../data';
 import { makeRNG } from './dice';
 import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, addCondition, COND } from './conditions';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Marin minimal (Combattant de personnage) — assez pour les Éclats (`applyOps`). */
-const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
+const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-  armour: { corps: 0 }, wounds: { current: 13, max: 13, base: 13 }, advantage: 0, ...over,
-}) as unknown as Combatant;
+  armour: { corps: 0 }, wounds: blessuresDeBase(13), advantage: 0, ...over,
+})) as unknown as Combatant;
 
 const hull = () => vehicleCombatant(findVehicleById('cogue')!)!; // rig 'voile'
 

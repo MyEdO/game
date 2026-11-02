@@ -1,7 +1,6 @@
 /**
  * #223 — « seed + repli bruyant » : toute résolution qui ÉCHOUE crie (console) et laisse une trace
- * VISIBLE, jamais un clone silencieux. Une réf. irrésoluble LÈVE (#1882). Couvre l'arme d'authoring hors catalogue (console.error + AUCUNE arme devinée), la garde-robe inconnue
- * (console.warn + citadins). Le tirage individuel des teintes : `gameIso/rig/tirage-individuel.test.tsx`.
+ * VISIBLE, jamais un clone silencieux. Une réf. irrésoluble LÈVE (#1882). Couvre l'arme d'authoring hors catalogue (console.error + AUCUNE arme devinée).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RefIrresoluble, spawnEnemy } from '../noyau/monde/spawn';
@@ -9,7 +8,6 @@ import { ficheDEntite, FicheAbsente } from '../noyau/monde/sceneNpc';
 import type { SceneEntity } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { inFiringBand } from '../noyau/combatFlow';
-import { tenueFor, tenueForClass } from '../gameIso/rig/parts/career';
 import { presetPnjById } from './campaignData';
 
 const POS = { x: 0, y: 0 };
@@ -72,7 +70,7 @@ describe('#223/#258 — arme d’authoring (trappingId) au spawn de combat', () 
     expect(dague?.subType).toBe('base');
   });
 
-  it('#258 régression Olg (loup-et-saumure) — « hache-d-armes » résout SANS plainte au spawn de combat (même voie que le rendu enemyRigProfile)', () => {
+  it('#258 régression Olg (loup-et-saumure) — « hache-d-armes » résout SANS plainte au spawn de combat', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     spawnEnemy({ statblock: { type: 'statblock', label: 'Olg Blóðsalt', char: { B: 12 } } }, 'olg', POS, { weapon: 'hache-d-armes' });
     expect(err).not.toHaveBeenCalled();
@@ -86,27 +84,5 @@ describe('#223/#258 — arme d’authoring (trappingId) au spawn de combat', () 
     expect(arc!.loaded).toBe(true);
     expect(inFiringBand(shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
     expect(arc!.trappingId).toBe('arc');
-  });
-});
-
-describe('#223 — garde-robe inconnue = repli citadins BRUYANT', () => {
-  it('id hors catalogue (marchande) → console.warn + tenue de classe Citadins', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const t = tenueFor('marchande');
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('marchande'));
-    expect(t).toEqual(tenueForClass('citadins'));
-  });
-
-  it('LIBELLÉ pris pour un id (Marchand, majuscule) → console.warn + Citadins', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const t = tenueFor('Marchand');
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Marchand'));
-    expect(t).toEqual(tenueForClass('citadins'));
-  });
-
-  it('id de tenue RÉSOLU du catalogue (marchand) → aucun warn', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    tenueFor('marchand');
-    expect(warn).not.toHaveBeenCalled();
   });
 });

@@ -32,7 +32,7 @@ import {
   resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, psychResolution,
   sousPeur, indiceDePeur, vise,
 } from '../../engine/psychology';
-import { cibleDuPorteur, estCibleType, libelleDeCible, type CiblePsy } from '../../engine/psych/ciblage';
+import { ciblePsy, estCibleType, libelleDeCible } from '../../engine/psych/ciblage';
 import { psychologyLabel, combatStakeRef } from '../../data';
 import { isColdBlooded, hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
@@ -41,6 +41,9 @@ import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
+
+/** La Cible de la Haine de Rage : le Groupe relatif des adversaires Engagés. LDB 85 l.282 ; Q12 B, #3045 */
+const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
 
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`) — point unique
  *  appelé par `advanceTurn` (tour suivant du Round) ET `confirmRoundStart` (1ᵉʳ combattant du Round),
@@ -206,7 +209,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
   for (const p of enemy.psychState) {
     // Re-test (fin de Round) des afflictions ciblées actives, tant qu'un membre du groupe est visible.
     if (!p.active || !estCibleType(p.type) || !p.cible || p.lastTestRound === battle.round) continue;
-    if (!visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu'))) continue;
+    if (!visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', enemy))) continue;
     p.lastTestRound = battle.round;
     if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, psych: psychologyLabel(p.type) })); }
   }
@@ -270,13 +273,7 @@ export const TABLES = {
     // `onTurnStart` en DONNÉES (`psychology.json` : Sonné/Inconscient ∨ plus d'ennemi en LdV → Exténué),
     // diffusé UNIFORMÉMENT (héros + IA) par `fireTurnStartTriggers` AVANT les hooks d'entrée ci-dessous.
     {
-      // Rage (LDB 85 l.281-283) : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
-      // devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses
-      // Avantages (minimum 3) pour entrer en Frénésie. » Décision IA (RNG-free) : ≥ 3 → Frénésie
-      // (politique historique conservée) ; sinon ≥ 1 ET des adversaires au contact non encore haïs →
-      // tout dépenser pour la Haine (état psy ciblé LDB 21 : +1 DR aux Tests de Combat contre le groupe
-      // + immunité à sa Peur, via psychology.json/psychDRAdjust). Cible = le 1ᵉʳ Groupe de chaque
-      // adversaire Engagé (racial des héros) ; re-testable en fin de Round comme toute Haine (LDB 21).
+      // Rage : LDB 85 l.282 ; Q12 B, #3045.
       id: 'rage',
       phase: 'onTurnStart',
       order: 20,
@@ -292,26 +289,11 @@ export const TABLES = {
           return;
         }
         if (adv < 1) return;
-        // Adversaires en COMBAT RAPPROCHÉ (Engagés, vivants) non déjà couverts par une Haine ACTIVE.
-        const foes = (enemy.engagedWith ?? [])
-          .map((id) => inBattleId(battle, id))
-          .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
-        const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible !== undefined);
-        const uncovered = foes.filter((f) => !hated.some((p) => vise(p.cible!, { genre: 'combattant', c: f }, 'appartenance'))); // LDB 21 l.41
-        // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe
-        // n'est pas modélisable en Trait ciblé (groupMatch), on ne dépense pas pour lui.
-        const parCible = new Map<CiblePsy, Combatant>();
-        for (const f of uncovered) {
-          const cible = cibleDuPorteur(f);
-          if (cible !== undefined && !parCible.has(cible)) parCible.set(cible, f);
-        }
-        if (!parCible.size) return;
-        campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
-        enemy.psychState ??= [];
-        for (const [cible, src] of parCible) {
-          enemy.psychState.push({ type: 'haine', cible, sourceId: src.id, active: true, lastTestRound: battle.round });
-          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(cible) }), enemy.id));
-        }
+        if ((enemy.psychState ?? []).some((p) => p.type === 'haine' && p.active === true && p.cible === HAINE_DE_RAGE)) return;
+        if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, { genre: 'combattant', c: f }, 'appartenance', enemy))) return;
+        campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
+        (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
+        battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },
     },

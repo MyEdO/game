@@ -31,7 +31,7 @@ import {
   designateSlot,
   talentAcquisitions,
 } from '../engine/careerSlots';
-import { applyTalentAcquisition, recalerLaBaseDesBlessures, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
+import { applyTalentAcquisition, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
 import { skillCharacteristicById } from '../engine/character';
 import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
@@ -371,7 +371,6 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
       msg = t('pf.refused', { name: clone.label, what: CHAR_LABELS[char], reason: r.reason ?? '' });
       return h;
     }
-    recalerLaBaseDesBlessures(clone);
     msg = t('pf.advanceBought', { name: clone.label, what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
     return clone;
   })) return;
@@ -489,9 +488,8 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
       const slot = freeSlotFor(ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       if (slot) designateSlot(clone, ctx.career, slot, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     }
-    // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + attributs dérivés.
+    // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + Chance et Détermination.
     applyTalentAcquisition(clone, talentId, spec);
-    recalerLaBaseDesBlessures(clone); // Dur à cuire / Très résistant (BE)
     clone.fortune = (clone.fortune ?? 0) + (fortuneMax(clone) - fortuneBefore); // Chanceux
     clone.resolve = (clone.resolve ?? 0) + (resolveMax(clone) - resolveBefore); // Obstiné
     msg = t('pf.talentBought', { name: clone.label, label: talentLabel, cost: r.cost });

@@ -13,12 +13,10 @@
  * carte (liseré de gravité `data-tone`, icône, sous-ligne petites capitales) affinée au lot #492
  * « chevet » — les tokens/primitives existants restent l'autorité.
  *
- * La bande de zones EN TÊTE du registre (`ZoneBand`, pt.4) est MORTE (lot « corps-index », arbitrage
- * user 2026-07-17) — doublon d'index : le CORPS de la colonne (`FigTile.zoneBadges`, composé par
- * `CharacterSheet.tsx`) porte ce résumé par Localisation. `zoneAfflictions`/`zoneAnchor`
- * restent exportés d'ICI (source unique du calcul) et alimentent ce badge ; l'ancre de
- * la PREMIÈRE rangée Critiques/Séquelles par Localisation (posée dans le registre, `zoneAnchorFor`)
- * reste la cible de clic du badge. Liserés de gravité (sang/ambre/violet, pt.5) posés en attribut
+ * `FigZoneBadges`, composé par `CharacterSheet.tsx`, porte le résumé par Localisation dans la
+ * colonne de la fiche. `zoneAfflictions`/`zoneAnchor` fournissent le calcul et les cibles de clic :
+ * l'ancre de la PREMIÈRE rangée Critiques/Séquelles par Localisation (`zoneAnchorFor`).
+ * Liserés de gravité (sang/ambre/violet, pt.5) posés en attribut
  * `data-tone` sur la bande de section (`Section`) — jamais une classe par ton.
  */
 import type { ReactNode } from 'react';
@@ -159,7 +157,7 @@ function critLocation(table: CritTableKey): HitLocation {
 }
 
 /** Ancre de la PREMIÈRE rangée Critiques/Séquelles d'une Localisation dans le registre — cible de
- *  clic du badge de zone de la colonne (`FigTile.zoneBadges`, `CharacterSheet.tsx`). */
+ *  clic du badge de zone de la colonne (`FigZoneBadges`, `CharacterSheet.tsx`). */
 export function zoneAnchor(loc: HitLocation): string {
   return `etat-zone-${loc}`;
 }
@@ -178,7 +176,7 @@ function criticalEntriesOf(hero: Combatant) {
 }
 
 /** Localisations TOUCHÉES (pt.4, #492) — ≥1 critique ou séquelle, comptées par famille. Alimente le
- *  badge de zone de la colonne (`FigTile.zoneBadges`) : une zone intacte n'est jamais retournée. */
+ *  badge de zone de la colonne (`FigZoneBadges`) : une zone intacte n'est jamais retournée. */
 export function zoneAfflictions(hero: Combatant): { loc: HitLocation; crit: number; trauma: number }[] {
   const critByLoc = new Map<HitLocation, number>();
   for (const c of criticalEntriesOf(hero)) critByLoc.set(critLocation(c.table), (critByLoc.get(critLocation(c.table)) ?? 0) + c.count);
@@ -243,7 +241,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
   const encTier = overEnc ? garanti(datasetArray('encumbranceTiers').find((t) => t.tier === encumbrancePenalties(hero).tier), encumbrancePenalties(hero).tier, 'palier d’encombrement') : undefined;
 
   // Ancre la PREMIÈRE rangée Critiques/Séquelles de chaque Localisation (une seule fois, dans l'ordre
-  // de rendu du registre) — cible de clic du badge de zone de la colonne (`FigTile.zoneBadges`, pt.4).
+  // de rendu du registre) — cible de clic du badge de zone de la colonne (`FigZoneBadges`, pt.4).
   // Pas de coût CSS : un `id`, pas de classe.
   const seenZoneAnchor = new Set<HitLocation>();
   const zoneAnchorFor = (loc: HitLocation): string | undefined => {

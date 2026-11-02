@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyFall } from '../engine/movement';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * CHUTE MÉTRIQUE (LDB 15 l.78-84) — `applyFall(c, metres, d10Chute)` : dégâts = 3 × mètres + 1d10,
@@ -12,12 +13,12 @@ import type { Combatant } from '../engine/types';
 
 /** Combattant minimal à Endurance `E` et `wounds` PB courants. */
 function mkC(E: number, wounds = 20): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', name: 'c', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: wounds, max: wounds, base: wounds },
+    wounds: blessuresDeBase(wounds),
     conditions: [], traits: [], advantage: 0,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('applyFall — dégâts métriques (3/m + 1d10 − BE)', () => {

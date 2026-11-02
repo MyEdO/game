@@ -10,25 +10,25 @@ import { EtatPanel, zoneAfflictions } from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties } from '../engine/trauma';
 import { useGame } from '../state/store';
 import { ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Héros minimal, patron `sheetAlarms.test.ts`/`CharacterSheet.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
-  const c = {
+  const c = blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
     species: 'humains-reiklander',
     career: 'soldat',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     conditions: [],
     skills: [],
     talents: [],
     movement: 4,
     items: [],
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   mut?.(c);
   return c;
 };
@@ -56,10 +56,9 @@ describe('EtatPanel', () => {
       expect(html, `ancre manquante : ${anchor}`).toContain(`id="${anchor}"`);
     }
     // Chaque affliction LOURDE = une seule PlaqueRow : 6 (critiques/traumas/maladies/mutations/
-    // psychologie/surcharge). Les États actifs sont désormais des CHIPS compactes (0 PlaqueRow), et la
+    // psychologie/surcharge). Les États actifs sont des CHIPS compactes (0 PlaqueRow), et la
     // Corruption vit dans la bande « Réserves & seuils ».
-    // La bande de zones (`ZoneBand`, pt.4) est MORTE (lot « corps-index », #492) : plus de plaques
-    // résumées ici, le résumé par Localisation vit dans `FigTile.zoneBadges` (`CharacterSheet.tsx`).
+    // `FigZoneBadges`, composé par `CharacterSheet.tsx`, porte le résumé par Localisation.
     const rowCount = (html.match(/plaque-row/g) || []).length;
     expect(rowCount).toBe(6);
     // Chip codex-liée par État actif + nom codex-lié de chaque PlaqueRow → au moins 6 refs Codex.
@@ -154,9 +153,9 @@ describe('EtatPanel', () => {
     expect(iCorr).toBeLessThan(iMent); // pile droite
   });
 
-  it('rangée de zones (pt.4) MORTE dans le registre (lot « corps-index », #492) — seules les ancres de la PREMIÈRE rangée concernée subsistent', () => {
+  it('ancres de zone du registre : une cible sur la PREMIÈRE rangée concernée par Localisation', () => {
     const html = renderToStaticMarkup(<EtatPanel hero={afflictedHero()} />);
-    // Le résumé par zone vit dans `FigTile.zoneBadges` : le registre ne rend ni `PlaqueGrid` ni compte
+    // `FigZoneBadges`, composé par `CharacterSheet.tsx`, porte le résumé par zone ; le registre ne rend ni `PlaqueGrid` ni compte
     // agrégé ("1 critique"/"1 séquelle").
     expect(html).not.toContain('plaque-grid');
     expect(html).not.toContain('1 critique');
@@ -284,7 +283,7 @@ describe('EtatPanel', () => {
   });
 
   /** #1318 E4/C-γ — le cumul des séquelles ne doit pas ÉVAPORER la Localisation : `zoneAfflictions`
-   *  alimente les badges de zone de la colonne (`FigTile.zoneBadges`), un badge PAR membre touché. */
+   *  alimente `FigZoneBadges`, composé par `CharacterSheet.tsx` : un badge PAR membre touché. */
   it('orteils perdus aux DEUX jambes : les deux zones restent badgées après consolidation (LDB 18 l.281)', () => {
     const hero = mkHero((c) => {
       c.traumas = [traumaById('orteil-ampute', undefined, 'jambeG'), traumaById('orteil-ampute', undefined, 'jambeD')];

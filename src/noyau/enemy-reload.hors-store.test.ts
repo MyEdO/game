@@ -10,6 +10,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -27,22 +28,22 @@ const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF:
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 60, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 };
 
 function enemyWith(over: Partial<Combatant>): Combatant {
-  return {
-    id: 'e1', name: 'Arbalétrier', kind: 'enemy', characteristics: CHARS, wounds: { current: 10, max: 10 },
+  return blessuresSurLeProfil({
+    id: 'e1', name: 'Arbalétrier', kind: 'enemy', characteristics: CHARS, wounds: blessuresDeBase(10),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [],
     size: 'moyenne', weapons: [CROSSBOW], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 function heroAt(x: number, y: number): Combatant {
-  return {
-    id: 'h1', name: 'Héros', kind: 'hero', characteristics: CHARS, wounds: { current: 12, max: 12 },
+  return blessuresSurLeProfil({
+    id: 'h1', name: 'Héros', kind: 'hero', characteristics: CHARS, wounds: blessuresDeBase(12),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [],
     pos: { x, y }, size: 'moyenne',
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
     items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const hitResult: AttackResult = {

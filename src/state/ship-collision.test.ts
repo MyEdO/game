@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyShipCollision } from '../noyau/monde/shipCollision';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Collision / éperonnage appliqué (MDG 13) — `applyShipCollision` mappe chaque coque en `CollisionShip`
@@ -10,12 +11,12 @@ import { desDuTest } from '../engine/dice.testkit';
  * de coque + `extraAP` = `armorBonus` situationnel — la mitigation reste DANS l'op).
  */
 const hull = (id: string, creatureId: string, E: number, pb: number): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind: 'npc', creatureId, bodyShape: 'vehicule',
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
-    wounds: { current: pb, max: pb, base: pb }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(pb), advantage: 0, conditions: [], weapons: [],
     armour: { corps: 0 }, skills: [], talents: [],
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('applyShipCollision — Dégâts aux deux coques (MDG 13)', () => {
   it('deux coques sans Bélier : IC=bonus(E)+bonus(PB), Dégâts = IC adverse + M causeur, mitigés BE dans l’op', () => {

@@ -9,6 +9,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory, type StageRenderer } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { webglRefusé } from './webglSupport';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * SANS CONTEXTE VOLUMIQUE, LE JEU LE DIT (#1176, P3-4, commit C5a). La voie volumique est le SEUL
@@ -25,12 +26,12 @@ import { webglRefusé } from './webglSupport';
 const TAILLE = { w: 800, h: 600 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 let root: Root | null = null;

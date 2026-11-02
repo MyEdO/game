@@ -22,6 +22,7 @@ import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
 import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from './cascade.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -31,9 +32,9 @@ const CH = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, enduran
 const arme = (uid: string, label: string, qualities: { id: string; value?: number }[] = []): Weapon =>
   ({ uid, name: label, label, type: 'melee', damage: { plusBF: true, flat: 4 }, qualities }) as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...CH }, conditions: [], engagedWith: [], skills: [], talents: [], traits: [],
-     weapons, items: [], advantage: 0, size: 'moyenne', pos, wounds: { current: 200, max: 200 }, criticalWounds: 0, traumas: [],
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, fate: 0 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CH }, conditions: [], engagedWith: [], skills: [], talents: [], traits: [],
+     weapons, items: [], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(200), criticalWounds: 0, traumas: [],
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, fate: 0 }) as unknown as Combatant);
 
 type Suspension = 'sauvegarde' | 'deviation' | 'casseAttaquant' | 'casseDefenseur';
 type Charge = 'maladresseHeros' | 'maladresseEnnemiMJ' | 'balayage' | 'reaction' | 'repriseIA';

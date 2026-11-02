@@ -7,13 +7,6 @@
   text-align: center;
   gap: 10px;
 }
-.sheet-portrait .rig-portrait {
-  width: 112px;
-  height: 112px;
-  border-radius: 999px; /* médaillon rond, façon écu */
-  border-width: 3px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-}
 /* Barres de vie/Encombrement (croquis colonne 2026-07-17) : la primitive `LifeBar` s'étire pleine
    largeur — sans ça, `align-items: center` du parent la réduirait à son contenu. */
 .sheet-portrait .life-bar {
@@ -62,16 +55,6 @@
 }
 .sheet-vitals .stat-chip.pv .sc-value {
   color: var(--gold2);
-}
-@media (max-width: 700px) {
-  /* Mobile : la boîte-figurine `hero` (#492 lot « colonne présence ») reste EMPILÉE (une rangée
-     portrait+texte n'a plus de sens à 320px de haut) — resserrée pour l'espace vertical restreint. */
-  .sheet-portrait .fig-tile.hero {
-    width: 168px;
-  }
-  .sheet-portrait .fig-tile.hero .fig-tile-fig {
-    height: 168px;
-  }
 }
 /* ── Panneau d'avancement ── */
 .adv-panel {
@@ -272,8 +255,7 @@
 
 /* ── Onglet « État » (tableau de bord, arbitrage user 2026-07-17) : en-tête de CAPACITÉ toujours
    visible (bande `ReservesSeuilsBand`), Effets actifs en CHIPS compactes, afflictions lourdes
-   en `PlaqueRow` conditionnelles — l'ancienne silhouette organisatrice (rig + zones dessinées) est
-   MORTE. Le résumé par Localisation vit dans le CORPS de la colonne (`FigTile.zoneBadges`,
+   en `PlaqueRow` conditionnelles. Le résumé par Localisation vit dans le CORPS de la colonne (`FigZoneBadges`,
    `CharacterSheet.tsx`), pas ici.
 
    Effets actifs COMPACTS : rangée de chips codex-liées (`.chip` + `CodexRef`, `EtatPanel.tsx`) qui
@@ -324,8 +306,7 @@
 }
 /* Grammaire de carte par FAMILLE (pt.5, #492 + addendum LOT L pt.4, verdict user sur la planche
    chevet) : attribut `data-tone` posé sur la bande de section (`Section`, `EtatPanel.tsx`) — jamais
-   une classe par ton (patron déjà tenu par l'ancienne silhouette organisatrice, `data-tone` de
-   `NotchGauge`). Sang = critiques/états, ambre = séquelles/maladies, violet = corruption/mutations.
+   une classe par ton (`data-tone` de `NotchGauge`). Sang = critiques/états, ambre = séquelles/maladies, violet = corruption/mutations.
    `PlaqueRow` n'expose pas de prop dédiée (hors périmètre du lot) : ciblée en DESCENDANT, la plaque
    garde son propre rayon de bordure (`border-radius`, plaque-row.css).
    (a)/(b) Liseré ÉPAIS + fond de carte TEINTÉ par famille — user 2026-07-17, verbatim : « En plus

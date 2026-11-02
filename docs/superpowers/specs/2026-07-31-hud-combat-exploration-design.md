@@ -73,9 +73,9 @@ Le toggle d’inspection quitte `InitiativeStrip`.
 
 ## 6. Inspection et commandes de vue — des gestes, aucune plaque
 
-Arbitrage du 2026-08-17 (`docs/plans/2026-08-16-spec-hud-combat.md`, « ARBITRAGE CAMÉRA ») : « gestes + clavier seuls — la plaque `ViewControls` QUITTE le jeu » ; l'éditeur la garde. Verrou : `src/ui/camera-sans-plaque.test.ts`.
+Les commandes de vue du jeu passent par les gestes et le clavier ; la plaque `ViewControls` reste dans l’éditeur seulement (#1822). Verrou : `src/ui/camera-sans-plaque.test.ts`.
 
-L'inspection n'est pas un mode à basculer : c'est le GESTE SECONDAIRE d'une entité (#1822, 2026-10-05 : « le clique gauche déclenche l'attaque et le clique droit inspecte »), en combat comme hors combat :
+L'inspection n'est pas un mode à basculer : c'est le GESTE SECONDAIRE d'une entité (#1822 : clic gauche pour l’attaque, clic droit pour l’inspection), en combat comme hors combat :
 
 - sur un PORTRAIT (`PortraitTile.onInspect`, frise `InitiativeStrip` et bandeau `PartyDock`) : clic droit, appui long (`useLongPress`), touche Menu ou Maj+F10 sur la tuile focalisée — le patron de l'alvéole `ConsoleCell`, annoncé dans le nom accessible ;
 - sur un JETON du plateau (`useStagePointer`) : clic droit et appui long ; la fiche se résout par la case en combat, par l'entité de scène à fiche hors combat ;

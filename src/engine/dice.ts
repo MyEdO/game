@@ -8,8 +8,7 @@ export interface RNG {
 }
 
 /** Hash FNV-1a 32 bits → graine entière stable pour un id (variation déterministe rejouable :
- *  mutations/caractéristiques aléatoires au spawn LDB 77/85, rig cosmétique). PUR (#161 : ex-
- *  `gameIso/appearance.ts` — utilitaire générique de seed, pas du rendu). */
+ *  mutations/caractéristiques aléatoires au spawn LDB 77/85). PUR. */
 export function hashSeed(s: string): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < s.length; i++) {
@@ -92,6 +91,13 @@ export function parseDice(s: string): DiceSpec | null {
   const dc: DiceSpec = { n: m[1] ? parseInt(m[1], 10) : 1, sides: parseInt(m[2], 10) };
   if (m[3]) dc.plus = parseInt(m[3].replace(/\s+/g, ''), 10);
   return dc;
+}
+
+/** Dé authoré requis, avec le chemin du champ dans le diagnostic. */
+export function parseDiceRequired(s: string, champ: string): DiceSpec {
+  const de = parseDice(s);
+  if (!de) throw new Error(`${champ} invalide : ${s}`);
+  return de;
 }
 
 /** Évalue une expression de dés signée (« 1d10+15 », « 2d10 », « d10 », « 15 », « 1d6-1 ») → total

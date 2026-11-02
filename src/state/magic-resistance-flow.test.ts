@@ -19,18 +19,19 @@ import { emptyScene } from '../noyau/monde/scene';
 /** Pions de l'État `id` portés par `c` (0 si absent) — lecture directe de l'instance. */
 const pions = (c: Combatant, id: string): number => c.conditions.find((x) => x.id === id)?.value ?? 0;
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, characteristics: { ...CHARS },
-    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 /** Résistance à la Magie 2 (trait de créature) / N (talent) — la DONNÉE porte l'op `incomingSpellDRMod`. */
 const RM_TRAIT = [{ id: 'resistance-a-la-magie', value: 2 }] as never;

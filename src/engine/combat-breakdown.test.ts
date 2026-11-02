@@ -9,15 +9,15 @@ import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
 import { ligneDe } from './modLine.testkit';
 import { RULE_REF } from './ruleRefs';
 import { refLabel } from '../data';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x',
     name: 'X',
     kind: 'enemy',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -26,7 +26,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
     talents: [],
     movement: 4,
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };

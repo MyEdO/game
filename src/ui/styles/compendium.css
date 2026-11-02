@@ -310,13 +310,6 @@
   color: var(--gold2);
 }
 
-/* ── Aperçu créature encadré (OrnateFrame) dans l'en-tête de fiche ── */
-.codex-figure {
-  flex-shrink: 0;
-  align-self: flex-start;
-  padding: 6px;
-}
-
 
 @media (max-width: 900px) {
   .screen.codex {

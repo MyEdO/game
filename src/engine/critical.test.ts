@@ -16,6 +16,7 @@ import locJson from '../data/localisation.json';
 import type { Combatant, HitLocation } from './types';
 import { desDuTest, desEnSuite } from './dice.testkit';
 import { LOCALISATIONS_DE_COUP } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * Blessures critiques par Localisation — UN lecteur, DEUX jeux (#1657 B2a, #1682) : le Livre de base
@@ -30,12 +31,12 @@ function seq(...values: number[]): RNG {
 }
 
 const cible = (E = 30): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 't', name: 'Cible', label: 'Cible', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 0, max: 12 },
+    wounds: blessuresDeBase(12, 0),
     conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 const JEUX: JeuDeCritique[] = ['ldb', 'aa'];

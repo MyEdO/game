@@ -3,13 +3,18 @@
    qualificatif d'arme. Mêmes déclarations de bande que les autres rôles de texte de la coquille
    (`.rm-subtitle`/`.rm-summary`, roll-shell.css) — autre propriétaire, autre module. */
 .rm-vs {
+  --ptile-name-width: 120px;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: var(--sp-sm);
   margin: 6px 0 12px;
 }
 .rm-vs-arrow {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   text-align: center;
   font-size: 13px;
   color: var(--muted);

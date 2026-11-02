@@ -13,6 +13,7 @@ import { ligneDe } from '../engine/modLine.testkit';
 import { t } from '../i18n';
 import { sansPeurLabel } from '../engine/psychology';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { actorIn } from './monde/combatants';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -58,7 +59,9 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     E.pos = { x: 11, y: 10 }; // Ligne de Vue dégagée
     const turn = b.order.indexOf(heroes[0].id);
     banc.setState({ battle: { ...b, turn }, pendingCascade: null }); // vide la révélation d'Initiative
-    return { H: heroes[0], heroes, E };
+    // La Taille déplace le maximum des Blessures : l'écriture a copié l'ennemi, les acteurs se relisent par leur id.
+    const lu = (c: Combatant) => actorIn(banc.getState(), c.id)!;
+    return { H: lu(heroes[0]), heroes: heroes.map(lu), E: lu(E) };
   }
 
   it('Terreur : openRoundStartPsych ouvre la BANDE (déclaration sur l’étape, jet sur la rangée) ; cascadeBatchRoll+cascadeNext applique le Brisé', () => {

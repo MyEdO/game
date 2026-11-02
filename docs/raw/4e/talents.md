@@ -1568,10 +1568,10 @@ Le fichier ne contient pas de refs `LDB N l.N` en annotation inline. Les regles 
 | Fichier | Rôle |
 |---|---|
 | `src/data/talents.json` | SOURCE app-owned : 177 entrées (id, label, max, test, desc, addSkill, addTalent, addCharacteristic, specs, rand, source) |
-| `src/engine/talentEffects.ts` | Acquisition (applyTalentAcquisition) : +5 carac de départ (CharKey), +1 Mouvement (Véloce), Béni → 6 Bénédictions auto ; calculs Blessures/Chance/Détermination (extraWounds, heroMaxWounds, fortuneMax, resolveMax) ; addSkill → careerSkillAdditions ; passifs (talentPassiveMods → collecteur passiveMods) |
+| `src/engine/talentEffects.ts` | Acquisition (applyTalentAcquisition) : +5 carac de départ (CharKey), +1 Mouvement (Véloce), Béni → 6 Bénédictions auto ; calculs Chance/Détermination (fortuneMax, resolveMax) ; addSkill → careerSkillAdditions ; passifs (talentPassiveMods → collecteur passiveMods) |
 | `src/data/index.ts` | findTalent / findTalentById — lookup par libellé ou id stable |
 | `src/engine/careerSlots.ts` | splitLabel / concreteLabel — résolution spec « (Au choix) » pour addSkill |
-| `src/engine/characteristics.ts` | bonus / maxWounds — dépendances de heroMaxWounds |
+| `src/engine/characteristics.ts` | bonus ; maximum des Blessures (`effectiveMaxWounds` : Dur à cuire et +5 de Talent lus par `passiveMods`) |
 | `src/engine/trauma.ts` | passiveMods(c) — collecteur UNIQUE (talents + traits + mutations + maladies…) |
 
 **Points à vérifier :**

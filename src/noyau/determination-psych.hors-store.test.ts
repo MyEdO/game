@@ -5,8 +5,7 @@ import { psychDRAdjust } from '../engine/combat';
 import { traumaCharPenalties, traumaMovementHalved, traumaDodgePenalty, passiveTestMod } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

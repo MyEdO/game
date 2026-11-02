@@ -2,20 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { applyExposureFailure, exposureNight, sealskinDR } from './exposure';
 import { makeRNG } from './dice';
 import type { Combatant } from './types';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 /**
  * Exposition CHALEUR (LDB 18 l.330) + peau de phoque au FROID (MDG 14 l.277-279) — le système unique
  * d'`engine/exposure` sert désormais les deux volets (Température en mer, MDG 13 l.203-225).
  */
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 25, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 45 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as Combatant);
+  }) as Combatant);
 
 describe('applyExposureFailure — volet CHALEUR (LDB 18 l.330)', () => {
   it('1er échec : −10 Int/FM + 1 Exténué', () => {

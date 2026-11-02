@@ -14,7 +14,7 @@ import {
   scanTout, cliquets, FAMILLES_CLIQUETEES, regenerations,
 } from './citation-graphy-guard.mjs'
 import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE } from '../guards/lib/stock.mjs'
-import { lireEntreesDeSite, texteEnPlace, texteRegenere } from '../guards/lib/stockDeSites.mjs'
+import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace, texteRegenere } from '../guards/lib/stockDeSites.mjs'
 import { allAbbrAlternation, chapterBoundaryRisk, siglesDeCoeur } from './_lib.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 
@@ -533,24 +533,20 @@ test('(i) scan : un folio suivi d\'un autre (LDB 48 p.255/256) n\'est pas un fol
 // Le verdict se lit par `cliquets`, la couture même de `main()` : une table recopiée ici ferait un
 // cliquet muet dès qu'une famille s'ajoute à la garde.
 
-test('non-régression : les familles cliquetées du VRAI repo sont exactement les sites de graphy-stock.json', () => {
-  const { neuves, perimees } = cliquets(scanTout(), lireEntreesDeSite(STOCK_PATH))
+test('stock ABSENT → tolérance ZÉRO : la régénération est au point fixe, et le VRAI repo ne porte aucun site cliqueté', () => {
+  const passe = scanTout()
+  for (const r of regenerations(passe)) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
+  const { neuves, perimees } = cliquets(passe, lireEntreesDeSite(STOCK_PATH))
   assert.deepEqual(neuves, [], `site(s) NEUF(s) :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
 })
 
-test('un solde laisse le quoi à l’octet', () => {
-  const [r] = regenerations()
-  const [c] = r.collections
-  const [s0] = c.sites
-  const reste = c.sites.filter((s) => s.famille !== s0.famille || s.file !== s0.file || s.ref !== s0.ref)
-  assert.ok(reste.length < c.sites.length)
-  const enPlace = texteEnPlace(STOCK_PATH)
-  const solde = texteRegenere({ ...r, collections: [{ ...c, sites: reste }] }, { enPlace, lot: null, date: null })
-  assert.equal(JSON.parse(solde.texte).quoi, JSON.parse(enPlace).quoi)
-  const neuf = { famille: 'folioSrc', file: 'src/neuf.ts', ref: 'LDB p.1' }
-  const { refus } = texteRegenere({ ...r, collections: [{ ...c, sites: [...c.sites, neuf] }] }, { enPlace, lot: null, date: null })
-  assert.match(refus ?? '', /src\/neuf\.ts/, 'un site neuf sans `lot` est refusé')
+test('un site neuf sans `lot` est refusé ; différé par `--lot`, il écrit le stock sous le quoi de la garde', () => {
+  const [r] = regenerations({ ...scanTout(), folioSrc: [{ file: 'src/neuf.ts', ref: 'LDB p.1' }] })
+  const { refus } = texteRegenere(r, { enPlace: null, lot: null, date: null })
+  assert.match(refus ?? '', /src\/neuf\.ts/)
+  const { texte } = texteRegenere(r, { enPlace: null, lot: '#1', date: '2026-01-01' })
+  assert.equal(JSON.parse(texte).quoi, r.horsCollections)
 })
 
 test('chaque entrée de graphy-stock.json nomme sa famille, son fichier, sa réf et son échéance', () => {

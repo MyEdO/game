@@ -63,8 +63,7 @@ export function makeZone8() {
         id: 'enc-zone8',
         enemies: [
           // 0 : le gladiateur évadé — un ALLIÉ de scène à pied (vitrine side:'ally' hors monture).
-          //     Dépouillé de son armure par la harde : haillons + carrure de lutteur (≠ soldat générique).
-          { ref: 'humain', pos: { x: 5, y: 10 }, side: 'ally', weapon: 'epee-batarde', label: 'Gladiateur enchaîné', appearance: { tenue: 'mendiant', build: 0.72 } },
+          { ref: 'humain', pos: { x: 5, y: 10 }, side: 'ally', weapon: 'epee-batarde', label: 'Gladiateur enchaîné', appearance: { tenue: 'mendiant' } },
           { ref: 'gor', pos: { x: 14, y: 5 } },
           { ref: 'gor', pos: { x: 22, y: 11 }, optionals: [{ id: 'armure', value: 2 }] },
           { ref: 'gor', pos: { x: 12, y: 16 } },

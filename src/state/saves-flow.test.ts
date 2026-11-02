@@ -41,8 +41,7 @@ import { spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Porteur sans séquelle. */
 const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', traumas: [] });

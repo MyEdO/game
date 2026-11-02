@@ -7,8 +7,7 @@ import { shipSaboteurDR } from './shipCrew';
 import { maneuverCrewTotal } from './shipManeuver';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { propulsionDuNavire } from '../engine/shipBuild';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

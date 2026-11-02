@@ -4,8 +4,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { flowEffects, spellOps } from '../engine/flowCore';
 import { spells } from '../data';
 import { desDuTest } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * PREUVE DE COMPLÉTUDE — « peut-on créer TOUS les sorts via le système Flow/EffectOp ? ».

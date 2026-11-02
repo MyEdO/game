@@ -22,7 +22,6 @@ import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose, mdToText } from './Prose';
 import { CharFrame } from './CharFrame';
-import { TeamPortrait } from './TeamPortrait';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { ScreenShell } from './ScreenShell';
@@ -196,8 +195,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     const cmp = compareEquip(item, h);
     return (
       <div className="mc-hero" key={h.id}>
-        <div className="mc-hero-head" title={h.label}>
-          <TeamPortrait combatant={h} size={24} />
+        <div className="mc-hero-head">
+          <span>{h.label}</span>
           <span className="mc-cur">{cmp.currentName ? `actuel : ${cmp.currentName}` : 'rien d’équipé'}</span>
         </div>
         {cmp.rows.length > 0 && (
@@ -493,7 +492,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             : <span className="cart-info empty"><Icon id="merchant/cart" size="sm" /> Rien à vendre sélectionné</span>}
         </div>
         <Tabs
-          tabs={sellHeroes.map((h) => ({ key: h.id, label: <span title={h.label}><TeamPortrait combatant={h} size={24} /></span>, count: (h.items ?? []).length }))}
+          tabs={sellHeroes.map((h) => ({ key: h.id, label: h.label, count: (h.items ?? []).length }))}
           active={activeSellId}
           onChange={setSellHero}
         />
@@ -571,7 +570,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             <tbody>
               {sellCartItems.map(({ hero, it, gain, refus }) => (
                 <tr key={it.uid}>
-                  <td className="cart-name">{it.label}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
+                  <td className="cart-name">{it.label}<span className="cart-owner">{hero.label}</span></td>
                   <td className="cart-sub">{refus ? <span className="cart-warn">{refus}</span> : <Coins money={gain} />}</td>
                   <td className="cart-rm"><button className="btn-step" onClick={() => onRemoveSellCart(it.uid)} aria-label="Retirer">✕</button></td>
                 </tr>
@@ -693,7 +692,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             <div className="merch-tab">
               {damaged.map(({ h, it }) => (
                 <div className="merch-row repair" key={it.uid}>
-                  <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {it.label}</span>
+                  <span className="merch-name">{it.label} · {h.label}</span>
                   <span className="merch-price"><Coins money={coutDeReparation(it)} /></span>
                   <GatedAction
                     id={`merch-repair-${it.uid}`} label="Réparer" ariaLabel={`Réparer ${it.label}`}

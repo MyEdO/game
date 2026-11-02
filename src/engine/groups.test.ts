@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf } from './groups';
+import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf, racesDe } from './groups';
 import { targetedTrigger } from './psychology';
 import type { Combatant } from './types';
-import { creatures, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
+import { creatures, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
 import { resetData, setDataset } from '../data/overrides';
 import { schema as groupsSchema } from '../data/schemas/defs/groups';
 import groupsJson from '../data/groups.json';
@@ -183,5 +183,25 @@ describe('schéma de groups.json : un id de Groupe suit le motif des Groupes (#1
       expect(refus.success, id).toBe(false);
       expect(JSON.stringify(refus.error?.issues), id).toMatch(/id de Groupe/);
     }
+  });
+});
+
+describe('racesDe : les Groupes marqués Race (ADE II 09 l.15 ; #3045)', () => {
+  const races = groups.filter((g) => g.race).map((g) => g.id);
+  const autres = groups.filter((g) => !g.race).map((g) => g.id);
+
+  it('garde chaque Groupe marqué Race, dans l’ordre reçu, et lui seul', () => {
+    expect(races.length).toBeGreaterThan(1);
+    expect(autres.length).toBeGreaterThan(0);
+    expect(racesDe([...autres, ...races].reverse())).toEqual([...races].reverse());
+    expect(racesDe(autres)).toEqual([]);
+  });
+
+  it('un id hors registre n’est pas une Race', () => {
+    expect(racesDe(['groupe-fantome-qu-aucun-registre-ne-porte'])).toEqual([]);
+  });
+
+  it('les Groupes que nomme race un livre sont marqués : LDB 84 l.63, LDB 83 l.11', () => {
+    expect(racesDe(['skaven', 'homme-bete'])).toEqual(['skaven', 'homme-bete']);
   });
 });

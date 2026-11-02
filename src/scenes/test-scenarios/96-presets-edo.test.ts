@@ -3,8 +3,6 @@ import { useGame } from '../../state/store';
 import { resolvePresetCreature } from '../../noyau/monde/resolveursDuNarratif';
 import { presetPnjById } from '../../state/campaignData';
 import { creatureToCombatant } from '../../noyau/monde/spawn';
-import { ficheDEntite } from '../../noyau/monde/sceneNpc';
-import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { testValue } from '../../engine/skills';
 import { savoirVoiesFluvialesBonus } from '../../engine/riverNavigation';
 import { scenario } from './96-presets-edo';
@@ -32,12 +30,6 @@ describe('Presets EDO — specs de Compétence keyées par ID (MSRC 7 l.13)', ()
   it('Josef Quartjin : le +1 DR de Navigation fluviale part (MSRC 7 l.13)', () => {
     const josef = spawnPreset('edo-josef-quartjin');
     expect(savoirVoiesFluvialesBonus(josef)).toBeGreaterThan(0);
-  });
-
-  it('Josef Quartjin (MSR 141) : rendu en batelier humain', () => {
-    const ent = scenarioConstruit.scene.entities.find((e) => e.id === 'npc-josef')!;
-    const rig = enemyRigProfile(ficheDEntite(ent, presetPnjById))!;
-    expect([rig.appearance.species, rig.tenue]).toEqual(['humain', 'batelier']);
   });
 
   it('Phillipe Descartes : Projectiles (Poudre noire) est interrogeable par son id', () => {

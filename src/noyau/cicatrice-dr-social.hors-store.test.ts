@@ -14,20 +14,21 @@ import { traumaById } from '../engine/trauma';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sociabilité 30 + 5 avances d'Intimidation = valeur de Test 35. */
 const hero = (scarId?: string): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'H', label: 'Héros', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 45, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], talents: [], items: [], traits: [], weapons: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], talents: [], items: [], traits: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4,
     skills: [{ id: 'intimidation', advances: 5 }, { id: 'charme', advances: 5 }],
     traumas: scarId ? [traumaById(scarId)] : [],
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 /** Ouvre le pending du flux `test` (Intimidation) et le roule au RNG seedé — chemin de production. */
 function rollIntimidation(c: Combatant, seed: number) {

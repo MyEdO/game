@@ -1,44 +1,35 @@
 /* ══ PortraitTile — module de la primitive (`src/ui/PortraitTile.tsx`, manifeste `portraitTile`) ══
-   La TUILE de portrait : carte d'équipe (fond teinté), portrait au-dessus, jauge de vie horizontale
-   dessous, pastille d'état de fin en coin. Toute son identité vit ici (#1806 2a, arbitrage A1 du
+   La tuile de combattant : repère d'identité (`.ptile-face`), jauge selon variante et nom visible.
+   Toute son identité vit ici (#1806 2a, arbitrage A1 du
    2026-09-18) ; les écrans qui la montent n'en déclarent que le PLACEMENT.
-   Dépendances écrites : la colonne d'États est la primitive `StateChips` (state-chips.css), le
-   visage est `RigPortrait` (rig-portrait.css `.rig-portrait`). Les spécialisations contextuelles de la
+   Dépendances écrites : la colonne d'États est la primitive `StateChips` (state-chips.css). Les spécialisations contextuelles de la
    frise, du bandeau de groupe et de la console vivent chez elles (initiative-strip.css,
    party-dock.css, combat-console.css). ══ */
-/* RELIEF de la tuile AU TRAIT — les grandeurs de la peinture, nommées ICI et nulle part ailleurs :
-   l'agrandissement est un `transform`, il ne réserve donc AUCUNE place ; c'est la primitive (axe de
-   ligne) et l'hôte (axe de bloc) qui réservent, sinon l'anneau or est rogné au bord d'un champ ou
-   recouvre un contrôle voisin (#1867). Le liseré est mis à l'échelle par le `transform` : son
-   épaisseur entre dans le relief, nommée, jamais recopiée en littéral. */
+/* RELIEF de la tuile AU TRAIT : le liseré déborde de la boîte nominale. La primitive réserve son
+   axe de ligne et l'hôte son axe de bloc ; le chevron garde sa réserve propre (#1867). */
 :root {
-  --ptile-active-scale: 1.28;
   --ptile-outline: 2px;
   --ptile-outline-air: 1px;
   /* Décalage du chevron au-dessus de la tuile : il vit hors de la boîte, il se réserve comme elle. */
   --ptile-caret-air: 11px;
-  --ptile-lisere: calc((var(--ptile-outline) + var(--ptile-outline-air)) * var(--ptile-active-scale));
+  --ptile-lisere: calc(var(--ptile-outline) + var(--ptile-outline-air));
 }
 .ptile-wrap {
+  --ptile-content-px: var(--ptile-context-px, var(--ptile-px));
+  --ptile-card-px: max(var(--ptile-content-px), var(--ptile-name-width, 72px));
   display: flex;
   align-items: flex-start;
   gap: 3px;
   pointer-events: auto;
-  /* Le chevron est posé par rapport à la GRAPPE, pas à la tuile : dans la tuile il serait mis à
-     l'échelle et remonté par le `transform` de l'unité au trait — il garde ici sa taille et son
-     décalage nominaux. */
+  /* Le chevron se place au-dessus de la carte, indépendamment de la colonne d'États. */
   position: relative;
-  /* RELIEF DE LIGNE : l'origine du grossissement est au bord GAUCHE, tout le surcroît part à droite.
-     La tuile au trait le réserve elle-même en marge — aucun hôte à mettre au courant. */
-  --ptile-relief-inline: calc(var(--ptile-px) * (var(--ptile-active-scale) - 1) + var(--ptile-lisere));
+  --ptile-relief-inline: var(--ptile-lisere);
 }
-/* Tuile = carte d'équipe (fond teinté), portrait au-dessus, jauge de vie HORIZONTALE dessous. */
+/* Carte d'identité : repère, jauge et nom. */
 .ptile {
   position: relative;
-  /* Taille NOMINALE de la primitive (`CHAR_SIZE_PX`), posée en VARIABLE CSS sur l'élément — jamais
-     une propriété inline (arbitrage user A2, 2026-09-18). Elle ne dépend pas de l'état : l'unité au
-     trait est grossie par un `transform` (ci-dessous), qui ne change aucune boîte. */
-  width: var(--ptile-px);
+  /* Taille nominale partagée par tous les états de la carte. */
+  width: var(--ptile-card-px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -50,6 +41,9 @@
   line-height: 0;
   border-radius: 9px;
   flex: 0 0 auto;
+}
+span.ptile {
+  cursor: default;
 }
 /* R5 : FOND d'équipe derrière le portrait (vert allié / rouge ennemi). */
 .ptile.team-ally {
@@ -63,32 +57,43 @@
 .ptile-face {
   position: relative;
   display: block;
-  width: var(--ptile-px);
-  height: var(--ptile-px);
+  width: var(--ptile-content-px);
+  height: var(--ptile-content-px);
 }
-/* Le rig REMPLIT le visage de SA tuile. Poids 0-3-0 : `.sheet-portrait .rig-portrait` (0-2-0,
-   `sheet.css`, importée APRÈS ce module) vise le rig NU de `FigTile`, et la fiche de navire monte
-   une vraie tuile dans ce même conteneur (`src/ui/console/ShipSheet.tsx`). */
-.ptile .ptile-face .rig-portrait {
+.ptile-ring {
   display: block;
   width: 100%;
   height: 100%;
-  /* Cadre épais : la couleur (vert allié / rouge ennemi) + la forme (plein/tirets, R9) se lisent d'un coup d'œil. */
-  border-width: 3px;
 }
-/* R6 : l'unité active reçoit le liseré or + halo, et se GROSSIT À L'ŒIL. L'agrandissement est un
-   `transform` : la boîte de MISE EN PAGE ne bouge pas, sinon une entrée de frise devient plus haute
-   que les autres et l'arrondi au pas d'entrée de la colonne ne tient plus (#1867). Origine au bord
-   GAUCHE : tous les portraits d'une colonne gardent le même bord gauche. */
+/* Deux lignes au plus (`.clamp`, components.css), coupées entre deux mots ; un mot plus large que la
+   carte finit en ellipse, jamais rompu. Le nom complet est le `title` de la tuile. */
+.ptile-name {
+  --clamp: 2;
+  width: 100%;
+  min-width: 0;
+  max-width: var(--ptile-card-px);
+  min-height: var(--ptile-name-reserve, 0px);
+  font-size: var(--ptile-name-size);
+  line-height: var(--ptile-name-line);
+  color: var(--text);
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+.ptile-wrap[data-fin] .ptile-ring,
+.ptile-wrap[data-fin] .ptile-gauge,
+.ptile-wrap[data-fin] .ptile-name,
+.ptile-wrap[data-fin] .ptile-states {
+  opacity: var(--ptile-end-opacity);
+  filter: var(--ptile-end-filter);
+}
+/* L'actif garde la même boîte et le même nom que ses voisins ; son liseré et son chevron portent
+   la mise en évidence (#1867). */
 .ptile.active {
   outline: var(--ptile-outline) solid var(--gold2);
   outline-offset: var(--ptile-outline-air);
   box-shadow: 0 0 12px rgba(255, 224, 102, 0.55);
-  transform: scale(var(--ptile-active-scale));
-  transform-origin: left center;
-  /* La place que la peinture prend à DROITE est réservée dans le flux : sans elle, la tuile grossie
-     recouvre la pastille de sa propre entrée (« agit en premier » est un BOUTON) et la rend
-     incliquable sur ses quatre cinquièmes gauches (#1867). */
+  /* Le liseré garde son air devant les contrôles voisins. */
   margin-inline-end: var(--ptile-relief-inline);
   z-index: 1;
 }
@@ -104,15 +109,11 @@
   outline-offset: 1px;
   box-shadow: 0 0 9px rgba(210, 228, 255, 0.5);
 }
-.ptile.ko .rig-portrait {
-  filter: grayscale(0.9);
-  opacity: 0.6;
-}
 .ptile-caret {
   position: absolute;
   top: calc(-1 * var(--ptile-caret-air));
   /* Centré sur la TUILE (qui ouvre la grappe), pas sur la grappe — la colonne d'États en fait partie. */
-  left: calc(var(--ptile-px) / 2);
+  left: calc(var(--ptile-card-px) / 2);
   transform: translateX(-50%);
   color: var(--gold2);
   font-size: 10px;
@@ -143,10 +144,6 @@
 .end-mark.es-koan { background: var(--end-koan-bg); color: var(--end-koan-fg); }
 .end-mark.es-rendu { background: var(--end-rendu-bg); color: var(--end-rendu-fg); }
 .end-mark.es-hors { background: var(--end-hors-bg); color: var(--end-hors-fg); }
-/* Teinte du portrait selon l'état de fin (au-delà du grisé commun .ptile.ko) : la reddition reste
-   colorée (l'ennemi capturé est intact, pas un cadavre) ; hors-combat vire au sépia (parti). */
-.ptile.es-rendu .rig-portrait { filter: none; opacity: 0.85; }
-.ptile.es-hors .rig-portrait { filter: grayscale(0.75) sepia(0.25); opacity: 0.6; }
 /* Déclencheur « … » de la colonne d'États repliée — posé par `StateChips` DANS la tuile. */
 .ptile-more {
   color: var(--muted);

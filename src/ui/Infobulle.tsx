@@ -261,7 +261,7 @@ export function useInfobulle(options: OptionsInfobulle) {
       data-atteignable={options.atteignable ? '' : undefined}
       onMouseEnter={() => { vivant.current.pointeur = true; annulerPont(); }}
       onMouseLeave={(e) => {
-        if (ancre?.contains(e.relatedTarget as Node | null)) return;
+        if (e.relatedTarget instanceof Node && ancre?.contains(e.relatedTarget)) return;
         vivant.current.pointeur = false;
         quitte();
       }}

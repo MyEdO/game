@@ -15,8 +15,7 @@ de résolution forcée ; mono = multi N=1. Gardes réelles : `rollFlowWiring.tes
 - Un Test que le RAW dit OPPOSÉ passe, sur le chemin joueur, par la machinerie d'opposition
   (`opposedBinaryFlow` `src/noyau/rollFlowSpecs.ts:375`, `openCastOpposition`,
   `src/noyau/combat/triggeredTest.ts`, `VsHeader`) : les deux jets visibles, ré-opposés à chaque
-  influence (utilisateur, 2026-07-17 : « les jets opposés sont un MENSONGE […] alors qu'on SAIT FAIRE
-  DES JETS OPPOSÉS ! »). Un test simple avec tirage adverse caché dans l'applier exige une justification
+  influence (#579). Un test simple avec tirage adverse caché dans l'applier exige une justification
   RAW citée.
   La fidélité de RÉSOLUTION (opposé réel ou simple) se recense comme un axe à part : un registre ne
   jure que les axes qu'il a mesurés.

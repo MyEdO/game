@@ -203,12 +203,10 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
    * (meuble attablé + recoin cerné de murs), rend un document que `validateScene` accepte.
    */
   describe('aucune primitive ne rend un document que `validateScene` refuse', () => {
-    /** L'entité d'un emplacement de siège, ou un ÉCHEC NOMMÉ : `siegeEmplacementEntity` rend `null`
-     *  quand l'engin n'a pas d'art d'affût (`siegeRig`), et une fixture muette sur ce `null` mourrait
-     *  plus loin, sur une propriété absente, sans dire ce qui manque. */
+    /** Fixture d'emplacement : le trapping doit appartenir au sous-type `armes-de-siege`. */
     function affutDeFixture(id: string, trappingId: string, pos: { x: number; y: number }): SceneEntity {
       const ent = siegeEmplacementEntity(id, trappingId, pos);
-      if (!ent) throw new Error(`fixture : « ${trappingId} » n’est pas un engin posable (pas d’art d’affût au catalogue) — la scène hostile ne peut pas porter d’affût.`);
+      if (!ent) throw new Error(`fixture : « ${trappingId} » n’est pas un engin posable (sous-type armes-de-siege attendu) — la scène hostile ne peut pas porter d’affût.`);
       return ent;
     }
 
@@ -222,9 +220,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       s.entities = [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
         { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 } },
-        // L'affût sort du BUILDER de production (`siegeEmplacementEntity`), jamais d'un littéral :
-        // une fixture qui invente sa forme n'atteste rien de ce que l'éditeur pose. Le builder rend
-        // `null` si l'engin n'a pas d'art d'affût — la fixture le DIT, au lieu de mourir plus loin.
+        // L'emplacement passe par le builder de production `siegeEmplacementEntity`.
         affutDeFixture('affut-1', 'canon-petit', { x: 4, y: 4 }),
       ];
       s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } };

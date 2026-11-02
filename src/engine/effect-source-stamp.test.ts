@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * CÂBLAGE — `ctx.source` (EffectSource) doit remonter sur TOUT objet/arme PERSISTANT créé par un
@@ -9,13 +10,13 @@ import { desDuTest } from './dice.testkit';
  * une arme/objet octroyé par un sort/mutation n'a aucun moyen de remonter à sa règle source.
  */
 const combatant = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'c', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as Combatant);
+  }) as Combatant);
 
 const SRC = { kind: 'spell', id: 'benediction-de-puissance' } as const;
 

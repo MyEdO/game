@@ -3,6 +3,7 @@ import { availableResistance, markResistanceUsed, resistanceForcedSL, menaceIds,
 import { findTalentById } from '../data';
 import { restoreFortune } from './fortune';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * Talent « Résistance (Menace) » — LDB 10 l.1016-1020 : « Vous pouvez réussir automatiquement le
@@ -11,15 +12,15 @@ import type { Combatant } from './types';
  * la spec, compteur « 1 par séance », DR = BE, remise à zéro par la couture de début de séance.
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', label: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 43, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [],
     talents: [{ talentId: 'resistance', spec: 'maladie', times: 1 }],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     fate: 2, fortune: 0,
     ...p,
-  } as Combatant);
+  }) as Combatant);
 
 describe('Résistance (Menace) — disponibilité de la spec (LDB 10 l.1016-1020)', () => {
   it('spec couvrant la menace → disponible (comparaison stricte par id, plus de pont norm)', () => {

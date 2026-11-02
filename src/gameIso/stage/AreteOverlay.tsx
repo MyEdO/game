@@ -195,11 +195,9 @@ export function AreteOverlay({ aretes, areteSurvolee, activerArete, onFocusArete
             {/* L'ARÊTE elle-même : un trait de PRISE sans aucun handler — la chaîne répond pour elle,
                 à la MÊME largeur de prise. Il reste hit-testable pour la seule chose que la chaîne ne
                 rend pas, l'infobulle native de son `<title>` ; l'événement qui s'y pose bulle jusqu'au
-                handler racine. C'est aussi un bouton ATTEIGNABLE au clavier. Il porte enfin le `cid`
-                de l'arête quand elle en a un (structure), lu par la voie AFFINE de `stage/spritePicker.ts`. */}
+                handler racine. C'est aussi un bouton ATTEIGNABLE au clavier. */}
             <line
               data-arete-cible={arete.capacite}
-              data-cid={arete.cid}
               x1={a.cx}
               y1={a.cy}
               x2={b.cx}

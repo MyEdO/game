@@ -79,7 +79,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
   let container: HTMLDivElement | undefined;
   let root: Root | undefined;
   afterEach(() => { if (root) act(() => root!.unmount()); container?.remove(); root = undefined; container = undefined; });
-  const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F', build: 0.5 } }), id: 'h-9' });
+  const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F' } }), id: 'h-9' });
 
   beforeEach(() => {
     get().setParty([heros('Vivant', 1), naine()]);

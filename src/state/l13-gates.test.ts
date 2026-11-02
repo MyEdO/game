@@ -14,10 +14,11 @@ import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
 import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CastResult, MissileResult } from '../engine/magic';
 import { desEnSuite } from '../engine/dice.testkit';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** RNG scripté (padding 5). */
 function seq(values: number[]): RNG {
@@ -138,7 +139,7 @@ describe('L13 — gates & redirections', () => {
     hero.activeEffects = [{ label: 'Martyr', bonus: 0, duration: { scale: 'rounds', left: 4 }, martyrGuard: priest.id }];
     priest.characteristics.endurance = 30; // BE 3 → doublé 6
     priest.armour.corps = 0;
-    priest.wounds = { current: 12, max: 12 } as Combatant['wounds'];
+    priest.wounds = blessuresDeBase(12, 12, priest);
     const heroBefore = hero.wounds.current;
     const res = { hit: true, damage: 10, woundsLost: 7, location: 'corps', critical: false, log: 'touche.' } as unknown as AttackResult;
     const weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
@@ -154,7 +155,7 @@ describe('L13 — gates & redirections', () => {
     if (!E2) return; // garde : la rencontre doit fournir ≥ 2 ennemis
     hero.characteristics['force-mentale'] = 40; // BFM 4 → 4 rebonds max, saut 4 m
     hero.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
-    E1.wounds = { current: 1, max: 8 } as Combatant['wounds'];
+    E1.wounds = blessuresDeBase(8, 1, E1);
     E2.pos = { x: 12, y: 10 }; // à 1 case d'E1 (11,10)
     const e2Before = E2.wounds.current;
     const res: CastResult & Partial<MissileResult> = {

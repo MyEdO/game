@@ -26,7 +26,7 @@ describe('présentation des terrains (dégradé/aperçu dérivés du dataset)', 
     expect(defsGlobaux()).toContain(`stop-color="${MISSING_TONE}"`);
   });
 
-  it('defsGlobaux() n’émet AUCUN id de dégradé en double — terrains, alarme et rig/FX cohabitent sans s’éteindre', () => {
+  it('defsGlobaux() n’émet AUCUN id de dégradé en double — terrains, alarme et FX cohabitent sans s’éteindre', () => {
     const ids = idsDeDegrade(defsGlobaux());
     const doubles = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
     expect(

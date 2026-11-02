@@ -15,6 +15,7 @@ import { findVehicleById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -206,14 +207,14 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     aBord(party, coque);
     /** Un gabier PNJ : aucun siège ne le tient (il n'est pas du groupe) → voie inline. Agilité 1 :
      *  son Athlétisme Complexe (−10) échoue hors des jets qui réussissent d'office (LDB 09). */
-    const gabier = {
+    const gabier = blessuresSurLeProfil({
       id: 'gabier', name: 'Gabier', label: 'Gabier', kind: 'npc',
       characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 1, dexterite: 31, intelligence: 31, 'force-mentale': 31, sociabilite: 31 },
       skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      wounds: { current: 200, max: 200 }, advantage: 0, movement: 4, bodyShape: 'humanoide',
+      wounds: blessuresDeBase(200), advantage: 0, movement: 4, bodyShape: 'humanoide',
       shipStation: 'greement',
-    } as unknown as Combatant;
+    }) as unknown as Combatant;
 
     // Le PNJ est ENREGISTRÉ à la file de combat (il est en jeu), mais absent du groupe : personne ne le
     // tient. La chute doit donc l'ATTEINDRE — un porteur en jeu n'encaisse pas dans le vide.

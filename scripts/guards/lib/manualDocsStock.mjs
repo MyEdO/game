@@ -28,7 +28,5 @@ export const MANUAL_DOCS_STOCK = new Set([
   'docs/campagne-authoring.md', // carte des coutures d'auteur de campagne
   'docs/charte-ui.md', // charte UI
   'docs/combat-events-coherence.md', // doctrine des événements de combat
-  'docs/creer-une-creature.md', // recette : créer une créature (rig)
-  'docs/qc-reconnaissabilite-sprites.md', // runbook QC sprites
   'docs/recette-navigateur.md', // recette de validation navigateur (Playwright MCP)
 ])

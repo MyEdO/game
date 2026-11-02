@@ -7,6 +7,7 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
+import type { RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
@@ -99,12 +100,10 @@ export interface SceneEntity {
    *  s'ajoutent aux Traits du TYPE et modifient ce navire-ci (PA de coque, M, couvert…). Posées au spawn. */
   upgrades?: NavalTraitRef[];
   dialogueId?: string;
-  /** Apparence (calques) : override éditeur ; sinon auto-variée au seed de l'id. */
+  /** Apparence d'auteur (`EntityAppearance`). */
   appearance?: EntityAppearance;
-  /** Animation d'ambiance en boucle (clé de AMBIENT_CLIPS) — rend l'entité via le rig. */
-  anim?: string;
-  /** Arme ÉQUIPÉE : `trappingId` STABLE du catalogue d'armes — affichée par le rig (tenue prête si à
-   *  distance). Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
+  anim?: RoleAmbiant;
+  /** Arme ÉQUIPÉE : `trappingId` STABLE du catalogue d'armes — arme de combat au spawn. Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
   weapon?: string;
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
    *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`noyau/monde/vision.ts`) qui le ramène aux

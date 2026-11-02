@@ -48,14 +48,12 @@ export const OWNERS = {
   'menu-toggle': ['MenuCard.tsx'],
   'menu-link': ['MenuCard.tsx'],
 
-  // FigTile — cadre-figurine UNIQUE (#430/#431) ; `frames.css` porte déjà « SEULE définition ».
+  // FigTile — #430/#431
   'fig-tile': ['FigTile.tsx'],
   'fig-row': ['FigTile.tsx'],
-  'fig-tile-fig': ['FigTile.tsx'],
   'fig-tile-name': ['FigTile.tsx'],
   'fig-tile-sub': ['FigTile.tsx'],
   'fig-tile-seal': ['FigTile.tsx'],
-  'fig-zone-badges': ['FigTile.tsx'],
   'fig-zone-badge': ['FigTile.tsx'],
 
   // PlaqueRow — rangée-plaque à rivets (préfixe/label/nom/méta/valeur) + sa grille 2 colonnes.

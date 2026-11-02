@@ -8,9 +8,6 @@ import { createHero } from '../engine/character';
 import { inanimateCombatant } from '../engine/inanimate';
 import { testScene } from '../scenes/test-fixture';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from '../noyau/monde/scene';
-import { enemyRigProfile, entityRigProfile } from '../gameIso/rig/enemyProfile';
-import { hashSeed } from '../engine/dice';
-import { findTrappingById } from '../data';
 
 /**
  * Identité UNIFIÉE SceneEntity ↔ Combatant : le combattant spawné GARDE l'id de l'entité de scène
@@ -48,22 +45,6 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     // Chaque id de combattant correspond bien à une entité de la scène.
     const entIds = new Set(useGame.getState().scene!.entities.map((e) => e.id));
     for (const id of enemyIds) expect(entIds.has(id)).toBe(true);
-  });
-
-  it('apparence identique en exploration et en combat (même seed → même sexe/carrure)', () => {
-    startFixtureCombat();
-    const scene = useGame.getState().scene!;
-    const enemy = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
-    const ent = scene.entities.find((e) => e.id === enemy.id)!;
-    const combat = enemyRigProfile(enemy);
-    const explo = entityRigProfile(findTrappingById, ent.ref!, ent.appearance?.seed ?? hashSeed(ent.id), {
-      species: ent.appearance?.species, tenue: ent.appearance?.tenue, sex: ent.appearance?.sex, build: ent.appearance?.build,
-    });
-    expect(combat).toBeTruthy();
-    expect(explo).toBeTruthy();
-    expect(combat!.appearance.seed).toBe(explo!.appearance.seed);
-    expect(combat!.appearance.sex).toBe(explo!.appearance.sex);
-    expect(combat!.appearance.build).toBe(explo!.appearance.build);
   });
 
   it('victoire : les ennemis vaincus quittent la scène ; un badaud non enrôlé reste', () => {

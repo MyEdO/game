@@ -83,7 +83,7 @@ function brancheInerteIci(n: Noeud, issue: boolean): boolean {
   const jAvant = lignesDeJournal() + get().pendingLogQueue.length;
   let leve: unknown;
   try {
-    runCombatFlow({ mode: 'combat', get, set, target: sujet, caster: sujet, label: n.entryId,
+    runCombatFlow({ get, set, target: sujet, caster: sujet, label: n.entryId,
       opsCtx: { ...opsCtx, sl: slDe(issue) } },
     (issue ? n.node.success : n.node.fail) ?? EMPTY_FLOW);
   } catch (e) { leve = e; }

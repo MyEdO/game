@@ -19,7 +19,6 @@ import { moraleTone, crewRoleLabel } from './shipStatus';
 import { ScreenShell } from './ScreenShell';
 import { Tabs } from './composites/Tabs';
 import { CargoTransferPanel } from './CargoTransferPanel';
-import { ShipPreview } from './ShipPreview';
 import { Split } from './Layout';
 
 /**
@@ -107,7 +106,6 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
     >
         {tab === 'apercu' && (<>
           <section className="panel" data-ship-proue>
-            <ShipPreview vehicleId={vessel.vehicleId} sunk={woundsCur <= 0} label={name} />
             <div>
               <h3>{name}</h3>
               <p className="port-hint">{vd.label}{rig ? ` · ${libelleDeValeur(rigSchema, rig)}` : ''}{vd.ship.lengthM ? ` · ${vd.ship.lengthM} m` : ''}</p>

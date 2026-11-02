@@ -2,15 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { hasMeaningfulOption, canActFirst } from '../noyau/turnEconomy';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'H', name: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
     armour: {}, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 }, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const battle = (active: Combatant, over: Partial<BattleState> = {}): BattleState =>
   ({

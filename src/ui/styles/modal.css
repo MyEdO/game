@@ -103,6 +103,7 @@
 }
 /* Bandeau « sujet » (`ModalSubject`) : l'air qui le sépare du titre est la marge du titre. */
 .modal-subject {
+  --ptile-name-width: 128px;
   flex: 0 0 auto;
   margin: 0 0 var(--sp-md);
 }

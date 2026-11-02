@@ -5,9 +5,9 @@ import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect, type
 import { isPrayerFamily } from './combatFeatures/types';
 import type { CodexTarget } from './ruleRefs';
 import { traumaCharPenaltiesLabeled, passiveCharSum, passiveMods, sommeAttrMods } from './trauma';
-import { traitCharMods, traitCapability } from './traits/dispatch';
-import { SizeCategory, woundsForSize, effectiveSize } from './size';
-import { findTalentById, findSpellById } from '../data';
+import { traitCharMods, traitCapability, isSwarm } from './traits/dispatch';
+import { SizeCategory, woundsForSize, tailleCourante } from './size';
+import { findSpellById } from '../data';
 import type { ModLine } from './combat';
 import type { TraitList } from './statEntry';
 
@@ -112,87 +112,62 @@ export function effectiveArmourAt(c: Combatant, location: keyof Combatant['armou
   return Math.max(0, ap);
 }
 
-/**
- * Points de Blessure de départ.
- *
- * Livre de base, Tableau des Attributs : « Points de Blessure = BF+(2×BE)+BFM »
- * (et « (2×BE)+BFM » pour les Halflings, qui ont le talent Petit).
- *
- * `traits` : Fabriqué (LDB 85 l.142) substitue le Bonus de Force au Bonus de Force Mentale dans ce calcul.
- */
+/** Points de Blessure d'un profil (`woundsForSize`) : LDB 05 l.365, LDB 85 l.393-401 ; `traits` : LDB 85 l.142
+ *  (Fabriqué), LDB 85 l.130 (Endurant). */
 export function maxWounds(chars: Characteristics, size: SizeCategory = 'moyenne', traits?: TraitList): number {
+  const be = bonus(chars.endurance);
   const bfm = traitCapability(traits, 'woundsUseForce') ? bonus(chars.force) : bonus(chars['force-mentale']);
-  return woundsForSize(bonus(chars.force), bonus(chars.endurance), bfm, size);
+  return woundsForSize(bonus(chars.force), be, bfm, size, traitCapability(traits, 'bonusWoundsBE') ? be : 0);
 }
 
-/** Σ des `charMod` passifs de TALENT (× `times`) pour la Caractéristique `key` — lecture LOCALE
- *  sans importer `talentEffects` (qui importe `characteristics` → cycle). Identique à `baseWithTalents`
- *  moins `c.characteristics[key]`. Utilisé par `effectiveMaxWounds` pour la référence de delta. */
-function talentCharModSum(c: Combatant, key: CharKey): number {
-  let n = 0;
-  for (const t of c.talents ?? []) {
-    const passive = findTalentById(t.talentId)?.passive;
-    if (passive) for (const op of passive) if (op.op === 'charMod' && op.char === key) n += op.mod * (t.times ?? 1);
-  }
-  return n;
+/** Parts du maximum des Blessures (LDB 05 l.1001, LDB 10 l.384, LDB 48 l.23, LDB 71 l.20, LDB 85 l.253) :
+ *  `derive` (`maxWounds` sur `charDesBlessures`, à `tailleCourante`), `facteur` (`isSwarm`), `plats`
+ *  (`attrMod{wounds}` de `passiveMods` et des effets actifs). */
+function partsDesBlessures(c: Combatant): { derive: number; facteur: number; plats: number } {
+  const lire = (k: CharKey): number => charDesBlessures(c, k);
+  const profil = { ...c.characteristics, force: lire('force'), endurance: lire('endurance'), 'force-mentale': lire('force-mentale') };
+  const effets = (c.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.wounds ?? 0), 0);
+  return {
+    derive: maxWounds(profil, tailleCourante(c), c.traits),
+    facteur: isSwarm(c.traits) ? 5 : 1,
+    plats: sommeAttrMods(passiveMods(c), 'wounds', lire) + effets,
+  };
 }
 
-/**
- * Blessures max DYNAMIQUES (LDB 85 — exigence : les sorts modifiant F/E/FM impactent les Blessures).
- * = base (Blessures à vide, snapshot ou surcharge au spawn) + le DELTA dû aux buffs F/E/FM, multiplié
- * par la Taille (via `woundsForSize`). À vide, le delta = 0 → on rend exactement `wounds.base` (préserve
- * les valeurs livre traitées : Coriace, mort-vivant…). La base elle-même n'est jamais recalculée.
- *
- * Référence du delta = MÊME BASE que `wounds.base` : `characteristics + liveTraits + talents`, sans
- * mutations (post-création → contribuent au delta). `eff − raw` = delta VOLATILE (mutations + sorts).
- * Un effet `blessuresAuTotal` n'entre pas dans `eff` : sa source compte par son seul `attrMod` (#3060).
- */
+/** Maximum des Blessures (#1463) : `(derive + wounds.ecart) × facteur + plats` (`partsDesBlessures`). */
 export function effectiveMaxWounds(c: Combatant): number {
-  const size = effectiveSize(c.size);
-  const base = c.wounds.base ?? c.wounds.max;
-  // Fabriqué (LDB 85 l.142) : Bonus de Force au lieu du Bonus de Force Mentale, sur `eff` ET `raw` (le
-  // delta doit rester cohérent avec la SUBSTITUTION, pas juste sa valeur BF/BFM de base).
-  const woundsUseForce = traitCapability(c.traits, 'woundsUseForce');
-  const effBFM = woundsUseForce ? bonus(charDesBlessures(c, 'force')) : bonus(charDesBlessures(c, 'force-mentale'));
-  const eff = woundsForSize(bonus(charDesBlessures(c, 'force')), bonus(charDesBlessures(c, 'endurance')), effBFM, size);
-  // Référence = base au spawn : characteristics + liveTraitCharMods (créatures) + talentCharMods (héros).
-  // Les mutations viennent APRÈS la création → elles restent dans le delta pour affecter effectiveMaxWounds.
-  const rawF = c.characteristics.force + (traitCharMods(c.liveTraits).force ?? 0) + talentCharModSum(c, 'force');
-  const rawE = c.characteristics.endurance + (traitCharMods(c.liveTraits).endurance ?? 0) + talentCharModSum(c, 'endurance');
-  const rawFM = c.characteristics['force-mentale'] + (traitCharMods(c.liveTraits)['force-mentale'] ?? 0) + talentCharModSum(c, 'force-mentale');
-  const raw = woundsForSize(bonus(rawF), bonus(rawE), woundsUseForce ? bonus(rawF) : bonus(rawFM), size);
-  // Modif. de Blessures PLATS d'effets actifs (op `attrMod{wounds}` exécutée — Bonnet de fou « +4
-  // Blessures », LDB 71 l.20) : sommés au delta, repris/rendus par `blessuresReconciliees` (pose + expiration).
-  const flat = (c.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.wounds ?? 0), 0);
-  // `attrMod{wounds}` PASSIFS des porteurs hors talents (mutation, objet, Trait, État…) : ceux des talents
-  // sont dans `wounds.base` (`extraWounds`), comme leurs `charMod` dans `raw` (#3060).
-  const passifs = sommeAttrMods(passiveMods(c, false), 'wounds', c);
-  // Nuée : LDB 85 l.253.
-  const parCreatureType = c.swarm ? 5 : 1;
-  return base + (eff - raw) * parCreatureType + flat + passifs;
+  const { derive, facteur, plats } = partsDesBlessures(c);
+  return (derive + c.wounds.ecart) * facteur + plats;
 }
 
 /**
- * Réconciliation des Blessures (LDB 05 l.1001, LDB 48 l.23) : `wounds.max` recalé sur `effectiveMaxWounds`,
- * `wounds.current` déplacé du même delta, plancher 0 (LDB 48 l.27). PURE : rend l'objet `wounds` reçu quand rien ne
- * bouge, sinon un neuf. Un porteur sans `base` reçoit au premier recalage le `max` qu'il portait, ce qui
- * rend la réconciliation IDEMPOTENTE. Coutures : fin d'`applyOps`, `applyActiveEffect`,
- * `removeActiveEffects`, spawn d'un porteur né mutant (`noyau/monde/spawn.ts`), et toute écriture de l'état
- * (`noyau/transitionDuJeu.ts`).
+ * Réconciliation des Blessures (LDB 05 l.1001, LDB 48 l.23) : `wounds.max` recalé sur `effectiveMaxWounds`.
+ * Les Points perdus se conservent, plancher 0 (LDB 48 l.27) : la part perdue sous 0 par une baisse du
+ * maximum reste dans `perduesSousZero` tant que le courant est 0, et s'éteint dès qu'il remonte au-dessus.
+ * PURE et IDEMPOTENTE : rend l'objet `wounds` reçu quand rien ne bouge.
+ * Coutures : fin d'`applyOps`, `applyActiveEffect`, `removeActiveEffects`, spawn d'un porteur né mutant
+ * (`noyau/monde/spawn.ts`), et toute écriture de l'état (`noyau/transitionDuJeu.ts`).
  */
 export function blessuresReconciliees(c: Combatant): Combatant['wounds'] {
+  const w = c.wounds;
   const max = effectiveMaxWounds(c);
-  if (Object.is(max, c.wounds.max)) return c.wounds;
-  const delta = max - c.wounds.max;
-  return { ...c.wounds, base: c.wounds.base ?? c.wounds.max, max: maximumDe(max), current: Math.max(0, c.wounds.current + delta) };
+  const sousZero = w.current > 0 ? 0 : w.perduesSousZero ?? 0;
+  if (Object.is(max, w.max) && sousZero === (w.perduesSousZero ?? 0)) return w;
+  const perdues = w.max - w.current + sousZero;
+  return pose(max, Math.max(0, max - perdues), w.ecart, Math.max(0, perdues - max));
 }
 
-/** Les Blessures d'un porteur à vide : `base`, `current` restantes. Le maximum vaut `base` jusqu'à la
- *  couture suivante, qui y ajoute ses porteurs (`blessuresReconciliees`). */
-export function blessuresDeBase(base: number, current: number = base): Combatant['wounds'] {
-  return { current, max: maximumDe(base), base };
+/** Blessures d'un porteur NÉ, son profil en main : au maximum dérivé (`ecart` 0), ou à `maximum` imprimé
+ *  (B explicite d'un statbloc, coque, Puissance), l'écart posé dans l'unité de `derive` (`partsDesBlessures`). */
+export function blessuresPosees(c: Omit<Combatant, 'wounds'>, maximum?: number, restantes?: number): Combatant['wounds'] {
+  const { derive, facteur, plats } = partsDesBlessures({ ...c, wounds: pose(0, 0, 0, 0) });
+  const max = maximum ?? derive * facteur + plats;
+  return pose(max, restantes ?? max, (max - plats) / facteur - derive, 0);
 }
+
+const pose = (max: number, current: number, ecart: number, perduesSousZero: number): Combatant['wounds'] =>
+  ({ current, max: maximumDe(max), ecart, ...(perduesSousZero ? { perduesSousZero } : {}) });
 
 const maximumDe = (n: number): MaximumDesBlessures =>
-  // eslint-disable-next-line murs/marques -- #1463 : l'unique cast de ce module — forger la marque EST le corps de métier de `blessuresDeBase` et `blessuresReconciliees`.
+  // eslint-disable-next-line murs/marques -- #1463 : l'unique cast de ce module — forger la marque EST le corps de métier de `blessuresPosees` et `blessuresReconciliees`.
   n as MaximumDesBlessures;

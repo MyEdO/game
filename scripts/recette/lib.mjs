@@ -1278,7 +1278,7 @@ const FN_NOM_ACCESSIBLE = `(b) => norm(b.getAttribute('aria-label')) || norm(b.m
 const CORPS_NOM_ACCESSIBLE = `const nomAccessible = ${FN_NOM_ACCESSIBLE};`;
 
 /** `nommer(el)` (fonction de PAGE) : le NOM d'un élément, `tag#id.classe…` (classe SVG comprise), lisible
- *  même sans texte. SOURCE UNIQUE (`pageLocaliser`, `pageControler`, `frappe`, `choisirCouleur`,
+ *  même sans texte. SOURCE UNIQUE (`pageLocaliser`, `pageControler`, `frappe`,
  *  `hud-clickables.mjs`, `console-pont-formes.mjs`, `hauteur-reelle.mjs`). */
 export const FN_NOMMER_ELEMENT = `(e) => { const c = e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || ''); return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (c.trim() ? '.' + c.trim().split(/\\s+/).join('.') : ''); }`;
 
@@ -2122,37 +2122,6 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
     el.dispatchEvent(new Event('change', { bubbles: true }));
     return { valeur: el.value, libelle: (el.selectedOptions[0] || {}).textContent || '' };
   })()`);
-}
-
-/** CHOISIT une couleur d'un `input[type=color]` AU GESTE, comme `selectOption` : FOCUS par un vrai clic
- *  CDP (`geste`, cible contrôlée), puis valeur posée par le SETTER NATIF avec `input` et `change`.
- *  LÈVE avant tout événement si la cible n'est pas un `input[type=color]`, et avant la pose si le clic
- *  ne lui a pas donné le focus. MESURÉ (Chrome headless du kit, 2026-10-12, #1925) : le clic rend
- *  `focus` puis `click`, aucun sélecteur ne bloque la page, le clic suivant est reçu. */
-export async function choisirCouleur(session, selecteur, couleur, { delaiEntreeMs = DELAI_ENTREE } = {}) {
-  if (!/^#[\da-f]{6}$/i.test(couleur)) throw new Error(`choisirCouleur : couleur invalide « ${couleur} », #rrggbb attendu`);
-  const avant = await marquer(session, { selecteur }, 'choisirCouleur');
-  const autre = avant && await evaluerFn(session, (marque, attr, fnNommer) => {
-    const el = document.querySelector(marque);
-    el.removeAttribute(attr);
-    return el instanceof HTMLInputElement && el.type === 'color' ? null : new Function('return ' + fnNommer)()(el);
-  }, marqueDe(avant), ATTR_CIBLE, FN_NOMMER_ELEMENT);
-  if (autre) throw new Error(`choisirCouleur : input[type=color] attendu « ${selecteur} », trouvé ${autre} — aucun événement émis`);
-  await geste(session, { selecteur }, { qui: 'choisirCouleur', delaiEntreeMs }, clic());
-  const apres = await marquer(session, { selecteur }, 'choisirCouleur');
-  if (!apres) throw new Error(`choisirCouleur « ${selecteur} » : le champ a quitté le DOM après le clic — aucune couleur posée`);
-  const r = await evaluerFn(session, (marque, attr, couleur, fnNommer) => {
-    const el = document.querySelector(marque);
-    el.removeAttribute(attr);
-    if (document.activeElement !== el) return { sansFocus: document.activeElement ? new Function('return ' + fnNommer)()(document.activeElement) : 'rien' };
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, couleur);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    return el.value;
-  }, marqueDe(apres), ATTR_CIBLE, couleur, FN_NOMMER_ELEMENT);
-  if (r?.sansFocus) throw new Error(`choisirCouleur « ${selecteur} » : le champ n'a pas le focus après le clic (focus sur ${r.sansFocus}) — aucune couleur posée`);
-  if (r !== couleur.toLowerCase()) throw new Error(`choisirCouleur : demandé ${couleur}, obtenu ${r}`);
-  return r;
 }
 
 /**

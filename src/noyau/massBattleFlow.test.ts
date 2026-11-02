@@ -11,6 +11,7 @@ import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { addCondition } from '../engine/conditions';
+import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Amorce une bataille avec un vrai groupe (pré-tirés) et le RNG seedé. Par défaut ouvre AUSSI un
  *  interlude doté du budget d'Activités (3 par héros) : c'est le budget UNIQUE dans lequel puise la
@@ -765,7 +766,7 @@ describe('Rassemblement (ADE II 8 l.122)', () => {
   /** Ouvre un Round avec le premier PJ à 1 Blessure, puis déclenche le Rassemblement. */
   function rallyBlesse() {
     start({ situations: [['motivation']] });
-    const party = useGame.getState().party.map((h, i) => i === 0 ? { ...h, wounds: { ...h.wounds, current: 1 } } : h);
+    const party = useGame.getState().party.map((h, i) => i === 0 ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 1 } }) : h);
     useGame.setState({ party });
     useGame.setState({ massBattle: { ...mbState(), phase: 'round', awaitingNext: true } });
     useGame.getState().massBattleRally();

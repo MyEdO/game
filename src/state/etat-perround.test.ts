@@ -2,13 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { fireConditionEffects } from '../noyau/triggeredEffects';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import { slugId } from '../data/slug';
-import type { Combatant } from '../engine/types';
+import type { Characteristics, Combatant } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const mk = (): Combatant => combattantDeTest({
-  id: 'x', label: 'X', kind: 'enemy', characteristics: { endurance: 40 }, armour: { corps: 5 } as Combatant['armour'],
+const mk = (characteristics: Partial<Characteristics> = {}): Combatant => combattantDeTest({
+  id: 'x', label: 'X', kind: 'enemy', characteristics: { endurance: 40, ...characteristics }, armour: { corps: 5 } as Combatant['armour'],
   wounds: blessuresDeBase(10),
 });
 
@@ -49,7 +48,7 @@ describe('En Flammes — dégâts par-round en DONNÉES (effects onRoundEnd → 
   });
 
   it('3 pions : +1 par État en plus AVANT réduction ; d10=4, BE=7, PAmin=0 → (4+2)−7 = −1 → plancher 1', () => {
-    const c = mk(); c.characteristics.endurance = 70; c.armour = { corps: 0 } as never;
+    const c = mk({ endurance: 70 }); c.armour = { corps: 0 } as never;
     addCondition(c, COND.enFlammes); addCondition(c, COND.enFlammes); addCondition(c, COND.enFlammes);
     const before = c.wounds.current;
     fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng: fixedD10(4) });
@@ -57,7 +56,7 @@ describe('En Flammes — dégâts par-round en DONNÉES (effects onRoundEnd → 
   });
 
   it('PAmin = la Localisation la MOINS protégée (pas le Corps) ; corps=5 mais tête=1 → PA=1', () => {
-    const c = mk(); c.characteristics.endurance = 0; // BE=0
+    const c = mk({ endurance: 0 }); // BE=0
     c.armour = { tete: 1, corps: 5 } as never;
     addCondition(c, COND.enFlammes);
     const before = c.wounds.current;

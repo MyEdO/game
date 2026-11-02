@@ -746,7 +746,7 @@
       "page": 314
     },
     "appearance": {
-      "species": "araignee"
+      "species": "araignee-geante"
     },
     "grantGroups": [
       "bete"
@@ -934,8 +934,7 @@
       "availability": "Rare"
     },
     "appearance": {
-      "species": "chien",
-      "harnais": "harnais-de-guerre-canin"
+      "species": "chien"
     },
     "grantGroups": [
       "bete"
@@ -2197,7 +2196,7 @@
       "page": 321
     },
     "appearance": {
-      "species": "hippogriffe"
+      "species": "hyppogriffe"
     },
     "grantGroups": [
       "bete",
@@ -2539,8 +2538,7 @@
       "page": 323
     },
     "appearance": {
-      "species": "pegase",
-      "harnais": "collier-dore-pegase"
+      "species": "pegase"
     },
     "grantGroups": [
       "bete",
@@ -2616,7 +2614,7 @@
       "page": 323
     },
     "appearance": {
-      "species": "pieuvre"
+      "species": "pieuvre-des-tourbieres"
     },
     "grantGroups": [
       "bete",
@@ -2717,7 +2715,7 @@
       "page": 323
     },
     "appearance": {
-      "species": "squig"
+      "species": "squig-des-cavernes"
     },
     "grantGroups": [
       "bete",
@@ -3336,7 +3334,7 @@
       "page": 327
     },
     "appearance": {
-      "species": "varghulf"
+      "species": "chauve-souris-vampire-varghulf"
     },
     "grantGroups": [
       "mort-vivant"
@@ -3640,7 +3638,7 @@
       "page": 329
     },
     "appearance": {
-      "species": "spectre"
+      "species": "spectre-de-cairn"
     },
     "grantGroups": [
       "mort-vivant"
@@ -4615,7 +4613,7 @@
       "page": 335
     },
     "appearance": {
-      "species": "demonette",
+      "species": "demonette-de-slaanesh",
       "tenue": "demonette"
     },
     "grantGroups": [
@@ -5449,8 +5447,7 @@
       "availability": "Limitée"
     },
     "appearance": {
-      "species": "cheval",
-      "harnais": "sellerie-imperiale"
+      "species": "cheval"
     }
   },
   {
@@ -5802,7 +5799,7 @@
       "page": 12
     },
     "appearance": {
-      "species": "araignee"
+      "species": "araignee-geante"
     },
     "harvest": {
       "rarity": "Limitée",
@@ -5908,7 +5905,7 @@
       "page": 13
     },
     "appearance": {
-      "species": "araignee"
+      "species": "araignee-geante"
     },
     "harvest": {
       "rarity": "Limitée",
@@ -6740,10 +6737,7 @@
       "page": 30
     },
     "appearance": {
-      "species": "squigs",
-      "colors": {
-        "corps": "#5a2a7a"
-      }
+      "species": "squig-des-cavernes"
     },
     "harvest": {
       "rarity": "Limitée",
@@ -7092,13 +7086,7 @@
       "id": "geant"
     },
     "appearance": {
-      "species": "geant",
-      "parts": {
-        "cheveux": 7
-      },
-      "features": [
-        "barbe-naine"
-      ]
+      "species": "geant"
     },
     "char": {
       "M": 6,
@@ -7553,12 +7541,7 @@
       "uses": "Boire dans leur crâne permet de voir et d'entendre les morts"
     },
     "appearance": {
-      "species": "choses-du-bois-mort",
-      "features": [
-        "cornes-asymetriques",
-        "langue-pendante",
-        "tentacule-epais"
-      ]
+      "species": "choses-du-bois-mort"
     }
   },
   {
@@ -8507,7 +8490,7 @@
     "title": null,
     "folder": "Zoo Impérial",
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     },
     "char": {
       "M": 3,
@@ -8830,7 +8813,7 @@
       "uses": "Une fois réduits en poudre, le bec et les serres arrêtent tout saignement"
     },
     "appearance": {
-      "species": "noctecorbes"
+      "species": "volee-de-noctecorbes"
     }
   },
   {
@@ -11130,10 +11113,7 @@
       "uses": "Une mèche de cheveux de sirène permet de respirer sous l'eau"
     },
     "appearance": {
-      "species": "sirene",
-      "features": [
-        "queue-de-poisson"
-      ]
+      "species": "sirene"
     }
   },
   {
@@ -11869,12 +11849,6 @@
     },
     "appearance": {
       "species": "humain",
-      "monster": {
-        "tete": "chien"
-      },
-      "features": [
-        "pelage-massif"
-      ],
       "armurePortee": true
     },
     "followsCharacterRules": true
@@ -11971,7 +11945,7 @@
       "page": 117
     },
     "appearance": {
-      "species": "spectre"
+      "species": "spectre-middenheim"
     }
   },
   {
@@ -12829,7 +12803,7 @@
       "page": 159
     },
     "appearance": {
-      "species": "liche"
+      "species": "babrakkos"
     }
   },
   {
@@ -12986,7 +12960,7 @@
       "page": 67
     },
     "appearance": {
-      "species": "lutin"
+      "species": "grain-d-achillee"
     }
   },
   {
@@ -17781,7 +17755,7 @@
       "page": 146
     },
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     }
   },
   {
@@ -18203,10 +18177,7 @@
     "appearance": {
       "species": "humain",
       "sex": "M",
-      "tenue": "nu",
-      "features": [
-        "queue-de-poisson"
-      ]
+      "tenue": "nu"
     }
   },
   {
@@ -19814,7 +19785,7 @@
       "page": 86
     },
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     }
   },
   {
@@ -19915,7 +19886,7 @@
       "page": 86
     },
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     }
   },
   {
@@ -20312,8 +20283,7 @@
       "availability": "Commune"
     },
     "appearance": {
-      "species": "cheval",
-      "harnais": "sellerie-imperiale"
+      "species": "cheval"
     },
     "grantGroups": [
       "bete"
@@ -20401,8 +20371,7 @@
       "availability": "Commune"
     },
     "appearance": {
-      "species": "cheval",
-      "harnais": "sellerie-imperiale"
+      "species": "cheval"
     },
     "grantGroups": [
       "bete"

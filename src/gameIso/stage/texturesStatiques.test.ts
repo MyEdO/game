@@ -32,7 +32,6 @@ const OCTETS = octetsTextureStatique(BOX, PX);
 /** Décor : son identité de cache porte le CRAN (`identiteAuCran`), donc un cran = une entrée. */
 const DÉCOR = {
   identity: 'prop:tonneau',
-  kind: 'prop',
   facing: 'S',
   scaleK: 1,
   cell: { x: 0, y: 0, z: 0 },

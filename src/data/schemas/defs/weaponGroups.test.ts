@@ -15,8 +15,8 @@ const refus = (doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');
 };
 const SOURCE = { book: 'livre-de-base', page: 300 };
-const ARMURE: Entree = { id: 'armure-de-fixture', type: 'weaponGroups', label: 'Armure de fixture', kind: 'armour', material: 'leather', couche: 90, art: 'cuir', palierPA: null, source: SOURCE };
-const ARME: Entree = { id: 'armes-de-fixture', type: 'weaponGroups', label: 'Armes de fixture', kind: 'weapon', combat: 'melee', forme: { id: 'hache' }, maniement: 'lame1m', source: SOURCE };
+const ARMURE: Entree = { id: 'armure-de-fixture', type: 'weaponGroups', label: 'Armure de fixture', kind: 'armour', material: 'leather', couche: 90, palierPA: null, source: SOURCE };
+const ARME: Entree = { id: 'armes-de-fixture', type: 'weaponGroups', label: 'Armes de fixture', kind: 'weapon', combat: 'melee', maniement: 'lame1m', source: SOURCE };
 
 describe('weaponGroups.json — présentation portée par la donnée (#3076)', () => {
   it('le document réel parse', () => {
@@ -25,16 +25,14 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
 
   it('un Groupe AJOUTÉ avec sa charge parse', () => {
     expect(schema.safeParse(avec(ARMURE, ARME)).success).toBe(true);
-    expect(schema.safeParse(avec({ ...ARME, id: 'mains-nues-de-fixture', forme: null, maniement: 'poings', poudre: true })).success).toBe(true);
+    expect(schema.safeParse(avec({ ...ARME, id: 'mains-nues-de-fixture', maniement: 'poings', poudre: true })).success).toBe(true);
     expect(schema.safeParse(avec({ ...ARMURE, palierPA: 90 })).success).toBe(true);
   });
 
   it.each([
     ['material', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « material »/],
     ['couche', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « couche »/],
-    ['art', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « art »/],
     ['palierPA', ARMURE, /« armure-de-fixture » \(kind « armour »\) exige « palierPA »/],
-    ['forme', ARME, /« armes-de-fixture » \(kind « weapon »\) exige « forme »/],
     ['maniement', ARME, /« armes-de-fixture » \(kind « weapon »\) exige « maniement »/],
   ])('un Groupe sans `%s` est refusé, nommément', (cle, entree, motif) => {
     const { [cle]: _retire, ...sans } = entree;
@@ -62,8 +60,4 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
     expect(refus(doc)).toMatch(/aucun Groupe d’armure au palierPA 0/);
   });
 
-  it('un `art` qu’aucun def d’armure ne déclare, une `forme` qui n’est pas une racine, sont refusés', () => {
-    expect(refus(avec({ ...ARMURE, art: 'art-de-fixture-absent' }))).toMatch(/« art-de-fixture-absent » n’est aucun def d’art d’armure/);
-    expect(schema.safeParse(avec({ ...ARME, forme: { id: 'forme-de-fixture-absente' } })).success).toBe(false);
-  });
 });

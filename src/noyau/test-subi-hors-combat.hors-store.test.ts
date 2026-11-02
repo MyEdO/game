@@ -24,6 +24,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { routeTriggeredTest } from './combat/triggeredTest';
 import { runFlow, openSkillTest, messageCibleHorsScene } from './combatEffects';
+import { referentDeLEtape } from './pendings';
 import { flowFromEffects } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { decorHorsCombat, noeudsDeTest, rendreMalade, nuitDuMalade, type NoeudTest } from './noeudsDeTest.testkit';
@@ -254,7 +255,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     const etape = pc!.participants.find((p) => p.kind === 'triggeredTest');
     expect(etape, 'le second jet passe par l’étape générique `triggeredTest`').toBeTruthy();
     expect(etape!.actorId, 'le second jet reste chez le SUJET').toBe('h3');
-    expect(etape!.meta?.casterId, 'le lanceur voyage par le meta (ids, sérialisable)').toBe('h4');
+    expect(referentDeLEtape(etape!), 'le lanceur voyage par le meta (ids, sérialisable)').toBe('h4');
     expect(() => JSON.parse(JSON.stringify(pc)), 'la cascade doit rester sérialisable').not.toThrow();
   });
 

@@ -4,7 +4,6 @@ export interface ProgressionMark {
   x: number;
   /** Couleur RVB mesurée de l'aplat (niveaux 2/3/4) ; absente au niveau 1, marqué par un glyphe. */
   teinte?: [number, number, number];
-  mark?: 'glyphe';
 }
 
 export interface ProgressionViolation {

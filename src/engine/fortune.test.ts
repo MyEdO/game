@@ -5,6 +5,7 @@ import { rederivePassiveAttack } from './combat';
 import { rederiveCastSL, type SpellLike } from './magic';
 import type { Combatant, Weapon } from './types';
 import { makeRNG } from './dice';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 describe('canReroll — Chance : relance 1×/Test sur jet propre raté (LDB 12 l.40 ; jet propre raté : LDB 12 l.13)', () => {
   it('jet raté, pas encore relancé → relance possible', () => {
@@ -22,19 +23,19 @@ describe('canReroll — Chance : relance 1×/Test sur jet propre raté (LDB 12 l
 });
 
 const ranger = (CT = 50): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     name: 'Tir',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': CT, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    wounds: { current: 10, max: 10 }, skills: [],
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(10), skills: [],
+  })) as unknown as Combatant;
 const cible = (E = 30): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     name: 'Cible',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    wounds: { current: 10, max: 10 }, skills: [],
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(10), skills: [],
+  })) as unknown as Combatant;
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 describe('fateSaveOptions — options offertes du sacrifice de Destin (LDB 17 l.29-32)', () => {
@@ -64,12 +65,12 @@ describe('rederivePassiveAttack — +1 DR (re-dérive un tir figé sans relancer
 });
 
 const mage = (Int = 30): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     name: 'Mage',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: Int, 'force-mentale': 35, sociabilite: 30 },
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: { current: 10, max: 10 },
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(10),
     skills: [{ name: 'Langue', spec: 'Magick', characteristic: 'intelligence', advances: 1 }],
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 const dart: SpellLike = { label: 'Fléchette', ecole: 'Sort des Arcanes', cn: 3, desc: 'Projectile magique. Dégâts +4.' };
 
 describe('rederiveCastSL — +1 DR sur une incantation figée', () => {

@@ -39,7 +39,6 @@ import {
   type Rasterisation,
 } from './banc-volumique';
 import { createHero } from '../../engine/character';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -107,7 +106,7 @@ function écran(
   acteurs: readonly ActorPose[] = SANS_ACTEUR,
 ): JSX.Element {
   return (
-    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}
@@ -201,7 +200,6 @@ afterEach(() => {
 
 describe('Montage d’une scène — aucune rasterisation en rafale', () => {
   const DENSE: SceneBillboardEls = {
-    tokens: [],
     props: Array.from({ length: 12 }, (_, i) => décor(`d${i}`, GROUPE.x - 5 + i)),
   };
 
@@ -239,7 +237,6 @@ describe('Montage d’une scène — aucune rasterisation en rafale', () => {
 describe('Montage d’une scène — l’ORDRE est celui de la PROXIMITÉ', () => {
   // Les décors sont donnés du plus LOIN au plus PRÈS : sans tri, l'ordre de service serait celui-ci.
   const ÉTAGÉS: SceneBillboardEls = {
-    tokens: [],
     props: [décor('loin', GROUPE.x + LOIN), décor('moyen', GROUPE.x + 4), décor('près', GROUPE.x + 1)],
   };
 
@@ -259,7 +256,6 @@ describe('Montage d’une scène — l’ORDRE est celui de la PROXIMITÉ', () =
 
 describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain non', () => {
   const PROCHE_ET_LOIN: SceneBillboardEls = {
-    tokens: [],
     props: [
       décor('loin1', GROUPE.x + LOIN),
       décor('loin2', GROUPE.x + LOIN + 1),
@@ -302,7 +298,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
     // plafond de 120 s.
     ras = simulerRasterisation('retenue');
     AMBIANCE.entreeEnScene.plafondMs = PLAFOND_HORS_ATTEINTE_MS;
-    monterSync({ tokens: [], props: [décor('près', GROUPE.x + 1)] });
+    monterSync({ props: [décor('près', GROUPE.x + 1)] });
 
     await attendre(() => ras.enAttente.length > 0);
     expect(ras.enAttente.length, 'PRÉMISSE : une rasterisation doit être en vol, image jamais servie').toBeGreaterThan(0);
@@ -326,7 +322,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
     // CONSTANTE d'avance, et la borne est EXACTE des deux côtés — plus rien à concéder à la machine.
     vi.useFakeTimers();
     ras = simulerRasterisation('retenue');
-    monterSync({ tokens: [], props: [décor('près', GROUPE.x + 1)] });
+    monterSync({ props: [décor('près', GROUPE.x + 1)] });
 
     await act(async () => { await vi.advanceTimersByTimeAsync(plafondNominal - 1); });
     expect(canevas().dataset.voile, `le voile est tombé AVANT le plafond authoré de ${plafondNominal} ms`).toBe('1');
@@ -351,7 +347,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
     // qu'UNE cause possible — la clé du sujet en échec, SERVIE. La cause s'établit ainsi, jamais en
     // datant la chute : un chronomètre mural ne mesure que la vitesse de la machine.
     AMBIANCE.entreeEnScene.plafondMs = PLAFOND_HORS_ATTEINTE_MS;
-    monterSync({ tokens: [], props: [décor('près', GROUPE.x + 1)] });
+    monterSync({ props: [décor('près', GROUPE.x + 1)] });
     expect(canevas().dataset.voile, 'PRÉMISSE : le voile doit être levé au montage').toBe('1');
 
     await attendre(() => !canevas().dataset.voile);
@@ -367,7 +363,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
     ras = simulerRasterisation('retenue');
     const états: boolean[] = [];
     monterSync(
-      { tokens: [], props: [décor('loin1', GROUPE.x + LOIN), décor('loin2', GROUPE.x + LOIN + 1)] },
+      { props: [décor('loin1', GROUPE.x + LOIN), décor('loin2', GROUPE.x + LOIN + 1)] },
       (v) => états.push(v),
     );
 
@@ -414,7 +410,6 @@ describe('Vue de plateau — le centre de proximité vient des HÉROS', () => {
     AMBIANCE.entreeEnScene.plafondMs = PLAFOND_HORS_ATTEINTE_MS;
     const états: boolean[] = [];
     const PROCHE_ET_LOIN: SceneBillboardEls = {
-      tokens: [],
       props: [
         décor('loin1', GROUPE.x + LOIN),
         décor('loin2', GROUPE.x + LOIN + 1),

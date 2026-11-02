@@ -14,6 +14,7 @@ import { runFromTest } from '../engine/movement';
 import { refLabel } from '../data';
 import { t } from '../i18n';
 import { addCondition } from '../engine/conditions';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -26,13 +27,13 @@ const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 30, h: 21 }, layers: [{ z: 0, tiles: Array(630).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 
 const C = (kind: 'hero' | 'enemy', id: string, x: number, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind, pos: { x, y: 10 }, movement: 4,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
-    conditions: [], skills: [], wounds: { current: 10, max: 10 }, advantage: 0, engagedWith: [], psychState: [],
+    conditions: [], skills: [], wounds: blessuresDeBase(10), advantage: 0, engagedWith: [], psychState: [],
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 function planFor(heroX: number, over: Partial<Combatant> = {}) {
   const enemy = C('enemy', 'e', 2, over);

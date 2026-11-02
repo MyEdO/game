@@ -1,6 +1,6 @@
 /**
- * Contrat du CACHE BORNÉ (#1374) — la machinerie d'éviction que partagent les planches de flipbook et
- * les textures statiques. Les valeurs sont des JETONS (poids + drapeau de libération) : ce module ne
+ * Contrat du CACHE BORNÉ (#1374) — la machinerie d'éviction des textures statiques
+ * (`svgTexture`). Les valeurs sont des JETONS (poids + drapeau de libération) : ce module ne
  * connaît ni three ni le DOM, et son contrat se juge sans eux.
  */
 import { describe, expect, it, vi } from 'vitest';

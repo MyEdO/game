@@ -24,19 +24,19 @@ import { contractDisease, tickDisease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import type { RNG } from './dice';
 import { desDuTest, desEnSuite } from './dice.testkit';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 const seq = (values: number[]): RNG => desEnSuite(values);
 
 function hero(p: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 35 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], items: [], diseases: [],
     ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 /** Exécute `run` avec un espion branché ; rend les lignes ET les notifications reçues. */

@@ -19,18 +19,19 @@ import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const ARM = (pa: number) => ({ tete: pa, brasG: pa, brasD: pa, corps: pa, jambeG: pa, jambeD: pa });
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, important: true, characteristics: { ...CHARS },
-    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne', armour: ARM(0),
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;

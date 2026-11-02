@@ -5,7 +5,12 @@ import { buildFieldConsumersMd } from '../../scripts/docs/build-field-consumers.
 import { TARGETS, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../../scripts/guards/lib/fieldConsumers.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
+import { mesurerChampsDeSchema } from '../../scripts/guards/lib/schemaFieldConsumers.mjs';
+import { z } from 'zod';
+import { variantOf } from './schemas/grammaire/valeurs';
+import { nommerChamps } from './schemas/grammaire/meta';
 import { detenteur } from '../detenteur.testkit';
+import { markSchema } from './schemas/defs/progression-schemas-derived';
 
 /**
  * Garde du rapport « consommateurs par champ » (#903 — `scripts/docs/build-field-consumers.mts`,
@@ -26,6 +31,114 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
  *  PARESSEUX : payé au 1ᵉʳ `it` qui le demande, jamais à la collecte de vitest (#1801).
  *  Seul le rapport dérivé est retenu, aucun Program. */
 const rapport = detenteur(buildFieldConsumersMd);
+
+const STOCK_CHAMPS_DE_SCHEMA: readonly (readonly [string, string])[] = [
+  ["talents.json:[].variants", "Lecteur vérifié : src/engine/variants.ts:29-31 via src/engine/magic.ts:365, careerSlots.ts:295 et combatFeatures/dispatch.ts:20/56/61 ; provenance générique non reliée par le scanner."],
+];
+
+describe('champs de schéma de dataset — type explicite ou lecteur relié', () => {
+  it('les champs sans type ni lecteur sont exactement ceux du stock nominatif motivé', () => {
+    const mesure = mesurerChampsDeSchema(ROOT);
+    const stock = STOCK_CHAMPS_DE_SCHEMA.map(([champ]) => champ);
+    expect(new Set(stock).size, 'chaque chemin du stock doit être unique').toBe(stock.length);
+    expect(STOCK_CHAMPS_DE_SCHEMA.every(([, motif]) => motif.trim().length > 0), 'chaque chemin du stock doit porter son motif').toBe(true);
+    expect(mesure.datasets.every((d) => d.declares > 0)).toBe(true);
+    expect([...mesure.absents].sort(), 'diagnostic nouveau ou disparu : réviser le stock nominatif motivé\n' + mesure.absents.join('\n') + '\nChargements non résolus :\n' + mesure.chargementsNonResolus.join('\n')).toEqual([...stock].sort());
+  }, 250_000);
+
+  it('un schéma neuf et une valeur JSON seule ne valent pas lecteur ; les homonymes restent séparés', () => {
+    const sources = {
+      'src/data/a.json': '{"id":"a","lu":"oui","inactif":"non"}',
+      'src/data/b.json': '{"inactif":"autre"}',
+      'src/lecteur.ts': `import a from './data/a.json';
+import b from './data/b.json';
+type Vue = { id: string; typeSeulement?: string };
+export const vue = a as Vue;
+const alias = a;
+export const { lu } = alias;
+export const autre = b.inactif;
+declare const schema: { safeParse(v: unknown): unknown };
+schema.safeParse(a);`,
+    };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      const schema = z.object({ id: z.string(), lu: z.string(), typeSeulement: z.string().optional(), inactif: z.string(), neuf: z.string().optional() });
+      const mesure = mesurerChampsDeSchema(VIRTUAL_ROOT, { definitions: [{ file: 'a.json', schema }], programme: session, fichiers: Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)) });
+      expect(mesure.absents).toEqual(['a.json:inactif', 'a.json:neuf']);
+    } finally { session.dispose(); }
+  });
+
+  it('relie les clés finies d’une boucle sans créditer les clés hors de son domaine', () => {
+    const sources = {
+      'src/data/a.json': '{"lv":{"1":[{"valeur":1}],"2":[{"valeur":2}],"3":[{"valeur":3}]}}',
+      'src/lecteur.ts': "import a from './data/a.json'; for (const n of ['1', '2']) for (const row of a.lv[n]) console.log(row.valeur);",
+    };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      const row = z.array(z.object({ valeur: z.number() }));
+      const schema = z.object({ lv: z.object({ '1': row, '2': row, '3': row }) });
+      const mesure = mesurerChampsDeSchema(VIRTUAL_ROOT, { definitions: [{ file: 'a.json', schema }], programme: session, fichiers: Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)) });
+      expect(mesure.absents).toEqual(['a.json:lv.3', 'a.json:lv.3[].valeur']);
+    } finally { session.dispose(); }
+  });
+
+  it('un schéma partagé ne crédite pas un champ absent de son type explicite', () => {
+    const sources = {
+      'scripts/guards/lib/progressionSchemas.d.mts': 'export interface ProgressionMark { col: string; characteristic: string; teinte?: [number, number, number] }',
+    };
+    const session = virtualProgram(sources);
+    try {
+      const mesure = mesurerChampsDeSchema(VIRTUAL_ROOT, { definitions: [{ file: 'a.json', schema: z.array(markSchema) }], programme: session, fichiers: Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)) });
+      expect(mesure.absents).toEqual(['a.json:[].x']);
+    } finally { session.dispose(); }
+  });
+
+  it('une projection de variante ne donne aucun crédit à un champ neuf de son entrée', () => {
+    const sources = {
+      'src/data/a.json': '{"id":"a","lu":"oui"}',
+      'src/vue.ts': `import a from './data/a.json'; export const vue = a as { id: string; lu: string };`,
+      'src/data/schemas/grammaire/valeurs.ts': `export type Variant = { when: { rule: string; equals?: boolean } };`,
+    };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      const base = nommerChamps(z.object({ id: z.string(), lu: z.string(), neuf: z.string().optional() }), { id: { label: 'Identifiant' }, lu: { label: 'Lu' }, neuf: { label: 'Neuf' } });
+      const schema = base.extend({ variants: z.array(variantOf(base, ['lu', 'neuf'])).optional() });
+      const mesure = mesurerChampsDeSchema(VIRTUAL_ROOT, { definitions: [{ file: 'a.json', schema }], programme: session, fichiers: Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)) });
+      expect(mesure.absents).toEqual(['a.json:neuf', 'a.json:variants', 'a.json:variants[].neuf']);
+    } finally { session.dispose(); }
+  });
+
+  it('refuse un type JSON recyclé, une écriture, un résultat map fabriqué et un accumulateur reduce', () => {
+    const sources = {
+      'src/data/a.json': '[{"inactif":1}]',
+      'src/vue.ts': `import a from './data/a.json';
+export const recopie = a as typeof a;
+const mapped = a.map(() => ({ inactif: 1 }));
+export const fabrique = mapped[0].inactif;
+a[0].inactif = 2;
+export const accumule = a.reduce((acc) => ({ inactif: acc.inactif + 1 }), { inactif: 0 });`,
+    };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      const schema = z.array(z.object({ inactif: z.number() }));
+      const mesure = mesurerChampsDeSchema(VIRTUAL_ROOT, { definitions: [{ file: 'a.json', schema }], programme: session, fichiers: Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)) });
+      expect(mesure.absents).toEqual(['a.json:[].inactif']);
+    } finally { session.dispose(); }
+  });
+
+  it('une clé dynamique de type string ne crédite aucun champ supplémentaire du schéma', () => {
+    const sources = {
+      'src/data/a.json': '{"id":"a"}',
+      'src/vue.ts': `import a from './data/a.json'; const k = 'id' as string; export const val = a[k];`,
+    };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      const schema = z.object({ id: z.string(), neuf: z.string().optional() });
+      const mesure = mesurerChampsDeSchema(VIRTUAL_ROOT, { definitions: [{ file: 'a.json', schema }], programme: session, fichiers: Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)) });
+      expect(mesure.absents).toEqual(['a.json:id', 'a.json:neuf']);
+    } finally { session.dispose(); }
+  });
+});
 
 /**
  * L'ÉCART entre DEUX rendus du rapport, en une phrase — vide = identiques. Trois cas NOMMÉS, mordus
@@ -174,8 +287,8 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
 
 /**
  * CLIQUET des « 0 lecteur » : la liste des champs PROPRES sans aucun lecteur, écrite NOMINATIVEMENT
- * et comparée à l'identique. Il ne DESCEND que par le retrait d'une ligne, et ce retrait exige le
- * lecteur qui l'annule ; un zéro NOUVEAU (champ dont le dernier lecteur disparaît) est rouge sous
+ * et comparée à l'identique. Une ligne sort quand le champ disparaît ou retrouve un lecteur ;
+ * un zéro NOUVEAU (champ dont le dernier lecteur disparaît) est rouge sous
  * son nom, jamais avalé par un plafond. Ne sont ici ni les champs HÉRITÉS (leur « 0 » est
  * tautologique) ni les champs ABSENTS du type TS — ce ne sont pas des mesures de lecture.
  */

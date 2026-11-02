@@ -17,6 +17,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, HitLocation, Trauma } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -37,10 +38,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const mk = (id: string, kind: 'hero' | 'enemy'): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [], items: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 18, max: 18 },
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons: [], items: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, bodyShape: 'humanoide',
-     traumas: [], critEntriesSuffered: [] } as unknown as Combatant);
+     traumas: [], critEntriesSuffered: [] }) as unknown as Combatant);
 
 /** Combat MINIMAL avec un héros TENU par le siège local — la cadence manuelle est la condition de
  *  surfaçage (`surfaceOf`), rien d'autre. */

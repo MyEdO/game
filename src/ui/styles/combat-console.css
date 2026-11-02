@@ -553,7 +553,7 @@
 /* GLYPHE de la case : sa boîte vaut `--cc-ico`, une FRACTION de la hauteur d'alvéole — l'icône suit donc
    la case à toute largeur, jamais une taille figée au call-site (arbitrage « icones disproportionnés »).
    `Icon`/`ItemIcon` posent leur px en ATTRIBUTS `width`/`height` de `<svg>` : la CSS les surcharge sans
-   forcer. Le repli GLYPHE d'`ItemIcon` (objet sans art de rig) écrit, lui, un style INLINE — seule une
+   forcer. Le glyphe d'`ItemIcon` écrit, lui, un style INLINE — seule une
    déclaration forte le ramène à l'échelle. Dette nommée : `ItemIcon` devrait accepter une longueur CSS. */
 .cc-ico {
   display: inline-flex;
@@ -735,6 +735,7 @@
    Le fronton le FRANCHIT — une bordure est peinte avant les enfants, l'arche passe par-dessus
    celle du pont. */
 .cc-arch {
+  --ptile-context-px: var(--cc-portrait);
   position: relative;
   flex: 0 0 auto;
   display: flex;
@@ -765,44 +766,10 @@
   background: linear-gradient(180deg, var(--atelier-brass-vif), var(--atelier-brass-hover));
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
-/* UN SEUL marqueur de camp sur le portrait de l'arche : la bordure d'équipe de `PortraitTile`
-   (`.ptile.team-*`). Le cadre du DESSIN (`RigPortrait`) se retire — les deux anneaux concentriques
-   faisaient le « cadre dans un cadre » que la doctrine `FigTile` proscrit (docs/primitives.md). La FORME du
-   trait (R9, daltonisme) passe sur l'anneau restant : plein pour un allié, tirets pour un ennemi. */
-.cc-arch .ptile-face .rig-portrait {
-  border-width: 0;
-}
+/* La FORME du trait d'équipe (R9, daltonisme) sur l'anneau de `PortraitTile` (`.ptile.team-*`) : plein pour un
+   allié, tirets pour un ennemi. */
 .cc-arch .ptile.team-enemy {
   border-style: dashed;
-}
-/* TAILLE du portrait : dérivée de l'arche (`--cc-portrait`), jamais la taille `lg` figée de la
-   primitive — `PortraitTile` pose ses dimensions en STYLE INLINE, seule une déclaration forte les
-   reprend (même levier que la composition compacte ≤560, déjà en place). C'est ce qui fait que le
-   portrait REMPLIT la région au lieu d'y flotter (arbitrage #1348, complément b). */
-.cc-arch .ptile,
-.cc-arch .ptile-face,
-.cc-arch .rig-portrait {
-  width: var(--cc-portrait) !important;
-  height: var(--cc-portrait) !important;
-}
-/* Le DESSIN suit sa boîte : `RigPortrait` pose sa taille en ATTRIBUT sur le `<svg>` (72px pour
-   `lg`), et un attribut de présentation cède devant n'importe quelle règle CSS — sans celle-ci, une
-   boîte redimensionnée (ligne compacte) garde un dessin de 72px, cadré « slice » sur son coin
-   haut-gauche : le héros actif n'avait PAS DE VISAGE à 360 (sonde du juge vision). */
-.cc-arch .rig-portrait > svg {
-  width: 100%;
-  height: 100%;
-}
-/* Nom du porteur, gravé au pied de l'arche (spécimen D). */
-.cc-arch-name {
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 0.4px;
-  color: var(--atelier-brass-vif);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 /* Corps de l'arche : gouttière Mouvement | portrait | gouttière Action | niche d'États, assis sur la
    même ligne (ordre de la planche 2026-08-17). */
@@ -1406,15 +1373,8 @@ button.cc-socle svg {
     flex: 0 0 auto;
     max-height: 1.1em;
   }
-  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE, c'est le NOM qui
-     cède et se tronque à l'ellipse. */
   .cc-arch-body {
     flex: 0 0 auto;
-  }
-  .cc-arch-name {
-    font-size: 11px;
-    flex: 0 1 auto;
-    min-width: 0;
   }
 }
 @media (pointer: coarse) {

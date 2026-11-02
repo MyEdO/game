@@ -5,7 +5,6 @@ import { presetPnjById } from '../state/campaignData';
 import { porteurDuNarratif } from './porteurDeProjet';
 import { Modal } from './Modal';
 import { CharFrame } from './CharFrame';
-import { PortraitTile } from './PortraitTile';
 import { summarizeEffects, combatantFlags } from '../gameIso/effectIcons';
 import { CodexSections } from './compendium/CodexEntry';
 import { combatantSections, proseDeFiche } from './compendium/registry';
@@ -56,9 +55,8 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
       footer={<button className="btn btn-primary" onClick={onClose}>Fermer</button>}
     >
       <div className="insp-head">
-        {hull ? <PortraitTile c={c} ring="var(--gold)" variant="full" size="lg" /> : <CharFrame c={c} variant="vital" size="lg" />}
+        <CharFrame c={c} variant={hull ? 'full' : 'vital'} size="lg" />
         <div className="insp-id">
-          <h3>{c.label}</h3>
           {/* PB en tête sans libellé texte : l'icône `resource/wounds` porte le sens (choix DÉLIBÉRÉ
               du site d'appel — le badge, lui, rend seulement la valeur). */}
           {!hull && <span className="insp-pv-num"><Icon id="resource/wounds" size="sm" /> <WoundsBadge wounds={c.wounds} /></span>}

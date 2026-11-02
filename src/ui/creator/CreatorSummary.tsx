@@ -1,6 +1,6 @@
 /**
  * « Fiche vivante » du créateur (Zone C) — page blanche cérémonielle (arbitrage 2026-07-13) : la
- * structure est STABLE dès l'étape 1 (tous les blocs présents — figurine, Caractéristiques, dérivées,
+ * structure est STABLE dès l'étape 1 (tous les blocs présents — Caractéristiques, dérivées,
  * PX, bourse, Talents, Compétences), GRISÉE tant qu'un choix ne l'a pas renseignée, et se remplit
  * choix par choix. Elle ne gagne JAMAIS un bloc en cours de route (fin de l'apparition surprise).
  *
@@ -13,19 +13,17 @@
  * qu'un héros prévisualisé existe — bande d'en-tête COMPRISE (`header` actif) : la fiche du créateur
  * est IDENTIQUE à celle du détail candidat du lobby (`PartyScreen`, correctif utilisateur 2026-07-15,
  * « elle est censée être identique à celle utilisée pour le choix des personnages »), plus d'alcôve
- * propre au créateur. Seuls le compteur PX de création et la page blanche pré-héros (apparence de
- * secours, tirage EN DIRECT) restent des encarts PROPRES au créateur — hors mandat de `HeroSheet`
+ * propre au créateur. Seuls le compteur PX de création et la page blanche pré-héros (tirage EN DIRECT)
+ * restent des encarts PROPRES au créateur — hors mandat de `HeroSheet`
  * (entrée = un `Combatant`).
  */
 import { CSSProperties, useMemo } from 'react';
 import type { Combatant } from '../../engine/types';
 import { Coins } from '../Coins';
-import type { Appearance } from '../../engine/authoringAppearance';
-import { CharacterPreview } from '../CharacterPreview';
 import { Icon } from '../Icon';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { HeroSheet, RoadmapChip, annotationsDeCaracteristiques } from '../HeroSheet';
-import { careerLabelFor, findStarById, rigSpeciesId } from '../../data';
+import { careerLabelFor, findStarById } from '../../data';
 import {
   CreatorDraft,
   StepId,
@@ -87,10 +85,6 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
   );
   const started = hasSpecies(d); // au moins une race choisie → la fiche commence à vivre
   const careerLabel = d.careerId ? careerLabelFor({ career: d.careerId, appearance: { sex: d.apparence.sex } }) : '';
-  // Repli si le brouillon ne construit aucun héros valide : apparence du brouillon (race choisie), sans équipement.
-  const appearance: Appearance | null = sp
-    ? { ...d.apparence, species: rigSpeciesId(d.speciesId) }
-    : null;
   const wealth = d.careerId ? draftWealth(d).montant : null;
 
   return (
@@ -106,7 +100,7 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
 
       {hero ? (
         // Fiche IDENTIQUE au détail candidat du lobby (correctif utilisateur 2026-07-15) : bande
-        // d'en-tête HeroSheet COMPRISE (figurine+nom+statut+rose) — plus d'alcôve propre au créateur.
+        // d'en-tête HeroSheet COMPRISE (nom+statut+rose) — plus d'alcôve propre au créateur.
         <HeroSheet
           hero={hero}
           wealth={wealth ?? undefined}
@@ -144,13 +138,8 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
         />
       ) : (
         <>
-          {/* Page blanche pré-héros (hors mandat HeroSheet, entrée = un Combatant) : apparence de
-              secours + identité minimale, mêmes rubriques grisées jusqu'au 1ᵉʳ héros constructible. */}
-          {appearance ? (
-            <CharacterPreview appearance={appearance} career={d.careerId || undefined} size="fill" ambiance="panel" className="creator-fig" />
-          ) : (
-            <div className="creator-fig" style={DIM} aria-hidden />
-          )}
+          {/* Page blanche pré-héros (hors mandat HeroSheet, entrée = un Combatant) : identité minimale,
+              mêmes rubriques grisées jusqu'au 1ᵉʳ héros constructible. */}
           <div className="creator-id" style={started ? undefined : DIM}>
             <strong>{d.label.trim() || 'Aventurier'}</strong>
             <span className="char-sub">

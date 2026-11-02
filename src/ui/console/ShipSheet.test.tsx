@@ -8,7 +8,7 @@ const mk = (id: string, dex: number, skills: { id: string; advances: number; spe
     id, label: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-    conditions: [], talents: [], wounds: { current: 10, max: 10, base: 10 }, shipRole,
+    conditions: [], talents: [], wounds: { current: 10, max: 10 }, shipRole,
   }) as unknown as Combatant;
 
 type Poste = NonNullable<Combatant['postes']>[number];

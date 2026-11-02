@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Grimpant (LDB 85 l.160-162) : une créature à `traverse.climb`+`climbFullSpeed` (EnemyTurnInput,
@@ -24,11 +25,11 @@ function cliffScene(): Scene {
 }
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number; h?: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
-    id, label: id, kind, pos, wounds: { current: 10, max: 10 }, weapons: [MELEE],
+  return blessuresSurLeProfil({
+    id, label: id, kind, pos, wounds: blessuresDeBase(10), weapons: [MELEE],
     characteristics: {} as never, advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {

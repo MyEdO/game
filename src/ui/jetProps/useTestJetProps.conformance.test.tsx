@@ -10,6 +10,7 @@ import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { TravelPlan } from '../../noyau/travelFlow';
 import { RollShell } from '../RollShell';
 import { useTestJetProps } from './useTestJetProps';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -29,15 +30,15 @@ const CHARS = {
 };
 
 function hero(id: string, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, name: id, label: id, kind: 'hero',
     characteristics: { ...CHARS },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 5 }],
     talents: [], items: [], psychState: [], engagedWith: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const seaPlan = (): TravelPlan => ({

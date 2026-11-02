@@ -3,6 +3,7 @@ import { hitModifiers } from '../noyau/combat/hitModifiers';
 import { isMagicallyAsleep, wakeSleeper } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Réveil d'un dormeur MAGIQUE à l'attaque (« bruits/bousculade la réveillent », sort Sommeil) — jadis un op
@@ -10,12 +11,12 @@ import type { AttackResult } from '../engine/combat';
  * mais on la distingue d'un KO à 0 PB par la DURÉE de son Inconscient + des PB > 0 : la première se RÉVEILLE
  * quand on l'attaque (pas de coup de grâce), la seconde reste un Inconscient achevable (LDB 16 l.113).
  */
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 's', name: 'Dormeur', kind: 'hero', conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }],
-  wounds: { current: 12, max: 12, base: 12 }, traits: [], weapons: [], armour: { corps: 0 }, advantage: 0,
+  wounds: blessuresDeBase(12), traits: [], weapons: [], armour: { corps: 0 }, advantage: 0,
   characteristics: {} as never, skills: [], talents: [],
   ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const wakeMod = hitModifiers().find((m) => m.id === 'wake-sleeper')!;
 const run = (attacker: Combatant, target: Combatant, autoKill = true): AttackResult =>
@@ -34,7 +35,7 @@ describe('isMagicallyAsleep — dormeur ≠ KO', () => {
     expect(isMagicallyAsleep(mk({ conditions: [{ id: 'inconscient', value: 1 }] as never }))).toBe(false);
   });
   it('Inconscient à durée mais 0 PB (mourant) = PAS endormi', () => {
-    expect(isMagicallyAsleep(mk({ wounds: { current: 0, max: 12, base: 12 } as never }))).toBe(false);
+    expect(isMagicallyAsleep(mk({ wounds: blessuresDeBase(12, 0) }))).toBe(false);
   });
 });
 

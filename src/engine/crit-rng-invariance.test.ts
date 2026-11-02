@@ -6,6 +6,7 @@ import reference from './crit-rng-invariance.fixture.json';
 import type { Combatant, HitLocation } from './types';
 import type { JeuDeCritique } from '../data/criticals';
 import { LOCALISATIONS_DE_COUP } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * INVARIANCE du flux de RNG des Blessures critiques (#1657, #1682).
@@ -38,10 +39,10 @@ import { LOCALISATIONS_DE_COUP } from './types';
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const cible = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 't', name: 'Cible', label: 'Cible', kind: 'enemy', characteristics: CHARS,
-    wounds: { current: 10, max: 10 }, conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(10), conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
+  })) as unknown as Combatant;
 
 const REFERENCE = reference as unknown as Record<string, unknown>;
 const DEPASSEMENT: Record<JeuDeCritique, number> = { ldb: 2, aa: 8 };

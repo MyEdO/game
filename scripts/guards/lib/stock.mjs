@@ -138,7 +138,7 @@ export function naissanceDu(quoi, familles) {
  * l'OCCURRENCE (ordinal du site parmi ses homonymes), joints par `SEPARATEUR_DE_CLE`. Même clé des
  * deux côtés de `ecartsDeStock`. C'est la forme d'entrée de TOUT stock de sites du dépôt — les stocks
  * JSON de `scripts/raw` (lus par `stockDeSites.mjs`) comme les stocks `.mjs` de gardes
- * (`paletteLiteralStock.mjs`).
+ * (`entityOrphanStock.mjs`).
  * Ce que la clé EXCLUT : la ligne du FICHIER PORTEUR (celle où le site est écrit) — elle dérive à
  * chaque édition du fichier et rendrait la moitié du stock périmée à chaque commit.
  * Ce que la clé INCLUT, sur les volets à RÉF CITÉE (`reanchor-low`, `dead-refs`, `empty-line`,
@@ -305,7 +305,7 @@ export const remedeNomme = (lignes, cle) => lignes.some((l) => l.includes(cle))
  * Le critère est l'ÉCART, jamais un TOTAL : à taille constante — une entrée soldée pendant qu'un site
  * neuf apparaît — les deux longueurs restent égales et la régénération entérinerait le site neuf en
  * silence, stock réécrit, garde verte (mesuré le 2026-09-14 sur le corpus réel :
- * `src/gameIso/rig/parts/tenues/defs/Apothicaire.ts :: apothicaire:torse:front :: 1`).
+ * une entrée de stock de palette soldée contre un site neuf du même fichier).
  * Ce n'est PAS un verdict au sens de l'en-tête : aucun `expect`, aucun `throw`, aucun exit — la
  * phrase est rendue, l'appelant décide ce qu'il en fait, comme des lignes de `ecartDuVolet`.
  * La phrase : l'en-tête qui compte les entrées neuves ou accrues et la taille du stock en place, une

@@ -52,6 +52,9 @@ export type ClotureApplier<K extends Cloture['verbe']> = (get: Get, set: Set, c:
 /** L'exécuteur EN COMBAT du flux d'incantation standard, pour l'Effet `castSpell` (#98). */
 export type LanceurDeSort = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => void;
 
+/** Le lancer GARANTI de l'Effet `castSpell` `mode:'forceSuccess'` (#98) : rend ses lignes de journal. */
+export type LanceurGaranti = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => string[];
+
 /** Un départage d'égalité déclaré, et le récit de ce qu'il a lu quand il en tient un. */
 export interface Departage {
   departage: SequenceTieBreak;
@@ -164,6 +167,7 @@ export interface TablesDuJeu {
   /** Les verbes de clôture, TOUS (#1508). */
   readonly clotures: { readonly [K in Cloture['verbe']]: ClotureApplier<K> };
   readonly lancerLeSort: LanceurDeSort;
+  readonly lancerLeSortGaranti: LanceurGaranti;
   /** Conséquence post-touche d'une manœuvre (LDB 85 l.213). */
   readonly apresToucheDeManoeuvre: ManeuverPostHitHook;
   /** Définitions de séquence, TOUTES (`SequenceFamilies`). */

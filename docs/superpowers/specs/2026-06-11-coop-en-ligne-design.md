@@ -18,7 +18,7 @@ PeerJS (cloud OU self-host) est écarté.
 
 | Option | Verdict |
 |---|---|
-| **WebRTC pur + codes copiés/collés** (offre/réponse SDP compressées en codes texte) | ✅ **Arbitré utilisateur** : « un code à partager, sans système externe ». Zéro serveur, zéro lib tierce, marche sur GitHub Pages tel quel. |
+| **WebRTC pur + codes copiés/collés** (offre/réponse SDP compressées en codes texte) | ✅ **Arbitrage utilisateur (#3175)** : un code se partage sans système externe. Zéro serveur, zéro lib tierce, marche sur GitHub Pages tel quel. |
 | WebRTC + PeerJS (broker de signaling cloud) | ❌ Écarté par l'arbitrage : dépendance à un service tiers. |
 | WebSocket + serveur maison | ❌ Backend hébergé (coût, ops, hors modèle statique). |
 
@@ -48,12 +48,11 @@ limite documentée « jeu entre amis ».
   acceptable en DataChannel ; optimisation différentielle (delta/compression) = V2 si besoin.
 - Le RNG vit chez l'hôte → aucune triche/désync possible côté invité.
 
-## 4. Contrôles & propriété — PRÉCISÉ PAR L'UTILISATEUR (2026-06-11)
+## 4. Contrôles & propriété
 
-> « Les joueurs ne partagent pas le même écran ; chacun contrôle un certain nombre de
-> personnages décidé dans le lobby ; en combat ils voient leurs propres modales, contrairement
-> aux autres joueurs. Pour le moment on ne gère QUE la partie combat. En exploration l'hôte
-> gère tout et cela apparaît à l'écran des joueurs. »
+Chaque joueur dispose de son écran et contrôle les personnages attribués au lobby. En combat,
+les modales restent propres aux personnages concernés ; en exploration, l’hôte agit et les autres
+écrans reflètent son état. Le périmètre V1 couvre le combat ; les précisions suivent ci-dessous. #3175.
 
 - **Chaque joueur a SON écran** (son navigateur) — il n'y a jamais d'écran partagé.
 - **Propriété par lot** : au lobby, l'hôte attribue à chaque siège un NOMBRE LIBRE de héros

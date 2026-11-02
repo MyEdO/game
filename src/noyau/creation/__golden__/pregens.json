@@ -125,7 +125,7 @@
   "wounds": {
    "current": 12,
    "max": 12,
-   "base": 12
+   "ecart": 0
   },
   "fate": 4,
   "resilience": 2,
@@ -267,7 +267,7 @@
   "wounds": {
    "current": 16,
    "max": 16,
-   "base": 16
+   "ecart": 0
   },
   "fate": 1,
   "resilience": 3,
@@ -423,7 +423,7 @@
   "wounds": {
    "current": 9,
    "max": 9,
-   "base": 9
+   "ecart": 0
   },
   "fate": 4,
   "resilience": 2,
@@ -577,7 +577,7 @@
   "wounds": {
    "current": 14,
    "max": 14,
-   "base": 14
+   "ecart": 0
   },
   "fate": 4,
   "resilience": 2,
@@ -730,7 +730,7 @@
   "wounds": {
    "current": 15,
    "max": 15,
-   "base": 15
+   "ecart": 0
   },
   "fate": 1,
   "resilience": 1,
@@ -888,7 +888,7 @@
   "wounds": {
    "current": 11,
    "max": 11,
-   "base": 11
+   "ecart": 0
   },
   "fate": 4,
   "resilience": 2,
@@ -1031,7 +1031,7 @@
   "wounds": {
    "current": 10,
    "max": 10,
-   "base": 10
+   "ecart": 0
   },
   "fate": 2,
   "resilience": 3,
@@ -1177,7 +1177,7 @@
   "wounds": {
    "current": 10,
    "max": 10,
-   "base": 10
+   "ecart": 0
   },
   "fate": 4,
   "resilience": 2,

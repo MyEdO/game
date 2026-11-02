@@ -17,7 +17,7 @@ import { pregen, PREGEN } from '../data/pregens';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -27,7 +27,7 @@ const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isC
 function caster(x: number, y: number, z: number, id = 'caster'): Combatant {
   const h = pregen(PREGEN.sorcier);
   h.id = id; h.label = id; h.pos = { x, y, z };
-  h.wounds = blessuresDeBase(99);
+  h.wounds = blessuresDeBase(99, 99, h);
   const sk = h.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 40);
   else h.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 40 } as never);
@@ -36,9 +36,9 @@ function caster(x: number, y: number, z: number, id = 'caster'): Combatant {
 }
 
 const foe = (id: string, x: number, y: number, z: number, wounds = 40): Combatant =>
-  ({ id, label: id, name: id, kind: 'enemy', pos: { x, y, z }, wounds: { current: wounds, max: wounds }, advantage: 0,
+  (blessuresSurLeProfil({ id, label: id, name: id, kind: 'enemy', pos: { x, y, z }, wounds: blessuresDeBase(wounds), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 
 describe('Placement de zone — z-blindness (#798)', () => {
   beforeEach(() => { banc.getState().seedRng(17); });

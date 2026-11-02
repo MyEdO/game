@@ -14,8 +14,7 @@ import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types
 import type { AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { deFixe } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

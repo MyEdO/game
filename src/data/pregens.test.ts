@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { makePregens, makePregensWithWealth, makeShowcaseParty, pregen, pregenParty, PREGEN } from './pregens';
-import { skillInstanceLabel, talentConcrete, findSpellById, levelsForCareer, blessingsOf, rigSpeciesId, pregens as definitions } from './index';
+import { skillInstanceLabel, talentConcrete, findSpellById, levelsForCareer, blessingsOf, especeDApparence, pregens as definitions } from './index';
 import { statutDeDonnee } from '../engine/money';
 import { validateDataset } from './schemas/validate';
 import { toBrass } from '../engine/money';
@@ -221,7 +221,7 @@ describe('Pré-tirés — apparence posée par createHero', () => {
     const heros = makePregens();
     expect(heros).toHaveLength(definitions.length);
     for (const [i, d] of definitions.entries()) {
-      expect(heros[i].appearance, d.id).toEqual({ species: rigSpeciesId(d.species), sex: d.sex ?? 'M', build: d.build ?? 0.5, seed: d.seed });
+      expect(heros[i].appearance, d.id).toEqual({ species: especeDApparence(d.species), sex: d.sex ?? 'M' });
     }
   });
 });

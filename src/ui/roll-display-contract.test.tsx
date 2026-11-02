@@ -19,15 +19,16 @@ import type { Combatant } from '../engine/types';
 import type { VerdictReason } from '../engine/tests';
 import { RULE_REF } from '../engine/ruleRefs';
 import { codexLookupById } from './compendium/registry';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const noop = () => {};
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy'): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-     weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 18, max: 18 }, resilience: 2, fortune: 2,
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+     weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant);
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
 const rolledRow = (label = 'Athlétisme', over: Partial<RollRowData> = {}): BuiltRollRow => ({
   ...buildRollRow({ row: { d: testBreakdown(label, 45, { roll: 22, target: 45, sl: 2, success: true }) }, onRoll: noop }),

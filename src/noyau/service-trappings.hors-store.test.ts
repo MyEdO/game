@@ -11,8 +11,7 @@ import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { schema as merchantsSchema } from '../data/schemas/defs/merchants';
 import type { Combatant } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

@@ -16,18 +16,19 @@ import { setDataset } from '../data/overrides';
 import { stacks } from './conditions';
 import type { RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const seq = (values: number[]): RNG => desEnSuite(values);
 const ignore: UpkeepDeferTest = () => {};
 
 const cobaye = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'p', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 35 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [], items: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, weapons: [], diseases: [],
     ...over,
-  }) as Combatant;
+  })) as Combatant;
 
 const SONDE = 'sonde-double-ko';
 const SYMPTOMES_LIVRES = [...symptoms];

@@ -60,8 +60,7 @@ export function regardsVoisins(regard: Regard): Regard[] {
   });
 }
 
-/** IDENTITÉ de cache d'un sujet AU CRAN `rot` : le cran entre dans celle d'un décor, jamais dans celle
- *  d'un personnage (son art l'ignore — l'y mettre rasteriserait quatre fois la MÊME image). PURE. */
+/** Identité de cache du décor au cran `rot`. */
 export function identiteAuCran(sub: BillboardSubject, rot: Rot): string {
-  return sub.kind === 'prop' ? `${sub.identity}|r${rot}` : sub.identity;
+  return `${sub.identity}|r${rot}`;
 }

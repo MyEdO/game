@@ -43,7 +43,7 @@ describe('structureCombatant (Combatant à PV calqué sur la coque)', () => {
     expect(c.label).toBe('Porte');
     expect(c.bodyShape).toBe('structure');
     expect(c.characteristics.endurance).toBe(20); // BE 2 × 10 ⇒ bonus(E) = 2
-    expect(c.wounds).toEqual({ current: 8, max: 8, base: 8 });
+    expect(c.wounds).toMatchObject({ current: 8, max: 8 });
     expect(c.psychImmune).toBe(true);
     expect(c.movement).toBe(0);
     expect(c.creatureId).toBe('porte');

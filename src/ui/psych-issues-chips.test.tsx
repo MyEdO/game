@@ -21,6 +21,7 @@ import { testScene } from '../scenes/test-fixture';
 import { CascadeBody } from './CascadeModal';
 import type { Combatant } from '../engine/types';
 import { opPsy } from '../engine/psych/opsPsy';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -30,15 +31,15 @@ const SOLO = { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence
 
 /** Héros à Force Mentale 10 (Calme 10) : son Test de Psychologie échoue sur tout dé > 10 — l'issue
  *  d'ÉCHEC est celle que l'on mesure, et elle est déterministe avec la graine posée. */
-const hero = (): Combatant => ({
+const hero = (): Combatant => (blessuresSurLeProfil({
   id: 'h', name: 'h', label: 'Anselme', kind: 'hero',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 10, sociabilite: 30, perception: 30 },
   conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [], weapons: [],
-  advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 12, max: 12 },
+  advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12),
   resilience: 2, fortune: 2, species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 let host: HTMLDivElement;
 let root: Root;

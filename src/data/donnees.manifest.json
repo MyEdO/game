@@ -5,7 +5,6 @@
   "reglesOr": "Une table que le livre range sous « **Machines de guerre / véhicules / navires** » n'est JAMAIS un *trapping* (équipement porté). Elle va dans le fichier de son sous-système (`mass-battle.json`, `vehicles.json`, `naval-traits.json`…). Corollaire : un même nom peut désigner plusieurs concepts distincts dans plusieurs fichiers — voir §D (pièges d'homonymes).",
   "rubriques": [
     {
-      "id": "personnage",
       "label": "Personnage — fiche & progression",
       "entrees": [
         {
@@ -66,7 +65,7 @@
           "files": [
             "speciesRace.json"
           ],
-          "desc": "Mapping espèce → race de rig (`default` + `rules`)"
+          "desc": "Correspondance espèce → race d’apparence (`default` + `rules`)"
         },
         {
           "files": [
@@ -114,7 +113,6 @@
       ]
     },
     {
-      "id": "magie-religion",
       "label": "Magie & religion",
       "entrees": [
         {
@@ -168,7 +166,6 @@
       ]
     },
     {
-      "id": "combat",
       "label": "Combat & résolution",
       "entrees": [
         {
@@ -285,7 +282,6 @@
       ]
     },
     {
-      "id": "sante",
       "label": "Santé — blessures, maladies, corruption",
       "entrees": [
         {
@@ -348,7 +344,6 @@
       ]
     },
     {
-      "id": "objets",
       "label": "Objets & équipement",
       "entrees": [
         {
@@ -366,7 +361,6 @@
       ]
     },
     {
-      "id": "bestiaire",
       "label": "Bestiaire",
       "entrees": [
         {
@@ -378,7 +372,6 @@
       ]
     },
     {
-      "id": "monde-voyage",
       "label": "Monde, voyage terrestre & temps",
       "entrees": [
         {
@@ -462,7 +455,6 @@
       ]
     },
     {
-      "id": "naval-fluvial",
       "label": "Naval & fluvial (*Mer des Griffes* · *Mort sur le Reik*)",
       "entrees": [
         {
@@ -538,7 +530,6 @@
       ]
     },
     {
-      "id": "campagne",
       "label": "Contenu de campagne / interlude / rencontres",
       "note": "Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/data/schemas/defs-scenes/narratif.ts`, #765) est EMBARQUÉ dans le JSON du projet, jamais dans `src/data` global : ses `narratif.objets` réutilisent le schéma `TrappingData` global (`src/data/index.ts`), et ses `presetsPnj.base` RÉFÉRENCENT une créature globale par id (`findCreatureById`) — jamais une copie.",
       "entrees": [
@@ -570,14 +561,13 @@
       ]
     },
     {
-      "id": "rendu-apparence",
       "label": "Rendu / apparence / décor (NON-règles)",
       "entrees": [
         {
           "files": [
             "raceAppearance.json"
           ],
-          "desc": "Apparence par race (gabarit, palette, tenue) — rig"
+          "desc": "Apparence par race (gabarit, palette, tenue, traits, yeux)"
         },
         {
           "files": [
@@ -619,7 +609,7 @@
           "files": [
             "gabarits.json"
           ],
-          "desc": "LES carrures du rig — facteurs (longueur, épaisseur, jambes, bras, tête) du squelette humain de référence ; une race (`raceAppearance.json`) ou une créature en nomme une, résolue par `src/noyau/apparence/gabarit.ts`"
+          "desc": "LES carrures — facteurs (longueur, épaisseur, jambes, bras, tête) du squelette humain de référence ; une race (`raceAppearance.json`) ou une créature en nomme une, résolue par `src/noyau/apparence/gabarit.ts`"
         },
         {
           "files": [
@@ -664,17 +654,10 @@
             "lightTones.json"
           ],
           "desc": "Ambiance lumineuse (`iso`/`pov`) · niveaux de lumière · TONS de lumière (#1245 : apparence d'une source ponctuelle — couleur, part d'intensité, vacillement ; référencés par `tone`, défaut `flamme`)"
-        },
-        {
-          "files": [
-            "renduMonte.json"
-          ],
-          "desc": "Réglage MAISON du rendu du couple MONTÉ (#1128) — `harnaisParDefaut` : id du set d'équipement (registre `src/gameIso/rig/quadruped/harnais/`) apposé à une monture PORTÉE dont le record ne déclare pas de `appearance.harnais` (LDB 08 l.557), lu par `DEFAUT_HARNAIS_MONTE`"
         }
       ]
     },
     {
-      "id": "meta",
       "label": "Méta",
       "entrees": [
         {

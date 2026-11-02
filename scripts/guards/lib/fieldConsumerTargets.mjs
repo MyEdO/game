@@ -2,6 +2,7 @@
 // (`scripts/docs/build-field-consumers.mts`) et la garde (`src/data/field-consumers.test.ts`) :
 // une seule source pour `TARGETS`, jamais une liste dupliquée entre les deux. Périmètre candidat et
 // raisons d'exclusion : en-tête de `scripts/docs/build-field-consumers.mts`.
+import { markSchema } from '../../../src/data/schemas/defs/progression-schemas-derived'
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente'
 import * as valeurs from '../../../src/data/schemas/grammaire/valeurs'
 import * as reference from '../../../src/data/schemas/grammaire/reference'
@@ -44,6 +45,11 @@ export const TARGETS = [
   { schema: propSize3Schema, type: 'PropSize3', home: 'src/data/props.types.ts' },
   { schema: critEscalationSchema, type: 'CritEscalation', home: 'src/data/criticals.ts' },
   { schema: amputationSchema, type: 'Amputation', home: 'src/data/criticals.ts' },
+]
+
+export const LIENS_SCHEMA_TYPES = [
+  ...TARGETS,
+  { schema: markSchema, type: 'ProgressionMark', home: 'scripts/guards/lib/progressionSchemas.d.mts' },
 ]
 
 /** Champs top-level d'un schéma zod (`.shape`), fusionnés à travers les branches d'une union

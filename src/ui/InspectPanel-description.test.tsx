@@ -212,7 +212,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     const portrait = titreDeFrise('Le Tavernier');
     expect(portrait, 'frise : le nom du preset').toBeTruthy();
     clicDroit(portrait!);
-    expect(dialogue().querySelector('h3')?.textContent).toBe('Le Tavernier');
+    expect(dialogue().querySelector('.ptile-name')?.textContent).toBe('Le Tavernier');
     act(() => { root!.unmount(); });
     host?.remove();
     host = null; root = null;
@@ -223,7 +223,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
       saisir(libelle, 'Hans');
     });
     clicDroit(titreDeFrise('Hans')!);
-    expect(dialogue().querySelector('h3')?.textContent).toBe('Hans');
+    expect(dialogue().querySelector('.ptile-name')?.textContent).toBe('Hans');
   });
 
   it('EN SCÉNARIO, la même Description reste NUE : aucun document de projet, aucun lien', () => {

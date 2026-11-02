@@ -11,6 +11,7 @@ import { findVehicleById, shipConstruction } from '../data';
 import type { Combatant } from './types';
 import { schema as shipCriticalsSchema } from '../data/schemas/defs/ship-criticals';
 import shipCriticalsJson from '../data/ship-criticals.json';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * #1657 B3-2b-c — TOMBER DU GRÉEMENT (MDG 13 l.678-688).
@@ -38,12 +39,12 @@ import shipCriticalsJson from '../data/ship-criticals.json';
 
 /** Marin minimal — `applyOps` (BE 3, PA 0) et `exposedCrew` (vivant, PB > 0) ont ce qu'il leur faut. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, label: id, kind: 'npc',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-    armour: { corps: 0 }, wounds: { current: 200, max: 200, base: 200 }, advantage: 0, ...over,
-  }) as unknown as Combatant;
+    armour: { corps: 0 }, wounds: blessuresDeBase(200), advantage: 0, ...over,
+  })) as unknown as Combatant;
 
 /** Coque d'un véhicule RÉEL. `upgrades` = Améliorations d'INSTANCE (le nid-de-pie s'achète, MDG 12 l.299). */
 const coque = (vehicleId: string, upgrades: { id: string }[] = []): Combatant =>

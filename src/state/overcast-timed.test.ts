@@ -14,7 +14,7 @@ import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 import { desDuTest } from '../engine/dice.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const okRes = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
 
@@ -88,13 +88,13 @@ describe('États récurrents (« un par Round »)', () => {
 
 /** Combattant minimal posé en (x,0) pour les listes de cibles. */
 function stub(id: string, kind: 'hero' | 'enemy', x: number, wounds = 12): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12, wounds),
     advantage: 0, conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, pos: { x, y: 0 },
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('overcastTargetCandidates — cibles supplémentaires proposables (modale, LDB 47 l.28-31)', () => {

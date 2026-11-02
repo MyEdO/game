@@ -117,7 +117,7 @@
   --atelier-brass-hover: #8a6c2f; /* bordure laiton survolée (tuile, plaque) */
   --atelier-plaque-hi: #4a2c18; /* haut du dégradé « plaque élue » */
   --atelier-plaque-lo: #2c1810; /* bas du dégradé « plaque élue » */
-  --atelier-alcove-hi: #140e08; /* haut du fond d'alcôve/scène (la figurine sous la lampe) */
+  --atelier-alcove-hi: #140e08; /* haut du fond d'alcôve/scène */
   --atelier-alcove-lo: #080503; /* bas du fond d'alcôve/scène — le noir où la scène s'éteint */
   --atelier-prose: #e7d9bc; /* texte de la prose sombre à scroll interne */
   --atelier-wax-fold: #7c1810; /* pli du sceau de cire */
@@ -188,6 +188,8 @@
   --atelier-sechead-lo: #140d07; /* bas de la bande d'en-tête de section (`.cu-sechead` planche) */
   --atelier-minibar-stripe: #171009; /* rayure de la piste de jauge-quota (`.cu-minibar` planche) */
   --font-display: 'Grenze Gotisch', 'Trebuchet MS', serif;
+  --ptile-name-size: 12px;
+  --ptile-name-line: calc(var(--ptile-name-size) * 1.2);
   /* Échelle NOMMÉE des plaques de caractéristique (#418) — CONTRAT partagé par `.char-stats`
      (`CharStatsGrid`) et `.codex-kv` (fiche Codex) : sm = densité fiche/codex, md = écran plein
      type Race, lg = allocation créateur (patron `CHAR_SIZE_PX` de PortraitTile). */
@@ -741,15 +743,6 @@ h3 {
   align-items: center;
   gap: 6px;
 }
-.hero-present-fig {
-  position: relative;
-  width: 100%;
-  height: 260px;
-}
-.hero-present-fig > .charprev {
-  position: absolute;
-  inset: 0;
-}
 .hero-present-sub {
   font-family: var(--font-display);
   color: var(--gold);
@@ -783,9 +776,6 @@ h3 {
 @media (max-width: 700px) {
   .hero-present-body {
     grid-template-columns: 1fr;
-  }
-  .hero-present-fig {
-    height: 220px;
   }
 }
 /* ── Grille de plaques de caractéristique (CharStatsGrid, #418) — plaque Atelier : libellé

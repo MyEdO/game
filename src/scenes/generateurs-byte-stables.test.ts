@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { GALERIES } from '../../scripts/gen-galleries.mjs';
 
 /**
  * Garde TRANSVERSE (#1522) : la SOURCE d'authoring possède 100 % de la donnée de l'artefact généré.
@@ -50,6 +51,22 @@ function generateurs(): string[] {
 const projets = (): string[] => listerProjetsLivres().map((rel) => join(SCENES_DIR, rel));
 
 const GENERATEURS = generateurs();
+
+describe('galeries QC — chaque page publique est l’octet exact de son build()', () => {
+  it('le registre du lanceur couvre des galeries', () => {
+    expect(GALERIES.length).toBeGreaterThan(0);
+  });
+
+  it.each(GALERIES)('$module : build() reproduit la page publique à chaque appel', async ({ module }) => {
+    const url = new URL(module, pathToFileURL(join(SCRIPTS_DIR, 'gen-galleries.mjs')));
+    const galerie = await import(url.href) as { build: () => string; OUT: string };
+    expect(typeof galerie.build).toBe('function');
+    expect(typeof galerie.OUT).toBe('string');
+    const attendu = readFileSync(galerie.OUT, 'utf8');
+    expect(galerie.build(), `${module} : régénérer la page publique par son CLI`).toBe(attendu);
+    expect(galerie.build(), `${module} : build() dépend de ses appels précédents`).toBe(attendu);
+  });
+});
 
 describe('générateurs de campagne — l’artefact committé est l’octet exact de leur `build()` (#1522)', () => {
   it('au moins un générateur découvert (la garde couvre réellement quelque chose)', () => {

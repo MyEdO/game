@@ -3,7 +3,7 @@
  * (`id` + `label` + `maniement` éventuel, aucune étiquette), une entrée avec `forme` est une variante d'une
  * RACINE, et ses étiquettes de naissance sont des ids existants — ses qualités, des Qualités d'aspect (#3076).
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from './apparences';
 import { schema as schemaObjets } from './trappings';
 import apparencesJson from '../../apparences.json';
@@ -19,8 +19,12 @@ const refus = (doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');
 };
 
+let regimeAvant: ReturnType<typeof poserRegimeVivant>;
+beforeEach(() => {
+  regimeAvant = poserRegimeVivant(undefined);
+});
 afterEach(() => {
-  poserRegimeVivant(undefined);
+  poserRegimeVivant(regimeAvant);
 });
 
 describe('apparences.json — racines et variantes (#2948)', () => {

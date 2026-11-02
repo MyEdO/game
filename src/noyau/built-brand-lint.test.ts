@@ -226,13 +226,13 @@ describe('#3045 — le lint mure les ROUTES DE FORGE de la Cible d’un Trait ps
 });
 
 /** LA MARQUE DU MAXIMUM DES BLESSURES (`MaximumDesBlessures`, #1463) — sous le même verrou : ses fabriques sont
- *  `blessuresDeBase` et `blessuresReconciliees` (`engine/characteristics.ts`), dont l'unique cast porte son
+ *  `blessuresPosees` et `blessuresReconciliees` (`engine/characteristics.ts`), dont l'unique cast porte son
  *  exemption AU SITE. Ses TROIS LIMITES ASSUMÉES (JSDoc de la marque, `engine/types.ts`) sont ici en témoin. */
 /** Forme de `wounds` (`engine/types.ts`) : chaque directive doit être CONSOMMÉE, chaque limite compiler. */
 const SONDE_MAXIMUM = `
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 type MaximumDesBlessures = number & { readonly [MAXIMUM_DES_BLESSURES]: true };
-type Combatant = { wounds: { current: number; readonly max: MaximumDesBlessures; base?: number } };
+type Combatant = { wounds: { current: number; readonly max: MaximumDesBlessures; ecart: number; perduesSousZero?: number } };
 declare const c: Combatant;
 // @ts-expect-error — spread sans cast : un nombre n'est pas un maximum
 export const w: Combatant['wounds'] = { ...c.wounds, max: 5 };

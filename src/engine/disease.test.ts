@@ -16,7 +16,7 @@ import {
 import { effectivePsychTraits, isFrenzyCapable } from './psychology';
 import type { GameOp } from './ops';
 import { ciblePsy } from './psych/ciblage';
-import { combattantDeTest } from './combattantDeTest.testkit';
+import { combattantDeTest, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre (déjà dans les bornes attendues). */
 function seq(values: number[]): RNG {
@@ -385,7 +385,6 @@ describe('MSRC 16 — Vers du Reik : −10 Soc GATÉ visibilité (l.140) + écla
 import { activeDiseaseTestMod } from './disease';
 import { dropExpiredGrantedTraits } from './grantedTraits';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
-import { blessuresDeBase } from './characteristics';
 
 describe('MSRC 16 — Vers de carie : Traits de table PERMANENTS (l.103)', () => {
   it('grantTrait SANS durée = effet permanent → survit à la guérison + à un balayage d’effets expirés', () => {

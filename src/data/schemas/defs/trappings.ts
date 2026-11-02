@@ -154,7 +154,6 @@ const doc = document(
     onHitEffects: z.array(triggeredEffectSchema).optional(),
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
-    siegeRig: z.string().optional(),
     siegeFootprint: z.number().optional(),
     /** Munition REPRÉSENTATIVE d'une arme de siège (`id` de trapping `categorie:'ammunition'`) — discrimine
      *  pierrier/canon/baliste/mortier là où `subType`='armes-de-siege' seul ne le fait pas (hint joueur,
@@ -240,7 +239,6 @@ const doc = document(
       label: 'Portée minimale de tir',
       hint: 'Bande sous laquelle l’arme de siège ne peut pas tirer (pas de Bout portant)',
     },
-    siegeRig: { label: 'Silhouette de siège', hint: 'Silhouette de l’engin de siège affichée en jeu' },
     siegeFootprint: {
       label: 'Empreinte au sol',
       hint: 'Taille occupée sur la grille par l’engin de siège une fois posé en combat',

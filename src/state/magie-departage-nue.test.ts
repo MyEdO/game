@@ -19,17 +19,18 @@ import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import type { CascadeStep, CascadeTestStep } from '../noyau/pendings';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const mk = (id: string, kind: Combatant['kind'] = 'hero', over: Partial<Combatant> = {}): Combatant => ({
+const mk = (id: string, kind: Combatant['kind'] = 'hero', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 30, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 30, sociabilite: 40 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], traumas: [],
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
   resilience: 3, fortune: 2, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 15 }],
   talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
   ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 /** Incantation ENNEMIE figée : Niveau de Compétence 60, cible testée 25 (Difficile + ward), dé 13 → DR 1. */
 const ENEMY_CAST = { cast: true, roll: 13, target: 25, base: 60, sl: 1, isCritical: false, isFumble: false, log: '' };

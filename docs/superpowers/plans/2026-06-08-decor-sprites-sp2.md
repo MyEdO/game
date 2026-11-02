@@ -167,7 +167,7 @@ import { propRefPatch } from './propDefaults';
 
 **Files:** (potentiellement) `src/gameIso/catalog/decor.ts` (retouches sprites)
 
-- [ ] **Step 1 — rendu PNG** d'une planche des 5 props (resvg, cf. `scripts/qc/` + `docs/qc-reconnaissabilite-sprites.md`) : générer un PNG par prop (boîte 120×150) ou une planche montée.
+- [ ] **Step 1 — rendu PNG** d'une planche des 5 props (resvg, cf. `scripts/qc/`) : générer un PNG par prop (boîte 120×150) ou une planche montée.
 
 - [ ] **Step 2 — agents aveugles** : faire deviner chaque prop **sans son nom** (« qu'est-ce que c'est ? »). Critère de sortie : chacun deviné correctement par ≥ une passe (coffre ≠ caisse, lettre = parchemin/lettre, bourse = sac de pièces, clé = clé, étagère = rayonnage).
 

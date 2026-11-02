@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyEffects } from '../noyau/combatEffects';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const hero = (id: string, current: number): Combatant =>
   combattantDeTest({ id, label: id, kind: 'hero', dead: false, wounds: blessuresDeBase(20, current) });

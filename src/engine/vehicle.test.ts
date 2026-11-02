@@ -24,7 +24,7 @@ describe('véhicule-à-coque (Combatant à PV)', () => {
     expect(c.label).toBe('Diligence');
     expect(c.bodyShape).toBe('vehicule');
     expect(c.characteristics.endurance).toBe(45);
-    expect(c.wounds).toEqual({ current: 50, max: 50, base: 50 });
+    expect(c.wounds).toMatchObject({ current: 50, max: 50 });
     expect(c.psychImmune).toBe(true);
   });
 

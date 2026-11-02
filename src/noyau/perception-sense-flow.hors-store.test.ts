@@ -5,6 +5,7 @@ import { testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { traumaById } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -17,14 +18,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Soutien LDB 12 qui viendrait masquer le −20.)
  */
 describe('Surdité — restriction fire par le sens authoré du Test de scène (LDB 18)', () => {
-  const deafHero = (): Combatant => ({
+  const deafHero = (): Combatant => (blessuresSurLeProfil({
     id: 'h1', name: 'Sourd', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
     traumas: [traumaById('surdite', undefined, 'tete')],
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
   it('Test de Perception AUDITIF (sense:ouie) → −20 appliqué', () => {
     banc.setState({ party: [deafHero()] });

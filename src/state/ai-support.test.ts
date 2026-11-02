@@ -11,29 +11,29 @@ import { emptyScene } from '../noyau/monde/scene';
 import { findSpellById, type SpellData } from '../data';
 import { isDispellableSpell } from '../engine/magic';
 import type { Combatant, Weapon } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
 /** Lanceur générique ARMÉ par défaut, avec de vraies Caractéristiques (espérances chiffrables). */
 function caster(id: string, pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'enemy', pos,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 60, 'force-mentale': 60, sociabilite: 60 },
-    wounds: { current: 12, max: 12, base: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 function foeAt(id: string, x: number, y: number, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 35, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 },
-    wounds: { current: 12, max: 12, base: 12 }, advantage: 0, conditions: [], weapons: [MELEE],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [MELEE],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, pos: { x, y }, ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 function spellData(over: Partial<SpellData> = {}): SpellData {

@@ -4,16 +4,17 @@ import { psychDRAdjust } from '../engine/combat';
 import { collectHeroRoundStartPsych, collectHeroRoundEndPsych } from '../noyau/combatFlow';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 } as const;
 
 const mk = (id: string, kind: Combatant['kind'], over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], skills: [],
     traits: [], psychTraits: [], psychState: [], groups: [], weapons: [], engagedWith: [],
-    characteristics: { ...CHARS }, wounds: { current: 10, max: 10, base: 10 }, size: 'moyenne',
+    characteristics: { ...CHARS }, wounds: blessuresDeBase(10), size: 'moyenne',
     movement: 4, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /** `get` minimal des collectes de Round : elles ne lisent que la bataille et la scène. */
 const getOf = (combatants: Combatant[], round = 1) =>

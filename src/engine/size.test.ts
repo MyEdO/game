@@ -16,7 +16,7 @@ import {
 } from './size';
 import type { Characteristics } from './types';
 
-describe('sizeFromProfile — Taille d’un profil : Trait Taille, sinon Talent (LDB 85 l.279-280 ; LDB 10 l.943)', () => {
+describe('sizeFromProfile — Taille d’un profil : Trait Taille, sinon Talent (LDB 85 l.342-344 ; LDB 10 l.943)', () => {
   const tailles: Record<string, SizeCategory> = { petit: 'petite', massif: 'grande' };
   const sizeOf = (id: string): SizeCategory | undefined => tailles[id];
   it('Talent seul : sa Taille', () => {
@@ -32,7 +32,7 @@ describe('sizeFromProfile — Taille d’un profil : Trait Taille, sinon Talent 
   });
 });
 
-describe('size — modèle de Taille (LDB 85 l.279-280 ; 14 l.151-170)', () => {
+describe('size — modèle de Taille (LDB 85 l.342-344 ; 14 l.151-170)', () => {
   it('ordonne les 7 catégories 0..6', () => {
     expect(SIZE_ORDER.minuscule).toBe(0);
     expect(SIZE_ORDER.moyenne).toBe(3);
@@ -97,7 +97,7 @@ describe('Taille en combat (T2/T3/T4) — LDB 85 l.293-352', () => {
   });
 });
 
-describe('Agrandir/Réduire — « Utiliser les Tailles » (LDB 85 l.276-277)', () => {
+describe('Agrandir/Réduire — « Utiliser les Tailles » (LDB 85 l.340)', () => {
   it('stepSize : décale la catégorie, bornée Minuscule..Monstrueuse', () => {
     expect(stepSize('grande', 1)).toBe('enorme');
     expect(stepSize('enorme', 1)).toBe('monstrueuse');

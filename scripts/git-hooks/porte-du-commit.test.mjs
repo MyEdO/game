@@ -1253,6 +1253,16 @@ test('verifierCapture : une capture IGNORÉE par git est refusée, la même sous
   }
 })
 
+test('validateSolde : pendant la migration Godot, la Recette visuelle se solde par la fiche de suspension', () => {
+  const avec = (ligne) => `${VERIFIE_OK}\n\n## Restes\nRAS\n\n## Recette visuelle\n${ligne}\n\n## Réfutation\nverdict: CONFIRMÉ\n${REFUTATION_OK}\n\n(${TODAY})\n`
+  const suspendue = validateSolde(avec('suspendue: user-doctrine-recette-web-suspendue-migration-godot'), TODAY, { touchesUi: true })
+  assert.deepEqual(suspendue.problems, [])
+  assert.match(
+    validateSolde(avec('suspendue: pas le temps'), TODAY, { touchesUi: true }).problems.join(' ; '),
+    /sans ligne "capture: /,
+  )
+})
+
 test('validateSolde : un commit qui touche un ÉCRAN exige « ## Recette visuelle » et sa capture', () => {
   const sansSection = validateSolde(solde(), TODAY, { touchesUi: true })
   assert.equal(sansSection.ok, false)

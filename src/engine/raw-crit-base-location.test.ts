@@ -4,19 +4,19 @@ import { evaluateTest } from './tests';
 import { effectiveWeapon } from './weaponDamage';
 import type { Combatant, Weapon } from './types';
 import { makeRNG } from './dice';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 /** #80 ; LDB 18 l.53, l.55 ; LDB 62 l.135. */
 const weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon;
 
 const target = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'T', name: 'Cible', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], traumas: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [], traumas: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, // corps blindé (PA 4), tête nue (PA 0)
     skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 // Coup Critique : dégâts bruts 12, jet de touche PAIR (pas de Partielle), aucun PA externe (Tir sûr / opposition).
 const crit: AttackResult = {
@@ -25,12 +25,12 @@ const crit: AttackResult = {
 };
 
 const combattant = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', name: 'X', label: 'X', kind: 'hero',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('#80 — Dégâts non-critiques à la localisation RE-TIRÉE du Coup Critique (LDB 18 l.55)', () => {
   it('utilise la PA de la NOUVELLE localisation, pas celle d’origine', () => {

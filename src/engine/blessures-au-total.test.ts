@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { applyOps, type GameOp } from './ops';
-import { effectiveChar } from './characteristics';
+import { blessuresPosees, effectiveChar } from './characteristics';
 import { endOfRound } from './conditions';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 /**
  * Blessures de profil AU TOTAL (#3060 ; LDB 71 l.20, Middenheim 04 l.27) : un `attrMod` de Blessures
@@ -12,13 +13,16 @@ import { desDuTest } from './dice.testkit';
  */
 
 /** F 38 (BF 3), E 35 (BE 3), FM 31 (BFM 3) : B = 3 + 2×3 + 3 = 12. +10 en F ou en E franchit une dizaine. */
-const heros = (): Combatant => ({
-  id: 'h', label: 'Héros', kind: 'hero',
-  characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 38, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 31, sociabilite: 30 },
-  movement: 4, wounds: { current: 12, max: 12, base: 12 }, advantage: 0, conditions: [],
-  skills: [], talents: [], weapons: [], traits: [],
-  armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-} as unknown as Combatant);
+const heros = (): Combatant => {
+  const sansBlessures = {
+    id: 'h', label: 'Héros', kind: 'hero',
+    characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 38, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 31, sociabilite: 30 },
+    movement: 4, advantage: 0, conditions: [],
+    skills: [], talents: [], weapons: [], traits: [],
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
+  } as unknown as Omit<Combatant, 'wounds'>;
+  return blessuresSurLeProfil({ ...sansBlessures, wounds: blessuresPosees(sansBlessures) });
+};
 
 const SOURCE_AU_TOTAL: GameOp[] = [
   { op: 'charMod', char: 'force', mod: 10 },

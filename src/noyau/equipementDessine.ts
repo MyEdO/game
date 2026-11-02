@@ -1,10 +1,10 @@
 /**
  * ÉQUIPEMENT DESSINÉ d'un porteur, sans art (#2097, #2948) : la PROJECTION de son état sur les clés que
- * tout dessinateur lit (rig SVG, hôte 3D), keyée par ids stables. L'art (formes, matériaux peints) vit
+ * tout dessinateur lit (hôte Godot `hotes/godot/pont/equipement.ts`), keyée par ids stables. L'art (formes, matériaux peints) vit
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
+import { emptyArmour, apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';
@@ -80,7 +80,6 @@ export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
   if (!estMatiere(matiere)) throw new Error(`pieceDeDessin : « ${it.uid} » n'a pas de type d'armure (subType « ${matiere ?? ''} »).`);
   return { ...projeter(it, CLES_PIECE), matiere };
 }
-export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ candidats: apparencesCandidates(x) });
 
 /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou
@@ -114,10 +113,6 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { ran
     ...(cape ? { cape: true } : {}),
   };
 }
-
-/** Arme PRINCIPALE : la première qui n'est pas un bouclier, celle que l'os `arme` DESSINE — d'où se
- *  dérivent aussi la prise et le geste par défaut. Un porteur de bouclier seul n'en a pas. */
-export const armePrincipale = (equip: EquipCtx): ArmeDeDessin | undefined => equip.weapons.find((w) => !w.bouclier);
 
 /** Pièces d'armure dessinées depuis les PA de statbloc par localisation — UNIQUEMENT si l'apparence
  *  DÉCLARE son armure de statbloc PORTÉE (`armurePortee`) [entériné 2026-07-22, #774 : « Les PA ne

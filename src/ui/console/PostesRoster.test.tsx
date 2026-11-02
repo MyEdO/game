@@ -17,7 +17,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { PostesRoster, nextPinned } from './PostesRoster';
 import type { Poste } from '../../noyau/poste';
 import type { Combatant } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -25,13 +25,13 @@ let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; container = null; });
 
-const hero = (id: string, label: string): Combatant => ({
+const hero = (id: string, label: string): Combatant => (blessuresSurLeProfil({
   id, label, kind: 'hero',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   items: [], movement: 4,
-} as Combatant);
+}) as Combatant);
 
 const POSTES: Poste[] = [
   { id: 'plein-air', label: 'Plein air', skills: [] },
@@ -89,16 +89,17 @@ describe('PostesRoster — une ligne par POSTE (maquette A)', () => {
     expect(banc(el).querySelectorAll('.ptile'), 'Gunnar n’est sur aucune ligne : il est au banc, pas escamoté').toHaveLength(1);
   });
 
-  it('3ter. le banc ne promet AUCUN geste : portraits décoratifs, pas de [+], rien à « retirer »', () => {
+  it('3ter. le banc porte les identités passives, sans geste d’affectation', () => {
     const poses: [string, string | null][] = [];
     const el = monter({ pinnedOf: () => undefined, onSet: (id, p) => poses.push([id, p]) });
     const tuiles = [...banc(el).querySelectorAll('.ptile')] as HTMLElement[];
     expect(tuiles).toHaveLength(2);
+    expect(tuiles.map((t) => t.getAttribute('aria-label'))).toEqual(['Hilda', 'Gunnar']);
+    expect(tuiles.map((t) => t.querySelector('.ptile-name')?.textContent)).toEqual(['Hilda', 'Gunnar']);
     for (const t of tuiles) {
-      // Ces personnes ne tiennent AUCUN poste : « retirer » ne retirerait rien. Une affordance qui
-      // ne change rien est morte — le portrait est un CONSTAT, pas un contrôle.
-      expect(t.tagName, 'décor, pas contrôle').toBe('SPAN');
-      expect(t.getAttribute('aria-label'), 'aucun nom ne promet un geste').toBeNull();
+      expect(t.tagName, 'identité passive').toBe('SPAN');
+      expect(t.tabIndex, 'la tuile passive n’entre pas dans les contrôles du clavier').toBe(-1);
+      act(() => t.click());
     }
     expect(banc(el).querySelector('.pr-add'), 'le banc n’offre aucun ajout').toBeNull();
     expect(banc(el).querySelector('button'), 'aucun bouton du tout sur la ligne de banc').toBeNull();

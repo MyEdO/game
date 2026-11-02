@@ -1,7 +1,6 @@
 /**
  * Orientation MONDE d'une entité/combattant : 8 directions grille (4 cardinales + 4 diagonales).
- * Source de vérité de l'orientation ; projetée au rendu par `project()`
- * (src/gameIso/rig/facing.ts) en tenant compte de la rotation caméra (`camRot`).
+ * Source de vérité de l'orientation.
  *
  * `Dir4` (plus bas) est son sous-ensemble CARDINAL : le seul autre terme de CAP du projet.
  */

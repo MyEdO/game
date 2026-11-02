@@ -15,6 +15,7 @@ import { t } from '../i18n';
 import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { buildScene } from './mapSpec';
 import { patchWall } from './sceneEdit';
+import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -174,7 +175,7 @@ describe('enjamber la croisée de plain-pied — exploration', () => {
   it('aucun héros debout → refus NOMMÉ, rien ne bouge (`meneurDeboutDuMonde`)', () => {
     explorer(plainPied(), { ...dedans, z: 0 });
     const [h] = banc.getState().party;
-    banc.setState({ party: [{ ...h, wounds: { ...h.wounds, current: 0 } }] });
+    banc.setState({ party: [blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } })] });
     banc.getState().windowAcross({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ ...dedans, z: 0 });
     expect(refusDit()).toBe(t('geste.refus.personne'));

@@ -9,7 +9,8 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { actorIn } from './monde/combatants';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -17,15 +18,15 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos,
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     weapons: [MELEE],
     characteristics: {} as never,
     advantage: 0, conditions: [], armour: {} as never,
     skills: [], talents: [], movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 /** Invocation alliée RÉSOLUE (shape 'self', op summon sur 'caster'). */
@@ -137,7 +138,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     E.pos = { x: 10, y: 7 }; H.pos = { x: 10, y: 10 }; // héros en LdV, à 3 cases (en portée du sort, hors mêlée)
     banc.setState({ battle: { ...banc.getState().battle! } });
     expect(banc.getState().aiWouldCast(E.id)).toBe(true); // sa meilleure action est un sort
-    aiMaybeFrenzy(banc.getState, banc.setState, E);
+    aiMaybeFrenzy(banc.getState, banc.setState, actorIn(banc.getState(), E.id)!); // FM 99 : maximum des Blessures déplacé, l'acteur se relit
     expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(false); // reporté
   });
 
@@ -149,7 +150,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     E.spells = []; // rien à préparer
     banc.setState({ battle: { ...banc.getState().battle! } });
     expect(banc.getState().aiWouldCast(E.id)).toBe(false);
-    aiMaybeFrenzy(banc.getState, banc.setState, E);
+    aiMaybeFrenzy(banc.getState, banc.setState, actorIn(banc.getState(), E.id)!); // FM 99 : maximum des Blessures déplacé, l'acteur se relit
     expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(true);
   });
 

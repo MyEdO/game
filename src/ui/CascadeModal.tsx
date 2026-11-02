@@ -36,7 +36,7 @@ import { SequencePanel } from './SequencePanel';
 import { stepForcedDie } from './forcedDieRow';
 import { opposedResponded } from './opposedFrozen';
 import { frozenOpposedRow, tableRow, witnessRow, buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant } from '../noyau/pendings';
+import { referentDeLEtape, type CascadeStep, type CascadeRollStep, type CascadeRoll, type BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { buildParticipantRows, rollAllUnrolledRows, rangeeSansJet } from './buildParticipantRows';
 import { Prose, mdToText } from './Prose';
@@ -364,7 +364,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // (`cur.result`), le MÊME encadré se filtre à la branche réalisée : c'est le verdict, et il est
   // structurellement le même objet que la promesse d'avant le jet.
   const stepActor = actorOf(cur);
-  const stepCaster = typeof cur.meta?.casterId === 'string' ? pool.find((c) => c.id === cur.meta!.casterId) : undefined;
+  const referent = referentDeLEtape(cur);
+  const stepCaster = referent ? pool.find((c) => c.id === referent) : undefined;
   const outcomeNote = (
     <OutcomeNote
       onSuccess={branchCertainOps(cur.meta?.onSuccess, stepActor, stepCaster)}

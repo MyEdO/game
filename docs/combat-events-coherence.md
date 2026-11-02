@@ -131,9 +131,14 @@ incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** t
 
 ### 4c. Le maximum des Blessures suit ses porteurs, à toute écriture (#1463)
 
-Le maximum des Blessures se recalcule quand ce qui le porte change (`LDB 05 l.1001`, `LDB 48 l.23`) et
-le courant suit le même delta, plancher 0 (`LDB 48 l.27`). Une seule primitive, pure et idempotente,
-`blessuresReconciliees` (`engine/characteristics.ts`), à trois étages :
+Le maximum des Blessures vaut `effectiveMaxWounds` (`engine/characteristics.ts`) : la formule du profil
+COURANT (Taille courante `tailleCourante`, Taille accordée par un effet comprise ; Fabriqué ; Endurant)
+plus l'écart du livre posé à la naissance (`wounds.ecart`, requis : B d'une créature type moins la
+formule ; 0 pour un héros ou une formule), le tout × 5 sous le Trait Nuée (`isSwarm`, LDB 85 l.253), plus
+les `attrMod` de Blessures de tout porteur de `passiveMods` et des effets actifs. Il se recalcule quand ce qui le porte change (`LDB 05 l.1001`,
+`LDB 48 l.23`) ; les Points perdus demeurent, plancher 0 (`LDB 48 l.27`), la part sous 0 gardée dans
+`wounds.perduesSousZero` tant que le courant est 0 et éteinte par la réconciliation dès qu'il remonte. Une seule primitive, pure et idempotente,
+`blessuresReconciliees`, à trois étages :
 - **moteur** : fin d'`applyOps`, `applyActiveEffect`, `removeActiveEffects` ;
 - **constructeur** : le spawn d'un porteur né mutant (`noyau/monde/spawn.ts`), lu hors de l'état
   (`summonValue`, fiches de PNJ) ;
@@ -146,8 +151,9 @@ le courant suit le même delta, plancher 0 (`LDB 48 l.27`). Une seule primitive,
 Un combattant dont le maximum bouge est **copié** (copie sur écriture, le long de son chemin) : une
 référence prise avant un `set` désigne l'ancien objet, et une écriture faite à travers elle n'atteint plus
 l'état. Après tout `set`, un acteur se **relit par son id** (`actorIn`, `ecrireActeur`). Le maximum lui-même
-est une marque de type, `MaximumDesBlessures` (`engine/types.ts`), forgée par `blessuresDeBase` (la base
-posée, que le maximum suit) et `blessuresReconciliees`. Sont refusés : le nombre posé à la main (littéral,
+est une marque de type, `MaximumDesBlessures` (`engine/types.ts`), forgée par `blessuresPosees` (porteur
+né, profil en main) et `blessuresReconciliees` ; la fixture `blessuresDeBase` (`engine/combattantDeTest.testkit.ts`)
+passe par `blessuresPosees` sur le profil de son porteur. Sont refusés : le nombre posé à la main (littéral,
 spread sans cast) et l'affectation (`readonly`), au type ; le cast qui nomme la marque
 (`as MaximumDesBlessures`, `<MaximumDesBlessures>`, alias), au lint (`murs/marques`, `oxlint.config.mjs`).
 Ne sont PAS murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })`, et le cast

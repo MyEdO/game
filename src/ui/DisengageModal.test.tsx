@@ -15,6 +15,7 @@ import { lignesDeJet } from './ligneDeJet.testkit';
 import { clampTarget, cibleDuTest } from '../engine/tests';
 import { valeurDuTest } from '../engine/skills';
 import { t } from '../i18n';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Menu de Désengagement (LDB 15 l.45-49, l.61-68) : chaque option OFFERTE porte sa note d'enjeu dans
@@ -24,11 +25,11 @@ import { t } from '../i18n';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy'): Combatant => ({
+const mk = (id: string, kind: 'hero' | 'enemy'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-  weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 12, max: 12 }, resilience: 0, fortune: 0,
+  weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12), resilience: 0, fortune: 0,
   species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 let host: HTMLDivElement;
 let root: Root;

@@ -4,13 +4,12 @@ import { draineCascade } from '../noyau/cascade.testkit';
 import { applyMutation } from '../noyau/corruptionFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { CHEMINS_NOMMES, lireAuChemin, poserAuChemin } from '../noyau/combattantsDeLEtat.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { ID_DE_PORTEUR, PORTEURS_HORS_TALENT } from '../engine/porteursDePassifs.testkit';
+import { blesseDeTest } from '../engine/combattantDeTest.testkit';
+import { ID_DE_PORTEUR, PORTEURS } from '../engine/porteursDePassifs.testkit';
 import { createHero } from '../engine/character';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 import type { MutationTable } from '../data/mutations';
 import type { OpPassive } from '../engine/ops';
-import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * Le maximum des Blessures suit ses porteurs à TOUTE écriture du store (LDB 05 l.1001, LDB 48 l.23) :
@@ -23,8 +22,8 @@ afterEach(() => resetData());
 
 describe('écriture du store : le maximum suit, à chaque chemin de combattant de l’état', () => {
   describe.each(CHEMINS_NOMMES)('%s', (_, chemin) => {
-    it.each(PORTEURS_HORS_TALENT)('%s posé sans réconciliation', (_n, _champ, poser) => {
-      const c = combattantDeTest({ kind: 'hero', wounds: blessuresDeBase(12, 10) });
+    it.each(PORTEURS)('%s posé sans réconciliation', (_n, _champ, poser) => {
+      const c = blesseDeTest(10, { kind: 'hero' });
       poser(c, plus3());
       useGame.setState(poserAuChemin(useGame.getState(), chemin, c));
       expect(lireAuChemin(useGame.getState(), chemin).wounds).toMatchObject({ max: 15, current: 13 });

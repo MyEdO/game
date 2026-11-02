@@ -27,6 +27,7 @@ import { flowSchema, noeudTest } from '../data/schemas/grammaire/mecanique';
 import { symptoms } from '../data';
 import * as defSymptoms from '../data/schemas/defs/symptoms';
 import * as defMaladies from '../data/schemas/defs/maladies';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
 /** Le JSON d'un dataset, LU une fois par run : les sondes le relisent à chaque cas, et la boucle de
@@ -48,7 +49,7 @@ const cycles = () => lire('symptoms.json').map((s) => ({ id: s.id as string, tic
 const quotidiens = () => lire('maladies.json').map((m) => ({ id: m.id as string, daily: m.dailyTest as Record<string, unknown> | undefined })).filter((x) => x.daily);
 
 const sick = (over: Partial<Combatant> = {}): Combatant =>
-  ({ label: 'Malade', diseases: [], conditions: [], skills: [], traits: [], talents: [], items: [], wounds: { current: 12, max: 12 }, ...over }) as unknown as Combatant;
+  (blessuresSurLeProfil({ label: 'Malade', diseases: [], conditions: [], skills: [], traits: [], talents: [], items: [], wounds: blessuresDeBase(12), ...over })) as unknown as Combatant;
 
 describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2b)', () => {
   it('les 4 porteurs sont LUS par la grammaire partagée, et chacun dit ce qu’il est', () => {

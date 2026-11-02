@@ -39,22 +39,6 @@
 .de-flags .ed-check { gap: 0.3rem; }
 .de-flags .ed-check span { font-size: 0.74rem; }
 
-/* Aperçu LIVE de la créature (apparence) — face + profil, se met à jour à chaque modification. */
-.creature-preview {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  padding: 0.5rem;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.creature-preview-svg {
-  width: 92px;
-  height: 115px;
-  background: radial-gradient(ellipse at 50% 70%, var(--panel) 0%, var(--bg) 80%);
-  border-radius: 4px;
-}
 
 /* CHAMPS d'une rangée de tableau (`GenericArrayField`) ou d'un sous-objet (`ObjectField`), en `Grid` :
    un champ COMPOSITE (`div.ed-field` : source, sous-objet, sous-tableau) prend toute la largeur, et

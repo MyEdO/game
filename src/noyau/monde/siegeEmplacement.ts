@@ -1,18 +1,9 @@
-/**
- * Builder UNIQUE d'un EMPLACEMENT DE SIÈGE en `SceneEntity` — SOURCE DE VÉRITÉ PARTAGÉE par l'éditeur
- * (`placeEmplacement`) ET les scénarios (`siege-enceinte`). Un emplacement = une SceneEntity-personnage
- * qui PORTE un poste d'artillerie (`postes:[{ trappingId, crewIds }]`, base hydratée au spawn) et dont l'apparence est ENTIÈREMENT
- * DÉRIVÉE de sa `ref` (le trapping à art d'affût `siegeRig`) — JAMAIS d'`appearance.species` forcé :
- * `resolveRender` lit le rig d'engin depuis la ref (rendu IDENTIQUE éditeur ↔ exploration ↔ combat).
- * L'affût INERTE non-destructible (RAW-pur, AA 10 l.175-193) vient de la branche siège de `spawnEnemy`
- * (déclenchée par la `ref`), pas d'un statblock à PV.
- *
- * Exactement le modèle d'une créature posée PAR RÉFÉRENCE : on ne stocke pas l'espèce, on la dérive.
- */
+/** Builder partagé des emplacements de siège : une entité-personnage porte la référence d'un
+ *  trapping du sous-type `armes-de-siege` et son poste d'artillerie, hydraté au spawn. */
 import type { SceneEntity } from './scene';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc, AuthoredShipPoste } from '../../engine/types';
-import { findTrappingById } from '../../data';
+import { siegeEngines } from '../../data';
 
 export interface SiegeEmplacementOpts {
   /** Équipage du poste (ORDRE = chef de pièce en tête → `crewIds[0]`). Vide par défaut (assigné ensuite). */
@@ -25,9 +16,8 @@ export interface SiegeEmplacementOpts {
 
 /**
  * Construit la `SceneEntity` d'un emplacement de siège (id FOURNI par l'appelant — éditeur via
- * `nextEntityId`, scénario via id fixe). `null` si `trappingId` n'est pas un engin posable (pas d'art
- * d'affût `siegeRig` ou item introuvable) → pas d'entité fantôme. Aucun champ `appearance` : l'espèce
- * (rig d'engin) est dérivée de `ref` au rendu.
+ * `nextEntityId`, scénario via id fixe). `null` si `trappingId` n'appartient pas au sous-type
+ * `armes-de-siege`, sélectionné par `siegeEngines`.
  */
 export function siegeEmplacementEntity(
   id: string,
@@ -35,8 +25,8 @@ export function siegeEmplacementEntity(
   pos: { x: number; y: number },
   opts: SiegeEmplacementOpts = {},
 ): SceneEntity | null {
-  const t = findTrappingById(trappingId);
-  if (!t?.siegeRig) return null; // posable ⇔ a un art d'affût (`siegeRig`)
+  const t = siegeEngines().find((engin) => engin.id === trappingId);
+  if (!t) return null;
   // #222 — réf catalogue AUTHORÉE (base hydratée au spawn), jamais une `ItemInstance` de base matérialisée.
   const poste: AuthoredShipPoste = { trappingId, crewIds: opts.crewIds ?? [], ...(opts.side ? { side: opts.side } : {}) };
   const ent: SceneEntity = {
@@ -44,7 +34,7 @@ export function siegeEmplacementEntity(
     kind: 'personnage', // seul kind enrôlable en rencontre → spawn en Combattant (affût servi)
     pos: { x: pos.x, y: pos.y },
     label: t.label,
-    ref: trappingId, // SOURCE de l'engin → branche siège de spawnEnemy (affût inerte) + rig DÉRIVÉ
+    ref: trappingId, // SOURCE de l'engin → branche siège de spawnEnemy (affût inerte)
     postes: [poste],
   };
   if (opts.facing) ent.facing = opts.facing;

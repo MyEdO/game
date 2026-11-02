@@ -14,7 +14,7 @@ import type { StagePosting } from './activities';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
- * Le maximum de Blessures DÉRIVÉ d'un porteur (#1463) : `blessuresDeBase` et `blessuresReconciliees`
+ * Le maximum de Blessures DÉRIVÉ d'un porteur (#1463) : `blessuresPosees` et `blessuresReconciliees`
  * (`engine/characteristics.ts`) le forgent. Le type refuse un nombre posé à la main (littéral, spread
  * sans cast) et l'affectation (`readonly`) ; le lint `murs/marques` (`oxlint.config.mjs`) refuse le cast
  * qui NOMME la marque (`x as MaximumDesBlessures`, `<MaximumDesBlessures>x`, alias de type).
@@ -398,7 +398,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   range?: WeaponRangeSpec | null;
   qualities: QualityInstance[];
   /** `id` du Groupe d'arme/famille de munition (`WeaponGroupData.id`) — réf, ≠ libellé. Pilote la
-   *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`), le rendu (rig). */
+   *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`). */
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
@@ -465,14 +465,14 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   teinte?: string;
   /** #2967 */
   apparence?: string;
-  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
-   *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
+  /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue, la clé `natural`
+   *  d'`equipementDessine` le dit au dessinateur. Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
   /** Taille PRÉVUE pour l'arme (ADE II 2 l.706-710) — propagée depuis `ItemInstance.sizeFor`. Différente
    *  de la Taille du porteur → −20 à tous les Tests avec cette arme (`attackModifiers`). */
   sizeFor?: import('./size').SizeCategory;
   /** Trait « Arme +N » générique SANS objet de catalogue identifié (`creatureEquip.weaponFromTrait`) :
-   *  ≠ `natural` (le rendu garde sa silhouette générique, `weaponFamily`) — exempte SEULEMENT du
+   *  ≠ `natural` — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
   /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
@@ -757,8 +757,8 @@ export function effectRef(e: ActiveEffect): CodexTarget | undefined {
   return e.sourceSpellId ? { category: 'spells', id: e.sourceSpellId } : undefined;
 }
 
-/** IDENTITÉ de ce qui a produit un effet — « les GameOps sont rattachés à quelque chose » (arbitrage
- *  user 2026-07-18). Portée par l'`OpsCtx` du déclencheur et stampée par `applyOps` sur tout
+/** IDENTITÉ de ce qui a produit un effet (#492).
+ *  Portée par l'`OpsCtx` du déclencheur et stampée par `applyOps` sur tout
  *  `ActiveEffect` posé : c'est ELLE qui relie une pastille à sa règle, par id STABLE (jamais le label). */
 export interface EffectSource {
   kind: EffectSourceKind;
@@ -848,14 +848,16 @@ export interface ActiveEffect {
   /** Trait de créature ACCORDÉ par cet effet (op `grantTrait` — Envol, Effrayant…) : le
    *  `TraitInstance` exact posé dans `c.traits`, retiré (une instance) à l'expiration (engine/grantedTraits). */
   grantedTrait?: import('./statEntry').TraitInstance;
+  /** Trait PSYCHOLOGIQUE accordé par cet effet (op `grantPsychTrait` à durée, VDM 10 l.327-330) : l'instance
+   *  exacte posée dans `c.psychTraits`, retirée à l'expiration (`dropExpiredGrantedPsych`). */
+  grantedPsychTrait?: import('./psychology').PsychTrait;
   /** Mutation TEMPORISÉE accordée par cet effet (op `rollMutation` à durée — Allure démoniaque, EDOC 13
    *  l.276-277) : la `Mutation` exacte posée dans `c.mutations`, DÉTACHÉE à l'expiration
    *  (`dropExpiredGrantedMutations`, engine/corruption). Une mutation de CORRUPTION (permanente) n'a pas
    *  d'effet porteur — elle vit seule dans `c.mutations`, jamais détachée. */
   grantedMutation?: import('./corruption').Mutation;
-  /** Apparence de REMPLACEMENT le temps de l'effet (op `polymorph`) : id de créature dont la couche rig
-   *  rend l'apparence (`combatantAppearance` via `liveMorphRef`). Le moteur ne porte QUE l'id (pureté —
-   *  aucune dépendance au rig) ; l'override est auto-restitué à l'expiration (effet retiré → plus de morphRef). */
+  /** Forme de REMPLACEMENT le temps de l'effet (op `polymorph`/`transform`) : id de créature, lu par
+   *  `liveMorphRef` ; auto-restitué à l'expiration (effet retiré → plus de morphRef). */
   morphRef?: string;
   /** Arme INVOQUÉE temporaire (op `grantWeapon` — Arme aethyrique, Faux de Shyish, Épée ardente) :
    *  l'objet `conjured` est posé dans un SET d'armes DÉDIÉ (réutilise le système de loadouts) rendu
@@ -904,7 +906,7 @@ export interface ActiveEffect {
   /** Détermination (LDB 17 l.60) : ignore les modificateurs de Blessure critique (traumatismes), 1 Round.
    *  Durée portée par `duration` → expirée par le système de Durée unifié (jamais un flag round-scopé). */
   ignoreCritMods?: boolean;
-  /** Traits psychologiques SUSPENDUS par l'effet (Baume pour un esprit blessé, LDB 42 : « Tous les
+  /** Traits psychologiques SUSPENDUS par l'effet (Baume pour un esprit blessé, LDB 43 l.70 : « Tous les
    *  Traits Psychologiques sont retirés pour la durée ») — restitués à l'expiration (rounds OU horloge). */
   suppressedPsych?: import('./psychology').PsychTrait[];
   /** Aura anti-Sort (op `castWard`, LDB 42) : tout SORT (Langue (Magick)) ciblant quelqu'un à
@@ -1429,7 +1431,7 @@ export interface Combatant {
   followsCharacterRules?: boolean;
   /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
    *  bestiaire (`noyau/monde/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —
-   *  clé de résolution du rig/apparence (« plus de label » : on ne re-résout plus par `name`). */
+   *  clé de résolution de l’apparence (« plus de label » : on ne re-résout plus par `name`). */
   creatureId?: string;
   /** Le porteur de fiche dont ce combattant a été spawné (`noyau/monde/spawn.spawnEnemy`, #1882) — ce qui le
    *  re-spawne à l'identique (`scheduleRespawn ref:'self'`). Absent : un héros, né de sa création. */
@@ -1590,10 +1592,12 @@ export interface Combatant {
   /** Dissipation (LDB 46 l.156 : « un seul Sort chaque Round ») — Contre-sort déjà tenté ce Round. */
   dispelledThisRound?: boolean;
   characteristics: Characteristics;
-  /** Points de Blessure. `base` = Blessures à vide (snapshot/surcharge au spawn) ; `max` dynamique
-   *  = base + delta des buffs F/E/FM × Taille (cf. effectiveMaxWounds) ; `current` = PB restants.
-   *  `max` est marqué (`MaximumDesBlessures`) : il ne s'écrit que par ses fabriques (#1463). */
-  wounds: { current: number; readonly max: MaximumDesBlessures; base?: number };
+  /** Points de Blessure (#1463). `max` = `effectiveMaxWounds` : formule du profil courant + porteurs +
+   *  `ecart`, marqué (`MaximumDesBlessures`), écrit par ses seules fabriques ; `current` = PB restants ;
+   *  `ecart` = écart du livre posé à la naissance (B imprimé − formule, 0 pour un porteur au maximum dérivé),
+   *  requis ; `perduesSousZero` = Points perdus au-delà de 0 par une baisse du maximum, posé seulement quand
+   *  non nul et le courant à 0 (LDB 48 l.27). */
+  wounds: { current: number; readonly max: MaximumDesBlessures; ecart: number; perduesSousZero?: number };
   advantage: number;
   conditions: ConditionInstance[];
   /** Armes/armure ACTIVES (dérivées de l'équipement) — utilisées en combat. */
@@ -1868,8 +1872,8 @@ export interface Combatant {
   /** Apparence visuelle RÉSOLUE (cosmétique, ignorée par le moteur ; lue directement par le rendu pour
    *  un PJ rendu depuis son propre inventaire). Référence de TYPE seulement → élidée à la compilation. */
   appearance?: import('./authoringAppearance').Appearance;
-  /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187) : figé
-   *  PARESSEUSEMENT par le rig (`enemyRigProfile`) au premier rendu, jamais dans `state`. */
+  /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187), lu par
+   *  `equipementDessine` et `deciderApparencesDesArmes` (`noyau/monde/spawn.ts`). */
   appearanceOverride?: import('./authoringAppearance').EntityAppearance;
 }
 

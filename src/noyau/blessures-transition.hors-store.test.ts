@@ -6,15 +6,14 @@
 import { describe, expect, it } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { CHEMINS_NOMMES, lireAuChemin, poserAuChemin } from './combattantsDeLEtat.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { PORTEURS_HORS_TALENT } from '../engine/porteursDePassifs.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blesseDeTest } from '../engine/combattantDeTest.testkit';
+import { PORTEURS } from '../engine/porteursDePassifs.testkit';
 
 describe('propriétaire du jeu : l’écriture d’un porteur non réconcilié finit au maximum suivi', () => {
   it.each(CHEMINS_NOMMES)('%s', (_, chemin) => {
     const banc = ouvrirLeBanc();
-    const c = combattantDeTest({ kind: 'hero', wounds: blessuresDeBase(12, 10) });
-    PORTEURS_HORS_TALENT[0][2](c, [{ op: 'attrMod', attr: 'wounds', mod: 3 }]);
+    const c = blesseDeTest(10, { kind: 'hero' });
+    PORTEURS[0][2](c, [{ op: 'attrMod', attr: 'wounds', mod: 3 }]);
     banc.setState(poserAuChemin(banc.getState(), chemin, c));
     expect(lireAuChemin(banc.getState(), chemin).wounds).toMatchObject({ max: 15, current: 13 });
   });

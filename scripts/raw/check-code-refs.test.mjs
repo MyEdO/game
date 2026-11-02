@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { scanDeadCodeRefs, scanEmptyLineCodeRefs, isExcludedSrc, regenerations, sitesDeCode } from './check-code-refs.mjs'
+import { scanDeadCodeRefs, scanEmptyLineCodeRefs, regenerations, sitesDeCode } from './check-code-refs.mjs'
 import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 
 // LDB 06 (Source/…/06 - Classes.md) fait 6 lignes (split('\n').length) — chapitre réel, court, stable :
@@ -72,11 +72,6 @@ test('.json scanné comme .ts/.tsx', () => {
   withTempSrcDir('data.json', '{ "note": "LDB 6 l.999" }\n', (dir) => {
     assert.equal(scanDeadCodeRefs(dir).length, 1)
   })
-})
-
-test('isExcludedSrc : art de couverture (tenues/defs/) exclu, reste inclus', () => {
-  assert.equal(isExcludedSrc('src/gameIso/rig/parts/tenues/defs/Loup-blanc.ts'), true)
-  assert.equal(isExcludedSrc('src/engine/combat.ts'), false)
 })
 
 test('non-régression : les VRAIS citants n’ont aucune réf morte ni aucune réf sur ligne VIDE', () => {

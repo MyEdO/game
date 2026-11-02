@@ -1,14 +1,12 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 18 ; LDB 18 l.61/72 */
 import { z } from 'zod';
-import { formulaSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
 
 /** LDB 18 l.247/251/273/277/281 */
 const cumulSchema = nommerChamps(z.strictObject({
   portee: z.enum(['localisation', 'porteur']),
-  unite: formulaSchema.optional(),
   parPalier: nommerChamps(z.strictObject({ taille: z.number(), ops: passifsDe() }), { taille: { label: 'Taille' }, ops: { label: 'Opérations' } }).optional(),
   escalade: nommerChamps(z
     .strictObject({ atLeast: z.number(), versTraumaId: z.string(), mode: z.enum(['remplace', 'ajoute']) }), {
@@ -19,28 +17,8 @@ const cumulSchema = nommerChamps(z.strictObject({
     .optional(),
 }), {
   portee: { label: 'Portée' },
-  unite: { label: 'Unité' },
   parPalier: { label: 'Par palier' },
   escalade: { label: 'Escalade' },
-});
-
-/** LDB 18 ; LDB 73 */
-const rigSchema = nommerChamps(z.strictObject({
-  bone: z.string(),
-  lateral: z.boolean().optional(),
-  art: z.string().optional(),
-  byProsthesis: z.array(nommerChamps(z.strictObject({ trappingId: z.string(), art: z.string() }), { trappingId: { label: 'Objet' }, art: { label: 'Apparence' } })).optional(),
-  hidesBone: z.string().optional(),
-  view: z.literal('front').optional(),
-  replace: z.boolean().optional(),
-}), {
-  bone: { label: 'Os' },
-  lateral: { label: 'Latéral' },
-  art: { label: 'Apparence' },
-  byProsthesis: { label: 'Par prothèse' },
-  hidesBone: { label: 'Os masqué' },
-  view: { label: 'Vue' },
-  replace: { label: 'Remplacement' },
 });
 
 export const file = 'traumas.json';
@@ -62,7 +40,6 @@ const doc = document(
       )
       .optional(),
     cumul: cumulSchema.optional(),
-    rig: rigSchema.optional(),
     needsSurgery: z.boolean().optional(),
     cosmetic: z.boolean().optional(),
     amputation: z.boolean().optional(),
@@ -76,7 +53,6 @@ const doc = document(
     severity: { label: 'Sévérité', hint: 'Mineure ou majeure' },
     prosthesis: { label: 'Prothèses compatibles', hint: 'Prothèses pouvant annuler tout ou partie de la séquelle' },
     cumul: { label: 'Règle de cumul', hint: 'Comptage/agrégation d’une séquelle qui s’accumule' },
-    rig: { label: 'Routage d’apparence', hint: 'Endroit de l’apparence où la séquelle s’affiche' },
     needsSurgery: { label: 'Nécessite une opération' },
     cosmetic: { label: 'Cicatrice cosmétique', hint: 'Séquelle post-guérison sans effet mécanique' },
     amputation: { label: 'Est une amputation' },

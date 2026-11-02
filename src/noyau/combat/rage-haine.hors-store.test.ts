@@ -5,7 +5,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
 import { isFrenzied } from '../../engine/psychology';
 import { psychDRAdjust } from '../../engine/combat';
-import { groupesDe } from '../../engine/groups';
+import { groups } from '../../data';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { ciblePsy } from '../../engine/psych/ciblage';
@@ -13,14 +13,6 @@ import { ciblePsy } from '../../engine/psych/ciblage';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-/**
- * Trait Rage — LDB 85 l.281-283 : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
- * devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses
- * Avantages (minimum 3) pour entrer en Frénésie. » Hook `rage` (onTurnStart, décision IA RNG-free) :
- * ≥ 3 → Frénésie (politique historique) ; sinon ≥ 1 ET adversaires ENGAGÉS non couverts → tout
- * dépenser pour la Haine (état psy CIBLÉ, LDB 21 : +1 DR aux Tests de Combat contre le groupe via
- * `psychDRAdjust`, immunité à sa Peur — pas du vide).
- */
 /** Le combattant PREND son rang d'initiative : `runEnemyAI` refuse un tour qui n'est pas celui de
  *  l'actif, et refuse de rejouer un tour déjà joué (jeton de tour, #1852). */
 const auTourDe = (id: string): void => {
@@ -28,7 +20,15 @@ const auTourDe = (id: string): void => {
   b.turn = b.order.indexOf(id);
 };
 
-describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
+/** Le Groupe relatif des adversaires Engagés, choisi par sa forme. */
+const engages = groups.find((g) => g.relatif === 'engagesAvecPorteur');
+
+/** Trait Rage : LDB 85 l.282 ; la Cible de la Haine, Q12 B (#3045). Hook `rage` (onTurnStart). */
+describe('Rage → Haine (LDB 85 l.282, branche « minimum 1 »)', () => {
+  it('précondition : la donnée a le Groupe relatif des Engagés', () => {
+    expect(engages).toBeDefined();
+  });
+
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
@@ -51,20 +51,32 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
     return { H, E };
   }
 
-  it('Avantage 1 + adversaire ENGAGÉ → dépense tout, Haine ACTIVE ciblant le groupe de l’adversaire (+1 DR d’attaque contre lui)', () => {
+  it('Avantage 1 + adversaire ENGAGÉ → dépense tout, UNE Haine ACTIVE envers les adversaires Engagés', () => {
     const { H, E } = setup();
     E.advantage = 1;
     auTourDe(E.id);
     runEnemyAI(banc.getState, banc.setState, E.id);
-    expect(E.advantage).toBe(0); // « dépenser TOUS ses Avantages »
-    expect(isFrenzied(E)).toBe(false); // < 3 → pas la branche Frénésie
-    const haine = (E.psychState ?? []).find((p) => p.type === 'haine');
-    expect(haine).toBeTruthy();
-    expect(haine!.active).toBe(true);
-    expect(haine!.cible).toBe(ciblePsy.groupe(groupesDe(H)[0])); // « envers ses adversaires en combat rapproché »
-    // La Haine FAIT quelque chose : +1 DR aux Tests de Combat contre le groupe haï (LDB 21, psychDRAdjust).
+    expect(E.advantage).toBe(0);
+    expect(isFrenzied(E)).toBe(false);
+    const haines = (E.psychState ?? []).filter((p) => p.type === 'haine');
+    expect(haines).toHaveLength(1);
+    expect(haines[0].active).toBe(true);
+    expect(haines[0].cible).toBe(ciblePsy.groupe(engages!.id));
     expect(psychDRAdjust(E, H)).toBe(1);
     expect(banc.getState().battle!.log.some((l) => l.text.includes('Haine'))).toBe(true);
+  });
+
+  it('la Haine vise tout adversaire Engagé tant qu’elle dure, et lui seul (Q12 B)', () => {
+    const { H, E } = setup();
+    E.advantage = 1;
+    auTourDe(E.id);
+    runEnemyAI(banc.getState, banc.setState, E.id);
+    E.engagedWith = [];
+    H.engagedWith = [];
+    expect(psychDRAdjust(E, H)).toBe(0);
+    E.engagedWith = [H.id];
+    H.engagedWith = [E.id];
+    expect(psychDRAdjust(E, H)).toBe(1);
   });
 
   it('Avantage ≥ 3 → la branche FRÉNÉSIE prime (politique historique conservée)', () => {
@@ -77,38 +89,37 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
     expect((E.psychState ?? []).some((p) => p.type === 'haine')).toBe(false);
   });
 
-  it('Haine ACTIVE couvrant déjà tous les adversaires engagés → ne re-dépense PAS (l’Avantage est conservé)', () => {
-    const { H, E } = setup();
+  it('Haine des Engagés déjà ACTIVE → ne re-dépense PAS (l’Avantage est conservé)', () => {
+    const { E } = setup();
     E.advantage = 1;
     auTourDe(E.id);
     runEnemyAI(banc.getState, banc.setState, E.id); // 1ʳᵉ Rage → Haine posée, Avantage 0
     E.advantage = 2; // regagné plus tard
     banc.getState().battle!.round += 1; // « plus tard » = un AUTRE Round (un tour ne se joue qu'une fois, #1852)
     runEnemyAI(banc.getState, banc.setState, E.id);
-    expect(E.advantage).toBe(2); // déjà couvert → pas de re-dépense
+    expect(E.advantage).toBe(2);
     expect((E.psychState ?? []).filter((p) => p.type === 'haine')).toHaveLength(1);
-    expect(H.id).toBeTruthy();
   });
 
-  it('Avantage 1 SANS adversaire au contact → rien (la Haine vise « ses adversaires en combat rapproché »)', () => {
+  it('Avantage 1 SANS adversaire Engagé → rien', () => {
     const { H, E } = setup();
     E.engagedWith = [];
     H.engagedWith = [];
     E.advantage = 1;
     auTourDe(E.id);
     runEnemyAI(banc.getState, banc.setState, E.id);
-    expect(E.advantage).toBe(1); // pas de cible au contact → pas de dépense
+    expect(E.advantage).toBe(1);
     expect((E.psychState ?? []).some((p) => p.type === 'haine')).toBe(false);
   });
 
-  it('adversaire engagé SANS Groupe modélisable → pas de dépense (garde groupMatch)', () => {
+  it('un adversaire Engagé sans aucun Groupe est haï : la Cible ne lit que l’Engagement', () => {
     const { H, E } = setup();
     (H as Combatant).groups = [];
     H.career = undefined;
     E.advantage = 2;
     auTourDe(E.id);
     runEnemyAI(banc.getState, banc.setState, E.id);
-    expect(E.advantage).toBe(2);
-    expect((E.psychState ?? []).some((p) => p.type === 'haine')).toBe(false);
+    expect(E.advantage).toBe(0);
+    expect(psychDRAdjust(E, H)).toBe(1);
   });
 });

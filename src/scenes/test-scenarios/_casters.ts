@@ -7,13 +7,13 @@
  * tous les Sorts des Domaines arcaniques) → l'IA refondue joue tout l'arsenal, pas un sous-ensemble.
  */
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { spells, blessingsOf, miraclesOf, findSkill, findTalent, rigSpeciesId } from '../../data';
+import { spells, blessingsOf, miraclesOf, findSkill, findTalent, especeDApparence } from '../../data';
 import { slugId } from '../../data/slug';
 import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresPosees } from '../../engine/characteristics';
 
 /** Deep-clone d'un pré-tiré (données pures) pour le bricoler sans toucher la base. */
 export const clone = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) as Combatant;
@@ -67,7 +67,7 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
   sorc.id = id;
   sorc.label = name;
   setChars(sorc, { intelligence: 75, 'force-mentale': 70, agilite: 58, dexterite: 52, initiative: 62, endurance: 45 });
-  sorc.wounds = blessuresDeBase(18);
+  sorc.wounds = blessuresPosees(sorc);
   sorc.fate = 4; sorc.fortune = 4; sorc.resilience = 3; sorc.resolve = 3;
   boostSkill(sorc, 'Langue', 'magick', 'intelligence', 55);
   for (const dom of domains) boostSkill(sorc, 'Focalisation', dom, 'force-mentale', 40);
@@ -76,7 +76,7 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
     ...spellsOf('Magie mineure'),
     ...spellsOf('Magie des Arcanes', [null, ...domains, 'Nécromancie']),
   ];
-  sorc.appearance = { species: rigSpeciesId('hauts-elfes'), sex: 'F', build: 0.38 };
+  sorc.appearance = { species: especeDApparence('hauts-elfes'), sex: 'F' };
   sorc.species = 'hauts-elfes';
   sorc.pos = { ...pos };
   return sorc;

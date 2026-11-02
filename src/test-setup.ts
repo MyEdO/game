@@ -45,13 +45,6 @@
  *      qui ne remet à zéro qu'en `afterEach` rougit selon l'ordre des fichiers (#2404). Vidés
  *      AVANT chaque test (les témoins de retrait des saves y vivent), avec le témoin des calques
  *      (`__resetTraceLayerForTest`).
- *    - les REGISTRES D'ART du rig (cf. `rigArtRegistrySignatures` plus bas) : objets de module, donc
- *      partagés par tous les fichiers du worker. Un test qui en pose un le remet lui-même : on DÉTECTE
- *      leur dérive après chaque test, on échoue AU SITE qui l'a laissée, puis on remet EN PLACE la
- *      valeur capturée au chargement (`ART_RIG_ORIGINE`) — le test suivant part des tables d'origine.
- *      Un nettoyage `delete` sur une clé que le registre déclarait VRAIMENT amputait
- *      la plaque (gantelet/soleret/gorgerin) pour tous les fichiers suivants — CI rouge sur le golden
- *      de combat et `enemyProfile`, verte en local, selon l'ordre des fichiers du worker (2026-07-29).
  *
  * 2. FILET D'ISOLATION DES TIMERS. Le combat planifie l'IA et l'enchaînement des tours via de VRAIS
  *    `setTimeout` (`combatFlow.ts`/`combatDirector.ts`/`combatAuto.ts`, via `programmer` de
@@ -82,7 +75,7 @@
  * 5. GARDE DE PARTAGE (`partagesDeLEtat`, `afterEach`, #2097) : l'état laissé par le test n'atteint
  *    aucune donnée par identité. Racines et sources : `scenes/partage.testkit.ts`.
  *
- * Les barrières §1 (art), §3, §4 et §5 jouent en TROIS temps : elles LISENT toutes les fuites, REMETTENT
+ * Les barrières §3, §4 et §5 jouent en TROIS temps : elles LISENT toutes les fuites, REMETTENT
  * l'état partagé à vierge, puis JUGENT par un seul `throw` qui joint tous les verdicts. Aucune ne
  * masque l'autre, et aucun résidu ne survit à son verdict pour accuser la victime suivante (#2286).
  */
@@ -105,156 +98,6 @@ import { __resetTraceLayerForTest } from './state/traceLayer';
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
 // immunisé à toute mutation du gabarit) ; chaque test n'en `parse` qu'une copie fraîche.
 const PRISTINE_STATE = JSON.stringify(useGame.getInitialState());
-
-/**
- * Modules d'art des parts du rig, énumérés STRUCTURELLEMENT (`import.meta.glob` eager) : une famille
- * de parts déposée demain sous `parts/<famille>/` est couverte d'office, sans toucher ce fichier.
- * On prend `index.ts` (tables dérivées : `ARMOUR`, `TENUE_BY_ID`, `HEADS`…) ET `_registry.generated.ts`
- * (listes de defs : `HAIRSTYLE_DEFS`, `WEAPON_DEFS`… — `shields`/`weapons` n'ont pas d'`index.ts`).
- */
-const RIG_PART_MODULES = import.meta.glob<Record<string, unknown>>(
-  './gameIso/rig/parts/*/{index,_registry.generated}.ts',
-  { eager: true },
-);
-
-/** Poids d'une valeur d'art : somme des longueurs de ses chaînes et de ses clés, en profondeur.
- *  N'alloue rien (contrairement à `JSON.stringify`) : 1,17 ms l'empreinte des 42 registres (~4,37 Mo
- *  d'art) contre 9,55 ms pour un `JSON.stringify` équivalent — mesuré 2026-08-23, régime établi sur
- *  3 148 tests. Prise à CHAQUE `afterEach` (granularité = LE TEST), elle coûte 3,7 s des 40 s de
- *  `src/engine` en mono-worker, soit ~23 s de CPU cumulés sur les 19 584 tests de la suite. */
-const artWeight = (v: unknown, depth = 0): number => {
-  if (typeof v === 'string') return v.length;
-  if (v === null || v === undefined || typeof v === 'boolean') return 1;
-  if (typeof v === 'number') return 8;
-  if (typeof v !== 'object' || depth > 16) return 2;
-  let n = 0;
-  if (Array.isArray(v)) {
-    for (const e of v) n += 1 + artWeight(e, depth + 1);
-    return n;
-  }
-  for (const [k, e] of Object.entries(v as Record<string, unknown>)) n += k.length + artWeight(e, depth + 1);
-  return n;
-};
-
-/**
- * Signature PAR REGISTRE des tables d'art du rig : `clé:poids` par entrée, dans l'ordre de déclaration.
- * Détecte l'ajout, le retrait, le déplacement ET la SUBSTITUTION d'une valeur sous une clé existante
- * (`delete ARMOUR.plaque.pied` comme `ARMOUR.plaque.pied = '<g/>'` changent le poids de `plaque`).
- *
- * Angles morts ASSUMÉS, nominatifs :
- * - substitution de poids cumulé EXACTEMENT identique ;
- * - exports FONCTION, non pesables : `appendageArt`/`appendageFeature` (appendages), `feat`/
- *   `featureMorpho`/`elementsOf` (elements), `swapEye`/`applyEyes`/`eyesArtFromKeys` (eyes),
- *   `hairstylesForSex` (hairstyles) — aucun ne détient d'art, tous lisent une table pesée ici ;
- * - un `Map`/`Set` pèserait 0 (aucun à ce jour parmi les exports de `parts/*`) ;
- * - les registres d'art hors `parts/` : `rig/creatures/`, `rig/plans/`, `gameIso/catalog/`.
- */
-export function rigArtRegistrySignatures(): Map<string, string> {
-  const sigs = new Map<string, string>();
-  for (const [cle, reg] of registresArtRig()) {
-    const parts: string[] = [];
-    for (const [k, entry] of Object.entries(reg)) {
-      const id = entry && typeof entry === 'object' && typeof (entry as { id?: unknown }).id === 'string'
-        ? (entry as { id: string }).id
-        : k;
-      parts.push(`${id}:${artWeight(entry)}`);
-    }
-    sigs.set(cle, parts.join('|'));
-  }
-  return sigs;
-}
-
-/** Registres d'art du rig, clé `famille#export` : l'unique énumération que signent les signatures et
- *  que la remise restaure. */
-function registresArtRig(): Map<string, Record<string, unknown>> {
-  const regs = new Map<string, Record<string, unknown>>();
-  for (const [path, mod] of Object.entries(RIG_PART_MODULES)) {
-    const family = path.split('/parts/')[1] ?? path;
-    for (const [name, reg] of Object.entries(mod)) {
-      if (reg && typeof reg === 'object') regs.set(`${family}#${name}`, reg as Record<string, unknown>);
-    }
-  }
-  return regs;
-}
-
-type ArtObjet = Record<string, unknown>;
-
-/** Cliché d'un objet d'art : la RÉFÉRENCE de l'objet et ses entrées dans l'ordre, chaque valeur objet
- *  clichée à son tour. Garder les références (et non une copie) rend la remise EXACTE : un objet
- *  imbriqué retiré ou substitué est remis lui-même, identité comprise. */
-class ClicheArt {
-  entrees: [string, unknown][] = [];
-  constructor(readonly ref: ArtObjet, readonly longueur: number | null) {}
-}
-
-function clicherArt(v: unknown, vus = new Map<object, ClicheArt>()): unknown {
-  if (v === null || typeof v !== 'object') return v;
-  const deja = vus.get(v);
-  if (deja) return deja;
-  const c = new ClicheArt(v as ArtObjet, Array.isArray(v) ? v.length : null);
-  vus.set(v, c);
-  for (const [k, e] of Object.entries(v)) c.entrees.push([k, clicherArt(e, vus)]);
-  return c;
-}
-
-/** Remet l'objet cliché EN PLACE : longueur, ordre des clés, valeurs et objets imbriqués d'origine.
- *  Rien n'est écrit là où rien n'a bougé (un sous-objet gelé reste intouché). */
-function remettreArt(c: ClicheArt, vus = new Set<ClicheArt>()): void {
-  if (vus.has(c)) return;
-  vus.add(c);
-  const o = c.ref;
-  if (c.longueur !== null) {
-    if ((o as unknown as unknown[]).length !== c.longueur) (o as unknown as unknown[]).length = c.longueur;
-  } else {
-    const cles = Object.keys(o);
-    if (cles.length !== c.entrees.length || c.entrees.some(([k], i) => k !== cles[i])) {
-      for (const k of cles) delete o[k];
-    }
-  }
-  for (const [k, e] of c.entrees) {
-    const attendu = e instanceof ClicheArt ? e.ref : e;
-    if (o[k] !== attendu || !(k in o)) o[k] = attendu;
-    if (e instanceof ClicheArt) remettreArt(e, vus);
-  }
-}
-
-const PRISTINE_RIG_REGISTRIES = rigArtRegistrySignatures();
-/** Cliché d'ORIGINE de chaque registre d'art, pris une fois au chargement du worker : la source de
- *  la remise après une dérive. */
-const ART_RIG_ORIGINE = new Map([...registresArtRig()].map(([cle, reg]) => [cle, clicherArt(reg) as ClicheArt]));
-
-/** Dérive de chaque registre d'art par rapport à l'origine : ligne de verdict par registre dérivé. */
-function deriveArtRig(): Map<string, string> {
-  const now = rigArtRegistrySignatures();
-  const drifted = new Map<string, string>();
-  for (const [reg, sig] of now) {
-    const was = PRISTINE_RIG_REGISTRIES.get(reg);
-    if (was === sig) continue;
-    drifted.set(reg, was === undefined
-      ? `${reg} : registre APPARU`
-      : `${reg}\n  attendu = ${was}\n  obtenu  = ${sig}`);
-  }
-  for (const reg of PRISTINE_RIG_REGISTRIES.keys()) if (!now.has(reg)) drifted.set(reg, `${reg} : registre DISPARU`);
-  return drifted;
-}
-
-/** Remet en place, à leur valeur d'origine, les registres d'art nommés. */
-function remettreArtRig(cles: Iterable<string>): void {
-  for (const cle of cles) {
-    const origine = ART_RIG_ORIGINE.get(cle);
-    if (origine) remettreArt(origine);
-  }
-}
-
-/** Verdict de la barrière d'art : message nommant le fichier et les registres dérivés, ou `null`. */
-export function messageDeriveArt(fichier: string, derives: readonly string[]): string | null {
-  if (!derives.length) return null;
-  return (
-    `Registre d'art du rig laissé MUTÉ par ${fichier} (les tables de gameIso/rig/parts sont partagées par le worker).\n`
-    + `Capturer la valeur d'origine et la REMETTRE (jamais un \`delete\` sec sur une clé déclarée).\n`
-    + derives.join('\n')
-  );
-}
 
 /** Description d'un nœud ÉLÉMENT résiduel : `<tag class="…">`, jamais son contenu (le nom suffit à
  *  retrouver le montage fautif, le contenu ferait un message illisible). */
@@ -457,15 +300,13 @@ afterEach(() => {
   resetSceneRegistry();
   vi.useRealTimers();
   clearTrackedTimers();
-  // Barrières §1 (art), §3 (nœuds), §4 (racines, act) et §5 (partage) en trois temps — cf. fin de l'en-tête.
+  // Barrières §3 (nœuds), §4 (racines, act) et §5 (partage) en trois temps — cf. fin de l'en-tête.
   // Observées au hook le plus EXTERNE, donc APRÈS les `afterEach` du fichier (démontage, `cleanup()`).
   // 1. LIRE toutes les fuites de CE test.
   const fichier = cleFichierTest(expect.getState().testPath);
   const residusBody = typeof document !== 'undefined' ? residusDom(document.body) : [];
   const residusHead = typeof document !== 'undefined' ? residusDom(document.head) : [];
-  const derivesArt = deriveArtRig();
   // 2. REMETTRE l'état partagé à vierge : aucun résidu ne survit à son verdict.
-  remettreArtRig(derivesArt.keys());
   if (typeof document !== 'undefined') {
     document.body.replaceChildren();
     document.head.replaceChildren();
@@ -476,7 +317,6 @@ afterEach(() => {
     messageResiduDom(fichier, 'document.head', residusHead),
     messageRacineMontee(racinesFuites),
     messageActEnVol(fichier, fileNeuve),
-    messageDeriveArt(fichier, [...derivesArt.values()]),
     messagePartage(partages),
   ].filter((m): m is string => m !== null);
   if (verdicts.length) throw new Error(verdicts.join('\n'));

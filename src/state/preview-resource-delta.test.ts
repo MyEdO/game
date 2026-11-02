@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { previewResourceDelta } from '../noyau/combatFlow';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * `previewResourceDelta` (retour « clignotant » des gouttières de l'arche) lit le coût/gain de
@@ -28,7 +29,7 @@ describe('previewResourceDelta — coût/gain de l’aperçu, zéro valeur en du
     expect(d({ ...base, adv: 1 })).toEqual({ action: 1, move: 0, adv: 1 }); // battle mince sans actif → MV inconnu = 0
     expect(d({ ...base, adv: 0 }).adv).toBe(0); // si chargeAdvantage renvoie 0, le clignotant suit
     // Avec un combat complet, la Charge montre TOUT le Mouvement consommé (mountMovement).
-    const battle = { preview: { ...base, adv: 1 }, combatants: [{ id: 'h', kind: 'hero', movement: 4, conditions: [], wounds: { current: 9, max: 9 }, characteristics: { force: 30, endurance: 30, agilite: 30 }, weapons: [], armour: {}, skills: [], talents: [] }], order: ['h'], turn: 0 } as never;
+    const battle = { preview: { ...base, adv: 1 }, combatants: [blessuresSurLeProfil({ id: 'h', kind: 'hero', movement: 4, conditions: [], wounds: blessuresDeBase(9), characteristics: { force: 30, endurance: 30, agilite: 30 }, weapons: [], armour: {}, skills: [], talents: [] })], order: ['h'], turn: 0 } as never;
     expect(previewResourceDelta(battle).move).toBe(4);
   });
   it('Déplacer-puis-attaquer → 1 Action + Mouvement lu sur preview.cost', () => {

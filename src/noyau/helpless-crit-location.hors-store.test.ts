@@ -4,6 +4,7 @@ import { draineCascade } from './cascade.testkit';
 import { doAttack } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,7 +34,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // adjacent → frappe directe, pas de charge/approche
-    E.wounds = { current: 30, max: 30 } as never;
+    E.wounds = blessuresDeBase(30, 30, E);
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, movementUsed: 0, movedPreAction: false, acted: false } });

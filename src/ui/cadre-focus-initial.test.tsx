@@ -19,6 +19,7 @@ import type { Combatant } from '../engine/types';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';
 import { tacheSuivante } from './focus.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -176,10 +177,10 @@ describe('repli du focus — un geste du dialogue, jamais une jauge', () => {
 
 const CARAC = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
 const heros = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({ id, name: id, label: id, kind: 'hero', characteristics: { ...CARAC }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-     weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 4, max: 12 }, resilience: 2, fortune: 2,
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'hero', characteristics: { ...CARAC }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+     weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12, 4), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over } as unknown as Combatant);
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
 
 describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre, rendu à son invocateur, n’ouvre aucune bulle', () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 /**
- * FAÇADE des couleurs d'IDENTITÉ d'unité (anneaux des pions + portraits HUD) et de la couleur d'une
- * barre de vie. Utilisée par le rendu de carte (`SurcoucheIso`, surcouche de jetons) ET par le HUD
+ * FAÇADE des couleurs d'IDENTITÉ d'unité (anneaux des pions), de la couleur d'une barre de vie et du
+ * ton d'alarme du repli visible. Utilisée par le rendu de carte (`SurcoucheIso`, surcouche de jetons) ET par le HUD
  * React (CombatConsole, CampaignView) — pas de duplication. La DONNÉE vit dans `src/data/teintesJeu.json`
  * (schéma et invariants : `src/data/schemas/defs/teintesJeu.ts`), qui sert aussi les surbrillances
  * d'arène par l'autre façade (`highlightTints.ts`).
@@ -10,16 +10,18 @@ import { teintesJeu } from '../data';
 /** Anneau jaune de l'unité active sur le terrain (réservé : ne JAMAIS l'utiliser pour une équipe). */
 export const ACTIVE_RING = teintesJeu['anneau-actif'];
 
-/** Anneau des ennemis (rouge — réservé : ne JAMAIS l'utiliser pour un héros) : le cran NON-HÉROS de
+/** Anneau des ennemis (rouge — réservé : ne JAMAIS l'utiliser pour un héros ou un PNJ) : le cran ENNEMI de
  *  l'axe d'identité par unité, frère des quatre `HERO_RING`. Son octet égale celui d'`ENEMY_TINT`
  *  (axe d'APPARTENANCE) ; le partage est déclaré au schéma (`PARTAGES_NOMMES`) et les deux entrées
  *  restent distinctes — retirer le rouge de l'anneau ne retire pas le rouge de la case. */
 export const ENEMY_RING = teintesJeu['anneau-ennemi'];
 
+/** Identité des unités hors groupe : héros sans rang et PNJ, indépendante de leur relation. */
+export const OUT_OF_PARTY_RING = teintesJeu['anneau-hors-groupe'];
+
 /**
- * Anneaux d'identité des héros (un par héros, cyclique). 4 couleurs FROIDES distinctes,
- * choisies pour qu'AUCUNE ne puisse se confondre avec le rouge ennemi ni le jaune actif
- * (c'était le bug « un allié a un rond rouge » : l'or et le magenta tiraient vers le chaud).
+ * Anneaux d'identité des quatre héros du groupe, dans l'ordre du groupe.
+ * Ces quatre couleurs froides se distinguent du rouge ennemi et du jaune actif.
  * La séparation des quatre est un INVARIANT mesuré au schéma (`SEUIL_IDENTITE_HEROS`).
  */
 export const HERO_RING = [
@@ -41,8 +43,8 @@ export const ENEMY_TINT = teintesJeu['equipe-ennemi'];
 /** MÊME entrée que `ACTIVE_RING` et que le halo de case (`ACTIVE_HALO_TINT`, `highlightTints.ts`) :
  *  un seul signal « voici l'unité qui joue », trois surfaces. */
 export const ACTIVE_TINT = teintesJeu['anneau-actif'];
-/** Cible NEUTRE (npc) : or/jaune — distinct du jaune ACTIF réservé (`anneau-actif`) ; son partage
- *  d'octet avec l'or du joueur est NOMMÉ au schéma (`PARTAGES_NOMMES`, `schemas/defs/teintesJeu.ts`). */
+/** Relation NEUTRE : or/jaune ; son partage d'octet avec l'or du joueur est NOMMÉ au schéma
+ *  (`PARTAGES_NOMMES`, `schemas/defs/teintesJeu.ts`). L'identité hors groupe lit `OUT_OF_PARTY_RING`. */
 export const NEUTRAL_TINT = teintesJeu['equipe-neutre'];
 
 /** Couleur de la RELATION d'une cible au survol/visée (réticule + halo) : adversaire rouge, allié
@@ -58,18 +60,24 @@ export function tileTint(isHero: boolean, active: boolean): string {
 
 /**
  * Canal d'appartenance INDÉPENDANT de la teinte (R9 — daltonisme ~8 % des hommes) : la FORME de l'anneau
- * encode l'équipe en plus de sa couleur. Héros = anneau PLEIN (undefined) ; ennemi = anneau POINTILLÉ.
+ * encode l'équipe en plus de sa couleur. Ennemi = anneau POINTILLÉ ; toute autre unité = trait PLEIN.
  * Renvoie un `strokeDasharray` SVG (ou undefined pour un trait plein). Source unique consommée par les
- * pions de terrain (`stage/TokenChromeOverlay`) et les portraits HUD (RigPortrait).
+ * pions de terrain (`stage/TokenChromeOverlay`).
  */
-export function teamShape(isHero: boolean): string | undefined {
-  return isHero ? undefined : '5 3';
+export function teamShape(isEnemy: boolean): string | undefined {
+  return isEnemy ? '5 3' : undefined;
 }
 
 /** Couleur du VOILE d'équipe sur le modèle (encode l'équipe ; l'« actif » est porté par le halo/la case). */
 export function veilTint(isHero: boolean): string {
   return isHero ? ALLY_TINT : ENEMY_TINT;
 }
+
+/** Ton d'ALARME du repli visible (#223, #877) — SOURCE UNIQUE, partagée par l'art de repli
+ *  (`catalog/viewArt.ts` `MISSING_ART`) et les entrées de repli des catalogues (`catalog/missing.ts`). */
+export const MISSING_TONE = '#ff2fb0';
+/** Fond sourd de la caisse d'alarme (contraste du ton criard). */
+export const MISSING_TONE_DARK = '#2a0820';
 
 /**
  * Couleur PLEINE d'une barre de vie selon le ratio (PB courant / max) :

@@ -5,6 +5,7 @@ import { meleeWarMachineHullOf, isMeleeWarMachine } from '../noyau/siegePush';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { GameState } from './store';
 import type { Scene } from '../noyau/monde/scene';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * #210 Lot 2 — l'attaque d'une pièce de MÊLÉE servie (bélier, ADE II 8 l.233) est ancrée à la
@@ -19,15 +20,15 @@ const ramPoste: ShipPoste = { item: ramWeapon as never, crewIds: ['chef'] };
 const cannonPoste: ShipPoste = { item: cannonWeapon as never, crewIds: ['chef'] };
 
 const combatant = (over: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'chef', name: 'Chef', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 50, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [{ name: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 10 }, reach: 'Moyenne', qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'machine-de-guerre', uid: 'ram-w' }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, bodyShape: 'humanoide',
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const hull = (pos: { x: number; y: number }, poste: ShipPoste, footprint?: number): Combatant =>
   ({ id: 'hull', name: 'Affût', kind: 'ally', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, postes: [poste], footprint, bodyShape: 'engin', inert: true }) as unknown as Combatant;

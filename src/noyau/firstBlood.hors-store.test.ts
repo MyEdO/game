@@ -7,6 +7,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
 import type { Scene } from './monde/scene';
 import type { Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -34,7 +35,7 @@ function setup(scene: Scene = testScene()) {
 describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
   it("un coup à PILE le seuil (3 Blessures, défaut) → le combat CONTINUE (« plus de 3 »)", () => {
     const { H, E } = setup();
-    E.wounds = { current: 10, max: 10, base: 10 } as never;
+    E.wounds = blessuresDeBase(10, 10, E);
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
@@ -50,7 +51,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
 
   it("un coup à seuil+1 (4 Blessures) → premier sang, la cible TOUCHÉE est le perdant, journal explicite", () => {
     const { H, E } = setup();
-    E.wounds = { current: 10, max: 10, base: 10 } as never;
+    E.wounds = blessuresDeBase(10, 10, E);
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 4, woundsLost: 4,
@@ -81,7 +82,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
 
   it("seuil ÉDITÉ en donnée (5) → un coup à 5 continue, à 6 termine", () => {
     const { H, E } = setup();
-    E.wounds = { current: 10, max: 10, base: 10 } as never;
+    E.wounds = blessuresDeBase(10, 10, E);
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood', threshold: 5 } } });
     const res5: AttackResult = {
       hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 5, woundsLost: 5,
@@ -95,7 +96,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
       critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
     };
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
-    e.wounds = { current: 10, max: 10, base: 10 } as never; // frais : le 1er coup (≤ seuil) ne doit pas biaiser le 2e par clampage
+    e.wounds = blessuresDeBase(10, 10, e); // frais : le 1er coup (≤ seuil) ne doit pas biaiser le 2e par clampage
     applyAttackResult(banc.getState, banc.setState, H, e, H.weapons[0], res6);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.exitReason).toBe('firstBlood');
   });
@@ -167,7 +168,7 @@ describe('Duel judiciaire — premier sang mesuré sur le coup FINALISÉ (#471 d
   it('coup relancé au Bras gauche (1 Blessure) + Coupure profonde (+3, LDB 18) = 4 > seuil 3 → premier sang déclenché', () => {
     const { H, E } = setup();
     E.important = true; // LDB 18 l.44 : hors Mort subite
-    E.wounds = { current: 20, max: 20, base: 20 } as never;
+    E.wounds = blessuresDeBase(20, 20, E);
     E.armour = { corps: 0, tete: 0, brasD: 0, brasG: 0, jambeD: 0, jambeG: 0 } as never;
     banc.getState().seedRng(1); // graine calibrée : table du Bras, « Coupure profonde » (+3 Blessures)
     banc.setState({ battle: { ...banc.getState().battle!, victoryCondition: { type: 'firstBlood' } } });

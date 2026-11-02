@@ -14,11 +14,9 @@
  * zéro objet neuf. Un pas, un quart de tour, une heure qui avance ne changent AUCUNE identité : ils ne
  * doivent donc toucher à aucun objet de la scène.
  *
- * LE PONT uuid → identité. L'identité est celle du SUJET (`backends/webgl/sceneMeshes`) ; c'est le quad
- * de CORPS qui la porte côté scène, sur son `name` (`stage/GameStage3D`, passe de montage), son disque
- * d'ombre de contact aussi, et le jumeau de silhouette l'hérite de son parent. C'est ce pont qui rend
- * la batterie NON déclarative : le test ne dit jamais « ce geste change telle identité », il RELÈVE
- * `I` et `I'` sur la scène montée.
+ * LE PONT uuid → identité : chaque billboard de décor porte son identité de sujet sur son `name` ;
+ * les marques dynamiques portent l’identité de leur pool. Le relevé lit ces identités et leurs objets
+ * dans la scène montée.
  *
  * PÉRIMÈTRE MESURÉ : l'écran de campagne (`ui/CampaignView`) monté sur le hub de l'arène — scène
  * RÉELLE, bâtiments, toitures, une soixantaine de sujets — et sur la scène de combat de la fixture.
@@ -55,7 +53,7 @@ import { poigneesEnAttente } from './texturesStatiques';
 import {
   BancRenderer,
   PLAFOND_ATTENTE_MS,
-  attendreQuads,
+  canevas,
   attendreQue,
   brancherArdoise,
   quads,
@@ -193,8 +191,7 @@ interface Relevé {
 
 const dernièreScène = (): THREE.Scene | undefined => scènes[scènes.length - 1];
 
-/** L'identité qu'un objet PORTE : la sienne, ou celle de son plus proche ancêtre qui en porte une (le
- *  jumeau de silhouette est un enfant du quad de corps). */
+/** L'identité portée par l'objet ou son plus proche ancêtre identifié. */
 function identitéPortée(o: THREE.Object3D, identités: ReadonlySet<string>): string | null {
   for (let n: THREE.Object3D | null = o; n; n = n.parent) {
     if (n.name && identités.has(n.name)) return n.name;
@@ -203,10 +200,10 @@ function identitéPortée(o: THREE.Object3D, identités: ReadonlySet<string>): s
 }
 
 function relever(): Relevé {
-  // `I` = les identités de sujet portées par la scène : le `name` des quads de corps montés. La
-  // rétention des boards se fait sur cette même identité (`GameStage3D`, passe de montage), donc un
-  // quad vit exactement tant que son identité est voulue.
   const identités = new Set(quads().map((m) => m.name));
+  dernièreScène()?.traverse((o) => {
+    if (o.name.startsWith('marquesDyn:')) identités.add(o.name);
+  });
   const objets = new Map<string, Objet>();
   dernièreScène()?.traverse((o) => {
     objets.set(o.uuid, { desc: `${o.type}|${o.name || '—'}`, identité: identitéPortée(o, identités) });
@@ -299,7 +296,15 @@ const dégagées = (): string => {
 /** Les cases que le brouillard a levées sur la scène courante (`store.explored`, keyé par scène). */
 const explorées = (): number => useGame.getState().explored[useGame.getState().scene!.id]?.length ?? 0;
 
-async function monterÉcran(scene: Scene, pos: { x: number; y: number }, quadsAttendus: number): Promise<void> {
+async function attendrePopulation(): Promise<void> {
+  const decorAttendu = (): number => Number(canevas(hôte!).dataset.sujets);
+  const anneau = (): THREE.InstancedMesh | undefined => dernièreScène()?.getObjectByName('marquesDyn:anneau') as THREE.InstancedMesh | undefined;
+  await attendre(() => quads().length === decorAttendu() && (anneau()?.count ?? 0) > 0);
+  expect(quads().length, 'chaque sujet de décor annoncé porte son billboard').toBe(decorAttendu());
+  expect(anneau()?.count, 'les acteurs postés portent leurs anneaux').toBeGreaterThan(0);
+}
+
+async function monterÉcran(scene: Scene, pos: { x: number; y: number }): Promise<void> {
   viderCaptures();
   useGame.setState({
     scene,
@@ -316,19 +321,14 @@ async function monterÉcran(scene: Scene, pos: { x: number; y: number }, quadsAt
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(<CampaignView />); });
-  await attendreQuads(quadsAttendus, PLAFOND_ATTENTE_MS);
-  // `attendreQuads` est un PLAFOND : il rend la main au budget épuisé, sans lever. Le PLANCHER est
-  // ici, et il est une assertion : une file du cuiseur qui n'a servi que trois quads laisserait le
-  // banc mesurer la conservation d'un écran presque vide, et le dire vert.
-  expect(quads().length, `${quadsAttendus} quads attendus sur cet écran, ${quads().length} servis`)
-    .toBeGreaterThanOrEqual(quadsAttendus);
+  await attendrePopulation();
   // Le relevé d'AVANT se prend sur un écran au repos : une file du montage qui sert encore monterait
   // ses quads pendant le geste, et le prédicat les compterait à sa charge.
   await attendreRepos('le montage doit être servi avant le relevé d’avant');
 }
 
 /** Le hub monté au départ authoré, décor servi. */
-const monterHub = (): Promise<void> => monterÉcran(HUB, DÉPART, 30);
+const monterHub = (): Promise<void> => monterÉcran(HUB, DÉPART);
 
 /** La scène de COMBAT de la fixture, montée puis engagée jusqu'à la pause de début de round levée :
  *  c'est l'état où un tour se joue et où la frise se survole. */
@@ -340,14 +340,12 @@ async function monterCombat(): Promise<void> {
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(<CampaignView />); });
-  await attendreQuads(4, PLAFOND_ATTENTE_MS);
+  await attendrePopulation();
   await act(async () => { useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); });
   await attendreRepos('l’engagement du combat doit être servi');
   await act(async () => { useGame.getState().confirmRoundStart(); });
   await attendreRepos('la levée de la pause de début de round doit être servie');
-  // Le PLANCHER de population, au poste de mesure : le groupe et ses adversaires montés (cf.
-  // `monterÉcran`, même raison).
-  expect(quads().length, `4 quads attendus au round engagé, ${quads().length} servis`).toBeGreaterThanOrEqual(4);
+  await attendrePopulation();
 }
 
 // ————————————————————————————————————————————————
@@ -454,7 +452,7 @@ afterEach(() => {
 describe('Murage par identité — un objet ne naît et ne meurt qu’avec son sujet (#1401)', () => {
   it.each(BATTERIE.map((g) => [g.nom, g] as const))('%s', async (_nom, geste) => {
     await geste.monter();
-    // PRÉMISSES — sans quads montés, « rien n'a bougé » serait vrai du vide.
+    // #1401
     const avant = relever();
     expect(avant.identités.size, 'aucun sujet monté : ce geste ne mesure rien').toBeGreaterThan(0);
     expect(avant.objets.size, 'aucun objet dans la scène : ce geste ne mesure rien').toBeGreaterThan(avant.identités.size);

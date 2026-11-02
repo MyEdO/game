@@ -10,7 +10,6 @@ import { EXTS_IMPLEMENTANTES, RACINES_DU_CODE, fichiersCitants } from './lib/fic
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
 export const RAWDIR = 'docs/raw'
-const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture, pas une règle
 // Manifests ÉDITORIAUX de `src/data/` : ils parlent DU dépôt (dette d'un topic, inventaire d'une
 // donnée), ils n'appliquent aucune règle. Leurs réfs sont de la méta, jamais une implémentation.
 // La classe est TOUT `src/data/*.manifest.json` : un nom de fichier n'a pas à être deviné ici.
@@ -30,9 +29,9 @@ export const CLASSES = ['fiche']
  *  (`parseFiche` et `reconcile`) : le stem PORTE le cœur, sans quoi deux cœurs collisionneraient sur
  *  le même id de topic. */
 export const stemDeFiche = (relatif) => relatif.replace(/\.md$/, '')
-/** Fichier de `src/` qui n'IMPLÉMENTE rien — art de couverture du rig, manifest éditorial : ses
+/** Fichier de `src/` qui n'IMPLÉMENTE rien — manifest éditorial : ses
  *  réfs ne comptent jamais pour l'implémentation d'un topic. Seule exclusion de `indexCode`. */
-export const estHorsImplementation = (rel) => rel.startsWith(EXCLUDE_SRC_PREFIX) || MANIFEST_EDITORIAL_RE.test(rel)
+export const estHorsImplementation = (rel) => MANIFEST_EDITORIAL_RE.test(rel)
 // Rang du livre dans `BOOKS` (= son rang dans `books.json`), pour l'ordre des puces.
 const RANG_DU_LIVRE = new Map(BOOKS.map(([abbr], i) => [abbr, i]))
 

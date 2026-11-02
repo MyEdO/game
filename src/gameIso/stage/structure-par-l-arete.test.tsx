@@ -38,10 +38,6 @@ import { AreteOverlay } from './AreteOverlay';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
-// jsdom n'a pas de layout : le hit-test natif de la voie AFFINE (`stage/spritePicker.ts`) n'existe pas.
-// On le pose NUL — aucun corps peint sous le pixel —, l'état que la chaîne traite en tombant sur ses
-// étages suivants, dont l'arête. En combat, `tireLeRayon` l'interroge à chaque pixel.
-Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => null });
 // `matches: true` = pointeur FIN (souris), défaut de ce banc. `restoreMocks: true` (vite.config.ts)
 // rend le `vi.fn()` nu entre deux tests.
 beforeEach(() => {
@@ -286,7 +282,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     expect(pointer!.areteSurvolee?.cid).toBe(CID);
   });
 
-  it('le peintre pose le `data-cid` du Combattant-mur et le curseur d’une CIBLE, sans rien peindre de plus', () => {
+  it('le peintre pose le trait du Combattant-mur et le curseur d’une CIBLE, sans rien peindre de plus', () => {
     const aretes = offre(bataille([heros, mur]));
     const container = document.createElement('div');
     document.body.append(container);
@@ -297,7 +293,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
       </svg>,
     ));
 
-    const cible = container.querySelector(`[data-cid="${CID}"]`)!;
+    const cible = container.querySelector('line[data-arete-cible]')!;
     const [a, b] = tileEdge(1, 1, 'E', dims, 0);
     expect(cible.getAttribute('x1')).toBe(String(a.cx));
     expect(cible.getAttribute('y1')).toBe(String(a.cy));

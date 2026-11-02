@@ -9,8 +9,9 @@ import type { Dims } from '../../geometry/iso';
 import { DIR8_DELTA, type Dir8 } from '../../geometry/dir8';
 import { TokenChromeOverlay } from './TokenChromeOverlay';
 import { tokenChrome, type TokenChromeMark } from '../builders/tokenChrome';
-import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
+import { combatantTokenScale } from '../sizeScale';
 import { discCapPath, teamRingDecor } from '../builders/dynamicMarks';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 
 /**
@@ -27,13 +28,13 @@ import { discCapPath, teamRingDecor } from '../builders/dynamicMarks';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
-    wounds: { current: 9, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12, 9), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** La marque d'un jeton posté, telle que le builder la dérive (`builders/tokenChrome`). */
@@ -44,9 +45,7 @@ function marque(c: Combatant): TokenChromeMark {
     cell: { x: c.pos!.x, y: c.pos!.y, z: 0 },
     n: 1,
     scaleK: combatantTokenScale(c),
-    bodyTopFrac: combatantBodyTopFrac(c),
     team: teamRingDecor(c, 0),
-    subject: { kind: 'combatant', combatant: c },
     ...tokenChrome(c, { ghostIds: new Set<string>(), hoveredId: null }),
   };
 }

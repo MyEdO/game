@@ -41,6 +41,7 @@ import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const CONSOLE_SRC = src('../ui/console/CombatConsole.tsx');
@@ -210,11 +211,11 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
     expect(sansVerdict, `interlude(s) sans verdict exitSafe :\n  ${sansVerdict.join('\n  ')}`).toEqual([]);
   });
   it('chaque action rend un VERDICT sur un état réel (aucun gate ne jette, aucune raison muette)', () => {
-    const active = {
-      id: 'H', kind: 'hero', advantage: 0, conditions: [], wounds: { current: 10, max: 10 },
+    const active = blessuresSurLeProfil({
+      id: 'H', kind: 'hero', advantage: 0, conditions: [], wounds: blessuresDeBase(10),
       weapons: [], items: [], skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 },
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    } as unknown as Parameters<typeof actionGate>[1]['active'];
+    }) as unknown as Parameters<typeof actionGate>[1]['active'];
     const battle = {
       combatants: [active], order: ['H'], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

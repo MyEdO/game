@@ -9,10 +9,6 @@
  * L'INVERSION DU PIXEL y est comprise (`pointStageSousPixel`) : c'est le dernier étage qui restait
  * tenu en double, et il divergeait par sa CAMÉRA — le geste inversait avec celle du rendu, la sonde
  * avec `store.camPan`, qui vaut (0,0) sur un écran centré sur le groupe.
- *
- * VERROU D'EXHAUSTIVITÉ (#1680 ligne 13) : ce module est le SEUL consommateur de la NATURE d'un
- * `PickResult`. Le `never` du défaut fait refuser par le compilateur une nature qu'aucune branche ne
- * nomme, là où une égalité sur `kind` la laisserait tomber en silence dans le repli de sol.
  */
 import { isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
 import { metricToLift } from '../../noyau/monde/relief';
@@ -20,7 +16,6 @@ import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { decorEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { resolveCursorZ } from '../../state/combatCursor';
 import { walkNeighbors, type Pt } from '../../noyau/monde/path';
-import { inBattleId } from '../../noyau/monde/combatants';
 import { sceneAUnPropVolumique } from '../builders/props';
 import { hasSpritePicker } from './spritePicker';
 import { distanceAuSegment, type AreteProjetee } from './aretesProjetees';
@@ -38,13 +33,13 @@ export interface EtatDePick extends EtatEtage {
 }
 
 /** Par quelle voie la case a été désignée. L'ordre de ce type EST celui de la chaîne. */
-export type PickVia = 'arete' | 'sprite' | 'decor' | 'meuble' | 'pas-etage' | 'sol' | 'aucune';
+export type PickVia = 'arete' | 'decor' | 'meuble' | 'pas-etage' | 'sol' | 'aucune';
 
 /** Verdict du picking sous un pixel : la case d'ANCRAGE (`null` = rien de dessiné), la NATURE de ce
  *  qui est frappé, et l'étage de la chaîne qui a tranché.
  *
- *  CE QUE CE TYPE FAIT (#1687) : le RAYON nomme l'entité qu'il a frappée (`nature: 'entite'`, `entId`)
- *  ou le combattant dont le jeton est sous le pixel (`nature: 'combattant'`, `cid`). Une case rendue
+ *  CE QUE CE TYPE FAIT (#1687) : le RAYON nomme le décor volumique qu'il a frappé (`nature: 'entite'`,
+ *  `entId`), l'étage d'arête nomme l'arête sous le pixel (`nature: 'arete'`). Une case rendue
  *  par un étage de SURFACE (meuble dessiné, pas inter-étages, case marchable, sol cross-couche) ne
  *  nomme RIEN d'autre : ces étages inversent une géométrie, ils ne devinent aucune identité. La lecture
  *  PAR POSITION — « quelles entités sont ancrées sur cette case ? » — est assumée, unique et vit
@@ -59,8 +54,7 @@ export type Verdict = {
   via: PickVia;
 } & (
   | { nature: 'case' }
-  | { nature: 'combattant' }
-  /** Entité de scène frappée PAR LE RAYON (décor volumique, PNJ…). */
+  /** Décor volumique frappé PAR LE RAYON. */
   | { nature: 'entite'; entId: string }
   /** ARÊTE utilisable sous le pixel (`noyau/aretes.ts`) : le geste qu'elle porte prime sur la case
    *  qu'elle borde. `tile` est son ANCRAGE — la case d'où le geste part. */
@@ -76,10 +70,9 @@ export const sceneLifts = memoByRef((scene: Scene): readonly number[] =>
     .sort((a, b) => b - a));
 
 /** La voie de rendu est-elle interrogée sous ce pixel ? Le hit-test tourne à CHAQUE `pointermove` et
- *  c'est lui qui coûte (la masse triangulée de la carte) : on ne le paie que là où sa réponse peut
- *  changer le verdict — en COMBAT (le jeton sous le pixel), et hors combat seulement si une voie
- *  volumique est inscrite ET que la scène porte un décor volumique, seule chose qu'un rayon MONDE
- *  puisse nommer. `hasSpritePicker` est une lecture de REGISTRE (le montage de `GameStage3D`) : c'est
+ *  c'est lui qui coûte (la masse triangulée de la carte) : il est tiré en COMBAT sans condition, et hors
+ *  combat seulement si une voie volumique est inscrite ET que la scène porte un décor volumique, seule
+ *  chose qu'un rayon MONDE puisse nommer. `hasSpritePicker` est une lecture de REGISTRE (le montage de `GameStage3D`) : c'est
  *  précisément ce que les deux porteurs doivent lire pareil. */
 export function tireLeRayon(st: EtatDePick): boolean {
   if (st.mode === 'battle' && st.battle) return true;
@@ -98,23 +91,9 @@ export function tireLeRayon(st: EtatDePick): boolean {
  */
 export function caseVisee(vise: PickResult, st: EtatDePick): Verdict | null {
   if (!vise) return null;
-  switch (vise.kind) {
-    case 'combatant': {
-      if (st.mode !== 'battle') return null;
-      const c = inBattleId(st.battle, vise.id);
-      if (!c?.pos) return null;
-      return { tile: { x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }, cid: c.id, via: 'sprite', nature: 'combattant' };
-    }
-    case 'entity': {
-      const e = st.scene?.entities.find((x) => x.id === vise.id);
-      if (!e) return null;
-      return { tile: { x: e.pos.x, y: e.pos.y, z: e.z ?? 0 }, cid: null, via: 'decor', nature: 'entite', entId: e.id };
-    }
-    default: {
-      const jamais: never = vise;
-      throw new Error(`nature de cible non traitée par la résolution de picking : ${JSON.stringify(jamais)}`);
-    }
-  }
+  const e = st.scene?.entities.find((x) => x.id === vise.id);
+  if (!e) return null;
+  return { tile: { x: e.pos.x, y: e.pos.y, z: e.z ?? 0 }, cid: null, via: 'decor', nature: 'entite', entId: e.id };
 }
 
 /** Point de PROJECTION du stage : le repère où `tileCenter`/`worldToScreen` dessinent. */

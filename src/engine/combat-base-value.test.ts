@@ -5,6 +5,7 @@ import { skillBaseValue } from './skills';
 import { COND } from './conditions';
 import { RULE_REF } from './ruleRefs';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // F=30,E=30 → BF+BE = 6 → capacité d'Encombrement 6 (LDB 61 l.5) : `enc:14` = palier 2 (−20 Ag).
 const chars = (over: Partial<Characteristics> = {}): Characteristics => ({
@@ -24,17 +25,17 @@ function hero(opts: {
 } = {}): Combatant {
   const enc = opts.enc ?? 0;
   const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'Sujet', kind: 'hero',
     characteristics: chars(),
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: opts.advantage ?? 0,
     conditions: opts.conditions ?? [],
     activeEffects: opts.activeEffects,
     weapons: [epee],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items, skills: opts.skills ?? [], talents: [], movement: 4, traumas: opts.traumas ?? [],
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const SKILLS_CC = [{ id: 'corps-a-corps', spec: 'epee', advances: 10 }] as unknown as Combatant['skills'];

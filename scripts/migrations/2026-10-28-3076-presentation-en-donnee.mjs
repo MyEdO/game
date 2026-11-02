@@ -2,9 +2,8 @@
  * Migration #3076 (#1463) — la présentation d'équipement passe des tables de code à l'entrée de donnée.
  *
  * GESTES :
- *  1. `weaponGroups.json` : un Groupe d'armure reçoit `couche` (rang de la couche affichée) et `art` (def de
- *     `src/gameIso/rig/parts/armour/defs/` qui peint sa matière) et `palierPA` (PA d'une armure de statbloc
- *     dessinée dans sa matière, `null` : aucune) ; un Groupe d'arme reçoit `forme` (racine d'apparence dessinée sans forme propre, `null` : rien
+ *  1. `weaponGroups.json` : un Groupe d'armure reçoit `couche` (rang de la couche affichée) et `palierPA` (PA
+ *     d'une armure de statbloc dessinée dans sa matière, `null` : aucune) ; un Groupe d'arme reçoit `forme` (racine d'apparence dessinée sans forme propre, `null` : rien
  *     en main) et `maniement` ; un Groupe d'arme ou de munition à poudre reçoit le marqueur `poudre`
  *     (LDB 62 l.99 ; LDB 62 l.129).
  *  2. `apparences.json` : une racine de forme d'arme reçoit son `maniement`.
@@ -15,7 +14,7 @@
  * un (révisée après la migration), ou absente, est laissée telle quelle.
  * FAIL-FAST — avant toute écriture, sortie 1, sur une entrée à poser : un fichier hors de son formatage ; une
  * `forme` qui n'est pas une racine de `apparences.json` ; un `maniement` posé sur une variante ; une entrée
- * d'un `kind` autre que celui du geste. L'`art` d'un Groupe d'armure est jugé au parse (`estArtDArmure`).
+ * d'un `kind` autre que celui du geste.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)` (sans saut de ligne final) ; les
  * champs posés s'insèrent avant `source`.
@@ -33,11 +32,11 @@ const F = {
 };
 
 const ARMURES = {
-  'cuir-souple': { couche: 0, art: 'cuir' },
-  'cuir-bouilli': { couche: 1, art: 'cuir' },
-  mailles: { couche: 2, art: 'maille' },
-  plate: { couche: 3, art: 'plaque' },
-  'armure-du-chaos': { couche: 4, art: 'plaque' },
+  'cuir-souple': { couche: 0 },
+  'cuir-bouilli': { couche: 1 },
+  mailles: { couche: 2 },
+  plate: { couche: 3 },
+  'armure-du-chaos': { couche: 4 },
 };
 const PALIERS_PA = { 'cuir-souple': 0, 'cuir-bouilli': null, mailles: 2, plate: 4, 'armure-du-chaos': null };
 const GROUPES_A_POUDRE = { 'poudre-noire': 'weapon', ingenierie: 'weapon', 'poudre-noire-et-ingenierie': 'ammo' };

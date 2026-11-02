@@ -5,6 +5,7 @@ import { battleSceneById } from './massBattleFlow';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste, ShipDeck, FireArc } from '../engine/types';
 import type { Scene } from './monde/scene';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * INDEX de Stations (postes d'artillerie) + résolveur d'ancre spatiale — PURS, sans store.
@@ -14,15 +15,15 @@ import type { Scene } from './monde/scene';
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const mkCrew = (id: string): Combatant =>
-  ({ id, name: id, kind: 'npc', characteristics: CHARS, conditions: [], skills: [], talents: [], weapons: [],
-    wounds: { current: 12, max: 12 } }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, name: id, kind: 'npc', characteristics: CHARS, conditions: [], skills: [], talents: [], weapons: [],
+    wounds: blessuresDeBase(12) })) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
   ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
 
 const mkHull = (id: string, kind: Combatant['kind'], postes: ShipPoste[], pos = { x: 5, y: 7 }, footprint?: number): Combatant =>
-  ({ id, name: id, kind, pos, conditions: [], skills: [], talents: [], weapons: [], postes,
-    ...(footprint ? { footprint } : {}), wounds: { current: 0, max: 0 } }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, name: id, kind, pos, conditions: [], skills: [], talents: [], weapons: [], postes,
+    ...(footprint ? { footprint } : {}), wounds: blessuresDeBase(0) })) as unknown as Combatant;
 
 describe('postesToStations — une Station par poste, ids/assignedIds/side/ref', () => {
   it('coque à 2 postes → 2 Stations avec id `poste:<hull>:<uid>` et le bon détail', () => {

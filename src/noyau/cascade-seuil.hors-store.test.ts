@@ -20,6 +20,7 @@ import type { BattleState } from './etat';
 import type { SeuilDeSauvegarde } from './pendings';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -84,14 +85,14 @@ describe('le seuil DÉCLARÉ à la porte voyage jusqu’à l’étape', () => {
  * du socle (`lireEnSeuil`) — jamais sur une chaîne recopiée.
  */
 describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le journal de COMBAT', () => {
-  const PORTEUR: Combatant = {
+  const PORTEUR: Combatant = blessuresSurLeProfil({
     id: 'ilyanwe', label: 'Ilyanwe la Voilée', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 
   /** Étape de sauvegarde telle que la porte la fabrique (`combatFlow.pousserSauvegarde`) : 1d10, seuil
    *  déclaré, porteur nommé — NON résolue, c'est la fenêtre (ici le test) qui jette ou POSE le dé. */

@@ -20,6 +20,7 @@ import { spellFlowFor } from '../engine/flowCore';
 import { learnableSpells } from '../engine/grimoire';
 import { CODEX } from '../ui/compendium/registry';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const RULE = 'magic-vdm-incantation';
 
@@ -31,14 +32,14 @@ const CARRIERS = (spells as unknown as { id: string; variants?: unknown[] }[])
 
 /** Sorcier de Shyish : Langue (Magick) + Focalisation, de quoi faire un vrai Test d'Incantation. */
 const sorcier = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'w', label: 'Sorcier', kind: 'hero', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
-    conditions: [], traits: [], groups: [], weapons: [], movement: 4, wounds: { current: 12, max: 12 },
+    conditions: [], traits: [], groups: [], weapons: [], movement: 4, wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'focalisation', spec: 'mort', advances: 30 }, { id: 'langue', spec: 'magick', advances: 30 }],
     talents: [{ talentId: 'magie-des-arcanes', spec: 'mort', times: 1 }],
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 describe('donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais par le livre)', () => {
   it('le catalogue porte exactement les 18 variantes curées, toutes sur `magic-vdm-incantation`', () => {

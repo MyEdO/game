@@ -7,19 +7,20 @@ import { hasCondition } from './conditions';
 import { applyOps } from './ops';
 import { deFixe, desDuTest } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Joue la MÉCANIQUE d'un résultat d'Ivresse (`drunkOps`) — reproduit `case 'intoxicate'` d'`applyOps`
  *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUpDissipate`). */
 const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { rng: desDuTest, effectId: 'ivresse' });
 
 function hero(E = 30): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', name: 'Gunnar', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: E, initiative: 30, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], activeEffects: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], activeEffects: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: [], skills: [], talents: [], traits: [], psychTraits: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** d10 forcé (int(1,10) → roll). */

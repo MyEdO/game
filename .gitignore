@@ -21,7 +21,7 @@ dist/
 .playwright-mcp/
 /*.png
 
-# Sorties de QC (planches/sprites de revue régénérables via les scripts _qc-*) — pas du source.
+# Sorties de QC (planches de revue régénérables par `scripts/qc/`) — pas du source.
 # C'étaient ~1000 fichiers non-suivis qui ralentissaient chaque commande git.
 # Le motif porte sur les ENTRÉES (`/*`) et non sur le dossier : git peut ainsi y descendre pour la
 # seule exception ci-dessous. `public/qc/baseline-affine/` est VERSIONNÉ (#1176 C3) : les vues du

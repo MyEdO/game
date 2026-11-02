@@ -52,7 +52,7 @@ function kindOf(key: string, v: unknown): FieldKind {
     // Record homogène : valeurs toutes nombres → grille de nombres ; toutes chaînes → grille de textes.
     if (vals.length > 0 && vals.every((x) => typeof x === 'number' || x === null)) return 'recordNumber';
     if (vals.length > 0 && vals.every((x) => typeof x === 'string')) return 'recordText';
-    // Objet de config hétérogène (ex. interludeEvents.fx, raceAppearance.eyes) → sous-formulaire inféré
+    // Objet de config hétérogène (ex. interludeEvents.fx) → sous-formulaire inféré
     // (récursif) plutôt que JSON brut — chaque sous-champ retrouve son kind structuré.
     return 'object';
   }

@@ -10,8 +10,9 @@ import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
 import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart, ANNEXES_SESSION_START } from './session-start.mjs'
 import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
-import { FICHIER_TENU, renommerResilient } from '../guards/lib/renommageResilient.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
+import { refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS, FENETRE_RESERVATION_MS, PLAFOND_VERROU_REGISTRE_MS } from './session-rejeu.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, ANNEXES_CODEX } from './session-codex.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
@@ -53,41 +54,6 @@ const identique = (a, b) => !!a && !!b && a.pid === b.pid && a.creation === b.cr
 const sommeil = (ms) => new Promise((r) => setTimeout(r, ms))
 const lireJSON = (chemin) => JSON.parse(fs.readFileSync(chemin, 'utf8'))
 
-/** Le refus porté par `erreur` : catégorie lue à son préfixe, `transitoire` pour une erreur fs d'un fichier tenu
- *  (`FICHIER_TENU`), `panne` sinon ; `retentable` de cette catégorie, raison sans préfixe. Seul juge du « retentable » du
- *  cycle de session (#3150). PURE. */
-export function refusSession(erreur) {
-  const message = erreur instanceof Error ? erreur.message : String(erreur)
-  const categorie = Object.keys(CATEGORIES_DE_REFUS).find((c) => message.startsWith(prefixeDeRefus(c))) ?? (FICHIER_TENU.has(erreur?.code) ? 'transitoire' : 'panne')
-  const prefixe = prefixeDeRefus(categorie)
-  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message, ...(erreur?.reprise ? { reprise: erreur.reprise } : {}) }
-}
-
-/** Le délai (ms) par défaut de `fermer` avant `ACK TIMEOUT`. Valeur maison. */
-export const DELAI_FERMETURE_MS = 30_000
-/** La fenêtre (ms) d'une réservation (`reserveJusqua`). Valeur maison. */
-const FENETRE_RESERVATION_MS = 60_000
-/** Le plafond (ms) d'attente du verrou du registre (`sousVerrou`). Valeur maison. */
-const PLAFOND_VERROU_REGISTRE_MS = 15_000
-
-/** La borne de rejeu d'un refus retentable, par site du cycle de session (#3150) : `supervision` couvre quatre plafonds du
- *  verrou du registre. */
-export const BORNES_DE_REJEU = Object.freeze({ supervision: 4 * PLAFOND_VERROU_REGISTRE_MS, arret: DELAI_FERMETURE_MS, demarrage: FENETRE_RESERVATION_MS })
-
-/** Le résultat de `geste`, rejoué tous les `pasMs` tant qu'il lève un refus `retentable` (`refusSession`) et que la série
- *  de refus ne dépasse pas `borneMs` (#3150). Un refus non retentable, ou retentable au-delà de la borne, est relevé tel quel. */
-export async function rejouer(geste, { borneMs, horloge = Date.now, dormir = sommeil, pasMs = 250 }) {
-  let serie = null
-  do {
-    try { return await geste() }
-    catch (e) {
-      if (!refusSession(e).retentable) throw e
-      serie ??= horloge()
-      if (horloge() - serie > borneMs) throw e
-      await dormir(pasMs)
-    }
-  } while (true)
-}
 
 export function envAgent(env) {
   return Object.fromEntries(Object.entries(env).filter(([cle]) => !/^(?:WFRP_SESSION_JETON|WFRP_SESSION_REVENDICATION|CLAUDE_CODE_CHILD_SESSION|CLAUDE_PROJECT_DIR)$/i.test(cle)))
@@ -296,18 +262,20 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     } })
     return { ...collection(), ...vue }
   }
-  const choisir = (cible, { attente = false, vue = reconcilier() } = {}) => {
+  const choisir = (cible, { vue = reconcilier() } = {}) => {
     const exact = vue.cartes.find((c) => c.sessionId === cible)
     if (exact) return exact
     const anomalie = vue.anomalies.find((a) => a.fichier === nomDeCarte(cible))
     if (anomalie) throw new Error(anomalie.raison)
     const pid = /^\d+$/.test(String(cible)) ? Number(cible) : null
-    const matches = vue.cartes.filter((c) => String(c.ticket) === String(cible) || c.nom === cible || (pid !== null && [c.controleur, c.agentProcessus].some((id) => id?.pid === pid && identique(vue.processus.get(pid), id))))
+    const tickets = vue.cartes.filter((c) => String(c.ticket) === String(cible))
+    const parPid = (c) => pid !== null && [c.controleur, c.agentProcessus].some((id) => id?.pid === pid && identique(vue.processus.get(pid), id))
+    const matches = vue.cartes.filter((c) => c.nom === cible || tickets.includes(c) || parPid(c))
+    if (tickets.length && matches.some((c) => parPid(c) && String(c.ticket) !== String(cible))) throw erreur('validation', 'CIBLE AMBIGUË : ticket et PID de sessions différentes ; utiliser le nom ou l’UUID')
     if (!matches.length) throw erreur('métier', 'NON INSCRIT : aucune session correspondante')
     const actives = matches.filter((c) => c.producteur !== PRODUCTEUR || !terminaux.has(c.etat))
-    if (actives.length > 1) throw erreur('validation', 'CIBLE AMBIGUË : plusieurs sessions actives, utiliser UUID')
+    if (actives.length > 1) throw erreur('validation', `CIBLE AMBIGUË : ${actives.map((c) => `${c.nom} (${c.sessionId})`).join(', ')} ; utiliser le nom ou l’UUID`)
     if (actives.length === 1) return actives[0]
-    if (!attente) throw erreur('métier', 'DÉJÀ SORTIE')
     return matches.sort((a, b) => Date.parse(b.date) - Date.parse(a.date) || b.sessionId.localeCompare(a.sessionId))[0]
   }
   const controle = (carte, vue = constater()) => {
@@ -349,12 +317,12 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const api = {
     lire, ecrireCarte, muter, constaterRecu,
     etat(cible) {
-      const choisie = choisir(cible, { attente: true })
+      const choisie = choisir(cible)
       if (choisie.producteur !== PRODUCTEUR) throw new Error(`${prefixeDeRefus('permission')} CARTE ÉTRANGÈRE`)
       return api.lister().cartes.find((c) => c.sessionId === choisie.sessionId)
     },
     async envoyer(cible, jeton, { message, requestId = randomUUID(), timeoutMs = 30_000 } = {}) {
-      const carte = choisir(cible, { attente: true })
+      const carte = choisir(cible)
       if (carte.producteur !== PRODUCTEUR) throw new Error(`${prefixeDeRefus('permission')} CARTE ÉTRANGÈRE`)
       capacite(carte, jeton)
       if (carte.agent !== 'codex') throw erreur('validation', `SESSION NON CODEX : agent ${carte.agent}`)
@@ -375,7 +343,12 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     reserver(p) {
       const vue = reconcilier()
       return sousVerrou(() => {
-        if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw erreur('métier', 'COLLISION : ticket ou nom déjà réservé')
+        if (/^\d+$/.test(p.nom) || /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(p.nom)) throw erreur('validation', 'NOM INVALIDE : nom numérique ou UUID réservé aux cibles ; préciser un autre --nom')
+        const registre = collection(), anomalie = registre.anomalies.find((a) => refusSession(new Error(a.raison)).retentable)
+        if (anomalie) throw new Error(anomalie.raison)
+        const actives = registre.cartes.filter((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat))
+        if (actives.some((c) => c.nom === p.nom)) throw erreur('métier', `COLLISION : nom ${p.nom} déjà réservé ; préciser un autre --nom`)
+        if (cheminComparable(p.worktree) !== cheminComparable(p.racine) && actives.some((c) => cheminComparable(c.worktree) === cheminComparable(p.worktree))) throw erreur('métier', 'COLLISION : worktree déjà réservé ; préciser --worktree vers un arbre distinct créé par ops:chantier')
         const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex'), nonceHook = randomBytes(32).toString('hex')
         const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + FENETRE_RESERVATION_MS, demarrageJusqua: horloge() + (p.hooks?.delaiMs ?? 60_000), empreinteNonceHook: empreinte(nonceHook), empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
         validerCarte(carte, fichierDe(sessionId))
@@ -388,7 +361,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     revendiquer,
     agentDemarre: (id, agentProcessus) => muter(id, (c) => { if (!agentProcessus?.creation) throw erreur('panne', 'IDENTITÉ AGENT ABSENTE'); c.agentProcessus = agentProcessus }),
     demanderArret(cible, jeton) {
-      const vue = reconcilier(), choisie = choisir(cible, { vue, attente: true })
+      const vue = reconcilier(), choisie = choisir(cible, { vue })
       return muter(choisie.sessionId, (c) => {
         capacite(c, jeton)
         if (!observationCourante(c, vue)) throw erreur('transitoire', 'OBSERVATION PÉRIMÉE : identités de session modifiées')
@@ -474,7 +447,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     },
     async attendre(cible, { timeoutMs = 60_000, depuis = 0, processusSeulement = false } = {}) {
       const vue = reconcilier()
-      const choisie = choisir(cible, { attente: true, vue }), id = choisie.sessionId, debut = horloge()
+      const choisie = choisir(cible, { vue }), id = choisie.sessionId, debut = horloge()
       if (!processusSeulement && choisie.producteur === PRODUCTEUR && choisie.agent === 'codex' && !terminaux.has(choisie.etat)) return veiller({ dossier, sessionId: id, depuis, timeoutMs })
       do {
         const c = lire(id)

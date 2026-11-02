@@ -3,6 +3,7 @@ import { Combatant } from '../../engine/types';
 import { findTalentById, specPoolOf } from '../../data';
 import { buildAdvancementView } from './advancement';
 import { refKey, parseRefKey } from '../../engine/careerSlots';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const specialiseDe = (key: string, id: string): boolean => {
   const k = parseRefKey(key);
@@ -13,7 +14,7 @@ const specialiseDe = (key: string, id: string): boolean => {
  *  Caractéristiques de carrière = CT/Int/Soc ; Compétences incluent Charme, Ragot ;
  *  Talents incluent Sociable). */
 const hero = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
@@ -21,7 +22,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
     career: 'agitateur',
     careerLevel: 1,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -35,7 +36,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
     xp: 1000,
     charAdvances: {},
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.json', () => {
   it('méta : PX, carrière, niveau, libellé du niveau', () => {

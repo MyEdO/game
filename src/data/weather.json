@@ -151,11 +151,6 @@
     "agilite",
     "dexterite"
   ],
-  "physicalTestCharsSource": {
-    "book": "ennemi-dans-l-ombre-compagnon",
-    "page": 33,
-    "note": "MAISON — EDOC 8 l.82 (« -10 à tous les Tests physiques ») ne définit pas « physique » ; liste éditable des Caractéristiques réputées physiques (CC/CT/F/E/Ag/Dex, hors I/FM/Soc)."
-  },
   "conditions": [
     {
       "id": "sec",

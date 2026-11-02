@@ -37,8 +37,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import type { GenreDEtape, GenreDeCascade } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
 import { deFixe } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

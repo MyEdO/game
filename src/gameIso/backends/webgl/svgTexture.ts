@@ -1,19 +1,17 @@
 /**
- * Couture NAVIGATEUR de rasterisation : une chaîne SVG (l'art, source de vérité :
- * `propSvg(...)` pour le décor, `bonesToSvg(resolveRig(...))` pour les rigs — le chemin des galeries)
+ * Couture NAVIGATEUR de rasterisation : une chaîne SVG (l'art du décor, source de vérité : `propSvg(...)`)
  * devient une texture de billboard. ZÉRO logique : les décisions (taille monde, vue, palier de
  * rasterisation) vivent dans `billboardMath.ts` (pur, testé). Ce module dépend du DOM (`Blob`,
  * `Image`, `<canvas>`) et de three : la RASTERISATION se juge à l'écran ; seule la politique
  * de CACHE (pure, injectable) est testée unitairement (`svgTexture.test.ts`).
  *
- * Les chaînes attendues sont des FRAGMENTS SVG en boîte locale (120×150 pour les props, boîte du rig
- * pour les personnages) : ce module les enveloppe dans un `<svg viewBox>` à la boîte fournie.
+ * Les chaînes attendues sont des FRAGMENTS SVG en boîte locale (120×150 pour les props) : ce module les enveloppe dans un `<svg viewBox>` à la boîte fournie.
  */
 import * as THREE from 'three';
 import { CacheBorne } from './cacheBorne';
 
 /** Boîte locale du fragment SVG source (unités d'auteur). */
-export interface SvgBox {
+interface SvgBox {
   w: number;
   h: number;
 }
@@ -92,7 +90,7 @@ export async function svgToTexture(svg: string, box: SvgBox, pxHeight: number): 
 /**
  * BUDGET du stock de textures statiques (#1374).
  *
- * Mesure du palier réel (`atlasPxHeight` au chemin du stage, scène mpt=2, DPR 2) : un décor de taille
+ * Mesure du palier réel (`stage/boardPose.atlasPxHeight`, scène mpt=2, DPR 2) : un décor de taille
  * canonique cuit en 205×256 px, soit 209 920 octets (4 octets par texel, sans mipmaps) ; un décor à
  * `scaleK` 2 monte à 410×512 px, 839 680 octets. Population d'une scène-hub en vue de plateau :
  * ~68 décors × 4 crans d'art = 272 textures, soit ≈ 54,5 Mo au palier canonique (les caps voisins de
@@ -108,7 +106,7 @@ const textureBytes = (t: THREE.CanvasTexture): number => {
 };
 
 /** Le stock de textures statiques — une entrée par clé appelante (`billboardTextureKey` : identité,
- *  vue, miroir, palier), BORNÉ au budget d'octets et jumeau de celui des planches (`atlasBake`). */
+ *  vue, miroir, palier), BORNÉ au budget d'octets (`cacheBorne`). */
 const CACHE = new CacheBorne<THREE.CanvasTexture>({
   budget: TEXTURE_STATIQUE_BUDGET_BYTES_DEFAUT,
   bytesDe: textureBytes,

@@ -1,6 +1,6 @@
 /**
- * Schéma de `gabarits.json` — LE vocabulaire des carrures du rig (#2972) : facteurs appliqués au
- * squelette humain de référence (`baseSkeleton`, `src/gameIso/rig/skeletons.ts`). Une race
+ * Schéma de `gabarits.json` — LE vocabulaire des carrures (#2972) : facteurs appliqués au
+ * squelette humain de référence. Une race
  * (`raceAppearance.json › gabarit`) ou une créature en nomme un ; la résolution vit au noyau
  * (`src/noyau/apparence/gabarit.ts`).
  */
@@ -46,7 +46,7 @@ const doc = document(
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          'carrures du rig (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : il s’édite au fichier `src/data/gabarits.json`',
+          'carrures du squelette de référence (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : il s’édite au fichier `src/data/gabarits.json`',
       },
     },
     edit: { none: 'vocabulaire d’art, édité au fichier `src/data/gabarits.json` — aucun écran ne l’écrit', dataset: 'gabarits' },

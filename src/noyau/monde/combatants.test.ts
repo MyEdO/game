@@ -6,6 +6,7 @@ import { maxJumpTiles } from '../../engine/movement';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * MENEUR du groupe — définition UNIQUE (#1362, lot L1a) : UN id, celui que le plateau dessine, que
@@ -19,15 +20,15 @@ function hero(
   id: string,
   opts: { dead?: boolean; wounds?: number; conditions?: { id: string; value: number }[]; outOfRencontre?: boolean } = {},
 ): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id,
     label: id,
     kind: 'hero',
-    wounds: { current: opts.wounds ?? 10, max: 10 },
+    wounds: blessuresDeBase(10, opts.wounds ?? 10),
     dead: opts.dead ?? false,
     conditions: opts.conditions ?? [],
     ...(opts.outOfRencontre ? { outOfRencontre: true } : {}),
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** INCONSCIENT avec des Blessures restantes : le cas que `dead` seul laissait passer. */

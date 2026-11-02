@@ -8,7 +8,8 @@ import { forceCrewRole } from './shipManeuver';
 import { combatBaseValue, combatValue, combatValueMods, combineMods, type ModLine } from '../engine/combat';
 import { combatTestPenalty, testStatePenalty, testStatePenaltyParts } from '../engine/conditions';
 import { testValue, testValueParts, skillBaseValue, rawCombatTestBase } from '../engine/skills';
-import { effectiveChar, blessuresDeBase } from '../engine/characteristics';
+import { effectiveChar } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { clampTarget, exactDifficultyFromModifier } from '../engine/tests';
 import { rule, setRule } from '../engine/policy';
@@ -43,14 +44,14 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 function hero(p: Partial<Combatant>): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h1', label: 'Héros', kind: 'hero',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], fortune: 0, resilience: 0,
     pos: { x: 1, y: 1 }, ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 /** État PORTÉ par toute fixture (LDB 16 : −10 par valeur) — c'est lui qui sépare la valeur NUE de la

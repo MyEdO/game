@@ -2,7 +2,7 @@
    Module de DOMAINE de l'écran de composition du groupe (PartyScreen/CharCard) — sorti de base.css
    (couche partagée) sous #371 : ces classes n'ont qu'UN consommateur, elles n'ont rien à faire dans
    la couche atomique. Compose les primitives : `.screen`/`.bar` (base), OrnateFrame (ornaments), Tabs,
-   `.charprev` (CharacterPreview), `.btn`/`.gated-action`, ScreenShell (sélecteur dédié), `MasterDetail`,
+   `.btn`/`.gated-action`, ScreenShell (sélecteur dédié), `MasterDetail`,
    `DetailFrame`/`MetalStatus`/`RoseAxes` (peau « Atelier du scribe », #417 — styles de ces primitives
    dans `creator.css`/`rose.css`, GLOBAUX, jamais redéfinis ici).
    STRUCTURE (arbitrage user 2026-07-13, transposée #417) : l'écran = LA COMPAGNIE (grille de sièges) +
@@ -225,7 +225,7 @@
   }
 }
 
-/* ── POIGNÉE DE PRÉSENTATION : la figurine + l'identité d'un personnage forment le contrôle cliquable
+/* ── POIGNÉE DE PRÉSENTATION : la rose + l'identité d'un personnage forment le contrôle cliquable
    qui ouvre son récit (directive user 2026-07-13, plus de bouton « loupe »). Feedback de survol/focus
    NON DÉCALANT — box-shadow INSET + brightness, jamais une bordure/insertion qui change la taille (bug
    de clipping/décalage au hover proscrit). ── */
@@ -243,7 +243,7 @@
   box-shadow: inset 0 0 0 2px var(--gold);
 }
 
-/* Carte de SIÈGE (membre d'équipe) — riche (même info qu'un candidat) : poignée figurine+identité
+/* Carte de SIÈGE (membre d'équipe) — riche (même info qu'un candidat) : poignée rose+identité
    au-dessus, rangée d'actions TOUJOURS visible dessous. Layout STABLE : rien ne se décale au survol. */
 .seat-card {
   position: relative;
@@ -304,30 +304,6 @@
    seul consommateur de la variante « scellée » : jamais redéclarée dans components.css). */
 .seat-card .card-hook {
   color: var(--danger-soft);
-}
-/* Alcôve : colonne PLEINE HAUTEUR de la carte — la figurine occupe toute la hauteur du siège,
-   jamais une vignette bornée. AMBIANCE lumineuse (halo radial de fond) conservée ; la lampe-OBJET
-   (pendentif+ampoule dessinés en ::before/::after) est PARTIE (verdict utilisateur 2026-07-15,
-   « Faudra vraiment me virer cette lampe sur le portrait »). */
-.seat-card-fig {
-  position: relative;
-  width: 150px;
-  flex: none;
-  align-self: stretch;
-  border-radius: 8px;
-  overflow: hidden;
-  background: radial-gradient(120px 190px at 50% 22%, rgba(255, 196, 110, 0.16), transparent 65%),
-    linear-gradient(180deg, var(--atelier-wood-top), var(--atelier-night));
-  border: 1px solid var(--atelier-wood-hollow);
-}
-@media (max-width: 560px) {
-  .seat-card-fig {
-    width: 112px;
-  }
-}
-.seat-card-fig > .charprev {
-  position: absolute;
-  inset: 0;
 }
 .seat-card-body {
   display: flex;
@@ -456,29 +432,11 @@
 .candidate-card.ornate-frame {
   padding: 9px 10px 10px;
 }
-/* La figurine + l'identité = le contrôle de présentation (empilé). */
+/* Le cadre de présentation + l'identité = le contrôle de présentation (empilé). */
 .candidate-present {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-/* Figure dominante : rig réel en pied (CharacterPreview size=fill). Posée en ABSOLU dans un cadre à
-   hauteur bornée. Plancher 110px : interdit d'une vignette de candidat trop petite (#371). */
-.candidate-fig {
-  position: relative;
-  width: 100%;
-  height: clamp(110px, 14vh, 160px);
-  border-radius: 8px;
-  overflow: hidden;
-}
-/* UN SEUL cadre (#430) : `.candidate-fig` (bordée par l'`OrnateFrame` englobant) porte le cadre,
-   la figurine `ambiance="spotlight"` (CharCard.tsx) n'a ni bordure ni rayon propres — jamais un
-   `charprev-amb-panel` imbriqué (motif corrigé, directive user 2026-07-15). */
-.candidate-fig > .charprev {
-  position: absolute;
-  inset: 0;
-  border: none;
-  border-radius: 0;
 }
 .candidate-id {
   display: flex;

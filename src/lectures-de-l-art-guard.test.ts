@@ -1,5 +1,5 @@
 /**
- * Garde des LECTURES DE L'ART du rig hors de leur foyer (#1903) : les sept constructions de
+ * Garde des LECTURES DE L'ART hors de leur foyer (#1903) : les trois constructions de
  * `LECTURES_DE_L_ART` (`scripts/guards/lib/lecturesDeLArt.ts`), jugées sur le périmètre des gardes.
  * Angles morts : `lecturesDeLArt.ts`.
  */
@@ -19,36 +19,13 @@ describe("lectures de l'art (#1903)", () => {
 
   it('le module et sa garde sont dans le foyer de chaque construction', () => {
     for (const c of LECTURES_DE_L_ART) expect([c.foyer].flat(), c.nom).toEqual(expect.arrayContaining([MODULE, GARDE]));
-    expect(vu('const re = /@([a-zA-Z]\\w*)/g;', MODULE)).toEqual([]);
-  });
-
-  it('REGEX_DE_JETON', () => {
-    expect(vu('const re = /@([a-zA-Z]\\w*)/g;', 'src/gameIso/rig/x.test.ts')).toEqual(['REGEX_DE_JETON']);
-    expect(vu('const re = new RegExp(`@${k}(?![A-Za-z0-9_])`);')).toEqual(['REGEX_DE_JETON']);
-    expect(vu('const re = /@(?:peau|cuir)/;')).toEqual(['REGEX_DE_JETON']);
-    expect(vu('const re = /@[^\\s]/;'), 'un @ suivi d’autre chose n’est pas un jeton').toEqual([]);
-    expect(vu('// const re = /@([a-zA-Z]\\w*)/g;'), 'commentaire').toEqual([]);
-    expect(vu('const re = /@([a-zA-Z]\\w*)/g;', 'src/gameIso/rig/palette.ts'), 'foyer').toEqual([]);
-  });
-
-  it('GAMME_EN_LIGNE', () => {
-    expect(vu('const g = `${k}H`;', 'scripts/x.mts')).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu('const s = `<path fill="@${t}O" stroke="x"/>`;')).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu("const t = x ? 'O' : ''; const k = fam + t;")).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu("const k = fam + 'H';")).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu("const k = 'O' + 'H';")).toEqual([]);
-    expect(vu("for (const s of ['', 'O', 'H']) f(s);")).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu('const re = /^(.+)(O|H)$/;')).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu("const g = [gammeDe(k, 'ombre'), gammeDe(k, 'lumiere')];")).toEqual(['GAMME_EN_LIGNE']);
-    expect(vu('const g = ROLES_DE_GAMME.map((r) => gammeDe(k, r));')).toEqual([]);
-    expect(vu('type G<K extends string> = `${K}O`;'), 'type littéral').toEqual([]);
-    expect(vu('const d = `M${x}H${y}`;'), 'commande de chemin SVG').toEqual([]);
+    expect(vu("const v = ['back', 'profile', 'front'];", MODULE)).toEqual([]);
   });
 
   it('PROJECTION_DE_VUES', { timeout: 30_000 }, () => {
     const un = ['PROJECTION_DE_VUES'];
     expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;")).toEqual(un);
-    expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;", 'src/gameIso/rig/parts/types.ts')).toEqual(un);
+    expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;", 'src/gameIso/catalog/types.ts')).toEqual(un);
     expect(vu("const b = typeof a === 'object' ? a.back : undefined;")).toEqual(un);
     expect(vu("const f = (a) => typeof a === 'string' ? { front: a } : a;")).toEqual(un);
     expect(vu('const p = { front: a.front, back: a.back ?? a.front, profile: a.profile };')).toEqual(un);
@@ -61,7 +38,7 @@ describe("lectures de l'art (#1903)", () => {
     expect(vu("const p = { profile: s('profile'), back: s('back') };")).toEqual([]);
     expect(vu("const l = [f('front'), f('back')];")).toEqual([]);
     expect(vu("const l = [f('front'), g('back'), f('profile')];"), 'deux callees').toEqual([]);
-    expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;", 'src/gameIso/rig/viewArt.ts'), 'foyer').toEqual([]);
+    expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;", 'src/gameIso/catalog/viewArt.ts'), 'foyer').toEqual([]);
   });
 
   it('PROJECTION_DE_VUES lit ses vues dans la table, jamais dans le prédicat', () => {
@@ -71,19 +48,17 @@ describe("lectures de l'art (#1903)", () => {
     expect(vu(texte)).toEqual([]);
   });
 
-  it('REGEX_DE_DEGRADE_DERIVE et REGEX_DE_DEGRADE_FIXE', () => {
-    expect(vu('const re = /url\\(#dg-/;')).toEqual(['REGEX_DE_DEGRADE_DERIVE']);
-    expect(vu("const re = new RegExp('url\\\\(#dg-');")).toEqual(['REGEX_DE_DEGRADE_DERIVE']);
+  it('REGEX_DE_DEGRADE_FIXE', () => {
     expect(vu('const re = /url\\(#g_\\w+\\)/;')).toEqual(['REGEX_DE_DEGRADE_FIXE']);
+    expect(vu("const re = new RegExp('url\\\\(#g_[a-z]+\\\\)');")).toEqual(['REGEX_DE_DEGRADE_FIXE']);
     expect(vu('const re = /g_steel/;'), 'sous-chaîne sans classe').toEqual([]);
   });
 
-  it('CANON_VIEWS et CANON_ROLES_DE_GAMME', () => {
+  it('CANON_VIEWS', () => {
     expect(vu("const v = ['back', 'profile', 'front'];")).toEqual(['VIEWS']);
     expect(vu("let view: 'front' | 'back' | 'profile';")).toEqual(['VIEWS']);
     expect(vu('interface X { front: string; back: string; profile: string }')).toEqual(['VIEWS']);
     expect(vu("// const v = ['back', 'profile', 'front'];"), 'commentaire').toEqual([]);
-    expect(vu("for (const r of ['ombre', 'lumiere']) f(r);")).toEqual(['ROLES_DE_GAMME']);
-    expect(vu('type L = { ombre?: string; lumiere?: string };')).toEqual(['ROLES_DE_GAMME']);
+    expect(vu("const v = ['back', 'profile', 'front'];", 'src/gameIso/facing.ts'), 'foyer').toEqual([]);
   });
 });

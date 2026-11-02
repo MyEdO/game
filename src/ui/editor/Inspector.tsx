@@ -43,8 +43,7 @@ import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
-import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
-import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
+import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
@@ -63,8 +62,7 @@ import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfil
  *  espace : une ancre qui en nomme une est ignorée sans un mot (#841). */
 const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
-import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
-import { isSwarm } from '../../engine/traits/dispatch';
+import { ApparencesObjetsField, ArmeEquipeeField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
 import { ListeDIds, RefNarrativeField } from '../compendium/refField/RefField';
@@ -1459,17 +1457,6 @@ function EntityPanel({
   return (
     <>
       <div className="ent-preview">
-        <svg viewBox="0 0 120 150" width="84" height="105">
-          {ent.kind === 'heroStart' ? (
-            <text x="60" y="92" textAnchor="middle" fontSize="44" fill="#2ecc71">
-              ★
-            </text>
-          ) : (
-            // Aperçu unifié via le MÊME classifieur que le canvas (tokenBodyKind) — le classifieur route
-            // par la NATURE de l'entité (`kind`), un décor n'atteint jamais le registre créature/véhicule.
-            tokenBodyKind(objetDuNarratif(narratif), { kind: 'sceneEntity', ent }).body
-          )}
-        </svg>
         <span className="hint">
           {libelleDeValeur(entityKindSchema, ent.kind)} @ ({ent.pos.x}, {ent.pos.y})
         </span>
@@ -1486,38 +1473,27 @@ function EntityPanel({
       {ent.kind === 'personnage' && (
         <>
           <Fold title="Apparence" open>
-            {/* Espèce EXPLICITE de rendu (`appearance.species`) — découple l'apparence du nom/ref
-                (cf. scene.ts). Vide = bipède Humain par défaut. Le profil de stats se choisit via la
-                réf de créature (fold Rôle/Combat), distincte de l'apparence. */}
+            {/* Espèce EXPLICITE (`appearance.species`) — découple l'espèce du nom/ref (cf. scene.ts). Le
+                profil de stats se choisit via la réf de créature (fold Rôle/Combat). */}
             <div className="ed-field">
               <ReglagesApparence
                 appearance={ent.appearance ?? {}}
                 onChange={(appearance) => updateSel({ appearance })}
-                reglages={['species', 'sex', 'build', 'hairstyle', 'variante']}
-                nuee={isSwarm(findCreatureById(ent.ref)?.traits)}
+                reglages={['species', 'sex']}
               />
             </div>
             <label className="ed-field">
               Animation d'ambiance
-              <select value={ent.anim ?? ''} onChange={(e) => updateSel({ anim: e.target.value || undefined })}>
-                {SCENE_ANIMS.map((a) => (
-                  <option key={a.key} value={a.key}>
-                    {a.label}
-                  </option>
-                ))}
+              <select value={ent.anim ?? ''} onChange={(e) => updateSel({ anim: roleAmbiantSchema.safeParse(e.target.value).data })}>
+                <option value="">— aucune —</option>
+                {optionsDuNoeud(roleAmbiantSchema).map(([role, libelle]) => <option key={role} value={role}>{libelle}</option>)}
               </select>
             </label>
-            <MonsterPartsFields
+            <ArmeEquipeeField weapon={ent.weapon} onWeapon={(w) => updateSel({ weapon: w })} />
+            <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
-              reglages={['monster', 'eyes', 'features', 'tenue', 'colors']}
-              apresArme={<ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
-                appearance={ent.appearance ?? {}}
-                onChange={(appearance) => updateSel({ appearance })}
-                weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
-              />}
-              weapon={ent.weapon}
-              onWeapon={(w) => updateSel({ weapon: w })}
+              weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
             />
           </Fold>
           <Fold title="Rôle (dialogue, marchand)">

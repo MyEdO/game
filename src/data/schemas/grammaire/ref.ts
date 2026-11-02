@@ -11,7 +11,7 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
+import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, type SousListeMarquee } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -30,16 +30,7 @@ export interface DeclarationDeType {
   readonly catalogue: string;
 }
 
-/**
- * Types d'entité déclarés à la grammaire. La liste est celle des concepts que les lots L2/L3 du
- * chantier migrent (Compétence, puis Talent/Trait/Objet/Sort/Créature/Véhicule/Structure, +
- * Carrière et Trait NAVAL au L-gram-2 #1463) + la TABLE, cible de `pick({ table })`, + la MATIÈRE du
- * monde (#1686), premier type dont l'espace est DISCRIMINÉ (`idDe('material', 'prop')`), + le
- * TERRAIN et le DÉCOR (#1690 : `layer.tiles` résout un terrain, `terrains › overlayProp` un décor),
- * + l'ESPÈCE (#1520 : `pregens.json › species`), + la RÈGLE de jeu, la QUALITÉ, la CARACTÉRISTIQUE et la
- * PANNE de navire à vapeur (#2820 : le FOYER d'un enjeu, `refTypee`, désigne aussi ces espaces).
- * Un type s'ajoute avec le lot qui le migre, jamais « au cas où ».
- */
+/** Types d'entité référencés par les schémas, avec leur espace d'ids et leur catalogue. */
 export const TYPES = {
   skill: { espace: 'skills.json', catalogue: 'compétences' },
   talent: { espace: 'talents.json', catalogue: 'talents' },
@@ -86,7 +77,7 @@ export const TYPES = {
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
   classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
-  // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
+  // GABARIT (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
   // RACE DE RENDU (#3113) : `garde-robe.json › race` d'une tête résout AU PARSE.
   raceAppearance: { espace: 'raceAppearance.json', catalogue: 'races de rendu' },
@@ -167,10 +158,6 @@ function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string 
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
-/** Sous-liste MARQUÉE : l'espace d'un type PRIVÉ des entrées qui portent l'un de ses marqueurs
- *  (paramètre `espace.marqueurs` du def) — `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`). */
-type SousListeMarquee = { readonly horsMarqueurs: readonly string[] };
-
 /**
  * SOUS-LISTE qu'une feuille `idDe` retient de l'espace de son type : une chaîne, la sous-liste
  * DISCRIMINÉE de cette valeur (`idDe('material', 'prop')`) ; une `SousListeMarquee`, l'espace PRIVÉ des
@@ -192,10 +179,6 @@ function refusDuMarqueur(type: TypeEntite, sousListe: SousListeMarquee, site: st
   return refusDeMarqueur(type, id, sousListe.horsMarqueurs.find((m) => idsDesignes(cleDuMarqueur(type, m), site).has(id)));
 }
 
-/** Le premier marqueur de la sous-liste que porte l'ENTRÉE (`porteLeChampMarqueur`), `undefined` sinon. */
-const marqueurDeLEntree = (sousListe: SousListeMarquee, entree: object): string | undefined =>
-  sousListe.horsMarqueurs.find((m) => porteLeChampMarqueur(entree as Readonly<Record<string, unknown>>, m));
-
 /** Le refus d'un id par une sous-liste DISCRIMINÉE — `null` s'il est ADMIS. */
 const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string): string | null =>
   idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
@@ -203,12 +186,12 @@ const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string,
     : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
 
 /** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
- *  marquée sur ses champs (`marqueurDeLEntree`), la discriminée sur son id —, lu par le sélecteur qui
+ *  marquée sur ses champs (`marqueurPorte`), la discriminée sur son id —, lu par le sélecteur qui
  *  résout une saisie hors du registre (`ui/compendium/refField/RefField.tsx`). */
 export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
-    : refusDeMarqueur(type, entree.id, marqueurDeLEntree(sousListe, entree));
+    : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
 }
 
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
@@ -220,11 +203,11 @@ function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: strin
 
 /**
  * L'ENTRÉE résolue appartient-elle à la sous-liste marquée ? Le runtime juge l'entrée elle-même (objet
- * du catalogue OU de la campagne, `noyau/monde/resolveursDuNarratif.ts`) par `porteLeChampMarqueur`, le prédicat
- * qui bâtit les clés `<espace>?<marqueur>` que `refusDuMarqueur` lit au schéma.
+ * du catalogue OU de la campagne, `noyau/monde/resolveursDuNarratif.ts`) par `marqueurPorte`, le prédicat
+ * qui bâtit les clés `<espace>?!<marqueur>,…` que `refusDuMarqueur` lit au schéma.
  */
 export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): boolean {
-  return marqueurDeLEntree(sousListe, entree) === undefined;
+  return marqueurPorte(sousListe, entree) === undefined;
 }
 
 /** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au registre (régime
@@ -859,7 +842,7 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  * Une entrée de `of` est l'UNION des trois façons de désigner une option : référence nue `ref(type)`,
  * référence à spécialisation `specRef(type)` (`{id, spec}` XOR `{id, choix}`, validée contre le pool
  * de l'entrée À TRAVERS l'`of`), ou un `pick` IMBRIQUÉ (un « n parmi » dont une option est elle-même
- * un choix, y compris un tirage sur table). La récursion se referme sur le nœud LUI-MÊME (`noeud`).
+ * un choix). La récursion se referme sur le nœud LUI-MÊME (`noeud`).
  *
  * `optionsDuPorteur` ouvre l'`of` aux formes que le PORTEUR admet en plus des trois ci-dessus —
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
@@ -867,10 +850,7 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  */
 export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
   const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
-  const noeud: z.ZodType<unknown> = z.union([
-    marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of'),
-    tirageSurTable(ref('table')),
-  ]);
+  const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }
 
@@ -879,8 +859,7 @@ const nombreDeTirages = (): z.ZodNumber => z.number().int().positive();
 
 /**
  * Tirage sur table : `{ pick, table }` — `pick` tirages sur la table que désigne `table`, le nœud de
- * référence que le PORTEUR déclare (`ref('table')` pour `pick`, un registre de tirage ailleurs). La branche
- * de `pick`, et la SEULE graphie d'un tirage sur table de la grammaire.
+ * référence que le PORTEUR déclare.
  */
 export function tirageSurTable<T>(table: z.ZodType<T>): z.ZodType<{ pick: number; table: T }> {
   return marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), table }), { pick: { label: "sélection" }, table: { label: "table" } }), 'pick', 'table', { table });

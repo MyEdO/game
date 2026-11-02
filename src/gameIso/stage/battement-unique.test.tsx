@@ -25,7 +25,6 @@ import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './Game
 import { BancRenderer, brancherArdoise, brancherImagesPilotees, scènes, viderCaptures } from './banc-volumique';
 import { POINT_LIGHT_BUDGET, resolveTone } from './stagePointLights';
 import { battreStageFrames, resetStageFrames } from './stageFrames';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -50,7 +49,7 @@ const NUIT = 23 * 60; // de jour les flaques retombent à 0, et rien ne vacille
 const LAMPES: LightSource[] = [{ pos: { x: 4, y: 4 }, radiusTiles: 4, srcId: 'brasero' }];
 /** Un décor fouillable à l'écran : le troisième motif. */
 const HALOS: readonly InteractHalo[] = [
-  { id: 'coffre', cell: { x: 3, y: 4, z: 0 }, n: 1, scaleK: 1, bodyTopFrac: 1, span: { w: 1, h: 1 }, centre: { x: 3, y: 4 }, echelle: { x: 1, y: 1 }, etat: 'revele', visible: true },
+  { id: 'coffre', cell: { x: 3, y: 4, z: 0 }, n: 1, scaleK: 1, span: { w: 1, h: 1 }, centre: { x: 3, y: 4 }, echelle: { x: 1, y: 1 }, etat: 'revele', visible: true },
 ];
 /** Câblage de PRODUCTION (`VolumetricWorld`) : AUCUN pilote d'images — l'écran s'abonne lui-même au
  *  battement du module. Un `subscribe` de plus ici doublerait l'abonnement, donc les rendus. */
@@ -70,13 +69,13 @@ let commitsReact = 0;
  *  (`ui/editor/EditorCanvas`), qui monte le même écran sans aucune prop d'animation. */
 const écran = (yawDeg = 0, avecAnim = true): JSX.Element => (
   <Profiler id="stage" onRender={() => { commitsReact += 1; }}>
-    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={{ mode: 'plateau', dims: dimsDe(yawDeg), cam: { x: 0, y: 0 }, zoom: 1 }}
       tintAt={() => 1}
       keepEl={() => true}
-      els={{ tokens: [], props: [] }}
+      els={{ props: [] }}
       actors={[]}
       gameTime={NUIT}
       lightLevel={null}

@@ -54,7 +54,7 @@ const issue = (file, exports = [], types = []) => ({
 test('flatten : exports et types fusionnés, triés, gameIso hors gel', () => {
   const per = flatten([
     issue('src/state/a.ts', ['b', 'a'], ['T']),
-    issue('src/gameIso/rig/x.ts', ['mort']),
+    issue('src/gameIso/stage/x.ts', ['mort']),
     issue('src/ui/vide.ts', []),
   ])
   assert.deepEqual(per, { 'src/state/a.ts': ['T', 'a', 'b'] })

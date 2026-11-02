@@ -13,8 +13,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';

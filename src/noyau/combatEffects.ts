@@ -59,7 +59,7 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from '../engine/flowCore';
+import { type FlowTest, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
@@ -82,7 +82,7 @@ import { stepPrecision, stepDetail } from './rollSeam';
 import { dataLabel, groupesLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
-import { campAdvantageHooks } from './combat/advantagePool';
+import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
 
 /**
@@ -483,19 +483,17 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
 
 /**
  * REFUS NOMMÉ d'un contexte que la reprise ne saurait pas rebâtir (#1508) — les hooks classés
- * `OPS_CTX_HORS_CANAL` (`onCondition`, `onCorruptionExposure`, `onOpposingAdvantage`, `surLigne`) ne survivent ni à
- * une sauvegarde ni au réseau, et aucun chemin nommé ne les redonne. Une feuille qui en porte un ne se
- * DIFFÈRE donc pas : elle lève ICI plutôt que de s'appliquer plus tard AMPUTÉE.
- *
- * Mesuré : aucune donnée du dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de
- * l'interlude, du bus de triggers et du site du Critique, qui n'appellent pas `applyLeafOps`). Le jour où l'un y arrive,
- * c'est un fait à instruire, pas une perte à découvrir au journal.
+ * `OPS_CTX_HORS_CANAL` ne survivent ni à une sauvegarde ni au réseau, et aucun chemin nommé ne les
+ * redonne. Un contexte qui en porte un ne se PORTE donc pas (feuille à dé, Test ou choix surfacé) : il
+ * lève ICI plutôt que de s'appliquer plus tard AMPUTÉ. Leur portée : `engine/ops` `OPS_CTX_HORS_CANAL`.
+ * `onOpposingAdvantage` se rebâtit sur le porteur : sans lui, il lève aussi.
  */
 function refuserSiHorsCanal(ctx: OpsCtx): void {
+  if (ctx.onOpposingAdvantage && !ctx.caster) throw new Error('#1508 — `onOpposingAdvantage` porté sans porteur `caster` : la reprise ne saurait pas le rebâtir.');
   const portes = OPS_CTX_HORS_CANAL.filter((k) => ctx[k] !== undefined);
   if (portes.length) {
-    throw new Error(`#1508 — feuille à dé DIFFÉRÉE portant un contexte non rebâtissable : ${portes.join(', ')}. `
-      + "La reprise l'appliquerait sans ces hooks (cf. OPS_CTX_HORS_CANAL) — instruire le chemin avant de différer ici.");
+    throw new Error(`#1508 — contexte PORTÉ (feuille à dé, Test ou choix surfacé) non rebâtissable : ${portes.join(', ')}. `
+      + "La reprise l'appliquerait sans ces hooks (cf. OPS_CTX_HORS_CANAL) — instruire le chemin avant de le porter.");
   }
 }
 
@@ -553,16 +551,18 @@ export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
   return {
     gele: gelerOpsCtx(ctx),
     ...(ctx.caster ? { casterId: ctx.caster.id } : {}),
+    ...(ctx.onOpposingAdvantage ? { creditAdverse: true as const } : {}),
     ...(ctx.hull ? { hullId: ctx.hull.id } : {}),
     ...(ctx.crew ? { crewIds: ctx.crew.map((m) => m.id) } : {}),
   };
 }
 
 /**
- * RECONSTRUIT l'`OpsCtx` d'une feuille à sa reprise (étape `opsDe`, clôture `reprendreFlowDeCombat`) —
- * lecture UNIQUE de la partition totale d'`OpsCtx` (`engine/ops`) : la part GELÉE revient verbatim, les
- * Combattants sont retrouvés par ID, et ce qui ne se sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, les hooks
- * de Corruption et de gain d'Avantage branchés sur l'état, cf. `OPS_CTX_REBATIS`).
+ * RECONSTRUIT l'`OpsCtx` porté à sa reprise (étapes `opsDe`, `triggeredTest`, `triggeredChoice`,
+ * `personneChoisie`, clôture `reprendreFlowDeCombat`) — lecture UNIQUE de la partition totale d'`OpsCtx`
+ * (`engine/ops`) : la part GELÉE revient verbatim, les Combattants sont retrouvés par ID, et ce qui ne se
+ * sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, les hooks de Corruption et de gain
+ * d'Avantage branchés sur l'état, `onOpposingAdvantage` sur le porteur, cf. `OPS_CTX_REBATIS`).
  * `des` est monté par l'applier depuis les étapes sœurs, jamais recopié.
  *
  * Rend `null` quand la COQUE déclarée a disparu entre le mint et la résolution (voyage clos, cascade
@@ -578,6 +578,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
     rng: battleRng(),
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
     ...campAdvantageHooks(get),
+    ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
     ...(crew?.length ? { crew } : {}),
@@ -2050,11 +2051,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!spell) { env.log(t('eff.castSpellMissing', { id: e.spellId })); return; }
       const target = (e.targetId ? actorIn(get(), e.targetId) : undefined) ?? caster;
       if (e.mode === 'forceSuccess') {
-        // Arbitrage D'AUTEUR explicite (rituel garanti) : le RAW ne prévoit aucun lancer scripté SANS jet —
-        // applique directement les effets du sort (Critique/Imparfaite n'ont pas de sens hors d'un vrai jet).
-        const ctx: OpsCtx = { rng: battleRng(), caster, label: spell.label, sl: spell.cn ?? 0, source: { kind: 'spell', id: spell.id } };
-        for (const line of applyOps(target, spellOps(spell.effects, 'target'), ctx)) env.log(line);
-        for (const line of applyOps(caster, spellOps(spell.effects, 'caster'), ctx)) env.log(line);
+        // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
+        for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.log(line);
         env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);
         return;
       }

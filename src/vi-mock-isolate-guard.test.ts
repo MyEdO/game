@@ -10,9 +10,8 @@ import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs'
  * (`vite.config.ts`) : le graphe de modules est PARTAGÉ par worker. Un mock de module posé par un
  * fichier de test n'atteint donc pas un module déjà évalué par un fichier précédent du même worker :
  * la liaison dépend de l'ordre des fichiers, lui-même fonction du nombre de cœurs — vert en local,
- * rouge en CI (repro 2026-07-28, `resolve-membre.test.ts`, 5 seeds `--sequence.shuffle` sur 5).
- * Un besoin de tenue/donnée fabriquée s'enregistre dans le REGISTRE lu à l'appel (patron
- * `withTenue` de `src/gameIso/rig/parts/resolve-membre.test.ts`), jamais par mock de module.
+ * rouge en CI (repro 2026-07-28, 5 seeds `--sequence.shuffle` sur 5).
+ * Un besoin de donnée fabriquée s'enregistre dans le REGISTRE lu à l'appel, jamais par mock de module.
  * Corpus : la seule suite à `isolate: false` (`fichiersDeLaSuite`) ; la suite du noyau
  * (`vitest.noyau.config.ts`, `isolate: true`) n'en est pas, son graphe n'étant partagé par aucun fichier.
  *
@@ -78,7 +77,7 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
     if (!ISOLATE_FALSE) return; // suite isolée par fichier : la liaison redevient déterministe
     const offenders: string[] = [];
     for (const { rel, text } of fichiersDeLaSuite()) offenders.push(...moduleMockHits(text, rel));
-    expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`withTenue\`, resolve-membre.test.ts) :\n${offenders.join('\n')}`).toEqual([]);
+    expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`poserPaliersDArmure\`, data/paliersDArmure.testkit.ts) :\n${offenders.join('\n')}`).toEqual([]);
   });
 });
 

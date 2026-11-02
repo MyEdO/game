@@ -13,8 +13,7 @@ import { interactionHalos } from '../gameIso/builders/interactHalos';
 import type { BillboardPropEl } from '../gameIso/builders/types';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 
 const TABLE = 'table-ronde-4-tabourets';

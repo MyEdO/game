@@ -1,13 +1,12 @@
 /**
  * Catalogue de décors (placeables NWN) — DÉRIVÉ du registre `defs/` (gen-registry.mjs).
  * Ajouter un décor = déposer `defs/<id>.ts` (`export const prop: PropViz = { id, label, render, … }`)
- * puis `npm run gen` (auto en dev via le plugin Vite). Plus de `Record` à maintenir à la main.
+ * puis `npm run gen` (auto en dev via le plugin Vite).
  * Chaque `render` renvoie un SVG en boîte locale 120×150, pieds en (60,150).
  */
 import type { PropViz, RenderCtx } from '../types';
-import type { View } from '../../rig/facing';
-import { project } from '../../rig/facing';
-import { nearestView, MISSING_ART } from '../../rig/viewArt';
+import { project, type View } from '../../facing';
+import { nearestView, MISSING_ART } from '../viewArt';
 import { warnMissing } from '../missing';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { Rot } from '../../../geometry/iso';
@@ -49,7 +48,7 @@ export function missingPropSvg(ref: string | undefined): string {
 
 /** Art BRUT d'une vue EXACTEMENT déclarée par un prop orienté (planche-contact QC), sinon null (case
  *  vide = couverture manquante). Sans projection, sans repli, sans miroir — pour relire face/profil/dos
- *  côte à côte comme les vues de rig/tenue et VOIR la couverture réelle de chaque prop. */
+ *  côte à côte et VOIR la couverture réelle de chaque prop. */
 export function propViewSvg(ref: string, view: View): string | null {
   const draw = PROPS[ref]?.views?.[view];
   return draw ? draw({}, { dims: { w: 0, h: 0, rot: 0 } }) : null;

@@ -5,8 +5,7 @@ import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import { desDuTest } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Démoniaque — bannissement « à la mort » (LDB 85 l.98 : « son âme retourne dans les Royaumes du Chaos,
@@ -28,7 +27,7 @@ const slain = (c: Combatant) => fireTriggers((get as (c: Combatant) => unknown)(
 
 describe('Démoniaque — banni à la mort (op `banish` en DONNÉE, déclenché par onSlain)', () => {
   it('mis hors de combat AVEC des PB restants (Critique LÉTAL — démembrement) → quand même banni + narré', () => {
-    const demon = mk({ traits: [{ id: 'demoniaque', value: 8 }] as never, wounds: { current: 6, max: 12, base: 12 } as never, dead: true as never });
+    const demon = mk({ traits: [{ id: 'demoniaque', value: 8 }] as never, wounds: blessuresDeBase(12, 6), dead: true as never });
     const lines = slain(demon);
     expect(demon.dead).toBe(true);
     expect(lines.join(' ')).toMatch(/banni/i); // narration de bannissement émise même PB > 0
@@ -45,7 +44,7 @@ describe('Démoniaque — banni à la mort (op `banish` en DONNÉE, déclenché 
 });
 
 describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voyage en attribut', () => {
-  const alive = (over: Partial<Combatant> = {}) => mk({ wounds: { current: 10, max: 10, base: 10 } as never, ...over });
+  const alive = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(10), ...over });
 
   it('Sang corrosif éclabousse les Engagés même sur une perte à DISTANCE (RAW LDB 85 l.310 : « chaque fois »)', () => {
     const acid = alive({ id: 'ac', traits: [{ id: 'sang-corrosif' }] as never });

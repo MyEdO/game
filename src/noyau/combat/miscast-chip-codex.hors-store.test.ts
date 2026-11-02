@@ -7,7 +7,7 @@ import { createHero } from '../../engine/character';
 import { summarizeEffects, chipCodex } from '../../gameIso/effectIcons';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -28,7 +28,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.wounds = blessuresDeBase(200);
+    H.wounds = blessuresDeBase(200, 200, H);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H };
   }

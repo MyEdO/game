@@ -538,7 +538,7 @@ export const fr = {
   'party.campaign.pick.close': 'Fermer',
   'party.launch.refused': 'Lancement impossible',
   'party.launch.refused.close': 'Fermer',
-  // Sélecteur d'aventurier dédié (HeroSelector) et cartes-portraits (CandidateCard).
+  // Sélecteur d'aventurier dédié (HeroSelector) et cartes de candidat (CandidateCard).
   'picker.title.replace': 'Remplacer {name}',
   'picker.tab.roster': 'Mes personnages',
   'picker.tab.pregens': 'Pré-tirés',
@@ -726,6 +726,8 @@ export const fr = {
   'op.endPsych': '{name} sort de {psych}.',
   'op.beginPsych': '{name} tombe sous {psych}.',
   'op.grantPsychTrait': '{name} gagne le Trait {psych} ({src}).',
+  'op.personneDesignee': '{src} : {personne} est la personne désignée pour {name}.',
+  'op.personneAbsente': '{src} : aucune personne à désigner pour {name}, sans effet.',
   'op.removePsychTrait': '{name} se défait du Trait {psych}.',
   'op.noPsychToRemove': "{name} n'a aucun Trait psychologique à retirer.",
   'op.noSinToRemove': '{name} n’a aucun Point de Péché à expier.',
@@ -968,7 +970,7 @@ export const fr = {
   'out.consWounds': '{n} Blessure(s) perdue(s).',
   'out.consHeal': '{n} Blessure(s) récupérée(s).',
   // État gagné, DÉRIVÉ de l'op `condition` réellement appliqué (opConsequenceLine, comme wounds/heal) —
-  // sans nom d'acteur (le portrait de la rangée porte l'attribution).
+  // sans nom d'acteur (la tuile de la rangée porte l'attribution).
   'out.consCondition': 'État {cond} subi.',
   // Activité de voyage SANS Test exécutée (EDOC 8 l.131) — le nom est porté en var (la rangée batch/poste
   // n'a pas toujours d'actorId pour l'attribution).
@@ -1363,6 +1365,7 @@ export const fr = {
   'cs.animositeGain': '{name} développe une Animosité envers {groupe} (frôler la mort a laissé une marque).',
   // Cible d'individu sans nom connu (`libelleDeCible`, `engine/psych/ciblage.ts`).
   'cible.personneDeLaScene': 'une personne de la scène',
+  'cible.personneChoisie': 'une personne choisie',
   'cf.stupid': '{name} (Stupide) bave et regarde dans le vide — Mouvement et Action perdus.',
   'cs.focusCrit': '{name} — Focalisation CRITIQUE : {spell} est lançable au prochain Round (NI 0) !',
   'cs.focusHarmonized': "Harmonisation aethyrique : le contrecoup est maîtrisé (pas d'Imparfaite).",
@@ -1827,6 +1830,7 @@ export const fr = {
   // Les trois premiers sont les GABARITS que les fabriques du seam (`noyau/rollSeam.ts`) rendent.
   'step.sujetDetail': '{sujet} — {detail}',
   'step.sujetPrecision': '{sujet} ({precision})',
+  'step.personneChoisie': '{src} : désigner la personne visée par {name}',
   'step.manche': 'Manche {n} — {quoi}',
   'step.fraction': '{n}/{m}',
   'step.prolonger': 'Prolonger {quoi}',
@@ -3179,6 +3183,7 @@ export const fr = {
   'specSrc.cult': 'Culte',
   'specSrc.shanty': 'Chanson',
   'specSrc.target': 'Cible',
+  'specSrc.group': 'Groupe',
   'specSrc.disease': 'Maladie',
   'specSrc.size': 'Taille',
   'specSrc.mutation': 'Mutation',
@@ -3310,7 +3315,7 @@ export const fr = {
   // GESTE SECONDAIRE d'une alvéole de la console (spec HUD §1d) — les QUATRE surfaces qui l'ouvrent
   // se disent en UNE phrase, ici : le nom accessible de l'alvéole la compose, aucune recopie.
   'cc.geste2eSurfaces': 'geste secondaire (clic droit, appui long, touche Menu, RB à la manette) : {gestes}',
-  // Le GESTE SECONDAIRE d'un portrait (`PortraitTile.onInspect`) : ses trois surfaces, dans son nom accessible.
+  // Le GESTE SECONDAIRE d'une tuile de personnage (`PortraitTile.onInspect`) : ses trois surfaces, dans son nom accessible.
   'ptile.geste2eInspecter': 'geste secondaire (clic droit, appui long, touche Menu) : inspecter',
   'cc.geste2eIndisponible': 'geste secondaire : {geste} — indisponible : {raison}',
   // Alvéole VIDE : rien ne s'y écrit à l'écran (arbitrage user 2026-08-24) — ce nom n'existe que pour

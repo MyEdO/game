@@ -21,6 +21,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { WorldMap } from './worldMap';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -219,13 +220,13 @@ describe('#1657 B3-2 — voyage MARITIME : le coup à l’équipage s’applique
  */
 describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURNALISÉ pour le reste', () => {
   /** Un marin PNJ : aucun siège ne le tient (il n'est pas du groupe) → voie inline. */
-  const marin = (): Combatant => ({
+  const marin = (): Combatant => (blessuresSurLeProfil({
     id: 'marin', name: 'Marin', label: 'Marin', kind: 'npc',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 31, dexterite: 31, intelligence: 31, 'force-mentale': 31, sociabilite: 31 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    wounds: { current: 13, max: 13 }, advantage: 0, movement: 4, bodyShape: 'humanoide',
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(13), advantage: 0, movement: 4, bodyShape: 'humanoide',
+  })) as unknown as Combatant;
 
   /** Le nœud RÉEL de `greement-fluvial` (`crewTarget:{stations:['pont']}`), enjeu posé par le producteur. */
   const noeudGreement = () => rollShipCritical('greement', makeRNG(1), 1, RIVER_CRIT_SET).crewHit!.test!;

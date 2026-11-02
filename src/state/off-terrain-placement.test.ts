@@ -3,6 +3,7 @@ import { placeCombatant } from '../noyau/monde/spawn';
 import type { Scene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Scène minimale 3×1 : eau | sol | eau. */
 const scene = {
@@ -11,12 +12,12 @@ const scene = {
   entities: [], dialogues: [], triggers: [],
 } as unknown as Scene;
 
-const marine = (): Combatant => ({
+const marine = (): Combatant => (blessuresSurLeProfil({
   id: 'm1', name: 'Wyrm', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 0, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  movement: 6, wounds: { current: 20, max: 20 }, weapons: [], skills: [], talents: [],
+  movement: 6, wounds: blessuresDeBase(20), weapons: [], skills: [], talents: [],
   traits: [{ id: 'creature-marine' }],
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 describe('placeCombatant — drapeau positionnel offTerrain (op offTerrainMod, MDG 16 l.17)', () => {
   it('posé HORS de l’eau, retiré DANS l’eau — re-dérivé à chaque placement (chokepoint unique)', () => {

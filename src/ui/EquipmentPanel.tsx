@@ -22,8 +22,7 @@ import { refusDInventaire } from '../noyau/verrousDeFiche';
  * d'emplacements d'armure en CELLULES-ICÔNES à gauche (une ligne par localisation Tête/Bras/
  * Corps/Jambes + Cape, trois cellules = les 3 COUCHES Ext./Flex./Soupl., LDB 63 : cuir souple
  * sous tout ; Flexible sous la couche rigide — les PA rigide+Flexible se cumulent) et les sets
- * d'armes en cellules à DROITE (pas de mannequin central : le rig grand format de la colonne de
- * fiche en tient lieu, #492). Le PA cumulé est affiché EN FACE de chaque localisation. Survol
+ * d'armes en cellules à DROITE (pas de mannequin central, #492). Le PA cumulé est affiché EN FACE de chaque localisation. Survol
  * d'une cellule → POPOVER (Codex de l'objet réel, ou stats + qualités pour une arme invoquée via
  * `fallback`) ; le CLIC sur la
  * cellule ouvre le picker changer/retirer (sauf cellule verrouillée : arme invoquée / combat).
@@ -231,7 +230,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
           );
         })}
 
-        {/* Ligne Cape (cosmétique — rendue sur le rig de la colonne de fiche) */}
+        {/* Ligne Cape (cosmétique) */}
         <div className="eq-loc-row eq-loc-cape">
           <span className="eq-loc-head">
             <span className="eq-loc-name">Cape</span>

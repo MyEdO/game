@@ -808,7 +808,7 @@ export function CandidatePool({
 /** ACTE DE PRÉSENTATION du candidat élu — `DetailFrame` (prose sourcée) enveloppant `HeroSheet`
  *  (#417 → consécration primitive, constat utilisateur 2026-07-15 « La fiche vivante ce n'est pas
  *  une primitive ? »). Un candidat EST un `Combatant` complet (pregen) : `HeroSheet` porte SA bande
- *  d'en-tête (figurine+identité+rose) — pas de `topper` `DetailFrame` en double. Aucun bouton dédié :
+ *  d'en-tête (identité+rose) — pas de `topper` `DetailFrame` en double. Aucun bouton dédié :
  *  le recrutement reste sur la carte de la liste (`CandidateCard`), jamais dupliqué ici. */
 function CandidateDetailPane({ hero, wealth, axisIds }: { hero: Combatant; wealth?: Money; axisIds: string[] }) {
   const proseParts: string[] = [];

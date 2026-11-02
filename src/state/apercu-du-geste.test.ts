@@ -18,17 +18,18 @@ import type { GameState } from './store';
 import { initialNet } from '../noyau/etat';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Ce que l'affichage dira de cette Difficulté (`noyau/difficultyText`, celle de la modale). */
 const dit = (p: Parameters<typeof difficultyOf>[0]): string | null => difficultyShownText(difficultyOf(p));
 
 const guerrier = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'A',
     label: 'Guerrier',
     kind: 'hero',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [{ label: 'Épée', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
@@ -41,7 +42,7 @@ const guerrier = (over: Partial<Combatant> = {}): Combatant =>
     size: 'moyenne',
     pos: { x: 0, y: 0 },
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 function scene(w = 8, h = 8): Scene {
   return {

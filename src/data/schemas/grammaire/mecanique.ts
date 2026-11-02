@@ -20,7 +20,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type Effe
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
-import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
+import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 
@@ -112,11 +112,14 @@ export function reserve(noeud: z.ZodType): ChampReserveDeclare {
 /** Payload déclaré par ses champs (au moins un champ à choix ou réservé) : la famille le ferme en `z.strictObject`. */
 type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare | ChampReserveDeclare>>;
 
+/** Contrainte ENTRE champs d'un payload déclaré, posée sur l'objet que la famille ferme. */
+type AffinageDePayload = (o: Record<string, unknown>, ctx: z.RefinementCtx) => void;
+
 class PayloadDeclare {
-  constructor(readonly champs: FormeDePayload, readonly meta: MetaDesChamps<FormeDePayload>) {}
+  constructor(readonly champs: FormeDePayload, readonly meta: MetaDesChamps<FormeDePayload>, readonly affinage?: AffinageDePayload) {}
 }
-function declarerPayload<C extends FormeDePayload>(champs: C, meta: MetaDesChamps<C>): PayloadDeclare {
-  return new PayloadDeclare(champs, meta);
+function declarerPayload<C extends FormeDePayload>(champs: C, meta: MetaDesChamps<C>, affinage?: AffinageDePayload): PayloadDeclare {
+  return new PayloadDeclare(champs, meta, affinage);
 }
 
 const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !== null && '_zod' in v;
@@ -144,7 +147,7 @@ function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.Refineme
  */
 const DECLARATIONS_D_OPS = {
   narrative: proseNommee(nommerChamps(z.strictObject({ op: z.literal('narrative') }), { op: { label: 'opération'  } }), 'narrative.text'),
-  banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: banishNarrationSchema.optional(), onlyGroups: refs('groupe').optional() }), { op: { label: "opération"  }, narration: { label: "narration"  }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} } }),
+  banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: banishNarrationSchema.optional(), onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { op: { label: "opération"  }, narration: { label: "narration"  }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} } }),
   corruption: nommerChamps(z.strictObject({
     op: z.literal('corruption'),
     amount: z.number(),
@@ -230,7 +233,7 @@ const DECLARATIONS_D_OPS = {
     trait: traitInstanceSchema,
     cible: tirageDeCibleSchema.optional(),
     indicePerSL: perSLSchema.optional(),
-    onlyGroups: refs('groupe').optional(),
+    onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
@@ -254,11 +257,22 @@ const DECLARATIONS_D_OPS = {
     active: z.boolean().optional(),
   }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx)), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
   endPsych: nommerChamps(z.strictObject({ op: z.literal('endPsych'), type: ref('psychology') }), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
-  grantPsychTrait: nommerChamps(z.strictObject({
+  /** `envers`, `resistanceSiAmis` et `durationHours` sont réservés à la famille des sorts (`defs/spells.ts`) :
+   *  une mutation ou une maladie, qui pose son Trait sans `applyOps`, les refuse au parse. VDM 10 l.327-330 */
+  grantPsychTrait: declarerPayload({
     op: z.literal('grantPsychTrait'),
     psychType: ref('psychology'),
     cible: ref('groupe').optional(),
-  }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx)), { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
+    envers: reserve(z.literal('personneChoisie').optional()),
+    resistanceSiAmis: reserve(z.lazy(() => flowTestSchema).optional()),
+    durationHours: reserve(formulaSchema.optional()),
+  }, { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, envers: { label: "envers une personne choisie" }, resistanceSiAmis: { label: "résistance si amis" }, durationHours: { label: "durée en heures", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }, (o, ctx) => {
+    const type = (o.psychType as { id: string }).id;
+    refuserLaCibleHorsCiblage(type, o.cible, ctx);
+    if (o.envers !== undefined && o.cible !== undefined) ctx.addIssue({ code: 'custom', path: ['envers'], message: '« envers » et « cible » sont exclusifs : la Cible est un Groupe posé, ou la personne que choisit le décideur.' });
+    if (o.envers !== undefined && !varianteAdmise(type, 'individu')) ctx.addIssue({ code: 'custom', path: ['envers'], message: `« ${type} » ne vise pas un individu : voir ses « cibles » (psychology.json).` });
+    if (o.resistanceSiAmis !== undefined && o.envers === undefined) ctx.addIssue({ code: 'custom', path: ['resistanceSiAmis'], message: '« resistanceSiAmis » suit la personne choisie : « envers » est requis.' });
+  }),
   removePsychTrait: nommerChamps(z.strictObject({ op: z.literal('removePsychTrait'), psychType: ref('psychology').optional(), cible: ref('groupe').optional() }).superRefine((o, ctx) => {
     if (o.cible !== undefined && !o.psychType) ctx.addIssue({ code: 'custom', path: ['cible'], message: '« cible » vise une instance d’un Trait : « psychType » est requis.' });
     else if (o.psychType) refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx);
@@ -668,7 +682,7 @@ function refusDeSpecDeLaValeur(type: TypeEntite) {
 
 /** Condition `has`, DISCRIMINÉE par `what` : `value` résout dans le registre de `what`, la `spec` n'appartient qu'au Talent. */
 export const hasConditionSchema = z.discriminatedUnion('what', [
-  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('group'), value: idDe('groupe') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
+  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('group'), value: idDe('groupe', CIBLE_D_APPARTENANCE) }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }).superRefine(refusDeSpecDeLaValeur('talent')), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('trait'), value: idDe('trait') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('psych'), value: idDe('psychology') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
@@ -822,8 +836,8 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   vsCapricieux: z.boolean().optional(),
   easierIf: facilitationSchema.optional(),
   argDifficulty: z.boolean().optional(),
-  onlyGroups: refs('groupe').optional(),
-  exceptGroups: refs('groupe').optional(),
+  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   gate: conditionSchema.optional(),
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT authoré : absent = défaut de la VOIE qui ouvre le Test (scène/
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais
@@ -1072,10 +1086,15 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
       const meta = Object.fromEntries(champs.map(([champ]) => [champ, (d as PayloadDeclare).meta[champ as string]]));
       // Les clés RÉSERVÉES admises sont le choix de la famille appelante (ses régimes).
       const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, v.noeud]] : [])));
-      return [op, marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)), meta), 'payloadsDe', op, reservesAdmises)];
+      const affinage = (d as PayloadDeclare).affinage;
+      return [op, marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [z.superRefine(affinage)] : [])), meta), 'payloadsDe', op, reservesAdmises)];
     }),
   );
 }
+
+/** La forme LOOSE commune aux `gameOp` de toutes les familles : son reste (`.*`) est UN nœud, celui des ops encore
+ *  non typées (`OPS_NON_TYPEES`), quelle que soit la famille qui l'atteint. */
+const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
 function construire(regimes: Regimes) {
   const opDefs = payloadsDe(regimes);
@@ -1086,7 +1105,7 @@ function construire(regimes: Regimes) {
    * ailleurs : la clé `op` est surchargée en donnée (les comparateurs `>=`/`<=`/`==` d'une `Condition`
    * la portent aussi).
    */
-  const gameOp: z.ZodType<GameOp> = marquerProduit(nommerChamps(z.looseObject({ op: z.string() }).superRefine((v, ctx) => {
+  const gameOp: z.ZodType<GameOp> = marquerProduit(nommerChamps(OP_EN_DONNEE.superRefine((v, ctx) => {
     marquerOpAtteinte(ctx);
     const payload = opDefs[v.op];
     if (payload) {

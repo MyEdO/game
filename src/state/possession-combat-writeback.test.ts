@@ -13,7 +13,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Possession } from '../engine/possession';
 import type { Combatant, ItemInstance } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en pièce, #618)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null, possessions: [] }); });
@@ -38,10 +38,10 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
   it('bête possession BLESSÉE en combat → wounds persisté sur la Possession (clampé à son max)', () => {
     const battle = setup();
     useGame.setState({ possessions: [mule('pos-1')] });
-    const combatant: Combatant = {
+    const combatant: Combatant = blessuresSurLeProfil({
       ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
       wounds: blessuresDeBase(8, 3), dead: false,
-    };
+    });
     useGame.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
     finalizeBattle(useGame.getState, useGame.setState);
     const p = useGame.getState().possessions.find((x) => x.uid === 'pos-1');
@@ -51,10 +51,10 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
   it('bête possession TUÉE en combat → destroyed:true, items CO-LOCALISÉS (pas évaporés)', () => {
     const battle = setup();
     useGame.setState({ possessions: [mule('pos-1')] });
-    const combatant: Combatant = {
+    const combatant: Combatant = blessuresSurLeProfil({
       ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
       wounds: blessuresDeBase(8, 0), dead: true,
-    };
+    });
     useGame.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
     finalizeBattle(useGame.getState, useGame.setState);
     const p = useGame.getState().possessions.find((x) => x.uid === 'pos-1');
@@ -65,10 +65,10 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
   it('bête possession SURVIT indemne → aucune mutation, wounds inchangé, destroyed absent', () => {
     const battle = setup();
     useGame.setState({ possessions: [mule('pos-1')] });
-    const combatant: Combatant = {
+    const combatant: Combatant = blessuresSurLeProfil({
       ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
       wounds: blessuresDeBase(8), dead: false,
-    };
+    });
     useGame.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
     finalizeBattle(useGame.getState, useGame.setState);
     const p = useGame.getState().possessions.find((x) => x.uid === 'pos-1');

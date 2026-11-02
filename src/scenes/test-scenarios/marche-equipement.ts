@@ -1,6 +1,6 @@
 import { createHero } from '../../engine/character';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, itemFromGive, recomputeLoadout } from '../../engine/items';
-import { rigSpeciesId } from '../../data';
+import { especeDApparence } from '../../data';
 import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { buildScene } from '../../noyau/mapSpec';
@@ -32,7 +32,7 @@ function negociant(): Combatant {
   const selle = itemFromTrappingById('selle-et-harnais', undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [epee, maille, dague, selle];
   recomputeLoadout(h);
-  h.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
+  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
   return h;
 }
 
@@ -51,7 +51,7 @@ function maitreArmes(): Combatant {
     take('plastron'), // couche extérieure rigide
     take('calotte-de-cuir'),
     take('jambieres-en-cuir'),
-    take('cape'), // emplacement cosmétique (visible dans le dos du rig)
+    take('cape'), // emplacement cosmétique (Cape)
     take('rapiere', true), // Set I mêlée
     take('bouclier', true),
     take('epee-batarde'), // 2M au sac → grisage du slot secondaire
@@ -61,7 +61,7 @@ function maitreArmes(): Combatant {
   h.loadouts = undefined; // inventaire de carrière REMPLACÉ → régénérer les sets par défaut
   h.activeLoadoutId = undefined;
   recomputeLoadout(h);
-  h.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
+  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
   return h;
 }
 

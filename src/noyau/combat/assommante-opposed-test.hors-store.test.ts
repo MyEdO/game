@@ -11,7 +11,7 @@ import { testValue, skillBaseValue } from '../../engine/skills';
 
 import { testScene } from '../../scenes/test-fixture';
 import type { Weapon } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -44,8 +44,8 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     const wielder = enemies[0]; // le porteur de l'arme Assommante (attaquant)
     const prey = enemies[1];    // une victime ENNEMIE (cas b)
     enemies.slice(2).forEach((e) => (e.dead = true));
-    H.wounds = blessuresDeBase(200);
-    prey.wounds = blessuresDeBase(200);
+    H.wounds = blessuresDeBase(200, 200, H);
+    prey.wounds = blessuresDeBase(200, 200, prey);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, wielder, prey };
   }
