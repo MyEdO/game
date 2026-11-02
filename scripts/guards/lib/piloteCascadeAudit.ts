@@ -52,7 +52,7 @@
  *  - un helper à DEUX niveaux : un helper qui n'atteint `pendingCascade` (ou un verbe) que par l'appel d'un
  *    autre helper n'est ni lecteur ni joueur, et ne prête rien à qui l'appelle — 4 occurrences, non
  *    pilotes : `cascade-parite-porteur.test.ts` (`it:CONTRÔLE POSITIF — les trois politiques rendent TROIS
- *    conduites DISTINCTES (la sonde discrimine)`), `miscast-step.test.ts` (`it:SONDE F — hors Colère, AUCUN
+ *    conduites DISTINCTES (la sonde discrimine)`), `miscast-step.hors-store.test.ts` (`it:SONDE F — hors Colère, AUCUN
  *    modificateur n’est déclaré (le moteur n’en applique aucun)`), `scripts/recette/lib.test.mjs`
  *    (`test:tournerCamera : zéro sans événement, non fini et active refusés avant entrée`, `test:tournerCamera :
  *    angle immense et délai invalide refusés sans entrée`) (sonde : #1765 issuecomment-6195158339 L-B,
@@ -61,7 +61,7 @@
  *    lit ou joue : une boucle qui lit et appelle une telle fonction dont la ligne droite joue n'est pas un
  *    site (fonctions MUTUELLES comprises) — 0 occurrence (sonde : #1765 issuecomment-6195158339 L-B,
  *    variante `disqPrete`). Les 11 boucles externes qui appellent une fonction déjà au stock
- *    (`travel.hors-store.test.ts`, `miscast-step.test.ts`, `15-commerce-fluvial.test.ts`, `tavern-regime-rapide.hors-store.test.ts`)
+ *    (`travel.hors-store.test.ts`, `miscast-step.hors-store.test.ts`, `15-commerce-fluvial.test.ts`, `tavern-regime-rapide.hors-store.test.ts`)
  *    ne sont pas des pilotes : leur pilote, la fonction appelée, est déjà au stock ;
  *  - une itération qui ne pilote QUE par l'appel d'un helper ne disqualifie pas la fonction qui la porte :
  *    cette fonction prête encore ce qu'elle lit ou joue directement, et la boucle qui l'appelle peut
