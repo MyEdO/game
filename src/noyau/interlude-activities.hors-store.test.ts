@@ -3,76 +3,75 @@
  * ¼ prix, achèvement → objet avec qualités), Opérations bancaires (invest/planque), blocages
  * d'événements par Classe.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import { draineCascade } from '../noyau/cascade.testkit';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { makeRNG, roll } from '../engine/dice';
 import { toBrass, fromBrass, priceToMoney, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
+import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { findTrappingById, findEffectTableById } from '../data';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
-import { seedBattleRng } from '../noyau/battleRng';
-import type { PendingActivity } from '../noyau/interludeFlow';
-import { openRitualFocus } from '../noyau/interludeFlow';
-import { preJetDActivite } from '../noyau/verdictsDInterlude';
+import { seedBattleRng } from './battleRng';
+import type { PendingActivity } from './interludeFlow';
+import { openRitualFocus } from './interludeFlow';
+import { preJetDActivite } from './verdictsDInterlude';
 import { activityById } from '../engine/activities';
 import { evaluateTest } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
-// (les tests Apprentissage/commande utilisent les actions store et les données réelles)
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+// (les tests Apprentissage/commande utilisent les actions du noyau et les données réelles)
 
 describe('Activités d’interlude (LDB 23)', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.clearAllTimers();
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
-    useGame.getState().startScene(testScene());
-    vi.clearAllTimers();
-    creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, fromBrass(2000));
-    useGame.getState().seedRng(13);
-    useGame.getState().startInterlude(3);
-    draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
+    banc.setState({ party: [a] });
+    banc.getState().startScene(testScene());
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(2000));
+    banc.getState().seedRng(13);
+    banc.getState().startInterlude(3);
+    draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  function hero() { return useGame.getState().party[0]; }
-  function st() { return useGame.getState().interlude!.perHero[hero().id]; }
+  function hero() { return banc.getState().party[0]; }
+  function st() { return banc.getState().interlude!.perHero[hero().id]; }
 
   it('Revenus : modale → jet → Appliquer crédite revenueBrass (crédit DIFFÉRÉ, LDB 23 l.191) et consomme l’Activité', () => {
     // RAW : « Sur un succès, vous gagnez l'argent indiqué » (LDB 08 l.110) ; l'argent « vous est
     // seulement remis une fois que vous avez disposé de l'argent de votre dernière aventure » (LDB 23
     // l.191) → jamais dans `money`, seulement `revenueBrass`. Revenus maintient le Statut (l.193).
     // Neutralise un éventuel blocage d'événement pour CE test (on teste le flux, pas l'événement).
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 2 };
-    useGame.setState({ interlude: { ...itl } });
-    const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().interludeActivity(hero().id, 'revenus');
-    const pa = useGame.getState().pendingActivity;
+    banc.setState({ interlude: { ...itl } });
+    const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().interludeActivity(hero().id, 'revenus');
+    const pa = banc.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
     expect(pa?.activityId).toBe('revenus');
     expect(pa?.difficulty).toBe('accessible'); // « Test Spectaculaire Accessible (+20) » (LDB 08 l.110) — Spectaculaire = Test à DR ordinaire (LDB 12 l.172), PAS étendu
-    useGame.getState().activityRoll();
+    banc.getState().activityRoll();
     // Force un succès propre (déterminisme du gain testé côté moteur).
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    useGame.getState().activityConfirm();
-    expect(useGame.getState().pendingActivity).toBeNull();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
+    banc.getState().activityConfirm();
+    expect(banc.getState().pendingActivity).toBeNull();
     const after = st();
     expect(after.didRevenus).toBe(true);
     expect(after.left).toBe(1);
     expect(after.revenueBrass).toBeGreaterThan(0);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore); // crédit DIFFÉRÉ : la bourse n'a pas bougé
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore); // crédit DIFFÉRÉ : la bourse n'a pas bougé
   });
 
   it('Revenus bloqués par l’événement (classe ou *) : la modale ne s’ouvre pas', () => {
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: { revenueBlockedClasses: ['*'] }, left: 2 };
-    useGame.setState({ interlude: { ...itl } });
-    useGame.getState().interludeActivity(hero().id, 'revenus');
-    expect(useGame.getState().pendingActivity).toBeNull();
-    expect(useGame.getState().journal.join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
+    banc.setState({ interlude: { ...itl } });
+    banc.getState().interludeActivity(hero().id, 'revenus');
+    expect(banc.getState().pendingActivity).toBeNull();
+    expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
   });
 
   it('Artisanat : engager paie ¼ du prix (LDB 23 l.76) ; le Test étendu cumule ; l’achèvement crée l’objet qualifié', () => {
@@ -81,23 +80,23 @@ describe('Activités d’interlude (LDB 23)', () => {
     // Activité […] vous permet d'effectuer un lancer pour votre Test étendu ».
     const h = hero();
     h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
-    const itl0 = useGame.getState().interlude!;
+    const itl0 = banc.getState().interlude!;
     itl0.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl0 } });
+    banc.setState({ interlude: { ...itl0 } });
     const quarter = Math.max(1, Math.floor(toBrass(priceToMoney(findTrappingById('dague')!.price)) / 4));
-    const before = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().interludeCraftStart(h.id, 'dague', ['solide'], []);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before - quarter);
+    const before = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().interludeCraftStart(h.id, 'dague', ['solide'], []);
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - quarter);
     expect(hero().craft?.trappingId).toBe('dague');
     // Lancer : on force l'achèvement (drBefore au seuil).
-    useGame.getState().interludeActivity(h.id, 'craft');
-    expect(useGame.getState().pendingActivity?.kind).toBe('catalog');
-    expect(useGame.getState().pendingActivity?.activityId).toBe('craft');
-    expect(useGame.getState().pendingActivity?.drTarget).toBeGreaterThan(0); // Test étendu : cible de DR peuplée
-    useGame.getState().activityRoll();
-    const pa = useGame.getState().pendingActivity!;
-    useGame.setState({ pendingActivity: { ...pa, roll: 1, success: true, sl: Math.max(1, pa.drTarget ?? 1) , drBefore: pa.drTarget } });
-    useGame.getState().activityConfirm();
+    banc.getState().interludeActivity(h.id, 'craft');
+    expect(banc.getState().pendingActivity?.kind).toBe('catalog');
+    expect(banc.getState().pendingActivity?.activityId).toBe('craft');
+    expect(banc.getState().pendingActivity?.drTarget).toBeGreaterThan(0); // Test étendu : cible de DR peuplée
+    banc.getState().activityRoll();
+    const pa = banc.getState().pendingActivity!;
+    banc.setState({ pendingActivity: { ...pa, roll: 1, success: true, sl: Math.max(1, pa.drTarget ?? 1) , drBefore: pa.drTarget } });
+    banc.getState().activityConfirm();
     const after = st();
     expect(hero().craft).toBeUndefined();
     expect(after.left).toBe(2);
@@ -109,19 +108,19 @@ describe('Activités d’interlude (LDB 23)', () => {
     const h = hero();
     h.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 10 });
     h.spells = ['graver-une-pierre-d-ogham']; // NI 50, aucun Domaine requis (`domains: []`)
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    const r = openRitualFocus(useGame.getState, useGame.setState, h, 'graver-une-pierre-d-ogham');
+    banc.setState({ interlude: { ...itl } });
+    const r = openRitualFocus(banc.getState, banc.setState, h, 'graver-une-pierre-d-ogham');
     // Pré-jet du Rituel engagé : la voie de Focalisation que le geste poserait.
-    const focus = () => preJetDActivite(useGame.getState(), h.id, activityById('accomplir-un-rituel')!)!;
+    const focus = () => preJetDActivite(banc.getState(), h.id, activityById('accomplir-un-rituel')!)!;
     expect(r).toBeDefined();
     expect(r!.drTarget).toBe(25); // NI 50 réduit de moitié (arrondi sup.) en Activité
     expect(r!.drBefore).toBe(0);
     expect(hero().ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 0, drTarget: 25 });
     // `pendingActivity` reconstitué à la main (assemblage d'`openCatalogActivity`) : l'Activité est
-    // `blocked` au catalogue, la porte `interludeActivity`/`openCatalogActivity` refuse désormais.
-    useGame.setState({
+    // `blocked` au catalogue, la porte `interludeActivity`/`openCatalogActivity` refuse.
+    banc.setState({
       pendingActivity: {
         heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
         skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
@@ -135,8 +134,8 @@ describe('Activités d’interlude (LDB 23)', () => {
     let seed = 1;
     while (makeRNG(seed).int(1, 100) - effTarget < 15) seed++;
     seedBattleRng(seed);
-    useGame.getState().activityRoll(); // exerce `resolveFocus` réel (branche `p.ritualSpell`, rollFlowSpecs.ts)
-    const pa = useGame.getState().pendingActivity!;
+    banc.getState().activityRoll(); // exerce `resolveFocus` réel (branche `p.ritualSpell`, rollFlowSpecs.ts)
+    const pa = banc.getState().pendingActivity!;
     expect(pa.success).toBe(false);
     // Signature que seule `resolveFocus` produit : `FocusResult.dr` est CLAMPÉ ≥ 0 (`engine/magic.ts`) —
     // sur ce MÊME jet, `evaluateTest` (Test simple générique, sans `p.ritualSpell`) rend un DR négatif.
@@ -147,15 +146,15 @@ describe('Activités d’interlude (LDB 23)', () => {
     // ⚠ 10 puis 20 DR forcés ci-dessous EXERCENT le cumul (`extendedTestStep`) — ce ne sont PAS des DR
     // représentatifs d'un Round réel (`resolveFocus` mesure ~1,39 DR de moyenne) : cette trajectoire de
     // 2 Rounds n'est pas jouable en l'état (#879).
-    useGame.setState({ pendingActivity: { ...pa, sl: 10, success: true } });
-    useGame.getState().activityConfirm();
+    banc.setState({ pendingActivity: { ...pa, sl: 10, success: true } });
+    banc.getState().activityConfirm();
     expect(hero().ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 10, drTarget: 25 });
     expect(st().left).toBe(2);
     // 2e Round, sans re-préciser `spellId` : reprend le Rituel engagé (`h.ritual`), achève (10+20 ≥ 25).
-    const r2 = openRitualFocus(useGame.getState, useGame.setState, h, undefined);
+    const r2 = openRitualFocus(banc.getState, banc.setState, h, undefined);
     expect(r2).toBeDefined();
     expect(r2!.drBefore).toBe(10);
-    useGame.setState({
+    banc.setState({
       pendingActivity: {
         heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
         skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
@@ -163,23 +162,23 @@ describe('Activités d’interlude (LDB 23)', () => {
         ...r2!, label: `Accomplir un Rituel — ${r2!.label}`,
       } as PendingActivity,
     });
-    useGame.getState().activityRoll();
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, sl: 20, success: true } });
-    useGame.getState().activityConfirm();
+    banc.getState().activityRoll();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, sl: 20, success: true } });
+    banc.getState().activityConfirm();
     expect(hero().ritual).toBeUndefined();
     expect(st().left).toBe(1);
-    expect(useGame.getState().journal.join('\n')).toMatch(/achève le Rituel/);
+    expect(banc.getState().journal.join('\n')).toMatch(/achève le Rituel/);
   });
 
   it('Rituel au NI FORMULE (`cn: null`, #879 volet 2) : `openRitualFocus` refuse, non engageable en Activité', () => {
     const h = hero();
     h.spells = ['les-faux-croisees'];
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    const r = openRitualFocus(useGame.getState, useGame.setState, h, 'les-faux-croisees');
+    banc.setState({ interlude: { ...itl } });
+    const r = openRitualFocus(banc.getState, banc.setState, h, 'les-faux-croisees');
     expect(r).toBeUndefined();
-    expect(useGame.getState().journal.join('\n')).toMatch(/Incantation indéterminé/);
+    expect(banc.getState().journal.join('\n')).toMatch(/Incantation indéterminé/);
     expect(st().left).toBe(3); // refus AVANT le jet — aucun créneau consommé
     expect(hero().ritual).toBeUndefined();
   });
@@ -188,28 +187,28 @@ describe('Activités d’interlude (LDB 23)', () => {
     const h = hero();
     h.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 10 });
     h.spells = ['graver-une-pierre-d-ogham'];
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    useGame.getState().interludeActivity(h.id, 'accomplir-un-rituel', { spellId: 'graver-une-pierre-d-ogham' });
-    expect(useGame.getState().pendingActivity).toBeNull();
+    banc.setState({ interlude: { ...itl } });
+    banc.getState().interludeActivity(h.id, 'accomplir-un-rituel', { spellId: 'graver-une-pierre-d-ogham' });
+    expect(banc.getState().pendingActivity).toBeNull();
     expect(st().left).toBe(3); // porte fermée AVANT tout jet — aucun créneau consommé
     expect(hero().ritual).toBeUndefined();
   });
 
   it('Banque : invest interdit à l’échelon Bronze ; la planque débite et consomme l’Activité', () => {
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 2 };
-    useGame.setState({ interlude: { ...itl } });
+    banc.setState({ interlude: { ...itl } });
     hero().career = 'Agitateur'; // Pamphlétaire (niv.1) = Bronze 1 → invest refusé
     hero().careerLevel = 1;
-    useGame.getState().interludeBank(hero().id, 'invest', 120);
-    expect(useGame.getState().bank).toHaveLength(0);
-    expect(useGame.getState().journal.join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
-    const before = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().interludeBank(hero().id, 'stash', 120);
-    expect(useGame.getState().bank).toHaveLength(1);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before - 120);
+    banc.getState().interludeBank(hero().id, 'invest', 120);
+    expect(banc.getState().bank).toHaveLength(0);
+    expect(banc.getState().journal.join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
+    const before = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().interludeBank(hero().id, 'stash', 120);
+    expect(banc.getState().bank).toHaveLength(1);
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - 120);
     expect(st().left).toBe(1);
   });
 
@@ -219,32 +218,32 @@ describe('Activités d’interlude (LDB 23)', () => {
     // chaque tentative ratée ». Prix du tuteur (l.72) : « 2D10 pistoles d'argent par 100PX ».
     const h = hero();
     h.xp = 300;
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(5000));
-    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' }); // id STABLE du Talent
-    const pa = useGame.getState().pendingActivity!;
+    banc.setState({ interlude: { ...itl } });
+    creditBourse(banc.getState, banc.setState, h.id, fromBrass(5000));
+    banc.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' }); // id STABLE du Talent
+    const pa = banc.getState().pendingActivity!;
     expect(pa.kind).toBe('catalog');
     expect(pa.activityId).toBe('learn');
     expect(pa.difficulty).toBe('difficile'); // « Test Difficile (-20) »
     expect(pa.xpCost).toBe(100);
-    const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().activityRoll();
+    const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().activityRoll();
     // Échec forcé : PX/argent dépensés en vain, +10 cumulé.
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
-    useGame.getState().activityConfirm();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
+    banc.getState().activityConfirm();
     expect(hero().xp).toBe(200);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore - (pa.tutorBrass ?? 0)); // tuteur payé MÊME sur échec
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - (pa.tutorBrass ?? 0)); // tuteur payé MÊME sur échec
     expect(st().learnFails?.['chanceux']).toBe(1); // clé = id stable
     expect(hero().talents.some((t) => t.talentId === 'chanceux')).toBe(false);
     // Seconde tentative : succès → Talent acquis ; l'acharnement est un modificateur du Test (LDB 23 l.72).
-    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
-    const reprise = useGame.getState().pendingActivity!;
+    banc.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
+    const reprise = banc.getState().pendingActivity!;
     expect([reprise.skillValue, reprise.mod, reprise.modLabel]).toEqual([pa.skillValue, 10, 'Acharnement']);
-    useGame.getState().activityRoll();
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 1, success: true, sl: 1 } });
-    useGame.getState().activityConfirm();
+    banc.getState().activityRoll();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 1 } });
+    banc.getState().activityConfirm();
     expect(hero().talents.some((t) => t.talentId === 'chanceux')).toBe(true);
     expect(hero().xp).toBe(100);
   });
@@ -252,53 +251,53 @@ describe('Activités d’interlude (LDB 23)', () => {
   it('Apprentissage particulier : le Test se jette sur la valeur de Test, États compris (LDB 16 l.125)', () => {
     const h = hero();
     h.xp = 300;
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(5000));
-    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
-    const sansEtat = useGame.getState().pendingActivity!.skillValue;
-    useGame.setState({ pendingActivity: null });
+    banc.setState({ interlude: { ...itl } });
+    creditBourse(banc.getState, banc.setState, h.id, fromBrass(5000));
+    banc.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
+    const sansEtat = banc.getState().pendingActivity!.skillValue;
+    banc.setState({ pendingActivity: null });
     hero().conditions = [{ id: 'sonne', value: 3 }];
-    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
-    expect(useGame.getState().pendingActivity!.skillValue, 'Sonné ×3 : −30').toBe(sansEtat - 30);
+    banc.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
+    expect(banc.getState().pendingActivity!.skillValue, 'Sonné ×3 : −30').toBe(sansEtat - 30);
   });
 
   it('Recherche de savoir sans Savoir avancé : Intelligence Complexe, sur la valeur de Test, États compris (LDB 16 l.125)', () => {
     const h = hero();
     h.skills = h.skills.filter((k) => k.id !== 'savoir');
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    useGame.getState().interludeActivity(h.id, 'recherche-de-savoir');
-    const pa = useGame.getState().pendingActivity!;
+    banc.setState({ interlude: { ...itl } });
+    banc.getState().interludeActivity(h.id, 'recherche-de-savoir');
+    const pa = banc.getState().pendingActivity!;
     expect(pa.difficulty, 'Complexe, un cran plus dur hors Classe Lettres (`classGate` de l’Activité)').toBe('difficile');
-    useGame.setState({ pendingActivity: null });
+    banc.setState({ pendingActivity: null });
     hero().conditions = [{ id: 'sonne', value: 3 }];
-    useGame.getState().interludeActivity(h.id, 'recherche-de-savoir');
-    expect(useGame.getState().pendingActivity!.skillValue, 'Sonné ×3 : −30').toBe(pa.skillValue - 30);
+    banc.getState().interludeActivity(h.id, 'recherche-de-savoir');
+    expect(banc.getState().pendingActivity!.skillValue, 'Sonné ×3 : −30').toBe(pa.skillValue - 30);
   });
 
   it('Passer commande : objet du stock ordinaire refusé ; Exotique payé maintenant, livré à l’interlude SUIVANT', () => {
     const h = hero();
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(999999));
-    useGame.getState().interludeOrder(h.id, 'dague'); // Commune → refus
-    expect(useGame.getState().pendingOrders).toHaveLength(0);
-    expect(useGame.getState().journal.join('\n')).toMatch(/s’achète chez un marchand|s'achète chez un marchand/);
+    banc.setState({ interlude: { ...itl } });
+    creditBourse(banc.getState, banc.setState, h.id, fromBrass(999999));
+    banc.getState().interludeOrder(h.id, 'dague'); // Commune → refus
+    expect(banc.getState().pendingOrders).toHaveLength(0);
+    expect(banc.getState().journal.join('\n')).toMatch(/s’achète chez un marchand|s'achète chez un marchand/);
     const exotic = findTrappingById('long-fusil-d-hochland'); // l'exemple du LDB (Exotique)
     if (!exotic || exotic.availability !== 'Exotique') return; // garde : données absentes → couvert par le refus ci-dessus
-    useGame.getState().interludeOrder(h.id, exotic.id);
-    expect(useGame.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: exotic.id }]);
+    banc.getState().interludeOrder(h.id, exotic.id);
+    expect(banc.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: exotic.id }]);
     expect(st().left).toBe(2);
     // Clôture + nouvel interlude : la commande est livrée.
-    useGame.getState().interludeEnd();
-    useGame.getState().startInterlude(1);
-    draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
+    banc.getState().interludeEnd();
+    banc.getState().startInterlude(1);
+    draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(hero().items?.some((i) => i.label === exotic.label)).toBe(true);
-    expect(useGame.getState().pendingOrders).toHaveLength(0);
+    expect(banc.getState().pendingOrders).toHaveLength(0);
   });
 
   /** VDM 12 l.42 : le bâton enchanté « nécessite l'Activité Passer commande et coûte 15 CO », sans
@@ -306,31 +305,31 @@ describe('Activités d’interlude (LDB 23)', () => {
    *  Contre-épreuve hors commerce (sans prix) sur le même chemin. */
   it('Passer commande : bâton enchanté (sans Disponibilité, 15 CO) accepté ; hors commerce refusé', () => {
     const h = hero();
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl } });
-    creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(999999));
-    const before = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().interludeOrder(h.id, 'baton-enchante');
-    expect(useGame.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: 'baton-enchante' }]);
-    expect(before - toBrass(partyMoneyTotal(useGame.getState))).toBe(15 * PA_PER_CO);
+    banc.setState({ interlude: { ...itl } });
+    creditBourse(banc.getState, banc.setState, h.id, fromBrass(999999));
+    const before = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().interludeOrder(h.id, 'baton-enchante');
+    expect(banc.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: 'baton-enchante' }]);
+    expect(before - toBrass(partyMoneyTotal(banc.getState))).toBe(15 * PA_PER_CO);
     expect(st().left).toBe(2);
     for (const id of ['licence-de-guilde', 'arme-improvisee', 'mains-nues']) {
-      useGame.getState().interludeOrder(h.id, id);
-      expect(useGame.getState().pendingOrders, `${id} ne doit pas se commander`).toHaveLength(1);
+      banc.getState().interludeOrder(h.id, id);
+      expect(banc.getState().pendingOrders, `${id} ne doit pas se commander`).toHaveLength(1);
     }
     expect(st().left).toBe(2); // aucun refus n'a consommé d'Activité
   });
 
   it('Banque : le retrait d’une planque rend l’argent (ou la perd sur 🎲 ≤ 10) et vide le dépôt', () => {
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 2 };
-    useGame.setState({ interlude: { ...itl }, bank: [{ heroId: hero().id, kind: 'stash', brass: 240, rate: 0 }] });
-    const before = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().interludeWithdraw(0);
-    expect(useGame.getState().bank).toHaveLength(0);
-    const after = toBrass(partyMoneyTotal(useGame.getState));
-    const journal = useGame.getState().journal.join('\n');
+    banc.setState({ interlude: { ...itl }, bank: [{ heroId: hero().id, kind: 'stash', brass: 240, rate: 0 }] });
+    const before = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().interludeWithdraw(0);
+    expect(banc.getState().bank).toHaveLength(0);
+    const after = toBrass(partyMoneyTotal(banc.getState));
+    const journal = banc.getState().journal.join('\n');
     if (after > before) expect(journal).toMatch(/récupère/);
     else expect(journal).toMatch(/découverte|perdus/);
   });
@@ -340,28 +339,28 @@ describe('Activités d’interlude (LDB 23)', () => {
     const h = hero();
     if (withSavoir) h.skills.push({ id: 'savoir', spec: 'magie', characteristic: 'intelligence', advances: 10 });
     h.items = [...(h.items ?? []), { uid: 'art1', name: 'Épée ancienne', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false } as never];
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-    useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party] });
+    banc.setState({ interlude: { ...itl }, party: [...banc.getState().party] });
   }
   const artefact = () => hero().items!.find((i) => i.uid === 'art1')!;
   const forceRoll = (roll: number, success: boolean, sl: number) => {
-    useGame.getState().activityRoll();
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll, success, sl } });
-    useGame.getState().activityConfirm();
+    banc.getState().activityRoll();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
+    banc.getState().activityConfirm();
   };
 
   it('Identifier : exige Savoir (Magie) acquis (« Pour d’autres sorciers », ADE II 4 l.41)', () => {
     armArtefact(false);
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
-    expect(useGame.getState().pendingActivity).toBeNull();
-    expect(useGame.getState().journal.join('\n')).toMatch(/Savoir \(Magie\)/);
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    expect(banc.getState().pendingActivity).toBeNull();
+    expect(banc.getState().journal.join('\n')).toMatch(/Savoir \(Magie\)/);
   });
 
   it('Identifier : Test de Savoir (Magie) Intermédiaire (+0), Activité consommée (ADE II 4 l.41)', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
-    const pa = useGame.getState().pendingActivity;
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    const pa = banc.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
     expect(pa?.activityId).toBe('identify');
     expect(pa?.difficulty).toBe('intermediaire'); // « Savoir (Magie) Intermédiaire (+0) »
@@ -372,7 +371,7 @@ describe('Activités d’interlude (LDB 23)', () => {
   // ADE II 4 l.43-52 — table de DR complète (le POC collapsait ≥+4/≤+3 et IGNORAIT la ligne « 0 à +1 »).
   it('Identifier : Succès Impressionnant (+4 à +5) → identifié + « sait s’il a des Particularités »', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(5, true, 4);
     expect(artefact().identified).toBe(true); // « le Personnage est capable d'identifier l'objet »
     expect(artefact().magicKnown).toBe(true); // « et sait s'il a des Particularités »
@@ -380,7 +379,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
   it('Identifier : Succès (+2 à +3) → identifié, Particularités visibles seulement (pas les cachées)', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(20, true, 2);
     expect(artefact().identified).toBe(true); // RAW : tout succès identifie l'objet (correction du POC)
     expect(artefact().magicKnown).toBeFalsy(); // « il ne voit pas celles qui sont cachées »
@@ -388,7 +387,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
   it('Identifier : Succès Minime (0 à +1) → identifié ET découvre UNE Particularité cachée (ligne ignorée par le POC)', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(41, true, 1); // DR +1 → Succès Minime
     expect(artefact().identified).toBe(true);
     expect(artefact().magicKnown).toBe(true); // « découvre une Particularité cachée »
@@ -396,7 +395,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
   it('Identifier : Échec (−2 à −3) → confond avec un objet similaire, AUCUNE fausse Particularité (ADE II 4 l.50)', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(70, false, -2);
     expect(artefact().identified).toBe(false); // « confond l'artefact avec un type d'objet similaire »
     expect(artefact().suspectedQualities ?? []).toHaveLength(0); // pas de fausse Particularité avant −4 (≠ Échec Minime)
@@ -404,7 +403,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
   it('Identifier : Échec Impressionnant (−4 à −5) → UNE fausse Particularité soupçonnée', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(88, false, -4);
     const suspected = artefact().suspectedQualities ?? [];
     expect(suspected).toHaveLength(1); // « soupçonne également que l'objet possède une Particularité qu'il n'a pas »
@@ -414,14 +413,14 @@ describe('Activités d’interlude (LDB 23)', () => {
 
   it('Identifier : Échec Stupéfiant (−6 ou moins) → AU MOINS DEUX fausses Particularités, purgées par une vraie révélation', () => {
     armArtefact();
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(99, false, -6);
     const suspected = artefact().suspectedQualities ?? [];
     expect(suspected).toHaveLength(2); // « soupçonne également que l'objet possède au moins deux Particularités qu'il n'a pas »
     expect(suspected).not.toContain('De plaies atroces');
     expect(artefact().identified).toBe(false);
     // Une identification réussie ultérieure dissipe les fausses certitudes.
-    useGame.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
+    banc.getState().interludeActivity(hero().id, 'identify', { itemUid: 'art1' });
     forceRoll(3, true, 6);
     expect(artefact().identified).toBe(true);
     expect(artefact().suspectedQualities).toBeUndefined();
@@ -431,15 +430,15 @@ describe('Activités d’interlude (LDB 23)', () => {
   it('Crampes abdominales : rater une Activité d’interlude → État Sonné (MSRC 16 l.152, cas RAW cardinal)', () => {
     const h = hero();
     h.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }];
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 2 }; // neutralise un éventuel blocage d'événement
-    useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party] });
-    useGame.getState().interludeActivity(h.id, 'revenus');
-    useGame.getState().activityRoll();
+    banc.setState({ interlude: { ...itl }, party: [...banc.getState().party] });
+    banc.getState().interludeActivity(h.id, 'revenus');
+    banc.getState().activityRoll();
     // Force un échec « normal ou pire » (DR ≤ −2) → palier 1 des Crampes = Sonné.
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
-    useGame.getState().activityConfirm();
-    const after = useGame.getState().party.find((c) => c.id === h.id)!;
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
+    banc.getState().activityConfirm();
+    const after = banc.getState().party.find((c) => c.id === h.id)!;
     expect(after.conditions.some((c) => c.id === 'sonne')).toBe(true);
   });
 
@@ -449,18 +448,18 @@ describe('Activités d’interlude (LDB 23)', () => {
     const h = hero();
     h.characteristics['force-mentale'] = 40;
     h.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }];
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 2 };
-    useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party], pendingTest: null });
-    useGame.getState().interludeActivity(h.id, 'revenus');
-    useGame.getState().activityRoll();
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
-    useGame.getState().activityConfirm();
-    const pt = useGame.getState().pendingTest;
+    banc.setState({ interlude: { ...itl }, party: [...banc.getState().party], pendingTest: null });
+    banc.getState().interludeActivity(h.id, 'revenus');
+    banc.getState().activityRoll();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
+    banc.getState().activityConfirm();
+    const pt = banc.getState().pendingTest;
     expect(pt).toBeTruthy(); // le FM s'ouvre en MODALE (openSkillTest), pas résolu inline
     expect(pt!.skillId ?? pt!.char).toBe('force-mentale');
     expect(pt!.noOwnTestFailed).toBe(true); // garde de ré-entrance portée par la modale
-    const h2 = useGame.getState().party.find((c) => c.id === h.id)!;
+    const h2 = banc.getState().party.find((c) => c.id === h.id)!;
     expect(h2.conditions.some((c) => c.id === 'sonne')).toBe(true); // palier 1 (Sonné) inline
     expect(h2.conditions.some((c) => c.id === 'a-terre')).toBe(false); // palier 2 DIFFÉRÉ en modale (pas encore résolu)
   });
@@ -483,22 +482,22 @@ describe('Activités d’interlude (LDB 23)', () => {
       roll: 99, target: 40, success: false, sl: 0,
     };
     const setupHero = () => {
-      const itl = useGame.getState().interlude!;
+      const itl = banc.getState().interlude!;
       itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
-      useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party], journal: [] });
+      banc.setState({ interlude: { ...itl }, party: [...banc.getState().party], journal: [] });
     };
 
     setupHero();
     seedBattleRng(seed);
-    useGame.setState({ pendingActivity: { ...basePending, sl: 0 } });
-    useGame.getState().activityConfirm();
-    expect(useGame.getState().journal.join('\n')).toContain(rowNoSL.label);
+    banc.setState({ pendingActivity: { ...basePending, sl: 0 } });
+    banc.getState().activityConfirm();
+    expect(banc.getState().journal.join('\n')).toContain(rowNoSL.label);
 
     setupHero();
     seedBattleRng(seed);
-    useGame.setState({ pendingActivity: { ...basePending, sl: -3 } });
-    useGame.getState().activityConfirm();
-    expect(useGame.getState().journal.join('\n')).toContain(rowWithSL.label);
+    banc.setState({ pendingActivity: { ...basePending, sl: -3 } });
+    banc.getState().activityConfirm();
+    expect(banc.getState().journal.join('\n')).toContain(rowWithSL.label);
   });
 });
 
@@ -510,44 +509,40 @@ describe('Activités d’interlude (LDB 23)', () => {
  */
 describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE, pas sur le groupe', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.clearAllTimers();
     const party = [1, 2, 3, 4].map((i) => ({
       ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }),
       id: `h${i}`,
     }));
-    useGame.setState({ party, battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingTest: null, journal: [] });
-    useGame.getState().startScene(testScene());
-    vi.clearAllTimers();
-    useGame.getState().seedRng(13);
-    useGame.getState().startInterlude(3);
-    draineCascade(useGame.getState);
+    banc.setState({ party });
+    banc.getState().startScene(testScene());
+    banc.getState().seedRng(13);
+    banc.getState().startInterlude(3);
+    draineCascade(banc.getState);
   });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('T6 — le malade est le 3ᵉ du groupe : lui seul tombe À Terre', () => {
-    const malade = useGame.getState().party[2];
+    const malade = banc.getState().party[2];
     expect(malade.id, 'le sujet ne doit JAMAIS être `party[0]`').toBe('h3');
     malade.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }];
-    const itl = useGame.getState().interlude!;
+    const itl = banc.getState().interlude!;
     // Période sans Événement : un Événement de groupe tiré par un camarade vaudrait aussi pour le malade.
     for (const id of Object.keys(itl.perHero)) itl.perHero[id] = { ...itl.perHero[id], fx: undefined };
     itl.perHero[malade.id] = { ...itl.perHero[malade.id], left: 2 };
-    useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party] });
+    banc.setState({ interlude: { ...itl }, party: [...banc.getState().party] });
 
-    useGame.getState().interludeActivity(malade.id, 'revenus');
-    useGame.getState().activityRoll();
+    banc.getState().interludeActivity(malade.id, 'revenus');
+    banc.getState().activityRoll();
     // Échec « désastreux » (DR ≤ −4) → palier 1 inline (Sonné) + palier 2 en MODALE (Force Mentale).
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
-    useGame.getState().activityConfirm();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
+    banc.getState().activityConfirm();
 
-    const pt = useGame.getState().pendingTest!;
+    const pt = banc.getState().pendingTest!;
     expect(pt.actorId, 'le FM de palier 2 se jette chez le malade').toBe('h3');
-    const autresAvant = JSON.stringify(useGame.getState().party.filter((c) => c.id !== 'h3'));
-    useGame.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -2 } });
-    useGame.getState().resolveTest();
+    const autresAvant = JSON.stringify(banc.getState().party.filter((c) => c.id !== 'h3'));
+    banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -2 } });
+    banc.getState().resolveTest();
 
-    const apres = useGame.getState().party;
+    const apres = banc.getState().party;
     expect(apres.find((c) => c.id === 'h3')!.conditions.some((c) => c.id === 'a-terre'), 'À Terre sur le malade').toBe(true);
     expect(JSON.stringify(apres.filter((c) => c.id !== 'h3')), 'un camarade est tombé à la place du malade').toBe(autresAvant);
   });

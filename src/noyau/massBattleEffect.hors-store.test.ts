@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from './store';
-import { seedBattleRng } from '../noyau/battleRng';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { seedBattleRng } from './battleRng';
 import { pregenParty, PREGEN } from '../data/pregens';
-import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from '../noyau/combatEffects';
+import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import { armyMight, armyStartMight, nomDArmee } from '../noyau/massBattleFlow';
+import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Effet `startMassBattle` authoré typique (armées + situations par Round + rencontres de combat). */
 function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { type: 'startMassBattle' }> {
@@ -25,8 +28,8 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
 
 function apply(effects: Effect[]) {
   seedBattleRng(1234);
-  useGame.setState({ party: pregenParty(PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
-  applyEffects(useGame.getState, useGame.setState, effects);
+  banc.setState({ party: pregenParty(PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
+  applyEffects(banc.getState, banc.setState, effects);
 }
 
 describe('Effet startMassBattle — enregistrement dans le registre', () => {
@@ -56,7 +59,7 @@ describe('Effet startMassBattle — sérialisation (round-trip éditeur)', () =>
   it('la fabrique ne recopie aucun nom d’armée : la bataille lancée porte ceux de `nomDArmee`', () => {
     const def = EFFECT_HANDLERS.startMassBattle.make() as Extract<Effect, { type: 'startMassBattle' }>;
     apply([def]);
-    const mb = useGame.getState().massBattle!;
+    const mb = banc.getState().massBattle!;
     expect([mb.ally.label, mb.enemy.label]).toEqual([nomDArmee(def.battle, 'ally'), nomDArmee(def.battle, 'enemy')]);
     expect([def.battle.allyName, def.battle.enemyName]).toEqual([undefined, undefined]);
   });
@@ -66,7 +69,7 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
   beforeEach(() => apply([battleEffect()]));
 
   it('lance la bataille avec les armées, Puissances et Rounds authorés', () => {
-    const s = useGame.getState();
+    const s = banc.getState();
     expect(s.screen).toBe('massBattle');
     const mb = s.massBattle!;
     expect(mb.ally.label).toBe('Ost du Reikland');
@@ -81,7 +84,7 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
   });
 
   it('transmet le catalogue, les situations par Round et les rencontres des Scènes de combat', () => {
-    const mb = useGame.getState().massBattle!;
+    const mb = banc.getState().massBattle!;
     expect(mb.pool).toEqual(['pluie-de-fleches', 'ligne-de-mire', 'motivation', 'charge', 'intrus']);
     expect(mb.situations).toEqual([['pluie-de-fleches', 'ligne-de-mire'], ['charge', 'intrus']]);
     expect(mb.sceneEncounters).toEqual({ 'pluie-de-fleches': 'enc-pluie', charge: 'enc-charge', intrus: 'enc-intrus' });
@@ -89,8 +92,8 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
 
   it('l\'édition d\'une situation compose EXACTEMENT la liste de Scènes présentées au Round', () => {
     // La situation authorée du Round 1 est présentée telle quelle à l'engagement (pas un tirage).
-    useGame.getState().massBattleBegin();
-    const mb = useGame.getState().massBattle!;
+    banc.getState().massBattleBegin();
+    const mb = banc.getState().massBattle!;
     // Round 1 = ['pluie-de-fleches','ligne-de-mire'] + la menace « intrus » n'est PAS de ce Round → situation stricte.
     expect(mb.situation).toEqual(['pluie-de-fleches', 'ligne-de-mire']);
   });
@@ -99,11 +102,11 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
 describe('Effet startMassBattle — sans catalogue ni situations (tirage aléatoire)', () => {
   it('utilise le catalogue complet et tire une situation de « situationSize »', () => {
     apply([battleEffect({ scenes: undefined, situations: undefined, situationSize: 3 })]);
-    const mb = useGame.getState().massBattle!;
+    const mb = banc.getState().massBattle!;
     expect(mb.pool.length).toBe(12);           // tout le catalogue
     expect(mb.situations).toBeUndefined();
-    useGame.getState().massBattleBegin();
-    expect(useGame.getState().massBattle!.situation.length).toBe(3); // tirage borné
+    banc.getState().massBattleBegin();
+    expect(banc.getState().massBattle!.situation.length).toBe(3); // tirage borné
   });
 });
 
