@@ -311,172 +311,115 @@
     "id": "humain",
     "type": "garde-robe",
     "label": "Tête humaine",
-    "kind": "tete",
-    "race": {
-      "id": "humain"
-    }
+    "kind": "tete"
   },
   {
     "id": "halfling",
     "type": "garde-robe",
     "label": "Tête de halfling",
-    "kind": "tete",
-    "race": {
-      "id": "halfling"
-    }
+    "kind": "tete"
   },
   {
     "id": "nain",
     "type": "garde-robe",
     "label": "Tête naine",
-    "kind": "tete",
-    "race": {
-      "id": "nain"
-    }
+    "kind": "tete"
   },
   {
     "id": "gnome",
     "type": "garde-robe",
     "label": "Tête de gnome",
-    "kind": "tete",
-    "race": {
-      "id": "gnome"
-    }
+    "kind": "tete"
   },
   {
     "id": "ogre",
     "type": "garde-robe",
     "label": "Tête d’ogre",
-    "kind": "tete",
-    "race": {
-      "id": "ogre"
-    }
+    "kind": "tete"
   },
   {
     "id": "haut-elfe",
     "type": "garde-robe",
     "label": "Tête de haut-elfe",
-    "kind": "tete",
-    "race": {
-      "id": "haut-elfe"
-    }
+    "kind": "tete"
   },
   {
     "id": "elfe-sylvain",
     "type": "garde-robe",
     "label": "Tête d’elfe sylvain",
-    "kind": "tete",
-    "race": {
-      "id": "elfe-sylvain"
-    }
+    "kind": "tete"
   },
   {
     "id": "demon",
     "type": "garde-robe",
     "label": "Tête de démon",
-    "kind": "tete",
-    "race": {
-      "id": "demon"
-    }
+    "kind": "tete"
   },
   {
     "id": "fimir",
     "type": "garde-robe",
     "label": "Tête de fimir",
-    "kind": "tete",
-    "race": {
-      "id": "fimir"
-    }
+    "kind": "tete"
   },
   {
     "id": "gobelin",
     "type": "garde-robe",
     "label": "Tête de gobelin",
-    "kind": "tete",
-    "race": {
-      "id": "gobelin"
-    }
+    "kind": "tete"
   },
   {
     "id": "goule",
     "type": "garde-robe",
     "label": "Tête de goule",
-    "kind": "tete",
-    "race": {
-      "id": "goule"
-    }
+    "kind": "tete"
   },
   {
     "id": "homme-bete",
     "type": "garde-robe",
     "label": "Tête d’homme-bête",
-    "kind": "tete",
-    "race": {
-      "id": "homme-bete"
-    }
+    "kind": "tete"
   },
   {
     "id": "minotaure",
     "type": "garde-robe",
     "label": "Tête de minotaure",
-    "kind": "tete",
-    "race": {
-      "id": "minotaure"
-    }
+    "kind": "tete"
   },
   {
     "id": "orc",
     "type": "garde-robe",
     "label": "Tête d’orc",
-    "kind": "tete",
-    "race": {
-      "id": "orc"
-    }
+    "kind": "tete"
   },
   {
     "id": "skaven",
     "type": "garde-robe",
     "label": "Tête de skaven",
-    "kind": "tete",
-    "race": {
-      "id": "skaven"
-    }
+    "kind": "tete"
   },
   {
     "id": "snotling",
     "type": "garde-robe",
     "label": "Tête de snotling",
-    "kind": "tete",
-    "race": {
-      "id": "snotling"
-    }
+    "kind": "tete"
   },
   {
     "id": "squelette",
     "type": "garde-robe",
     "label": "Tête de squelette",
-    "kind": "tete",
-    "race": {
-      "id": "squelette"
-    }
+    "kind": "tete"
   },
   {
     "id": "troll",
     "type": "garde-robe",
     "label": "Tête de troll",
-    "kind": "tete",
-    "race": {
-      "id": "troll"
-    }
+    "kind": "tete"
   },
   {
     "id": "zombie",
     "type": "garde-robe",
     "label": "Tête de zombie",
-    "kind": "tete",
-    "race": {
-      "id": "zombie"
-    }
+    "kind": "tete"
   },
   {
     "id": "crane-rase",
