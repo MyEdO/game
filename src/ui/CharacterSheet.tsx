@@ -23,12 +23,12 @@ import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
 import { refusDInventaire, refusDuLanceurDeFiche } from '../noyau/verrousDeFiche';
 import { t, type MsgKey } from '../i18n';
-import { actorHasSkill } from '../engine/skills';
+import { actorHasSkill, skillBaseValue } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { rule } from '../engine/policy';
 import { bourseOf } from '../engine/bourse';
-import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
+import { learnableSpells, canCastFromGrimoire, carriedGrimoire, estLanceur } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
 import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, libelleDeClasse, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
@@ -148,10 +148,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   // stopper une hémorragie AVANT que l'horloge ne la fasse ticker — LDB 09-Compétences).
   const refusSoins = refusDeSoins({ battle, party }, hero.id);
 
-  // GATE CORRIGÉ (#492 bug 2) : un lanceur de Bénédictions sans sort mémorisé encore (Bienheureux
-  // avant sa 1re Bénédiction) garde son onglet Magie & Foi — `spells.length` seul le privait à tort.
-  const isCaster = (hero.spells?.length ?? 0) > 0 || casterTalents(hero).length > 0;
-  const tabs: SheetTab[] = ['competences', 'etat', 'possessions', ...(isCaster ? ['magie' as const] : []), 'avancement', 'histoire'];
+  const tabs: SheetTab[] = ['competences', 'etat', 'possessions', ...(estLanceur(hero) ? ['magie' as const] : []), 'avancement', 'histoire'];
 
   // Gangrène du cadre (§6, #492) : l'or du bandeau/liseré se ternit progressivement de violet-noir
   // selon la Corruption — `none` (aucune) / `ronge` (sous le seuil) / `seuil` (seuil de Corruption
@@ -759,7 +756,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
         {v.skills.map((s) => (
           <div className={`adv-row ${s.known ? '' : 'acquire'}`} key={`${s.skillId}|${s.spec ?? ''}`}>
             <span className="adv-name">
-              {libelleAvecSpec(s.label, s.spec)} <em>{baseWithTalents(hero, s.characteristic) + s.advances}</em> {pill(s.inCareer)}
+              {libelleAvecSpec(s.label, s.spec)} <em>{skillBaseValue(hero, s.skillId, s.spec)}</em> {pill(s.inCareer)}
               {s.known ? '' : <span className="acquire-tag">à apprendre</span>}
             </span>
             <span className="adv-meta">+{s.advances}</span>
