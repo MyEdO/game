@@ -53,7 +53,7 @@ export const REPORT_DE_COMBATTANT = {
   mountId: rencontre(REGLE), // LDB 14 l.175-187
   riderId: rencontre(REGLE), // LDB 14 l.175-187
   travelRole: PERSISTE, shipRole: PERSISTE, shipStation: PERSISTE,
-  pendingFreeAttacks: rencontre(TOUR), chargedThisTurn: rencontre(TOUR),
+  pendingFreeAttacks: rencontre(TOUR), chargedThisTurn: rencontre(TOUR), chargeAvecAvantage: rencontre(TOUR),
   approachMoves: rencontre(REGLE), // LDB 21 l.27
   freeAttacksThisTurn: rencontre(TOUR),
   effortRounds: rencontre(REGLE), // LDB 16 l.97

@@ -62,20 +62,23 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
     expect(empetre(c)?.value).toBe(1);
   });
 
-  it('onCharged (point 4) : un effet NON-attaque-gratuite se déclenche ET grantFreeAttack reste INERTE (pas de double frappe)', () => {
-    // Flow MIXTE : pose Empêtré (non-free) + grantFreeAttack (free). Via le bus (voie PURE), seul le
-    // non-free s'applique ; grantFreeAttack est inerte → pas d'attaque gratuite comptée (la vraie frappe
-    // ne part QUE de resolveFreeAttacks, cf. talent-free-attack.hors-store.test.ts).
-    const c = withSyntheticTrait('synth-oncharged-mixed', [{
-      trigger: 'onCharged', on: 'self',
-      flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [
-        { op: 'condition', id: 'empetre', value: 1 },
-        { op: 'grantFreeAttack', when: 'immediate' } as never,
-      ] } },
-    }]);
+  it('onCharged (point 4) : un effet de donnée se déclenche via le bus, un Flow qui accorde une attaque gratuite y est sauté (LDB 10 l.500)', () => {
+    // Le seul émetteur d'un Flow `flowHasFreeAttack` est `resolveFreeAttacks` (reaction-une-offre.hors-store.test.ts) :
+    // le bus ne joue ni son attaque ni ses autres ops.
+    const c = withSyntheticTrait('synth-oncharged', [
+      { ...SELF_EMPETRE, trigger: 'onCharged' },
+      {
+        trigger: 'onCharged', on: 'self',
+        flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [
+          { op: 'condition', id: 'a-terre', value: 1 },
+          { op: 'grantFreeAttack', when: 'immediate' } as never,
+        ] } },
+      },
+    ]);
     emitCombatEvent('onCharged', { get: stub(c), set: (() => {}) as never, battle: {} as never, self: c, audience: [c], sink: () => {}, triggerCtx: { rng: makeRNG(1) } });
-    expect(empetre(c)?.value).toBe(1); // effet non-free déclenché
-    expect(c.freeAttacksThisTurn).toBeUndefined(); // grantFreeAttack NON exécuté par le bus → pas de double
+    expect(empetre(c)?.value).toBe(1);
+    expect(c.conditions.map((x) => x.id)).toEqual(['empetre']);
+    expect(c.freeAttacksThisTurn).toBeUndefined();
   });
 });
 
