@@ -105,6 +105,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'psychologies', id: o.psychType.id, label, show: label };
     }
     case 'endPsych': {
+      if ('instance' in o) return textRow(o); // l'instance de l'effet : pas d'ancre
       const label = psychologyLabel(o.type.id);
       return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label };
     }

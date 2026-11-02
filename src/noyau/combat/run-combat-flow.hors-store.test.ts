@@ -202,4 +202,15 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     expect(live(H.id).wounds.current).toBe(before - (3 + 5 + 7)); // pre + branche + continuation
     expect(banc.getState().pendingCascade).toBeNull();          // cascade enrichie close (toutes étapes jouées)
   });
+
+  // flowEval.ts `combatConditionCtx` : SOURCE UNIQUE du `ConditionCtx`, nœud `if` d'un Flow routé compris.
+  it('nœud `if` d’un Flow routé : la Condition `engagedAdvantageLead` lit l’avance RÉELLE de l’`OpsCtx`', () => {
+    const { H } = setup();
+    const before = live(H.id).wounds.current;
+    const enTete: Flow = { kind: 'if', cond: { kind: 'engagedAdvantageLead', op: '>', value: 0 }, then: wounds(4), else: wounds(1) };
+
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR, engagedAdvantageLead: 2 } }, enTete);
+
+    expect(live(H.id).wounds.current).toBe(before - 4);
+  });
 });

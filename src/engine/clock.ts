@@ -168,6 +168,13 @@ export function minutesUntilNext(currentMinutes: number, targetMinuteOfDay: numb
 /** Heure de l'aube (minutes-de-jour) — fin d'une nuit de sommeil ; cible du « Dormir ». */
 export const dawnMinute = memoParVersion('calendarPhases', () => ancreDePhase(DAY_PHASES, 'aube'));
 
+/** L'heure du réveil après `nuits` nuits de sommeil commencées à `from` : la première court jusqu'à
+ *  l'aube suivante (un jour plein si l'on y est), chacune des autres dure un jour. */
+export function aubeApresNuits(from: number, nuits: number): number {
+  const premiere = minutesUntilNext(from, dawnMinute()) || MINUTES_PER_DAY;
+  return from + premiere + (Math.max(1, Math.floor(nuits)) - 1) * MINUTES_PER_DAY;
+}
+
 /** Heure du crépuscule (minutes-de-jour) — fin d'une journée de voyage AVANT la halte de nuit : le
  *  jour de navigation (fluvial/maritime) s'arrête ici, puis la nuit de sommeil enjambe minuit jusqu'à
  *  l'aube — un seul franchissement de jour par cycle voyage+nuit (aligné sur le voyage terrestre). */

@@ -282,7 +282,7 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
           )}
           {node.kind === 'if' && (
             <div className="eff-body flow-branch">
-              <ConditionEditor cond={node.cond} narratif={ctx.narratif} onChange={(c) => updAt(i, { ...node, cond: c })} />
+              <ConditionEditor cond={node.cond} narratif={ctx.narratif} noeud={ctx.famille?.condition} onChange={(c) => updAt(i, { ...node, cond: c })} />
               <div className="branch">
                 <span className="branch-label ok">ALORS :</span>
                 <FlowEditor flow={node.then} ctx={ctx} onChange={(f) => updAt(i, { ...node, then: f })} />

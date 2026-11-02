@@ -41,6 +41,15 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
     expect(frenzyTarget(banc.getState, h)?.id).toBe(E1.id);
   });
 
+  it('le plus proche caché par une fumée opaque n’est pas la cible : l’ennemi vu le plus proche l’est (LDB 21 l.33)', () => {
+    const { H, E2 } = setup();
+    const b = banc.getState().battle!;
+    b.combatants.find((c) => c.id === E2.id)!.pos = { x: 6, y: 13 };
+    banc.setState({ battle: { ...b, zones: [{ label: 'Fumée', tiles: [{ x: 7, y: 10 }], rounds: 2, blocksLoS: true } as never] } });
+    const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(frenzyTarget(banc.getState, h)?.id).toBe(E2.id);
+  });
+
   it('attaquer un AUTRE ennemi que le plus proche est refusé ; le plus proche passe', () => {
     const { E1, E2 } = setup();
     banc.abandonner(); // largue le turn-handoff résiduel du setup (le tour a été forcé sur le héros)

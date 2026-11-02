@@ -4,10 +4,17 @@ import { ConditionEditor, WhenEditor, recast } from './ConditionEditor';
 import { condSummary, valeurDeHas } from './interne/resumeDeCondition';
 import { datasetArray } from '../../data/overrides';
 import { catalogueSpecs, entreeOuverte, estSpecialisable, idsDe } from '../../data/schemas/grammaire/ref';
-import type { Condition } from '../../engine/flowCore';
+import { EMPTY_FLOW, type Condition } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import { familleDesEffets } from '../../data/schemas/grammaire/mecanique';
+import { noeudDuChamp } from '../../data/schemas/validate';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import { FlowEditor } from './FlowEditor';
+import { GameOpEditor } from './GameOpEditor';
+import { ctxDeCatalogue } from './EffectList';
+import { opPsy } from '../../engine/psych/opsPsy';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -217,5 +224,34 @@ describe('ConditionEditor — la spécialisation du Talent d’un `has` se chois
     const nu = talents.find((id) => !estSpecialisable('talent', id));
     expect(nu).toBeDefined();
     expect(rendu(nu!)).not.toContain('Spécialisation du Talent');
+  });
+});
+
+describe('ConditionEditor — Cible de l’affliction en vue (psychologie)', () => {
+  it('résume, rend la case « hostiles seulement », et `recast` la préserve', () => {
+    const hostiles: Condition = { kind: 'cibleEnVue', hostiles: true };
+    expect(condSummary({ kind: 'cibleEnVue' })).toBe('membre de la Cible en vue');
+    expect(condSummary(hostiles)).toBe('membre hostile de la Cible en vue');
+    expect(renderToStaticMarkup(<ConditionEditor cond={hostiles} onChange={() => {}} />)).toContain('hostiles seulement');
+    expect(recast(hostiles, 'cibleEnVue')).toEqual(hostiles);
+    expect(recast({ kind: 'foeInLoS' }, 'cibleEnVue')).toEqual({ kind: 'cibleEnVue' });
+  });
+
+  it('l’Atelier d’un champ d’effets la lit sur la famille de son porteur : la psychologie l’admet, un trait non', () => {
+    const offerte = (fichier: string) => {
+      const ctx = { ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeudDuChamp(fichier, 'effects')) };
+      const flow: Flow = { kind: 'if', cond: { kind: 'foeInLoS' }, then: EMPTY_FLOW };
+      return renderToStaticMarkup(<FlowEditor flow={flow} ctx={ctx} onChange={() => {}} />).includes('value="cibleEnVue"');
+    };
+    expect(offerte('psychology.json')).toBe(true);
+    expect(offerte('traits.json')).toBe(false);
+  });
+
+  it('la fin de « l’instance en cours » ne s’offre qu’aux ops de la famille psychologique', () => {
+    const caseOfferte = (fichier: string) =>
+      renderToStaticMarkup(<GameOpEditor noeud={familleDesEffets(noeudDuChamp(fichier, 'effects'))?.gameOp} ops={[opPsy.finDeLInstance()]} onChange={() => {}} />)
+        .includes('l’instance en cours');
+    expect(caseOfferte('psychology.json')).toBe(true);
+    expect(caseOfferte('traits.json')).toBe(false);
   });
 });

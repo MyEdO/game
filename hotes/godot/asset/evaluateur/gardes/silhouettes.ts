@@ -40,7 +40,7 @@ type Point = readonly [number, number, number];
 /** L'anneau articulaire de l'os `os` : les sommets du corps dans la bande de mélange de son articulation avec son parent. */
 export interface Anneau {
   readonly os: string;
-  readonly sommets: readonly { readonly mesh: string; readonly indice: number }[];
+  readonly sommets: readonly { readonly mesh: Mesh; readonly indice: number }[];
 }
 
 /** L'état d'un anneau dans une pose : `centre` = centroïde de ses sommets, `rayon` = leur distance moyenne à la droite
@@ -91,7 +91,7 @@ export interface MesuresDesSilhouettes {
  * `SOMMETS_MIN_DE_L_ANNEAU` sommets.
  */
 export function anneauxArticulaires(meshes: readonly SkinnedMesh[]): Anneau[] {
-  const parOs = new Map<string, { mesh: string; indice: number }[]>();
+  const parOs = new Map<string, { mesh: Mesh; indice: number }[]>();
   for (const m of meshes) {
     const os = m.skeleton.bones;
     const indices = m.geometry.attributes.skinIndex;
@@ -107,8 +107,8 @@ export function anneauxArticulaires(meshes: readonly SkinnedMesh[]): Anneau[] {
       const enfant = a?.parent === b ? a : b?.parent === a ? b : undefined;
       if (!enfant) continue;
       const liste = parOs.get(enfant.name);
-      if (liste) liste.push({ mesh: m.name, indice: i });
-      else parOs.set(enfant.name, [{ mesh: m.name, indice: i }]);
+      if (liste) liste.push({ mesh: m, indice: i });
+      else parOs.set(enfant.name, [{ mesh: m, indice: i }]);
     }
   }
   return [...parOs].filter(([, sommets]) => sommets.length >= SOMMETS_MIN_DE_L_ANNEAU).map(([os, sommets]) => ({ os, sommets }));
@@ -123,10 +123,10 @@ function axeDeLOs(os: ReadonlyMap<string, Matrix4>, nom: string): Point {
   return [x, y, z];
 }
 
-function section(anneau: Anneau, positions: ReadonlyMap<string, Float32Array>, axe: Point): Section {
+function section(anneau: Anneau, positions: Pose['positions'], axe: Point): Section {
   const points = anneau.sommets.map(({ mesh, indice }): Point => {
     const p = positions.get(mesh);
-    if (!p) throw new Error(`silhouettes : mesh absent ${mesh}`);
+    if (!p) throw new Error(`silhouettes : mesh absent ${mesh.name}`);
     return [p[indice * 3], p[indice * 3 + 1], p[indice * 3 + 2]];
   });
   const moyenne = (c: 0 | 1 | 2) => points.reduce((s, p) => s + p[c], 0) / points.length;
@@ -150,7 +150,7 @@ export const sectionsDeRepos = (anneaux: readonly Anneau[], repos: Pose): Sectio
 export const anneauLePlusEpais = (sections: readonly Section[]): number =>
   sections.reduce((p, s, i) => (s.rayon > sections[p].rayon ? i : p), 0);
 
-function deplacementMax(de: ReadonlyMap<string, Float32Array>, a: ReadonlyMap<string, Float32Array>): number {
+function deplacementMax(de: Pose['positions'], a: Pose['positions']): number {
   let max = 0;
   for (const [mesh, p] of de) {
     const q = a.get(mesh);
@@ -211,7 +211,7 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesForm
     const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
     const repos = poser({});
     const deRepos = sectionsDeRepos(anneaux, repos);
-    const sections = (positions: ReadonlyMap<string, Float32Array>) => anneaux.map((a, i) => section(a, positions, deRepos[i].axe));
+    const sections = (positions: Pose['positions']) => anneaux.map((a, i) => section(a, positions, deRepos[i].axe));
     const mesurer = (poids: Readonly<Record<string, number>>) => {
       const { positions } = poser(poids);
       return { positions, sections: sections(positions) };

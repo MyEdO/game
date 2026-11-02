@@ -9,6 +9,7 @@ export const famille = 'entite';
 
 const fxSchema = nommerChamps(z.strictObject({
   moneyPct: z.number().optional(),
+  partyWide: z.boolean().optional(),
   revenuePct: z.number().optional(),
   revenueClasses: z.array(z.string()).optional(),
   revenueBlockedClasses: z.array(z.string()).optional(),
@@ -19,6 +20,7 @@ const fxSchema = nommerChamps(z.strictObject({
   bankCrashCheck: z.boolean().optional(),
 }), {
   moneyPct: { label: 'variation de la bourse en pourcentage' },
+  partyWide: { label: 'Événement de groupe (vaut pour tous les Personnages)' },
   revenuePct: { label: 'variation du revenu en pourcentage' },
   revenueClasses: { label: 'classes concernées par le revenu' },
   revenueBlockedClasses: { label: 'classes sans revenu' },
