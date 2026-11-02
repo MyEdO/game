@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { once } from 'node:events'
+import { once, EventEmitter } from 'node:events'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, appendFileSync, readdirSync } from 'node:fs'
@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { createConnection, createServer } from 'node:net'
 import { attendreSuivi } from './session.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
-import { Writable } from 'node:stream'
+import { Writable, PassThrough } from 'node:stream'
 import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, projeterJournalCodex, MAX_MESSAGE_CODEX } from './session-codex.mjs'
@@ -43,7 +43,7 @@ if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,messa
 if(q.method==='turn/interrupt'){if(!started||active===null)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
-async function banc(t, { consigne = 'BUSY', validation = () => {}, echo, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
+async function banc(t, { consigne = 'BUSY', validation = () => {}, rejeu, echo, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-pont-banc-'))
   const fixture = join(dossier, 'app-server.mjs')
   writeFileSync(fixture, FIXTURE)
@@ -66,9 +66,13 @@ async function banc(t, { consigne = 'BUSY', validation = () => {}, echo, delaiDe
     pont = lancerPontCodex({
     plan: { executable: process.execPath, args: [fixture, String(delaiDemarrageMs)] },
     carte: { sessionId, worktree: dossier, demarrageJusqua, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
-    dossier, consigne, schema: { type: 'object' }, env: process.env,
+    dossier, consigne, schema: { type: 'object' }, env: process.env, rejeu,
     echo: echo && typeof echo !== 'function' ? echo : (texte) => { affichage.push(texte); echo?.(texte) },
-    notifier(p) { validation(p); projections.push(p) }, lancer(...args) {
+    notifier(p) {
+      const resultat = validation(p)
+      if (resultat?.then) return resultat.then(() => { projections.push(p) })
+      projections.push(p)
+    }, lancer(...args) {
       natif = spawn(...args)
       fermetureNatif = once(natif, 'close')
       const ecrire = natif.stdin.write.bind(natif.stdin)
@@ -98,6 +102,169 @@ async function banc(t, { consigne = 'BUSY', validation = () => {}, echo, delaiDe
   const base = { dossier, sessionId, jeton, timeoutMs: 2000 }
   return { ...base, pont, projections, affichage, requetesEmises, sortie, naissanceNatif, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
 }
+test('#3165 : imports indépendants du runtime et du pont sans cycle', async (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-import-pont-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  for (const module of ['session-runtime.mjs', 'session-codex.mjs']) {
+    const script = join(dossier, 'import.mjs')
+    writeFileSync(script, `import ${JSON.stringify(new URL(module, import.meta.url).href)}\n`)
+    const enfant = spawn(process.execPath, [script], { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true })
+    t.after(() => { if (enfant.exitCode === null) enfant.kill() })
+    let diagnostic = ''
+    enfant.stderr.on('data', (b) => { diagnostic += b })
+    const [code] = await sousBorne(once(enfant, 'close'), 3000)
+    assert.equal(code, 0, diagnostic)
+  }
+})
+
+test('#3165 : projection transitoire rejouée sans erreur et snapshots ordonnés', async (t) => {
+  let refus = 0, pauses = 0
+  const b = await banc(t, {
+    validation(p) {
+      if (p.jetons && !refus++) throw Error(`${prefixeDeRefus('transitoire')} registre tenu`)
+    },
+    rejeu: { dormir: async () => { pauses++ } },
+  })
+  await b.envoyer('FIN')
+  assert.equal((await b.veille()).type, 'fin')
+  assert.equal(pauses, 1)
+  assert.equal(b.pont.cause(), '')
+  assert.deepEqual(b.projections.map((p) => [p.etat, p.jetons?.total.totalTokens ?? null, p.outils]), [
+    ['occupe', null, 0], ['occupe', null, 0], ['occupe', 42, 0], ['occupe', 42, 1], ['inactif', 42, 1],
+  ])
+  assert.equal(b.projections.at(-1).rapport.resultat, 'FIN')
+})
+
+test('#3165 : arrêt en attente de projection garde FIFO, séquences et fermeture finale', async (t) => {
+  let liberer, suspendre, refus = false
+  const pause = new Promise((ok) => { suspendre = ok })
+  const reprise = new Promise((ok) => { liberer = ok })
+  const b = await banc(t, {
+    validation(p) {
+      if (p.jetons && !refus) { refus = true; throw Error(`${prefixeDeRefus('transitoire')} registre tenu`) }
+    },
+    rejeu: { dormir: () => { suspendre(); return reprise } },
+  })
+  t.after(liberer)
+  await b.envoyer('FIN')
+  await sousBorne(pause, 2000)
+  assert.equal(b.projections.at(-1).jetons, null)
+  b.pont.child.kill()
+  liberer()
+  const [code] = await sousBorne(b.sortie, 3000)
+  assert.equal(code, 0)
+  assert.equal(b.pont.cause(), '')
+  assert.equal(b.projections.at(-1).etat, 'fermee')
+  assert.equal(b.projections.at(-1).rapport.resultat, 'FIN')
+  const transitions = readFileSync(join(b.dossier, `${b.sessionId}.codex.jsonl`), 'utf8').trim().split('\n').map(JSON.parse).flatMap((x) => x.transition ? [x.transition] : [])
+  assert.deepEqual(transitions.map((x) => x.type), ['fin', 'fermeture'])
+  assert.deepEqual(transitions.map((x) => x.seq), [1, 2])
+  assert.deepEqual(b.projections.map((p) => [p.etat, p.jetons?.total.totalTokens ?? null, p.outils]), [
+    ['occupe', null, 0], ['occupe', null, 0], ['occupe', 42, 0], ['occupe', 42, 1], ['inactif', 42, 1], ['fermee', 42, 1],
+  ])
+})
+
+test('#3165 : refus non retentable non rejoué, erreur finale et sortie en échec', async (t) => {
+  let tentatives = 0, pauses = 0
+  const b = await banc(t, {
+    validation(p) { if (p.etat !== 'erreur') { tentatives++; throw Error(`${prefixeDeRefus('permission')} projection interdite`) } },
+    rejeu: { dormir: async () => { pauses++ } },
+  })
+  const [code] = await sousBorne(b.sortie, 3000)
+  assert.equal(code, 1)
+  assert.equal(tentatives, 1)
+  assert.equal(pauses, 0)
+  assert.equal(b.projections.at(-1).etat, 'erreur')
+  assert.match(b.projections.at(-1).cause, /projection interdite/)
+})
+
+test('#3165 : borne de rejeu explicite, sans seconde fenêtre et erreur persistante', async (t) => {
+  let instant = 0, tentatives = 0, pauses = 0
+  const b = await banc(t, {
+    validation(p) { if (p.etat !== 'erreur') { tentatives++; throw Error(`${prefixeDeRefus('transitoire')} projection tenue`) } },
+    rejeu: { horloge: () => instant, dormir: async () => { pauses++; instant += 30_001 } },
+  })
+  const [code] = await sousBorne(b.sortie, 3000)
+  assert.equal(code, 1)
+  assert.equal(tentatives, 3)
+  assert.equal(pauses, 2)
+  assert.equal(b.projections.at(-1).etat, 'erreur')
+  assert.match(b.pont.cause(), /Borne de rejeu.*dépassée.*projection tenue/)
+})
+
+for (const [message, etat] of [['FAIL', 'erreur'], ['CRASH', 'mort']]) {
+  test(`#3165 : refus transitoire de publication ${etat} rejoué jusqu'à sortie`, async (t) => {
+    let refus = 0, pauses = 0
+    const b = await banc(t, {
+      validation(p) { if (p.etat === etat && !refus++) throw Error(`${prefixeDeRefus('transitoire')} registre tenu`) },
+      rejeu: { dormir: async () => { pauses++ } },
+    })
+    await b.envoyer(message)
+    if (message === 'FAIL') {
+      assert.equal((await b.veille()).type, 'erreur')
+      b.pont.child.kill()
+    }
+    await sousBorne(b.sortie, 3000)
+    assert.equal(pauses, 1)
+    assert.ok(b.projections.some((p) => p.etat === etat))
+    assert.doesNotMatch(b.pont.cause(), /registre tenu/)
+  })
+}
+
+test('#3165 : erreur terminale figée pendant notifier asynchrone et notification native', async (t) => {
+  let liberer, notifierErreur
+  const pause = new Promise((ok) => { notifierErreur = ok })
+  const reprise = new Promise((ok) => { liberer = ok })
+  t.after(() => liberer())
+  const b = await banc(t, {
+    validation(p) {
+      if (p.etat !== 'erreur') throw Error(`${prefixeDeRefus('permission')} projection refusée`)
+      notifierErreur()
+      return reprise
+    },
+  })
+  await sousBorne(pause, 2000)
+  await b.envoyer('BRUT:{"method":"turn/started","params":{"marker":"apres-erreur","turn":{"status":"inProgress","items":[]}}}')
+  const chemin = join(b.dossier, `${b.sessionId}.codex.jsonl`)
+  for (let i = 0; i < 1000 && !readFileSync(chemin, 'utf8').includes('apres-erreur'); i++) await new Promise(setImmediate)
+  assert.match(readFileSync(chemin, 'utf8'), /apres-erreur/)
+  liberer()
+  await sousBorne(b.sortie, 3000)
+  const journal = readFileSync(join(b.dossier, `${b.sessionId}.codex.jsonl`), 'utf8').trim().split('\n').map(JSON.parse)
+  const finale = journal.flatMap((x) => x.transition ? [x.transition] : []).at(-1)
+  assert.equal(finale.type, 'erreur')
+  assert.equal(finale.etat, 'erreur')
+  assert.equal(b.projections.at(-1).etat, 'erreur')
+})
+
+test('#3165 : sortie attend les projections ajoutées par le rejet natif pendant arrêt', async (t) => {
+  let liberer, notifierFermeture, sorti = false
+  const pause = new Promise((ok) => { notifierFermeture = ok })
+  const reprise = new Promise((ok) => { liberer = ok })
+  t.after(() => liberer())
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-drain-pont-')), sessionId = randomUUID(), projections = []
+  const natif = Object.assign(new EventEmitter(), { stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), pid: 123, kill: () => true })
+  t.after(() => { natif.stdin.destroy(); natif.stdout.destroy(); natif.stderr.destroy(); rmSync(dossier, { recursive: true, force: true }) })
+  const pont = lancerPontCodex({
+    plan: {}, carte: { sessionId, worktree: dossier, demarrageJusqua: Date.now() + 60_000, empreinteJeton: createHash('sha256').update('test').digest('hex') },
+    dossier, consigne: 'test', schema: {}, lancer: () => natif, echo() {},
+    async notifier(p) { if (p.etat === 'fermee') { notifierFermeture(); await reprise } projections.push(p) },
+  })
+  const sortie = once(pont.child, 'exit')
+  pont.child.once('exit', () => { sorti = true })
+  await new Promise(setImmediate)
+  pont.child.kill()
+  natif.emit('exit', null, 'SIGTERM')
+  await sousBorne(pause, 2000)
+  await new Promise(setImmediate)
+  assert.equal(sorti, false)
+  liberer()
+  await sousBorne(sortie, 3000)
+  assert.equal(projections.at(-1).etat, 'fermee')
+  const journal = readFileSync(join(dossier, `${sessionId}.codex.jsonl`), 'utf8').trim().split('\n').map(JSON.parse)
+  assert.equal(journal.flatMap((x) => x.transition ? [x.transition] : []).at(-1).type, 'fermeture')
+})
+
 async function sousBorne(promesse, ms) {
   let timer
   try { return await Promise.race([promesse, new Promise((_, reject) => { timer = setTimeout(() => reject(Error('Processus natif toujours vivant après borne')), ms) })]) }
