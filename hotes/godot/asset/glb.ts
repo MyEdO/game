@@ -10,18 +10,19 @@ export interface ContenuGlb {
   readonly noeuds: ReadonlySet<string>;
   readonly animations: ReadonlySet<string>;
   readonly os: ReadonlySet<string>;
-  /** Les nœuds à mesh, nommés ou non, un par nœud dans l'ordre des nœuds. */
+  /** Les nœuds à mesh, un par nœud dans l'ordre des nœuds. */
   readonly meshes: readonly MeshDuGlb[];
+  /** Par nœud à mesh, sous son nom, unique dans le GLB, le matériau de chaque primitive (`null` sans matériau). */
   readonly materiauxParPiece: ReadonlyMap<string, readonly (string | null)[]>;
-  /** Les noms des matériaux des primitives de tout nœud à mesh, nommé ou non. */
+  /** Les noms des matériaux des primitives de tout nœud à mesh. */
   readonly materiaux: ReadonlySet<string>;
   /** Les noms des matériaux dont une primitive, sous tout nœud à mesh, n'a pas d'attribut `TEXCOORD_0`. */
   readonly materiauxSansUv: ReadonlySet<string>;
   /** Le nombre d'images que le GLB embarque. */
   readonly images: number;
-  /** Par nœud à mesh, les attributs d'influence au-delà du premier jeu (`JOINTS_1`, `WEIGHTS_1`…). */
+  /** Par nœud à mesh, sous son nom, les attributs d'influence au-delà du premier jeu (`JOINTS_1`, `WEIGHTS_1`…). */
   readonly influencesEtendues: ReadonlyMap<string, readonly string[]>;
-  /** Par zone (`extras.zone` d'un nœud à mesh), les nœuds qui la portent. */
+  /** Par zone (`extras.zone` d'un nœud à mesh), les noms des nœuds qui la portent. */
   readonly zones: ReadonlyMap<string, readonly string[]>;
   /** Les noms de shape keys des meshes (`extras.targetNames`). */
   readonly formes: ReadonlySet<string>;
@@ -29,12 +30,12 @@ export interface ContenuGlb {
 
 /** Un nœud à mesh du GLB. */
 export interface MeshDuGlb {
-  /** Son nom, `null` s'il n'en porte pas. */
-  readonly nom: string | null;
-  /** Son nom, ou `noeud <i>` s'il n'en porte pas : pour les messages seulement. */
-  readonly libelle: string;
+  /** Son nom, unique dans le GLB. */
+  readonly nom: string;
   readonly skinne: boolean;
-  /** Le libellé de l'articulation d'un skin à laquelle il pend directement, `null` s'il ne pend à aucune. */
+  /** L'indice du nœud de l'articulation d'un skin à laquelle il pend directement, `null` s'il ne pend à aucune. */
+  readonly articulation: number | null;
+  /** Le nom de cette articulation, `null` sans articulation ou sans nom. */
   readonly os: string | null;
 }
 
@@ -57,6 +58,8 @@ export type DocumentGltf = Record<string, unknown>;
 
 interface JsonGltf {
   nodes?: { name?: unknown; mesh?: number; skin?: number; children?: number[]; extras?: { zone?: unknown } }[];
+  scenes?: { nodes?: number[] }[];
+  scene?: number;
   meshes?: { primitives: { material?: number; attributes?: Record<string, number> }[]; extras?: { targetNames?: unknown } }[];
   materials?: { name?: string }[];
   skins?: { joints: number[] }[];
@@ -116,20 +119,94 @@ export function ecrireGlb(json: DocumentGltf, bin: Uint8Array | null): Uint8Arra
   return octets;
 }
 
-const nomsDe = (liste: { name?: unknown }[] | undefined): ReadonlySet<string> =>
-  new Set((liste ?? []).map((e) => e.name).filter((n): n is string => typeof n === 'string'));
+const nomsDe = (liste: readonly { name?: unknown }[]): ReadonlySet<string> =>
+  new Set(liste.map((e) => e.name).filter((n): n is string => typeof n === 'string'));
 
-/** Le nom du nœud `i`, ou `noeud <i>` s’il n’en porte pas. */
-const libelleDuNoeud = (n: { name?: unknown } | undefined, i: number): string => (typeof n?.name === 'string' ? n.name : `noeud ${i}`);
+/** Le nom de `n`, `null` absent ou vide : three.js (`GLTFLoader`, `nodeDef.name ?`) et Godot (`_assign_node_names`) tiennent un nom vide pour une absence de nom. */
+const nomDe = (n: { name?: unknown } | undefined): string | null => (typeof n?.name === 'string' && n.name !== '' ? n.name : null);
 
 const JEU_D_INFLUENCE = /^(?:JOINTS|WEIGHTS)_(\d+)$/;
 
-/** Ce que le contrat d'asset et l'évaluateur lisent du GLB `octets`. */
+const dans = (v: unknown, longueur: number): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < longueur;
+
+/** Le tableau `v` du champ `quoi`, `[]` quand il est absent et facultatif. */
+const tableau = (v: unknown, quoi: string, requis = false): readonly unknown[] => {
+  if (v === undefined && !requis) return [];
+  if (!Array.isArray(v)) throw new GlbIllisible(`${quoi} : tableau attendu`);
+  return v;
+};
+
+/** Le tableau `v` du champ `quoi`, chaque entrée (`entree <i>`) un objet. */
+const objets = (v: unknown, quoi: string, entree: string, requis = false): readonly Record<string, unknown>[] =>
+  tableau(v, quoi, requis).map((e, i) => {
+    if (!e || typeof e !== 'object' || Array.isArray(e)) throw new GlbIllisible(`${entree} ${i} : objet attendu`);
+    return e as Record<string, unknown>;
+  });
+
+/** Le parent de chaque nœud de `json`, refusé : un tableau ou un objet mal formé, un indice hors de sa liste, un nœud à
+ *  mesh sans nom, deux nœuds du même nom (three.js renomme l'un, `createUniqueName`), un nœud à plusieurs parents, une
+ *  parenté qui boucle, une racine de scène qui a un parent (glTF 2.0, « Nodes and Hierarchy » et schémas des
+ *  propriétés ; #3152). */
+function arborescence(json: JsonGltf): ReadonlyMap<number, number> {
+  const noeuds = objets(json.nodes, 'nodes', 'nœud');
+  const meshes = objets(json.meshes, 'meshes', 'mesh');
+  const materiaux = objets(json.materials, 'materials', 'matériau');
+  const skins = objets(json.skins, 'skins', 'skin');
+  objets(json.animations, 'animations', 'animation');
+  tableau(json.images, 'images');
+  const hors = (quoi: string, v: unknown, liste: string, longueur: number) => {
+    if (!dans(v, longueur)) throw new GlbIllisible(`${quoi} ${JSON.stringify(v)} hors des ${longueur} ${liste}`);
+  };
+  meshes.forEach((m, k) => objets(m.primitives, `mesh ${k} : primitives`, `mesh ${k}, primitive`, true).forEach((p, j) => {
+    if (p.material !== undefined) hors(`mesh ${k}, primitive ${j} : matériau`, p.material, 'matériaux', materiaux.length);
+  }));
+  skins.forEach((s, k) => tableau(s.joints, `skin ${k} : joints`, true).forEach(j => hors(`skin ${k} : articulation`, j, 'nœuds', noeuds.length)));
+  const noms = new Map<string, number>();
+  const parents = new Map<number, number>();
+  noeuds.forEach((n, i) => {
+    if (n.mesh !== undefined) {
+      hors(`nœud ${i} : mesh`, n.mesh, 'meshes', meshes.length);
+      if (nomDe(n) === null) throw new GlbIllisible(`nœud ${i} à mesh sans nom`);
+    }
+    const nom = nomDe(n);
+    if (nom !== null) {
+      if (noms.has(nom)) throw new GlbIllisible(`nœuds ${noms.get(nom)} et ${i} nommés ${nom}`);
+      noms.set(nom, i);
+    }
+    if (n.skin !== undefined) hors(`nœud ${i} : skin`, n.skin, 'skins', skins.length);
+    for (const enfant of tableau(n.children, `nœud ${i} : children`)) {
+      hors(`nœud ${i} : enfant`, enfant, 'nœuds', noeuds.length);
+      const parent = parents.get(enfant as number);
+      if (parent === i) throw new GlbIllisible(`nœud ${enfant} listé deux fois parmi les enfants du nœud ${i}`);
+      if (parent !== undefined) throw new GlbIllisible(`nœud ${enfant} enfant des nœuds ${parent} et ${i}`);
+      parents.set(enfant as number, i);
+    }
+  });
+  const versUneRacine = new Set<number>();
+  noeuds.forEach((_, i) => {
+    const chaine = new Set<number>();
+    for (let k: number | undefined = i; k !== undefined && !versUneRacine.has(k); k = parents.get(k)) {
+      if (chaine.has(k)) throw new GlbIllisible(`la chaîne des parents du nœud ${i} boucle`);
+      chaine.add(k);
+    }
+    chaine.forEach((k) => versUneRacine.add(k));
+  });
+  const scenes = objets(json.scenes, 'scenes', 'scène');
+  if (json.scene !== undefined) hors('scène du document', json.scene, 'scènes', scenes.length);
+  scenes.forEach((s, k) => tableau(s.nodes, `scène ${k} : nodes`).forEach(r => {
+    hors(`scène ${k} : racine`, r, 'nœuds', noeuds.length);
+    if (parents.has(r as number)) throw new GlbIllisible(`racine ${r} de la scène ${k} enfant du nœud ${parents.get(r as number)}`);
+  }));
+  return parents;
+}
+
+/** Ce que le contrat d'asset et l'évaluateur lisent du GLB `octets`, dont la forme est refusée hors du glTF
+ *  (`arborescence`). */
 export function lireGlb(octets: Uint8Array): ContenuGlb {
   const json = lireConteneur(octets).json as JsonGltf;
+  const parents = arborescence(json);
   const noeuds = json.nodes ?? [];
   const articulations = new Set((json.skins ?? []).flatMap(s => s.joints));
-  const parents = new Map(noeuds.flatMap((n, i) => (n.children ?? []).map(enfant => [enfant, i] as const)));
   const meshes: MeshDuGlb[] = [];
   const materiauxParPiece = new Map<string, readonly (string | null)[]>();
   const materiaux = new Set<string>();
@@ -137,32 +214,29 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   const influencesEtendues = new Map<string, readonly string[]>();
   const zones = new Map<string, string[]>();
   noeuds.forEach((n, i) => {
-    const parent = parents.get(i);
-    const primitives = n.mesh === undefined ? [] : json.meshes?.[n.mesh]?.primitives ?? [];
-    const materiauxDuNoeud = primitives.map(p => p.material === undefined || !json.materials?.[p.material] ? null : json.materials[p.material].name ?? '');
-    primitives.forEach((p, j) => {
-      const nom = materiauxDuNoeud[j];
-      if (nom === null) return;
-      materiaux.add(nom);
-      if (p.attributes?.TEXCOORD_0 === undefined) materiauxSansUv.add(nom);
-    });
-    if (n.mesh !== undefined && typeof n.name === 'string') {
-      materiauxParPiece.set(n.name, materiauxDuNoeud);
-      const etendus = [...new Set(primitives.flatMap(p => Object.keys(p.attributes ?? {}).filter(a => Number(JEU_D_INFLUENCE.exec(a)?.[1] ?? 0) > 0)))];
-      if (etendus.length) influencesEtendues.set(n.name, etendus);
-      if (typeof n.extras?.zone === 'string') zones.set(n.extras.zone, [...(zones.get(n.extras.zone) ?? []), n.name]);
-    }
     if (n.mesh === undefined) return;
-    meshes.push({
-      nom: typeof n.name === 'string' ? n.name : null, libelle: libelleDuNoeud(n, i), skinne: n.skin !== undefined,
-      os: parent !== undefined && articulations.has(parent) ? libelleDuNoeud(noeuds[parent], parent) : null,
+    const nom = nomDe(n) as string;
+    const primitives = (json.meshes ?? [])[n.mesh].primitives;
+    const materiauxDuNoeud = primitives.map(p => p.material === undefined ? null : nomDe((json.materials ?? [])[p.material]) ?? '');
+    primitives.forEach((p, j) => {
+      const materiau = materiauxDuNoeud[j];
+      if (materiau === null) return;
+      materiaux.add(materiau);
+      if (p.attributes?.TEXCOORD_0 === undefined) materiauxSansUv.add(materiau);
     });
+    materiauxParPiece.set(nom, materiauxDuNoeud);
+    const etendus = [...new Set(primitives.flatMap(p => Object.keys(p.attributes ?? {}).filter(a => Number(JEU_D_INFLUENCE.exec(a)?.[1] ?? 0) > 0)))];
+    if (etendus.length) influencesEtendues.set(nom, etendus);
+    if (typeof n.extras?.zone === 'string') zones.set(n.extras.zone, [...(zones.get(n.extras.zone) ?? []), nom]);
+    const parent = parents.get(i);
+    const articulation = parent !== undefined && articulations.has(parent) ? parent : null;
+    meshes.push({ nom, skinne: n.skin !== undefined, articulation, os: articulation === null ? null : nomDe(noeuds[articulation]) });
   });
   const formes = new Set((json.meshes ?? []).flatMap(m => (Array.isArray(m.extras?.targetNames) ? m.extras.targetNames : []).filter((t): t is string => typeof t === 'string')));
   return {
     meshes, materiauxParPiece, materiaux, materiauxSansUv, influencesEtendues, zones, formes,
     images: json.images?.length ?? 0,
-    noeuds: nomsDe(noeuds), animations: nomsDe(json.animations),
-    os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]).filter(n => n !== undefined))),
+    noeuds: nomsDe(noeuds), animations: nomsDe(json.animations ?? []),
+    os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]))),
   };
 }
