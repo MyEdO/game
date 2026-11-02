@@ -95,19 +95,25 @@ function cheminsParFiltreDeChemin(): string[] {
   return out;
 }
 
-/** Le Flow que déclare le def d'un dataset de `src/data` sous `effects` : sa famille mécanique admet ses champs
- *  RÉSERVÉS (`grammaire/mecanique.ts`, `CHAMPS_RESERVES`), que la famille fermée d'`effectSchema` refuse. */
-const flowDuDataset = (chemin: string): z.ZodType | undefined => {
-  const m = /^src\/data\/([^/:]+\.json):/.exec(chemin);
-  return m ? (noeudDuChamp(m[1], 'effects') as z.ZodType | undefined) : undefined;
+/** Les `effects` d'une entrée de dataset de `src/data` qui portent la feuille posée en `chemin`, et le nœud que déclare
+ *  le def de ce champ : sa famille mécanique admet ses champs RÉSERVÉS (`grammaire/mecanique.ts`, `CHAMPS_RESERVES`,
+ *  `CONDITIONS_RESERVEES`), que la famille fermée d'`effectSchema` refuse. Ils se jugent ENTIERS, dans leur forme
+ *  déclarée (un Flow, ou une liste d'effets déclenchés). */
+const effetsDuDataset = (chemin: string): { noeud: z.ZodType; valeur: unknown } | undefined => {
+  const m = /^src\/data\/([^/:]+\.json):(.*?\.effects)(?=[.[])/.exec(chemin);
+  const noeud = m ? (noeudDuChamp(m[1], 'effects') as z.ZodType | undefined) : undefined;
+  if (!m || !noeud) return undefined;
+  const cles = [...m[2].matchAll(/\[(\d+)\]|\.([^.[]+)/g)].map((c) => c[1] ?? c[2]);
+  const valeur = cles.reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')));
+  return { noeud, valeur };
 };
 
-/** Un effet posé parse contre `effectSchema` ; une feuille `ops` d'un dataset, contre la famille de son def. */
+/** Un effet posé parse contre `effectSchema` ; une feuille `ops` d'un dataset, avec les `effects` qui la portent. */
 function parseDuPose(p: { chemin: string; noeud: unknown }): z.ZodSafeParseResult<unknown> {
   const r = effectSchema.safeParse(p.noeud);
   if (r.success || (p.noeud as { type?: unknown }).type !== 'ops') return r;
-  const flow = flowDuDataset(p.chemin);
-  return flow ? flow.safeParse({ kind: 'do', effect: p.noeud }) : r;
+  const effets = effetsDuDataset(p.chemin);
+  return effets ? effets.noeud.safeParse(effets.valeur) : r;
 }
 
 describe('effectSchema — le corpus RÉELLEMENT posé dans les deux racines authorées', () => {

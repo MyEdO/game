@@ -20,8 +20,6 @@ export interface ContenuGlb {
   readonly materiauxSansUv: ReadonlySet<string>;
   /** Le nombre d'images que le GLB embarque. */
   readonly images: number;
-  /** Par nœud à mesh, sous son nom, les attributs d'influence au-delà du premier jeu (`JOINTS_1`, `WEIGHTS_1`…). */
-  readonly influencesEtendues: ReadonlyMap<string, readonly string[]>;
   /** Par zone (`extras.zone` d'un nœud à mesh), les noms des nœuds qui la portent. */
   readonly zones: ReadonlyMap<string, readonly string[]>;
   /** Les noms de shape keys des meshes (`extras.targetNames`). */
@@ -125,8 +123,6 @@ const nomsDe = (liste: readonly { name?: unknown }[]): ReadonlySet<string> =>
 /** Le nom de `n`, `null` absent ou vide : three.js (`GLTFLoader`, `nodeDef.name ?`) et Godot (`_assign_node_names`) tiennent un nom vide pour une absence de nom. */
 const nomDe = (n: { name?: unknown } | undefined): string | null => (typeof n?.name === 'string' && n.name !== '' ? n.name : null);
 
-const JEU_D_INFLUENCE = /^(?:JOINTS|WEIGHTS)_(\d+)$/;
-
 const dans = (v: unknown, longueur: number): boolean => Number.isInteger(v) && (v as number) >= 0 && (v as number) < longueur;
 
 /** Le tableau `v` du champ `quoi`, `[]` quand il est absent et facultatif. */
@@ -211,7 +207,6 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   const materiauxParPiece = new Map<string, readonly (string | null)[]>();
   const materiaux = new Set<string>();
   const materiauxSansUv = new Set<string>();
-  const influencesEtendues = new Map<string, readonly string[]>();
   const zones = new Map<string, string[]>();
   noeuds.forEach((n, i) => {
     if (n.mesh === undefined) return;
@@ -225,8 +220,6 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
       if (p.attributes?.TEXCOORD_0 === undefined) materiauxSansUv.add(materiau);
     });
     materiauxParPiece.set(nom, materiauxDuNoeud);
-    const etendus = [...new Set(primitives.flatMap(p => Object.keys(p.attributes ?? {}).filter(a => Number(JEU_D_INFLUENCE.exec(a)?.[1] ?? 0) > 0)))];
-    if (etendus.length) influencesEtendues.set(nom, etendus);
     if (typeof n.extras?.zone === 'string') zones.set(n.extras.zone, [...(zones.get(n.extras.zone) ?? []), nom]);
     const parent = parents.get(i);
     const articulation = parent !== undefined && articulations.has(parent) ? parent : null;
@@ -234,7 +227,7 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   });
   const formes = new Set((json.meshes ?? []).flatMap(m => (Array.isArray(m.extras?.targetNames) ? m.extras.targetNames : []).filter((t): t is string => typeof t === 'string')));
   return {
-    meshes, materiauxParPiece, materiaux, materiauxSansUv, influencesEtendues, zones, formes,
+    meshes, materiauxParPiece, materiaux, materiauxSansUv, zones, formes,
     images: json.images?.length ?? 0,
     noeuds: nomsDe(noeuds), animations: nomsDe(json.animations ?? []),
     os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]))),

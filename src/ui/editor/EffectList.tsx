@@ -21,6 +21,7 @@ import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, veh
 import { useId } from 'react';
 import { ObjetDonneField } from './ObjetDonneField';
 import { type Effect } from '../../data/schemas/defs-scenes/effets';
+import type { FamilleMecanique } from '../../data/schemas/grammaire/mecanique';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -137,6 +138,8 @@ export interface Ctx {
    *  l'Effet `giveTrapping` résout les objets avant le catalogue (`trappingDesObjetsPuisDuCatalogue`).
    *  Absent = racine de CATALOGUE : ni objet de projet, ni Effect à référence narrative (`menuDEffets`). */
   narratif?: NarratifBlock;
+  /** La famille mécanique du porteur (`familleDesEffets`) : Conditions et ops qu'il admet. Absent = famille fermée. */
+  famille?: FamilleMecanique;
 }
 
 /** L'USAGE d'état que fait chaque Effet à état (`FORMES_D_ETAT`) : son sélecteur n'offre que les états
@@ -812,7 +815,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 )}
               </div>
             )}
-            <GameOpEditor objets={objetsDuProjet(ctx)} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor objets={objetsDuProjet(ctx)} noeud={ctx.famille?.gameOp} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'setLight' && (
@@ -872,7 +875,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <label className="dr">Centre <NumberField variant="nu" label="Centre — X" value={e.center?.x ?? 0} onChange={(x) => upd({ center: { x, y: e.center?.y ?? 0 } })} />,<NumberField variant="nu" label="Centre — Y" value={e.center?.y ?? 0} onChange={(y) => upd({ center: { x: e.center?.x ?? 0, y } })} /></label>
               <label className="dr">Rayon <NumberField variant="nu" label="Rayon" min={0} value={e.radius ?? 0} onChange={(radius) => upd({ radius })} /></label>
             </div>
-            <GameOpEditor objets={objetsDuProjet(ctx)} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor objets={objetsDuProjet(ctx)} noeud={ctx.famille?.gameOp} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'startCombat' && (

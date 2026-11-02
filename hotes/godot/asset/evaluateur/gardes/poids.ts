@@ -1,11 +1,11 @@
 /**
- * GARDE DES POIDS DE SKINNING (#2972) : au plus `INFLUENCES_MAX` influences (un jeu `JOINTS_1`/`WEIGHTS_1` est lu par
- * `lireGlb`), somme à 1, aucun sommet sans poids, aucun os pondéré hors de la base, et des JUMEAUX (deux sommets d'un
+ * GARDE DES POIDS DE SKINNING (#2972) : au plus `INFLUENCES_MAX` influences (aucun jeu `JOINTS_1`/`WEIGHTS_1` dans la
+ * géométrie du mesh), somme à 1, aucun sommet sans poids, aucun os pondéré hors de la base, et des JUMEAUX (deux sommets d'un
  * mesh à la même position de repos) aux poids identiques. Seuils partagés avec la construction
  * (`scripts/personnage-3d/seuils.py`) : `seuils.json`.
  */
 import type { SkinnedMesh } from 'three';
-import type { Ecart } from '../ecart.ts';
+import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import seuils from './seuils.json';
 
 /** Influences d'os par sommet d'une peau de jeu : un seul jeu `JOINTS_0`/`WEIGHTS_0` glTF. */
@@ -21,11 +21,17 @@ export const TOLERANCE_JUMEAUX_POIDS = 1e-4;
 export interface SujetDePoids {
   readonly meshes: readonly SkinnedMesh[];
   readonly osDeLaBase: ReadonlySet<string>;
-  /** Par nœud à mesh, ses attributs d'influence au-delà du premier jeu (`ContenuGlb.influencesEtendues`). */
-  readonly influencesEtendues: ReadonlyMap<string, readonly string[]>;
+  readonly libelle: LibelleDeMesh;
 }
 
 const GARDE = 'poids';
+
+/** Un jeu d'influence de three (`GLTFLoader` : `JOINTS_<n>` → `joints_<n>`, sauf le premier, `skinIndex`/`skinWeight`). */
+const JEU_D_INFLUENCE = /^(?:joints|weights)_(\d+)$/;
+
+/** Les attributs d'influence de `m` au-delà du premier jeu, sous leur nom glTF. */
+const influencesEtendues = (m: SkinnedMesh): string[] =>
+  Object.keys(m.geometry.attributes).filter((a) => Number(JEU_D_INFLUENCE.exec(a)?.[1] ?? 0) > 0).map((a) => a.toUpperCase());
 
 /** Les poids du sommet `i` de `m`, par nom d'os (au-dessus de `POIDS_NEGLIGEABLE`). */
 function poidsDuSommet(m: SkinnedMesh, i: number): Map<string, number> {
@@ -71,10 +77,10 @@ function jumeaux(m: SkinnedMesh): [number, number][] {
 
 export function gardePoids(sujet: SujetDePoids): Ecart[] {
   const ecarts: Ecart[] = [];
-  for (const [noeud, attributs] of sujet.influencesEtendues) {
-    ecarts.push({ garde: GARDE, code: 'influences-au-dela-de-4', mesh: noeud, valeur: attributs.join(', '), seuil: INFLUENCES_MAX, detail: `jeu d’influence au-delà du premier (${attributs.join(', ')})` });
-  }
   for (const m of sujet.meshes) {
+    const mesh = sujet.libelle(m);
+    const etendus = influencesEtendues(m);
+    if (etendus.length) ecarts.push({ garde: GARDE, code: 'influences-au-dela-de-4', mesh, valeur: etendus.join(', '), seuil: INFLUENCES_MAX, detail: `jeu d’influence au-delà du premier (${etendus.join(', ')})` });
     const n = m.geometry.attributes.position.count;
     const poids = Array.from({ length: n }, (_, i) => poidsDuSommet(m, i));
     let nulles = 0;
@@ -90,13 +96,13 @@ export function gardePoids(sujet: SujetDePoids): Ecart[] {
       }
       for (const os of parOs.keys()) if (!sujet.osDeLaBase.has(os)) horsBase.add(os);
     });
-    if (nulles) ecarts.push({ garde: GARDE, code: 'somme-nulle', mesh: m.name, valeur: nulles, seuil: 0, detail: `${nulles} sommet(s) sans aucun poids` });
-    if (fausses) ecarts.push({ garde: GARDE, code: 'somme', mesh: m.name, valeur: pire.somme, seuil: TOLERANCE_SOMME_POIDS, detail: `${fausses} sommet(s) de somme ≠ 1, pire #${pire.i}` });
-    if (horsBase.size) ecarts.push({ garde: GARDE, code: 'os-hors-base', mesh: m.name, valeur: horsBase.size, seuil: 0, detail: `os pondérés hors de la base : ${[...horsBase].join(', ')}` });
+    if (nulles) ecarts.push({ garde: GARDE, code: 'somme-nulle', mesh, valeur: nulles, seuil: 0, detail: `${nulles} sommet(s) sans aucun poids` });
+    if (fausses) ecarts.push({ garde: GARDE, code: 'somme', mesh, valeur: pire.somme, seuil: TOLERANCE_SOMME_POIDS, detail: `${fausses} sommet(s) de somme ≠ 1, pire #${pire.i}` });
+    if (horsBase.size) ecarts.push({ garde: GARDE, code: 'os-hors-base', mesh, valeur: horsBase.size, seuil: 0, detail: `os pondérés hors de la base : ${[...horsBase].join(', ')}` });
     const divergents = jumeaux(m).map(([i, j]) => ({ i, j, ecart: ecartDePoids(poids[i], poids[j]) })).filter((d) => d.ecart > TOLERANCE_JUMEAUX_POIDS);
     if (divergents.length) {
       const d = divergents.reduce((a, b) => (b.ecart > a.ecart ? b : a));
-      ecarts.push({ garde: GARDE, code: 'jumeaux-divergents', mesh: m.name, valeur: d.ecart, seuil: TOLERANCE_JUMEAUX_POIDS, detail: `${divergents.length} paire(s) de sommets confondus aux poids différents, pire #${d.i}/#${d.j}` });
+      ecarts.push({ garde: GARDE, code: 'jumeaux-divergents', mesh, valeur: d.ecart, seuil: TOLERANCE_JUMEAUX_POIDS, detail: `${divergents.length} paire(s) de sommets confondus aux poids différents, pire #${d.i}/#${d.j}` });
     }
   }
   return ecarts;

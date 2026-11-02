@@ -19,7 +19,7 @@ const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2
 /** Refus d'un geste qui touche la BOURSE ou la CALE du groupe (dépense, vente, bradage, troc, transfert de
  *  cargaison, évaluation de lot) depuis un siège invité (coop) : la raison affichée, ou `null`. Le geste
  *  noyau le lit en tête (`refuseSi`), l'écran le lit pour fermer sa case. */
-export function refusDeGesteSurLeGroupe(s: Pick<Jeu, 'net'>): string | null {
+export function refusDeGesteSurLeGroupe(s: { net: Pick<Jeu['net'], 'mode'> }): string | null {
   return s.net.mode === 'guest' ? t('groupe.hoteSeul') : null;
 }
 

@@ -3,7 +3,7 @@
  * « quiconque tente de traverser la zone à pied sans posséder le Talent Magie des Arcanes (Vie) doit
  * réussir un Test d'Agilité Difficile (-20). Un échec signifie qu'il gagne 1 État Hémorragique et un
  * État Empêtré, qui utilise votre Force Mentale pour sa Force. » Exécution RUNTIME (complète le test
- * data-only `l11-sorts-zones.test.ts`, ba77a269) : héros manuel → cascade influençable ; exemption par
+ * data-only `l11-sorts-zones.hors-store.test.ts`, ba77a269) : héros manuel → cascade influençable ; exemption par
  * Talent → aucun jet ; IA/auto → jet inline journalisé (jamais silencieux).
  */
 import { describe, it, expect, beforeEach } from 'vitest';

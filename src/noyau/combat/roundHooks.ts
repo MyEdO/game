@@ -427,7 +427,7 @@ export const TABLES = {
       run: ({ battle, sink }) => { zonesRoundTick(battle.zones, battle.combatants, battleRng()).forEach((t) => sink(t.line, t.combatant)); },
     },
     {
-      id: 'clear-psych-of-dead', // effets psy d'une créature morte → fin (catch-all toutes causes de mort)
+      id: 'clear-psych-of-dead', // afflictions causées par une créature hors d'action → fin (toutes causes) ; #3045
       phase: 'onRoundEnd',
       order: 79.3,
       run: ({ battle }) => {

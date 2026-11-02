@@ -48,7 +48,7 @@ import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
-import { suppressPsychTraits, type PsychType } from './psychology';
+import { suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
@@ -509,10 +509,12 @@ export type GameOp =
    *  « +1 par +N DR » ajoutée à `value` (Mâchoires d'acier : « chaque DR supprime un État Sonné
    *  supplémentaire », LDB 10) — inerte si absent (calque op `condition`). */
   | { op: 'removeCondition'; id?: string; value?: Formula; valuePerSL?: PerSL; all?: boolean }
-  /** Retire un état PSYCHOLOGIQUE porté (`PsychAffliction.type` — collection `psychState`, DISTINCTE de
-   *  `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16). GÉNÉRIQUE (paramétré par `type`) :
-   *  sortie de Frénésie (`effects: onTurnStart` → fin + Exténué, LDB 21 l.35). Journalisé via `t()`. */
+  /** Met fin à un état PSYCHOLOGIQUE porté (collection `psychState`, DISTINCTE de `conditions` : pas de perte
+   *  d'Avantage, LDB 21 ≠ LDB 16) : ceux du `type`, ou l'instance de l'effet qui porte l'op (`instance`,
+   *  `OpsCtx.affliction`). Une affliction CIBLÉE finit DÉSACTIVÉE : son marqueur de rencontre reste (LDB 21
+   *  l.9) ; une autre (Frénésie) est retirée. Journalisé via `t()`. */
   | { op: 'endPsych'; type: { id: string } }
+  | { op: 'endPsych'; instance: 'courante' }
   /** POSE (ou met à jour) un état PSYCHOLOGIQUE porté — JUMELLE d'`endPsych`, même collection
    *  `psychState` (DISTINCTE de `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16).
    *  UPSERT : l'entrée visée est celle de même identité (`identiteDeCiblage`) pour un Trait CIBLÉ
@@ -1356,6 +1358,12 @@ export interface OpsCtx {
   /** Un adversaire vivant est-il dans la Ligne de Vue du porteur — résout la Condition `foeInLoS`
    *  (sortie de Frénésie, Brisé). Précalculé sur la `battle` par le dispatcher de combat. */
   foeInLoS?: boolean;
+  /** L'instance d'affliction psychologique dont l'effet est joué — lue par `endPsych { instance }`. Posée par
+   *  le dispatcher des états psy (`noyau/triggeredEffects.ts`). */
+  affliction?: PsychAffliction;
+  /** Verdict de cette instance sur sa Cible en vue — résout la Condition `cibleEnVue`. Précalculé par le
+   *  dispatcher de combat. */
+  cibleEnVue?: CibleEnVue;
   /** Géométrie d'arène de la récupération du Brisé (LDB 16) — précalculée par le dispatcher : aucun ennemi
    *  ne voit l'acteur (`hiddenFromFoes`), acteur Engagé (`engaged`), distance au plus proche (`nearestFoeDist`).
    *  Résolvent les Conditions `hiddenFromFoes`/`engaged`/`nearestFoe`. */
@@ -1637,8 +1645,8 @@ export const OPS_CTX_GELES = [
   'sourceSpell', 'sourceSpellId', 'conjureForm', 'label', 'rejeuRecurrent', 'source', 'effectId', 'blessuresAuTotal',
   'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
-  'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'hiddenFromFoes',
-  'engaged', 'nearestFoeDist', 'weapon',
+  'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'affliction', 'cibleEnVue',
+  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'weapon',
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
@@ -1725,7 +1733,20 @@ function rangDuTraitARetirer(c: Combatant, o: Extract<GameOp, { op: 'removePsych
 
 /** Le contexte où se juge une op de retrait : DR et source de l'application ; `avantLeJet` juge l'op avant le
  *  Test qui l'échelonne, un compte qui croît avec le DR restant alors possible. */
-export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source'> & { avantLeJet?: boolean };
+export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source' | 'affliction'> & { avantLeJet?: boolean };
+
+/** Les afflictions de `c` auxquelles `o` met fin : l'instance du contexte (`instance`, par son identité de
+ *  ciblage), ou celles du type ; une affliction ciblée seulement si elle est ACTIVE. */
+function afflictionsFinies(c: Combatant, o: Extract<GameOp, { op: 'endPsych' }>, ctx: ContexteDeRetrait): PsychAffliction[] {
+  const visee = 'instance' in o
+    ? (p: PsychAffliction) => !!ctx.affliction && identiteDeCiblage(p.type, p.cible) === identiteDeCiblage(ctx.affliction.type, ctx.affliction.cible)
+    : (p: PsychAffliction) => p.type === o.type.id;
+  return (c.psychState ?? []).filter((p) => visee(p) && (!estCibleType(p.type) || p.active === true));
+}
+
+/** Le type d'état psy que nomme une op `endPsych` (celui de l'instance du contexte, sinon le sien). */
+const typeDeFin = (o: Extract<GameOp, { op: 'endPsych' }>, ctx: ContexteDeRetrait): string | undefined =>
+  'instance' in o ? ctx.affliction?.type : o.type.id;
 
 /** Un compte `base` + échelle de DR est-il positif sous `ctx` ? */
 function comptePositif(base: number, perSL: PerSL | undefined, ctx: ContexteDeRetrait): boolean {
@@ -1744,8 +1765,11 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
     }
     case 'removeTrait':
       return traitsAccordesPar(c, o.trait.id, ctx.source).length ? null : t('op.noTraitToRemove', { name: c.label, trait: refLabel('traits', o.trait) });
-    case 'endPsych':
-      return c.psychState?.some((p) => p.type === o.type.id) ? null : t('op.noPsychToEnd', { name: c.label, psych: psychologyLabel(o.type.id) });
+    case 'endPsych': {
+      if (afflictionsFinies(c, o, ctx).length) return null;
+      const type = typeDeFin(o, ctx);
+      return type ? t('op.noPsychToEnd', { name: c.label, psych: psychologyLabel(type) }) : t('op.noPsychInstance', { name: c.label });
+    }
     case 'removePsychTrait': return rangDuTraitARetirer(c, o) < 0 ? t('op.noPsychToRemove', { name: c.label }) : null;
     case 'sinMod': return o.amount === 0 || (o.amount < 0 && !(c.sinPoints ?? 0)) ? t('op.noSinToRemove', { name: c.label }) : null;
     case 'cureDisease':
@@ -1995,10 +2019,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'endPsych': {
-        // Retrait d'un état psychologique porté (collection `psychState`, ≠ `conditions`). GÉNÉRIQUE.
-        const type = o.type.id;
-        target.psychState = (target.psychState ?? []).filter((p) => p.type !== type);
-        lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(type) }));
+        const finies = afflictionsFinies(target, o, ctx); // `opSansObjet` : au moins une
+        for (const p of finies) if (estCibleType(p.type)) p.active = false;
+        target.psychState = (target.psychState ?? []).filter((p) => estCibleType(p.type) || !finies.includes(p));
+        lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(finies[0].type) }));
         break;
       }
       case 'beginPsych': {

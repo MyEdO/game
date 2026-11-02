@@ -16,15 +16,17 @@ import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 
 
-/** `ConditionCtx` de combat construit d'un combattant + de l'`OpsCtx` de la touche/du Round (géométrie
- *  d'arène, sl/location/woundsDealt…). Pour les résolveurs INLINE sans `ExecCtx` (resolveInlineFlowTest /
- *  l'évaluation d'un `gate`). `target` = le combattant qui jette ; `caster` = le porteur (ctx.caster). */
-export function combatConditionCtx(c: Combatant, ctx: Omit<OpsCtx, 'rng'>): ConditionCtx {
+/** SOURCE UNIQUE du `ConditionCtx` de combat : vues des acteurs + l'`OpsCtx` de la touche/du Round (géométrie
+ *  d'arène, sl/location/woundsDealt, verdict de Cible en vue…). `target` = le combattant visé ou qui jette
+ *  (absent hors cible) ; `caster` = le porteur (`ctx.caster`). Toute clé d'`OpsCtx` lue par une Condition
+ *  passe ICI, pour toutes les voies (cascade, inline, nœud `if` de `runCombatFlow`). */
+export function combatConditionCtx(c: Combatant | undefined, ctx: Omit<OpsCtx, 'rng'>): ConditionCtx {
   return {
-    flags: {}, gameTime: ctx.now ?? 0, party: [c], sl: ctx.sl,
+    flags: {}, gameTime: ctx.now ?? 0, party: c ? [c] : [], sl: ctx.sl,
     location: ctx.location, woundsDealt: ctx.woundsDealt, engagedAdvantageGap: ctx.engagedAdvantageGap, engagedAdvantageLead: ctx.engagedAdvantageLead,
     attackKind: ctx.attackKind, startleCause: ctx.startleCause,
     foeInLoS: ctx.foeInLoS, hiddenFromFoes: ctx.hiddenFromFoes, engaged: ctx.engaged, nearestFoeDist: ctx.nearestFoeDist,
+    cibleEnVue: ctx.cibleEnVue,
     target: buildActorView(c), caster: buildActorView(ctx.caster),
   };
 }

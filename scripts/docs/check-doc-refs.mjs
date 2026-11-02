@@ -170,7 +170,7 @@ async function principal() {
     const EXPORTED_SYMS = new Set()
     for (const f of [SRC_DIR, SCRIPTS_DIR].flatMap((d) => fichiersSources(d, ['.ts', '.tsx', '.mjs', '.mts']))) {
       const src = readFileSync(f, 'utf8')
-      for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
+      for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function\s*\*\s*|(?:function|class|interface|type|enum)\s+)([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
       for (const m of src.matchAll(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
       for (const m of src.matchAll(/export\s*\{([^}]*)\}/g))
         for (const part of m[1].split(','))

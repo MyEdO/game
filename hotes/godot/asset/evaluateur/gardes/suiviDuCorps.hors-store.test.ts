@@ -130,8 +130,8 @@ describe('gardeSuiviDuCorps, par evaluer à facteurs neutres', () => {
   it('refuse un élément skinné sans clés, une fiche par clé propre à sa zone', async () => {
     const e = await suivis(corps(), botte());
     expect(e.map((x) => [x.code, x.mesh, cleNommee(x.detail)])).toEqual([
-      ['cle-inerte', 'Botte', LEGS_MOINS],
-      ['cle-inerte', 'Botte', LEGS_PLUS],
+      ['cle-inerte', 'élément 1/Botte#0', LEGS_MOINS],
+      ['cle-inerte', 'élément 1/Botte#0', LEGS_PLUS],
     ]);
     expect(e[0].valeur).toBe(0);
     expect(e[0].seuil as number).toBeCloseTo(CHEMIN_DU_CORPS / 2, 5);
@@ -204,7 +204,7 @@ describe('gardeSuiviDuCorps, par evaluer à facteurs neutres', () => {
 
   it('mesure un élément de même nom qu’un mesh du corps sans les confondre', async () => {
     const e = await suivis(corps(), botte({ [LEGS_MOINS]: legsMoins }, 'G'));
-    expect(e.map((x) => [x.mesh, cleNommee(x.detail)])).toEqual([['G', LEGS_PLUS]]);
+    expect(e.map((x) => [x.mesh, cleNommee(x.detail)])).toEqual([['élément 1/G#0', LEGS_PLUS]]);
   });
 
   it('exclut un triangle dégénéré, même sur un sommet de l’élément', async () => {
@@ -244,7 +244,7 @@ describe('gardeSuiviDuCorps : état de la scène', () => {
     avec.forEach((m, i) => { m.morphTargetInfluences?.forEach((_, k, t) => { t[k] = 0.1 * (i + k + 1); }); });
     const avant = avec.map((m) => [...(m.morphTargetInfluences ?? [])]);
     expect(avant.flat().some((p) => p > 0)).toBe(true);
-    gardeSuiviDuCorps(b.scene, meshesDuCorps(b), e.skinnes);
+    gardeSuiviDuCorps(b.scene, meshesDuCorps(b), e.skinnes, (m) => m.name);
     expect(avec.map((m) => [...(m.morphTargetInfluences ?? [])])).toEqual(avant);
   });
 });
@@ -258,13 +258,13 @@ describe('gardeSuiviDuCorps : le chemin réel de la peau', () => {
     const os = meshesDuCorps(b);
     const [peau] = e.skinnes;
     const repos = poseDeRepos(b.scene, os);
-    const v = poseDeRepos(b.scene, [peau]).positions.get(peau.name) as Float32Array;
+    const v = poseDeRepos(b.scene, [peau]).positions.get(peau) as Float32Array;
     const lies = lierAuCorps(v, os, repos);
     const facteurs = { ...FACTEURS_NEUTRES, legs };
     poserFormes(b.scene, poidsDuGabarit(facteurs, TABLE.bornes, {}));
     appliquerGabarit(b.scene, facteurs, { gabarit: TABLE }, b.squelette ?? undefined, false);
     const apres = poseDeRepos(b.scene, os);
-    const vApres = poseDeRepos(b.scene, [peau]).positions.get(peau.name) as Float32Array;
+    const vApres = poseDeRepos(b.scene, [peau]).positions.get(peau) as Float32Array;
     return Math.max(...lies.map((lie, i) => {
       const avant = new Vector3(v[i * 3], v[i * 3 + 1], v[i * 3 + 2]).sub(pointSurLeCorps(lie, repos.positions));
       return new Vector3(vApres[i * 3], vApres[i * 3 + 1], vApres[i * 3 + 2]).sub(pointSurLeCorps(lie, apres.positions)).distanceTo(avant);

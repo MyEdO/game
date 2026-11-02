@@ -48,7 +48,7 @@ import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
-import { effectOnSchema, effectTriggerSchema } from '../../../data/schemas/grammaire/mecanique';
+import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
 import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
@@ -748,8 +748,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
           </div>
         )}
         {isSymptom && <SymptomTickField value={entry.onTick as import('./StructFields').SymptomTick | undefined} onChange={(v) => edit('onTick', v)} />}
-        {isTriggered && <TriggeredEffectsField value={entry.effects as TriggeredEffect[] | undefined} onChange={(v) => edit('effects', v)} />}
-        {hasConsumable && <TriggeredEffectsField label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
+        {isTriggered && <TriggeredEffectsField noeud={noeudDe('effects')} value={entry.effects as TriggeredEffect[] | undefined} onChange={(v) => edit('effects', v)} />}
+        {hasConsumable && <TriggeredEffectsField noeud={noeudDe('onHitEffects')} label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
         {isMutationTable && <MutationTableField value={entry.ranges as MutationRange[] | undefined} onChange={(v) => edit('ranges', v)} />}
         {isWeather && <WeatherRangesField value={entry.ranges as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('ranges', v)} />}
@@ -961,7 +961,8 @@ function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onCha
  *  d'arme. MÊME logique authorée que les sorts : une LISTE d'effets, chacun = un DÉCLENCHEUR (sur
  *  événement) + une CIBLE + un `Flow` d'ops éditable (réutilise `FlowEditor`/`GameOpEditor`). Écrit le
  *  record `traits.json`/`qualities.json` au save → `noyau/triggeredEffects` les applique en jeu. */
-function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (déclencheur → Flow d’ops, comme un sort)' }: { value: TriggeredEffect[] | undefined; onChange: (v: TriggeredEffect[]) => void; label?: string }) {
+function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclenchés (déclencheur → Flow d’ops, comme un sort)' }: { value: TriggeredEffect[] | undefined; onChange: (v: TriggeredEffect[]) => void; noeud?: unknown; label?: string }) {
+  const ctx = useMemo(() => ({ ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeud) }), [noeud]);
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const add = () => onChange([...list, { trigger: 'onHit', on: 'victim', flow: EMPTY_FLOW }]);
@@ -1004,7 +1005,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctxDeCatalogue('declenche')} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => set(i, { flow })} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>

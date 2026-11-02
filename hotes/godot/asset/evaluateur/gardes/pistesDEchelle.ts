@@ -1,10 +1,11 @@
 /**
  * GARDE DES PISTES QUI DÉFONT LE GABARIT (#2972, G13) : une piste `.scale` dont une valeur s'écarte de 1 de plus de
  * `TOLERANCE_ECHELLE`, et toute piste `.position` sur un os autre que la racine et les os à position animée du manifeste
- * de base (`ManifesteDeBase.osAPositionAnimee`). Seuil partagé avec la construction (`scripts/personnage-3d/seuils.py`) :
- * `seuils.json`.
+ * de base (`ManifesteDeBase.osAPositionAnimee`), l'os nommé comme `AnimationMixer` le trouve dans la scène
+ * (`PropertyBinding.findNode`, par nom ou par `uuid`, `chargement.ts`). Seuil partagé avec la construction
+ * (`scripts/personnage-3d/seuils.py`) : `seuils.json`.
  */
-import { PropertyBinding, type AnimationClip } from 'three';
+import { PropertyBinding, type AnimationClip, type Object3D } from 'three';
 import type { Ecart } from '../ecart.ts';
 import seuils from './seuils.json';
 
@@ -28,16 +29,19 @@ function ecartALUnite(valeurs: ArrayLike<number>): number {
   return max;
 }
 
-export function gardePistesDEchelle(clips: readonly AnimationClip[], racine: string, osAPositionAnimee: readonly string[]): Ecart[] {
+export function gardePistesDEchelle(scene: Object3D, clips: readonly AnimationClip[], racine: string, osAPositionAnimee: readonly string[]): Ecart[] {
   const libres = new Set([racine, ...osAPositionAnimee]);
   return clips.flatMap((clip) => clip.tracks.flatMap((piste): Ecart[] => {
     const { nodeName, propertyName } = PropertyBinding.parseTrackName(piste.name);
+    const noeud = PropertyBinding.findNode(scene, nodeName) as Object3D | null;
+    if (!noeud) throw new Error(`${GARDE} : piste ${piste.name} sans nœud dans la scène`);
+    const nom = noeud.name;
     if (propertyName === 'scale') {
       const ecart = ecartALUnite(piste.values);
-      return ecart > TOLERANCE_ECHELLE ? [{ garde: GARDE, code: 'echelle-animee', clip: clip.name, valeur: ecart, seuil: TOLERANCE_ECHELLE, detail: `${nodeName}.scale s’écarte de 1` }] : [];
+      return ecart > TOLERANCE_ECHELLE ? [{ garde: GARDE, code: 'echelle-animee', clip: clip.name, valeur: ecart, seuil: TOLERANCE_ECHELLE, detail: `${nom}.scale s’écarte de 1` }] : [];
     }
-    if (propertyName === 'position' && !libres.has(nodeName)) {
-      return [{ garde: GARDE, code: 'position-animee', clip: clip.name, valeur: amplitude(piste.values), seuil: 0, detail: `${nodeName}.position animée ; valeur : son amplitude en m` }];
+    if (propertyName === 'position' && !libres.has(nom)) {
+      return [{ garde: GARDE, code: 'position-animee', clip: clip.name, valeur: amplitude(piste.values), seuil: 0, detail: `${nom}.position animée ; valeur : son amplitude en m` }];
     }
     return [];
   }));

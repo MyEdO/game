@@ -12,8 +12,11 @@ import { findTableEntry } from '../engine/tables';
 import { interludeEvents } from './index';
 
 export interface InterludeEventFx {
-  /** % appliqué à la bourse du groupe AVANT les Activités (le Prévôt −30, Kleptomane −50). */
+  /** % appliqué à la bourse AVANT les Activités (le Prévôt −30, Kleptomane −50). */
   moneyPct?: number;
+  /** Événement de GROUPE : ses effets valent pour tous les participants, une fois (`effetsDeLaPeriode`).
+   *  Absent : pour le seul héros qui l'a tiré. LDB 22 l.5 */
+  partyWide?: boolean;
   /** % appliqué aux gains de l'Activité Revenus (Fausse monnaie −20, Profits +50…). */
   revenuePct?: number;
   /** Le `revenuePct` ne vise que ces Classes (absent = tout le monde). */

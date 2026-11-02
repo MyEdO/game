@@ -1,10 +1,13 @@
 /**
  * LE CHARGEMENT D'UN GLB PAR THREE, EN NODE (#2972) : `GLTFLoader.parse` sans DOM. Une image ne se décode pas hors du
  * navigateur : le document est réécrit sans images, textures, échantillonneurs ni référence de texture des matériaux
- * (`ecrireGlb`, `glb.ts`) avant le chargement ; leur présence se lit par `lireGlb` (`images`).
+ * (`ecrireGlb`, `glb.ts`) avant le chargement ; leur présence se lit par `lireGlb` (`images`). Un os porte le nom de son
+ * nœud glTF, que `GLTFLoader` réécrit (`PropertyBinding.sanitizeNodeName`, `createUniqueName`) : le manifeste et
+ * `lireGlb` parlent en noms glTF (#3233). Une piste de clip, dont le nom ne peut pas porter `.`, `:`, `/`, `[` ni `]`
+ * (`PropertyBinding.parseTrackName`), vise son os par son `uuid`.
  */
-import type { AnimationClip, Mesh, Object3D, Skeleton, SkinnedMesh } from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { PropertyBinding, type AnimationClip, type Bone, type Mesh, type Object3D, type Skeleton, type SkinnedMesh } from 'three';
+import { GLTFLoader, type GLTFReference } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { estObjet } from '../../../../src/hote/formes';
 import { ecrireGlb, lireConteneur, type DocumentGltf } from '../glb.ts';
 
@@ -16,11 +19,21 @@ export interface SceneChargee {
   /** Le squelette du premier mesh skinné, `null` sans skinning. */
   readonly squelette: Skeleton | null;
   readonly clips: readonly AnimationClip[];
-  /** Par nom de nœud, ses `extras` glTF (`userData`), pour les nœuds qui en portent. */
-  readonly userData: ReadonlyMap<string, Readonly<Record<string, unknown>>>;
-  /** Les objets qui portent un nœud glTF (`GLTFParser.associations`) : un `Mesh`, ou le `Group` des primitives d'un mesh. */
-  readonly noeuds: ReadonlySet<Object3D>;
+  /** Par mesh, son nœud glTF et sa primitive (`GLTFParser.associations`). */
+  readonly origines: ReadonlyMap<Mesh, OrigineGltf>;
 }
+
+/** Le nœud glTF d'un mesh chargé, et l'indice de sa primitive dans le mesh glTF de ce nœud. */
+export interface OrigineGltf {
+  /** L'objet qui porte le nœud : le mesh lui-même, ou le `Group` ou l'os parent des primitives. */
+  readonly objet: Object3D;
+  /** Le nom du nœud dans le GLB, unique (`lireGlb`, `arborescence`). */
+  readonly noeud: string;
+  readonly primitive: number;
+}
+
+/** `GLTFReference` avec `primitives`, que `GLTFLoader.loadMesh` pose sur chaque primitive et que `@types/three` omet. */
+type ReferenceGltf = GLTFReference & { readonly primitives?: number };
 
 const LISTES_D_IMAGE = ['images', 'textures', 'samplers'];
 const EXTENSION_DE_TEXTURE = /texture/i;
@@ -47,12 +60,29 @@ export async function chargerScene(octets: Uint8Array): Promise<SceneChargee> {
   const reecrit = ecrireGlb(sansImages(json), bin);
   const gltf = await new GLTFLoader().parseAsync(reecrit.slice().buffer, '');
   const meshes: Mesh[] = [];
-  const userData = new Map<string, Readonly<Record<string, unknown>>>();
-  gltf.scene.traverse((n) => {
-    if ((n as Mesh).isMesh) meshes.push(n as Mesh);
-    if (Object.keys(n.userData).length) userData.set(n.name, n.userData);
-  });
+  gltf.scene.traverse((n) => { if ((n as Mesh).isMesh) meshes.push(n as Mesh); });
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
-  const noeuds = new Set([...gltf.parser.associations].flatMap(([o, r]) => (r.nodes === undefined ? [] : [o as Object3D])));
-  return { scene: gltf.scene, meshes, skinnes, squelette: skinnes[0]?.skeleton ?? null, clips: gltf.animations, userData, noeuds };
+  const associations: ReadonlyMap<object, ReferenceGltf> = gltf.parser.associations;
+  const noeuds = (json.nodes ?? []) as readonly { name?: unknown }[];
+  const os = new Map<string, Bone>();
+  gltf.scene.traverse((n) => {
+    const nom = noeuds[associations.get(n)?.nodes ?? -1]?.name;
+    if (!(n as Bone).isBone || typeof nom !== 'string' || !nom) return;
+    os.set(n.name, n as Bone);
+    n.name = nom;
+  });
+  for (const piste of gltf.animations.flatMap((c) => c.tracks)) {
+    const { nodeName, propertyName } = PropertyBinding.parseTrackName(piste.name);
+    const cible = os.get(nodeName);
+    if (cible) piste.name = `${cible.uuid}.${propertyName}`;
+  }
+  const origines = new Map(meshes.map((m) => {
+    let objet: Object3D | null = m;
+    while (objet && associations.get(objet)?.nodes === undefined) objet = objet.parent;
+    const indice = objet ? associations.get(objet)?.nodes : undefined;
+    const noeud = indice === undefined ? undefined : noeuds[indice]?.name;
+    if (!objet || typeof noeud !== 'string' || !noeud) throw new Error(`chargement : mesh ${m.name} sans nœud glTF nommé`);
+    return [m, { objet, noeud, primitive: associations.get(m)?.primitives ?? 0 }] as const;
+  }));
+  return { scene: gltf.scene, meshes, skinnes, squelette: skinnes[0]?.skeleton ?? null, clips: gltf.animations, origines };
 }

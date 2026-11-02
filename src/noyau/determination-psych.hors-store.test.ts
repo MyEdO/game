@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { isPsychImmune, clearPsychOf } from '../engine/psychology';
+import { isPsychImmune, clearPsychOf, refreshAllDefendedPsych } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
 import { traumaCharPenalties, traumaMovementHalved, traumaDodgePenalty, passiveTestMod } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
@@ -26,13 +26,24 @@ describe('isPsychImmune — prédicat central (trait / Frénésie / Déterminati
   });
 });
 
-describe('clearPsychOf — les effets psy d\'une créature finissent à sa mort', () => {
-  it('retire de TOUS les combattants les afflictions sourcées par la créature morte', () => {
-    const h1 = C({ psychState: [{ type: 'peur', sourceId: 'mort', indice: 2, calmeDR: 0 } as never, { type: 'peur', sourceId: 'vivant', indice: 1, calmeDR: 0 } as never] });
-    const h2 = C({ psychState: [{ type: 'animosite', sourceId: 'mort', cible: ciblePsy.groupe('elfe'), active: true }] });
-    clearPsychOf([h1, h2], 'mort');
-    expect(h1.psychState!.map((p) => p.sourceId)).toEqual(['vivant']); // l'autre source reste
-    expect(h2.psychState).toEqual([]);
+describe('clearPsychOf — la créature hors d\'action lève les afflictions qu\'elle cause, hors celles qui finissent par leur donnée', () => {
+  it('Peur : retirée chez tous ; Haine qu\'elle a déclenchée : intacte, sa fin regarde le Groupe (LDB 21 l.39 ; #3045)', () => {
+    const h1 = C({ psychState: [{ type: 'peur', sourceId: 'tombe', indice: 2, calmeDR: 0 } as never, { type: 'peur', sourceId: 'debout', indice: 1, calmeDR: 0 } as never] });
+    const haine = { type: 'haine' as const, sourceId: 'tombe', cible: ciblePsy.groupe('elfe'), active: true };
+    const h2 = C({ psychState: [haine] });
+    clearPsychOf([h1, h2], 'tombe');
+    expect(h1.psychState!.map((p) => p.sourceId)).toEqual(['debout']);
+    // Un membre Inconscient n'est ni mort ni disparu : la Haine reste active tant que `cibleEnVue` le voit.
+    expect(h2.psychState).toEqual([haine]);
+  });
+
+  it('Amour : la chute de l’aimé qui l’a déclenchée ne la lève pas tant qu’un autre aimé est défendable (LDB 21 l.75)', () => {
+    const amour = { type: 'amour' as const, sourceId: 'tombe', cible: ciblePsy.groupe('humain'), active: true };
+    const h = C({ id: 'h', psychState: [amour] });
+    const tous = [h, C({ id: 'tombe', groups: ['humain'], dead: true }), C({ id: 'debout', groups: ['humain'] })];
+    clearPsychOf(tous, 'tombe');
+    refreshAllDefendedPsych(tous);
+    expect(h.psychState).toEqual([amour]);
   });
 });
 
