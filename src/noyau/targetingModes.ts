@@ -28,7 +28,7 @@ import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { isFrenzied } from '../engine/psychology';
-import { healableTargets, combatHealModes } from '../engine/healing';
+import { healableTargets, combatHealModes, HEAL_MODES } from '../engine/healing';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
 import { findSpellById } from '../data';
 import { isStructure, structureImmune } from '../engine/structures';
@@ -71,6 +71,8 @@ export type HoverTargeting =
    *  § 2026-08-19) ; `sans-sort-dissipable` = mode Dissiper armé, mais la cible ne porte aucun Sort
    *  permanent (LDB 46 l.158-162). */
   | { kind: 'invalid'; reason: 'los' | 'range' | 'engaged' | 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'approche-non-armee' | 'sans-sort-dissipable' }
+  /** Mode Soin armé : allié soignable à portée, mais aucun soin de combat ne s'offre (`combatHealModes`). */
+  | { kind: 'invalid'; reason: 'sans-soin-de-combat' }
   | {
       kind: 'ok';
       /** Style de la ligne de visée : pointillée (tir/sort) ou pleine (mêlée, déplacement compris). */
@@ -414,11 +416,15 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   };
 }
 
-/** Mode SOIN (Guérison, LDB 09) : réticule « Soigner » sur soi + alliés adjacents soignables. */
+/** Alliés soignables à portée de `active` (soi + adjacents, son camp). */
+const soignablesAPortee = (get: Get, active: Combatant): Combatant[] =>
+  healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
+
+/** Mode SOIN (Guérison, LDB 09) : réticule « Soigner » sur soi + alliés adjacents qu'un soin de combat
+ *  atteint (`combatHealModes`) ; à portée sans soin de combat, la cible est refusée au clic. */
 function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTargeting {
-  const battle = get().battle!;
-  const allies = battle.combatants.filter((c) => c.kind === active.kind); // camp RELATIF : on soigne SON camp
-  if (!healableTargets(active, allies, { adjacency: true }).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!soignablesAPortee(get, active).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!combatHealModes(target).length) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
   return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: 'Guérison', base: 0, mod: 0, dmg: null };
 }
 
@@ -813,12 +819,12 @@ const BATTERY_MODE: TargetingMode = {
 };
 const HEAL_MODE: TargetingMode = {
   id: 'heal', affordance: healAffordance, anneauCandidats: 'ami',
-  candidates: (get, active) => healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true }),
+  candidates: (get, active) => soignablesAPortee(get, active).filter((c) => combatHealModes(c).length > 0),
   commitCombatant: (get, _set, _active, id) => {
     const target = inBattleId(get().battle, id);
     if (!target) return;
-    const mode = combatHealModes(target)[0]; // mode par défaut au ciblage-carte ; la modale permet de basculer
-    if (mode) get().battleHeal(id, mode);
+    // Mode par défaut au ciblage-carte (la modale permet de basculer) ; sans soin de combat, `battleHeal` dit le refus.
+    get().battleHeal(id, combatHealModes(target)[0] ?? HEAL_MODES[0]);
   },
 };
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la

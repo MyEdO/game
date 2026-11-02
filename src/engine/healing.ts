@@ -5,7 +5,7 @@
  */
 import { Combatant, type Difficulty } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
-import { loseWounds, addCondition, removeCondition, reprendreConnaissance, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions } from './conditions';
+import { loseWounds, addCondition, removeCondition, reprendreConnaissance, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions, stacks } from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';
@@ -14,9 +14,6 @@ import { t } from '../i18n';
 import type { RNG } from './dice';
 import { chebyshev } from './grid';
 import { isStructure } from './structures';
-
-/** Pions d'un État (local — `stacks` n'est pas exporté par conditions.ts). */
-const condStacks = (c: Combatant, name: string) => c.conditions.find((x) => x.id === name)?.value ?? 0;
 
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
@@ -32,7 +29,7 @@ export function hasSurgerySkill(c: Combatant): boolean {
  *  (1 PB lève l'inconscience, LDB 18 l.15). */
 export function isHealable(c: Combatant): boolean {
   if (c.dead || c.outOfRencontre || isStructure(c)) return false;
-  return c.wounds.current < c.wounds.max || condStacks(c, 'hemorragique') > 0 || hasTreatableTrauma(c)
+  return c.wounds.current < c.wounds.max || stacks(c, 'hemorragique') > 0 || hasTreatableTrauma(c)
     || hasSurgeryTrauma(c) || hasRecoverableTrauma(c) || hasLimbAwaitingAid(c) || hasSurgeryLockedCondition(c);
 }
 
@@ -46,23 +43,33 @@ export function soinMagiqueOperant(c: Combatant): boolean {
  *  démis », LDB 18 l.120/179), après Aide Médicale — hors combat, cf. `medicFlow`. */
 export type HealMode = 'wounds' | 'bleed' | 'trauma' | 'surgery' | 'recovery' | 'ammo';
 
-/** Modes disponibles pour soigner `target`, compte tenu de la limite « 1 soin de Blessures / rencontre ».
- *  Le mode `trauma` (accélérer la convalescence d'une déchirure, LDB 18 l.222) est hors-combat — les
- *  consommateurs en combat le filtrent. */
+/** Tous les modes de soin, dans l'ordre où l'infirmerie les présente. */
+export const HEAL_MODES: readonly HealMode[] = ['wounds', 'bleed', 'ammo', 'trauma', 'surgery', 'recovery'];
+
+/** Pourquoi `target` n'offre pas le mode de soin `mode` : la raison affichée, ou `null` (le mode s'offre).
+ *  Verdict du PATIENT seul — le soigneur, l'offre et la bourse relèvent de `refusDActeDeSoin` (noyau). */
+export function raisonDeModeDeSoin(target: Combatant, mode: HealMode): string | null {
+  switch (mode) {
+    case 'wounds':
+      if (target.wounds.current >= target.wounds.max) return t('heal.raisonPleinesBlessures');
+      return target.soinRencontreUtilise ? t('heal.raisonSoinDejaRecu') : null; // LDB 09 l.233
+    case 'bleed':
+      return stacks(target, 'hemorragique') > 0 ? null : t('heal.raisonSansHemorragie');
+    case 'trauma':
+      return hasTreatableTrauma(target) ? null : t('heal.raisonSansDechirure');
+    case 'surgery': // LDB 10 l.184, LDB 18
+      return hasSurgeryTrauma(target) || hasSurgeryLockedCondition(target) ? null : t('heal.raisonSansChirurgie');
+    case 'recovery': // LDB 18 l.120/179
+      return hasRecoverableTrauma(target) || hasLimbAwaitingAid(target) ? null : t('heal.raisonSansMembre');
+    case 'ammo': // LDB 62 l.250
+      return lodgedAmmoCount(target) > 0 ? null : t('heal.raisonSansMunition');
+  }
+}
+
+/** Modes disponibles pour soigner `target` : ceux dont `raisonDeModeDeSoin` est `null`. Le mode `trauma`
+ *  (LDB 18 l.222) est hors-combat — les consommateurs en combat le filtrent (`combatHealModes`). */
 export function availableHealModes(target: Combatant): HealMode[] {
-  const modes: HealMode[] = [];
-  if (target.wounds.current < target.wounds.max && !target.soinRencontreUtilise) modes.push('wounds');
-  if (condStacks(target, 'hemorragique') > 0) modes.push('bleed');
-  if (hasTreatableTrauma(target)) modes.push('trauma');
-  if (hasSurgeryTrauma(target) || hasSurgeryLockedCondition(target)) modes.push('surgery'); // Blessure Critique chirurgicale OU État verrouillé « par Chirurgie » (Hémorragie interne, LDB 18) ; gate Talent Chirurgie côté action
-  // Récupération d'usage : proposée dès qu'un membre est désactivé (Test étendu de Guérison), MAIS bloquée tant
-  // que l'Aide Médicale n'a pas été reçue (`actBlockReason` : « Aide Médicale d'abord », LDB 18 l.120/179).
-  if (hasRecoverableTrauma(target) || hasLimbAwaitingAid(target)) modes.push('recovery');
-  // Retrait de munition Empaleuse logée (LDB 62 l.250) : proposé dès qu'au moins une flèche/carreau/balle
-  // reste plantée — même patron que `bleed` (compte de pions → mode). #494 raffinera la distinction
-  // flèches/carreaux (Guérison) vs balles (Chirurgien), non tracée aujourd'hui.
-  if (lodgedAmmoCount(target) > 0) modes.push('ammo');
-  return modes;
+  return HEAL_MODES.filter((m) => raisonDeModeDeSoin(target, m) === null);
 }
 
 /** Difficulté du Test de Guérison selon le mode de soin. Blessures : Intermédiaire (+0, LDB 09 l.269)
@@ -75,11 +82,21 @@ export function healDifficulty(mode: HealMode): Difficulty {
   return mode === 'bleed' && rule('combat-aa-blessures') === 'aa' ? 'accessible' : 'intermediaire';
 }
 
-/** Modes de soin applicables EN COMBAT : Blessures + Hémorragie + retrait de munition logée (allow-list
- *  explicite ; `trauma` convalescence et `surgery` chirurgie sont hors-combat). SOURCE UNIQUE — consommée
- *  par le ciblage-carte (mode par défaut) ET le sélecteur de la modale de soin. */
+/** Actes IMMÉDIATS (un jet, une Action) : seuls offerts en combat et pendant une opération armée ; `trauma`,
+ *  `surgery` et `recovery` sont des actes au long cours. SOURCE UNIQUE du partage. */
+const ACTES_IMMEDIATS: readonly HealMode[] = ['wounds', 'bleed', 'ammo'];
+export const estActeImmediat = (mode: HealMode): boolean => ACTES_IMMEDIATS.includes(mode);
+
+/** `raisonDeModeDeSoin` en combat : un mode hors-combat y est fermé. Verdict UNIQUE des gestes de soin en
+ *  combat (`battleHeal`, `healSetMode`) et de `combatHealModes`. */
+export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): string | null {
+  return estActeImmediat(mode) ? raisonDeModeDeSoin(target, mode) : t('heal.raisonHorsCombat');
+}
+
+/** Modes de soin offerts EN COMBAT : ceux dont `raisonDeModeDeSoinEnCombat` est `null`. Consommée par le
+ *  ciblage-carte (mode par défaut) ET le sélecteur de la modale de soin. */
 export function combatHealModes(target: Combatant): HealMode[] {
-  return availableHealModes(target).filter((m) => m === 'wounds' || m === 'bleed' || m === 'ammo');
+  return HEAL_MODES.filter((m) => raisonDeModeDeSoinEnCombat(target, m) === null);
 }
 
 /** Cibles soignables atteignables par `healer`. En combat : soi + adjacents (Chebyshev ≤ 1).
@@ -111,7 +128,7 @@ export function stopBleedOutcome(dr: number, stacks: number, success: boolean): 
 /** Munitions Empaleuses logées (LDB 62 l.250) : nombre de flèches/carreaux/balles non retirés — pions de
  *  l'État `munition-logee` (`etats.json`), posé par l'Atout Empaleuse à distance sur Critique. */
 export function lodgedAmmoCount(target: Combatant): number {
-  return condStacks(target, 'munition-logee');
+  return stacks(target, 'munition-logee');
 }
 
 /** Options de routage d'`applyHealWounds` — chaque chemin de gain de PB (Guérison, sorts/potions,
@@ -173,7 +190,7 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
 
 /** Applique l'arrêt d'Hémorragie (mutation). `dr` = DR du Test réussi. */
 export function applyStopBleed(target: Combatant, dr: number): string[] {
-  const { removed, gainExtenue } = stopBleedOutcome(dr, condStacks(target, 'hemorragique'), true);
+  const { removed, gainExtenue } = stopBleedOutcome(dr, stacks(target, 'hemorragique'), true);
   if (removed <= 0) return [t('heal.bleedResists', { name: target.label })];
   removeCondition(target, 'hemorragique', removed);
   const log = [t('heal.bleedStopped', { name: target.label, n: removed })];

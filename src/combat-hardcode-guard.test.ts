@@ -113,6 +113,8 @@ const BASELINES: Record<string, number> = {
   'src/noyau/outOfCombatUpkeep.ts': 1, // gate de veille — hasCondition(c, …) derrière wounds<=0 (l.11)
   'src/noyau/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)
   'src/noyau/travelPostes.ts': 2, // instrumentation voyage — stacks(h, 'extenue') (l.278,308)
+  // #3059 — stock révélé par le retrait du helper local `condStacks`, qui échappait au scan, GELÉ
+  'src/engine/healing.ts': 4, // stacks(_, 'hemorragique') ×3 (isHealable, raisonDeModeDeSoin, applyStopBleed) + stacks(_, 'munition-logee') (lodgedAmmoCount)
 };
 
 /** Nombre de sites réactifs par-nom, par fichier relatif (uniquement les fichiers non-vides). */

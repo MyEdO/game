@@ -29,13 +29,13 @@ import { extendedTestStep, cibleMesuree, type CibleMesuree } from '../engine/tes
 import { partyAssisted, peutTenter, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { addCondition, loseWounds, releaseConditionLocks } from '../engine/conditions';
-import { hasSurgerySkill, availableHealModes, isHealable, healDifficulty, HEAL_SKILL, type HealMode } from '../engine/healing';
+import { hasSurgerySkill, raisonDeModeDeSoin, estActeImmediat, isHealable, healDifficulty, HEAL_SKILL, type HealMode } from '../engine/healing';
 import { removeSurgicalTrauma, surgeryTraumas, recoverableTraumas, recoverDisabledLimb } from '../engine/trauma';
 import { toMoney, canAfford } from '../engine/money';
 import { t } from '../i18n';
-import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
+import { totalDesBourses, payFromGroup, distributeCredit } from './bourseFlow';
 import { touchActors } from './combatOrParty';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusEnCombat } from './verrousDeFiche';
 import { finishPlayerAction, openContractionCascade } from './combatFlow';
 
@@ -119,6 +119,27 @@ export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, 
   return npc || s.party.some((h) => peutTenter(h, HEAL_SKILL)) ? null : t('medic.aucunSoigneur');
 }
 
+/** Refus de l'acte `act` sur le patient courant de l'infirmerie : la raison affichée, ou `null`. Verdict
+ *  UNIQUE du geste `medicAct` et du bouton d'acte de `MedicModal`. */
+export function refusDActeDeSoin(s: Pick<Jeu, 'medic' | 'party' | 'pendingHeal' | 'pendingSurgery'>, act: HealMode): string | null {
+  const m = s.medic;
+  if (!m) return t('medic.fermee');
+  if (s.pendingHeal || s.pendingSurgery) return t('medic.jetEnCours');
+  if (m.surgery && !estActeImmediat(act)) return t('medic.operationEnCours');
+  const patient = s.party.find((h) => h.id === m.patientId);
+  if (!patient) return t('medic.patientIntrouvable');
+  const duPatient = raisonDeModeDeSoin(patient, act);
+  if (duPatient) return duPatient;
+  if (act === 'recovery' && !recoverableTraumas(patient).length) return t('medic.aidRequired'); // LDB 18 l.120/179
+  if (m.npc) {
+    const offer = m.npc.acts.find((a) => a.act === act);
+    if (!offer) return t('medic.acteNonPropose', { pnj: m.npc.label });
+    return offer.cost && !canAfford(totalDesBourses(s.party), toMoney(offer.cost)) ? t('medic.tooExpensive') : null;
+  }
+  if (bestHealerFor(s.party, act)) return null;
+  return act === 'surgery' ? t('medic.aucunChirurgien') : t('medic.aucunSoigneur');
+}
+
 /** Ouvre l'infirmerie (hors combat). Patient par défaut : celui demandé, sinon le premier soignable. */
 export function openMedic(get: Get, set: Set, opts?: { patientId?: string; npc?: MedicNpc }): void {
   const refus = refusDeSoins(get(), opts?.patientId, opts?.npc);
@@ -151,33 +172,25 @@ export const HEAL_STAKE: Record<HealMode, FlowStakeId> = {
 /** Lance un ACTE sur le patient courant : wounds/bleed/trauma → jet différé (pendingHeal) ;
  *  surgery/recovery → ARME l'opération étendue (les passes suivent). PNJ : débite le tarif de l'acte. */
 export function medicAct(get: Get, set: Set, act: HealMode): void {
-  const m = get().medic;
-  if (!m || get().pendingHeal) return;
-  if (m.surgery && (act === 'surgery' || act === 'trauma' || act === 'recovery')) return; // pendant l'op : seuls Bander/Hémorragie
-  const patient = get().party.find((h) => h.id === m.patientId);
-  if (!patient || !availableHealModes(patient).includes(act)) return;
-  // Récupération d'usage : bloquée tant que l'Aide Médicale n'a pas été reçue (LDB 18 l.120/179 : « Après
-  // application de cette Aide… ») — l'acte reste proposé (raison affichée) mais ne s'arme pas.
-  if (act === 'recovery' && !recoverableTraumas(patient).length) { get().log(t('medic.aidRequired')); return; }
+  const refus = refusDActeDeSoin(get(), act);
+  if (refus) return void refuserGesteDuSiege(get, set, refus);
+  const m = garanti(get().medic, act, 'infirmerie de l’acte');
+  const patient = garanti(get().party.find((h) => h.id === m.patientId), m.patientId ?? undefined, 'patient de l’acte');
 
   // `actor` : le soigneur JOUEUR, absent pour un PNJ payant (aucune fiche) — c'est lui qui permet de
   // décomposer la valeur en Niveau de Compétence nu + composantes nommées (`rollLine`).
   let healer: { id?: string; actor?: Combatant; label: string; skill: number; intBonus: number; support?: SupportDetail };
   let paidCost: MedicCost | undefined;
   if (m.npc) {
-    const offer = m.npc.acts.find((a) => a.act === act);
-    if (!offer) return;
+    const offer = garanti(m.npc.acts.find((a) => a.act === act), act, 'offre du PNJ soigneur');
     if (offer.cost) { // débit à l'ACTE — DÉPENSE DE GROUPE (arbitrage user 2026-07-20 : « le groupe peut se
       // cotiser pour payer […] les soins »), remboursé au groupe sur Annuler avant le jet
-      const cost = toMoney(offer.cost);
-      if (!canAfford(partyMoneyTotal(get), cost)) { get().log(t('medic.tooExpensive')); return; }
-      payFromGroup(get, set, cost, { purpose: 'soins' });
+      payFromGroup(get, set, toMoney(offer.cost), { purpose: 'soins' });
       paidCost = offer.cost;
     }
     healer = { id: m.npc.id, label: m.npc.label, skill: m.npc.skill.value, intBonus: m.npc.intBonus };
   } else {
-    const best = bestHealerFor(get().party, act);
-    if (!best) return;
+    const best = garanti(bestHealerFor(get().party, act), act, 'soigneur du groupe');
     healer = { id: best.actor.id, actor: best.actor, label: best.actor.label, skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
   }
 

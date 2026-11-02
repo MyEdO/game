@@ -71,7 +71,7 @@ import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { HEAL_SKILL, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
+import { HEAL_SKILL, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
@@ -2906,7 +2906,9 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!healer || !controlsCombatant(get(), healer) || refuseParSonEntree(get, set, 'heal', healer, battle)) return;
       if (battle.action !== 'heal' || !possesses(healer, HEAL_SKILL)) return; // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
-      if (!target || !availableHealModes(target).includes(mode)) return;
+      if (!target) return;
+      const raison = raisonDeModeDeSoinEnCombat(target, mode);
+      if (raison) return void refuserGesteDuSiege(get, set, raison);
       const skillValue = testValue(healer, 'guerison');
       const difficulty = healDifficulty(mode);
       set({
@@ -2927,7 +2929,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const ph = get().pendingHeal;
       if (!ph || ph.roll != null) return;
       const target = actorIn(get(), ph.targetId);
-      if (!target || !availableHealModes(target).includes(mode)) return;
+      if (!target) return;
+      // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
+      const raison = get().battle ? raisonDeModeDeSoinEnCombat(target, mode) : t('heal.modeFixeALInfirmerie');
+      if (raison) return void refuserGesteDuSiege(get, set, raison);
       const difficulty = healDifficulty(mode);
       const soigneur = actorIn(get(), ph.healerId);
       set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ...cibleMesuree(rollLine({

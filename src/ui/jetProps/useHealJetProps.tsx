@@ -10,7 +10,8 @@ import { testValueSplit, testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../noyau/flowOutcomes';
-import { combatHealModes } from '../../engine/healing';
+import { combatHealModes, lodgedAmmoCount } from '../../engine/healing';
+import { stacks } from '../../engine/conditions';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
 import { VsHeader } from '../VsHeader';
@@ -55,8 +56,8 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const combatModes = !embedded && !rolled && target
     ? combatHealModes(target)
     : [];
-  const bleed = target?.conditions.find((x) => x.id === 'hemorragique')?.value ?? 0;
-  const lodged = target?.conditions.find((x) => x.id === 'munition-logee')?.value ?? 0;
+  const bleed = target ? stacks(target, 'hemorragique') : 0;
+  const lodged = target ? lodgedAmmoCount(target) : 0;
 
   // Soutien des assistants de soin (LDB 12) et composantes de la valeur de Test (États, séquelles,
   // passifs, effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu

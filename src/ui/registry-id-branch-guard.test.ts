@@ -127,13 +127,11 @@ const RAW_KNOWN: Record<string, number> = {
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
   'src/ui/CarnetScreen.tsx': 2,
-  'src/ui/MedicModal.tsx': 2,
   'src/ui/MerchantPanel.tsx': 1,
   'src/ui/PartyScreen.tsx': 2,
   'src/ui/creator/CharacterCreator.tsx': 6,
   'src/ui/editor/StatblockEditor.tsx': 1,
   'src/ui/gallery/registry.tsx': 4,
-  'src/ui/jetProps/useHealJetProps.tsx': 2,
 };
 
 /** Plafond BRUT global du jour (= somme de `RAW_KNOWN`). */
