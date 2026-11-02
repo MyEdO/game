@@ -18,10 +18,7 @@ divergent, jamais une source de règles ni de stats).
 Toutes les extractions de `Source/` ont **UN** format, décrit ici et mesuré par
 `scripts/raw/check-source-format.mjs`. **Le geste, un seul** : rejouer la chaîne canonique sur le
 livre — re-découpe depuis la sortie Marker conservée sous `Source/_marker/`, ou ré-extraction quand
-cette sortie manque. Jamais un rafistolage chapitre par chapitre (arbitrage utilisateur du
-2026-09-14, verbatim : « Il faut un format unifié pour toutes les extractions, donc s'il faut
-rééxtraire, on rééxtrait » ; fiche
-`.claude/memory/user-doctrine-format-unifie-reextraction-permise.md`). La clause de l'épique #1388
+cette sortie manque. Jamais un rafistolage chapitre par chapitre (fiche `user-doctrine-format-unifie-reextraction-permise`). La clause de l'épique #1388
 « un livre en service ne se ré-extrait plus » est levée par cet arbitrage ; « FORME jamais SENS »
 reste.
 
@@ -71,8 +68,7 @@ LDB compris ; la garde imprime le compte de dossiers hors format à chaque exéc
 | Titres d'entrée | aucun gras de tête soudé à une ligne, aucune ligne de titre à deux groupes gras | livre dont la liste porte un `gabaritTitre` : `titre-soude`, rouge nommé, sans stock |
 | Trait d'union verbe-pronom | aucun pronom soudé à son verbe (`rappelezvous`) ni détaché d'une espace (`rappelez- vous`) ; un mot du livre qui y tombe s'exempte AU SITE dans `scripts/guards/lib/imperatifSoude.mjs` | tout dossier FR : `imperatif-soude`, rouge nommé, sans stock |
 
-**Le GRAIN, et son régime.** Arbitrage utilisateur du 2026-09-21, verbatim : « Oui : un fichier par
-section majeure ». Le grain d'un livre est sa **LISTE DE DÉCOUPE** (§ 2,
+**Le GRAIN, et son régime.** Un fichier par section majeure (#1739). Le grain d'un livre est sa **LISTE DE DÉCOUPE** (§ 2,
 `scripts/raw/decoupes/<id>.json`) — jamais un seuil deviné, jamais une comparaison du titre au NOM
 du fichier. Cette donnée UNE s'applique par DEUX voies : le **découpeur**, quand le livre est
 (ré-)extrait ; **`recouper-source.mjs`**, quand le `.md` en service porte des réparations de contenu
@@ -92,9 +88,7 @@ aucune ligne de titre n'a d'ouverture à juger que si sa liste lui en déclare u
 
 **Le MOBILIER DE PAGE, et son régime (#1739).** Le chiffre romain de l'onglet de chapitre et le folio
 ne sont pas du texte du livre : l'extraction les MÊLE au flux (`III` seul sur sa ligne,
-`# **POISONS** V`, `#### **Bounce** XII **Cold-blooded**`). Règle utilisateur du 2026-09-20,
-verbatim : « Il est interdit de réécrire le texte. On peut réparer le texte s'il est tronqué/mélangé
-car l'extraction n'est pas parfaite. » Le mobilier se RETIRE ; ne bouge que la FORME que son retrait
+`# **POISONS** V`, `#### **Bounce** XII **Cold-blooded**`). Le texte ne se réécrit pas ; ses défauts d’extraction se réparent (fiche `user-doctrine-format-unifie-reextraction-permise`). Le mobilier se RETIRE ; ne bouge que la FORME que son retrait
 rend fausse (titre soudé, bandeau lu comme table), jamais un mot. Un prédicat, trois consommateurs :
 
 - **Le prédicat** (`scripts/raw/lib/mobilier.mjs`). O, l'ensemble des chiffres d'onglet d'un fichier,
@@ -330,8 +324,7 @@ déclare (`page`, `pageFin` — aucun outil ne la calcule ; deux entrées voisin
 une page), régénère `00 - Index.md`, émet la CARTE
 ancien → nouveau (fichier + plage de lignes du flux) et **recale les stocks nominatifs keyés par
 chemin** — chaque `preuve` suit son site avec sa date. Il **REFUSE d'écrire** tant que la
-concaténation des corps n'est pas identique à l'octet avant / après (arbitrage utilisateur du
-2026-09-20 : « Il est interdit de réécrire le texte »). Il est **idempotent** : rejoué sur un livre
+concaténation des corps n'est pas identique à l'octet avant / après (fiche `user-doctrine-format-unifie-reextraction-permise`). Il est **idempotent** : rejoué sur un livre
 déjà au grain, il n'écrit rien et sort 0.
 
 Deux limites dites. (1) La recherche séquentielle n'écarte pas un homonyme situé **AVANT** la

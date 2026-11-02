@@ -31,6 +31,8 @@ const ATTENDU = {
     'scripts/guards/lib/memosDAnalyse.test.mjs',
     // +1 le 2026-10-16 (#2603) : les mémos d'analyse de la plage sous un `mkdtempSync` d'os.tmpdir(), retiré par
     // `t.after` ; ni l'arbre ni le répertoire git ne sont écrits.
+    // #3175 : le corpus fixture sous un `mkdtempSync` d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/verbatimsUtilisateur.test.mjs',
     'scripts/hooks/stocks-nominatifs.test.mjs',
     'scripts/guards/lib/patchCodex.test.mjs',
     'scripts/gates/testsSansEcriture.test.mjs',

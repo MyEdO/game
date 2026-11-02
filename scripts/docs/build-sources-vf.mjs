@@ -75,8 +75,7 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
 
 ## RÈGLES & STATS — périmètres documentés (règle 1)
 
-> **Arbitrage utilisateur 2026-07-10** : « Tous les livres contiennent des règles. Parfois c'est plus
-> 90 % scénario, mais souvent il y a quelques règles. » — la dichotomie livre-de-règles / livre-de-contenu
+> Tout livre FR peut fournir des règles (#277). La dichotomie livre-de-règles / livre-de-contenu
 > ne se juge PAS au niveau du livre : le périmètre s'établit **par passage**, documenté ici, au même
 > standard partout (verbatim citable \`l.<ligne>\`, extraction FR dans \`Source/\` obligatoire — un livre sans
 > extraction ne peut pas fournir de mécanique vérifiable). La VO ne fournit aucune règle hors le Core
@@ -147,10 +146,9 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   environnementale** (ch.14). Ch.1 (histoire de la magie) & ch.15 (némésis/aventures) = majoritairement
   cadre. Curation \`src/data\` à la main (tag \`source.book: "${book('vents-de-la-magie').id}"\`), comme AA/ZI/MDG.
 - **${abbr('core-rulebook-5e')}** (*Warhammer Fantasy Roleplay*, **5th Edition** — livre **VO**, l'exception
-  unique) = \`${dir('core-rulebook-5e')}\` — **cœur des règles de la 5e édition** (autorisé 2026-09-18,
-  épique #1816 ; arbitrages utilisateur du même jour : « Elle est en VO, mais ce n'est pas grave, ca sera
-  l'occasion d'éprouver notre système de langue VO/VF ! » et « Pas de traduction, on va gérer la VO dans
-  l'application. »). Extraction Marker ; chapitres de CONTENU : 04 Introduction ·
+  unique) = \`${dir('core-rulebook-5e')}\` — **cœur des règles de la 5e édition**, VO autorisée (#1816,
+  fiche \`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata\`). L'application gère la VO et la VF,
+  sans traduction. Extraction Marker ; chapitres de CONTENU : 04 Introduction ·
   05 Character Building · 06 Class and Careers · 07 Skills and Talents · **08 Rules** (tests, combat,
   blessures, maladies, psychologie, États, corruption) · 09 Between Adventures · 10 Religion and
   Belief · 11 Magic · 12 The Gamemaster · 13 Glorious Reikland · 14 Consumer Guide · 15 Bestiary ·
