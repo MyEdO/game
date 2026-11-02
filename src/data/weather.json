@@ -2,11 +2,6 @@
   "id": "weather",
   "type": "weather",
   "label": "Météo de voyage",
-  "source": {
-    "book": "ennemi-dans-l-ombre-compagnon",
-    "page": 33
-  },
-  "maison": "EDOC 8 l.82 (« -10 à tous les Tests physiques ») ne définit pas « physique » ; liste éditable des Caractéristiques réputées physiques (CC/CT/F/E/Ag/Dex, hors I/FM/Soc).",
   "seasons": [
     {
       "id": "printemps",

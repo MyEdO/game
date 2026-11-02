@@ -2896,8 +2896,6 @@ export const calendarPhases = calendarPhasesJson as { id: string; type: 'calenda
 /** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages d100 → météo par saison ;
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {
-  maison?: string;
-  source?: SourceRef;
   seasons: { id: string; label: string; ranges: { min: number; max: number; weather: string }[] }[];
   physicalTestChars: CharKey[];
   conditions: {

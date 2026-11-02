@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 // @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';
-import { ROLES_AMBIANTS } from '../../lib/animationVocab';
+import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
@@ -10,7 +10,7 @@ import { testScenarios } from '../test-scenarios';
 import type { Scene } from '../../noyau/monde/scene';
 
 it('les ambiances de toutes les scènes livrées appartiennent aux rôles ambiants', () => {
-  const cles = new Set<string>(ROLES_AMBIANTS);
+  const cles = new Set<string>(roleAmbiantSchema.options);
   const scenes = [
     ...listerProjetsLivres().flatMap((rel) => (lireProjetLivre(rel) as { scenes: Scene[] }).scenes),
     ...testScenarios.flatMap((scenario) => {
@@ -25,7 +25,7 @@ it('les ambiances de toutes les scènes livrées appartiennent aux rôles ambian
 
 it('le schéma admet chaque rôle ambiant et refuse une animation étrangère', () => {
   const entite = { id: 'fixture', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } };
-  for (const anim of ROLES_AMBIANTS) expect(sceneEntitySchema.safeParse({ ...entite, anim }).success).toBe(true);
+  for (const anim of roleAmbiantSchema.options) expect(sceneEntitySchema.safeParse({ ...entite, anim }).success).toBe(true);
   expect(sceneEntitySchema.safeParse({ ...entite, anim: 'animation-etrangere' }).success).toBe(false);
 });
 

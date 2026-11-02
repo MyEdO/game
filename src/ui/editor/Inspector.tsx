@@ -43,7 +43,7 @@ import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
-import { ROLES_AMBIANTS } from '../../lib/animationVocab';
+import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
@@ -1484,13 +1484,9 @@ function EntityPanel({
             </div>
             <label className="ed-field">
               Animation d'ambiance
-              <select value={ent.anim ?? ''} onChange={(e) => updateSel({ anim: ROLES_AMBIANTS.find((role) => role === e.target.value) })}>
+              <select value={ent.anim ?? ''} onChange={(e) => updateSel({ anim: roleAmbiantSchema.safeParse(e.target.value).data })}>
                 <option value="">— aucune —</option>
-                {ROLES_AMBIANTS.map((role) => (
-                  <option key={role} value={role}>
-                    {{ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' }[role]}
-                  </option>
-                ))}
+                {optionsDuNoeud(roleAmbiantSchema).map(([role, libelle]) => <option key={role} value={role}>{libelle}</option>)}
               </select>
             </label>
             <ArmeEquipeeField weapon={ent.weapon} onWeapon={(w) => updateSel({ weapon: w })} />

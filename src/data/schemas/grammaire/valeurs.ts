@@ -75,6 +75,10 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
  */
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
 
+/** Les rôles d'animation d'ambiance d'une entité de scène. */
+export const roleAmbiantSchema = enumNomme({ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' });
+export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
+
 /** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
  *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
 export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });

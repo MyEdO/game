@@ -10,14 +10,7 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 const retraits = {
   'localisation.json': (doc) => [doc.navire, doc['navire-fluvial']].map((v) => [v, 'rigs']),
   'weaponGroups.json': (doc) => doc.map((v) => [v, 'forme']),
-  'weather.json': (doc) => {
-    const provenance = doc.physicalTestCharsSource;
-    if (provenance) {
-      if (!Object.hasOwn(doc, 'source')) doc.source = { book: provenance.book, page: provenance.page };
-      if (!Object.hasOwn(doc, 'maison') && typeof provenance.note === 'string') doc.maison = provenance.note.replace(/^MAISON\s*[—–-]\s*/, '');
-    }
-    return [[doc, 'physicalTestCharsSource']];
-  },
+  'weather.json': (doc) => [[doc, 'physicalTestCharsSource']],
   'donnees.manifest.json': (doc) => doc.rubriques.map((v) => [v, 'id']),
 };
 let gestes = 0;
