@@ -1276,7 +1276,7 @@ export interface TrappingData {
    *  la mêlée et les munitions (qui héritent de l'arme). Résolue à l'usage par `effectiveRange`. */
   range?: import('../engine/types').WeaponRangeSpec | null;
   /** MUNITION : modificateur STRUCTURÉ de la Portée de l'arme de tir (`AmmoRangeMod` : `{mult}` fraction /
-   *  `{add}` mètres ±). Appliqué en combat (`effectiveWeaponRange`) à l'arme qui tire cette munition. « Comme
+   *  `{add}` mètres ±). Appliqué en combat (`porteeDeTir`) à l'arme qui tire cette munition. « Comme
    *  l'arme » = absent/null (Portée de l'arme inchangée). Sorti de `reach` (qui n'est qu'une Allonge mêlée). */
   ammoRangeMod?: import('../engine/types').AmmoRangeMod | null;
   loc: string | null;
@@ -2943,7 +2943,7 @@ export const stars = starsJson as StarData[];
  *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
 /** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`ui/compendium/registry.ts`), la
- *  garde-robe (`schemas/defs/garde-robe.ts`, `race`) et `scripts/personnage-3d/base/declaration.mjs`. */
+ *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */

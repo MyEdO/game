@@ -28,11 +28,11 @@ import { buildAuthorPerilSteps } from './authorPerils';
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { openRest, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
-import { placeById, placeOfScene, otherEnd, type MapRoute, type WorldMap } from './worldMap';
-import { billetApresDepart, offreDePassage } from './billetFlow';
+import { placeById, placeOfScene, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
-  vehicleTravel,
+  vehicleTravel, travelPlanCalc, type TravelPlanCalc,
 } from '../engine/travel';
 import {
   type Allure, ALLURE_KMH_PER_M, allureLabel as allureName, mountProfileById, partyMounts, partyFullyMounted, resolveMountedDay,
@@ -55,8 +55,10 @@ import { PERIPETIES } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
-import { formatMoney } from '../engine/money';
-import { condCtx, payFromGroup } from './bourseFlow';
+import { canAfford, formatMoney, type Money } from '../engine/money';
+import { provisioningManifest } from '../engine/provisions';
+import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
 import { evalCondition } from '../engine/flowCore';
 import { d100 } from '../engine/dice';
 import { rule } from '../engine/policy';
@@ -70,7 +72,7 @@ import { t } from '../i18n';
 import type { CascadeStep, PendingCascade } from './pendings';
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
-import { buildSeaPlan, raisonDuNonDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
+import { buildSeaPlan, refusDuDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
 import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
@@ -323,32 +325,107 @@ export function passagePayant(get: Get, route: MapRoute, mode: TravelMode): bool
   return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
 }
 
-/** Démarre un voyage depuis le lieu courant le long d'une route de la carte. */
-export function startTravel(
-  get: Get, set: Set,
-  routeId: string,
-  mode: TravelMode,
-  opts: { classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence } = {},
-): void {
-  const { worldMap, scene, battle, party } = get();
-  if (battle || !worldMap || !scene) return;
-  const from = placeOfScene(worldMap, scene.id);
+/** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
+ *  rythme forcé et cadence en mer, traversée rapide. */
+export interface OptionsDeDepart {
+  classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
+  cadence?: import('./voyageCadence').VoyageCadence;
+}
+
+/** Devis d'un départ sur `route` depuis `fromId` en `mode` : SOURCE UNIQUE de `startTravel`, de
+ *  `refusDeDepart` et de l'estimation de la carte du monde (#3059). PUR. */
+export interface DevisDeTrajet {
+  /** Heures de route par jour (LDB 51 l.195 ; en selle, EDOC 07 l.142). */
+  hours: number;
+  /** Allure retenue (EDOC 07 l.140, l.229). */
+  allure: Allure | undefined;
+  /** Vitesse du premier jour (LDB 51 l.193) ; 0 en mer (milles/jour, `seaVoyageFlow`). */
+  kmh: number;
+  /** Budget d'heures qu'il reste aujourd'hui (LDB 51 l.195), et sa route déjà faite. */
+  premierJour: number;
+  aLAube: boolean;
+  plan: TravelPlanCalc | null;
+  /** Héros qui voyagent (vivants, dans la rencontre). */
+  voyageurs: number;
+  /** Rations des nuits en route (LDB 66 l.20 ; ADE II 2 l.708 ; LDB 10 l.139) et rations portées. */
+  rations: { requises: number; portees: number };
+  /** Passage payant (EDO 01 l.142 ; LDB 51 l.178) : l'offre (`null` : aucun tarif pour ce mode) et, hors
+   *  billet en main, la classe, le prix du groupe et sa couverture par les bourses. `null` : pas de passage. */
+  passage: { offre: OffreDePassage | null; classeId: string; cost: Money | null; abordable: boolean } | null;
+}
+
+export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: TravelMode, opts: OptionsDeDepart = {}): DevisDeTrajet {
+  const map = garanti(s.worldMap, route.id, 'carte du monde du trajet');
+  const base = baseHoursPerDay(map);
+  const hours = mode === 'pied'
+    ? Math.min(Math.max(opts.hoursPerDay ?? base, 1), maxHoursPerDay(map))
+    : mode === 'monture'
+      ? Math.min(Math.max(opts.hoursPerDay ?? base, 1), MOUNT_MAX_HOURS)
+      : base; // transport : cadence quotidienne du véhicule — LDB 51 silence, valeur maison (heures de route standard)
+  const allure: Allure | undefined = mode === 'monture'
+    ? (opts.allure ?? 'pas')
+    : opts.allure === 'galop' && rule('travel-allures') && vehicleTravel(mode)?.draft ? 'galop' : undefined;
+  const kmh = travelSpeed(s.party, s.possessions, mode, route.speed?.[mode], allure);
+  const prior = hoursTravelledToday(s);
+  const premierJour = travelDayBudget(mode, hours, prior);
+  const plan = travelPlanCalc(route.km, kmh, hours, premierJour);
+  const enRoute = s.party.filter((h) => !h.dead && !h.outOfRencontre);
+  const manifeste = provisioningManifest(enRoute, undefined, plan ? plan.days - 1 : 0);
+  const offre = passagePayant(() => s, route, mode) ? offreDePassage(map, route, mode, fromId, s.billetEnMain, s.marchandagesDeBillet) : undefined;
+  const achat = offre && !offre.couvert ? offre : null;
+  const classeId = achat ? classeRetenue(achat.tarif, opts.classeId ?? '') : '';
+  const cost = achat ? transportCost(achat.tarif, classeId, enRoute.length, achat.issue) : null;
+  return {
+    hours, allure, kmh, premierJour, aLAube: routeDuJourFaite(mode, hours, prior), plan, voyageurs: enRoute.length,
+    rations: { requises: manifeste.rationsRequises, portees: manifeste.rationsDispo },
+    passage: offre === undefined ? null : { offre, classeId, cost, abordable: !cost || canAfford(totalDesBourses(s.party), cost) },
+  };
+}
+
+/** Le trajet `routeId` au départ du lieu courant, ou la raison de son absence. */
+function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute; to: MapPlace } | string {
+  const { worldMap, scene } = s;
+  const from = worldMap && scene ? placeOfScene(worldMap, scene.id) : undefined;
+  if (!worldMap || !from) return t('wm.horsCarte');
   const route = worldMap.routes.find((r) => r.id === routeId);
-  if (!from || !route || (route.a !== from.id && route.b !== from.id)) return;
-  if (route.from != null && route.from !== from.id) return; // route à sens unique : pas dans ce sens
-  // Trajet FERMé par le récit (`MapRoute.when`, #684) : le verrou est ICI, au même niveau que le sens
-  // unique — la vue rend le trajet en affordance refusée, mais tout autre appelant (devtools, coop,
-  // reprise de sauvegarde) bute sur la même porte. La raison d'auteur part au journal.
-  if (route.when != null && !evalCondition(route.when, condCtx(get))) {
-    log(get, set, route.refus ? [route.refus.texte] : []);
-    return;
+  const to = route && (route.a === from.id || route.b === from.id) ? placeById(worldMap, otherEnd(route, from.id)) : undefined;
+  if (!route || !to) return t('tf.refusRouteAbsente');
+  return { from, route, to };
+}
+
+/** Refus de partir sur `routeId` en `mode` (`null` : `startTravel` part, ou diffère à l'aube). Lu en tête
+ *  par `startTravel` et par le bouton de départ de la carte du monde (#3059). La nuit (`departureGated`)
+ *  et la route du jour faite (`routeDuJourFaite`) DIFFÈRENT le départ, ils ne le refusent pas. */
+export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): string | null {
+  if (s.net.mode === 'guest') return t('wm.hoteDecide');
+  if (s.battle) return t('tf.refusEnCombat');
+  const trajet = trajetDIci(s, routeId);
+  if (typeof trajet === 'string') return trajet;
+  const { from, route } = trajet;
+  if (route.from != null && route.from !== from.id) return t('tf.refusSensUnique');
+  // #684
+  if (route.when != null && !evalCondition(route.when, condCtx(() => s))) {
+    return garanti(route.refus, route.id, 'raison du trajet fermé (`mapRouteSchema`)').texte;
   }
-  // « En selle » suit les mêmes chemins qu'à pied (mode IMPLICITE des routes `pied`) — règle
-  // `travel-allures` (EDOC 7) et chaque héros vivant en selle (EDOC 07 l.140).
-  if (mode === 'monture' && (!rule('travel-allures') || !partyFullyMounted(party, get().possessions))) return;
-  if (!route.modes.includes(mode === 'monture' ? 'pied' : mode)) return;
-  const to = placeById(worldMap, otherEnd(route, from.id));
-  if (!to) return;
+  // EDOC 07 l.140
+  if (mode === 'monture' && !rule('travel-allures')) return t('tf.refusMode');
+  if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');
+  if (!route.modes.includes(mode === 'monture' ? 'pied' : mode) || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
+  if (mode === 'mer') return refusDuDepartEnMer(() => s);
+  const devis = devisDeTrajet(s, route, from.id, mode, opts);
+  if (!descenteJouee(() => s, route, mode) && devis.kmh <= 0) return t('wm.refusSurcharge'); // MSRC 7 : la descente jouée a sa propre allure
+  if (devis.passage && !devis.passage.offre) return t('tf.refusSansTarif');
+  if (devis.passage?.cost && !devis.passage.abordable) {
+    return t('tf.passageTooDear', { mode: travelModeLabels()[mode].toLowerCase(), cost: formatMoney(devis.passage.cost) });
+  }
+  return null;
+}
+
+/** Démarre un voyage depuis le lieu courant le long d'une route de la carte. */
+export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): void {
+  if (refuseSi(get, set, (s) => refusDeDepart(s, routeId, mode, opts))) return;
+  const { from, route, to } = trajetDIci(get(), routeId) as Exclude<ReturnType<typeof trajetDIci>, string>;
+  const { party } = get();
 
   // Porte d'heure de départ (maison `travel-departure-gate`, #340) : terre (pied/monture) et fleuve
   // JOUÉ ne s'ébranlent que de l'aube au crépuscule. La MER est exemptée (voguer de nuit = équipage +
@@ -358,15 +435,11 @@ export function startTravel(
     return;
   }
 
-  const base = baseHoursPerDay(worldMap);
-  const hours = mode === 'pied'
-    ? Math.min(Math.max(opts.hoursPerDay ?? base, 1), maxHoursPerDay(worldMap))
-    : mode === 'monture'
-      ? Math.min(Math.max(opts.hoursPerDay ?? base, 1), MOUNT_MAX_HOURS)
-      : base; // transport : cadence quotidienne du véhicule — LDB 51 silence, valeur maison (heures de route standard)
+  const devis = devisDeTrajet(get(), route, from.id, mode, opts);
+  const { hours, allure } = devis;
   // Budget du jour déjà épuisé par un tronçon précédent (LDB 51 l.195) : la nuit se passe SUR PLACE et le
   // trajet attend l'aube (porte de départ), sans ouvrir de jour de 0 h.
-  if (routeDuJourFaite(mode, hours, hoursTravelledToday(get()))) {
+  if (devis.aLAube) {
     differerALAube(get, set, { mode, cause: 'budget' });
     return;
   }
@@ -374,21 +447,20 @@ export function startTravel(
   // Route MARITIME (MDG 13-15) : se voyage sur le NAVIRE DE CAMPAGNE — mode 'mer', distance en
   // MILLES, résolution du jour déléguée à `seaVoyageFlow` (météo/vent, Tests d'équipage, événements).
   if (mode === 'mer') {
-    if (!route.sea) return;
     const seaOpts = { pace: opts.seaPace, cadence: opts.cadence };
+    const billetEnMain = billetApresDepart(get().billetEnMain, routeId, mode);
     // Traversée RAPIDE (MDG 15 l.21-37) : un seul Test de Rude épreuve résout tout le trajet.
-    const seaPlan = opts.fast ? null : buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts);
-    if (opts.fast ? !startFastVoyage(get, set, routeId, from.id, to.id, route, seaOpts) : !seaPlan) {
-      log(get, set, [raisonDuNonDepartEnMer(get)]);
+    if (opts.fast) {
+      startFastVoyage(get, set, routeId, from.id, to.id, route, seaOpts);
+      set({ billetEnMain });
       return;
     }
-    set({ ...(seaPlan ? { travelPlan: seaPlan, worldMapOpen: false, travelRecap: null } : {}), billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
-    if (!seaPlan) return;
+    const seaPlan = garanti(buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts), routeId, 'plan de traversée (`refusDuDepartEnMer`)');
+    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain });
     log(get, set, [t('tf.seaDepart', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;
   }
-  if (route.sea) return; // une route maritime ne s'emprunte qu'en mode 'mer'
 
   // Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : sur une embarcation (barge…), la descente
   // se JOUE jour par jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport
@@ -402,17 +474,15 @@ export function startTravel(
   }
 
   // Transport payant : le billet (EDO 01 l.142 ; implicite, LDB 51 l.178), payé d'avance au départ de
-  // sa première route — refus si bourse insuffisante ; ses routes suivantes partent sans débit.
+  // sa première route ; ses routes suivantes partent sans débit.
   let billet = billetApresDepart(get().billetEnMain, routeId, mode);
-  if (passagePayant(get, route, mode)) {
-    const offre = offreDePassage(worldMap, route, mode, from.id, get().billetEnMain, get().marchandagesDeBillet);
-    if (!offre) return; // mode sans facette `travel` (id de véhicule invalide) — rien à débiter, rien à jouer
+  const offre = devis.passage?.offre;
+  if (offre) {
     const modeLabel = travelModeLabels()[mode].toLowerCase();
     if (offre.couvert) log(get, set, [t('tf.billetPresente', { mode: modeLabel })]);
     else {
-      const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
-      const classeId = classeRetenue(offre.tarif, opts.classeId ?? '');
-      const cost = transportCost(offre.tarif, classeId, passengers, offre.issue);
+      const { classeId } = devis.passage!;
+      const cost = garanti(devis.passage!.cost, routeId, 'prix du passage');
       // Dépense de GROUPE (LDB 51 l.178) : passage sans bénéficiaire unique → cotisation gloutonne des bourses.
       if (!payFromGroup(get, set, cost, { purpose: 'passage' })) {
         log(get, set, [t('tf.passageTooDear', { mode: modeLabel, cost: formatMoney(cost) })]);
@@ -422,12 +492,6 @@ export function startTravel(
       billet = offre.suite.length ? { routeId, vehicule: mode, classeId, routesRestantes: offre.suite } : null;
     }
   }
-
-  // Allure EDOC (règle `travel-allures`) : en selle, pas/trot/galop (EDOC 07 l.140) ; sur un attelage,
-  // « pas de course » forcé (EDOC 07 l.229) — seulement si le véhicule a un attelage (`travel.draft`).
-  const allure: Allure | undefined = mode === 'monture'
-    ? (opts.allure ?? 'pas')
-    : opts.allure === 'galop' && rule('travel-allures') && vehicleTravel(mode)?.draft ? 'galop' : undefined;
 
   // Coque transitoire du véhicule du trajet (`Combatant` à PV depuis `vehicles.json` hull) — encaisse les
   // Dégâts des Problèmes de véhicule (`applyVehicleProblem`). Créée sous les Étapes EDOC, ou dès que

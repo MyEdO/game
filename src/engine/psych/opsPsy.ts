@@ -21,9 +21,13 @@ export const opPsy = {
     const { cible, ...reste } = champs;
     return { op: 'beginPsych', type: { id: type }, ...(cible !== undefined ? { cible: refDeCible(cible) } : {}), ...reste };
   },
-  /** Retire l'état psychologique `type`. */
+  /** Met fin à l'état psychologique `type`. */
   fin(type: string): OpDe<'endPsych'> {
     return { op: 'endPsych', type: { id: type } };
+  },
+  /** Met fin à l'instance d'affliction dont l'effet porte l'op (`OpsCtx.affliction`). */
+  finDeLInstance(): OpDe<'endPsych'> {
+    return { op: 'endPsych', instance: 'courante' };
   },
   /** Accorde le Trait psychologique `type`, visant `cible` s'il est ciblé. */
   octroi(type: string, cible?: CiblePsy): OpDe<'grantPsychTrait'> {

@@ -1,15 +1,14 @@
 /**
  * #3114, #3113, #3111 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
  * emplacement et elle seule, un ensemble habille UNE chose qu'aucun autre n'habille, toute référence
- * interne (emplacement, pièces) résout dans sa sous-liste, une tête nomme sa race de rendu sous l'id de
- * cette race et aucune autre ligne ne porte un id de race, une coiffure ne porte aucune clé de charge, les
+ * interne (emplacement, pièces) résout dans sa sous-liste, l'id d'une tête est celui d'une race de rendu et
+ * aucune autre ligne ne porte un id de race, une tête ou une coiffure ne porte aucune clé de charge, les
  * espèces jouables ont chacune leur tête, et un emblème porte un document SVG complet à `viewBox` carré.
  */
 import { describe, expect, it } from 'vitest';
 import { cleDHabille, schema, type HabilleDEnsemble } from './garde-robe';
 import gardeRobeJson from '../../garde-robe.json';
 import speciesJson from '../../species.json';
-import raceAppearanceJson from '../../raceAppearance.json';
 import { findCoiffureById, findEnsembleParHabille, findPieceById, findTeteById } from '../../index';
 
 type Entree = { id: string; [k: string]: unknown };
@@ -104,35 +103,26 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
     expect(refus(avec('casque', { categorie: undefined }))).toMatch(/« casque » \(kind « piece »\) exige « categorie »/);
   });
 
-  it('une tête qui nomme sa race et une coiffure sans charge parsent', () => {
+  it('une tête à l’id d’une race de rendu et une coiffure, toutes deux sans charge, parsent', () => {
     const doc = [
-      { id: 'humain', type: 'garde-robe', label: 'Tête de test', kind: 'tete', race: { id: 'humain' } },
+      { id: 'humain', type: 'garde-robe', label: 'Tête de test', kind: 'tete' },
       { id: 'coiffure-test', type: 'garde-robe', label: 'Coiffure de test', kind: 'coiffure' },
     ];
     const r = schema.safeParse(doc);
     expect(r.success, r.success ? '' : r.error.issues.map((i) => i.message).join('\n')).toBe(true);
   });
 
-  it('une tête sans race est refusée', () => {
-    expect(refus(avec('humain', { race: undefined }))).toMatch(/« humain » \(kind « tete »\) exige « race »/);
+  it('une tête dont l’id n’est aucune race de `raceAppearance.json` est refusée', () => {
+    expect(refus(avec('nain', { id: 'homme-lezard' }))).toMatch(/la tête « homme-lezard » porte l’id de sa race de rendu — « homme-lezard » est absent du catalogue des races de rendu \(raceAppearance\.json\)/);
   });
 
-  it('une tête dont l’id n’est pas sa race est refusée', () => {
-    expect(refus(avec('nain', { race: { id: 'orc' } }))).toMatch(/la tête « nain » doit s’appeler « orc », l’id de sa race/);
-  });
-
-  it('une race de tête absente de `raceAppearance.json` est refusée', () => {
-    expect(refus(avec('humain', { race: { id: 'homme-lezard' } }))).toMatch(/« homme-lezard » est absent du catalogue des races de rendu/);
+  it('une ligne autre qu’une tête à l’id d’une race de `raceAppearance.json` est refusée', () => {
+    expect(refus(avec('crane-rase', { id: 'vampire' }))).toMatch(/« vampire » \(kind « coiffure »\) porte l’id d’une race de rendu \(raceAppearance\.json\), que seule une tête porte/);
   });
 
   it('chaque espèce jouable a sa tête, une par colonne d’apparence (`species.json › refChar`)', () => {
     const tetes = new Set((gardeRobeJson as Entree[]).filter((e) => e.kind === 'tete').map((e) => e.id));
     expect([...new Set(speciesJson.map((s) => s.refChar))].filter((race) => !tetes.has(race))).toEqual([]);
-  });
-
-  it('un id de garde-robe autre qu’une tête n’est jamais un id de race (`raceAppearance.json`)', () => {
-    const races = new Set(raceAppearanceJson.map((r) => r.id));
-    expect((gardeRobeJson as Entree[]).filter((e) => e.kind !== 'tete' && races.has(e.id)).map((e) => `${e.id} (kind « ${String(e.kind)} »)`)).toEqual([]);
   });
 
   it('une clé de charge sur une tête ou une coiffure est refusée', () => {

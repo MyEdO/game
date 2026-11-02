@@ -12,12 +12,10 @@ import { useGame } from '../../state/store';
 import { Scene } from '../../noyau/monde/scene';
 import type { Pt } from '../../noyau/monde/path';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../noyau/monde/exploreNav';
-import { isOutOfAction, canTakeAction, isActionLocked } from '../../engine/conditions';
-import { isFrenzied } from '../../engine/psychology';
+import { isOutOfAction } from '../../engine/conditions';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsCombatant } from '../../noyau/netOwnership';
-import { activeCombatant, outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement, frenzyTarget } from '../../noyau/combatFlow';
-import { hasFreeWeaponAttack } from '../../noyau/combatManeuvers';
+import { outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement } from '../../noyau/combatFlow';
 import { hoverTargeting, tilePreviewAt } from '../../noyau/targeting';
 import type { DifficultyShown } from '../../engine/combat';
 import { courseArmee } from '../../noyau/localIntent';
@@ -66,6 +64,8 @@ export function useHoverTargeting(
   const pendingCleave = useGame((s) => s.pendingCleave);
   const pendingDualStrike = useGame((s) => s.pendingDualStrike);
   const preemptAiming = useGame((s) => s.preemptAiming);
+  // Intention de Course du client (`localIntent`) : le verdict d'armement que le clic-sol joindra.
+  const intentionDeCourse = useGame((s) => courseArmee(() => s));
 
   // Signaux de survol EFFECTIFS : le curseur clavier/manette PRIME sur la souris locale (hover) ET sur
   // le survol de frise — la souris reprend la main dès qu'elle bouge (onPointerMove → clearCursor()).
@@ -85,7 +85,7 @@ export function useHoverTargeting(
     return outOfSightTargetIds(useGame.getState);
   }, [scene, mode, battle]);
 
-  // Ciblage du JOUEUR au survol — rejoue les MÊMES prédicats que le clic : réticule présent = clic valide.
+  // Ciblage du JOUEUR au survol — le verdict du mode courant (`hoverTargeting`) : réticule présent = clic valide.
   const hoverAim = useMemo<HoverAim | null>(() => {
     if (mode !== 'battle' || !battle || battle.over || (!effHover && !effFocusId)) return null;
     // Un jet à cible est déjà en cours (modale) : le réticule PERSISTANT prend le relais au rendu.
@@ -124,17 +124,7 @@ export function useHoverTargeting(
     if (!myTurn) return null; // le ciblage NORMAL (ci-dessous) exige Mon Tour ; la pré-emption (ci-dessus) non
     const activeH = battle.combatants.find((c) => c.id === battle.order[battle.turn]);
     if (!activeH || !controlsCombatant(st(), activeH) || !activeH.pos) return null;
-    // Mêmes verrous que battleClickEntity : Action consommée (sauf attaque libre de Frénésie),
-    // Sonné, État qui verrouille l'Action (`isActionLocked`, LDB 16 l.52), cible de Frénésie IMPOSÉE (le plus proche en LdV).
-    const freeFrenzy = battle.action === null && hasFreeWeaponAttack(activeH);
-    if (battle.acted && !freeFrenzy) return null;
-    if (battle.action === null && (!canTakeAction(activeH) || isActionLocked(activeH))) return null;
-    if (battle.action === null && isFrenzied(activeH)) {
-      const ft = frenzyTarget(st, activeH);
-      if (ft && ft.id !== occ.id) return null;
-    }
-    // Piétinement / zone / mêlée : tout l'aperçu (réticule + chemin + tip) passe par hoverTargeting,
-    // qui lit l'`AttackOption` armée (selectedAttack), jamais une branche par mode.
+    // Le verdict est celui du MODE courant (`hoverTargeting` → `refusDAttaque` en mode attaque).
     const ht = hoverTargeting(st, activeH, occ);
     if (ht.kind !== 'ok') return null;
     return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
@@ -169,21 +159,14 @@ export function useHoverTargeting(
     // ciblage nouveau y entre par UNE ligne, jamais par une liste littérale rallongée ici.
     if (mapInert || mapTargeting) return null;
     const occ = combatantAtTile(battle.combatants, effHover.x, effHover.y, effHover.z ?? 0);
-    return occ ? null : resolveMovement(useGame.getState, effHover);
-  }, [combatCursor, hover, mode, battle, myTurn, mapInert, mapTargeting]);
+    return occ ? null : resolveMovement(useGame.getState, effHover, { courseArmee: intentionDeCourse });
+  }, [combatCursor, hover, mode, battle, myTurn, mapInert, mapTargeting, intentionDeCourse]);
 
   const hoverMove = useMemo<{ kind: 'move' | 'run' | 'tile'; path: Pt[]; cost?: number; label: string } | null>(() => {
     if (mode !== 'battle' || !battle || battle.over || !effHover || battle.preview || !myTurn) return null;
     const tp = tilePreviewAt(useGame.getState, effHover);
     if (tp) return { kind: 'tile', path: tp.path ?? [], cost: tp.cost, label: tp.label };
     if (hoverMovementResolution?.status !== 'ok') return null;
-    // LE SURVOL N'AFFICHE QUE LE FAISABLE (arbitrage 2026-08-24) : au-delà de la Marche, le clic-sol est
-    // REFUSÉ tant que la Course n'est pas armée (mêmes prédicats qu'au commit, `combatSlice` — exemption
-    // Frénésie comprise), donc la case ne se peint PAS : c'est le clic qui dit le refus.
-    if (hoverMovementResolution.kind === 'run') {
-      const active = activeCombatant(battle);
-      if (!courseArmee(useGame.getState) && !(active && isFrenzied(active))) return null;
-    }
     return {
       kind: hoverMovementResolution.kind,
       path: hoverMovementResolution.path,

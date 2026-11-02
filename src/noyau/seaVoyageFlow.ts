@@ -526,11 +526,13 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): Dos
   };
 }
 
-/** Ligne de journal d'un départ en mer refusé par `buildSeaPlan`. */
-export function raisonDuNonDepartEnMer(get: Get): string {
+/** Refus d'un départ en mer (`null` : le navire de campagne appareille) — les cas où `buildSeaPlan` rend
+ *  `null`. Lu par `refusDeDepart` (`travelFlow`) et par l'estimation de la carte du monde (#3059). */
+export function refusDuDepartEnMer(get: Get): string | null {
   const ship = voyageShip(get);
-  const refus = ship ? refusDAppareiller(ship.vessel) : null;
-  return refus ? raisonDuRefusDAppareiller(refus) : t('tf.noVessel');
+  if (!ship) return t('tf.noVessel');
+  const refus = refusDAppareiller(ship.vessel);
+  return refus ? raisonDuRefusDAppareiller(refus) : null;
 }
 
 /** M de VOYAGE du jour (ch.13/15) : M de croisière (`mDeCroisiere`) + Salissures + événement, puis

@@ -223,7 +223,7 @@ function rendu() {
     'src/engine/spellspec.test.ts',
     'src/engine/spellRange.test.ts',
     'src/engine/spellDuration.test.ts',
-    'src/state/spell-impure-ops.test.ts',
+    'src/noyau/spell-impure-ops.hors-store.test.ts',
     'src/data/vdm-spells-variantes.test.ts',
     'src/ui/compendium/no-json-fields.test.ts',
     'src/data/id-collisions.test.ts',

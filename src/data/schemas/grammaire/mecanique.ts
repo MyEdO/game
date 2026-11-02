@@ -115,10 +115,10 @@ type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare | C
 /** Contrainte ENTRE champs d'un payload déclaré, posée sur l'objet que la famille ferme. */
 type AffinageDePayload = (o: Record<string, unknown>, ctx: z.RefinementCtx) => void;
 
-class PayloadDeclare {
-  constructor(readonly champs: FormeDePayload, readonly meta: MetaDesChamps<FormeDePayload>, readonly affinage?: AffinageDePayload) {}
+class PayloadDeclare<C extends FormeDePayload = FormeDePayload> {
+  constructor(readonly champs: C, readonly meta: MetaDesChamps<FormeDePayload>, readonly affinage?: AffinageDePayload) {}
 }
-function declarerPayload<C extends FormeDePayload>(champs: C, meta: MetaDesChamps<C>, affinage?: AffinageDePayload): PayloadDeclare {
+function declarerPayload<C extends FormeDePayload>(champs: C, meta: MetaDesChamps<C>, affinage?: AffinageDePayload): PayloadDeclare<C> {
   return new PayloadDeclare(champs, meta, affinage);
 }
 
@@ -256,7 +256,15 @@ const DECLARATIONS_D_OPS = {
     indice: formulaSchema.optional(),
     active: z.boolean().optional(),
   }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx)), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
-  endPsych: nommerChamps(z.strictObject({ op: z.literal('endPsych'), type: ref('psychology') }), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
+  /** Fin des états d'un TYPE, ou de l'INSTANCE dont l'effet porte l'op (`instance`, réservé à la famille de
+   *  `defs/psychology.ts` : ailleurs aucune instance ne voyage dans le contexte). */
+  endPsych: declarerPayload({
+    op: z.literal('endPsych'),
+    type: ref('psychology').optional(),
+    instance: reserve(z.literal('courante').optional()),
+  }, { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, instance: { label: "l’instance en cours" } }, (o, ctx) => {
+    if ((o.type === undefined) === (o.instance === undefined)) ctx.addIssue({ code: 'custom', message: 'fin d’état psychologique : « type » (un état du catalogue) OU « instance » (celle de l’effet qui porte l’op), exactement l’un des deux.' });
+  }),
   /** `envers`, `resistanceSiAmis` et `durationHours` sont réservés à la famille des sorts (`defs/spells.ts`) :
    *  une mutation ou une maladie, qui pose son Trait sans `applyOps`, les refuse au parse. VDM 10 l.327-330 */
   grantPsychTrait: declarerPayload({
@@ -499,16 +507,16 @@ const DECLARATIONS_D_OPS = {
 };
 
 type DeclarationsDOps = typeof DECLARATIONS_D_OPS;
-type ChampsAChoixDe<K extends string, D> = D extends z.ZodType
-  ? never
-  : { [C in keyof D & string]: D[C] extends ChampAChoixDeclare ? `${K}.${C}` : never }[keyof D & string];
+type ChampsAChoixDe<K extends string, D> = D extends PayloadDeclare<infer F>
+  ? { [C in keyof F & string]: F[C] extends ChampAChoixDeclare ? `${K}.${C}` : never }[keyof F & string]
+  : never;
 
 /** `<op>.<champ>` de chaque champ à choix, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
 export type ChampAChoix = { [K in keyof DeclarationsDOps & string]: ChampsAChoixDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
 
-type ChampsReservesDe<K extends string, D> = D extends z.ZodType
-  ? never
-  : { [C in keyof D & string]: D[C] extends ChampReserveDeclare ? `${K}.${C}` : never }[keyof D & string];
+type ChampsReservesDe<K extends string, D> = D extends PayloadDeclare<infer F>
+  ? { [C in keyof F & string]: F[C] extends ChampReserveDeclare ? `${K}.${C}` : never }[keyof F & string]
+  : never;
 
 /** `<op>.<champ>` de chaque champ réservé, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
 export type ChampReserve = { [K in keyof DeclarationsDOps & string]: ChampsReservesDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
@@ -526,9 +534,17 @@ export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = champsDeclares<ChampAChoix
 /** Les champs réservés, dérivés du MÊME parcours que le type `ChampReserve`. */
 export const CHAMPS_RESERVES: readonly ChampReserve[] = champsDeclares<ChampReserve>(ChampReserveDeclare);
 
-/** Régime de chaque champ d'un porteur : un champ à choix absent est `specSeule`, un champ réservé
- *  absent est OMIS. */
-export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve, 'admis'>>>;
+/** Les Conditions RÉSERVÉES à un porteur, admises par le régime `condition.<kind>` de sa famille et refusées
+ *  nommément partout ailleurs. `cibleEnVue` ne se lit qu'au contexte d'une affliction psychologique. */
+export const CONDITIONS_RESERVEES = ['cibleEnVue'] as const;
+type ConditionReservee = (typeof CONDITIONS_RESERVEES)[number];
+
+/** Régime d'une Condition réservée. */
+export type RegimeDeCondition = `condition.${ConditionReservee}`;
+
+/** Régime de chaque champ d'un porteur : un champ à choix absent est `specSeule`, un champ réservé ou une
+ *  Condition réservée absents sont REFUSÉS. */
+export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve | RegimeDeCondition, 'admis'>>>;
 
 /**
  * Ops du moteur DONT LE PAYLOAD RESTE À DÉCRIRE — liste NOMINATIVE datée (2026-08-24),
@@ -720,54 +736,74 @@ const conditionDeCompetenceSchema = refOuSpec('skill', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'skill' }>> & z.core.$ZodTypeDiscriminable;
 
-/** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`. */
-export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
-  z.discriminatedUnion('kind', [
-    nommerChamps(z.strictObject({ kind: z.literal('always') }), { kind: { label: "type"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('flag'), expr: z.string().min(1, 'Condition « flag » : le drapeau (`expr`) est vide — nommez le drapeau posé par l’Effet `setFlag`, ou retirez la Condition.') }), { kind: { label: "type"  }, expr: { label: "expression" , texte: { regime: "technique"} } }),
-    nommerChamps(z.strictObject({
-      kind: z.literal('time'),
-      window: nommerChamps(z.strictObject({
-        afterHour: z.number().optional(),
-        afterMinute: z.number().optional(),
-        beforeHour: z.number().optional(),
-        beforeMinute: z.number().optional(),
-      }), { afterHour: { label: "après cette heure" }, afterMinute: { label: "après cette minute" }, beforeHour: { label: "avant cette heure" }, beforeMinute: { label: "avant cette minute" } }),
-    }), { kind: { label: "type"  }, window: { label: "créneau horaire" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('hasItem'), trappingId: z.string(), count: z.number().optional() }), { kind: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, count: { label: "nombre" } }),
-    nommerChamps(z.strictObject({
-      kind: z.literal('money'),
-      atLeast: nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }),
-    }), { kind: { label: "type"  }, atLeast: { label: "minimum" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partySelectorSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }),
-    conditionDeCompetenceSchema,
-    nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }),
-    nommerChamps(z.strictObject({ kind: z.literal('startleCause'), is: startleCauseSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageGap'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageLead'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('foeInLoS') }), { kind: { label: "type"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('hiddenFromFoes') }), { kind: { label: "type"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('engaged') }), { kind: { label: "type"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('capability'), who: actorRefSchema, id: z.string(), op: compareOpSchema.optional(), value: z.number().optional() }), { kind: { label: "type"  }, who: { label: "acteur"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, op: { label: "opération"  }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('relation'), who: actorRefSchema, is: relationOrCampSchema }), { kind: { label: "type"  }, who: { label: "acteur"  }, is: { label: "valeur attendue"  } }),
-    hasConditionSchema,
-    nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }),
-    nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('not'), of: conditionSchema }), { kind: { label: "type"  }, of: { label: "contenu" } }),
-  ]),
-);
+/** Les algèbres `Condition` construites, par Conditions réservées admises. */
+const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
+
+/** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
+ *  RÉSERVÉE hors des `admises` de la famille est refusée nommément. Mémoïsée par ses `admises` ; chaque branche est
+ *  un produit de la fabrique, de même classe d'une famille à l'autre. */
+function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition> {
+  const cle = [...admises].sort().join(',');
+  const deja = ALGEBRES_DE_CONDITION.get(cle);
+  if (deja) return deja;
+  const reservee = <T extends z.ZodType>(kind: ConditionReservee, branche: T): T =>
+    admises.includes(kind) ? branche : (branche.check(z.superRefine((_v, ctx) => {
+      ctx.addIssue({ code: 'custom', message: `Condition « ${kind} » : réservée à la famille qui l'admet (régime « condition.${kind} », src/data/schemas/grammaire/mecanique.ts) ; elle serait FAUSSE en silence ici.` });
+    })) as T);
+  const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
+    z.discriminatedUnion('kind', [
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('always') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.always'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('flag'), expr: z.string().min(1, 'Condition « flag » : le drapeau (`expr`) est vide — nommez le drapeau posé par l’Effet `setFlag`, ou retirez la Condition.') }), { kind: { label: "type"  }, expr: { label: "expression" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.flag'),
+      marquerProduit(nommerChamps(z.strictObject({
+        kind: z.literal('time'),
+        window: marquerProduit(nommerChamps(z.strictObject({
+          afterHour: z.number().optional(),
+          afterMinute: z.number().optional(),
+          beforeHour: z.number().optional(),
+          beforeMinute: z.number().optional(),
+        }), { afterHour: { label: "après cette heure" }, afterMinute: { label: "après cette minute" }, beforeHour: { label: "avant cette heure" }, beforeMinute: { label: "avant cette minute" } }), 'conditionDe', 'condition.time.window'),
+      }), { kind: { label: "type"  }, window: { label: "créneau horaire" } }), 'conditionDe', 'condition.time'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hasItem'), trappingId: z.string(), count: z.number().optional() }), { kind: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, count: { label: "nombre" } }), 'conditionDe', 'condition.hasItem'),
+      marquerProduit(nommerChamps(z.strictObject({
+        kind: z.literal('money'),
+        atLeast: marquerProduit(nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }), 'conditionDe', 'condition.money.atLeast'),
+      }), { kind: { label: "type"  }, atLeast: { label: "minimum" } }), 'conditionDe', 'condition.money'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partySelectorSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.partyDead'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.etat'),
+      conditionDeCompetenceSchema,
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.career'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.species'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.location'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.attackKind'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('startleCause'), is: startleCauseSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.startleCause'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.woundsDealt'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageGap'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.engagedAdvantageGap'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageLead'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.engagedAdvantageLead'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('foeInLoS') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.foeInLoS'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hiddenFromFoes') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.hiddenFromFoes'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engaged') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.engaged'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.crewTest'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.nearestFoe'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('capability'), who: actorRefSchema, id: z.string(), op: compareOpSchema.optional(), value: z.number().optional() }), { kind: { label: "type"  }, who: { label: "acteur"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.capability'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('relation'), who: actorRefSchema, is: relationOrCampSchema }), { kind: { label: "type"  }, who: { label: "acteur"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.relation'),
+      hasConditionSchema,
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.casterChaosDomain'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.visiblePassive'),
+      reservee('cibleEnVue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('cibleEnVue'), hostiles: z.literal(true).optional() }), { kind: { label: "type"  }, hostiles: { label: "hostiles seulement" } }), 'conditionDe', 'condition.cibleEnVue')),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('not'), of: conditionSchema }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.not'),
+    ]),
+  );
+  ALGEBRES_DE_CONDITION.set(cle, conditionSchema);
+  return conditionSchema;
+}
+
+/** L'algèbre `Condition` de la famille FERMÉE : aucune Condition réservée. */
+export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
 /** `FlowTest` (`engine/flowCore.ts:335`) — jet différé (→ modale), tout le métier hors branches. */
@@ -1098,6 +1134,7 @@ const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
 function construire(regimes: Regimes) {
   const opDefs = payloadsDe(regimes);
+  const condition = conditionDe(CONDITIONS_RESERVEES.filter((k) => regimes[`condition.${k}`] === 'admis'));
   /**
    * Un `GameOp` (`src/engine/ops.ts`) tel qu'il apparaît en DONNÉE. Une op de `OP_DEFS` est validée sur
    * son payload STRICT ; une op de `OPS_NON_TYPEES` garde la forme LOOSE (aux refus de `refusLoose`
@@ -1151,7 +1188,7 @@ function construire(regimes: Regimes) {
     z.discriminatedUnion('kind', [
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'construire', 'flow.seq'),
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'construire', 'flow.do'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'construire', 'flow.if'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'construire', 'flow.if'),
       noeudTest(flow),
       proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
@@ -1253,7 +1290,7 @@ function construire(regimes: Regimes) {
   }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque"  , texte: { regime: "technique"} }, crewHit: { label: "coup à l’équipage" }, note: { label: "note"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/ship-criticals.ts:schema"}} } }), 'construire', 'shipCritEntry');
 
   for (const noeud of [gameOp, effectOp, flow]) REGIMES_DES_NOEUDS.set(noeud, regimes);
-  return { regimes, opDefs, gameOp, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };
+  return { regimes, opDefs, condition, gameOp, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };
 }
 
 /** Une famille mécanique : ses payloads d'op et tout nœud qui compose un `GameOp`. */
@@ -1271,7 +1308,7 @@ export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
   const entrees = (Object.entries(regimes) as [string, RegimeDePorteur | 'admis' | undefined][])
     .filter(([, r]) => r !== undefined && r !== 'specSeule')
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES];
+  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES, ...CONDITIONS_RESERVEES.map((k) => `condition.${k}`)];
   for (const [champ] of entrees) {
     if (!declares.includes(champ)) {
       throw new Error(`mecaniqueDe : « ${champ} » n'est aucun champ à choix ni réservé déclaré (${declares.join(', ')}).`);
@@ -1284,6 +1321,15 @@ export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
     FAMILLES.set(cle, famille);
   }
   return famille;
+}
+
+/** La famille d'un champ d'effets déclenchés (`z.array(famille.triggeredEffect)`, facultatif ou non) : l'Atelier y
+ *  lit l'algèbre de Condition et les ops que le porteur admet. Absent = champ hors famille. */
+export function familleDesEffets(noeud: unknown): FamilleMecanique | undefined {
+  let n = noeud;
+  while (n instanceof z.ZodOptional) n = n.unwrap();
+  const element = n instanceof z.ZodArray ? n.element : undefined;
+  return element === undefined ? undefined : famillesConstruites().find((f) => f.triggeredEffect === element);
 }
 
 /** Les familles construites, en lecture seule — racines de la garde du masquage (`parse-de-mesure.test.ts`). */

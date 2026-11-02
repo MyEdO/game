@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
-import { CHAMPS_A_CHOIX, CHAMPS_RESERVES, gameOpSchema, mecaniqueDe, OPS_NON_TYPEES } from './mecanique';
+import { CHAMPS_A_CHOIX, CHAMPS_RESERVES, conditionSchema, gameOpSchema, mecaniqueDe, OPS_NON_TYPEES } from './mecanique';
 import { noeudDuChamp } from '../validate';
 
 /** Le tableau d'ops du champ `passive` de `talents.json`, tel que son def le déclare. */
@@ -50,7 +50,7 @@ const effetPortant = (op: unknown) => [{ trigger: 'onDayStart', on: 'self', flow
 
 describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (EDO 11 l.190 ; #1853)', () => {
   it('les champs réservés sont DÉRIVÉS des déclarations d’op ; `charMod` est typé', () => {
-    expect([...CHAMPS_RESERVES].sort()).toEqual(['charMod.min', 'grantPsychTrait.durationHours', 'grantPsychTrait.envers', 'grantPsychTrait.resistanceSiAmis']);
+    expect([...CHAMPS_RESERVES].sort()).toEqual(['charMod.min', 'endPsych.instance', 'grantPsychTrait.durationHours', 'grantPsychTrait.envers', 'grantPsychTrait.resistanceSiAmis']);
     expect(OPS_NON_TYPEES).not.toContain('charMod');
     expect(gameOpSchema.safeParse({ ...sansPlancher, champInvente: 1 }).success).toBe(false);
   });
@@ -100,5 +100,33 @@ describe('champs RÉSERVÉS aux Sorts — `grantPsychTrait` envers, résistance,
     expect(sort.safeParse(effetDeSort({ ...envers, cible: { id: 'skaven' } })).success).toBe(false);
     expect(sort.safeParse(effetDeSort({ ...envers, psychType: { id: 'frenesie' } })).success).toBe(false);
     expect(sort.safeParse(effetDeSort({ ...haine, resistanceSiAmis: resistance })).success).toBe(false);
+  });
+});
+
+describe('fin d’une affliction ciblée — `endPsych.instance` et Condition `cibleEnVue` réservées à `psychology.effects` (LDB 21 l.19, l.39, l.48)', () => {
+  const finDInstance = { op: 'endPsych', instance: 'courante' };
+  const siPlusEnVue = (cond: unknown, op: unknown = { op: 'endPsych', type: { id: 'haine' } }) =>
+    [{ trigger: 'onRoundEnd', on: 'self', flow: { kind: 'if', cond: { kind: 'not', of: cond }, then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [op] } } } }];
+
+  it('contrat positif : ADMISES dans les `effects` d’un Trait psychologique', () => {
+    const effets = noeud('psychology.json', 'effects');
+    expect(effets.safeParse(siPlusEnVue({ kind: 'cibleEnVue' }, finDInstance)).success).toBe(true);
+    expect(effets.safeParse(siPlusEnVue({ kind: 'cibleEnVue', hostiles: true })).success).toBe(true);
+  });
+
+  it('test opposé : REFUSÉES par la famille fermée et les `effects` de talent et de trait — elles y seraient fausses en silence', () => {
+    expect(gameOpSchema.safeParse(finDInstance).success).toBe(false);
+    expect(conditionSchema.safeParse({ kind: 'cibleEnVue' }).success).toBe(false);
+    for (const file of ['talents.json', 'traits.json']) {
+      expect(noeud(file, 'effects').safeParse(siPlusEnVue({ kind: 'cibleEnVue' })).success).toBe(false);
+      expect(noeud(file, 'effects').safeParse(siPlusEnVue({ kind: 'foeInLoS' }, finDInstance)).success).toBe(false);
+      expect(noeud(file, 'effects').safeParse(siPlusEnVue({ kind: 'foeInLoS' })).success).toBe(true);
+    }
+  });
+
+  it('`endPsych` porte EXACTEMENT l’un de `type` et `instance`', () => {
+    const effets = noeud('psychology.json', 'effects');
+    expect(effets.safeParse(siPlusEnVue({ kind: 'cibleEnVue' }, { ...finDInstance, type: { id: 'haine' } })).success).toBe(false);
+    expect(effets.safeParse(siPlusEnVue({ kind: 'cibleEnVue' }, { op: 'endPsych' })).success).toBe(false);
   });
 });

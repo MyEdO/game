@@ -13,6 +13,7 @@ import { DUREE_FOCALE_MS } from './useStageCamera';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
+import { unarmedWeapon } from '../../engine/items';
 
 /**
  * GLISSER-CAMÉRA IMPÉRATIF — une valeur de caméra par IMAGE, deux clients servis par elle.
@@ -33,7 +34,7 @@ afterAll(() => setStageRendererFactory(null));
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
-    wounds: blessuresDeBase(12), weapons: [],
+    wounds: blessuresDeBase(12), weapons: [unarmedWeapon()], // invariant mains nues (`assertAttackWeapon`)
     characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
   }) as unknown as Combatant;

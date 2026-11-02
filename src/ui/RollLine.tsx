@@ -172,7 +172,7 @@ function ModChip({ m }: { m: ModLine }) {
 }
 
 /** Chips des modificateurs étiquetés (« Courte portée +40 », « Sonné −10 »…). */
-function ModChips({ mods }: { mods: ModLine[] }) {
+export function ModChips({ mods }: { mods: ModLine[] }) {
   return (
     <div className="rm-roll-mods">
       {mods.map((m, i) => <ModChip key={i} m={m} />)}

@@ -267,16 +267,16 @@ Variantes (Haut Elfe, Elfe Sylvain, Nain Norse…) retombent sur leur espèce-ra
 
 ## Limites de Corruption — devenir Damné
 
-> « Si vous survivez assez longtemps pour recevoir plus de mutations que la valeur de votre Bonus d'Endurance ou plus de mutations mentales que votre Bonus de Force Mentale, vous avez basculé dans le Chaos, et votre âme devient alors propriété des impitoyables dieux du Chaos. »
+> « Une âme ne peut supporter qu'une certaine dose de Corruption avant de s'effondrer et d'être remplacée par une chose informe, mutante et bredouillante. Si vous survivez assez longtemps pour recevoir plus de mutations que la valeur de votre Bonus d'Endurance ou plus de mutations mentales que votre Bonus de Force Mentale, vous avez basculé dans le Chaos, et votre âme devient alors propriété des impitoyables dieux du Chaos. »
 > — LDB 19 l.87
 
-**Condition de damnation** :
-- mutations **physiques** > BE, **ou**
+**Condition de damnation** (strictement « plus de », jamais « autant que ») :
+- mutations **physiques** > BE (l.87 écrit « plus de mutations », en regard des « mutations mentales » de la même phrase), **ou**
 - mutations **mentales** > BFM
 
-Quand cette limite est atteinte, le personnage est **damné** : il devient un PNJ contrôlé par le MJ. Il n'est pas impossible que le groupe le croise à nouveau plus tard, sous une forme misérable.
+Quand l'une de ces limites est dépassée, le personnage est **damné** : il devient un PNJ contrôlé par le MJ (LDB 19 l.89).
 
-**Sources RAW** : `LDB 19 l.86-89`
+**Sources RAW** : `LDB 19 l.87-89`
 
 ---
 

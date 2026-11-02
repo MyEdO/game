@@ -27,7 +27,7 @@ import { isEngagedWith, isEngaged } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
 import { combatDistance } from './monde/footprint';
 import { chebyshev } from '../engine/grid';
-import { losClear, tileSeenByFoe } from './monde/lineOfSight';
+import { tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { sceneMetresPerTile } from './monde/scene';
 import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
@@ -36,6 +36,9 @@ import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
+import { cibleEnVue, isAfflictionActive, type CibleEnVue, type PsychAffliction } from '../engine/psychology';
+import { estCibleType } from '../engine/psych/ciblage';
+import { sourcesEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { routeTriggeredTest } from './combat/triggeredTest';
@@ -137,7 +140,13 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
     if (derive >= (cond.value ?? 1)) continue;
     out.push({ effects: withSource(withArg(d.effects, cond.difficulte), { kind: 'condition', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
   }
-  for (const p of actor.psychState ?? []) { const d = findPsychologyById(p.type); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label, stacks: 1 }); }
+  // Une affliction CIBLÉE émet par INSTANCE, et seulement ACTIVE : sa fin la désactive (LDB 21 l.9). L'instance
+  // voyage avec la source (`affliction`).
+  for (const p of actor.psychState ?? []) {
+    const d = findPsychologyById(p.type);
+    if (!d?.effects?.length || (estCibleType(p.type) && !isAfflictionActive(p))) continue;
+    out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label, stacks: 1, affliction: p });
+  }
   return out;
 }
 
@@ -172,7 +181,9 @@ export function triggerEffectOps(actor: Combatant, trigger: EffectTrigger): { op
 /** Une SOURCE d'effets déclenchés du combattant, AVEC son identité (`key`) et son plafond (`cap`) —
  *  nécessaires aux ATTAQUES GRATUITES (imputation /Round par source ; plafond par source). `stacks` = pions
  *  de la source quand c'est un STATUT (État/psy), injectés dans le `ctx` du dispatch ; absent sinon. */
-export interface TriggerSource { effects: TriggeredEffect[]; cap: number; key: string; label: string; stacks?: number; }
+export interface TriggerSource { effects: TriggeredEffect[]; cap: number; key: string; label: string; stacks?: number;
+  /** L'instance d'affliction psychologique que la source représente (statut `psy:`). */
+  affliction?: PsychAffliction; }
 
 /** Sources d'attaque gratuite DÉCLENCHÉE = LES MÊMES sources que le dispatcher (`effectSourcesOf`, source
  *  unique, arme de la touche comprise) — `resolveFreeAttacks` joue celles qui portent un `grantFreeAttack`
@@ -249,6 +260,8 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
   /** Un adversaire vivant est-il dans la Ligne de Vue du porteur — alimente la Condition Flow `foeInLoS`
    *  (sortie de Frénésie, fuite/récupération du Brisé). Si absent, calculé sur la `battle` au déclenchement. */
   foeInLoS?: boolean;
+  /** L'instance d'affliction psychologique dont les effets sont joués — posée par `firePsychEffects`. */
+  affliction?: PsychAffliction;
   /** ID de l'État qui vient d'être GAGNÉ (déclencheur `onGainCondition`) — filtre les effets dont
    *  `condition` ne le matche pas (Mâchoires d'acier : `condition:'sonne'`). */
   conditionName?: string;
@@ -358,9 +371,7 @@ function engagedAdvantageLead(get: Get, actor: Combatant): number {
 export function hasFoeInLoS(get: Get, actor: Combatant): boolean {
   const { battle, scene } = get();
   if (!battle || !scene || !actor.pos) return false;
-  return battle.combatants.some(
-    (f) => f.kind !== actor.kind && !isOutOfAction(f) && f.pos && losClear(scene, actor.pos!, f.pos, smokeOf(battle)),
-  );
+  return !sourcesEnVue(battle, scene, actor, (f) => f.kind !== actor.kind && !isOutOfAction(f)).next().done;
 }
 
 /** Géométrie d'arène de RÉCUPÉRATION du Brisé (LDB 16 l.54-58) pour `actor`, alimentant les Conditions
@@ -377,6 +388,14 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   const hiddenFromFoes = !!scene && foes.length > 0 && !tileSeenByFoe(scene, foes, actor.pos, smokeOf(battle));
   const nearestFoeDist = foes.length ? Math.min(...foes.map((e) => chebyshev(actor.pos!, e.pos!))) : Infinity;
   return { hiddenFromFoes, engaged: isEngaged(actor), nearestFoeDist };
+}
+
+/** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les combattants en vue ; `undefined` hors
+ *  combat, sans instance ou sans Cible. */
+function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAffliction | undefined): CibleEnVue | undefined {
+  const { battle, scene } = get();
+  if (!battle || !scene || affliction?.cible === undefined) return undefined;
+  return cibleEnVue(actor, affliction, [...sourcesEnVue(battle, scene, actor, (s) => !s.dead)]);
 }
 
 /** ENVELOPPE d'un effet déclenché : les combattants où `eff` s'exerce pour `trigger` dans `ctx` — vide
@@ -438,6 +457,9 @@ export function applyTriggeredEffects(
   // porteur, et SEULEMENT à la frontière de Round (seul moment où un État la consomme : LDB 16 l.54-58),
   // pour ne pas peser sur les déclencheurs d'attaque. Neutre hors `onRoundEnd` (Conditions → false/+∞).
   const geom = trigger === 'onRoundEnd' ? recoveryGeometry(get, actor) : undefined;
+  // Verdict de l'instance sur sa Cible en vue (Condition `cibleEnVue`), mesuré au premier effet qui joue.
+  let verdict: { v: CibleEnVue | undefined } | undefined;
+  const cibleEnVueDeLInstance = (): CibleEnVue | undefined => (verdict ??= { v: mesurerCibleEnVue(get, actor, ctx.affliction) }).v;
   for (const eff of effects) {
     if (flowHasFreeAttack(eff.flow)) continue;
     for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
@@ -447,7 +469,7 @@ export function applyTriggeredEffects(
       // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `if`.
-      const flowCtx: OpsCtx = { rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+      const flowCtx: OpsCtx = { rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).
         ...(trigger === 'onOwnTestFailed' ? { noReentryOwnTestFailed: true } : {}) };
@@ -536,12 +558,12 @@ export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { s
  *  appelant protège l'itération d'une auto-dissipation (`removeCondition`/`endPsych`) qui mute la collection. */
 function fireStatusEffects(
   get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx,
-  statuses: { effects?: TriggeredEffect[]; stacks: number }[],
+  statuses: { effects?: TriggeredEffect[]; stacks: number; affliction?: PsychAffliction }[],
 ): string[] {
   const lines: string[] = [];
   for (const s of statuses) {
     if (!s.effects?.length) continue;
-    lines.push(...applyTriggeredEffects(get, c, s.effects, trigger, { ...ctx, stacks: s.stacks }));
+    lines.push(...applyTriggeredEffects(get, c, s.effects, trigger, { ...ctx, stacks: s.stacks, ...(s.affliction ? { affliction: s.affliction } : {}) }));
   }
   return lines;
 }
@@ -556,12 +578,12 @@ export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrig
 }
 
 /**
- * Déclenche les `effects` data-driven des états PSYCHOLOGIQUES portés par `c` (Frénésie : sortie
- * `onTurnStart` → fin + Exténué, LDB 21 l.35). MÊME cœur que les États (`fireStatusEffects`) ; la donnée
+ * Déclenche les `effects` data-driven des états PSYCHOLOGIQUES portés par `c` (leurs fins, LDB 21 l.19, l.35,
+ * l.39, l.48), une instance ciblée avec son `affliction`. MÊME cœur que les États (`fireStatusEffects`) ; la donnée
  * vit dans `psychology.json`. Inerte tant que `psychState` ne porte aucun type doté d'`effects`.
  */
 export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
-  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c).filter((s) => s.key.startsWith('psy:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
+  return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c).filter((s) => s.key.startsWith('psy:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1, affliction: s.affliction })));
 }
 
 /** Effets AUTHORÉS d'une MANŒUVRE, tagués de leur manœuvre source (`withSource`) — SOURCE UNIQUE des

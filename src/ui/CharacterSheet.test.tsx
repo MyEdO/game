@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
-import { casterTalents } from '../engine/grimoire';
 import { apparences, findTrappingById } from '../data';
 import { setDataset } from '../data/overrides';
 import { apparencesCandidates, itemFromTrappingById } from '../engine/items';
@@ -185,16 +184,6 @@ describe('AdvancementPanel en combat : chaque dépense de PX porte la raison de 
   });
 });
 
-describe('Gate Magie & Foi (#492 bug 2)', () => {
-  it('un Béni SANS Bénédiction mémorisée reste un lanceur (casterTalents, pas juste spells.length)', () => {
-    const beni: Combatant = { ...hero(), spells: [], talents: [{ talentId: 'beni', spec: 'sigmar', times: 1 }] } as Combatant;
-    // `isCaster` de CharacterSheet lit CE calcul — un Béni sans sort mémorisé encore ne doit
-    // pas perdre son onglet Magie & Foi ni son compteur de Péché.
-    expect((beni.spells?.length ?? 0) > 0).toBe(false);
-    expect(casterTalents(beni).length).toBeGreaterThan(0);
-  });
-});
-
 describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () => {
   // Rendu CLIENT (jsdom + createRoot), pas `renderToStaticMarkup` : la fiche lit `useGame` en
   // continu (hero courant, onglet…) — la snapshot SERVEUR de `useSyncExternalStore` ne reflète pas
@@ -209,6 +198,23 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     return container.innerHTML;
   };
   afterEach(demonterRacines);
+
+  it('un Béni sans Bénédiction mémorisée a son onglet Magie & Foi (#492, #3059)', () => {
+    const beni = { ...hero(), spells: [], talents: [{ talentId: 'beni', spec: 'sigmar', times: 1 }] } as unknown as Combatant;
+    useGame.setState({ party: [beni], battle: null, sheetId: beni.id, sheetTab: 'competences' });
+    mount(<CharacterSheet heroId={beni.id} onClose={() => {}} />);
+    const onglets = [...container.querySelectorAll('.sheet-main [role="tab"]')].map((o) => o.textContent?.trim());
+    expect(onglets).toContain('Magie & Foi');
+  });
+
+  it('sans sort ni Talent de lanceur, pas d’onglet Magie & Foi (#3059)', () => {
+    const profane = { ...hero(), spells: [], talents: [] } as unknown as Combatant;
+    useGame.setState({ party: [profane], battle: null, sheetId: profane.id, sheetTab: 'competences' });
+    mount(<CharacterSheet heroId={profane.id} onClose={() => {}} />);
+    const onglets = [...container.querySelectorAll('.sheet-main [role="tab"]')].map((o) => o.textContent?.trim());
+    expect(onglets).toContain('Compétences & Talents');
+    expect(onglets).not.toContain('Magie & Foi');
+  });
 
   it('Magie & Foi : le bouton « Lancer » est GATÉ pendant un combat, avec sa raison (jamais un clic sans effet)', () => {
     // Les verbes `ooc*` sont des lanceurs HORS combat : en combat, le clic ne produisait RIEN (aucune

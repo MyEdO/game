@@ -773,7 +773,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   startBilletBargain: (routeId: string, vehicule: string) => void;
   dismissTravelRecap: () => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */
-  startTravel: (routeId: string, mode: import('../engine/travel').TravelMode, opts?: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence }) => void;
+  startTravel: (routeId: string, mode: import('../engine/travel').TravelMode, opts?: import('./travelFlow').OptionsDeDepart) => void;
   /** Reprend un voyage interrompu par une péripétie. */
   resumeTravel: () => void;
   /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
