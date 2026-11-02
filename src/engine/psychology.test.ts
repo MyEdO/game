@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue } from './psychology';
+import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue, sourceCombattant } from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
@@ -64,22 +64,22 @@ describe('Psychologie (pur)', () => {
     const self = { id: 's', kind: 'enemy', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [] } as unknown as Combatant;
     const foe = { id: 'f', kind: 'hero', groups: ['elfe', 'soldat'] } as unknown as Combatant;
     const other = { id: 'o', kind: 'hero', groups: ['humain'] } as unknown as Combatant;
-    expect(targetedTrigger(self, [other, foe])).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
-    expect(targetedTrigger(self, [other])).toBeNull(); // aucun membre du groupe visible
+    expect(targetedTrigger(self, [other, foe].map(sourceCombattant))).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
+    expect(targetedTrigger(self, [sourceCombattant(other)])).toBeNull(); // aucun membre du groupe visible
   });
   it('targetedTrigger : Amour se déclenche sur un membre du groupe MENACÉ (LDB 21 l.75) ; déjà en psychState → pas re-déclenché', () => {
     const self = { id: 's', kind: 'hero', psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('humain') }], psychState: [] } as unknown as Combatant;
     const ally = { id: 'a', kind: 'hero', groups: ['humain'] } as unknown as Combatant;
     const brigand = { id: 'b', kind: 'enemy' } as unknown as Combatant;
-    expect(targetedTrigger(self, [ally])).toBeNull(); // aimé présent mais non menacé
-    expect(targetedTrigger(self, [ally, brigand])?.type).toBe('amour');
+    expect(targetedTrigger(self, [sourceCombattant(ally)])).toBeNull(); // aimé présent mais non menacé
+    expect(targetedTrigger(self, [ally, brigand].map(sourceCombattant))?.type).toBe('amour');
     self.psychState!.push({ type: 'amour', cible: ciblePsy.groupe('humain') });
-    expect(targetedTrigger(self, [ally, brigand])).toBeNull();
+    expect(targetedTrigger(self, [ally, brigand].map(sourceCombattant))).toBeNull();
   });
   it('targetedTrigger : « un au choix » (Cible indéfinie) → inerte', () => {
     const self = { id: 's', kind: 'enemy', psychTraits: [{ type: 'animosite', cible: undefined }], psychState: [] } as unknown as Combatant;
     const foe = { id: 'f', kind: 'hero', groups: ['elfe'] } as unknown as Combatant;
-    expect(targetedTrigger(self, [foe])).toBeNull();
+    expect(targetedTrigger(self, [sourceCombattant(foe)])).toBeNull();
   });
   it('effectivePsychTraits : « Vous êtes mon meilleur ami ! » (ignoreAnimosity) retire Animosité/Préjugé, laisse le reste (LDB 09 l.480)', () => {
     const c = {
@@ -100,12 +100,12 @@ describe('Psychologie (pur)', () => {
       activeEffects: [{ label: 'Ivresse', bonus: 0, ignoreAnimosity: true }],
     } as unknown as Combatant;
     const foe = { id: 'f', kind: 'hero', groups: ['elfe'] } as unknown as Combatant;
-    expect(targetedTrigger(self, [foe])).toBeNull();
+    expect(targetedTrigger(self, [sourceCombattant(foe)])).toBeNull();
   });
   it('targetedTrigger : effet EXPIRÉ (retiré des activeEffects) → l’Animosité redéclenche normalement', () => {
     const self = { id: 's', kind: 'enemy', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [], activeEffects: [] } as unknown as Combatant;
     const foe = { id: 'f', kind: 'hero', groups: ['elfe'] } as unknown as Combatant;
-    expect(targetedTrigger(self, [foe])).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
+    expect(targetedTrigger(self, [sourceCombattant(foe)])).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f' });
   });
   it('resolveCalmeSimple : Test de Calme binaire (succès = résisté)', () => {
     const r = resolveCalmeSimple(80, makeRNG(2));

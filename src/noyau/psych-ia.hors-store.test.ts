@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openRoundStartPsych } from './combatFlow';
-import { fearSourceFor } from '../engine/psychology';
+import { fearSourceFor, sourceCombattant } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -23,9 +23,9 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
   it('fearSourceFor : Énorme AGRESSIVE vs Moyenne → Terreur 2 ; statbloc Peur 4 ; rien si pas de source', () => {
     const big = { id: 'b', kind: 'enemy', size: 'enorme' } as Combatant; // adversaire → agressive (LDB 85 l.381-383)
     const med = { id: 'm', kind: 'hero', size: 'moyenne' } as Combatant;
-    expect(fearSourceFor(med, big)).toEqual({ kind: 'terreur', indice: 2 });
-    expect(fearSourceFor(med, { id: 'p', kind: 'enemy', size: 'moyenne', causesPeur: 4 } as Combatant)).toEqual({ kind: 'peur', indice: 4 });
-    expect(fearSourceFor(med, med)).toBeNull();
+    expect(fearSourceFor(med, sourceCombattant(big))).toEqual({ kind: 'terreur', indice: 2 });
+    expect(fearSourceFor(med, sourceCombattant({ id: 'p', kind: 'enemy', size: 'moyenne', causesPeur: 4 } as Combatant))).toEqual({ kind: 'peur', indice: 4 });
+    expect(fearSourceFor(med, sourceCombattant(med))).toBeNull();
   });
 
   function setup() {

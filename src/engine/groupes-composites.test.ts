@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { groupMatch, groupesDe } from './groups';
-import { sansPeurVs } from './psychology';
+import { sansPeurVs, sourceCombattant } from './psychology';
 import { groups, SPEC_SOURCES, talents, type GroupData } from '../data';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 import type { Combatant } from './types';
@@ -65,8 +65,8 @@ describe('Cavalerie, dérivée de la monture (AA 04 l.204 ; Q13 A)', () => {
 
   it('Sans Peur (Cavalerie) vaut contre un cavalier, pas contre un fantassin', () => {
     const brave = mk({ id: 'b', talents: [{ talentId: sansPeur.id, spec: cavalerie.id, times: 1 }] });
-    expect(sansPeurVs(brave, mk({ id: 'f', mountId: 'cheval' }))).toBe(true);
-    expect(sansPeurVs(brave, mk({ id: 'f' }))).toBe(false);
+    expect(sansPeurVs(brave, sourceCombattant(mk({ id: 'f', mountId: 'cheval' })))).toBe(true);
+    expect(sansPeurVs(brave, sourceCombattant(mk({ id: 'f' })))).toBe(false);
   });
 });
 
@@ -80,8 +80,8 @@ describe('Sans Peur (Ennemi) : l’Ennemi est un Groupe de `groups.json` hors de
   it('Sans Peur d’un composite vaut contre le membre d’un Groupe inclus', () => {
     for (const c of composites) {
       const brave = mk({ id: 'b', talents: [{ talentId: sansPeur.id, spec: c.id, times: 1 }] });
-      expect(sansPeurVs(brave, mk({ id: 'f', groups: [c.inclut![0]] })), c.id).toBe(true);
-      expect(sansPeurVs(brave, mk({ id: 'f', groups: [ordinaire.id] })), c.id).toBe(false);
+      expect(sansPeurVs(brave, sourceCombattant(mk({ id: 'f', groups: [c.inclut![0]] }))), c.id).toBe(true);
+      expect(sansPeurVs(brave, sourceCombattant(mk({ id: 'f', groups: [ordinaire.id] }))), c.id).toBe(false);
     }
   });
 });

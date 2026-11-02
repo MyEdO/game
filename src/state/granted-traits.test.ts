@@ -8,6 +8,7 @@ import { hasTrait } from '../engine/traits/dispatch';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { sourceCombattant } from '../engine/psychology';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
@@ -121,22 +122,22 @@ describe('op grantTalent — talents temporisés (Flambeau de Vertu / Cœurs ard
     const { fearSourceFor, sansPeurVs } = await import('../engine/psychology');
     const c = dummy({});
     const ogre = dummy({ id: 'o', causesPeur: 2, groups: ['Ogre'] });
-    expect(fearSourceFor(c, ogre)?.kind).toBe('peur'); // avant le sort : la Peur mord
+    expect(fearSourceFor(c, sourceCombattant(ogre))?.kind).toBe('peur'); // avant le sort : la Peur mord
     applyOps(c, [{ op: 'grantTalent', talent: { id: 'sans-peur' } }], { rng: desDuTest, label: 'Flambeau de Vertu', defaultDurationRounds: 1 });
-    expect(sansPeurVs(c, ogre)).toBe(true); // le talent (temporisé) est détecté
+    expect(sansPeurVs(c, sourceCombattant(ogre))).toBe(true); // le talent (temporisé) est détecté
     // RAW (LDB 10 l.1051) : Sans Peur n'immunise PAS d'office — la source RESTE détectée, le porteur
     // la teste par un seul Calme Accessible (+20).
-    expect(fearSourceFor(c, ogre)?.kind).toBe('peur');
+    expect(fearSourceFor(c, sourceCombattant(ogre))?.kind).toBe('peur');
     expect(c.talents).toHaveLength(0); // PAS posé dans les talents possédés (fiche intacte)
     endOfRound(c, desDuTest);
-    expect(sansPeurVs(c, ogre)).toBe(false); // dissipé avec l'effet
+    expect(sansPeurVs(c, sourceCombattant(ogre))).toBe(false); // dissipé avec l'effet
   });
 
   it('Sans Peur POSSÉDÉ ciblé (LDB 10 l.1051) : immunise vs l’Ennemi spécifié seulement', async () => {
     const { sansPeurVs } = await import('../engine/psychology');
     const c = dummy({ talents: [{ talentId: 'sans-peur', spec: 'mort-vivant', times: 1 }] });
-    expect(sansPeurVs(c, dummy({ groups: ['mort-vivant'] }))).toBe(true);
-    expect(sansPeurVs(c, dummy({ groups: ['ogre'] }))).toBe(false); // pas l'Ennemi du talent
+    expect(sansPeurVs(c, sourceCombattant(dummy({ groups: ['mort-vivant'] })))).toBe(true);
+    expect(sansPeurVs(c, sourceCombattant(dummy({ groups: ['ogre'] })))).toBe(false); // pas l'Ennemi du talent
   });
 
   it('Cœur vaillant accordé (Cœurs ardents) : la capacité braveheart est active via featuresOf', async () => {

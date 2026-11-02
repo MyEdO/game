@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { targetedTrigger, isPsychImmune } from '../psychology';
+import { targetedTrigger, isPsychImmune, sourceCombattant } from '../psychology';
 import { encounterPsych } from '../encounterPsych';
 import { parsePsychTraits } from '../psych/registry';
 import { hasTalent } from '../magic';
@@ -42,7 +42,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
 
   it('Animosité (Nurgle) : se déclenche au contact d’un disciple de Nurgle visible (targetedTrigger)', () => {
     const nurgleFollower = { id: 'foe', name: 'Disciple', kind: 'hero', groups: ['nurgle'] } as unknown as Combatant;
-    const trig = targetedTrigger(bearer(), [nurgleFollower]);
+    const trig = targetedTrigger(bearer(), [sourceCombattant(nurgleFollower)]);
     expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('nurgle'), sourceId: 'foe', indice: undefined });
   });
 
@@ -56,7 +56,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
     const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
-    const trig = targetedTrigger(nurgleFollower, [marked]);
+    const trig = targetedTrigger(nurgleFollower, [sourceCombattant(marked)]);
     expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('tzeentch'), sourceId: 'tzeentch-1', indice: undefined });
   });
 
@@ -68,7 +68,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
     const hiddenTraits = [{ id: 'marque-de-tzeentch', hidden: true }];
     const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: hiddenTraits } as unknown as Combatant;
     expect(hiddenGroupsOf(marked)).toEqual(['tzeentch']);
-    expect(targetedTrigger(nurgleFollower, [marked])).toBeNull();
+    expect(targetedTrigger(nurgleFollower, [sourceCombattant(marked)])).toBeNull();
   });
 
   it('Réciproque : INERTE chez un disciple de Nurgle immunisé (`isPsychImmune` court-circuite `encounterPsych` avant `targetedTrigger`)', () => {
@@ -78,7 +78,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
     } as unknown as Combatant;
     const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
     expect(isPsychImmune(immuneNurgleFollower)).toBe(true);
-    expect(encounterPsych(immuneNurgleFollower, [marked])).toBeNull(); // Animosité posée mais jamais testée
+    expect(encounterPsych(immuneNurgleFollower, [sourceCombattant(marked)])).toBeNull(); // Animosité posée mais jamais testée
   });
 
   it('Statbloc Nurgle (Fr\'hough Mournbreath, LDB 84 l.53) : Animosité (Tzeentch) portée là où elle peut se déclencher — sans Immunité (Psychologie)', () => {

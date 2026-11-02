@@ -365,6 +365,8 @@ export interface Scene {
   startMessage?: z.infer<typeof messageIntroductionSchema>;
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
+  /** Groupes que porte le lieu (ids de `groups.json`), source psychologique de la scène (`etiquetteDeScene`). #3045 */
+  groups?: string[];
 }
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;

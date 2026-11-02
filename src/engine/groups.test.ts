@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf, racesDe, selonLOrdreDesGroupes } from './groups';
-import { targetedTrigger } from './psychology';
+import { targetedTrigger, sourceCombattant } from './psychology';
 import type { Combatant } from './types';
 import { creatures, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
 import { resetData, setDataset } from '../data/overrides';
@@ -47,13 +47,13 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     const dissimule = { id: 'v-1', name: 'Vampire', kind: 'enemy', groups: [], traits: cache } as unknown as Combatant;
     expect(groupesDe(dissimule)).toEqual(['mort-vivant']); // le Groupe EXISTE bien sur le porteur
     expect(hiddenGroupsOf(dissimule)).toEqual(['mort-vivant']); // …mais il est masqué
-    expect(targetedTrigger(chasseur, [dissimule])).toBeNull();
+    expect(targetedTrigger(chasseur, [sourceCombattant(dissimule)])).toBeNull();
 
     // Marque levée : le même Groupe redevient visible et la Haine se déclenche.
     const vu = [{ id: 'mort-vivant' }];
     const revele = { ...dissimule, traits: vu } as unknown as Combatant;
     expect(hiddenGroupsOf(revele)).toEqual([]);
-    expect(targetedTrigger(chasseur, [revele])).toEqual({ type: 'haine', cible: ciblePsy.groupe('mort-vivant'), sourceId: 'v-1', indice: undefined });
+    expect(targetedTrigger(chasseur, [sourceCombattant(revele)])).toEqual({ type: 'haine', cible: ciblePsy.groupe('mort-vivant'), sourceId: 'v-1', indice: undefined });
   });
 
   it('classe « Roublards » → Groupe « criminel » auto-dérivé (Épée de justice / Traits psy ciblés)', () => {

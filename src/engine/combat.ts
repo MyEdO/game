@@ -29,7 +29,7 @@ import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
-import { isPsychImmune, psychImmuneToFrom, sousPeur, vise } from './psychology';
+import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
@@ -762,7 +762,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
   // Peur ANNULÉE si une affliction active immunise l'attaquant à ce CANAL (Haine vs son groupe l.41,
   // Amour l.75 dont l’`active` porte déjà « tant que vous défendez ») — siège UNIQUE `psychImmuneToFrom`,
   // partagé avec `fearSourceFor` et la porte hors combat : un seul verdict, aucun roster requis ici.
-  const fearCancelled = psychImmuneToFrom(attacker, target, 'peur');
+  const fearCancelled = psychImmuneToFrom(attacker, sourceCombattant(target), 'peur');
   // Chaque état psy porte sa contribution `attackDR` (±1) + son ciblage `vs` en DONNÉES — plus de ±1 ni de
   // type (`peur`/`haine`/…) codé par-nom : un nouvel état psy (Phobie…) déclare son DR dans le JSON.
   let dr = 0;
@@ -772,7 +772,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
     const applies = adr.vs === 'source'
       ? p.sourceId === target.id && sousPeur(p)
       : adr.vs === 'group'
-        ? !!p.active && !!p.cible && vise(p.cible, { genre: 'combattant', c: target }, 'appartenance', attacker) // LDB 21 l.41 ; #3045
+        ? !!p.active && !!p.cible && vise(p.cible, sourceCombattant(target), 'appartenance', attacker) // LDB 21 l.41 ; #3045
         : !!p.active; // 'any' : Amour/Camaraderie (défense), dès lors qu'actif
     if (!applies || (adr.amount < 0 && fearCancelled)) continue; // malus de Peur effacé par Haine/Amour
     dr += adr.amount;

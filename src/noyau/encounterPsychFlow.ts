@@ -19,9 +19,10 @@ import { Scene } from './monde/scene';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { etiquetteDeScene } from './monde/porteurs';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
-import { cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
+import { cibleLabel, idDeSource, libelleDeSource, sourceCombattant, type SourceEnVue, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
@@ -107,7 +108,7 @@ const psychBands = makeBandFactory<PsychDue>({
 
 /** Ouvre la CASCADE des Tests de Psychologie de rencontre dus (hors combat) — une BANDE par entrée de
  *  règle, une RANGÉE par héros concerné. No-op en combat, si une cascade est déjà ouverte, ou sans
- *  scène/PNJ. Auto-appelé à l'entrée de scène. */
+ *  scène ni source (PNJ, étiquette de la scène). Auto-appelé à l'entrée de scène. */
 export function openEncounterPsych(get: Get, set: Set): void {
   if (get().battle) return;
   // BORNE DE RENCONTRE (LDB 21 l.9) : entrer dans une scène CLÔT la rencontre précédente — les afflictions
@@ -120,7 +121,8 @@ export function openEncounterPsych(get: Get, set: Set): void {
   const s = get();
   if (s.pendingCascade || !s.scene) return;
   const npcs = sourcesDeLaScene(s);
-  if (!npcs.length) return;
+  const sources: SourceEnVue[] = [...npcs.map(sourceCombattant), ...etiquetteDeScene(s.scene)];
+  if (!sources.length) return;
   // …PUIS le verdict « tant que vous défendez les êtres aimés » (l.75) sur ce qui a SURVÉCU à la borne
   // (pose authorée d'un Amour, Peur héritée) : le roster de la rencontre est le groupe + les PNJ présents.
   // Ordre imposé : après la borne, sinon le refresh ne verrait que ce qu'elle vient d'effacer.
@@ -129,18 +131,18 @@ export function openEncounterPsych(get: Get, set: Set): void {
   const dues: PsychDue[] = [];
   for (const hero of get().party) {
     if (hero.dead) continue;
-    const trig = encounterPsych(hero, npcs);
+    const trig = encounterPsych(hero, sources);
     if (!trig) continue;
-    const src = npcs.find((n) => n.id === trig.sourceId);
-    if (!src) throw new Error(`[psychologie] la source « ${trig.sourceId} » du Test de ${hero.label} n'est pas un PNJ présent`);
+    const src = sources.find((n) => idDeSource(n) === trig.sourceId);
+    if (!src) throw new Error(`[psychologie] la source « ${trig.sourceId} » du Test de ${hero.label} n'est pas une source présente`);
     const cl = estCibleType(trig.kind) ? cibleLabel(trig.kind) : null;
     dues.push({
       hero, sansPeur: sansPeurFace(hero, trig.kind, src),
-      decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
+      decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: libelleDeSource(src), indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
         ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
-        : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(src?.label, '?')),
+        : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(libelleDeSource(src), '?')),
     });
   }
   const steps = psychBands(dues);

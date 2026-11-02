@@ -54,7 +54,7 @@ import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEf
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
-import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
+import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
  *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
@@ -2204,6 +2204,13 @@ function SceneProps({
             ))}
           </select>
         </label>
+        <ListeDIds
+          noeud={sceneSchema.shape.groups}
+          label="Groupes du lieu"
+          title="Source de Peur ou de Haine des personnages dont un Trait vise l’un de ces Groupes"
+          value={scene.groups}
+          onChange={(groups) => setScene({ ...scene, groups })}
+        />
         <MusicSelect
           label="Musique (ambiance)"
           value={scene.music?.ambient}
