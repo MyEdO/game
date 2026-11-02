@@ -164,7 +164,7 @@ function construireScene(): Scene {
             },
           },
           {
-            pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'howl',
+            pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'howling',
             label: 'Mikael',
             statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
           },

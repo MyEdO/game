@@ -75,6 +75,10 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
  */
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
 
+/** Les rôles d'animation d'ambiance d'une entité de scène. */
+export const roleAmbiantSchema = enumNomme({ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' });
+export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
+
 /** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
  *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
 export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
@@ -709,9 +713,7 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
 export const shipLocationSchema = z.enum(['cargaison', 'greement', 'coque', 'avirons', 'equipements', 'gouvernail', 'superstructure']);
 
-/** Localisation qui encaisse un coup à l'Équipage quand PERSONNE n'est exposé (`MDG 13 l.584` RAW ;
- *  `MSRC 07 l.70`, arbitrage `maison` du choix que le livre laissait au MJ) — déclarée ICI une fois :
- *  `ship-criticals` et `river-criticals` la LISENT, aucun ne la réécrit. */
+/** MDG 13 l.584 ; MSRC 07 l.70 */
 export const replisSansExposeSchema = nommerChamps(z.strictObject({
   cible: shipLocationSchema,
   maison: maisonSchema.optional(),

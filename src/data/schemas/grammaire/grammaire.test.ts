@@ -14,7 +14,6 @@ import { z } from 'zod';
 import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
-import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
 import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
@@ -22,7 +21,7 @@ import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { DescRef as DescRefParseur } from '../../source/decoupe';
-import { ref, refs, specRef, refOuSpec, pick, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
+import { ref, refs, specRef, refOuSpec, pick, tirageSurTable, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
 import { byId, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
@@ -38,7 +37,6 @@ type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string
 const UNE_COMPETENCE = skillsJson[0] as { id: string };
 const UNE_COMPETENCE_GROUPEE = (skillsJson as EntreeASpecs[]).find((s) => s.specs?.length)!;
 const UN_TALENT_A_SPECS = (talentsJson as EntreeASpecs[]).find((t) => t.specs?.length)!;
-const UNE_TABLE = tablesJson[0] as { id: string };
 const declareDesSpecs = (e: EntreeASpecs) => !!(e.specs?.length || e.specsSource);
 
 const SOURCE_REELLE = { book: 'livre-de-base', page: 118 };
@@ -1064,11 +1062,11 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
     expect(refs('skill').safeParse([UNE_COMPETENCE.id, 'inconnu']).success).toBe(false);
   });
 
-  it('`pick()` accepte « n parmi » et le tirage sur table, jamais les deux', () => {
+  it('les choix et tirages composent leurs propres références', () => {
     const p = pick('skill');
     expect(p.safeParse({ pick: 1, of: [{ id: UNE_COMPETENCE.id }] }).success).toBe(true);
-    expect(p.safeParse({ pick: 1, table: { id: UNE_TABLE.id } }).success).toBe(true);
-    expect(p.safeParse({ pick: 1, of: [{ id: UNE_COMPETENCE.id }], table: { id: UNE_TABLE.id } }).success).toBe(false);
+    expect(tirageSurTable(z.enum(['rencontre'])).safeParse({ pick: 1, table: 'rencontre' }).success).toBe(true);
+    expect(p.safeParse({ pick: 1, of: [{ id: UNE_COMPETENCE.id }], table: 'rencontre' }).success).toBe(false);
     expect(p.safeParse({ pick: 1 }).success).toBe(false);
     expect(p.safeParse({ pick: 1, of: [] }).success).toBe(false);
   });
@@ -1079,7 +1077,6 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
     expect(p.safeParse({ pick: 1, of: [{ id: UNE_COMPETENCE_GROUPEE.id, spec: UNE_COMPETENCE_GROUPEE.specs![0].id }] }).success).toBe(true);
     expect(p.safeParse({ pick: 1, of: [{ id: UNE_COMPETENCE_GROUPEE.id, choix: true }] }).success).toBe(true);
     expect(p.safeParse({ pick: 2, of: [{ id: UNE_COMPETENCE.id }, { id: UNE_COMPETENCE_GROUPEE.id, choix: UNE_COMPETENCE_GROUPEE.specs!.slice(0, 2).map((e) => e.id) }] }).success).toBe(true);
-    expect(p.safeParse({ pick: 1, of: [{ id: UNE_COMPETENCE.id }, { pick: 1, table: { id: UNE_TABLE.id } }] }).success).toBe(true);
     expect(
       p.safeParse({
         pick: 1,

@@ -10,7 +10,7 @@ import { Combatant, Weapon } from './types';
 import { oupsTable, oupsMisfire, OupsKind } from '../data/oups';
 import { isFirearmQuality, hasQuality, isUnbreakable } from './qualities/dispatch';
 import { solideSaveThreshold, sauvegardeImperdable } from './weaponDamage';
-import { TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from './artilleryMisfire';
+import { TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from './artilleryMisfire';
 import type { DemandeDe } from './ops';
 import { formatWardSave, type SourceDeSauvegarde } from './traits/dispatch';
 import { t } from '../i18n';
@@ -110,7 +110,7 @@ export function desDOups(c: Combatant, weapon: Weapon, r: OupsResolved): Demande
   const out: DemandeDeCasse[] = [];
   const indice = casseSurMaladresse(weapon, r) ? seuilSolide(c, weapon) : null;
   if (indice != null) out.push(deSolide(CLE_SOLIDE, indice, weapon.label));
-  if (r.kind === 'misfire' && hasQuality(weapon, 'salve')) out.push({ cle: 'salve-table', spec: D10_SALVE_MISFIRE, libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
+  if (r.kind === 'misfire' && hasQuality(weapon, 'salve')) out.push({ cle: 'salve-table', spec: DE_SALVE_MISFIRE, libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
   return out;
 }
 

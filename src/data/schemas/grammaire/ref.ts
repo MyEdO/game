@@ -30,16 +30,7 @@ export interface DeclarationDeType {
   readonly catalogue: string;
 }
 
-/**
- * Types d'entité déclarés à la grammaire. La liste est celle des concepts que les lots L2/L3 du
- * chantier migrent (Compétence, puis Talent/Trait/Objet/Sort/Créature/Véhicule/Structure, +
- * Carrière et Trait NAVAL au L-gram-2 #1463) + la TABLE, cible de `pick({ table })`, + la MATIÈRE du
- * monde (#1686), premier type dont l'espace est DISCRIMINÉ (`idDe('material', 'prop')`), + le
- * TERRAIN et le DÉCOR (#1690 : `layer.tiles` résout un terrain, `terrains › overlayProp` un décor),
- * + l'ESPÈCE (#1520 : `pregens.json › species`), + la RÈGLE de jeu, la QUALITÉ, la CARACTÉRISTIQUE et la
- * PANNE de navire à vapeur (#2820 : le FOYER d'un enjeu, `refTypee`, désigne aussi ces espaces).
- * Un type s'ajoute avec le lot qui le migre, jamais « au cas où ».
- */
+/** Types d'entité référencés par les schémas, avec leur espace d'ids et leur catalogue. */
 export const TYPES = {
   skill: { espace: 'skills.json', catalogue: 'compétences' },
   talent: { espace: 'talents.json', catalogue: 'talents' },
@@ -851,7 +842,7 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  * Une entrée de `of` est l'UNION des trois façons de désigner une option : référence nue `ref(type)`,
  * référence à spécialisation `specRef(type)` (`{id, spec}` XOR `{id, choix}`, validée contre le pool
  * de l'entrée À TRAVERS l'`of`), ou un `pick` IMBRIQUÉ (un « n parmi » dont une option est elle-même
- * un choix, y compris un tirage sur table). La récursion se referme sur le nœud LUI-MÊME (`noeud`).
+ * un choix). La récursion se referme sur le nœud LUI-MÊME (`noeud`).
  *
  * `optionsDuPorteur` ouvre l'`of` aux formes que le PORTEUR admet en plus des trois ci-dessus —
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
@@ -859,10 +850,7 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  */
 export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
   const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
-  const noeud: z.ZodType<unknown> = z.union([
-    marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of'),
-    tirageSurTable(ref('table')),
-  ]);
+  const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }
 
@@ -871,8 +859,7 @@ const nombreDeTirages = (): z.ZodNumber => z.number().int().positive();
 
 /**
  * Tirage sur table : `{ pick, table }` — `pick` tirages sur la table que désigne `table`, le nœud de
- * référence que le PORTEUR déclare (`ref('table')` pour `pick`, un registre de tirage ailleurs). La branche
- * de `pick`, et la SEULE graphie d'un tirage sur table de la grammaire.
+ * référence que le PORTEUR déclare.
  */
 export function tirageSurTable<T>(table: z.ZodType<T>): z.ZodType<{ pick: number; table: T }> {
   return marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), table }), { pick: { label: "sélection" }, table: { label: "table" } }), 'pick', 'table', { table });

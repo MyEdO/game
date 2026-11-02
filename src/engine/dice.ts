@@ -93,6 +93,13 @@ export function parseDice(s: string): DiceSpec | null {
   return dc;
 }
 
+/** Dé authoré requis, avec le chemin du champ dans le diagnostic. */
+export function parseDiceRequired(s: string, champ: string): DiceSpec {
+  const de = parseDice(s);
+  if (!de) throw new Error(`${champ} invalide : ${s}`);
+  return de;
+}
+
 /** Évalue une expression de dés signée (« 1d10+15 », « 2d10 », « d10 », « 15 », « 1d6-1 ») → total
  *  tiré. Termes additionnés ; « NdM » roule N dés à M faces (N implicite = 1). PUR (RNG injecté). */
 export function rollExpr(expr: string, rng: RNG): number {

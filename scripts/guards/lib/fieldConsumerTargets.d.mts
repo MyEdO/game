@@ -5,4 +5,5 @@ export interface FieldTarget {
 }
 
 export const TARGETS: FieldTarget[];
+export const LIENS_SCHEMA_TYPES: FieldTarget[];
 export function fieldsOf(schema: unknown): string[];

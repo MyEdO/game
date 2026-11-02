@@ -22,8 +22,8 @@
  *
  * ENTRÉES : `src/data/donnees.manifest.json` (la seule donnée lue et écrite).
  *
- * FORME D'AVANT SEULE : seule une rubrique SANS `id` reçoit le sien, et la note ne se déplace que tant
- * que `narratifNote` est à la racine ; une rubrique absente, déjà migrée ou révisée après la migration est
+ * FORME D'AVANT SEULE : tant que `narratifNote` est à la racine, une rubrique SANS `id` reçoit le sien
+ * et la note se déplace ; une rubrique absente, déjà migrée ou révisée après la migration est
  * laissée telle quelle ; rejouée sur l'état final, la migration n'écrit rien et sort 0.
  * FAIL-FAST : rubrique sans `id` au libellé inconnu de la table, collision d'ids posés, note de racine
  * sans porteuse ou de forme inattendue → rien n'est écrit, sortie 1.
@@ -65,7 +65,7 @@ const echecs = [];
 const migres = [];
 const dejaMigres = [];
 
-if (Array.isArray(data.rubriques)) {
+if (Array.isArray(data.rubriques) && data.narratifNote !== undefined) {
   data.rubriques = data.rubriques.map((r, i) => {
     if (r.id !== undefined) {
       dejaMigres.push(r.id);

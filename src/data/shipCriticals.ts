@@ -1,8 +1,11 @@
 import shipCriticalsJson from './ship-criticals.json';
+import { parseDiceRequired, type DiceSpec } from '../engine/dice';
 import riverCriticalsJson from './river-criticals.json';
 import type { ShipLocation } from '../engine/combat';
 import type { GameOp, Formula } from '../engine/ops';
 import type { FlowTestNode } from '../engine/flowCore';
+
+const deMaritime = parseDiceRequired(shipCriticalsJson.die, 'ship-criticals.die');
 
 /** QUI encaisse un coup à l'ÉQUIPAGE — les trois désignations imprimées : l'équipage d'une pièce
  *  (`MDG 13 l.763`), la ou les PRÉSENCES à bord (`ship-stations.json` — `MDG 13 l.680/l.714/l.730/
@@ -98,6 +101,7 @@ export const SHIP_CRITICAL_TABLES = {
  *  (chaque jeu ne couvre QUE ses Localisations — MDG couvre cargaison/équipements, MSRC gouvernail/
  *  superstructure ; la table de Localisation appariée ne produit jamais une clé absente du jeu). */
 export interface ShipCritSet {
+  die: DiceSpec | null;
   /** id STABLE du jeu — la valeur que porte `hull.criticalTable`. */
   id: string;
   /** Effet des Éclats — le SEUL jeu qui en porte est MDG (mot-clé « Éclats N », ch.13) ; MSRC ne
@@ -107,7 +111,7 @@ export interface ShipCritSet {
   /** Localisation qui encaisse un coup à l'Équipage quand PERSONNE n'est exposé — `MDG 13 l.584`
    *  (« le coup touche la Coque », RAW) et `MSRC 07 l.70` (le livre laisse le choix au MJ ; il n'y a
    *  pas de MJ, l'arbitrage est AUTHORÉ et éditable). Le coup n'est jamais abandonné. */
-  replisSansExpose: { cible: ShipCritKey };
+  replisSansExpose: { cible: ShipCritKey; maison?: string };
   /** Tables de hauteur de CHUTE que ce jeu imprime (`MDG 13 l.678-688`) — le fleuve n'en a aucune. */
   tablesDeChute?: FallHeightTable[];
   tables: Partial<Record<ShipCritKey, ShipCritTable>>;
@@ -116,8 +120,9 @@ export interface ShipCritSet {
 /** Jeu MDG (mer, ch.13) — Éclats 9 Dégâts. */
 export const SHIP_CRIT_SET: ShipCritSet = {
   id: shipCriticalsJson.id,
+  die: deMaritime,
   shrapnelHit: SHRAPNEL_HIT,
-  replisSansExpose: shipCriticalsJson.replisSansExpose as { cible: ShipCritKey },
+  replisSansExpose: shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
   tablesDeChute: shipCriticalsJson.tablesDeChute as FallHeightTable[],
   tables: SHIP_CRITICAL_TABLES,
 };
@@ -125,7 +130,8 @@ export const SHIP_CRIT_SET: ShipCritSet = {
 /** Jeu MSRC (fleuve, ch.5) — Éclats +5 Dégâts, Localisations Gréement/Rames/Gouvernail/Coque/Superstructure. */
 export const RIVER_CRIT_SET: ShipCritSet = {
   id: riverCriticalsJson.id,
-  replisSansExpose: riverCriticalsJson.replisSansExpose as { cible: ShipCritKey },
+  die: null,
+  replisSansExpose: riverCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
   tables: riverCriticalsJson.tables as unknown as Partial<Record<ShipCritKey, ShipCritTable>>,
 };
 

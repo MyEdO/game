@@ -7,6 +7,7 @@
  */
 import type { CharKey, Difficulty } from './types';
 import type { GameOp } from './ops';
+import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 
 /** Les clés de CODE des tables de séquence (`src/noyau/sequenceCore.ts`, part TOTALE sur chaque liste) :
  *  la donnée n'en nomme pas d'autre. Ce qui indexe est le nom d'un EFFET, jamais l'identité d'une
@@ -251,7 +252,7 @@ export interface SequenceSide {
  * ici, avec ce qu'elle coûte quand elle échoue et le RYTHME auquel ce coût se paie. */
 export interface SequenceCombinedRules {
   /** La SECONDE valeur confrontée au même dé (Compétence ou Caractéristique). */
-  second: { skill?: string; spec?: string; char?: CharKey };
+  second: { skill?: RefASpecialisation; char?: CharKey };
   /** Tous les combien d'échecs de la SECONDE lecture les `ops` se paient (`NADJ 16 l.90` : « Pour
    *  chaque 3 Tests d'Initiative auxquels vous échouez »). 0/absent : à chaque échec. */
   failEvery?: number;
@@ -266,8 +267,6 @@ export interface SequenceCombinedRules {
    *  nomme aucun État). Cerevis l.88 : « peuvent envoyer même les buveurs les plus chevronnés rouler
    *  sous la table ». */
   stopCondition?: string;
-  /** TOURS de la partie. ARBITRAGE MAISON ÉDITABLE : la source ne dit PAS quand la partie s'arrête
-   *  (`l.90` s'achève sur le Tableau Ivre) — ce nombre est de la donnée, jamais du RAW. */
   tours?: number;
 }
 
@@ -279,7 +278,7 @@ export interface SequenceCombinedRules {
 export interface SequenceThrowerPenalty {
   /** Le Test que doit passer le lanceur qui a manqué (« un Test de **Résistance à l'alcool
    *  Intermédiaire (+0)** », `NADJ 16 l.111`). */
-  test: { skill?: string; spec?: string; char?: CharKey };
+  test: { skill?: RefASpecialisation; char?: CharKey };
   difficulty: Difficulty;
   /** Intitulé du geste qui accompagne ce Test — AFFICHAGE (« Descendre une pinte »). */
   label?: string;
