@@ -96,6 +96,8 @@ const NOMMES = [
   'arriere|lateral|face',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
   'ridge|facade|front',
+  // `retestAt` (psychology, #1463) : le moment du re-test d'une affliction ciblée active.
+  'roundStart|roundEnd',
   'tete|bras|corps|jambe',
   'toute|khorne|nurgle|slaanesh|tzeentch',
   'vue|ouie',

@@ -11,15 +11,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * GOLDEN du CYCLE DE TOUR ENNEMI (phase `turnStart`) : fige byte-pour-byte la séquence de début de
- * tour de `runEnemyAI` (fin de Frénésie → Rage → tentative de Frénésie IA → psychologie), AVANT le
- * test Stupide inline et l'action IA. Ces 4 étapes, hooks `turnStart` ordonnés, DOIVENT garder ce
- * snapshot identique (ordre + tirages RNG préservés).
+ * tour de `runEnemyAI` (Rage → tentative de Frénésie IA), AVANT le test Stupide inline et l'action IA.
+ * Ces hooks `turnStart` ordonnés DOIVENT garder ce snapshot identique (ordre + tirages RNG préservés).
  *
- * - Ennemi RAGE (Rage + Avantage ≥ 3) → entre en Frénésie SANS RNG (journal), puis devient
- *   immunisé à la Psychologie → resolvePsychAI no-op (verrouille la dépendance d'ordre RAW :
- *   Frénésie/Rage AVANT la psychologie).
- * - Ennemi PEUR (source de Peur en Ligne de Vue, pas de Frénésie) → resolvePsychAI consomme le RNG
- *   et journalise.
+ * - Ennemi RAGE (Rage + Avantage ≥ 3) → entre en Frénésie SANS RNG (journal).
+ * - Ennemi PEUR (source de Peur en Ligne de Vue) → rien au début de SON tour : la psychologie de combat
+ *   se joue aux passes de Round (LDB 21 l.9, l.25).
  * Pour chaque ennemi, on capture les lignes de journal produites par la portion synchrone de début
  * de tour + la position du RNG (`battleRng().int(1,100)`) juste après.
  */
@@ -71,9 +68,7 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
 
     expect({ rageLines, fearLines, rngProbe }).toMatchInlineSnapshot(`
       {
-        "fearLines": [
-          "fear:Mutant a peur de H.",
-        ],
+        "fearLines": [],
         "rageLines": [
           "frenzy:Mutant entre dans une rage dévorante (Frénésie) !",
         ],

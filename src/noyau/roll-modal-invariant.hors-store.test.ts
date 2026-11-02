@@ -96,12 +96,11 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
   { file: 'combatFlow', fn: 'ecrireLaMaladresse', pred: /jetSurfaced/ },
   { file: 'combatFlow', fn: 'openRoundEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 2 : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'openCombatEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 5c : la SURFACE, pas l'affordance locale
-  { file: 'combatFlow', fn: 'openCombatPsychCascade', pred: /surfaceOf/ }, // #1262 V1 lot 5c : idem
+  { file: 'combatFlow', fn: 'passeDePsy', pred: /surfaceRow/ }, // #1262 V1 lot 5c : idem ; LDB 21 l.9, l.25
   { file: 'combatFlow', fn: 'applySurprise', pred: /surfaceOf/ }, // #1262 V1 lot 5c : le guetteur d'un autre siège entre dans la bande
   { file: 'combatFlow', fn: 'approachFearTrigger', pred: /surfaceOf/ }, // #1262 V1 lot 5c : idem pour le craintif
   { file: 'roundHooks', fn: 'collectHeroRoundEndUpkeep', pred: /surfaceOf/ }, // #1262 V1 lot 2
   { file: 'turnHooks', fn: 'resolveActGates', pred: /surfaceOf/ }, // #1262 V1 : la SURFACE, pas l'affordance locale
-  { file: 'turnHooks', fn: 'resolvePsychAI', pred: /aiDriven/ },
   { file: 'triggeredTest', fn: 'resolveFlowTest', pred: /surfaceOf/ }, // #1262 V1 lot 3 : la SURFACE, pas l'affordance locale
   { file: 'triggeredTest', fn: 'resolveFlowChoice', pred: /surfaceOf/ }, // #1262 V1 lot 3 : décider revient au siège du décideur
   { file: 'triggeredEffects', fn: 'applyTriggeredEffects', pred: /surfaceOf/ }, // #1262 V1 lot 2 (voie `deferInteractiveTest`) + lot 3 (l'opt-in)

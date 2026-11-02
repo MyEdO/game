@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { resolvePsychAI, fireTurnStartTriggers } from './combat/turnHooks';
+import { fireTurnStartTriggers } from './combat/turnHooks';
+import { openRoundStartPsych } from './combatFlow';
 import { isFrenzied } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -37,7 +38,7 @@ describe('Frénésie — immunité psy & fin (→ Exténué)', () => {
     H.size = 'enorme'; // Terreur 2
     (E.psychState ??= []).push({ type: 'frenesie' });
     E.characteristics['force-mentale'] = 10;
-    resolvePsychAI(banc.getState, banc.setState, E);
+    openRoundStartPsych(banc.getState, banc.setState);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.conditions.some((c) => c.id === 'brise')).toBe(false);
     expect(e.psychState ?? []).toEqual([{ type: 'frenesie' }]); // aucune Peur ajoutée (immunisé), la Frénésie demeure

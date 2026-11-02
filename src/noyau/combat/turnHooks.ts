@@ -5,36 +5,27 @@
  * `lineOfSight`, `battleRng`, `cascade`, `rollSeam` — ce dernier porte la PORTE d'ouverture de jet
  * (`surfaceOf`, `pushMono`, `choiceStep`, #1262).
  *
- * DÉPENDANCE D'ORDRE RAW (commentée à l'origine dans `runEnemyAI`, encodée ici par `order`) : fin de
- * Frénésie (10) → Rage (20) → tentative de Frénésie IA (30) AVANT la psychologie (40) — la Frénésie
- * rend immunisé au test psy, donc elle doit être résolue d'abord. Le golden `turnStart.golden.hors-store.test.ts`
- * fige l'ordre + les tirages RNG byte-pour-byte.
+ * Ordre encodé par `order` : Rage (20) → tentative de Frénésie IA (30). La psychologie de combat se joue aux
+ * passes de Round (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25), pas ici. Le golden
+ * `turnStart.golden.hors-store.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
  *
  * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en
  * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
  */
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
-import { ev, evLines } from '../combatLog';
-import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/conditions';
-import { subirLaTerreur } from '../cibleAcquise';
+import { ev } from '../combatLog';
+import { isOutOfAction, combatTestPenalty } from '../../engine/conditions';
 import { rawCombatTestBase, testValue } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
-import { inBattleId } from '../monde/combatants';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
-import { mountMovement, riderFearSize } from '../mount';
-import { sourcesEnVue } from '../monde/porteurs';
-import { nomDIndividu } from '../monde/sceneNpc';
-import {
-  fearSourceFor, sansPeurVs, issueDePeur, sansPeurLabel, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
-  resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, psychResolution,
-  sousPeur, indiceDePeur, vise,
-} from '../../engine/psychology';
-import { ciblePsy, estCibleType, libelleDeCible } from '../../engine/psych/ciblage';
-import { psychologyLabel, combatStakeRef } from '../../data';
-import { isColdBlooded, hasRage } from '../../engine/traits/dispatch';
+import { mountMovement } from '../mount';
+import { isFrenzyCapable, isFrenzied, resolveFrenzyEntry, vise } from '../../engine/psychology';
+import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
+import { combatStakeRef } from '../../data';
+import { hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
 import { aiDriven } from '../netOwnership';
 import { t } from '../../i18n';
@@ -145,88 +136,9 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   }
 }
 
-/** Psychologie d'un ENNEMI (IA) au début de son tour (LDB 21) : teste Peur/Terreur des sources
- *  en Ligne de Vue. Terreur ratée → Brisé ; Peur → Test étendu de Calme (cumul). Instantané
- *  et JOURNALISÉ (pas de modale/révélation pour l'IA — le joueur voit l'État Brisé). */
-export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
-  if (!aiDriven(get(), enemy) || isOutOfAction(enemy)) return;
-  const battle = get().battle;
-  const scene = get().scene;
-  if (!battle || !scene || !enemy.pos) return;
-  // Belliqueux (LDB 85 l.51) : « Tant qu'elle a plus d'Avantages que son adversaire, elle gagne Immunité
-  // Psychologique ». « Son adversaire » se lit à l'Engagement, jamais au camp : le lien Engagé est posé par
-  // la résolution d'une attaque de mêlée et SYMÉTRIQUE (LDB 13 l.169-171) — un Engagé de son propre camp
-  // est donc son adversaire de fait, comme pour la Peur de Taille (`agressifEnvers`).
-  const engagedFoesAdv = (enemy.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((e): e is Combatant => !!e && !isOutOfAction(e))
-    .map((e) => e.advantage ?? 0);
-  if (isPsychImmune(enemy, engagedFoesAdv.length ? Math.max(...engagedFoesAdv) : undefined)) return; // Immunité (Psychologie) / Frénésie / Détermination temp / Belliqueux
-  enemy.psychState ??= [];
-  const log: string[] = [];
-  // Nouvelles sources de peur/terreur en Ligne de Vue (non encore rencontrées).
-  for (const foe of sourcesEnVue(battle, scene, enemy, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
-    const src = fearSourceFor(enemy, foe, riderFearSize(battle, enemy)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
-    if (!src || enemy.psychState.some((p) => p.sourceId === foe.id)) continue;
-    const sansPeur = sansPeurVs(enemy, foe); // Sans Peur (Ennemi, LDB 10 l.1051) : Test de Calme +20 à la rencontre
-    const res = psychResolution(src.kind);
-    if (res.mode === 'terreur') {
-      const r = resolveTerreurTest(calmeValue(enemy), src.indice, battleRng(), isColdBlooded(enemy.traits), sansPeur); // À sang-froid : inverse un raté (LDB 85)
-      if (r.brise > 0 && res.failCondition) {
-        addCondition(enemy, res.failCondition, r.brise);
-        log.push(t('turn.terrified', { name: enemy.label, foe: foe.label, brise: r.brise }));
-        const phobie = subirLaTerreur(get, set, enemy, { etat: res.failCondition, nombre: r.brise }, foe);
-        if (phobie) log.push(phobie);
-      }
-      // Terreur → Peur à PLEIN Indice, quel que soit le résultat (LDB 21 l.56, #1190) ; surmontée
-      // d'emblée si Sans Peur a réussi (`peurSurmontee`, LDB 10 l.1051).
-      if (res.becomes) enemy.psychState.push({ type: res.becomes, sourceId: foe.id, indice: src.indice, calmeDR: 0, ...(r.peurSurmontee ? { surmontee: true } : {}), lastTestRound: battle.round });
-    } else if (sansPeur) {
-      // Sans Peur : UN seul Test de Calme Accessible (+20) à la rencontre ; réussi → Peur ignorée d'emblée.
-      const r = resolvePeurTest(calmeValue(enemy), src.indice, 0, battleRng(), isColdBlooded(enemy.traits), true);
-      enemy.psychState.push({ type: 'peur', sourceId: foe.id, indice: src.indice, calmeDR: r.calmeDR, ...(r.surmontee ? { surmontee: true } : {}), lastTestRound: battle.round });
-      const issue = issueDePeur(r, true);
-      log.push(issue === 'ignoree' ? t('turn.fearVanquished', { name: enemy.label, foe: foe.label, talent: sansPeurLabel() })
-        : issue === 'surmontee' ? t('turn.fearOvercome', { name: enemy.label }) : t('turn.fear', { name: enemy.label, foe: foe.label }));
-    } else {
-      enemy.psychState.push({ type: 'peur', sourceId: foe.id, indice: src.indice, calmeDR: 0, lastTestRound: battle.round });
-      log.push(t('turn.fear', { name: enemy.label, foe: foe.label }));
-    }
-  }
-  // Test ÉTENDU de Calme des Peurs portées (`sousPeur`) — UNE fois par Round.
-  for (const p of enemy.psychState) {
-    if (!sousPeur(p) || p.lastTestRound === battle.round) continue;
-    const r = resolvePeurTest(calmeValue(enemy), indiceDePeur(p), p.calmeDR ?? 0, battleRng(), isColdBlooded(enemy.traits)); // À sang-froid (LDB 85)
-    p.calmeDR = r.calmeDR;
-    p.lastTestRound = battle.round;
-    if (r.surmontee) {
-      p.surmontee = true;
-      log.push(t('turn.fearOvercome', { name: enemy.label }));
-    }
-  }
-  // ── Traits psy CIBLÉS (Animosité/Haine/… — LDB 21), instantané pour l'IA ──
-  const visible = [...sourcesEnVue(battle, scene, enemy, (v) => !isOutOfAction(v))];
-  for (const p of enemy.psychState) {
-    // Re-test (fin de Round) des afflictions ciblées actives, tant qu'un membre du groupe est visible.
-    if (!p.active || !estCibleType(p.type) || !p.cible || p.lastTestRound === battle.round) continue;
-    if (!visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', enemy))) continue;
-    p.lastTestRound = battle.round;
-    if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, psych: psychologyLabel(p.type) })); }
-  }
-  const tt = targetedTrigger(enemy, visible); // nouveau Trait ciblé déclenché par un membre du groupe visible
-  if (tt) {
-    const r = resolveCalmeSimple(calmeValue(enemy), battleRng());
-    enemy.psychState.push({ type: tt.type, cible: tt.cible, sourceId: tt.sourceId, active: !r.success, lastTestRound: battle.round });
-    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, psych: psychologyLabel(tt.type), groupe: libelleDeCible(tt.cible, nomDIndividu(get())) }));
-  }
-  // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant (Peur/…).
-  for (const tp of suppressSupersededPsych(enemy)) log.push(t('turn.psychSuperseded', { name: enemy.label, psych: psychologyLabel(tp) }));
-  if (log.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'fear', enemy.id)] } });
-}
-
 // ============================================================================================
 // Hooks `turnStart` : la séquence RAW de début de tour ennemi, migrée ISO-COMPORTEMENT depuis la tête
-// de `runEnemyAI`. Les `order` encodent la dépendance d'ordre (Frénésie/Rage AVANT la psychologie).
+// de `runEnemyAI`. Les `order` encodent la dépendance d'ordre.
 // Chaque `run()` appelle au RUNTIME la fonction/le bloc correspondant (pas de souci de cycle à l'import).
 // ============================================================================================
 
@@ -295,16 +207,10 @@ export const TABLES = {
       },
     },
     {
-      id: 'ai-maybe-frenzy', // l'IA tente d'entrer en Frénésie (LDB 21 l.31) AVANT le test psy (la Frénésie en rend immunisé)
+      id: 'ai-maybe-frenzy', // LDB 21 l.31
       phase: 'onTurnStart',
       order: 30,
       run: ({ get, set, self }) => { if (self) aiMaybeFrenzy(get, set, self); },
-    },
-    {
-      id: 'resolve-psych-ai', // Peur/Terreur de l'IA au début de son tour (instantané, journalisé)
-      phase: 'onTurnStart',
-      order: 40,
-      run: ({ get, set, self }) => { if (self) resolvePsychAI(get, set, self); },
     },
   ],
 } satisfies FragmentDeTables;

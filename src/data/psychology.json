@@ -249,6 +249,7 @@
       "amount": 1,
       "vs": "group"
     },
+    "retestAt": "roundEnd",
     "resolution": "binary",
     "test": {
       "skill": {
@@ -362,6 +363,7 @@
       "amount": 1,
       "vs": "group"
     },
+    "retestAt": "roundEnd",
     "resolution": "binary",
     "test": {
       "skill": {

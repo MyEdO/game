@@ -94,6 +94,14 @@ Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Ble
 aucune entité, §3) — elle ÉMET l'événement, elle n'est pas convertie en hook (un hook de phase ne porte pas
 le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution du Critique opposé).
 
+**Psychologie de combat — deux passes de Round, un collecteur par passe.** `collectRoundStartPsych` et
+`collectRoundEndPsych` (`noyau/combatFlow.ts`) énumèrent les Tests dus à tout combattant debout ;
+`passeDePsy` route chaque rangée par `surfaceRow` : surfacée, elle rejoint une bande de la cascade ; sinon
+son jet sans pilote est résolu sur-le-champ par la même `resolveCombatPsychRow` (patron
+`deferInteractiveTest`). Le moment dépend de l'entrée (`retestAt` de `psychology.json`), jamais du porteur ;
+aucun hook `onTurnStart` ne joue la psychologie. Le Round concerné voyage sur la déclaration de bande
+(`combatPsych.round`). `LDB 21 l.9`, `l.19`, `l.25`, `l.39`, `l.48`.
+
 **Reste à faire pour « un seul bus » complet** : #315 (exécuteur unique — `runPureFlowLines` à
 supprimer + garde de double-exécution).
 

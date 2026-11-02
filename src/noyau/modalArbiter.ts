@@ -106,8 +106,8 @@ export const MODAL_DEFS = [
   //  (CascadeModal → useDefenseJetProps) — `pendingDefense` coexiste comme porteur de données. La défense
   //  ET son Critique/Maladresse vivent dans UNE seule fenêtre. Owner = `actorId` (le défenseur) de l'étape.)
   // (La Psychologie, EN COMBAT comme À LA RENCONTRE, est une cascade à N étapes — une par héros — rendue
-  //  par `cascade`. Combat : Traits/Terreur au DÉBUT de Round (`openRoundStartPsych`), Peur à la FIN
-  //  (`openRoundEndCascade`). Rencontre : `openEncounterPsych` à l'entrée de scène.)
+  //  par `cascade`. Combat : passes de Round `openRoundStartPsych` / `openRoundEndCascade` (LDB 21 l.9,
+  //  l.25). Rencontre : `openEncounterPsych` à l'entrée de scène.)
   // (Le Désengagement est une étape `jet:'disengage'` de la cascade, rendue par `cascade` ci-dessous
   //  (`DisengageModal` bespoke) — `pendingDisengage` coexiste comme porteur de données/phases.)
   // « Au Contact » (LDB 62 l.176) : Test opposé de Corps à corps PUIS choix du vainqueur → vrai CHOIX

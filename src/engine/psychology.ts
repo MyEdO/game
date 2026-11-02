@@ -289,7 +289,7 @@ export function refreshAllDefendedPsych(all: Combatant[]): boolean {
  *  rencontre : ni l'affliction subie, ni le marqueur de Test réussi ne survivent à la suivante, où la même
  *  source se re-teste. Ne sont PAS balayés : les Traits POSSÉDÉS (`psychTraits`), les poses AUTHORÉES
  *  (op `beginPsych` d'un effet — elles suivent leur propre règle), et la Peur HÉRITÉE d'une Terreur, qui
- *  porte la mémoire « déjà affrontée » lue par `collectHeroRoundStartPsych` (LDB 21 l.54 : « pour la
+ *  porte la mémoire « déjà affrontée » lue par `collectRoundStartPsych` (LDB 21 l.54 : « pour la
  *  première fois », pas « une fois par scène »). Mute `c`, rend `true` s'il y avait quelque chose à clore.
  *  (En combat, la borne existe déjà : `carryOverState` ne reporte pas `psychState`.) */
 export function endEncounterPsych(c: Combatant): boolean {
@@ -420,7 +420,7 @@ export function peurTerreurFromSize(foe?: SizeCategory, self?: SizeCategory): { 
  * - Détermination « immunisé à Psychologie jusqu'à la fin du prochain Round » (LDB 17 l.59), via le
  *   compteur `psychImmuneRoundsLeft` (décrémenté au passage de Round) → l'immunité ne fait que RETARDER :
  *   à expiration, les déclencheurs/effets reprennent (sauf si la source est morte entre-temps).
- * Round-indépendant : utilisable autant dans les déclencheurs (collectHeroRoundStart/EndPsych…) que
+ * Round-indépendant : utilisable autant dans les déclencheurs (collectRoundStartPsych/collectRoundEndPsych…) que
  * dans les modificateurs purs (attackModifiers). Futurs Talents/effets d'immunité psy : ajouter ICI.
  */
 export function isPsychImmune(c: Combatant, foesMaxAdvantage?: number): boolean {
@@ -519,8 +519,7 @@ export function calmeValue(c: Combatant): number {
 }
 
 /** Un pas du Test ÉTENDU de Calme contre la Peur, depuis le DR cumulé `prevDR`. LDB 21 l.25 ;
- *  LDB 10 l.1051. Seule arithmétique de la Peur, partagée par l'IA (`resolvePeurTest`) et la bande des
- *  héros (`resolveCombatPsychRow`). */
+ *  LDB 10 l.1051. Seule arithmétique de la Peur (`resolveCombatPsychRow`). */
 export function pasDePeur(
   prevDR: number,
   r: { success: boolean; sl: number },
@@ -530,21 +529,6 @@ export function pasDePeur(
   if (sansPeur && r.success) return { calmeDR: Math.max(prevDR, indice), surmontee: true };
   const step = extendedTestStep(prevDR, r, indice, !!rule('test-extended-min-sl'));
   return { calmeDR: step.total, surmontee: step.done };
-}
-
-/** Un Round de Test ÉTENDU de Calme contre la Peur (LDB 21 l.25) : jette le Test, puis `pasDePeur`.
- *  `sansPeur` : Test Accessible (+20). LDB 10 l.1051 */
-export function resolvePeurTest(
-  calme: number,
-  indice: number,
-  prevDR: number,
-  rng: RNG,
-  coldBlooded = false, // À sang-froid (LDB 85 l.13) : inverse un Test de FM raté
-  sansPeur = false,
-): { dr: number; calmeDR: number; surmontee: boolean; roll: number; target: number; sl: number; success: boolean } {
-  const t = coldBloodedAdjust(rollTest(calme, psychTest('peur', sansPeur).difficulty, rng), coldBlooded);
-  const pas = pasDePeur(prevDR, t, indice, sansPeur);
-  return { dr: pas.calmeDR - prevDR, calmeDR: pas.calmeDR, surmontee: pas.surmontee, roll: t.roll, target: t.target, sl: t.sl, success: t.success };
 }
 
 /** Issue d'un pas de Peur, pour les deux camps : tenue, ignorée par Sans Peur réussi, ou surmontée par le
@@ -561,8 +545,7 @@ export function sansPeurLabel(): PlayerText {
   return refLabel('talents', { id: talent.id });
 }
 
-/** La Peur héritée d'une Terreur naît-elle surmontée ? LDB 21 l.56 ; LDB 10 l.1051. Une seule règle
- *  pour les héros (`psychBranchOps`) et l'IA (`resolveTerreurTest`). */
+/** La Peur héritée d'une Terreur naît-elle surmontée ? LDB 21 l.56 ; LDB 10 l.1051 */
 function peurHeriteeSurmontee(r: { success: boolean; sansPeur?: boolean }): boolean {
   return !!r.sansPeur && r.success;
 }
@@ -590,7 +573,7 @@ export function effectivePsychTraits(c: Combatant): PsychTrait[] {
   return all;
 }
 
-/** Premier Trait psy CIBLÉ de `self` déclenché ce Round : un membre du groupe `cible` est VISIBLE dans la
+/** Traits psy CIBLÉS de `self` déclenchés ce Round, un par Trait : un membre du groupe `cible` est VISIBLE dans la
  *  SITUATION que l'entrée déclare (`triggerOn`, `psychology.json`) et le trait n'est pas déjà en affliction
  *  active. Aucun filtre de CAMP : les textes ne parlent que du Groupe-Cible (Animosité LDB 21 l.19 « un
  *  groupe de personnes ou de créatures », Haine l.39, Préjugé l.45, Amour l.75, Camaraderie l.81).
@@ -603,7 +586,8 @@ export function effectivePsychTraits(c: Combatant): PsychTrait[] {
  *  (« un au choix ») est inerte. Pur.
  *  Un Trait déclaré `targetCauses` (Phobie, LDB 21 l.87) n'a PAS de Test propre : son objet est une source
  *  de Peur (`fearSourceFor`), et c'est le régime de la Peur qui l'ouvre — jamais une seconde bande. */
-export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number } | null {
+export function targetedTriggers(self: Combatant, visible: Combatant[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number }[] {
+  const out: { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number }[] = [];
   for (const tr of effectivePsychTraits(self)) {
     if (!tr.cible) continue; // « un au choix » → inerte
     const d = findPsychologyById(tr.type);
@@ -617,9 +601,14 @@ export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: 
         vise(tr.cible!, { genre: 'combattant', c: v }, 'percu', self) &&
         (!needsThreat || visible.some((a) => a.id !== self.id && agressifEnvers(a, v))),
     );
-    if (m) return { type: tr.type, cible: tr.cible, sourceId: m.id, indice: tr.indice };
+    if (m && !out.some((o) => identiteDeCiblage(o.type, o.cible) === identite)) out.push({ type: tr.type, cible: tr.cible, sourceId: m.id, indice: tr.indice });
   }
-  return null;
+  return out;
+}
+
+/** Le premier de `targetedTriggers`, pour la porte hors combat (`encounterPsych`). */
+export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number } | null {
+  return targetedTriggers(self, visible)[0] ?? null;
 }
 
 /** Test de Psychologie SIMPLE (Calme, Intermédiaire +0) d'un trait ciblé (LDB 21) : succès = résisté.
@@ -705,8 +694,12 @@ export function psychBranchOps(
     }
     // `becomes` SANS `fromTest` : la Peur héritée n'est pas l'affliction du Test, c'est la mémoire
     // « cette créature a déjà inspiré sa Terreur » (l.54) — elle traverse la borne de rencontre.
+    // Sans `lastTestRound` : seul un Test de la Peur l'estampille. LDB 21 l.25, l.56
     if (res.becomes) {
-      ops.push(opPsy.pose(res.becomes, { indice: stake.indice, calmeDR: 0, surmontee: peurHeriteeSurmontee(outcome), ...anchor }));
+      ops.push(opPsy.pose(res.becomes, {
+        indice: stake.indice, calmeDR: 0, surmontee: peurHeriteeSurmontee(outcome),
+        ...(stake.sourceId != null ? { sourceId: stake.sourceId } : {}),
+      }));
     }
     return ops;
   }
@@ -855,17 +848,3 @@ export function traumaOnImpossibleAmbition(
   return t.success ? { test } : { test, trait: { type: 'trauma' } };
 }
 
-/** Test de Terreur à la 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → Brisé = Indice + |DR négatifs| ;
- *  ensuite la créature cause une Peur de même Indice, quel que soit le résultat (`becomes`).
- *  `sansPeur` : Test Accessible (+20), et `peurSurmontee` (`peurHeriteeSurmontee`). LDB 10 l.1051 */
-export function resolveTerreurTest(
-  calme: number,
-  indice: number,
-  rng: RNG,
-  coldBlooded = false, // À sang-froid (LDB 85 l.13) : inverse un Test de FM raté
-  sansPeur = false,
-): { success: boolean; brise: number; peurSurmontee: boolean; roll: number; target: number; sl: number } {
-  const t = coldBloodedAdjust(rollTest(calme, psychTest('terreur', sansPeur).difficulty, rng), coldBlooded);
-  const brise = t.success ? 0 : failConditionAmount(psychResolution('terreur').failAmount, indice, t.sl);
-  return { success: t.success, brise, peurSurmontee: peurHeriteeSurmontee({ success: t.success, sansPeur }), roll: t.roll, target: t.target, sl: t.sl };
-}

@@ -40,18 +40,18 @@ describe('#1189 — psychBranchOps : l’arithmétique APPLIQUÉE est celle du m
     }
   });
 
-  it('la réussite n’inflige AUCUN État — seule la Peur héritée est posée (LDB 21 l.54/l.56, #1190)', () => {
+  it('la réussite n’inflige AUCUN État — seule la Peur héritée est posée (LDB 21 l.54/l.56, #1190) ; non estampillée : seul un Test de la Peur l’estampille (LDB 21 l.25, l.50)', () => {
     const c = hero();
     applyOps(c, psychBranchOps(terreur(5), { success: true, round: 3 }), { rng: desDuTest, sl: 2 });
     expect(c.conditions, 'la réussite n’exempte que de la Terreur, elle n’inflige rien').toEqual([]);
-    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false, lastTestRound: 3 }]);
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false }]);
   });
 
   it('l’échec pose l’État PUIS la MÊME Peur héritée, à plein Indice', () => {
     const c = hero();
     applyOps(c, psychBranchOps(terreur(5), { success: false, round: 3 }), { rng: desDuTest, sl: -2 });
     expect(briseOf(c)).toBe(7);
-    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false, lastTestRound: 3 }]);
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false }]);
   });
 });
 
@@ -89,7 +89,7 @@ describe('#1189 — UPSERT : un second Test contre la MÊME source ne dédouble 
     const c = hero([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 4 }]);
     applyOps(c, psychBranchOps(terreur(5), { success: false, round: 4 }), { rng: desDuTest, sl: -1 });
     expect(c.psychState).toHaveLength(1);
-    expect(c.psychState![0]).toEqual({ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false, lastTestRound: 4 });
+    expect(c.psychState![0]).toEqual({ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false });
   });
 
   it('Terreur re-testée sur une Peur SURMONTÉE : le cumul repart de zéro, donc la Peur aussi (LDB 21 l.25, l.56)', () => {

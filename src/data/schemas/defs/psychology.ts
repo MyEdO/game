@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 21 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
 import { mecaniqueDe, passifsDe } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -37,6 +37,7 @@ const doc = document(
     containedSocialMod: z.number().optional(),
     targetCauses: nommerChamps(z.strictObject({ kind: z.string(), indice: z.number() }), { kind: { label: 'Type' }, indice: { label: 'Indice' } }).optional(),
     triggerOn: z.enum(['encounter', 'threatened']).optional(),
+    retestAt: enumNomme({ roundStart: 'début du Round', roundEnd: 'fin du Round' }).optional(),
     /** ENJEU du Test de Psychologie (#1117 L2) — porté par l'ENTRÉE, pas par un gabarit de `kind` :
      *  les conséquences diffèrent d'une entrée à l'autre (`resolution`/`failCondition`/`failAmount`/
      *  `becomes`), donc un texte au `kind` serait tautologique. Patron `ActivityDef.stake` : l'entité
@@ -77,6 +78,7 @@ const doc = document(
       hint: 'L’objet visé devient, POUR LE PORTEUR, une source de Peur/Terreur de cet Indice (Phobie → Peur 1)',
     },
     triggerOn: { label: 'Déclenché par', hint: 'Rencontre ou menace' },
+    retestAt: { label: 'Re-test', hint: 'Moment du re-test d’une affliction active : début (défaut) ou fin de Round' },
     stake: { label: 'Enjeu' },
     stakeForm: { label: 'Forme de l’enjeu' },
     resolution: { label: 'Mode de résolution', hint: 'Étendu / Terreur / binaire' },

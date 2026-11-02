@@ -3603,9 +3603,8 @@ export function createCombatSlice(get: Get, set: Set) {
         result: null,
       } });
     },
-    // Psychologie de COMBAT (Peur/Terreur/Traits ciblés, LDB 21) : CASCADE de Round (Traits/Terreur au
-    // DÉBUT via openRoundStartPsych ; Peur — Test étendu — à la FIN via openRoundEndCascade), applier
-    // 'combatPsych', résolue par les handlers `cascade*`. La Détermination (LDB 17 l.59) est offerte
+    // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
+    // applier 'combatPsych', résolue par les handlers `cascade*`. La Détermination (LDB 17 l.59) est offerte
     // sur la RANGÉE par `cascadeBatchDetermine`.
     // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',
     // ouverte par `openEncounterPsych` à l'entrée de scène.

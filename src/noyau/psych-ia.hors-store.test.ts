@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { resolvePsychAI } from './combat/turnHooks';
+import { openRoundStartPsych } from './combatFlow';
 import { fearSourceFor } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -15,7 +15,7 @@ import { t } from '../i18n';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
+describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () => {
   beforeEach(() => {
     banc.setState({ battle: null });
   });
@@ -50,7 +50,7 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     const { H, E } = setup();
     H.size = 'enorme'; // gap 2 → Terreur 2
     E.characteristics['force-mentale'] = 10; // Test de Calme raté → Brisé
-    resolvePsychAI(banc.getState, banc.setState, E);
+    openRoundStartPsych(banc.getState, banc.setState);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.conditions.some((c) => c.id === 'brise')).toBe(true);
     expect((e.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === H.id)).toBe(true);
@@ -65,7 +65,7 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     E.followsCharacterRules = regles;
     setRule('psych-acquisition-optional', true);
     try {
-      resolvePsychAI(banc.getState, banc.setState, E);
+      openRoundStartPsych(banc.getState, banc.setState);
     } finally {
       resetRule('psych-acquisition-optional');
     }
@@ -97,7 +97,7 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     H.terreursSubies = [];
     setRule('psych-acquisition-optional', true);
     try {
-      resolvePsychAI(banc.getState, banc.setState, H);
+      openRoundStartPsych(banc.getState, banc.setState);
     } finally {
       resetRule('psych-acquisition-optional');
     }
@@ -114,7 +114,7 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     const { H, E } = setup();
     H.size = 'monstrueuse';
     E.psychImmune = true;
-    resolvePsychAI(banc.getState, banc.setState, E);
+    openRoundStartPsych(banc.getState, banc.setState);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.conditions.some((c) => c.id === 'brise')).toBe(false);
     expect(e.psychState ?? []).toEqual([]);
@@ -136,7 +136,7 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     rival.dead = false; rival.wounds = blessuresDeBase(10, 10, rival); rival.advantage = 0; rival.pos = { x: 12, y: 10 };
     E.engagedWith = [rival.id]; rival.engagedWith = [E.id]; // camarades qui en viennent aux mains
     banc.setState({ battle: { ...banc.getState().battle! } });
-    resolvePsychAI(banc.getState, banc.setState, E);
+    openRoundStartPsych(banc.getState, banc.setState);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.conditions.some((c) => c.id === 'brise')).toBe(false);
     expect(e.psychState ?? []).toEqual([]);
