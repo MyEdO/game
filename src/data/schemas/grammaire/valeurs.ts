@@ -855,7 +855,7 @@ export function fauteDEspece(id: string): string | null {
 }
 
 /** Tenue d'apparence qui se FERME sur la donnée : carrière, classe de carrière, ou `nu`. #3116 */
-export const tenueFermeeSchema = z.union([idDe('career'), idDe('classe'), z.literal('nu')], {
+export const tenueFermeeSchema: z.ZodType<string, string> = z.union([idDe('career'), idDe('classe'), z.literal('nu')], {
   error: (iss) => messageDeTenueInconnue(String(iss.input)),
 });
 
@@ -871,8 +871,7 @@ export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
   sex: sexeSchema.optional(),
   species: especeDApparenceSchema.optional(),
-  /** #3116 */
-  tenue: z.string().optional(),
+  tenue: tenueFermeeSchema.optional(),
   /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée (#774) — défaut
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),

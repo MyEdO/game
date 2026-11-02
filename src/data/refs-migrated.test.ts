@@ -40,7 +40,7 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { fauteDEspece, tenueFermeeSchema } from './schemas/grammaire/valeurs';
+import { fauteDEspece } from './schemas/grammaire/valeurs';
 import {
   GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender,
 } from '../../scripts/guards/lib/gameOpRefFk.mjs';
@@ -890,9 +890,8 @@ describe('appearance(.Override).species — TOUTE la donnée authorée des deux 
 //  - `personnage`.ref → créature ∪ véhicule (coque) ∪ engin de siège (trapping du sous-type armes-de-siege), les 3 familles
 //    légitimes du spawn (`spawnEnemy`) ; `undefined` (statbloc/générique) toléré.
 //  - `weapon` → `trappingId` EXACT du catalogue d'armes (`findTrappingById`).
-//  - `appearance.tenue` → carrière ∪ classe ∪ 'nu' (`tenueFermeeSchema`, #3116).
 // Toute violation ci-dessus = `fichier/entité/valeur`. DUR partout (projets régénérés par l'auteur en ids).
-describe('refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, labels interdits)', () => {
+describe('refs de scène — ref/weapon = ids EXACTS du catalogue (#223, labels interdits)', () => {
   const ENTITY_KINDS = new Set(['heroStart', 'personnage', 'prop']);
   function sweep(node: unknown, where: string, out: string[]): void {
     if (Array.isArray(node)) { node.forEach((x, i) => sweep(x, `${where}[${i}]`, out)); return; }
@@ -903,21 +902,18 @@ describe('refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, l
         out.push(`${who}.ref = ${JSON.stringify(node.ref)} (ni créature ∪ véhicule ∪ engin de siège)`);
       if (typeof node.weapon === 'string' && !findTrappingById(node.weapon))
         out.push(`${who}.weapon = ${JSON.stringify(node.weapon)} (pas un trappingId du catalogue d'armes)`);
-      const app = node.appearance;
-      if (isObj(app) && typeof app.tenue === 'string' && !tenueFermeeSchema.safeParse(app.tenue).success)
-        out.push(`${who}.appearance.tenue = ${JSON.stringify(app.tenue)} (ni carrière ∪ classe ∪ « nu »)`);
     }
     for (const [k, v] of Object.entries(node)) sweep(v, `${where}.${k}`, out);
   }
 
-  it('projets Arène + Loup-et-Saumure : ref/weapon/tenue = ids exacts (DUR)', () => {
+  it('projets Arène + Loup-et-Saumure : ref/weapon = ids exacts (DUR)', () => {
     const bad: string[] = [];
     sweep(areneProject, 'arene-projet.json', bad);
     sweep(loupProject, 'loup-et-saumure-projet.json', bad);
     expect(bad, bad.join('\n')).toEqual([]);
   });
 
-  it('scénarios de test (scene + extraScenes + party) : ref/weapon/tenue de chaque entité résolvent', () => {
+  it('scénarios de test (scene + extraScenes + party) : ref/weapon de chaque entité résolvent', () => {
     const bad: string[] = [];
     for (const s of SCENARIOS) {
       const c = s.construire();
