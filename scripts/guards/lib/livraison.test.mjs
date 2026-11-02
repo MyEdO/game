@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { depotDe } from './gitPorte.mjs'
-import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, apportsDesTickets, fusionsNonJugees, verdictDePublication } from './livraison.mjs'
+import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, apportsDesTickets, fusionsNonJugees, messagePorte, sectionDeLivraison, verdictDePublication } from './livraison.mjs'
 
 test('#2285 consommateurs livraison : diagnostic autonome et erreur programme par identité', () => {
   const sha = 'a'.repeat(40)
@@ -99,15 +99,16 @@ const conflitResolu = (chemin, n) => ({
   resolution: { [chemin]: `${lignes(3).replace('= 0', '= 300')}${n ? lignes(n, 'r') : ''}` },
 })
 
-const juge = (sha) => `JUGE: juge de diff sur la résolution de ${sha.slice(0, 9)}, verdict PUBLIABLE`
+const juge = (sha) => `JUGE: 1 ronde ; juge de diff sur la résolution de ${sha.slice(0, 9)}, verdict PUBLIABLE`
 const refutation = (sha) => `REFUTATION: le juge a attaqué la résolution de ${sha.slice(0, 9)}, aucune faille`
 const vision = (sha) => `JUGE-VISION: captures de l'écran que touche ${sha.slice(0, 9)} jugées conformes`
 
 for (const nom of ['JUGE', 'REFUTATION', 'JUGE-VISION']) {
   test(`#2767 plage : ${nom} exige une ligne de trailer`, () => {
     const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/ui/E.tsx', 12))
-    const preuve = `preuve indépendante sur la résolution ${fusion.slice(0, 9)}, verdict conforme`
-    const autres = ['JUGE', 'REFUTATION', 'JUGE-VISION'].filter((n) => n !== nom).map((n) => `${n}: ${preuve}`).join('\n')
+    const preuveDe = (n) => `${n === 'JUGE' ? '1 ronde ; ' : ''}preuve indépendante sur la résolution ${fusion.slice(0, 9)}, verdict conforme`
+    const preuve = preuveDe(nom)
+    const autres = ['JUGE', 'REFUTATION', 'JUGE-VISION'].filter((n) => n !== nom).map((n) => `${n}: ${preuveDe(n)}`).join('\n')
     try {
       for (const texte of [`Sonde du ${nom}: ${preuve}`, `${nom.toLowerCase()}: ${preuve}`, `${nom}:\n${preuve}`, `${nom}\n: ${preuve}`, `${nom}: bref`]) {
         poser({}, `chore: refs #2767\n\n${autres}\n${texte}`)
@@ -157,7 +158,7 @@ test('#2328 — une résolution qui CHANGE un écran exige aussi `JUGE-VISION:`'
 })
 
 test('#2328 — le message de la fusion ELLE-MÊME porte `JUGE:` et `REFUTATION:` sans nommer son sha : la fusion est jugée', () => {
-  const message = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const message = 'merge: intègre main\n\nJUGE: 1 ronde ; juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const { racine, juger } = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: message })
   try {
     assert.deepEqual(juger().refus, [])
@@ -166,7 +167,7 @@ test('#2328 — le message de la fusion ELLE-MÊME porte `JUGE:` et `REFUTATION:
 
 test('#2328 — test opposé : la fusion sans trailers, ou avec un trailer trop court, est refusée', () => {
   const nue = chantierFusionne(conflitResolu('src/a.ts', 12))
-  const courte = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: rien' })
+  const courte = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: 'merge: intègre main\n\nJUGE: 1 ronde ; juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: rien' })
   try {
     assert.deepEqual(nue.juger().refus, [{ sha: nue.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
     assert.deepEqual(courte.juger().refus, [{ sha: courte.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
@@ -177,7 +178,7 @@ test('#2328 — test opposé : la fusion sans trailers, ou avec un trailer trop 
 })
 
 test('#2328 — test opposé : `AUTOREFUTATION:` dans le message de la fusion ne vaut pas `REFUTATION:`', () => {
-  const message = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nAUTOREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const message = 'merge: intègre main\n\nJUGE: 1 ronde ; juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nAUTOREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const { racine, fusion, juger } = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: message })
   try {
     assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
@@ -186,7 +187,7 @@ test('#2328 — test opposé : `AUTOREFUTATION:` dans le message de la fusion ne
 
 test('#2328 — test opposé : une PROSE qui contient « juge : » ou un trailer préfixé ne juge pas la fusion', () => {
   const nie = 'merge: intègre main\n\nAucun juge : personne n’a encore relu cette résolution, à faire\nPas de refutation : rien n’a été lancé sur cette fusion pour le moment'
-  const prefixe = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nCONTRE-REFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const prefixe = 'merge: intègre main\n\nJUGE: 1 ronde ; juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nCONTRE-REFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const prose = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: nie })
   const tiret = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: prefixe })
   try {
@@ -199,7 +200,7 @@ test('#2328 — test opposé : une PROSE qui contient « juge : » ou un trailer
 })
 
 test('#2328 — une fusion qui change un ÉCRAN : son message porte aussi `JUGE-VISION:`, sinon `manque` le nomme seul', () => {
-  const trailers = 'JUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const trailers = 'JUGE: 1 ronde ; juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const avecVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}\nJUGE-VISION: captures de l’écran que touche cette fusion jugées conformes` })
   const sansVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}` })
   try {
@@ -214,7 +215,7 @@ test('#2328 — une fusion qui change un ÉCRAN : son message porte aussi `JUGE-
 test('#2328 — test opposé : le juge d’un AUTRE commit qui ne nomme pas le sha ne vaut toujours pas pour la fusion', () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
-    poser({}, 'chore: refs #42 — juge\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille')
+    poser({}, 'chore: refs #42 — juge\n\nJUGE: 1 ronde ; juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille')
     assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -325,4 +326,19 @@ test('#2328 L1 — UNE grammaire de section : un même solde rend le même verdi
     const maigre = '## Juge\nverdict : PUBLIABLE\n'
     assert.match(validateJugeFile(maigre).problems.join(), /"## Juge" trop maigre/, 'témoin : une section maigre reste refusée au commit')
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#3223 — `JUGE:` déclare ses rondes, deux au plus, au message comme en section', () => {
+  const suite = ' ; juge de diff sur le lot, verdict CONFIRMÉ après relecture complète'
+  const auMessage = (debut) => messagePorte(`chore: refs #1\n\nJUGE: ${debut}${suite}`, 'JUGE')
+  const enSection = (ligne) => sectionDeLivraison(`## Juge\nverdict : CONFIRMÉ\n\n${ligne}${suite}\n`, 'JUGE').problems
+  for (const debut of ['aucun juge', '1 ronde', '2 rondes']) {
+    assert.equal(auMessage(debut), true, debut)
+    assert.deepEqual(enSection(debut), [], debut)
+  }
+  assert.deepEqual(enSection('- JUGE: 2 rondes'), [], 'une puce et la clé du trailer se tolèrent en section')
+  for (const debut of ['3 rondes', '12 rondes', '0 ronde', 'deux rondes', 'juge de diff']) {
+    assert.equal(auMessage(debut), false, debut)
+    assert.match(enSection(debut).join(), /doit porter une ligne qui commence par/, debut)
+  }
 })

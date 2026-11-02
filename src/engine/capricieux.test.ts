@@ -5,7 +5,7 @@ import { capriciousDR } from './social';
  * Capricieux (Trait de créature, MSRC 15 l.149-159) : « Lorsqu'un Personnage effectue un Test de
  * Sociabilité en traitant avec la créature, lancez un dé selon le Tableau suivant : » — la table rend
  * un DELTA de DR (« Soustraire 2 au DR » … « Ajouter 2 au DR »).
- * Son application au DR du Test RÉSOLU est mesurée par `state/capricieux-flow.test.ts`.
+ * Son application au DR du Test RÉSOLU est mesurée par `noyau/capricieux-flow.hors-store.test.ts`.
  */
 describe('capriciousDR — table d10 (MSRC 15 l.149-159)', () => {
   it('1 → Soustraire 2 au DR', () => expect(capriciousDR(1)).toBe(-2));

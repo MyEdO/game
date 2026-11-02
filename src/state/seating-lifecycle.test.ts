@@ -1,7 +1,7 @@
 /**
  * CYCLE DE VIE DE L'ASSISE DU GROUPE — un héros du groupe (`kind:'party'`) ne reste jamais assis là
  * où son corps n'est plus : changement de meneur, retrait du groupe, transition de scène, ouverture
- * de combat. Le pendant `kind:'entity'` (PNJ authoré) vit dans `combat-entity-reconcile.test.ts` ; le
+ * de combat. Le pendant `kind:'entity'` (PNJ authoré) vit dans `combat-entity-reconcile.hors-store.test.ts` ; le
  * volet persistance (save/reload, élagage au chargement) dans `seating-persistence`/`sceneInstance`.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

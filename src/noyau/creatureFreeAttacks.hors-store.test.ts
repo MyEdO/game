@@ -116,10 +116,10 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBe(before);
   });
 
-  it('Cornes : Attaque gratuite gagnée en CHARGEANT, sans coût d’Avantage (LDB 85)', () => {
+  it('Cornes : Attaque gratuite gagnée par une Charge qui rapporte l’Avantage, sans coût d’Avantage (LDB 85 l.83)', () => {
     banc.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'cornes', value: 14 }]; E.advantage = 0; E.chargedThisTurn = true; // a chargé avec 0 Avantage
+    E.traits = [{ id: 'cornes', value: 14 }]; E.advantage = 0; E.chargedThisTurn = true; E.chargeAvecAvantage = true; // réserve vide : la gratuite ne coûte rien
     const before = H.wounds.current;
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);

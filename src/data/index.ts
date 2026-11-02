@@ -2340,7 +2340,6 @@ export interface RaceAppearanceData {
   label: string;
   gabarit: { id: GabaritId };
   gabaritOverride?: SurchargeDeGabarit;
-  head?: string;
   scale?: number;
 }
 /** Banque de noms d'UNE race jouable : prénoms M/F + noms de famille (LDB 05). L'`id` est le

@@ -8,7 +8,8 @@ import { PropertyBinding, type AnimationClip } from 'three';
 import type { Ecart } from '../ecart.ts';
 import seuils from './seuils.json';
 
-/** Écart à 1 au-delà duquel une clé d'échelle est une échelle animée : en deçà, l'os est rigide. */
+/** Écart à 1 au-delà duquel une clé d'échelle est une échelle animée : en deçà, l'os est rigide. Écart relatif admis,
+ *  aussi, entre l'échelle mesurée d'un segment du gabarit et son facteur (`segments.ts`). */
 export const TOLERANCE_ECHELLE: number = seuils.TOLERANCE_ECHELLE;
 
 const GARDE = 'pistesDEchelle';

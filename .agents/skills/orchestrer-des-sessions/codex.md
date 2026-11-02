@@ -15,7 +15,8 @@ instruction est exécutée telle quelle.
   Codex y orchestre ses agents comme une session Claude (types `.codex/agents/`).
 - **Le rendu commence par le raisonnement de Codex** (ce qu'il a compris du but, ce qu'il a écarté et
   pourquoi), puis les données brutes. Ses preuves ne remplacent pas la lecture du diff.
-- **Le train d'un diff Codex** : diff → juge de diff → ma relecture → commit → push.
+- **Le train d'un diff Codex** : diff → juge de diff quand il est dû (règle de jeu, socle, structure) → ma
+  relecture → commit → push.
   1. Le `juge` lit le diff contre le credo et le DoD, sans ma conclusion, découpé selon l'étape 3 du
      skill `orchestrer-des-agents` au-delà de 10 fichiers.
   2. Je relis son verdict ET le diff, et je confronte chaque point du credo.

@@ -3,8 +3,8 @@
  * éléments portés sur le corps (têtes, coiffures, tenues, pièces), collection à discriminant `kind`, la NATURE d'une ligne (doctrine
  * `user-direction-fusion-json-par-type`), patron `defs/materials.ts`.
  *
- * - `tete` : la tête d'une espèce jouable (`species.json`), qui nomme sa `race` de rendu
- *   (`raceAppearance.json`, #3113) et dont l'`id` vaut celui de sa `race` ; têtes monstrueuses : #3123.
+ * - `tete` : la tête d'une race, qui nomme sa `race` de rendu (`raceAppearance.json`, #3113) et dont
+ *   l'`id` vaut celui de sa `race`.
  * - `coiffure` : une coiffure, non sexuée (#3113).
  * - `tenue` : une tenue portée sur le corps, que revêt l'ensemble qui l'habille (#3116).
  * - `emplacement` : un point d'accroche d'accessoire.

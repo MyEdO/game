@@ -53,7 +53,7 @@ export type GesteDeSuite =
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
-  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; couru: boolean; etaitEngage: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
+  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; couru: boolean; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
 
 /** Le tour d'IA d'une clé : `armements` compte ses armements, `suite.n` nomme celui qui est en attente, `parquee` dit
  *  qu'il a échu sur une main tenue. */

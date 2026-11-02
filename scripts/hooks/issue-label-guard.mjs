@@ -13,7 +13,7 @@
 //     de 200 (p90 = 204 sur 400). Un refus mordrait 4 émissions sur 5 — un geste ROUTINIER, que le
 //     régime utilisateur du 2026-09-01 (« Personnellement je m'absente des heures ») interdit de
 //     bloquer ; la mesure passe d'abord, le refus se re-décide sur la chute.
-//     Et le RATTACHEMENT (#2561, credo puce « Le poison se corrige DANS LE GESTE ») : toute création
+//     Et le RATTACHEMENT (#2561, credo puce « Le poison se corrige dans le geste ») : toute création
 //     CLI qui ne porte pas le label `épique` reçoit la note des trois questions, dans l'ordre du
 //     credo, dont la dernière est, pour une issue née d'une vague, la sous-issue native de son épique
 //     à poser APRÈS la création. Le rattachement n'existe pas avant que l'issue existe : il ne se juge
@@ -174,12 +174,12 @@ export function evaluate(command, options) {
 const FAMILLES = ['sev:', 'type:', 'domaine:']
 const TITRE_MAX = 200
 
-/** Les trois questions du rattachement, dans l'ordre du credo (puce « Le poison se corrige DANS LE
- *  GESTE ») ; la dernière pose, pour une issue née d'une vague, la sous-issue native
+/** Les trois questions du rattachement, dans l'ordre du credo (puce « Le poison se corrige dans le
+ *  geste ») ; la dernière pose, pour une issue née d'une vague, la sous-issue native
  *  (`POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues`, champ `sub_issue_id` = l'`id` REST
  *  de l'issue, pas son numéro). */
 const NOTE_RATTACHEMENT =
-  'Rattachement (credo, puce « Le poison se corrige DANS LE GESTE »), dans CET ordre : ' +
+  'Rattachement (credo, puce « Le poison se corrige dans le geste »), dans CET ordre : ' +
   "(1) corrigeable dans le geste ? alors pas d'issue, on corrige ; (2) la COUCHE : " +
   '`type:règle-optionnelle` / `policy-à-trancher` = système ; `campagne:*` = scénario → valeur ' +
   "d'adaptation décidée et tracée, pas d'issue ; (3) sinon, si elle naît d'une vague, rattache-la " +

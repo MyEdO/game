@@ -868,7 +868,7 @@ export function flowHasImpureOpOutsideTest<E = EffectOp>(flow: Flow<E>, inTestBr
 
 /** Le Flow accorde-t-il une ATTAQUE GRATUITE (op `grantFreeAttack`, à quelque profondeur) ? Un tel Flow
  *  cible un TIERS (le chargeur/la victime) et exige le contexte `freeAttack` → il est joué par le
- *  résolveur d'attaques gratuites (`resolveFreeAttacks`), PAS par le dispatcher générique (où il est inerte). */
+ *  résolveur d'attaques gratuites (`resolveFreeAttacks`), seul à l'émettre ; le dispatcher générique le saute. */
 export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
   switch (flow.kind) {
     case 'do': { const e = flow.effect; return isEffectOp(e) && e.ops.some((o) => o.op === 'grantFreeAttack'); }

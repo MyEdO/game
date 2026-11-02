@@ -709,8 +709,8 @@ export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = fals
 // ── JUGE adversarial (extension du mécanisme REFUTATION, générale à tout domaine) ──────────────────
 // EXACTEMENT le même déclencheur qu'`evaluateAntiEsquive` (un `ref #N` rattaché sans fermer,
 // jamais un commit sans ticket du tout, jamais une fermeture — déjà couverte par sa propre section
-// "## Réfutation" à verdict) : un `ref #N` qui touche `src/**` en substance doit en plus porter la
-// preuve qu'un agent juge adversarial est passé sur le diff. Si le diff touche `src/ui/**`, une
+// "## Réfutation" à verdict) : un `ref #N` qui touche `src/**` en substance doit en plus porter sa
+// déclaration de juge : ses rondes (deux au plus), ou « aucun juge » et sa preuve (#3223). Si le diff touche `src/ui/**`, une
 // preuve DISTINCTE de jugement sur captures (JUGE-VISION) est exigée en plus.
 const MIN_JUGE_LINE_LEN = TRAILERS.JUGE.min
 const MIN_JUGE_VISION_LINE_LEN = TRAILERS['JUGE-VISION'].min
@@ -768,7 +768,7 @@ export function evaluateJuge({ message, commentaire, fusionEnCours = false, stag
   if (!jugeSatisfied) {
     missing.push(
       `ligne "JUGE: <qui a jugé quoi, verdict — ≥${MIN_JUGE_LINE_LEN} caractères>" (ou section ` +
-      `"## Juge" dans .claude/soldes/ref-<N>.md)`,
+      `"## Juge" dans .claude/soldes/ref-<N>.md), qui commence par ${TRAILERS.JUGE.formeAttendue}`,
     )
   }
   if (!visionSatisfied) {

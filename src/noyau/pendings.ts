@@ -394,7 +394,7 @@ export interface PendingAttack {
    *  état d'AVANT la charge pour restaurer positions/orientation/Mouvement/Avantage/chargedThisTurn si on
    *  Annule AVANT tout jet (`result === null`). Une fois le dé lancé, la charge est engagée (RAW). Capturé à
    *  la déclaration de charge (targetingModes), rejoué par `attackCancel`. */
-  chargeUndo?: { pos: Record<string, Pt>; facing: Record<string, Dir8>; movedPreAction: boolean; movementUsed: number; advGained: number; gainedAdvBefore: boolean; chargedBefore: boolean };
+  chargeUndo?: { pos: Record<string, Pt>; facing: Record<string, Dir8>; movedPreAction: boolean; movementUsed: number; advGained: number; gainedAdvBefore: boolean; chargedBefore: boolean; avecAvantageBefore: boolean };
   /** PRIX payé à la DÉCLARATION (`AttackOption.cost` : Avantage, Mouvement consommé), rendu par
    *  `attackCancel` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
   coutPaye?: { advantage: number; movement: number };
@@ -1068,7 +1068,7 @@ export interface SuiteDeCoup {
   /** La NATURE de la gratuite (clé de `maneuverEffectsOf`) dont les effets attendent la touche — propre
    *  au coup principal, jamais portée par un maillon. */
   manoeuvre?: { kind: string };
-  /** Les gratuites `onHit` du héros (Assaut féroce, LDB 10 l.72), jouées sur la touche RÉELLE. */
+  /** Les gratuites `onHit` du coup PRINCIPAL (Assaut féroce, LDB 10 l.72), jouées sur la touche RÉELLE. */
   gratuitesALaTouche?: boolean;
   /** L'enchaînement d'après CE coup — DÉCLARÉ par le site d'origine, jamais déduit à la reprise. */
   enchainement?: EnchainementDuCoup;

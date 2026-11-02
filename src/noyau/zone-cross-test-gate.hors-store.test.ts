@@ -74,7 +74,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     applyZoneCrossings(banc.getState, banc.setState, hero, [{ x: 5, y: 10 }, { x: 6, y: 10 }]);
     const p = banc.getState().pendingCascade!;
     const step = p.participants.find((s) => s.kind === 'triggeredTest')! as CascadeStep;
-    // Force le jet ÉCHOUÉ (pattern forcé du repo — `gesundheit-sl-scene.test.ts` — bypass le d100).
+    // Force le jet ÉCHOUÉ (pattern forcé du repo — `gesundheit-sl-scene.hors-store.test.ts` — bypass le d100).
     banc.setState({
       pendingCascade: {
         ...p,
