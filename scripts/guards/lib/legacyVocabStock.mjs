@@ -735,13 +735,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/interlude-activities.test.ts",
-    motif: "désormais",
-    ancre: "`blocked` au catalogue, la porte `interludeActivity`/`openCatalogActivity` refuse désormais.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/multitile-target.test.ts",
     motif: "désormais",
     ancre: "la case du bord OPPOSÉ est désormais RECONNUE adjacente (le cœur du correctif)",

@@ -162,5 +162,11 @@
     "type": "raw.manifest",
     "label": "Repères de conversion (grille)",
     "bloque": "LDB 15 l.35 ; LDB 10 l.500 — la Charge d'un héros manuel (`targetingModes.ts`) n'appelle pas `subirLaCharge` : aucune continuation du tour du héros après une riposte, et `chargeUndo` ; Frappe réactive et tout effet `onCharged` restent muets contre lui"
+  },
+  {
+    "id": "4e/combat#autres-options",
+    "type": "raw.manifest",
+    "label": "Autres options",
+    "bloque": "Rassemblement : l'aide d'un Personnage à Guérison (Test de Guérison Intermédiaire (+0) qui soigne des Blessures supplémentaires aux autres) et les potions de guérison ou autres possessions (ADE II 08 l.122) : aucun site ne les résout, seul le Test de Résistance du Personnage se joue (`openMassBattleRally`)"
   }
 ]

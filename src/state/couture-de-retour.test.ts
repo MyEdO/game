@@ -378,11 +378,13 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
     const avant = structuredClone(useGame.getState().party);
     const autre = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Autre', seed: 2 });
     const s = useGame.getState();
-    s.partyAddHero(autre);
-    s.partyRemoveHero(id);
-    s.partyReplaceHero(id, { ...autre, id });
+    // En combat, le refus se dit à l'écran du geste (`refuserGeste`) : chaque geste le pose à neuf.
+    for (const geste of [() => s.partyAddHero(autre), () => s.partyRemoveHero(id), () => s.partyReplaceHero(id, { ...autre, id })]) {
+      useGame.setState({ refus: null });
+      geste();
+      expect(useGame.getState().refus?.texte).toBe('La composition du groupe ne change pas en combat.');
+    }
     expect(useGame.getState().party).toEqual(avant);
-    expect(useGame.getState().journal.slice(-3)).toEqual([t('pf.partyInCombat'), t('pf.partyInCombat'), t('pf.partyInCombat')]);
   });
 
   it('hors combat, la composition change', () => {

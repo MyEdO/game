@@ -98,7 +98,7 @@ const BASELINES: Record<string, number> = {
   'src/noyau/monde/ai.ts': 6, // dont #411 : recover/retreat par-nom en-flammes (l.526) + empetre (l.682,1098)
   'src/noyau/combatManeuvers.ts': 1, // #402 : hasTraitKey(mort-vivant) littéral → capabilities.undead (Trait), reste isBestial (défense)
   // #411 (2026-07-13) — stock révélé par l'extension aux littéraux, GELÉ, à résorber (doctrine #295)
-  'src/engine/rest.ts': 7, // #413 : gate repos (l.13) + fatigue/veille extenue+a-terre ; le réveil passe par `reprendreConnaissance` (#2915)
+  'src/engine/rest.ts': 8, // #413 : gate repos (l.13), soin d'Empoisonné à 0 (LDB 16 l.74) + fatigue/veille extenue+a-terre ; le réveil passe par `reprendreConnaissance` (#2915)
   'src/engine/suffocation.ts': 2, // pose Inconscient par-nom à l'issue du décompte (l.43,51)
   'src/noyau/combatEffects.ts': 2, // détection « mis à terre » par-nom (a-terre, l.776,779)
   'src/engine/combat.ts': 1, // isHelplessTarget — hasCondition(c, 'inconscient') (l.651)

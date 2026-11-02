@@ -129,7 +129,7 @@ describe('possession réseau (netOwnership)', () => {
     expect(seatOwns(s, 1, 'h2')).toBe(true);
   });
 
-  it('partyAddHero : permis tant que le siège a des emplacements à remplir, refusé ensuite', () => {
+  it('partyAddHero : la route laisse passer, le quota du siège se compte par `seatSlotsRemaining` (le geste tranche)', () => {
     // 2 slots au siège 1, il possède déjà h2 → 1 restant.
     const s = base({
       net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 1, 0] },
@@ -144,7 +144,7 @@ describe('possession réseau (netOwnership)', () => {
       battle: null,
     } as unknown as Partial<Jeu>);
     expect(seatSlotsRemaining(full, 1)).toBe(0);
-    expect(intentAllowedFor(full, 1, 'partyAddHero', [{ id: 'h4' }])).toBe(false);
+    expect(intentAllowedFor(full, 1, 'partyAddHero', [{ id: 'h4' }])).toBe(true);
   });
 
   it('partyRemoveHero : seul le propriétaire du héros peut le retirer', () => {

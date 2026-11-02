@@ -11,12 +11,12 @@
  * `l.99` : « les Personnages surpris à mendier par leurs pairs ou associés perdront probablement leur
  * Statut, à moins qu'ils n'aient déjà une Carrière de Mendiant, ou une autre Carrière sans ressources. »
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { basename, join } from 'node:path';
-import { useGame } from './store';
-import { draineCascade } from '../noyau/cascade.testkit';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { adresseDeCreation } from '../engine/adresseDeCreation';
 import { makeRNG } from '../engine/dice';
@@ -30,13 +30,16 @@ import { actorStatus, statusMeets } from '../engine/social';
 import { aPassifVisible } from '../engine/trauma';
 import { buildActorView } from '../engine/actorView';
 import { careers } from '../data';
-import { buildActivityWorldRollSteps } from '../noyau/activityWorldRolls';
-import { interludeCatalog } from '../noyau/interludeFlow';
+import { buildActivityWorldRollSteps } from './activityWorldRolls';
+import { interludeCatalog } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
-import { seedBattleRng } from '../noyau/battleRng';
+import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { WorldMap } from '../noyau/worldMap';
+import type { WorldMap } from './worldMap';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
 const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
@@ -145,8 +148,6 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
 });
 
 describe('Modificateurs du Test (LDB 09 l.97 : discours + apparence)', () => {
-  afterEach(() => { resetRule('mendier-discours'); resetRule('mendier-apparence-bonus'); });
-
   it('sans atteinte visible : seul le discours entre', () => {
     setRule('mendier-discours', -10);
     setRule('mendier-apparence-bonus', 10);
@@ -303,47 +304,40 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   });
 
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.clearAllTimers();
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
-    useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingActivity: null, journal: [], pendingCascade: null });
-    useGame.getState().startScene(testScene());
-    useGame.setState({ worldMap: carte() });
-    vi.clearAllTimers();
-    useGame.getState().seedRng(13);
+    banc.setState({ party: [a] });
+    banc.getState().startScene(testScene());
+    banc.setState({ worldMap: carte() });
+    banc.getState().seedRng(13);
     seedBattleRng(13);
     setRule('mendier-heures-par-jour', 4);
     setRule('mendier-surpris-pct', 0); // le dé de monde est testé à part : ici on isole les bandes
-    useGame.getState().startInterlude(3);
-    draineCascade(useGame.getState);
-  });
-  afterEach(() => {
-    resetRule('mendier-heures-par-jour'); resetRule('mendier-surpris-pct');
-    vi.clearAllTimers(); vi.useRealTimers();
+    banc.getState().startInterlude(3);
+    draineCascade(banc.getState);
   });
 
-  const heroId = () => useGame.getState().party[0].id;
-  const bourse = () => toBrass(bourseOf(useGame.getState().party[0]));
+  const heroId = () => banc.getState().party[0].id;
+  const bourse = () => toBrass(bourseOf(banc.getState().party[0]));
 
   function joue(sl: number, success: boolean, roll = 1): void {
-    useGame.getState().interludeActivity(heroId(), 'mendier');
-    expect(useGame.getState().pendingActivity?.activityId).toBe('mendier');
-    useGame.getState().activityRoll();
-    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll, success, sl } });
-    useGame.getState().activityConfirm();
-    draineCascade(useGame.getState);
+    banc.getState().interludeActivity(heroId(), 'mendier');
+    expect(banc.getState().pendingActivity?.activityId).toBe('mendier');
+    banc.getState().activityRoll();
+    banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
+    banc.getState().activityConfirm();
+    draineCascade(banc.getState);
   }
 
   it('l’Activité est au CATALOGUE d’interlude du lieu courant', () => {
-    expect(interludeCatalog(useGame.getState()).map((d) => d.id)).toContain('mendier');
-    expect(useGame.getState().pendingActivity).toBeNull();
+    expect(interludeCatalog(banc.getState()).map((d) => d.id)).toContain('mendier');
+    expect(banc.getState().pendingActivity).toBeNull();
   });
 
   it('les `testMods` sont FONDUS dans la ligne de mod du pending (UNE ligne à l’écran)', () => {
     setRule('mendier-discours', -20);
-    useGame.getState().interludeActivity(heroId(), 'mendier');
-    const pa = useGame.getState().pendingActivity!;
+    banc.getState().interludeActivity(heroId(), 'mendier');
+    const pa = banc.getState().pendingActivity!;
     expect(pa.mod).toBe(-20);
     expect(pa.modLabel).toBe('Discours');
     resetRule('mendier-discours');
@@ -388,11 +382,11 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   it('le gain suit « Argent à gaspiller » : la bourse est vidée à la clôture, le dépôt bancaire SURVIT', () => {
     joue(3, true);
     expect(bourse(), '(BSoc 4 × 3 DR) × 4 heures').toBe(48);
-    useGame.setState({ bank: [{ heroId: heroId(), kind: 'stash', brass: 60, rate: 5 }] });
-    useGame.getState().interludeEnd();
-    draineCascade(useGame.getState);
+    banc.setState({ bank: [{ heroId: heroId(), kind: 'stash', brass: 60, rate: 5 }] });
+    banc.getState().interludeEnd();
+    draineCascade(banc.getState);
     expect(bourse(), 'LDB 23 l.166 : les pièces restantes sont perdues').toBe(0);
-    expect(useGame.getState().bank).toEqual([{ heroId: useGame.getState().party[0].id, kind: 'stash', brass: 60, rate: 5 }]);
+    expect(banc.getState().bank).toEqual([{ heroId: banc.getState().party[0].id, kind: 'stash', brass: 60, rate: 5 }]);
   });
 });
 
@@ -478,8 +472,6 @@ describe('`testMods.mod` est DÉTERMINISTE — garde de DONNÉE (#1612)', () => 
 });
 
 describe('Dé de MONDE « surpris à mendier » (LDB 09 l.99) — par la PORTE, avec sa cible réglable', () => {
-  afterEach(() => resetRule('mendier-surpris-pct'));
-
   it('la cible de l’étape EST la règle optionnelle (aucune constante au moteur)', () => {
     const def = activityById('mendier')!;
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });

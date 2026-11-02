@@ -9,7 +9,7 @@ import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, porteurLocalise } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
 import { refusDepensePx, mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from './depenseDePx';
 import {
@@ -683,11 +683,9 @@ export function changeCareer(get: Get, set: Set, heroId: string, newCareer: stri
 
 /** Couture de la composition du groupe (ajout, retrait, remplacement, intentions coop comprises) : en
  *  combat, le groupe est la file de combat, et `finalizeBattle` y reporte chaque combattant
- *  (`REPORT_DE_COMBATTANT`, #2312) — la composition ne change pas. Journalise le refus, rend `true` s'il tombe. */
-function compositionRefusee(get: Get): boolean {
-  const refus = refusComposition(get());
-  if (refus) get().log(refus);
-  return refus !== null;
+ *  (`REPORT_DE_COMBATTANT`, #2312) — la composition ne change pas. Dit le refus, rend `true` s'il tombe. */
+function compositionRefusee(get: Get, set: Set, refus: string | null = refusComposition(get())): boolean {
+  return refus !== null && refuserGesteDuSiege(get, set, refus);
 }
 
 /** Raison du refus de composition (`compositionRefusee`), ou `null` — lue par l'écran d'équipe. */
@@ -695,17 +693,26 @@ export function refusComposition(s: Pick<Jeu, 'battle'>): string | null {
   return s.battle ? t('pf.partyInCombat') : null;
 }
 
+/** Raison du refus d'AJOUTER un héros au groupe pour `seat` : composition close (`refusComposition`),
+ *  groupe plein (`PARTY_MAX`), héros déjà présent, quota d'emplacements du siège épuisé
+ *  (`seatSlotsRemaining`) ; `null` s'il entre. Verdict UNIQUE de `partyAddHero` et des écrans qui
+ *  l'offrent (`heroId` absent : l'offre d'un héros encore à choisir). */
+export function refusDAjoutAuGroupe(s: Pick<Jeu, 'battle' | 'party' | 'net'>, heroId: string | undefined, seat: number): string | null {
+  const present = heroId === undefined ? undefined : s.party.find((h) => h.id === heroId);
+  return refusComposition(s)
+    ?? (s.party.length >= PARTY_MAX ? t('pf.partyFull', { max: PARTY_MAX }) : null)
+    ?? (present ? t('pf.partyDuplicate', { name: present.label }) : null)
+    ?? (seatSlotsRemaining(s, seat) <= 0 ? t('pf.seatSlotsSpent') : null);
+}
+
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
  *  du transport pour un intent) — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
- *  créateur). Refuse
- *  groupe plein, doublon d'id, ou quota d'emplacements du siège épuisé. La Richesse de carrière
+ *  créateur), refusé par `refusDAjoutAuGroupe`. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
 export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money): void {
-  if (compositionRefusee(get)) return;
   const s = get();
   const seat = decidingSeat(s);
-  if (s.party.length >= PARTY_MAX || s.party.some((h) => h.id === hero.id)) return;
-  if (seatSlotsRemaining(s, seat) <= 0) return;
+  if (compositionRefusee(get, set, refusDAjoutAuGroupe(s, hero.id, seat))) return;
   const copy: Combatant = ensureBourse(structuredClone(hero));
   set({
     party: [...s.party, copy],
@@ -741,7 +748,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
  *  (groupe vidé ou tout-morts) → repli : rien à hériter, la Bourse/les Possessions du partant
  *  restent SUR LUI (il quitte le groupe avec son bien, aucun héritier vivant à défausser dessus). */
 export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
-  if (compositionRefusee(get)) return;
+  if (compositionRefusee(get, set)) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;
@@ -766,7 +773,7 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
 export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant): void {
-  if (compositionRefusee(get)) return;
+  if (compositionRefusee(get, set)) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là

@@ -48,7 +48,7 @@ import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../engine/money';
-import { payFromGroup } from './bourseFlow';
+import { payFromGroup, totalDesBourses } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
@@ -154,7 +154,8 @@ import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
-import { decidingSeat } from './netOwnership';
+import { decidingSeat, quorumAtteint } from './netOwnership';
+import { refuseSi } from './verrousDeFiche';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -637,19 +638,31 @@ export function restCancel(get: Get, set: Set): void {
   set({ pendingRest: null });
 }
 
+/** Les bourses du groupe couvrent-elles la note de la halte réglée (`restCost`) ? Vrai sans halte. LDB 66 */
+export function noteDAubergeCouverte(s: Pick<Jeu, 'pendingRest' | 'party'>): boolean {
+  return !s.pendingRest || toBrass(restCost(s.pendingRest, s.party)) <= toBrass(totalDesBourses(s.party));
+}
+
+/** Pourquoi la nuit ne s'ouvre pas : aucune halte réglée (ou combat), note d'auberge que les bourses du
+ *  groupe ne couvrent pas (`noteDAubergeCouverte`), sièges pas tous prêts (`quorumAtteint`) ; `null`
+ *  sinon. Verdict UNIQUE de `restSleep` et de « Dormir jusqu'à l'aube ». */
+export function refusDeDormir(s: Jeu): string | null {
+  const p = s.pendingRest;
+  if (!p || p.phase !== 'setup' || s.battle) return t('rf.pasDeHalte');
+  if (!noteDAubergeCouverte(s)) return t('rf.notEnoughMoney', { money: formatMoney(restCost(p, s.party)) });
+  return s.net.mode !== 'local' && !quorumAtteint(s, p.readyBySeat) ? t('rf.siegesPasPrets') : null;
+}
+
 /** Dormir : paie (RAW ch.66), nourrit, puis ouvre la CHAÎNE de cascades de nuit (#347, `openRestNight`). */
 export function restSleep(get: Get, set: Set): void {
-  const p = get().pendingRest;
-  if (!p || p.phase !== 'setup' || get().battle) return;
+  if (refuseSi(get, set, refusDeDormir)) return;
+  const p = get().pendingRest!;
   const rng = battleRng();
 
   // 1. La note d'auberge (LDB 66) — dépense de BANDE (aucun bénéficiaire unique) tirée gloutonnement des
-  //    bourses ; refus (aucune ponction) si le total du groupe ne suffit pas.
+  //    bourses, couverte par `refusDeDormir`.
   const cost = restCost(p, get().party);
-  if (toBrass(cost) > 0 && !payFromGroup(get, set, cost, { purpose: 'auberge' })) {
-    get().log(t('rf.notEnoughMoney', { money: formatMoney(cost) }));
-    return;
-  }
+  if (toBrass(cost) > 0) payFromGroup(get, set, cost, { purpose: 'auberge' });
 
   // 2. Pitance AVANT la nuit (un héros nourri n'est plus affamé). La tambouille PIÈTRE (ch.66 l.51,
   //    10 %) expose à un Test de Résistance vs Courante Galopante — DIFFÉRÉ en étape de cascade.

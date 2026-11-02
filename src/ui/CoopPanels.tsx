@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { nomDuSiege } from '../state/netFlow';
+import { nomDuSiege } from '../noyau/netOwnership';
 import { useGame } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';

@@ -67,16 +67,16 @@ describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la 
     const dlg = noeud([{ label: 'Payer', cost: { silver: 5 } }] as DialogueNode['choices']);
     const pauvre = reponsesDuNoeud(etat(dlg))[0];
     expect(pauvre.enabled).toBe(false);
-    expect(pauvre.refus).toBe('argent');
+    expect(pauvre.refus).toBe('Pas assez d’argent pour cette option.');
     const riche = reponsesDuNoeud(etat(dlg, { party: [hero(240)] }))[0];
     expect(riche.enabled).toBe(true);
     expect(riche.refus).toBeUndefined();
   });
 
-  it('coop, siège qui ne DÉCIDE pas : toutes les réponses sont fermées, raison « siège »', () => {
+  it('coop, siège qui ne DÉCIDE pas : toutes les réponses sont fermées, le texte nomme le siège qui répond', () => {
     const dlg = noeud([{ label: 'Une' }, { label: 'Deux' }] as DialogueNode['choices']);
-    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {} } as Jeu['net'] }));
-    expect(r.every((x) => !x.enabled && x.refus === 'siege')).toBe(true);
+    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {}, seatNames: { 0: 'Greta' } } as unknown as Jeu['net'] }));
+    expect(r.every((x) => !x.enabled && x.refus === 'Greta répond pour le groupe.')).toBe(true);
   });
 });
 
