@@ -379,7 +379,7 @@ const REFUS_DEPLACEMENT: Partial<Record<MovementBlockReason, (get: Get, active: 
   'movement-spent': () => t('cs.refusMouvementEpuise'),
   'no-path': () => t('cs.refusAucunChemin'),
   'course-non-armee': () => t('cs.refusCourseNonArmee'),
-  'frenesie-eloigne': (get, active) => t('cs.frenzyMustCharge', { name: active.label, foe: frenzyTarget(get, active)?.label ?? '' }),
+  'frenesie-eloigne': (get, active) => t('cs.frenzyMustCharge', { name: active.label, foe: garanti(frenzyTarget(get, active), active.id, 'cible de Frénésie').label }),
 };
 
 /**
