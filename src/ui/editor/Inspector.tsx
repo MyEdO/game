@@ -43,7 +43,7 @@ import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
-import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
+import { ROLES_AMBIANTS } from '../../lib/animationVocab';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
@@ -1484,10 +1484,11 @@ function EntityPanel({
             </div>
             <label className="ed-field">
               Animation d'ambiance
-              <select value={ent.anim ?? ''} onChange={(e) => updateSel({ anim: e.target.value || undefined })}>
-                {SCENE_ANIMS.map((a) => (
-                  <option key={a.key} value={a.key}>
-                    {a.label}
+              <select value={ent.anim ?? ''} onChange={(e) => updateSel({ anim: ROLES_AMBIANTS.find((role) => role === e.target.value) })}>
+                <option value="">— aucune —</option>
+                {ROLES_AMBIANTS.map((role) => (
+                  <option key={role} value={role}>
+                    {{ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' }[role]}
                   </option>
                 ))}
               </select>

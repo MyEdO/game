@@ -36,7 +36,6 @@ const doc = document(
   ),
   /** EDOC 8 l.82 */
   physicalTestChars: z.array(charKeySchema),
-  physicalTestCharsSource: sourceRefSchema.optional(),
   conditions: listeCle(
     nommerChamps(z.strictObject({
       id: weatherIdSchema,
@@ -89,7 +88,6 @@ const doc = document(
       label: 'Caractéristiques physiques',
       hint: 'Liste MAISON des Caractéristiques réputées « physiques » (non définie par la source)',
     },
-    physicalTestCharsSource: { label: 'Source de la liste maison', hint: 'Référence RAW/maison de la liste de Caractéristiques physiques' },
     conditions: { label: 'Conditions météo', hint: 'Effets par météo : visibilité, pénalités, Test de Résistance de traversée' },
   },
   {

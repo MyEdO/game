@@ -7,6 +7,7 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
+import type { RoleAmbiant } from '../../lib/animationVocab';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
@@ -101,8 +102,7 @@ export interface SceneEntity {
   dialogueId?: string;
   /** Apparence d'auteur (`EntityAppearance`). */
   appearance?: EntityAppearance;
-  /** Animation d'ambiance en boucle (clé de `SCENE_ANIMS`, `gameIso/sceneAnims.ts`). */
-  anim?: string;
+  anim?: RoleAmbiant;
   /** Arme ÉQUIPÉE : `trappingId` STABLE du catalogue d'armes — arme de combat au spawn. Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
   weapon?: string;
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au

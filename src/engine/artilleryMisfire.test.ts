@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from './artilleryMisfire';
+import { lireSalveMisfire, TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from './artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 
 /**
@@ -59,9 +59,9 @@ describe('lireSalveMisfire (AA 10 l.270-277)', () => {
   });
 
   it('chaque face du d10 DÉCLARÉ tombe sur une entrée de la table', () => {
-    expect(D10_SALVE_MISFIRE).toEqual({ n: 1, sides: 10 });
+    expect(DE_SALVE_MISFIRE).toEqual({ n: 1, sides: 10 });
     expect(TABLE_SALVE_MISFIRE).toBe('artillery-salve-misfire');
-    for (let roll = 1; roll <= D10_SALVE_MISFIRE.sides; roll++) {
+    for (let roll = 1; roll <= DE_SALVE_MISFIRE.sides; roll++) {
       expect(ARTILLERY_MISFIRE.some((e) => e.id === lireSalveMisfire(roll, 1).id), `dé ${roll}`).toBe(true);
     }
   });

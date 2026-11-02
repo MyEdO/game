@@ -5,9 +5,6 @@
     "label": "Armes d'hast",
     "kind": "weapon",
     "combat": "melee",
-    "forme": {
-      "id": "lance"
-    },
     "maniement": "hampe",
     "source": {
       "book": "livre-de-base",
@@ -21,7 +18,6 @@
     "label": "Bagarre",
     "kind": "weapon",
     "combat": "melee",
-    "forme": null,
     "maniement": "poings",
     "source": {
       "book": "livre-de-base",
@@ -35,9 +31,6 @@
     "label": "Base",
     "kind": "weapon",
     "combat": "melee",
-    "forme": {
-      "id": "epee"
-    },
     "maniement": "lame1m",
     "source": {
       "book": "livre-de-base",
@@ -51,9 +44,6 @@
     "label": "Cavalerie",
     "kind": "weapon",
     "combat": "melee",
-    "forme": {
-      "id": "lance_cavalerie"
-    },
     "maniement": "lance_cav",
     "source": {
       "book": "livre-de-base",
@@ -67,9 +57,6 @@
     "label": "Deux-mains",
     "kind": "weapon",
     "combat": "melee",
-    "forme": {
-      "id": "epee_batarde"
-    },
     "maniement": "lourde2m",
     "source": {
       "book": "livre-de-base",
@@ -91,9 +78,6 @@
         "id": "empaleuse"
       }
     ],
-    "forme": {
-      "id": "rapiere"
-    },
     "maniement": "escrime",
     "source": {
       "book": "livre-de-base",
@@ -115,9 +99,6 @@
         "id": "a-enroulement"
       }
     ],
-    "forme": {
-      "id": "fleau"
-    },
     "maniement": "fleau",
     "source": {
       "book": "livre-de-base",
@@ -136,9 +117,6 @@
         "id": "defensive"
       }
     ],
-    "forme": {
-      "id": "main_gauche"
-    },
     "maniement": "parade",
     "source": {
       "book": "livre-de-base",
@@ -152,9 +130,6 @@
     "label": "Arbalète",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "arbalete"
-    },
     "maniement": "arbalete",
     "source": {
       "book": "livre-de-base",
@@ -168,9 +143,6 @@
     "label": "Arc",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "arc"
-    },
     "maniement": "arc",
     "source": {
       "book": "livre-de-base",
@@ -184,9 +156,6 @@
     "label": "Entraves",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "fouet"
-    },
     "maniement": "entraves",
     "source": {
       "book": "livre-de-base",
@@ -200,9 +169,6 @@
     "label": "Explosifs",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "bombe"
-    },
     "maniement": "explosif",
     "source": {
       "book": "livre-de-base",
@@ -216,9 +182,6 @@
     "label": "Fronde",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "fronde"
-    },
     "maniement": "fronde",
     "source": {
       "book": "livre-de-base",
@@ -232,9 +195,6 @@
     "label": "Lancer",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "javelot"
-    },
     "maniement": "jet",
     "source": {
       "book": "livre-de-base",
@@ -248,9 +208,6 @@
     "label": "Ingénierie",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "pistolet_rep"
-    },
     "maniement": "arme_feu",
     "poudre": true,
     "source": {
@@ -265,9 +222,6 @@
     "label": "Poudre noire",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": {
-      "id": "pistolet"
-    },
     "maniement": "arme_feu",
     "poudre": true,
     "source": {
@@ -282,7 +236,6 @@
     "label": "Catapulte",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": null,
     "maniement": "poings",
     "source": {
       "book": "livre-de-base",
@@ -494,7 +447,6 @@
     "type": "weaponGroups",
     "label": "Armes de siège",
     "kind": "weapon",
-    "forme": null,
     "maniement": "poings",
     "source": {
       "book": "aux-armes",
@@ -507,7 +459,6 @@
     "type": "weaponGroups",
     "label": "Munitions",
     "kind": "weapon",
-    "forme": null,
     "maniement": "poings",
     "source": {
       "book": "livre-de-base",
@@ -520,7 +471,6 @@
     "type": "weaponGroups",
     "label": "Munitions de siège",
     "kind": "weapon",
-    "forme": null,
     "maniement": "poings",
     "source": {
       "book": "aux-armes",
@@ -534,7 +484,6 @@
     "label": "Machine de guerre",
     "kind": "weapon",
     "combat": "ranged",
-    "forme": null,
     "maniement": "poings",
     "source": {
       "book": "archives-de-l-empire-2",

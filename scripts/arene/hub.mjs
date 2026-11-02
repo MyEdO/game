@@ -550,7 +550,7 @@ export function makeHub() {
         dialogueId: 'dlg-frere',
         appearance: { species: 'humains-reiklander', tenue: 'pretre', sex: 'M' },
       }),
-      NPC('fidele', 38, 10, 'Fidèle en prière', { anim: 'cowering', facing: 'N', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
+      NPC('fidele', 38, 10, 'Fidèle en prière', { anim: 'praying', facing: 'N', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
       P(40, 4, 'autel'),
       P(38, 4, 'chandelier'),
       P(42, 4, 'chandelier'),

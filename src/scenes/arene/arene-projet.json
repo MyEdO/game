@@ -3218,7 +3218,7 @@
       "y": 10
      },
      "label": "Fidèle en prière",
-     "anim": "cowering",
+     "anim": "praying",
      "facing": "N",
      "appearance": {
       "species": "humains-reiklander",

@@ -1359,7 +1359,6 @@
       "src/gameIso/stage/",
       "src/gameIso/fx/",
       "src/gameIso/SurcoucheIso.tsx",
-      "src/gameIso/sceneAnims.ts",
       "src/gameIso/TokenChromeMarks.tsx",
       "src/gameIso/catalog/decor/defs/"
     ],
@@ -2122,5 +2121,14 @@
     "concept": "la personne choisie d’un Trait psy accordé `envers: 'personneChoisie'` (VDM 10 l.327) : les personnes désignables (combattants en action, ou groupe et personnages de la scène hors combat), l’amitié (même camp), la désignation d’un décideur non surfacé (allié le plus proche de la cible), et le Flow qui pose le Trait derrière son Test de résistance ; l’étape `personneChoisie` du walker d’acteur (`combat/triggeredTest.ts`) les compose — lectures révisables #3045",
     "perimetre": "Sorts dont un `grantPsychTrait` vise une personne que le lanceur désigne (Colérique), en combat comme hors combat",
     "verrou": "src/noyau/colerique.hors-store.test.ts"
+  },
+  {
+    "id": "schemaFieldConsumers",
+    "type": "primitives.manifest",
+    "label": "champsDeclares/mesurerChampsDeSchema",
+    "fichier": "scripts/guards/lib/schemaFieldConsumers.mjs",
+    "concept": "mesure des lecteurs et des vues explicites des champs déclarés par les schémas de datasets, avec provenance par dataset",
+    "perimetre": "toute garde ou tout diagnostic de consommation des champs de schéma",
+    "verrou": "src/data/field-consumers.test.ts"
   }
 ]

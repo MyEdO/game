@@ -1,14 +1,12 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 18 ; LDB 18 l.61/72 */
 import { z } from 'zod';
-import { formulaSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
 
 /** LDB 18 l.247/251/273/277/281 */
 const cumulSchema = nommerChamps(z.strictObject({
   portee: z.enum(['localisation', 'porteur']),
-  unite: formulaSchema.optional(),
   parPalier: nommerChamps(z.strictObject({ taille: z.number(), ops: passifsDe() }), { taille: { label: 'Taille' }, ops: { label: 'Opérations' } }).optional(),
   escalade: nommerChamps(z
     .strictObject({ atLeast: z.number(), versTraumaId: z.string(), mode: z.enum(['remplace', 'ajoute']) }), {
@@ -19,7 +17,6 @@ const cumulSchema = nommerChamps(z.strictObject({
     .optional(),
 }), {
   portee: { label: 'Portée' },
-  unite: { label: 'Unité' },
   parPalier: { label: 'Par palier' },
   escalade: { label: 'Escalade' },
 });

@@ -1,4 +1,9 @@
 import artilleryMisfireJson from './artillery-misfire.json';
+import { parseDiceRequired } from '../engine/dice';
+
+const de = parseDiceRequired(artilleryMisfireJson.die, 'artillery-misfire.die');
+if (de.n !== 1 || (de.plus ?? 0) !== 0) throw new Error(`artillery-misfire.die exige un dé unique sans modificateur : ${artilleryMisfireJson.die}`);
+export const ARTILLERY_MISFIRE_DIE = de;
 
 /**
  * Incidents de Tir d'Artillerie par Salve — Aux Armes « Salve » (AA 10 l.270-277), transcrits

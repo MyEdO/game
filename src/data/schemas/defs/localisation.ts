@@ -45,20 +45,16 @@ const doc = document(
   }), { source: { label: 'source' }, shapes: { label: 'formes corporelles' } }),
   navire: nommerChamps(z.strictObject({
     source: sourceRefSchema,
-    rigs: z.array(z.string()),
     entries: z.array(shipLocEntry),
   }), {
     source: { label: 'source' },
-    rigs: { label: 'gréements' },
     entries: { label: 'rangées' },
   }),
   'navire-fluvial': nommerChamps(z.strictObject({
     source: sourceRefSchema,
-    rigs: z.array(z.string()),
     entries: z.array(shipLocEntry),
   }), {
     source: { label: 'source' },
-    rigs: { label: 'gréements' },
     entries: { label: 'rangées' },
   }),
   },

@@ -709,9 +709,7 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
 export const shipLocationSchema = z.enum(['cargaison', 'greement', 'coque', 'avirons', 'equipements', 'gouvernail', 'superstructure']);
 
-/** Localisation qui encaisse un coup à l'Équipage quand PERSONNE n'est exposé (`MDG 13 l.584` RAW ;
- *  `MSRC 07 l.70`, arbitrage `maison` du choix que le livre laissait au MJ) — déclarée ICI une fois :
- *  `ship-criticals` et `river-criticals` la LISENT, aucun ne la réécrit. */
+/** MDG 13 l.584 ; MSRC 07 l.70 */
 export const replisSansExposeSchema = nommerChamps(z.strictObject({
   cible: shipLocationSchema,
   maison: maisonSchema.optional(),

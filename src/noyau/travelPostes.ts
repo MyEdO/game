@@ -15,7 +15,7 @@
  *    par Étape » (l.131) ; un échec octroie un Exténué (l.133).
  */
 import { battleRng } from './battleRng';
-import { d100 } from '../engine/dice';
+import { rollDice } from '../engine/dice';
 import {
   travelActivitySpec, aggregateActivityOutcomes, activityById,
   type ActivityDef, type TravelActivityResult,
@@ -23,7 +23,7 @@ import {
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
-import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
+import { rollEncounter, ENCOUNTER_DIE, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
@@ -396,10 +396,10 @@ export const TABLES = {
 
       // Individuel (Récupérer / Pratiquer / Recueillir infos) : le récit a déjà été poussé PAR POSTE (stagePoste).
 
-      // RENCONTRE de l'Étape (l.182-233) : catégorie issue de la qualité des Tests, tirage d100, texte verbatim.
+      // EDOC 8 l.182-233
       const category = stageEncounterCategory(results);
       if (category) {
-        const enc = rollEncounter(category, d100(battleRng()));
+        const enc = rollEncounter(category, rollDice(ENCOUNTER_DIE, battleRng()));
         j.push(t('out.travelEncounter', { category: t(ENCOUNTER_KEY[category]), label: enc.label, text: enc.desc }));
         if (enc.stageOutcome === 'fullRecovery') {
           for (const h of party.filter((x) => !x.dead)) {

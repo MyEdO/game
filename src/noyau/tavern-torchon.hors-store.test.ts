@@ -17,6 +17,7 @@ import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { sequenceTableRow } from './sequenceCore';
 import { tavernParams } from './tavernFlow';
+import { testValue } from '../engine/skills';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
 import type { Jeu } from './etat';
@@ -158,6 +159,28 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     const party2 = partie(1);
     poseLancer(2, 1); // net 1 → jambe
     expect(recit.find((l) => l.includes(party2[0].label) && l.includes('touche'))).toContain('à la jambe');
+  });
+
+  it('la pinte utilise la Résistance à l’alcool du lanceur', () => {
+    const party = makePregens().slice(0, 1) as Combatant[];
+    party[0].characteristics.endurance = 67;
+    party[0].characteristics.dexterite = 13;
+    party[0].skills = [{ id: 'resistance-a-l-alcool', characteristic: 'endurance', advances: 9 }];
+    banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
+    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    const pc = get().pendingCascade!;
+    const idx = pc.participants.findIndex((step) => step.kind === 'tavern-round');
+    const band = pc.participants[idx];
+    const participants = [...pc.participants];
+    participants[idx] = { ...band, participants: band.participants!.map((row) => ({
+      ...row,
+      result: { roll: 11, target: row.target!, sl: row.id.startsWith('danseur-') ? 5 : 0, success: true },
+    })) };
+    banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
+    get().cascadeNext();
+    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'tavern-drink')!;
+    expect(pinte.base).toBe(76);
+    expect(pinte.target).toBe(testValue(party[0], 'resistance-a-l-alcool'));
   });
 
   it('RATÉ : la pinte s’ouvre dans la MÊME fenêtre, et l’échec coûte 1 point à l’équipe (l.111)', () => {
