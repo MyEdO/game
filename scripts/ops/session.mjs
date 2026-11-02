@@ -22,7 +22,7 @@ export function optionsSession(argv) {
   const [action, ...argumentsAction] = argv
   const cible = argumentsAction[0] && !argumentsAction[0].startsWith('--') ? argumentsAction.shift() : undefined
   const options = { action, cible }
-  if (!['lancer', 'lister', 'archiver', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | archiver [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json')
+  if (!['lancer', 'lister', 'archiver', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--nom <nom>] [--agent claude|codex] [--worktree <chemin>] (ticket partageable ; nom unique, défaut s<n>, préciser --nom si occupé ; worktree courant par défaut) | lister [--json] | archiver [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json ; cible : UUID exact prioritaire, nom non numérique hors forme UUID, cible ambiguë refusée avec les candidats')
   const permises = {
     lancer: new Set(['--ticket', '--nom', '--agent', '--consigne', '--worktree', '--executable', '--profil-wt', '--json']),
     lister: new Set(['--json']), archiver: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
@@ -261,7 +261,10 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
     else if (options.action === 'envoyer') resultat = await sessions.envoyer(options.cible, await jetonDe(env, stdin), { message: options.message, requestId: options.requestId, timeoutMs: Number(options.timeoutMs ?? 30_000) })
     else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? DELAI_FERMETURE_MS) })
-    else resultat = await (options.suivre ? attendreSuivi : (s, cible, attente) => s.attendre(cible, attente))(sessions, options.cible, { timeoutMs: Number(options.timeoutMs ?? 60_000), depuis: Number(options.depuis ?? 0) })
+    else {
+      const cible = options.suivre ? sessions.etat(options.cible).sessionId : options.cible
+      resultat = await (options.suivre ? attendreSuivi : (s, cible, attente) => s.attendre(cible, attente))(sessions, cible, { timeoutMs: Number(options.timeoutMs ?? 60_000), depuis: Number(options.depuis ?? 0) })
+    }
   }
   const code = resultat.etat === 'indeterminee' ? 3 : resultat.etat === 'echec-reservation' || resultat.carte?.issueSortie === 'echec' ? 1 : 0
   if (options.json && code !== 0) resultat = { ...resultat, refus: refusSession(new Error(code === 3 ? `${prefixeDeRefus('transitoire')} ${resultat.raison ?? 'Aucune transition dans le délai demandé'}` : resultat.carte?.raison ?? resultat.raison ?? `${prefixeDeRefus('métier')} Session en échec`)) }
