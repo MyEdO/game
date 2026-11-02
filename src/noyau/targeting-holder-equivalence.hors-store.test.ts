@@ -2,16 +2,14 @@
  * Contrat du détenteur du ciblage (#1016, #2817 D11) : pour chaque état de la matrice ci-dessous, la
  * possession du clic (`targetingHolder`), le mode de l'aiguilleur (`currentTargetingMode`) et le
  * gabarit de pose (`placingZoneOf`) rendent l'issue ATTENDUE. La table est la sortie de la sonde
- * d'équivalence du juge jouée sur l'arbre de base 5168069cd, avant que `detenteurDuCiblage` ne
- * devienne la source des deux bouts.
+ * d'équivalence du juge (arbre 5168069cd).
  */
 import { describe, expect, it } from 'vitest';
-import './store';
-import { TARGETING_HOLDERS, targetingHolder } from '../noyau/targetingHolder';
-import { currentTargetingMode } from '../noyau/targetingModes';
-import { placingZoneOf } from '../noyau/combatFlow';
-import { horsModalByPending } from '../noyau/modalArbiter';
-import type { GameState } from './store';
+import { TARGETING_HOLDERS, targetingHolder } from './targetingHolder';
+import { currentTargetingMode } from './targetingModes';
+import { placingZoneOf } from './combatFlow';
+import { horsModalByPending } from './modalArbiter';
+import type { Jeu } from './etat';
 
 const formes = (spellId: string) => [
   { casterId: 'c', spellId, pickingTargets: true },
@@ -300,21 +298,21 @@ const ATTENDU = [
   'QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ',
 ];
 
-function* etats(): Generator<{ ligne: number; colonne: number; s: GameState }> {
+function* etats(): Generator<{ ligne: number; colonne: number; s: Jeu }> {
   const [k1, k2, k3, k4, k5, k6, k7] = Object.values(AXES);
   let ligne = 0;
   for (const a of k1) for (const b of k2) for (const c of k3) for (const d of k4) for (const e of k5) {
     let colonne = 0;
     for (const f of k6) for (const g of k7) {
       const s = { pendingCleave: a, pendingDualStrike: b, pendingAttack: c, pendingCast: d, pendingSiegeAim: e, pendingCascade: f, battle: g };
-      yield { ligne, colonne, s: s as unknown as GameState };
+      yield { ligne, colonne, s: s as unknown as Jeu };
       colonne++;
     }
     ligne++;
   }
 }
 
-const issueDe = (s: GameState) =>
+const issueDe = (s: Jeu) =>
   `${targetingHolder(s) ?? '-'} ${currentTargetingMode(() => s).id} ${JSON.stringify(placingZoneOf(s))}`;
 
 describe('détenteur du ciblage : possession, aiguilleur et gabarit sur la matrice de base', () => {

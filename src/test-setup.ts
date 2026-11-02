@@ -23,7 +23,7 @@
  *      du `beforeEach` ci-dessous.
  *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `noyau/monde/registreDesScenes`) : peuplé par `registerScene`/`loadProject`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
- *      `state/scene-registry-isolation.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
+ *      `test-setup-registre-des-scenes.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
  *      qui a besoin du registre sur PLUSIEURS tests l'(ré)enregistre en `beforeEach` (`shipwreck.test.ts`,
  *      via `freshState`). Une scène laissée au registre changeait le comportement des fichiers suivants
@@ -296,7 +296,7 @@ afterEach(() => {
   const partages = partagesDeLEtat(useGame.getState(), scenesDuRegistre());
   // REGISTRE DES SCÈNES (`state/store`) : vidé APRÈS CHAQUE test —
   // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
-  // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `state/scene-registry-isolation.test.ts`.
+  // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `test-setup-registre-des-scenes.test.ts`.
   resetSceneRegistry();
   vi.useRealTimers();
   clearTrackedTimers();

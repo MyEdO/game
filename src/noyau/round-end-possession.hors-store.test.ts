@@ -5,10 +5,10 @@
  *       (`applyTriggeredEffects`, voie `deferInteractiveTest`) résolvent INLINE ce que personne ne tient ;
  *   (2) `openRoundEndCascade` → `collectHeroRoundEndUpkeep` COLLECTE en étapes influençables ce qu'un
  *       siège humain tient.
- * Tant que les deux côtés lisaient `humanControlled` (affordance LOCALE — « qui a la main devant CET
- * écran »), le héros d'un INVITÉ tombait du côté inline chez l'hôte : ses Tests d'entretien (Résistance à
- * l'Empoisonné, perte de sang AA, effort soutenu, prolongation de sort) étaient jetés en silence, et son
- * opt-in de fin de Round (« Vous pouvez… ») n'existait tout simplement pas. `surfaceOf` (`rollSeam`) est
+ * Aucun des deux côtés ne lit `humanControlled` (affordance LOCALE — « qui a la main devant CET
+ * écran ») : chez l'hôte, le héros d'un INVITÉ est collecté, ses Tests d'entretien (Résistance à
+ * l'Empoisonné, perte de sang AA, effort soutenu, prolongation de sort) deviennent des étapes à son siège
+ * et son opt-in de fin de Round (« Vous pouvez… ») lui est offert. `surfaceOf` (`rollSeam`) est
  * SEAT-AGNOSTIQUE : le porteur d'un autre siège surface aussi.
  *
  * Les DEUX temps sont joués ici dans l'ordre RÉEL (hooks PUIS collecte), sur le harnais à deux sièges
@@ -16,67 +16,58 @@
  * invisible. Chaque cas vérifie l'EXCLUSIVITÉ : rien n'a été résolu inline ET l'étape existe (ni perdu, ni
  * doublé).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import { openRoundEndCascade } from '../noyau/combatFlow';
-import { runCombatHooks } from '../noyau/combatHooks';
-import { collectHeroRoundEndUpkeep } from '../noyau/combat/roundHooks';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { initialNet } from './etat';
+import { openRoundEndCascade } from './combatFlow';
+import { runCombatHooks } from './combatHooks';
+import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
-import { seedBattleRng } from '../noyau/battleRng';
+import { seedBattleRng } from './battleRng';
 import { addCondition, stacks, hasCondition, COND } from '../engine/conditions';
 import { testValue } from '../engine/skills';
-import { setRule, resetRule } from '../engine/policy';
-import { surfaceOf, rollSansPilote } from '../noyau/rollSeam';
-import { modalOwnerOf } from '../noyau/modalArbiter';
-import { ownsLocal, humanControlled } from '../noyau/netOwnership';
-import { seatOwns } from '../noyau/sieges';
+import { setRule } from '../engine/policy';
+import { surfaceOf, rollSansPilote } from './rollSeam';
+import { modalOwnerOf } from './modalArbiter';
+import { ownsLocal, humanControlled } from './netOwnership';
+import { seatOwns } from './sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
-const NET0 = useGame.getState().net;
-const g = useGame.getState;
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const NET0 = initialNet();
+const g = () => banc.getState();
 
 /** Monte un combat réel, puis pose les sièges : HÔTE au siège 0, le héros appartient au siège 1 (invité). */
 function setupCoop(withTalent = false): Combatant {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
-  useGame.setState({ party: [hero] });
+  banc.setState({ party: [hero] });
   g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
-  vi.clearAllTimers();
+  banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');
   enemies.slice(1).forEach((e) => (e.dead = true));
   H.pos = { x: 10, y: 10 };
   enemies[0].pos = { x: 30, y: 30 }; // loin : ni Peur de Taille ni Ligne de Vue
-  useGame.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
-  useGame.setState({ net: { ...NET0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } } as never);
+  banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
+  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } } as never);
   return H;
 }
 
 /** Le franchissement de Round RÉEL : hooks `onRoundEnd` (voie inline) PUIS ouverture de la cascade (voie collectée). */
 function franchitLeRound(): void {
-  runCombatHooks('onRoundEnd', { get: g, set: useGame.setState, battle: g().battle!, sink: () => {} } as never);
-  openRoundEndCascade(g, useGame.setState);
+  runCombatHooks('onRoundEnd', { get: g, set: banc.setState, battle: g().battle!, sink: () => {} } as never);
+  openRoundEndCascade(g, banc.setState);
 }
 
 const etapes = () => g().pendingCascade?.participants ?? [];
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.clearAllTimers();
-  useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [] } as never);
-});
-afterEach(() => {
-  vi.clearAllTimers();
-  vi.useRealTimers();
-  resetRule('combat-se-fatiguer');
-  resetRule('combat-aa-blessures');
-  useGame.setState({ net: NET0, battle: null, pendingCascade: null, suspendedCascades: [] } as never);
-});
 
 describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ ne se roule pas chez l’hôte', () => {
   it('les deux prédicats DIVERGENT sur ce harnais — c’est l’énoncé du fix (en solo ils coïncident)', () => {
@@ -89,7 +80,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
   });
 
   it('Empoisonné (LDB 16 l.70-72) : le Test de Résistance n’est pas jeté inline, il devient une étape au siège du porteur', () => {
-    seedBattleRng(5); // graine où la Résistance RÉUSSIT : sans le fix, le poison serait déjà retiré ici
+    seedBattleRng(5); // graine où la Résistance RÉUSSIT : un jet inline aurait déjà retiré le poison ici
     const H = setupCoop();
     H.characteristics.endurance = 90;
     addCondition(H, COND.empoisonne, 1);
@@ -208,7 +199,7 @@ describe('#1262 lot 2 — les deux prédicats du circuit sont COUPLÉS (le déca
     H.characteristics.endurance = 90;
     addCondition(H, COND.empoisonne, 1);
 
-    runCombatHooks('onRoundEnd', { get: g, set: useGame.setState, battle: g().battle!, sink: () => {} } as never);
+    runCombatHooks('onRoundEnd', { get: g, set: banc.setState, battle: g().battle!, sink: () => {} } as never);
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(stacks(h, COND.empoisonne), 'la voie inline a bien sauté ce porteur').toBe(1);
 
@@ -224,9 +215,9 @@ describe('#1262 lot 2 — les deux prédicats du circuit sont COUPLÉS (le déca
 /**
  * #1262 V1 lot 4 — les PRODUCTEURS de `roundHooks` passent par la porte. Les étapes montées à la main
  * (`base: res, target: res`, sans Difficulté ni ligne) sont MINTÉES : la possession et la surface
- * viennent du mint, la ligne du MONTEUR CANONIQUE. Une migration ne change AUCUNE valeur de règle —
- * c'est ce que ces assertions figent : la cible reste EXACTEMENT celle du montage manuscrit
- * (`testValue`), et seule la RÉPARTITION base/lignes nommées change (base NUE, États en chips).
+ * viennent du mint, la ligne du MONTEUR CANONIQUE. Le mint ne change AUCUNE valeur de règle —
+ * c'est ce que ces assertions figent : la cible vaut EXACTEMENT `testValue`, la base est NUE et les
+ * États passent en chips (lignes nommées).
  *
  * Le porteur est chargé d'États choisis pour que le CANAL de la ligne se voie à la CIBLE, pas
  * seulement au découpage : 2 Sonné (−10/pion) et une aura de combat −20 (LDB 85 l.262). Hors canal
@@ -303,10 +294,10 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
 });
 
 /**
- * L'état PRÉ-LOT, émulé sans revenir en arrière (sonde M3 du juge promue) : les hooks gatés
- * `humanControlled` laissaient passer le héros de l'invité jusqu'à `rollSansPilote`, dont la garde DEV
- * (migrée en V0 sur `surfaceOf`) nomme elle-même la classe de bug. La bascule du lot RÉTRÉCIT donc le
- * domaine du silence : `humanControlled` implique `surfaceOf`, jamais l'inverse.
+ * Le domaine du silence, émulé (sonde M3 du juge promue) : des hooks gatés `humanControlled`
+ * laisseraient passer le héros de l'invité jusqu'à `rollSansPilote`, dont la garde DEV (sur
+ * `surfaceOf`) nomme elle-même cette classe de bug. `humanControlled` implique `surfaceOf`, jamais
+ * l'inverse : la porte par siège est la plus étroite.
  */
 describe('#1262 lot 2 — le garde-fou du socle nommait déjà le bug que ce lot ferme', () => {
   it('`rollSansPilote` sur le héros d’un invité : la garde DEV mord (le hook pré-lot y passait)', () => {

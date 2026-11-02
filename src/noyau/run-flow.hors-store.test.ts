@@ -3,21 +3,20 @@
  * VIVANT, et nœud `test` (ouvre la modale, SUSPEND, reprend branche + continuation à `resolveTest`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from './store';
-import { runFlow } from '../noyau/combatEffects';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { runFlow } from './combatEffects';
 import { createHero } from '../engine/character';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 
-const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
-beforeEach(() => {
-  useGame.setState({ battle: null, scene: null, mode: 'exploration', flags: {}, journal: [], pendingTest: null, pendingLoot: null });
-});
+const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
 
 describe('runFlow — séquence + branche if (état vivant)', () => {
   it('seq de do : applique les effets dans l’ordre', () => {
-    runFlow(useGame.getState, useGame.setState, { kind: 'seq', steps: [setFlag('a'), setFlag('b')] });
-    expect(useGame.getState().flags).toMatchObject({ a: true, b: true });
+    runFlow(banc.getState, banc.setState, { kind: 'seq', steps: [setFlag('a'), setFlag('b')] });
+    expect(banc.getState().flags).toMatchObject({ a: true, b: true });
   });
 
   it('if : la condition est évaluée APRÈS les effets déjà émis (état vivant)', () => {
@@ -29,14 +28,14 @@ describe('runFlow — séquence + branche if (état vivant)', () => {
         { kind: 'if', cond: { kind: 'flag', expr: 'porte' }, then: setFlag('ouvert'), else: setFlag('ferme') },
       ],
     };
-    runFlow(useGame.getState, useGame.setState, flow);
-    expect(useGame.getState().flags.ouvert).toBe(true);
-    expect(useGame.getState().flags.ferme).toBeUndefined();
+    runFlow(banc.getState, banc.setState, flow);
+    expect(banc.getState().flags.ouvert).toBe(true);
+    expect(banc.getState().flags.ferme).toBeUndefined();
   });
 
   it('if sans else, condition fausse → rien', () => {
-    runFlow(useGame.getState, useGame.setState, { kind: 'if', cond: { kind: 'flag', expr: 'jamais' }, then: setFlag('x') });
-    expect(useGame.getState().flags.x).toBeUndefined();
+    runFlow(banc.getState, banc.setState, { kind: 'if', cond: { kind: 'flag', expr: 'jamais' }, then: setFlag('x') });
+    expect(banc.getState().flags.x).toBeUndefined();
   });
 });
 
@@ -47,7 +46,7 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
   }
 
   it('ouvre pendingTest ; resolveTest joue la branche RÉUSSITE puis la continuation', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const flow: Flow = {
       kind: 'seq',
       steps: [
@@ -56,28 +55,28 @@ describe('runFlow — nœud test (suspension + continuation)', () => {
         setFlag('apres'), // CONTINUATION : doit s'exécuter APRÈS la branche
       ],
     };
-    runFlow(useGame.getState, useGame.setState, flow);
+    runFlow(banc.getState, banc.setState, flow);
     // L'effet avant le test est appliqué ; le test suspend ; la continuation attend.
-    expect(useGame.getState().flags.avant).toBe(true);
-    expect(useGame.getState().flags.apres).toBeUndefined();
-    expect(useGame.getState().pendingTest).toBeTruthy();
+    expect(banc.getState().flags.avant).toBe(true);
+    expect(banc.getState().flags.apres).toBeUndefined();
+    expect(banc.getState().pendingTest).toBeTruthy();
 
     // Force une réussite et acquitte → branche `success` + continuation.
-    useGame.setState({ pendingTest: { ...useGame.getState().pendingTest!, roll: 5, success: true } });
-    useGame.getState().resolveTest();
-    expect(useGame.getState().flags.gagne).toBe(true);
-    expect(useGame.getState().flags.perd).toBeUndefined();
-    expect(useGame.getState().flags.apres).toBe(true); // continuation exécutée
-    expect(useGame.getState().pendingTest).toBeNull();
+    banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 5, success: true } });
+    banc.getState().resolveTest();
+    expect(banc.getState().flags.gagne).toBe(true);
+    expect(banc.getState().flags.perd).toBeUndefined();
+    expect(banc.getState().flags.apres).toBe(true); // continuation exécutée
+    expect(banc.getState().pendingTest).toBeNull();
   });
 
   it('resolveTest joue la branche ÉCHEC sur un Test raté', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const flow: Flow = { kind: 'test', test: { characteristic: 'force' }, success: setFlag('gagne'), fail: setFlag('perd') };
-    runFlow(useGame.getState, useGame.setState, flow);
-    useGame.setState({ pendingTest: { ...useGame.getState().pendingTest!, roll: 99, success: false } });
-    useGame.getState().resolveTest();
-    expect(useGame.getState().flags.perd).toBe(true);
-    expect(useGame.getState().flags.gagne).toBeUndefined();
+    runFlow(banc.getState, banc.setState, flow);
+    banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
+    banc.getState().resolveTest();
+    expect(banc.getState().flags.perd).toBe(true);
+    expect(banc.getState().flags.gagne).toBeUndefined();
   });
 });

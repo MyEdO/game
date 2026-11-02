@@ -1,14 +1,17 @@
-import { describe, it, expect } from 'vitest';
-import { firedAttackBlock } from '../noyau/combatFlow';
-import { resolveWeaponArea, areaTargets, type AreaHit } from '../noyau/combatArea';
-import { fireTriggers } from '../noyau/triggeredEffects';
+import { describe, it, beforeEach, expect } from 'vitest';
+import { firedAttackBlock } from './combatFlow';
+import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
+import { fireTriggers } from './triggeredEffects';
 import { itemFromTrappingById, mannedPosteWeapon } from '../engine/items';
-import { useGame } from './store';
-import { seedBattleRng, battleRng } from '../noyau/battleRng';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import type { Jeu } from './etat';
+import { seedBattleRng, battleRng } from './battleRng';
 import type { Combatant, Weapon } from '../engine/types';
-import type { GameState } from './store';
-import type { BattleState } from '../noyau/etat';
+import type { BattleState } from './etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Machines de guerre ADE II (ch.08 folio 88, l.243/251/253) :
@@ -31,8 +34,8 @@ const enemyAt = (x: number): Combatant => ({ id: `e${x}`, name: 'cible', kind: '
 
 const battle = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, acted: false, over: null }) as unknown as BattleState;
-const mkGet = (combatants: Combatant[]): (() => GameState) =>
-  (() => ({ battle: battle(combatants), facing: {}, gameTime: 0, log: () => {} })) as unknown as () => GameState;
+const mkGet = (combatants: Combatant[]): (() => Jeu) =>
+  (() => ({ battle: battle(combatants), facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
 
 describe('firedAttackBlock — PORTÉE MINIMALE (machines de siège ADE II 08 l.251/253)', () => {
   it('minimale « courte » : tir REFUSÉ à Bout Portant (raison « portee-min »), AUTORISÉ à Moyenne', () => {
@@ -64,10 +67,10 @@ const miniScene = () =>
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 function mountBattle(combatants: Combatant[]) {
   seedBattleRng(7);
-  useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never,
+  banc.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never,
     scene: miniScene() as never, party: [], facing: {}, pendingShipBattery: null });
-  const get = () => useGame.getState();
-  const set: Parameters<typeof resolveWeaponArea>[1] = (p) => useGame.setState(p as never);
+  const get = () => banc.getState();
+  const set: Parameters<typeof resolveWeaponArea>[1] = (p) => banc.setState(p as never);
   return { get, set };
 }
 
@@ -94,7 +97,7 @@ describe('Canon à flammes nain — 2 + DR En flammes (ADE II 8 l.243)', () => {
     const atk = foe('tireur', 0); (atk as { kind: string }).kind = 'hero';
     const tgt = foe('cible', 5);
     mountBattle([atk, tgt]);
-    fireTriggers(() => useGame.getState(), atk, 'onHit', { victim: tgt, weapon: flameCannon(), woundsDealt: 0, margin: 3, rng: battleRng() } as never);
+    fireTriggers(() => banc.getState(), atk, 'onHit', { victim: tgt, weapon: flameCannon(), woundsDealt: 0, margin: 3, rng: battleRng() } as never);
     expect(enFlammes(tgt)).toBe(5);
   });
 

@@ -4,14 +4,17 @@
  * ennemi↔ennemi reste au journal/bandeau ; les révélations gardées portent leur gravité
  * (auto-fermeture : 'grave' = critique/mutation, 'minor' = entretien/informatif).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import { applyCriticalToTarget } from '../noyau/combatFlow';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { applyCriticalToTarget } from './combatFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from '../noyau/battleRng';
+import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mkEnemy = (id: string): Combatant =>
   (blessuresSurLeProfil({
@@ -21,30 +24,22 @@ const mkEnemy = (id: string): Combatant =>
     weapons: [], armour: {}, advantage: 0, traits: [], bodyShape: 'humanoide',
   })) as unknown as Combatant;
 
-// Les deux describes arment `vi.useFakeTimers()` en beforeEach : on RESTAURE les vrais timers après
-// chaque test pour ne pas laisser de timer fantôme (setTimeout de l'IA combat) fuir vers un test suivant.
-afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
-
 describe('routage des révélations (spec coop §4bis)', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    seedBattleRng(7);
-    useGame.setState({ pendingCascade: null, battle: null });
-  });
+  beforeEach(() => { seedBattleRng(7); });
 
   it('Critique ennemi↔ennemi → AUCUNE modale (journal seul)', () => {
     const log: string[] = [];
-    applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, useGame.setState,
-      { ctx: { attackerId: 'e2', attackerKind: 'enemy' }, get: useGame.getState });
-    expect(useGame.getState().pendingCascade).toBeNull();
+    applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, banc.setState,
+      { ctx: { attackerId: 'e2', attackerKind: 'enemy' }, get: banc.getState });
+    expect(banc.getState().pendingCascade).toBeNull();
     expect(log.length).toBeGreaterThan(0); // le détail vit dans le journal
   });
 
   it('un HÉROS inflige le Critique à un ennemi → séquence inline (panneau grave)', () => {
     const log: string[] = [];
-    applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, useGame.setState,
-      { ctx: { attackerId: 'h1', attackerKind: 'hero' }, get: useGame.getState });
-    const crit = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
+    applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, banc.setState,
+      { ctx: { attackerId: 'h1', attackerKind: 'hero' }, get: banc.getState });
+    const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
     expect(crit).toBeTruthy();
     expect(crit!.reveal?.severity).toBe('grave');
   });
@@ -52,9 +47,9 @@ describe('routage des révélations (spec coop §4bis)', () => {
   it('un HÉROS subit le Critique → séquence inline (panneau grave)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     const log: string[] = [];
-    applyCriticalToTarget(hero, 'corps', 0, log, useGame.setState,
-      { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: useGame.getState });
-    const crit = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
+    applyCriticalToTarget(hero, 'corps', 0, log, banc.setState,
+      { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: banc.getState });
+    const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
     expect(crit).toBeTruthy();
     expect(crit!.reveal?.severity).toBe('grave');
   });
@@ -62,45 +57,44 @@ describe('routage des révélations (spec coop §4bis)', () => {
 
 describe('entretien de fin de Round — partition héros/ennemis (spec coop §4bis)', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     seedBattleRng(7);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
-    useGame.setState({ party: [hero], battle: null, pendingCascade: null, pendingRoundStart: null });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
+    banc.setState({ party: [hero] });
+    banc.getState().startScene(testScene());
+    banc.getState().startCombat('enc-mutants');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
   });
 
   const crossRound = () => {
-    const st = useGame.getState();
+    const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.id.startsWith('hero') || c.kind === 'hero')!;
-    useGame.setState({
+    banc.setState({
       battle: { ...st.battle!, order: [H.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null,
     });
-    useGame.getState().battleEndTurn(); // seul dans l'ordre → franchit le Round
-    vi.advanceTimersByTime(3000);
+    banc.getState().battleEndTurn(); // seul dans l'ordre → franchit le Round
+    banc.avancer(3000);
   };
 
   it('États récurrents ENNEMIS seuls → pas de modale, mais le journal de combat les porte', () => {
-    const st = useGame.getState();
+    const st = banc.getState();
     for (const c of st.battle!.combatants) if (c.kind === 'enemy') c.conditions.push({ id: 'hemorragique', value: 1 });
     crossRound();
-    const steps = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'round');
+    const steps = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'round');
     expect(steps).toHaveLength(0);
-    // Dégâts d'Hémorragique désormais data-driven (effects onRoundEnd → wounds) : le journal porte la
-    // ligne générique « subit N Blessure(s) (ignorant BE et PA) » au lieu d'un libellé « (Hémorragique) ».
-    expect(useGame.getState().battle!.log.some((e) => /subit \d+ Blessure/i.test(e.text))).toBe(true);
+    // Dégâts d'Hémorragique data-driven (effects onRoundEnd → wounds) : le journal porte la ligne
+    // générique « subit N Blessure(s) (ignorant BE et PA) ».
+    expect(banc.getState().battle!.log.some((e) => /subit \d+ Blessure/i.test(e.text))).toBe(true);
   });
 
   it('État récurrent sur un HÉROS → modale de Round avec SA ligne, sans les lignes ennemies', () => {
-    const st = useGame.getState();
+    const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     H.conditions.push({ id: 'hemorragique', value: 1 });
     for (const c of st.battle!.combatants) if (c.kind === 'enemy') c.conditions.push({ id: 'hemorragique', value: 1 });
     crossRound();
-    const reveal = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'round')?.reveal;
+    const reveal = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'round')?.reveal;
     expect(reveal).toBeTruthy();
     expect(reveal!.lines.some((l) => l.includes(H.label))).toBe(true);
     expect(reveal!.lines.every((l) => l.includes(H.label) || !/Mutant/i.test(l))).toBe(true);

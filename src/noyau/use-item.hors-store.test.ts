@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from './store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function item(over: Partial<ItemInstance>): ItemInstance {
   return { uid: 'i1', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over } as ItemInstance;
@@ -22,33 +25,29 @@ const BANDAGE = item({ uid: 'b1', label: 'Bandages', consumable: { kind: 'do', e
 const POTION = item({ uid: 'p1', label: 'Potion de guérison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
 
 describe('usePartyItem — consommables hors combat (fiche)', () => {
-  beforeEach(() => {
-    useGame.setState({ mode: 'exploration', battle: null, journal: [] });
-  });
-
   it('bandages : retire 1 pion Hémorragique et consomme l’objet', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], items: [BANDAGE] });
-    useGame.setState({ party: [h] });
-    useGame.getState().usePartyItem('h1', 'b1');
-    const p = useGame.getState().party.find((c) => c.id === 'h1')!;
+    banc.setState({ party: [h] });
+    banc.getState().usePartyItem('h1', 'b1');
+    const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(p.conditions.find((c) => c.id === 'hemorragique')?.value).toBe(2); // 3 − 1
     expect(p.items!.find((i) => i.uid === 'b1')).toBeUndefined(); // consommé
   });
 
   it('potion de guérison : soigne du Bonus d’Endurance et se consomme', () => {
     const h = hero({ wounds: blessuresDeBase(12, 6), items: [POTION] });
-    useGame.setState({ party: [h] });
-    useGame.getState().usePartyItem('h1', 'p1');
-    const p = useGame.getState().party.find((c) => c.id === 'h1')!;
+    banc.setState({ party: [h] });
+    banc.getState().usePartyItem('h1', 'p1');
+    const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(p.wounds.current).toBe(6 + 3); // BE(35) = 3
     expect(p.items!.length).toBe(0);
   });
 
   it('refus en combat : usePartyItem ne fait rien (passer par la barre d’action)', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], items: [BANDAGE] });
-    useGame.setState({ party: [h], battle: { over: null } as never });
-    useGame.getState().usePartyItem('h1', 'b1');
-    const p = useGame.getState().party.find((c) => c.id === 'h1')!;
+    banc.setState({ party: [h], battle: { over: null } as never });
+    banc.getState().usePartyItem('h1', 'b1');
+    const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(p.conditions.find((c) => c.id === 'hemorragique')?.value).toBe(3); // inchangé
     expect(p.items!.length).toBe(1); // non consommé
   });

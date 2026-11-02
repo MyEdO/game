@@ -10,7 +10,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 /**
  * ÉQUIPE des machines de guerre ADE II 8 l.233, câblée au point de tir (`firedWeapon`) et au gate
  * d'affordance (`firedAttackBlock`) — 3ᵉ courbe de sous-effectif, DISTINCTE de celle d'AA (`(C)` de
- * `siege-emplacement.test.ts` : recharge ×2 + Défaut ajouté). Ici : −20 plat si incomplète, INUTILISABLE
+ * `siege-emplacement.hors-store.test.ts` : recharge ×2 + Défaut ajouté). Ici : −20 plat si incomplète, INUTILISABLE
  * si < moitié — AUCUNE recharge doublée, AUCUN Défaut ajouté (vérifié explicitement ci-dessous).
  */
 const CHARS = (F = 30) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: F, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });

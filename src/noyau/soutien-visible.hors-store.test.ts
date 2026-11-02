@@ -1,15 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from './store';
-import { runFlow } from '../noyau/combatEffects';
-import { cleDeFixture } from '../noyau/noyau.testkit';
-import { openPartyTest } from '../noyau/rollSeam';
-import { routeTriggeredTest } from '../noyau/combat/triggeredTest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { runFlow } from './combatEffects';
+import { cleDeFixture } from './noyau.testkit';
+import { openPartyTest } from './rollSeam';
+import { routeTriggeredTest } from './combat/triggeredTest';
 import { findTrappingById, refLabel } from '../data';
 import { RULE_REF } from '../engine/ruleRefs';
-import { testFlow } from '../noyau/monde/flow';
+import { testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #1064 — le Soutien (LDB 12 l.187-200) est une DONNÉE du pending, pas un bonus fondu et muet : la
@@ -28,15 +31,13 @@ const skilled = (id: string, pos: { x: number; y: number } | undefined, skillId 
 const battleOf = (combatants: Combatant[], turn = 0) => ({ combatants, order: combatants.map((c) => c.id), turn, round: 1, log: [], acted: false, action: null, movementUsed: 0, over: null } as never);
 
 describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
-  beforeEach(() => { useGame.setState({ battle: null, pendingTest: null, pendingCascade: null, party: [] }); });
-
   it('Test de scène/dialogue soutenu : `pendingTest.support` = {count, bonus} à côté de la valeur soutenue', () => {
     const leader = skilled('h1', undefined, 'perception', 5); // Ag 30 + 5 → 35
     const help1 = skilled('h2', undefined);
     const help2 = skilled('h3', undefined);
-    useGame.setState({ party: [leader, help1, help2] });
-    runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
-    const pt = useGame.getState().pendingTest!;
+    banc.setState({ party: [leader, help1, help2] });
+    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    const pt = banc.getState().pendingTest!;
     expect(pt.skillValue).toBe(55); // 35 + 2×10 (Soutien FONDU, inchangé)
     // …et DÉTAILLÉ pour l'affichage, NOMS COMPRIS (`ids` : la provenance de la chip « +20 Soutien »).
     expect(pt.support).toEqual({ count: 2, bonus: 20, ids: ['h2', 'h3'] });
@@ -46,57 +47,57 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
 
   it('Test NON soutenu : aucun détail inventé (pas de ligne « Soutien +0 »)', () => {
     const leader = skilled('h1', undefined, 'perception', 5);
-    useGame.setState({ party: [leader] });
-    runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
-    expect(useGame.getState().pendingTest!.support).toBeUndefined();
+    banc.setState({ party: [leader] });
+    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    expect(banc.getState().pendingTest!.support).toBeUndefined();
   });
 
   it('Difficulté ALLÉGÉE (`easierIf`) : le pending PORTE la raison (`easedBy`), pas seulement la difficulté adoucie', () => {
     const leader = skilled('h1', undefined, 'perception', 5);
     const crocheteur = skilled('h2', undefined, 'crochetage', 3);
-    useGame.setState({ party: [leader, crocheteur] });
-    runFlow(useGame.getState, useGame.setState, testFlow(
+    banc.setState({ party: [leader, crocheteur] });
+    runFlow(banc.getState, banc.setState, testFlow(
       { skill: { id: 'perception' }, requireSL: 0, difficulty: 'intermediaire', easierIf: { hasSkill: { id: 'crochetage' }, steps: 1 } },
       EMPTY_FLOW, EMPTY_FLOW,
     ));
-    const pt = useGame.getState().pendingTest!;
+    const pt = banc.getState().pendingTest!;
     expect(pt.difficulty).toBe('accessible'); // allégée d'un cran
     expect(pt.easedBy).toBe('Crochetage'); // …et on sait POURQUOI
   });
 
   it('Difficulté NON allégée (personne ne porte la compétence) : aucune raison affichée', () => {
     const leader = skilled('h1', undefined, 'perception', 5);
-    useGame.setState({ party: [leader] });
-    runFlow(useGame.getState, useGame.setState, testFlow(
+    banc.setState({ party: [leader] });
+    runFlow(banc.getState, banc.setState, testFlow(
       { skill: { id: 'perception' }, requireSL: 0, difficulty: 'intermediaire', easierIf: { hasSkill: { id: 'crochetage' }, steps: 1 } },
       EMPTY_FLOW, EMPTY_FLOW,
     ));
-    expect(useGame.getState().pendingTest!.easedBy).toBeUndefined();
+    expect(banc.getState().pendingTest!.easedBy).toBeUndefined();
   });
 
   it('ÉCRÊTAGE de cible : `pendingTest.clamped` est MESURÉ, jamais déduit d’une cible qui vaut 99', () => {
     // Cible calculée 135 (Ag 30 + 105 Augmentations) → bornée à 99 : l'écrêtage réel est −36.
     const colosse = skilled('h1', undefined, 'perception', 105);
-    useGame.setState({ party: [colosse] });
-    runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
-    const pt = useGame.getState().pendingTest!;
+    banc.setState({ party: [colosse] });
+    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    const pt = banc.getState().pendingTest!;
     expect(pt.target).toBe(99);
     expect(pt.clamped).toBe(-36); // 99 − 135
 
     // Cible qui VAUT 99 sans aucun bornage : rien à nommer.
     const juste = skilled('h2', undefined, 'perception', 69);
-    useGame.setState({ party: [juste], pendingTest: null });
-    runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
-    expect(useGame.getState().pendingTest!.target).toBe(99);
-    expect(useGame.getState().pendingTest!.clamped).toBeUndefined();
+    banc.setState({ party: [juste], pendingTest: null });
+    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'perception' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    expect(banc.getState().pendingTest!.target).toBe(99);
+    expect(banc.getState().pendingTest!.clamped).toBeUndefined();
   });
 
   it('PORTE du seam (`openPartyTest`) : base NUE + Soutien en ligne de mod NOMMÉE, cible soutenue', () => {
     const leader = skilled('h1', undefined, 'perception', 5);
     const help = skilled('h2', undefined);
-    useGame.setState({ party: [leader, help] });
-    openPartyTest(useGame.getState, useGame.setState, { skill: 'perception', actionLabel: 'Fouiller la pièce', difficulty: 'intermediaire' }, cleDeFixture('testSoutienSeam'));
-    const step = useGame.getState().pendingCascade!.participants[0];
+    banc.setState({ party: [leader, help] });
+    openPartyTest(banc.getState, banc.setState, { skill: 'perception', actionLabel: 'Fouiller la pièce', difficulty: 'intermediaire' }, cleDeFixture('testSoutienSeam'));
+    const step = banc.getState().pendingCascade!.participants[0];
     expect(step.base).toBe(35); // Niveau de Compétence NU du meneur (Ag 30 + 5), LDB 09 l.17
     expect(step.target).toBe(45); // …le Soutien reste un MODIFICATEUR compris dans la cible (l.189-190)
     expect(step.mods).toEqual([{ label: refLabel('regles', RULE_REF.soutien), value: 10, famille: 'jet', ref: RULE_REF.soutien, by: [{ id: 'h2' }] }]);
@@ -104,14 +105,12 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
 });
 
 describe('#1064 — Cumuler l’Avantage passe par la COUTURE (LDB 09 l.305-308)', () => {
-  beforeEach(() => { useGame.setState({ battle: null, pendingTest: null, pendingCascade: null, party: [] }); });
-
   it('`battleGainAdvantage` ouvre le Test par `openSkillTest` : acteur IMPOSÉ, octroi porté, Test PERSONNEL', () => {
     const observer = skilled('h1', { x: 5, y: 5 }, 'intuition', 5, { intelligence: 40 });
     const help = skilled('h2', { x: 6, y: 5 }, 'intuition', 2, { intelligence: 40 }); // adjacent + Augmentation
-    useGame.setState({ battle: battleOf([observer, help]), party: [observer, help] });
-    useGame.getState().battleGainAdvantage('intuition');
-    const pt = useGame.getState().pendingTest!;
+    banc.setState({ battle: battleOf([observer, help]), party: [observer, help] });
+    banc.getState().battleGainAdvantage('intuition');
+    const pt = banc.getState().pendingTest!;
     expect(pt.actorId).toBe('h1'); // l'observateur reste l'acteur imposé
     expect(pt.candidates).toBeUndefined(); // …aucun autre candidat n'est offert
     expect(pt.combatAdvantage?.combatantId).toBe('h1'); // l'octroi d'Avantage voyage par le pending
@@ -123,8 +122,6 @@ describe('#1064 — Cumuler l’Avantage passe par la COUTURE (LDB 09 l.305-308)
 });
 
 describe('LDB 12 l.197 — un Test SUBI ne se soutient pas (défaut de la VOIE, tri-état authoré)', () => {
-  beforeEach(() => { useGame.setState({ battle: null, pendingTest: null, pendingCascade: null, party: [] }); });
-
   /** Effet DÉCLENCHÉ hors combat (Venin/Crampes/zone franchie) : `routeTriggeredTest` ouvre la modale
    *  du sujet — les camarades ne peuvent pas résister à sa place. */
   const subi = (test: Parameters<typeof routeTriggeredTest>[4] extends never ? never : { skill?: { id: string }; characteristic?: string; noSupport?: boolean }) =>
@@ -134,9 +131,9 @@ describe('LDB 12 l.197 — un Test SUBI ne se soutient pas (défaut de la VOIE, 
     const victime = skilled('h1', undefined, 'resistance', 5);
     const a = skilled('h2', undefined, 'resistance', 2);
     const b = skilled('h3', undefined, 'resistance', 2);
-    useGame.setState({ party: [victime, a, b] });
-    routeTriggeredTest(useGame.getState, useGame.setState, victime, victime, subi({ skill: { id: 'resistance' } }));
-    const pt = useGame.getState().pendingTest!;
+    banc.setState({ party: [victime, a, b] });
+    routeTriggeredTest(banc.getState, banc.setState, victime, victime, subi({ skill: { id: 'resistance' } }));
+    const pt = banc.getState().pendingTest!;
     expect(pt.support).toBeUndefined();
     expect(pt.skillValue).toBe(35); // base seule (Ag 30 + 5), pas 55
   });
@@ -144,9 +141,9 @@ describe('LDB 12 l.197 — un Test SUBI ne se soutient pas (défaut de la VOIE, 
   it('OPT-IN par la DONNÉE (`noSupport:false`) : un Test déclenché soutenable l’est vraiment', () => {
     const soigne = skilled('h1', undefined, 'guerison', 5);
     const aide = skilled('h2', undefined, 'guerison', 2);
-    useGame.setState({ party: [soigne, aide] });
-    routeTriggeredTest(useGame.getState, useGame.setState, soigne, soigne, subi({ skill: { id: 'guerison' }, noSupport: false }));
-    expect(useGame.getState().pendingTest!.support).toEqual({ count: 1, bonus: 10, ids: ['h2'] });
+    banc.setState({ party: [soigne, aide] });
+    routeTriggeredTest(banc.getState, banc.setState, soigne, soigne, subi({ skill: { id: 'guerison' }, noSupport: false }));
+    expect(banc.getState().pendingTest!.support).toEqual({ count: 1, bonus: 10, ids: ['h2'] });
   });
 
   it('DONNÉE — « Nécessaire antipoison » (Test de Guérison) est authoré SOUTENABLE (LDB 12 l.197)', () => {

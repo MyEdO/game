@@ -68,7 +68,7 @@ export type FlowVerbs =
    *  fenêtre est close par la cascade hôte). Leur POSSESSION est celle de la FENÊTRE (repli
    *  `modalOwnerOf`) et non d'un porteur : ce sont des décisions de GROUPE qui agrègent TOUTES les
    *  rangées — router `oppositionConfirm` sur le lanceur rendrait un Sort ENNEMI inapplicable dès
-   *  qu'aucun siège ne porte le rôle MJ (mesuré, `surface-1050-intent-path.test.ts`). */
+   *  qu'aucun siège ne porte le rôle MJ (mesuré, `surface-1050-intent-path.hors-store.test.ts`). */
   | (FlowVerbsBase & { kind: 'multi'; pidIsActor: boolean; coop?: boolean; resolution: readonly string[] });
 
 export const FLOW_VERBS = {
