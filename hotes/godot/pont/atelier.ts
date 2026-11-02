@@ -64,6 +64,8 @@ type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
 /** La `cle` du manifeste d'élément `manifeste`. */
 export const cleDe = (manifeste: unknown): Readonly<Record<string, string | undefined>> => (manifeste as ManifesteDElement).cle;
 const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode;
+/** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
+export const blasonsDe = (manifeste: unknown): string[] => (manifeste as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
 
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
  *  leurs lignes de pièce, les surfaces `blason` de chaque élément servi, les emblèmes de la garde-robe, les refus de
@@ -79,7 +81,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const servir = (servis: readonly EntreeDeModele[]): string[] =>
     servis.map(({ id, brut }) => {
       glb[id] = fichiersDuModele(id).glb;
-      blasons[id] = (brut as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
+      blasons[id] = blasonsDe(brut);
       return id;
     });
   const refus = [...index.refus];

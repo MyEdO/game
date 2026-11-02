@@ -50,15 +50,6 @@ const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unkno
 const verdict = (brut: unknown, octets = OCTETS) => validerElement(brut, BASE, octets, lireGlb(octets));
 /** Le manifeste de `categorie` pour le GLB `octets`, suivi de ces octets. */
 const surGlb = (categorie: CategorieDElement, surcharge: Record<string, unknown>, octets: Uint8Array) => [manifeste(categorie, surcharge, octets), octets] as const;
-/** Le GLB dont le nœud 1 pend à l'articulation `hand_r` (nœud 0) et le nœud 2 reste à la racine, chacun à mesh `plaque`. */
-const glbADeuxMeshes = (pendu: Record<string, unknown>, racine: Record<string, unknown>) => ecrireGlb({
-  asset: { version: '2.0' }, nodes: [{ name: 'hand_r', children: [1] }, { ...pendu, mesh: 0 }, { ...racine, mesh: 1 }], skins: [{ joints: [0] }],
-  meshes: [0, 1].map(() => ({ primitives: [{ material: 0, attributes: { TEXCOORD_0: 0 } }] })), materials: [{ name: 'plaque' }],
-}, null);
-/** Deux nœuds nommés `lame`, le second à la racine. */
-const LAME_EN_DOUBLE = glbADeuxMeshes({ name: 'lame' }, { name: 'lame' });
-/** Un nœud nommé `noeud 2` pendu, le nœud 2 sans nom à la racine. */
-const NOM_DU_LIBELLE = glbADeuxMeshes({ name: 'noeud 2' }, {});
 const codes = (brut: unknown, octets = OCTETS) => {
   const v = verdict(brut, octets);
   return v.ok ? [] : v.ecarts.map((e) => e.code);
@@ -79,14 +70,14 @@ describe('validerElement : un manifeste valide par catégorie', () => {
   });
 });
 
-describe('validerElement : les surfaces se lisent sur tout nœud à mesh, nommé ou non', () => {
-  const plaque = glbDElement('hand_r', ['tissu'], [], { anonyme: [{ materiau: 'plaque', uv: true }] });
-  it('un matériau porté par un nœud sans nom est une surface du GLB', () => {
+describe('validerElement : les surfaces se lisent sur tout nœud à mesh, pas seulement le mesh pendu', () => {
+  const plaque = glbDElement('hand_r', ['tissu'], [], { garde: [{ materiau: 'plaque', uv: true }] });
+  it('un matériau porté par un second nœud à mesh est une surface du GLB', () => {
     const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, plaque);
     expect(verdict(blason, plaque)).toEqual({ ok: true, manifeste: blason });
   });
-  it('une primitive sans `TEXCOORD_0` sous un nœud sans nom refuse l’emblème', () => {
-    const octets = glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: false }] });
+  it('une primitive sans `TEXCOORD_0` sous un second nœud à mesh refuse l’emblème', () => {
+    const octets = glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: false }] });
     expect(codes(...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, octets))).toEqual(['uv-absente']);
   });
 });
@@ -137,10 +128,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],
   ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbAvec(null))],
-  ['rigide-a-la-racine', 'mesh sans nom à la racine d’un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }] }))],
-  ['rigide-a-la-racine', 'mesh à la racine au nom d’un mesh pendu', ...surGlb('rigide', {}, LAME_EN_DOUBLE)],
-  ['rigide-a-la-racine', 'mesh sans nom à la racine dont le libellé nomme un mesh pendu', ...surGlb('rigide', {}, NOM_DU_LIBELLE)],
-  ['rigide-skinne', 'mesh skinné dans un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }], skinne: true }))],
+  ['rigide-a-la-racine', 'second mesh à la racine d’un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: true }] }))],
+  ['rigide-skinne', 'mesh skinné dans un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: true }], skinne: true }))],
 ];
 
 describe('validerElement : chaque refus nommé', () => {
@@ -182,9 +171,20 @@ describe('validerElement : un mesh rigide se monte sous un os de la base', () =>
       ok: false, ecarts: [{ code: 'rigide-a-la-racine', ou: 'liaison.mode', detail: 'lame ne pend directement à aucune articulation d’un skin : un élément `rigide` ne reste pas à la racine de la scène' }],
     });
   });
-  it('un mesh sans nom se nomme par son index', () => {
-    expect(verdict(...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }], skinne: true })))).toEqual({
-      ok: false, ecarts: [{ code: 'rigide-skinne', ou: 'liaison.mode', detail: 'noeud 2 porte un skin : un élément en liaison `rigide` ne monte que des meshes sans skin' }],
+  it('un mesh skinné est refusé sous son nom', () => {
+    expect(verdict(...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: true }], skinne: true })))).toEqual({
+      ok: false, ecarts: [{ code: 'rigide-skinne', ou: 'liaison.mode', detail: 'garde porte un skin : un élément en liaison `rigide` ne monte que des meshes sans skin' }],
+    });
+  });
+  /** Le GLB dont le mesh `lame` pend à l'articulation sans nom du nœud 0. */
+  const SOUS_ARTICULATION_SANS_NOM = ecrireGlb({
+    asset: { version: '2.0' }, nodes: [{ children: [1] }, { name: 'lame', mesh: 0 }], skins: [{ joints: [0] }],
+    meshes: [{ primitives: [{ material: 0, attributes: { TEXCOORD_0: 0 } }] }], materials: [{ name: 'plaque' }],
+  }, null);
+  it.each(['rigide', 'decor'] as const)('un `%s` pendu à une articulation sans nom est refusé, même quand la base a un os au libellé de ce nœud', (categorie) => {
+    const octets = SOUS_ARTICULATION_SANS_NOM;
+    expect(validerElement(manifeste(categorie, {}, octets), { ...BASE, os: [...BASE.os, 'noeud 0'] }, octets, lireGlb(octets))).toEqual({
+      ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: 'lame pend à l’articulation sans nom noeud 0, qui n’est pas un os de la base `humanoide`' }],
     });
   });
   it.each(['decor', 'vehicule'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
@@ -204,7 +204,7 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
   const pilosite = (coiffure: string) => ({
     ...elementSchema3(), categorie: 'pilosite', cle: { coiffure }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'metal', palette: 'cheveux' }],
   });
-  it.each(['valide', 'vetement', 'tete', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete'] as const)('%s', cas => {
+  it.each(['valide', 'vetement', 'tete', 'tete-monstrueuse', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete', 'cle-inconnue-tete-monstrueuse'] as const)('%s', cas => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
     const base = baseDeTest();
@@ -216,15 +216,17 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
       : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] }
       : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure')
       : cas === 'tete' ? tete('humain') : cas === 'cle-inconnue-tete' ? tete('humain-m-1')
+      : cas === 'tete-monstrueuse' ? tete('skaven') : cas === 'cle-inconnue-tete-monstrueuse' ? tete('rat')
       : cas === 'pilosite' ? pilosite('crane-rase') : elementSchema3();
     writeFileSync(join(d, 'element.json'), JSON.stringify(element));
     writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
     const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
     expect(r.error).toBeUndefined();
-    const accepte = cas === 'valide' || cas === 'vetement' || cas === 'tete' || cas === 'pilosite';
+    const accepte = cas === 'valide' || cas === 'vetement' || cas === 'tete' || cas === 'tete-monstrueuse' || cas === 'pilosite';
     expect(r.status, r.stderr + r.stdout).toBe(accepte ? 0 : 1);
     if (cas === 'cle-inconnue') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.piece : robe-de-bure');
     else if (cas === 'cle-inconnue-tete') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : humain-m-1');
+    else if (cas === 'cle-inconnue-tete-monstrueuse') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : rat');
     else if (!accepte) expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
   }, 65000);
 });

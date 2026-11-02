@@ -22,7 +22,7 @@ import { findCreatureById, profilsStandard, refEntiteResolue } from '../../data'
 function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
   if (ent.presetId) { // `''` n'est pas un porteur (`typeNonNomme`, `defs-scenes/scene.ts`)
     const preset = resolvePresetCreature(ent.presetId, presetDe);
-    return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: preset.apparence ?? ent.appearance };
+    return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: { ...preset.apparence, ...ent.appearance } };
   }
   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
   if (ent.ref) return refEntiteResolue(ent.ref) ? { porteur: { ref: ent.ref }, appearance: ent.appearance } : undefined;

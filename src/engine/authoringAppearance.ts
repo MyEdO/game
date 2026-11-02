@@ -29,6 +29,7 @@ export interface EntityAppearance {
   armurePortee?: boolean;
   /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
   apparencesObjets?: Record<string, { id: string }>;
+  embleme?: { id: string };
 }
 
 /** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */

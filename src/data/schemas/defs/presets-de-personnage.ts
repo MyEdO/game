@@ -23,7 +23,7 @@ import { document, type EnveloppeDocument } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { apparencesDObjetsSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
+import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille } from '../../index';
 import type { HabilleDEnsemble, TenueId } from './garde-robe';
 
@@ -42,9 +42,11 @@ const champs = {
   objets: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
   prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
+  embleme: emblemeSchema.optional(),
 };
 
 const metaDesChampsDuPreset = {
+  embleme: { label: 'Emblème', hint: 'Emblème posé sur les surfaces qui portent un blason' },
   race: { label: 'Race de rendu', hint: 'Apparence d’espèce du personnage' },
   gabarit: { label: 'Gabarit', hint: 'Carrure du squelette ; absent, celle de la race' },
   sex: { label: 'Sexe' },
@@ -94,6 +96,7 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): void {
 
 /** L'entrée sans son enveloppe (`CLES_ENVELOPPE`), règles comprises. */
 export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(refuserLesPortesDeuxFois);
+export const surchargesDEmblemesSchema = z.record(z.string(), emblemeSchema.nullable());
 
 const doc = document(
   'presets-de-personnage',

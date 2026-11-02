@@ -38,7 +38,7 @@
 //     `double-vie`/`empreint-de-la-magie` : bloqué par #676 — porteur attendu = carrière « Magus du
 //     Culte de Tzeentch », absente de `careers.json` (EDOC 9).
 //   — `traits:absorption`, `traits:contagieux` : bloqué par #921 (cause A) — mécanique `effects`
-//     COMPLÈTE (et testée, `src/state/contagieux.test.ts`), aucune créature EDO ne porte le Trait.
+//     COMPLÈTE (et testée, `src/noyau/contagieux.hors-store.test.ts`), aucune créature EDO ne porte le Trait.
 //   — `traits:amorphe`, `traits:decerebre`, `traits:voleur-de-chair` : bloqué par #921 (cause B) —
 //     prose seule, vocabulaire moteur absent (réduction de Blessures par type de dégâts et immunité
 //     aux Critiques ; « joue toujours en dernier » et substitution BF/BFM ; possession de cadavre

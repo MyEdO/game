@@ -16,14 +16,14 @@ import { parseChapitre, fragmentBlocs, type ChapitreParse, type FragmentBlocs } 
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
 import { proseSource, titreDeChapitre } from '../../../scripts/source/prose-source-plugin.mjs';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { cheminChapitre, materialiser, resoudreProse } from '../../../scripts/source/resoudre.mjs';
+import { materialiser, resoudreProse } from '../../../scripts/source/resoudre.mjs';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { chapitresDe } from '../../../scripts/source/lecteur-fs.mjs';
+import { chapitresDe, cheminChapitre } from '../../../scripts/source/lecteur-fs.mjs';
 // @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
 import { readText } from '../../../scripts/raw/_lib.mjs';
 // Inventaire des adresses du dépôt : la DÉFINITION unique du walk (`adresses.mjs`, qui liste par la
 // primitive d'ORDRE TOTAL `listerArbre`) — jamais un second balayage ici.
-import { RACINE_DEPOT, fichiersAdresses, type Adresse } from '../../../scripts/source/adresses.mjs';
+import { RACINE_DEPOT, cheminDuDepot, fichiersAdresses, type Adresse } from '../../../scripts/source/adresses.mjs';
 
 const CHAPITRE = `# Peur
 
@@ -53,9 +53,8 @@ function fixture(): { racine: string; chapitre: string } {
   mkdirSync(join(racine, 'src', 'data'), { recursive: true });
   const absolu = join(corpus, LIVRE, '21 - Psychologie.md');
   writeFileSync(absolu, CHAPITRE, 'utf8');
-  // FORME DE PRODUCTION du chemin de chapitre : relatif à la racine (`chapterFile` compose depuis le
-  // `dir` de `books.json`) et à séparateurs Windows — c'est cette forme que chokidar rend, et c'est
-  // sur elle que l'index de dépendance du plugin doit s'apparier.
+  // FORME DE PRODUCTION du chemin de chapitre : relatif à la racine (`cheminChapitre` compose depuis
+  // le `dir` de `books.json`). L'événement chokidar peut désigner ce chapitre par son chemin absolu.
   return { racine, chapitre: relative(process.cwd(), absolu) };
 }
 afterAll(() => { for (const r of racines) rmSync(r, { recursive: true, force: true }); });
@@ -192,7 +191,7 @@ describe('plugin `wfrp:prose-source` — projets de campagne LIVRÉS (#680)', ()
     expect(surDisque.profil.desc, 'le DISQUE ne porte que l’adresse').toBeUndefined();
     const ref = surDisque.profil.descRef!;
     const attendu = (resoudreProse({ descRef: ref }) as { md: string }).md;
-    expect(readFileSync(join(RACINE_DEPOT, cheminChapitre(ref.book, ref.ch)), 'utf8'), 'le texte est celui du livre').toContain(attendu);
+    expect(readFileSync(cheminDuDepot(cheminChapitre(ref.book, ref.ch)), 'utf8'), 'le texte est celui du livre').toContain(attendu);
 
     const server = await createServer({
       configFile: false,
@@ -369,7 +368,7 @@ describe('plugin `wfrp:prose-source` — manifeste du corpus RÉEL du dépôt', 
       for (const c of livre.chapitres) {
         comptes += 1;
         if (c.titre) titres += 1;
-        const texte = readText(cheminChapitre(bookId, c.ch)) as string;
+        const texte = readText(cheminDuDepot(cheminChapitre(bookId, c.ch))) as string;
         if (c.octets !== Buffer.byteLength(texte, 'utf8')) octets.push(`${bookId} ch.${c.ch}`);
         const servi = emis.find((f) => f.fileName === `source/${bookId}/${c.ch}.md`);
         if (servi?.source !== texte) corps.push(`${bookId} ch.${c.ch}`);
@@ -453,7 +452,7 @@ describe('plugin `wfrp:prose-source` — serveur de dev', () => {
    * vérifié ici ; l'unique maillon laissé à Vite est la remontée chokidar, dont la condition — le
    * dossier du livre mis sous surveillance par le plugin — est vérifiée juste en dessous.
    */
-  it('un chapitre RÉÉCRIT invalide les modules JSON qui en dépendent et fait recharger la page', async () => {
+  it.each(['relatif', 'absolu'] as const)('un chapitre RÉÉCRIT, événement %s, invalide ses modules JSON et recharge la page', async (forme) => {
     const { racine, chapitre } = fixture();
     const fichierJson = join(racine, 'src', 'data', 'psychology.json');
     writeFileSync(fichierJson, JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]), 'utf8');
@@ -491,7 +490,7 @@ describe('plugin `wfrp:prose-source` — serveur de dev', () => {
       );
 
       writeFileSync(chapitre, CHAPITRE.replace('quelque chose d\'horrible', 'quelque chose de RÉÉCRIT'), 'utf8');
-      server.watcher.emit('change', chapitre);
+      server.watcher.emit('change', forme === 'absolu' ? resolve(chapitre) : chapitre);
 
       expect(messages.map((m) => m?.type), 'aucun `full-reload` envoyé au navigateur').toContain('full-reload');
       expect(module?.transformResult, 'le module JSON est resté en cache : il servirait l’ancien texte').toBeNull();

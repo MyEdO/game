@@ -56,10 +56,13 @@ func _recetter() -> void:
 						_verifier(noeud != null and noeud.skin == null, "%s : pièce rigide %s" % [c.id, piece])
 						if noeud != null:
 							_controler_matiere(c.id, noeud, donneur.montage.composants[composant.composant].matieres, objet.palette)
+		var masques: Array = manifeste.montage.get("masquer", []).duplicate()
 		for piece in manifeste.pieces.values():
 			if manifeste.montage.composants.has(piece.component):
-				var noeud := modele.find_child(piece.node, true, false) as Node3D
-				_verifier(noeud != null and not noeud.visible, "%s : défaut masqué %s" % [c.id, piece.node])
+				masques.append(piece.node)
+		for nom in masques:
+			var noeud := modele.find_child(nom, true, false) as Node3D
+			_verifier(noeud != null and not noeud.visible, "%s : défaut masqué %s" % [c.id, nom])
 		_controles.append(c.id)
 		print("[recette-équipement] %s : contrôlé" % c.id)
 	for intact in _materiaux_intacts:

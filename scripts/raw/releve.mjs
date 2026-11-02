@@ -15,8 +15,9 @@
 // qu'`adresseDe` n'adresse pas va sous `introuvables`, avec son code d'erreur.
 //
 // Lancer : node scripts/raw/releve.mjs <id du livre> <terme>…   (JSON sur la sortie standard)
-import { chapterFile, estHorsRegle, livreExtraitDe, plagesDEntites, readText, sigleDe } from './_lib.mjs'
-import { chapitresParses } from '../source/lecteur-fs.mjs'
+import { estHorsRegle, livreExtraitDe, plagesDEntites, readText, sigleDe } from './_lib.mjs'
+import { cheminDuDepot } from '../source/adresses.mjs'
+import { chapitresParses, cheminChapitre } from '../source/lecteur-fs.mjs'
 import {
   MOTIFS_DE_RENVOI, cle, indexerLivre, nommes, renvoisDuLivre, resoudreRenvoi, singulier,
 } from '../../src/data/source/renvoi.ts'
@@ -68,7 +69,7 @@ export function livreDuReleve(bookId) {
     book: bookId,
     langue: livre.language,
     chapitres,
-    indexMd: fichierDIndex ? readText(chapterFile(abbr, numeroDuFichier(fichierDIndex)).path) : null,
+    indexMd: fichierDIndex ? readText(cheminDuDepot(cheminChapitre(bookId, numeroDuFichier(fichierDIndex)))) : null,
     horsRegle: (n) => estHorsRegle(abbr, n),
     plages: plagesDEntites(abbr),
   })

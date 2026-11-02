@@ -99,8 +99,8 @@ Choisir les ids sémantiques dans la donnée du jeu, jamais dans un libellé. Re
 les variantes du concept avant d'en créer un. Une clé de tête ou de coiffure n'a pas de sexe ; une variation de
 couleur n'ajoute aucun élément. Une tête, une coiffure ou une pièce absente de la garde-robe s'y
 ajoute d'abord (skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Une
-tête existe par espèce jouable de `src/data/species.json` et nomme sa race de rendu dans son champ
-`race` ; une tête monstrueuse attend #3123 (têtes monstrueuses en donnée). Un seul élément par
+tête porte l'id de sa race de rendu (`src/data/raceAppearance.json`), qu'elle nomme dans son champ
+`race`, espèce jouable comme race monstrueuse : `{ "tete": "skaven" }`. Un seul élément par
 (base, clé) ; un nom local dérivé tel que `humanoide--rigide--epee` distingue les catégories,
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 
@@ -145,7 +145,8 @@ coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth
 Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
 neutre (écu uni, lame nue, insigne vierge), dont la couleur reste palette ou teinte, et le manifeste
 déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface `blason` ; l'emblème
-est choisi au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
+vient de la donnée du porteur, `embleme` de son apparence ou de sa composition (#3155), et se pose
+au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
 `blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
 `blason` de la pièce.
 

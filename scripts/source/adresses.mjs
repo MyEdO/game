@@ -9,12 +9,15 @@
 // Le listage passe par la primitive d'ORDRE TOTAL `listerArbre` (`scripts/guards/lib/lister.mjs`) :
 // l'ordre du système de fichiers ferait varier l'ordre d'un rapport d'une machine à l'autre.
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre } from '../guards/lib/lister.mjs'
 
 /** Racine du dépôt, déduite de la place de ce module (`scripts/source/`). */
 export const RACINE_DEPOT = fileURLToPath(new URL('../../', import.meta.url))
+
+/** Chemin absolu d'un chemin relatif à la racine du dépôt, d'où que le processus soit lancé (#3120). */
+export const cheminDuDepot = (chemin) => resolve(RACINE_DEPOT, chemin)
 
 /** Racines de documents authorés, relatives à la racine du dépôt, en chemins POSIX. */
 export const RACINES_PAR_DEFAUT = ['src/data', 'src/scenes']

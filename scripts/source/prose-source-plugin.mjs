@@ -26,14 +26,16 @@
 // chapitre, et `DescRefField` le dit en toutes lettres au lieu d'accuser l'adresse.
 // Garde : `src/data/source/prose-source.test.ts` « un build de production n'émet aucun asset `source/**` ».
 import { basename } from 'node:path'
-import { chapitresDe, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
-import { cheminChapitre, materialiser } from './resoudre.mjs'
+import { cheminDuDepot } from './adresses.mjs'
+import { chapitresDe, cheminChapitre, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
+import { materialiser } from './resoudre.mjs'
 import { BOOKS, REGISTRE_LIVRES, estLivreExtrait, readText, sigleDe } from '../raw/_lib.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { estDocumentDeProse } from '../guards/lib/proseInline.mjs'
 
-/** Séparateurs POSIX — l'index de dépendance apparie des chemins Windows et des chemins Vite. */
-const normalise = (chemin) => String(chemin).split('\\').join('/')
+/** Chemin absolu du dépôt, à séparateurs POSIX : l'index de dépendance apparie les chemins de chapitre,
+ *  relatifs à la racine, aux événements de Vite, relatifs ou absolus (#3120). */
+const normalise = (chemin) => cheminDuDepot(chemin).split('\\').join('/')
 
 /** Route publique d'un chapitre : `/source/<livre>/<NNN>.md` — la graphie du chapitre, de la
  *  largeur de son livre (`graphieDeChapitre`, `src/data/source/decoupe.ts`). */
@@ -113,7 +115,7 @@ export function manifesteDe(corpus) {
     for (const ch of corpus.chapitres(bookId)) {
       const chemin = corpus.chemin(bookId, ch)
       if (!chemin) continue
-      const texte = readText(chemin)
+      const texte = readText(cheminDuDepot(chemin))
       const titre = titreDeChapitre(corpus.lire(bookId, ch), texte)
       chapitres.push({ ch, fichier: basename(chemin), titre, octets: Buffer.byteLength(texte, 'utf8') })
     }
@@ -187,9 +189,9 @@ export function proseSource(options = {}) {
           return
         }
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
-        res.end(readText(chemin))
+        res.end(readText(cheminDuDepot(chemin)))
       })
-      for (const dossier of corpus.dossiers()) server.watcher.add(dossier)
+      for (const dossier of corpus.dossiers()) server.watcher.add(cheminDuDepot(dossier))
       server.watcher.on('change', (fichier) => {
         const vu = dependants.get(normalise(fichier))
         if (!vu || vu.ids.size === 0) return

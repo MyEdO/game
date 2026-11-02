@@ -1943,6 +1943,15 @@
     "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
   },
   {
+    "id": "emblemeDuPorteur",
+    "type": "primitives.manifest",
+    "label": "emblemeDuPorteur",
+    "fichier": "src/noyau/apparence/gardeRobe.ts",
+    "concept": "référence d’emblème projetée par id stable depuis la garde-robe ; une référence absente ou périmée ne projette aucun emblème",
+    "perimetre": "composition et équipement dessiné des porteurs",
+    "verrou": "src/noyau/emblemes.hors-store.test.ts"
+  },
+  {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
     "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin",
@@ -2066,7 +2075,7 @@
     "fichier": "src/engine/items.ts",
     "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
     "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
-    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
+    "verrou": "src/engine/apparenceNaissance.test.ts, src/noyau/apparence-naissance.hors-store.test.ts"
   },
   {
     "id": "vise",

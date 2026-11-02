@@ -29,7 +29,7 @@ const composer = (manifestes: Record<string, unknown>, brut: unknown) => {
   if (!lu.ok) throw new Error(JSON.stringify(lu.fautes));
   const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
   expect(modeles.refus).toEqual([]);
-  return composerSurLaBase(modeles.bases[0], manifestes, lu.composition);
+  return composerSurLaBase(modeles.bases[0], manifestes, lu.valeur);
 };
 
 describe('composerSurLaBase', () => {
@@ -103,6 +103,23 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
       categorie: 'validation',
       message: 'presetDeComposition : preset, l’id d’un preset de catalogues (soldat)',
     });
+  });
+
+  it('publie le défaut d’emblème et donne priorité aux choix manuels, y compris au vide explicite', () => {
+    const blasonne = { ...plastron, surfaces: [{ nom: 'acier', palette: 'metal', blason: true }] };
+    appeler('modeles', { manifestes: { humanoide, blasonne }, osDesRigides: { humanoide: [], blasonne: [] } });
+    const composition = { race: { id: 'humain' }, sex: 'M', tete: { id: 'humain' }, objets: ['plastron'], embleme: { id: 'taureau-rouge' } };
+    const entree = { base: 'humanoide', composition };
+    const monte = (r: ReturnType<typeof appeler>) => r.montes.find((m: { ligne: string }) => m.ligne === 'ligne/piece/plastron');
+    expect(monte(appeler('composer', entree))).toEqual({ ligne: 'ligne/piece/plastron', element: 'blasonne', embleme: { id: 'taureau-rouge' } });
+    expect(appeler('composer', { ...entree, emblemes: null }).erreur.categorie).toBe('validation');
+    const surcharge = { 'ligne/piece/plastron': { id: 'tete-de-mort-rouge' } };
+    expect(monte(appeler('composer', { ...entree, emblemes: surcharge })).embleme).toEqual({ id: 'tete-de-mort-rouge' });
+    expect(monte(appeler('composer', { ...entree, emblemes: { 'ligne/piece/plastron': null } }))).toEqual({ ligne: 'ligne/piece/plastron', element: 'blasonne' });
+    expect(monte(appeler('composer', { ...entree, composition: { ...composition, embleme: { id: 'tete-de-mort-rouge' } } })).embleme).toEqual({ id: 'tete-de-mort-rouge' });
+    expect(appeler('composer', { ...entree, emblemes: { 'ligne/piece/plastron': { id: 'embleme-inconnu' } } }).erreur.categorie).toBe('validation');
+    expect(appeler('composer', { ...entree, emblemes: { 'ligne/piece/plastron': { id: 'plastron' } } }).erreur.categorie).toBe('validation');
+    expect(appeler('composer', { ...entree, composition: { ...composition, embleme: { id: 'embleme-inconnu' } } }).erreur.categorie).toBe('validation');
   });
 
   it('une composition absente ou fautive est refusée en validation, au chemin de la faute', () => {

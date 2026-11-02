@@ -2340,7 +2340,6 @@ export interface RaceAppearanceData {
   label: string;
   gabarit: { id: GabaritId };
   gabaritOverride?: SurchargeDeGabarit;
-  head?: string;
   scale?: number;
 }
 /** Banque de noms d'UNE race jouable : prénoms M/F + noms de famille (LDB 05). L'`id` est le
@@ -2958,6 +2957,7 @@ const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
   return (id: string | null | undefined) => idx(id) as Extract<GardeRobeEntree, { kind: K }> | undefined;
 };
 export const findPieceById = parNature('piece');
+export const findEmblemeById = parNature('embleme');
 export const findTeteById = parNature('tete');
 export const findCoiffureById = parNature('coiffure');
 const ensembleParHabille = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));

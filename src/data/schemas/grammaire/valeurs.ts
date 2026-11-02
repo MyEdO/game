@@ -864,6 +864,8 @@ export function messageDeTenueInconnue(id: string): string {
   return `tenue « ${id} » inconnue : ni carrière, ni classe de carrière, ni « nu ».`;
 }
 
+export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
@@ -875,7 +877,8 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
-}), { sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
+  embleme: emblemeSchema.optional(),
+}), { embleme: { label: 'emblème' }, sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
