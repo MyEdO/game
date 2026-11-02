@@ -5,21 +5,20 @@ import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
 import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
-import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../noyau/travelFlow';
+import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
-import { forcePaceRefus, millesDeCroisiere, dureeDeTraversee, mDeCroisiere, refusDAppareiller, raisonDuRefusDAppareiller, dossierDuNavire } from '../noyau/seaVoyageFlow';
+import { forcePaceRefus, millesDeCroisiere, dureeDeTraversee, mDeCroisiere, refusDuDepartEnMer, dossierDuNavire } from '../noyau/seaVoyageFlow';
 import {
-  TravelMode, travelModeLabels, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
-  routeDistanceLabel, vehicleTravel, classeRetenue, prixParPassager, placesPayees,
+  TravelMode, travelModeLabels, travelModeIcon,
+  routeDistanceLabel, vehicleTravel, prixParPassager, placesPayees,
 } from '../engine/travel';
-import { offreDePassage } from '../noyau/billetFlow';
 import {
   type Allure, allureLabel, availableAllures, partyFullyMounted, partyMounts,
 } from '../engine/mountTravel';
-import { rationCount, provisioningManifest } from '../engine/provisions';
+import { provisioningManifest } from '../engine/provisions';
 import { skillInstanceLabel } from '../data';
-import { formatMoney, canAfford, fromBrass } from '../engine/money';
+import { formatMoney, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
 import { GatedAction, raisonSi } from './GatedAction';
@@ -85,13 +84,14 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const gameTime = useGame((s) => s.gameTime);
-  const travelDayHours = useGame((s) => s.travelDayHours);
   const travelPlan = useGame((s) => s.travelPlan);
   const close = useGame((s) => s.closeWorldMap);
   const startTravel = useGame((s) => s.startTravel);
   const startBilletBargain = useGame((s) => s.startBilletBargain);
-  const billetEnMain = useGame((s) => s.billetEnMain);
-  const marchandagesDeBillet = useGame((s) => s.marchandagesDeBillet);
+  // Abonnements du devis et du refus de départ, lus dans l'état (`devisDeTrajet`, `refusDeDepart`).
+  useGame((s) => s.travelDayHours);
+  useGame((s) => s.billetEnMain);
+  useGame((s) => s.marchandagesDeBillet);
   const resumeTravel = useGame((s) => s.resumeTravel);
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
@@ -179,6 +179,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   /** Cadrage initial + cible du bouton « recentrer » de `MapCanvas` (recalculé à chaque clic). */
   const computeFit = (): Viewport => fitViewport(fitPoints(), { ...hereRender, z: 2 });
 
+  const vessel = useGame((s) => s.vessel);
+
   if (!map) return null;
   const selRoute: MapRoute | null = routes.find((r) => r.id === selId) ?? null;
   /** Trajet FERMÉ sélectionné : il se consulte (itinéraire, distance) mais son départ est REFUSÉ. */
@@ -216,7 +218,6 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
     : [];
 
   // Traversée MARITIME (routes `sea`, MDG 13/15) : sur le navire de campagne — estimation en milles/jour.
-  const vessel = useGame((s) => s.vessel);
   const vesselLabel = vessel ? nomDuNavire(vessel) : '';
   // COQUE qui portera l'équipage — la seule chose dont l'épinglage des STATIONS a besoin (ses RÉFS
   // navales gatent `cale`/`nid-de-pie`). Deux porteurs, deux adaptateurs, un seul gate : le navire de
@@ -228,9 +229,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
     : (fluvialJoue ? navalTraitsDe(mode, undefined) : null);
   const seaPropulsion = vessel ? garanti(propulsionDuNavire(vessel.vehicleId, vessel.upgrades, 'maritime'), vessel.vehicleId, 'propulsion du navire') : null;
   const seaM = vessel ? mDeCroisiere(vessel) : 0;
-  const refusMer = vessel ? refusDAppareiller(vessel) : null;
-  const appareillable = !!vessel && !refusMer;
-  const raisonDeNePasAppareiller = refusMer ? raisonDuRefusDAppareiller(refusMer) : t('wm.aucunNavire');
+  const refusMer = refusDuDepartEnMer(useGame.getState);
+  const appareillable = !refusMer;
   // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
   const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? { mode: seaPropulsion.mode, competence: seaPropulsion.competence } : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du
@@ -243,29 +243,24 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
   const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
-  // Estimations du trajet sélectionné (mêmes formules que le flux — RAW l.207-224).
+  // Le départ demandé : les MÊMES réglages font le devis, le refus et le geste (`travelFlow.startTravel`).
   const base = baseHoursPerDay(map);
   const maxH = maxHoursPerDay(map);
-  const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
-  const effAllure: Allure | undefined = mode === 'monture' ? allure : forceGallop ? 'galop' : undefined;
-  const kmh = selRoute ? travelSpeed(party, possessions, mode, selRoute.speed?.[mode], effAllure) : 0;
-  const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? MOUNT_MAX_HOURS : base;
-  // Le premier jour n'a que ce qu'il RESTE du budget d'aujourd'hui — même calcul que le flux.
-  const prior = hoursTravelledToday({ gameTime, travelDayHours });
-  const firstDay = travelDayBudget(mode, hours, prior);
-  // Route du jour FAITE : le départ attendra l'aube — dit AVANT le clic, même source que la porte du flux.
-  const aLAube = routeDuJourFaite(mode, hours, prior);
-  const plan = selRoute && kmh > 0 ? travelPlanCalc(selRoute.km, kmh, hours, firstDay) : null;
-  // Le passage payant : MÊME offre et MÊME prix qu'au débit (`travelFlow.startTravel`).
-  const offre = selRoute && here && passagePayant(useGame.getState, selRoute, mode)
-    ? offreDePassage(map, selRoute, mode, here.id, billetEnMain, marchandagesDeBillet)
-    : null;
+  const opts: OptionsDeDepart = {
+    classeId: classeId || undefined,
+    hoursPerDay: forced ? (mode === 'pied' ? maxH : mode === 'monture' ? MOUNT_MAX_HOURS : undefined) : undefined,
+    allure: mode === 'monture' ? allure : forceGallop ? 'galop' : undefined,
+    seaPace: mode === 'mer' && !fastJoue && seaPace > 0 ? seaPace : undefined,
+    fast: fastJoue ? true : undefined,
+    cadence: (mode === 'mer' && !fastJoue) || fluvialJoue ? cadence : undefined,
+  };
+  const devis = selRoute && here ? devisDeTrajet(useGame.getState(), selRoute, here.id, mode, opts) : null;
+  const refusDuDepart = selRoute ? refusDeDepart(useGame.getState(), selRoute.id, mode, opts) : null;
+  const { kmh = 0, hours = base, aLAube = false, plan = null, voyageurs = 0 } = devis ?? {};
+  const offre = devis?.passage?.offre ?? null;
   const achat = offre && !offre.couvert ? offre : null;
-  const classe = achat ? classeRetenue(achat.tarif, classeId) : '';
-  const cost = achat ? transportCost(achat.tarif, classe, passengers, achat.issue) : null;
-  const affordable = !cost || canAfford(money, cost);
-  const rationsOwned = party.reduce((s, h) => s + (h.dead ? 0 : rationCount(h)), 0);
-  const rationsNeeded = plan ? Math.max(0, (plan.days - 1) * passengers) : 0; // les nuits en route mangent
+  const classe = devis?.passage?.classeId ?? '';
+  const cost = devis?.passage?.cost ?? null;
 
   // Avitaillement au départ EN MER (#241) : le groupe qui appareille sans vivres/eau le SAIT.
   const seaDaysEstimated = mode === 'mer' && selRoute && appareillable ? dureeDeTraversee(selRoute.km, seaM) : 0;
@@ -648,18 +643,18 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 // MDG 15 l.57-78.
                 <><Icon id="scenario/port" size="sm" /> {t('wm.estimationMer', { navire: vesselLabel, milles: millesDeCroisiere(seaM), m: seaM, tenu: seaPace ? t('wm.siRythmeTenu', { milles: millesDeCroisiere(seaM + seaPace) }) : '', jours: seaDaysEstimated })}</>
               ) : (
-                <>{raisonDeNePasAppareiller}</>
+                <>{refusMer}</>
               )
             ) : kmh > 0 ? (
               <>
                 {aLAube && <>{t('wm.departAvantAube')}{' '}</>}
                 {t('wm.allureDuree', { kmh, duree: plan ? fmtDuration(plan) : '—' })}
-                {cost && <>{t('wm.total', { places: placesPayees(passengers), s: placesPayees(passengers) > 1 ? 's' : '' })}<Coins money={cost} />{!affordable && t('wm.bourseInsuffisante')}</>}
-                {mode === 'pied' && plan && plan.days > 1 && (
-                  <>{t('wm.rations', { besoin: rationsNeeded, porte: rationsOwned })}</>
+                {cost && <>{t('wm.total', { places: placesPayees(voyageurs), s: placesPayees(voyageurs) > 1 ? 's' : '' })}<Coins money={cost} />{!devis?.passage?.abordable && t('wm.bourseInsuffisante')}</>}
+                {!fluvialJoue && devis && plan && plan.days > 1 && (
+                  <>{t('wm.rations', { besoin: devis.rations.requises, porte: devis.rations.portees })}</>
                 )}
               </>
-            ) : (
+            ) : fluvialJoue ? null : (
               <>{t('wm.surcharge')}</>
             )}
           </p>
@@ -691,22 +686,10 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               id="worldmap-depart"
               label={<><Icon id="scenario/travel" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
               ariaLabel={aLAube ? t('wm.attendreAube') : libelleDepart}
-              enabled={!isGuest && (mode === 'mer'
-                ? appareillable
-                : kmh > 0 && affordable)}
-              reason={isGuest ? t('wm.hoteDecide')
-                : mode === 'mer' ? raisonDeNePasAppareiller
-                : kmh <= 0 ? t('wm.refusSurcharge')
-                : t('wm.refusBourse', { prix: cost ? formatMoney(cost) : '' })}
+              enabled={!refusDuDepart}
+              {...raisonSi(refusDuDepart)}
               onClick={() => {
-                startTravel(selRoute.id, mode, {
-                  classeId: classe || undefined,
-                  hoursPerDay: forced ? (mode === 'pied' ? maxH : mode === 'monture' ? MOUNT_MAX_HOURS : undefined) : undefined,
-                  allure: effAllure,
-                  seaPace: mode === 'mer' && !fastJoue && seaPace > 0 ? seaPace : undefined,
-                  fast: fastJoue ? true : undefined,
-                  cadence: (mode === 'mer' && !fastJoue) || fluvialJoue ? cadence : undefined,
-                });
+                startTravel(selRoute.id, mode, opts);
                 if (aLAube) departWaitDawn(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
               }}
             />
