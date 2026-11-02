@@ -5,9 +5,14 @@ import { openRoundStartPsych, openRoundEndCascade } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { psychDRAdjust } from '../engine/combat';
-import { sousPeur, type PsychType } from '../engine/psychology';
+import { cibleEnVue, psychBranchOps, sousPeur, type PsychType } from '../engine/psychology';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { parsePsychTraits } from '../engine/psych/registry';
+import { applyOps } from '../engine/ops';
 import { actorIn } from './monde/combatants';
+import { sourcesPsyEnVue } from './monde/porteurs';
+import { fireTriggers } from './triggeredEffects';
+import { battleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 
@@ -27,15 +32,18 @@ const psy = (id: string, type: PsychType) => (lu(id).psychState ?? []).filter((p
 const bandes = (): CascadeStep[] => (g().pendingCascade?.participants ?? []).filter((s) => s.kind === 'combatPsych');
 const debut = (n: number) => { banc.setState({ battle: { ...g().battle!, round: n }, pendingCascade: null }); openRoundStartPsych(g, banc.setState); };
 const fin = (n: number) => { banc.setState({ battle: { ...g().battle!, round: n + 1 }, pendingCascade: null }); openRoundEndCascade(g, banc.setState); };
+/** Les Traits psy d'« Effrayé (`groupe`) », tels que la fiche les dérive. */
+const effraye = (groupe: string) => parsePsychTraits([{ id: 'effraye', arg: groupe }]).psychTraits ?? [];
 /** Joue chaque rangée de la cascade ouverte, bande après bande. */
 const jouer = () => void draineCascade(g);
 
-/** `heros` héros (surfacés) face à `ennemis` ennemis (IA), tous de Taille moyenne et en vue, sans source. */
-function setup(heros = 1, ennemis = 1) {
+/** `heros` héros (surfacés) face à `ennemis` ennemis (IA), tous de Taille moyenne et en vue, sans source ; la
+ *  scène porte les Groupes `groups`. */
+function setup(heros = 1, ennemis = 1, groups?: string[]) {
   banc.getState().seedRng(7);
   const party = Array.from({ length: heros }, (_, i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
   banc.setState({ party });
-  g().startScene(testScene());
+  g().startScene({ ...testScene(), groups });
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
   banc.abandonner();
@@ -213,3 +221,84 @@ describe('Jet sans pilote de la passe (design B1b, D1 et D5)', () => {
     expect(tient(true)).toBeGreaterThan(tient(false));
   });
 });
+
+describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout dans la scène (#3045)', () => {
+  /** Le héros de la scène étiquetée `groupe`, au Calme plancher. */
+  const etiquetee = (groupe: string) => {
+    const { H: [h] } = setup(1, 1, [groupe]);
+    lu(h).characteristics['force-mentale'] = 1;
+    return h;
+  };
+
+  it('Effrayé (Feu) : Peur neuve au début du Round 1, Test étendu à sa fin, la Peur 0 prend fin (LDB 21 l.25 ; EDOC 12 l.241)', () => {
+    const h = etiquetee('feu');
+    lu(h).psychTraits = effraye('feu');
+    debut(1);
+    expect(bandes(), 'aucun Test au début du Round').toEqual([]);
+    expect(psy(h, 'peur')).toEqual([{ type: 'peur', sourceId: 'scene', indice: 0, calmeDR: 0 }]);
+    fin(1);
+    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.sourceId, s.combatPsych!.sourceName, s.combatPsych!.round, s.participants!.map((p) => p.id)]))
+      .toEqual([['peur', 'scene', g().scene!.label, 1, [h]]]);
+    jouer();
+    expect(psy(h, 'peur').map((p) => [p.lastTestRound, sousPeur(p)])).toEqual([[1, false]]);
+  });
+
+  it('Haine (Richesse) : Test au début du Round 1, présente non hostile en fin de Round, re-testée à la fin du Round 2 et finie sur un succès (LDB 21 l.39)', () => {
+    const h = etiquetee('richesse');
+    lu(h).psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('richesse') }];
+    debut(1);
+    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.sourceId, s.combatPsych!.round])).toEqual([['haine', 'scene', 1]]);
+    jouer();
+    expect(psy(h, 'haine').map((p) => [p.active, p.lastTestRound])).toEqual([[true, 1]]);
+    const haine = psy(h, 'haine')[0];
+    expect(cibleEnVue(lu(h), haine, sourcesPsyEnVue(g().battle!, g().scene!, lu(h), (s) => !s.dead))).toEqual({ present: true, hostile: false });
+    fireTriggers(g, lu(h), 'onRoundEnd', { rng: battleRng(), set: banc.setState });
+    expect(psy(h, 'haine').map((p) => p.active), 'la Cible reste en vue : la Haine continue').toEqual([true]);
+    fin(1);
+    expect(bandes()).toEqual([]);
+    lu(h).characteristics['force-mentale'] = 95;
+    fin(2);
+    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.round])).toEqual([['haine', 2]]);
+    jouer();
+    expect(psy(h, 'haine').map((p) => p.active)).toEqual([false]);
+  });
+
+  it('Sans Peur (Feu) : la Peur de l’étiquette se teste à la rencontre, Accessible (LDB 10 l.1051)', () => {
+    const h = etiquetee('feu');
+    lu(h).psychTraits = effraye('feu');
+    lu(h).talents = [...(lu(h).talents ?? []), { talentId: 'sans-peur', spec: 'feu', times: 1 }];
+    debut(1);
+    const bande = bandes()[0];
+    expect([bande.combatPsych!.kind, bande.combatPsych!.sourceId, bande.participants!.map((p) => [p.id, p.meta?.sansPeur])]).toEqual(['peur', 'scene', [[h, true]]]);
+    expect(bande.participants![0].difficulty, 'Test de Calme Accessible (+20)').toBe('accessible');
+  });
+
+  it('Haine (Feu) active, née d’une autre source : aucune Peur du feu (LDB 21 l.41)', () => {
+    const { H: [h], E: [e] } = setup(1, 1, ['feu']);
+    lu(h).psychTraits = effraye('feu');
+    applyOps(lu(h), psychBranchOps({ kind: 'haine', cible: ciblePsy.groupe('feu'), sourceId: e, indice: 0 }, { success: false }), { rng: battleRng() });
+    debut(1);
+    expect(psy(h, 'peur')).toEqual([]);
+    expect(bandes()).toEqual([]);
+  });
+});
+
+describe('Source déjà affrontée : seule une Peur ou une Terreur l’éteint (LDB 21 l.25, l.54 ; #3045)', () => {
+  it('un Préjugé actif né d’un combattant qui cause la Peur n’empêche pas sa Peur neuve', () => {
+    const { H: [h], E: [e] } = setup();
+    lu(e).groups = ['mort-vivant'];
+    lu(e).causesPeur = 2;
+    applyOps(lu(h), psychBranchOps({ kind: 'prejuge', cible: ciblePsy.groupe('mort-vivant'), sourceId: e, indice: 0 }, { success: false }), { rng: battleRng() });
+    debut(1);
+    expect(psy(h, 'peur')).toEqual([{ type: 'peur', sourceId: e, indice: 2, calmeDR: 0 }]);
+  });
+
+  it('étiquette à deux Groupes : une Haine (Richesse) née de la scène n’empêche pas la Peur d’Effrayé (Feu)', () => {
+    const { H: [h] } = setup(1, 1, ['feu', 'richesse']);
+    lu(h).psychTraits = effraye('feu');
+    applyOps(lu(h), psychBranchOps({ kind: 'haine', cible: ciblePsy.groupe('richesse'), sourceId: 'scene', indice: 0 }, { success: true }), { rng: battleRng() });
+    debut(1);
+    expect(psy(h, 'peur')).toEqual([{ type: 'peur', sourceId: 'scene', indice: 0, calmeDR: 0 }]);
+  });
+});
+

@@ -38,7 +38,7 @@ import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
 import { cibleEnVue, isAfflictionActive, type CibleEnVue, type PsychAffliction } from '../engine/psychology';
 import { estCibleType } from '../engine/psych/ciblage';
-import { sourcesEnVue } from './monde/porteurs';
+import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { routeTriggeredTest } from './combat/triggeredTest';
@@ -390,12 +390,12 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   return { hiddenFromFoes, engaged: isEngaged(actor), nearestFoeDist };
 }
 
-/** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les combattants en vue ; `undefined` hors
- *  combat, sans instance ou sans Cible. */
+/** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
+ *  de Vue, étiquette de la scène) ; `undefined` hors combat, sans instance ou sans Cible. */
 function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAffliction | undefined): CibleEnVue | undefined {
   const { battle, scene } = get();
   if (!battle || !scene || affliction?.cible === undefined) return undefined;
-  return cibleEnVue(actor, affliction, [...sourcesEnVue(battle, scene, actor, (s) => !s.dead)]);
+  return cibleEnVue(actor, affliction, sourcesPsyEnVue(battle, scene, actor, (s) => !s.dead));
 }
 
 /** ENVELOPPE d'un effet déclenché : les combattants où `eff` s'exerce pour `trigger` dans `ctx` — vide

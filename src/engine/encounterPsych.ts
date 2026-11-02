@@ -11,11 +11,11 @@
  * dont l'exemple canonique (l.11) se passe DANS UNE TAVERNE. Le combat, lui, garde Peur/Terreur de
  * créature (cf. `collectRoundStartPsych` / `collectRoundEndPsych` dans noyau/combatFlow).
  *
- * Pur et découplé : prend les PNJ déjà décrits en `Combatant` (groups). Immunité (Psychologie) et
- * Frénésie court-circuitent. Le branchement (entrée de scène / dialogue → modale) vit dans la couche state.
+ * Pur et découplé : prend les sources présentes (PNJ décrits en `Combatant`, étiquette de la scène). Immunité
+ * (Psychologie) et Frénésie court-circuitent. Le branchement (entrée de scène / dialogue → modale) vit dans la couche state.
  */
 import { Combatant } from './types';
-import { targetedTrigger, targetCausedTrigger, isPsychImmune, PsychType } from './psychology';
+import { targetedTrigger, targetCausedTrigger, isPsychImmune, PsychType, type SourceEnVue } from './psychology';
 import type { CiblePsy } from './psych/ciblage';
 
 export interface EncounterPsychTrigger {
@@ -25,14 +25,14 @@ export interface EncounterPsychTrigger {
   cible?: CiblePsy;
 }
 
-/** Premier Test de Psychologie dû à `hero` face aux `npcs` présents HORS COMBAT, ou null. Peur/Terreur
+/** Premier Test de Psychologie dû à `hero` face aux `sources` présentes HORS COMBAT, ou null. Peur/Terreur
  *  de CRÉATURE exclues (combat seulement) ; comptent les Traits psy CIBLÉS du héros — d'abord ceux qui
  *  posent un régime (`targetCauses` : Phobie → Peur, LDB 21 l.87), puis les Tests ciblés binaires. */
-export function encounterPsych(hero: Combatant, npcs: Combatant[]): EncounterPsychTrigger | null {
+export function encounterPsych(hero: Combatant, sources: readonly SourceEnVue[]): EncounterPsychTrigger | null {
   if (isPsychImmune(hero)) return null; // immunité (Détermination en combat) / Frénésie → aucun Test
-  const tc = targetCausedTrigger(hero, npcs); // Phobie : l'objet du Trait CAUSE la Peur (LDB 21 l.87)
+  const tc = targetCausedTrigger(hero, sources); // Phobie : l'objet du Trait CAUSE la Peur (LDB 21 l.87)
   if (tc) return { kind: tc.kind, sourceId: tc.sourceId, indice: tc.indice, cible: tc.cible };
-  const tt = targetedTrigger(hero, npcs); // Animosité/Haine/Préjugé/Amour/Camaraderie (LDB 21)
+  const tt = targetedTrigger(hero, sources); // Animosité/Haine/Préjugé/Amour/Camaraderie (LDB 21)
   if (tt) return { kind: tt.type, sourceId: tt.sourceId, indice: tt.indice ?? 0, cible: tt.cible };
   return null;
 }

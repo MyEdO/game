@@ -3,7 +3,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fireTriggers, effectSourcesOf } from './triggeredEffects';
 import { createHero } from '../engine/character';
 import { addCondition, hasCondition, isOutOfAction, COND } from '../engine/conditions';
-import { cibleEnVue, clearPsychOf, isAfflictionActive, psychBranchOps, refreshAllDefendedPsych, targetedTrigger, type PsychAffliction } from '../engine/psychology';
+import { cibleEnVue, clearPsychOf, isAfflictionActive, psychBranchOps, refreshAllDefendedPsych, targetedTrigger, type PsychAffliction, sourceCombattant } from '../engine/psychology';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { spawnEnemy } from './monde/spawn';
 import { emptyScene, type Scene } from './monde/scene';
@@ -12,7 +12,7 @@ import { ciblePsy, estCibleType } from '../engine/psych/ciblage';
 import { applyOps } from '../engine/ops';
 import { psychologies } from '../data';
 import { applyAttackResult } from './combatFlow';
-import { sourcesEnVue } from './monde/porteurs';
+import { sourcesPsyEnVue } from './monde/porteurs';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng, battleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -137,18 +137,18 @@ describe('cibleEnVue — verdict pur d’une instance parmi les combattants en v
     const { H, E } = setup();
     E.kind = 'npc';
     const animosite = visant('animosite', E.id);
-    expect(cibleEnVue(H, animosite, [E])).toEqual({ present: true, hostile: false });
+    expect(cibleEnVue(H, animosite, [sourceCombattant(E)])).toEqual({ present: true, hostile: false });
     E.engagedWith = [H.id];
-    expect(cibleEnVue(H, animosite, [E])).toEqual({ present: true, hostile: true });
+    expect(cibleEnVue(H, animosite, [sourceCombattant(E)])).toEqual({ present: true, hostile: true });
   });
 
   it('un membre Inconscient est présent sans être hostile ; un mort n’est plus présent', () => {
     const { H, E } = setup();
     const haine = visant('haine', E.id);
     addCondition(E, COND.inconscient);
-    expect(cibleEnVue(H, haine, [E])).toEqual({ present: true, hostile: false });
+    expect(cibleEnVue(H, haine, [sourceCombattant(E)])).toEqual({ present: true, hostile: false });
     E.dead = true;
-    expect(cibleEnVue(H, haine, [E])).toEqual({ present: false, hostile: false });
+    expect(cibleEnVue(H, haine, [sourceCombattant(E)])).toEqual({ present: false, hostile: false });
   });
 });
 
@@ -205,7 +205,7 @@ describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.7
     A.engagedWith = [menace.id];
     H.psychTraits = [{ type: 'camaraderie', cible: ciblePsy.groupe('criminel') }];
     const b = banc.getState().battle!;
-    const declenche = targetedTrigger(live(H.id), [...sourcesEnVue(b, banc.getState().scene!, live(H.id), (v) => !isOutOfAction(v))]);
+    const declenche = targetedTrigger(live(H.id), sourcesPsyEnVue(b, banc.getState().scene!, live(H.id), (v) => !isOutOfAction(v)));
     expect(declenche).toMatchObject({ type: 'camaraderie', sourceId: A.id });
     applyOps(live(H.id), psychBranchOps({ kind: declenche!.type, cible: declenche!.cible, sourceId: declenche!.sourceId, indice: 0 }, { success: false }), { rng: battleRng() });
     expect(isAfflictionActive(etat(H, 'camaraderie')!)).toBe(true);

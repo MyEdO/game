@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { psychDRAdjust } from '../engine/combat';
-import { refreshDefendedPsych, refreshAllDefendedPsych, fearSourceFor, targetCausedTrigger, psychBranchOps } from '../engine/psychology';
+import { refreshDefendedPsych, refreshAllDefendedPsych, fearSourceFor, targetCausedTrigger, psychBranchOps, sourceCombattant } from '../engine/psychology';
 import { applyOps } from '../engine/ops';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
@@ -175,11 +175,11 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
       psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }],
       psychState: [{ type: 'haine', cible: ciblePsy.groupe('bete'), active: true }],
     });
-    expect(fearSourceFor(immunise, arai), 'Haine : la Peur de la Phobie est ignorée').toBeNull();
-    expect(targetCausedTrigger(immunise, [arai]), 'la porte hors combat dit la MÊME chose').toBeNull();
+    expect(fearSourceFor(immunise, sourceCombattant(arai)), 'Haine : la Peur de la Phobie est ignorée').toBeNull();
+    expect(targetCausedTrigger(immunise, [sourceCombattant(arai)]), 'la porte hors combat dit la MÊME chose').toBeNull();
 
     const nu = C({ id: 'h', psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }] });
-    expect(fearSourceFor(nu, arai)).toEqual({ kind: 'peur', indice: 1 });
-    expect(targetCausedTrigger(nu, [arai])).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai' });
+    expect(fearSourceFor(nu, sourceCombattant(arai))).toEqual({ kind: 'peur', indice: 1 });
+    expect(targetCausedTrigger(nu, [sourceCombattant(arai)])).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai' });
   });
 });

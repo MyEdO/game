@@ -50,6 +50,9 @@ Les instincts et émotions influencent fortement la façon dont les personnages 
 
 > « Nos instincts et nos émotions ont une très forte influence sur la façon dont nous réagissons en fonction des circonstances. » — `LDB 21 l.5`
 
+- Lieu, lecture recommandée, révisable (#3045) : une scène porte des Groupes (`Scene.groups`) et en est la source, en vue partout dans la scène, en combat comme hors combat (`etiquetteDeScene`) ; elle n'a ni Taille, ni Indice de statbloc, ni hostilité, ni menace, et ni un Groupe joker ni un Groupe relatif ne la visent. Lecture contraire : seuls les personnes et les créatures sont des sources.
+- Emprises plus fines, lectures révisables sans porteur (#3045) : la magie d'une zone de sort (Q1), le feu des zones de sort (Q3), l'eau d'un terrain (Q8) et l'élément qui a presque tué le porteur d'une Animosité acquise (Q16, `ADE II 09 l.15`) n'ont aucun porteur ; le lieu porte l'étiquette par `Scene.groups`.
+
 **Sources RAW** :
 - `LDB 21 l.5-11` — introduction générale
 

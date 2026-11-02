@@ -22,7 +22,7 @@ import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement } from '../mount';
-import { isFrenzyCapable, isFrenzied, resolveFrenzyEntry, vise } from '../../engine/psychology';
+import { isFrenzyCapable, isFrenzied, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
@@ -199,7 +199,7 @@ export const TABLES = {
         }
         if (adv < 1) return;
         if ((enemy.psychState ?? []).some((p) => p.type === 'haine' && p.active === true && p.cible === HAINE_DE_RAGE)) return;
-        if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, { genre: 'combattant', c: f }, 'appartenance', enemy))) return;
+        if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
         (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
         battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));

@@ -27,7 +27,7 @@ import { refIndiceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
-import { CIBLE_D_APPARTENANCE } from '../grammaire/sousListes';
+import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
 import { refEntiteResolue } from '../../index';
@@ -856,6 +856,8 @@ export const sceneSchema = nommerChamps(z.strictObject({
   entryPoints: z.record(z.string(), nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } })).optional(),
   startMessage: messageIntroductionSchema.optional(),
   couvre: couvreSchema.optional(),
+  /** Groupes que porte le lieu, source psychologique de la scène (`etiquetteDeScene`). #3045 */
+  groups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
 }).superRefine((scene, ctx) => {
   // CARDINAL de la grille (#1789) : chaque tableau PARALLÈLE d'une couche porte EXACTEMENT `w×h`
   // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`
@@ -874,7 +876,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
       });
     }
   });
-}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });
 nommerNoeud(triggerSchema, { element: 'déclencheur' });

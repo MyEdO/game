@@ -13,6 +13,7 @@ import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from './campaignData';
 import { ligneDe } from '../engine/modLine.testkit';
 import { psychTest, sansPeurLabel } from '../engine/psychology';
+import { parsePsychTraits } from '../engine/psych/registry';
 import { refLabel } from '../data';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
@@ -408,5 +409,43 @@ describe('encounterPsychFlow — POSSESSION de la bande (classe #1268)', () => {
     expect(seule.actorId).toBe(b.id);
     expect(seatOwns(useGame.getState(), 1, modalOwnerOf(useGame.getState()) as string), 'la fenêtre est au siège qui tient le héros').toBe(true);
     expect(seatOwns(useGame.getState(), 0, modalOwnerOf(useGame.getState()) as string), 'et plus à l’hôte').toBe(false);
+  });
+});
+
+describe('encounterPsychFlow — l’étiquette de la scène, source sans PNJ (#3045)', () => {
+  beforeEach(() => {
+    useGame.setState({ battle: null, pendingCascade: null, scene: null, party: [], campaignNarratif: null });
+    useGame.getState().seedRng(2);
+  });
+  const etiquetee = (groups?: string[]): Scene => ({ ...scene([]), groups });
+
+  it('Haine (Richesse) dans une scène qui porte la richesse, sans PNJ : Test dû, et l’échec laisse la Haine active', () => {
+    const h = timoreux('H');
+    h.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('richesse') }];
+    useGame.setState({ party: [h] });
+    useGame.getState().startScene(etiquetee(['richesse']));
+    const step = useGame.getState().pendingCascade!.participants[0];
+    expect([step.encounterPsych?.kind, step.encounterPsych?.cible, step.encounterPsych?.sourceId]).toEqual(['haine', ciblePsy.groupe('richesse'), 'scene']);
+    expect(step.participants?.map((p) => p.id)).toEqual([h.id]);
+    useGame.getState().cascadeBatchRoll(h.id);
+    useGame.getState().cascadeNext();
+    expect((useGame.getState().party[0].psychState ?? []).filter((p) => p.type === 'haine').map((p) => [p.cible, p.active])).toEqual([[ciblePsy.groupe('richesse'), true]]);
+  });
+
+  it('Effrayé (Feu) dans une scène qui porte le feu : la bande de Peur (Indice 0) de l’étiquette (LDB 21 l.87 ; EDOC 12 l.241)', () => {
+    const h = timoreux('H');
+    h.psychTraits = parsePsychTraits([{ id: 'effraye', arg: 'feu' }]).psychTraits;
+    useGame.setState({ party: [h] });
+    useGame.getState().startScene(etiquetee(['feu']));
+    const ep = useGame.getState().pendingCascade!.participants[0].encounterPsych;
+    expect([ep?.kind, ep?.indice, ep?.sourceId, ep?.sourceName]).toEqual(['peur', 0, 'scene', 'S']);
+  });
+
+  it('une scène sans Groupe n’est la source de rien', () => {
+    const h = timoreux('H');
+    h.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('richesse') }];
+    useGame.setState({ party: [h] });
+    useGame.getState().startScene(etiquetee());
+    expect(useGame.getState().pendingCascade).toBeNull();
   });
 });

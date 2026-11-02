@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  ciblesDePulsion, psychBranchOps, psychImmuneToFrom, sansCiblesPsyInconnues, targetedTrigger, vise, type PsychType,
+  ciblesDePulsion, psychBranchOps, psychImmuneToFrom, sansCiblesPsyInconnues, targetedTrigger, vise, sourceCombattant, type PsychType,
 } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
 import { applyOps } from '../engine/ops';
@@ -63,8 +63,8 @@ describe('vise — un individu ne vise que le combattant de son id', () => {
 
   it('quelle que soit la lecture, et jamais un autre porteur des mêmes Groupes', () => {
     for (const lecture of ['appartenance', 'percu'] as const) {
-      expect(vise(cible, { genre: 'combattant', c: mk('p', 'enemy', { groups: [groupe.id] }) }, lecture, mk('o', 'hero'))).toBe(true);
-      expect(vise(cible, { genre: 'combattant', c: mk('q', 'enemy', { groups: [groupe.id] }) }, lecture, mk('o', 'hero'))).toBe(false);
+      expect(vise(cible, sourceCombattant(mk('p', 'enemy', { groups: [groupe.id] })), lecture, mk('o', 'hero'))).toBe(true);
+      expect(vise(cible, sourceCombattant(mk('q', 'enemy', { groups: [groupe.id] })), lecture, mk('o', 'hero'))).toBe(false);
     }
   });
 
@@ -76,11 +76,11 @@ describe('vise — un individu ne vise que le combattant de son id', () => {
 describe('le combat : déclencheur, +1 DR, immunité', () => {
   it('le Trait se déclenche à la vue de l’individu, d’une seule instance, et non à celle d’un homonyme de Groupe', () => {
     const obs = mk('o', 'hero', { psychTraits: [{ type: mixte!.id as PsychType, cible: ciblePsy.individu('p') }] });
-    expect(targetedTrigger(obs, [mk('q', 'enemy', { groups: [groupe.id] })])).toBeNull();
-    const tt = targetedTrigger(obs, [mk('q', 'enemy'), mk('p', 'enemy')]);
+    expect(targetedTrigger(obs, [sourceCombattant(mk('q', 'enemy', { groups: [groupe.id] }))])).toBeNull();
+    const tt = targetedTrigger(obs, [sourceCombattant(mk('q', 'enemy')), sourceCombattant(mk('p', 'enemy'))]);
     expect(tt).toMatchObject({ sourceId: 'p', cible: ciblePsy.individu('p') });
     obs.psychState = [{ type: tt!.type, cible: tt!.cible, sourceId: tt!.sourceId, active: true }];
-    expect(targetedTrigger(obs, [mk('p', 'enemy')])).toBeNull();
+    expect(targetedTrigger(obs, [sourceCombattant(mk('p', 'enemy'))])).toBeNull();
   });
 
   it('deux individus, ou un individu et un Groupe, sont deux identités', () => {
@@ -101,8 +101,8 @@ describe('le combat : déclencheur, +1 DR, immunité', () => {
   it('immunité causée par l’individu seul (LDB 21 l.41)', () => {
     const canal = immunisant!.immuneToFromTarget![0];
     const self = mk('s', 'hero', { psychState: [{ type: immunisant!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
-    expect(psychImmuneToFrom(self, mk('p', 'enemy'), canal)).toBe(true);
-    expect(psychImmuneToFrom(self, mk('q', 'enemy'), canal)).toBe(false);
+    expect(psychImmuneToFrom(self, sourceCombattant(mk('p', 'enemy')), canal)).toBe(true);
+    expect(psychImmuneToFrom(self, sourceCombattant(mk('q', 'enemy')), canal)).toBe(false);
   });
 
   it('malus social contenu : l’interlocuteur d’un Test social n’a pas d’id, un individu ne s’y applique pas', () => {
@@ -137,8 +137,8 @@ describe('le statbloc de scène à `@id` (EDOC 11 l.648), jusqu’à la rencontr
     const presetDe = presetDuNarratif(undefined);
     const pnj = ficheDEntite(scene.entities[0], presetDe);
     const nomme = ficheDEntite(scene.entities[1], presetDe);
-    expect(encounterPsych(pnj, [nomme])).toMatchObject({ sourceId: 'p', cible: ciblePsy.individu('p') });
-    expect(encounterPsych(pnj, [mk('autre', 'hero', { groups: [groupe.id] })])).toBeNull();
+    expect(encounterPsych(pnj, [sourceCombattant(nomme)])).toMatchObject({ sourceId: 'p', cible: ciblePsy.individu('p') });
+    expect(encounterPsych(pnj, [sourceCombattant(mk('autre', 'hero', { groups: [groupe.id] }))])).toBeNull();
   });
 
   it('`validateScene` refuse un individu qu’aucun personnage de la scène ne porte', () => {
@@ -157,7 +157,7 @@ describe('le statbloc de scène à `@id` (EDOC 11 l.648), jusqu’à la rencontr
 
   it('le Test de Calme qu’il déclenche pose l’affliction envers l’individu, et lui seul', () => {
     const obs = mk('o', 'hero', { psychTraits: parsePsychTraits([pose('@p')]).psychTraits });
-    const tt = targetedTrigger(obs, [mk('p', 'enemy')])!;
+    const tt = targetedTrigger(obs, [sourceCombattant(mk('p', 'enemy'))])!;
     applyOps(obs, psychBranchOps({ kind: tt.type, sourceId: tt.sourceId, cible: tt.cible, indice: 0 }, { success: false }), { rng: makeRNG(1) });
     expect(obs.psychState).toMatchObject([{ type: mixte!.id, cible: ciblePsy.individu('p'), active: true }]);
   });

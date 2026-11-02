@@ -214,7 +214,7 @@ import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
-import { sourcesEnVue } from './monde/porteurs';
+import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
@@ -223,7 +223,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, coldBloodedAdjust, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, coldBloodedAdjust, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -7724,11 +7724,12 @@ export function markActed(get: Get, set: SetFn): BattleState {
   return { ...garanti(get().battle, 'battle', 'markActed'), acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
 }
 
-/** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue). */
-type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
+/** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
+ *  (`sansPeurFace`) face à une source neuve. */
+type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
 
-/** Une source de Peur ou de Terreur en vue absente de la `psychState` du porteur. */
-type SourceNeuve = { foe: Combatant; kind: 'peur' | 'terreur'; indice: number };
+/** Une source de Peur ou de Terreur en vue, neuve pour le porteur (`sourceDejaAffrontee` faux). */
+type SourceNeuve = { source: SourceEnVue; id: string; label: string; kind: 'peur' | 'terreur'; indice: number };
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
@@ -7739,34 +7740,41 @@ function avantageDesEngages(battle: BattleState, c: Combatant): number | undefin
   return adv.length ? Math.max(...adv) : undefined;
 }
 
-/** Ce qu'une passe de Psychologie de combat lit de `c` : ses sources en Ligne de Vue et ses sources
- *  neuves ; `null` s'il est immunisé (Belliqueux compris). Pur de lecture. */
-function lecturePsy(get: Get, c: Combatant): { battle: BattleState; visible: Combatant[]; neuves: SourceNeuve[] } | null {
+/** Ce qu'une passe de Psychologie de combat lit de `c` : ses sources en vue (combattants en Ligne de Vue,
+ *  étiquette de la scène) et ses sources neuves ; `null` s'il est immunisé (Belliqueux compris). Pur de lecture. */
+function lecturePsy(get: Get, c: Combatant): { battle: BattleState; sources: SourceEnVue[]; neuves: SourceNeuve[] } | null {
   const battle = get().battle;
   const scene = get().scene;
   if (!battle || !scene || !c.pos || isPsychImmune(c, avantageDesEngages(battle, c))) return null;
-  const visible = [...sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))]; // LDB 85 l.264-266
-  const state = c.psychState ?? [];
-  const neuves = visible.flatMap((foe): SourceNeuve[] => {
-    const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // AA 13 l.25
-    return src && !state.some((p) => p.sourceId === foe.id) ? [{ foe, ...src }] : [];
+  const sources = sourcesPsyEnVue(battle, scene, c, (v) => !isOutOfAction(v)); // LDB 85 l.264-266
+  const neuves = sources.flatMap((source): SourceNeuve[] => {
+    const src = fearSourceFor(c, source, riderFearSize(battle, c)); // AA 13 l.25
+    const id = idDeSource(source);
+    return src && !sourceDejaAffrontee(c, id) ? [{ source, id, label: libelleDeSource(source), ...src }] : [];
   });
-  return { battle, visible, neuves };
+  return { battle, sources, neuves };
 }
 
-function dueDeSource(n: SourceNeuve): PsychDue {
-  return { kind: n.kind, sourceId: n.foe.id, sourceName: n.foe.label, indice: n.indice, prevDR: 0 };
+function dueDeSource(c: Combatant, n: SourceNeuve): PsychDue {
+  return { kind: n.kind, sourceId: n.id, sourceName: n.label, indice: n.indice, prevDR: 0, sansPeur: sansPeurFace(c, n.kind, n.source) }; // LDB 10 l.1051
+}
+
+/** Le porteur du libellé de la source `id` d'une Peur portée : parmi les sources de la passe, sinon au roster
+ *  (combattant hors de vue). */
+function porteurDeLaSource(l: { battle: BattleState; sources: readonly SourceEnVue[] }, id: string): { label: string } | undefined {
+  const s = l.sources.find((v) => idDeSource(v) === id);
+  return s ? { label: libelleDeSource(s) } : inBattleId(l.battle, id);
 }
 
 /** Re-tests des afflictions ciblées actives de `c` dus au `moment` du Round `round`, tant qu'un membre de
  *  leur Cible est en vue. LDB 21 l.19, l.39, l.48 */
-function retestsCibles(c: Combatant, visible: Combatant[], round: number, moment: 'roundStart' | 'roundEnd'): PsychDue[] {
+function retestsCibles(c: Combatant, sources: readonly SourceEnVue[], round: number, moment: 'roundStart' | 'roundEnd'): PsychDue[] {
   return (c.psychState ?? []).flatMap((p): PsychDue[] => {
     const cible = p.cible;
     if (!p.active || !cible || !estCibleType(p.type) || p.lastTestRound === round) return [];
     if ((findPsychologyById(p.type)?.retestAt ?? 'roundStart') !== moment) return [];
-    if (!visible.some((v) => vise(cible, { genre: 'combattant', c: v }, 'percu', c))) return [];
-    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible }];
+    if (!sources.some((v) => vise(cible, v, 'percu', c))) return [];
+    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible, sansPeur: false }];
   });
 }
 
@@ -7777,9 +7785,9 @@ export function collectRoundStartPsych(get: Get, c: Combatant, round: number): P
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.foe)).map(dueDeSource),
-    ...retestsCibles(c, l.visible, round, 'roundStart'),
-    ...targetedTriggers(c, l.visible).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible })),
+    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
+    ...retestsCibles(c, l.sources, round, 'roundStart'),
+    ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
   ];
 }
 
@@ -7790,21 +7798,21 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'peur').map(dueDeSource),
+    ...l.neuves.filter((n) => n.kind === 'peur').map((n) => dueDeSource(c, n)),
     ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
-      kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(inBattleId(l.battle, p.sourceId), 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0,
+      kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(porteurDeLaSource(l, p.sourceId!), 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
     })),
-    ...retestsCibles(c, l.visible, round, 'roundEnd'),
+    ...retestsCibles(c, l.sources, round, 'roundEnd'),
   ];
 }
 
 /** Pose sans Test les Peurs neuves de `c` (Sans Peur excepté, testé par `collectRoundStartPsych`) et rend
  *  les lignes de journal. LDB 21 l.25 ; #3045 */
 function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
-  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.foe));
+  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.source));
   if (!neuves.length) return [];
-  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.foe.id, indice: n.indice, calmeDR: 0 }))];
-  return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.foe.label })), ...supersededLines(c, c.label)];
+  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
+  return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.label })), ...supersededLines(c, c.label)];
 }
 
 /** Verse les lignes de Psychologie de `c` au journal de combat. */
@@ -7835,7 +7843,7 @@ interface CombatPsychDue { decl: CombatPsychDecl; row: BatchParticipant; icon: s
 function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): CombatPsychDue {
   const isCible = estCibleType(t.kind);
   const cl = isCible ? cibleLabel(t.kind) : null;
-  const sansPeur = sansPeurFace(c, t.kind, inBattleId(get().battle, t.sourceId)); // LDB 10 l.1051
+  const { sansPeur } = t;
   const { skill, difficulty } = psychTest(t.kind, sansPeur);
   const skillLabel = refLabel('skills', skill);
   // Peur de combat = Test ÉTENDU (LDB 21 l.25) : le cumul `prevDR`→`indice` voyage SUR LA RANGÉE

@@ -8,7 +8,7 @@ import {
   resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue,
 } from '../../noyau/combatManeuvers';
 import { resolveGrappleOpposed } from '../../noyau/combatFlow';
-import { fearSourceFor } from '../../engine/psychology';
+import { fearSourceFor, sourceCombattant } from '../../engine/psychology';
 import { riderFearSize } from '../../noyau/mount';
 import { retreatAdvantageCost, keptAdvantageOnDisengage, canDisengageWithLessAdvantage } from '../../engine/combatFeatures/dispatch';
 import type { TestResult } from '../../engine/tests';
@@ -138,12 +138,12 @@ describe('Cavalier émérite (AA 13 l.25) — Taille = monture face à la Peur d
   it('fearSourceFor : un cavalier de Taille effective ≥ foe n’a PAS peur de la Taille (mais garde causesTerreur)', () => {
     const self = mk('r', 'hero', { size: 'moyenne' });
     const ogre = mk('o', 'enemy', { size: 'grande' }); // gap 1 → Peur 1 par la Taille
-    expect(fearSourceFor(self, ogre)).toEqual({ kind: 'peur', indice: 1 }); // à pied : Peur de Taille
+    expect(fearSourceFor(self, sourceCombattant(ogre))).toEqual({ kind: 'peur', indice: 1 }); // à pied : Peur de Taille
     // Monté sur une Grande monture (override Taille = grande) : plus d’écart de Taille → pas de Peur.
-    expect(fearSourceFor(self, ogre, 'grande')).toBeNull();
+    expect(fearSourceFor(self, sourceCombattant(ogre), 'grande')).toBeNull();
     // Mais un démon (causesTerreur statbloc) fait TOUJOURS peur, monture ou non (RAW « uniquement par la Taille »).
     const demon = mk('d', 'enemy', { size: 'grande', causesTerreur: 3 } as never);
-    expect(fearSourceFor(self, demon, 'grande')).toEqual({ kind: 'terreur', indice: 3 });
+    expect(fearSourceFor(self, sourceCombattant(demon), 'grande')).toEqual({ kind: 'terreur', indice: 3 });
   });
 });
 

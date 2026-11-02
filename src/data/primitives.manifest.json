@@ -308,9 +308,9 @@
   {
     "id": "sourcesEnVue",
     "type": "primitives.manifest",
-    "label": "sourcesEnVue",
+    "label": "sourcesEnVue/sourcesPsyEnVue/etiquetteDeScene",
     "fichier": "src/noyau/monde/porteurs.ts",
-    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent",
+    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent ; `sourcesPsyEnVue` les enveloppe en sources psychologiques et y joint l'étiquette de la scène (`etiquetteDeScene`, ses `Scene.groups`, en vue partout dans la scène, #3045)",
     "perimetre": "toute collecte des combattants vus d'un porteur : Tests de Psychologie (Peur, Terreur, Traits ciblés, héros et IA), fin d'une affliction ciblée (`cibleEnVue`), Condition `foeInLoS`, cible imposée de Frénésie (`frenzyTarget`) ; la visée de tir, qui juge la case visée d'une structure, n'en est pas",
     "verrou": "src/noyau/monde/porteurs.test.ts"
   },
@@ -2080,9 +2080,9 @@
   {
     "id": "vise",
     "type": "primitives.manifest",
-    "label": "vise/SourcePsy/ciblesAPulsion/ciblesDePulsion",
+    "label": "vise/SourcePsy/sourceCombattant/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe (joker `matchesAll`, composite `inclut`), l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant, interlocuteur ou étiquette de lieu (`Scene.groups`, que ni joker ni Groupe relatif ni individu ne visent ; `sourceCombattant` enveloppe un combattant), et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe (joker `matchesAll`, composite `inclut`), l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
     "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },

@@ -52,7 +52,7 @@ import { facingToward, type Dir8 } from '../../geometry/dir8';
 import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
-import { ciblesAPulsion, isFrenzied, vise } from '../../engine/psychology';
+import { ciblesAPulsion, isFrenzied, sourceCombattant, vise } from '../../engine/psychology';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -730,7 +730,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // s'en prend en priorité au groupe haï présent dans le vivier considéré (sinon vivier brut).
   const hatedCibles = ciblesAPulsion(enemy);
   const hatedOf = (pool: Combatant[]) =>
-    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, { genre: 'combattant', c: h }, 'appartenance', enemy))) : []; // #3045
+    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, sourceCombattant(h), 'appartenance', enemy))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
   /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier
