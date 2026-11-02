@@ -3,13 +3,13 @@
  * gabarit appliqué, une échelle monde de 1 à `TOLERANCE_ECHELLE_RIGIDE` près sur chaque axe.
  */
 import { Vector3, type Bone, type Mesh, type Object3D, type SkinnedMesh } from 'three';
-import type { Ecart } from '../ecart.ts';
+import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 
 export const TOLERANCE_ECHELLE_RIGIDE = 0.01;
 
-/** Un rigide tenu : son nom, l'os de prise qui le porte, son échelle monde. */
+/** Un rigide tenu : son mesh, l'os de prise qui le porte, son échelle monde. */
 export interface RigideTenu {
-  readonly nom: string;
+  readonly mesh: Mesh;
   readonly os: string;
   readonly echelle: readonly [number, number, number];
 }
@@ -26,16 +26,16 @@ export function rigidesTenus(scene: Object3D, prises: ReadonlySet<string>): Rigi
     while (os && !(os as Bone).isBone) os = os.parent;
     if (!os || !prises.has(os.name)) return;
     n.getWorldScale(echelle);
-    tenus.push({ nom: n.name, os: os.name, echelle: [echelle.x, echelle.y, echelle.z] });
+    tenus.push({ mesh: n as Mesh, os: os.name, echelle: [echelle.x, echelle.y, echelle.z] });
   });
   return tenus;
 }
 
-export function gardeEchelleDuRigide(rigides: readonly RigideTenu[]): Ecart[] {
+export function gardeEchelleDuRigide(rigides: readonly RigideTenu[], libelle: LibelleDeMesh): Ecart[] {
   return rigides.flatMap((r) => {
     const ecart = Math.max(...r.echelle.map((e) => Math.abs(e - 1)));
     return ecart > TOLERANCE_ECHELLE_RIGIDE
-      ? [{ garde: 'echelleDuRigide', code: 'echelle-du-rigide', mesh: r.nom, valeur: ecart, seuil: TOLERANCE_ECHELLE_RIGIDE, detail: `échelle monde (${r.echelle.map((e) => e.toFixed(4)).join(', ')}) sous la prise ${r.os}` }]
+      ? [{ garde: 'echelleDuRigide', code: 'echelle-du-rigide', mesh: libelle(r.mesh), valeur: ecart, seuil: TOLERANCE_ECHELLE_RIGIDE, detail: `échelle monde (${r.echelle.map((e) => e.toFixed(4)).join(', ')}) sous la prise ${r.os}` }]
       : [];
   });
 }
