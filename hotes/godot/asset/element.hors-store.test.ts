@@ -204,7 +204,7 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
   const pilosite = (coiffure: string) => ({
     ...elementSchema3(), categorie: 'pilosite', cle: { coiffure }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'metal', palette: 'cheveux' }],
   });
-  it.each(['valide', 'vetement', 'tete', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete'] as const)('%s', cas => {
+  it.each(['valide', 'vetement', 'tete', 'tete-monstrueuse', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete', 'cle-inconnue-tete-monstrueuse'] as const)('%s', cas => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
     const base = baseDeTest();
@@ -216,15 +216,17 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
       : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] }
       : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure')
       : cas === 'tete' ? tete('humain') : cas === 'cle-inconnue-tete' ? tete('humain-m-1')
+      : cas === 'tete-monstrueuse' ? tete('skaven') : cas === 'cle-inconnue-tete-monstrueuse' ? tete('rat')
       : cas === 'pilosite' ? pilosite('crane-rase') : elementSchema3();
     writeFileSync(join(d, 'element.json'), JSON.stringify(element));
     writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
     const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
     expect(r.error).toBeUndefined();
-    const accepte = cas === 'valide' || cas === 'vetement' || cas === 'tete' || cas === 'pilosite';
+    const accepte = cas === 'valide' || cas === 'vetement' || cas === 'tete' || cas === 'tete-monstrueuse' || cas === 'pilosite';
     expect(r.status, r.stderr + r.stdout).toBe(accepte ? 0 : 1);
     if (cas === 'cle-inconnue') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.piece : robe-de-bure');
     else if (cas === 'cle-inconnue-tete') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : humain-m-1');
+    else if (cas === 'cle-inconnue-tete-monstrueuse') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : rat');
     else if (!accepte) expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
   }, 65000);
 });
