@@ -1,0 +1,929 @@
+diff --git a/hotes/godot/asset/asset.hors-store.test.ts b/hotes/godot/asset/asset.hors-store.test.ts
+index ecc305dd1..f0f8ac524 100644
+--- a/hotes/godot/asset/asset.hors-store.test.ts
++++ b/hotes/godot/asset/asset.hors-store.test.ts
+@@ -172,6 +172,21 @@ describe('validerManifeste', () => {
+ });
+ 
+ describe('montage validé contre le GLB (#2948 L3-b)', () => {
++  it('conserve les nœuds à masquer et refuse un nœud absent du GLB', () => {
++    const m = production();
++    const brut = { ...m, montage: { ...m.montage, masquer: ['casque'] } };
++    const v = validerManifeste(brut, lireGlb(GLB));
++    expect(v.ok).toBe(true);
++    if (v.ok) expect(v.manifeste.montage.masquer).toEqual(['casque']);
++    brut.montage.masquer = ['absent'];
++    expect(codes(brut)).toContain('noeud-absent');
++  });
++
++  it.each([null, 'casque', [1], ['']])('refuse une déclaration de masquage invalide %j', (masquer) => {
++    const m = production();
++    expect(codes({ ...m, montage: { ...m.montage, masquer } })).toContain('forme');
++  });
++
+   it('conserve les attaches et les portages déclarés', () => {
+     const m = production();
+     const v = validerManifeste(m, lireGlb(GLB));
+diff --git a/hotes/godot/asset/montage.ts b/hotes/godot/asset/montage.ts
+index c8d6d3975..f2a6e6f3c 100644
+--- a/hotes/godot/asset/montage.ts
++++ b/hotes/godot/asset/montage.ts
+@@ -13,6 +13,7 @@ export interface EmplacementDeMatiere {
+ }
+ export interface Montage {
+   readonly attaches: Readonly<Record<NomDAttache, Attache>>;
++  readonly masquer?: readonly string[];
+   readonly composants: Readonly<Record<string, { readonly prise: 'main' | 'off'; readonly rangement: 'dos' | 'ceinture'; readonly matieres: readonly EmplacementDeMatiere[] }>>;
+ }
+ export type ManifesteMontable = ManifesteDePersonnage & { readonly montage: Montage };
+@@ -28,6 +29,7 @@ export function lireMontage(brut: unknown): { montage?: Montage; erreurs: Erreur
+     else attaches[nom] = { os: a.os, position: a.position, rotation: a.rotation };
+   }
+   for (const cle of Object.keys(brut.attaches)) if (!ATTACHES.includes(cle as NomDAttache)) forme(`montage.attaches.${cle}`);
++  if (brut.masquer !== undefined && (!Array.isArray(brut.masquer) || !brut.masquer.every(nom => typeof nom === 'string' && nom.length > 0))) forme('montage.masquer');
+   const composants: Record<string, Montage['composants'][string]> = {};
+   for (const [id, c] of Object.entries(brut.composants)) {
+     if (!estObjet(c) || (c.prise !== 'main' && c.prise !== 'off') || (c.rangement !== 'dos' && c.rangement !== 'ceinture')) forme(`montage.composants.${id}`);
+@@ -41,11 +43,14 @@ export function lireMontage(brut: unknown): { montage?: Montage; erreurs: Erreur
+       composants[id] = { prise: c.prise, rangement: c.rangement, matieres };
+     }
+   }
+-  return erreurs.length ? { erreurs } : { montage: { attaches: attaches as Record<NomDAttache, Attache>, composants }, erreurs };
++  return erreurs.length ? { erreurs } : { montage: { attaches: attaches as Record<NomDAttache, Attache>, composants, ...(brut.masquer === undefined ? {} : { masquer: brut.masquer as string[] }) }, erreurs };
+ }
+ 
+ export function ecartsDeMontage(m: ManifesteMontable, glb: ContenuGlb): ErreurDeManifeste[] {
+   const erreurs: ErreurDeManifeste[] = [];
++  for (const nom of m.montage.masquer ?? []) {
++    if (!glb.noeuds.has(nom)) erreurs.push({ code: 'noeud-absent', ou: 'montage.masquer', detail: nom });
++  }
+   for (const [nom, a] of Object.entries(m.montage.attaches)) {
+     if (!glb.os.has(a.os)) erreurs.push({ code: 'os-absent', ou: `montage.attaches.${nom}.os`, detail: a.os });
+   }
+diff --git a/hotes/godot/pont/CONTRAT.md b/hotes/godot/pont/CONTRAT.md
+index 4dfcd12b3..69f1e400c 100644
+--- a/hotes/godot/pont/CONTRAT.md
++++ b/hotes/godot/pont/CONTRAT.md
+@@ -29,7 +29,7 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
+ | `jouer` | un geste : `{ offre, ctx? }` (une offre du registre et son contexte) ou `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue) | une `Suite` |
+ | `reprendre` | `{ jeton }` : le numéro d'un jeton programmé | une `Suite` : la reprise du jeton |
+ | `modeles` | `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du listage servi (`GET modeles/`, section « Atelier 3D ») | `{ bases, glb, refus, rapport, blasons, emblemes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), sans partie |
+-| `composer` | `{ base, composition }` : l'id d'une base servie par le dernier `modeles`, une composition (section « Composition d'un personnage ») | `{ montes, manquants, rapport, gabarit, morphes }` (`composerSurLaBase`, `composition.ts`) ; refusé avant tout `modeles`, sur une base qu'il n'a pas servie, et sur une composition que `lireComposition` refuse |
++| `composer` | `{ base, composition, emblemes? }` : l'id d'une base servie par le dernier `modeles`, une composition (section « Composition d'un personnage ») | `{ montes, manquants, rapport, gabarit, morphes }` (`composerSurLaBase`, `composition.ts`) ; refusé avant tout `modeles`, sur une base qu'il n'a pas servie, sur une composition que `lireComposition` refuse, et sur des surcharges `emblemes` que `lireSurchargesDEmblemes` refuse (table de lignes vers `{ id }` d’un emblème connu ou `null`) |
+ | `catalogues` | aucune | les choix de chaque champ d'une composition, ses axes, et les presets avec leur composition (`cataloguesDeComposition`, surface du noyau) |
+ | `presetDeComposition` | `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de `catalogues` dont l'entrée reprend l'enveloppe | `{ entree, verdict }` (`presetDeComposition`, surface du noyau) ; refusé sur une composition que `lireComposition` refuse, et sur un `preset` inconnu |
+ | `erreursGlobales` | aucune | `{ erreurs: { message, source }[] }` : les événements `error` et `unhandledrejection` de la page depuis le dernier relevé, puis vidés ; `source` vaut `fichier:ligne`, `unhandledrejection` ou `null` |
+@@ -78,7 +78,9 @@ type Vue = {
+ 
+ ## Équipement et couverture des modèles
+ 
+-Chaque combattant (`combat.actif` et `combat.voisins.liste`) porte `equipement`, le résultat de `equipementDessine` : `weapons`, `rangees`, `armour`, `shield?` et `cape?`. Les armes portent les `candidats` ordonnés. Seules les armes tenues (`weapons`) portent une `hand` obligatoire (`main` ou `off`) ; les armes rangées n'ont pas de main. `equipDe` attribue les mains une seule fois : les mains explicites du loadout sont réservées avant les armes sans main du statbloc, qui prennent `main` puis `off` ; un bouclier demande `off`. Les attaques naturelles ne réservent aucune main. Une arme à deux mains réserve les deux mains et reste un seul objet, attaché à sa main directrice. Le surplus graphique est publié dans `rangees`, sans modifier les armes persistées ni leurs règles de combat. L'ordre relatif des armes sources est conservé dans chaque liste publiée. L'appel isolé `armeDeDessin` passe par cette même attribution avec une seule arme. Le bouclier est déjà une arme tenue et `shield` en reprend les candidats. `cape` est un booléen, les pièces d'armure portent une matière ; ces deux champs ne déclarent pas de candidats de modèle.
++L’apparence d’auteur (`EntityAppearance.embleme`) déclare une référence `{ id }` à un emblème de la garde-robe. Le schéma refuse les références inconnues et les autres catégories. `equipementDessine` résout cette référence dans le noyau : l’apparence du combattant prime sur celle de sa créature. `equipement.embleme?` publie uniquement `{ id }` dans la projection du noyau. La résolution des modèles de combat exclut les éléments de schéma 3 qui déclarent les surfaces `blason` ; `equipements[id]` ne porte aucun emblème et l’écran de combat ne le lit pas. La pose d’un emblème à cet écran reste hors du lot.
++
++Chaque combattant (`combat.actif` et `combat.voisins.liste`) porte `equipement`, le résultat de `equipementDessine` : `weapons`, `rangees`, `armour`, `shield?`, `cape?` et `embleme?`. Les armes portent les `candidats` ordonnés. Seules les armes tenues (`weapons`) portent une `hand` obligatoire (`main` ou `off`) ; les armes rangées n'ont pas de main. `equipDe` attribue les mains une seule fois : les mains explicites du loadout sont réservées avant les armes sans main du statbloc, qui prennent `main` puis `off` ; un bouclier demande `off`. Les attaques naturelles ne réservent aucune main. Une arme à deux mains réserve les deux mains et reste un seul objet, attaché à sa main directrice. Le surplus graphique est publié dans `rangees`, sans modifier les armes persistées ni leurs règles de combat. L'ordre relatif des armes sources est conservé dans chaque liste publiée. L'appel isolé `armeDeDessin` passe par cette même attribution avec une seule arme. Le bouclier est déjà une arme tenue et `shield` en reprend les candidats. `cape` est un booléen, les pièces d'armure portent une matière ; ces deux champs ne déclarent pas de candidats de modèle.
+ 
+ `equipements[id]` contient `tenues` et `rangees` : chacune est une liste `{ arme, modele, palette }`, sans les armes naturelles dessinées par le corps. `arme` est la projection du noyau. `palette` est la palette résolue de `arme.teinte` par `findTeinteById`, lecteur public du noyau, ou `null` sans teinte. Les instances conservent uniquement l'id stable de teinte ; Godot ne lit aucun catalogue. `modele` est `null` si aucun candidat n’a de modèle ; sinon `{ apparence, composants: { modele, composant, pieces }[] }`, avec le premier id compatible dans l’ordre publié. Pour une arme tenue, le pont choisit le premier composant dont `montage.composants[id].prise` correspond à `arme.hand` ; pour une arme rangée, le premier qui déclare un `rangement`. Toutes les pièces de ce composant forment l’objet publié. Si un candidat n’a aucun composant compatible, le candidat suivant est essayé ; si aucun ne convient, `modele` vaut `null` et l’absence porte la liste entière des candidats. Godot ne départage aucune alternative de modèle ni de main.
+ 
+@@ -135,10 +137,12 @@ Au montage d'un élément, à un point ou à une ligne, Godot instancie son GLB
+ 
+ Un élément monté dont `blasons` n'est pas vide offre, sous la rangée de son emplacement, une rangée « emblème » : « vide » puis un bouton par entrée d'`emblemes` (son `label`), bascules d'un même groupe, chacune de `cle` `"<emplacement>/embleme/<id>"` (`"<emplacement>/embleme/vide"` pour « vide »), `<emplacement>` valant l'id du point ou `ligne/<ligne>`. Choisir un emblème le pose sur chaque surface d'un mesh monté, rigide ou skinné, dont le matériau actif porte (par `resource_name`) un nom de `blasons[element]` : `MontageDEquipement.materiau_local` (`projet/scripts/montage_equipement.gd`, le duplicata que `_teinter` pose aussi) en fait un matériau propre à la pièce, dont la couche *detail* reçoit l'emblème (`detail_enabled`, `detail_albedo`, `detail_uv_layer` UV1, `detail_blend_mode` mix) ; ni le mesh ni le matériau partagé ne changent. Avant chaque pose, chaque surface du mesh rend son override : « vide » laisse les surfaces au matériau du GLB. Le SVG se rastérise par `Image.load_svg_from_string` à 512 px de large (échelle 512 / largeur intrinsèque), mipmaps générées ; un SVG illisible ajoute `embleme-illisible : <id> (<erreur>)` aux `erreurs` publiées et ne pose rien. Un emblème qui ne se pose sur aucune surface (aucun matériau actif ne porte un nom de `blasons[element]`, ou aucun n'est un `BaseMaterial3D`) ajoute `blason-sans-surface : <element>` aux `erreurs` et n'est pas posé : `emblemes` n'en porte rien. Chaque pose réécrit `%Etat`, erreurs comprises, au « Recharger » aussi. Le carré UV [0,1]² de la surface porteuse est le cadre de l'emblème (`.claude/skills/creer-un-personnage-3d/references/procedure.md`).
+ 
+-Démonter un emplacement (ou y monter un autre élément) efface son emblème et sa rangée. « Recharger » remonte les éléments montés, rigides et skinnés, que leurs emplacements offrent encore sous l'emblème qu'ils portaient, s'il est toujours offert (« vide » sinon) ; changer de base n'en garde aucun.
++Démonter un emplacement (ou y monter un autre élément) efface son emblème, sa rangée et sa surcharge. Un remontage manuel applique le défaut de la composition. Appliquer un preset efface toutes les surcharges. « Recharger » remonte les éléments montés, rigides et skinnés, que leurs emplacements offrent encore sous l'emblème qu'ils portaient, s'il est toujours offert (« vide » sinon) ; changer de base n'en garde aucun.
+ 
+ La marche (`projet/scripts/marche.gd`, `MarcheDeLAtelier`) : les actions `avant`, `arriere`, `gauche` et `droite` (`project.godot`, `[input]`) portent chacune une touche par `physical_keycode`, W, S, A et D du clavier QWERTY américain (Z, S, Q et D d'un AZERTY), et une flèche. Tant qu'une est tenue et que son appui a atteint `_input` de la marche, la racine du modèle avance sur le sol dans la direction de ces actions (`MiseEnPage.entree_de_marche`), tournée par le lacet de la caméra, le modèle face à cette direction (son avant en +Z), à `marche.vitesse` m/s multipliée par `speed_scale` du lecteur, et l'atelier joue `marche.clip` à son lecteur comme au clic de son bouton ; relâchée, le clip reste engagé, en pause à son début, et le squelette revient à sa pose de repos (`Skeleton3D.reset_bone_poses`). Ces touches ne déplacent pas le focus du panneau ; une touche que l'interface prend avant la scène ne fait pas marcher : la liste ouverte d'un `OptionButton`, fenêtre incrustée qui a le focus, la reçoit avant tout `_input` (« Using InputEvent », « How does it work? », Godot 4.7). La caméra orbite autour de la racine, qu'elle suit : glisser au bouton droit tourne son lacet et son tangage (borné), la molette l'approche ou l'éloigne. La caméra de la scène cadre le corps neutre ; chaque gabarit posé, une fois mesuré au repos (`GabaritDuSquelette.mesures`), met l'orbite à l'échelle du sommet de ses os rapporté à celui du corps neutre (`MiseEnPage.echelle_de_cadrage`), le zoom repris de là ; sans gabarit, elle revient à la caméra de la scène. Un cran de molette sur un contrôle de l'interface (`Viewport.gui_get_hovered_control`) ne zoome jamais, même quand le défilement du panneau, en bout de course, le laisse passer.
+ 
++La composition accepte aussi `embleme?: { id }`, validé par le même schéma que l’apparence d’auteur. `composer` reçoit une table optionnelle `emblemes`, par ligne de montage : une référence surcharge le défaut de la composition, `null` demande explicitement une surface sans emblème, une ligne absente conserve le défaut. Chaque entrée de `montes` porte `embleme?: { id }` pour un élément dont une surface déclare `blason: true` ; son SVG se lit dans le catalogue `emblemes` de `modeles`. Les boutons d’emblème tiennent leurs surcharges explicites séparément des emblèmes effectivement posés et les transmettent à `composer`. Un changement d’emblème seul appelle `_choisir_l_embleme` sur les meshes déjà montés. Changer de base efface les surcharges.
++
+ ### Gabarit d'une base
+ 
+ La porte de construction relit le GLB exporté et compare ses positions à H5 direct sur tous les états : chaque borne seule et croisée avec les silhouettes, chaque milieu et les combinaisons de sens cuits. Ces combinaisons prennent chaque facteur à mi-chemin entre son neutre et l'extrémité cuite, avec la silhouette `sex: 'F'`, `build: (BUILD_NEUTRE + 1) / 2` et `st: (FACTEURS_NEUTRES.st + table.st.max) / 2` : elles exercent simultanément plusieurs clés et leurs croisées, pour toutes les combinaisons des sens du domaine. Un écart de position supérieur à `1e-5 m` refuse la construction dans chacun de ces états. Le pont émet par état le drapeau `pointCuisson`, les `poidsSilhouettes` et les `poidsGabarit` séparés, et le nombre `sensCuits` pour le corps ; Python lit ces données. La porte exige autant de points de cuisson que de sens cuits. Pour les normales, les points de cuisson sont chaque clé `gabarit_<k>_<sens>` seule à poids 1, sans silhouette : un écart supérieur à `1°` au p99 ou `2°` au maximum refuse la construction. Aux états mixtes, aux milieux et aux combinaisons, les écarts de normales sont mesurés et imprimés sans seuil ; chaque ligne porte aussi les mêmes mesures sur l'état privé de ses clés `gabarit_*`, avec les silhouettes seules aux mêmes poids, contre leur propre référence. Les normales de morph doivent être présentes dans l'export. Voir la [décision du 2026-10-31](https://github.com/MyEdO/game/issues/3104#issuecomment-6547804765).
+@@ -177,11 +181,11 @@ Godot ne calcule aucun facteur : il reçoit des nombres par nom d'os et par nom
+ 
+ ## Composition d'un personnage
+ 
+-Une composition est une entrée de `src/data/presets-de-personnage.json` sans son enveloppe, les clés de `CLES_ENVELOPPE` (`src/data/schemas/grammaire/document.ts`) : `race`, `gabarit?`, `sex`, `build?`, `tete`, `coiffure?`, `tenue?`, `pieces?`, `objets?`, `prises?`, `apparencesObjets?` (`compositionSchema`, `schemas/defs/presets-de-personnage.ts`). Une seule fonction du noyau la valide, `lireComposition` (`src/noyau/apparence/composition.ts`), au schéma du preset et à ses règles, dont « rien n'est porté deux fois » : `composer` et `presetDeComposition` la lisent ; une composition refusée, ou absente, est une erreur `validation` qui nomme le chemin de chaque faute. Ce qu'elle porte vient du noyau (`porteeDeComposition`, `src/noyau/apparence/composition.ts`), dans cet ordre : la tête, la coiffure, les pièces de l'ensemble de la tenue, les `pieces`, puis chaque objet, tenu (`prises`) puis porté (`objets`). Un objet habillé par un ensemble de la garde-robe apporte ses pièces ; sinon il porte son apparence (`apparencesObjets`, à défaut sa forme `shape`) à sa prise s'il est tenu, sinon à son `rangement` (`trappings.json`) ; sans l'un ni l'autre, il va à `rapport`, sans point.
++Une composition est une entrée de `src/data/presets-de-personnage.json` sans son enveloppe, les clés de `CLES_ENVELOPPE` (`src/data/schemas/grammaire/document.ts`) : `race`, `gabarit?`, `sex`, `build?`, `tete`, `coiffure?`, `tenue?`, `pieces?`, `objets?`, `prises?`, `apparencesObjets?`, `embleme?` (`compositionSchema`, `schemas/defs/presets-de-personnage.ts`). Une seule fonction du noyau la valide, `lireComposition` (`src/noyau/apparence/composition.ts`), au schéma du preset et à ses règles, dont « rien n'est porté deux fois » : `composer` et `presetDeComposition` la lisent ; une composition refusée, ou absente, est une erreur `validation` qui nomme le chemin de chaque faute. Ce qu'elle porte vient du noyau (`porteeDeComposition`, `src/noyau/apparence/composition.ts`), dans cet ordre : la tête, la coiffure, les pièces de l'ensemble de la tenue, les `pieces`, puis chaque objet, tenu (`prises`) puis porté (`objets`). Un objet habillé par un ensemble de la garde-robe apporte ses pièces ; sinon il porte son apparence (`apparencesObjets`, à défaut sa forme `shape`) à sa prise s'il est tenu, sinon à son `rangement` (`trappings.json`) ; sans l'un ni l'autre, il va à `rapport`, sans point.
+ 
+ ```ts
+ type CompositionSurLaBase = {
+-  montes: { ligne: string; element: string | null }[];
++  montes: { ligne: string; element: string | null; embleme?: { id: string } }[];
+   manquants: { ligne: string; champ: 'tete' | 'coiffure' | 'piece' | 'apparence'; id: string; label: string; par?: { type: 'tenue' | 'trapping'; id: string; label: string } }[];
+   rapport: string[];
+   gabarit: { racine: { os: string; echelle: number }; enfantsDe: Record<string, number>; echellesDesOs: Record<string, [number, number, number]>; pieds: string[] };
+@@ -189,7 +193,7 @@ type CompositionSurLaBase = {
+ };
+ ```
+ 
+-- `montes` : une entrée par chose portée, dans l'ordre ci-dessus. `ligne` est la clé d'emplacement du panneau (section « Écran publié »), tirée d'une seule fonction (`cleDuPanneau`, `composition.ts`) : `"ligne/tete"`, `"ligne/coiffure"`, `"ligne/piece/<id>"` d'un vêtement ou d'une armure, `"ligne/emplacement/<id>"` d'une pièce d'accessoire, ou l'id du point d'un objet tenu ou rangé, et d'une pièce d'accessoire rigide. `element` est l'élément de cet emplacement, parmi ceux que `modeles` y sert, dont la `cle` désigne la chose (`cle.tete`, `cle.coiffure`, `cle.piece`, `cle.apparence`) ; une pièce d'accessoire se cherche à sa ligne puis au point de son emplacement (accessoire rigide). `null` : aucun.
++- `montes` : une entrée par chose portée, dans l'ordre ci-dessus. `ligne` est la clé d'emplacement du panneau (section « Écran publié »), tirée d'une seule fonction (`cleDuPanneau`, `composition.ts`) : `"ligne/tete"`, `"ligne/coiffure"`, `"ligne/piece/<id>"` d'un vêtement ou d'une armure, `"ligne/emplacement/<id>"` d'une pièce d'accessoire, ou l'id du point d'un objet tenu ou rangé, et d'une pièce d'accessoire rigide. `element` est l'élément de cet emplacement, parmi ceux que `modeles` y sert, dont la `cle` désigne la chose (`cle.tete`, `cle.coiffure`, `cle.piece`, `cle.apparence`) ; une pièce d'accessoire se cherche à sa ligne puis au point de son emplacement (accessoire rigide). `null` : aucun. `embleme`, l’id résolu de la surcharge de cette ligne ou du défaut de la composition, n’est porté que si l’élément déclare une surface `blason: true` et qu’un emblème est retenu ; son dessin reste au catalogue.
+ - `manquants` : les entrées de `montes` sans élément, ce qu'il reste à produire : la clé (`champ`, `id`), le libellé de la garde-robe ou de l'apparence, et `par`, la tenue ou l'objet qui apporte la chose (son ensemble, ou l'objet dont elle est l'apparence), avec `label`, le libellé de son ensemble, à défaut celui de l'objet.
+ - `gabarit` : `poseDuGabarit` (section « Gabarit d'une base ») sur les facteurs de `gabaritResolu` de la composition (son `gabarit`, à défaut celui de sa race et sa surcharge, `raceAppearance.json`).
+ - `morphes` : `poidsDeSilhouettes` sur `sex`, `build` (absent : `BUILD_NEUTRE`) et le `st` de ces facteurs.
+diff --git a/hotes/godot/pont/atelier.hors-store.test.ts b/hotes/godot/pont/atelier.hors-store.test.ts
+index bd60133e4..808b95897 100644
+--- a/hotes/godot/pont/atelier.hors-store.test.ts
++++ b/hotes/godot/pont/atelier.hors-store.test.ts
+@@ -27,7 +27,7 @@ const teteNaine = {
+ };
+ const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
+ const bouclier = {
+-  ...elementSchema3('humanoide'), cle: { apparence: 'bouclier_blason' },
++  ...elementSchema3('humanoide'), cle: { apparence: 'rond' },
+   surfaces: [{ nom: 'metal', teinte: true }, { nom: 'champ', teinte: true, blason: true }], glb: empreinte(glbDElement('spine', ['metal', 'champ'])),
+ };
+ const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', teinte: true, blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
+diff --git a/hotes/godot/pont/composition.hors-store.test.ts b/hotes/godot/pont/composition.hors-store.test.ts
+index a3fa8c1c7..0bc45ad98 100644
+--- a/hotes/godot/pont/composition.hors-store.test.ts
++++ b/hotes/godot/pont/composition.hors-store.test.ts
+@@ -8,7 +8,7 @@
+ import { describe, expect, it } from 'vitest';
+ import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
+ import { empreinte } from '../asset/empreinte.ts';
+-import { cataloguesDeComposition, lireComposition } from '../../../src/noyau/index';
++import { cataloguesDeComposition, lireComposition, emblemeDuPorteur } from '../../../src/noyau/index';
+ import { tableTotale } from '../../../src/lib/tableTotale';
+ import presets from '../../../src/data/presets-de-personnage.json';
+ import { modelesDeLAtelier } from './atelier';
+@@ -105,6 +105,23 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
+     });
+   });
+ 
++  it('publie le défaut d’emblème et donne priorité aux choix manuels, y compris au vide explicite', () => {
++    const blasonne = { ...plastron, surfaces: [{ nom: 'acier', palette: 'metal', blason: true }] };
++    appeler('modeles', { manifestes: { humanoide, blasonne }, osDesRigides: { humanoide: [], blasonne: [] } });
++    const composition = { race: { id: 'humain' }, sex: 'M', tete: { id: 'humain' }, objets: ['plastron'], embleme: { id: 'taureau-rouge' } };
++    const entree = { base: 'humanoide', composition };
++    const monte = (r: ReturnType<typeof appeler>) => r.montes.find((m: { ligne: string }) => m.ligne === 'ligne/piece/plastron');
++    expect(monte(appeler('composer', entree))).toEqual({ ligne: 'ligne/piece/plastron', element: 'blasonne', embleme: emblemeDuPorteur(composition.embleme) });
++    expect(appeler('composer', { ...entree, emblemes: null }).erreur.categorie).toBe('validation');
++    const surcharge = { 'ligne/piece/plastron': { id: 'tete-de-mort-rouge' } };
++    expect(monte(appeler('composer', { ...entree, emblemes: surcharge })).embleme).toEqual(emblemeDuPorteur(surcharge['ligne/piece/plastron']));
++    expect(monte(appeler('composer', { ...entree, emblemes: { 'ligne/piece/plastron': null } }))).toEqual({ ligne: 'ligne/piece/plastron', element: 'blasonne' });
++    expect(monte(appeler('composer', { ...entree, composition: { ...composition, embleme: { id: 'tete-de-mort-rouge' } } })).embleme).toEqual(emblemeDuPorteur({ id: 'tete-de-mort-rouge' }));
++    expect(appeler('composer', { ...entree, emblemes: { 'ligne/piece/plastron': { id: 'embleme-inconnu' } } }).erreur.categorie).toBe('validation');
++    expect(appeler('composer', { ...entree, emblemes: { 'ligne/piece/plastron': { id: 'plastron' } } }).erreur.categorie).toBe('validation');
++    expect(appeler('composer', { ...entree, composition: { ...composition, embleme: { id: 'embleme-inconnu' } } }).erreur.categorie).toBe('validation');
++  });
++
+   it('une composition absente ou fautive est refusée en validation, au chemin de la faute', () => {
+     const deuxMains = { ...soldat, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } };
+     expect(appeler('presetDeComposition', {}).erreur).toEqual({ categorie: 'validation', message: expect.stringContaining('presetDeComposition : composition, (racine) : ') });
+diff --git a/hotes/godot/pont/composition.ts b/hotes/godot/pont/composition.ts
+index 8248d46d4..9b46a218e 100644
+--- a/hotes/godot/pont/composition.ts
++++ b/hotes/godot/pont/composition.ts
+@@ -4,10 +4,11 @@
+  * ses lignes et ses points (`modelesDeLAtelier`), avec la pose de son gabarit (`poseDuGabarit`) et les poids de ses
+  * silhouettes (`poidsDeSilhouettes`).
+  */
++import type { ManifesteDElement } from '../asset/element';
+ import type { ManifesteDeBase } from '../asset/manifesteDeBase';
+ import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
+ import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
+-import { porteeDeComposition, type Composition, type Portee } from '../../../src/noyau/index';
++import { porteeDeComposition, emblemeDuPorteur, type EmblemeResolu, type Composition, type Portee } from '../../../src/noyau/index';
+ import { cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
+ 
+ /** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`) et l'élément de
+@@ -15,6 +16,7 @@ import { cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
+ export interface Monte {
+   ligne: string;
+   element: string | null;
++  embleme?: EmblemeResolu;
+ }
+ 
+ /** Une chose portée sans élément de la base : son emplacement de montage, la clé qui la désigne, son libellé et ce
+@@ -53,7 +55,7 @@ function ouChercher({ cle, point }: Portee): string[] {
+ 
+ /** `composition` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
+  *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne. */
+-export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, composition: Composition): CompositionSurLaBase {
++export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, composition: Composition, surcharges: Readonly<Record<string, { id: string } | null>> = {}): CompositionSurLaBase {
+   const portee = porteeDeComposition(composition);
+   const elementsDe = new Map<string, string[]>([
+     ...base.points.map((p): [string, string[]] => [p.id, p.elements]),
+@@ -66,7 +68,10 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
+     const trouve = ou
+       .map((ligne) => ({ ligne, element: (elementsDe.get(ligne) ?? []).find((e) => cleDe(manifestes[e])[p.cle.champ] === p.cle.id) }))
+       .find((t) => t.element !== undefined);
+-    montes.push({ ligne: trouve?.ligne ?? ou[0], element: trouve?.element ?? null });
++    const ligne = trouve?.ligne ?? ou[0];
++    const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
++    const porteUnBlason = trouve?.element !== undefined && (manifestes[trouve.element] as ManifesteDElement).surfaces.some((s) => s.blason === true);
++    montes.push({ ligne, element: trouve?.element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}) });
+     if (!trouve) manquants.push({ ligne: ou[0], champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
+   }
+   const manifeste = manifestes[base.id] as ManifesteDeBase;
+diff --git a/hotes/godot/pont/equipement.hors-store.test.ts b/hotes/godot/pont/equipement.hors-store.test.ts
+index fc9ee94b6..ecf0e746a 100644
+--- a/hotes/godot/pont/equipement.hors-store.test.ts
++++ b/hotes/godot/pont/equipement.hors-store.test.ts
+@@ -10,6 +10,9 @@ import type { ManifesteMontable } from '../asset/montage';
+ import { estModeleModulaire } from '../asset/modeles';
+ import { INDEX_DES_APPARENCES, indexDesApparences, modelesDesCombattants, premierModele } from './equipement';
+ import { suiteDe, table } from './pont.testkit';
++import { sceneEntitySchema } from '../../../src/data/schemas/defs-scenes/scene';
++import { ficheDEntite } from '../../../src/noyau/monde/sceneNpc';
++import { emblemeDuPorteur } from '../../../src/noyau/index';
+ const manifesteDeLame: ManifesteMontable = {
+   schema_version: 2, model: 'Lame.glb', default_head: null, head_options: [],
+   pieces: {
+@@ -52,6 +55,18 @@ function heros(apparence: string, main: 'main' | 'off' = 'main') {
+ }
+ 
+ describe('équipement publié au pont Godot (#2948 L3)', () => {
++  it('projette l’id de l’emblème de la fiche d’une entité jusqu’à la vue du pont', () => {
++    const entite = sceneEntitySchema.parse({ id: 'garde-du-gue', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 3 }, appearance: { embleme: { id: 'taureau-rouge' } } });
++    const ne = ficheDEntite({ id: entite.id, kind: 'personnage', ref: entite.ref, pos: entite.pos, appearance: entite.appearance }, () => undefined);
++    const ouverte = ouvrirLaPartie(nouvelEntete('dome', { graine: 1 }), () => {});
++    const origine = ouverte.partie.etat();
++    const etat = { ...origine, battle: { ...origine.battle!, combatants: [ne] } };
++    ouverte.partie.fermer();
++    const projete = combattantsTries(etat);
++    const attendu = emblemeDuPorteur({ id: 'taureau-rouge' });
++    expect(projete[0].equipement.embleme).toEqual(attendu);
++  });
++
+   it('résout la teinte des objets tenus et rangés par le lecteur du noyau, sans modifier les autres instances', () => {
+     const { projete } = heros('epee_ebrechee');
+     projete.equipement.weapons[0].teinte = 'aethyrique';
+diff --git a/hotes/godot/pont/pont.ts b/hotes/godot/pont/pont.ts
+index ddb532acc..e64c10cf2 100644
+--- a/hotes/godot/pont/pont.ts
++++ b/hotes/godot/pont/pont.ts
+@@ -4,7 +4,7 @@
+  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
+  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
+  */
+-import { CLICS_DU_CHAMP, cataloguesDeComposition, fenetreDAttaque, fenetreDeDefense, lireComposition, plateauDeLaScene, presetDeComposition, type Composition, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
++import { CLICS_DU_CHAMP, cataloguesDeComposition, fenetreDAttaque, fenetreDeDefense, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+ import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
+ import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
+ import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
+@@ -158,11 +158,13 @@ export function creerPont() {
+       return atelier.modeles;
+     },
+     composer(json) {
+-      const e = entreeDe('composer', json, ['base', 'composition']);
++      const e = entreeDe('composer', json, ['base', 'composition', 'emblemes']);
++      const emblemes = lireSurchargesDEmblemes(e.emblemes === undefined ? {} : e.emblemes);
++      if (!emblemes.ok) throw new ErreurDeGeste('validation', `composer : emblemes, ${emblemes.fautes.map(({ chemin, message }) => `${chemin.join('.') || '(racine)'} : ${message}`).join(' ; ')}`);
+       valider(atelier !== null, 'composer : aucun modèle, appeler modeles d’abord');
+       const base = atelier!.modeles.bases.find((b) => b.id === e.base);
+       valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${atelier!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
+-      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition));
++      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition), emblemes.emblemes);
+     },
+     catalogues(json) {
+       entreeDe('catalogues', json, []);
+diff --git a/hotes/godot/projet/modeles/Knight.manifeste.json b/hotes/godot/projet/modeles/Knight.manifeste.json
+index c781199ca..76f1f3a18 100644
+--- a/hotes/godot/projet/modeles/Knight.manifeste.json
++++ b/hotes/godot/projet/modeles/Knight.manifeste.json
+@@ -44,12 +44,6 @@
+       "headVariant": "tete",
+       "hiddenBy": []
+     },
+-    "Badge_Shield": {
+-      "node": "Badge_Shield",
+-      "component": "bouclier_blason",
+-      "headVariant": null,
+-      "hiddenBy": []
+-    },
+     "Rectangle_Shield": {
+       "node": "Rectangle_Shield",
+       "component": "bouclier_rectangle",
+@@ -104,10 +98,6 @@
+       "label_fr": "Corps",
+       "apparence": null
+     },
+-    "bouclier_blason": {
+-      "label_fr": "Bouclier à blason",
+-      "apparence": "bouclier_blason"
+-    },
+     "bouclier_rectangle": {
+       "label_fr": "Bouclier rectangulaire",
+       "apparence": "bouclier_rectangle"
+@@ -143,7 +133,6 @@
+   },
+   "incompatibilities": [
+     [
+-      "bouclier_blason",
+       "bouclier_rectangle",
+       "bouclier_rond",
+       "bouclier_pointes",
+@@ -155,7 +144,6 @@
+     ],
+     [
+       "epee_deux_mains",
+-      "bouclier_blason",
+       "bouclier_rectangle",
+       "bouclier_rond",
+       "bouclier_pointes",
+@@ -177,6 +165,7 @@
+     "death": "Death_A"
+   },
+   "montage": {
++    "masquer": ["Badge_Shield"],
+     "attaches": {
+       "main": {
+         "os": "handslot.r",
+@@ -232,11 +221,6 @@
+       }
+     },
+     "composants": {
+-      "bouclier_blason": {
+-        "prise": "off",
+-        "rangement": "dos",
+-        "matieres": [{ "cle": "metal", "piece": "Badge_Shield", "surface": 0 }]
+-      },
+       "bouclier_rectangle": {
+         "prise": "off",
+         "rangement": "dos",
+diff --git a/hotes/godot/projet/scripts/atelier.gd b/hotes/godot/projet/scripts/atelier.gd
+index 7cc366e05..7c44e6425 100644
+--- a/hotes/godot/projet/scripts/atelier.gd
++++ b/hotes/godot/projet/scripts/atelier.gd
+@@ -63,6 +63,8 @@ var _emplacements: Dictionary = {}
+ var _montes: Dictionary = {}
+ ## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème posé (#3111).
+ var _emblemes: Dictionary = {}
++## Par id d'emplacement, la référence d'emblème choisie, ou null pour une surface sans emblème.
++var _surcharges_des_emblemes: Dictionary = {}
+ ## Par id d'emplacement monté, ses meshes montés, et les nœuds qui les portent dans la scène.
+ var _pieces: Dictionary = {}
+ var _noeuds: Dictionary = {}
+@@ -173,6 +175,7 @@ func _choisir_la_base(id: String) -> void:
+ 	for base in _modeles.bases:
+ 		if base.id == id:
+ 			_base_demandee = id
++			_surcharges_des_emblemes.clear()
+ 			_reprise = {}
+ 			_composee = {}
+ 			_refus_de_composition = ""
+@@ -347,7 +350,7 @@ func _bascule_de_piece(ligne: Dictionary) -> void:
+ 		_etiquette("%s : manquant" % ligne.label, emplacement.rangee)
+ 		return
+ 	var element: String = ligne.elements[0]
+-	var bascule := func() -> void: _choisir(emplacement, VIDE if _montes.get(emplacement.id) == element else element)
++	var bascule := func() -> void: _choisir_manuellement(emplacement, VIDE if _montes.get(emplacement.id) == element else element)
+ 	var bouton := _bascule(ligne.label, null, emplacement.rangee, bascule)
+ 	bouton.set_meta("cle", emplacement.id)
+ 	emplacement.boutons[element] = bouton
+@@ -357,7 +360,7 @@ func _bascule_de_piece(ligne: Dictionary) -> void:
+ ## Le bouton qui monte `element` à `emplacement`, de texte `texte` et de clé `<emplacement>/<suffixe>`, bascule du groupe
+ ## `groupe`.
+ func _bouton_de_choix(emplacement: Dictionary, element: String, texte: String, suffixe: String, groupe: ButtonGroup) -> void:
+-	var bouton := _bascule(texte, groupe, emplacement.rangee, _choisir.bind(emplacement, element))
++	var bouton := _bascule(texte, groupe, emplacement.rangee, _choisir_manuellement.bind(emplacement, element))
+ 	bouton.set_meta("cle", "%s/%s" % [emplacement.id, suffixe])
+ 	emplacement.boutons[element] = bouton
+ 
+@@ -385,8 +388,15 @@ func _marquer(boutons: Dictionary, retenu: Variant) -> void:
+ 		boutons[cle].set_pressed_no_signal(cle == retenu)
+ 
+ 
+-## La demande du joueur à `emplacement` : l'élément monté démonté avec son emblème, puis `element` monté sous l'emblème
+-## `embleme` s'il n'est pas « vide », ses erreurs au recueil du geste qui le demande.
++## Le choix manuel d'un élément à l'emplacement, son défaut d'emblème résolu après retrait de sa surcharge.
++func _choisir_manuellement(emplacement: Dictionary, element: String) -> void:
++	if element == VIDE or _montes.get(emplacement.id, VIDE) != element:
++		_surcharges_des_emblemes.erase(emplacement.id)
++	_choisir(emplacement, element, _embleme_de_l_emplacement(emplacement.id))
++
++
++## L'élément monté à `emplacement` démonté avec son emblème, puis `element` monté sous l'emblème `embleme` s'il n'est pas
++## « vide », ses erreurs au recueil du geste qui le demande.
+ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) -> void:
+ 	var id: String = emplacement.id
+ 	var recueil := _recueil
+@@ -505,13 +515,24 @@ func _ligne_des_emblemes(emplacement: Dictionary, element: String, embleme: Stri
+ 	var choix: Array = [{id = VIDE, label = VIDE}]
+ 	choix.append_array(_modeles.emblemes)
+ 	for offert in choix:
+-		var bouton := _bascule(offert.label, groupe, ligne, _choisir_l_embleme.bind(id, offert.id))
++		var bouton := _bascule(offert.label, groupe, ligne, _surcharger_l_embleme.bind(id, offert.id))
+ 		bouton.set_meta("cle", "%s/embleme/%s" % [id, offert.id])
+ 		boutons[offert.id] = bouton
+ 	_boutons_des_emblemes[id] = boutons
+ 	_choisir_l_embleme(id, embleme if boutons.has(embleme) else VIDE)
+ 
+ 
++## L'emblème de l'emplacement : sa surcharge explicite, sinon le défaut de la composition.
++func _embleme_de_l_emplacement(id: String) -> String:
++	var reference: Variant = _surcharges_des_emblemes.get(id, _composition.get("embleme"))
++	return VIDE if reference == null else str(reference.id)
++
++
++func _surcharger_l_embleme(id: String, embleme: String) -> void:
++	_surcharges_des_emblemes[id] = null if embleme == VIDE else {id = embleme}
++	_choisir_l_embleme(id, embleme)
++
++
+ ## L'emblème `embleme` posé sur l'élément monté à l'emplacement `id`, rigide ou skinné : sur chaque surface d'un mesh
+ ## monté dont le matériau porte un nom de ses `blasons`, un matériau propre (`MontageDEquipement.materiau_local`) dont la
+ ## couche de détail, en UV1 et en mélange, est l'emblème ; « vide » rend à chaque surface le matériau du GLB. Aucune
+@@ -803,6 +824,7 @@ func _glissiere(axe: Dictionary, rangee: HBoxContainer) -> HSlider:
+ func _appliquer_le_preset(preset: Dictionary) -> void:
+ 	_preset = preset.id
+ 	_composition = preset.composition.duplicate(true)
++	_surcharges_des_emblemes.clear()
+ 	_composer()
+ 
+ 
+@@ -848,7 +870,7 @@ func _composer_la_courante() -> void:
+ 	if _base.is_empty():
+ 		_montrer_la_composition()
+ 		return
+-	var reponse := _pont.appeler("composer", {base = _base.id, composition = _composition})
++	var reponse := _pont.appeler("composer", {base = _base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
+ 	if reponse.get("ok") == true:
+ 		_composee = reponse
+ 	elif reponse.get("ok") == false:
+@@ -856,11 +878,24 @@ func _composer_la_courante() -> void:
+ 	var cibles := {}
+ 	for monte in _composee.get("montes", []):
+ 		if monte.element != null and not cibles.has(monte.ligne):
+-			cibles[monte.ligne] = monte.element
++			cibles[monte.ligne] = monte
++	var surcharges_effacees := false
++	for id in _emplacements:
++		if _montes.get(id, VIDE) != cibles.get(id, {}).get("element", VIDE):
++			surcharges_effacees = _surcharges_des_emblemes.erase(id) or surcharges_effacees
++	if surcharges_effacees and reponse.get("ok") == true:
++		_composee = _pont.appeler("composer", {base = _base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
++		for monte in _composee.montes:
++			if cibles.has(monte.ligne) and cibles[monte.ligne].element == monte.element:
++				cibles[monte.ligne] = monte
+ 	for id in _emplacements:
+-		var cible: String = cibles.get(id, VIDE)
++		var monte: Dictionary = cibles.get(id, {})
++		var cible: String = monte.get("element", VIDE)
++		var embleme: String = monte.get("embleme", {}).get("id", VIDE)
+ 		if _montes.get(id, VIDE) != cible:
+-			_choisir(_emplacements[id], cible)
++			_choisir(_emplacements[id], cible, embleme)
++		elif _emblemes.get(id, VIDE) != embleme:
++			_choisir_l_embleme(id, embleme)
+ 	_poser_le_gabarit()
+ 	_poser_des_morphes(anciens.keys(), 0.0)
+ 	_poser_les_morphes()
+diff --git a/hotes/godot/projet/scripts/montage_equipement.gd b/hotes/godot/projet/scripts/montage_equipement.gd
+index 1a4c5c070..ad895eb19 100644
+--- a/hotes/godot/projet/scripts/montage_equipement.gd
++++ b/hotes/godot/projet/scripts/montage_equipement.gd
+@@ -54,11 +54,14 @@ static func attacher(squelette: Skeleton3D, declaration: Dictionary, nom: String
+ 
+ 
+ func masquer_armes(modele: Node, m: Dictionary) -> void:
++	var noms: Array = m.montage.get("masquer", []).duplicate()
+ 	for piece in m.pieces.values():
+ 		if m.montage.composants.has(piece.component):
+-			var noeud := modele.find_child(piece.node, true, false) as Node3D
+-			if noeud != null:
+-				noeud.visible = false
++			noms.append(piece.node)
++	for nom in noms:
++		var noeud := modele.find_child(nom, true, false) as Node3D
++		if noeud != null:
++			noeud.visible = false
+ 
+ 
+ func montrer(modele: Node, porteur: Dictionary, dessin: Dictionary) -> void:
+diff --git a/src/data/apparences.json b/src/data/apparences.json
+index 9887718df..cd2b8c216 100644
+--- a/src/data/apparences.json
++++ b/src/data/apparences.json
+@@ -600,14 +600,6 @@
+       "guerriers"
+     ]
+   },
+-  {
+-    "id": "bouclier_blason",
+-    "type": "apparences",
+-    "label": "Bouclier à blason",
+-    "forme": {
+-      "id": "rond"
+-    }
+-  },
+   {
+     "id": "bouclier_rectangle",
+     "type": "apparences",
+diff --git a/src/data/index.ts b/src/data/index.ts
+index eda3db41a..1d2ea991c 100644
+--- a/src/data/index.ts
++++ b/src/data/index.ts
+@@ -2958,6 +2958,7 @@ const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
+   return (id: string | null | undefined) => idx(id) as Extract<GardeRobeEntree, { kind: K }> | undefined;
+ };
+ export const findPieceById = parNature('piece');
++export const findEmblemeById = parNature('embleme');
+ export const findTeteById = parNature('tete');
+ export const findCoiffureById = parNature('coiffure');
+ const ensembleParHabille = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));
+diff --git a/src/data/primitives.manifest.json b/src/data/primitives.manifest.json
+index 89a4ec6fa..10f9adc24 100644
+--- a/src/data/primitives.manifest.json
++++ b/src/data/primitives.manifest.json
+@@ -1934,6 +1934,15 @@
+     "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
+     "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
+   },
++  {
++    "id": "emblemeDuPorteur",
++    "type": "primitives.manifest",
++    "label": "emblemeDuPorteur",
++    "fichier": "src/noyau/apparence/gardeRobe.ts",
++    "concept": "référence d’emblème projetée par id stable depuis la garde-robe ; une référence absente ou périmée ne projette aucun emblème",
++    "perimetre": "composition et équipement dessiné des porteurs",
++    "verrou": "src/noyau/emblemes.hors-store.test.ts"
++  },
+   {
+     "id": "equipementDeDessin",
+     "type": "primitives.manifest",
+diff --git a/src/data/schemas/defs/presets-de-personnage.ts b/src/data/schemas/defs/presets-de-personnage.ts
+index 2121cc2f7..e8e1cefd2 100644
+--- a/src/data/schemas/defs/presets-de-personnage.ts
++++ b/src/data/schemas/defs/presets-de-personnage.ts
+@@ -23,7 +23,7 @@ import { document, type EnveloppeDocument } from '../grammaire/document';
+ import { nommerChamps } from '../grammaire/meta';
+ import { ref, refs } from '../grammaire/ref';
+ import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
+-import { apparencesDObjetsSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
++import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
+ import { findEnsembleParHabille } from '../../index';
+ import type { HabilleDEnsemble, TenueId } from './garde-robe';
+ 
+@@ -42,9 +42,11 @@ const champs = {
+   objets: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
+   prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
+   apparencesObjets: apparencesDObjetsSchema.optional(),
++  embleme: emblemeSchema.optional(),
+ };
+ 
+ const metaDesChampsDuPreset = {
++  embleme: { label: 'Emblème', hint: 'Emblème posé sur les surfaces qui portent un blason' },
+   race: { label: 'Race de rendu', hint: 'Apparence d’espèce du personnage' },
+   gabarit: { label: 'Gabarit', hint: 'Carrure du squelette ; absent, celle de la race' },
+   sex: { label: 'Sexe' },
+@@ -94,6 +96,7 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): void {
+ 
+ /** L'entrée sans son enveloppe (`CLES_ENVELOPPE`), règles comprises. */
+ export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(refuserLesPortesDeuxFois);
++export const surchargesDEmblemesSchema = z.record(z.string(), emblemeSchema.nullable());
+ 
+ const doc = document(
+   'presets-de-personnage',
+diff --git a/src/data/schemas/grammaire/valeurs.ts b/src/data/schemas/grammaire/valeurs.ts
+index e8a5351b4..7efa208d0 100644
+--- a/src/data/schemas/grammaire/valeurs.ts
++++ b/src/data/schemas/grammaire/valeurs.ts
+@@ -862,6 +862,8 @@ export function messageDeTenueInconnue(id: string): string {
+   return `tenue « ${id} » inconnue : ni carrière, ni classe de carrière, ni « nu ».`;
+ }
+ 
++export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
++
+ /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
+  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */
+ export const entityAppearanceSchema = nommerChamps(z.strictObject({
+@@ -873,7 +875,8 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
+    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
+   armurePortee: z.boolean().optional(),
+   apparencesObjets: apparencesDObjetsSchema.optional(),
+-}), { sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
++  embleme: emblemeSchema.optional(),
++}), { embleme: { label: 'emblème' }, sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
+ 
+ /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
+  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
+diff --git a/src/engine/authoringAppearance.ts b/src/engine/authoringAppearance.ts
+index 3460dbbdc..4140eeb04 100644
+--- a/src/engine/authoringAppearance.ts
++++ b/src/engine/authoringAppearance.ts
+@@ -29,6 +29,7 @@ export interface EntityAppearance {
+   armurePortee?: boolean;
+   /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
+   apparencesObjets?: Record<string, { id: string }>;
++  embleme?: { id: string };
+ }
+ 
+ /** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */
+diff --git a/src/noyau/apparence/composition.ts b/src/noyau/apparence/composition.ts
+index e0fbaba34..3f0fd4004 100644
+--- a/src/noyau/apparence/composition.ts
++++ b/src/noyau/apparence/composition.ts
+@@ -9,7 +9,7 @@
+ import { choixDeLaFeuilleDId, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, type GabaritId } from '../../data';
+ import { serializeDataset } from '../../data/serialize';
+ import type { TenueId } from '../../data/schemas/defs/garde-robe';
+-import { compositionSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
++import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
+ import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
+ import { CLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
+ import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
+@@ -20,7 +20,7 @@ import { t } from '../../i18n';
+ import { tableTotale } from '../../lib/tableTotale';
+ import type { ChampDeCleResolu } from './cleDElement';
+ import { gabaritResolu, type GabaritResolu, type RaceDuGabarit, type TrouverGabarit } from './gabarit';
+-import { emplacementDePiece, piecesDEnsemble } from './gardeRobe';
++import { emplacementDePiece, piecesDEnsemble, emblemeDuPorteur, type EmblemeResolu } from './gardeRobe';
+ 
+ /** `hotes/godot/pont/CONTRAT.md`, « Composition d'un personnage ». */
+ export function facteursDeComposition(gabarit: GabaritId | undefined, race: RaceDuGabarit, trouver?: TrouverGabarit): GabaritResolu {
+@@ -54,6 +54,13 @@ export function lireComposition(brut: unknown): { ok: true; composition: Composi
+   return fautes ? { ok: false, fautes: fautes.map(({ chemin, message }) => ({ chemin: [...chemin], message })) } : { ok: true, composition: brut as Composition };
+ }
+ 
++export type SurchargesDEmblemes = typeof surchargesDEmblemesSchema._output;
++
++export function lireSurchargesDEmblemes(brut: unknown): { ok: true; emblemes: SurchargesDEmblemes } | { ok: false; fautes: FauteDePreset[] } {
++  const fautes = validateDocument(surchargesDEmblemesSchema, brut);
++  return fautes ? { ok: false, fautes: fautes.map(({ chemin, message }) => ({ chemin: [...chemin], message })) } : { ok: true, emblemes: brut as SurchargesDEmblemes };
++}
++
+ /** Une chose portée : la clé de l'élément qui la monte, son libellé, son point d'accroche (la prise ou le rangement
+  *  d'un objet, l'emplacement d'une pièce d'accessoire) et ce qui l'apporte (la tenue ou l'objet que son ensemble
+  *  habille, l'objet dont elle est l'apparence). */
+@@ -66,6 +73,7 @@ export interface Portee {
+ 
+ export interface PorteeDeComposition {
+   portees: Portee[];
++  embleme?: EmblemeResolu;
+   /** Les objets ni tenus ni rangés : ni ensemble, ni prise, ni `rangement` (D1). */
+   rapport: string[];
+   facteurs: GabaritResolu;
+@@ -115,7 +123,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
+     }
+     liste.push({ cle: { champ: 'apparence', id: apparence }, label: findApparenceById(apparence)?.label ?? apparence, point, par: par(habille) });
+   }
+-  return { portees: liste, rapport, facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
++  return { portees: liste, rapport, embleme: emblemeDuPorteur(composition.embleme), facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
+ }
+ 
+ /** Un choix d'un catalogue : l'id stocké, le libellé affiché. */
+diff --git a/src/noyau/apparence/gardeRobe.ts b/src/noyau/apparence/gardeRobe.ts
+index b2f2f1578..c2c7030d9 100644
+--- a/src/noyau/apparence/gardeRobe.ts
++++ b/src/noyau/apparence/gardeRobe.ts
+@@ -2,9 +2,9 @@
+  * LA GARDE-ROBE DES ÉLÉMENTS 3D (#2972 v4, D6(b) ; #3116) : les ids de pièce de `garde-robe.json` de l'ensemble qui
+  * habille une chose, et les emplacements de la garde-robe, que la validation d'un élément 3D lit.
+  */
+-import { findEnsembleParHabille, findPieceById } from '../../data';
++import { findEmblemeById, findEnsembleParHabille, findPieceById } from '../../data';
+ import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
+-import type { EmplacementId, HabilleDEnsemble, PieceId } from '../../data/schemas/defs/garde-robe';
++import type { EmblemeDef, EmplacementId, HabilleDEnsemble, PieceId } from '../../data/schemas/defs/garde-robe';
+ 
+ /** Les pièces de l'ensemble qui habille `habille`, aucune si la garde-robe n'en déclare pas. */
+ export const piecesDEnsemble = (habille: HabilleDEnsemble): readonly PieceId[] => findEnsembleParHabille(habille)?.pieces ?? [];
+@@ -14,3 +14,10 @@ export const estEmplacement = (id: string): id is EmplacementId => idsDeLaSousLi
+ 
+ /** L'emplacement de la pièce d'accessoire `id`, `undefined` pour toute autre pièce ou un id inconnu. */
+ export const emplacementDePiece = (id: string): EmplacementId | undefined => findPieceById(id)?.emplacement?.id;
++
++export type EmblemeResolu = Pick<EmblemeDef, 'id'>;
++
++export function emblemeDuPorteur(reference: { id: string } | null | undefined): EmblemeResolu | undefined {
++  const embleme = findEmblemeById(reference?.id);
++  return embleme ? { id: embleme.id } : undefined;
++}
+diff --git a/src/noyau/equipementDessine.test.ts b/src/noyau/equipementDessine.test.ts
+index 566c43dbe..acb25983b 100644
+--- a/src/noyau/equipementDessine.test.ts
++++ b/src/noyau/equipementDessine.test.ts
+@@ -180,7 +180,7 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
+   it('publie les candidats des armes tenues, rangées et du bouclier', () => {
+     const tenue = { ...porte('arme-simple', 'epee_ebrechee'), uid: 'tenue' };
+     const rangee = { ...porte('arme-simple', 'hache_naine'), uid: 'rangee' };
+-    const bouclier = { ...porte('bouclier', 'bouclier_blason'), uid: 'bouclier' };
++    const bouclier = { ...porte('bouclier', 'bouclier_pointes'), uid: 'bouclier' };
+     const c = porteur({
+       items: [tenue, rangee, bouclier],
+       weapons: [weaponFromItem(tenue, 'main'), weaponFromItem(bouclier, 'off')],
+@@ -188,9 +188,9 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
+       activeLoadoutId: 'a',
+     });
+     const equip = equipementDessine(c);
+-    expect(equip.weapons.map((w) => w.candidats)).toEqual([['epee_ebrechee', 'epee'], ['bouclier_blason', 'rond']]);
++    expect(equip.weapons.map((w) => w.candidats)).toEqual([['epee_ebrechee', 'epee'], ['bouclier_pointes', 'rond']]);
+     expect(equip.rangees.map((w) => w.candidats)).toEqual([['hache_naine', 'hache']]);
+-    expect(equip.shield?.candidats).toEqual(['bouclier_blason', 'rond']);
++    expect(equip.shield?.candidats).toEqual(['bouclier_pointes', 'rond']);
+   });
+ 
+   it('ignore une apparence non admise sur l’arme projetée', () => {
+diff --git a/src/noyau/equipementDessine.ts b/src/noyau/equipementDessine.ts
+index 7c033d897..98d49ab93 100644
+--- a/src/noyau/equipementDessine.ts
++++ b/src/noyau/equipementDessine.ts
+@@ -13,6 +13,7 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
+ import { findCreatureById, groupeDArmure, groupesDArmure, type GroupeDArmureId } from '../data';
+ import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
+ import type { SceneEntity } from './monde/scene';
++import { emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
+ 
+ /** Clés d'objet lues par le dessin (#2097) : `FormeDArme` en dérive. La projection ajoute les candidats,
+  *  le nombre de mains et, pour une arme tenue, la main attribuée. L'identité hache la projection publiée. */
+@@ -35,6 +36,7 @@ export type BouclierDeDessin = { candidats: readonly string[] };
+ /** Équipement DESSINÉ d'un porteur : projection de son état par `armeDeDessin`/`pieceDeDessin`
+  *  (#2097), jamais une copie. */
+ export interface EquipCtx {
++  embleme?: EmblemeResolu;
+   weapons: ArmeDeDessin[];
+   /** Armes portées hors des mains : sets inactifs et surplus graphique du statbloc. */
+   rangees: ObjetDArme[];
+@@ -84,8 +86,8 @@ export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
+ /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
+  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou
+  *  `equipementDEntite`. */
+-export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { rangees?: Weapon[]; cape?: ItemInstance } & ContexteDeManiement = {}): EquipCtx {
+-  const { rangees = [], cape, ...maniement } = autres;
++export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { rangees?: Weapon[]; cape?: ItemInstance; embleme?: EmblemeResolu } & ContexteDeManiement = {}): EquipCtx {
++  const { rangees = [], cape, embleme, ...maniement } = autres;
+   // Pièces TRIÉES par matière décroissante : par slot, le rendu prend la 1re pièce qui le couvre → un
+   // héros en cuir + mailles montre les mailles, la plate par-dessus tout.
+   const pieces = armour.map(pieceDeDessin).sort((a, b) => coucheDe(b.matiere) - coucheDe(a.matiere));
+@@ -106,6 +108,7 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { ran
+   const tenues = dessins.sort((a, b) => a.position - b.position).map(d => d.arme);
+   const iBouclier = tenues.findIndex((w) => w.bouclier);
+   return {
++    ...(embleme ? { embleme: { ...embleme } } : {}),
+     weapons: tenues,
+     armour: pieces,
+     rangees: [...rangees.map(dessiner), ...surplus.sort((a, b) => a.position - b.position).map(d => d.arme)],
+@@ -139,6 +142,10 @@ function armurePorteeDe(override: { armurePortee?: boolean } | undefined, creatu
+   return override?.armurePortee ?? findCreatureById(creatureId)?.appearance?.armurePortee;
+ }
+ 
++function emblemeDe(override: Pick<EntityAppearance, 'embleme'> | undefined, creatureId: string | undefined): EmblemeResolu | undefined {
++  return emblemeDuPorteur(override?.embleme ?? findCreatureById(creatureId)?.appearance?.embleme);
++}
++
+ /** Pièces d'armure ÉQUIPÉES d'un combattant (locs renseignés). */
+ const piecesPortees = (c: Combatant): ItemInstance[] =>
+   (c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped && (i.locs?.length ?? 0) > 0);
+@@ -159,13 +166,13 @@ export function equipementDessine(c: Combatant): EquipCtx {
+   const portees = piecesPortees(c);
+   const maniement: ContexteDeManiement = { mounted: !!c.mountId };
+   return equipDe(c.weapons ?? [], portees.length ? portees : synthArmour(c.armour, armurePorteeDe(c.appearanceOverride, c.creatureId)), {
+-    ...maniement, rangees: armesRangees(c, maniement), cape: (c.items ?? []).find((i) => i.equipped && isCapeItem(i)),
++    ...maniement, embleme: emblemeDe(c.appearanceOverride, c.creatureId), rangees: armesRangees(c, maniement), cape: (c.items ?? []).find((i) => i.equipped && isCapeItem(i)),
+   });
+ }
+ 
+ /** Ce qu'une ENTITÉ de scène déclare de son équipement : apparence d'auteur (`armurePortee`), arme
+  *  d'authoring (`SceneEntity.weapon`), statbloc d'éditeur (`traits`, `armour`), enrôlement. */
+-export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee' | 'apparencesObjets'> {
++export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee' | 'apparencesObjets' | 'embleme'> {
+   /** Arme d'authoring (`trappingId`). */
+   weapon?: string;
+   traits?: readonly TraitPose[];
+@@ -208,5 +215,5 @@ export function armesDEntite(resolveTrapping: TrappingResolver, ref: string | un
+ export function equipementDEntite(resolveTrapping: TrappingResolver, ref: string | undefined, opts: EquipementDAuteur = {}): EquipCtx {
+   const traits = traitsDeLEntite(ref, opts);
+   const armourPA: ArmourPoints = opts.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
+-  return equipDe(armesDEntite(resolveTrapping, ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)));
++  return equipDe(armesDEntite(resolveTrapping, ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)), { embleme: emblemeDe(opts, ref) });
+ }
+diff --git a/src/noyau/index.ts b/src/noyau/index.ts
+index 34e594071..a56c63ab6 100644
+--- a/src/noyau/index.ts
++++ b/src/noyau/index.ts
+@@ -20,9 +20,9 @@ export { ACTIONS } from '../data/index';
+ export { findApparenceById, findTeinteById, gardeRobe } from '../data/index';
+ export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
+ export { ecartsDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
+-export { emplacementDePiece, estEmplacement } from './apparence/gardeRobe';
++export { emplacementDePiece, estEmplacement, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
+ export type { GabaritResolu } from './apparence/gabarit';
+-export { cataloguesDeComposition, lireComposition, porteeDeComposition, presetDeComposition, type Composition, type Portee } from './apparence/composition';
++export { cataloguesDeComposition, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type Portee } from './apparence/composition';
+ export type { Sexe } from '../data/schemas/grammaire/valeurs';
+ export { SLOTS } from '../data/palette.types';
+ export { mouvementDuTour } from './mount';
+diff --git a/src/noyau/monde/sceneNpc.ts b/src/noyau/monde/sceneNpc.ts
+index 0d035f28d..acfbff98d 100644
+--- a/src/noyau/monde/sceneNpc.ts
++++ b/src/noyau/monde/sceneNpc.ts
+@@ -22,7 +22,7 @@ import { findCreatureById, profilsStandard, refEntiteResolue } from '../../data'
+ function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
+   if (ent.presetId) { // `''` n'est pas un porteur (`typeNonNomme`, `defs-scenes/scene.ts`)
+     const preset = resolvePresetCreature(ent.presetId, presetDe);
+-    return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: preset.apparence ?? ent.appearance };
++    return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: { ...preset.apparence, ...ent.appearance } };
+   }
+   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
+   if (ent.ref) return refEntiteResolue(ent.ref) ? { porteur: { ref: ent.ref }, appearance: ent.appearance } : undefined;
+diff --git a/hotes/godot/pont/boucliers.hors-store.test.ts b/hotes/godot/pont/boucliers.hors-store.test.ts
+new file mode 100644
+index 000000000..f3e525045
+--- /dev/null
++++ b/hotes/godot/pont/boucliers.hors-store.test.ts
+@@ -0,0 +1,25 @@
++import { describe, expect, it } from 'vitest';
++import knight from '../projet/modeles/Knight.manifeste.json';
++import { lireMontage, type ManifesteMontable } from '../asset/montage';
++import { indexDesApparences, premierModele } from './equipement';
++
++const manifeste = knight as unknown as ManifesteMontable;
++
++describe('boucliers du Knight', () => {
++  it('le bouclier rond garde un seul composant prioritaire parmi les géométries de la même apparence', () => {
++    const index = indexDesApparences([manifeste]);
++    const choix = premierModele(['rond'], index, { emplacement: 'tenues', main: 'off' });
++    expect(choix).toEqual({
++      apparence: 'rond',
++      composants: [{ modele: 'Knight.glb', composant: 'bouclier_rond', pieces: ['Round_Shield'] }],
++    });
++  });
++
++  it('transmet le masquage de l’écu au montage sans en faire un modèle de bouclier rond', () => {
++    const { montage, erreurs } = lireMontage(knight.montage);
++    expect(erreurs).toEqual([]);
++    expect(montage?.masquer).toContain('Badge_Shield');
++    const choisi = premierModele(['rond'], indexDesApparences([manifeste]), { emplacement: 'tenues', main: 'off' });
++    expect(choisi?.composants).toEqual([{ modele: 'Knight.glb', composant: 'bouclier_rond', pieces: ['Round_Shield'] }]);
++  });
++});
+diff --git a/src/data/schemas/grammaire/embleme.test.ts b/src/data/schemas/grammaire/embleme.test.ts
+new file mode 100644
+index 000000000..d1fc280d9
+--- /dev/null
++++ b/src/data/schemas/grammaire/embleme.test.ts
+@@ -0,0 +1,19 @@
++import { describe, expect, it } from 'vitest';
++import { emblemeSchema, entityAppearanceSchema } from './valeurs';
++import { lireComposition } from '../../../noyau/apparence/composition';
++
++const composition = { race: { id: 'humain' }, sex: 'M', tete: { id: 'humain' } };
++
++describe('référence d’emblème du porteur', () => {
++  it('compose la même référence dans une apparence et une composition', () => {
++    const embleme = { id: 'taureau-rouge' };
++    expect(entityAppearanceSchema.parse({ embleme }).embleme).toEqual(embleme);
++    expect(lireComposition({ ...composition, embleme }).ok).toBe(true);
++  });
++
++  it.each(['embleme-inconnu', 'plastron'])('refuse %s au parse, y compris dans chaque porteur', (id) => {
++    expect(emblemeSchema.safeParse({ id }).success).toBe(false);
++    expect(entityAppearanceSchema.safeParse({ embleme: { id } }).success).toBe(false);
++    expect(lireComposition({ ...composition, embleme: { id } }).ok).toBe(false);
++  });
++});
+diff --git a/src/noyau/emblemes.hors-store.test.ts b/src/noyau/emblemes.hors-store.test.ts
+new file mode 100644
+index 000000000..e204ca2be
+--- /dev/null
++++ b/src/noyau/emblemes.hors-store.test.ts
+@@ -0,0 +1,46 @@
++import { describe, expect, it } from 'vitest';
++import { equipementDessine, equipementDEntite, emblemeDuPorteur } from './index';
++import { ficheDEntite } from './monde/sceneNpc';
++import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
++import { entityAppearanceSchema } from '../data/schemas/grammaire/valeurs';
++import { creatures, findTrappingById } from '../data';
++import { setDataset } from '../data/overrides';
++import { emptyArmour } from '../engine/items';
++import type { Combatant } from '../engine/types';
++
++const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;
++
++describe('emblème des porteurs (#3155)', () => {
++  const taureau = { id: 'taureau-rouge' };
++  const crane = { id: 'tete-de-mort-rouge' };
++
++  it('la fiche conserve l’emblème de l’entité malgré une apparence de preset', () => {
++    const ent = sceneEntitySchema.parse({ id: 'e', kind: 'personnage', presetId: 'p', pos: { x: 1, y: 1 }, appearance: { embleme: taureau } });
++    const preset = { id: 'p', label: 'P', base: 'humain', profil: {}, apparence: entityAppearanceSchema.parse({ sex: 'F', embleme: crane }) };
++    const ficheDeLue = (lue: ReturnType<typeof sceneEntitySchema.parse>) => ficheDEntite({ id: lue.id, kind: lue.kind, pos: lue.pos, presetId: lue.presetId, appearance: lue.appearance }, () => preset);
++    const fiche = ficheDeLue(ent);
++    expect(equipementDessine(fiche).embleme).toEqual(taureau);
++    expect(fiche.appearanceOverride?.sex).toBe('F');
++    const sansEmbleme = sceneEntitySchema.parse({ ...ent, appearance: undefined });
++    expect(equipementDessine(ficheDeLue(sansEmbleme)).embleme).toEqual(crane);
++  });
++
++  it('les deux projections prennent la créature en repli et leur porteur en priorité', () => {
++    const originales = creatures.slice();
++    try {
++      setDataset('creatures', originales.map(c => c.id === 'humain' ? { ...c, appearance: { ...c.appearance, embleme: taureau } } : c));
++      expect(equipementDessine(porteur({ creatureId: 'humain' })).embleme).toEqual(taureau);
++      expect(equipementDEntite(findTrappingById, 'humain').embleme).toEqual(taureau);
++      expect(equipementDessine(porteur({ creatureId: 'humain', appearanceOverride: { embleme: crane } })).embleme).toEqual(crane);
++      expect(equipementDEntite(findTrappingById, 'humain', { embleme: crane }).embleme).toEqual(crane);
++    } finally {
++      setDataset('creatures', originales);
++    }
++  });
++
++  it('un id périmé ne projette aucun emblème', () => {
++    expect(emblemeDuPorteur({ id: 'embleme-perime' })).toBeUndefined();
++    expect(equipementDEntite(findTrappingById, undefined, { embleme: { id: 'embleme-perime' } }).embleme).toBeUndefined();
++  });
++});
++
