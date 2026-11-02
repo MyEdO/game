@@ -1,6 +1,6 @@
 ---
 name: user-doctrine-orchestrateur-de-sessions-max5
-description: "Régime MAX x5 : l'orchestrateur ne fait jamais le travail d'un chantier ; au plus 2 sessions Claude exécutantes, Codex par le pont à l'effectif de l'annexe codex.md ; une session neuve par ticket, jamais --resume"
+description: "Régime MAX x5 : l'orchestrateur ne fait jamais le travail d'un chantier ; au plus 2 sessions Claude exécutantes, Codex par le pont à l'effectif de l'annexe codex.md ; une session neuve par lot, jamais --resume"
 metadata:
   type: user
 ---
@@ -33,4 +33,4 @@ metadata:
 
 **Verbatim (2026-11-01)** : « tu as le droit de lancer un claude, comme tu lance du codex. Mais un seul doit etre l'orchestrateurs de sessions, l'autre, comme les codex, doivent etre des orchestrateurs d'agents »
 
-**How to apply :** un seul orchestrateur de sessions ; il attribue et relaie, jamais le travail d'un chantier, et ne lance que des orchestrateurs d'agents (Claude ou Codex), qui n'ouvrent aucune session. Plafond, cycle et régime Codex : skill `orchestrer-des-sessions`. Codex à sa dernière version complète. Une session NEUVE par ticket, fermée dès qu'elle rend, jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`.
+**How to apply :** un seul orchestrateur de sessions ; il attribue et relaie, jamais le travail d'un chantier, et ne lance que des orchestrateurs d'agents (Claude ou Codex), qui n'ouvrent aucune session. Plafond, cycle et régime Codex : skill `orchestrer-des-sessions`. Codex à sa dernière version complète. Une session NEUVE par lot, fermée dès qu'elle rend, jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`.
