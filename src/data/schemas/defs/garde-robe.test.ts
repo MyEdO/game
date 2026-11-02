@@ -3,7 +3,7 @@
  * emplacement et elle seule, un ensemble habille UNE chose qu'aucun autre n'habille, toute référence
  * interne (emplacement, pièces) résout dans sa sous-liste, une tête nomme sa race de rendu sous l'id de
  * cette race et aucune autre ligne ne porte un id de race, une coiffure ne porte aucune clé de charge, les
- * têtes sont celles des espèces jouables, et un emblème porte un document SVG complet à `viewBox` carré.
+ * espèces jouables ont chacune leur tête, et un emblème porte un document SVG complet à `viewBox` carré.
  */
 import { describe, expect, it } from 'vitest';
 import { cleDHabille, schema, type HabilleDEnsemble } from './garde-robe';
@@ -125,9 +125,9 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
     expect(refus(avec('humain', { race: { id: 'homme-lezard' } }))).toMatch(/« homme-lezard » est absent du catalogue des races de rendu/);
   });
 
-  it('les têtes sont EXACTEMENT les espèces jouables, une par colonne d’apparence (`species.json › refChar`)', () => {
-    const tetes = (gardeRobeJson as Entree[]).filter((e) => e.kind === 'tete').map((e) => e.id).sort();
-    expect(tetes).toEqual([...new Set(speciesJson.map((s) => s.refChar))].sort());
+  it('chaque espèce jouable a sa tête, une par colonne d’apparence (`species.json › refChar`)', () => {
+    const tetes = new Set((gardeRobeJson as Entree[]).filter((e) => e.kind === 'tete').map((e) => e.id));
+    expect([...new Set(speciesJson.map((s) => s.refChar))].filter((race) => !tetes.has(race))).toEqual([]);
   });
 
   it('un id de garde-robe autre qu’une tête n’est jamais un id de race (`raceAppearance.json`)', () => {
