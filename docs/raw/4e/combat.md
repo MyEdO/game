@@ -3016,7 +3016,7 @@ Le **Trait Arme (Indice)** est l'attaque de mêlée par défaut (dents, griffes,
 | **Morsure (Indice)** | Attaque gratuite, pendant son tour | **1 Avantage** | CC opposé | Indice (BF inclus) | aucun (mais voir Vampirique / Venin) |
 | **Cornes (Aspect)(Indice)** | Attaque gratuite **en Chargeant** | **0** (gagnée avec l'Avantage de Charge) | CC opposé | Indice (BF inclus) | aucun ; Aspect noté entre parenthèses |
 | **Attaque Caudale (Indice)** | Attaque gratuite, pendant son tour | **1 Avantage** | CC opposé | Indice (BF inclus) | cible de **Taille inférieure** qui perd des PB → État **À Terre** |
-| **Langue Préhensile (Indice)(Portée)** | Attaque gratuite, pendant son tour | **1 Avantage** | CT / **Esquive** (à distance) | Indice (BF inclus) | sur touche : 1 **Empêtré** ; Taille inférieure → entraînée vers la créature ; puis relâcher / Attaque gratuite d'Arme / **Empoignade** |
+| **Langue Préhensile (Indice)(Portée)** | Attaque gratuite, pendant son tour | **1 Avantage** | CT / **Esquive** (à distance) | Indice (LDB 85 l.213 : BF non inclus) | sur touche : 1 **Empêtré** ; Taille inférieure → entraînée vers la créature ; puis relâcher / Attaque gratuite d'Arme / **Empoignade** |
 | **Tentacules # (Indice)** | **1 Attaque gratuite PAR tentacule** | **0** | CC opposé (par tentacule) | Indice (BF inclus) | sur Dégâts : peut infliger **Empêtré** → **Empoignade** avec ce tentacule |
 | **Constricteur** | sur toute touche d'une attaque | — | (attache l'attaque) | — | toute touche réussie → **Empêtré** ; puis **Empoignade** |
 | **Toile (Indice)** | sur toute touche | — | (attache l'attaque) | — | sur touche → 1 **Empêtré** de **Force = Indice** |

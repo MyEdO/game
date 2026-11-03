@@ -21,18 +21,18 @@ describe('profil hors Charge des armes nées au catalogue', () => {
 
 describe('effectiveWeaponDamage (LDB 62 l.135)', () => {
   it('réduit les Dégâts de damageTaken', () => {
-    expect(effectiveWeaponDamage(sword({ damageTaken: 2 }), 3)).toBe(5); // BF3 + (4-2)
-    expect(effectiveWeaponDamage(bow({ damageTaken: 3 }), 3)).toBe(6);   // 9-3, pas de BF
+    expect(effectiveWeaponDamage(sword({ damageTaken: 2 }), { bf: 3, passif: 0 })).toBe(5); // BF3 + (4-2)
+    expect(effectiveWeaponDamage(bow({ damageTaken: 3 }), { bf: 3, passif: 0 })).toBe(6);   // 9-3, pas de BF
   });
   it('plancher +0 (BF+0) → improvisée, ne descend pas sous BF', () => {
-    expect(effectiveWeaponDamage(sword({ damageTaken: 9 }), 3)).toBe(3); // BF+0
+    expect(effectiveWeaponDamage(sword({ damageTaken: 9 }), { bf: 3, passif: 0 })).toBe(3); // BF+0
     expect(isImprovised(sword({ damageTaken: 4 }))).toBe(true);
     expect(isImprovised(sword({ damageTaken: 3 }))).toBe(false);
     expect(isImprovised(bow({ damageTaken: 9 }))).toBe(true);
   });
   it("préserve une arme non endommagée (dégâts inchangés)", () => {
     const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-    expect(effectiveWeaponDamage(hache, 3)).toBe(7); // BF3 + 4, arme intacte
+    expect(effectiveWeaponDamage(hache, { bf: 3, passif: 0 })).toBe(7); // BF3 + 4, arme intacte
   });
 });
 
@@ -84,7 +84,7 @@ describe('effectiveWeapon — bascule Arme improvisée à +0 (LDB 62 l.135)', ()
     const w = effectiveWeapon(sword({ damageTaken: 4, qualities: [{ id: 'empaleuse' }, { id: 'perforante' }] }));
     expect(damageString(w.damage)).toBe('+BF+1');
     expect(w.qualities).toEqual([{ id: 'inoffensive' }]);
-    expect(effectiveWeaponDamage(w, 3)).toBe(4); // BF3 + 1
+    expect(effectiveWeaponDamage(w, { bf: 3, passif: 0 })).toBe(4); // BF3 + 1
   });
   it('arme non usée renvoyée telle quelle (même référence)', () => {
     const w = sword({ damageTaken: 2, qualities: [{ id: 'empaleuse' }] });
@@ -94,8 +94,8 @@ describe('effectiveWeapon — bascule Arme improvisée à +0 (LDB 62 l.135)', ()
 
 describe('Solide (Indice) — absorption des Dégâts d’arme + sauvegarde (LDB 60 l.30-32)', () => {
   it('Solide(N) absorbe les N premiers points de damageTaken (pas de pénalité)', () => {
-    expect(effectiveWeaponDamage(sword({ damageTaken: 3, qualities: [{ id: 'solide', value: 3 }] }), 3)).toBe(7); // BF3+4 (3 absorbés)
-    expect(effectiveWeaponDamage(sword({ damageTaken: 4, qualities: [{ id: 'solide', value: 3 }] }), 3)).toBe(6); // BF3 + (4 - max(0,4-3))
+    expect(effectiveWeaponDamage(sword({ damageTaken: 3, qualities: [{ id: 'solide', value: 3 }] }), { bf: 3, passif: 0 })).toBe(7); // BF3+4 (3 absorbés)
+    expect(effectiveWeaponDamage(sword({ damageTaken: 4, qualities: [{ id: 'solide', value: 3 }] }), { bf: 3, passif: 0 })).toBe(6); // BF3 + (4 - max(0,4-3))
     expect(isImprovised(sword({ damageTaken: 4, qualities: [{ id: 'solide', value: 3 }] }))).toBe(false);
     expect(isImprovised(sword({ damageTaken: 7, qualities: [{ id: 'solide', value: 3 }] }))).toBe(true);
   });

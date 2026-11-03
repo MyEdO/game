@@ -1897,6 +1897,9 @@ export interface TraitData {
   /** Trait d'ATTAQUE : son Indice est celui des Dégâts (« +N ») et une instance peut conférer des Traits à
    *  ses touches (`TraitPose.confere`). LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
   attaque?: boolean;
+  /** L'Indice de Dégâts du Trait inclut déjà le Bonus de Force (`WeaponDamageSpec.bfInclus`). LDB 85 l.35,
+   *  l.47, l.83, l.237, l.405 */
+  bfInclus?: true;
   /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
    *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
   difficulte?: boolean;

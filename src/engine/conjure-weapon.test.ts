@@ -40,7 +40,7 @@ describe('grantWeapon — objet temporaire (Arme aethyrique, Dégâts = BFM)', (
     expect(c.weapons[0].label).toBe('Arme aethyrique'); // arme directrice
     expect(c.weapons[0].qualities.some((q) => q.id === 'magique')).toBe(true);
     expect(damageString(c.weapons[0].damage)).toBe('+4'); // BFM, pas de +BF
-    expect(effectiveWeaponDamage(c.weapons[0], bonus(c.characteristics.force))).toBe(4);
+    expect(effectiveWeaponDamage(c.weapons[0], { bf: bonus(c.characteristics.force), passif: 0 })).toBe(4);
   });
 
   it('formes proposées : toutes les armes réelles des Spé connues, « Arme simple » incluse (≠ junk)', () => {

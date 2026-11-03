@@ -144,7 +144,8 @@
       }
     ],
     "standard": true,
-    "attaque": true
+    "attaque": true,
+    "bfInclus": true
   },
   {
     "id": "armure",
@@ -179,7 +180,8 @@
         "id": "caudale"
       }
     ],
-    "attaque": true
+    "attaque": true,
+    "bfInclus": true
   },
   {
     "id": "belliqueux",
@@ -412,7 +414,8 @@
     "capabilities": {
       "naturalWeapon": {}
     },
-    "attaque": true
+    "attaque": true,
+    "bfInclus": true
   },
   {
     "id": "corruption",
@@ -1274,7 +1277,8 @@
     "capabilities": {
       "naturalWeapon": {}
     },
-    "attaque": true
+    "attaque": true,
+    "bfInclus": true
   },
   {
     "id": "mort-vivant",
@@ -1849,7 +1853,8 @@
     "capabilities": {
       "naturalWeapon": {}
     },
-    "attaque": true
+    "attaque": true,
+    "bfInclus": true
   },
   {
     "id": "terreur",
