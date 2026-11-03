@@ -8,6 +8,8 @@ import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
+import { estSilhouette } from './silhouettes.ts';
+import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 4;
 
@@ -16,10 +18,10 @@ export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
 
 export type BornesDuGabarit = Readonly<Record<typeof CLES_DU_GABARIT[number], { readonly min: number; readonly max: number }>>;
 
-export function fauteDeBornesDuGabarit({ min, max }: BornesDuGabarit[typeof CLES_DU_GABARIT[number]]): string | undefined {
-  return Number.isFinite(min) && Number.isFinite(max) && min > 0 && min <= 1 && max >= 1
+export function fauteDeBornesDuGabarit({ min, max }: BornesDuGabarit[typeof CLES_DU_GABARIT[number]], neutre: number): string | undefined {
+  return Number.isFinite(min) && Number.isFinite(max) && min > 0 && min <= neutre && max >= neutre
     ? undefined
-    : `bornes ${min} et ${max} : 0 < min <= 1 <= max attendu`;
+    : `bornes ${min} et ${max} : 0 < min <= ${neutre} <= max attendu`;
 }
 
 export interface TableDeGabarit {
@@ -79,6 +81,7 @@ export type CodeDEcartDeBase =
   | 'emplacement-sur-os-absent'
   | 'prise-absente'
   | 'silhouette-absente'
+  | 'silhouette-inconnue'
   | 'clip-absent'
   | 'glb-different';
 
@@ -152,14 +155,14 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     const plage = b[cle];
     if (!estObjet(plage)) {
       forme(ou, 'objet attendu');
-      return { min: 1, max: 1 };
+      return { min: FACTEURS_NEUTRES[cle], max: FACTEURS_NEUTRES[cle] };
     }
     const min = typeof plage.min === 'number' ? plage.min : 0;
     const max = typeof plage.max === 'number' ? plage.max : 0;
     if (typeof plage.min !== 'number' || !Number.isFinite(min) || typeof plage.max !== 'number' || !Number.isFinite(max)) {
       forme(ou, 'min et max : nombres finis attendus');
     } else {
-      const faute = fauteDeBornesDuGabarit({ min, max });
+      const faute = fauteDeBornesDuGabarit({ min, max }, FACTEURS_NEUTRES[cle]);
       if (faute) forme(ou, faute);
     }
     return { min, max };
@@ -170,7 +173,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     racine: chaine(g.racine, 'gabarit.racine'),
     st: { min: nombre(st.min, 'gabarit.st.min'), max: nombre(st.max, 'gabarit.st.max') },
   };
-  if (estObjet(brut.gabarit) && estObjet(g.st) && !(gabarit.st.min < 1 && gabarit.st.max > 1)) forme('gabarit.st', `bornes ${gabarit.st.min} et ${gabarit.st.max} : min < 1 < max attendu`);
+  if (estObjet(brut.gabarit) && estObjet(g.st) && !(gabarit.st.min < FACTEURS_NEUTRES.st && gabarit.st.max > FACTEURS_NEUTRES.st)) forme('gabarit.st', `bornes ${gabarit.st.min} et ${gabarit.st.max} : min < ${FACTEURS_NEUTRES.st} < max attendu`);
   const clesParOs = new Map<string, string>();
   for (const cle of CLES_DU_GABARIT) {
     for (const nom of gabarit[cle]) {
@@ -238,7 +241,10 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   for (const z of m.zones) if (!contenu.zones.has(z)) refus('zone-sans-mesh', `zones`, `aucun mesh du GLB ne porte \`extras.zone = ${z}\``);
   for (const [id, e] of Object.entries(m.emplacements)) if (!declares.has(e.os) || !contenu.os.has(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, e.os);
   for (const cle of ['main', 'off'] as const) if (!declares.has(m.prises[cle].os) || !contenu.os.has(m.prises[cle].os)) refus('prise-absente', `prises.${cle}.os`, `${m.prises[cle].os} n’est pas un os de la base`);
-  for (const s of m.silhouettes) if (!contenu.formes.has(s)) refus('silhouette-absente', 'silhouettes', `${s} n’est pas une shape key du GLB`);
+  for (const s of m.silhouettes) {
+    if (!estSilhouette(s)) refus('silhouette-inconnue', 'silhouettes', `${s} n’est pas une silhouette du gabarit`);
+    if (!contenu.formes.has(s)) refus('silhouette-absente', 'silhouettes', `${s} n’est pas une shape key du GLB`);
+  }
   for (const [i, c] of m.appuis.plusBas.entries()) for (const nom of Object.keys(c.deltas)) {
     if (!contenu.formes.has(nom) || (!m.silhouettes.includes(nom) && !nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT))) refus('forme', `appuis.plusBas.${i}.deltas.${nom}`, 'clé absente ou hors silhouettes et gabarit');
   }

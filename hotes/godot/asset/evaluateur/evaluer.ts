@@ -14,7 +14,8 @@ import { libellesDesMeshes, type Ecart } from './ecart.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
 import { appliquerGabarit, poserFormes } from './gabarit.ts';
-import { CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poidsDeCarrure, poidsDuGabarit, poseDuGabarit } from '../gabarit.ts';
+import { poidsDeCarrure, poidsDuGabarit, poseDuGabarit } from '../gabarit.ts';
+import { FACTEURS_NEUTRES, sontNeutres } from '../facteursDuGabarit.ts';
 import { PREFIXE_DES_CLES_DU_GABARIT, validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
@@ -35,7 +36,7 @@ export interface EntreeDEvaluation {
   /** Le manifeste de base brut, validé ici (`validerManifesteDeBase`) ; sans lui, ni gabarit ni prise, et seule la
    *  racine a une position animée. */
   readonly manifeste?: unknown;
-  /** Les facteurs de gabarit donnés, les autres à 1 (`FACTEURS_NEUTRES`). */
+  /** Les facteurs de gabarit donnés, les autres aux `FACTEURS_NEUTRES`. */
   readonly facteurs?: Partial<GabaritResolu>;
   /** Les poids explicites des silhouettes déclarées au manifeste valide, sinon des formes du GLB de base hors clés `gabarit_*` ; ils priment sur la carrure calculée et un nom hors de cette liste est refusé par `silhouette-absente`. */
   readonly silhouettes?: Readonly<Record<string, number>>;
@@ -73,8 +74,6 @@ export interface FicheDeMesures {
     readonly segments: MesuresDesSegments | null;
   };
 }
-
-const estNeutre = (f: GabaritResolu): boolean => Object.values(f).every((v) => v === 1);
 
 /** Monte `element` sur la base : un mesh skinné se lie aux os de la base de même nom, un rigide sous un os passe sous
  *  l'os de la base de même nom, à la même position locale. Le rigide est le nœud glTF de la primitive (`SceneChargee.origines`). */
@@ -119,7 +118,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     if (verdict.ok) manifeste = verdict.manifeste;
     else ecarts.push(...verdict.ecarts.map((e): Ecart => ({ garde: 'manifeste', code: e.code, valeur: e.ou || '(racine)', seuil: null, detail: e.detail })));
   }
-  if (!manifeste && !estNeutre(facteurs)) throw new Error('évaluation : des facteurs de gabarit sans manifeste de base valide');
+  if (!manifeste && !sontNeutres(facteurs)) throw new Error('évaluation : des facteurs de gabarit sans manifeste de base valide');
 
   const contenus = [entree.base, ...(entree.elements ?? [])].map(lireGlb);
   const formes = contenus[0].formes;
@@ -127,14 +126,15 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const nomsDesSilhouettes = manifeste?.silhouettes ?? formesDeSilhouette;
   const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !nomsDesSilhouettes.includes(nom));
   if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : nom(s) absent(s) des silhouettes déclarées ; silhouettes : ${nomsDesSilhouettes.join(', ') || 'aucune'}`);
-  const carrure = facteurs.st < 1 ? CARRURE_MOINS : facteurs.st > 1 ? CARRURE_PLUS : null;
+  const parCarrure: Readonly<Record<string, number>> = manifeste ? poidsDeCarrure(facteurs.st, manifeste.gabarit.st) : {};
+  const carrure = Object.entries(parCarrure).find(([, poids]) => poids > 0)?.[0];
   if (carrure && !nomsDesSilhouettes.includes(carrure)) throw new Error(`évaluation : [carrure-absente] st=${facteurs.st} : ${carrure} est absente des silhouettes déclarées de la base`);
   const aZero = tableTotale(nomsDesSilhouettes, () => 0);
   const poidsDesFormes = poidsDesFormesDe(manifeste, facteurs);
-  const carrures = manifeste ? Object.fromEntries(Object.entries(poidsDeCarrure(facteurs.st, manifeste.gabarit.st)).filter(([nom]) => nomsDesSilhouettes.includes(nom))) : {};
+  const carrures = Object.fromEntries(Object.entries(parCarrure).filter(([nom]) => nomsDesSilhouettes.includes(nom)));
   const poidsDesSilhouettes = { ...aZero, ...carrures, ...entree.silhouettes };
   const poids = poidsDesFormes(poidsDesSilhouettes);
-  if (manifeste && !estNeutre(facteurs)) {
+  if (manifeste && !sontNeutres(facteurs)) {
     const manquantes = Object.keys(poids).filter((nom) => nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT) && !formes.has(nom));
     if (manquantes.length) throw new Error(`évaluation : [gabarit-absent] shape key(s) absente(s) de la base : ${manquantes.join(', ')}`);
   }

@@ -20,6 +20,7 @@ import numpy as np
 
 from animation import clear_animation
 from formes import lier, poser_la_cle, transporter, voisins
+from noms_silhouettes import CORPULENCE as NOM
 from poids import deformer, peau_lineaire, repos as inverses_du_repos
 
 SOMMETS_DU_CORPS = 13380
@@ -29,7 +30,6 @@ RACES = ('african', 'asian', 'caucasian')
 ETAT = 'male-young-maxmuscle'
 """Genre, âge et muscle du donneur : le corps UBC est un homme jeune très musclé (« Superhero »)."""
 REFERENCE, POIDS_MAX = 'averageweight', 'maxweight'
-NOM = 'corpulence'
 OS_DU_DONNEUR = 'game_engine'
 """Le rig MPFB (`rigs/standard/weights.<rig>.json`) dont les os nomment ceux d'UAL, à la casse près."""
 ECART_MAX = 1e-4

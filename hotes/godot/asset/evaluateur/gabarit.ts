@@ -34,7 +34,7 @@ export interface GabaritPose {
   readonly echelle: number;
   /** Chaque os enfant d'un os de `enfantsDe` (`poseDuGabarit`), avec son facteur. */
   readonly enfants: readonly (readonly [Bone, number])[];
-  readonly candidats: ReturnType<typeof peauxDesCandidats> | null;
+  readonly candidats: ReturnType<typeof peauxDesCandidats>;
   /** La pose sans gabarit des os qu'il touche : l'échelle et la position de la racine, la position de chaque enfant. */
   readonly nonModifiee: { readonly echelle: Vector3; readonly position: Vector3; readonly enfants: readonly Vector3[] };
 }
@@ -84,34 +84,32 @@ export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'e
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export function reposerGabarit(gabarit: GabaritPose, jouer: () => void): void {
   const { scene, racine, candidats } = gabarit;
-  if (candidats && !candidats.courante.geometry.attributes.position.count) throw new Error('reposerGabarit : candidats vides');
+  if (!candidats.courante.geometry.attributes.position.count) throw new Error('reposerGabarit : candidats vides');
   racine.scale.copy(gabarit.nonModifiee.echelle);
   racine.position.copy(gabarit.nonModifiee.position);
   gabarit.enfants.forEach(([enfant], i) => enfant.position.copy(gabarit.nonModifiee.enfants[i]));
   jouer();
-  candidats?.synchroniser();
-  const sol = candidats ? hauteurDesCandidats(scene, candidats.neutre) * gabarit.echelle : null;
+  candidats.synchroniser();
+  const sol = hauteurDesCandidats(scene, candidats.neutre) * gabarit.echelle;
   racine.scale.multiplyScalar(gabarit.echelle);
   poserEnfantsDuGabarit(gabarit.enfants);
-  if (candidats && sol !== null) {
-    const cible = racine.getWorldPosition(new Vector3());
-    cible.y += sol - hauteurDesCandidats(scene, candidats.courante);
-    racine.position.copy(racine.parent ? racine.parent.worldToLocal(cible) : cible);
-  }
+  const cible = racine.getWorldPosition(new Vector3());
+  cible.y += sol - hauteurDesCandidats(scene, candidats.courante);
+  racine.position.copy(racine.parent ? racine.parent.worldToLocal(cible) : cible);
   scene.updateMatrixWorld(true);
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
-export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: Pick<ManifesteDeBase, 'gabarit'> & Partial<Pick<ManifesteDeBase, 'appuis'>>, squeletteDeBase?: Skeleton, replacer = true): GabaritPose {
+export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: Pick<ManifesteDeBase, 'gabarit'> & Partial<Pick<ManifesteDeBase, 'appuis'>>, squeletteDeBase?: Skeleton): GabaritPose {
   const pose = poseDuGabarit(manifeste, facteurs);
   const racine = os(scene, pose.racine.os);
   const enfants = enfantsDuGabarit(pose, (nom) => os(scene, nom));
-  if (replacer && !manifeste.appuis?.plusBas?.length) throw new Error('appliquerGabarit : appuis.plusBas non vide attendu');
-  const candidats = replacer && manifeste.appuis ? peauxDesCandidats(scene, manifeste.appuis.plusBas, squeletteDeBase) : null;
+  if (!manifeste.appuis?.plusBas?.length) throw new Error('appliquerGabarit : appuis.plusBas non vide attendu');
+  const candidats = peauxDesCandidats(scene, manifeste.appuis.plusBas, squeletteDeBase);
   const squelettes = new Set<Skeleton>();
   scene.traverse((n) => { if ((n as SkinnedMesh).isSkinnedMesh) squelettes.add((n as SkinnedMesh).skeleton); });
   for (const squelette of squelettes) squelette.boneInverses = bindsAuGabarit(squelette, pose);
-  if (candidats) candidats.courante.skeleton.boneInverses = bindsAuGabarit(candidats.courante.skeleton, pose);
+  candidats.courante.skeleton.boneInverses = bindsAuGabarit(candidats.courante.skeleton, pose);
   const gabarit: GabaritPose = {
     scene,
     racine,

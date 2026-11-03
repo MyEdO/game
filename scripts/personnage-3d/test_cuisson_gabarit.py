@@ -3,14 +3,94 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 import bpy
+from mathutils import Matrix
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
-from cuisson_gabarit import ATTRIBUT_SOMMET, corps_du_gabarit, preparer_reference, vers_gltf  # noqa: E402
+from cuisson_gabarit import (ATTRIBUT_SOMMET, corps_du_gabarit, cuisson_des_champs, preparer_reference, vers_gltf,  # noqa: E402
+                             groupes_de_peau, cuire_gabarit)
 from formes import positions, poser_la_cle  # noqa: E402
 from script_node import lancer  # noqa: E402
+
+
+def retirer_la_fixture(fichiers, dossiers):
+    for fichier in fichiers:
+        if not fichier._mmap.closed:
+            fichier._mmap.close()
+    for dossier in dossiers:
+        if dossier.exists():
+            for fichier in dossier.iterdir():
+                fichier.unlink()
+            dossier.rmdir()
+
+
+class FermetureDesMatrices(unittest.TestCase):
+    def test_un_groupe_invalide_ferme_tous_les_fichiers_deja_ouverts(self):
+        os = SimpleNamespace(name='root', parent=None, matrix_local=Matrix.Identity(4))
+        rig = SimpleNamespace(matrix_world=Matrix.Identity(4), data=SimpleNamespace(bones=[os]))
+        ouvrir = np.memmap
+        for echec, erreur, nombre in [('ouverture', FileNotFoundError, 1), ('reshape', ValueError, 2)]:
+            fichiers, dossiers = [], []
+            def lancer_groupes(_, __, entree):
+                dossier = Path(json.loads(entree)['sortie'])
+                dossiers.append(dossier)
+                np.arange(16, dtype=np.float32).tofile(dossier / 'premier.bin')
+                if echec == 'reshape':
+                    np.arange(15, dtype=np.float32).tofile(dossier / 'second.bin')
+                return json.dumps({'groupes': [{'fichier': str(dossier / nom), 'etats': []}
+                                   for nom in ['premier.bin', 'second.bin']]})
+            def ouvrir_fichier(*args, **kwargs):
+                fichier = ouvrir(*args, **kwargs)
+                fichiers.append(fichier)
+                return fichier
+            with self.subTest(echec=echec):
+                try:
+                    with mock.patch('cuisson_gabarit.lancer', side_effect=lancer_groupes), \
+                            mock.patch('cuisson_gabarit.np.memmap', side_effect=ouvrir_fichier):
+                        with self.assertRaises(erreur):
+                            with groupes_de_peau(rig, [], {}, []):
+                                self.fail('aucun groupe incomplet ne doit etre livre')
+                    self.assertEqual(len(fichiers), nombre)
+                    self.assertTrue(all(f._mmap.closed for f in fichiers))
+                    self.assertTrue(all(not d.exists() for d in dossiers))
+                finally:
+                    retirer_la_fixture(fichiers, dossiers)
+
+    def test_les_groupes_transportent_les_etats_et_les_matrices(self):
+        os = SimpleNamespace(name='root', parent=None, matrix_local=Matrix.Identity(4))
+        rig = SimpleNamespace(matrix_world=Matrix.Identity(4), data=SimpleNamespace(bones=[os]))
+        etats = [{'poidsSilhouettes': {}, 'poidsGabarit': {}}]
+        def lancer_groupes(_, __, entree):
+            requete = json.loads(entree)
+            self.assertEqual(set(requete), {'operation', 'table', 'corps', 'poses', 'sortie', 'etats'})
+            fichier = Path(requete['sortie']) / 'groupe.bin'
+            np.eye(4, dtype=np.float32).tofile(fichier)
+            return json.dumps({'groupes': [{'fichier': str(fichier), 'etats': etats}]})
+        with mock.patch('cuisson_gabarit.lancer', side_effect=lancer_groupes):
+            with groupes_de_peau(rig, [], {}, etats) as (_, groupes):
+                self.assertEqual(groupes[0][0], etats)
+                np.testing.assert_array_equal(groupes[0][1][0, 0], np.eye(4, dtype=np.float32))
+
+    def test_les_matrices_de_gabarit_mjs_sont_l_identite_au_repos_et_la_pose_en_ligne_majeure_au_clip(self):
+        root = SimpleNamespace(name='root', parent=None, matrix_local=Matrix.Identity(4))
+        thigh = SimpleNamespace(name='thigh', parent=root, matrix_local=Matrix.Translation((0, 0, 1)))
+        calf = SimpleNamespace(name='calf', parent=thigh, matrix_local=Matrix.Translation((0, 0, .5)))
+        rig = SimpleNamespace(matrix_world=Matrix.Identity(4), data=SimpleNamespace(bones=[root, thigh, calf]))
+        table = {'racine': 'root', 'legs': ['thigh'], 'arms': [], 'head': [], 'st': {'min': .72, 'max': 1.7},
+                 'bornes': {'legs': {'min': .62, 'max': 1.12}, 'arms': {'min': 1, 'max': 1}, 'head': {'min': 1, 'max': 1}}}
+        translation = Matrix.Translation((1, 2, 3))
+        pose = np.array([[np.array(translation @ b.matrix_local) for b in rig.data.bones]])
+        etats = [{'nom': 'neutre', 'facteurs': {'sl': 1, 'legs': .62, 'arms': 1, 'head': 1, 'st': 1}}]
+        with mock.patch('cuisson_gabarit.poses', return_value=pose):
+            with groupes_de_peau(rig, [SimpleNamespace(name='clip')], table, etats) as (noms, piles):
+                etats_lus, matrices, clips = piles[0]
+                self.assertEqual((noms, etats_lus, clips), (['root', 'thigh', 'calf'], etats, [1]))
+                np.testing.assert_allclose(matrices[0], np.tile(np.eye(4), (3, 1, 1)), atol=1e-6)
+                np.testing.assert_allclose(matrices[1, 0], np.array(translation), atol=1e-6)
 
 
 class GrapheDuGabarit(unittest.TestCase):
@@ -36,6 +116,70 @@ class GrapheDuGabarit(unittest.TestCase):
         self.assertEqual(len(corps['aretes']), 5)
         self.assertEqual(corps['poids'], [[(1, 1.0)], [(0, .5), (1, .5)], [(0, .5), (1, .5)], [(0, .5), (1, .5)]])
         np.testing.assert_allclose(corps['silhouettes'][0]['deltas'], np.tile([0, 0, .1], (4, 1)))
+
+    def test_la_capture_porte_exactement_l_entree_de_la_cuisson_et_son_expansion(self):
+        root = SimpleNamespace(name='root', parent=None, matrix_local=Matrix.Identity(4))
+        leg = SimpleNamespace(name='leg', parent=root, matrix_local=Matrix.Translation((0, 1, 0)))
+        rig = SimpleNamespace(matrix_world=Matrix.Identity(4), data=SimpleNamespace(bones=[root, leg]))
+        table = {'racine': 'root', 'legs': ['leg'], 'arms': [], 'head': [], 'st': {'min': .72, 'max': 1.7},
+                 'bornes': {'legs': {'min': .62, 'max': 1.12}, 'arms': {'min': 1, 'max': 1.6},
+                            'head': {'min': 1, 'max': 1.9}}}
+        captures, entrees = {}, []
+        def cuire(script, arguments, entree):
+            entrees.append(json.loads(entree))
+            return lancer(script, arguments, entree)
+        with mock.patch('cuisson_gabarit.lancer', side_effect=cuire):
+            references = cuire_gabarit(rig, [self.peau], table, captures)
+        capture = captures[self.peau.name]
+        self.assertEqual(capture['entree'], entrees[0])
+        rejoue = json.loads(lancer(Path(__file__).resolve().parent / 'base/gabarit.mjs', [],
+                                  json.dumps(capture['entree'])))
+        self.assertEqual(rejoue, capture['resultat'])
+        for cle, attendue in zip(rejoue['cles'], references[0][2]['cles']):
+            np.testing.assert_allclose(np.array(cle['deltas'])[capture['noeud']], attendue['deltas'], atol=1e-5)
+
+    def test_la_cuisson_des_champs_rend_les_cles_de_la_cuisson_des_shape_keys(self):
+        root = SimpleNamespace(name='root', parent=None, matrix_local=Matrix.Identity(4))
+        leg = SimpleNamespace(name='leg', parent=root, matrix_local=Matrix.Translation((0, 1, 0)))
+        rig = SimpleNamespace(matrix_world=Matrix.Identity(4), data=SimpleNamespace(bones=[root, leg]))
+        table = {'racine': 'root', 'legs': ['leg'], 'arms': [], 'head': [], 'st': {'min': .72, 'max': 1.7},
+                 'bornes': {'legs': {'min': .62, 'max': 1.12}, 'arms': {'min': 1, 'max': 1.6},
+                            'head': {'min': 1, 'max': 1.9}}}
+        champ = np.zeros((6, 3))
+        champ[[1, 3], 2] = .3
+        poser_la_cle(self.peau, 'corpulence', champ)
+        attendues = {c['nom']: c['deltas'] for c in cuire_gabarit(rig, [self.peau], table)[0][2]['cles']}
+        poser_la_cle(self.peau, 'corpulence', np.zeros((6, 3)))
+        obtenues = cuisson_des_champs(rig, self.peau, table)({'corpulence': champ})
+        self.assertEqual(sorted(obtenues), sorted(attendues))
+        self.assertTrue(any(np.abs(d).max() > 0 for nom, d in obtenues.items() if nom.endswith('_corpulence')))
+        for nom, deltas in obtenues.items():
+            np.testing.assert_allclose(deltas, attendues[nom], atol=1e-12, err_msg=nom)
+
+    def test_la_cuisson_des_champs_ne_recuit_que_les_champs_changes(self):
+        root = SimpleNamespace(name='root', parent=None, matrix_local=Matrix.Identity(4))
+        leg = SimpleNamespace(name='leg', parent=root, matrix_local=Matrix.Translation((0, 1, 0)))
+        rig = SimpleNamespace(matrix_world=Matrix.Identity(4), data=SimpleNamespace(bones=[root, leg]))
+        table = {'racine': 'root', 'legs': ['leg'], 'arms': [], 'head': [], 'st': {'min': .72, 'max': 1.7},
+                 'bornes': {'legs': {'min': .62, 'max': 1.12}, 'arms': {'min': 1, 'max': 1.6},
+                            'head': {'min': 1, 'max': 1.9}}}
+        corpulence, feminin = np.zeros((6, 3)), np.zeros((6, 3))
+        corpulence[[1, 3], 2], feminin[[2, 5], 0] = .3, .2
+        cuire = cuisson_des_champs(rig, self.peau, table)
+        cuire({'corpulence': corpulence, 'feminin': feminin})
+        corpulence = corpulence * 2
+        envoyees = []
+        def lancer_et_noter(script, arguments, entree):
+            envoyees.append([s['nom'] for s in json.loads(entree)['corps']['silhouettes']])
+            return lancer(script, arguments, entree)
+        with mock.patch('cuisson_gabarit.lancer', side_effect=lancer_et_noter):
+            obtenues = cuire({'corpulence': corpulence, 'feminin': feminin})
+            cuire({'corpulence': corpulence, 'feminin': feminin})
+        self.assertEqual(envoyees, [['corpulence']])
+        attendues = cuisson_des_champs(rig, self.peau, table)({'corpulence': corpulence, 'feminin': feminin})
+        self.assertEqual(sorted(obtenues), sorted(attendues))
+        for nom, deltas in obtenues.items():
+            np.testing.assert_array_equal(deltas, attendues[nom], err_msg=nom)
 
     def test_le_quotient_relie_une_composante_sans_ancre(self):
         identite = np.eye(4)
@@ -65,12 +209,12 @@ class GrapheDuGabarit(unittest.TestCase):
         poser_la_cle(self.peau, 'gabarit_legs_moins', gabarit)
         attribut = self.peau.data.attributes.new(ATTRIBUT_SOMMET, 'INT', 'POINT')
         attribut.data.foreach_set('value', np.arange(6, dtype=np.int32))
-        etat = {'nom': 'mixte', 'pointCuisson': False, 'poidsSilhouettes': {'corpulence': .5},
+        etat = {'nom': 'corpulence', 'pointCuisson': False, 'poidsSilhouettes': {'corpulence': 1},
                 'poidsGabarit': {'gabarit_legs_moins': 1},
-                'positions': (co + .5 * deltas + gabarit).tolist()}
+                'positions': (co + deltas + gabarit).tolist()}
         cles_avant = [cle.name for cle in self.peau.data.shape_keys.key_blocks]
         reference = preparer_reference([self.peau], [(0, 6, {'etats': [etat], 'sensCuits': 1})])
-        cle = poser_la_cle(self.peau, 'attendu', .5 * deltas)
+        cle = poser_la_cle(self.peau, 'attendu', deltas)
         attendu = vers_gltf(np.array(cle.normals_split_get()).reshape(-1, 3))
         self.peau.shape_key_remove(cle)
         np.testing.assert_allclose(reference['normales_silhouettes'][0], attendu)

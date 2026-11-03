@@ -5,17 +5,15 @@ import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
-import { tableTotale } from '../../../../src/lib/tableTotale';
 import { ecrireGlb, lireGlb } from '../glb.ts';
-import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
 import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserFormes, reposerGabarit } from './gabarit.ts';
-import {
-  CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit,
-} from '../gabarit.ts';
-import { validerManifesteDeBase, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
+import { marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit } from '../gabarit.ts';
+import { FACTEURS_NEUTRES } from '../facteursDuGabarit.ts';
+import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from '../silhouettes.ts';
+import { validerManifesteDeBase, type CandidatDAppui, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
 import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
@@ -29,8 +27,9 @@ import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeR
 import { etenduesDesSegments, gardeSegments } from './gardes/segments.ts';
 import { BORNES, jouet } from '../../../../scripts/personnage-3d/base/gabarit.testkit.ts';
 import { preparerGabarit } from '../../../../scripts/personnage-3d/base/gabarit.ts';
-import { copierSommet, hauteurDesCandidats, peauxDesCandidats } from './candidatsDAppui.ts';
-import { grilleDesAppuis, selectionnerAppuis } from './selectionAppuis.ts';
+import { hauteurDesCandidats, peauxDesCandidats } from './candidatsDAppui.ts';
+import { grilleDesAppuis } from './grilleDesAppuis.ts';
+import { ANNEAU, ATTACHE, TABLE, formesAvecGabarit, glbFabrique, manifesteDe } from './glbFabrique.testkit.ts';
 
 /** La scène three du jouet `c` (`gabarit.testkit.ts`), ses formes `formes` en shape keys relatives, et les appuis de son pied. */
 function sceneDuJouet(c: ReturnType<typeof jouet>, formes: readonly { readonly nom: string; readonly deltas: readonly Vector3[] }[]) {
@@ -113,7 +112,6 @@ describe('gardeSegments (#3097)', () => {
   });
 });
 
-const TABLE: TableDeGabarit = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } };
 /** Le gabarit et les appuis d'un manifeste de base, pieds `pieds`. */
 const gabaritEtAppuis = (gabarit: TableDeGabarit, pieds: readonly string[] = ['racine']) => ({ gabarit, appuis: { pieds, plusBas: pieds.map((nom) => ({ position: [0, nom === 'piedG' ? 0.1 : nom === 'piedD' ? 0.2 : 0, 0] as const, os: [{ nom, poids: 1 }], deltas: {} })), vitessesAuSol: {} } });
 
@@ -368,9 +366,7 @@ describe('gabarit', () => {
   it('R2 ramène le candidat le plus bas à sl fois sa hauteur sans gabarit', () => {
     const piedLePlusBas = (facteurs: typeof FACTEURS_NEUTRES) => {
       const { scene } = jambes();
-      const g = appliquerGabarit(scene, facteurs, GABARIT_DES_JAMBES);
-      expect(g.candidats).not.toBeNull();
-      return hauteurDesCandidats(scene, g.candidats!.courante);
+      return hauteurDesCandidats(scene, appliquerGabarit(scene, facteurs, GABARIT_DES_JAMBES).candidats.courante);
     };
     const neutre = piedLePlusBas(FACTEURS_NEUTRES);
     expect(neutre).toBeCloseTo(0.1, 6);
@@ -434,8 +430,7 @@ describe('gabarit', () => {
     const gabarit = appliquerGabarit(scene, FACTEURS_NEUTRES, GABARIT_DES_JAMBES);
     const avant = poseDeRepos(scene, []).os;
     let joue = false;
-    expect(gabarit.candidats).not.toBeNull();
-    expect(() => reposerGabarit({ ...gabarit, candidats: { ...gabarit.candidats!, courante: new SkinnedMesh(new BufferGeometry().setAttribute('position', new Float32BufferAttribute([], 3))) } }, () => { joue = true; }))
+    expect(() => reposerGabarit({ ...gabarit, candidats: { ...gabarit.candidats, courante: new SkinnedMesh(new BufferGeometry().setAttribute('position', new Float32BufferAttribute([], 3))) } }, () => { joue = true; }))
       .toThrow('reposerGabarit : candidats vides');
     expect(joue).toBe(false);
     expect(poseDeRepos(scene, []).os).toEqual(avant);
@@ -587,117 +582,6 @@ describe('gabarit', () => {
   });
 });
 
-const TAILLE = { SCALAR: 1, VEC3: 3, VEC4: 4, MAT4: 16 } as const;
-const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-
-/** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
- *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
- *  translation de `pelvis` s'il est là, sinon de `racine`, ou explicitement de `racine` par `cibleDuClip` ; en marche,
- *  deux triangles de pied et leur cycle appui/vol ; en
- *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
- *  nom, en déplacements à plat de ses neuf sommets ; en bande, le triangle `Corps` au sommet (0, 1, 0) skinné sur `pelvis`
- *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets ; en `primitives`, le mesh en autant de
- *  primitives identiques, le jeu `JOINTS_1` sur la première seule ; en `instances`, d'autres nœuds de ces noms qui portent
- *  le même mesh, le même skin et la même zone. */
-interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
-
-function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[]; os?: readonly string[] } = {}): Uint8Array {
-  const morceaux: Uint8Array[] = [];
-  const vues: object[] = [];
-  const accesseurs: object[] = [];
-  let decalage = 0;
-  const vue = (octets: Uint8Array): number => {
-    vues.push({ buffer: 0, byteOffset: decalage, byteLength: octets.byteLength });
-    const bourrage = (4 - (octets.byteLength % 4)) % 4;
-    morceaux.push(octets, new Uint8Array(bourrage));
-    decalage += octets.byteLength + bourrage;
-    return vues.length - 1;
-  };
-  const accesseur = (donnees: Float32Array | Uint16Array, type: keyof typeof TAILLE, bornes: object = {}): number => {
-    accesseurs.push({ bufferView: vue(new Uint8Array(donnees.buffer)), componentType: donnees instanceof Float32Array ? 5126 : 5123, count: donnees.length / TAILLE[type], type, ...bornes });
-    return accesseurs.length - 1;
-  };
-  const attributes: Record<string, number> = {
-    POSITION: accesseur(Float32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0]), 'VEC3', { min: [0, 0, 0], max: [1, 1, 0] }),
-    NORMAL: accesseur(Float32Array.from([0, 0, 1, 0, 0, 1, 0, 0, 1]), 'VEC3'),
-    JOINTS_0: accesseur(new Uint16Array(12), 'VEC4'),
-    WEIGHTS_0: accesseur(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]), 'VEC4'),
-    ...(options.jeuEtendu ? { JOINTS_1: accesseur(new Uint16Array(12), 'VEC4'), WEIGHTS_1: accesseur(new Float32Array(12), 'VEC4') } : {}),
-  };
-  if (options.marche) {
-    attributes.POSITION = accesseur(Float32Array.from([-0.3, 0, 0, -0.1, 0, 0, -0.2, 0, 0.2, 0.1, 0, 0, 0.3, 0, 0, 0.2, 0, 0.2]), 'VEC3', { min: [-0.3, 0, 0], max: [0.3, 0, 0.2] });
-    attributes.NORMAL = accesseur(Float32Array.from(Array.from({ length: 6 }, () => [0, 1, 0]).flat()), 'VEC3');
-    attributes.JOINTS_0 = accesseur(Uint16Array.from([1, 1, 1, 2, 2, 2].flatMap((i) => [i, 0, 0, 0])), 'VEC4');
-    attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: 6 }, () => [1, 0, 0, 0]).flat()), 'VEC4');
-  }
-  const targets: Record<string, number>[] = [];
-  const cles = (formes: Record<string, readonly number[]>) => {
-    for (const deltas of Object.values(formes)) {
-      const d = Float32Array.from(deltas);
-      const borne = (f: (a: number, b: number) => number) => [0, 1, 2].map((c) => d.filter((_, i) => i % 3 === c).reduce(f));
-      targets.push({ POSITION: accesseur(d, 'VEC3', { min: borne(Math.min), max: borne(Math.max) }) });
-    }
-  };
-  if (options.bande) {
-    attributes.JOINTS_0 = accesseur(Uint16Array.from([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 'VEC4');
-    cles(options.bande);
-  }
-  if (options.anneau) {
-    const n = ANNEAU.length / 3;
-    attributes.POSITION = accesseur(Float32Array.from(ANNEAU), 'VEC3', { min: [-0.3, 0, -0.1], max: [0.1, 0.5, 0.2] });
-    attributes.NORMAL = accesseur(Float32Array.from(Array.from({ length: n }, () => [0, -1, 0]).flat()), 'VEC3');
-    attributes.JOINTS_0 = accesseur(Uint16Array.from(Array.from({ length: n }, (_, i) => [0, i < 6 ? 1 : 0, 0, 0]).flat()), 'VEC4');
-    attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: n }, (_, i) => (i < 6 ? [0.5, 0.5, 0, 0] : [1, 0, 0, 0])).flat()), 'VEC4');
-    cles(options.anneau);
-  }
-  const formes = options.anneau ?? options.bande;
-  const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-  const joints = options.marche ? [1, 2, 3] : options.pelvis || options.anneau || options.bande ? [1, 2] : [1];
-  const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
-  const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
-    name,
-    channels: [{ sampler: 0, target: { node: options.cibleDuClip === 'racine' ? joints[0] : joints[joints.length - 1], path: 'translation' } }],
-    samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from([0, de, 0, 0, a, 0]), 'VEC3'), interpolation: 'LINEAR' }],
-  }));
-  for (const m of options.marche ? [options.marche, ...(options.autresMarches ?? [])] : []) {
-    const temps = [0, 0.25, 0.5, 0.75, 1];
-    const poses = [1, 2, 3].map((node) => temps.flatMap((t) => {
-      if (node === 1) return [0, 0, (m.racine ?? 0) * t * (m.sens ?? 1)];
-      const phase = node === 2 ? t : (t + 0.5) % 1;
-      const z = m.bloque ? 0 : (phase <= 0.5 ? 0.5 - 2 * phase : -0.5 + 2 * (phase - 0.5));
-      const vol = phase <= 0.5 ? 0 : 0.2 * (1 - Math.abs(phase - 0.75) * 4);
-      return [node === 2 ? (m.lateral ?? 0) * t : 0, vol + (node === 2 ? (m.decolle ?? 0) : 0), z * (node === 3 ? (m.vitesseDroite ?? 1) : 1) * (m.sens ?? 1) * (m.vitesse ?? 1)];
-    }));
-    animations.push({ name: m.nom ?? 'Walk_Loop', channels: [1, 2, 3].map((node, sampler) => ({ sampler, target: { node, path: 'translation' } })), samplers: poses.map((p) => ({ input: accesseur(Float32Array.from(temps), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from(p), 'VEC3'), interpolation: 'LINEAR' })) });
-  }
-  const image = options.image ? { images: [{ bufferView: vue(PNG), mimeType: 'image/png' }], textures: [{ source: 0, sampler: 0 }], samplers: [{}] } : {};
-  const bin = new Uint8Array(decalage);
-  morceaux.reduce((n, m) => (bin.set(m, n), n + m.byteLength), 0);
-  const noeudDuMesh = (name: string) => ({ name, mesh: 0, skin: 0, extras: { zone: 'torse' } });
-  const noeuds = [noeudDuMesh(options.nom ?? 'Corps'), { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])];
-  for (const [k, name] of (options.os ?? []).entries()) noeuds[k + 1] = { ...noeuds[k + 1], name };
-  const premierJeu = Object.fromEntries(Object.entries(attributes).filter(([nom]) => nom !== 'JOINTS_1' && nom !== 'WEIGHTS_1'));
-  return ecrireGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [{ nodes: [0, 1, ...(options.instances ?? []).map((_, k) => noeuds.length + k)] }],
-    nodes: [...noeuds, ...(options.instances ?? []).map(noeudDuMesh)],
-    meshes: [{ primitives: Array.from({ length: options.primitives ?? 1 }, (_, j) => ({ attributes: j ? premierJeu : attributes, material: 0, ...(targets.length ? { targets } : {}) })), extras: { targetNames: formes ? Object.keys(formes) : ['feminin'] } }],
-    materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
-    skins: [{ joints, inverseBindMatrices }],
-    ...(animations.length ? { animations } : {}),
-    ...image,
-    accessors: accesseurs,
-    bufferViews: vues,
-    buffers: [{ byteLength: decalage }],
-  }, bin);
-}
-
-/** Les neuf sommets de l'anneau fabriqué : six sur un cercle de rayon 0,1 m à 0,5 m de haut, puis un triangle au sol. */
-const ANNEAU = [
-  ...Array.from({ length: 6 }, (_, k) => [0.1 * Math.cos(k * Math.PI / 3), 0.5, 0.1 * Math.sin(k * Math.PI / 3)]).flat(),
-  -0.3, 0, 0, -0.1, 0, 0, -0.2, 0, 0.2,
-];
 /** Les déplacements d'une shape key de l'anneau : `f` appliquée à chaque sommet du cercle, `sol` à chaque sommet du triangle. */
 const formeDeLAnneau = (f: (x: number, y: number, z: number) => readonly number[], sol: readonly number[] = [0, 0, 0]) =>
   Array.from({ length: ANNEAU.length / 3 }, (_, i) => (i < 6 ? f(ANNEAU[i * 3], ANNEAU[i * 3 + 1], ANNEAU[i * 3 + 2]) : sol)).flat();
@@ -706,37 +590,12 @@ const homothetie = (k: number) => formeDeLAnneau((x, _y, z) => [(k - 1) * x, 0, 
 
 const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
 
-const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
-
-/** Le manifeste qui décrit le GLB `octets` de `glbFabrique`, d'os `os`. */
-const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
-  schema: 4, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
-  prises: { main: { ...ATTACHE }, off: { ...ATTACHE } }, silhouettes: ['feminin'], gabarit: { ...TABLE, legs: [] },
-  porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
-  appuis: { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitessesAuSol: tableTotale([...lireGlb(octets).animations], () => 1.4) },
-  osAPositionAnimee: os.filter((o) => o !== 'racine'),
-  glb: empreinte(octets),
-});
-
-const formesAvecGabarit = (silhouettes: Record<string, readonly number[]>, deltas: Record<string, readonly number[]> = {}) => ({
-  ...tableTotale(Object.keys(poidsDuGabarit(FACTEURS_NEUTRES, TABLE.bornes, tableTotale(Object.keys(silhouettes), () => 0))), () => new Array<number>(Object.values(silhouettes)[0].length).fill(0)),
-  ...silhouettes,
-  ...deltas,
-});
-
 describe('candidats du corps entier', () => {
-  it('pose le gabarit sans R2 pour sélectionner les appuis, sans candidat de départ', () => {
-    const { scene, mesh, racine } = cylindre();
-    const g = appliquerGabarit(scene, { ...FACTEURS_NEUTRES, sl: 0.7 }, { gabarit: TABLE }, mesh.skeleton, false);
-    expect(g.candidats).toBeNull();
-    expect(racine.scale.toArray()).toEqual([0.7, 0.7, 0.7]);
-    const position = racine.position.clone();
-    reposerGabarit(g, () => {});
-    expect(racine.position.toArray()).toEqual(position.toArray());
+  it('refuse de poser le gabarit sans candidat d’appui', () => {
     expect(() => appliquerGabarit(cylindre().scene, FACTEURS_NEUTRES, { gabarit: TABLE })).toThrow('appuis.plusBas non vide attendu');
   });
 
-  it('omet les deltas exactement nuls et les reconstitue à zéro dans la peau des candidats', () => {
+  it('reconstitue à zéro les deltas omis dans la peau des candidats', () => {
     const { scene, mesh } = cylindre();
     const count = mesh.geometry.attributes.position.count;
     mesh.geometry.morphTargetsRelative = true;
@@ -746,23 +605,29 @@ describe('candidats du corps entier', () => {
     ];
     mesh.updateMorphTargets();
     mesh.morphTargetInfluences?.splice(0, 2, 1, 1);
-    const copies = [copierSommet(mesh, 0), copierSommet(mesh, 1)];
-    expect(copies[0].deltas).toEqual({ [FEMININ]: [expect.closeTo(0.1, 6), 0, 0] });
-    expect(copies[1].deltas).toEqual({});
+    const copies: CandidatDAppui[] = [
+      { position: [0, 1, 0.1] as const, os: [{ nom: 'haut', poids: 1 }], deltas: { [FEMININ]: [0.1, 0, 0] as const } },
+      { position: [0.1 * Math.sin(Math.PI / 3), 1, 0.1 * Math.cos(Math.PI / 3)] as const, os: [{ nom: 'haut', poids: 1 }], deltas: {} },
+    ];
     const peaux = peauxDesCandidats(scene, copies, mesh.skeleton);
     peaux.synchroniser();
     for (const i of [0, 1]) expect(peaux.courante.getVertexPosition(i, new Vector3()).distanceTo(mesh.getVertexPosition(i, new Vector3()))).toBeLessThan(1e-6);
   });
 
-  it('sélectionne le sommet non-pied devenu le plus bas et R2 le ramène au niveau sans gabarit', async () => {
-    const formes = formesAvecGabarit({ feminin: new Array<number>(9).fill(0) }, { gabarit_arms_plus: [0, 0, 0, 0, 0, 0, 0, -3, 0] });
+  it('R2 ramène le candidat non-pied le plus bas au niveau sans gabarit', async () => {
+    const cle = nomDeCleDuGabarit('arms', 'plus');
+    const formes = formesAvecGabarit({ feminin: new Array<number>(9).fill(0) }, { [cle]: [0, 0, 0, 0, 0, 0, 0, -3, 0] });
     const base = glbFabrique({ bande: formes, clips: { Descend: [0, -0.2] } });
     const m = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: ['feminin'] };
     const grille = grilleDesAppuis(m);
     for (const cle of ['legs', 'arms', 'head'] as const) expect(new Set(grille.map((e) => e.facteurs[cle]))).toEqual(new Set([m.gabarit.bornes[cle].min, 1, m.gabarit.bornes[cle].max]));
-    const candidats = await selectionnerAppuis(base, m);
-    expect(candidats.some((c) => c.os.some((o) => o.nom === 'pelvis'))).toBe(true);
-    const b = await chargerScene(base), facteurs = { ...FACTEURS_NEUTRES, arms: TABLE.bornes.arms.max, sl: 0.7 };
+    const b = await chargerScene(base);
+    const candidats: CandidatDAppui[] = [
+      { position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} },
+      { position: [1, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} },
+      { position: [0, 1, 0] as const, os: [{ nom: 'pelvis', poids: 1 }], deltas: { [cle]: [0, -3, 0] as const } },
+    ];
+    const facteurs = { ...FACTEURS_NEUTRES, arms: TABLE.bornes.arms.max, sl: 0.7 };
     poserFormes(b.scene, { feminin: 0, ...poidsDuGabarit(facteurs, TABLE.bornes, { feminin: 0 }) });
     const g = appliquerGabarit(b.scene, facteurs, { ...m, appuis: { ...m.appuis, plusBas: candidats } });
     const sans = await chargerScene(base);
@@ -776,29 +641,9 @@ describe('candidats du corps entier', () => {
     expect(incomplet.ecarts.some((e) => e.garde === 'piedsAuSol' && e.code === 'sous-le-sol')).toBe(true);
   });
 
-  it('retient le sommet le plus bas de chaque mesh, même de deux meshes au même nom three.js', async () => {
-    const formes = formesAvecGabarit({ feminin: new Array<number>(9).fill(0) });
-    const candidats = async (options: Parameters<typeof glbFabrique>[0]) => {
-      const base = glbFabrique({ bande: formes, clips: { Repos: [0, 0] }, ...options });
-      return (await selectionnerAppuis(base, { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: ['feminin'] })).length;
-    };
-    const seul = await candidats({});
-    expect(seul).toBeGreaterThan(0);
-    expect(await candidats({ primitives: 2, instances: ['Bis'] })).toBe(4 * seul);
-  });
-
-  it('copie en espace de bind même avec une matrice de bind affine', () => {
-    const { scene, mesh } = cylindre();
-    mesh.bindMatrix.makeRotationZ(0.3).setPosition(0.2, -0.1, 0.4);
-    mesh.bindMatrixInverse.copy(mesh.bindMatrix).invert();
-    const copie = copierSommet(mesh, 0), peau = peauxDesCandidats(scene, [copie]);
-    const attendu = mesh.getVertexPosition(0, new Vector3()).applyMatrix4(mesh.matrixWorld);
-    expect(peau.courante.getVertexPosition(0, new Vector3()).distanceTo(attendu)).toBeLessThan(1e-6);
-  });
-
   it('les binds propres à un élément monté ne changent pas les candidats de la base', () => {
     const { scene, mesh } = cylindre();
-    const candidats = [copierSommet(mesh, 0)];
+    const candidats: CandidatDAppui[] = [{ position: [0, 1, 0.1] as const, os: [{ nom: 'haut', poids: 1 }], deltas: {} }];
     const avant = hauteurDesCandidats(scene, peauxDesCandidats(scene, candidats, mesh.skeleton).courante);
     const element = new SkinnedMesh(mesh.geometry.clone());
     const inverses = mesh.skeleton.boneInverses.map((m) => m.clone().multiply(new Matrix4().makeTranslation(0, -3, 0)));
@@ -869,7 +714,7 @@ describe('les os sous leur nom glTF (#3233)', () => {
     const [debut, fin] = [...echantillonner(scene.scene, scene.meshes, scene.clips, 1)];
     expect([...fin.os.keys()]).toEqual(OS);
     expect((fin.os.get('handslot.l')?.elements[13] ?? 0) - (debut.os.get('handslot.l')?.elements[13] ?? 0)).toBeCloseTo(1, 6);
-    expect(() => appliquerGabarit(scene.scene, FACTEURS_NEUTRES, { gabarit: { ...TABLE, legs: ['a:b'], racine: 'a:b' } }, undefined, false)).not.toThrow();
+    expect(() => appliquerGabarit(scene.scene, FACTEURS_NEUTRES, gabaritEtAppuis({ ...TABLE, legs: ['a:b'], racine: 'a:b' }, ['a:b']))).not.toThrow();
   });
 
   it('les gardes nomment l’os par son nom glTF', async () => {
@@ -997,6 +842,15 @@ describe('validerManifesteDeBase', () => {
     expect(validerManifesteDeBase(valide(), octets).ok).toBe(true);
   });
 
+  it('refuse une forme indépendante comme silhouette même présente dans le GLB', () => {
+    const nom = 'expression';
+    const base = glbFabrique({ bande: { [FEMININ]: new Array<number>(9).fill(0), [nom]: new Array<number>(9).fill(0) }, clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: [FEMININ, nom] };
+    expect(validerManifesteDeBase(manifeste, base)).toEqual({
+      ok: false, ecarts: [{ code: 'silhouette-inconnue', ou: 'silhouettes', detail: `${nom} n’est pas une silhouette du gabarit` }],
+    });
+  });
+
   it.each([undefined, FEMININ])('refuse une clé de gabarit comme silhouette (%s), même présente dans le GLB', (silhouette) => {
     const nom = nomDeCleDuGabarit('legs', 'moins', silhouette);
     const base = glbFabrique({ bande: { [FEMININ]: new Array<number>(9).fill(0), [nom]: new Array<number>(9).fill(0) }, clips: { Repos: [0, 0] } });
@@ -1041,7 +895,7 @@ describe('validerManifesteDeBase', () => {
     ['zone-sans-mesh', (m) => ({ ...m, zones: ['torse', 'bras'] })],
     ['emplacement-sur-os-absent', (m) => ({ ...m, emplacements: { dos: { ...attache, os: 'fantome' } } })],
     ['prise-absente', (m) => ({ ...m, prises: { main: m.prises.main } })],
-    ['silhouette-absente', (m) => ({ ...m, silhouettes: ['masculin'] })],
+    ['silhouette-absente', (m) => ({ ...m, silhouettes: ['corpulence'] })],
     ['glb-different', (m) => ({ ...m, glb: { ...m.glb, octets: m.glb.octets + 1 } })],
   ])('refuse par le code %s', (code, alterer) => {
     expect(codes(alterer(valide()))).toEqual([code]);
@@ -1199,8 +1053,8 @@ describe('evaluer : étirement contre la longueur de repos sous gabarit, silhoue
 
   it('refuse une forme indépendante comme silhouette, même avec ses clés croisées présentes', async () => {
     const nom = 'autre_forme';
-    const base = glbFabrique({ bande: formesAvecGabarit({ inerte: auSommet(0), [nom]: auSommet(4) }), clips: { Repos: [0, 0] } });
-    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: ['inerte'] };
+    const base = glbFabrique({ bande: formesAvecGabarit({ [FEMININ]: auSommet(0), [nom]: auSommet(4) }), clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: [FEMININ] };
     await expect(etirement({ base, manifeste, facteurs: { arms: 1.25 }, silhouettes: { [nom]: 1 } })).rejects.toThrow('[silhouette-absente] autre_forme : nom(s) absent(s) des silhouettes déclarées');
   });
 

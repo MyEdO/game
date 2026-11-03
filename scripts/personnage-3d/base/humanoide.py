@@ -1,36 +1,9 @@
-"""Base humanoïde (#2972, lots B1 à B3) : le squelette UAL (65 os), le corps UBC skinné dessus et découpé en zones, les
-clips UAL1 + UAL2, les emplacements et les prises (`anatomie.py`), les silhouettes (`silhouettes.py`).
-
-Le corps UBC porte les 65 os d'UAL1, mêmes noms et même hiérarchie, sur son propre repos : ce repos est gardé, et chaque
-clip s'y joue relatif au repos (les clés Blender de l'import glTF). Pistes de position retirées hors `root` et `pelvis`,
-interpolation LINEAR ; un clip sans sol (pelvis source sous le sol) se retire. Au repos, le sommet le plus bas des peaux
-est posé au sol de la racine (`poser_au_sol`).
-
-Puis, plan de #3101 (issuecomment-6535025119), depuis les clips d'avant sol (`sol.figer`, `sol.restaurer`) :
-- les poids sont lissés au neutre contre les clips d'avant sol (`poids.py`) ;
-- sur ces poids se posent les silhouettes du corps (`silhouettes.py`), recalculées des donneurs : le corps F d'UBC, aux
-  mêmes os, donne la clé `feminin` ; la carrure se pose aux bornes de `st` de la donnée, publiées dans `gabarit.st` ;
-  MakeHuman (données de MPFB) donne `corpulence` (`corpulence.py`) ; chaque clé finie passe aux peaux secondaires ;
-- chaque clip est posé au sol et la marche plantée (`sol.py`) ;
-- les poids sont lissés là où un clip posé étire la peau, au neutre comme à chaque clé à 1 (`poids.py`) ; un sommet
-  retouché d'une surface de pied arrête la construction (`sol.garder_les_poids_des_pieds`). Les poids sont figés ;
-- les silhouettes se recalculent des donneurs sur ces poids, puis se tiennent au sol (`tenue_au_sol.tenir_au_sol`).
-
-La part du manifeste de base que pose la construction (os, chaînes, zones, emplacements, prises, silhouettes, table du
-gabarit, pieds, os à position animée) passe, après l'export, à `manifeste.mjs`, qui complète le manifeste avec la
-déclaration du corps `humanoide.json` et écrit le dossier de production du GLB (`production.ts`) ; il juge
-déclaration, sortie hors dépôt et textes de licence nommés des packs avant Blender.
-
-    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py \\
-        --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> \\
-        --corps-feminin <Superhero_Female_FullBody.gltf> --licence-ual1 <License.txt> --licence-ual2 <License.txt> \\
-        --licence-corps <License_Standard.txt> --licence-corps-feminin <License_Standard.txt> \\
-        --mpfb <dossier data de MPFB> --licence-mpfb <LICENSE.ASSETS.md> --sortie <humanoide.glb>
-"""
+"""#2972 ; #3101 issuecomment-6535025119 ; #3104 issuecomment-6549354475."""
 import argparse
 import json
 import sys
 from pathlib import Path
+from contextlib import ExitStack
 
 sys.dont_write_bytecode = True
 ICI = Path(__file__).resolve().parent
@@ -45,12 +18,22 @@ from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
-from poids import lisser_les_poids, matrices_de_peau, peau_lineaire  # noqa: E402
-from silhouettes import SILHOUETTES, ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
+from diagnostic_poids import imprimer_retournements  # noqa: E402
+from poids import (PASSES_MAX, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
+                   jumeaux, preparer_correction, avancer_correction, appliquer_correction, imprimer_correction, refuser_correction,
+                   verifier_repos_cuit)
+from pas_des_poids import cellules_du_domaine  # noqa: E402
+from formes import aretes_des_triangles  # noqa: E402
+from noms_silhouettes import SILHOUETTES  # noqa: E402
+from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
 from sol import (bas_des_sources, deplacements, figer, garder_les_poids_des_pieds, poser_les_clips_au_sol,  # noqa: E402
                  restaurer, retirer_sans_sol, surfaces_des_pieds)
-from tenue_au_sol import tenir_au_sol  # noqa: E402
-from cuisson_gabarit import bornes_du_gabarit, cuire_gabarit, preparer_reference  # noqa: E402
+from point_fixe import atteindre_le_point_fixe, suite_de_phase  # noqa: E402
+from cuisson_gabarit import (bornes_du_gabarit, cuire_gabarit, preparer_reference, groupes_de_peau,
+                            exporter_gabarit, etats_aux_facteurs_neutres, etats_du_gabarit)
+from seuils import TOLERANCE_JUMEAUX_POSITION_M
+import numpy as np  # noqa: E402
+from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
 
 PELVIS = 'pelvis'
@@ -182,6 +165,49 @@ def manifeste_mjs(args, *options, entree=None):
     print(lancer(ICI / 'manifeste.mjs', [DECLARATION, args.sortie, *sources, *options], entree), end='', flush=True)
 
 
+def os_des_pieds(rig, noms):
+    """Par pied de `PIEDS`, ses indices d'os dans `noms`, descendants compris : les os de `sol.surfaces_des_pieds`."""
+    indice = {n: i for i, n in enumerate(noms)}
+    return [[indice[pied], *(indice[b.name] for b in rig.data.bones[pied].children_recursive)] for pied in PIEDS]
+
+
+def faces_des_noeuds(peau, noeud):
+    """Les triangles de `peau` entre nœuds `noeud`, sans triangle dégénéré : (faces, 3)."""
+    peau.data.calc_loop_triangles()
+    t = noeud[np.array([f.vertices[:] for f in peau.data.loop_triangles])]
+    return t[(t[:, 0] != t[:, 1]) & (t[:, 1] != t[:, 2]) & (t[:, 0] != t[:, 2])]
+
+
+def preparer_moteurs(rig, peaux, clips, table, etats, courantes, contraintes, ressources, repos_cuit=False, captures=None):
+    """#3104 issuecomment-6549354475 ; #3101 issuecomment-6516197619."""
+    cellules = cellules_du_domaine(etats)
+    demandes = etats['etats']
+    def sous(groupes, os, diagnostic):
+        groupes = [({'etats': groupe, 'cellulesSilhouettes': cellules}, matrices, clips) for groupe, matrices, clips in groupes]
+        moteurs = []
+        for peau in peaux:
+            x, w = peau_lineaire(peau, os)
+            jumeau = jumeaux(x)
+            fixes = np.empty(0, dtype=int) if contraintes is None else np.unique(
+                jumeau[sommets_des_surfaces(contraintes[peau.name])])
+            etat = preparer_correction(
+                peau.name, x, w, jumeau, aretes_des_triangles(peau, jumeau), etats_ponderes(x, courantes[peau.name], groupes), fixes,
+                {**diagnostic, 'noms': list(os)}, () if contraintes is None else os_des_pieds(rig, os))
+            if captures is not None:
+                etat['h5'] = captures[peau.name]
+            moteurs.append((peau, os, etat))
+        return moteurs
+
+    if repos_cuit:
+        diagnostic = {}
+        with groupes_de_peau(rig, [], table, demandes, diagnostic=diagnostic) as (os, groupes):
+            for _, _, etat in sous(groupes, os, diagnostic):
+                verifier_repos_cuit(etat)
+    diagnostic = {}
+    os, groupes = ressources.enter_context(groupes_de_peau(rig, clips, table, demandes, diagnostic=diagnostic))
+    return sous(groupes, os, diagnostic)
+
+
 def construire(args):
     import bpy
     manifeste_mjs(args, '--verifier')
@@ -210,7 +236,6 @@ def construire(args):
         preparer(action)
     figee = {a.name: figer(a) for a in clips}
     poser_au_sol(bpy, squelette, peaux)
-    lisser_les_poids(squelette, peaux, clips, {p.name: {} for p in peaux})
     corps, secondaires = corps_et_secondaires(peaux)
     corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
     bornes = bornes_de_st()
@@ -225,7 +250,8 @@ def construire(args):
             restaurer(action, figee[action.name])
         ajouter_feminin_et_carrure(squelette, corps, squelette_f, corps_f, bornes)
         ajouter_corpulence(squelette, corps, args.mpfb)
-        return finir_les_silhouettes(squelette, corps, secondaires, bornes)
+        finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)))
+        return etats_aux_facteurs_neutres(table, silhouettes(peaux))
 
     def poser_les_clips():
         for action in clips:
@@ -235,33 +261,118 @@ def construire(args):
     def surfaces():
         return {p.name: surfaces_des_pieds(squelette, peau_lineaire(p, noms)[1], PIEDS) for p in peaux}
 
-    poser_les_silhouettes()
-    poser_les_clips()
-    avant = surfaces()
-    retouches = lisser_les_poids(squelette, peaux, clips, {p.name: deplacements(p) for p in peaux})
-    apres = surfaces()
-    for peau in peaux:
-        garder_les_poids_des_pieds(peau.name, retouches[peau.name],
-                                   {pied: avant[peau.name][pied] | apres[peau.name][pied] for pied in PIEDS})
-    print('POIDS figés :', sum(map(len, retouches.values())), 'sommet(s) retouché(s) contre les clips posés ;',
-          ' '.join(f'{nom}:{len(s)}' for nom, s in retouches.items()), flush=True)
-    refinir, mesurer = poser_les_silhouettes()
+    contraintes = None
+    phase = 'neutre'
+    phase_actuelle = None
+    a_preparer = True
+    renouveler = True
+    etats_silhouettes = None
+    references = precedentes = None
+    captures = {}
+    moteurs = []
+    ressources = ExitStack()
+    ecart_cles = 0
+
+    def preparer_phase():
+        nonlocal phase_actuelle, a_preparer, renouveler, references, precedentes
+        nonlocal moteurs, ecart_cles, etats_silhouettes
+        ressources.close()
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        ecart_cles = 0
+        if phase == 'neutre':
+            etats = etats_aux_facteurs_neutres(table, [])
+            courantes = {p.name: {} for p in peaux}
+        elif phase == 'silhouettes':
+            if renouveler:
+                etats_silhouettes = poser_les_silhouettes()
+                renouveler = False
+            poser_les_clips()
+            etats = etats_silhouettes
+            courantes = {p.name: deplacements(p) for p in peaux}
+        else:
+            poser_les_clips()
+            clear_animation(squelette)
+            bpy.context.view_layer.update()
+            references = cuire_gabarit(squelette, peaux, table, captures)
+            etats = {'etats': [{k: v for k, v in e.items() if k != 'positions'} for e in references[0][2]['etats']],
+                     'cellulesSilhouettes': references[0][2]['cellulesSilhouettes']}
+            courantes = {peau.name: {**deplacements(peau), **{
+                c['nom']: np.array(c['deltas'], dtype=np.float32) for c in reference['cles']}}
+                for peau, (_, _, reference) in zip(peaux, references)}
+            ecart_cles = 1 if precedentes is None else max(
+                float(np.abs(d - precedentes[nom][cle]).max(initial=0))
+                for nom, champs in courantes.items() for cle, d in champs.items())
+            precedentes = courantes
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        moteurs = preparer_moteurs(squelette, peaux, clips, table, etats, courantes, contraintes,
+                                  ressources, repos_cuit=phase == 'gabarit', captures=captures if phase == 'gabarit' else None)
+        phase_actuelle = phase
+        a_preparer = False
+        print('CONSTRUCTION_PHASE', phase_actuelle, flush=True)
+
+    def construire_tour(passe):
+        nonlocal contraintes, phase, a_preparer, renouveler
+        if a_preparer:
+            preparer_phase()
+        for peau, os, etat in moteurs:
+            if etat['hors'].any():
+                avancer_correction(etat)
+                retouches = appliquer_correction(peau, os, etat)
+                if contraintes is not None:
+                    apres = surfaces_des_pieds(squelette, peau_lineaire(peau, os)[1], PIEDS)
+                    try:
+                        garder_les_poids_des_pieds(peau.name, retouches,
+                            {pied: contraintes[peau.name][pied] | apres[pied] for pied in PIEDS})
+                    except RuntimeError as erreur:
+                        refuser_correction(etat, passe, str(erreur))
+            imprimer_correction(etat, passe)
+        hors = sum(int(e['hors'].sum()) for _, _, e in moteurs)
+        if hors:
+            return {'aretes': hors, 'phase': 1}
+        retouches = sum(len(e['retouches']) for _, _, e in moteurs)
+        for peau, _, etat in moteurs:
+            if etat['retouches']:
+                imprimer_retournements(etat, faces_des_noeuds(peau, etat['jumeau']))
+        if phase_actuelle == 'neutre':
+            contraintes = surfaces()
+        phase, regenerer, fini = suite_de_phase(
+            phase_actuelle, retouches, ecart_cles, TOLERANCE_JUMEAUX_POSITION_M)
+        renouveler |= regenerer
+        if fini:
+            return {'aretes': 0, 'phase': 0}
+        a_preparer = True
+        return {'sommets': retouches, 'phase': 1,
+                'ecartCles': ecart_cles if ecart_cles > TOLERANCE_JUMEAUX_POSITION_M else 0}
+
+    def refuser(passe, reste):
+        raison = f'construction : point fixe absent après {passe} passes, phase {phase_actuelle}, reste {reste}'
+        erreurs = []
+        en_ecart = [e for _, _, e in moteurs if e['hors'].any()]
+        for etat in en_ecart or [moteurs[0][2]]:
+            try:
+                refuser_correction(etat, passe, raison)
+            except RuntimeError as erreur:
+                erreurs.append(erreur)
+        raise erreurs[0]
+
+    try:
+        passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser)
+    finally:
+        ressources.close()
+    print('SOL tenu en', passes, 'passe(s)', flush=True)
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
-
-    def poser_au_sol_des_clips():
-        poser_les_clips()
-        return matrices_de_peau(squelette, clips)[1]
-
-    tours = tenir_au_sol(poser_au_sol_des_clips, mesurer, refinir)
-    print('SOL tenu en', tours, 'tour(s)', flush=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
     print('GABARIT_ANATOMIE_OK table disjointe ; head sans enfants', flush=True)
     print('GABARIT_BORNES', json.dumps(table['bornes']), flush=True)
-    references = cuire_gabarit(squelette, peaux, table)
+    exporter_gabarit(peaux, references)
     formes = silhouettes(peaux)
+    candidats = selectionner_appuis(squelette, peaux, clips, table, etats_des_appuis(table, formes))
     manifeste = poser(squelette, peaux)
+    manifeste['appuis']['plusBas'] = candidats
     manifeste['gabarit'] = table
     manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': {}, **manifeste, 'silhouettes': formes,
                  'osAPositionAnimee': os_a_position_animee(squelette, clips, manifeste['gabarit']['racine'])}
