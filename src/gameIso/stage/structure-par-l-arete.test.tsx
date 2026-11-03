@@ -37,7 +37,7 @@ import { AreteOverlay } from './AreteOverlay';
  */
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
+Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: vi.fn() });
 // `matches: true` = pointeur FIN (souris), défaut de ce banc. `restoreMocks: true` (vite.config.ts)
 // rend le `vi.fn()` nu entre deux tests.
 beforeEach(() => {

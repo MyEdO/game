@@ -1599,10 +1599,22 @@ export function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number
   return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
 }
 
+/** Le coup touche AVEC PRISE (`sansPrise` absent) : seul un tel coup porte ses Blessures et son Critique.
+ *  LDB 85 l.98, l.278 ; LDB 14 l.159 ; #1595 c.6221792068 Q2. */
+export function toucheAvecPrise(res: Pick<AttackResult, 'hit' | 'sansPrise'>): boolean {
+  return res.hit && !res.sansPrise;
+}
+
+/** Le coup touche et n'est pas IGNORÉ (sauvegarde, projectile détruit) : il porte ses effets de touche,
+ *  même sans prise. LDB 85 l.98, l.278 ; LDB 47 l.358 ; LDB 85 l.75, l.417 ; LDB 14 l.159. */
+export function toucheNonIgnoree(res: Pick<AttackResult, 'hit' | 'sansPrise'>): boolean {
+  return res.hit && res.sansPrise !== 'sauvegarde' && res.sansPrise !== 'bouclier-anti-fleches';
+}
+
 /** La Localisation relancée du coup, verdict de sa naissance (`critLocation`), SEUL lecteur ; celui d'un coup sans
  *  prise n'est pas lu. LDB 18 l.53, l.55 ; AA 07 l.25 ; LDB 85 l.98 ; LDB 14 l.159. */
 export function localisationRelanceeDe(res: Pick<AttackResult, 'hit' | 'sansPrise' | 'critLocation'>): HitLocation | undefined {
-  return res.hit && !res.sansPrise ? res.critLocation : undefined;
+  return toucheAvecPrise(res) ? res.critLocation : undefined;
 }
 
 /** Le compte d'un coup après ses Déviations. `coupCritique` : avant tout filtre, LDB 60 l.50.
@@ -1613,7 +1625,7 @@ export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; c
  *  LDB 18 l.44, l.53, l.55 ; LDB 63 l.19, l.21, l.30, l.32, l.78 ; LDB 60 l.50 ; AA 07 l.65 ;
  *  #1595 c.6221792068 Q3, c.6228496170 Q1. */
 export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
-  const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
+  const coup = { coupCritique: causeDuCoupCritique(res), prise: toucheAvecPrise(res), current: cible.wounds.current };
   const relancee = localisationRelanceeDe(res);
   const relance = relancee !== undefined;
   const lieu: HitLocation = relancee ?? res.location ?? 'corps';

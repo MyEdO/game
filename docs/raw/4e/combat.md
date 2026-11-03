@@ -2827,7 +2827,7 @@ Liste complète des Traits du Livre de base, avec leur effet exact. (Indice) = v
 | **Souffle (Indice) (Type)** | Attaque gratuite **(coût 2 Avantages)** : cible visible à **BE + 20** mètres ; tous à **bonus de F de la cible** mètres + tous entre les deux sont touchés. Test opposé **CT/Esquive** par cible ; échec → Indice Dégâts d'Arme. Types : **Froid** (Sonné par 5 Blessures), **Corrosif** (Armes/Armures −1), **Feu** (ignore PA + Enflammé), **Électricité** (ignore PA + Sonné), **Poison** (ignore PA + Empoisonné), **Fumée** (bloque la LdV pendant BE Rounds). Immunisée à son propre Souffle ; Attaque magique. |
 | **Stupide** | (≠ Bestial.) Sans allié non-Stupide à ses côtés : Test **Intelligence Facile (+40)** au début de chaque Round ; échec → perd Mouvement **et** Action. |
 | **Taille (Divers)** | 7 catégories (Minuscule → Monstrueuse) ; modifie profil, Dégâts, Peur/Terreur, Blessures (cf. §6). |
-| **# Tentacules (Indice)** | **1 Attaque gratuite par tentacule** : Indice Dégâts (bonus de F inclus). Touche → État **Empêtré** + Empoignade par ce tentacule. |
+| **# Tentacules (Indice)** | **1 Attaque gratuite par tentacule** : Indice Dégâts (bonus de F inclus). Touche qui cause des Dégâts → État **Empêtré** + Empoignade par ce tentacule. |
 | **Terreur (Indice)** | Suscite **Terreur** = Indice (Psychologie). |
 | **Territorial** | Combat jusqu'à la mort pour défendre sa zone ; ne poursuit pas les fuyards hors zone. |
 | **Toile (Indice)** | Tout coup réussi → État **Empêtré** de Force Indice. |
@@ -3051,15 +3051,17 @@ Si les Cornes ont un Aspect différent (Impact, Tranchant…), il est noté entr
 
 Le **#** en tête du Trait est le **nombre de tentacules** (ex. « 8 Tentacules +9 » = 8 attaques gratuites de +9, coût 0 chacune). Chaque tentacule peut entamer **sa propre** Empoignade, et une Action d'Attaque gratuite peut servir à résoudre une Empoignade d'un tentacule.
 
+« Si elle cause des Dégâts » se lit : la cible **perd au moins 1 Point de Blessure** (Condition `woundsDealt > 0` de l'effet, `src/data/maneuvers.json`) — lecture recommandée, révisable (#3075). À distinguer de la Langue Préhensile (« Si l'Attaque touche », Empêtré même sans Blessure perdue) et de l'Attaque Caudale (« qui perdent des Points de Blessure »).
+
 **Constricteur** — `LDB 85 l.73-75`
 > « Tout lancer réussi pour toucher donne à son adversaire l'État _Empêtré_ . Elle peut ensuite entamer une Empoignade (voir page 163). »
 
-**Toile (Indice)** — `LDB 85 l.417`
+**Toile (Indice)** — `LDB 85 l.415-417`
 > « La créature peut créer une toile pour attraper les ennemis imprudents. Chaque fois qu'elle réussit à toucher, son adversaire gagne 1 État _Empêtré_ , avec une Force de _Indice_ . Voir page 168. »
 
 La **Force de l'empêtrement = Indice** : c'est la valeur opposée lors du Test pour se libérer (voir État Empêtré ci-dessous).
 
-**Vampirique** — `LDB 85 l.421`
+**Vampirique** — `LDB 85 l.419-421`
 > « Chaque fois qu'elle réussit une Attaque de Morsure contre un adversaire approprié, elle récupère autant de Points de Blessure que son adversaire en perd. Boire du sang de cette façon est la seule manière pour elle de se soigner. »
 
 Le Vol de vie ne s'applique qu'à la **Morsure** (pas aux autres attaques), et c'est **l'unique** moyen de soin de la créature.

@@ -207,6 +207,59 @@ describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous
   });
 });
 
+// LDB 85 l.98 ; LDB 85 l.75
+describe('un coup IGNORÉ ne porte aucun effet de touche (onHit des Traits de l’attaquant)', () => {
+  const empetre = (c: Combatant): unknown => c.conditions.find((x) => x.id === 'empetre');
+  const frappe = (de: number): Combatant => {
+    const serpent = mk('enemy', 'serpent', { pos: { x: 0, y: 0 }, traits: [{ id: 'constricteur' }] as never });
+    const demon = mk('hero', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    setBattle([serpent, demon]);
+    const crocs = { label: 'Crocs', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+    applyAttackResult(banc.getState, banc.setState, serpent, demon, crocs, touche());
+    poser(de);
+    return demon;
+  };
+
+  it('Constricteur sur un démon qui SAUVE (1d10 ≥ Indice) : aucun Empêtré', () => {
+    expect(empetre(frappe(8))).toBeUndefined();
+  });
+
+  it('Constricteur sur un démon qui RATE sa sauvegarde : Empêtré', () => {
+    expect(empetre(frappe(5))).toBeDefined();
+  });
+
+  // LDB 85 l.75 ; LDB 85 l.134 ; LDB 14 l.159
+  it.each(['ethere'] as const)('Constricteur sur une touche SANS PRISE (%s), non ignorée : Empêtré', (sansPrise) => {
+    const serpent = mk('enemy', 'serpent', { pos: { x: 0, y: 0 }, traits: [{ id: 'constricteur' }] as never });
+    const cible = mk('hero', 'cible', { pos: { x: 1, y: 0 } });
+    setBattle([serpent, cible]);
+    const crocs = { label: 'Crocs', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+    applyAttackResult(banc.getState, banc.setState, serpent, cible, crocs, { ...touche(), woundsLost: 0, damage: 0, sansPrise });
+    expect(empetre(banc.getState().battle!.combatants.find((c) => c.id === cible.id)!)).toBeDefined();
+  });
+});
+
+// LDB 62 l.307 ; LDB 85 l.98
+describe('Atout Taille : un coup IGNORÉ n’entame pas l’armure', () => {
+  const frappe = (de: number): Combatant => {
+    const heros = mk('hero', 'h', { pos: { x: 0, y: 0 } });
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    setBattle([heros, demon]);
+    const hache = { label: 'Grande hache', type: 'melee', damage: { plusBF: true, flat: 6 }, qualities: [{ id: 'taille' }] } as unknown as Weapon;
+    applyAttackResult(banc.getState, banc.setState, heros, demon, hache, touche());
+    poser(de);
+    return banc.getState().battle!.combatants.find((c) => c.id === demon.id)!;
+  };
+
+  it('démon qui SAUVE : armure intacte', () => {
+    expect(frappe(9).armour.corps).toBe(3);
+  });
+
+  it('démon qui RATE sa sauvegarde : 1 PA perdu', () => {
+    expect(frappe(5).armour.corps).toBe(2);
+  });
+});
+
 describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', () => {
   /** Projectile arcane MINIMAL (non curé → aucun Flow) : Dégâts 8 + DR + BFM. */
   const missileSpell = (): never =>
