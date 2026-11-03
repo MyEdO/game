@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
-import { ficheDEntite } from '../noyau/monde/sceneNpc';
-import { memoByRef } from '../noyau/monde/sceneMemo';
+import { ficheDEntite } from './monde/sceneNpc';
+import { memoByRef } from './monde/sceneMemo';
 import { consumeAmmo } from '../engine/items';
-import type { Scene, SceneEntity } from '../noyau/monde/scene';
-import { presetPnjById } from './campaignData';
+import type { Scene, SceneEntity } from './monde/scene';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
 
 // #2097 — `consumeAmmo` écrit le stock `poste.ammo` hydraté au spawn (`hydratePoste`).
 const geler = memoByRef((s: Scene) => s);
+/** Hors campagne : aucun narratif chargé. */
+const presetPnjById = presetDuNarratif(null);
 
 function coqueArmee(): { scene: Scene; ent: SceneEntity } {
   const scene = testScenarios.find((s) => s.id === 'combat-naval')!.construire().scene;

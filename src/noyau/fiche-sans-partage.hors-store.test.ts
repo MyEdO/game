@@ -1,13 +1,12 @@
 import { it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
-import { ficheDEntite, sceneNpc } from '../noyau/monde/sceneNpc';
-import { memoByRef } from '../noyau/monde/sceneMemo';
+import { ficheDEntite, sceneNpc } from './monde/sceneNpc';
+import { memoByRef } from './monde/sceneMemo';
 import { atteignables, objetsDuCatalogue } from '../scenes/partage.testkit';
-import { useGame } from './store';
-import type { Scene } from '../noyau/monde/scene';
+import type { Scene } from './monde/scene';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { presetPnjById } from './campaignData';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
 
 // #2097
 const geler = memoByRef((s: Scene) => s);
@@ -28,7 +27,7 @@ it('aucun combattant né d’une scène n’atteint la scène mémorisée ni le 
   const fautes: string[] = [];
   let fiches = 0;
   for (const lot of lots) {
-    useGame.setState({ campaignNarratif: lot.narratif });
+    const presetPnjById = presetDuNarratif(lot.narratif);
     const narratif = new Set(atteignables(lot.narratif, 'narratif').keys());
     for (const original of lot.scenes) {
       const scene = structuredClone(original);
