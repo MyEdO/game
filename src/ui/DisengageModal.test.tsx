@@ -10,7 +10,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { refLabel } from '../data';
 import { testBreakdown } from './breakdown';
 import { difficultyText } from '../noyau/difficultyText';
-import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../engine/ficheDeTest.testkit';
 import { lignesDeJet } from './ligneDeJet.testkit';
 import { clampTarget, cibleDuTest } from '../engine/tests';
 import { valeurDuTest } from '../engine/skills';

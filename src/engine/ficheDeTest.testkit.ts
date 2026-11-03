@@ -6,8 +6,8 @@
  */
 import { regles, type RegleData } from '../data';
 import { setDataset } from '../data/overrides';
-import { TESTS_DE_REGLE } from '../engine/ruleRefs';
-import type { Difficulty } from '../engine/types';
+import { TESTS_DE_REGLE } from './ruleRefs';
+import type { Difficulty } from './types';
 
 type Regle = keyof typeof TESTS_DE_REGLE;
 type Cle<R extends Regle> = (typeof TESTS_DE_REGLE)[R][number];

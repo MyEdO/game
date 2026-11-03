@@ -318,7 +318,7 @@ describe('#1262 B4 — la sonde de murage de `pushCombatStep` est TUEUSE', () =>
  * (`cascade-step-stake-guard.test.ts`). Le murage n'est complet qu'à DEUX serrures : celle-ci ferme
  * les mints (`tableStep`/`tableStepDone`), et `revealStep.ts` ferme la 3ᵉ fabrique exemptée du lint
  * ci-dessus — son `opts.table` accepte seulement une déclaration RÉSOLUE (`CascadeTableDone`), mesuré
- * par `reveal.test.ts`. Ce qui remplace le scan doit MORDRE : la sonde rejoue les DEUX signatures sur
+ * par `reveal.hors-store.test.ts`. Ce qui remplace le scan doit MORDRE : la sonde rejoue les DEUX signatures sur
  * un programme TypeScript réel — requise, la directive est consommée ; optionnelle, elle devient
  * inutilisée (TS2578). Sans ce rouge, les `@ts-expect-error` de `roll-seam-mints` ne prouveraient
  * rien, et le lot aurait retiré un scan sans rien mettre à sa place.

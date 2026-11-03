@@ -162,7 +162,7 @@
     "fichier": "src/engine/tests.ts",
     "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
     "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
-    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
+    "verrou": "sea-voyage-flow.hors-store.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
   },
   {
     "id": "optionChooser",
@@ -285,7 +285,7 @@
     "fichier": "src/noyau/combatOrParty.ts",
     "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
-    "verrou": "couture-de-retour.test.ts"
+    "verrou": "couture-de-retour.hors-store.test.ts"
   },
   {
     "id": "depenserPx",
@@ -294,7 +294,7 @@
     "fichier": "src/noyau/partyFlow.ts",
     "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
     "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
-    "verrou": "couture-de-retour.test.ts"
+    "verrou": "couture-de-retour.hors-store.test.ts"
   },
   {
     "id": "meneurDuMonde",
