@@ -17,11 +17,20 @@ import { RNG } from '../engine/dice';
 import { endOfRound, bleedDeathRoll, tickDeath, hasCondition } from '../engine/conditions';
 import { fateSaveOrDie } from '../engine/fortune';
 import { fireConditionEffects } from './triggeredEffects';
+import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
+import { spellOps } from '../engine/flowCore';
+import { findConditionById } from '../data';
 import { t } from '../i18n';
 
-/** A-t-il un effet périodique (perte de PB chaque Round) OU est-il à 0 PB (progression vers l'Inconscience) ? */
+/** L'État `id` inflige-t-il des Dégâts à chaque fin de Round (un effet `onRoundEnd` porteur de `wounds`) ? */
+const degatsPeriodiques = (id: string): boolean =>
+  (findConditionById(id)?.effects ?? []).some((e) => e.trigger === 'onRoundEnd' && spellOps(e.flow, 'target').some((o) => o.op === 'wounds'));
+
+/** Porte-t-il un État à Dégâts périodiques dont il ne soit pas immunisé aux Dégâts (`degatsDeLEtatIgnores`,
+ *  LDB 85 l.174) OU est-il à 0 PB (progression vers l'Inconscience) ? */
 function needsUpkeep(c: Combatant): boolean {
-  return c.wounds.current <= 0 || hasCondition(c, 'hemorragique') || hasCondition(c, 'empoisonne') || hasCondition(c, 'en-flammes');
+  return c.wounds.current <= 0
+    || c.conditions.some((x) => hasCondition(c, x.id) && degatsPeriodiques(x.id) && !degatsDeLEtatIgnores(c.traits, x.id));
 }
 
 /** Porte-t-il quelque chose que la FRONTIÈRE DE ROUND fait avancer — ops récurrentes à rejouer, durées
@@ -50,7 +59,7 @@ export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG):
       if (!needsUpkeep(c)) {
         // TIC SEUL : la frontière de Round avance (ops récurrentes, durées), SANS l'entretien du porteur
         // en péril (Test de récupération du Sonné, auto-dissipation d'États, agonie) — celui-ci reste
-        // réservé aux quatre causes de `needsUpkeep`.
+        // réservé aux causes de `needsUpkeep`.
         if (!hasRoundTick(c)) continue;
         active = true;
         endOfRound(c, rng).forEach((l) => log.push(l));

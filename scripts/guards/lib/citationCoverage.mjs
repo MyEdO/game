@@ -158,7 +158,7 @@ export const EXEMPT_DATASETS = {
   // (`reglesOptionnelles.json` n'est PAS exempté : sa dette de folios est un cliquet DÉCROISSANT,
   //  `BASELINES` de `src/data/citation-coverage-guard.test.ts` — E8 du programme #1318.)
   'groups.json': "vocabulaire app-interne de GROUPES de créatures (tags de regroupement/rencontre), pas une notion RAW nommée.",
-  'damage-types.json': "vocabulaire de catégorisation (id+label uniquement) — aucune valeur mécanique propre à sourcer.",
+  'damage-types.json': "vocabulaire de catégorisation (argument du Trait Immunité) ; le `domaine` d'une entrée se source au schéma (`src/data/schemas/defs/damage-types.ts`), aucune entrée n'est une règle à citer.",
   'qualityTypes.json': "vocabulaire de catégorisation des Qualités/Défauts (id+label, Atout/Défaut) — aucune valeur mécanique propre.",
   'qualitySubtypes.json': "vocabulaire de catégorisation des Qualités/Défauts (id+label, Arme/Armure/Objet) — aucune valeur mécanique propre.",
   'pregens.json': "personnages PRÉ-GÉNÉRÉS d'authoring (fiches jouables), contenu app-inventé — pas une règle RAW à sourcer.",

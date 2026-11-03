@@ -5,7 +5,7 @@
  * recomputeLoadout : équiper une hache ou une armure change donc le combat.
  */
 import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, WeaponLoadout, WeaponDamageSpec, QualityInstance, type EffectSource, type ReachValue, type ShipPoste, type AuthoredShipPoste, type WeaponRangeSpec, type RangeBandId, type FireArc, type CharKey } from './types';
-import { bonus, baseWithTraits, effectiveChar } from './characteristics';
+import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised, effectiveWeaponRange } from './weaponDamage';
 import { armourMaterialOf } from './armourBypass';
@@ -1274,7 +1274,7 @@ export function loadedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undefin
 /** Portée de TIR de l'arme `w` aux mains de `c` (mètres) : sa munition chargée (`loadedAmmo`) et le BF
  *  courant du tireur (paresseux). SOURCE UNIQUE des sites de combat (bandes, gates, IA, rendu). LDB 62. */
 export function porteeDeTir(c: Combatant, w: Weapon): number | null {
-  return effectiveWeaponRange(w, loadedAmmo(c, w)?.ammoRangeMod, () => bonus(effectiveChar(c, 'force')));
+  return effectiveWeaponRange(w, loadedAmmo(c, w)?.ammoRangeMod, () => bonusDeForce(c));
 }
 
 /** CHARGE une arme : pose ENSEMBLE, DANS SON REGISTRE, l'état de charge (`loaded`, `reloadProgress`,

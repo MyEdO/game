@@ -16,6 +16,7 @@ import { DrBar } from './DrBar';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
+import { refusDeReserveDeDetermination } from '../engine/conditions';
 import type { FLOW_VERBS } from '../noyau/flowVerbs';
 import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
 import { t } from '../i18n';
@@ -106,7 +107,7 @@ export function RollRow({
   const rowName = typeof row.d?.label === 'string' ? row.d.label
     : typeof row.pending?.label === 'string' ? row.pending.label
       : actor?.label;
-  const determineBtn = determination && determination.resolve > 0 && (
+  const determineBtn = determination && !refusDeReserveDeDetermination(determination.resolve) && (
     <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap>
       <button className="btn btn-resource" onClick={determination.onResolve}>
         <Icon id="resource/resolve" size="sm" /> Détermination ×{determination.resolve}
@@ -191,7 +192,7 @@ export function RollRow({
             {reverse && <ReverseButton show onReverse={reverse.onReverse} preview={reverse.preview} />}
             {/* Détermination (LDB 17 l.59) : POOL DISTINCT de la Résilience — sa fenêtre est la
                 PRÉSENCE de la donnée `determination` posée par le site, et sa réserve son propre
-                compteur (`resolve > 0`, porté par le bouton). Jamais gatée par la Résilience. */}
+                compteur (`refusDeReserveDeDetermination`, porté par le bouton). Jamais gatée par la Résilience. */}
             {determineBtn}
           </InfluenceRow>
         </>

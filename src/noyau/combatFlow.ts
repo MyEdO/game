@@ -155,7 +155,7 @@ import {
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
-import { effectiveChar, bonus } from '../engine/characteristics';
+import { effectiveChar, bonus, bonusDeForce } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
@@ -970,7 +970,7 @@ export function previewAttack(
     : combatDistance(attacker, target);
   // Estimation de dégâts (R4) : dégâts d'arme (Force incluse) et encaissé de la cible. Le `soak` est dérivé
   // de `woundsFromHit` (oracle) avec un dégât large → capture exactement PA + réduction d'armure (Perforante…).
-  const dmg = effectiveWeaponDamage(weapon, bonus(effectiveChar(attacker, 'force')));
+  const dmg = effectiveWeaponDamage(weapon, bonusDeForce(attacker));
   const base = combatValue(attacker, kind, weapon);
   const loc = location ?? 'corps';
   const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
@@ -3255,7 +3255,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   // L'arme BRISÉE disparaît des mains du porteur : le journal le dit UNE fois, par la PREMIÈRE cause
   // (Bâclé ici, sinon la ligne de l'Incident), sans quoi elle s'évapore en silence.
   if (casse === 'brisee' && hasQuality(weapon, 'bacle')) log.push(tr('store.toolBroken', { tool: weapon.label, name: c.label }));
-  const sb = bonus(effectiveChar(c, 'force'));
+  const sb = bonusDeForce(c);
   const units = r.roll % 10;
   switch (r.kind) {
     case 'selfWound':
@@ -5879,8 +5879,8 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   const caster = actorIn(get(), touche.casterId);
   if (!caster) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: touche.spell.label })] };
   const spell = touche.spell;
-  // Manifestation de Ghur (Middenheim, #18) : un Projectile du Domaine de la Bête n'affecte PAS le
-  // porteur — ses Dégâts ET ses effets (effets négatifs du Sort de la Bête) sont sautés sur cette cible.
+  // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28) :
+  // ses Dégâts ET ses effets sont sautés sur cette cible.
   if (immuneToSpellDomain(cible.traits, spell.domainId)) return clore(get, touche, [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
   const lignes: string[] = [];
   let mres = touche.mres;
@@ -6144,8 +6144,7 @@ export function applyCast(
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
         if (opp?.resisted) { logLines.push(tr('cf.spellResisted', { name: t.label, spell: spell.label })); continue; }
-        // Manifestation de Ghur (Middenheim, #18) : un Sort du Domaine de la Bête n'applique aucun de ses
-        // effets au porteur (immunité par lore — `spellDomainImmunity`, lue par id depuis ses Traits).
+        // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28).
         if (immuneToSpellDomain(t.traits, spell.domainId)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
         // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
         // cible — magnitude et durée échelonnées sur `ctx.sl` suivent ; sous le NI, le Sort ne l'affecte plus.
@@ -6252,6 +6251,8 @@ export function applyCast(
     for (const t of [target, ...extraTargets]) {
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
       if (extras?.opposedOutcome?.[t.id]?.resisted) continue;
+      // Immunité de Domaine (`domainesImmunises`) : le rider est un effet du Sort. VDM 13 l.24, l.61 ; ZI 08 l.28
+      if (immuneToSpellDomain(t.traits, spell.domainId)) continue;
       // Riders « à la touche » du Domaine = DONNÉE (`domains.json`), dispatchés comme les autres onHit ;
       // le gating « cible adverse / vivante / résiste par Talent » vit dans les Conditions Flow.
       logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }));

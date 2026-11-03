@@ -14266,31 +14266,43 @@
       "kind": "seq",
       "steps": [
         {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "wounds",
-                "ignoreTB": false,
-                "ignoreAP": true,
-                "amount": {
-                  "dice": {
-                    "n": 1,
-                    "sides": 10
+          "kind": "if",
+          "cond": {
+            "kind": "not",
+            "of": {
+              "kind": "has",
+              "who": "target",
+              "what": "immunity",
+              "value": "poison"
+            }
+          },
+          "then": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "wounds",
+                  "ignoreTB": false,
+                  "ignoreAP": true,
+                  "amount": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  },
+                  "perSL": {
+                    "every": 1,
+                    "amount": 1
                   }
                 },
-                "perSL": {
-                  "every": 1,
-                  "amount": 1
+                {
+                  "op": "condition",
+                  "id": "empoisonne"
                 }
-              },
-              {
-                "op": "condition",
-                "id": "empoisonne"
-              }
-            ]
+              ]
+            }
           }
         }
       ]

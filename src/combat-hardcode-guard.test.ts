@@ -110,7 +110,6 @@ const BASELINES: Record<string, number> = {
   // #413 (2026-07-14) — stock révélé par la fermeture du loophole d'instrumentation, GELÉ
   'src/engine/conditions.ts': 2, // isOutOfAction coque — hasCondition(c, 'naufrage') (MDG 13 l.674) ; usesSuddenDeath — hasTalent(c, 'chanceux') (AA 07 l.67)
   'src/engine/exposure.ts': 1, // gate hypothermie — hasCondition(c, 'inconscient') derrière wounds<=0 (l.111)
-  'src/noyau/outOfCombatUpkeep.ts': 1, // gate de veille — hasCondition(c, …) derrière wounds<=0 (l.11)
   'src/noyau/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)
   'src/noyau/travelPostes.ts': 2, // instrumentation voyage — stacks(h, 'extenue') (l.278,308)
   // #3059 — stock révélé par le retrait du helper local `condStacks`, qui échappait au scan, GELÉ

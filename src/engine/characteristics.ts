@@ -87,6 +87,12 @@ export function effectiveChar(c: Combatant, key: CharKey): number {
   return charRetenue(c, key);
 }
 
+/** Bonus de Force de `c` : bonus de sa Force effective + Σ des passifs `sbBonus`. SOURCE UNIQUE de tout
+ *  lecteur du BF (Dégâts, Portée `{bf}`, fiche, IA). LDB 21 l.33 */
+export function bonusDeForce(c: Combatant): number {
+  return passiveMods(c).reduce((n, m) => n + (m.op.op === 'sbBonus' ? m.op.amount : 0), bonus(effectiveChar(c, 'force')));
+}
+
 /** Caractéristique qui entre dans le recalcul des Blessures max : sans les effets `blessuresAuTotal` (#3060). */
 function charDesBlessures(c: Combatant, key: CharKey): number {
   return charRetenue(c, key, (e) => !e.blessuresAuTotal);
