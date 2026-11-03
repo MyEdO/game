@@ -4,11 +4,11 @@
 // `pont/CONTRAT.md`, section « Écran publié ») : le texte et le centre de chaque bouton, le point de chaque case, l'état
 // de l'atelier. Aucun geste ne passe par le pont : chaque intention part d'un clic, d'un cran de molette ou d'une frappe.
 // Chaque parcours s'ouvre depuis le menu d'entrée :
-// - `combat` (défaut) : la fenêtre du round à l'Entrée, une charge sur l'ennemi le plus proche, la localisation, le
-//   jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche d'une case (aperçu puis
-//   déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de Godot jusqu'à la Défense du
-//   héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la partie, et chaque bouton se
-//   trouve par le texte que la vue lui donne.
+// - `combat` (défaut) : la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
+//   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
+//   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
+//   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
+//   partie, et chaque bouton se trouve par le texte que la vue lui donne.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
 //   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
@@ -120,10 +120,11 @@ async function parcoursCombat() {
   assert.equal(heros?.camp, 'hero', 'un héros est actif')
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
-  const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
   await cliquerBouton(v.panneau.offres.charge)
   v = await vue()
   assert.equal(v.projection.combat.intention, 'charge', 'l’offre arme son intention')
+  const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
+  assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   noter(`offre ${v.panneau.offres.charge} : intention charge, ${v.cases.length} cases peintes`)
   await cliquerCase({ x: proche.pos[0], y: proche.pos[1] })
   await attendreLaVue('v.attaque && v.fenetre')
@@ -206,14 +207,15 @@ function importer(dossier, id, options = []) {
 /** Le `deltaY` d'un cran de molette de Chrome sous Windows. Le panneau en défile moins que la hauteur de sa fenêtre :
  *  aucun bouton ne passe entre deux écrans publiés (#3111). */
 const CRAN_DE_MOLETTE = 100
-/** Un cran de molette au point `ou`, vers le bas (`sens` 1) ou le haut (-1), puis un écran neuf attendu (le défilement
- *  publie, `atelier.gd` `value_changed`) ; `false` si rien ne se publie en `FIN_DE_COURSE_MS`. Toute publication rend
- *  `true` : pendant la lecture d'un clip, chaque image publie, même au bout de course (`amener` reste borné par `CRANS`). */
+/** Un cran de molette au point `ou`, vers le bas (`sens` 1) ou le haut (-1) : `true` si le défilement publié de l'atelier
+ *  (`atelier.defilement`) change en `FIN_DE_COURSE_MS`, `false` sinon, au bout de course. Une publication sans défilement
+ *  (chaque image d'un clip lu) ne compte pas. */
 const FIN_DE_COURSE_MS = 3000
 async function cran(sens, ou) {
-  await marquer()
+  const avant = (await atelier()).defilement
+  assert.equal(typeof avant, 'number', `l'atelier publie son défilement ; reçu ${JSON.stringify(avant)}`)
   await molette(session, { surface: 'canvas', x: ou.x, y: ou.y }, sens * CRAN_DE_MOLETTE)
-  return nouvelEcran(FIN_DE_COURSE_MS).then(
+  return waitFor(session, `(() => { const d = globalThis.wfrpEcran?.atelier?.defilement; return typeof d === 'number' && d !== ${avant} })()`, { timeoutMs: FIN_DE_COURSE_MS }).then(
     () => true,
     (e) => {
       if (e.code === ATTENTE_ECHUE) return false

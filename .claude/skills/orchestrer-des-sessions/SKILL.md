@@ -17,9 +17,9 @@ Doctrine : fiche `.claude/memory/user-doctrine-orchestrateur-de-sessions-max5.md
   le travail d'un chantier.
 - **Il lance des orchestrateurs d'agents.** Toute session lancée, Claude ou Codex, orchestre des AGENTS
   sur son lot (skill `orchestrer-des-agents`), jamais des sessions. Elle dépêche ses codeurs, juges et
-  recetteurs. Une session Claude committe par chemins sur sa branche ; une session Codex laisse son diff
-  au train de l'annexe `codex.md`. Un lot qui exige une autre session se demande à
-  l'orchestrateur, avec son brief. Une session ne reçoit jamais un brief de codeur : il la ferait
+  recetteurs. Une session Claude mène son lot de bout en bout : commit par chemins sur sa branche,
+  `ops:publier`, CI verte, solde ; une session Codex laisse son diff au train de l'annexe `codex.md`.
+  Un lot qui exige une autre session se demande à l'orchestrateur, avec son brief. Une session ne reçoit jamais un brief de codeur : il la ferait
   coder seule au lieu de dépêcher ses agents.
 - **Codex suit sa consigne à la lettre**, là où une session Claude corrige une consigne faible. Une
   consigne Codex se cadre donc plus serré : annexe `.claude/skills/orchestrer-des-sessions/codex.md`.
@@ -34,11 +34,14 @@ Doctrine : fiche `.claude/memory/user-doctrine-orchestrateur-de-sessions-max5.md
 ## Cycle
 
 1. **Consigne** : `.git/suivi/consignes/<ticket>-<lot>.md`. Elle porte toujours :
+   - le lot : un ticket entier, ou un lot fermé, mené jusqu'à sa publication ; ses restes se corrigent
+     dans le lot ou s'ouvrent en ticket, jamais rendus en question ;
    - le contexte, avec le ticket et son arbitrage à lire (`gh issue view N`) ;
    - pour chaque point, la CAUSE supposée et le CONTRAT à tenir, jamais une simple liste de tests à
      verdir ;
    - l'ouverture par le skill `orchestrer-des-agents`, et l'interdit d'ouvrir une session ;
-   - le worktree absolu, les interdits git, aucun appel de plus de 270 s, le budget ;
+   - le worktree absolu, les interdits git destructifs (une session Claude committe et publie
+     elle-même), aucun appel de plus de 270 s, le budget ;
    - les preuves attendues et la forme du rendu, avec une ligne « Friction : quoi · coût · outil ».
 2. **Lancement** : `npm run ops:session -- lancer <consigne> --ticket <N> --agent claude|codex --json`.
    Plusieurs sessions vivantes peuvent servir le même ticket ; chacune porte un nom distinct. Le nom
@@ -57,7 +60,8 @@ Doctrine : fiche `.claude/memory/user-doctrine-orchestrateur-de-sessions-max5.md
    `{"jeton":"…"}`). Une session n'est jamais gardée au repos : son cache refroidit. Le lot suivant part
    dans une session NEUVE, jamais par `--resume` ni par un message à une session rendue. `archiver`
    range sous `sessions/archive/` les cartes en anomalie dont aucune identité ne vit.
-5. **Vérification, par l'orchestrateur, jamais sur la foi du rapport** : relecture du diff, juge de diff
-   Claude quand il est dû (règle de jeu, socle, structure ; `orchestrer-des-agents`), puis commit par chemins, push et CI de branche (skill `orchestrer-des-agents`, annexes
-   `publication.md` et `fermeture.md`). La consigne exige les preuves des effets à distance (étape 6 du
-   même skill).
+5. **Vérification, par l'orchestrateur, jamais sur la foi du rapport** : relecture de la plage publiée,
+   juge de diff Claude quand il est dû (règle de jeu, socle, structure ; `orchestrer-des-agents`) ; un
+   défaut part dans un lot neuf. Le diff d'une session Codex, l'orchestrateur le committe et le publie
+   (annexe `codex.md` ; skill `orchestrer-des-agents`, annexes `publication.md` et `fermeture.md`). La
+   consigne exige les preuves des effets à distance (étape 6 du même skill).
