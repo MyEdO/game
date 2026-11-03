@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
+import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -2114,6 +2114,14 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
   rollLabel?: string;
+  /** COMPÉTENCE réellement lancée (id + Spécialisation), posée par le mint depuis le Test de la ligne —
+   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skillId`. Absente : Test de
+   *  Caractéristique, ou étape sans jet. */
+  skillId?: string;
+  spec?: string;
+  /** CONTEXTE du Test de l'étape (LDB 12 l.42), déclaré par son producteur (Psychologie, péril des eaux)
+   *  — lu par l'inversion, qui n'offre une source qu'au Test que son passage vise. */
+  contexte?: ContexteDeTest;
   /** ENJEU de l'étape (#331/#1117) : ce que le jet met en jeu — une RÉFÉRENCE de donnée (`StakeRef` :
    *  clé de dataset + valeurs calculées), JAMAIS un texte. Le résolveur UNIQUE (`resolveStake`) rend
    *  le texte ET la fiche de règle au moment de l'affichage : un producteur ne peut ni écrire l'enjeu

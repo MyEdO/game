@@ -309,6 +309,7 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // Tir rapide (#1050) : le badge de la frise ARME la visée ; le tir lui-même part du clic-token.
   armPreempt: { parUI: true },
   cascadeResist: { parUI: true },
+  cascadeReverse: { parUI: true },
   // PHASE 1 du Contre-sort (#1042/#1059) : le choix de déclaration vit SUR la rangée, dans la modale
   // d'incantation ; « tout déclarer » est un verbe NULLAIRE du drive d'auto-cadence (aucun bouton).
   counterspellDeclare: { parUI: true },

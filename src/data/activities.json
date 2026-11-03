@@ -302,7 +302,7 @@
     "stageOutcome": "rerollToken",
     "maison": "La liste des Compétences « qu'il est possible de pratiquer en voyageant » est ouverte (« etc. », EDOC 8 l.172) : par défaut, toutes les Compétences du catalogue, chacune offerte si le Personnage peut la tenter (LDB 09 l.30), une Spécialisation à la fois (LDB 09 l.44).",
     "desc": "La monotonie du voyage représente pour de nombreux Personnages le moment idéal pour pratiquer leurs Compétences en vue des épreuves à venir. Un Personnage peut effectuer un Test **Intermédiaire (+0)** d'une seule Compétence qu'il est possible de pratiquer en voyageant : Orientation, Métier (Herboristerie), Langue (Wastelander), etc. Une Réussite signifie que le Personnage peut inverser le résultat d'un Test en utilisant cette Compétence au cours de l'aventure suivante, ou de toute étape ultérieure du voyage.",
-    "stake": "Réussite : la Compétence pratiquée devient inversable plus tard — jeton non posé, le moteur ne fait que l'annoncer. Échec : un État Exténué.",
+    "stake": "Réussite : un Test de la Compétence pratiquée pourra être inversé au cours de l'aventure suivante. Échec : un État Exténué.",
     "stakeForm": "descripteur"
   },
   {
@@ -458,13 +458,30 @@
       }
     ],
     "difficulty": "tresDifficile",
-    "onSuccess": [
+    "outcomes": [
       {
-        "op": "removePsychTrait"
+        "on": "success",
+        "ops": [
+          {
+            "op": "removePsychTrait"
+          }
+        ]
+      },
+      {
+        "on": "failure",
+        "ops": [
+          {
+            "op": "grantReverseToken",
+            "skill": {
+              "id": "calme"
+            },
+            "contexte": "psych"
+          }
+        ]
       }
     ],
     "desc": "Vous faites des efforts concertés pour vous reposer et réfléchir, et tenter de trouver la paix sans vous soucier des peines d'autrui. Effectuez un Test de **Calme Très Difficile (–30)**. La difficulté peut être réduite en fonction de la qualité des soins reçus. En cas de réussite, vous pouvez éliminer un Trait Psychologique de votre choix. Même en cas d'échec, vous vous sentez mieux après avoir fait face à vos problèmes et pouvez inverser un Test de **Calme** pour résister aux effets du Trait Psychologique au cours de votre prochaine aventure.",
-    "stake": "Réussite : un Trait psychologique de ton choix disparaît. Échec : aucun effet.",
+    "stake": "Réussite : un Trait psychologique de ton choix disparaît. Échec : un Test de Calme pour résister à un Trait Psychologique pourra être inversé au cours de la prochaine aventure.",
     "stakeForm": "descripteur"
   },
   {

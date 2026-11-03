@@ -5,7 +5,7 @@
  * jamais consommé à l'ouverture de l'interlude suivant (`noyau/upkeep.purgeAdventureEffects`).
  *
  * « Inverser un Test » (LDB 12 l.42) = intervertir le chiffre des unités et des dizaines du d100
- * (`reverseRoll`, engine/combat.ts) — PAS une relance. Deux VOIES, deux gates RAW DISTINCTES (#508
+ * (`reverseRoll`, engine/tests.ts) — PAS une relance. Deux VOIES, deux gates RAW DISTINCTES (#508
  * réfutation) :
  *  - le Talent PERMANENT (`talentReverseFailed`, LDB 10 — Chat de gouttière/Lecture rapide/Noctambule/
  *    Pansement de fortune/Pharmacologie/Pilote/Sociable/Studieux) : « inverser un Test RATÉ si cela
@@ -16,84 +16,105 @@
  *    appartenant au joueur (#558) — elle peut donc dégrader un succès existant, assumé par le clic.
  * `reverseAvailable` pilote l'offre du verbe (rangée d'influence, jamais un popup) ; `applyReverse`
  * l'exécute SEULEMENT sur clic, Talent d'abord (gratuit, illimité) PUIS jeton (consommé).
+ *
+ * Chaque source ne vaut que sur les Tests que son passage vise (LDB 12 l.42) : la Compétence ET le
+ * contexte (`ReverseQuery.contexte`), lus par les deux voies. L'issue jugée (« si cela entraîne un
+ * succès ») et annoncée est celle de la RANGÉE du flux (`EvaluationDeRangee` : ré-opposition, +DR), la
+ * même que celle qu'elle écrit.
  */
-import type { Combatant } from './types';
+import type { ActiveEffect, Combatant, ReverseQuery } from './types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { reverseRoll } from './combat';
-import { evaluateTest } from './tests';
+import { evaluateTest, reverseRoll } from './tests';
 import { talentReverseFailed } from './combatFeatures/dispatch';
 import { removeActiveEffects } from './conditions';
 
-/** Un jeton d'inversion couvre-t-il le Test `{skill, spec}` ? `skill` absent sur le jeton = tout Test
- *  (« Observer une cible », l.218) ; sinon match STRUCTURÉ par id (comme `talentReverseFailed`). */
-function tokenMatches(tok: { skill?: string; spec?: string }, q: { skill?: string; spec?: string }): boolean {
+/** Issue d'un dé pour une rangée : dé, DR, réussite. */
+export interface IssueDuDe { roll: number; sl: number; success: boolean }
+
+/** ÉVALUATION de la rangée d'un flux : ce qu'elle fait du Test naturel `tr` (ré-opposition au jet figé,
+ *  +DR de Talent…). `null` = la rangée ne s'évalue pas. Absente : l'issue est celle du Test naturel. */
+export type EvaluationDeRangee = (tr: IssueDuDe) => IssueDuDe | null;
+
+const TEST_NATUREL: EvaluationDeRangee = (tr) => tr;
+
+function naturel(roll: number, target: number): IssueDuDe {
+  const e = evaluateTest(roll, target);
+  return { roll: e.roll, sl: e.sl, success: e.success };
+}
+
+/** Un jeton d'inversion couvre-t-il le Test `q` ? Contexte d'abord (un jeton à contexte ne vaut que dans
+ *  ce contexte, ADE II 09 l.33), puis Compétence : `skill` absent sur le jeton = tout Test (l.218) ; sinon
+ *  match STRUCTURÉ par id (comme `talentReverseFailed`). */
+function tokenMatches(tok: ReverseQuery, q: ReverseQuery): boolean {
+  if (tok.contexte != null && tok.contexte !== q.contexte) return false;
   if (tok.skill == null) return true;
   return refCouvre({ id: tok.skill, spec: tok.spec }, { id: q.skill, spec: q.spec });
 }
 
-/** Peek NON-CONSOMMANT (miroir de `consumeReverseToken`) : `c` porte-t-il un jeton applicable à
- *  `{skill, spec}` ? Pilote la disponibilité UI sans dépenser le jeton avant le clic du joueur. */
-export function hasReverseToken(c: Combatant, q: { skill?: string; spec?: string }): boolean {
-  const effects = c.activeEffects ?? [];
-  return effects.some((e) => e.reverseToken && tokenMatches(e.reverseToken, q));
+/** Rang de spécificité d'un jeton : contexte, puis Compétence, puis Spécialisation. */
+function specificite(tok: ReverseQuery): number {
+  return (tok.contexte != null ? 4 : 0) + (tok.skill != null ? 2 : 0) + (tok.spec != null ? 1 : 0);
 }
 
-/** Consomme le PREMIER jeton d'inversion de `c` couvrant `{skill, spec}`, le retire de `c.activeEffects`
- *  et renvoie `true` — `false` si aucun jeton ne correspond (rien de consommé, 0 excédent = 0 effet). */
-export function consumeReverseToken(c: Combatant, q: { skill?: string; spec?: string }): boolean {
-  const jeton = (c.activeEffects ?? []).find((e) => e.reverseToken && tokenMatches(e.reverseToken, q));
+/** Le jeton de `c` qui couvre `q` — le PLUS SPÉCIFIQUE : un jeton générique (« Observer une cible ») ne
+ *  se brûle pas là où un jeton taillé pour ce Test s'applique. */
+function jetonApplicable(c: Combatant, q: ReverseQuery): ActiveEffect | undefined {
+  let best: ActiveEffect | undefined;
+  for (const e of c.activeEffects ?? []) {
+    if (!e.reverseToken || !tokenMatches(e.reverseToken, q)) continue;
+    if (!best || specificite(e.reverseToken) > specificite(best.reverseToken!)) best = e;
+  }
+  return best;
+}
+
+/** Consomme le jeton d'inversion de `c` couvrant `q` (le plus spécifique), le retire de `c.activeEffects`
+ *  et renvoie `true` — `false` si aucun jeton ne correspond (rien de consommé). */
+export function consumeReverseToken(c: Combatant, q: ReverseQuery): boolean {
+  const jeton = jetonApplicable(c, q);
   if (!jeton) return false;
   removeActiveEffects(c, (e) => e === jeton);
   return true;
 }
 
-/** Le TALENT permanent (LDB 10) offre-t-il l'inversion pour CE jet (`roll` vs `target`) ? Gate STRICTE
- *  RAW : un Test RATÉ que l'inversion transformerait en réussite — jamais offert sur un succès
- *  (contrairement au jeton d'Activité, `tokenReverseAvailable`). */
-export function talentReverseAvailable(c: Combatant, q: { skill?: string; spec?: string }, roll: number, target: number): boolean {
-  if (q.skill == null || talentReverseFailed(c, q) == null) return false;
-  if (evaluateTest(roll, target).success) return false; // Talent : seulement sur un Test RATÉ
-  return evaluateTest(reverseRoll(roll), target).success;
+/** Le Test naturel que la voie TALENT pose (dé renversé, DR plafonné), `null` si elle n'est pas offerte :
+ *  gate STRICTE RAW (LDB 10) — la rangée est RATÉE et l'inversion la rend réussie. */
+function voieTalent(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee): IssueDuDe | null {
+  const rf = talentReverseFailed(c, q);
+  if (!rf) return null;
+  const actuel = evaluer(naturel(roll, target));
+  if (!actuel || actuel.success) return null;
+  const nat = naturel(reverseRoll(roll), target);
+  const tr = rf.capDR != null ? { ...nat, sl: Math.min(nat.sl, rf.capDR) } : nat;
+  return evaluer(tr)?.success ? tr : null;
 }
 
-/** Le JETON d'Activité (LDB 23 l.209/218) offre-t-il l'inversion pour `{skill, spec}` ? LIBRE : ni
- *  restriction d'échec ni de conversion (RAW « vous pouvez inverser un Test », sans condition). */
-export function tokenReverseAvailable(c: Combatant, q: { skill?: string; spec?: string }): boolean {
-  return hasReverseToken(c, q);
+/** Le Test naturel que l'inversion pose et sa voie, `null` si aucune n'est offerte. Le jeton est LIBRE
+ *  (LDB 23 l.209/218 « vous pouvez inverser un Test », sans condition). */
+function inversion(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee): { tr: IssueDuDe; viaTalent: boolean } | null {
+  const talent = voieTalent(c, q, roll, target, evaluer);
+  if (talent) return { tr: talent, viaTalent: true };
+  return jetonApplicable(c, q) ? { tr: naturel(reverseRoll(roll), target), viaTalent: false } : null;
 }
 
 /** `c` dispose-t-il d'une inversion OFFERTE (Talent OU jeton) pour ce jet ? Pure (aucune consommation) —
  *  pilote l'affichage du verbe « Inverser » dans la rangée d'influence (RollRow). */
-export function reverseAvailable(c: Combatant, q: { skill?: string; spec?: string }, roll: number, target: number): boolean {
-  return talentReverseAvailable(c, q, roll, target) || tokenReverseAvailable(c, q);
+export function reverseAvailable(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee = TEST_NATUREL): boolean {
+  return inversion(c, q, roll, target, evaluer) != null;
 }
 
-/** Résultat PUR de l'inversion (SANS consommer le jeton) — même sélection Talent/jeton qu'`applyReverse`,
- *  pour prévisualiser l'issue (dé renversé, DR, succès) AVANT le clic (rangée d'influence). `null` si
- *  aucune voie n'est offerte. */
-export function reversePreview(
-  c: Combatant, q: { skill?: string; spec?: string }, roll: number, target: number,
-): { roll: number; sl: number; success: boolean } | null {
-  const e = evaluateTest(reverseRoll(roll), target);
-  if (talentReverseAvailable(c, q, roll, target)) {
-    const rf = talentReverseFailed(c, q)!;
-    return { roll: e.roll, sl: rf.capDR != null ? Math.min(e.sl, rf.capDR) : e.sl, success: e.success };
-  }
-  if (tokenReverseAvailable(c, q)) return { roll: e.roll, sl: e.sl, success: e.success };
-  return null;
+/** Issue de la RANGÉE après inversion (SANS consommer le jeton) — même sélection Talent/jeton
+ *  qu'`applyReverse`. `null` si aucune voie n'est offerte. */
+export function reversePreview(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee = TEST_NATUREL): IssueDuDe | null {
+  const inv = inversion(c, q, roll, target, evaluer);
+  return inv ? evaluer(inv.tr) : null;
 }
 
-/** Applique RÉELLEMENT l'inversion (Talent d'abord — gratuit, illimité, gate stricte échec→succès —
- *  puis jeton — libre, consommé) : `null` si aucune voie n'est offerte (0 gaspillage). Le jeton permute
- *  TOUJOURS une fois offert (choix du joueur, #558) : l'issue peut rester ratée ou dégrader un succès,
- *  `success` reflète le jet RÉEL renversé (pas de succès forcé — seule la voie Talent le garantit par
- *  construction de sa gate). */
-export function applyReverse(
-  c: Combatant, q: { skill?: string; spec?: string }, roll: number, target: number,
-): { roll: number; sl: number; success: boolean } | null {
-  const viaTalent = talentReverseAvailable(c, q, roll, target);
-  if (!viaTalent && !tokenReverseAvailable(c, q)) return null;
-  const result = reversePreview(c, q, roll, target)!;
-  if (!viaTalent) consumeReverseToken(c, q);
-  return result;
+/** Applique RÉELLEMENT l'inversion (Talent d'abord — gratuit, illimité — puis jeton, consommé) : rend le
+ *  Test naturel que la rangée évalue, `null` si aucune voie n'est offerte (0 gaspillage). Le jeton permute
+ *  TOUJOURS une fois offert (choix du joueur, #558) : l'issue peut rester ratée ou dégrader un succès. */
+export function applyReverse(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee = TEST_NATUREL): IssueDuDe | null {
+  const inv = inversion(c, q, roll, target, evaluer);
+  if (!inv) return null;
+  if (!inv.viaTalent) consumeReverseToken(c, q);
+  return inv.tr;
 }

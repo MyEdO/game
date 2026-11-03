@@ -137,6 +137,16 @@ export function isDoubleRoll(roll: number): boolean {
   return roll === 100 || roll % 11 === 0;
 }
 
+/** Inverse un jet de pourcentage (23 → 32 ; « 00 » → 100). LDB 12 l.42 */
+export function reverseRoll(r: number): number {
+  const n = r % 100; // 100 → 0
+  const t = Math.floor(n / 10);
+  const o = n % 10;
+  let rev = o * 10 + t;
+  if (rev === 0) rev = 100;
+  return rev;
+}
+
 /** Évalue un jet déjà obtenu contre une cible (utile pour rejouer un jet). `cible` = la cible AVANT
  *  bornage (valeur + Difficulté + modificateurs ; `cibleBrute` d'un jet posé) : le constructeur la BORNE
  *  lui-même (`clampTarget`) et MESURE l'écrêtage (`clamped`) — aucun appelant ne borne ni ne relaie.

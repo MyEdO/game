@@ -8,7 +8,7 @@ import { Combatant, type Difficulty, type EffectSource, type TerreurSubie } from
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG } from './dice';
-import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from './tests';
+import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose, reverseRoll } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
@@ -466,8 +466,7 @@ export function coldBloodedAdjust(
   coldBlooded: boolean,
 ): { roll: number; target: number; success: boolean; sl: number } {
   if (!coldBlooded || t.success) return t;
-  const rev = t.roll === 100 ? 100 : (t.roll % 10) * 10 + Math.floor(t.roll / 10) || 100; // 30 → 3 ; « 00 » inchangé
-  const e = evaluateTest(rev, t.target);
+  const e = evaluateTest(reverseRoll(t.roll), t.target);
   return e.success ? { roll: e.roll, target: e.target, success: e.success, sl: e.sl } : t;
 }
 
