@@ -38,7 +38,6 @@ export function regimeDeListe(noeud: unknown): RegimeDeListe | undefined {
 export const armourBypassCategorieSchema = enumNomme({
   all: "toute l'armure",
   metal: 'le métal',
-  leather: 'le cuir',
   nonMagic: 'le non-magique',
   nonMetal: 'le non-métal',
 });

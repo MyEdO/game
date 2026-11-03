@@ -17,7 +17,7 @@ import { ARG_JOKER, traitAdmet } from '../../data/schemas/grammaire/reference';
 import { specAuCatalogue } from '../../data/schemas/grammaire/ref';
 import { slugId } from '../../data/slug';
 import { parseStatEntry } from '../../engine/statEntry';
-import { classerParenthese } from '../../engine/classementDeTrait';
+import { classerParenthese, lireMatiere } from '../../engine/classementDeTrait';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { t } from '../../i18n';
 import { norm } from '../../lib/normalize';
@@ -141,6 +141,9 @@ export function parseTraitInstance(text: string): TraitPose {
       trait.value = classe.indice;
     }
   }
+  // La matière de l'Armure se lit à ses pièces (leur Groupe) ou à son Aspect. LDB 63 l.41-58 ; LDB 85 l.39
+  const matiere = traitAdmet(trait.id, 'matiere') ? groupes.filter((x) => !conferes.includes(x)).map((g) => lireMatiere(g, { indice: value, pieces })).find((m) => m !== undefined) : undefined;
+  if (matiere) trait.matiere = matiere;
   const lu = aspect != null && traitAdmet(trait.id, 'difficulte') ? aspectEtDifficulte(aspect) : { aspect };
   if (lu.aspect != null) trait.arg = argDeTraitSaisi(def, lu.aspect);
   if (lu.difficulte) trait.difficulte = lu.difficulte;
@@ -168,6 +171,8 @@ const memeId = (a: TraitPose, b: TraitPose): boolean => a.id === b.id;
 /** La saisie relue sur une pose EXISTANTE. `formatTrait` ne rend que l'id, l'Indice, l'Aspect, la Difficulté,
  *  le compte, la portée et les Traits conférés ; le reste de la pose ne survit qu'à ce qu'il qualifie :
  *  - les drapeaux (`natural`, `hidden`) qualifient le TRAIT : ils survivent au même id ;
+ *  - la matière de l'Armure (`matiere`) qualifie la VALEUR : une saisie qui ne la dit pas la garde à la même
+ *    valeur (`memeValeur`) ;
  *  - la provenance (`source`, `alsoIn`, `maison`) atteste la VALEUR posée : elle survit à la même valeur
  *    (`memeValeur`) et tombe dès que l'un de ses termes change, avec celle des Traits conférés.
  *  Relue UNE fois à la fin de la saisie (`SaisieEnBrouillon`), jamais à chaque frappe. SEULE voie
@@ -180,6 +185,7 @@ export function relireTrait(text: string, avant: TraitPose): TraitPose {
     ...relu,
     ...(avant.natural !== undefined ? { natural: avant.natural } : {}),
     ...(avant.hidden !== undefined ? { hidden: avant.hidden } : {}),
+    ...(valeur && relu.matiere === undefined && avant.matiere !== undefined ? { matiere: avant.matiere } : {}),
     ...(valeur && avant.source !== undefined ? { source: avant.source } : {}),
     ...(valeur && avant.alsoIn !== undefined ? { alsoIn: avant.alsoIn } : {}),
     ...(valeur && avant.maison !== undefined ? { maison: avant.maison } : {}),

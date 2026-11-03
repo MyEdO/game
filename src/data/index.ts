@@ -6,7 +6,7 @@
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
@@ -1377,7 +1377,7 @@ export interface GroupeDArmure extends GroupeDObjet {
   kind: 'armour';
   /** Matériau — source TYPÉE des exemptions de Magie des Arcanes (LDB 46 l.150-152 ; `chaos` = armure du
    *  Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169). */
-  material: 'metal' | 'leather' | 'chaos';
+  material: MatiereDArmure;
   /** Rang de couche affichée, unique parmi les Groupes d'armure. */
   couche: number;
   /** PA à partir desquels une armure de statbloc portée se dessine dans cette matière, unique ; `null` :
@@ -1892,7 +1892,8 @@ export interface TraitData {
    *  devant/autour du nombre. Absent = le trait ne porte pas de valeur numérique. */
   indice?: { label: string };
   /** L'Indice est un nombre de PA, qu'une instance peut poser Localisation par Localisation
-   *  (`TraitPose.parLocalisation`) — lu par `armourFromTraits`, la saisie et la migration. LDB 85 l.37-39. */
+   *  (`TraitPose.parLocalisation`), sa matière avec (`TraitPose.matiere`) — lus par `armureDuTrait`, la saisie
+   *  et les migrations. LDB 85 l.37-39. */
   parLocalisation?: boolean;
   /** L'instance porte-t-elle un champ `range` (portée en mètres/cases : Souffle, Aura…) ? Absent/`false` = non. */
   range?: boolean;
@@ -2525,9 +2526,9 @@ export const siegeEngines = memoParVersion('trappings', () => trappings.filter((
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
 export const trappingsInstanciables = memoParVersion('trappings', () => trappings.filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
-/** Emplacements d'une pièce d'armure nommée, lus au catalogue des armures : la parenthèse d'une Armure
- *  qui nomme des pièces (`classerParenthese`). LDB 63 l.13 ; #1463. */
-export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings));
+/** Pièce d'armure nommée, lue au catalogue des armures, sa matière au Groupe : la parenthèse d'une Armure
+ *  qui nomme des pièces (`classerParenthese`, `lireMatiere`). LDB 63 l.13 ; #1463. */
+export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings, matiereDuGroupe));
 /** Véhicules / embarcations à coque — FOYER UNIQUE app-owned (data-driven). Trois facettes par
  *  enregistrement (achat / voyage / coque) ; cf. `VehicleData`. La facette `travel` est lue par
  *  `engine/travel` ; les facettes `purchase`/`hull` par le marché et les incidents/combat. */
@@ -3315,6 +3316,11 @@ const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
 /** Résout un Groupe d'objet par son `id` STABLE (= `subType` d'un trapping/Weapon/ItemInstance). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
   return groupeObjetParId(id);
+}
+/** Matière du Groupe d'armure `id` (`material`), `undefined` hors d'un Groupe d'armure. LDB 63 l.41-58 */
+export function matiereDuGroupe(id: string | null | undefined): MatiereDArmure | undefined {
+  const groupe = findWeaponGroupById(id);
+  return groupe?.kind === 'armour' ? groupe.material : undefined;
 }
 /** Groupes d'armure du registre (`kind:'armour'`). */
 export const groupesDArmure = (): GroupeDArmure[] => weaponGroups.filter((g): g is GroupeDArmure => g.kind === 'armour');

@@ -247,8 +247,8 @@ describe('equipementDessine — matière par id (#2948)', () => {
     const orc = spawnEnemy({ presetCreature: findCreatureById('orc')!, presetId: 'orc' }, 'orc-3', { x: 0, y: 0 });
     expect(equipementDEntite(findTrappingById, 'orc').armour).toEqual(equipementDessine(orc).armour);
     expect(equipementDEntite(findTrappingById, 'orc', { armurePortee: false }).armour).toEqual([]);
-    expect(equipementDEntite(findTrappingById, undefined, { armour: 2 }).armour).toEqual([]);
-    expect(equipementDEntite(findTrappingById, undefined, { armour: 2, armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture']);
+    expect(equipementDEntite(findTrappingById, undefined, { traits: [{ id: 'armure', value: 2 }] }).armour).toEqual([]);
+    expect(equipementDEntite(findTrappingById, undefined, { traits: [{ id: 'armure', value: 2 }], armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture']);
   });
 });
 

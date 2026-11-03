@@ -7,6 +7,7 @@
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
 import { buildWeapon, emptyArmour, itemFromTrappingById, unarmedWeapon, weaponFromItem, type TrappingResolver } from './items';
+import { armureDuTrait } from './armourBypass';
 import type { ItemInstance, WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
@@ -133,8 +134,8 @@ export function weaponsFromTraits(traits: TraitList): Weapon[] {
   return weapons.length ? weapons : [unarmedWeapon()];
 }
 
-/** PA du Trait dont la def déclare l'Indice par Localisation (`parLocalisation`). LDB 85 l.37-39 ; #1463. */
+/** PA du Trait Armure (`armureDuTrait`). LDB 85 l.37-39 ; #1463. */
 export function armourFromTraits(traits: TraitList): ArmourPoints {
-  const armure = traits.find((t) => findTraitById(t.id)?.parLocalisation);
+  const armure = armureDuTrait(traits);
   return armure?.parLocalisation ? { ...armure.parLocalisation } : emptyArmour(armure?.value ?? 0);
 }
