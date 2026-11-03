@@ -285,7 +285,7 @@
     "fichier": "src/noyau/combatOrParty.ts",
     "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
-    "verrou": "couture-de-retour.test.ts"
+    "verrou": "couture-de-retour.hors-store.test.ts"
   },
   {
     "id": "depenserPx",
@@ -294,7 +294,7 @@
     "fichier": "src/noyau/partyFlow.ts",
     "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
     "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
-    "verrou": "couture-de-retour.test.ts"
+    "verrou": "couture-de-retour.hors-store.test.ts"
   },
   {
     "id": "meneurDuMonde",
