@@ -226,7 +226,7 @@ Dangereuse = Incident).
 **État du code.** ✅ (R1) `resolveVolley` dérive l'arme effective de chaque pièce via `crewedFireWeapon(item,
 servantsPrésents)` (exposés non-incapacités) AVANT le calcul de Dégâts → un Canon moyen (Arme d'équipe 3) à 1 servant
 tire en Recharge ×2 + Imprécise (−1 DR via `attackDRAdjust`). ✅ **Recharge = Test étendu de Projectiles + Soutien**
-(LDB 62 l.333 / MDG 12 l.462) : `crewedReloadStep` (cumul de DR vers Recharge N) + `soutienBonus` GÉNÉRIQUE (un servant
+(LDB 62 l.333 / MDG 12 l.462) : `progresDeRecharge` (cumul de DR vers la Recharge N bakée au pending, ×2 en sous-effectif) + `soutienBonus` GÉNÉRIQUE (un servant
 prête +10) → action « Recharger » du navire (`battleShipReload`), état `loaded`/`reloadProgress` sur le POSTE, reset
 si interrompu. ⬜ Incident de tir (Dangereuse) noté hors périmètre.
 

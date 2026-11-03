@@ -125,7 +125,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
       w.spells = [spellId];
       banc.setState({
         party: [w],
-        pendingFocus: { casterId: w.id, spellId, result: { dr: 0, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } },
+        pendingFocus: { casterId: w.id, spellId, result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } },
       });
       banc.getState().focusConfirm();
       // Le contrecoup est une ÉTAPE à table : elle se joue, et ce qu'elle rend au joueur vit sur elle

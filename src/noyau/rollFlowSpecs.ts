@@ -1624,7 +1624,7 @@ export const FLOWS = paresseux({
           : Math.max(base?.sl ?? 1, 1);
         // `base?.malepierreConsumed` (déjà figé au Round précédent) est REPORTÉ : forcer le résultat
         // ne consomme ni ne restitue une seconde fois la réserve de malepierre.
-        return { result: { dr: Math.max(base?.dr ?? 0, sl), isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: `${actor.label} force la focalisation (Résilience).`, ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
+        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: `${actor.label} force la focalisation (Résilience).`, ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
       }
       return { result: resolveFocus(actor, spell, battleRng(), 'intermediaire', seaMagicContext(s).atSea, windsMagicModOf(s.battle)) };
     },
@@ -1756,7 +1756,7 @@ export const FLOWS = paresseux({
         const spell = findSpellById(p.ritualSpell);
         if (!spell) return null;
         const res = resolveFocus(actor, spell, battleRng(), p.difficulty);
-        return { roll: res.roll, target: res.target ?? effTarget, sl: res.dr, success: res.dr > 0, ...(res.malepierreConsumed ? { malepierreConsumed: res.malepierreConsumed } : {}) };
+        return { roll: res.roll, target: res.target ?? effTarget, sl: res.success ? res.dr : res.sl ?? 0, success: res.success, ...(res.malepierreConsumed ? { malepierreConsumed: res.malepierreConsumed } : {}) };
       }
       if (forced) {
         if (activityWon(p)) return null; // rien à forcer si DÉJÀ gagnée (combiné full / tenue tenue / simple réussi)

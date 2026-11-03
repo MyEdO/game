@@ -2930,7 +2930,7 @@ export const TABLES = {
       if (!sea?.infestation) return;
       const inf = sea.infestation;
       const rng = battleRng();
-      const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need, !!rule('test-extended-min-sl'));
+      const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need);
       get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
       let j: string[];
       if (done) {
@@ -2965,7 +2965,7 @@ export const TABLES = {
       const sea = get().travelPlan?.sea;
       if (!sea?.entangled) return;
       const ent = sea.entangled;
-      const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need, !!rule('test-extended-min-sl'));
+      const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need);
       let j: string[];
       if (done) {
         patchSea(get, set, { entangled: undefined });
