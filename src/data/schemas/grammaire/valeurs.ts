@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { SLOTS } from '../../palette.types';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
@@ -71,7 +71,15 @@ export const contexteDeTestSchema = enumNomme({
   psych: 'pour résister à un Trait Psychologique',
   perilDesEaux: 'pour traverser des eaux dangereuses',
   bandages: 'avec des Bandages',
+  amateurDArt: 'face à un amateur d’art',
+  amateurDeTheatre: 'face à un amateur de théâtre',
 } satisfies Record<ContexteDeTest, string>);
+
+/** Contrepartie d'un Test de Sociabilité déclarée par une fiche de PNJ (`Amateur`, ACE 12 l.60-62). */
+export const amateurSchema = enumNomme({
+  amateurDArt: 'amateur d’art',
+  amateurDeTheatre: 'amateur de théâtre',
+} satisfies Record<Amateur, string>);
 
 /**
  * Nature d'une Mutation (`Mutation.kind`, `src/engine/corruption.ts`) — UNE déclaration pour les trois

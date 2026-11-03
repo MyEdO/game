@@ -369,6 +369,7 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
     ...(o.mod ? { mod: o.mod, modLabel: o.modLabel } : {}),
     ...(o.support ? { support: o.support } : {}),
     ...(o.heroIds ? { heroIds: o.heroIds } : {}),
+    ...(o.skillId ? { chosenSkill: o.skillId, ...(o.spec ? { chosenSkillSpec: o.spec } : {}) } : {}),
     ...combined,
   };
   return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ...(ligne2 ? { ligne2 } : {}) };

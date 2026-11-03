@@ -272,7 +272,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
      *  `null` → non concerné. */
     skillOf: (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) => ReverseQuery | null;
     /** Dé/cible ACTEUR courants (post-jet, avant inversion). `null` → rien à inverser. */
-    current: (slot: Slot) => { roll: number; target: number } | null;
+    current: (slot: Slot, p: P) => { roll: number; target: number } | null;
     /** ÉVALUATION de la rangée pour le Test naturel `tr` (dé contre la cible de `current`) : le patch du
      *  slot et l'issue qu'il porte. SOURCE UNIQUE de l'offre du Talent (« si cela entraîne un succès »),
      *  de l'aperçu et de l'application — `success` REFLÈTE le jet réel, jamais forcé. */
@@ -607,7 +607,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     const rev = spec.reverse;
     if (!rev || !spec.rolled(slot)) return null;
     const actor = spec.actor(s, slot, p); if (!actor) return null;
-    const cur = rev.current(slot); if (!cur) return null;
+    const cur = rev.current(slot, p); if (!cur) return null;
     const q = rev.skillOf(s, slot, actor, get, p); if (!q) return null;
     return { actor, cur, q, evaluer: (tr) => rev.evaluate(s, slot, actor, get, tr, p)?.issue ?? null };
   };

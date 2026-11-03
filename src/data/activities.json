@@ -299,7 +299,7 @@
     ],
     "difficulty": "intermediaire",
     "failExtenue": true,
-    "stageOutcome": "rerollToken",
+    "stageOutcome": "reverseToken",
     "maison": "La liste des Compétences « qu'il est possible de pratiquer en voyageant » est ouverte (« etc. », EDOC 8 l.172) : par défaut, toutes les Compétences du catalogue, chacune offerte si le Personnage peut la tenter (LDB 09 l.30), une Spécialisation à la fois (LDB 09 l.44).",
     "desc": "La monotonie du voyage représente pour de nombreux Personnages le moment idéal pour pratiquer leurs Compétences en vue des épreuves à venir. Un Personnage peut effectuer un Test **Intermédiaire (+0)** d'une seule Compétence qu'il est possible de pratiquer en voyageant : Orientation, Métier (Herboristerie), Langue (Wastelander), etc. Une Réussite signifie que le Personnage peut inverser le résultat d'un Test en utilisant cette Compétence au cours de l'aventure suivante, ou de toute étape ultérieure du voyage.",
     "stake": "Réussite : un Test de la Compétence pratiquée pourra être inversé au cours de l'aventure suivante. Échec : un État Exténué.",
@@ -669,21 +669,43 @@
         "on": "success",
         "minSL": 6,
         "payoutPct": 120,
-        "note": "La pièce devient un classique instantané, et même les mécènes qui ont donné peu d'argent sont vus comme des patrons des arts aux goûts certains. Au cours de la prochaine aventure, vous pouvez inverser tout Test de Sociabilité quand vous avez affaire à un amateur de théâtre. Vous regagnez votre investissement, avec un profit de 20 %."
+        "note": "La pièce devient un classique instantané, et même les mécènes qui ont donné peu d'argent sont vus comme des patrons des arts aux goûts certains. Au cours de la prochaine aventure, vous pouvez inverser tout Test de Sociabilité quand vous avez affaire à un amateur de théâtre. Vous regagnez votre investissement, avec un profit de 20 %.",
+        "ops": [
+          {
+            "op": "grantReverseToken",
+            "char": "sociabilite",
+            "contexte": "amateurDeTheatre",
+            "illimite": true
+          }
+        ]
       },
       {
         "on": "success",
         "minSL": 3,
         "maxSL": 5,
         "payoutPct": 100,
-        "note": "La pièce rencontre un succès modéré. Au cours de la prochaine aventure, vous pouvez inverser un Test de Sociabilité quand vous avez affaire à un amateur d'art. Vous regagnez votre investissement."
+        "note": "La pièce rencontre un succès modéré. Au cours de la prochaine aventure, vous pouvez inverser un Test de Sociabilité quand vous avez affaire à un amateur d'art. Vous regagnez votre investissement.",
+        "ops": [
+          {
+            "op": "grantReverseToken",
+            "char": "sociabilite",
+            "contexte": "amateurDArt"
+          }
+        ]
       },
       {
         "on": "success",
         "minSL": 0,
         "maxSL": 2,
         "payoutPct": 50,
-        "note": "La pièce est considérée comme un peu trop moralisatrice, mais les places se vendent bien. Au cours de la prochaine aventure, vous pouvez inverser un Test de Sociabilité quand vous avez affaire à un amateur d'art. Vous regagnez la moitié de votre investissement."
+        "note": "La pièce est considérée comme un peu trop moralisatrice, mais les places se vendent bien. Au cours de la prochaine aventure, vous pouvez inverser un Test de Sociabilité quand vous avez affaire à un amateur d'art. Vous regagnez la moitié de votre investissement.",
+        "ops": [
+          {
+            "op": "grantReverseToken",
+            "char": "sociabilite",
+            "contexte": "amateurDArt"
+          }
+        ]
       },
       {
         "on": "failure",

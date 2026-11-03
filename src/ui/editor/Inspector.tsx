@@ -54,6 +54,7 @@ import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEf
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
+import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
@@ -1538,6 +1539,16 @@ function EntityPanel({
                 />
               </label>
             )}
+            <label className="ed-field">
+              {/* Contrepartie d'un Test de Sociabilité (jetons de Mécénat) — arbitrage maison, ACE 12 l.60-62. */}
+              Amateur des arts (maison)
+              <select value={ent.amateur ?? ''} onChange={(e) => updateSel({ amateur: e.target.value ? amateurSchema.parse(e.target.value) : undefined })}>
+                <option value="">— aucun —</option>
+                {optionsDuNoeud(amateurSchema).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </label>
             <label className="ed-field">
               Marchand (archétype)
               <select value={ent.merchant?.archetype ?? ''} onChange={(e) => updateSel({ merchant: e.target.value ? { ...ent.merchant, archetype: e.target.value } : undefined })}>
