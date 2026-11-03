@@ -25,6 +25,7 @@ export const BANDAGES = 'bandages';
 
 /** Le Test d'un soin : Guérison (LDB 09 l.255-261) ou Dextérité sous Bandages (LDB 74 l.41). */
 export type TestDeSoin = 'guerison' | 'dexterite';
+/** Les Tests de soin offerts au choix du soigneur, dans l'ordre de la fenêtre. */
 export const TESTS_DE_SOIN: readonly TestDeSoin[] = ['guerison', 'dexterite'];
 
 /** Les ids testés par chaque Test de soin. */
