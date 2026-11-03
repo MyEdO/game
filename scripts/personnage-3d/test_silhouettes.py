@@ -270,7 +270,7 @@ class LissageSousCorrection(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             return lisser_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
                                           lambda champs: {nom: hors_de(rapports(repos, d, self.aretes), bornes)
-                                                          for nom, d in champs.items()})
+                                                          for nom, d in champs.items()}, 'locale')
 
     def hors(self, champ, bornes=BORNES):
         return int(hors_de(rapports(self.x, champ, self.aretes), bornes).sum())
@@ -335,12 +335,31 @@ class Lissage(unittest.TestCase):
         self.vus.append(masque)
         return masque
 
-    def lisser(self, champ, facteur=None, hors=None):
+    def lisser(self, champ, facteur=None, hors=None, region='locale'):
         mesure = hors or self.hors
         resultat, passes = lisser(champ[:, None], self.noeud, self.aretes,
                                   self.facteur if facteur is None else facteur,
-                                  lambda pile: mesure(pile[:, 0])[:, None], PASSES_MAX)
+                                  lambda pile: mesure(pile[:, 0])[:, None], PASSES_MAX, region)
         return resultat[:, 0], passes
+
+    def test_la_region_pleine_lisse_aussi_loin_des_aretes_marquees(self):
+        large = numpy.zeros_like(self.bosse)
+        loin = int(numpy.argmax(numpy.linalg.norm(self.x - self.x[self.BOSSE], axis=1)))
+        large[self.noeud == self.noeud[loin]] = [0.0, 0.01, 0.0]
+        premiere = []
+
+        def une_passe(champ):
+            premiere.append(champ.copy())
+            return self.hors(champ) if len(premiere) < 3 else numpy.zeros(len(self.aretes), dtype=bool)
+
+        for region, bouge in (('locale', False), ('pleine', True)):
+            premiere.clear()
+            resultat, _ = self.lisser(self.bosse + large, hors=une_passe, region=region)
+            self.assertEqual(not numpy.allclose(resultat[loin], (self.bosse + large)[loin] * self.facteur[loin]), bouge, region)
+
+    def test_une_region_inconnue_est_refusee(self):
+        with self.assertRaisesRegex(ValueError, 'région'):
+            self.lisser(self.bosse, region='voisine')
 
     def test_la_convergence_voit_une_arete_hors_des_noeuds_marques_au_depart(self):
         lisse, _ = self.lisser(self.bosse)
@@ -461,7 +480,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         mesure = self.mesure()
         with contextlib.redirect_stdout(io.StringIO()):
             finis = lisser_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), mesure)
+                                           libre, corriger, numpy.eye(3), mesure, 'locale')
         self.assertFalse(any(m.any() for m in self.mesure()(finis).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
@@ -499,7 +518,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
 
         with contextlib.redirect_stdout(io.StringIO()):
             finis = lisser_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), hors)
+                                           libre, corriger, numpy.eye(3), hors, 'locale')
         numpy.testing.assert_allclose(finis['temoin'], temoin, rtol=0, atol=TOLERANCE)
         self.assertTrue(all(numpy.abs(finis[n] - champs[n]).max() > 0 for n in self.champs))
         self.assertFalse(any(m.any() for m in hors(finis).values()))

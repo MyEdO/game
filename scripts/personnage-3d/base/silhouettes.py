@@ -13,9 +13,9 @@
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
   (`fondu`). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
-  (`formes.lisser`), fondu compris : aux facteurs non neutres, par les clés `gabarit_*` cuites sur les champs courants
-  (`cuisson_gabarit.cuisson_des_champs`, #3104) ; et jusqu'à `ETIREMENT_EN_CLIP` sous les clips, aux facteurs neutres
-  (#3104 issuecomment-6613477119, #3294).
+  (`formes.lisser`, région pleine), fondu compris : aux facteurs non neutres, par les clés `gabarit_*` cuites sur les
+  champs courants (`cuisson_gabarit.cuisson_des_champs`, #3104) ; puis, sans fondu neuf, en région locale jusqu'à
+  `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres (#3104 issuecomment-6613477119, #3294).
 - Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
   après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
   chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
@@ -315,9 +315,10 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
-def lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors):
+def lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, region):
     """#3104 ; #3101 issuecomment-6489583109. Les champs `bruts` (nom -> (champ au repère du mesh, rapport de
-    `correction` ou `None`)) lissés ensemble (`formes.lisser`, nœuds `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à
+    `correction` ou `None`)) lissés ensemble (`formes.lisser`, nœuds `groupe`, arêtes `aretes`, fondu `libre`, région
+    `region`) jusqu'à
     ce que leur correction (`corriger`, repère monde `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête
     que marque `hors` (nom -> champ corrigé au repère du mesh) ; rend, par nom, le champ corrigé au repère du mesh."""
     inverse = numpy.linalg.inv(vers_le_monde)
@@ -332,9 +333,9 @@ def lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde
         return numpy.stack([mesures[nom] for nom in noms], axis=1)
 
     pile, passes = lisser(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, masque,
-                          PASSES_DE_LISSAGE)
+                          PASSES_DE_LISSAGE, region)
     finis, sonde = corriges(pile)
-    print('SILHOUETTES lissage', passes, 'passe(s) ; correction', sonde, flush=True)
+    print('SILHOUETTES lissage', region, passes, 'passe(s) ; correction', sonde, flush=True)
     return finis
 
 
@@ -403,14 +404,18 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
     corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
     vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
 
-    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles), \
-            groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
-        domaine = [({'etats': jeu, 'cellulesSilhouettes': cellules}, matrices, longueurs)
-                   for (jeu, matrices, longueurs), cellules in [
-                       *((pile, etats['cellulesSilhouettes']) for pile in piles),
-                       *((pile, etats_des_clips['cellulesSilhouettes']) for pile in piles_des_clips)]]
-        au_repos = mesurer_domaine(w, x, aretes, domaine, vers_le_monde, cuisson_des_champs(squelette, corps, table))
-        finis = lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, au_repos)
+    def groupes(piles, cellules):
+        return [({'etats': jeu, 'cellulesSilhouettes': cellules}, matrices, longueurs) for jeu, matrices, longueurs in piles]
+
+    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles):
+        repos = groupes(piles, etats['cellulesSilhouettes'])
+        au_repos = mesurer_domaine(w, x, aretes, repos, vers_le_monde, cuisson_des_champs(squelette, corps, table))
+        pleins = lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, au_repos, 'pleine')
+        with groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
+            domaine = repos + groupes(piles_des_clips, etats_des_clips['cellulesSilhouettes'])
+            en_clip = mesurer_domaine(w, x, aretes, domaine, vers_le_monde, cuisson_des_champs(squelette, corps, table))
+            finis = lisser_sous_correction({nom: (d, bruts[nom][1]) for nom, d in pleins.items()}, groupe, aretes,
+                                           (libre > 0).astype(numpy.float64), corriger, vers_le_monde, en_clip, 'locale')
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',

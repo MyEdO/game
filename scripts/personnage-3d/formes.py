@@ -80,15 +80,17 @@ def region_locale(aretes, masque, anneaux, n):
     return dans
 
 
-def lisser(champ, noeud, aretes, facteur, hors, passes_max):
+def lisser(champ, noeud, aretes, facteur, hors, passes_max, region):
     """Les champs de décalages `champ` (sommets, clés, 3) lissés
     (`pas_laplacien` sur les nœuds `noeud` et leurs arêtes `aretes`) puis multipliés par `facteur` (sommets,), jusqu'à
     ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête. Tous les
-    champs sont remesurés à chaque passe ; seules les clés marquées prennent le pas, sur les seuls nœuds de
-    `region_locale` autour de leurs arêtes marquées, et la région d'une clé gagne un anneau de voisins dès que le
-    champ y varie de moins de `STAGNATION_M` sur une passe. Les sommets d'un même nœud reçoivent la même valeur.
+    champs sont remesurés à chaque passe ; seules les clés marquées prennent le pas. `region` `'pleine'` : sur tous
+    les nœuds ; `'locale'` : sur les seuls nœuds de `region_locale` autour de leurs arêtes marquées, et la région d'une
+    clé gagne un anneau de voisins dès que le champ y varie de moins de `STAGNATION_M` sur une passe. Les sommets d'un même nœud reçoivent la même valeur.
     Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucun
     pas ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la construction."""
+    if region not in ('pleine', 'locale'):
+        raise ValueError(f"région {region!r} : 'pleine' ou 'locale'")
     valeur = aux_noeuds(champ, noeud)
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
     for passe in range(passes_max + 1):
@@ -105,6 +107,9 @@ def lisser(champ, noeud, aretes, facteur, hors, passes_max):
         lisse = pas_laplacien(valeur, aretes)
         valeur = valeur.copy()
         for cle in numpy.flatnonzero(marquees.any(axis=0)):
+            if region == 'pleine':
+                valeur[:, cle] = lisse[:, cle]
+                continue
             dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
             variation = numpy.abs(lisse[dans, cle] - valeur[dans, cle]).max()
             valeur[dans, cle] = lisse[dans, cle]
