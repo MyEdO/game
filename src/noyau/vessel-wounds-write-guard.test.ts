@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanVesselWoundsWrite } from '../../scripts/guards/lib/vesselWoundsWrite.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « écriture de la coque hors seam » (#302, #296). SOURCE UNIQUE de `state.vessel.wounds` :
@@ -18,7 +18,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SCAN_DIRS = ['src/state', 'src/noyau'];
 const FOYERS = new Set(['src/noyau/monde/shipDamage.ts', 'src/noyau/seaVoyageFlow.ts']);
-const EXCLUDED = (rel: string) => estFichierVitest(rel) || FOYERS.has(rel);
+const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel) || FOYERS.has(rel);
 
 function countsByFile(): Record<string, number> {
   const counts: Record<string, number> = {};

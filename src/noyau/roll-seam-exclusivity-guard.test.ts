@@ -15,7 +15,7 @@ import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
 import * as canon from '../../scripts/guards/lib/canonUnique.mjs';
 import * as programmes from '../../scripts/guards/lib/tsProgram.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
 
 /**
@@ -42,7 +42,7 @@ const DOC_REGISTRE = await rendreCible('docs/registre-jets.md');
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SCAN_DIRS = [RACINE_DU_SEAM];
 
-const EXCLUDED = (rel: string) => estFichierVitest(rel) || rollSeamExcluded(rel);
+const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel) || rollSeamExcluded(rel);
 
 /** Corpus SOURCE de tous les scans de ce fichier : `src/**` en `.ts(x)`, TESTS COMPRIS (les vues
  *  `prodFiles`/`EXCLUDED` filtrent ensuite), chemin RELATIF POSIX + texte. Marche, lecture et
@@ -285,7 +285,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
   it('(M) dé de monde : le compte SOUSTRAIT par fichier est le compte MESURÉ (cliquet à cible zéro)', () => {
     const mesure = new Map<string, number>();
     for (const [rel, sites] of sitesByFile()) {
-      if (estFichierVitest(rel) || rel.startsWith('src/engine/')) continue;
+      if (estFichierVitest(rel) || estKitDeTest(rel) || rel.startsWith('src/engine/')) continue;
       const n = sites.filter((s: { excludedBy?: string }) => s.excludedBy === 'M').length;
       if (n > 0) mesure.set(rel, n);
     }
@@ -359,7 +359,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', { timeout: 60_000 }, () => {
     const offenders: string[] = [];
     const passage = contexte();
-    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(corpus().filter(({ rel }) => !estFichierVitest(rel) && !battleRngEngineLeakExcluded(rel)))) {
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(corpus().filter(({ rel }) => !estFichierVitest(rel) && !estKitDeTest(rel) && !battleRngEngineLeakExcluded(rel)))) {
       const findings = scanBattleRngEngineLeak(rel, text, passage, sourceFile!, checker);
       for (const x of findings) offenders.push(`${rel}:${x.line} [rng vivant → ${x.name}] ${x.detail}`);
     }
@@ -495,7 +495,7 @@ const SEAM_CORE = new Set([
 
 /** Fichiers de PRODUCTION scannables (hors tests), en chemin relatif POSIX — vue du `corpus()`. */
 function prodFiles(...dirs: string[]): { rel: string; text: string }[] {
-  return corpus().filter(({ rel }) => !estFichierVitest(rel) && dirs.some((d) => rel === d || rel.startsWith(`${d}/`)));
+  return corpus().filter(({ rel }) => !estFichierVitest(rel) && !estKitDeTest(rel) && dirs.some((d) => rel === d || rel.startsWith(`${d}/`)));
 }
 
 /** Rouleurs d'engine DÉRIVÉS (clôture transitive) — mémoïsés : 4 `it` de deux `describe` les
@@ -788,10 +788,9 @@ const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
   // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
   'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
-  'src/noyau/cascade.testkit.ts': 1, // le cliquet lui-même (`inexplique`)
 };
 
-/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 2 occurrences / 2 fichiers, aucune en combat — verrou
+/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 1 occurrence / 1 fichier, aucune en combat — verrou
  *  global : un site déplacé d'un fichier à l'autre ne s'y cache pas. `ui/editor/LogicDock.tsx` n'y
  *  figure pas : son aperçu de difficulté mesure 0 site, la borne du champ vit dans `NumberField`. */
 const TOTAL_DECLARE = Object.values(LIGNE_A_LA_MAIN_STOCK).reduce((s, n) => s + n, 0);
@@ -1236,7 +1235,7 @@ function relaisDans(analyser: (noms: string[]) => Iterable<{ rel: string; sf: ts
 let relaisMemo: { noms: string[]; sites: string[] } | null = null;
 /** Les relais du corpus de PRODUCTION, mesurés une fois. */
 const relaisDuCoup = (): { noms: string[]; sites: string[] } => (relaisMemo ??= relaisDans(function* (noms) {
-  for (const { fichier: { rel }, sourceFile } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && noms.some((n) => text.includes(`${n}(`))))) {
+  for (const { fichier: { rel }, sourceFile } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && !estKitDeTest(rel) && noms.some((n) => text.includes(`${n}(`))))) {
     yield { rel, sf: sourceFile };
   }
 }));
@@ -1305,7 +1304,7 @@ function formePerdue(n: ts.CallExpression, sf: ts.SourceFile): string | null {
 function appelsPerdus(): string[] {
   const out: string[] = [];
   const scannes = [...POINTS_DAPPLICATION, ...relaisDuCoup().noms]; // un relais rend le retour du coup : il se consomme comme lui
-  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && scannes.some((n) => text.includes(`${n}(`))))) {
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && !estKitDeTest(rel) && scannes.some((n) => text.includes(`${n}(`))))) {
     if (!sf) continue;
     const walk = (n: ts.Node): void => {
       if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && scannes.includes(n.expression.text)) {
@@ -1340,7 +1339,7 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
   it('le scan MESURE quelque chose (le corpus porte bien des appels de points d’application)', () => {
     let vus = 0;
     for (const { rel, text } of corpus()) {
-      if (estFichierVitest(rel)) continue;
+      if (estFichierVitest(rel) || estKitDeTest(rel)) continue;
       for (const n of POINTS_DAPPLICATION) vus += text.split(`${n}(`).length - 1;
     }
     expect(vus, 'aucun appel vu : le scan ne mordrait sur rien').toBeGreaterThan(20);
@@ -1436,7 +1435,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
 
   it('angle mort : un ALIAS local échappe au scan — et le corpus n’en porte aucun', () => {
     expect(sondeVoit('const jouer = runFlow; jouer(g, s, f);'), 'le scan ne voit que le nom APPELÉ').toBe(0);
-    const alias = corpus().filter(({ rel, text }) => !estFichierVitest(rel)
+    const alias = corpus().filter(({ rel, text }) => !estFichierVitest(rel) && !estKitDeTest(rel)
       && POINTS_DAPPLICATION.some((n) => new RegExp(`=\\s*${n}\\s*;`).test(text)));
     expect(alias.map((f) => f.rel), 'un alias local d’un point d’application : le scan cesserait de mordre dessus').toEqual([]);
   });
@@ -1502,7 +1501,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
 
   it('angle mort : un appel PAR OBJET échappe au scan — et le corpus n’en porte aucun', () => {
     expect(sondeVoit('CE.runFlow(g, s, f);'), 'le scan ne lit pas les accès de propriété').toBe(0);
-    const parObjet = corpus().filter(({ rel, text }) => !estFichierVitest(rel)
+    const parObjet = corpus().filter(({ rel, text }) => !estFichierVitest(rel) && !estKitDeTest(rel)
       && POINTS_DAPPLICATION.some((n) => new RegExp(`\\.${n}\\s*\\(`).test(text)));
     expect(parObjet.map((f) => f.rel), 'un appel par objet/namespace : le scan cesserait de mordre dessus').toEqual([]);
   });

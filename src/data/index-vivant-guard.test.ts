@@ -85,7 +85,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bindingsVivants, clesDuSeam, indexFiges, nomsVivantsDuFichier, fichiersSources, fichiersDuSeam, accesseursVivants, sansCommentaires, RACINE } from '../../scripts/guards/lib/bindingsVivants.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { DATASET_KEYS } from './overrides';
 
 describe('#1692 — aucun index figé à l’import sur un dataset mutable', () => {
@@ -127,7 +127,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
   it('aucun index NI aucune vue dérivée de niveau module sur un dataset du seam', { timeout: 30_000 }, () => {
     const seam = fichiersDuSeam();
     const fautifs = fichiersSources()
-      .filter((f) => !estFichierVitest(f) && !seam.has(f))
+      .filter((f) => !estFichierVitest(f) && !estKitDeTest(f) && !seam.has(f))
       .flatMap((f) => indexFiges(f, readFileSync(join(RACINE, f), 'utf8'), parBinding));
     expect(fautifs, 'ces index servent l’ancien monde après une édition au Codex — passer par `indexParId`/`indexParChamp` (src/data/versionDataset.ts)').toEqual([]);
   });

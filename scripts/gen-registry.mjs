@@ -16,7 +16,7 @@ import { listerDossier } from './guards/lib/lister.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './guards/lib/fichierVitest.mjs';
 import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 
 import { REGISTRIES } from './docs/lib/cibles-registres.mjs';
@@ -71,7 +71,7 @@ export function lireExports(src, noms, def) {
 
 /** Modules de def d'un dossier — la population de tout registre ; lève si le dossier manque. */
 function modulesDeDefs(dir) {
-  return listerDossier(dir).filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts');
+  return listerDossier(dir).filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !estKitDeTest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts');
 }
 
 /** Les exports `noms` de chaque def d'un dossier, par `lireExports` : `{ module, …exports }`. */

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
-import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
 
 // Garde STRUCTURELLE : la SÉLECTION DE VUE d'un prop orienté vit dans la MACHINERIE (`propSvg`,
 // `catalog/decor/index.ts`), JAMAIS dans une def. Une def déclare ses trois vues (`PropViz.views`) ;
@@ -25,7 +25,7 @@ const FORBIDDEN: { pattern: RegExp; why: string }[] = [
 const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 describe('props orientés — sélection de vue hors des defs', () => {
-  const files = listerDossier(DEFS_DIR).filter((f) => f.endsWith('.ts') && !estFichierVitest(f));
+  const files = listerDossier(DEFS_DIR).filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f));
 
   it('aucune def ne projette dir/camRot ni ne sélectionne de vue', () => {
     const offenders: string[] = [];

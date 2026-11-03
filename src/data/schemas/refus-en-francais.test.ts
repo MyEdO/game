@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { clotureDImports, sourceALExecution, type Arc } from '../../../scripts/guards/lib/importGraph.mjs';
-import { estFichierVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
 import { validateDataset } from './validate';
 import { lireBlocsAvances } from '../../ui/editor/Editor';
@@ -70,7 +70,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
     const ZOD_EN_VALEUR = /\bfrom\s*['"]zod['"]|\bimport\s*['"]zod['"]/;
 
     const porteurs = listerArbre('src', {
-      filtre: (rel) => /\.tsx?$/.test(rel) && !rel.endsWith('.d.ts') && !estFichierVitest(rel),
+      filtre: (rel) => /\.tsx?$/.test(rel) && !rel.endsWith('.d.ts') && !estFichierVitest(rel) && !estKitDeTest(rel),
     })
       .map((rel) => `src/${rel}`)
       .filter((f) => f !== LOCALE)

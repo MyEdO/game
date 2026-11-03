@@ -23,11 +23,11 @@ import { detenteur } from '../detenteur.testkit';
 const INDEX_MOTEUR = await rendreCible('docs/index-moteur.md');
 
 /**
- * Plafond du cliquet. Mesuré au moment de ce lot : 301 exports publics de `src/engine` sans JSDoc
- * exploitable (sur 1825). Ne DESCEND qu'en documentant des exports, jamais en relâchant la mesure ;
+ * Plafond du cliquet. Mesuré au moment de ce lot : 297 exports publics de `src/engine` sans JSDoc
+ * exploitable (sur 2480, instruments et kits de test hors mesure). Ne DESCEND qu'en documentant des exports, jamais en relâchant la mesure ;
  * ne MONTE qu'avec un geste visible dans CE fichier, jamais un ajustement silencieux de la lib.
  */
-const UNDOCUMENTED_ENGINE_EXPORTS_MAX = 301;
+const UNDOCUMENTED_ENGINE_EXPORTS_MAX = 297;
 
 describe('cliquet de la dette de JSDoc de src/engine (#903bis)', () => {
   const undocumented = detenteur(() => allEngineExports(ENGINE_ROOT).filter((r) => !r.role));

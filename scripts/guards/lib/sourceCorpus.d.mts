@@ -10,7 +10,7 @@ export interface CorpusFile {
 export interface ReadCorpusOptions {
   /** Extensions retenues (défaut : `.ts`, `.tsx`). Un `*.d.ts` est hors corpus quoi qu'il arrive. */
   exts?: string[];
-  /** Garder les `*.test.*` (défaut : non). */
+  /** Garder les instruments Vitest et les kits de test (défaut : non). */
   tests?: boolean;
 }
 
@@ -32,7 +32,7 @@ export function entreeDe(p: string): Readonly<CorpusFile>;
 export function viderCorpus(): void;
 
 /** Le prédicat de fichier que `readCorpus` applique dans sa marche (mêmes défauts) : une extension de
- *  `exts`, un instrument Vitest seulement sous `tests`, jamais un `.d.ts`. */
+ *  `exts`, un instrument Vitest ou un kit de test seulement sous `tests`, jamais un `.d.ts`. */
 export function estRetenu(nom: string, opts?: { exts?: readonly string[]; tests?: boolean }): boolean;
 
 /** Une déclaration gardée s'applique-t-elle à ce fichier ? Vraie hors de son `foyer` (un chemin ou une

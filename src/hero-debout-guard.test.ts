@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { scanHeroDebout } from '../scripts/guards/lib/heroDebout.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « héros DEBOUT » (#1362, lot L1a) — ABSOLU : ni stock, ni baseline, ni liste blanche.
@@ -15,7 +15,7 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  * (`party`), de la moitié « hors d'action » (`dead` ou `isOutOfAction`) et d'une comparaison de
  * `wounds.current` à 0/1 — toute GRAPHIE, y compris multi-ligne, destructurée ou négative.
  * COUVERTURE : `SCAN_DIRS` — tout
- * code qui peut tenir un `party`, tests compris (`tests: true`), hors fichiers de banc Vitest.
+ * code qui peut tenir un `party`, tests compris (`tests: true`), hors instruments et kits de test (`fichierVitest.mjs`).
  * Ce qu'elle ne détecte PAS, et pourquoi (un détecteur ne vaut que sa couverture DITE) :
  *  — le moteur de COMBAT, qui accouple les mêmes jetons pour une autre notion (« vient de tomber à
  *    0 », `applyZeroWounds` ; « réduit la cible à 0 Blessure », LDB 47 l.340) : il ne parle jamais du
@@ -60,7 +60,7 @@ const NEGATIFS: Record<string, string> = {
 function findingsParFichier(): Record<string, { line: number; detail: string }[]> {
   const out: Record<string, { line: number; detail: string }[]> = {};
   for (const { rel, text } of readCorpus(SCAN_DIRS, { tests: true })) {
-    if (estFichierVitest(rel) || rel.replace(/\\/g, '/') === FOYER) continue;
+    if (estFichierVitest(rel) || estKitDeTest(rel) || rel.replace(/\\/g, '/') === FOYER) continue;
     const f = scanHeroDebout(rel, text);
     if (f.length) out[rel] = f;
   }
@@ -80,7 +80,7 @@ describe('garde-fou « estDebout » — prédicat du héros debout (ABSOLU, #136
   });
 
   it('le corpus scanné est NON VIDE (une garde sur zéro fichier serait verte à tort)', () => {
-    const fichiers = readCorpus(SCAN_DIRS, { tests: true }).filter((f) => !estFichierVitest(f.rel));
+    const fichiers = readCorpus(SCAN_DIRS, { tests: true }).filter((f) => !estFichierVitest(f.rel) && !estKitDeTest(f.rel));
     expect(fichiers.length).toBeGreaterThan(200);
   });
 

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { scanHardcode } from '../scripts/guards/lib/hardcode.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « tout migrer » — chantier d'unification des événements/réactions de combat.
@@ -35,7 +35,7 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
-const EXCLUDED = (rel: string) => estFichierVitest(rel);
+const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
 
 /** Baseline gelée par fichier (recensement Lot 8, 2026-07-06 — total 12 sites sur 7 fichiers ;
  *  révision 2026-07-11, `TRAIT_TALENT_RX` étendue à `hasTalent(` — 4 sites de trait/talent codés
