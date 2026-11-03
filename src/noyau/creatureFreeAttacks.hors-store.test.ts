@@ -299,7 +299,8 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   it('Langue préhensile : touche ENTIÈREMENT absorbée (BE + PA ≥ Indice, 0 Blessure perdue) → Empêtré quand même', () => {
     banc.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'langue-prehensile', value: 9 }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 95;
+    // 1 Av : celui de la Langue, aucun pour un Piétinement (LDB 85 l.387) sur la proie entraînée
+    E.traits = [{ id: 'langue-prehensile', value: 9 }]; E.advantage = 1; E.characteristics['capacite-de-tir'] = 95;
     E.pos = { x: 10, y: 10 }; E.size = 'grande';
     H.pos = { x: 14, y: 10 }; H.size = 'moyenne';
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');

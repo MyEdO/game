@@ -19,6 +19,11 @@ describe('repair — réparation armure (LDB 63 l.64)', () => {
 
 describe('repair — réparation arme (LDB 62 l.135)', () => {
   const sword = (dt: number) => ({ kind: 'melee', damage: { plusBF: true, flat: 4 }, damageTaken: dt } as any);
+  it('Solide (N) absorbe les N premiers Dégâts : une épée +4 Solide 1 à 4 Dégâts reste réparable (LDB 60 l.30)', () => {
+    const solide = { ...sword(4), qualities: [{ id: 'solide', value: 1 }] };
+    expect(isRepairable(solide)).toBe(true);
+    expect(repairWeaponCostBrass(solide, 200)).toBe(80);
+  });
   it('10 % du prix de base par point de Dégâts subi', () => {
     expect(repairWeaponCostBrass(sword(1), 200)).toBe(20); // 1 point × 10 % de 200
     expect(repairWeaponCostBrass(sword(3), 200)).toBe(60); // 3 points × 10 %

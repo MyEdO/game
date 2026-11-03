@@ -1045,8 +1045,7 @@ export function attackWeapon(weapons: Weapon[], targetAdjacent: boolean): Weapon
 }
 
 /** `attackWeapon` pour un ATTAQUANT en train d'agir (attaque/tir choisi ou évalué) : un tel combattant
- *  a TOUJOURS au moins une arme — mains nues en dernier recours pour un héros (`recomputeLoadout`,
- *  `items.ts` l.512) ou une arme générique pour une créature (`weaponsFromTraits`, `items.ts` l.114-118).
+ *  a TOUJOURS au moins une arme — `unarmedWeapon` en dernier recours (LDB 62 l.28).
  *  Échoue fort (jamais un cast de complaisance) si l'invariant est violé — ce combattant ne devrait
  *  jamais atteindre ce point sans arme. */
 export function assertAttackWeapon(weapons: Weapon[], targetAdjacent: boolean): Weapon {
