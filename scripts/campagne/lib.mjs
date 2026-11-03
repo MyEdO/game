@@ -312,7 +312,7 @@ export const DRAGON_DES_TENEBRES = {
   },
   traits: [
     { id: 'taille', arg: 'monstrueuse' },
-    { id: 'souffle', value: 15, arg: 'Ténèbres' },
+    { id: 'souffle', value: 15, arg: 'fumee' },
     { id: 'terreur', value: 2 },
     { id: 'armure', value: 5 },
     { id: 'arme', value: 10 },

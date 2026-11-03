@@ -747,8 +747,15 @@ describe('endommagerLEquipementPorte — toutes les Armures et Armes portées su
     expect(endommagerLEquipementPorte(c).armes).toBe(0);
     expect(c.items![0].damageTaken).toBeUndefined();
   });
-  it('arme à Dégâts +0 (improvisée) : détruite, Mains nues en main', () => {
-    const c = porteur([arme('baton', { damage: { plusBF: true, flat: 0 } })], 'baton');
+  it('arme réduite à +0 par ses Dégâts (improvisée, LDB 62 l.135) : détruite, Mains nues en main', () => {
+    const c = porteur([arme('baton', { damage: { plusBF: true, flat: 1 }, damageTaken: 1 })], 'baton');
+    expect(endommagerLEquipementPorte(c).armes).toBe(1);
+    expect(c.items![0].destroyed).toBe(true);
+    expect(tientUneArme(c.weapons)).toBe(false);
+  });
+  it('Arme improvisée du catalogue : inutile dès son premier Dégât (LDB 62 l.135)', () => {
+    const it0 = { ...itemFromTrappingById('arme-improvisee')!, uid: 'chaise', equipped: true };
+    const c = porteur([it0], 'chaise');
     expect(endommagerLEquipementPorte(c).armes).toBe(1);
     expect(c.items![0].destroyed).toBe(true);
     expect(tientUneArme(c.weapons)).toBe(false);
