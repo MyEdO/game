@@ -25,7 +25,7 @@ import type { BattleState } from '../etat';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { TraitList } from '../../engine/statEntry';
-import type { AttackResult } from '../../engine/combat';
+import { toucheAvecPrise, type AttackResult } from '../../engine/combat';
 import type { SeuilDeSauvegarde } from '../pendings';
 import { wardSaves, traitCapability } from '../../engine/traits/dispatch';
 import { tablesPosees } from '../tablesPosees';
@@ -135,8 +135,9 @@ export function seuilsDeSauvegarde(
  * l.98, LDB 85 l.278). ÉCRITURE UNIQUE lue par TOUS les sites qui jugent la touche : les modificateurs à la
  * ré-entrée, les effets d'une attaque gratuite, la reprise d'un maillon de balayage. PURE.
  *
- * CE QUI EST IGNORÉ est ce que le livre nomme : les Dégâts, les Blessures, le Critique — et le coup de
- * grâce d'un Inconscient (LDB 16 l.113), qui est lui aussi « un coup reçu ».
+ * CE QUI EST IGNORÉ est ce que le livre nomme : les Dégâts, les Blessures, le Critique, les effets de
+ * touche (`toucheNonIgnoree`) — et le coup de grâce d'un Inconscient (LDB 16 l.113), qui est lui aussi
+ * « un coup reçu ».
  *
  * CE QUI RESTE VRAI : la touche a bien EU LIEU (`hit`). Le livre lie le gain d'Avantage au Test, pas
  * aux Blessures — « Si vous remportez le Test, vous touchez votre adversaire et gagnez +1 Avantage »
@@ -274,7 +275,7 @@ export const TABLES = {
       id: 'ward-saves',
       order: 10,
       apply: ({ get, attacker, target, attaque, res, ouvrirSauvegarde }) => {
-        if (!res.hit || res.sansPrise) return res; // LDB 85 l.98, l.278 : « après chaque coup reçu »
+        if (!toucheAvecPrise(res)) return res; // LDB 85 l.98, l.278 : « après chaque coup reçu »
         // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
         // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
         if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;

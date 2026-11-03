@@ -28,7 +28,7 @@ import { useHoverTargeting } from './useHoverTargeting';
  */
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
+Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: vi.fn() });
 beforeEach(() => {
   vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
 });

@@ -122,7 +122,7 @@ function hitSecondary(
   if (wl > 0) loseWounds(victim, wl);
   lines.push(tr(msgKey, { name: victim.label, wl }));
   // États « infligés par l'arme » via le MÊME dispatcher que le tir individuel (Empêtré, En flammes, Venin…),
-  // déclenchés dès la touche — parité avec la cible PRIMAIRE (`applyAttackResult` fire l'onHit sur `res.hit` seul).
+  // déclenchés dès la touche, comme pour la cible PRIMAIRE (`toucheNonIgnoree`).
   // Une arme à Dégâts « Spéciaux » (Canon à flammes nain, ADE II 8 l.243) applique donc son État à 0 Blessure ;
   // les effets qui EXIGENT une Blessure se gardent EUX-MÊMES (Condition Flow `woundsDealt > 0` : Venin/Empoisonnement).
   if (!isOutOfAction(victim))

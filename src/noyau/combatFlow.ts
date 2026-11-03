@@ -72,6 +72,8 @@ import {
   freeAttackWeapon,
   defaultParryWeapon,
   advantageModLine,
+  toucheAvecPrise,
+  toucheNonIgnoree,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -2763,8 +2765,8 @@ function appliquerLaTouche(
   // résolution : la CIBLE (touche, Critique létal, 0 PB) ET l'ATTAQUANT (Critique défensif opposé qui le
   // tue PENDANT sa charge). Émis une fois (garde `slainNotified`).
   for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c));
-  // Taille (arme) : sur une touche réussie, endommage de 1 PA l'armure frappée (LDB 62 l.307).
-  if (res.hit && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
+  // LDB 62 l.307.
+  if (toucheAvecPrise(res) && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
   const firedAmmo = weapon.type === 'ranged' && attacker.kind === 'hero' ? loadedAmmo(attacker, weapon) : undefined;
   // Tir avec une arme à Recharge → DÉCHARGÉE après le coup (LDB 62 l.335) : un Test étendu de Projectiles est
@@ -2843,8 +2845,8 @@ function appliquerLaTouche(
   // Effets DÉCLENCHÉS « à la touche » authorés (donnée éditable) : Traits de l'attaquant (Toile, Venin…),
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
   // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
-  // sur PB) alimentent les Conditions Flow de gating.
-  if (res.hit) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  // sur PB) alimentent les Conditions Flow de gating. LDB 85 l.98, l.278 ; LDB 14 l.159
+  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
   // (−1/touche) ; no-op hors bataille de masse. Réduction PUIS résolue à la victoire (massBattleResumeCombat).
   if (res.hit) massBattleTrackHit(get, set, attacker, target);
@@ -4128,17 +4130,15 @@ export function creatureAttackKind(weapon: { attackKind?: string }): string | un
   return weapon.attackKind;
 }
 
-/** Effets RAW post-touche d'une attaque gratuite (sur PB infligés) : Attaque caudale → cible de Taille
- *  INFÉRIEURE → À Terre (LDB 85 l.47). Le Venin est un `effects` du trait (dispatché par le
- *  `fireTriggers('onHit')` d'`applyAttackResult`, atteint aussi par les attaques gratuites). */
+/** Effets onHit AUTHORÉS (`maneuver.effects`) de la manœuvre `kind` d'une attaque gratuite de mêlée, sur
+ *  une touche non ignorée (`toucheNonIgnoree`) : la condition que pose le livre est une Condition de l'effet
+ *  (`woundsDealt` ← `res.woundsLost`), jamais une sortie de cette fonction. LDB 85 l.47 ; LDB 85 l.405 ;
+ *  LDB 85 l.98 */
 export function applyFreeAttackEffects(get: Get, attacker: Combatant, target: Combatant, kind: string, res: AttackResult): void {
-  if (!res.hit) return; // les effets se déclenchent sur une touche réussie
-  // (Constricteur = `effects` onHit du trait → Empêtré sur toute touche, appliqué par le
-  //  `fireTriggers('onHit')` d'`applyAttackResult` — atteint aussi les attaques gratuites.)
-  if (!res.woundsLost) return; // les effets suivants exigent des Points de Blessure perdus
-  // Effets onHit AUTHORÉS de la manœuvre (donnée éditable `maneuver.effects` : Attaque caudale → À Terre
-  // si la cible est plus petite ; Tentacules → Empêtré) — appliqués SCOPED à cette manœuvre (≠ l'onHit
-  // générique des traits/atouts), via le MÊME exécuteur de Flow.
+  if (!toucheNonIgnoree(res)) return;
+  // (Constricteur = `effects` onHit du trait, appliqué par le `fireTriggers('onHit')` d'`applyAttackResult`
+  //  — atteint aussi les attaques gratuites.)
+  // SCOPED à cette manœuvre (≠ l'onHit générique des traits/atouts), via le MÊME exécuteur de Flow.
   const mEffects = maneuverEffectsOf(attacker, kind);
   if (mEffects.length) applyTriggeredEffects(get, attacker, mEffects, 'onHit', { victim: target, woundsDealt: res.woundsLost, attackKind: kind, rng: battleRng() }).forEach((l) => get().log(l));
   // (Vampirique = `effects` onHit du trait `vampirique`, gaté par la Condition Flow `attackKind: 'morsure'` →
@@ -5807,7 +5807,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   }
   // LDB 18 l.53 ; LDB 63 l.32.
   const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
-  if (!mres.hit || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
+  if (!toucheAvecPrise(coup) || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const currentBefore = cible.wounds.current;
   const twice = critRollTwiceFor(caster);
   const touche: ToucheDeProjectile = { ...ch, mres };

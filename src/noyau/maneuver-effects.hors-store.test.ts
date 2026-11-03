@@ -1,8 +1,7 @@
 /**
- * Effets onHit AUTHORÉS des MANŒUVRES (`TraitData.maneuver.effects`, donnée éditable) — migrés des
- * handlers en dur de `applyFreeAttackEffects`. Appliqués SCOPED à la manœuvre (via `maneuverEffectsOf`
- * + `applyTriggeredEffects`). Preuve : Attaque caudale → À Terre si la cible est plus petite ;
- * Tentacules → Empêtré.
+ * Effets onHit AUTHORÉS des MANŒUVRES (`src/data/maneuvers.json` `effects`, donnée éditable), appliqués
+ * SCOPED à la manœuvre (via `maneuverEffectsOf` + `applyTriggeredEffects`), chacun sous sa propre
+ * Condition. LDB 85 l.47 ; LDB 85 l.405 ; LDB 85 l.213
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyFreeAttackEffects, applyWail } from './combatFlow';
@@ -56,11 +55,20 @@ describe('effets onHit de manœuvre (data) appliqués par applyFreeAttackEffects
     expect(empetre(foe)?.escapeStrength).toBe(kraken.characteristics.force);
   });
 
-  it('sans Dégâts (woundsLost 0) : pas d’effet de manœuvre', () => {
+  // LDB 85 l.47
+  it('Attaque caudale : touche sans Blessure perdue (woundsLost 0) sur une cible plus petite → PAS d’À Terre', () => {
     const dragon = mk({ traits: [{ id: 'attaque-caudale', value: 9 }], size: 'enorme' });
     const prey = mk({ size: 'petite' });
     applyFreeAttackEffects(get, dragon, prey, 'caudale', { hit: true, woundsLost: 0 } as AttackResult);
     expect(aTerre(prey)).toBeUndefined();
+  });
+
+  // LDB 85 l.405 ; lecture : `docs/raw/4e/combat.md` § Tentacules (#3075)
+  it('Tentacules : touche sans Blessure perdue (woundsLost 0) → PAS d’Empêtré', () => {
+    const kraken = mk({ id: 'k', traits: [{ id: 'tentacules', value: 6 }] });
+    const foe = mk({ id: 'f' });
+    applyFreeAttackEffects(get, kraken, foe, 'tentacules', { hit: true, woundsLost: 0 } as AttackResult);
+    expect(empetre(foe)).toBeUndefined();
   });
 });
 
