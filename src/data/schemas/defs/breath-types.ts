@@ -1,6 +1,6 @@
 /**
- * Schéma de `breath-types.json` — Types de Souffle (Feu/Froid/Corrosif/Électrique/Poison/Fumée),
- * argument du Trait Souffle, et la RÈGLE de chaque Type (LDB 85 l.322-329) que la manœuvre `souffle`
+ * Schéma de `breath-types.json` — Types de Souffle, registre FERMÉ de l'argument du Trait Souffle (tout
+ * `arg` en est un id), et la RÈGLE de chaque Type (LDB 85 l.322-329) que la manœuvre `souffle`
  * compose (`souffleDuType`, `engine/creatureAttacks.ts`). Reflet de `BreathTypeData` (`src/data/index.ts`).
  */
 import { z } from 'zod';

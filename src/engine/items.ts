@@ -1134,11 +1134,10 @@ export function endommagerLEquipementPorte(c: Combatant): { localisations: numbe
   return { localisations: locs.length - sansPiece.length + usees, armes };
 }
 
-/** 1 Dégât à l'objet d'arme `it` (LDB 62 l.135) : Incassable n'en subit aucun (LDB 62 l.262), une Arme
- *  improvisée déjà à +0 devient inutilisable. L'appelant re-dérive les armes tenues. */
+/** 1 Dégât à l'objet d'arme `it` (LDB 62 l.135, l.262). L'appelant re-dérive les armes tenues. */
 function endommagerLObjetArme(it: ItemInstance): 'intacte' | 'usee' | 'brisee' {
   if (isUnbreakable(it)) return 'intacte';
-  if (isImprovised({ ...weaponFromItem(it), damageTaken: it.damageTaken ?? 0 })) it.destroyed = true;
+  if (it.improvised || isImprovised({ ...weaponFromItem(it), damageTaken: it.damageTaken ?? 0 })) it.destroyed = true;
   it.damageTaken = (it.damageTaken ?? 0) + 1;
   return it.destroyed ? 'brisee' : 'usee';
 }
