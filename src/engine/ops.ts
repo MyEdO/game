@@ -1028,9 +1028,8 @@ export type GameOp =
    *  `traitSpellDRMod`/`talentSpellDRMod` (engine/magic) au calcul du DR du Sort CONTRE cette cible
    *  (Dégâts du Projectile, `ctx.sl` des Flows, zone, NI par cible). Inerte dans `applyOps`. */
   | { op: 'incomingSpellDRMod'; amount: FormuleSansTirage }
-  /** +N au Bonus de Force employé aux DÉGÂTS (Frénésie : +1 « grâce à votre férocité », LDB 21 l.33). PASSIF,
-   *  sommé par `damageSBBonus` et injecté dans `sb` au calcul des dégâts (combat.ts) — AVANT le `max` du Tueur
-   *  et `effectiveWeaponDamage` (une arme à dégâts FIXES n'en profite donc pas). Inerte dans `applyOps`. */
+  /** +N au Bonus de Force (LDB 21 l.33). PASSIF, sommé par `bonusDeForce` (engine/characteristics), lu par
+   *  tout lecteur du BF. Inerte dans `applyOps`. */
   | { op: 'sbBonus'; amount: number }
   /** L'attaque du porteur porte un MOT-CLÉ (Magique/Démoniaque/Fabriqué → 'magic', LDB 85). PASSIF, lu par
    *  `attackHasKeyword` — sert la mitigation (Éthéré : seules les attaques 'magic' blessent). Inerte dans applyOps. */

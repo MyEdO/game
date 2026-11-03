@@ -5,7 +5,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
 import { ItemIcon } from './ItemIcon';
 import { MediaSelect, type MediaOption } from './MediaSelect';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonusDeForce } from '../engine/characteristics';
 import { qualityRefLabel } from '../data';
 import { weaponStatParts } from './weaponStats';
 import { Icon } from './Icon';
@@ -180,7 +180,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const capes = items.filter(isCapeItem);
   const wornCape = capes.find((i) => i.equipped);
   const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.destroyed);
-  const strBonus = bonus(effectiveChar(hero, 'force'));
+  const strBonus = bonusDeForce(hero);
 
   const activeWeapons = hero.weapons.filter((w) => !isUnarmed(w));
 

@@ -45,7 +45,7 @@ export interface CarrierInventoryProps {
   carrierId: string;
   /** Objets du porteur (`hero.items` / `possession.items`). */
   items: ItemInstance[];
-  /** Groupe pour le calcul mécanique des armes (BF du porteur) — `bonus(effectiveChar(hero,'force'))`
+  /** Groupe pour le calcul mécanique des armes (BF du porteur) — `bonusDeForce(hero)`
    *  côté héros ; 0 par défaut (porteur sans caractéristiques). */
   forceBonus?: number;
   /** Autre porteurs éligibles au « Donner » (typiquement le reste du groupe) — filtré de `carrierId`. */

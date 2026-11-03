@@ -46,7 +46,7 @@ import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castingValue, castInfoIsPrayer, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
-import { effectiveChar, bonus } from '../engine/characteristics';
+import { bonusDeForce } from '../engine/characteristics';
 import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
@@ -1159,7 +1159,7 @@ export const FLOWS = paresseux({
     resolve: (_s, _r, actor, _get, forced, p) => {
       if (!actor || !p) return null;
       const value = testValue(actor, 'corps-a-corps'); // Bagarre (CC + avances)
-      const bf = bonus(effectiveChar(actor, 'force'));
+      const bf = bonusDeForce(actor);
       if (forced) {
         // Résilience « Je ne faillirai pas ! » : DR maximal (dé MEILLEUR) → dégâts max (LDB 17 l.68).
         const die = bestForcedRoll(value);
@@ -1175,7 +1175,7 @@ export const FLOWS = paresseux({
       // Chance « +1 DR » : +1 au DR → +1 dégât (avant réduction par le BE).
       derive: (_s, r, actor, p) => {
         if (!r.result || !p) return null;
-        const bf = bonus(effectiveChar(actor, 'force'));
+        const bf = bonusDeForce(actor);
         const sl = r.result.sl + 1;
         return { result: { ...r.result, sl, damage: Math.max(0, sl + bf - p.doorBE) } };
       },

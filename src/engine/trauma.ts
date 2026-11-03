@@ -1043,12 +1043,6 @@ export function traumaMovementHalved(c: Combatant): boolean {
   return pmods(c, 'moveScale').length > 0;
 }
 
-/** Σ des modificateurs PASSIFS du Bonus de Force employé aux DÉGÂTS (`sbBonus`) — Frénésie : +1 (LDB 21
- *  l.33). Lu par le calcul des dégâts (`combat.ts`) à l'endroit du `sb`, en remplacement du drapeau
- *  `frenzied ? 1 : 0` codé en dur — la donnée vient de `psychology.json` via `passiveMods`. */
-export function damageSBBonus(c: Combatant): number {
-  return pmods(c, 'sbBonus').reduce((n, o) => n + o.amount, 0);
-}
 
 /** Σ des `attrMod` de l'attribut `attr` parmi `mods`, évalués sur `ref` avant tout jet (#3060). */
 export function sommeAttrMods(mods: readonly PassiveMod[], attr: 'wounds' | 'fortune' | 'resolve', ref: Combatant | LectureDeCarac): number {
