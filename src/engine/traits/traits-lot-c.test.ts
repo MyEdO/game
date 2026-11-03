@@ -58,7 +58,7 @@ describe('dispatch — parsing et prédicats (LDB 85)', () => {
     // Résistance à la Magie : op passive `incomingSpellDRMod` × Indice (le DR, plus les Blessures).
     expect(traitSpellDRMod(mk({ traits: [{ id: 'resistance-a-la-magie', value: 2 }] }))).toBe(-2);
     expect(traitSpellDRMod(mk({ traits: [{ id: 'resistance-a-la-magie' }] }))).toBe(-1); // Indice absent → 1 (donnée naine)
-    expect(immunityTypes([{ id: 'immunite', arg: 'Poison' }])).toEqual(['poison']);
+    expect(immunityTypes([{ id: 'immunite', arg: 'poison' }])).toEqual(['poison']);
   });
   it('psy/IA : Bestial, À sang-froid, Stupide, Rage, Territorial, Fabriqué', () => {
     expect(isBestial([{ id: 'bestial' }])).toBe(true);

@@ -66,6 +66,21 @@ describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 1
     expect(c.wounds.current).toBe(8);
   });
 
+  it('En flammes sur un immunisé à ses Dégâts (Immunité (Feu)) : rien à entretenir, la boucle ne s’allume pas (LDB 85 l.174)', () => {
+    const immunise = mk({ current: 8, conditions: [{ id: 'en-flammes', value: 1 }] });
+    immunise.traits = [{ id: 'immunite', arg: 'feu' }];
+    const sonde = espionneEffets(immunise, []);
+    expect(outOfCombatUpkeep([immunise], 480, fixed(5))).toEqual([]);
+    expect(immunise.wounds.current).toBe(8);
+    expect(sonde.lectures, 'quelques lectures de contrôle, jamais un tour par Round de la fenêtre').toBeLessThan(10);
+    // CONTRÔLE : le même État sans l'Immunité fait tourner la boucle et brûle.
+    const brule = mk({ current: 8, conditions: [{ id: 'en-flammes', value: 1 }] });
+    const sondeBrule = espionneEffets(brule, []);
+    outOfCombatUpkeep([brule], 3, fixed(5));
+    expect(sondeBrule.lectures).toBeGreaterThan(sonde.lectures);
+    expect(brule.wounds.current).toBeLessThan(8);
+  });
+
   it('un buff en Rounds SANS RAPPORT ne déclenche PAS l’entretien du porteur en péril : même sort pour le Sonné et l’Aveuglé avec et sans buff', () => {
     const etats = () => [{ id: 'sonne', value: 2 }, { id: 'aveugle', value: 1 }];
     const sansBuff = mk({ current: 8, conditions: etats() });
