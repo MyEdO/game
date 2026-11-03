@@ -1,17 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { useGame } from './store';
-import { mergeCreatureProfile, resolvePresetCreature } from '../noyau/monde/resolveursDuNarratif';
-import { presetPnjById } from './campaignData';
-import { FicheAbsente, sceneNpc } from '../noyau/monde/sceneNpc';
-import { creatureToCombatant } from '../noyau/monde/spawn';
-import { applyNetSnapshot } from './netFlow';
-import { instantaneDeLaCoop } from '../noyau/coop';
-import { parseProject } from '../noyau/worldMap';
-import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { mergeCreatureProfile, presetDuNarratif, resolvePresetCreature } from './monde/resolveursDuNarratif';
+import { FicheAbsente, sceneNpc } from './monde/sceneNpc';
+import { creatureToCombatant } from './monde/spawn';
+import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
+import { parseProject } from './worldMap';
+import { emptyNarratif } from './monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { emptyScene, type Scene } from './monde/scene';
 import { findCreatureById, type CreatureData } from '../data';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -51,13 +49,15 @@ function presetScene(id = 'sc-preset'): Scene {
 }
 
 function spawnedEnemy(): Combatant {
-  useGame.getState().startCombat('enc-preset');
-  return useGame.getState().battle!.combatants.find((c) => c.id === 'pnj-1')!;
+  banc.getState().startCombat('enc-preset');
+  return banc.getState().battle!.combatants.find((c) => c.id === 'pnj-1')!;
 }
 
-beforeEach(() => {
-  useGame.setState({ campaignNarratif: null, party: [], scene: null, battle: null });
-});
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+/** Le résolveur de preset du narratif chargé sur le banc. */
+const presetPnjById = (id: string) => presetDuNarratif(banc.getState().campaignNarratif)(id);
 
 describe('mergeCreatureProfile (#671, PUR)', () => {
   const base: CreatureData = { ...findCreatureById(BASE_ID)! };
@@ -86,9 +86,9 @@ describe('mergeCreatureProfile (#671, PUR)', () => {
 
 describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #671)', () => {
   it('campagne chargée : le Combatant spawné porte la carac SURCHARGÉE + le label du preset', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     // Chemin RÉEL : loadProject pose la couche narrative ET active la scène d’entrée.
-    useGame.getState().loadProject({ scenes: [presetScene()], entryId: 'sc-preset', narratif: narratifFixture(), projet: null });
+    banc.getState().loadProject({ scenes: [presetScene()], entryId: 'sc-preset', narratif: narratifFixture(), projet: null });
     // La résolution de couche voit la base mergée.
     const r = resolvePresetCreature('pnj-test', presetPnjById)!;
     expect(r.creature.char[CC]).toBe(99);
@@ -100,14 +100,14 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
   });
 
   it('couche NON chargée : le presetId ne résout pas, et le PNJ sans autre porteur est un BOGUE nommé, jamais un PNJ générique (#1882)', () => {
-    useGame.setState({ party: [hero()], campaignNarratif: null });
-    expect(() => useGame.getState().startScene(presetScene('sc-nu'))).toThrow(FicheAbsente);
+    banc.setState({ party: [hero()], campaignNarratif: null });
+    expect(() => banc.getState().startScene(presetScene('sc-nu'))).toThrow(FicheAbsente);
     expect(resolvePresetCreature('pnj-test', presetPnjById)).toBeUndefined();
-    expect(() => useGame.getState().startScene(presetScene('sc-nu'))).toThrow(/personnage « pnj-1 » : preset de PNJ « pnj-test » irrésoluble/);
+    expect(() => banc.getState().startScene(presetScene('sc-nu'))).toThrow(/personnage « pnj-1 » : preset de PNJ « pnj-test » irrésoluble/);
   });
 
   it('resolvePresetCreature : base introuvable → undefined (fail-doux)', () => {
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-x', base: 'creature-inexistante' }] } });
+    banc.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-x', base: 'creature-inexistante' }] } });
     expect(resolvePresetCreature('pnj-x', presetPnjById)).toBeUndefined();
     expect(resolvePresetCreature('pnj-absent', presetPnjById)).toBeUndefined();
   });
@@ -137,16 +137,16 @@ describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
  */
 describe('coop — l’invité re-dérive la couche narrative du paquet de l’hôte (#1882)', () => {
   it('l’hôte et l’invité voient le MÊME PNJ à preset', () => {
-    useGame.setState({ party: [hero()], campaignNarratif: null });
-    useGame.getState().loadProject({ scenes: [presetScene('sc-coop')], entryId: 'sc-coop', worldMap: null, narratif: narratifFixture(), projet: null });
-    expect(sceneNpc(useGame.getState().scene, 'pnj-1', presetPnjById)?.label).toBe('Nommé Test');
+    banc.setState({ party: [hero()], campaignNarratif: null });
+    banc.getState().loadProject({ scenes: [presetScene('sc-coop')], entryId: 'sc-coop', worldMap: null, narratif: narratifFixture(), projet: null });
+    expect(sceneNpc(banc.getState().scene, 'pnj-1', presetPnjById)?.label).toBe('Nommé Test');
 
-    const snap = instantaneDeLaCoop(useGame.getState());
-    useGame.setState({ campaignNarratif: null }); // l'invité n'a jamais chargé le paquet
-    applyNetSnapshot(useGame.setState, snap);
+    const snap = instantaneDeLaCoop(banc.getState());
+    banc.setState({ campaignNarratif: null }); // l'invité n'a jamais chargé le paquet
+    banc.setState(appliquerLInstantane(snap, banc.getState()).etat);
 
-    expect(useGame.getState().campaignNarratif?.presetsPnj.map((p) => p.id)).toEqual(['pnj-test']);
-    expect(sceneNpc(useGame.getState().scene, 'pnj-1', presetPnjById)?.label).toBe('Nommé Test');
+    expect(banc.getState().campaignNarratif?.presetsPnj.map((p) => p.id)).toEqual(['pnj-test']);
+    expect(sceneNpc(banc.getState().scene, 'pnj-1', presetPnjById)?.label).toBe('Nommé Test');
   });
 });
 
@@ -184,7 +184,7 @@ describe('presets des projets livrés — chaque profil se retrouve au Combatant
     const verifies: string[] = [];
     const fautes: string[] = [];
     for (const { rel, narratif } of projets) {
-      useGame.setState({ campaignNarratif: narratif });
+      banc.setState({ campaignNarratif: narratif });
       for (const preset of narratif.presetsPnj) {
         const ou = `${rel} › ${preset.id}`;
         const r = resolvePresetCreature(preset.id, presetPnjById);
@@ -209,7 +209,7 @@ describe('presets des projets livrés — chaque profil se retrouve au Combatant
 
   it('contre-épreuve : un profil ALTÉRÉ (caractéristique et Corruption) face au Combatant réel remplit les fautes', () => {
     const [{ narratif }] = projets.filter((p) => p.narratif.presetsPnj.some((x) => x.profil?.char && x.profil.corruption !== undefined));
-    useGame.setState({ campaignNarratif: narratif });
+    banc.setState({ campaignNarratif: narratif });
     const preset = narratif.presetsPnj.find((x) => x.profil?.char && x.profil.corruption !== undefined)!;
     const c = creatureToCombatant(resolvePresetCreature(preset.id, presetPnjById)!.creature, preset.id, { x: 0, y: 0 });
     const [cle, v] = Object.entries(preset.profil!.char!).find(([, x]) => typeof x === 'number')! as [string, number];

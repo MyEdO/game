@@ -17,26 +17,31 @@
  * hors combat. Aucun test ici ne le simule.
  */
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { useGame } from './store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import { findTavernGameById } from '../engine/tavernGame';
-import { playTavernGame, tavernGameValue, tavernNpcOffers } from '../noyau/tavernFlow';
-import { sceneNpc } from '../noyau/monde/sceneNpc';
-import { activeSequence, sequenceBoardOf } from '../noyau/sequenceCore';
-import { applierDe } from '../noyau/cascade';
-import type { CascadeStep } from '../noyau/pendings';
-import { applyEffects } from '../noyau/combatEffects';
+import { playTavernGame, tavernGameValue, tavernNpcOffers } from './tavernFlow';
+import { sceneNpc } from './monde/sceneNpc';
+import { activeSequence, sequenceBoardOf } from './sequenceCore';
+import { applierDe } from './cascade';
+import type { CascadeStep } from './pendings';
+import { applyEffects } from './combatEffects';
 import { setRule, resetRule } from '../engine/policy';
-import { emptyScene } from '../noyau/monde/scene';
+import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
 import { scenario as scenarioEdo } from '../scenes/test-scenarios/96-presets-edo';
-import { presetPnjById } from './campaignData';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
 const scenarioEdoConstruit = scenarioEdo.construire();
 
-const get = useGame.getState.bind(useGame);
-const set = useGame.setState.bind(useGame);
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const get = () => banc.getState();
+const set: Banc['setState'] = (e) => banc.setState(e);
+/** Le résolveur de preset du narratif chargé sur le banc. */
+const presetPnjById = (id: string) => presetDuNarratif(get().campaignNarratif)(id);
 
 /** Une entité de scène `personnage` à statbloc AUTHORÉ. `CustomStatblock.skills` porte la valeur de
  *  Test FINALE (`SkillRef`) ; les avances s'en dérivent au spawn (valeur − Caractéristique) — c'est donc
@@ -63,8 +68,7 @@ function poseScene(entities: ReturnType<typeof pnjDeScene>[]): void {
 }
 
 describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   it('sa valeur de jeu est DÉRIVÉE de sa fiche : deux PNJ aux avances de Pari différentes ne jouent pas la même', () => {
     poseScene([pnjDeScene('pnj-fort', 'Plantule', 70), pnjDeScene('pnj-faible', 'Un quidam', 30)]);
     const jeu = findTavernGameById('dominos')!;
@@ -124,7 +128,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
 });
 
 describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); poseScene([]); });
+  beforeEach(() => { poseScene([]); });
   const dominos = () => findTavernGameById('dominos')!.label;
 
   it('jeu inconnu', () => {
@@ -173,8 +177,7 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
  * rendait une fiche vide au nom générique — l'adversaire à fiche redevenait l'adversaire nu.
  */
 describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagne)', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   it('un PNJ à `presetId` joue de SON profil de campagne — nom et Compétence, jamais un repli générique', () => {
     set({
       party: makePregens().slice(0, 2) as Combatant[],
@@ -211,8 +214,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
  * est résolu par la projection UNIQUE `sceneNpc`, pas recomposé au site.
  */
 describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   /** Entité renommée : le statbloc porte le libellé d'ESPÈCE, l'entité le nom de l'AUTEUR. */
   function pnjRenomme(id: string, nom: string, espece: string, offre?: { gameId: string; stakeBrass?: number }) {
     const e = pnjDeScene(id, espece, 45, offre);
@@ -244,8 +246,7 @@ describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
  * rangée. La sonde mesure la RANGÉE, pas la valeur : c'est elle que le repli faisait disparaître.
  */
 describe('#1279 S4-b — l’adversaire de scène GARDE sa rangée dans la manche', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   it('la manche ouvre une BANDE à deux rangées (challenger + PNJ), jamais un mono à jet figé', () => {
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55)]);
     const challenger = get().party[0]!;
@@ -265,7 +266,7 @@ describe('#1279 S4-b — l’adversaire de scène GARDE sa rangée dans la manch
  * jamais un id de PNJ nommé au code.
  */
 describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); setRule('tavern-games', true); });
+  beforeEach(() => { setRule('tavern-games', true); });
   afterAll(() => { resetRule('tavern-games'); });
 
   it('l’Effet de dialogue du proposeur PASSE son id : la modale s’ouvre pré-sélectionnée sur lui', () => {
@@ -301,8 +302,7 @@ describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
 /** #1882 — un personnage SANS fiche n'a aucune valeur à opposer : la salle ne le propose pas (jamais sous
  *  son id brut), sa faute est dite à l'auteur par `validateScene`. */
 describe('#1882 — la salle ne propose que des adversaires À FICHE', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   it('un proposeur sans porteur de fiche est exclu de l’offre ; le proposeur à fiche reste', () => {
     const { statblock: _sansFiche, ...sansFiche } = pnjDeScene('pnj-vide', 'Sans fiche', 40, { gameId: 'dominos' });
     poseScene([pnjDeScene('pnj-gerta', 'Gerta', 45, { gameId: 'dominos' }), sansFiche as ReturnType<typeof pnjDeScene>]);

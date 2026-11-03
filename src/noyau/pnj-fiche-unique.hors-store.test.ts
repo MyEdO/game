@@ -7,23 +7,28 @@
  *    ne donne AUCUNE fiche : aucun lecteur ne reçoit un mannequin, chacun DIT le refus.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from './store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
-import { emptyScene, type SceneEntity } from '../noyau/monde/scene';
-import { ficheDEntite, FicheAbsente, sceneNpc } from '../noyau/monde/sceneNpc';
-import { playTavernGame, tavernNpcOffers } from '../noyau/tavernFlow';
-import { activeSequence } from '../noyau/sequenceCore';
-import { applyEffects } from '../noyau/combatEffects';
+import { emptyScene, type SceneEntity } from './monde/scene';
+import { ficheDEntite, FicheAbsente, sceneNpc } from './monde/sceneNpc';
+import { playTavernGame, tavernNpcOffers } from './tavernFlow';
+import { activeSequence } from './sequenceCore';
+import { applyEffects } from './combatEffects';
 import type { Combatant } from '../engine/types';
-import { EFFECT_HANDLERS } from '../noyau/combatEffects';
+import { EFFECT_HANDLERS } from './combatEffects';
 import { startPursuitSchema, givePossessionSchema } from '../data/schemas/defs-scenes/effets';
 import { findCreatureById, findVehicleById } from '../data';
 import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
-import { validateScene } from '../noyau/validateScene';
-import { presetPnjById } from './campaignData';
+import { validateScene } from './validateScene';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
 
-const get = useGame.getState.bind(useGame);
-const set = useGame.setState.bind(useGame);
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const get = () => banc.getState();
+const set: Banc['setState'] = (e) => banc.setState(e);
+/** Le résolveur de preset du narratif chargé sur le banc. */
+const presetPnjById = (id: string) => presetDuNarratif(get().campaignNarratif)(id);
 
 function pose(entities: SceneEntity[]): void {
   set({ party: makePregens().slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
@@ -33,8 +38,7 @@ const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 
 const MORT: SceneEntity = { id: 'fantome', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Le Fantôme', ref: 'creature-fantome-xyz', tavernGame: { gameId: 'dominos' } };
 
 describe('#1882 — un PNJ, une fiche, UN nom', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   it('le même PNJ nommé porte le même nom en combat (`ficheDEntite`) et à la taverne (`sceneNpc`)', () => {
     pose([GERTA]);
     const combat = ficheDEntite(GERTA, presetPnjById);
@@ -64,8 +68,7 @@ describe('#1882 — la porte et la fiche disent la MÊME chose d’un porteur', 
 });
 
 describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', () => {
-  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
-
+  
   it('combat : `ficheDEntite` LÈVE en nommant la réf.', () => {
     expect(() => ficheDEntite(MORT, presetPnjById)).toThrow(FicheAbsente);
     expect(() => ficheDEntite(MORT, presetPnjById)).toThrow('réf. « creature-fantome-xyz » irrésoluble');

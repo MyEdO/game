@@ -6,16 +6,14 @@
  * Garde de PROPRIÉTÉ sur TOUT statbloc livré qui porte un trait de mutation au spawn : bestiaire
  * (`creatures.json`), presets des projets livrés, statblocs et presets des scénarios de test.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { useGame } from './store';
-import { resolvePresetCreature } from '../noyau/monde/resolveursDuNarratif';
-import { presetPnjById } from './campaignData';
-import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from '../noyau/monde/spawn';
-import { parseProject } from '../noyau/worldMap';
+import { presetDuNarratif, resolvePresetCreature } from './monde/resolveursDuNarratif';
+import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from './monde/spawn';
+import { parseProject } from './worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import type { Scene } from '../noyau/monde/scene';
+import type { Scene } from './monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
 import { creatures, findTalentById, findTraitById } from '../data';
 import { mutationById } from '../data/mutations';
@@ -60,8 +58,7 @@ function talentsNatifs(refs: { id: string; times?: number }[] | undefined): { ta
 
 function porteursDuNarratif(ou: string, narratif: NarratifBlock): Porteur[] {
   return narratif.presetsPnj.flatMap((preset) => {
-    useGame.setState({ campaignNarratif: narratif });
-    const r = resolvePresetCreature(preset.id, presetPnjById);
+    const r = resolvePresetCreature(preset.id, presetDuNarratif(narratif));
     if (!r || !porteMutation(r.creature.traits)) return [];
     const creature = r.creature;
     return [{ ou: `${ou} › preset ${preset.id}`, traits: traitsDuPorteur(creature.traits, porteurDuProfil(preset.id, creature.char)), nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];
@@ -160,10 +157,6 @@ function fautesDuPorteur(p: Porteur): string[] {
   if (c.wounds.current !== c.wounds.max) fautes.push(`${p.ou} : (e) né à ${c.wounds.current}/${c.wounds.max}`);
   return fautes;
 }
-
-beforeEach(() => {
-  useGame.setState({ campaignNarratif: null, party: [], scene: null, battle: null });
-});
 
 describe('mutations au spawn — garde de propriété sur les statblocs livrés (#1853)', () => {
   const porteurs = tousLesPorteurs();
