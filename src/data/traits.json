@@ -199,6 +199,7 @@
     "type": "traits",
     "label": "Béni",
     "specsSource": "cultBlessings",
+    "grantSpecGroups": true,
     "desc": "La créature est Béni et peut accorder des Bénédictions. La divinité concernée est indiquée entre parenthèses.",
     "source": {
       "book": "livre-de-base",
@@ -1109,6 +1110,7 @@
     "type": "traits",
     "label": "Lanceur de Sorts",
     "specsSource": "arcaneDomains",
+    "grantSpecGroups": true,
     "specsOpen": true,
     "desc": "La créature peut lancer des Sorts : le type de magie spécifique est indiqué entre parenthèses.",
     "source": {

@@ -143,6 +143,8 @@ const doc = document(
     /** LDB 16 l.70 ; MDG 16 l.226 */
     difficulte: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
+    /** LDB 79 l.67 ; LDB 50 l.9 ; #3045 */
+    grantSpecGroups: z.literal(true).optional(),
     specsOpen: z.boolean().optional(),
     /** LDB 48 l.23 */
     nonTransferable: z.boolean().optional(),
@@ -189,6 +191,10 @@ const doc = document(
     specsSource: {
       label: 'Registre de spécialisations',
       hint: 'Catalogue partagé (armes, Vents, Domaines, Cultes…) d’où proviennent les spécialisations',
+    },
+    grantSpecGroups: {
+      label: 'Groupes de l’argument',
+      hint: 'L’argument nomme une entrée du registre (culte, Domaine) dont les Groupes sont accordés au porteur',
     },
     specsOpen: {
       label: 'Spécialisation ouverte',

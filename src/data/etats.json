@@ -477,6 +477,9 @@
       "page": 168
     },
     "persistsAfterCombat": true,
+    "grantGroups": [
+      "feu"
+    ],
     "effects": [
       {
         "trigger": "onRoundEnd",

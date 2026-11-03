@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { charKeySchema, enumNomme, sourceRefSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { executeesDe, flowTestSchema, triggeredEffectSchema } from '../grammaire/mecanique';
-import { idDe, refOuSpec } from '../grammaire/ref';
+import { idDe, refOuSpec, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'domains.json';
 export const famille = 'entite';
@@ -55,6 +56,8 @@ const doc = document(
     arcane: idDe('breathType').optional(),
     /** VDM 02 l.192 ; LDB 50. */
     dark: z.boolean().optional(),
+    /** LDB 50 l.9 ; EDOC 13 l.606 */
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** VDM 02 l.238. */
     tables: z.record(z.string(), z.string()).optional(),
 
@@ -138,6 +141,7 @@ const doc = document(
     wind: { label: 'Vent de magie', hint: 'Couleur associée (Aqshy, Ghyran…), extraite du texte' },
     arcane: { label: 'Magie des Arcanes : Type de Souffle', hint: 'Domaine ouvert via le Talent Magie des Arcanes ; Type du sort Souffle (LDB 47 l.509)' },
     dark: { label: 'Domaine sombre', hint: 'Nécromancie/Démonologie' },
+    grantGroups: { label: 'Groupes accordés', hint: 'Groupes du porteur d’un Talent ou d’un Trait qui nomme ce Domaine' },
     tables: { label: 'Tables associées', hint: 'Tables de tables.json déclarées par le Domaine, par clé de rôle' },
     effects: { label: 'Effets déclenchés', hint: 'Effets à la touche d’un Sort du Domaine' },
     missile: {
