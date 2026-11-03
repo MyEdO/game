@@ -8,6 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeApproach } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
 
 /**
@@ -22,6 +23,7 @@ export function ApproachModal() {
   const reroll = useGame((s) => s.approachReroll);
   const darkPact = useGame((s) => s.approachDarkPact);
   const force = useGame((s) => s.approachForceSuccess);
+  const reverse = useGame((s) => s.approachReverse); // Inversion (LDB 12 l.42)
   const confirm = useGame((s) => s.approachConfirm);
   const cancel = useGame((s) => s.approachCancel);
   if (!pa || !battle) return null;
@@ -47,6 +49,8 @@ export function ApproachModal() {
   }, {
     fortune: c.fortune ?? 0,
     resilience: c.resilience ?? 0,
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approach`).
+    ...(FLOWS.approach.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approach.reversePreview(useGame.getState) } } : {}),
   });
 
   const actions: RollAction[] = [

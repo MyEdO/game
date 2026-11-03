@@ -85,7 +85,7 @@ export interface BattleOutcome {
  *   - `gatherInfo` (Recueillir des informations, l.153) : DR questions au MJ (récit) ;
  *   - `noSurprise` (Rester aux aguets, l.157) : le groupe ne peut être surpris cette Étape ;
  *   - `mapMade` (Établir des cartes, l.161) : carte d'itinéraire → Orientation/Savoir Accessible ;
- *   - `rerollToken` (Pratiquer une Compétence, l.172) : un jeton de relance d'un Test futur ;
+ *   - `rerollToken` (Pratiquer une Compétence, l.172) : un jeton d'inversion d'un Test futur de la Compétence ;
  *   - `countsAsRest` (Récupérer, l.176) : l'Étape compte comme un repos (guérison) ;
  *   - `campCare` (Monter un camp, l.180) : chaque DR retire un Exténué OU guérit un Personnage.
  *  Rencontres (l.186-233) :

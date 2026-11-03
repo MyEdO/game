@@ -20,61 +20,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import {
-  resolveMelee,
-  resolveRanged,
-  bestRangedDefense,
-  rangedDefenseModes,
-  rollRangedAttacker,
-  combatValue,
-  hasWeaponGroupSkill,
-  weaponGroupSkillMode,
-  attackModifiers,
-  rollMeleeAttacker,
-  rollDisengageAttack,
-  rollGrappleForce,
-  assertAttackWeapon,
-  hitLocationByShape,
-  locationLabel,
-  reverseRoll,
-  lancerDeLaSecondeMain,
-  woundsFromHit,
-  compteDuCoup,
-  apresDeviations,
-  localisationRelanceeDe,
-  sansLeCoupCritiqueIgnore,
-  type CompteDuCoup,
-  toucheAuJetPose,
-  rangeBandModifier,
-  rangeBandName,
-  belowMinRangeBand,
-  resolveStrayRangedHit,
-  resolveMeleePassive,
-  toucheDuTestDeDefense,
-  armeDeMainPrincipale,
-  coupAApplique,
-  finishMelee,
-  rollMeleeDefender,
-  AttackResult,
-  ModLine,
-  outnumberMod,
-  crowdMod,
-  defenseTargetMods,
-  composeAttack,
-  frozenDifficulty,
-  type DifficultyShown,
-  defenseValue,
-  DEFENSE_LABEL,
-  attackHandGate,
-  conditionModLines,
-  canFireWhileEngaged,
-  ligneDuCoup,
-  freeAttackWeapon,
-  defaultParryWeapon,
-  advantageModLine,
-  toucheAvecPrise,
-  toucheNonIgnoree,
-} from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -154,7 +100,7 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
@@ -7937,6 +7883,7 @@ const combatPsychBands = makeBandFactory<CombatPsychDue>({
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'combatPsych', icon, label,
     combatPsych: d,
+    contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     // L'enjeu descend à l'AFFLICTION affrontée : ses conséquences lui sont propres (`psychResolution`
     // lit `failCondition`/`failAmount`/`becomes` de SON entrée), donc son texte vit sur SON entrée.
     stake: combatStakeRef('combatPsych', { entryId: d.kind, values: { indice: d.indice } }),

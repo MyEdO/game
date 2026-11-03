@@ -144,6 +144,7 @@ const NOMMES = [
   'plus2|plus1|normal|minus1|half',
   'premier|courant|extreme',
   'proue|tribord|poupe|babord',
+  'psych|perilDesEaux|bandages',
   'source-d-eau|blessures-et-etats',
   'success|failure|fumble',
   'test|combat|threat|hold|rally',

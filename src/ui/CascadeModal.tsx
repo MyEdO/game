@@ -44,6 +44,7 @@ import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
 import { libelleDuDe, lectureDuTotal, libelleDuSeuil, libelleDeTable, libelleDuJetFige } from '../noyau/jetsEnVue';
 import { cumulEtenduDeRangee } from '../noyau/progresEtendu';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
@@ -128,12 +129,14 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const batchForce = useGame((s) => s.cascadeBatchForceSuccess);
   const batchResist = useGame((s) => s.cascadeBatchResist); // Résistance (Menace) PAR RANGÉE (LDB 10)
   const batchDetermine = useGame((s) => s.cascadeBatchDetermine); // Détermination PAR RANGÉE (LDB 17 l.59)
+  const batchReverse = useGame((s) => s.cascadeBatchReverse); // Inversion PAR RANGÉE (LDB 12 l.42)
   const roll = useGame((s) => s.cascadeRoll);
   const reroll = useGame((s) => s.cascadeReroll);
   const bonusSL = useGame((s) => s.cascadeBonusSL);
   const darkPact = useGame((s) => s.cascadeDarkPact);
   const force = useGame((s) => s.cascadeForceSuccess);
   const resistAct = useGame((s) => s.cascadeResist); // Résistance (Menace) : auto-succès du talent (LDB 10)
+  const reverseAct = useGame((s) => s.cascadeReverse); // Inversion (LDB 12 l.42)
   const next = useGame((s) => s.cascadeNext);
   const choose = useGame((s) => s.cascadeChoose); // étape « choix » : pose l'option retenue
   const setAmount = useGame((s) => s.cascadeAmount); // étape « quantité » : pose le nombre saisi
@@ -799,6 +802,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       const resistOk = !!part?.menace && !!a && availableResistance(a, part.menace) != null
         && resistanceImproves(a, done ? { won: !!done.success, sl: done.sl ?? 0 } : null);
       const determineOk = !!a && !!part && !done && !!(cur.combatPsych || cur.encounterPsych);
+      // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascadeBatch`).
+      const reverseOk = !!part && FLOWS.cascadeBatch.reverseAvailable(useGame.getState, part.id);
       return {
         ...r,
         flowKey: 'cascadeBatch' as const,
@@ -806,6 +811,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         key: witnessRowKey(cur.id, String(r.key)),
         ...(resistOk ? { resist: { menace: part!.menace!, onResist: () => batchResist(part!.id) } } : {}),
         ...(determineOk ? { determination: { resolve: a!.resolve ?? 0, onResolve: () => batchDetermine(part!.id) } } : {}),
+        ...(reverseOk ? { reverse: { onReverse: () => batchReverse(part!.id), preview: FLOWS.cascadeBatch.reversePreview(useGame.getState, part!.id) } } : {}),
       };
     });
     const ready = curReady;
@@ -878,6 +884,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       flowKey: 'cascade',
       key: cur.id,
       resist: resistAvail ? { menace: cur.menace!, onResist: () => resistAct(cur.id) } : undefined,
+      // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascade`).
+      reverse: FLOWS.cascade.reverseAvailable(useGame.getState, cur.id)
+        ? { onReverse: () => reverseAct(cur.id), preview: FLOWS.cascade.reversePreview(useGame.getState, cur.id) }
+        : undefined,
     },
   );
 

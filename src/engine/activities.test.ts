@@ -303,13 +303,16 @@ describe('rôle de marche persistant (travelRole) — « les mêmes au même pos
 });
 
 describe('Convalescence — Activité d’interlude (ADE II Annexe I « Les choses s’arrangent »)', () => {
-  it("existe en contexte interlude, Test de Calme Très Difficile, onSuccess = removePsychTrait", () => {
+  it("existe en contexte interlude, Test de Calme Très Difficile ; réussite : removePsychTrait, échec : jeton d'inversion psych", () => {
     const conv = activityById('convalescence');
     expect(conv).toBeTruthy();
     expect(conv!.contexts).toContain('interlude');
     expect(conv!.skills).toEqual([{ id: 'calme' }]);
-    expect(conv!.difficulty).toBe('tresDifficile'); // « Calme Très Difficile (–30) »
-    expect(conv!.onSuccess).toEqual([{ op: 'removePsychTrait' }]); // « éliminer un Trait Psychologique de votre choix »
+    expect(conv!.difficulty).toBe('tresDifficile'); // ADE II 09 l.33
+    expect(conv!.outcomes).toEqual([ // ADE II 09 l.33
+      { on: 'success', ops: [{ op: 'removePsychTrait' }] },
+      { on: 'failure', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
+    ]);
     expect(conv!.source.book).toBe('archives-de-l-empire-2');
   });
   it("apparaît dans le catalogue des Activités d'interlude", () => {
