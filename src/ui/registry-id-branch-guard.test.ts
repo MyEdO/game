@@ -115,7 +115,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/mount.ts': 1,
   'src/noyau/seaVoyageFlow.ts': 3,
   'src/noyau/travelFlow.ts': 6,
-  'src/noyau/travelPostes.ts': 2,
+  'src/noyau/travelPostes.ts': 1,
   'src/noyau/verdictsDInterlude.ts': 1,
   'src/noyau/monde/vision.ts': 1,
   // Le site de `ui/ownership.ts` est la comparaison au sentinel `'*'` de l'arbitre de modales (owner =

@@ -8,6 +8,7 @@
 import { d100, RNG } from './dice';
 import { DIFFICULTE_PAR_DEFAUT, Difficulty, DIFFICULTY_MODIFIERS } from './types';
 import { type TestPolicy, getTestPolicy } from './testPolicy';
+import { rule } from './policy';
 import type { ModLine } from './combat';
 
 /** Chiffre des dizaines d'un d100 (00 = 100 → 10). SOURCE UNIQUE du calcul de DR. */
@@ -407,20 +408,29 @@ export function clampTarget(raw: number, policy: TestPolicy = getTestPolicy()): 
   return target === raw ? { target } : { target, clamped: target - raw };
 }
 
-/** Un Round/passe d'un Test ÉTENDU (LDB 12 l.170-179) : le DR du Round s'AJOUTE au cumul `prev` (planché à
- *  0 — « si le DR total passe sous 0, recommencez depuis le début ») ; `done` quand il atteint `targetDR`.
- *  `minStep` (règle optionnelle l.208) : une réussite compte ≥ +1, un échec ≤ −1 (DR 0 non neutre). SOURCE
- *  UNIQUE du cumul, partagée par crochetage/porte (`extendedTest`), Artisanat (LDB 23), chirurgie (LDB 10)
- *  et le Test étendu de Calme contre la Peur (LDB 21 l.27) — fini les 4 copies de la même arithmétique. */
+/** Un Round d'un Test ÉTENDU, cumul planché à 0. Règle optionnelle `test-extended-min-sl` lue ICI,
+ *  pour tout Test étendu. LDB 12 l.170-185 */
 export function extendedTestStep(
   prev: number,
   r: { success: boolean; sl: number },
   targetDR: number,
-  minStep = false,
+): { total: number; done: boolean; repart: boolean } {
+  const sl = rule('test-extended-min-sl') ? (r.success ? Math.max(1, r.sl) : Math.min(-1, r.sl)) : r.sl;
+  const brut = prev + sl;
+  const total = Math.max(0, brut);
+  return { total, done: total >= targetDR, repart: brut < 0 };
+}
+
+/** Les Rounds `jets` d'un Test étendu, dans l'ordre, depuis `prev` : le Test s'arrête à la cible.
+ *  LDB 12 l.170-185 */
+export function extendedTestSteps(
+  prev: number,
+  jets: readonly { success: boolean; sl: number }[],
+  targetDR: number,
 ): { total: number; done: boolean } {
-  const sl = minStep ? (r.success ? Math.max(1, r.sl) : Math.min(-1, r.sl)) : r.sl;
-  const total = Math.max(0, prev + sl);
-  return { total, done: total >= targetDR };
+  let cur = { total: prev, done: prev >= targetDR };
+  for (const r of jets) if (!cur.done) cur = extendedTestStep(cur.total, r, targetDR);
+  return { total: cur.total, done: cur.done };
 }
 
 // ── Tableau des Résultats : bandes de DR (LDB 12 l.104-114) — PRIMITIVE PARTAGÉE ─────────────────

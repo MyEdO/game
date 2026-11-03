@@ -1804,9 +1804,6 @@ export interface CascadeStepMeta {
    *  sérialisable, jumeau de `casterId`, résolu par l'applier (`coqueParId` : file de combat OU véhicule
    *  du trajet). Absent ⇒ la bande n'est pas née d'une coque, et une op qui l'exige le NOMME. */
   hullId?: string;
-  /** Test ÉTENDU de Peur (LDB 21 l.25) : DR déjà cumulé AVANT ce jet, porté PAR LA RANGÉE d'une bande
-   *  de Psychologie de combat (`BatchParticipant.meta`) — l'applier y ajoute le DR du jet. */
-  prevDR?: number;
   /** « Sans Peur (Ennemi) » (LDB 10 l.1051) sur CETTE rangée : son Test est allégé (Accessible +20) et
    *  une réussite ignore la Peur d'emblée. Divergence PAR HÉROS d'une bande, jamais de l'étape. */
   sansPeur?: boolean;
@@ -1906,6 +1903,9 @@ export interface BatchParticipant extends RollParticipant {
    *  RÉELLE reste au pas d'agrégation (`stageAggregate`), ceci n'est que l'affichage. */
   extendedDrDone?: number;
   extendedDrTarget?: number;
+  /** Le cumul est COMMUN aux rangées de la bande qui le déclarent (cartographie de groupe, EDOC 8 l.161) :
+   *  leurs jets s'enchaînent dans l'ordre des rangées. Absent : le cumul est propre à la rangée (Peur). */
+  extendedDrPartage?: boolean;
   /** Conséquence appliquée à CETTE rangée (dérivée des ops, #295 ; ligne STRUCTURÉE #349) — rendue
    *  comme note de la rangée (le portrait porte l'attribution), PERSISTE dans les rangées-témoins/bilan. */
   outcome?: RecapLine[];
@@ -2229,7 +2229,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
-   *  `lastTestRound`). Moments : LDB 21 l.9, l.19, l.25, l.39, l.48. Le DR déjà cumulé (`meta.prevDR`)
+   *  `lastTestRound`). Moments : LDB 21 l.9, l.19, l.25, l.39, l.48. Le DR déjà cumulé (`extendedDrDone`)
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`encounterPsych` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
