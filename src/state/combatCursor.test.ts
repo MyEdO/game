@@ -3,8 +3,8 @@
  *  - `nextCursorTile` : voisin de grille dont le centre PROJETÉ colle le mieux à la direction
  *    ÉCRAN poussée (le curseur « suit les yeux ») → en iso une « droite » est un pas diagonal de
  *    grille, en vue du dessus un pas cardinal. Gère rotation caméra + projection sans cas particulier.
- *  - `intentionDuClicDeCase` (noyau) : ce que joue la case, lue par le commit du curseur ET le clic-sol
- *    (`useStagePointer.performClick`) → ennemi → attaque, case libre → déplacement, allié → rien.
+ *  - le commit du curseur et la touche `inspecter` lisent la case ; ce que joue la case
+ *    (`intentionDuClicDeCase`) se joue au banc du noyau (`src/noyau/combatCursor.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles } from './combatCursor';
@@ -151,19 +151,8 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
     return { hero, ally, enemy };
   }
 
-  it('curseur sur un ennemi → intention { entity }', () => {
-    const { enemy } = makeState();
-    expect(intentionDuClicDeCase(useGame.getState, { x: 7, y: 10 })).toEqual({ kind: 'entity', id: enemy.id });
-  });
-
-  it('curseur sur une case libre → intention { tile }', () => {
+  it('curseur sur un allié non actionnable : le commit n’ouvre aucune fiche', () => {
     makeState();
-    expect(intentionDuClicDeCase(useGame.getState, { x: 12, y: 4 })).toEqual({ kind: 'tile', pt: { x: 12, y: 4 } });
-  });
-
-  it('curseur sur un allié non actionnable → null (no-op, jamais clic-case), et le commit n’ouvre aucune fiche', () => {
-    makeState();
-    expect(intentionDuClicDeCase(useGame.getState, { x: 5, y: 10 })).toBeNull();
     useGame.setState({ combatCursor: { tile: { x: 5, y: 10 } } });
     useGame.getState().commitCursor();
     expect(useGame.getState().inspectId, 'l’inspection est la touche `inspecter`, jamais le commit').toBeNull();
@@ -181,18 +170,6 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
     expect(useGame.getState().inspectId).toBe(enemy.id);
     expect(useGame.getState().battle!.acted, 'inspecter ne consomme aucune Action').toBe(false);
     expect(intentionDuClicDeCase(useGame.getState, { x: 7, y: 10 })).toEqual({ kind: 'entity', id: enemy.id });
-  });
-
-  it('combat terminé → null ; une case libre d’étage garde son `z`', () => {
-    makeState();
-    expect(intentionDuClicDeCase(useGame.getState, { x: 12, y: 4, z: 1 })).toEqual({ kind: 'tile', pt: { x: 12, y: 4, z: 1 } });
-    useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victory' } as never });
-    expect(intentionDuClicDeCase(useGame.getState, { x: 12, y: 4 })).toBeNull();
-  });
-
-  it('hors combat → null', () => {
-    useGame.setState({ battle: null });
-    expect(intentionDuClicDeCase(useGame.getState, { x: 1, y: 1 })).toBeNull();
   });
 });
 

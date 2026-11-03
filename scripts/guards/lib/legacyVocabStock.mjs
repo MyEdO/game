@@ -777,13 +777,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sequence-parite-catalogue.test.ts",
-    motif: "désormais",
-    ancre: "accent) — elle vient désormais de la donnée (`riverForceLabel`), qui dit « Modéré ».",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/ship-crew-hit-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "`applyCrewHit`, avec le RNG du combat, marin par marin. Il naît désormais comme UNE BANDE — une",
