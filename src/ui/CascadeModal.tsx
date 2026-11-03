@@ -28,7 +28,7 @@ import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl } from '../noyau/cascade';
 import { fourchette } from '../engine/tables';
-import { estJete, refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
+import { estJete, refusSansJet, cibleMesuree } from '../engine/tests';
 import { opposedAttackerLabel } from '../noyau/rollSeam';
 import { useOwns } from './ownership';
 import { sequenceAbandonEtatOf } from '../noyau/sequenceCore';
@@ -43,6 +43,7 @@ import { Prose, mdToText } from './Prose';
 import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
 import { libelleDuDe, lectureDuTotal, libelleDuSeuil, libelleDeTable, libelleDuJetFige } from '../noyau/jetsEnVue';
+import { cumulEtenduDeRangee } from '../noyau/progresEtendu';
 import { t } from '../i18n';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
@@ -265,16 +266,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // `witnessRow` : lecture seule, jet déjà subi). Source unique de la conversion « pile figée → rangées ».
   const witnessRows = (panelRows: PanelRow[], fixedMark = false): BuiltRollRow[] =>
     panelRows.map((r, i) => witnessRow({ key: i, row: r, fixedMark }));
-  // DONNÉE de Test ÉTENDU d'une rangée (arbitrage user 2026-07-11 : la barre est RENDUE par `RollRow`
-  // — site UNIQUE — pas ici ; ceci ne calcule que `{cum, target}`). `done` = DR cumulés AVANT ce jet,
-  // `+ SL` du jet réussi. Générique : mono (`meta`) ou batch (participant), toute la CLASSE des jets étendus.
-  const extendedDrData = (done: number | undefined, target: number | undefined, res: CascadeRoll | EchecSansJet | null | undefined): { cum: number; target: number } | undefined => {
-    if (target == null) return undefined;
-    const gain = res?.success ? Math.max(0, res.sl) : 0;
-    // Un Test étendu SE TERMINE à la cible (LDB 12 l.170-186) : le cumul affiché est BORNÉ à la cible — un
-    // jet de complétion à gros DR ne déborde pas la barre en « 5/2 »/« 6/2 » (F1). Site UNIQUE du datum.
-    return { cum: Math.min((done ?? 0) + gain, Number(target)), target: Number(target) };
-  };
   // Note de conséquence d'une rangée-participant (batch) : `part.outcome` (lignes STRUCTURÉES #349)
   // porte l'attribution par le portrait (pas de note agrégée à l'étape) — MÊME renderer partagé.
   const partNote = (part: Pick<BatchParticipant, 'outcome'>): ReactNode => {
@@ -291,16 +282,15 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         const res = estJete(part.result) ? part.result : null;
         // La rangée FIGÉE garde sa seconde lecture : ce que la bande a tranché reste lisible au bilan.
         const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), ...(part.clamped ? { clamped: part.clamped } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
-        const extendedDr = extendedDrData(part.extendedDrDone, part.extendedDrTarget, res);
+        const extendedDr = cumulEtenduDeRangee(part, s.participants!);
         return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: refusSansJet(part) ?? partNote(part) }, extendedDr })];
       });
     }
     const pr = rowOf(s);
     if (!pr) return [];
-    const extendedDr = extendedDrData(s.meta?.extendedDrDone as number | undefined, s.meta?.extendedDrTarget as number | undefined, s.result);
     // `fixedMark` : le dé de l'étape a été SAISI (option « Dés fixés ») — la marque suit le jet dans la
     // pile figée comme dans le journal (`step.fixed`, écrit par la fabrique de flux ou le mode table).
-    return [witnessRow({ key: witnessRowKey(s.id), row: pr, fixedMark: !!s.fixed, extendedDr })];
+    return [witnessRow({ key: witnessRowKey(s.id), row: pr, fixedMark: !!s.fixed })];
   };
 
   // Nombre de JETS DE DÉ réels (arbitrage user 2026-07-11) : un pas BATCH = ses N rangées ; un pas-jet
@@ -797,7 +787,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       issues: (part, _actor, res) => (!res && mutualise?.ids.includes(part.id) ? undefined : rowOutcomeNote(part.id, res)),
       // Test ÉTENDU d'une rangée (cartographie de voyage) : DONNÉE seule — `RollRow` rend la barre (site
       // UNIQUE), visible AVANT et après le jet, persistante (arbitrage user 2026-07-11).
-      extendedDrOf: (part) => extendedDrData(part.extendedDrDone, part.extendedDrTarget, estJete(part.result) ? part.result : null),
+      extendedDrOf: (part) => cumulEtenduDeRangee(part, cur.participants!),
     }).map((r) => {
       // Verbes à RESSOURCE de la rangée (parité avec l'étape MONO, joués PAR RANGÉE — flux `cascadeBatch`) :
       // Résistance (Menace) sur une rangée TAGUÉE dont l'issue reste défavorable (LDB 10 l.1016-1020) ;
@@ -868,9 +858,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // d'influence (Chance/+1 DR/Pacte/Résilience/forcedRoll/resist) — étape MONDIALE (`worldOwner`,
   // `actor` absent) : cycle d'influence NUL (Chance/Pacte/Résilience sont des ressources de HÉROS),
   // seul « Lancer » reste actionnable pour le siège owner.
-  // DONNÉE de Test étendu de CETTE rangée (arbitrage user 2026-07-11 : `RollRow` rend la barre, site
-  // UNIQUE ; persistée via `stepWitnessRows`, elle reste lisible aux pas suivants).
-  const curExtendedDr = extendedDrData(cur.meta?.extendedDrDone as number | undefined, cur.meta?.extendedDrTarget as number | undefined, res);
   // Chance / relance gratuite / Résilience ne sont PAS recopiées ici : `RollRow`/`InfluenceRow` les
   // DÉRIVENT de `actor` (site unique). `rolled` est dérivé par le noyau du dé de la ligne (`row.d`) —
   // identique à la phase de l'étape, une étape-JET portant toujours sa cible (`stepInteraction`).
@@ -890,7 +877,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       // de dé sur la BONNE étape (la coquille n'a pas de `flowKey` propre).
       flowKey: 'cascade',
       key: cur.id,
-      ...(curExtendedDr ? { extendedDr: curExtendedDr } : {}),
       resist: resistAvail ? { menace: cur.menace!, onResist: () => resistAct(cur.id) } : undefined,
     },
   );
@@ -917,8 +903,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       extra={<><SequencePanel />{oppHeader}{outcomeNote}</>}
       rolled={rolled}
       /* Rangées : rangée de l'adversaire figé (Test opposé, #579) + courante interactive (pré-jet en
-         attente, post-jet résolue). La barre de Test étendu appartient à la RANGÉE qui cumule
-         (`curRow.extendedDr`). */
+         attente, post-jet résolue). */
       rows={[...(oppRow ? [oppRow] : []), curRow]}
       actions={jetActions}
       disableEscClose

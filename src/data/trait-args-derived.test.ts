@@ -38,6 +38,7 @@ import type { Scene } from '../noyau/monde/scene';
 import { fileURLToPath } from 'node:url';
 import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
 import { refusDArgHorsRegistre } from './schemas/grammaire/reference';
+import { customStatblockSchema } from './schemas/defs-scenes/communs';
 
 /** Entrées partielles embarquées du corpus des DEUX racines (`scanDuCorpus`), mesurées UNE fois. */
 const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.meta.url))).scan.entreesPartielles;
@@ -133,5 +134,28 @@ describe('schéma d\'argument des traits — chaque instance est COUVERTE par la
       for (const faute of fautesDArg(def, inst.arg)) offenders.push(`${where} → ${faute}`);
     }
     expect(offenders, `arg non résolu (libellé pris pour un id ?) :\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
+/** LDB 85 l.322 ; LDB 79 l.207-209 ; #3038 */
+describe('Souffle — son Type est un id du registre des Types de Souffle', () => {
+  const statblocAvecSouffle = (arg: string) => ({ type: 'statblock', label: 'Wyrm de sonde', char: {}, traits: [{ id: 'souffle', value: 5, arg }] });
+
+  it('un statbloc dont le Souffle porte un Type hors registre est refusé au parse, sur son `arg`', () => {
+    const r = customStatblockSchema.safeParse(statblocAvecSouffle('Bidule'));
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['traits.0.arg', 'Trait « souffle » : « Bidule » ne résout aucune entrée de son registre — un id du registre, jamais un libellé.'],
+    ]);
+  });
+
+  it('le même statbloc passe avec un id du registre', () => {
+    expect(customStatblockSchema.safeParse(statblocAvecSouffle('feu')).success).toBe(true);
+  });
+
+  it('le choix imprimé « Souffle (acide ou gaz) » du squig des cavernes est deux Traits facultatifs, un par Type', () => {
+    const squig = creatures.find((c) => c.id === 'squig-des-cavernes')!;
+    const souffles = (squig.optionals as RawTraitInstance[]).filter((o) => o.id === 'souffle');
+    expect(souffles).toEqual([{ id: 'souffle', arg: 'corrosif' }, { id: 'souffle', arg: 'poison' }]);
   });
 });

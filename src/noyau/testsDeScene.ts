@@ -6,7 +6,6 @@ import { touchActors } from './combatOrParty';
 import type { BuiltCascadeStep } from './stepBrand';
 import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
 import { extendedTestStep } from '../engine/tests';
-import { rule } from '../engine/policy';
 import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
@@ -19,9 +18,16 @@ import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import type { Cloture } from './pendings';
+import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+
+/** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
+ *  (`extendedTestNext`) et par la fenêtre. LDB 12 l.170-185 */
+export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
+  const cur = p.rounds[p.rounds.length - 1];
+  return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
+}
 
 export function creerActionsDesTestsDeScene(get: Get, set: Set) {
   return {
@@ -36,11 +42,9 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
     extendedTestNext: () => {
       const p = get().pendingExtendedTest;
       if (!p) return;
-      const cur = p.rounds[p.rounds.length - 1];
-      if (!cur?.result) return; // le Round courant doit avoir été lancé
-      // Cumul LDB 12 mutualisé (`extendedTestStep`) : un Round réussi ajoute son DR, un raté le retire
-      // (planché à 0) ; règle opt. l.208 « DR 0 = ±1 min » via `test-extended-min-sl`.
-      const { total, done } = extendedTestStep(p.total, cur.result, p.targetDR, !!rule('test-extended-min-sl'));
+      const issue = issueDuRound(p);
+      if (!issue) return; // le Round courant doit avoir été lancé
+      const { total, done } = issue;
       // BORNE d'essais (Commerce d'opportunité, MDG 15 l.274-286 : « ≤ 3 tentatives ») — cible non
       // atteinte à la DERNIÈRE tentative permise = une ISSUE (résolue par `outcome`), pas une boucle infinie.
       const exhausted = !done && p.maxAttempts != null && p.rounds.length >= p.maxAttempts;

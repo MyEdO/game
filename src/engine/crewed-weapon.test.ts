@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crewedPenalty, crewedFireWeapon, crewedReloadStep } from './crewedWeapon';
+import { crewedPenalty, crewedFireWeapon } from './crewedWeapon';
 import { attackModifiers } from './combat';
 import { ligneDe } from './modLine.testkit';
 import type { Weapon, Combatant } from './types';
@@ -82,30 +82,6 @@ describe('crewedFireWeapon — Défauts de sous-effectif BAKÉS sur l’arme tir
   it('arme NON Arme d’équipe → inchangée', () => {
     const arc = cannon({ qualities: [], reload: 0 });
     expect(crewedFireWeapon(arc, 1)).toEqual(arc);
-  });
-});
-
-describe('crewedReloadStep — Test étendu de recharge, cumul de DR vers Recharge N (LDB 62 l.333)', () => {
-  // En usage réel, l'arme passée est celle EFFECTIVEMENT servie (post-`crewedFireWeapon` : qualité
-  // `arme-d-equipe` retirée, recharge ×2 bakée si sous-effectif) — comme pour le tir.
-  it('cumule le DR du Test vers la cible Recharge N (canon Recharge 6, équipage complet)', () => {
-    const w = crewedFireWeapon(cannon({ reload: 6, qualities: [{ id: 'arme-d-equipe', value: 3 }] }), 3); // complet → reload 6
-    expect(crewedReloadStep(w, 0, 2)).toEqual({ progress: 2, target: 6, done: false });
-    expect(crewedReloadStep(w, 4, 2)).toEqual({ progress: 6, target: 6, done: true }); // 4 + 2 = 6 → rechargée
-  });
-
-  it('sous-effectif → cible DOUBLÉE (Recharge ×2), donc plus longue à recharger', () => {
-    const w = crewedFireWeapon(cannon({ reload: 3, qualities: [{ id: 'arme-d-equipe', value: 3 }] }), 2); // déficit 1 → reload 6
-    expect(crewedReloadStep(w, 0, 3).target).toBe(6); // recharge ×2 bakée
-  });
-
-  it('plancher 0 : un Test raté (DR négatif) ne fait pas reculer le progrès', () => {
-    const w = cannon({ reload: 4, qualities: [{ id: 'arme-d-equipe', value: 2 }] });
-    expect(crewedReloadStep(w, 1, -3).progress).toBe(0);
-  });
-
-  it('arme sans Recharge → cible 0, rechargée d’emblée', () => {
-    expect(crewedReloadStep(cannon({ reload: 0, qualities: [] }), 0, 0)).toEqual({ progress: 0, target: 0, done: true });
   });
 });
 

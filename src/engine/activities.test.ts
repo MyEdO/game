@@ -242,7 +242,7 @@ describe('postes d’Étape : agrégation des issues (EDOC 8 l.131)', () => {
     }
   });
 
-  it('agrégation : porte (1 succès suffit) / cumul (Σ DR) / individuel (par héros)', () => {
+  it('agrégation : porte (1 succès suffit) / cumul (Σ DR) / Test étendu (jets ordonnés) / individuel (par héros)', () => {
     const mkRes = (o: Partial<TravelActivityResult>): TravelActivityResult =>
       ({ activityId: 'x', actorId: 'h', sl: 0, success: true, ops: [], extenue: false, ...o });
     const agg = aggregateActivityOutcomes([
@@ -252,9 +252,12 @@ describe('postes d’Étape : agrégation des issues (EDOC 8 l.131)', () => {
       mkRes({ actorId: 'd', success: true, stageOutcome: 'countsAsRest' }),
       mkRes({ actorId: 'e', success: true, sl: 3, stageOutcome: 'campCare' }),
       mkRes({ actorId: 'f', success: true, sl: 2, stageOutcome: 'campCare' }),
+      mkRes({ actorId: 'g', roll: 90, success: false, sl: -1, stageOutcome: 'mapMade' }),
+      mkRes({ actorId: 'i', roll: 10, success: true, sl: 2, stageOutcome: 'mapMade' }),
     ]);
     expect(agg.gates).toEqual(['suppressExposure']); // une seule porte, malgré l'échec de b
     expect(agg.stacks).toEqual({ campCare: 5 });       // 3 + 2 cumulés
+    expect(agg.etendus).toEqual({ mapMade: [{ success: false, sl: -1 }, { success: true, sl: 2 }] }); // Test étendu : chaque jet, dans l'ordre (LDB 12 l.174)
     expect(agg.selfByHero).toEqual({ c: ['countsAsRest'], d: ['countsAsRest'] }); // individuel par héros
   });
 });

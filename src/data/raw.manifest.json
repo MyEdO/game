@@ -161,5 +161,11 @@
     "type": "raw.manifest",
     "label": "Vice (Cible) (talent et trait)",
     "ticket": "#3257"
+  },
+  {
+    "id": "4e/combat#regles-propres-des-types-de-souffle-du-zoo-imperial",
+    "type": "raw.manifest",
+    "label": "Règles propres des Types de Souffle du Zoo impérial",
+    "ticket": "#3272"
   }
 ]

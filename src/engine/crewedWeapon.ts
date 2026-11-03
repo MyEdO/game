@@ -5,7 +5,7 @@
  * servants au-delà de l'Indice n'améliorent pas le tir mais compensent les pertes (l.444).
  */
 import type { Weapon, QualityInstance } from './types';
-import { crewedTeamIndice, crewedTeamRedoublePenalty, reloadDRTarget, isAtoutQuality } from './qualities/dispatch';
+import { crewedTeamIndice, crewedTeamRedoublePenalty, isAtoutQuality } from './qualities/dispatch';
 
 /** Dégradation d'une Arme d'équipe en sous-effectif (cumulatif). */
 export interface CrewedPenalty {
@@ -28,28 +28,6 @@ export function crewedPenalty(present: number, indice: number): CrewedPenalty {
   if (deficit >= 2) addFlaws.push('imprecise');
   if (deficit >= 3) addFlaws.push('dangereuse');
   return { reloadFactor: deficit >= 1 ? 2 : 1, addFlaws };
-}
-
-/** Issue d'UN Test étendu de recharge d'une Arme d'équipe (LDB 62 l.333). */
-export interface CrewedReloadStep {
-  /** DR cumulés après ce Test (plancher 0). */
-  progress: number;
-  /** Cible à atteindre = Recharge N (×2 si sous-effectif, `reloadDRTarget`). */
-  target: number;
-  /** La pièce est-elle rechargée (progress ≥ target) ? */
-  done: boolean;
-}
-
-/**
- * Avancement d'une recharge d'Arme d'équipe par UN Test étendu de Projectiles (RAW LDB 62 l.333 : « obtenir
- * Indice DR pour être rechargée »). `progressBefore` = DR déjà cumulés ; `testDR` = DR de ce Test (le jet du
- * chef de pièce — Soutien des servants et Talent Artilleur déjà FONDUS en amont, comme tout jet ; on n'ajoute
- * AUCUNE mécanique ici). PUR. Le plancher 0 reflète qu'un Test raté ne recule pas (le RAW ne fait reculer que
- * l'INTERRUPTION → reset, géré par l'appelant). Réutilise `reloadDRTarget` (Recharge N, ×2 sous-effectif). */
-export function crewedReloadStep(weapon: Weapon, progressBefore: number, testDR: number): CrewedReloadStep {
-  const target = reloadDRTarget(weapon);
-  const progress = Math.max(0, progressBefore + testDR);
-  return { progress, target, done: progress >= target };
 }
 
 /**

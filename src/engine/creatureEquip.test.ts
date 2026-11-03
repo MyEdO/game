@@ -70,10 +70,10 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
     expect(renderWeaponsFromTraits([t({ id: 'arme', arg: 'Hache', value: 6 })])).toHaveLength(1);
   });
 
-  it('weaponsFromTraits : GARANTIT au moins une arme (pour pouvoir toujours frapper)', () => {
+  it('weaponsFromTraits : sans trait d’arme, les Mains nues (LDB 85 l.31, LDB 62 l.28)', () => {
     const fallback = weaponsFromTraits([]);
     expect(fallback).toHaveLength(1);
-    expect(fallback[0].label).toBe('Arme');
+    expect(fallback[0]).toMatchObject({ builtinId: 'mains-nues', damage: { plusBF: true, flat: 0 } });
     // avec un trait d'arme explicite, pas de repli ajouté
     expect(weaponsFromTraits([t({ id: 'arme', arg: 'Hache', value: 6 })])).toHaveLength(1);
   });

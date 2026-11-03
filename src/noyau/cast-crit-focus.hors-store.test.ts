@@ -128,7 +128,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.spells = ['armure-aethyrique', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } } });
     banc.getState().focusConfirm();
     const rendu = draineEtLit(banc.getState).join('\n');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
@@ -147,7 +147,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.characteristics['force-mentale'] = 35; // BFM 3
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 1 };
     banc.setState({ party: [w] as Combatant[] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
     banc.getState().focusConfirm();
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const ni = findSpellById('manifestation-de-demon-mineur')!.cn ?? 0;
@@ -162,7 +162,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     w.talents.push({ talentId: 'harmonisation-aethyrique', times: 1 });
     banc.setState({ party: [w] as Combatant[] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
     banc.getState().focusConfirm();
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Harmonisation aethyrique/);
@@ -179,7 +179,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
     seedBattleRng(143);
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 0, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
     banc.getState().focusConfirm();
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Marqué par la Magie/);

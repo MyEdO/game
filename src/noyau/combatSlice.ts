@@ -54,10 +54,10 @@ import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
+import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, castInfoIsPrayer, focusCriticalDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
-import { resolveOpposed, extendedTestStep, ligneSansJet, cibleMesuree } from '../engine/tests';
+import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
@@ -65,7 +65,7 @@ import { weaponLoaded, reloadProgressOf, aRecharger } from '../engine/weaponLoad
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
-import { talentFearIndice, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
+import { talentFearIndice, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
@@ -101,13 +101,14 @@ import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
 import { estNavire } from '../engine/coque';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
-import { crewedFireWeapon, crewedReloadStep } from '../engine/crewedWeapon';
+import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { exposedCrew } from '../engine/shipCritical';
 import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { progresDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint, decidingSeat } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
@@ -1978,14 +1979,13 @@ export function createCombatSlice(get: Get, set: Set) {
         set({ pendingReload: null });
         if (!ship || !chef || !poste) return;
         const w = chef.weapons.find((x) => x.uid === pr.weaponUid);
-        const reloadTalent = pr.success ? reloadDRBonus(chef, w) : 0; // Rechargement rapide / Artilleur (LDB 10)
-        const step = crewedReloadStep(w ?? ({ reload: pr.reload, qualities: [] } as never), pr.progressBefore, pr.sl + reloadTalent);
+        const step = progresDeRecharge(pr, chef);
         if (step.done) loadWeapon(chef, w, poste); // couture UNIQUE : la PIÈCE porte son état de charge et sa munition capturée
-        else setReloadProgress(chef, w, step.progress, poste);
+        else setReloadProgress(chef, w, step.total, poste);
         if (pr.success && reloadGrantsAssessAdvantage(chef)) campGain(get, chef, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
         // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : le pending est FOURNI (il
         // vient d'être fermé), le `ctx` porte le DR réalisé et le nom résolu de la pièce.
-        const crewIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: step.progress, weapon: w?.label ?? 'pièce' } });
+        const crewIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: step.total, weapon: w?.label ?? 'pièce' } });
         set({ battle: { ...battle, action: null,
           crewActed: withCrewActed(battle.crewActed, ship.id, poste.crewIds ?? []), // chef + servants OCCUPÉS ce Round
           log: [...battle.log, ...evLines(crewIssue, 'reload', chef.id)] } });
@@ -2000,11 +2000,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
       // munition »).
       const rw = garanti(a.weapons.find((x) => x.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée');
-      // Rechargement rapide / Artilleur (LDB 10) : +niveau DR au Test de rechargement (sur un jet réussi).
-      const reloadTalent = pr.success ? reloadDRBonus(a, rw) : 0;
-      // Cumul LDB 12 mutualisé (`extendedTestStep`, #273 Étape 1) : même arithmétique que le Test étendu
-      // générique (plancher 0) — la cadence reste un-jet-par-Action (progressBefore persiste sur l'arme).
-      const { total: progress, done } = extendedTestStep(pr.progressBefore, { success: pr.success, sl: pr.sl + reloadTalent }, pr.reload);
+      const { total: progress, done } = progresDeRecharge(pr, a);
       if (done) {
         loadWeapon(a, rw); // couture UNIQUE : état de charge + munition capturée, sur CETTE arme
       } else {
@@ -3448,8 +3444,8 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingFocus: null });
       if (!caster || !spell) return;
       const res = pf.result;
-      const prev = caster.focus?.spell === pf.spellId ? caster.focus.dr : 0;
-      caster.focus = { spell: pf.spellId, dr: prev + res.dr };
+      const ni = spell.cn ?? 0;
+      caster.focus = { spell: pf.spellId, dr: garanti(progresDeFocalisation(pf, caster, ni).step, pf.spellId, 'jet de Focalisation').total };
       // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur
       // `res.malepierreConsumed`, `engine/magic.ts`) décrémente ICI la réserve — seul point
       // d'ÉCRITURE (`consumeMalepierre`).
@@ -3460,7 +3456,6 @@ export function createCombatSlice(get: Get, set: Set) {
       // (`TrappingData.consumable`) — MÊME chemin d'exécution qu'un consommable bu (`runConsumable`),
       // jamais un second chemin ad hoc.
       if (malepierreItem) runConsumable(get, set, caster, malepierreItem);
-      const ni = spell.cn ?? 0;
       const logLines = [res.log];
       // Composant d'incantation (LDB 46 l.107-113) : la Focalisation est une incantation en cours —
       // un composant adapté au Sort est consumé (si un contrecoup survient) et dégrade l'Imparfaite.
@@ -3539,12 +3534,8 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingDispel: null });
       if (!caster) return;
       const res = pd.result;
-      // Cumul LDB 12 mutualisé (`extendedTestStep`) : un Round réussi ajoute son DR, un raté le retire (planché à 0).
-      const prev = caster.dispel?.spellId === pd.spellId && caster.dispel.spellCasterId === pd.spellCasterId ? caster.dispel.total : 0;
-      // Bonus « propre Sort » (`VDM 02 l.186`) versé sur le DR du jet, PAS sur la cible du Test
-      // (`skillDRBonus` vs `skillMod`, `ops.ts:180-184`) — un DR vaut une dizaine (`tests.ts:98`).
-      const ownSl = res.sl + dispelOwnSpellDR(pd.spellCasterId === pd.casterId);
-      const { total, done } = extendedTestStep(prev, { success: res.success, sl: ownSl }, pd.ni, !!rule('test-extended-min-sl'));
+      const { sl: ownSl, step } = progresDeDissipation(pd, caster);
+      const { total, done } = garanti(step, pd.spellId, 'jet de Dissipation');
       const logLines = [t('cs.dispelRoll', { name: caster.label, spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];
       if (done) {
         // Réussite (DR cumulé ≥ NI, LDB 46 l.160) : retire les effets du sort de tous ses porteurs.
