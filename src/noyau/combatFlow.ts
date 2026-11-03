@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import type { PlayerText } from '../i18n/playerText';
-import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourIA } from './etat';
+import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, RevealEntry } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
@@ -277,7 +277,7 @@ import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './c
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
+import { bestDefenseMode, hasFreeWeaponAttack, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
@@ -3977,7 +3977,9 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
   // Gratuites `onHit` du coup principal (LDB 10 l.72), sur la touche RÉELLE : après la restitution, sauf chaîne
   // ouverte (`portee`), qui la garde jusqu'à sa fermeture.
-  return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
+  if (!suite?.gratuitesALaTouche || !touche.hit) return false;
+  resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
+  return defenseEnCours(get());
 }
 
 // ---------------------------------------------------------------------------
@@ -4084,28 +4086,30 @@ export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant,
  *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choice`/`test`
  *  cadence-aware, `do`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
  *  (`ciblesDeLEffet`). `ctx` = le contexte de l'événement (arme de la touche, type d'attaque). Vaut héros
- *  ET IA. LDB 10 l.500. */
+ *  ET IA. Rend le nombre de Flows joués ; la file s'arrête à la première défense ouverte. LDB 10 l.500. */
 export function resolveFreeAttacks(
   get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger, victim: Combatant | undefined,
   ctx: Pick<TriggerCtx, 'weapon' | 'attackType' | 'conditionName' | 'origine'> = {},
-): boolean {
-  if (!victim) return false;
+): number {
+  if (!victim) return 0;
+  let joues = 0;
   for (const src of freeAttackSourcesOf(actor, ctx.weapon)) {
     for (const eff of src.effects) {
       if (!flowHasFreeAttack(eff.flow)) continue;
       for (const t of ciblesDeLEffet(get, actor, eff, trigger, { ...ctx, victim })) {
-        if (defenseEnCours(get())) return true; // #1858
+        if (defenseEnCours(get())) return joues; // #1858
         // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
         // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
         runCombatFlow(
           { get, set, target: t, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
           flowOffert(eff),
         );
-        if (defenseEnCours(get())) return true; // #1858
+        joues++;
+        if (defenseEnCours(get())) return joues; // #1858
       }
     }
   }
-  return false;
+  return joues;
 }
 
 // ---------------------------------------------------------------------------
@@ -7155,11 +7159,12 @@ function effacerLesTelegraphes(get: Get, set: SetFn, auteurId: string): void {
 
 /** Reprend le tour de l'IA suspendu par une fenêtre (défense, incantation, Destin…) : il FINIT (« avancer »), sauf
  *  si un geste de ce tour attend encore — alors `maybeRunEnemyTurn`, seul point de reprise, le réarme s'il est
- *  parqué. No-op si le combat est terminé. */
+ *  parqué. Le tour d'un acteur que l'IA ne pilote pas ne finit jamais ici : il reste au joueur. No-op si le combat
+ *  est terminé. */
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
   if (combatAdvanceBlocked(get())) return;
   const active = activeCombatant(get().battle!);
-  if (!active || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
+  if (!active || !aiDriven(get(), active) || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
@@ -7171,7 +7176,7 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   if (combatAdvanceBlocked(s, { cast: false })) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
-  if (!active || !aiDriven(s, active)) return;
+  if (!active || reprendreLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;
   // L'acteur IA actif est MORT pendant la conséquence suspendue (ex. critique défensif du héros — un
   // démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé : AVANCER au
   // combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
@@ -7400,26 +7405,49 @@ export function enterRoundStartPause(get: Get, set: SetFn): void {
 }
 
 /** IA : si le combattant actif est PILOTÉ par l'IA (ennemi, ou héros en Auto-combat possédé localement),
- *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour d'IA (#1852, #3058) : rappelé par
- *  tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il ne décide qu'un
- *  tour non décidé, et ne réarme d'un tour décidé que sa suite PARQUÉE. */
+ *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour en cours (#1852, #3058, #3059) :
+ *  rappelé par tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il
+ *  réarme la frappe pilotée PARQUÉE du joueur, ne décide qu'un tour que l'IA n'a pas décidé, et ne réarme d'un tour
+ *  décidé que sa suite PARQUÉE. */
 export function maybeRunEnemyTurn(get: Get, set: SetFn) {
+  // Seul l'hôte rejoue le tour (suite ou décision d'IA) ; l'invité n'applique que l'instantané.
+  if (get().net.mode === 'guest') return;
   if (combatAdvanceBlocked(get(), { roundStart: true })) return;
   const battle = get().battle!;
   const active = activeCombatant(battle);
-  if (!active || !aiDriven(get(), active) || isOutOfAction(active)) return;
-  const tour = battle.tourIA;
-  if (tour?.cle === cleDeTour(battle, active.id)) {
+  if (!active) return;
+  if (reprendreLaFrappePilotee(get, set, battle, active)) return;
+  if (!aiDriven(get(), active)) return;
+  // L'acteur que l'IA pilote est hors de combat : son tour est fini (comme `resumeSuspendedAI`).
+  if (isOutOfAction(active)) { advanceTurn(get, set); return; }
+  const tour = tourEnCoursDe(battle, active.id);
+  if (tour?.decide) {
     if (tour.parquee && tour.suite) reprendreLaSuite(get, set, active, tour);
     return;
   }
   programmer(() => runEnemyAI(get, set, active.id), beatHold(get, 'turnHandoff'));
 }
 
+/** Le tour en cours de `id` s'il est celui du tour courant, sinon `undefined` (enregistrement périmé ou absent). */
+function tourEnCoursDe(battle: BattleState, id: string): TourEnCours | undefined {
+  const tour = battle.tourEnCours;
+  return tour?.cle === cleDeTour(battle, id) ? tour : undefined;
+}
+
+/** Réarme la frappe pilotée PARQUÉE du tour de `acteur`, s'il en a une (`true`). Testé avant tout prédicat de
+ *  pilotage : la frappe du joueur n'est pas un geste de l'IA (hôte seul : `maybeRunEnemyTurn`). */
+function reprendreLaFrappePilotee(get: Get, set: SetFn, battle: BattleState, acteur: Combatant): boolean {
+  const tour = tourEnCoursDe(battle, acteur.id);
+  if (!tour?.parquee || tour.suite?.geste.kind !== 'frappePilotee') return false;
+  reprendreLaSuite(get, set, acteur, tour);
+  return true;
+}
+
 /** Chaque genre de geste différé : `tenue` de sa reprise parquée ; `decideParLIA` — un geste que l'IA a décidé, qui ne
  *  part que si elle tient toujours le siège ; `consomme` — le budget du tour qu'il dépense, caduc si ce budget a été
  *  dépensé depuis la décision (« avancer » à la place, `budgetCaduc`). */
 const GENRES_DE_GESTE: Record<GesteDeSuite['kind'], { tenue: keyof typeof TEMPO; decideParLIA: boolean; consomme?: 'action' | 'mouvement' }> = {
+  frappePilotee: { tenue: 'preAttack', decideParLIA: false },
   frappe: { tenue: 'preAttack', decideParLIA: true, consomme: 'action' },
   sort: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
   zone: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
@@ -7437,28 +7465,31 @@ function budgetCaduc(battle: BattleState, acteur: Combatant, geste: GesteDeSuite
   }
 }
 
-/** Réarme la suite parquée de `tour` ; un geste dont le budget est déjà dépensé devient « avancer ». */
-function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourIA): void {
+/** Réarme la suite parquée de `tour` ; un geste de l'IA dont le budget est déjà dépensé devient « avancer ». */
+function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourEnCours): void {
   let geste = tour.suite!.geste;
-  if (budgetCaduc(get().battle!, acteur, geste)) {
+  if (GENRES_DE_GESTE[geste.kind].decideParLIA && budgetCaduc(get().battle!, acteur, geste)) {
     tour.suite = undefined;
     geste = { kind: 'avancer' };
   }
   armerLaSuite(get, set, acteur, geste, beatHold(get, GENRES_DE_GESTE[geste.kind].tenue));
 }
 
-/** SEUL armeur d'un geste différé d'un tour d'IA (#3058) : écrit la suite sous la clé du tour courant, numérotée par
- *  son armement, pose le réticule d'une frappe, et la joue après `delai` (sur-le-champ à 0). Un « avancer » n'écrase
- *  jamais un autre geste en attente : il est refusé (`false`), sans rien écrire ni programmer. Le geste de l'IA d'un
- *  acteur hors de combat devient « avancer ». */
-function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
+/** SEUL armeur d'un geste différé du tour en cours (#3058, #3059), de l'IA ou du joueur : écrit la suite sous la clé
+ *  du tour courant, numérotée par son armement, pose le réticule d'une frappe d'IA, et la joue après `delai`
+ *  (sur-le-champ à 0). Seule autre écriture de la suite, sans minuteur : la `reprise` qu'une frappe pilotée remet
+ *  PARQUÉE dans `jouerLaSuite`, que `maybeRunEnemyTurn` réarme par ici. Un « avancer » n'écrase jamais un autre geste en attente : il est refusé (`false`), sans rien
+ *  écrire ni programmer. Le geste de l'IA d'un acteur hors de combat devient « avancer ». */
+export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
   const battle = get().battle;
   if (!battle) return false;
   // L'acteur hors de combat ne joue plus le geste de l'IA : son tour finit, sans télégraphe.
   if (GENRES_DE_GESTE[geste.kind].decideParLIA && isOutOfAction(acteur)) geste = { kind: 'avancer' };
   const cle = cleDeTour(battle, acteur.id);
-  const tour = battle.tourIA?.cle === cle ? battle.tourIA : (battle.tourIA = { cle, armements: 0 });
+  const tour = tourEnCoursDe(battle, acteur.id) ?? (battle.tourEnCours = { cle, armements: 0 });
   if (geste.kind === 'avancer' && tour.suite && tour.suite.geste.kind !== 'avancer') return false;
+  // La frappe du joueur devance un geste de l'IA en attente : il reprend derrière elle (`jouerLaSuite`).
+  if (geste.kind === 'frappePilotee' && tour.suite && tour.suite.geste.kind !== 'frappePilotee') geste = { ...geste, reprise: tour.suite.geste };
   const n = ++tour.armements;
   tour.suite = { geste, n };
   delete tour.parquee;
@@ -7475,13 +7506,16 @@ function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSui
   return true;
 }
 
-/** SEULE garde d'un geste différé (#3058) : il ne part que s'il est l'armement `n` de la suite du tour `cle`, tour
- *  courant ; une main tenue à l'échéance, ou un geste de l'IA dont elle n'a plus le siège, est PARQUÉ, et
+/** SEULE garde d'un geste différé (#3058, #3059) : il ne part que s'il est l'armement `n` de la suite du tour `cle`,
+ *  tour courant ; une main tenue à l'échéance, ou un geste de l'IA dont elle n'a plus le siège, est PARQUÉ, et
  *  `maybeRunEnemyTurn` le réarmera. Consommé AVANT d'être exécuté : un geste part au plus une fois. Un geste de l'IA
- *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour. */
+ *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour ; une frappe
+ *  pilotée caduque (acteur hors de combat, cible morte ou absente, Action prise sans attaque gratuite qui reste)
+ *  s'abandonne, et le tour du joueur reste le sien. Une frappe pilotée qui devançait un geste de l'IA le remet en
+ *  suite PARQUÉE, numérotée, sans minuteur (`reprise`). */
 function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: number): void {
   const battle = get().battle;
-  const tour = battle?.tourIA;
+  const tour = battle?.tourEnCours;
   const acteur = battle ? inBattleId(battle, acteurId) : undefined;
   if (!battle || battle.over || !acteur || !tour || tour.cle !== cle || cle !== cleDeTour(battle, acteurId) || tour.suite?.n !== n) {
     // Périmé : ses télégraphes s'effacent, sauf si l'acteur a une suite plus récente qui les porte.
@@ -7501,6 +7535,16 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
     return;
   }
   switch (geste.kind) {
+    case 'frappePilotee': {
+      if (geste.reprise) {
+        tour.suite = { geste: geste.reprise, n: ++tour.armements };
+        tour.parquee = true;
+      }
+      const cible = inBattleId(battle, geste.pa.targetId);
+      if (isOutOfAction(acteur) || !cible || cible.dead || (battle.acted && !geste.pa.freeKind && !hasFreeWeaponAttack(acteur))) return; // LDB 21 l.33
+      openAttackCascade(get, set, geste.pa, 'Attaque', 'action/attack');
+      return;
+    }
     case 'avancer':
       advanceTurn(get, set);
       return;
@@ -7598,30 +7642,37 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
-  // LDB 15 l.35-37 ; LDB 16 l.35
-  if (mv.charge) {
-    const adv = chargeAdvantage(effectiveMovement(geom), mv.distAvant);
-    if (adv) {
-      campGain(get, enemy, adv);
-      enemy.gainedAdvThisRound = true;
-      enemy.chargeAvecAvantage = true; // LDB 85 l.83
-    }
-    enemy.chargedThisTurn = true; // LDB 15 l.35
-    subirLaCharge(get, set, tgt, enemy);
-  }
+  if (mv.charge) declarerLaCharge(get, set, enemy, tgt, chargeAdvantage(effectiveMovement(geom), mv.distAvant)); // LDB 16 l.35
   armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: tgt.id }, Math.max(TEMPO.preAttack, approachMs(get, path)));
 }
 
-/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
- *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500). */
-export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): void {
-  const lignes: string[] = [];
-  emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
-  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
-  resolveFreeAttacks(get, set, charge, 'onCharged', chargeur);
+/** `chargeur` Charge `cible`, `adv` = l'Avantage de sa course (`chargeAdvantage`) : SOURCE UNIQUE de la déclaration
+ *  d'une Charge, de l'IA comme du joueur, après le placement et avant la frappe. Rend `true` si la cible a répondu
+ *  (`subirLaCharge`). LDB 15 l.35-37 ; LDB 85 l.83 ; LDB 62 l.319 */
+export function declarerLaCharge(get: Get, set: SetFn, chargeur: Combatant, cible: Combatant, adv: number): boolean {
+  if (adv) {
+    campGain(get, chargeur, adv);
+    chargeur.gainedAdvThisRound = true;
+    chargeur.chargeAvecAvantage = true;
+  }
+  chargeur.chargedThisTurn = true;
+  const b = get().battle!;
+  const ligne = tr('cs.charge', { name: chargeur.label, target: cible.label, adv: adv ? tr('cs.fragChargeAdv', { adv }) : '' });
+  set({ battle: { ...b, log: [...b.log, ev('charge', ligne, chargeur.id, cible.id)] } });
+  return subirLaCharge(get, set, cible, chargeur);
 }
 
-/** CLÉ d'un tour d'IA : CE combattant, à CE tour de CE Round — l'unité que `battle.tourIA` décide une fois. */
+/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
+ *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500).
+ *  Rend `true` si au moins un effet ou une attaque gratuite a été exercé. */
+export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): boolean {
+  const lignes: string[] = [];
+  const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
+  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
+  return effets + resolveFreeAttacks(get, set, charge, 'onCharged', chargeur) > 0;
+}
+
+/** CLÉ d'un tour : CE combattant, à CE tour de CE Round — l'unité de `battle.tourEnCours`, que l'IA décide une fois. */
 function cleDeTour(battle: BattleState, id: string): string {
   return `${battle.round}:${battle.turn}:${id}`;
 }
@@ -8171,9 +8222,10 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Le refus est SILENCIEUX : c'est un appel qui arrive trop tard (ou deux fois).
   if (activeCombatant(battle)?.id !== enemyId) return;
   if (combatAdvanceBlocked(get())) return;
-  const cleTour = cleDeTour(battle, enemyId);
-  if (battle.tourIA?.cle === cleTour) return;
-  battle.tourIA = { cle: cleTour, armements: 0 };
+  const tour = tourEnCoursDe(battle, enemyId);
+  if (tour?.decide) return;
+  if (tour) tour.decide = true;
+  else battle.tourEnCours = { cle: cleDeTour(battle, enemyId), decide: true, armements: 0 };
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);

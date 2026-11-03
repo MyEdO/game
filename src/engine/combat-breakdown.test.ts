@@ -115,9 +115,12 @@ describe('Taille en combat (T1) + env injecté — attackModifiers (LDB 14 l.118
   });
   it('Frénésie : +1 Bonus de Force au calcul des Dégâts (LDB 21 l.33)', () => {
     const tgt = mk({ id: 'T' });
-    const fr = resolveMelee(mk({ psychState: [{ type: 'frenesie' }] }), tgt, sword, makeRNG(2), { defense: 'none' });
-    const no = resolveMelee(mk(), tgt, sword, makeRNG(2), { defense: 'none' });
-    if (fr.hit && no.hit) expect(fr.woundsLost!).toBe(no.woundsLost! + 1);
+    // Graine DÉTERMINISTE d'une touche : la Frénésie ne change pas le jet, seulement les Dégâts.
+    const graine = Array.from({ length: 100 }, (_, i) => i + 1).find((sd) => resolveMelee(mk(), tgt, sword, makeRNG(sd), { defense: 'none' }).hit)!;
+    const fr = resolveMelee(mk({ psychState: [{ type: 'frenesie' }] }), tgt, sword, makeRNG(graine), { defense: 'none' });
+    const no = resolveMelee(mk(), tgt, sword, makeRNG(graine), { defense: 'none' });
+    expect([fr.hit, no.hit], `graine ${graine} : les deux coups touchent`).toEqual([true, true]);
+    expect(fr.woundsLost!).toBe(no.woundsLost! + 1);
   });
 });
 

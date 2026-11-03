@@ -1880,8 +1880,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le
-     *  trigger `onCharged` (Frappe réactive : modale de choix puis Test d'Initiative influençable). C'est
-     *  le MÊME appel que le mouvement d'IA quand un ennemi se rue au contact (`subirLaCharge`). */
+     *  trigger `onCharged` (Frappe réactive : modale de choix puis Test d'Initiative influençable), sans
+     *  déplacement : `subirLaCharge`, que toute Charge en jeu appelle par `declarerLaCharge`. */
     charge: (enemyId: string, heroId?: string) => {
       const s = g();
       const b = s.battle;
@@ -2223,7 +2223,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         // tour). Il ne fait que RAMORCER une chaîne ARRÊTÉE (juste après `confirmRoundStart`, ou un tour
         // immobile), et seulement quand PERSONNE ne tient la main (`combatAdvanceBlocked`) : une fenêtre
         // ouverte appartient au joueur, la pause de Round aussi. Le doublon, lui, est impossible en aval
-        // (un tour d'IA décidé une fois, `battle.tourIA`, #1852, #3058) — ici on ne fait que ne pas le
+        // (un tour d'IA décidé une fois, `battle.tourEnCours.decide`, #1852, #3058) — ici on ne fait que ne pas le
         // provoquer.
         const kick = () => {
           if (combatAdvanceBlocked(useGame.getState(), { roundStart: true })) return;

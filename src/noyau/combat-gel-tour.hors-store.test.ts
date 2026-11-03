@@ -437,7 +437,7 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     const bande = g().pendingCascade?.participants.find((st) => st.kind === 'combatPsych');
     expect([bande?.combatPsych?.kind, bande?.participants?.map((pa) => pa.id)], 'chemin : la Terreur du héros ouvre sa bande').toEqual(['terreur', [hero.id]]);
     banc.reprendreTout();
-    expect([joues(), g().battle!.tourIA?.cle], 'la séquence tient la main : le tour n’est pas décidé').toEqual([0, undefined]);
+    expect([joues(), g().battle!.tourEnCours?.cle], 'la séquence tient la main : le tour n’est pas décidé').toEqual([0, undefined]);
     jouerJusquAuBout();
     banc.reprendreTout();
     expect(joues(), 'le tour repris est décidé — une fois').toBe(1);
