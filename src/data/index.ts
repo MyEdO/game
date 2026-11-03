@@ -1397,8 +1397,8 @@ export interface GroupData {
   /** Groupe-CIBLE JOKER : il vise n'importe quel combattant (`groupMatch`, `engine/groups`), hormis
    *  les porteurs d'un `exceptGroups`. Absent = appartenance STRICTE par id. */
   matchesAll?: true;
-  /** Ids de `groups.json` RETRANCHÉS du joker — un combattant qui en porte un n'est pas visé
-   *  (« vivant » = tout sauf Mort-vivant/Démon). */
+  /** Ids de `groups.json` RETRANCHÉS du Groupe visé, joker ou composite — un combattant qui en porte un
+   *  n'est pas visé (« vivant » = tout sauf Mort-vivant/Démon). */
   exceptGroups?: string[];
   /** Groupe-CIBLE RELATIF au porteur du Trait psy qui le vise (`vise`, `engine/psychology`). #3045 */
   relatif?: Relatif;

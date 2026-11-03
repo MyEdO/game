@@ -238,7 +238,7 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
 
   it('est dans creatures.json (livres de campagne admis au bestiaire)', () => {
     expect(eusapia).toBeTruthy();
-    expect(eusapia.source.book).toBe('mort-sur-le-reik');
+    expect(eusapia.source.book).toBe('mort-sur-le-reik-compagnon');
   });
 
   it('compétences au format livre → avances dérivées (Test FINAL = Caractéristique + avances, LDB 09)', () => {

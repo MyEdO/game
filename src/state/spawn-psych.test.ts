@@ -88,16 +88,18 @@ describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe M
     const c = creatureToCombatant(findCreatureById('triton')!, 'p10', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: ciblePsy.groupe('elfe-noir') }]));
   });
-  it('Brigitte Schleigel : Préjugé « aristocrates, réactionnaires, miliciens, nantis, utilisateurs de mystracine » → noble + 1 reste inerte (aucun Groupe)', () => {
+  it('Brigitte Schleigel : Préjugé « aristocrates, réactionnaires, miliciens, nantis, utilisateurs de mystracine » → noble, miliciens + 1 reste inerte (aucun Groupe)', () => {
     const c = creatureToCombatant(findCreatureById('brigitte-schleigel')!, 'p11', { x: 0, y: 0 });
     const prejuges = (c.psychTraits ?? []).filter((p) => p.type === 'prejuge');
-    expect(prejuges).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: ciblePsy.groupe('noble') }]));
-    expect(prejuges.some((p) => p.cible === undefined)).toBe(true); // réactionnaires/miliciens/mystracine : aucun Groupe
+    expect(prejuges).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: ciblePsy.groupe('noble') }, { type: 'prejuge', cible: ciblePsy.groupe('miliciens') }]));
+    expect(prejuges.some((p) => p.cible === undefined)).toBe(true); // réactionnaires/mystracine : aucun Groupe
   });
-  it('Ogre (Maigrichons) / Jetsam (Feu) / Volée de Noctecorbes (Lumière) / Sangsues (Sel) / créanciers / Étrangers / subjectifs : RESTENT inertes (aucun référent combattant)', () => {
+  it('Jetsam : Effrayé « Feu » → feu (ZI 05 l.50)', () => {
+    expect(creatureToCombatant(findCreatureById('jetsam-la-gelee-intelligente')!, 'p13', { x: 0, y: 0 }).psychTraits)
+      .toEqual(expect.arrayContaining([{ type: 'phobie', cible: ciblePsy.groupe('feu'), indice: 0 }]));
+  });
+  it('Ogre (Maigrichons) / Volée de Noctecorbes (Lumière) / Sangsues (Sel) / créanciers / Étrangers / subjectifs : RESTENT inertes (aucun référent combattant)', () => {
     expect(creatureToCombatant(findCreatureById('ogre')!, 'p12', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'prejuge', cible: undefined }]));
-    expect(creatureToCombatant(findCreatureById('jetsam-la-gelee-intelligente')!, 'p13', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'phobie', cible: undefined, indice: 0 }]));
   });
 });
