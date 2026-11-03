@@ -37,6 +37,7 @@
   - [Effrayant](#effrayant)
   - [Frénésie (talent)](#frénésie-talent)
   - [Haine (Groupe) (talent)](#haine-groupe-talent)
+  - [Vice (Cible) (talent et trait)](#vice-cible-talent-et-trait)
   - [Sans Peur (Ennemi)](#sans-peur-ennemi)
 - [État Brisé — lien avec la Psychologie](#état-brisé--lien-avec-la-psychologie)
 - [Détermination contre la Psychologie](#détermination-contre-la-psychologie)
@@ -541,7 +542,7 @@ Un personnage avec ce Talent peut activer un Indice de Peur de 1+ (selon les niv
 
 > « Vous pouvez entrer en *Frénésie* comme décrit à la page 190. » — `LDB 10 l.506`
 
-Confère la capacité d'entrer en Frénésie (idem trait de créature Frénésie, mêmes règles).
+Confère le Trait de créature *Frénésie* (`confereTrait`, `talents.json`), lu par le même chemin que le Trait posé (`traitsConferes`, `isFrenzyCapable`).
 
 **Sources RAW** : `LDB 10 l.506`
 
@@ -559,7 +560,25 @@ Confère la capacité d'entrer en Frénésie (idem trait de créature Frénésie
 
 Exemples de groupes : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmarites, morts-vivants, Sorciers dissidents.
 
+Confère le Trait *Haine* (`confereTrait`, `talents.json`), sa spécialisation pour Cible : un Groupe de `groups.json` (`specsSource: ciblesPsy`), dérivé à la lecture par le même chemin que le Trait posé (`traitsConferes`, `parsePsychTraits`), pour un héros comme pour un PNJ. Sous un effet de suppression des Traits psy (Baume pour un esprit blessé, `LDB 43 l.70`), un Trait conféré n'est plus effectif.
+
+- Pluriel ramené au Groupe : Morts-vivants → `mort-vivant` (`MDG 16 l.360`), Cultistes → `cultiste` (`EDOC 10 l.130`), Suivants du Chaos → `chaos` (`MDG 11 l.127`).
+- Groupes de culte, portés par le culte (`gods.json`, `grantGroups`) : Manannites → `manannite` (`MDG 11 l.127`), Suivants de Stromfels → `stromfelsien` (`MDG 09 l.700`).
+- Hérétiques (`LDB 08 l.1718`), lecture recommandée, révisable (#3045) : le Groupe `heretiques` inclut les cultistes, adorateurs des Puissances de la Ruine. Lecture contraire : les seuls porteurs déclarés du Groupe.
+
 **Sources RAW** : `LDB 10 l.548` ; effets à la page 190 = `LDB 21 l.37-39`
+
+**Implémente :** [État calculé](../implemente.generated.md#4epsychologiehaine-groupe-talent)
+
+---
+
+### Vice (Cible) (talent et trait)
+
+Talent qui confère le Trait psychologique *Vice* ; sa Cible est un vice (alcool, nourriture, stupéfiants, plaisir), pas un Groupe : Test de Psychologie à la confrontation, abandon au Vice jusqu'à la perte de connaissance, État *Exténué*.
+
+**Sources RAW** : `ADE II 02 l.258-265` (Talent) ; `ADE II 02 l.267-269` (Trait)
+
+**Implémente :** [État calculé](../implemente.generated.md#4epsychologievice-cible-talent-et-trait)
 
 ---
 

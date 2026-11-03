@@ -330,6 +330,7 @@
     "type": "gods",
     "label": "Manann",
     "grantGroups": [
+      "manannite",
       "religion"
     ],
     "title": "Dieu de la mer",
@@ -656,6 +657,7 @@
     "type": "gods",
     "label": "Stromfels",
     "grantGroups": [
+      "stromfelsien",
       "religion"
     ],
     "title": "Dieu Requin",
