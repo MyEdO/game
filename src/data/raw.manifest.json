@@ -107,13 +107,6 @@
     "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué"
   },
   {
-    "id": "4e/corruption#tableau-des-obsessions",
-    "type": "raw.manifest",
-    "label": "Tableau des Obsessions",
-    "ticket": "#3045",
-    "bloque": "Rangées tirées sans porteur que le moteur reconnaisse (EDOC 12 l.170-197) : Animaux sauvages, Animaux domestiques, Objets inanimés, Pauvreté, Richesse, Bonheur et les trois Figures/Symboles — arbitrage utilisateur (#1463) : étiquettes posées par l'auteur : la scène, l'objet ou la créature porte le Groupe en donnée éditable (ex. « symboles religieux » sur un temple, Dressé = domestique). Elles déclenchent la Peur ou la Haine. ; Feu, Eau : phénomènes de scène, même classe ; Magie (`Combatant.spells`) et Maladie (`Combatant.diseases`) : aucune dérivation ; Monstres hors genre (`hydre-d-os`, MDG 16 l.215 ; monstres marins, MDG 16 l.5). Portés : espèces, Mutants (porteur d'au moins une mutation, EDOC 12 l.56, l.181, `groupesDe`), Monstres (genres de LDB 79, `CreatureData.genre`)"
-  },
-  {
     "id": "4e/maladies#maladie-type",
     "type": "raw.manifest",
     "label": "Maladie (Type)",

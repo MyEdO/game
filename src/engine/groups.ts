@@ -23,7 +23,7 @@ const GROUPE_DE_LA_CAVALERIE = 'cavalerie';
 const GROUPE_DES_MALADES = 'maladie';
 
 /** Groupes DÉCLARÉS, posés une fois sur `Combatant.groups` : espèce (`SpeciesData.grantGroups`) ∪ entrée du
- *  bestiaire (`CreatureData.grantGroups`, sa catégorie, puis ceux de son `genre`, de genre en genre) ∪ extras
+ *  bestiaire (`CreatureData.grantGroups`, puis ceux de son `genre`, de genre en genre) ∪ extras
  *  (déjà des ids — `groups` d'un statbloc, saisie d'éditeur). Dédupliqué par id EXACT, ordre stable. */
 export function groupsFor(src: { speciesId?: string; creature?: Pick<CreatureData, 'grantGroups' | 'genre'>; extras?: readonly string[] }): string[] {
   const out: string[] = [];
@@ -123,10 +123,11 @@ export function racesDe(groupIds: readonly string[]): string[] {
  *  `groups` (ids) du combattant ? Appartenance STRICTE par id — plus de tolérance de pluriel/casse. Un
  *  sous-type sans Groupe dédié dans `groups.json` (ex. « Menteurs, trompeurs, sophistes ») reste INERTE
  *  plutôt que de dériver un sous-groupe inventé (YAGNI). Un Groupe-cible JOKER (`GroupData.matchesAll`,
- *  `groups.json` : `tout` = n'importe qui — Animosité « toutes les créatures !!! » ; `vivant` =
- *  `matchesAll` moins ses `exceptGroups`) et un Groupe-cible COMPOSITE (`GroupData.inclut`, Q13 A, #3045 :
- *  tout membre de l'un des Groupes inclus) sont résolus ICI, sur la donnée du Groupe visé ; un Groupe déjà
- *  traversé sur le chemin (cycle d'`inclut` ou d'`exceptGroups`) ne correspond pas. */
+ *  `groups.json` : `tout` = n'importe qui — Animosité « toutes les créatures !!! ») et un Groupe-cible
+ *  COMPOSITE (`GroupData.inclut`, Q13 A, #3045 : tout membre de l'un des Groupes inclus) sont résolus ICI,
+ *  sur la donnée du Groupe visé ; tout Groupe-cible retranche ensuite les porteurs de ses `exceptGroups`
+ *  (`vivant` = tout sauf Mort-vivant et Démon ; `animaux-sauvages` = Bête sauf Animaux domestiques et
+ *  Monstres). Un Groupe déjà traversé sur le chemin (cycle d'`inclut` ou d'`exceptGroups`) ne correspond pas. */
 export function groupMatch(cibleId: string, groupIds: readonly string[]): boolean {
   return correspond(cibleId, groupIds, []);
 }
@@ -135,7 +136,6 @@ function correspond(cibleId: string, groupIds: readonly string[], chemin: readon
   if (chemin.includes(cibleId)) return false;
   const suite = [...chemin, cibleId];
   const cible = findGroupById(cibleId);
-  if (cible?.matchesAll) return !(cible.exceptGroups ?? []).some((g) => correspond(g, groupIds, suite));
-  if (cible?.inclut) return cible.inclut.some((g) => correspond(g, groupIds, suite));
-  return groupIds.includes(cibleId);
+  const membre = cible?.matchesAll || (cible?.inclut ? cible.inclut.some((g) => correspond(g, groupIds, suite)) : groupIds.includes(cibleId));
+  return membre && !(cible?.exceptGroups ?? []).some((g) => correspond(g, groupIds, suite));
 }

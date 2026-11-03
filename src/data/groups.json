@@ -370,10 +370,18 @@
     "id": "animaux-sauvages",
     "type": "groups",
     "label": "Animaux sauvages",
+    "inclut": [
+      "bete"
+    ],
+    "exceptGroups": [
+      "animaux-domestiques",
+      "monstres"
+    ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Groupe composite (#3045) : il vise les bêtes, hormis les animaux domestiques et les monstres. LDB 78 l.5 sépare animaux sauvages et domestiqués ; LDB 79 l.5 range les monstres à part. Lecture révisable."
   },
   {
     "id": "animaux-domestiques",
@@ -383,7 +391,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
     },
-    "maison": "Porté par les animaux de LDB 70 et par tout Trait Dressé (Q7 A, #3045). Lecture révisable."
+    "maison": "Porté par les animaux de LDB 70 et du tableau du coût de l'animal (EDOC 07 l.95), et par tout Trait Dressé (Q7 A, #3045). Lecture révisable."
   },
   {
     "id": "magie",
@@ -437,7 +445,6 @@
     "type": "groups",
     "label": "Animaux",
     "inclut": [
-      "animaux-sauvages",
       "animaux-domestiques",
       "bete"
     ],
@@ -446,7 +453,7 @@
       "page": 110,
       "note": "LDB 08 l.3514"
     },
-    "maison": "Groupe composite (Q13 A, #3045) : il vise les animaux sauvages, les animaux domestiques et les bêtes. Lecture révisable."
+    "maison": "Groupe composite (Q13 A, #3045) : il vise les bêtes, animaux sauvages compris, et les animaux domestiques. Lecture révisable."
   },
   {
     "id": "hors-la-loi",
