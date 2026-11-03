@@ -8,7 +8,7 @@ import { byId, psychologies, refLabel, testSkillLabel } from '../data';
 import { t, deElide } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
-import { effectiveChar, bonus } from './characteristics';
+import { effectiveChar, bonusDe } from './characteristics';
 import { assistBonus } from './tests';
 import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
 import { agilityTestPenalty } from './encumbrance';
@@ -495,7 +495,7 @@ export function soutienDetail(
     && (skill ? hasSkillAdvance(c, skill, spec) : true) // LDB 12 l.195
     && (eligible ? eligible(c) : true));
   const ck = effectiveSkillCharKey(leader, skill, { explicit: characteristic, spec });
-  const b = assistBonus(elig.length, bonus(effectiveChar(leader, ck)));
+  const b = assistBonus(elig.length, bonusDe(leader, ck));
   return { count: b / 10, bonus: b, ids: elig.slice(0, b / 10).map((c) => c.id) };
 }
 

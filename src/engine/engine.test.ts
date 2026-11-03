@@ -441,10 +441,10 @@ describe('Localisation par forme du corps (LDB « Point d’Impact des Créature
 
 describe('Dégâts d’arme (parsing via effectiveWeaponDamage)', () => {
   it('+BF+4 avec BF=3 → 7', () => {
-    expect(effectiveWeaponDamage({ label: 'x', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }, 3)).toBe(7);
+    expect(effectiveWeaponDamage({ label: 'x', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(7);
   });
   it('+9 (distance) ignore BF', () => {
-    expect(effectiveWeaponDamage({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [] }, 3)).toBe(9);
+    expect(effectiveWeaponDamage({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(9);
   });
 });
 

@@ -43,14 +43,14 @@ describe('43.1c — Lance de cavalerie hors Charge → Arme improvisée (LDB 62 
     const w = effectiveWeapon(lance(), { charged: false });
     expect(w.damage).toEqual({ plusBF: true, flat: 1 });
     expect(w.qualities).toEqual([{ id: 'inoffensive' }]);
-    expect(effectiveWeaponDamage(w, 4)).toBe(5); // BF4 + 1
+    expect(effectiveWeaponDamage(w, { bf: 4, passif: 0 })).toBe(5); // BF4 + 1
     expect(hasQuality(w, 'empaleuse')).toBe(false);
     expect(hasQuality(w, 'percutante')).toBe(false);
   });
   it('CHARGÉ → profil normal inchangé (même référence)', () => {
     const w = lance();
     expect(effectiveWeapon(w, { charged: true })).toBe(w);
-    expect(effectiveWeaponDamage(w, 4)).toBe(10); // BF4 + 6
+    expect(effectiveWeaponDamage(w, { bf: 4, passif: 0 })).toBe(10); // BF4 + 6
   });
   it("la règle ne vise QUE les lances : Marteau à bec-de-corbin (cavalerie, non-lance) inchangé hors charge", () => {
     const marteau: Weapon = { label: 'Marteau à bec-de-corbin', type: 'melee', subType: 'cavalerie', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'assommante' }] };

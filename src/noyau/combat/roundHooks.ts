@@ -10,7 +10,7 @@ import { type BuiltCascadeStep } from '../stepBrand';
 import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
-import { bonus, effectiveChar } from '../../engine/characteristics';
+import { bonus, bonusDe, effectiveChar } from '../../engine/characteristics';
 import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, poserInconscientDeSaignement, stacks, endOfRound, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
 import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
@@ -319,7 +319,7 @@ export const TABLES = {
         for (const src of battle.combatants) {
           if (isOutOfAction(src) || !src.pos) continue;
           for (const { traitId, aura } of traitAuras(src.traits)) {
-            const rangeM = bonus(effectiveChar(src, aura.rangeChar));
+            const rangeM = bonusDe(src, aura.rangeChar);
             // Le TRAIT émetteur voyage avec chaque op projetée (`PassiveMod.src`) : la pénalité arrive
             // chez la cible avec son nom et son renvoi Codex, jamais en modificateur anonyme.
             const projected = structuredClone(aura.passive).map((op) => ({ op, src: { category: 'traits', id: traitId } })); // #2097

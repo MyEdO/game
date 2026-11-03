@@ -57,7 +57,6 @@ import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import type { Duration } from './duration';
 import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
-import { rule } from './policy'; // module FEUILLE (registre des règles optionnelles) : terme `{rule}` d'une Formula
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
 // dispatché par `noyau/triggeredEffects` (pas ici).
@@ -241,18 +240,15 @@ export interface PerSL {
  *  relationnels (Indice/stacks/écart d'Avantage/PB infligés) absents au planning → 0. `{minimum}` borne
  *  l'espérance de `of` — approximation : E[max(n,X)] ≥ max(n,E[X]). PUR, sans RNG. */
 export function formulaExpectation(f: Formula, ref: Combatant): number {
-  if (typeof f === 'number') return f;
-  if (typeof f !== 'object' || f === null) return 0; // formule malformée (donnée invalide) → 0, jamais un crash en plein combat
-  if ('bonusOf' in f) return bonus(effectiveChar(ref, f.bonusOf));
-  if ('charOf' in f) return effectiveChar(ref, f.charOf);
-  if ('dice' in f) return f.dice.n * (f.dice.sides + 1) / 2 + (f.dice.plus ?? 0);
-  if ('rolled' in f) return 5.5; // référence neutre (dé moyen d'un d10) — jamais tiré
-  if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
-  if ('minimum' in f) return Math.max(f.minimum, formulaExpectation(f.of, ref));
-  if ('parTranche' in f) return Math.floor(formulaExpectation(f.of, ref) / f.parTranche);
-  if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + formulaExpectation(term, ref), 0);
-  if ('times' in f) return formulaExpectation(f.times.of, ref) * formulaExpectation(f.times.factor, ref);
-  return 0; // indiceOf / stacks / engagedAdvantageGap / woundsDealt / sl : hors contexte au planning
+  return evaluer<TermeDeJet>(f, caracDuCombattant(ref), jetEspere);
+}
+
+/** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}` et tout objet
+ *  inconnu (formule malformée) 0. */
+function jetEspere(t: TermeDeJet): number {
+  if ('dice' in t) return t.dice.n * (t.dice.sides + 1) / 2 + (t.dice.plus ?? 0);
+  if ('rolled' in t) return 5.5;
+  return 0;
 }
 
 /** Somme des bonus de DR à une Compétence (`skillId`) conférés au porteur — op `skillDRBonus` PASSIVE
@@ -1028,7 +1024,7 @@ export type GameOp =
    *  `traitSpellDRMod`/`talentSpellDRMod` (engine/magic) au calcul du DR du Sort CONTRE cette cible
    *  (Dégâts du Projectile, `ctx.sl` des Flows, zone, NI par cible). Inerte dans `applyOps`. */
   | { op: 'incomingSpellDRMod'; amount: FormuleSansTirage }
-  /** +N au Bonus de Force (LDB 21 l.33). PASSIF, sommé par `bonusDeForce` (engine/characteristics), lu par
+  /** +N au Bonus de Force (LDB 21 l.33). PASSIF, sommé par `bonusPassifDeForce` (engine/characteristics), lu par
    *  tout lecteur du BF. Inerte dans `applyOps`. */
   | { op: 'sbBonus'; amount: number }
   /** L'attaque du porteur porte un MOT-CLÉ (Magique/Démoniaque/Fabriqué → 'magic', LDB 85). PASSIF, lu par
