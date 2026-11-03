@@ -16,7 +16,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
   it('émet chaque état de construction avec sa référence sans silhouettes', () => {
     const c = jouet(), noms = c.silhouettes.map((s) => s.nom);
     const etats = etatsDuGabarit(c.table, noms);
-    expect(etats.filter((e) => Object.entries(FACTEURS_NEUTRES).every(([cle, v]) => e.facteurs[cle as keyof typeof FACTEURS_NEUTRES] === v)).map((e) => e.nom).sort()).toEqual(['neutre', FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, `${CORPULENCE}_${CARRURE_MOINS}`, `${CORPULENCE}_${CARRURE_PLUS}`, `${FEMININ}_${CORPULENCE}`, `${FEMININ}_${CARRURE_MOINS}`, `${FEMININ}_${CARRURE_PLUS}`, `${FEMININ}_${CORPULENCE}_${CARRURE_MOINS}`, `${FEMININ}_${CORPULENCE}_${CARRURE_PLUS}`].sort());
+    expect(etats.filter((e) => Object.entries(FACTEURS_NEUTRES).every(([cle, v]) => e.facteurs[cle as keyof typeof FACTEURS_NEUTRES] === v)).map((e) => e.nom).sort()).toEqual(['neutre', FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, `${CORPULENCE}_${CARRURE_MOINS}`, `${FEMININ}_${CORPULENCE}`, `${FEMININ}_${CARRURE_MOINS}`, `${FEMININ}_${CARRURE_PLUS}`, `${FEMININ}_${CORPULENCE}_${CARRURE_MOINS}`].sort());
     for (const { cle, sens } of sensCuitsDuGabarit(BORNES)) for (const silhouette of ['neutre', ...noms]) {
       const e = etats.find((etat) => etat.nom === `${cle}_${sens}__${silhouette}`);
       expect(e).toBeDefined();

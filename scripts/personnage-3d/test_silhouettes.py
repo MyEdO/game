@@ -572,10 +572,10 @@ def groupe_a_un_clip(positions, references, matrices, cellules, demandes=()):
 
 
 def domaine_a_facteurs_neutres():
-    """`etats_aux_facteurs_neutres` de corpulence et carrure_plus."""
+    """`etats_aux_facteurs_neutres` de corpulence et carrure_moins."""
     table = {'st': {'min': .7, 'max': 1.5}, 'bornes': {
         cle: {'min': 1, 'max': 1} for cle in ('legs', 'arms', 'head')}}
-    return etats_aux_facteurs_neutres(table, ['corpulence', 'carrure_plus'])
+    return etats_aux_facteurs_neutres(table, ['corpulence', 'carrure_moins'])
 
 
 def arete_du_domaine(interieur=True, clip=None, z=.1):
@@ -585,9 +585,9 @@ def arete_du_domaine(interieur=True, clip=None, z=.1):
     w = numpy.ones((2, 1))
     aretes = numpy.array([[0, 1]])
     demandes = domaine_a_facteurs_neutres()
-    champs = {n: numpy.zeros((2, 3)) for n in ('corpulence', 'carrure_plus')}
+    champs = {n: numpy.zeros((2, 3)) for n in ('corpulence', 'carrure_moins')}
     champs['corpulence'][1] = [-2, 0, 0] if interieur else [.01, 0, 0]
-    champs['carrure_plus'][1] = [0, -2, 0] if interieur else [0, .01, 0]
+    champs['carrure_moins'][1] = [0, -2, 0] if interieur else [0, .01, 0]
     matrices = numpy.eye(4)[None, None]
     if clip is not None:
         matrices = numpy.concatenate([matrices, clip[None, None]])
@@ -606,7 +606,7 @@ class MinimumContinu(unittest.TestCase):
         self.assertEqual(minimum['nature'], 'EXACT')
         self.assertAlmostEqual(minimum['rapport'], .1 / numpy.sqrt(2.01), places=12)
         self.assertAlmostEqual(minimum['poids']['corpulence'], .5)
-        self.assertAlmostEqual(minimum['poids']['carrure_plus'], .5)
+        self.assertAlmostEqual(minimum['poids']['carrure_moins'], .5)
         marques = mesurer_domaine(w, x, aretes, [(demandes, matrices)], numpy.eye(3))(champs)
         self.assertTrue(all(m[0] for m in marques.values()))
 
@@ -639,9 +639,9 @@ class MinimumContinu(unittest.TestCase):
         domaine = domaine_a_facteurs_neutres()
         x = numpy.array([[0, 0, 0, 1], [0, 0, 1, 1]], dtype=float)
         w, aretes = numpy.ones((2, 1)), numpy.array([[0, 1]])
-        champs = {nom: numpy.zeros((2, 3)) for nom in ('corpulence', 'carrure_plus')}
+        champs = {nom: numpy.zeros((2, 3)) for nom in ('corpulence', 'carrure_moins')}
         champs['corpulence'][1] = [1, 0, 0]
-        champs['carrure_plus'][1] = [0, 1, 0]
+        champs['carrure_moins'][1] = [0, 1, 0]
         clip = numpy.eye(4)
         clip[2, 2] = .001
         matrices = numpy.array([[numpy.eye(4)], [clip]])
@@ -708,7 +708,7 @@ class MinimumContinu(unittest.TestCase):
     def test_une_topologie_declaree_incomplete_est_refusee(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()
         incomplets = {**demandes, 'etats': [e for e in demandes['etats'] if sum(v != 0 for v in e['poidsSilhouettes'].values()) <= 1]}
-        with self.assertRaisesRegex(RuntimeError, r"cellule-incomplete : .+ : coin absent .*corpulence.*carrure_plus"):
+        with self.assertRaisesRegex(RuntimeError, r"cellule-incomplete : .+ : coin absent .*corpulence.*carrure_moins"):
             etats_ponderes(x, champs, [(incomplets, matrices, ())])
 
     def test_les_compteurs_suivent_la_remesure_et_la_decoupe(self):
