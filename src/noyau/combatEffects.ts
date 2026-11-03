@@ -2096,7 +2096,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel({ skill: e.skill, char: e.characteristic }), e.label, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { char: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel({ skill: e.skill, char: e.characteristic }), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { char: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
