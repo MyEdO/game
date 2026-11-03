@@ -110,7 +110,7 @@ function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches
   return noeuds.length === 1 ? noeuds[0] : { kind: 'seq', steps: noeuds };
 }
 
-/** Le Souffle `base` composé avec les règles de son Type ; un Type hors registre garde le Souffle seul. Les
+/** Le Souffle `base` composé avec les règles de son Type ; sans Type, le Souffle seul. Les
  *  règles suivent les Dégâts dans leur liste d'ops : elles lisent les Blessures subies (`woundsDealt`).
  *  LDB 85 l.320-329 ; EDOC 13 l.237 */
 export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManeuverDef {
@@ -149,10 +149,9 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
     for (const g of findTraitById(inst.id)?.grantsManeuvers ?? []) {
       const def = manoeuvreDeLInstance(g.id, inst);
       if (!def || def.ecartDeTailleMin != null || def.targeting === 'self') continue;
-      const type = inst.arg && !/divers|au choix/i.test(inst.arg) ? inst.arg : undefined;
       const indice = inst.value ?? 0;
       out.push({
-        cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type, def,
+        cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
         trigger: def.activation, avantage: def.advantageCost,
         ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),

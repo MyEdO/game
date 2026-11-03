@@ -3146,6 +3146,18 @@ La créature est **immunisée à son propre Souffle**. **Il s'agit d'une Attaque
 
 — `LDB 85 l.323-330`
 
+#### Types imprimés hors de la liste
+
+Seuls les six Types ci-dessus ajoutent une règle : « si le trait indique l'un des *Types* suivants entre parenthèses, appliquez également les règles correspondantes » (`LDB 85 l.322`). Un statbloc peut imprimer un autre Type, qui se lit ainsi (lecture recommandée, révisable (#3038)) :
+
+| Statbloc | Type imprimé | Lecture |
+|---|---|---|
+| Dragon (`LDB 79 l.51`) | « Souffle +15 (divers) » | le livre laisse le Type ouvert (« Les effets de leur célèbre souffle sont aussi variés que leur apparence », `ZI 03 l.7`) : **Feu** |
+| Géant (`LDB 79 l.82`) | « Souffle (Vomi d'ivrogne) » | Type sans règle propre (aucune dans les livres) : le Souffle seul, par `LDB 85 l.322` |
+| Squig des cavernes (`LDB 79 l.207-209`) | « Souffle (acide ou gaz) » | deux Traits facultatifs au choix : **Corrosif** (« acidité corrosive », `LDB 85 l.447`) ou **Poison** (gaz toxique) |
+
+Les trois Types du *Zoo impérial* qui impriment leur propre règle (Bave gluante, Soporifique, Cauchemars) ont leur topic : [Règles propres des Types de Souffle du Zoo impérial](#règles-propres-des-types-de-souffle-du-zoo-impérial).
+
 ### Étreinte Glaciale
 
 Le toucher de la créature glace l'âme de l'ennemi. **Au prix de 2 Avantages ET de son Action**, elle tente un **Test opposé de CC/Corps à corps ou Esquive**. Sur un **succès**, l'adversaire **perd automatiquement 1d10 + DR Blessures qui ignorent le Bonus d'Endurance ET les PA**. **Il s'agit d'une Attaque magique.**
@@ -3211,6 +3223,20 @@ La créature vomit un flot de corruption corrosive. **Pendant son tour, au prix 
 **Voir aussi** : Traits de créature (vue d'ensemble) · États (Sonné, Enflammé, Empoisonné, Brisé, Assourdi, Empêtré) · Tentacules et attaques naturelles · Zones d'effet et Lignes de vue · Avantage en combat · Le sort « Souffle » (Magie des Arcanes)
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecombatsynthese-comparative-cout-action-defense-magie)
+
+### Règles propres des Types de Souffle du Zoo impérial
+
+Trois statblocs du *Zoo impérial* impriment un Type de Souffle absent de la liste de `LDB 85 l.323-330`, avec sa règle propre :
+
+| Type | Règle | Créature |
+|---|---|---|
+| **Bave gluante** | « les Blessures infligées ignorent les Points d'Armure. Pendant un nombre de Rounds égal au Bonus d'Endurance de la gueule d'effroi, les créatures touchées par cette substance doivent effectuer un Test d'**Agilité Accessible (+20)** chaque fois qu'elles veulent agir. En cas d'échec, elles glissent à cause de la substance et gagnent immédiatement l'État *À Terre*. » — `ZI 02 l.56` | Gueule d'effroi (`ZI 02 l.54`) |
+| **Soporifique** | « le Souffle soporifique ignore les Points d'Armure. Toute cible blessée par cette attaque doit effectuer un Test de **Force Mentale Difficile (-20)**. En cas d'échec, elle gagne le Trait Stupide pendant un nombre de Rounds égal au Bonus d'Endurance du dragon. » — `ZI 03 l.27` | Dragon de la forêt (`ZI 03 l.25`) |
+| **Cauchemars** | « toute Blessure infligée par le Souffle du fantasma ignore les Points d'Armure. Les cibles blessées doivent immédiatement faire un Test contre l'effet du Trait Terreur 2 basé sur la Résistance plutôt que sur le Calme. Remarque : même les cibles immunisées contre la *Peur* ou la *Terreur* doivent effectuer ce Test, car il ne s'agit pas d'un effet psychologique, mais de l'effet distordu d'un poison. » — `ZI 13 l.128` | Le Fantasma (`ZI 13 l.126`) |
+
+L'app applique l'ignorance des PA des trois Types. Le reste de chaque règle (Test à chaque Action puis *À Terre* ; Test de Force Mentale puis Trait Stupide sur une cible blessée ; Test de Terreur 2 sur la Résistance, immunités comprises) est une dette ouverte : #3272.
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecombatregles-propres-des-types-de-souffle-du-zoo-imperial)
 
 ---
 
