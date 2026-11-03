@@ -111,7 +111,7 @@ describe('candidates des modes à liste', () => {
     const { hero, ally } = combat({ action: 'heal' });
     ally.wounds.current = Math.max(0, ally.wounds.max - 4);
     hero.skills = hero.skills.filter((sk) => sk.id !== 'guerison');
-    hero.items = hero.items.filter((it) => it.trappingId !== 'bandages');
+    hero.items = hero.items?.filter((it) => it.trappingId !== 'bandages');
     useGame.setState({ battle: { ...useGame.getState().battle! } });
     expect(currentTargetingMode(useGame.getState).candidates!(useGame.getState, hero)).toEqual([]);
   });
