@@ -219,7 +219,7 @@ function rendu() {
     return plat(m[2])
   }
   const GARDES = [
-    'src/state/spell-flow-completeness.test.ts',
+    'src/noyau/combat/spell-flow-completeness.test.ts',
     'src/engine/spellspec.test.ts',
     'src/engine/spellRange.test.ts',
     'src/engine/spellDuration.test.ts',
