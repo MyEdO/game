@@ -1828,7 +1828,13 @@
       {
         "id": "souffle",
         "value": 15,
-        "arg": "divers"
+        "arg": "feu",
+        "source": {
+          "book": "livre-de-base",
+          "page": 319,
+          "note": "LDB 79 l.51"
+        },
+        "maison": "Le statbloc imprime « Souffle +15 (divers) » sans nommer de Type ; le Type retenu est Feu (lecture recommandée, révisable, #3038)."
       },
       {
         "id": "taille",
@@ -2029,7 +2035,7 @@
       },
       {
         "id": "souffle",
-        "arg": "Vomi d’ivrogne"
+        "arg": "vomi-d-ivrogne"
       },
       {
         "id": "stupide"
@@ -2718,7 +2724,11 @@
       },
       {
         "id": "souffle",
-        "arg": "acide ou gaz"
+        "arg": "corrosif"
+      },
+      {
+        "id": "souffle",
+        "arg": "poison"
       },
       {
         "id": "taille",
@@ -6522,7 +6532,7 @@
       {
         "id": "souffle",
         "value": 5,
-        "arg": "Bave gluante"
+        "arg": "bave-gluante"
       }
     ],
     "optionals": [
@@ -6967,7 +6977,7 @@
       {
         "id": "souffle",
         "value": 10,
-        "arg": "Soporifique"
+        "arg": "soporifique"
       }
     ],
     "optionals": [
@@ -11570,7 +11580,7 @@
       {
         "id": "souffle",
         "value": 12,
-        "arg": "Cauchemars"
+        "arg": "cauchemars"
       }
     ],
     "optionals": [],

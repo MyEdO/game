@@ -8,7 +8,7 @@
  */
 import { RNG } from './dice';
 import { t } from '../i18n';
-import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason } from './tests';
+import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, reverseRoll } from './tests';
 import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
@@ -41,16 +41,6 @@ import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
 import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
-
-/** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
-export function reverseRoll(r: number): number {
-  const n = r % 100; // 100 → 0
-  const t = Math.floor(n / 10);
-  const o = n % 10;
-  let rev = o * 10 + t;
-  if (rev === 0) rev = 100;
-  return rev;
-}
 
 /** Jet de la seconde frappe du Maniement de deux armes. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
 export function lancerDeLaSecondeMain(

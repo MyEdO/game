@@ -1,8 +1,8 @@
 /**
  * LA SUITE DU TOUR D'IA EN COOP (#3058) : l'hôte joue les tours d'IA qu'il possède — son IA ennemie, son héros en
  * Auto-combat — ; un invité est connecté. Le chargeur charge un porteur de Frappe réactive (LDB 10 l.498) : chez
- * l'hôte, une décision, une frappe, le tour avance ; l'instantané diffusé porte le tour d'IA (`battle.tourIA`), que
- * l'invité applique.
+ * l'hôte, une décision, une frappe, le tour avance ; l'instantané diffusé porte le tour d'IA (`battle.tourEnCours`), que
+ * l'invité applique. La frappe pilotée d'un invité (#3059) ne se rejoue que chez l'hôte.
  */
 import { describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
@@ -11,7 +11,8 @@ import { ouvrirLeBanc } from '../../noyau/banc.testkit';
 import { aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
-import { etatInitialDuJeu, type BattleState, type NetState, type TourIA } from '../../noyau/etat';
+import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
+import { etatInitialDuJeu, type BattleState, type NetState, type TourEnCours } from '../../noyau/etat';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -55,12 +56,12 @@ function table(chargeur: Combatant, charge: Combatant) {
 
   maybeRunEnemyTurn(banc.getState, banc.setState);
   let fenetre = false;
-  let diffuse: TourIA | undefined;
+  let diffuse: TourEnCours | undefined;
   for (let i = 0; i < 300 && banc.getState().battle!.turn === 0; i++) {
     if (!banc.jusquALaProchaine()) break;
     if (banc.getState().pendingDefense) fenetre = true;
     host.broadcastSnapshot();
-    diffuse ??= banc.getState().battle!.tourIA?.suite ? banc.getState().battle!.tourIA : undefined;
+    diffuse ??= banc.getState().battle!.tourEnCours?.suite ? banc.getState().battle!.tourEnCours : undefined;
   }
   return { banc, recus, fenetre, diffuse };
 }
@@ -82,7 +83,33 @@ describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frap
       expect(diffuse?.cle, 'chemin : un tour d’IA à suite a été diffusé').toBe(`1:0:${c.id}`);
       const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1) }).etat;
       expect(chezLInvite.net.mode, 'l’instantané est appliqué chez l’invité').toBe('guest');
-      expect(chezLInvite.battle?.tourIA, 'l’invité porte le tour d’IA de l’hôte').toEqual(banc.getState().battle!.tourIA);
+      expect(chezLInvite.battle?.tourEnCours, 'l’invité porte le tour d’IA de l’hôte').toEqual(banc.getState().battle!.tourEnCours);
     });
   }
+});
+
+describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invité', () => {
+  it('l’invité charge par intent (graine 4) ; chez l’invité, la frappe parquée de l’instantané ne se rejoue pas, même fenêtre close', () => {
+    const banc = ouvrirLeBanc({ cadence: 'manuel' });
+    seedBattleRng(4);
+    const h = mk('h', 'hero', { x: 4, y: 0 });
+    const e = mk('e', 'enemy', { x: 0, y: 0 });
+    e.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
+    e.characteristics.initiative = 99;
+    const ids = [h.id, e.id];
+    const battle = {
+      combatants: [h, e], order: ids, baseOrder: ids, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
+      movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+    } as unknown as BattleState;
+    banc.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: { ...NET('host', 0), ownership: { h: 1 } } } as never);
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleClickEntity', ['e', { confirm: true, approche: true }]), 'chemin : l’intent est appliqué chez l’hôte').toBe('appliquee');
+    banc.reprendreTout();
+    const tour = banc.getState().battle!.tourEnCours;
+    expect([tour?.suite?.geste.kind, tour?.parquee, !!banc.getState().pendingDefense], 'chemin : chez l’hôte, la frappe échue pendant la défense est parquée').toEqual(['frappePilotee', true, true]);
+    const chezLInvite = appliquerLInstantane(instantaneDeLaCoop(banc.getState()), { ...etatInitialDuJeu(), net: { ...NET('guest', 1), ownership: { h: 1 } } }).etat;
+    banc.setState({ ...chezLInvite, pendingDefense: null, pendingCascade: null, suspendedCascades: [] } as never);
+    banc.getState().resumeCadence();
+    banc.reprendreTout();
+    expect([banc.getState().net.mode, banc.getState().pendingAttack], 'l’invité n’ouvre aucune frappe de lui-même').toEqual(['guest', null]);
+  });
 });

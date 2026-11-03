@@ -27,7 +27,8 @@ import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
+import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
@@ -78,12 +79,13 @@ import {
   type Trauma,
   type ReachValue,
   type ConditionEmit,
+  type ContexteDeTest,
 } from './types';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
-import { t, pluriel, type MsgKey } from '../i18n';
+import { t, pluriel, deElide, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 
 // ---------------------------------------------------------------------------
@@ -599,8 +601,10 @@ export type GameOp =
   | { op: 'statusMod'; amount: Formula }
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée
    *  `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). `skill` absent = tout
-   *  Test (« concernant votre cible », l.218). */
-  | { op: 'grantReverseToken'; skill?: RefDesignee }
+   *  Test (« concernant votre cible », l.218) ; `char` : tout Test de cette Caractéristique ; `contexte` :
+   *  le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais consommé
+   *  (ACE 12 l.60). */
+  | { op: 'grantReverseToken'; skill?: RefDesignee; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
    *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `trait` : le Trait OCTROYÉ, résolu
@@ -2231,8 +2235,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec } });
-        lines.push(t('op.grantReverseToken', { name: target.label, skill: o.skill ? refLabel('skills', o.skill) : t('op.reverseAnyTest') }));
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.char ? { char: o.char } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
+        lines.push(t('op.grantReverseToken', {
+          name: target.label,
+          skill: o.skill ? refLabel('skills', o.skill) : o.char ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.char]) }) : t('op.reverseAnyTest'),
+          contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
+          fois: t(o.illimite ? 'op.reverseIllimite' : 'op.reverseUneFois'),
+        }));
         break;
       }
       case 'grantTrait': {

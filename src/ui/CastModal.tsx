@@ -7,7 +7,6 @@ import type { CounterDeclaration } from '../noyau/pendings';
 import { findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
-import { testValue } from '../engine/skills';
 import { clampTarget } from '../engine/tests';
 import { castingValue, castingNumberOf, spellTargetCount, castOvercastBudget, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastStepCost } from '../engine/overcast';
@@ -18,7 +17,7 @@ import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { RollRow } from './RollRow';
-import { rowForcedDie } from './forcedDieRow';
+import { refusDeRangee, rowForcedDie } from './forcedDieRow';
 import { maskOpposedRow, opposedResponded, opposedRevealed } from './opposedFrozen';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
@@ -415,15 +414,13 @@ export function CastModal() {
               modale d'incantation (cible IA = témoin auto-roulée, cible héros = interactive). */}
           {pcs && (
             <div className="cs-rows">
-              <span className="mini-title"><Icon id="action/defend" size="sm" /> Opposition — la cible oppose son {pcs.kind === 'contact' ? 'Corps à corps (Bagarre)' : (pcs.char ?? pcs.skill)}</span>
+              <span className="mini-title"><Icon id="action/defend" size="sm" /> Opposition — la cible oppose son {libelleDOppositionDeSort(pcs)}</span>
               {pcs.participants.map((part) => {
                 const actor = pool.find((c) => c.id === part.id);
                 if (!actor) return null;
                 const r = part.result;
-                const lab = libelleDOppositionDeSort(pcs);
-                // Test OPPOSÉ : la cible oppose son Test à Difficulté Intermédiaire — ce que roule le
-                // résolveur `castOpposition` (LDB 12 l.166).
-                const [oppLine] = opposedLines([{ label: lab, base: testValue(actor, pcs.skill, pcs.char), r: r?.oppose }]);
+                // LDB 12 l.166.
+                const [oppLine] = opposedLines([{ label: libelleDOppositionDeSort(pcs), base: part.ligne.base, mods: part.ligne.mods, target: part.ligne.target, r: r?.oppose }]);
                 const row = r
                   ? { combatant: actor, d: oppLine.d }
                   : { combatant: actor, pending: oppLine.pending };
@@ -494,16 +491,13 @@ export function CastModal() {
                 const mods = soutienMod(counterspellSupportFor(st, csp, part.id));
                 const phase1 = counterspellDeclarePhase(csp);
                 const lance = counterspellRolls(st, csp, part);
-                // Contre-sort OPPOSÉ à l'incantation : Difficulté Intermédiaire — ce que roule
-                // `resolveCounterspell` (LDB 12 l.166 ; LDB 46 l.156).
+                // LDB 12 l.166 ; LDB 46 l.156.
                 const [counterLine] = opposedLines([{ label: libelleDeTest('langue-magick'), base: val, r: r?.counter, mods: mods ? [mods] : undefined }]);
                 const row = r
                   ? { combatant: actor, d: counterLine.d }
                   : { combatant: actor, pending: counterLine.pending };
                 const owned = influencesLocally(st, part.id) && !!part.interactive;
-                // Seule une rangée qui LANCE (solo, ou meneur du groupe) reçoit le jet : ni bouton, ni
-                // dé à fixer, ni Résilience pré-jet pour un soutien ou une rangée qui passe.
-                const onRoll = lance ? () => cspRoll(part.id) : null;
+                const onRoll = () => cspRoll(part.id);
                 const die = rowForcedDie(st, 'counterspell', { actor, rolled: !!r, interactive: owned, key: part.id, onRoll }, !!r);
                 // La rangée AFFICHE sa situation : en PHASE 1, une rangée d'un AUTRE siège encore
                 // vierge dit qu'on l'attend (la fenêtre entière est suspendue à elle — l'attente ne
@@ -516,17 +510,6 @@ export function CastModal() {
                     : part.declared === 'soutenu' && grp
                       ? (lance ? `mène le Test Soutenu (+${grp.bonus})` : `soutient ${grp.leader.label} (+10)`)
                       : undefined;
-                // AFFORDANCE = GARDE : les deux refus SILENCIEUX de `counterspellEngage` (phase de
-                // déclaration ouverte ; une AUTRE rangée a déjà dissipé) éteignent le CTA avec leur
-                // raison, lus par les MÊMES prédicats — jamais une seconde condition recopiée.
-                const dejaDissipee = csp.participants.find((p) => p.id !== part.id && p.result?.dispelled);
-                const dissipateur = dejaDissipee && pool.find((c) => c.id === dejaDissipee.id);
-                if (dejaDissipee && !dissipateur) throw new Error(`[contre-sort] le participant « ${dejaDissipee.id} » a dissipé hors des combattants de la fenêtre`);
-                const rollBlocked = phase1
-                  ? t('declaration.attenteFenetre')
-                  : dissipateur
-                    ? `Déjà dissipé par ${dissipateur.label}`
-                    : undefined;
                 /* Sous-ligne de la rangée (canal UNIQUE `note`) : la situation s'affiche là où le
                    contrôle de déclaration ne la porte pas déjà (rangée d'un autre siège, ou phase
                    close) ; l'issue suit le calendrier du SPECTATEUR (`castRevealed`, #990).
@@ -550,8 +533,8 @@ export function CastModal() {
                     fixedMark={die.fixedMark}
                     interactive={owned && part.declared !== 'pass'}
                     rollLabel={<><Icon id="action/defend" size="sm" /> Contre-sort</>}
-                    onRoll={onRoll ?? undefined}
-                    rollBlocked={rollBlocked}
+                    onRoll={onRoll}
+                    rollBlocked={refusDeRangee(st, 'counterspell', part.id)}
                     /* PHASE 1 : chaque rangée possédée déclare (contrer seul / s'unir / passer) ; s'unir
                        n'est offert qu'avec un partenaire de même Domaine. La dernière déclaration FIGE
                        la composition — le contrôle disparaît alors. */
@@ -575,7 +558,7 @@ export function CastModal() {
                     onReroll={() => cspReroll(part.id)}
                     onBonusSL={() => cspBonusSL(part.id)}
                     onDarkPact={() => cspDarkPact(part.id)}
-                    onForce={lance ? () => cspForce(part.id) : undefined}
+                    onForce={() => cspForce(part.id)}
                   />
                 );
               })}

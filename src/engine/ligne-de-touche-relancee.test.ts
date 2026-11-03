@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolveMelee, issueAuJet, hitLocationByShape, reverseRoll } from './combat';
+import { resolveMelee, issueAuJet, hitLocationByShape } from './combat';
+import { reverseRoll } from './tests';
 import { t } from '../i18n';
 import { locationLabel, type Combatant, type Weapon } from './types';
 import type { RNG } from './dice';

@@ -15,7 +15,7 @@
  */
 import { battleRng } from './battleRng';
 import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, ligneSansJet, type EchecSansJet } from '../engine/tests';
-import { rollLine } from './rollSeam';
+import { rollLine, type RollLineParts } from './rollSeam';
 import { testValue, partyBest, peutTenter, refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNavigation';
 import { navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestDR, hullNavalTraits } from '../engine/navalTraits';
@@ -27,12 +27,12 @@ import { inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
-import { findCrewRoleById } from '../data';
+import { findCrewRoleById, type CrewRoleData } from '../data';
 import { profilNavalDe, estNavire } from '../engine/coque';
 import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { RNG } from '../engine/dice';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Difficulty } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
 import type { Get, Set } from './flowTypes';
 import type { PlayerText } from '../i18n/playerText';
@@ -54,11 +54,25 @@ export function rollCrewRole(crew: Combatant, roleId: string, navigation: RefDes
   if (!role) return null;
   const rv = crewRoleValue(crew, role, navigation, sense);
   if (rv.refus != null) return ligneSansJet(rv.refus);
-  // Cumul de 2 rôles (un marin déjà engagé dans un autre Test d'équipage ce Round) → +2 crans de Difficulté
-  // (Manque de bras, MDG 14 l.53).
   const surCible = crewRoleTestMods(crew, role, navigation, sense).reduce((s, m) => s + m.value, 0);
-  const t = rollTest(rv.value, cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire', rng, surCible);
+  const t = rollTest(rv.value, difficulteDuRole(cumul), rng, surCible);
   return { result: { roll: t.roll, target: t.target, sl: t.sl + (t.success ? crewTalentDR(crew, role, navigation) : 0) } };
+}
+
+/** Difficulté du Test d'un rôle ; `cumul` : marin engagé dans un autre Test d'équipage ce Round — MDG 14 l.53. */
+function difficulteDuRole(cumul: boolean): Difficulty {
+  return cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire';
+}
+
+function ligneDuRoleTentable(crew: Combatant, role: CrewRoleData, valeur: number, navigation: RefDesignee, cumul: boolean, sense?: PairedSense): RollLineParts {
+  return rollLine({ actor: crew, difficulty: difficulteDuRole(cumul), valeur, surLaCible: crewRoleTestMods(crew, role, navigation, sense) });
+}
+
+/** Ligne du Test d'UN contributeur à son rôle (`rollLine`, même valeur, Difficulté et modificateurs que
+ *  `rollCrewRole`), ou son refus nommé quand le rôle n'est pas tentable (LDB 09 l.30) — MDG 14 l.53. */
+export function ligneDuRole(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, cumul = false, sense?: PairedSense): { ligne: RollLineParts } | { refus: PlayerText } {
+  const rv = crewRoleValue(crew, role, navigation, sense);
+  return rv.refus != null ? { refus: rv.refus } : { ligne: ligneDuRoleTentable(crew, role, rv.value, navigation, cumul, sense) };
 }
 
 /** Résilience « Je ne faillirai pas ! » pour UN contributeur (PJ) : DR MAXIMAL à son rôle (LDB 17 l.68). PUR. */
@@ -75,10 +89,7 @@ export function forceCrewRole(crew: Combatant, roleId: string, navigation: RefDe
   // au jumeau qui roule (`rollCrewRole`, ci-dessus). Effet MESURÉ aux bornes seulement : une valeur
   // de rôle à 110 forçait un DR 11 et rend désormais DR 9 (cible 99). Alignement VOULU : les deux
   // voies d'un même Test — roulé et forcé par Résilience — ne peuvent pas jetter sur deux cibles.
-  const target = rollLine({
-    actor: crew, difficulty: cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire',
-    valeur: rv.value, surLaCible: crewRoleTestMods(crew, role, navigation, sense),
-  }).target;
+  const target = ligneDuRoleTentable(crew, role, rv.value, navigation, cumul, sense).target;
   const die = bestForcedRoll(target);
   return { roll: die, target, sl: evaluateTest(die, target).sl + crewTalentDR(crew, role, navigation) };
 }

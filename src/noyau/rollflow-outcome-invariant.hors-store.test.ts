@@ -159,7 +159,7 @@ const FIXTURES: Record<string, Fix> = {
   opposition: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingCast: { casterId: 'B', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: true, roll: 20, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
-    pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
+    pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
   }) },
   cascade: { pid: 'st1', make: (win) => ({
     battle: arena(),

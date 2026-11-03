@@ -103,7 +103,7 @@ export function FallModal() {
           : part.attempt === false ? {} : { pending: testPending(competence, base, undefined, p.test.difficulty, mods) }),
         note,
       },
-      ...(part.attempt === true ? { onRoll: () => roll(part.id) } : {}),
+      onRoll: () => roll(part.id),
       rerolled: !!part.rerolled,
       onReroll: () => reroll(part.id),
       onBonusSL: () => bonusSL(part.id),
@@ -112,7 +112,6 @@ export function FallModal() {
     }, {
       key: part.id,
       interactive: owned && part.attempt !== false,
-      ...(part.attempt === true && phase === 'choice' ? { rollBlocked: t('declaration.attenteFenetre') } : {}),
       ...(owned && part.attempt === null
         ? {
           declare: {

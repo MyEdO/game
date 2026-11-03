@@ -550,7 +550,13 @@ export function roulerDeEtape(target: number, rng: RNG, evaluation?: StepEvaluat
  *  TOUTES les rangées de l'étape (LDB 13 l.77) — c'est le producteur qui l'a jetée, une seule fois. */
 export function rollBatchParticipant(p: BatchParticipant, rng: RNG, opposed?: OpposedRowFreeze, evaluation?: StepEvaluation): CascadeRoll {
   if (evaluation === 'seuil') return lireDeEtape(d100(rng), p.target, evaluation);
-  const t = rollTest(p.target, 'intermediaire', rng);
+  return evaluerRangeeBatch(p, rollTest(p.target, 'intermediaire', rng), opposed);
+}
+
+/** ÉVALUATION d'une rangée batch pour un Test naturel `t` (dé contre sa cible) — SOURCE UNIQUE du jet,
+ *  du dé choisi/fixé et de l'inversion : ré-opposition au jet figé, sinon `bonusSlOnSuccess` sur une
+ *  réussite. PUR. */
+export function evaluerRangeeBatch(p: BatchParticipant, t: TestResult, opposed?: OpposedRowFreeze): CascadeRoll {
   if (opposed) return opposedCascadeRoll(t, opposed, p.target, p.base);
   return { roll: t.roll, target: t.target, sl: t.sl + (t.success ? (p.bonusSlOnSuccess ?? 0) : 0), success: t.success };
 }

@@ -118,7 +118,7 @@ export function stepsWithoutStake(src: string): number[] {
   //    LANCE (marque `BuiltCascadeStep`, lint de forge mesuré par `built-brand-lint`) —
   //    `tableStep`/`tableStepDone`, dont `TableSpec.stake` est REQUIS (`rollSeam.ts`). La 3ᵉ fabrique
   //    exemptée du lint, `revealToStep`, n'en produit aucune : son `opts.table` est une déclaration
-  //    RÉSOLUE au type (`CascadeTableDone`, `revealStep.ts`), mesuré par `reveal.test.ts`
+  //    RÉSOLUE au type (`CascadeTableDone`, `revealStep.ts`), mesuré par `reveal.hors-store.test.ts`
   //    (« `revealToStep` ne produit jamais un tirage À FAIRE »).
   for (const m of s.matchAll(RX_TARGET)) {
     const i = siteDe(m);

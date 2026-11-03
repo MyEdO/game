@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { SLOTS } from '../../palette.types';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
@@ -65,6 +65,21 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
   site.exclude = refuse('exclude');
   return noeud;
 }
+
+/** Contexte de Test d'une source d'inversion (`ContexteDeTest`, LDB 12 l.42). */
+export const contexteDeTestSchema = enumNomme({
+  psych: 'pour résister à un Trait Psychologique',
+  perilDesEaux: 'pour traverser des eaux dangereuses',
+  bandages: 'avec des Bandages',
+  amateurDArt: 'face à un amateur d’art',
+  amateurDeTheatre: 'face à un amateur de théâtre',
+} satisfies Record<ContexteDeTest, string>);
+
+/** Contrepartie d'un Test de Sociabilité déclarée par une fiche de PNJ (`Amateur`, ACE 12 l.60-62). */
+export const amateurSchema = enumNomme({
+  amateurDArt: 'amateur d’art',
+  amateurDeTheatre: 'amateur de théâtre',
+} satisfies Record<Amateur, string>);
 
 /**
  * Nature d'une Mutation (`Mutation.kind`, `src/engine/corruption.ts`) — UNE déclaration pour les trois
@@ -477,7 +492,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     focusNoMiscastOnDouble: z.boolean().optional(),
     castNoMiscastOnDouble: z.boolean().optional(),
     causesFear: z.boolean().optional(),
-    reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" } }).optional(),
+    reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional(), contexte: contexteDeTestSchema.optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" }, contexte: { label: "contexte du Test" } }).optional(),
     bargainBonus: z.boolean().optional(),
     encumbranceBonus: z.boolean().optional(),
     corruptionThreshold: z.boolean().optional(),

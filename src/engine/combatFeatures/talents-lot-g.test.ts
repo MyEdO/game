@@ -133,10 +133,11 @@ describe('tests hors combat (LDB 10)', () => {
     expect(talentTestSLBonus(c, { skill: 'intimidation' })).toBe(2);
     expect(talentTestSLBonus(c, { skill: 'charme' })).toBe(0);
   });
-  it('talents d’inversion : Sociable (Ragot), Pansement de fortune (Guérison, plafond +1 DR)', () => {
+  it('talents d’inversion : Sociable (Ragot), Pansement de fortune (Guérison avec des Bandages, plafond +1 DR — LDB 10 l.899)', () => {
     const c = mk([{ name: 'Sociable', times: 1 }, { name: 'Pansement de fortune', times: 1 }]);
     expect(talentReverseFailed(c, { skill: 'ragot' })).toEqual({ capDR: undefined });
-    expect(talentReverseFailed(c, { skill: 'guerison' })).toEqual({ capDR: 1 });
+    expect(talentReverseFailed(c, { skill: 'guerison', contexte: 'bandages' })).toEqual({ capDR: 1 });
+    expect(talentReverseFailed(c, { skill: 'guerison' })).toBeNull();
     expect(talentReverseFailed(c, { skill: 'charme' })).toBeNull();
   });
   it('Ambidextre toujours fonctionnel après la refonte (régression)', () => {

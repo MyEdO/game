@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import type { PlayerText } from '../i18n/playerText';
-import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourIA } from './etat';
+import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, RevealEntry } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
@@ -20,61 +20,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import {
-  resolveMelee,
-  resolveRanged,
-  bestRangedDefense,
-  rangedDefenseModes,
-  rollRangedAttacker,
-  combatValue,
-  hasWeaponGroupSkill,
-  weaponGroupSkillMode,
-  attackModifiers,
-  rollMeleeAttacker,
-  rollDisengageAttack,
-  rollGrappleForce,
-  assertAttackWeapon,
-  hitLocationByShape,
-  locationLabel,
-  reverseRoll,
-  lancerDeLaSecondeMain,
-  woundsFromHit,
-  compteDuCoup,
-  apresDeviations,
-  localisationRelanceeDe,
-  sansLeCoupCritiqueIgnore,
-  type CompteDuCoup,
-  toucheAuJetPose,
-  rangeBandModifier,
-  rangeBandName,
-  belowMinRangeBand,
-  resolveStrayRangedHit,
-  resolveMeleePassive,
-  toucheDuTestDeDefense,
-  armeDeMainPrincipale,
-  coupAApplique,
-  finishMelee,
-  rollMeleeDefender,
-  AttackResult,
-  ModLine,
-  outnumberMod,
-  crowdMod,
-  defenseTargetMods,
-  composeAttack,
-  frozenDifficulty,
-  type DifficultyShown,
-  defenseValue,
-  DEFENSE_LABEL,
-  attackHandGate,
-  conditionModLines,
-  canFireWhileEngaged,
-  ligneDuCoup,
-  freeAttackWeapon,
-  defaultParryWeapon,
-  advantageModLine,
-  toucheAvecPrise,
-  toucheNonIgnoree,
-} from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -93,7 +39,7 @@ import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReac
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain, isColdBlooded,
+  isSkittishMount, immuneToSpellDomain,
 } from '../engine/traits/dispatch';
 import {
   isMagicMissile,
@@ -154,9 +100,9 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
+import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
@@ -214,7 +160,7 @@ import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollaps
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
@@ -225,7 +171,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, coldBloodedAdjust, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -277,10 +223,11 @@ import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './c
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue } from './combatManeuvers';
+import { bestDefenseMode, hasFreeWeaponAttack, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
+import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, type TableStepDef, type CascadeApplier } from './cascade';
+import { inversionDeTalent } from '../engine/reverseToken';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -1009,15 +956,6 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
   return { difficulty: p.difficulty, ...(p.difficultyCombined != null ? { difficultyCombined: p.difficultyCombined } : {}) };
 }
 
-/** Lignes d'ESQUIVE que le contexte impose au défenseur — SOURCE UNIQUE du jet résolu (`attackAt`
- *  → `resolveMelee({ dodgeMods })`), de la défense réactive et du pré-jet (`previewDefense`) : météo de
- *  la scène (neige épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`), chacune sa ligne. Un
- *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
-export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
-  const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
-  const weather: ModLine[] = sc?.esquive ? [sc.esquive] : [];
-  return [...weather, ...mountedDodgeMods(defender)];
-}
 /** Ligne ADVERSE du panneau de jet pré-rempli (modale d'attaque) : ce que le joueur est en droit
  *  de savoir de la défense à venir — la compétence probable (« Parade » / « Esquive ») et ses
  *  bonus/malus visibles (Avantage, États, Sur la défensive…), SANS la valeur de compétence ni
@@ -3986,7 +3924,9 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
   // Gratuites `onHit` du coup principal (LDB 10 l.72), sur la touche RÉELLE : après la restitution, sauf chaîne
   // ouverte (`portee`), qui la garde jusqu'à sa fermeture.
-  return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
+  if (!suite?.gratuitesALaTouche || !touche.hit) return false;
+  resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
+  return defenseEnCours(get());
 }
 
 // ---------------------------------------------------------------------------
@@ -4093,28 +4033,30 @@ export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant,
  *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choice`/`test`
  *  cadence-aware, `do`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
  *  (`ciblesDeLEffet`). `ctx` = le contexte de l'événement (arme de la touche, type d'attaque). Vaut héros
- *  ET IA. LDB 10 l.500. */
+ *  ET IA. Rend le nombre de Flows joués ; la file s'arrête à la première défense ouverte. LDB 10 l.500. */
 export function resolveFreeAttacks(
   get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger, victim: Combatant | undefined,
   ctx: Pick<TriggerCtx, 'weapon' | 'attackType' | 'conditionName' | 'origine'> = {},
-): boolean {
-  if (!victim) return false;
+): number {
+  if (!victim) return 0;
+  let joues = 0;
   for (const src of freeAttackSourcesOf(actor, ctx.weapon)) {
     for (const eff of src.effects) {
       if (!flowHasFreeAttack(eff.flow)) continue;
       for (const t of ciblesDeLEffet(get, actor, eff, trigger, { ...ctx, victim })) {
-        if (defenseEnCours(get())) return true; // #1858
+        if (defenseEnCours(get())) return joues; // #1858
         // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
         // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
         runCombatFlow(
           { get, set, target: t, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
           flowOffert(eff),
         );
-        if (defenseEnCours(get())) return true; // #1858
+        joues++;
+        if (defenseEnCours(get())) return joues; // #1858
       }
     }
   }
-  return false;
+  return joues;
 }
 
 // ---------------------------------------------------------------------------
@@ -4306,11 +4248,9 @@ function aiBattement(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
 function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): boolean {
   const battle = get().battle;
   if (!battle) return false;
-  // Athlétisme du mover / Calme du foe : ces valeurs SONT nues (carac effective + avances, LDB 09 l.17)
-  // — elles se posent telles quelles en grandeur de départage (LDB 12 l.160).
-  const atkValue = distraireAttackValue(enemy), defValue = distraireDefenseValue(foe);
-  const atk = { ...rollSansPilote(get, enemy, atkValue, 'intermediaire', battleRng()), base: atkValue };
-  const def = { ...rollTest(defValue, 'intermediaire', battleRng()), base: defValue };
+  // LDB 10 l.364 ; départage LDB 12 l.160.
+  const atk = { ...rollSansPilote(get, enemy, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
+  const def = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
   const line = resolveDistraire(enemy, foe, atk, def);
   set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -5068,13 +5008,14 @@ export function shareCastStep(get: Get, set: SetFn, playedIds: string[], casterI
 export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, targets: Combatant[]): boolean {
   const spell = effectiveSpellOf(pc);
   const opposed = spell?.opposed;
-  if (!opposed) return false;
+  if (!spell || !opposed) return false;
+  const test = testDOppositionDeSort(spell.id, opposed);
   const participants = targets
     .filter((t) => !isOutOfAction(t))
-    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), result: null }));
+    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), ligne: rollLine({ actor: t, test: idsDuTest(test), difficulty: 'intermediaire' }), result: null }));
   if (!participants.length) return false;
   // `menace: 'magie'` : le Test opposé « résiste au Sort » → Résistance (Menace : Magie) offerte (LDB 10).
-  set({ pendingCastOpposition: { participants, kind: opposed.kind, skill: opposed.skill?.id, char: opposed.char, menace: 'magie' } });
+  set({ pendingCastOpposition: { participants, test, menace: 'magie' } });
   // Une rangée d'opposition INTERACTIVE tenue par un autre acteur joué que le lanceur → l'étape `cast`
   // devient de GROUPE (calque `disengage`/`forceDoor`) : sans cela l'owner de l'étape reste le lanceur,
   // la cible ne voit JAMAIS la fenêtre où se tient son Test et le sort s'appliquerait sans opposition.
@@ -5082,6 +5023,13 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
   // Cibles IA (témoin) : jet auto-roulé immédiatement (révélé dans la modale, jamais caché).
   for (const p of participants) if (!p.interactive) get().oppositionRoll(p.id);
   return true;
+}
+
+/** Le Test que la cible oppose au Sort (`SpellData.opposed`) : `contact` → Corps à corps (Bagarre), `resist` → la
+ *  Compétence déclarée, sinon la Caractéristique. */
+function testDOppositionDeSort(spellId: string, opposed: NonNullable<SpellData['opposed']>): TestDesigne {
+  if (opposed.kind === 'contact') return { skill: { id: 'corps-a-corps', spec: 'bagarre' } };
+  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.char, spellId, 'opposition de sort') };
 }
 
 /** Cibles SUPPLÉMENTAIRES d'une incantation figée (Surincantation, LDB 47 l.28-31) ; ZdE : toutes les
@@ -7158,11 +7106,12 @@ function effacerLesTelegraphes(get: Get, set: SetFn, auteurId: string): void {
 
 /** Reprend le tour de l'IA suspendu par une fenêtre (défense, incantation, Destin…) : il FINIT (« avancer »), sauf
  *  si un geste de ce tour attend encore — alors `maybeRunEnemyTurn`, seul point de reprise, le réarme s'il est
- *  parqué. No-op si le combat est terminé. */
+ *  parqué. Le tour d'un acteur que l'IA ne pilote pas ne finit jamais ici : il reste au joueur. No-op si le combat
+ *  est terminé. */
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
   if (combatAdvanceBlocked(get())) return;
   const active = activeCombatant(get().battle!);
-  if (!active || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
+  if (!active || !aiDriven(get(), active) || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
@@ -7174,7 +7123,7 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   if (combatAdvanceBlocked(s, { cast: false })) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
-  if (!active || !aiDriven(s, active)) return;
+  if (!active || reprendreLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;
   // L'acteur IA actif est MORT pendant la conséquence suspendue (ex. critique défensif du héros — un
   // démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé : AVANCER au
   // combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
@@ -7403,26 +7352,49 @@ export function enterRoundStartPause(get: Get, set: SetFn): void {
 }
 
 /** IA : si le combattant actif est PILOTÉ par l'IA (ennemi, ou héros en Auto-combat possédé localement),
- *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour d'IA (#1852, #3058) : rappelé par
- *  tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il ne décide qu'un
- *  tour non décidé, et ne réarme d'un tour décidé que sa suite PARQUÉE. */
+ *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour en cours (#1852, #3058, #3059) :
+ *  rappelé par tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il
+ *  réarme la frappe pilotée PARQUÉE du joueur, ne décide qu'un tour que l'IA n'a pas décidé, et ne réarme d'un tour
+ *  décidé que sa suite PARQUÉE. */
 export function maybeRunEnemyTurn(get: Get, set: SetFn) {
+  // Seul l'hôte rejoue le tour (suite ou décision d'IA) ; l'invité n'applique que l'instantané.
+  if (get().net.mode === 'guest') return;
   if (combatAdvanceBlocked(get(), { roundStart: true })) return;
   const battle = get().battle!;
   const active = activeCombatant(battle);
-  if (!active || !aiDriven(get(), active) || isOutOfAction(active)) return;
-  const tour = battle.tourIA;
-  if (tour?.cle === cleDeTour(battle, active.id)) {
+  if (!active) return;
+  if (reprendreLaFrappePilotee(get, set, battle, active)) return;
+  if (!aiDriven(get(), active)) return;
+  // L'acteur que l'IA pilote est hors de combat : son tour est fini (comme `resumeSuspendedAI`).
+  if (isOutOfAction(active)) { advanceTurn(get, set); return; }
+  const tour = tourEnCoursDe(battle, active.id);
+  if (tour?.decide) {
     if (tour.parquee && tour.suite) reprendreLaSuite(get, set, active, tour);
     return;
   }
   programmer(() => runEnemyAI(get, set, active.id), beatHold(get, 'turnHandoff'));
 }
 
+/** Le tour en cours de `id` s'il est celui du tour courant, sinon `undefined` (enregistrement périmé ou absent). */
+function tourEnCoursDe(battle: BattleState, id: string): TourEnCours | undefined {
+  const tour = battle.tourEnCours;
+  return tour?.cle === cleDeTour(battle, id) ? tour : undefined;
+}
+
+/** Réarme la frappe pilotée PARQUÉE du tour de `acteur`, s'il en a une (`true`). Testé avant tout prédicat de
+ *  pilotage : la frappe du joueur n'est pas un geste de l'IA (hôte seul : `maybeRunEnemyTurn`). */
+function reprendreLaFrappePilotee(get: Get, set: SetFn, battle: BattleState, acteur: Combatant): boolean {
+  const tour = tourEnCoursDe(battle, acteur.id);
+  if (!tour?.parquee || tour.suite?.geste.kind !== 'frappePilotee') return false;
+  reprendreLaSuite(get, set, acteur, tour);
+  return true;
+}
+
 /** Chaque genre de geste différé : `tenue` de sa reprise parquée ; `decideParLIA` — un geste que l'IA a décidé, qui ne
  *  part que si elle tient toujours le siège ; `consomme` — le budget du tour qu'il dépense, caduc si ce budget a été
  *  dépensé depuis la décision (« avancer » à la place, `budgetCaduc`). */
 const GENRES_DE_GESTE: Record<GesteDeSuite['kind'], { tenue: keyof typeof TEMPO; decideParLIA: boolean; consomme?: 'action' | 'mouvement' }> = {
+  frappePilotee: { tenue: 'preAttack', decideParLIA: false },
   frappe: { tenue: 'preAttack', decideParLIA: true, consomme: 'action' },
   sort: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
   zone: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
@@ -7440,28 +7412,31 @@ function budgetCaduc(battle: BattleState, acteur: Combatant, geste: GesteDeSuite
   }
 }
 
-/** Réarme la suite parquée de `tour` ; un geste dont le budget est déjà dépensé devient « avancer ». */
-function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourIA): void {
+/** Réarme la suite parquée de `tour` ; un geste de l'IA dont le budget est déjà dépensé devient « avancer ». */
+function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourEnCours): void {
   let geste = tour.suite!.geste;
-  if (budgetCaduc(get().battle!, acteur, geste)) {
+  if (GENRES_DE_GESTE[geste.kind].decideParLIA && budgetCaduc(get().battle!, acteur, geste)) {
     tour.suite = undefined;
     geste = { kind: 'avancer' };
   }
   armerLaSuite(get, set, acteur, geste, beatHold(get, GENRES_DE_GESTE[geste.kind].tenue));
 }
 
-/** SEUL armeur d'un geste différé d'un tour d'IA (#3058) : écrit la suite sous la clé du tour courant, numérotée par
- *  son armement, pose le réticule d'une frappe, et la joue après `delai` (sur-le-champ à 0). Un « avancer » n'écrase
- *  jamais un autre geste en attente : il est refusé (`false`), sans rien écrire ni programmer. Le geste de l'IA d'un
- *  acteur hors de combat devient « avancer ». */
-function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
+/** SEUL armeur d'un geste différé du tour en cours (#3058, #3059), de l'IA ou du joueur : écrit la suite sous la clé
+ *  du tour courant, numérotée par son armement, pose le réticule d'une frappe d'IA, et la joue après `delai`
+ *  (sur-le-champ à 0). Seule autre écriture de la suite, sans minuteur : la `reprise` qu'une frappe pilotée remet
+ *  PARQUÉE dans `jouerLaSuite`, que `maybeRunEnemyTurn` réarme par ici. Un « avancer » n'écrase jamais un autre geste en attente : il est refusé (`false`), sans rien
+ *  écrire ni programmer. Le geste de l'IA d'un acteur hors de combat devient « avancer ». */
+export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
   const battle = get().battle;
   if (!battle) return false;
   // L'acteur hors de combat ne joue plus le geste de l'IA : son tour finit, sans télégraphe.
   if (GENRES_DE_GESTE[geste.kind].decideParLIA && isOutOfAction(acteur)) geste = { kind: 'avancer' };
   const cle = cleDeTour(battle, acteur.id);
-  const tour = battle.tourIA?.cle === cle ? battle.tourIA : (battle.tourIA = { cle, armements: 0 });
+  const tour = tourEnCoursDe(battle, acteur.id) ?? (battle.tourEnCours = { cle, armements: 0 });
   if (geste.kind === 'avancer' && tour.suite && tour.suite.geste.kind !== 'avancer') return false;
+  // La frappe du joueur devance un geste de l'IA en attente : il reprend derrière elle (`jouerLaSuite`).
+  if (geste.kind === 'frappePilotee' && tour.suite && tour.suite.geste.kind !== 'frappePilotee') geste = { ...geste, reprise: tour.suite.geste };
   const n = ++tour.armements;
   tour.suite = { geste, n };
   delete tour.parquee;
@@ -7478,13 +7453,16 @@ function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSui
   return true;
 }
 
-/** SEULE garde d'un geste différé (#3058) : il ne part que s'il est l'armement `n` de la suite du tour `cle`, tour
- *  courant ; une main tenue à l'échéance, ou un geste de l'IA dont elle n'a plus le siège, est PARQUÉ, et
+/** SEULE garde d'un geste différé (#3058, #3059) : il ne part que s'il est l'armement `n` de la suite du tour `cle`,
+ *  tour courant ; une main tenue à l'échéance, ou un geste de l'IA dont elle n'a plus le siège, est PARQUÉ, et
  *  `maybeRunEnemyTurn` le réarmera. Consommé AVANT d'être exécuté : un geste part au plus une fois. Un geste de l'IA
- *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour. */
+ *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour ; une frappe
+ *  pilotée caduque (acteur hors de combat, cible morte ou absente, Action prise sans attaque gratuite qui reste)
+ *  s'abandonne, et le tour du joueur reste le sien. Une frappe pilotée qui devançait un geste de l'IA le remet en
+ *  suite PARQUÉE, numérotée, sans minuteur (`reprise`). */
 function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: number): void {
   const battle = get().battle;
-  const tour = battle?.tourIA;
+  const tour = battle?.tourEnCours;
   const acteur = battle ? inBattleId(battle, acteurId) : undefined;
   if (!battle || battle.over || !acteur || !tour || tour.cle !== cle || cle !== cleDeTour(battle, acteurId) || tour.suite?.n !== n) {
     // Périmé : ses télégraphes s'effacent, sauf si l'acteur a une suite plus récente qui les porte.
@@ -7504,6 +7482,16 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
     return;
   }
   switch (geste.kind) {
+    case 'frappePilotee': {
+      if (geste.reprise) {
+        tour.suite = { geste: geste.reprise, n: ++tour.armements };
+        tour.parquee = true;
+      }
+      const cible = inBattleId(battle, geste.pa.targetId);
+      if (isOutOfAction(acteur) || !cible || cible.dead || (battle.acted && !geste.pa.freeKind && !hasFreeWeaponAttack(acteur))) return; // LDB 21 l.33
+      openAttackCascade(get, set, geste.pa, 'Attaque', 'action/attack');
+      return;
+    }
     case 'avancer':
       advanceTurn(get, set);
       return;
@@ -7601,30 +7589,37 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
-  // LDB 15 l.35-37 ; LDB 16 l.35
-  if (mv.charge) {
-    const adv = chargeAdvantage(effectiveMovement(geom), mv.distAvant);
-    if (adv) {
-      campGain(get, enemy, adv);
-      enemy.gainedAdvThisRound = true;
-      enemy.chargeAvecAvantage = true; // LDB 85 l.83
-    }
-    enemy.chargedThisTurn = true; // LDB 15 l.35
-    subirLaCharge(get, set, tgt, enemy);
-  }
+  if (mv.charge) declarerLaCharge(get, set, enemy, tgt, chargeAdvantage(effectiveMovement(geom), mv.distAvant)); // LDB 16 l.35
   armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: tgt.id }, Math.max(TEMPO.preAttack, approachMs(get, path)));
 }
 
-/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
- *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500). */
-export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): void {
-  const lignes: string[] = [];
-  emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
-  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
-  resolveFreeAttacks(get, set, charge, 'onCharged', chargeur);
+/** `chargeur` Charge `cible`, `adv` = l'Avantage de sa course (`chargeAdvantage`) : SOURCE UNIQUE de la déclaration
+ *  d'une Charge, de l'IA comme du joueur, après le placement et avant la frappe. Rend `true` si la cible a répondu
+ *  (`subirLaCharge`). LDB 15 l.35-37 ; LDB 85 l.83 ; LDB 62 l.319 */
+export function declarerLaCharge(get: Get, set: SetFn, chargeur: Combatant, cible: Combatant, adv: number): boolean {
+  if (adv) {
+    campGain(get, chargeur, adv);
+    chargeur.gainedAdvThisRound = true;
+    chargeur.chargeAvecAvantage = true;
+  }
+  chargeur.chargedThisTurn = true;
+  const b = get().battle!;
+  const ligne = tr('cs.charge', { name: chargeur.label, target: cible.label, adv: adv ? tr('cs.fragChargeAdv', { adv }) : '' });
+  set({ battle: { ...b, log: [...b.log, ev('charge', ligne, chargeur.id, cible.id)] } });
+  return subirLaCharge(get, set, cible, chargeur);
 }
 
-/** CLÉ d'un tour d'IA : CE combattant, à CE tour de CE Round — l'unité que `battle.tourIA` décide une fois. */
+/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
+ *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500).
+ *  Rend `true` si au moins un effet ou une attaque gratuite a été exercé. */
+export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): boolean {
+  const lignes: string[] = [];
+  const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
+  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
+  return effets + resolveFreeAttacks(get, set, charge, 'onCharged', chargeur) > 0;
+}
+
+/** CLÉ d'un tour : CE combattant, à CE tour de CE Round — l'unité de `battle.tourEnCours`, que l'IA décide une fois. */
 function cleDeTour(battle: BattleState, id: string): string {
   return `${battle.round}:${battle.turn}:${id}`;
 }
@@ -7889,6 +7884,7 @@ const combatPsychBands = makeBandFactory<CombatPsychDue>({
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'combatPsych', icon, label,
     combatPsych: d,
+    contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     // L'enjeu descend à l'AFFLICTION affrontée : ses conséquences lui sont propres (`psychResolution`
     // lit `failCondition`/`failAmount`/`becomes` de SON entrée), donc son texte vit sur SON entrée.
     stake: combatStakeRef('combatPsych', { entryId: d.kind, values: { indice: d.indice } }),
@@ -7921,11 +7917,16 @@ function passeDePsy(get: Get, set: SetFn, collect: (get: Get, c: Combatant, roun
   return surfacees;
 }
 
-/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes.
- *  À sang-froid ne vaut que sur ce jet sans pilote : LDB 85 l.13 ; #3045 */
+/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes :
+ *  la voie Talent de l'inversion (À sang-froid compris) s'y prend d'office, celle qu'une rangée pilotée
+ *  offre au clic. LDB 85 l.13 ; #3045 */
 function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDecl, row: BatchParticipant): void {
   const jet = garanti(row.result, c.id, 'rangée de Psychologie jetée');
-  const r = estJete(jet) ? coldBloodedAdjust(jet, isColdBlooded(c.traits)) : jet;
+  const inv = estJete(jet)
+    ? inversionDeTalent(c, { skill: row.skillId, spec: row.spec, contexte: 'psych' }, jet.roll, jet.target,
+      (tr) => evaluerRangeeBatch(row, hydrateTR({ ...tr, target: row.target, base: row.base })))
+    : null;
+  const r = inv ? { ...jet, ...inv } : jet;
   journaliserPsy(get, set, c, resultLines(resolveCombatPsychRow(get, set, c, decl, psychRowMeta(row), r, false)).map((l) => l.text));
 }
 
@@ -8174,9 +8175,10 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Le refus est SILENCIEUX : c'est un appel qui arrive trop tard (ou deux fois).
   if (activeCombatant(battle)?.id !== enemyId) return;
   if (combatAdvanceBlocked(get())) return;
-  const cleTour = cleDeTour(battle, enemyId);
-  if (battle.tourIA?.cle === cleTour) return;
-  battle.tourIA = { cle: cleTour, armements: 0 };
+  const tour = tourEnCoursDe(battle, enemyId);
+  if (tour?.decide) return;
+  if (tour) tour.decide = true;
+  else battle.tourEnCours = { cle: cleDeTour(battle, enemyId), decide: true, armements: 0 };
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);
@@ -8374,7 +8376,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       else setReloadProgress(enemy, rw, progress);
       // ISSUE dérivée par le MÊME goulot que le flux joueur (`FLOWS.reload.apply`, canal COMBAT) : la voie
       // IA n'ouvre aucune fenêtre, elle FOURNIT son pending — même déclaration, même ligne.
-      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', roll: test.roll, target: test.target, sl: test.sl, success: test.success };
+      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', ligne: rollLine({ actor: enemy, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: rw } }), roll: test.roll, target: test.target, sl: test.sl, success: test.success };
       const aiReloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
       set({ battle: { ...markActed(get, set), log: [...get().battle!.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);

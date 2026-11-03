@@ -1146,7 +1146,8 @@ function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
         <SkillChip skillId={s.id} show={s.spec ? skillInstanceLabel(s) : undefined} />
       </Fragment>
     ));
-    const { pending: pa, ligne, ligne2 } = test;
+    const { pending: pa, ligne2 } = test;
+    const { ligne } = pa;
     const second = ligne2 && pa.skill2 ? { label: pa.skill2, base: ligne2.base, target: ligne2.target, difficulty: ligne2.difficulty } : undefined;
     prejet = withStake(testPending(<>{chips}</>, ligne.base, cibleMesuree(ligne), ligne.difficulty, ligne.mods, undefined, second), def.id);
   }

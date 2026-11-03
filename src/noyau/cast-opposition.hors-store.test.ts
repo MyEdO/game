@@ -5,6 +5,8 @@ import { testScene } from '../scenes/test-fixture';
 import { ownsLocal, intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import { castingBaseValue } from '../engine/magic';
+import { addCondition, COND } from '../engine/conditions';
+import { libelleDOppositionDeSort } from './jetsEnVue';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -60,8 +62,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     banc.getState().castConfirm();
     const pco = banc.getState().pendingCastOpposition;
     expect(pco).toBeTruthy();
-    expect(pco!.kind).toBe('resist');
-    expect(pco!.char).toBe('force-mentale');
+    expect(pco!.test).toEqual({ char: 'force-mentale' });
     expect(banc.getState().pendingCast).toBeTruthy(); // l'incantation reste figée le temps de l'opposition
     const part = pco!.participants.find((p) => p.id === E.id)!;
     expect(part.interactive).toBe(false); // cible IA = rangée témoin
@@ -98,12 +99,27 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     expect(after.dead ?? false).toBe(false);
   });
 
+  it('LIGNE de la cible posée à l’ouverture : Force Mentale nue, Exténué nommé, cible = valeur roulée (LDB 12 l.166)', () => {
+    const { H, E } = setup();
+    E.characteristics['force-mentale'] = 40;
+    E.skills = [];
+    addCondition(E, COND.extenue);
+    frozenCast(H, E, 'fauche-demon', 6);
+    banc.getState().castConfirm();
+    const pco = banc.getState().pendingCastOpposition!;
+    const part = pco.participants.find((p) => p.id === E.id)!;
+    expect(libelleDOppositionDeSort(pco)).toBe('Force Mentale');
+    expect({ base: part.ligne.base, mods: part.ligne.mods.map((m) => [m.label, m.value]), cible: part.ligne.target })
+      .toEqual({ base: 40, mods: [['Exténué', -10]], cible: 30 });
+    expect(part.result!.oppose.target).toBe(30);
+  });
+
   it('paramétrage par Sort : Parole de Tzeentch oppose l’INTELLIGENCE (pas la FM)', () => {
     const { H, E } = setup();
     frozenCast(H, E, 'parole-de-tzeentch', 4);
     banc.getState().castConfirm();
     const pco = banc.getState().pendingCastOpposition!;
-    expect(pco.char).toBe('intelligence');
+    expect(pco.test).toEqual({ char: 'intelligence' });
   });
 
   it('IDEMPOTENCE : un second « Appliquer » ne RECONSTRUIT pas la fenêtre — les Tests déjà opposés tiennent', () => {

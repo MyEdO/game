@@ -42,12 +42,6 @@ export const REGLES = Object.freeze([
     preuve: 'src/state/scenarioFlow.ts:1-4 ; src/state/editorAutosave.ts:1-5 ; src/noyau/planDefects.ts:1-6 ; src/noyau/mapQC.ts:2 (« Harnais QC de cartes »)',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(documentDeProjet|parseProject-porte)\.test\.`),
-    categorie: 'outillage',
-    raison: 'Tests de la porte de projet de l\'éditeur.',
-    preuve: 'noms ; src/noyau/persistance/bibliotheque.ts (parseProject)',
-  },
-  {
     motif: new RegExp(String.raw`^src/gameIso/stage/(DebugOverlay|pickProbe)\.`),
     categorie: 'outillage',
     raison: 'Sonde et overlay de recette/debug (__wfrp.labels, sonde de picking sans clic), pas du jeu.',

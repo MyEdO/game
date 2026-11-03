@@ -17,7 +17,7 @@
  * normalement par le Bonus d'Endurance et les PA (p.238).
  */
 import type { RNG } from './dice';
-import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult } from './tests';
+import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult, reverseRoll } from './tests';
 import { getTestPolicy } from './testPolicy';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
@@ -25,7 +25,7 @@ import { traitCapability } from './traits/dispatch';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
-import { reverseRoll, hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
+import { hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import { valeurSansTirage } from './formule';
 import type { SpellRange, SpellTarget } from './spellRange';

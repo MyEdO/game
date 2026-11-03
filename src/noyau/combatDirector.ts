@@ -13,7 +13,6 @@ import type { Get } from './flowTypes';
 import { TEMPO } from './monde/tempo';
 import { walkMs } from '../geometry/walk';
 import { lastEventTone, type CombatTone } from './combatLog';
-import { programmer } from './plateforme';
 
 type Pt = { x: number; y: number };
 
@@ -27,22 +26,9 @@ export function beatHold(get: Get, base: keyof typeof TEMPO): number {
   return Math.round(TEMPO[base] * TONE_HOLD[tone]);
 }
 
-/**
- * Le beat « APPROCHE puis AGIS » — source UNIQUE de la durée « rejoindre la cible avant de résoudre » (`approachMs`) :
- * le clic d'attaque du HÉROS l'attend par `afterApproach` (`targetingModes.ts`), l'IA en tient sa frappe ou sa fin de
- * tour différée (`combatFlow.armerLaSuite`).
- */
-
-/** Durée (ms) du glissé d'approche : durée réelle de marche (`walkMs`) + un beat lisible (`afterMove`).
- *  0 si pas de déplacement (déjà au contact → résolution immédiate). */
+/** Le beat « APPROCHE puis AGIS » — source UNIQUE de la durée « rejoindre la cible avant de résoudre » : durée
+ *  réelle de marche (`walkMs`) + un beat lisible (`afterMove`), 0 sans déplacement (déjà au contact → résolution
+ *  immédiate). La frappe différée du joueur comme celle de l'IA s'y tient (`combatFlow.armerLaSuite`). */
 export function approachMs(get: Get, path: Pt[] | null | undefined): number {
   return path && path.length > 1 ? walkMs(path) + beatHold(get, 'afterMove') : 0;
-}
-
-/** Exécute `resolve()` APRÈS le glissé d'approche (cf. `approachMs`), ou immédiatement si pas de déplacement.
- *  On VOIT le héros rejoindre la cible AVANT la résolution (modale du joueur). */
-export function afterApproach(get: Get, path: Pt[] | null | undefined, resolve: () => void): void {
-  const ms = approachMs(get, path);
-  if (ms > 0) programmer(resolve, ms);
-  else resolve();
 }

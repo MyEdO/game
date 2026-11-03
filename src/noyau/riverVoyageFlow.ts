@@ -987,6 +987,7 @@ export const TABLES = {
             surLaCible: navPenaltyMods({ drift: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
           },
           stake: voyageStakeRef('riverPerilNav', { hits: onFail.hullHits, damagePerHit: onFail.damagePerHit }),
+          contexte: 'perilDesEaux', // Test d'évitement d'un péril de rivière : LDB 10 l.966
           meta: { perilId, savoir: Number(step.meta?.savoir ?? 0) },
         });
         return st ? { insert: [st] } : undefined;

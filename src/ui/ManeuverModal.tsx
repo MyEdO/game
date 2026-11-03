@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
-import { combatValue } from '../engine/combat';
 import { attaqueDeCle } from '../engine/creatureAttacks';
-import { MANEUVER_ICON, maneuverDefensePending } from '../noyau/combatManeuvers';
+import { MANEUVER_ICON, maneuverDefensePending, maneuverAttackerDifficulty, ligneDAttaquantDeManoeuvre } from '../noyau/combatManeuvers';
+import { cibleMesuree } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';
@@ -12,12 +12,10 @@ import { libelleDeManoeuvre } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 
 /**
- * Modale de MANŒUVRE de créature (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85 - Traits de
- * créature.md) qu'un héros active (mutation/polymorphie). La modale influence le SEUL jet de
- * l'ATTAQUANT (CC ou CT) ; « Appliquer » roule les défenseurs et résout l'opposition au feed — sauf
- * quand un défenseur SURFACÉ joue sa défense en cascade : « Passer à la Défense » (`maneuverDefensePending`).
- * Regard pétrifiant (l.238) : Avantage variable → un sélecteur
- * (pré-jet) fixe le DR ajouté. (Le Hurlement n'ouvre PAS de modale — pas de jet d'attaquant.)
+ * Modale de MANŒUVRE de créature (LDB 85) qu'un héros active (mutation/polymorphie) : elle influence
+ * le SEUL jet de l'ATTAQUANT (`ligneDAttaquantDeManoeuvre`) ; « Appliquer » résout l'opposition, ou
+ * « Passer à la Défense » quand un défenseur SURFACÉ joue sa défense en cascade
+ * (`maneuverDefensePending`). LDB 85 l.290 : sélecteur d'Avantage pré-jet.
  */
 export function ManeuverModal() {
   const pm = useGame((s) => s.pendingManeuver);
@@ -38,12 +36,10 @@ export function ManeuverModal() {
   if (!a) return null;
   const r = pm.result;
   const rolled = !!r;
-  // Jet d'attaquant : CC (mêlée) ou CT (distance/zone) ; Vomi → Facile (+40) à courte distance (l.376).
-  const stat = a.stat ?? 'capacite-de-tir';
-  const base = combatValue(attacker, stat === 'capacite-de-combat' ? 'melee' : 'ranged');
+  // LDB 85 l.445.
+  const ligne = ligneDAttaquantDeManoeuvre(attacker, a.stat ?? 'capacite-de-tir', maneuverAttackerDifficulty(pm.kind));
   const label = libelleDeManoeuvre(attacker, pm.attaque);
-  const difficulty = pm.kind === 'vomi' ? 'facile' : 'intermediaire'; // Vomi : +40 à courte distance (l.376)
-  // Regard (Avantage variable, l.238) : sélecteur PRÉ-JET 1..Avantage → +N DR sur la marge.
+  // LDB 85 l.290.
   const variable = a.advantageMode === 'variable';
   const avOptions: RollSegOption[] = variable
     ? Array.from({ length: Math.max(1, attacker.advantage) }, (_, i) => i + 1).map((n) => ({
@@ -55,8 +51,8 @@ export function ManeuverModal() {
     actor: attacker,
     row: {
       combatant: attacker,
-      d: r ? testBreakdown(label, base, { roll: r.roll, target: r.target, sl: r.sl, success: r.success }, difficulty) : undefined,
-      pending: testPending(label, base, undefined, difficulty),
+      d: r ? testBreakdown(label, ligne.base, { roll: r.roll, target: r.target, sl: r.sl, success: r.success }, ligne.difficulty, ligne.mods) : undefined,
+      pending: testPending(label, ligne.base, cibleMesuree(ligne), ligne.difficulty, ligne.mods),
     },
     onRoll: roll,
     rerolled: !!pm.rerolled,
@@ -64,9 +60,7 @@ export function ManeuverModal() {
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
     onForce: force,
-    // LDB 17 l.68 : réussite forcée = dé PAR DÉFAUT (DR max), et le joueur peut CHOISIR ce dé — le
-    // sélecteur est dérivé par la coquille (`RollShell` → `rowForcedDie`), sans code ici. Le dé ne
-    // nourrit que le DR de l'opposition (`resolveManeuver`) : aucun Coup Critique n'en dépend.
+    // LDB 17 l.68 : sélecteur du dé dérivé par la coquille (`RollShell` → `rowForcedDie`).
   });
 
   const actions: RollAction[] = [
@@ -84,7 +78,6 @@ export function ManeuverModal() {
           {variable ? <> ({pm.avantageSpent} Avantage)</> : a.avantage > 0 ? <> (coûte {a.avantage} Avantage)</> : null}
         </>
       }
-      /* Regard : choix de l'Avantage AVANT le jet (fixe le DR). Masqué une fois lancé. */
       setup={variable ? <OptionChooser layout="seg" groupLabel="Avantage" options={avOptions} /> : undefined}
       rows={[actorRow]}
       rolled={rolled}

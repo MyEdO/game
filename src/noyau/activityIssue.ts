@@ -19,7 +19,9 @@ import { freeCons, type Consequence } from './rollSeam';
  *   - Activité sans Test → `out.activityDone` ; spec FERMÉE sans Test → son refus nommé (#2588) ;
  *   - `onSuccess` → ops appliqués par `applyOps` ;
  *   - `failExtenue` → op `condition` Exténué, ligne dérivée par `opConsequenceLine` (EDOC 8 l.133) ;
- *   - issues individuelles (`countsAsRest`/`rerollToken`/`gatherInfo`) → notes narratives. */
+ *   - `reverseToken` → jeton d'inversion de la Compétence pratiquée (EDOC 8 l.172 ; décision de règle
+ *     2026-11-03, #3059) ;
+ *   - issues individuelles (`countsAsRest`/`gatherInfo`) → notes narratives. */
 export function appliquerIssueActivite(
   get: Get,
   hero: Combatant,
@@ -32,14 +34,17 @@ export function appliquerIssueActivite(
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
   else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
-  if (r.ops.length) cons.push(...freeCons(applyOps(hero, r.ops, opsCtx)));
+  const jetonDePratique: GameOp[] = r.success && r.stageOutcome === 'reverseToken' && spec.target != null && 'skill' in spec.test
+    ? [{ op: 'grantReverseToken', skill: spec.test.skill }]
+    : [];
+  const ops = [...r.ops, ...jetonDePratique];
+  if (ops.length) cons.push(...freeCons(applyOps(hero, ops, opsCtx)));
   if (r.extenue) {
     const extenue: GameOp = { op: 'condition', id: 'extenue', value: 1 };
     applyOps(hero, [extenue], opsCtx);
     cons.push({ ops: [extenue] });
   }
   if (r.success && r.stageOutcome === 'countsAsRest') cons.push(...freeCons([t('tp.countsAsRest', { name: hero.label })]));
-  else if (r.success && r.stageOutcome === 'rerollToken') cons.push(...freeCons([t('tp.practice', { name: hero.label })]));
   else if (r.success && r.stageOutcome === 'gatherInfo') cons.push(...freeCons([t('tp.gatherInfo', { name: hero.label })]));
   return { result: r, consequences: cons };
 }

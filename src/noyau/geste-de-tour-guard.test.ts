@@ -5,11 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { programmerHorsDesSites } from '../../scripts/guards/lib/gesteDeTour.mjs';
 
 /**
- * ARMEMENT UNIQUE d'un tour d'IA (#3058) : un geste différé d'un tour décidé part au plus une fois parce qu'il n'a
- * qu'un armeur, qui l'écrit sous la clé du tour et le numérote (`armerLaSuite`), et une seule garde
- * (`jouerLaSuite`). Un différé ajouté ailleurs dans le module du tour d'IA — `programmer(…)` sous quelque nom que ce
- * soit, `afterApproach(…)` qui l'enveloppe, ou le différeur passé en valeur — ré-ouvrirait le geste lié à aucune clé (frappe ou « avancer » joué sur
- * le tour suivant). Table FIXE de deux sites, zéro violation tolérée.
+ * ARMEMENT UNIQUE d'un tour en cours (#3058, #3059) : un geste différé du tour, de l'IA ou du joueur, part au plus une
+ * fois parce qu'il n'a qu'un armeur, qui l'écrit sous la clé du tour et le numérote (`armerLaSuite`), et une seule
+ * garde (`jouerLaSuite`). Un différé ajouté ailleurs dans le module du tour — `programmer(…)` sous quelque nom que ce
+ * soit, ou le différeur passé en valeur — ré-ouvrirait un geste lié à aucune clé (frappe ou « avancer » joué sur le
+ * tour suivant). Table FIXE de deux sites, zéro violation tolérée.
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -17,14 +17,14 @@ const MODULE = 'src/noyau/combatFlow.ts';
 
 /** Les SEULS sites de geste différé du module, chacun avec sa raison. */
 const SITES = new Map<string, { corpsAppelle?: string; raison: string }>([
-  ['armerLaSuite', { raison: 'seul armeur d’un geste différé d’un tour décidé : la suite écrite sous la clé du tour, numérotée' }],
+  ['armerLaSuite', { raison: 'seul armeur d’un geste différé du tour en cours : la suite écrite sous la clé du tour, numérotée' }],
   ['maybeRunEnemyTurn', { corpsAppelle: 'runEnemyAI', raison: 'seul point de reprise : programme la seule DÉCISION d’un tour non décidé (#1852)' }],
 ]);
 
 const texte = () => readFileSync(join(ROOT, MODULE), 'utf8');
 const hors = (t: string, sites: ReadonlyMap<string, { corpsAppelle?: string }> = SITES) => programmerHorsDesSites('src/noyau/fixture.ts', t, sites);
 
-describe('armement unique d’un tour d’IA (#3058)', () => {
+describe('armement unique d’un tour en cours (#3058, #3059)', () => {
   it('aucun geste différé du module hors des deux sites de la table', () => {
     const vus = programmerHorsDesSites(MODULE, texte(), SITES).map((h) => `${MODULE}:${h.line} ${h.appele} (${h.fonction ?? 'hors fonction'})`);
     expect(vus, `Geste différé programmé hors de \`armerLaSuite\` — l'armer par elle :\n${vus.join('\n')}`).toEqual([]);
@@ -40,7 +40,6 @@ describe('armement unique d’un tour d’IA (#3058)', () => {
     expect(hors("import { programmer as differer } from './plateforme';\nfunction runEnemyAI() { differer(() => advanceTurn(), 650); }"), 'alias d’import').toEqual([{ line: 2, fonction: 'runEnemyAI', appele: 'programmer' }]);
     expect(hors("import * as P from './plateforme';\nfunction runEnemyAI() { P.programmer(() => advanceTurn(), 650); }"), 'espace de noms').toEqual([{ line: 2, fonction: 'runEnemyAI', appele: 'programmer' }]);
     expect(hors('function runEnemyAI() { plateforme().programmer(() => advanceTurn(), 650); }'), 'accès de propriété').toEqual([{ line: 1, fonction: 'runEnemyAI', appele: 'programmer' }]);
-    expect(hors("import { afterApproach } from './combatDirector';\nfunction runEnemyAI() { afterApproach(get, path, () => advanceTurn(get, set)); }"), 'enveloppe `afterApproach`').toEqual([{ line: 2, fonction: 'runEnemyAI', appele: 'afterApproach' }]);
     expect(hors('const x = () => programmer(() => {}, 0);'), 'hors fonction').toEqual([{ line: 1, fonction: null, appele: 'programmer' }]);
     expect(hors('function maybeRunEnemyTurn() { programmer(() => advanceTurn(), 650); }'), 'site de décision : un autre geste').toEqual([{ line: 1, fonction: 'maybeRunEnemyTurn', appele: 'programmer' }]);
     expect(hors('function maybeRunEnemyTurn() { programmer(() => { runEnemyAI(get, set, id); advanceTurn(get, set); }, 650); }'), 'site de décision : la décision ET un autre geste').toEqual([{ line: 1, fonction: 'maybeRunEnemyTurn', appele: 'programmer' }]);

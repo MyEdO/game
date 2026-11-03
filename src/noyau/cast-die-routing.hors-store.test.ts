@@ -70,7 +70,7 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
   it('opposition : idem sur l’autre participant (le dé ne fuit pas vers le témoin)', () => {
     banc.setState({
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [
+      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [
         { id: 'A', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
         { id: 'B', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
       ] },

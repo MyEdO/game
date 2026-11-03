@@ -20,7 +20,8 @@ import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyB
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { partyBest, peutTenter } from '../engine/skills';
+import { partyBest, peutTenter, testValue } from '../engine/skills';
+import { rollLine, type RollLineParts } from './rollSeam';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
@@ -233,14 +234,33 @@ const SHANTY_LABEL = (label: string): string => t('crew.shantyLabel', { label })
  * nombre de minutes égal au DR » (l.38) → effets d'HORLOGE (`defaultUntilTime`). Pose l'identité de chant
  * sur le chanteur (interruption sur Dégâts, l.38) et consomme le QUART du navire (l.40). Renvoie le journal.
  */
+/** MDG 09 l.36. */
+const TEST_DE_CHANSON = { skill: 'divertissement', spec: 'chant' } as const;
+
+/** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
+export function valeurDeChanson(singer: Combatant): number {
+  return testValue(singer, TEST_DE_CHANSON.skill, undefined, TEST_DE_CHANSON.spec);
+}
+
+/** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */
+export function ligneDeChanson(singer: Combatant): RollLineParts {
+  return rollLine({ actor: singer, test: TEST_DE_CHANSON, difficulty: 'intermediaire' });
+}
+
+/** Durée en minutes de l'effet d'une Chanson de marin au DR `sl` — MDG 09 l.38. */
+export function dureeDeChanson(sl: number): number {
+  return 3 + Math.max(0, sl);
+}
+
 export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, shantyId: string, sl: number): string[] {
   const shanty = findSeaShantyById(shantyId);
   if (!shanty) return [];
   const label = SHANTY_LABEL(shanty.label);
-  const until = get().gameTime + 3 + Math.max(0, sl); // 3 min + DR (l.38)
+  const minutes = dureeDeChanson(sl);
+  const until = get().gameTime + minutes;
   const combatants = get().battle?.combatants ?? get().party;
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c));
-  const lines: string[] = [t('crew.shantyStart', { name: singer.label, shanty: shanty.label, min: 3 + Math.max(0, sl) })];
+  const lines: string[] = [t('crew.shantyStart', { name: singer.label, shanty: shanty.label, min: minutes })];
   for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
   if (shanty.captainOps?.length) {
     const roles = shipDefaultRoles(crew, 'manoeuvre', navigationDuNavire(get, ship));

@@ -97,7 +97,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     subtitle: vue.sousTitre,
     extra: <VsHeader actor={attacker} target={target} label={vue.enTete} />,
     rolled: vue.jete,
-    onCancel: cancel,
+    onCancel: vue.annulation ? undefined : cancel,
     /* Options d'attaque + aperçu de la défense adverse + bouton Détermination (retirer un État), pré-jet. */
     setup: (
       <>
@@ -183,7 +183,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     postRollExtra: vue.attente ? <p className="rm-note" data-ton="attente">{vue.attente}</p> : undefined,
     forcedExtra: vue.critiqueALocaliser ? <CritLocationPicker current={vue.critiqueALocaliser.choisie} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
-      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' } as RollAction,
+      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
       confirmerLeCoup(vue.defenseAttendue, confirm),
     ],
   };

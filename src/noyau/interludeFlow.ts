@@ -10,7 +10,7 @@ import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
+import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
 import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
@@ -309,6 +309,8 @@ export interface PendingActivityFields extends PendingBase {
   skillLabel: string;
   skillValue: number;
   difficulty: Difficulty;
+  /** Ligne du Test montée à l'ouverture (`rollLine` : pré-jet d'Activité, Test de bataille) — lue par la fenêtre. */
+  ligne: RollLineParts;
   roll: number | null;
   target: number;
   sl: number;
@@ -367,8 +369,9 @@ export interface PendingActivityFields extends PendingBase {
   /** Coût en sous de cuivre engagé par CETTE Activité (Réputation, LDB 23 l.228-234 : « le maximum de
    *  vos revenus standards », dépensé MÊME sur échec — calculé à l'ouverture, débité à la résolution). */
   costBrass?: number;
-  /** Compétence du Test retenue par le pré-jet (`preJetDActivite`) : l'Entraînement au Combat
-   *  (LDB 23 l.205-209) en SCOPE son jeton d'inversion, la modale en décompose la valeur. */
+  /** Compétence du Test retenue par le pré-jet (`preJetDActivite`) ou par l'ouverture d'un Test de
+   *  bataille : l'Entraînement au Combat (LDB 23 l.205-209) en SCOPE son jeton d'inversion, l'inversion
+   *  (LDB 12 l.42) la lit, la modale en décompose la valeur. */
   chosenSkill?: string;
   chosenSkillSpec?: string;
 }
@@ -527,7 +530,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   set({
     pendingActivity: {
       heroId, kind: 'catalog', activityId, label: def.label,
-      skillLabel: testSkillLabel(ids), skillValue: preJet.value,
+      skillLabel: testSkillLabel(ids), skillValue: preJet.value, ligne: preJet.ligne,
       roll: null, target: 0, sl: 0, success: false,
       ...ligneDeMod,
       ...competence,

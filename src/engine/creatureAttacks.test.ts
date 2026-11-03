@@ -39,9 +39,6 @@ describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', (
     const a = by(DRAGON, 'souffle');
     expect([a.trigger, a.avantage, a.aoe, a.magic, a.type]).toEqual(['free', 2, true, true, 'feu']);
   });
-  it('Souffle « (divers) » → Type non spécifié', () => {
-    expect(by([{ id: 'souffle', value: 12, arg: 'divers' }], 'souffle').type).toBeUndefined();
-  });
   it('le trait octroie la manœuvre PAR ID (grantsManeuvers → findManeuverById) ; le Type de Souffle la compose', () => {
     expect(by(DRAGON, 'souffle').def).toEqual(souffleDuType(findManeuverById('souffle')!, 'feu'));
     expect(by([{ id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' }], 'souffle').def).toEqual(souffleDuType(findManeuverById('souffle')!, 'poison', 'difficile'));

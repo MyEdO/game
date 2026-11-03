@@ -168,6 +168,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     confirmer(banc, true, 1);
     expect(heros(banc, heroId).psychTraits).toEqual([{ type: 'frenesie' }]);
+    expect((heros(banc, heroId).activeEffects ?? []).filter((e) => e.reverseToken), 'la réussite ne pose aucun jeton').toEqual([]);
   });
 
   it('deux Haines à Cibles différentes : le joueur choisit l’INSTANCE, la Haine (Elfe) part, la Haine (Nain) reste', () => {
@@ -192,15 +193,15 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
     expect(banc.getState().journal.slice(avant)).toContain("Vétéran n'a aucun Trait psychologique à retirer.");
   });
 
-  it('échec : la fiche du héros reste telle quelle, l’Activité est consommée', () => {
+  it('échec : les Traits restent, un jeton inverse UN Test de Calme qui résiste à un Trait Psychologique, l’Activité est consommée', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
     banc.actions.interludeActivity(heroId, 'convalescence', { traitPsy: { type: 'peur' } });
-    const avant = heros(banc, heroId);
-    const fiche = JSON.stringify([avant.psychTraits, avant.activeEffects]);
     const left = banc.getState().interlude!.perHero[heroId].left;
     confirmer(banc, false, -2);
     const h = heros(banc, heroId);
-    expect(JSON.stringify([h.psychTraits, h.activeEffects])).toBe(fiche);
+    expect(h.psychTraits).toEqual(TRAITS);
+    const jetons = (h.activeEffects ?? []).filter((e) => e.reverseToken);
+    expect(jetons.map((e) => [e.reverseToken, e.duration])).toEqual([[{ skill: 'calme', spec: undefined, contexte: 'psych' }, { scale: 'adventure' }]]);
     expect(banc.getState().interlude!.perHero[heroId].left).toBe(left - 1);
   });
 });

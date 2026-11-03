@@ -1,4 +1,4 @@
-import type { Combatant } from '../types';
+import type { Combatant, ContexteDeTest } from '../types';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 
 /** Famille d'incantation conférée par un Talent de lanceur (LDB 10) — pilote l'apprentissage
@@ -154,8 +154,8 @@ export interface CombatFeature {
   /** Inverse un Test RATÉ de la Compétence référencée s'il devient réussi (Sociable → Ragot, Studieux →
    *  Recherche…). Réfs STRUCTURÉES `{ id, spec? }` (jamais un match par libellé) ; `capDR` plafonne le DR
    *  (Pansement +1). TOUJOURS une LISTE : un Talent peut couvrir plusieurs Compétences en « ou »
-   *  (Pilote → Ramer OU Voile, LDB 10 l.964). */
-  reverseFailed?: { skills: RefDesignee[]; capDR?: number };
+   *  (Pilote → Ramer OU Voile, LDB 10 l.964). `contexte` : le Test que le Talent vise (LDB 10 l.899, l.966). */
+  reverseFailed?: { skills: RefDesignee[]; capDR?: number; contexte?: ContexteDeTest };
   // ── Économie / social ──────────────────────────────────────────────────────
   /** Négociateur : LDB 10 l.818 ; appliqué par `engine/bargain`. */
   bargainBonus?: boolean;

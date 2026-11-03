@@ -21,7 +21,7 @@ import { valeurDuTest } from '../engine/skills';
 import { cibleBrute, cibleDuTest, clampTarget, forcedTR } from '../engine/tests';
 import { combattantDeModale } from './combattantDeModale.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { poserFicheDeTest, restaurerFiche } from '../state/ficheDeTest.testkit';
+import { poserFicheDeTest, restaurerFiche } from '../engine/ficheDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { PendingBargain } from '../noyau/pendings';
 

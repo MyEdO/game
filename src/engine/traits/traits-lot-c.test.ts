@@ -8,7 +8,8 @@ import {
 } from './dispatch';
 import { contreSurDefenseGagnee } from '../combatFeatures/dispatch';
 import { traitSpellDRMod } from '../magic';
-import { coldBloodedAdjust, isPsychImmune } from '../psychology';
+import { isPsychImmune } from '../psychology';
+import { inversionDeTalent, reverseAvailable } from '../reverseToken';
 import { attackModifiers } from '../combat';
 import { ligneDe } from '../modLine.testkit';
 import { traumaCharPenalties } from '../trauma';
@@ -128,10 +129,13 @@ describe('câblages moteur', () => {
     const mods = attackModifiers(atk, tgt, { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }, { kind: 'melee' });
     expect(ligneDe(mods, { category: 'traits', id: 'parasite' })?.value).toBe(-10);
   });
-  it('À sang-froid : un Test de FM raté est inversé s’il devient réussi', () => {
-    expect(coldBloodedAdjust({ roll: 91, target: 40, success: false, sl: -5 }, true).success).toBe(true); // 91 → 19
-    expect(coldBloodedAdjust({ roll: 99, target: 40, success: false, sl: -5 }, true).success).toBe(false); // 99 → 99
-    expect(coldBloodedAdjust({ roll: 91, target: 40, success: false, sl: -5 }, false).success).toBe(false);
+  it('À sang-froid (LDB 85 l.13) : un Test de Force Mentale raté est inversé s’il devient réussi', () => {
+    const froid = mk({ traits: [{ id: 'a-sang-froid' }] });
+    expect(inversionDeTalent(froid, { skill: 'calme' }, 91, 40)).toEqual({ roll: 19, sl: 3, success: true }); // 91 → 19
+    expect(inversionDeTalent(froid, { char: 'force-mentale' }, 91, 40)).toEqual({ roll: 19, sl: 3, success: true });
+    expect(inversionDeTalent(froid, { skill: 'calme' }, 99, 40)).toBeNull(); // 99 → 99
+    expect(reverseAvailable(froid, { skill: 'athletisme' }, 91, 40)).toBe(false); // pas un Test de Force Mentale
+    expect(inversionDeTalent(mk({}), { skill: 'calme' }, 91, 40)).toBeNull();
   });
   it('Belliqueux : immunité psy si plus d’Avantages que l’adversaire', () => {
     const c = mk({ traits: [{ id: 'belliqueux' }], advantage: 2 });

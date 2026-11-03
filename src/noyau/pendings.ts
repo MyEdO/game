@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
+import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -24,10 +24,11 @@ import type { PsychType, TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
+import type { RollLineParts } from './rollSeam';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
-import type { SupportDetail } from '../engine/skills';
+import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
@@ -140,6 +141,9 @@ export interface PendingTest {
   psychMod?: number;
   /** Libellé lisible du malus psy social (« Animosité −20 envers Elfe ») pour la modale de Test. */
   psychDetail?: string;
+  /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
+   *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
+  contexte?: ContexteDeTest;
   /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
@@ -159,7 +163,7 @@ export interface PendingTest {
    *  informatif : la modale NOMME « plafond 99 : −N » au lieu de le déduire de la valeur de la cible. */
   clamped?: number;
   /** SOUTIEN (LDB 12 l.187-200) du candidat COURANT, déjà FONDU dans `skillValue`/`target` — porté
-   *  pour l'AFFICHAGE (ligne de mod nommée, `ui/breakdown.supportSplit`), comme `PendingActivity.support`.
+   *  pour l'AFFICHAGE (ligne de mod nommée, `engine/skills.supportSplit`), comme `PendingActivity.support`.
    *  Change avec le lanceur choisi (`testSetActor` recopie celui du candidat). */
   support?: SupportDetail;
   /** La Difficulté a été ALLÉGÉE (`FlowTest.easierIf`) : libellé de la compétence/du talent qui l'a
@@ -244,6 +248,8 @@ export interface PendingReload {
   progressBefore: number; // DR déjà cumulés (Test étendu)
   skillValue: number; // combatValue(active, 'ranged')
   difficulty: Difficulty; // 'intermediaire' (le canon ne spécifie pas → défaut)
+  /** Ligne du jet montée à l'ouverture (`rollLine`, arme bakée et Soutien compris) — lue par la fenêtre. */
+  ligne: RollLineParts;
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
   roll: number | null;
   target: number; // cible effective après difficulté
@@ -1468,6 +1474,8 @@ export interface OppositionOutcome {
 }
 /** Une cible qui OPPOSE son Test à l'incantation : participant du flux MULTI (son jet + influence). */
 export interface OppositionParticipant extends RollParticipant {
+  /** Ligne du Test de la cible montée à l'ouverture (`rollLine` du `test` de la fenêtre), lue par la fenêtre. */
+  ligne: RollLineParts;
   result: OppositionOutcome | null;
 }
 /** Le Sort déclare une OPPOSITION (`spec.opposed`) : chaque cible oppose son Test (FM/Int/Bagarre) à
@@ -1476,9 +1484,8 @@ export interface OppositionParticipant extends RollParticipant {
  *  (cible résistante → aucune op ; sinon ops à la marge). « Réaction type défense » : cible IA = rangée
  *  témoin (jet auto + révélée dans la modale) ; cible héros = rangée interactive. */
 export interface PendingCastOpposition extends MultiPending<OppositionParticipant> {
-  kind: 'resist' | 'contact';
-  skill?: string;
-  char?: CharKey;
+  /** Le Test que chaque cible oppose (`testDOppositionDeSort`). */
+  test: TestDesigne;
 }
 
 /** Un Round d'un Test Étendu : le jet de CE Round (slot du flux multi SÉQUENTIEL). */
@@ -1487,7 +1494,9 @@ export interface ExtendedTestRound extends RollParticipant {
 }
 /** Un héros qui frappe la porte : participant du flux MULTI PARALLÈLE (son propre jet + dégâts). */
 export interface ForceDoorParticipant extends RollParticipant {
-  /** Jet de Corps à corps (Bagarre) de CE héros + dégâts infligés à la porte, ou null = pas lancé. */
+  /** Arme choisie avant le jet (`forceDoorChoisirArme`, `armesDEnfoncement`) ; absente = mains nues. */
+  armeUid?: string;
+  /** Jet de Corps à corps de CE héros + dégâts infligés à la porte (`degatsDEnfoncement`), ou null = pas lancé. */
   result: { roll: number; target: number; sl: number; damage: number } | null;
 }
 /** Enfoncer une porte À PLUSIEURS (EDO Appendice 2, « Portes ») — flux multi PARALLÈLE : la porte est
@@ -1548,6 +1557,10 @@ export interface PendingExtendedTest extends PendingBase {
   actorId: string; // qui effectue le Test (solo)
   label: string; // « Enfoncer la porte »
   skillLabel: string; // « Force » / « Athlétisme » (affichage)
+  /** Test lancé en STRUCTURE (Compétence + Spécialisation), lu par l'inversion (Talent, jeton) ; absent :
+   *  Test de la Caractéristique `char`. LDB 12 l.42 */
+  skill?: RefDesignee;
+  char?: CharKey;
   target: number; // cible effective d'UN Round (difficulté déjà appliquée)
   targetDR: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
   total: number; // DR cumulé courant (dépend des Rounds précédents → c'est ce qui rend le flux SÉQUENTIEL)
@@ -2114,6 +2127,14 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
   rollLabel?: string;
+  /** COMPÉTENCE réellement lancée (id + Spécialisation), posée par le mint depuis le Test de la ligne —
+   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skillId`. Absente : Test de
+   *  Caractéristique, ou étape sans jet. */
+  skillId?: string;
+  spec?: string;
+  /** CONTEXTE du Test de l'étape (LDB 12 l.42), déclaré par son producteur (Psychologie, péril des eaux)
+   *  — lu par l'inversion, qui n'offre une source qu'au Test que son passage vise. */
+  contexte?: ContexteDeTest;
   /** ENJEU de l'étape (#331/#1117) : ce que le jet met en jeu — une RÉFÉRENCE de donnée (`StakeRef` :
    *  clé de dataset + valeurs calculées), JAMAIS un texte. Le résolveur UNIQUE (`resolveStake`) rend
    *  le texte ET la fiche de règle au moment de l'affichage : un producteur ne peut ni écrire l'enjeu
@@ -2406,6 +2427,8 @@ export interface PendingHeal {
   /** SOUTIEN (LDB 12) des assistants de soin, déjà fondu dans `skillValue` — porté pour l'affichage. */
   support?: SupportDetail;
   difficulty: Difficulty; // 'intermediaire' (+0, LDB 09 l.243)
+  /** Ligne du jet montée à l'ouverture (`rollLine`) — lue par la fenêtre. */
+  ligne: RollLineParts;
   target: number; // cible effective (affichage)
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
   clamped?: number;

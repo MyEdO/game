@@ -1,14 +1,14 @@
-// Mécanique de scan de l'ARMEMENT UNIQUE d'un tour d'IA (#3058) : dans le module du tour d'IA, un geste différé
-// (`programmer(…)`, `src/noyau/plateforme.ts`, ou `afterApproach(…)`, qui l'enveloppe, `src/noyau/combatDirector.ts`) ne
-// se programme que dans les fonctions de la table que la garde déclare (`src/noyau/geste-de-tour-guard.test.ts`).
+// Mécanique de scan de l'ARMEMENT UNIQUE d'un tour en cours (#3058, #3059) : dans le module du tour, un geste différé
+// (`programmer(…)`, `src/noyau/plateforme.ts`) ne se programme que dans les fonctions de la table que la garde déclare
+// (`src/noyau/geste-de-tour-guard.test.ts`).
 // L'appelé se reconnaît par sa LIAISON d'import (alias et espace de noms compris), par son nom nu, et par tout accès
-// de propriété `.programmer` / `.afterApproach` (`plateforme().programmer(…)`) ; un différeur référencé hors position
+// de propriété `.programmer` (`plateforme().programmer(…)`) ; un différeur référencé hors position
 // d'appel (`const d = programmer`) est refusé. Module ESM pur (node nu), parse par
 // `dialecte.mjs`.
 import { analyserTexte, typescript } from './dialecte.mjs';
 
 /** Les exports qui DIFFÈRENT un geste, par module d'origine (suffixe du spécificateur d'import). */
-const DIFFEREURS = Object.freeze({ plateforme: ['programmer'], combatDirector: ['afterApproach'] });
+const DIFFEREURS = Object.freeze({ plateforme: ['programmer'] });
 const NOMS = new Set(Object.values(DIFFEREURS).flat());
 
 /** Les noms locaux liés à un différeur importé, et les espaces de noms des modules qui en exportent. */
@@ -32,7 +32,7 @@ function liaisons(ts, sourceFile) {
   return { locaux, espaces };
 }
 
-/** Le différeur qu'appelle `call` (`programmer` | `afterApproach`), sinon `null`. */
+/** Le différeur qu'appelle `call` (`programmer`), sinon `null`. */
 function differeur(ts, call, { locaux }) {
   const e = call.expression;
   if (ts.isIdentifier(e)) return locaux.get(e.text) ?? (NOMS.has(e.text) ? e.text : null);
@@ -48,10 +48,10 @@ function fonctionEnglobante(ts, node) {
   return nom;
 }
 
-/** Le corps du geste différé (1er argument de `programmer`, dernier d'`afterApproach`) est-il EXACTEMENT l'appel de
- *  `nom` (`() => nom(…)` ou `() => { nom(…); }`) ? */
-function corpsEstLAppel(ts, call, appele, nom) {
-  const corps = appele === 'afterApproach' ? call.arguments[call.arguments.length - 1] : call.arguments[0];
+/** Le corps du geste différé (1er argument de `programmer`) est-il EXACTEMENT l'appel de `nom` (`() => nom(…)` ou
+ *  `() => { nom(…); }`) ? */
+function corpsEstLAppel(ts, call, nom) {
+  const corps = call.arguments[0];
   if (!corps || !(ts.isArrowFunction(corps) || ts.isFunctionExpression(corps))) return false;
   let expr = corps.body;
   if (ts.isBlock(expr)) {
@@ -92,7 +92,7 @@ export function programmerHorsDesSites(rel, texte, sites) {
     if (appele) {
       const fonction = fonctionEnglobante(ts, node);
       const site = fonction ? sites.get(fonction) : undefined;
-      const admis = !!site && (!site.corpsAppelle || corpsEstLAppel(ts, node, appele, site.corpsAppelle));
+      const admis = !!site && (!site.corpsAppelle || corpsEstLAppel(ts, node, site.corpsAppelle));
       if (!admis) hors.push({ line: ligne(node), fonction, appele });
     }
     const nue = referenceNue(ts, node, lie);

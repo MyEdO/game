@@ -1,12 +1,12 @@
 import { useGame } from '../state/store';
-import { defenseDodgeMods } from '../noyau/combatFlow';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
-import { defenseValue, defenseBaseValue, defenseValueModParts, combatValue, defenseModifiers, baseTestModLines, weaponSkillId } from '../engine/combat';
 import { valeurDecomposee } from '../engine/skills';
 import { groupAdvantage } from '../engine/advantagePool';
 import { retreatAdvantageCost } from '../engine/combatFeatures/dispatch';
-import { voieDAvantage } from '../noyau/combat/desengagement';
+import { voieDAvantage, ligneDEsquiveDeDesengagement } from '../noyau/combat/desengagement';
+import { ligneDeCorpsACorpsBrut } from '../noyau/combatManeuvers';
+import { cibleBrute } from '../engine/tests';
 import { ResilienceButton } from './ResilienceButton';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
@@ -19,7 +19,7 @@ import { fleeBackstab, fleeTouche, fleeToucheDu, type PendingDisengage } from '.
 import { Modal } from './Modal';
 import { Stack } from './Layout';
 import { Icon } from './Icon';
-import { optionValue, opposedLines, testBreakdown, testPending } from './breakdown';
+import { opposedLines, testBreakdown, testPending } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { libelleDeTest, libelleDuTestNomme } from '../noyau/jetsEnVue';
@@ -81,7 +81,7 @@ export function DisengageModal() {
       { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
         option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: sacrifice, title: sacrificeTitle } },
       { stake: flowStakeRef('disengage-esquive'),
-        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: optionValue(defenseValue(mover, 'esquive'), defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))), hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
+        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
       { stake: flowStakeRef('disengage-fuir'),
         option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
     ].filter((o) => !o.option.hidden);
@@ -187,12 +187,12 @@ export function DisengageModal() {
 
   // Test OPPOSÉ Corps à corps (foe) / Esquive (mover) : la Difficulté est DÉCLARÉE UNE fois pour
   // l'opposition entière (LDB 12 l.166 ; jet de combat, LDB 13 l.118).
-  // Modificateurs NOMMÉS de chaque côté, pris à la SOURCE que roule le résolveur : `baseTestMods` pour
-  // le Corps à corps « brut » du foe (`rollDisengageAttack`), `defenseModifiers` pour l'Esquive du mover
-  // (`rollMeleeDefender`) — jamais un +N anonyme dans la cible.
+  // Lignes : `ligneDeCorpsACorpsBrut` (foe) et `ligneDEsquiveDeDesengagement` (mover), celles des résolveurs.
+  const foeL = ligneDeCorpsACorpsBrut(foe);
+  const esq = ligneDEsquiveDeDesengagement(useGame.getState(), mover);
   const [foeLine, moverLine] = opposedLines([
-    { label: libelleDeTest('corps-a-corps'), base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
-    { label: libelleDeTest('esquive'), base: defenseBaseValue(mover, 'esquive'), r: pd.def, mods: [...defenseValueModParts(mover, 'esquive'), ...defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))] },
+    { label: libelleDeTest('corps-a-corps'), base: foeL.base, target: cibleBrute(foeL), r: pd.atk, mods: foeL.mods },
+    { label: libelleDeTest('esquive'), base: esq.base, target: cibleBrute(esq), r: pd.def, mods: [...esq.mods, ...(esq.difficultyParts ?? [])] },
   ]);
   // Rangée [0] = TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) —
   // même calendrier de découverte que les autres jets figés (#990 : `pd.def` = la réponse du mover).

@@ -842,8 +842,9 @@ export interface ActiveEffect {
    *  LDB 23 l.209 « Entraînement au Combat »/l.218 « Observer une cible ») : une UTILISATION, retirée à
    *  la consommation (`consumeReverseToken`) — sinon expire à l'interlude suivant comme `statusMod`
    *  (MÊME canal `duration:{scale:'adventure'}`, `purgeAdventureEffects`). `skill` absent = tout Test
-   *  (scope « concernant votre cible », l.218 — le lot données/UI arbitre le filtrage par cible). */
-  reverseToken?: { skill?: string; spec?: string };
+   *  (scope « concernant votre cible », l.218 — le lot données/UI arbitre le filtrage par cible). `contexte`
+   *  présent : le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33). */
+  reverseToken?: JetonDInversion;
   /** Ce PA (apAll/apAt) ne peut pas servir à la Déviation Critique (op ap avec noDeviation — LDB 63 l.30 + EDO App.2 l.196). Le PA de sort (couche magique) n'entre de toute façon pas dans le PA déviatable. */
   noDeviation?: boolean;
   /** Trait de créature ACCORDÉ par cet effet (op `grantTrait` — Envol, Effrayant…) : le
@@ -1949,6 +1950,22 @@ export function isNightTestKind(k: string): k is NightTestKind {
  *  RUNTIME posé ICI (module FEUILLE que `src/data` importe déjà) : les 6 schémas zod d'enjeu le
  *  consomment tel quel (`stakeFormSchema`, `src/data/schemas/grammaire/valeurs.ts`) et les déclarations TS
  *  référencent `StakeForm` — un palier de plus ne peut plus atterrir d'un seul côté. */
+/** Contrepartie d'un Test de Sociabilité qu'une fiche de PNJ déclare (ACE 12 l.60-62). */
+export type Amateur = 'amateurDArt' | 'amateurDeTheatre';
+
+/** CONTEXTE de Test que vise une source d'inversion (LDB 12 l.42) : `psych` ADE II 09 l.33, LDB 21 l.9 ;
+ *  `perilDesEaux` LDB 10 l.966 ; `bandages` LDB 10 l.899 ; amateurs ACE 12 l.60-62. */
+export type ContexteDeTest = 'psych' | 'perilDesEaux' | 'bandages' | Amateur;
+
+/** Le Test qu'une inversion vise : Compétence (`skill` absent = Test de Caractéristique `char`, ou jeton
+ *  « tout Test »), Caractéristique et contexte. `horsAventure` : Test joué entre deux aventures, où aucun
+ *  jeton « pour votre prochaine aventure » ne vaut (LDB 23 l.209/218). */
+export interface ReverseQuery { skill?: string; spec?: string; char?: CharKey; contexte?: ContexteDeTest; horsAventure?: true }
+
+/** Jeton d'inversion : le Test qu'il couvre (`char` : tout Test de cette Caractéristique) ; `illimite` :
+ *  jamais consommé (ACE 12 l.60 « tout Test »). */
+export interface JetonDInversion { skill?: string; spec?: string; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
+
 export const STAKE_FORMS = ['verbatim', 'descripteur'] as const;
 /** Forme déclarée d'un enjeu — union FERMÉE dérivée de `STAKE_FORMS`. */
 export type StakeForm = (typeof STAKE_FORMS)[number];
