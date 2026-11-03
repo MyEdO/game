@@ -7,7 +7,7 @@
 import type { Jeu } from './etat';
 import { battleRng } from './battleRng';
 import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
-import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
+import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
 import { freeCons, type RollLineParts } from './rollSeam';
@@ -18,6 +18,8 @@ import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, r
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
+import { garanti } from '../lib/garanti';
+import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
@@ -598,7 +600,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Atouts/Défauts choisis. Le travail inachevé est conservé (l.102) via `h.craft` (Combatant —
       // survit à la clôture de l'interlude, #897).
       if (!h.craft) return { lines: [] };
-      const { total: drDone, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, h.craft.drTarget);
+      const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible d’Artisanat');
       if (done) {
         const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
@@ -623,16 +625,14 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       };
     }
     case 'ritualFocus': {
-      // Rituel (Activité « Accomplir un Rituel », `VDM 02 l.777`) : Round de Focalisation cumulé —
-      // `extendedTestStep` (Test étendu,
-      // LDB 12 l.174) partagé avec l'Artisanat ci-dessus. `pa.sl` porte déjà `FocusResult.dr` (CLAMPÉ
-      // ≥ 0 par `resolveFocus`, branché dans `FLOWS.activity`), jamais le SL brut d'un Test de
-      // Compétence ordinaire. Composants/Conditions/Sacrifices/Conséquences restent en PROSE non
-      // structurée (`SpellData['ritual']`) — non consommés/appliqués ici. `h.ritual` (Combatant) —
-      // survit à la clôture de l'interlude, #897.
+      // Rituel (Activité « Accomplir un Rituel », `VDM 02 l.777`) : Round de Focalisation cumulé par
+      // `progresDActivite` (LDB 12 l.174). `pa.sl` porte le DR du Round (`FocusResult` via
+      // `FLOWS.activity`) : `dr` sur une réussite, le DR brut sur un échec. Composants/Conditions/
+      // Sacrifices/Conséquences restent en PROSE non structurée (`SpellData['ritual']`), non appliqués
+      // ici. `h.ritual` (Combatant) survit à la clôture de l'interlude, #897.
       if (!h.ritual) return { lines: [] };
       if (pa.malepierreConsumed) consumeMalepierre(h, pa.malepierreConsumed);
-      const { total: drDone, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, h.ritual.drTarget);
+      const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible de Rituel');
       const label = findSpellById(h.ritual.spellId)?.label ?? h.ritual.spellId;
       if (done) {
         h.ritual = undefined;

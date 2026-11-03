@@ -7821,7 +7821,7 @@ interface CombatPsychRowMeta { prevDR: number; sansPeur: boolean }
 
 /** Charge utile d'une RANGÉE, avec ses défauts neutres (aucun cumul, aucun allègement). */
 function psychRowMeta(part: BatchParticipant): CombatPsychRowMeta {
-  return { prevDR: Number(part.meta?.prevDR ?? 0), sansPeur: !!part.meta?.sansPeur };
+  return { prevDR: part.extendedDrDone ?? 0, sansPeur: !!part.meta?.sansPeur };
 }
 
 /** Un Test de Psychologie de combat DÛ par un héros, avant regroupement : la déclaration de règle qui
@@ -7854,7 +7854,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       // La calculer à la main ici l'oubliait : un héros Brisé ×2 testait sa Peur à pleine valeur.
       ...rollStep({ actor: c, test: { skill: skill.id, spec: skill.spec }, combat: { kind: 'test' }, difficulty }),
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
-      meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
+      ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
     label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),

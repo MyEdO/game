@@ -8,6 +8,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeFocus } from '../noyau/flowOutcomes';
+import { progresDeFocalisation } from '../noyau/progresEtendu';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
@@ -32,8 +33,8 @@ export function FocusModal() {
   if (!caster) return null;
   const spell = findSpellById(pf.spellId);
   const ni = spell?.cn ?? 0;
-  const prev = caster.focus?.spell === pf.spellId ? caster.focus.dr : 0;
   const r = pf.result;
+  const { prev, step } = progresDeFocalisation(pf, caster, ni);
   const rolled = !!r;
   // Vents Tourbillonnants (LDB 46 l.179-190) : mod visible au pré-jet SEULEMENT si révélés (Seconde
   // vue), toujours visible au breakdown post-jet (déjà appliqué au Test — cf. `resolveFocus`).
@@ -44,7 +45,7 @@ export function FocusModal() {
     actor: caster,
     row: {
       combatant: caster,
-      d: r ? testBreakdown(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.dr > 0 }, undefined, windsMods) : undefined,
+      d: r ? testBreakdown(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success }, undefined, windsMods) : undefined,
       pending: testPending(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), undefined, undefined, battle?.windsOfMagic?.revealed ? windsMods : undefined),
     },
     onRoll: roll,
@@ -55,7 +56,7 @@ export function FocusModal() {
     onForce: force,
   }, {
     /* Test ÉTENDU (Focalisation) : barre de DR de RANGÉE — site unique `RollRow` (arbitrage user 2026-07-11). */
-    extendedDr: { cum: Math.min(ni, prev + (r?.dr ?? 0)), target: ni },
+    extendedDr: { cum: Math.min(ni, step?.total ?? prev), target: ni },
   });
 
   const actions: RollAction[] = [
@@ -78,7 +79,7 @@ export function FocusModal() {
       rolled={rolled}
       /* L'issue ne s'ouvre que pour ce qu'aucune autre zone n'énonce (le NI atteint) : `describeFocus`
          rend '' tant que la Focalisation progresse — pas de cadre vide, pas de progression redite. */
-      outcome={r && describeFocus(pf, prev, ni) ? [recapLineOfEvent(ev('focus', describeFocus(pf, prev, ni), caster.id), battle?.combatants ?? party)] : undefined}
+      outcome={describeFocus(step) ? [recapLineOfEvent(ev('focus', describeFocus(step), caster.id), battle?.combatants ?? party)] : undefined}
       actions={actions}
       onCancel={cancel}
     />

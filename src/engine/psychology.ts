@@ -549,7 +549,7 @@ export function pasDePeur(
   sansPeur = false,
 ): { calmeDR: number; surmontee: boolean } {
   if (sansPeur && r.success) return { calmeDR: Math.max(prevDR, indice), surmontee: true };
-  const step = extendedTestStep(prevDR, r, indice, !!rule('test-extended-min-sl'));
+  const step = extendedTestStep(prevDR, r, indice);
   return { calmeDR: step.total, surmontee: step.done };
 }
 

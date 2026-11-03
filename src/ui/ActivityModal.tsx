@@ -6,6 +6,7 @@ import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending, opposedLines } from './breakdown';
 import { activityModLines } from '../engine/activities';
 import { describeActivity } from '../noyau/flowOutcomes';
+import { progresDActivite } from '../noyau/progresEtendu';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
 import { libelleDePuissance } from '../noyau/jetsEnVue';
@@ -33,7 +34,7 @@ export function ActivityModal() {
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;
-  const after = Math.max(0, (pa.drBefore ?? 0) + pa.sl);
+  const progres = progresDActivite(pa);
 
   // Ligne montée à l'ouverture (`pa.ligne` : pré-jet d'Activité ou Test de bataille, Soutien et
   // modificateur de situation compris).
@@ -67,7 +68,7 @@ export function ActivityModal() {
     key: 'actor',
     fortune: actor?.fortune ?? 0,
     /* Test ÉTENDU (Artisanat) : barre de DR de RANGÉE — site unique `RollRow` (arbitrage user 2026-07-11). */
-    extendedDr: pa.drTarget != null ? { cum: rolled ? after : pa.drBefore ?? 0, target: pa.drTarget } : undefined,
+    extendedDr: progres ? { cum: rolled ? progres.total : pa.drBefore ?? 0, target: progres.cible } : undefined,
   });
 
   const rows: BuiltRollRow[] = [actorRow];

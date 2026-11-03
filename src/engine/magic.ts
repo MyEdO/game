@@ -1099,6 +1099,8 @@ export function rederiveCastSL(
 export interface FocusResult {
   /** DR gagné lors de ce Round (0 si échec). */
   dr: number;
+  /** Le Test de Focalisation est-il réussi ? Un échec cumule `sl`, une réussite `dr` (LDB 12 l.174). */
+  success: boolean;
   isCritical: boolean;
   isFumble: boolean;
   roll: number;
@@ -1138,7 +1140,7 @@ export function resolveFocus(
     // AFFICHAGE : Focalisation est spécialisée par VENT → montre le Vent du Domaine (id bete → « Ghur »).
     const wind = focusWindLabel(spell);
     return {
-      dr: 0, isCritical: false, isFumble: false, roll: 0,
+      dr: 0, success: false, isCritical: false, isFumble: false, roll: 0,
       log: `${caster.label} ne maîtrise pas Focalisation${wind ? ` (${wind})` : ''}.`,
     };
   }
@@ -1160,7 +1162,7 @@ export function resolveFocus(
   const log = t.success
     ? `${caster.label} focalise ${spell.label} (+${dr} DR).`
     : `${caster.label} échoue à focaliser ${spell.label}.`;
-  return { dr, isCritical, isFumble, roll: t.roll, target: t.target, sl: t.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
+  return { dr, success: t.success, isCritical, isFumble, roll: t.roll, target: t.target, sl: t.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
 }
 
 /** DR accumulé après une Focalisation Critique — LDB 46 l.136 : le Sort devient lançable

@@ -9,6 +9,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeReload } from '../noyau/flowOutcomes';
+import { progresDeRecharge } from '../noyau/progresEtendu';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 
@@ -36,7 +37,7 @@ export function ReloadModalView({
   onCancel: () => void;
 }) {
   const rolled = pr.roll != null;
-  const after = Math.max(0, pr.progressBefore + pr.sl);
+  const after = progresDeRecharge(pr, actor).total;
   const weapon = actor?.weapons.find((w) => w.uid === pr.weaponUid);
   const weaponName = weapon?.label ?? 'arme'; // uid → NOM (affichage)
   // Ligne montée à l'ouverture (`pr.ligne`, Soutien MDG 12 l.462 compris).

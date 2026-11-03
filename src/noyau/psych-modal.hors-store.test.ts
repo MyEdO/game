@@ -130,7 +130,6 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     openRoundEndCascade(banc.getState, banc.setState);
     expect(band().combatPsych?.kind).toBe('peur');
     // Le DR déjà cumulé est une divergence PAR HÉROS : il vit sur la rangée (charge utile + barre).
-    expect(row(H.id).meta?.prevDR).toBe(1);
     expect(row(H.id).extendedDrDone).toBe(1);
     expect(row(H.id).extendedDrTarget).toBe(3);
 
@@ -370,7 +369,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     E1.causesPeur = 6; // Indice élevé : le Test étendu ne se solde pas en un Round
     openRoundEndCascade(banc.getState, banc.setState);
     const bande1 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatPsych')!;
-    expect(bande1.participants!.every((p) => (p.meta?.prevDR ?? 0) === 0)).toBe(true);
+    expect(bande1.participants!.every((p) => (p.extendedDrDone ?? 0) === 0)).toBe(true);
     // Réussites FORCÉES (dé 01 → DR max) : chaque rangée gagne son propre DR.
     for (const h of [A, B]) { h.resilience = 2; }
     banc.getState().cascadeBatchForceSuccess(A.id);
@@ -391,7 +390,6 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     const bande2 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatPsych')!;
     expect(bande2.participants!.length).toBe(2);
     for (const p of bande2.participants!) {
-      expect(p.meta?.prevDR).toBe(drOf(p.id));
       expect(p.extendedDrDone).toBe(drOf(p.id));
       expect(p.extendedDrTarget).toBe(6);
     }
@@ -440,7 +438,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     banc.setState({ battle: { ...b, round: b.round + 1 }, pendingCascade: null });
     openRoundEndCascade(banc.getState, banc.setState);
     const bande2 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatPsych')!;
-    expect(bande2.participants!.find((p) => p.id === A.id)!.meta?.prevDR).toBe(0);
+    expect(bande2.participants!.find((p) => p.id === A.id)!.extendedDrDone ?? 0).toBe(0);
     const rows2 = bande2.participants!.map((p) => ({ ...p, result: { roll: 1, target: p.target, sl: 2, success: true } }));
     const pc2 = banc.getState().pendingCascade!;
     banc.setState({ pendingCascade: { ...pc2, participants: pc2.participants.map((s) => (s === bande2 ? { ...s, participants: rows2 } : s)) } });
