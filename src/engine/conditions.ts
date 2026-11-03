@@ -410,6 +410,23 @@ export function raisonRefusDetermination(c: Combatant, conditionId: string): str
   return t('cond.refusDeterminationVerrou', { cond: conditionLabel(conditionId), src: refLabel(src.category, { id: src.id }) });
 }
 
+/** Verdict de RÉSERVE d'une dépense de Détermination (LDB 17 l.57) — `undefined` = au moins un point. */
+export function refusDeReserveDeDetermination(resolve: number): string | undefined {
+  return resolve > 0 ? undefined : t('agate.noResolve');
+}
+
+/**
+ * Verdict UNIQUE d'une dépense de Détermination (LDB 17 l.59-61) — `undefined` = ouverte. Lu par le gate
+ * `determination-en-reserve`, par le geste `spendResolveCondition` et par `DeterminationButton`.
+ * `conditionId` absent (LDB 17 l.59-60) : seule la réserve compte.
+ */
+export function refusDeDetermination(c: Combatant, conditionId?: string): string | undefined {
+  const reserve = refusDeReserveDeDetermination(c.resolve ?? 0);
+  if (reserve || !conditionId) return reserve;
+  if (!c.conditions.some((x) => x.id === conditionId)) return t('agate.stateNotCarried');
+  return raisonRefusDetermination(c, conditionId);
+}
+
 /** RE-ENTRANCE : la pose d'un État déclenche `onGainCondition` (store), qui peut appliquer des ops — dont
  *  la fin re-appelle la réconciliation. Elle ne se rejoue pas SUR ELLE-MÊME : l'appel externe voit l'état
  *  final, un appel imbriqué rendrait un journal en double. Le verrou est PAR PORTEUR (identité du
