@@ -4,7 +4,7 @@ import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '
 import { fenetreDeDefense } from '../../noyau/fenetreDeDefense';
 import { libelleDuJet } from '../../noyau/libelles';
 import { t } from '../../i18n';
-import { defenseDodgeMods } from '../../noyau/combatFlow';
+import { defenseDodgeMods } from '../../noyau/mount';
 import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';

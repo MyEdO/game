@@ -12,9 +12,11 @@ import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
 import { tablesPosees, type FragmentDeTables } from './tablesPosees';
 import { FLOWS, meetsRequiredSL } from './rollFlowSpecs';
+import { armeDEnfoncement, bilanDuRound } from './enfoncerUnePorte';
+import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { bus, EVT } from './bus';
-import { inBattleId } from './monde/combatants';
+import { actorIn, inBattleId } from './monde/combatants';
 import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
@@ -92,10 +94,8 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
     forceDoorConfirm: () => {
       const p = get().pendingForceDoor;
       if (!p) return;
-      // Dégâts du Round = somme des coups (chacun déjà réduit par le BE à la résolution). Objets : pas de min 1.
-      const dmg = p.participants.reduce((s, x) => s + (x.result?.damage ?? 0), 0);
-      const doorB = p.doorB - dmg;
-      if (doorB <= 0) {
+      const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);
+      if (cede) {
         set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
         get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
         if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
@@ -105,6 +105,17 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
         set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
         get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
       }
+    },
+    forceDoorChoisirArme: (heroId, armeUid) => {
+      const p = get().pendingForceDoor;
+      const part = p?.participants.find((x) => x.id === heroId);
+      const actor = part ? actorIn(get(), heroId) : undefined;
+      if (!p || !part || part.result || !actor || (armeUid && !armeDEnfoncement(actor, { armeUid }))) {
+        refuserGeste(get, set, t('store.armeDEnfoncementIndisponible'));
+        return;
+      }
+      const { armeUid: _ancienne, ...reste } = part;
+      set({ pendingForceDoor: { ...p, participants: p.participants.map((x) => (x.id === heroId ? { ...reste, ...(armeUid ? { armeUid } : {}) } : x)) } });
     },
     // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
     forceDoorCancel: () => {

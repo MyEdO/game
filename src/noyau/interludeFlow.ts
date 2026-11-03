@@ -10,7 +10,7 @@ import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
+import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
 import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
@@ -307,6 +307,8 @@ export interface PendingActivityFields extends PendingBase {
   skillLabel: string;
   skillValue: number;
   difficulty: Difficulty;
+  /** Ligne du Test montée à l'ouverture (`rollLine` : pré-jet d'Activité, Test de bataille) — lue par la fenêtre. */
+  ligne: RollLineParts;
   roll: number | null;
   target: number;
   sl: number;
@@ -525,7 +527,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   set({
     pendingActivity: {
       heroId, kind: 'catalog', activityId, label: def.label,
-      skillLabel: testSkillLabel(ids), skillValue: preJet.value,
+      skillLabel: testSkillLabel(ids), skillValue: preJet.value, ligne: preJet.ligne,
       roll: null, target: 0, sl: 0, success: false,
       ...ligneDeMod,
       ...competence,

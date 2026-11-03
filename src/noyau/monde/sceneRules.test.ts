@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { sceneCombatModifiers, entityBlockedAt } from './sceneRules';
 import { Scene, SceneEntity, isWalkable } from './scene';
 import { attackModifiers, defenseModifiers, combineMods } from '../../engine/combat';
-import { defenseDodgeMods } from '../combatFlow';
+import { defenseDodgeMods } from '../mount';
 import type { Combatant, Weapon } from '../../engine/types';
 import { refDeRegle } from '../../engine/reglesChiffrees';
 import { ligneDe } from '../../engine/modLine.testkit';

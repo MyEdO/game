@@ -3,8 +3,8 @@ import type { ModLine } from '../engine/combat';
 import { evaluateTest } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
-import { testBreakdown, testPending, testValueSplit, opposedLines } from './breakdown';
-import { activityById, activityModLines } from '../engine/activities';
+import { testBreakdown, testPending, opposedLines } from './breakdown';
+import { activityModLines } from '../engine/activities';
 import { describeActivity } from '../noyau/flowOutcomes';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
@@ -35,19 +35,9 @@ export function ActivityModal() {
   const rolled = pa.roll != null;
   const after = Math.max(0, (pa.drBefore ?? 0) + pa.sl);
 
-  // Contexte de BATAILLE rendu en LIGNES de mod (source unique « base + mods » de la coquille), pas en
-  // sous-titre ad hoc : Soutien multi-PJ (LDB 12, fondu dans `skillValue` → base RÉELLE = value − bonus,
-  // même patron que la Dissipation à plusieurs) et modificateur de SITUATION (Menace/Planification).
-  // #1178 : les composantes de la valeur de Test (États, séquelles, passifs, effets) prennent aussi
-  // leur ligne NOMMÉE, quand la Compétence testée est DÉSIGNABLE par id — celle CHOISIE par le
-  // résolveur (`chosenSkill`), sinon l'unique Compétence déclarée par l'Activité (`activities.json`).
-  const actDef = pa.activityId ? activityById(pa.activityId) : undefined;
-  const onlySkill = actDef?.skills?.length === 1 ? actDef.skills[0] : undefined;
-  const tested = pa.chosenSkill ? { id: pa.chosenSkill, spec: pa.chosenSkillSpec } : onlySkill;
-  const { base, mods: supMods } = testValueSplit(actor, pa.skillValue, {
-    support: pa.support, skill: tested?.id, characteristic: tested ? undefined : actDef?.char, spec: tested?.spec,
-  });
-  const extraMods: ModLine[] = [...supMods, ...activityModLines(pa.mod, pa.modLabel)];
+  // Ligne montée à l'ouverture (`pa.ligne` : pré-jet d'Activité ou Test de bataille, Soutien et
+  // modificateur de situation compris).
+  const { base, mods: extraMods } = pa.ligne;
 
   // « Échec » CANONIQUE (gate des relances Chance/Pacte), aligné sur le `failed` du flux `activity` : un
   // Test combiné non-`full` (un `partial` = échec global RAW) OU une tenue perdue (opposition) OU un jet

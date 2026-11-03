@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { distraireAttackValue, distraireDefenseValue, distraireFoes } from '../noyau/combatManeuvers';
+import { distraireFoes, ligneDeDistraire, ligneDuCalmeDistrait } from '../noyau/combatManeuvers';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
@@ -40,18 +40,20 @@ export function DistraireModal() {
   // Adversaires éligibles au Distraire — MÊME source que l'ouverture (`distraireFoes`).
   const foes = distraireFoes(mover, battle);
   const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const calme = ligneDuCalmeDistrait(foe);
+  const athletisme = ligneDeDistraire(mover);
 
   // Rangée TÉMOIN : Calme du foe, figé à l'ouverture (jamais relancé) — MASQUÉ tant que le mover n'a
   // pas répondu (#990 : `pd.atk` est SA réponse ; ici le jet FIGÉ est celui du DÉFENSEUR).
   const foeRow = frozenOpposedRow(useGame.getState(), {
     ownerId: pd.foeId,
     responded: opposedResponded(useGame.getState(), [{ id: pd.moverId, interactive: true, result: pd.atk }]),
-    row: { combatant: foe, d: testBreakdown(libelleDeTest('calme'), distraireDefenseValue(foe), pd.defRoll, 'intermediaire') },
+    row: { combatant: foe, d: testBreakdown(libelleDeTest('calme'), calme.base, pd.defRoll, calme.difficulty, calme.mods) },
   });
   // Rangée INTERACTIVE : Athlétisme du mover, porteur de son cycle d'influence.
   const actorRow = buildRollRow({
     actor: mover,
-    row: { combatant: mover, d: pd.atk ? testBreakdown(libelleDeTest('athletisme'), distraireAttackValue(mover), pd.atk, 'intermediaire') : undefined },
+    row: { combatant: mover, d: pd.atk ? testBreakdown(libelleDeTest('athletisme'), athletisme.base, pd.atk, athletisme.difficulty, athletisme.mods) : undefined },
     onRoll: roll,
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68).

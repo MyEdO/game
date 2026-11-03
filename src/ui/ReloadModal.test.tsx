@@ -11,7 +11,7 @@ const pr = (o: Partial<PendingReload> & { weaponName?: string }): PendingReload 
   const { weaponName: _wn, ...rest } = o;
   return {
     actorId: 'h1', actorName: 'Archère', weaponUid: 'w-arb', reload: 1, progressBefore: 0,
-    skillValue: 45, difficulty: 'intermediaire', roll: null, target: 45, sl: 0, success: false, ...rest,
+    skillValue: 45, difficulty: 'intermediaire', ligne: { base: 45, mods: [], target: 45, difficulty: 'intermediaire' }, roll: null, target: 45, sl: 0, success: false, ...rest,
   };
 };
 

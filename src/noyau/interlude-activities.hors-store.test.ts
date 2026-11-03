@@ -478,7 +478,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
     const basePending: PendingActivity = {
       kind: 'catalog', heroId: h.id, activityId: 'alchimie-ordinaire', label: 'Alchimie ordinaire',
-      skillLabel: 'Métier (Alchimiste)', skillValue: 40, difficulty: 'intermediaire',
+      skillLabel: 'Métier (Alchimiste)', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' },
       roll: 99, target: 40, success: false, sl: 0,
     };
     const setupHero = () => {
