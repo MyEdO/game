@@ -12,7 +12,10 @@ import { canDisengageWithLessAdvantage, retreatAdvantageCost } from '../../engin
 import { sizeGap } from '../../engine/size';
 import { spendableAdvantage } from './advantagePool';
 import { inBattleId } from '../monde/combatants';
-import { canMove } from '../mount';
+import { canMove, defenseDodgeMods } from '../mount';
+import type { Jeu } from '../etat';
+import { defenseTargetMods, defenseValue, defenseValueModParts } from '../../engine/combat';
+import { rollLine, type RollLineParts } from '../rollSeam';
 import { refusActionDepensee, refusHorsDEtatDAgir } from '../refusDuTour';
 
 /** Le porteur et son combat. */
@@ -64,4 +67,14 @@ export function peutFuir(ctx: CtxDeDesengagement): boolean {
 /** Une option qui ne coûte pas l'Action reste-t-elle ouverte (Avantage, départ libre ou Fuite) ? */
 export function desengagementSansAction(ctx: CtxDeDesengagement): boolean {
   return peutSacrifierLAvantage(ctx) || departLibre(ctx) || peutFuir(ctx);
+}
+
+/** Ligne de l'Esquive du désengagement (`rollLine`, mêmes valeur et modificateurs que `rollMeleeDefender`
+ *  avec `defenseDodgeMods`) — LDB 15 l.43-68, LDB 13 l.118. */
+export function ligneDEsquiveDeDesengagement(s: Pick<Jeu, 'scene' | 'gameTime'>, mover: Combatant): RollLineParts {
+  return rollLine({
+    difficulty: 'intermediaire',
+    valeur: defenseValue(mover, 'esquive'), dansLaValeur: defenseValueModParts(mover, 'esquive'), valeurEtrangere: true,
+    surLaCible: defenseTargetMods(mover, 'esquive', defenseDodgeMods(s, mover)), plafond: 'difficultes',
+  });
 }

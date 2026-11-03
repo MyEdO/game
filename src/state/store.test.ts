@@ -2870,7 +2870,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     useGame.setState({
       pendingReload: {
         actorId: H.id, actorName: H.label, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
-        skillValue: 40, difficulty: 'intermediaire', roll: 10, target: 40, sl: 3, success: true,
+        skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
     useGame.getState().reloadConfirm();
@@ -2890,7 +2890,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     useGame.setState({
       pendingReload: {
         actorId: H.id, actorName: H.label, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
-        skillValue: 40, difficulty: 'intermediaire', roll: 10, target: 40, sl: 3, success: true,
+        skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
     useGame.getState().reloadConfirm();
@@ -2961,7 +2961,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     useGame.setState({
       pendingReload: {
         actorId: H.id, actorName: H.label, weaponUid: 'w-arb', reload: 2, progressBefore: 1,
-        skillValue: 40, difficulty: 'intermediaire', roll: 95, target: 40, sl: -2, success: false,
+        skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 95, target: 40, sl: -2, success: false,
       },
     });
     useGame.getState().reloadConfirm();

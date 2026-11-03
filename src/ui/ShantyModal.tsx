@@ -1,5 +1,4 @@
 import { useGame } from '../state/store';
-import { testValue } from '../engine/skills';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, flowStakeRef } from '../data';
 import { RollShell, type RollAction } from './RollShell';
@@ -10,12 +9,13 @@ import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { dureeDeChanson, ligneDeChanson } from '../noyau/shipCrew';
+import { cibleMesuree } from '../engine/tests';
 
 /**
- * Modale de CHANSON DE MARIN (Talent, MDG 09 l.32-40) : le pré-jet est un MENU (OptionChooser) des
- * chansons CONNUES du chanteur (specs du Talent — « chaque niveau … apprend une nouvelle chanson »),
- * puis « Lancer » jette le Test de **Divertissement (Chant)** ; « Appliquer » pose l'effet sur tout
- * l'équipage pour « trois minutes plus un nombre de minutes égal au DR » (l.38).
+ * Modale de CHANSON DE MARIN (MDG 09 l.32-40) : le pré-jet est un MENU (OptionChooser) des chansons
+ * CONNUES du chanteur, puis « Lancer », puis « Appliquer » sur tout l'équipage. Ligne et durée :
+ * `noyau/shipCrew` (`ligneDeChanson`, `dureeDeChanson`).
  */
 export function ShantyModal() {
   const p = useGame((s) => s.pendingShanty);
@@ -33,15 +33,15 @@ export function ShantyModal() {
   if (!singer) return null;
   const r = p.result;
   const chosen = p.shantyId ? findSeaShantyById(p.shantyId) : undefined;
-  const value = testValue(singer, 'divertissement', undefined, 'chant');
+  const ligne = ligneDeChanson(singer);
   const rolled = !!r;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: singer,
     row: {
       combatant: singer,
-      d: r ? testBreakdown(libelleDeTest('chant'), value, r, 'intermediaire') : undefined,
-      pending: testPending(libelleDeTest('chant'), value, undefined, 'intermediaire'),
+      d: r ? testBreakdown(libelleDeTest('chant'), ligne.base, r, ligne.difficulty, ligne.mods) : undefined,
+      pending: testPending(libelleDeTest('chant'), ligne.base, cibleMesuree(ligne), ligne.difficulty, ligne.mods),
     },
     onRoll: roll,
     rerolled: !!p.rerolled,
@@ -91,10 +91,10 @@ export function ShantyModal() {
       outcome={r && chosen
         ? resultLines(freeCons(r.success
             ? [
-                { text: `« ${chosen.label} » porte ${3 + Math.max(0, r.sl)} minute(s) : ${chosen.desc}`, icon: 'audio/music', tone: 'ok' as const },
+                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl), desc: chosen.desc }), icon: 'audio/music', tone: 'ok' as const },
                 ...(chosen.note ? [{ text: `— ${chosen.note}`, tone: 'info' as const }] : []),
               ]
-            : ['La chanson tombe à plat — aucun effet (le quart est consommé).']))
+            : [t('crew.shantyAPlat')]))
         : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}

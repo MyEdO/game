@@ -214,7 +214,7 @@ import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollaps
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
@@ -277,7 +277,7 @@ import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './c
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue } from './combatManeuvers';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
@@ -1009,15 +1009,6 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
   return { difficulty: p.difficulty, ...(p.difficultyCombined != null ? { difficultyCombined: p.difficultyCombined } : {}) };
 }
 
-/** Lignes d'ESQUIVE que le contexte impose au défenseur — SOURCE UNIQUE du jet résolu (`attackAt`
- *  → `resolveMelee({ dodgeMods })`), de la défense réactive et du pré-jet (`previewDefense`) : météo de
- *  la scène (neige épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`), chacune sa ligne. Un
- *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
-export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
-  const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
-  const weather: ModLine[] = sc?.esquive ? [sc.esquive] : [];
-  return [...weather, ...mountedDodgeMods(defender)];
-}
 /** Ligne ADVERSE du panneau de jet pré-rempli (modale d'attaque) : ce que le joueur est en droit
  *  de savoir de la défense à venir — la compétence probable (« Parade » / « Esquive ») et ses
  *  bonus/malus visibles (Avantage, États, Sur la défensive…), SANS la valeur de compétence ni
@@ -4306,11 +4297,9 @@ function aiBattement(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
 function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): boolean {
   const battle = get().battle;
   if (!battle) return false;
-  // Athlétisme du mover / Calme du foe : ces valeurs SONT nues (carac effective + avances, LDB 09 l.17)
-  // — elles se posent telles quelles en grandeur de départage (LDB 12 l.160).
-  const atkValue = distraireAttackValue(enemy), defValue = distraireDefenseValue(foe);
-  const atk = { ...rollSansPilote(get, enemy, atkValue, 'intermediaire', battleRng()), base: atkValue };
-  const def = { ...rollTest(defValue, 'intermediaire', battleRng()), base: defValue };
+  // LDB 10 l.364 ; départage LDB 12 l.160.
+  const atk = { ...rollSansPilote(get, enemy, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
+  const def = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
   const line = resolveDistraire(enemy, foe, atk, def);
   set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -8374,7 +8363,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       else setReloadProgress(enemy, rw, progress);
       // ISSUE dérivée par le MÊME goulot que le flux joueur (`FLOWS.reload.apply`, canal COMBAT) : la voie
       // IA n'ouvre aucune fenêtre, elle FOURNIT son pending — même déclaration, même ligne.
-      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', roll: test.roll, target: test.target, sl: test.sl, success: test.success };
+      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', ligne: rollLine({ actor: enemy, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: rw } }), roll: test.roll, target: test.target, sl: test.sl, success: test.success };
       const aiReloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
       set({ battle: { ...markActed(get, set), log: [...get().battle!.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
