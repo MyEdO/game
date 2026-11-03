@@ -5,13 +5,13 @@
  * l'éditeur) composent d'ici, chacune dans sa forme de sortie.
  *
  * Il vit à côté de la primitive qu'il compose (`sceneEdit.ts` : `canonEdge`/`setEdgeWall`) parce que
- * ses consommateurs s'étalent sur `state/`, `gameIso/` et `ui/editor/` : un kit hébergé chez l'un
+ * ses consommateurs s'étalent sur `noyau/`, `gameIso/` et `ui/editor/` : un kit hébergé chez l'un
  * d'eux redeviendrait le helper local d'un seul. La CANONICALISATION N/E n'est jamais réencodée ici :
  * elle passe par `canonEdge`/`setEdgeWall`.
  */
-import type { Scene, WallSeg } from '../noyau/monde/scene';
-import { canonEdge, setEdgeWall } from '../noyau/sceneEdit';
-import type { CellSide } from '../noyau/monde/scene';
+import type { Scene, WallSeg } from './monde/scene';
+import { canonEdge, setEdgeWall } from './sceneEdit';
+import type { CellSide } from './monde/scene';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */
 export interface PlanRect { x: number; y: number; w: number; h: number }

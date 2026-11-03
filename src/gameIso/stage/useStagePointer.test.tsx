@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screenToTileAtZ, tileCenter, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../noyau/monde/scene';
-import { piece } from '../../state/pieces.fixture';
+import { piece } from '../../noyau/pieces.fixture';
 import { metricToLift } from '../../noyau/monde/relief';
 import { walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';

@@ -12,7 +12,7 @@ import type { Combatant } from '../../engine/types';
 import { structureCombatant } from '../../engine/structures';
 import { findStructureById } from '../../data';
 import { makePregens } from '../../data/pregens';
-import { cloisons, piece } from '../../state/pieces.fixture';
+import { cloisons, piece } from '../../noyau/pieces.fixture';
 import type { Pt } from '../../noyau/monde/path';
 import { poseFromDims } from './projection';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';

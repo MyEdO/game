@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { firedAttackBlock } from './combatFlow';
 import type { Combatant } from '../engine/types';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
@@ -29,11 +29,11 @@ const enemyAt = (id: string, x: number, y: number): Combatant =>
 const hull = (): Combatant =>
   ({ id: 'hull', name: 'Cogue', kind: 'enemy', pos: { x: 5, y: 5 }, crewIds: ['gunner'], conditions: [], weapons: [] }) as unknown as Combatant;
 
-const mkGet = (combatants: Combatant[], heading: string): (() => GameState) =>
+const mkGet = (combatants: Combatant[], heading: string): (() => Jeu) =>
   (() => ({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null },
     facing: { hull: heading }, gameTime: 0, log: () => {},
-  })) as unknown as () => GameState;
+  })) as unknown as () => Jeu;
 
 describe('firedAttackBlock — garde d’arc de bordée bout-en-bout (MDG 12-13)', () => {
   const east = enemyAt('east', 9, 5); // à l'est de la coque

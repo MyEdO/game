@@ -214,7 +214,7 @@ describe('couture label→id — toute qualité d’arme/armure des données se 
   // (`qualities.json:270-279`), dont la `desc` recopie AA 08 l.310, la NOTE de l'arme Filet lesté.
   // Conséquence mesurée : l'authoring par libellé n'en atteint qu'une (`qualityIdByLabel` rend l'id
   // CANONIQUE, le slug du libellé → `immobilisante`) ; le runtime reste sur l'id (`{ id: 'immobilisante-fixe' }` authorée
-  // en donnée, `zi-filets.test.ts`). Curation de la donnée : ticket de curation ouvert par l'orchestrateur.
+  // en donnée, `zi-filets.hors-store.test.ts`). Curation de la donnée : ticket de curation ouvert par l'orchestrateur.
   it('le doublon de libellé du catalogue est CONNU et borné à « Immobilisante »', () => {
     const parLabel = new Map<string, string[]>();
     for (const q of parSousType('')) parLabel.set(q.label.toLowerCase(), [...(parLabel.get(q.label.toLowerCase()) ?? []), q.id]);

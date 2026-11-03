@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { fireTriggers } from '../noyau/triggeredEffects';
-import { useGame } from '../state/store';
-import { seedBattleRng, battleRng } from '../noyau/battleRng';
-import { emptyScene } from '../noyau/monde/scene';
-import { resolveRecoverTest } from '../noyau/combat/recover';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { fireTriggers } from './triggeredEffects';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { seedBattleRng, battleRng } from './battleRng';
+import { emptyScene } from './monde/scene';
+import { resolveRecoverTest } from './combat/recover';
 import { weaponFromTrait } from '../engine/creatureEquip';
-import { findTrappingById, findQualityById } from './index';
+import { findTrappingById, findQualityById } from '../data/index';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -22,12 +22,15 @@ const foe = (id: string, over: Partial<Combatant> = {}): Combatant =>
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: {} as never, conditions: [], traits: [], talents: [], skills: [], weapons: [] as Weapon[], ...over })) as unknown as Combatant;
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
 function mountBattle(combatants: Combatant[]) {
   seedBattleRng(1);
-  useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never,
+  banc.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never,
     scene: { ...emptyScene('s', 10, 10), label: 's' },
     party: [], facing: {}, pendingShipBattery: null });
-  return () => useGame.getState();
+  return banc.getState;
 }
 
 const empetreOf = (c: Combatant) => c.conditions.find((x) => x.id === 'empetre');

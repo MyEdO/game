@@ -19,3 +19,10 @@ export function chargerSurLeBanc(banc: Banc, texte: string): void {
   banc.setState(etat);
   loadRuleOverrides(regles);
 }
+
+/** Le texte de la save `texte`, la clé `cle` retirée de son `data` : une save au format courant que la clé n'a pas atteinte. */
+export function sansLaCleDeJeu(texte: string, cle: string): string {
+  const save = JSON.parse(texte) as { data: Record<string, unknown> };
+  delete save.data[cle];
+  return JSON.stringify(save);
+}

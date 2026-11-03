@@ -1,12 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { captureMutation, applyMutation, type SceneMutation } from './sceneInstance';
 import { emptyScene, doorIsOpen, setDoorOpen, type Scene, type WallSeg } from './scene';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { removeEntity } from '../combatPlacement';
-import { stockageDesSauvegardes } from '../../state/saves';
-import { lireLaSauvegarde, ecrireLaSauvegarde } from '../../hote/sauvegardes';
-import { type SaveGame } from '../persistance/save';
-import { poserLeLocalStorage } from '../../lib/stockage.testkit';
+import { chargerSurLeBanc, sansLaCleDeJeu, sauverLeBanc } from '../persistance/save.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const DOOR_OPENED: WallSeg = { x: 1, y: 1, side: 'N', door: true, closed: true };
@@ -76,31 +73,30 @@ function hero() {
   })) as unknown as import('../../engine/types').Combatant;
 }
 
-beforeEach(() => {
-  useGame.setState({ party: [], scene: null, sceneInstances: {} });
-});
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
-describe('sceneInstance — câblage store, REVISIT (#707)', () => {
+describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
   it('une entité retirée et une porte ouverte SURVIVENT au revisit ; le décor/porte non touché reste intact', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-a');
     const sceneB = fixtureScene('scene-b');
-    useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a', projet: null });
+    banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a', projet: null });
 
-    removeEntity(useGame.getState, useGame.setState, 'decor-retire');
-    useGame.setState((s) => ({ scene: setDoorOpen(s.scene!, 1, 1, 'N', 0, true) }));
-    expect(useGame.getState().scene!.entities.map((e) => e.id)).not.toContain('decor-retire');
-    expect(doorIsOpen(useGame.getState().scene!, DOOR_OPENED)).toBe(true);
+    removeEntity(banc.getState, banc.setState, 'decor-retire');
+    banc.setState((s) => ({ scene: setDoorOpen(s.scene!, 1, 1, 'N', 0, true) }));
+    expect(banc.getState().scene!.entities.map((e) => e.id)).not.toContain('decor-retire');
+    expect(doorIsOpen(banc.getState().scene!, DOOR_OPENED)).toBe(true);
 
-    useGame.getState().transitionTo('scene-b');
-    expect(useGame.getState().scene?.id).toBe('scene-b');
-    expect(useGame.getState().sceneInstances['scene-a']).toEqual<SceneMutation>({
+    banc.getState().transitionTo('scene-b');
+    expect(banc.getState().scene?.id).toBe('scene-b');
+    expect(banc.getState().sceneInstances['scene-a']).toEqual<SceneMutation>({
       removedEntityIds: ['decor-retire'],
       flags: { __door_1_1_N_0: true },
     });
 
-    useGame.getState().transitionTo('scene-a');
-    const back = useGame.getState().scene!;
+    banc.getState().transitionTo('scene-a');
+    const back = banc.getState().scene!;
     expect(back.id).toBe('scene-a');
     expect(back.entities.map((e) => e.id)).not.toContain('decor-retire'); // ressuscité si régression
     expect(back.entities.map((e) => e.id)).toContain('decor-untouche');
@@ -109,33 +105,33 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
   });
 
   it('une scène jamais mutée : sceneInstances reste vide, le revisit ne change rien', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-c');
     const sceneB = fixtureScene('scene-d');
-    useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-c', projet: null });
-    useGame.getState().transitionTo('scene-d');
-    useGame.getState().transitionTo('scene-c');
-    expect(useGame.getState().sceneInstances).toEqual({});
-    const back = useGame.getState().scene!;
+    banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-c', projet: null });
+    banc.getState().transitionTo('scene-d');
+    banc.getState().transitionTo('scene-c');
+    expect(banc.getState().sceneInstances).toEqual({});
+    const back = banc.getState().scene!;
     expect(back.entities.map((e) => e.id).sort()).toEqual(['decor-retire', 'decor-untouche', 'hs']);
     expect(doorIsOpen(back, DOOR_OPENED)).toBe(false);
   });
 
   it('nouvelle partie (startScene) REMET sceneInstances à vide', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-e');
-    useGame.getState().loadProject({ scenes: [sceneA], entryId: 'scene-e', projet: null });
-    removeEntity(useGame.getState, useGame.setState, 'decor-retire');
-    useGame.getState().transitionTo('scene-e'); // capture (même scène, revisit immédiat)
-    expect(Object.keys(useGame.getState().sceneInstances)).toHaveLength(1);
-    useGame.getState().startScene(fixtureScene('scene-f'));
-    expect(useGame.getState().sceneInstances).toEqual({});
+    banc.getState().loadProject({ scenes: [sceneA], entryId: 'scene-e', projet: null });
+    removeEntity(banc.getState, banc.setState, 'decor-retire');
+    banc.getState().transitionTo('scene-e'); // capture (même scène, revisit immédiat)
+    expect(Object.keys(banc.getState().sceneInstances)).toHaveLength(1);
+    banc.getState().startScene(fixtureScene('scene-f'));
+    expect(banc.getState().sceneInstances).toEqual({});
   });
 
   // RÈGLE : à l'entrée en scène, l'assise se NORMALISE — ne survit que la place dont le meuble est
   // posé, la place déclarée au catalogue, et le corps disponible.
   it('transitionTo : l’assise AUTHORÉE d’un héros hors groupe est élaguée à l’entrée en scène', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const a = fixtureScene('scene-t1');
     const b = fixtureScene('scene-t2');
     b.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
@@ -143,74 +139,65 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     b.seatAssignments = {
       'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
     };
-    useGame.getState().loadProject({ scenes: [a, b], entryId: 'scene-t1', projet: null });
-    useGame.getState().transitionTo('scene-t2');
+    banc.getState().loadProject({ scenes: [a, b], entryId: 'scene-t1', projet: null });
+    banc.getState().transitionTo('scene-t2');
     // Le PNJ authoré reste assis ; le héros qui n'est pas du groupe ne réserve rien.
-    expect(useGame.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
+    expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
   });
 
-  describe('save/load RÉEL (applyLoadedSave, #707)', () => {
-    beforeEach(() => {
-      poserLeLocalStorage();
-    });
-
-    it('l’entité retirée et la porte ouverte survivent à un vrai saveGame → loadGame → revisit', () => {
-      useGame.setState({ party: [hero()] });
+  describe('save/load RÉEL (chargerLaSave, #707)', () => {
+    it('l’entité retirée et la porte ouverte survivent à une vraie sauvegarde → chargement → revisit', () => {
+      banc.setState({ party: [hero()] });
       const sceneA = fixtureScene('scene-g');
       const sceneB = fixtureScene('scene-h');
-      useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-g', projet: null });
-      removeEntity(useGame.getState, useGame.setState, 'decor-retire');
-      useGame.getState().transitionTo('scene-h', undefined, { x: 0, y: 0 }); // capture scene-g avant sauvegarde d'une AUTRE scène
-      expect(useGame.getState().saveGame(1)).toBe(true);
+      banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-g', projet: null });
+      removeEntity(banc.getState, banc.setState, 'decor-retire');
+      banc.getState().transitionTo('scene-h', undefined, { x: 0, y: 0 }); // capture scene-g avant sauvegarde d'une AUTRE scène
+      const texte = sauverLeBanc(banc);
 
-      useGame.setState({ sceneInstances: {} }); // « nouvelle partie » — état écrasé avant le chargement
-      expect(useGame.getState().sceneInstances).toEqual({});
-      expect(useGame.getState().loadGame(1)).toBe(true);
-      expect(useGame.getState().sceneInstances['scene-g']).toEqual<SceneMutation>({ removedEntityIds: ['decor-retire'], flags: {} });
+      banc.setState({ sceneInstances: {} }); // « nouvelle partie » — état écrasé avant le chargement
+      expect(banc.getState().sceneInstances).toEqual({});
+      chargerSurLeBanc(banc, texte);
+      expect(banc.getState().sceneInstances['scene-g']).toEqual<SceneMutation>({ removedEntityIds: ['decor-retire'], flags: {} });
 
-      useGame.getState().transitionTo('scene-g');
-      expect(useGame.getState().scene!.entities.map((e) => e.id)).not.toContain('decor-retire');
+      banc.getState().transitionTo('scene-g');
+      expect(banc.getState().scene!.entities.map((e) => e.id)).not.toContain('decor-retire');
     });
 
     // MÊME RÈGLE au CHARGEMENT : une save dont l'assise ment (meuble disparu, place inconnue, héros
     // hors groupe) arrive normalisée, jamais telle quelle.
     it('une save v28 portant une place INVALIDE arrive ÉLAGUÉE en état', () => {
-      useGame.setState({ party: [hero()] });
+      banc.setState({ party: [hero()] });
       const s = fixtureScene('scene-assise');
       s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
       s.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD de la table
-      useGame.getState().loadProject({ scenes: [s], entryId: 'scene-assise', projet: null });
-      useGame.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
-      expect(useGame.getState().saveGame(1)).toBe(true);
-
+      banc.getState().loadProject({ scenes: [s], entryId: 'scene-assise', projet: null });
+      banc.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
       // La save est trafiquée à la VERSION COURANTE : meuble disparu, héros hors groupe, slot inconnu
       // — exactement ce qu'un paquet de campagne réédité ou un groupe recomposé produit.
-      const brut = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
-      const data = brut.data as { scene: Scene };
+      const brut = JSON.parse(sauverLeBanc(banc)) as { data: { scene: Scene } };
+      const data = brut.data;
       data.scene.seatAssignments = {
         'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, plafond: { kind: 'entity', entityId: 'attable' } },
         'meuble-disparu': { 'place-1': { kind: 'entity', entityId: 'attable' } },
         'table-2': { 'place-1': { kind: 'party', rang: 4 } },
       };
-      ecrireLaSauvegarde(stockageDesSauvegardes(), 1, brut);
 
-      expect(useGame.getState().loadGame(1)).toBe(true);
-      expect(useGame.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
+      chargerSurLeBanc(banc, JSON.stringify(brut));
+      expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
     });
 
     it('tolérance PAR CONSTRUCTION : clé « sceneInstances » absente du snapshot → valeur initiale ({}) au chargement', () => {
-      useGame.setState({ party: [hero()] });
+      banc.setState({ party: [hero()] });
       const sceneA = fixtureScene('scene-i');
-      useGame.getState().loadProject({ scenes: [sceneA], entryId: 'scene-i', projet: null });
-      expect(useGame.getState().saveGame(1)).toBe(true);
-      const withField = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
-      const dataSans = { ...withField.data } as Record<string, unknown>;
-      delete dataSans.sceneInstances;
+      banc.getState().loadProject({ scenes: [sceneA], entryId: 'scene-i', projet: null });
+      removeEntity(banc.getState, banc.setState, 'decor-retire');
+      banc.getState().transitionTo('scene-i'); // capture : l'état chargé avant la save porte une instance
+      expect(Object.keys(banc.getState().sceneInstances)).toHaveLength(1);
       // Save écrite à la version COURANTE, clé `sceneInstances` RETIRÉE : filet n°1 de la politique de
       // version (champ manquant → `initialFields`), pas une save d'une autre version.
-      ecrireLaSauvegarde(stockageDesSauvegardes(), 1, { ...withField, data: dataSans } as unknown as SaveGame);
-      expect(useGame.getState().loadGame(1)).toBe(true);
-      expect(useGame.getState().sceneInstances).toEqual({});
+      chargerSurLeBanc(banc, sansLaCleDeJeu(sauverLeBanc(banc), 'sceneInstances'));
+      expect(banc.getState().sceneInstances).toEqual({});
     });
   });
 });

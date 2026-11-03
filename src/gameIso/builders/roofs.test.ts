@@ -9,7 +9,7 @@ import { roofMaterial } from '../catalog/roofs';
 import { MISSING_ID, MISSING_TONE } from '../catalog/missing';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
 import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../noyau/sceneEdit';
-import { encloseRect, perimeterWallSegs } from '../../state/sceneEdit.testkit';
+import { encloseRect, perimeterWallSegs } from '../../noyau/sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { buildings } from '../../data';
 

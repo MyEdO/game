@@ -3,7 +3,7 @@ import { attackPlan, firedWeapon } from './combatFlow';
 import { combatGeomOf, combatGeomOfList, pickAttackWeaponList } from './mount';
 import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Scene } from './monde/scene';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -40,8 +40,8 @@ const scene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 10, h: 10 }, ambiance: 'jour', layers: [{ z: 0, tiles: new Array(100).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const NET_LOCAL = { mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
-const mkGet = (combatants: Combatant[]): (() => GameState) =>
-  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => GameState;
+const mkGet = (combatants: Combatant[]): (() => Jeu) =>
+  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => Jeu;
 
 describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE, jamais celle du chef', () => {
   it('(a) coque ADJACENTE à la porte, chef PAS adjacent (loin) : attaque DISPONIBLE', () => {
