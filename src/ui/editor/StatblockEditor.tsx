@@ -171,10 +171,6 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
         Suit les règles de Personnage (Corruption/composant/maladie)
       </label>
       <label className="ed-field">
-        Dégâts d'arme de secours (si aucun trait d'arme, ex. +BF+4)
-        <input value={stat.weaponDamage ?? ''} onChange={(e) => onChange({ ...stat, weaponDamage: e.target.value || undefined })} />
-      </label>
-      <label className="ed-field">
         Armure (PA uniforme)
         <NumberField
           variant="nu"

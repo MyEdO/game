@@ -12,7 +12,7 @@ import { longerThanShort } from './engagement';
 
 /** Dégâts d'arme encaissés EFFECTIFS (pour la pénalité) : l'Atout Solide(N) absorbe les N premiers
  *  Points de Dégâts sans pénalité (LDB 60 l.30). */
-function effectiveDamageTaken(w: Weapon): number {
+function effectiveDamageTaken(w: Pick<Weapon, 'damageTaken' | 'qualities'>): number {
   return Math.max(0, (w.damageTaken ?? 0) - (qualityIndice(w, 'solide') ?? 0));
 }
 
@@ -102,10 +102,11 @@ export function applyEnchants(w: Weapon, enchants: WeaponEnchant[]): Weapon {
 }
 
 /** L'arme est-elle réduite à l'état improvisé (bonus de Dégâts à +0 par usure) ? */
-export function isImprovised(w: Weapon): boolean {
+export function isImprovised(w: Pick<Weapon, 'damage' | 'damageTaken' | 'qualities'>): boolean {
   if (!('flat' in w.damage)) return false; // « Spécial » (literal) : jamais improvisé
   const flat = w.damage.flat;
-  return flat >= 0 && flat - effectiveDamageTaken(w) <= 0;
+  const dt = effectiveDamageTaken(w);
+  return dt > 0 && flat >= 0 && flat - dt <= 0; // LDB 62 l.135 : réduits PAR les Dégâts reçus
 }
 
 /** Résolveur d'une Possession par id STABLE — même signature que `TrappingResolver` (engine/items). */
