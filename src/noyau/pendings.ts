@@ -160,7 +160,7 @@ export interface PendingTest {
    *  informatif : la modale NOMME « plafond 99 : −N » au lieu de le déduire de la valeur de la cible. */
   clamped?: number;
   /** SOUTIEN (LDB 12 l.187-200) du candidat COURANT, déjà FONDU dans `skillValue`/`target` — porté
-   *  pour l'AFFICHAGE (ligne de mod nommée, `ui/breakdown.supportSplit`), comme `PendingActivity.support`.
+   *  pour l'AFFICHAGE (ligne de mod nommée, `engine/skills.supportSplit`), comme `PendingActivity.support`.
    *  Change avec le lanceur choisi (`testSetActor` recopie celui du candidat). */
   support?: SupportDetail;
   /** La Difficulté a été ALLÉGÉE (`FlowTest.easierIf`) : libellé de la compétence/du talent qui l'a
