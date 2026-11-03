@@ -8,44 +8,23 @@ import type { JSX } from 'react';
 import { useGame } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import { type PendingCast, type PendingSiegeAim } from '../../noyau/pendings';
-import { Combatant } from '../../engine/types';
-import { zdeRadiusTiles, spellRangeTiles } from '../../engine/magic';
-import { findSpellById } from '../../data';
-import { placingZoneOf, placedZoneValidAt, castSightBlocked } from '../../noyau/combatFlow';
+import { zoneSousLeCurseur } from '../../noyau/combatFlow';
 import { Dims, diamondPath, diamondCorners } from '../../geometry/iso';
-import { chebyshev } from '../../engine/grid';
 import type { Pt } from '../../noyau/monde/path';
 import { ENEMY_CUE_TINT, INVALID_TINT } from '../highlightTints';
 
-export function ZdeTemplate({ battle, hover, pendingCast, pendingSiegeAim, activeC, dims }: {
+/** `battle`, `pendingCast` et `pendingSiegeAim` sont les abonnements du parent qui redessinent le gabarit : le verdict
+ *  se lit au noyau (`zoneSousLeCurseur`). */
+export function ZdeTemplate({ hover, dims }: {
   battle: BattleState;
   hover: Pt;
   pendingCast: PendingCast | null;
   pendingSiegeAim: PendingSiegeAim | null;
-  activeC: Combatant | undefined;
   dims: Dims;
 }) {
-  // Source UNIQUE de pose (placingZoneOf — toute zone à poser librement) ; sinon aperçu
-  // au rayon initial quand un sort de ZdE est sélectionné sans modale ouverte.
-  const pz = placingZoneOf({ pendingCast, pendingSiegeAim, battle });
-  let radius: number | null = null;
-  let caster: Combatant | undefined;
-  let ok: boolean | null = null;
-  if (pz) {
-    radius = pz.radius;
-    caster = battle.combatants.find((c) => c.id === pz.casterId);
-    ok = placedZoneValidAt(useGame.getState, pz, hover);
-  } else if (battle.action === 'cast' && battle.selectedSpellId && activeC?.kind === 'hero' && !pendingCast) {
-    const spell = findSpellById(battle.selectedSpellId);
-    // Rayon depuis la cible STRUCTURÉE (source unique — gère les spans rayon ET diamètre).
-    radius = spell ? zdeRadiusTiles(spell.target, activeC) : null;
-    caster = activeC;
-    if (radius != null && spell && caster?.pos) {
-      const range = spellRangeTiles(spell.range, caster);
-      ok = (range == null || chebyshev(caster.pos, hover) <= range) && !castSightBlocked(useGame.getState, caster.pos, hover);
-    }
-  }
-  if (radius == null || !caster?.pos || ok == null) return null;
+  const zone = zoneSousLeCurseur(useGame.getState, hover);
+  if (!zone) return null;
+  const { radius, valide: ok } = zone;
   // Les deux branches lisent le MÊME régime (la façade de teintes) : une valeur hexa, lisible par le
   // SVG comme par le volumique — jamais un `var(--x)` que `THREE.Color` ne résout pas.
   const col = ok ? ENEMY_CUE_TINT : INVALID_TINT;

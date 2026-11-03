@@ -5190,11 +5190,28 @@ export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | '
 
 /** La case `pt` est-elle une POSE valide pour la zone en cours ? Portée depuis l'ancre + Ligne
  *  de Vue vers le point (LDB 46 l.121) — partagé par le gabarit (couleur) et le clic. */
-export function placedZoneValidAt(get: Get, pz: PlacingZone, pt: Pt): boolean {
+export function placedZoneValidAt(get: Get, pz: Pick<PlacingZone, 'casterId' | 'rangeTiles'>, pt: Pt): boolean {
   const caster = inBattleId(get().battle, pz.casterId);
   if (!caster?.pos) return false;
   if (pz.rangeTiles != null && chebyshev(caster.pos, pt) > pz.rangeTiles) return false;
   return !castSightBlocked(get, caster.pos, pt);
+}
+
+/** Le gabarit de zone sous le curseur `hover` : la zone EN POSE (`placingZoneOf`), sinon l'aperçu au rayon initial du
+ *  sort de ZdE que le héros actif a sélectionné sans modale ouverte ; son rayon en cases et la validité de la pose
+ *  (`placedZoneValidAt`, la règle du clic). `null` sans gabarit, ou sans lanceur posé sur le plateau. */
+export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide: boolean } | null {
+  const s = get();
+  const { battle } = s;
+  if (!battle) return null;
+  const pz = placingZoneOf(s);
+  if (pz) return inBattleId(battle, pz.casterId)?.pos ? { radius: pz.radius, valide: placedZoneValidAt(get, pz, hover) } : null;
+  const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
+  if (battle.action !== 'cast' || !battle.selectedSpellId || active?.kind !== 'hero' || s.pendingCast || !active.pos) return null;
+  const spell = findSpellById(battle.selectedSpellId);
+  const radius = spell ? zdeRadiusTiles(spell.target, active) : null;
+  if (!spell || radius == null) return null;
+  return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active) }, hover) };
 }
 
 /** Dépose la zone en cours sur `pt` — dispatch par source (chaque consommateur garde ses gates). */

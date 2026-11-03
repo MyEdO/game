@@ -1188,6 +1188,7 @@ export const fr = {
   'exploration.saut': 'Sauter vers ({x},{y})',
   'exploration.sortie': 'Sortie vers {scene}',
   'exploration.ailleurs': '{geste} depuis ({x},{y})',
+  'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
   'saut.horsDePortee': 'Saut refusé : aucun saut ne mène à cette case.',
   'cs.manPoste': '{name} prend en main {weapon}.',
@@ -2089,7 +2090,6 @@ export const fr = {
   'seating.sat': 'Vous prenez place.',
   'seating.stood': 'Vous vous levez.',
   'seating.occupied': 'Toutes les places sont occupées.',
-  'seating.noReachableSeat': 'Aucune place libre n’est accessible d’ici.',
   'seating.mustReachApproach': 'Vous devez rejoindre la place pour vous y asseoir.',
 
   // ── UTILISABLE (`noyau/monde/usable.ts`, `usable.*`) : les actions qu'une entité OFFRE au joueur. ──

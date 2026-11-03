@@ -81,7 +81,6 @@ const BASELINES: Record<string, number> = {
   'src/gameIso/stage/highlightLayer.tsx': 3,
   'src/gameIso/stage/useHoverTargeting.ts': 5,
   'src/gameIso/stage/useStageCamera.ts': 8,
-  'src/gameIso/stage/ZdeTemplate.tsx': 1,
 };
 
 function countsByFile(): Record<string, number> {
