@@ -77,11 +77,15 @@ export const poidsDeCarrure = (st: number, bornes: TableDeGabarit['st']): Record
 });
 
 /** Les poids des shape keys de silhouette d'un corps : la carrure (`poidsDeCarrure`), `feminin` par le sexe,
- *  `corpulence` par `build` (`hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base »). */
+ *  `corpulence` par `build` ; `carrure_plus` ne se cumule avec aucune autre silhouette : un corps féminin la perd, un
+ *  corps masculin ne la garde que plus forte que `corpulence` (#3104, #3280). `hotes/godot/pont/CONTRAT.md`, « Gabarit
+ *  d'une base ». */
 export const poidsDeSilhouettes = ({ sex, build, st }: { sex: Sexe; build: number; st: number }, table: TableDeGabarit): Record<string, number> => {
   const carrure = poidsDeCarrure(st, table.st);
+  const corpulence = borne((build - BUILD_NEUTRE) / (1 - BUILD_NEUTRE));
+  const plusSeule = sex === 'M' && carrure[CARRURE_PLUS] > corpulence;
   return tableTotale(NOMS_DES_SILHOUETTES, (nom) => nom === FEMININ ? (sex === 'F' ? 1 : 0)
-    : nom === CORPULENCE ? borne((build - BUILD_NEUTRE) / (1 - BUILD_NEUTRE)) : carrure[nom]);
+    : nom === CORPULENCE ? (plusSeule ? 0 : corpulence) : nom === CARRURE_PLUS ? (plusSeule ? carrure[nom] : 0) : carrure[nom]);
 };
 
 export interface CelluleDeSilhouettes {
@@ -102,9 +106,12 @@ export function cellulesDeSilhouettesAtteignables(table: TableDeGabarit, silhoue
   };
   return (['M', 'F'] as const).flatMap((sex) => [table.st.min, table.st.max].map((st, branche) => {
     const origine = poids(sex, BUILD_NEUTRE, FACTEURS_NEUTRES.st);
-    const bouts = [poids(sex, 1, FACTEURS_NEUTRES.st), poids(sex, BUILD_NEUTRE, st)];
+    const [corpulence, carrure] = [poids(sex, 1, FACTEURS_NEUTRES.st), poids(sex, BUILD_NEUTRE, st)]
+      .map((bout) => tableTotale(silhouettes, (nom) => bout[nom] - origine[nom]));
+    const coin = poids(sex, 1, st);
+    const cumul = silhouettes.every((nom) => coin[nom] === origine[nom] + corpulence[nom] + carrure[nom]);
     return { nom: `${sex}_${branche}`, origine,
-      colonnes: bouts.map((bout) => tableTotale(silhouettes, (nom) => bout[nom] - origine[nom])) as [Record<string, number>, Record<string, number>] };
+      colonnes: [cumul ? corpulence : tableTotale(silhouettes, () => 0), carrure] as [Record<string, number>, Record<string, number>] };
   }));
 }
 
