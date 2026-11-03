@@ -13,9 +13,10 @@ import { oppositionDuCoup, type OppositionEnVue } from './jetsEnVue';
 import { combatDistance } from './monde/footprint';
 import { inBattleId } from './monde/combatants';
 import {
-  attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, defenseDodgeMods,
+  attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense,
   surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock,
 } from './combatFlow';
+import { defenseDodgeMods } from './mount';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
 import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique } from '../engine/combat';

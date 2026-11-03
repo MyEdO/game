@@ -213,7 +213,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     b.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     b.actions.setMassBattleHero('planification', [meneur.id, second.id]);
     const s = b.getState();
-    const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!;
+    const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
     b.actions.massBattleActivity('planification', meneur.id);
     const pa = b.getState().pendingActivity!;
     expect(pa.support, 'témoin : le Second soutient').toMatchObject({ count: 1, ids: [second.id] });
@@ -247,12 +247,12 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
       b.actions.massBattleActivity(def.id, a.id);
       const pa = b.getState().pendingActivity;
       if (!pj || !pa) { if (refus == null) ecarts.push(`${def.id} : ouverte sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`); continue; }
-      const affiche = { cible: pj.ligne.target, cible2: pj.ligne2?.target, difficulte: pj.ligne.difficulty };
+      const affiche = { cible: pj.pending.ligne.target, cible2: pj.ligne2?.target, difficulte: pj.pending.ligne.difficulty };
       const jet = { cible: pa.target, cible2: pa.target2, difficulte: pa.difficulty };
       if (JSON.stringify(affiche) !== JSON.stringify(jet)) ecarts.push(`${def.id} affiché ${JSON.stringify(affiche)} ≠ posé ${JSON.stringify(jet)}`);
       // La ligne rendue NOMME le Soutien que la valeur posée porte (LDB 12 l.187-200).
       const soutien = soutienMod(pa.support);
-      if (soutien && !pj.ligne.mods.some((m) => JSON.stringify(m) === JSON.stringify(soutien))) ecarts.push(`${def.id} : Soutien absent de la ligne`);
+      if (soutien && !pj.pending.ligne.mods.some((m) => JSON.stringify(m) === JSON.stringify(soutien))) ecarts.push(`${def.id} : Soutien absent de la ligne`);
       if (pa.support) soutenues++;
       if (pa.target2 != null) combinees++;
     }

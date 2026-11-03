@@ -1,11 +1,11 @@
 import { useGame } from '../state/store';
-import { effectiveChar } from '../engine/characteristics';
+import { ligneDeForceDEmpoignade } from '../noyau/combatManeuvers';
+import { cibleBrute } from '../engine/tests';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { baseTestModLines, GRAPPLE_TEST_CTX } from '../engine/combat';
 import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
@@ -46,10 +46,11 @@ export function GrappleModal() {
 
   // Test OPPOSÉ de Force : la Difficulté est DÉCLARÉE UNE fois pour l'opposition entière
   // (LDB 12 l.166 ; jet de combat, LDB 13 l.118).
-  // Modificateurs NOMMÉS (Avantage, États, météo) : même source que celle que roule `rollGrappleForce`.
+  // Lignes : `ligneDeForceDEmpoignade`, celle de `rollGrappleForce`.
+  const [foeL, actorL] = [ligneDeForceDEmpoignade(foe), ligneDeForceDEmpoignade(actor)];
   const [foeLine, actorLine] = opposedLines([
-    { label: libelleDeTest('force'), base: effectiveChar(foe, 'force'), r: pd.atk, mods: baseTestModLines(foe, 'force', GRAPPLE_TEST_CTX) },
-    { label: libelleDeTest('force'), base: effectiveChar(actor, 'force'), r: pd.def, mods: baseTestModLines(actor, 'force', GRAPPLE_TEST_CTX) },
+    { label: libelleDeTest('force'), base: foeL.base, target: cibleBrute(foeL), r: pd.atk, mods: foeL.mods },
+    { label: libelleDeTest('force'), base: actorL.base, target: cibleBrute(actorL), r: pd.def, mods: actorL.mods },
   ]);
   // Rangée TÉMOIN : Force du foe, figée à l'ouverture (jamais relancée) — MASQUÉE tant que l'acteur
   // n'a pas répondu (#990 : `pd.def` est SA réponse ; le calendrier est celui de tous les jets figés).

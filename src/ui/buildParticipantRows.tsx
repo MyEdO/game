@@ -4,10 +4,10 @@ import type { Combatant } from '../engine/types';
 import { findCrewRoleById } from '../data';
 import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
-import { refusSansJet, easeDifficulty, type EchecSansJet } from '../engine/tests';
+import { refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
 import type { PlayerText } from '../i18n/playerText';
 import type { ShipManeuverParticipant } from '../noyau/pendings';
-import { crewRoleValue, crewRoleTestMods } from '../engine/crewMorale';
+import { ligneDuRole } from '../noyau/shipManeuver';
 import { testBreakdown, testPending } from './breakdown';
 import { libelleDeRangee, libelleDeRole } from '../noyau/jetsEnVue';
 
@@ -132,18 +132,17 @@ export function buildParticipantRows<P extends ParticipantRow>(
 
 /** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les trois modales navales
  *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). Une rangée dont le rôle est non tentable
- *  (`crewRoleValue`, la source que lit `rollCrewRole`) MONTRE son refus, dé jeté ou non : `CrewRoleValue`
+ *  (`ligneDuRole`, la source que lit `rollCrewRole`) MONTRE son refus, dé jeté ou non : `CrewRoleValue`
  *  interdit sa valeur, il n'y a donc ni valeur 0 ni dé contre une cible (LDB 09 l.30 ; #2588 Q1). Sinon,
  *  un dé déjà JETÉ s'affiche tel qu'il est tombé, contre sa cible. Manque de bras : MDG 14 l.53. */
 export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; clamped?: number; sl: number } | null): PanelRowData {
   const role = findCrewRoleById(part.roleId);
   if (!role) return { combatant: actor };
-  const rv = crewRoleValue(actor, role, part.navigation, part.sense);
+  const lr = ligneDuRole(actor, role, part.navigation, part.cumul, part.sense);
+  if ('refus' in lr) return { combatant: actor, note: lr.refus };
+  const { ligne } = lr;
   const label = libelleDeRole(part);
-  const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
-  if (rv.refus != null) return { combatant: actor, note: rv.refus };
-  const mods = crewRoleTestMods(actor, role, part.navigation, part.sense);
   return res
-    ? { combatant: actor, d: testBreakdown(label, rv.value, res, difficulty, mods) }
-    : { combatant: actor, pending: testPending(label, rv.value, undefined, difficulty, mods) };
+    ? { combatant: actor, d: testBreakdown(label, ligne.base, res, ligne.difficulty, ligne.mods) }
+    : { combatant: actor, pending: testPending(label, ligne.base, cibleMesuree(ligne), ligne.difficulty, ligne.mods) };
 }

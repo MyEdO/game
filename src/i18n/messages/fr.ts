@@ -2121,6 +2121,7 @@ export const fr = {
   'cs.fragDispelFreed': ' ({n} cibles libérées)',
   'store.forceDoorTitle': 'Enfoncer la porte',
   'store.doorYields': '{label} cède ! ({n} dégât{s})',
+  'store.armeDEnfoncementIndisponible': 'Cette arme ne peut pas servir à enfoncer la porte, ou le coup est déjà porté.',
   'store.doorHolds': '{label} : {n} dégât{s}, reste {left} Blessure{sB}.',
   'store.toolBroken': '{tool} (Bâclé) se brise sur la Maladresse de {name}.',
 
@@ -2399,6 +2400,8 @@ export const fr = {
   // marin, résolution d'unité navale, Moral et solde hebdomadaire, désertion. ──
   'crew.shantyLabel': 'Chanson de marin — {label}',
   'crew.shantyStart': '{name} entonne « {shanty} » ({min} min).',
+  'crew.shantyPorte': '« {shanty} » porte {min} minute(s) : {desc}',
+  'crew.shantyAPlat': 'La chanson tombe à plat — aucun effet (le quart est consommé).',
   'crew.noCaptain': 'Aucun Capitaine à bord : la chanson ne trouve pas son héros.',
   'crew.shantyEnd': "La chanson de {name} s'interrompt.",
   'crew.sinks': '{ship} sombre — son équipage ({crew}) passe par-dessus bord.',

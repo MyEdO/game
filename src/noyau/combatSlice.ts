@@ -18,7 +18,7 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -34,7 +34,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre, coupFerme } from './targetingHolder';
 import { refusDeCourse } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative, defenseDodgeMods } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -1910,6 +1910,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const present = servingCrewPresent(active, battle.combatants);
       const w = present != null ? crewedFireWeapon(w0, present) : w0;
       const skillValue = combatValue(active, 'ranged', w); // CT + avances Projectiles (Spé du groupe d'arme)
+      const ligne = rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } });
       set({
         pendingReload: {
           actorId: active.id,
@@ -1920,7 +1921,8 @@ export function createCombatSlice(get: Get, set: Set) {
           skillValue,
           difficulty: 'intermediaire',
           roll: null,
-          ...cibleMesuree(rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } })),
+          ligne,
+          ...cibleMesuree(ligne),
           sl: 0,
           success: false,
         },
@@ -1954,15 +1956,16 @@ export function createCombatSlice(get: Get, set: Set) {
       const sout = soutienDetail(servants, chef, 'projectiles', undefined, 'Poudre noire',
         chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
       const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
+      const ligne = rollLine({
+        actor: chef, difficulty: 'intermediaire', valeur: skillValue,
+        soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
+      });
       set({
         pendingReload: {
           actorId: chef.id, actorName: chef.label, weaponUid: w.uid!,
           reload: reloadDRTarget(w), progressBefore: poste.reloadProgress ?? 0,
           skillValue, difficulty: 'intermediaire', roll: null,
-          ...cibleMesuree(rollLine({
-            actor: chef, difficulty: 'intermediaire', valeur: skillValue,
-            soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
-          })), sl: 0, success: false,
+          ligne, ...cibleMesuree(ligne), sl: 0, success: false,
           posteUid, shipId, soutien: sout.bonus ? sout : undefined,
         },
       });
@@ -2896,12 +2899,13 @@ export function createCombatSlice(get: Get, set: Set) {
       if (raison) return void refuserGesteDuSiege(get, set, raison);
       const skillValue = testValue(healer, 'guerison');
       const difficulty = healDifficulty(mode);
+      const ligne = rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue });
       set({
         pendingHeal: {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
           skillValue, difficulty, roll: null, success: false, sl: 0,
-          ...cibleMesuree(rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue })),
+          ligne, ...cibleMesuree(ligne),
         },
         battle: { ...battle, action: null },
       });
@@ -2920,10 +2924,11 @@ export function createCombatSlice(get: Get, set: Set) {
       if (raison) return void refuserGesteDuSiege(get, set, raison);
       const difficulty = healDifficulty(mode);
       const soigneur = actorIn(get(), ph.healerId);
-      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ...cibleMesuree(rollLine({
+      const ligne = rollLine({
         actor: soigneur, ...(soigneur ? { test: { skill: 'guerison' } } : {}),
         difficulty, valeur: ph.skillValue, soutien: ph.support,
-      })) } });
+      });
+      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
     },
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──

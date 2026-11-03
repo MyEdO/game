@@ -1,12 +1,12 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { FLOWS } from './rollFlowSpecs';
-import { ARME_INTROUVABLE } from './mount';
+import { ARME_INTROUVABLE, defenseDodgeMods } from './mount';
 import { attackWeaponOf } from './combatFlow';
 import type { PendingAttack } from './pendings';
 import type { RollBreakdown } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
-import { previewAttack, previewDefense, defenseDodgeMods, resolveAttack, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
+import { previewAttack, previewDefense, resolveAttack, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
 import { attackModifiers, bestRangedDefense, combatBaseValue, combatValue, combineMods, type ModLine } from '../engine/combat';
 import { clampTarget } from '../engine/tests';
 import { setRule } from '../engine/policy';

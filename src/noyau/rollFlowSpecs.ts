@@ -23,30 +23,31 @@ import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import {
-  resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, defenseDodgeMods, overcastReset,
+  resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset,
 } from './combatFlow';
-import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, distraireAttackValue } from './combatManeuvers';
+import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, ligneDAttaquantDeManoeuvre, distraireAttackValue, distraireAttackBase } from './combatManeuvers';
 import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
-import { mouvementDeCourse, chargeDmgProxy } from './mount';
+import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
 import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
-import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
+import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
 import { refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
-import { rollLine } from './rollSeam';
+import { rollLine, type RollLineParts } from './rollSeam';
+import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
+import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
 import { testValue, valeurDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castingValue, castInfoIsPrayer, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
-import { bonusDeForce } from '../engine/characteristics';
 import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
@@ -542,6 +543,14 @@ export function refusDAnnulerLAttaque(pa: PendingAttack): string | null {
   if (pa.dualSecond) return t('cs.secondCoupImpose');
   if (pa.fromCharge && !pa.chargeUndo) return t('cs.chargeEngagee');
   return null;
+}
+
+/** Test de Force Mentale contre une Bénédiction de Protection — LDB 41 l.142. */
+const JET_DE_PROTECTION = { test: { char: 'force-mentale' }, difficulty: 'accessible' } as const;
+
+/** Ligne du Test de Protection (`rollLine`), lue par le résolveur `ward` et par `WardModal`. LDB 41 l.142. */
+export function ligneDeProtection(actor: Combatant): RollLineParts {
+  return rollLine({ actor, ...JET_DE_PROTECTION });
 }
 
 export const FLOWS = paresseux({
@@ -1156,10 +1165,9 @@ export const FLOWS = paresseux({
   }),
 
   /**
-   * Enfoncer une porte À PLUSIEURS (EDO Appendice 2, « Portes ») — flux multi PARALLÈLE (même
-   * fabrique que le Contre-sort, métier = DÉGÂTS sur objet) : chaque héros frappe indépendamment
-   * (Test de Corps à corps (Bagarre)), dégâts = max(0, DR + Bonus de Force − BE) ; objets : PAS de
-   * minimum 1 (l.92). Le cumul des dégâts vs B vit dans `forceDoorConfirm` (store).
+   * Enfoncer une porte À PLUSIEURS (EDO 11 l.89-95) — flux multi PARALLÈLE (même fabrique que le
+   * Contre-sort, métier = DÉGÂTS sur objet). Test : `valeurDEnfoncement` ; bilan du Round :
+   * `bilanDuRound`, lu par `forceDoorConfirm`.
    */
   forceDoor: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
     key: 'pendingForceDoor',
@@ -1167,18 +1175,18 @@ export const FLOWS = paresseux({
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     rolled: (r) => !!r.result,
     actor: (s, r) => actorIn(s, r.id),
-    resolve: (_s, _r, actor, _get, forced, p) => {
+    resolve: (_s, r, actor, _get, forced, p) => {
       if (!actor || !p) return null;
-      const value = testValue(actor, 'corps-a-corps'); // Bagarre (CC + avances)
-      const bf = bonusDeForce(actor);
+      const arme = armeDEnfoncement(actor, r);
+      const value = valeurDEnfoncement(actor, arme);
       if (forced) {
         // Résilience « Je ne faillirai pas ! » : DR maximal (dé MEILLEUR) → dégâts max (LDB 17 l.68).
         const die = bestForcedRoll(value);
         const sl = evaluateTest(die, value).sl;
-        return { result: { roll: die, target: value, sl, damage: Math.max(0, sl + bf - p.doorBE) } };
+        return { result: { roll: die, target: value, sl, damage: degatsDEnfoncement(actor, arme, sl, p.doorBE) } };
       }
       const t = rollTest(value, 'intermediaire', battleRng());
-      return { result: { roll: t.roll, target: t.target, sl: t.sl, damage: Math.max(0, t.sl + bf - p.doorBE) } };
+      return { result: { roll: t.roll, target: t.target, sl: t.sl, damage: degatsDEnfoncement(actor, arme, t.sl, p.doorBE) } };
     },
     outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)
     caps: { forced: true },
@@ -1186,9 +1194,8 @@ export const FLOWS = paresseux({
       // Chance « +1 DR » : +1 au DR → +1 dégât (avant réduction par le BE).
       derive: (_s, r, actor, p) => {
         if (!r.result || !p) return null;
-        const bf = bonusDeForce(actor);
         const sl = r.result.sl + 1;
-        return { result: { ...r.result, sl, damage: Math.max(0, sl + bf - p.doorBE) } };
+        return { result: { ...r.result, sl, damage: degatsDEnfoncement(actor, armeDEnfoncement(actor, r), sl, p.doorBE) } };
       },
     },
   }),
@@ -1341,7 +1348,7 @@ export const FLOWS = paresseux({
     lens: {
       actorTR: (p) => p.result ?? null,
       applyRoll: (_s, _slot, _actor, _get, tr) => ({ result: tr }),
-      dieTarget: (p, actor) => p.result?.target ?? combatValue(actor, 'melee'),
+      dieTarget: (p, actor) => (p.result?.target != null ? cibleBrute(p.result) : cibleBrute(ligneDAttaquantDeManoeuvre(actor, 'capacite-de-combat'))),
     },
   }),
 
@@ -1354,9 +1361,8 @@ export const FLOWS = paresseux({
   distraire: () => opposedBinaryFlow<PendingDistraire>({
     key: 'pendingDistraire',
     actorId: (p) => p.moverId,
-    // Athlétisme du mover (LDB 10 l.364) : la valeur EST nue (carac effective + avances, LDB 09 l.17)
-    // — elle se pose en grandeur de départage (LDB 12 l.160), comme le Calme figé du foe.
-    rollActor: (_s, actor) => { const v = distraireAttackValue(actor); return { ...rollTest(v, 'intermediaire', battleRng()), base: v }; },
+    // LDB 10 l.364 ; départage LDB 12 l.160.
+    rollActor: (_s, actor) => ({ ...rollTest(distraireAttackValue(actor), 'intermediaire', battleRng()), base: distraireAttackBase(actor) }),
     actorTR: (p) => p.atk, putActorTR: (tr) => ({ atk: tr }), // mover = « attaquant » : son jet = `p.atk`
     foeTR: (p) => p.defRoll, // Calme du foe FIGÉ
   }),
@@ -1364,7 +1370,7 @@ export const FLOWS = paresseux({
   /** Manœuvre de créature (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85) qu'un héros active. Le jet
    *  INFLUENÇABLE est celui de l'ATTAQUANT (CC/CT) ; l'APPLICATION (jets des défenseurs + opposition)
    *  vit dans `maneuverConfirm`/`applyMan<X>`, pas ici. Un seul effort de souffle → un jet d'attaquant
-   *  (LDB 85 l.251/376, relu influençable). Vomi : +40 d'attaquant (l.376) baked dans le jet. PAS de
+   *  (LDB 85 l.318/445, relu influençable). Vomi : +40 d'attaquant (l.445) baked dans le jet. PAS de
    *  `picker` : le jet d'attaquant ne nourrit que le DR de l'OPPOSITION (`resolveManeuver` → `resolveOpposed`
    *  → marge), aucun Coup Critique ni localisation ne dépend du dé PRÉCIS (≠ attaque) → un dé
    *  choisi n'apporte rien de plus que le DR max de la Résilience par défaut. */
@@ -1390,7 +1396,7 @@ export const FLOWS = paresseux({
       dieTarget: (p, actor) => {
         if (p.result?.target != null) return cibleBrute(p.result);
         const stat = attaqueDeCle(actor.traits ?? [], p.attaque)?.stat ?? 'capacite-de-tir';
-        return cibleDuTest(combatValue(actor, stat === 'capacite-de-combat' ? 'melee' : 'ranged'), maneuverAttackerDifficulty(p.kind));
+        return cibleBrute(ligneDAttaquantDeManoeuvre(actor, stat, maneuverAttackerDifficulty(p.kind)));
       },
     },
   }),
@@ -1595,11 +1601,11 @@ export const FLOWS = paresseux({
     actor: (s, p) => actorIn(s, p.singerId),
     caps: { forced: true },
     resolve: (s, p, actor) => p.shantyId // chanson non choisie → pas de jet
-      ? simpleTestResultResolve((_p, a) => testValue(a, 'divertissement', undefined, 'chant'), 'intermediaire')(s, p, actor)
+      ? simpleTestResultResolve((_p, a) => valeurDeChanson(a), 'intermediaire')(s, p, actor)
       : null,
     outcome: (p) => testOutcome(p.result),
     // Chance/Résilience GLOBALES via la lentille `result` (LDB 17) : +1 DR = +1 min de chant (MDG 09 l.38, durée ∝ DR).
-    lens: resultRollLens((_p, actor) => testValue(actor, 'divertissement', undefined, 'chant')),
+    lens: resultRollLens((_p, actor) => valeurDeChanson(actor)),
   }),
 
   /** Focalisation (Test étendu de magie) — vaut en combat ET hors combat (`actorIn`). */
@@ -1709,8 +1715,8 @@ export const FLOWS = paresseux({
     resolve: (s, p, actor, _get, forced) => {
       if (!actor) return null;
       // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : avant le jet (choisit 01) OU après un échec.
-      if (forced) return forcedBinaryResult(p.result, cibleDuTest(testValue(actor, undefined, 'force-mentale'), 'accessible'));
-      return simpleTestResultResolve((_p, a) => testValue(a, undefined, 'force-mentale'), 'accessible')(s, p, actor);
+      if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDeProtection(actor)));
+      return simpleTestResultResolve((_p, a) => testValue(a, undefined, JET_DE_PROTECTION.test.char), JET_DE_PROTECTION.difficulty)(s, p, actor);
     },
     outcome: (p) => testOutcome(p.result),
   }),

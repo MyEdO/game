@@ -314,6 +314,8 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   counterspellDeclare: { parUI: true },
   // Déclaration d'une rangée de chute volontaire (#700) : option de la rangée dans `FallModal`.
   fallChoose: { parUI: true },
+  // Choix de l'arme d'enfoncement (EDO 11 l.93) : option de la rangée dans `ForceDoorModal`.
+  forceDoorChoisirArme: { parUI: true },
   // « Laisser passer » : action de la barre de la modale d'incantation — routée depuis #1042 pour
   // porter la frontière de phase (elle tombait sur le repli universel avant).
   counterspellCancel: { parUI: true },

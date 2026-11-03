@@ -60,7 +60,7 @@ describe('barre de DR des fenêtres de Test étendu', () => {
     setRule('test-extended-min-sl', true);
     const w = heros();
     useGame.setState({ party: [w], battle: null,
-      pendingActivity: { heroId: w.id, kind: 'catalog', activityId: 'craft', label: 'Artisanat', skillLabel: 'Métier', skillValue: 40, difficulty: 'intermediaire',
+      pendingActivity: { heroId: w.id, kind: 'catalog', activityId: 'craft', label: 'Artisanat', skillLabel: 'Métier', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' },
         roll: 40, target: 40, sl: 0, success: true, drBefore: 2, drTarget: 6 } as never });
     act(() => { root.render(<ActivityModal />); });
     expect(barres()).toEqual(['3 / 6 DR']);
