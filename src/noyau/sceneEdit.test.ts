@@ -28,7 +28,7 @@ import {
 import { PARTY_MAX } from './monde/combatants';
 import { validateScene } from './validateScene';
 import { estAbsent, terrainAbsent } from './monde/terrain';
-import { perimeterWallSegs } from '../state/sceneEdit.testkit';
+import { perimeterWallSegs } from './sceneEdit.testkit';
 import { stairFlightCells } from './planDefects';
 import { parseProject } from './worldMap';
 import diligenceProjet from '../scenes/diligence/diligence-projet.json';

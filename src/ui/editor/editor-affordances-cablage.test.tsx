@@ -19,7 +19,7 @@ import { buildWalls } from '../../gameIso/builders/walls';
 import { battleScenesToStations } from '../../noyau/stations';
 import { buildingRoofMaterial } from '../../noyau/monde/buildings';
 import { validateScene } from '../../noyau/validateScene';
-import { encloseRect } from '../../state/sceneEdit.testkit';
+import { encloseRect } from '../../noyau/sceneEdit.testkit';
 import { sceneZonesToBattle, sceneZoneTiles } from '../../noyau/monde/zones';
 import { useGame } from '../../state/store';
 import { pregenParty, PREGEN } from '../../data/pregens';

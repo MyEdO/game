@@ -42,7 +42,7 @@ import { parseProject } from '../../../noyau/worldMap';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 import { putLayer } from '../../../noyau/sceneEdit';
-import { perimeterWallSegs } from '../../../state/sceneEdit.testkit';
+import { perimeterWallSegs } from '../../../noyau/sceneEdit.testkit';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';
 import { lireProjetLivre } from '../../../../scripts/source/projetLivre.mjs';
 

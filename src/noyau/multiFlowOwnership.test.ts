@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, participantOwnedIntents, flowActionName } from './flowVerbs';
 import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from './intentionsDeSiege';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { cascadeDeTest } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
@@ -26,7 +26,7 @@ const H_HOST = 'h1'; // héros du siège 0 (hôte)
 
 /** État minimal : 2 héros possédés par 2 sièges différents, un 3ᵉ siège spectateur, le navire au siège 2
  *  (pour que le owner de modale des flux d'équipage désigne un TIERS et non le propriétaire du héros). */
-const base = (over: Partial<GameState>): GameState =>
+const base = (over: Partial<Jeu>): Jeu =>
   ({
     net: {
       mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' },
@@ -37,38 +37,38 @@ const base = (over: Partial<GameState>): GameState =>
       { id: H_HOST, kind: 'hero' }, { id: H_OWNER, kind: 'hero' }, { id: 'e1', kind: 'enemy' },
     ] },
     ...over,
-  }) as unknown as GameState;
+  }) as unknown as Jeu;
 
 const parts = [{ id: H_HOST, base: 40, target: 40, result: null }, { id: H_OWNER, base: 40, target: 40, result: null }];
 /** Cascade d'accueil des flux qui vivent en ÉTAPE (owner '*' : la modale ouvrirait TOUT à TOUS). */
 const groupCascade = {
   pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('x'), groupOwner: true }]),
-} as unknown as Partial<GameState>;
+} as unknown as Partial<Jeu>;
 
 /** Un pending OUVERT par flux (les 2 héros en participants) — table totale, vérifiée ci-dessous. */
-const FIXTURES: Record<string, Partial<GameState>> = {
+const FIXTURES: Record<string, Partial<Jeu>> = {
   flee: {
     ...groupCascade,
     pendingDisengage: { moverId: H_HOST, fuir: { participants: [
       { id: H_HOST, kind: 'backstab', result: null }, { id: H_OWNER, kind: 'touche', test: testDeRegle('fuite', 'touche-en-fuyant'), jet: null },
     ] } },
-  } as unknown as Partial<GameState>,
-  counterspell: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<GameState>,
-  opposition: { ...groupCascade, pendingCastOpposition: { test: { char: 'force-mentale' }, participants: parts } } as unknown as Partial<GameState>,
+  } as unknown as Partial<Jeu>,
+  counterspell: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<Jeu>,
+  opposition: { ...groupCascade, pendingCastOpposition: { test: { char: 'force-mentale' }, participants: parts } } as unknown as Partial<Jeu>,
   forceDoor: {
     ...groupCascade,
     pendingForceDoor: { label: 'Porte', doorBE: 3, doorB: 10, doorBmax: 10, participants: parts },
-  } as unknown as Partial<GameState>,
-  shipManeuver: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<GameState>,
-  shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<GameState>,
-  crewTest: { pendingCrewTest: { shipId: 'ship1', participants: parts } } as unknown as Partial<GameState>,
+  } as unknown as Partial<Jeu>,
+  shipManeuver: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
+  shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<Jeu>,
+  crewTest: { pendingCrewTest: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
   cascadeBatch: {
     pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
-  } as unknown as Partial<GameState>,
+  } as unknown as Partial<Jeu>,
   // Chute volontaire du groupe (#700) : la fenêtre appartient à l'initiateur (l'hôte), chaque rangée à SON siège.
   fall: {
     pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: true })) },
-  } as unknown as Partial<GameState>,
+  } as unknown as Partial<Jeu>,
 };
 
 describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', () => {
@@ -145,7 +145,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   }
 
   it('fallChoose : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
-    const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<GameState>);
+    const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, true]), 'le siège du héros déclare pour lui').toBe(true);
     expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, true]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
     expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, false]), 'siège TIERS').toBe(false);
@@ -154,7 +154,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   });
 
   it('fallChoose avec l’axe HAUTEUR (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
-    const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<GameState>);
+    const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, false, true]), 'le siège du héros déclare sa suspension').toBe(true);
     expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, false, true]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
     expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, true, true]), 'siège TIERS').toBe(false);

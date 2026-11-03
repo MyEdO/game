@@ -14,30 +14,30 @@
  * CHEMIN RÉEL de bout en bout : le Sort du catalogue est lancé par `applyCast` (`noyau/combatFlow`,
  * l'appel même que la confirmation d'incantation fait, `combatFlow.ts:4980-4988`), la Surincantation de
  * Durée passe par ses pas (`overcast.duration` → `overcastDurationParts`), la Détermination par le
- * store (`spendResolveCondition`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
- * `state/roundHooks`).
+ * noyau (`spendResolveCondition`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
+ * `noyau/combat/roundHooks`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../state/store';
-import type { BattleState } from '../noyau/etat';
-import { applyCast } from '../noyau/combatFlow';
-import { runCombatHooks } from '../noyau/combatHooks';
-import { effectSourcesOf } from '../noyau/triggeredEffects';
-import { seedBattleRng } from '../noyau/battleRng';
-import { emptyScene } from '../noyau/monde/scene';
-import { evaluateMissile, type CastResult } from './magic';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import type { BattleState } from './etat';
+import { applyCast } from './combatFlow';
+import { runCombatHooks } from './combatHooks';
+import { effectSourcesOf } from './triggeredEffects';
+import { seedBattleRng } from './battleRng';
+import { emptyScene } from './monde/scene';
+import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
-import { overcastDurationParts, overcastSourceOf } from './overcast';
-import { stacks, derivedStacks, addCondition, removeCondition, syncDerivedConditions, fenetreDetermination } from './conditions';
-import { dissipateSpell } from './dispel';
-import { suspendSource } from './suspension';
-import { passiveMods } from './trauma';
-import { applyOps } from './ops';
+import { overcastDurationParts, overcastSourceOf } from '../engine/overcast';
+import { stacks, derivedStacks, addCondition, removeCondition, syncDerivedConditions, fenetreDetermination } from '../engine/conditions';
+import { dissipateSpell } from '../engine/dispel';
+import { suspendSource } from '../engine/suspension';
+import { passiveMods } from '../engine/trauma';
+import { applyOps } from '../engine/ops';
 import { gameOpSchema, CHAMPS_EXCLUS_DE_CARRIED } from '../data/schemas/grammaire/mecanique';
 import { entree as spellEntreeSchema } from '../data/schemas/defs/spells';
-import type { Combatant, ActiveEffect } from './types';
-import { deFixe, desDuTest } from './dice.testkit';
-import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import type { Combatant, ActiveEffect } from '../engine/types';
+import { deFixe, desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const CHAMON = 'transmutation-de-chamon';
 const ETATS = ['aveugle', 'assourdi', 'sonne'] as const;
@@ -61,13 +61,13 @@ function setBattle(combatants: Combatant[]): void {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
+  banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
 }
 
 const cr = (): CastResult => ({ cast: true, roll: 44, target: 60, sl: 0, isCritical: false, isFumble: false, log: '' });
 
-/** La vue COURANTE d'un combattant dans le store (applyCast recompose la liste). */
-const vue = (id: string): Combatant => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
+/** La vue COURANTE d'un combattant sur le banc (applyCast recompose la liste). */
+const vue = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 
 /**
  * Lance Transmutation de Chamon sur `cible`, `steps` pas de Surincantation de DURÉE — MÊME appel que la
@@ -78,7 +78,7 @@ function lancerChamon(caster: Combatant, cible: Combatant, steps = 0): void {
   const spell = findSpellById(CHAMON)!;
   const ocDur = overcastDurationParts(overcastSourceOf(spell), steps);
   const res = evaluateMissile(caster, cible, spell, cr());
-  applyCast(useGame.getState, useGame.setState, caster, cible, spell, res, true, false, undefined, {
+  applyCast(banc.getState, banc.setState, caster, cible, spell, res, true, false, undefined, {
     durationMult: ocDur.mult, durationBonusRounds: ocDur.bonusRounds, overcastDurationSteps: steps,
   });
 }
@@ -87,19 +87,20 @@ function lancerChamon(caster: Combatant, cible: Combatant, steps = 0): void {
  *  que les hooks poussent à leur `sink` (c'est LUI que la boucle de combat déverse). */
 function finDeRound(): string[] {
   const lignes: string[] = [];
-  runCombatHooks('onRoundEnd', { get: useGame.getState, set: useGame.setState, battle: useGame.getState().battle!, sink: (l: string) => lignes.push(l) } as never);
+  runCombatHooks('onRoundEnd', { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, sink: (l: string) => lignes.push(l) } as never);
   return lignes;
 }
 
 /** Les effets PORTEURS d'États d'un combattant (`ActiveEffect.passive` avec une op `condition`). */
 const porteurs = (c: Combatant): ActiveEffect[] => (c.activeEffects ?? []).filter((e) => e.passive?.some((o) => o.op === 'condition'));
 
+let banc: Banc;
 let mage: Combatant;
 let cible: Combatant;
 
 beforeEach(() => {
+  banc = ouvrirLeBanc();
   seedBattleRng(1);
-  useGame.setState({ battle: null, party: [], journal: [], pendingCast: null, pendingCascade: null });
   mage = mk('enemy', 'mage', { pos: { x: 0, y: 0 } });
   cible = mk('hero', 'victime', { pos: { x: 2, y: 0 } });
   setBattle([mage, cible]);
@@ -121,7 +122,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
       expect(e.duration).toEqual({ scale: 'rounds', left: 3 });
       expect(e.spell!.spellId).toBe(CHAMON);
     }
-    expect(useGame.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('gagne l’État Aveuglé');
+    expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('gagne l’État Aveuglé');
   });
 
   it('les trois tiennent Round après Round, puis partent TOUS le Round où le Sort expire', () => {
@@ -164,18 +165,18 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     const spell = findSpellById('grands-feux-d-u-zhul')!;
     const ocDur = overcastDurationParts(overcastSourceOf(spell), steps);
     const res = evaluateMissile(caster, cible, spell, cr());
-    applyCast(useGame.getState, useGame.setState, caster, cible, spell, res, true, false, undefined, {
+    applyCast(banc.getState, banc.setState, caster, cible, spell, res, true, false, undefined, {
       durationMult: ocDur.mult, durationBonusRounds: ocDur.bonusRounds, overcastDurationSteps: steps,
     });
   }
 
   it('la ZONE d’un Sort suit la MÊME durée surincantée que ses États portés (BFM 3 → 3, +2 pas → 9)', () => {
     lancerGrandsFeux(mage, cible);
-    expect(useGame.getState().battle!.zones![0].rounds, 'la zone ne dure pas la Durée du Sort').toBe(3);
+    expect(banc.getState().battle!.zones![0].rounds, 'la zone ne dure pas la Durée du Sort').toBe(3);
 
-    useGame.setState({ battle: { ...useGame.getState().battle!, zones: [] } });
+    banc.setState({ battle: { ...banc.getState().battle!, zones: [] } });
     lancerGrandsFeux(mage, vue(cible.id), 2);
-    expect(useGame.getState().battle!.zones![0].rounds, 'la zone ignore les pas de Surincantation').toBe(9);
+    expect(banc.getState().battle!.zones![0].rounds, 'la zone ignore les pas de Surincantation').toBe(9);
   });
 
   it('le BONUS de Rounds (modèle Bénédiction : mult 1, +6 Rounds/pas) atteint la ZONE comme le reste du Sort', () => {
@@ -183,10 +184,10 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     const res = evaluateMissile(mage, cible, spell, cr());
     // `overcastDurationParts` DÉCOMPOSE la Surincantation en `mult` ET `bonusRounds` : la zone lit les
     // deux, comme la branche non-zone (`base × mult + bonus`) — sinon le bonus se perdait en route.
-    applyCast(useGame.getState, useGame.setState, mage, cible, spell, res, true, false, undefined, {
+    applyCast(banc.getState, banc.setState, mage, cible, spell, res, true, false, undefined, {
       durationMult: 1, durationBonusRounds: 6, overcastDurationSteps: 1,
     });
-    expect(useGame.getState().battle!.zones![0].rounds, 'le bonus de Rounds n’atteint pas la zone').toBe(3 + 6);
+    expect(banc.getState().battle!.zones![0].rounds, 'le bonus de Rounds n’atteint pas la zone').toBe(3 + 6);
   });
 
   it('deux Chamon = deux effets porteurs = DEUX pions Assourdi (LDB 16 l.11, « les pénalités s’accumulent »)', () => {
@@ -211,9 +212,9 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
 });
 
 describe('Détermination sur un État PORTÉ — « Retirez un État » (LDB 17 l.61)', () => {
-  it('la dépense du store n’écarte QUE l’État visé — les deux autres tiennent, et il revient en fin de Round', () => {
+  it('la dépense du noyau n’écarte QUE l’État visé — les deux autres tiennent, et il revient en fin de Round', () => {
     lancerChamon(mage, cible);
-    useGame.getState().spendResolveCondition(cible.id, 'sonne');
+    banc.getState().spendResolveCondition(cible.id, 'sonne');
     const pendant = vue(cible.id);
     expect(pendant.resolve, 'le point de Détermination n’a pas été débité').toBe(2);
     expect(stacks(pendant, 'sonne'), 'la Détermination n’a pas écarté le Sonné').toBe(0);
@@ -226,8 +227,8 @@ describe('Détermination sur un État PORTÉ — « Retirez un État » (LDB 17 
 
   it('DEUX dépenses ouvrent DEUX fenêtres : Sonné ET Aveuglé partent, Assourdi tient, les deux reviennent', () => {
     lancerChamon(mage, cible);
-    useGame.getState().spendResolveCondition(cible.id, 'sonne');
-    useGame.getState().spendResolveCondition(cible.id, 'aveugle');
+    banc.getState().spendResolveCondition(cible.id, 'sonne');
+    banc.getState().spendResolveCondition(cible.id, 'aveugle');
     const pendant = vue(cible.id);
     expect(pendant.resolve, 'les deux points n’ont pas été débités').toBe(1);
     expect(stacks(pendant, 'sonne')).toBe(0);

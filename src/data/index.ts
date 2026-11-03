@@ -3430,7 +3430,7 @@ export const qualityIdByLabel = (label: string): string | undefined => {
   if (!q) return undefined;
   // Doublon de LIBELLÉ imprimé du catalogue (« Immobilisante », `qualities.json:230` et `:271`) :
   // l'authoring par libellé atteint l'entrée CANONIQUE — celle dont l'`id` EST le slug du libellé ;
-  // l'homonyme ne s'authore que par son `id` (`immobilisante-fixe`, `state/zi-filets.test.ts`).
+  // l'homonyme ne s'authore que par son `id` (`immobilisante-fixe`, `noyau/zi-filets.hors-store.test.ts`).
   const canonique = slugId(q.label);
   return qualiteParId(canonique) ? canonique : q.id;
 };

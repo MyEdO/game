@@ -4,7 +4,7 @@ import { emptyScene, type Scene } from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import type { Jeu } from './etat';
 import type { Get } from './flowTypes';
-import { mk, battle } from '../state/pionsEtages.testkit';
+import { mk, battle } from './pionsEtages.testkit';
 
 /**
  * Fixes z-blind #802 (pushBackTiles/displaceSmaller/nearestFreeOutside) : deux combattants superposés

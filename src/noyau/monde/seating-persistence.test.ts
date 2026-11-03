@@ -68,8 +68,8 @@ describe('SceneMutation — l’assise se persiste en OVERRIDE COMPLET', () => {
 
 /**
  * RÈGLE : au chargement comme à l'application d'une mutation, `pruneSeatAssignments` élimine les
- * références devenues invalides. Les deux coutures sont mesurées ici (pur) et sur le store (bout
- * en bout) dans `sceneInstance.test.ts`.
+ * références devenues invalides. Les deux coutures sont mesurées ici (pur) et sur le banc du noyau (bout
+ * en bout) dans `sceneInstance.hors-store.test.ts`.
  */
 describe('applyMutation — élagage de l’assise quand le groupe est fourni', () => {
   it('la mutation qui RETIRE le meuble emporte la place, dans la même application', () => {

@@ -3,7 +3,7 @@ import { tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
 import { roomPortals, type RoomPortal } from '../../noyau/monde/roomPortals';
 import { aretesUtilisables } from '../../noyau/aretes';
-import { cloisons, piece } from '../../state/pieces.fixture';
+import { cloisons, piece } from '../../noyau/pieces.fixture';
 import { METRES_PER_LEVEL, STEP_MAX_M } from '../../noyau/monde/relief';
 import { buildScene } from '../../noyau/mapSpec';
 import type { Combatant } from '../../engine/types';

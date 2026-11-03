@@ -30,7 +30,7 @@ import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, flowActionName, t
 import { intentAllowedFor, seatInfluences } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import { GUEST_INTENTS } from './intentionsDeSiege';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { cascadeDeTest } from './cascade.testkit';
 import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -101,7 +101,7 @@ const jetHote = (pending: string): HostJet =>
 /** Fenêtre du flux `jet` OUVERTE sur `ownerId` (son pending posé selon `jetOwner`), étape de cascade
  *  PARTAGÉE (owner de modale '*'). Le pending est POSÉ PAR LA TABLE : ajouter un `jetOwner` à un flux
  *  l'amène dans la garde sans une ligne de fixture. */
-const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {}): GameState =>
+const state = (jet: JetOwnerRef, ownerId: string, over: Partial<Jeu> = {}): Jeu =>
   ({
     net: { mode: 'host', mySeat: 0, gmSeat: 2, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] },
     party: [{ id: H_HOST }, { id: H_GUEST }],
@@ -111,7 +111,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {})
     pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture(`${jetHote(jet.pending)}Jet`), jet: jetHote(jet.pending), groupOwner: true }]),
     [jet.pending]: { [jet.field]: ownerId, targetId: H_HOST, spellId: 'drain', result: null },
     ...over,
-  }) as unknown as GameState;
+  }) as unknown as Jeu;
 
 const CAST_JET: JetOwnerRef = { pending: 'pendingCast', field: 'casterId' };
 const argsOf = (verb: string) => (verb === 'setForcedRoll' ? [42] : []);
@@ -159,7 +159,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
         { id: H_HOST, interactive: true, attempt: true, result: null },
         { id: H_GUEST, interactive: true, attempt: null, result: null },
       ] },
-    } as unknown as Partial<GameState>);
+    } as unknown as Partial<Jeu>);
     for (const i of verbes) {
       const args = i === 'fallSetForcedRoll' ? [H_GUEST, 42] : [H_GUEST];
       expect(intentAllowedFor(s, 1, i, args), `${i} : le siège du tombant`).toBe(true);
@@ -209,7 +209,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
       // Le jet est à l'IA : l'affordance est refusée À TOUS par `seatInfluences`. Une garde routée sur
       // `seatOwns` seul retomberait sur `ownership ?? 0` et AUTORISERAIT l'hôte — l'écran dit non, l'hôte
       // dirait oui.
-      const s = state(w.jetOwner!, ENEMY, { net: { mode: 'host', mySeat: 0, gmSeat: null, seatNames: {}, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<GameState>);
+      const s = state(w.jetOwner!, ENEMY, { net: { mode: 'host', mySeat: 0, gmSeat: null, seatNames: {}, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
       expect(seatInfluences(s, 0, ENEMY), 'précondition : l’affichage refuse l’ennemi sans MJ').toBe(false);
       for (const v of w.verbs) {
         const intent = flowActionName(prefix, v);
@@ -218,7 +218,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     });
 
     it(`(b) ${prefix} : fenêtre FERMÉE (pending absent) — personne ne dépense`, () => {
-      const s = state(w.jetOwner!, H_GUEST, { [w.jetOwner!.pending]: null } as unknown as Partial<GameState>);
+      const s = state(w.jetOwner!, H_GUEST, { [w.jetOwner!.pending]: null } as unknown as Partial<Jeu>);
       for (const v of w.verbs) {
         const intent = flowActionName(prefix, v);
         for (const seat of [0, 1, 2]) expect(intentAllowedFor(s, seat, intent, argsOf(v)), `${intent} siège ${seat}, jet inconnu`).toBe(false);
@@ -230,7 +230,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     const s = state(CAST_JET, ENEMY, {
       pendingCounterspell: { participants: [{ id: H_GUEST, interactive: true, result: null }] },
       pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H_GUEST, interactive: true, result: null }] },
-    } as unknown as Partial<GameState>);
+    } as unknown as Partial<Jeu>);
     // Le contre-lanceur / la cible du siège 1 jouent LEUR rangée…
     expect(intentAllowedFor(s, 1, 'counterspellRoll', [H_GUEST])).toBe(true);
     expect(intentAllowedFor(s, 1, 'oppositionForceSuccess', [H_GUEST])).toBe(true);
@@ -265,7 +265,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
    * au snapshot de l'hôte.
    */
   it('(g) résolution d’un flux HORS registre de modales : Conclure suit le porteur, pas l’hôte', () => {
-    const s = state({ pending: 'pendingBargain', field: 'playerId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<GameState>);
+    const s = state({ pending: 'pendingBargain', field: 'playerId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
     expect(modalOwnerOf(s), 'précondition : aucune modale du registre ne couvre le Marchandage').toBeNull();
     for (const a of ['bargainConfirm', 'bargainCancel']) {
       expect(intentAllowedFor(s, 1, a, []), `${a} : le siège du négociateur clôt SON marchandage`).toBe(true);
@@ -274,17 +274,17 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     }
     // Négociateur du siège HÔTE : le verdict s'inverse — l'hôte clôt, l'invité non (rien n'est ouvert
     // « à tous » par cette route).
-    const h = state({ pending: 'pendingBargain', field: 'playerId' }, H_HOST, { pendingCascade: null } as unknown as Partial<GameState>);
+    const h = state({ pending: 'pendingBargain', field: 'playerId' }, H_HOST, { pendingCascade: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(h, 0, 'bargainConfirm', [])).toBe(true);
     expect(intentAllowedFor(h, 1, 'bargainConfirm', [])).toBe(false);
     // Évaluation : même contrat (« Appliquer » = `resolveAppraise`, nom hors motif `<prefix><Verbe>`).
-    const a = state({ pending: 'pendingAppraise', field: 'actorId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<GameState>);
+    const a = state({ pending: 'pendingAppraise', field: 'actorId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(a, 1, 'resolveAppraise', [])).toBe(true);
     expect(intentAllowedFor(a, 0, 'resolveAppraise', [])).toBe(false);
   });
 
   it('SOLO (siège unique, aucune attribution) : le joueur garde ses propres dépenses', () => {
-    const s = state(CAST_JET, H_HOST, { net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<GameState>);
+    const s = state(CAST_JET, H_HOST, { net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(s, 0, 'castForceSuccess', [])).toBe(true);
     expect(intentAllowedFor(s, 0, 'castBonusSL', [])).toBe(true);
   });

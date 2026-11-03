@@ -6,7 +6,7 @@ import { edgeWallState } from '../ui/editor/editorState';
 import { sceneZoneTiles } from './monde/zones';
 import { scenario as zonesPieces } from '../scenes/test-scenarios/zones-pieces';
 import { buildVitrineScene, vitrineSpec } from '../scenes/vitrine-batiments';
-import { perimeterEdges } from '../state/sceneEdit.testkit';
+import { perimeterEdges } from './sceneEdit.testkit';
 import { PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { builtTerrains, groundTerrains } from './planDefects';
 import { tousLesTerrains } from './monde/terrain';

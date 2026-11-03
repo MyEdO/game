@@ -4,7 +4,7 @@ import { firedWeapon, firedAttackBlock } from '../combatFlow';
 import { itemFromTrappingById } from '../../engine/items';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import type { Scene } from './scene';
-import type { GameState } from '../../state/store';
+import type { Jeu } from '../etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
@@ -41,8 +41,8 @@ const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 2,
     layers: [{ z: 0, tiles: new Array(20 * 20).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
-const mkGet = (sc: Scene, combatants: Combatant[]): (() => GameState) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => GameState;
+const mkGet = (sc: Scene, combatants: Combatant[]): (() => Jeu) =>
+  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => Jeu;
 
 describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effectif, RIEN d’autre touché', () => {
   it('Équipe au complet (6/6) : arme nette (Équipe non marquée incomplète, Qualités/Recharge intactes)', () => {

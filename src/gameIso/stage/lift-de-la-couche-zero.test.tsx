@@ -5,7 +5,7 @@ import { diamondPath, tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, hauteurDe, heightAt, liftDe, type Scene } from '../../noyau/monde/scene';
 import { metricToLift } from '../../noyau/monde/relief';
 import { aretesUtilisables, type ContexteAretes } from '../../noyau/aretes';
-import { piece } from '../../state/pieces.fixture';
+import { piece } from '../../noyau/pieces.fixture';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { buildFloors } from '../builders/floors';

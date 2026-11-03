@@ -14,8 +14,7 @@ import { hoverTargeting } from './targeting';
 import { selectedAttackOption } from './combatManeuvers';
 import { Scene } from './monde/scene';
 import { Combatant } from '../engine/types';
-import type { GameState } from '../state/store';
-import { initialNet } from './etat';
+import { initialNet, type Jeu } from './etat';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -52,8 +51,8 @@ function scene(w = 8, h = 8): Scene {
   } as unknown as Scene;
 }
 
-const mkGet = (combatants: Combatant[]): (() => GameState) =>
-  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0, order: ['A'], turn: 0, log: [] }, facing: {}, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => GameState;
+const mkGet = (combatants: Combatant[]): (() => Jeu) =>
+  (() => ({ scene: scene(), battle: { combatants, movementUsed: 0, order: ['A'], turn: 0, log: [] }, facing: {}, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
 
 describe('G1 — la Difficulté aperçue d’un geste COMBINÉ compte l’attaquant à sa case d’ARRIVÉE', () => {
   //  allié en (5,0) et cible en (6,0) : l'attaquant qui arrive en (7,0) est le 2ᵉ au contact
@@ -131,7 +130,7 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
     const a = guerrier({ id: 'A', pos: { x: 5, y: 0 }, grapplingWith: ['B'] } as never);
     const b = guerrier({ id: 'B', label: 'B', kind: 'enemy', pos: { x: 6, y: 0 }, grapplingWith: ['A'] } as never);
     const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, selectedAttack: 'grapple', preview: { kind: 'attack', targetId: 'B' }, log: [], reachable: new Map() };
-    const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => GameState;
+    const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
     return { a, b, battle, get };
   };
 
@@ -152,7 +151,7 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
     const a = guerrier({ id: 'A', pos: { x: 5, y: 0 } });
     const b = guerrier({ id: 'B', label: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
     const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, preview: { kind: 'attack', targetId: 'B' }, log: [], reachable: new Map() };
-    const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => GameState;
+    const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
     expect(dit(apercuDuGeste(get, a, b, { id: 'arme', label: 'Épée', cost: { action: 1 } } as never))).toBe('Intermédiaire (+0)');
     expect(previewDifficultyOf(get)).toEqual({ difficulty: 'intermediaire' });
   });

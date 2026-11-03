@@ -23,7 +23,7 @@
 import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, type JetOwnerRef } from './flowVerbs';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Get } from './flowTypes';
 
 const MONO = (Object.entries(FLOW_VERBS) as [string, { kind: string; jetOwner?: JetOwnerRef }][])
@@ -43,12 +43,12 @@ const ghostPending = (seen: Set<string>) =>
     },
   });
 
-const stateWith = (pendingKey: string, pending: unknown, ids: string[]): GameState =>
+const stateWith = (pendingKey: string, pending: unknown, ids: string[]): Jeu =>
   ({
     battle: null, // hors combat : `actorIn` résout dans le GROUPE
     party: ids.map((id) => ({ id, kind: 'hero' })),
     [pendingKey]: pending,
-  }) as unknown as GameState;
+  }) as unknown as Jeu;
 
 describe('#1015 — le porteur déclaré (`FLOW_VERBS.jetOwner`) EST l’acteur que le flux débite', () => {
   it('tout flux mono déclare son porteur (le variant l’exige à la compilation — mesuré ici aussi)', () => {

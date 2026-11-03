@@ -6,7 +6,7 @@ import { AreteOverlay } from './AreteOverlay';
 import { projeterAretes } from './aretesProjetees';
 import { aretesUtilisables } from '../../noyau/aretes';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { cloisons, piece } from '../../state/pieces.fixture';
+import { cloisons, piece } from '../../noyau/pieces.fixture';
 import { poseFromDims, screenToTileAtLift, worldToScreen } from './projection';
 import { LEVEL_H, screenToTileAtZ, tileCenter, type Dims, type Rot } from '../../geometry/iso';
 import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
