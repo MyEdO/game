@@ -96,6 +96,13 @@ export function useDieCommitRegistry(): DieCommitRegistry {
 type SetForcedMono = (roll: number) => void;
 type SetForcedMulti = (pid: string, roll: number) => void;
 
+/** Le refus du slot `pid` par la poignée de son flux (`refusDuSlot`), `undefined` s'il se joue : la rangée le
+ *  porte en `rollBlocked` et ferme tous ses gestes, comme tous les verbes du slot le disent. */
+export function refusDeRangee(s: GameState, flowKey: FlowKey | undefined, pid: string | undefined): string | undefined {
+  if (!flowKey || pid == null || FLOW_VERBS[flowKey].kind !== 'multi') return undefined;
+  return FLOW_HANDLERS[flowKey]?.refusDuSlot(() => s, pid) ?? undefined;
+}
+
 /**
  * Sélecteur de dé de CETTE rangée, ou `undefined`. `row.noForcedDie` = opt-out explicite du SITE
  * (cible Inconsciente : le moteur a déjà choisi le meilleur dé, seule la Localisation reste un choix).
@@ -127,7 +134,7 @@ export function rowForcedDie(
   // Le slot se résout sur le pid RÉEL : `row.pid` quand le site scope sa clé React, sinon la `key`.
   const pid = multi ? (row.pid ?? (row.key != null ? String(row.key) : undefined)) : undefined;
   const slot = flow.slotOf(() => s, pid);
-  if (!slot) return {};
+  if (!slot || refusDeRangee(s, flowKey, pid)) return {};
 
   const delegate = (s as unknown as Record<string, unknown>)[`${flowKey}SetForcedRoll`];
   if (typeof delegate !== 'function') return {};

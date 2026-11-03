@@ -1100,6 +1100,8 @@ export const fr = {
   'cs.refusApprocheNonArmee': '{name} est hors de portée — armez la Charge pour l’atteindre.',
   'cs.refusCibleGratuite': '{attaque} : {name} n’est pas une cible valide.',
   'cs.refusSansSortDissipable': 'Aucun Sort à dissiper sur cette cible.',
+  'cs.refus.dejaDissipe': 'Déjà dissipé par {name}',
+  'cs.refus.neLancePas': 'Jet refusé : {name} ne lance pas le Contre-sort.',
   'cs.refusCaseHorsPortee': 'Case hors d’atteinte pour ce Tour.',
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
   'cs.refusAucunChemin': 'Aucun chemin jusqu’à cette case.',

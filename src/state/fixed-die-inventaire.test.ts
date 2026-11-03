@@ -108,7 +108,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   opposition: {
     state: {
       pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [{ id: 'H', interactive: true, result: { oppose: rateTR, resisted: false, margin: 7 } }] },
+      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: 'H', interactive: true, result: { oppose: rateTR, resisted: false, margin: 7 } }] },
     },
     pid: 'H',
     read: () => ({

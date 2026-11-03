@@ -376,6 +376,9 @@ export interface RollFlowHandlers {
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
+  /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
+   *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
+  refusDuSlot: (get: Get, pid?: string) => string | null;
   /** ACTEUR du slot visé — celui que les verbes d'influence DÉBITENT (`spec.actor`, l'entrée de
    *  `opReroll`/`opBonusSL`/`opForceSuccess`/`opDarkPact`). Accesseur PUR en LECTURE SEULE, même
    *  patron que `slotOf` ci-dessus (extraction de `locate` sans son `commit`). Il ouvre le PORTEUR
@@ -641,6 +644,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const slots = spec.multi.slots(p);
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
     },
+    refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
     // GOULOT d'acquittement des flux à fenêtre : l'issue est DÉRIVÉE de la déclaration du flux
     // (`spec.issue`), jamais composée au site. La LIGNE DE DÉ n'y est pas ré-émise : la fenêtre l'a
     // montrée (les jets SANS fenêtre reçoivent la leur du dériveur, au goulot des cascades).

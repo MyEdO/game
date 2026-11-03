@@ -156,16 +156,14 @@ export function RollRow({
           {declare?.hint && <span className="hint">{declare.hint}</span>}
           {/* Résilience PRÉ-jet (LDB 17 l.68 « au lieu de lancer les dés ») — disponible AVANT de lancer, pas
               seulement après un échec, comme la coquille `RollShell`. */}
-          {onForce && <ResilienceButton resilience={av.resilience} show={forceAvailable(av, influence)} onForce={preRollForce ?? onForce} />}
+          {onForce && !rollBlocked && <ResilienceButton resilience={av.resilience} show={forceAvailable(av, influence)} onForce={preRollForce ?? onForce} />}
           {/* Résistance (Menace) PRÉ-jet (LDB 10 : « réussir automatiquement le premier Test »). */}
-          {resist && <ResistButton menace={resist.menace} show onResist={resist.onResist} />}
-          {determineBtn}
+          {resist && !rollBlocked && <ResistButton menace={resist.menace} show onResist={resist.onResist} />}
+          {!rollBlocked && determineBtn}
           {/* Sélecteur PRÉ-jet du dé FIXÉ : la saisie lance le jet puis y substitue la valeur (`onSet` du
               site appelant). Option de CONFORT — elle passe APRÈS les choix de règle, avant le CTA. */}
-          {forcedRoll?.fixed && <ForcedRollPicker {...forcedRoll} marked={fixedMark} rowName={rowName} commitRef={dieCommit} />}
-          {/* CTA de jet. `rollBlocked` = le résolveur REFUSERA (le site fournit la raison, dérivée de
-              SES propres gardes) : le bouton se ferme AVEC sa raison, lue au survol et au focus
-              (`GatedAction`), au lieu de rester cliquable pour rien. */}
+          {forcedRoll?.fixed && !rollBlocked && <ForcedRollPicker {...forcedRoll} marked={fixedMark} rowName={rowName} commitRef={dieCommit} />}
+          {/* CTA de jet fermé sur le refus du slot (`rollBlocked`), raison lue au survol et au focus. */}
           {onRoll && !rollInBar && (rollBlocked
             ? <GatedAction id={`prow-roll-${actor?.id ?? 'row'}`} label={rollLabel} enabled={false} reason={rollBlocked} onClick={() => {}} btnClassName="small" />
             : <button className="btn small btn-primary" onClick={rollWithPickedDie}>{rollLabel}</button>)}
@@ -175,7 +173,7 @@ export function RollRow({
       {interactive && (rerolling || rerollLanded) && (
         <DiceRoll onSkip={skipReroll} landed={rerollLanded} faces={rowFaces} scene={false} />
       )}
-      {interactive && rolled && !rollMasked && !rolling && !landed && !rerolling && !rerollLanded && (
+      {interactive && rolled && !rollMasked && !rollBlocked && !rolling && !landed && !rerolling && !rerollLanded && (
         <>
           {forcedRoll && <ForcedRollPicker {...forcedRoll} marked={fixedMark} rowName={rowName} commitRef={dieCommit} />}
           <InfluenceRow
@@ -266,9 +264,9 @@ export interface RollRowProps {
     groupLabel?: ReactNode;
     hint?: ReactNode;
   };
-  /** Le résolveur du flux REFUSERA ce jet (garde de règle du SITE) : le CTA se rend fermé avec
-   *  CETTE raison, lue au survol et au focus (`GatedAction`), au lieu d'un bouton mort. La raison se DÉRIVE des
-   *  mêmes prédicats que la garde d'effet — jamais une seconde condition recopiée. */
+  /** Le refus du slot (`refusDeRangee`, `ui/forcedDieRow.ts`), que tout verbe du slot dit : le CTA se rend fermé
+   *  avec CE texte (`GatedAction`), et aucun geste d'influence (Résilience, dé fixé, Relance, +1 DR, Pacte,
+   *  Résistance, Détermination) n'est offert. */
   rollBlocked?: string;
   /** Anime le jet (dés qui roulent puis se figent sur les vraies faces) avant de résoudre — DÉFAUT
    *  `true` (#396 : tout jet roule). Honore `prefers-reduced-motion`. Skippable au clic sur le roulis. */

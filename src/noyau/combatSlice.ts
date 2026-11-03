@@ -4,6 +4,7 @@
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import type { Get, Set } from './flowTypes';
+import type { RollFlowHandlers } from './rollFlowFactory';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import { ACTION_GATES, actionGate, type ActionRunCtx, type BattleActionMode } from './actionRegistry';
@@ -361,14 +362,17 @@ function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode
  * SOCLE des verbes NULLAIRES du drive d'auto-cadence (#1030 — `STEP_WINDOW_AUTO`, `combatAuto.ts`, qui
  * n'enchaîne que des verbes sans argument alors que ces fenêtres sont par-`pid`). Une SEULE table de
  * possession (`influencesLocally`, #1005 : celle qui décide déjà de l'affordance de la rangée dans
- * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation.
+ * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation. Une rangée que son flux
+ * refuse (`refusDuSlot`) ne se tente pas : tout lancer n'est pas un geste sur elle.
  */
 function rollAllOwnedRows(
-  s: Jeu,
+  get: Get,
+  flow: RollFlowHandlers,
   rows: readonly { id: string; interactive?: boolean; result: unknown }[] | undefined,
   roll: (id: string) => void,
 ): void {
-  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id)) roll(p.id);
+  const s = get();
+  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id) && !flow.refusDuSlot(get, p.id)) roll(p.id);
 }
 
 /** Ce qu'un clic-sol REFUSÉ dit au joueur, par raison du résolveur (`resolveMovement`). Les raisons
@@ -3274,7 +3278,7 @@ export function createCombatSlice(get: Get, set: Set) {
      *  la fenêtre est multi-participants (#1040) — un `counterspellRoll(pid)` par rangée.
      *  Table de possession UNIQUE (`influencesLocally`, #1005) : la même qui décide de l'affordance de
      *  la rangée dans `CastModal`. Idempotent (une rangée déjà roulée ne rejoue pas, garde `opRoll`). */
-    counterspellRollAll: () => rollAllOwnedRows(get(), get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
+    counterspellRollAll: () => rollAllOwnedRows(get, FLOWS.counterspell, get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
     /**
      * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
      * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `counterspellConfirm` ci-dessous) ou
@@ -3388,7 +3392,7 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Homologue d'opposition de `counterspellRollAll` : toute rangée jouable ICI et sans jet oppose
      *  son Test (mêmes conditions, même socle `rollAllOwnedRows`). Les rangées TÉMOIN sont déjà roulées
      *  à l'ouverture (`openCastOpposition`) — après ce verbe, plus rien n'est dû à `oppositionConfirm`. */
-    oppositionRollAll: () => rollAllOwnedRows(get(), get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
+    oppositionRollAll: () => rollAllOwnedRows(get, FLOWS.castOpposition, get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
     oppositionConfirm: () => {
       const pco = get().pendingCastOpposition;
       const pc = get().pendingCast;
