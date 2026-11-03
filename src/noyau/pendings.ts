@@ -28,7 +28,7 @@ import type { RollLineParts } from './rollSeam';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
-import type { SupportDetail } from '../engine/skills';
+import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
@@ -1471,6 +1471,8 @@ export interface OppositionOutcome {
 }
 /** Une cible qui OPPOSE son Test à l'incantation : participant du flux MULTI (son jet + influence). */
 export interface OppositionParticipant extends RollParticipant {
+  /** Ligne du Test de la cible montée à l'ouverture (`rollLine` du `test` de la fenêtre), lue par la fenêtre. */
+  ligne: RollLineParts;
   result: OppositionOutcome | null;
 }
 /** Le Sort déclare une OPPOSITION (`spec.opposed`) : chaque cible oppose son Test (FM/Int/Bagarre) à
@@ -1479,9 +1481,8 @@ export interface OppositionParticipant extends RollParticipant {
  *  (cible résistante → aucune op ; sinon ops à la marge). « Réaction type défense » : cible IA = rangée
  *  témoin (jet auto + révélée dans la modale) ; cible héros = rangée interactive. */
 export interface PendingCastOpposition extends MultiPending<OppositionParticipant> {
-  kind: 'resist' | 'contact';
-  skill?: string;
-  char?: CharKey;
+  /** Le Test que chaque cible oppose (`testDOppositionDeSort`). */
+  test: TestDesigne;
 }
 
 /** Un Round d'un Test Étendu : le jet de CE Round (slot du flux multi SÉQUENTIEL). */

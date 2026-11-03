@@ -43,7 +43,7 @@ import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
-import { testValue, valeurDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
+import { testValue, valeurDuTest, idsDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castingValue, castInfoIsPrayer, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
@@ -848,7 +848,7 @@ export const FLOWS = paresseux({
   counterspell: () => makeRollFlow<PendingCounterspell, CounterParticipant>({
     key: 'pendingCounterspell',
     // PARALLÈLE : chaque participant est un contre-lanceur (slot indépendant).
-    multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }) },
+    multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuContreSort },
     rolled: (part) => !!part.result,
     actor: (s, part) => actorIn(s, part.id),
     // Le jet d'incantation ENNEMI vit dans `pendingCast` (figé) ; le participant oppose son Langue
@@ -856,7 +856,7 @@ export const FLOWS = paresseux({
     resolve: (s, part, actor, _get, forced) => {
       const pcCast = s.pendingCast?.result;
       if (!actor || !pcCast) return null;
-      if (!counterspellEngage(s, part, actor)) return null;
+      counterspellEngage(s, part, actor);
       const castT = castTestOf(pcCast);
       // Test SOUTENU du groupe uni (`LDB 12 l.189`) : le meneur lance, +10 par uni éligible, plafonné
       // (`counterspellSoutienFor` — 0 pour un lanceur seul, le pipeline aval est le MÊME).
@@ -890,13 +890,13 @@ export const FLOWS = paresseux({
       write: (s, part, actor, _get, tr) => {
         const pcCast = s.pendingCast?.result;
         if (!actor || !pcCast) return null;
-        if (!counterspellEngage(s, part, actor)) return null;
+        counterspellEngage(s, part, actor);
         return { result: counterspellOutcomeFrom(actor, withCastTestDRMods(actor, 'dissipation', tr), castTestOf(pcCast)) };
       },
       resilience: (s, part, actor, _get, tr) => {
         const pcCast = s.pendingCast?.result;
         if (!actor || !pcCast) return null;
-        if (!counterspellEngage(s, part, actor)) return null;
+        counterspellEngage(s, part, actor);
         const castT = castTestOf(pcCast);
         const adj = withCastTestDRMods(actor, 'dissipation', tr);
         const counterT = forcedTR(tr.roll, cibleBrute(tr), Math.max(adj.sl, castT.sl + 1, 1));
@@ -931,10 +931,10 @@ export const FLOWS = paresseux({
       const pco = s.pendingCastOpposition;
       if (!actor || !pcCast || !pco) return null;
       const castT = castTestOf(pcCast); // l'incantation figée = l'« attaquant » de l'opposition
-      const oppVal = testValue(actor, pco.skill, pco.char); // FM / Intelligence de la cible
-      // Valeur NUE de la cible (`LDB 09 l.17`) : le lanceur porte déjà la sienne (`castingBaseValue` via
-      // `evaluateCasting`), les DEUX camps la portent donc au départage à DR égal (`LDB 12 l.160`).
-      const oppBase = skillBaseValue(actor, pco.skill, undefined, pco.char);
+      const oppVal = valeurDuTest(actor, pco.test);
+      // LDB 09 l.17 ; LDB 12 l.160.
+      const { skill, spec, char } = idsDuTest(pco.test);
+      const oppBase = skillBaseValue(actor, skill, spec, char);
       if (forced?.sl != null) {
         // Résistance (Magie), LDB 10 l.1016-1020 : le Test pour résister au Sort réussit d'office —
         // la cible RÉSISTE (interprétation : « réussir le Test pour résister » = l'opposition est
@@ -2187,37 +2187,23 @@ export function buildRollFlowActions(get: Get, set: Set): RollFlowActionsMap {
   return out as RollFlowActionsMap;
 }
 
-/**
- * ENTRÉE EN LICE d'un contre-lanceur (`FLOWS.counterspell`) — couture UNIQUE partagée par le jet
- * (`resolve`) ET les chemins de dé (`die.write` / `die.resilience`), pour qu'aucun n'ait sa propre
- * table de vérité :
- *  - REFUSE le geste, SANS consommation, quand une AUTRE rangée a déjà DISSIPÉ : il n'y a plus de
- *    Sort à opposer (`LDB 46 l.156` : « Sur un succès, vous dissipez le Sort »), et l'essai du Round
- *    du suivant (« Vous ne pouvez tenter de dissiper qu'un seul Sort chaque Round ») reste intact.
- *    Un ÉCHEC, lui, ne ferme rien : les autres DÉCLARÉS chantent à leur tour, dans n'importe quel
- *    ordre (#1040) ;
- *  - VERROU DE PHASE : aucun jet tant qu'une rangée n'a pas déclaré (`counterspellDeclarePhase`) —
- *    la composition se règle AVANT les dés (arbitrage utilisateur 2026-08-04 [entériné 2026-08-04],
- *    verbatims aux tickets #1042/#1059) ;
- *  - REFUSE une rangée qui ne LANCE pas (`counterspellRolls`) : `pass` ne tente rien, et le groupe
- *    soutenu n'a QU'UN jet (`LDB 12 l.189`), celui de son meneur ;
- *  - consomme l'essai du Round de CELUI qui chante, au moment de SON jet — limite PAR PERSONNAGE,
- *    consommée même sur un échec (`LDB 46 l.156`) — et, pour un jet de GROUPE, celui de CHAQUE uni :
- *    s'unir EST tenter (arbitrage utilisateur 2026-08-04 [entériné 2026-08-04], ticket #1042).
- *    PASSER ne consomme rien : passer n'est pas tenter.
- * Ré-entrante : la rangée qui a dissipé garde SON cycle d'influence (Chance, dé choisi, Résilience)
- * — c'est son propre jet qu'elle retouche, pas une seconde tentative.
- */
-function counterspellEngage(
-  s: Jeu,
-  part: CounterParticipant,
-  actor: Combatant,
-): boolean {
+/** Le refus de la rangée de Contre-sort `pid` (`null` si elle lance maintenant) : phase de déclaration ouverte
+ *  (`counterspellDeclarePhase`, #1042/#1059), Sort déjà dissipé par une AUTRE rangée (LDB 46 l.156 ; la rangée
+ *  qui a dissipé garde son propre cycle), rangée qui ne lance pas (`counterspellRolls`, LDB 12 l.189). */
+function refusDuContreSort(s: Jeu, pid: string): string | null {
   const pcs = s.pendingCounterspell;
-  if (pcs?.participants.some((x) => x.id !== part.id && x.result?.dispelled)) return false;
-  if (counterspellDeclarePhase(pcs)) return false;
-  if (!counterspellRolls(s, pcs, part)) return false;
+  const part = pcs?.participants.find((x) => x.id === pid);
+  if (!pcs || !part) return null;
+  if (counterspellDeclarePhase(pcs)) return t('declaration.attenteFenetre');
+  const dissipe = pcs.participants.find((x) => x.id !== pid && x.result?.dispelled);
+  if (dissipe) return t('cs.refus.dejaDissipe', { name: garanti(actorIn(s, dissipe.id), dissipe.id, 'contre-sort').label });
+  return counterspellRolls(s, pcs, part) ? null : t('cs.refus.neLancePas', { name: garanti(actorIn(s, pid), pid, 'contre-sort').label });
+}
+
+/** Consomme l'essai du Round (LDB 46 l.156) de CELUI qui chante, au moment de son jet, et pour un jet de GROUPE
+ *  celui de CHAQUE uni (#1042 [entériné 2026-08-04]). Le refus de la rangée est `refusDuContreSort`. */
+function counterspellEngage(s: Jeu, part: CounterParticipant, actor: Combatant): void {
+  const pcs = s.pendingCounterspell;
   const grp = part.declared === 'soutenu' ? counterspellSoutenu(s, pcs) : null;
   for (const c of grp ? grp.unis : [actor]) c.dispelledThisRound = true;
-  return true;
 }

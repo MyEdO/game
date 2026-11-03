@@ -156,7 +156,7 @@ import {
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
-import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
+import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
@@ -5057,13 +5057,14 @@ export function shareCastStep(get: Get, set: SetFn, playedIds: string[], casterI
 export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, targets: Combatant[]): boolean {
   const spell = effectiveSpellOf(pc);
   const opposed = spell?.opposed;
-  if (!opposed) return false;
+  if (!spell || !opposed) return false;
+  const test = testDOppositionDeSort(spell.id, opposed);
   const participants = targets
     .filter((t) => !isOutOfAction(t))
-    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), result: null }));
+    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), ligne: rollLine({ actor: t, test: idsDuTest(test), difficulty: 'intermediaire' }), result: null }));
   if (!participants.length) return false;
   // `menace: 'magie'` : le Test opposé « résiste au Sort » → Résistance (Menace : Magie) offerte (LDB 10).
-  set({ pendingCastOpposition: { participants, kind: opposed.kind, skill: opposed.skill?.id, char: opposed.char, menace: 'magie' } });
+  set({ pendingCastOpposition: { participants, test, menace: 'magie' } });
   // Une rangée d'opposition INTERACTIVE tenue par un autre acteur joué que le lanceur → l'étape `cast`
   // devient de GROUPE (calque `disengage`/`forceDoor`) : sans cela l'owner de l'étape reste le lanceur,
   // la cible ne voit JAMAIS la fenêtre où se tient son Test et le sort s'appliquerait sans opposition.
@@ -5071,6 +5072,13 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
   // Cibles IA (témoin) : jet auto-roulé immédiatement (révélé dans la modale, jamais caché).
   for (const p of participants) if (!p.interactive) get().oppositionRoll(p.id);
   return true;
+}
+
+/** Le Test que la cible oppose au Sort (`SpellData.opposed`) : `contact` → Corps à corps (Bagarre), `resist` → la
+ *  Compétence déclarée, sinon la Caractéristique. */
+function testDOppositionDeSort(spellId: string, opposed: NonNullable<SpellData['opposed']>): TestDesigne {
+  if (opposed.kind === 'contact') return { skill: { id: 'corps-a-corps', spec: 'bagarre' } };
+  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.char, spellId, 'opposition de sort') };
 }
 
 /** Cibles SUPPLÉMENTAIRES d'une incantation figée (Surincantation, LDB 47 l.28-31) ; ZdE : toutes les
