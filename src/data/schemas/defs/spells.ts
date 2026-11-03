@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
 import { conditionSchema, mecaniqueDe } from '../grammaire/mecanique';
-import { refOuSpec } from '../grammaire/ref';
+import { idDe, refOuSpec } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
 export const file = 'spells.json';
@@ -109,7 +109,7 @@ const champs = {
   /** VDM */
   ecole: z.string(),
   subType: z.string().nullable(),
-  domainId: z.string().optional(),
+  domainId: idDe('domain').optional(),
   /** VDM 02 l.363 ; VDM 12 l.646-647 ; VDM 14 l.489 */
   isRitual: z.boolean().optional(),
   /** VDM 02 l.377-393 */

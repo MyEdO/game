@@ -19,6 +19,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHas
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
+import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
 import type { CombatFeature } from '../engine/combatFeatures/types';
 import { isOutOfAction, combatTestPenalty } from '../engine/conditions';
 import { surfaceOf } from './rollSeam';
@@ -128,7 +129,7 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
   for (const m of actor.mutations ?? []) { const d = findMutationById(m.id); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'mutation', id: m.id }), cap: 1, key: `mutation:${m.id}`, label: d.label ?? m.id }); }
   for (const cond of actor.conditions ?? []) {
     const d = findConditionById(cond.id);
-    if (!d?.effects?.length) continue;
+    if (!d?.effects?.length || degatsDeLEtatIgnores(actor.traits, cond.id)) continue;
     const reduce = d.stacksReducedBy ? featureLevel(actor, d.stacksReducedBy as keyof CombatFeature) : 0; // Hémorragique − Endurci…
     // Part DÉRIVÉE du pion (`derivedFrom.stacks`, socle #1599) : un fait passif vivant la porte, donc
     // elle n'est ni récupérable ni dissipable (`retireEtat` y est déjà inerte). Un pion ENTIÈREMENT

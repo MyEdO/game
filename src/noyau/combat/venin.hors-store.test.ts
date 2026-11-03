@@ -81,7 +81,7 @@ describe('Venin — la touche qui blesse pose Empoisonné à la Difficulté du V
   it('cible Immunisée (Poison) : aucun Empoisonné', () => {
     const { serpent, proie } = setup();
     serpent.traits = [...(serpent.traits ?? []), { id: 'venin', arg: 'difficile' }];
-    proie.traits = [...(proie.traits ?? []), { id: 'immunite', arg: 'Poison' }];
+    proie.traits = [...(proie.traits ?? []), { id: 'immunite', arg: 'poison' }];
     touche(serpent, proie, 4);
     expect(empoisonne(proie)).toBeUndefined();
   });

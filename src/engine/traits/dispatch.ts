@@ -9,7 +9,7 @@ import { TRAITS } from './registry';
 import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
 import { formaterIndiceRelatif, formaterParLocalisation } from '../classementDeTrait';
-import { charAbr, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
+import { charAbr, findTraitById, findQualityById, findDamageTypeById, findConditionById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
 import { cibleDeLArg, libelleDeCible, type NomDIndividu } from '../psych/ciblage';
@@ -237,26 +237,33 @@ export function traitAuras(traits: TraitList | undefined): { traitId: string; au
   return out;
 }
 
-/** Immunité (Type) : types de Dégâts totalement ignorés (en minuscules). */
+/** Immunité (Type) : ids des Types (`damage-types.json`) que nomment les Immunités portées. LDB 85 l.174 */
 export function immunityTypes(traits: TraitList | undefined): string[] {
-  return (traits ?? []).filter((t) => findTraitById(t.id)?.capabilities?.damageImmunity && t.arg).map((t) => t.arg!.toLowerCase());
+  return (traits ?? []).filter((t) => findTraitById(t.id)?.capabilities?.damageImmunity && t.arg).map((t) => t.arg!);
 }
 
-/** Manifestation de Ghur (Middenheim) : id du Domaine de Sort dont les effets n'affectent PAS le porteur
- *  (immunité par lore — capability `spellDomainImmunity`, lue PAR ID). undefined si aucun trait porté ne
- *  confère cette immunité. SOURCE UNIQUE — consommée par le chemin d'incantation (`immuneToSpellDomain`). */
-export function spellDomainImmunityOf(traits: TraitList | undefined): string | undefined {
-  for (const t of traits ?? []) {
-    const dom = findTraitById(t.id)?.capabilities?.spellDomainImmunity;
-    if (dom) return dom;
-  }
-  return undefined;
+/** Les Dégâts de l'État `etatId` (son `typeDeDegats`) sont-ils ignorés par une Immunité portée ? SOURCE
+ *  UNIQUE — lue par le déclenchement des effets d'État, l'IA et l'entretien hors combat. LDB 85 l.174 */
+export function degatsDeLEtatIgnores(traits: TraitList | undefined, etatId: string): boolean {
+  const type = findConditionById(etatId)?.typeDeDegats;
+  return type != null && immunityTypes(traits).includes(type);
 }
 
-/** Le porteur est-il immunisé aux effets d'un Sort du Domaine `spellDomainId` (Manifestation de Ghur) ?
- *  Comparaison d'id STRICTE — `null`/`undefined` (Sort sans Domaine) ne matche jamais. */
+/** Ids des Domaines de Sort dont les effets n'affectent PAS le porteur : capability `spellDomainImmunity`
+ *  d'un Trait (Manifestation de Ghur), ou `domaine` du Type d'une Immunité portée (Immunité (Magie
+ *  flamboyante), Immunité (*Shyish*)). SOURCE UNIQUE — consommée par l'incantation et les zones
+ *  (`immuneToSpellDomain`). VDM 13 l.24, l.61 ; ZI 08 l.28 */
+export function domainesImmunises(traits: TraitList | undefined): string[] {
+  return [
+    ...(traits ?? []).flatMap((t) => findTraitById(t.id)?.capabilities?.spellDomainImmunity ?? []),
+    ...immunityTypes(traits).flatMap((id) => findDamageTypeById(id)?.domaine ?? []),
+  ];
+}
+
+/** Le porteur est-il immunisé aux effets d'un Sort du Domaine `spellDomainId` ? Comparaison d'id STRICTE —
+ *  `null`/`undefined` (Sort sans Domaine) ne matche jamais. */
 export function immuneToSpellDomain(traits: TraitList | undefined, spellDomainId: string | null | undefined): boolean {
-  return spellDomainId != null && spellDomainImmunityOf(traits) === spellDomainId;
+  return spellDomainId != null && domainesImmunises(traits).includes(spellDomainId);
 }
 
 /** Le porteur paie-t-il la manœuvre `maneuverId` de son Action de Mouvement (capability `freeTrample`,

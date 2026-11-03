@@ -9936,6 +9936,10 @@
         "arg": "feu"
       },
       {
+        "id": "immunite",
+        "arg": "magie-flamboyante"
+      },
+      {
         "id": "infravision"
       },
       {
@@ -21217,6 +21221,14 @@
         "id": "foulee"
       },
       {
+        "id": "immunite",
+        "arg": "feu"
+      },
+      {
+        "id": "immunite",
+        "arg": "magie-flamboyante"
+      },
+      {
         "id": "instable"
       },
       {
@@ -21296,6 +21308,10 @@
       },
       {
         "id": "foulee"
+      },
+      {
+        "id": "immunite",
+        "arg": "shyish"
       },
       {
         "id": "instable"

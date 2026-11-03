@@ -2,6 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** VDM 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { idDe } from '../grammaire/ref';
 import { deDeTableSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
@@ -153,7 +154,7 @@ const doc = document(
     nommerChamps(z.strictObject({
       id: z.string(),
       /** Id de `domains.json` du Domaine porté par le Vent. */
-      domainId: z.string(),
+      domainId: idDe('domain'),
       /** Nom du Vent tel qu'imprimé (`DomainData.wind`). */
       wind: z.string(),
 
@@ -253,7 +254,7 @@ const doc = document(
           ...plageSchema.shape,
           label: z.string(),
 
-          domainIds: z.array(z.string()).min(1).optional(),
+          domainIds: z.array(idDe('domain')).min(1).optional(),
 
           chaosMagic: z.boolean().optional(),
 

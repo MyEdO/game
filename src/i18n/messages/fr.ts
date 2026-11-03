@@ -1317,7 +1317,7 @@ export const fr = {
   'cf.overcastDurationMin': 'Surincantation : durée prolongée (×{mult}).',
   'cf.spellExtends': "{spell} s'étend aussi à {name} (Surincantation).",
   'cf.spellResisted': '{name} résiste à {spell} (Test opposé).',
-  'cf.spellDomainImmune': '{name} est immunisé contre {spell} (Manifestation de Ghur — Domaine de la Bête).',
+  'cf.spellDomainImmune': '{name} est immunisé aux Sorts de ce Domaine : {spell} est sans effet.',
   'cf.pushed': '{name} est repoussé de {m} m.',
   'cf.collided': '{name} percute un obstacle (Dégâts = distance restante — arbitrage MJ).',
   'cf.breathNarrative': '{name} crache un Souffle — hors combat, effet narratif (arbitrage MJ).',

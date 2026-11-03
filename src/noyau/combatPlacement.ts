@@ -12,7 +12,7 @@ import { footprintTiles, footprintN, occupiesTile } from './monde/footprint';
 import { actorIn } from './monde/combatants';
 import { sizeGap } from '../engine/size';
 import { isOutOfAction } from '../engine/conditions';
-import { crossZones, zoneCovers } from './monde/zones';
+import { crossZones, zoneCovers, zoneSansEffetSur } from './monde/zones';
 import { battleRng } from './battleRng';
 import { ev } from './combatLog';
 import { t } from '../i18n';
@@ -124,6 +124,7 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   if (mover.dead || isOutOfAction(mover)) return;
   for (const z of battle.zones) {
     if (!z.crossTest || !path.some((p) => zoneCovers(z, p))) continue;
+    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('info', t('cf.spellDomainImmune', { name: mover.label, spell: z.label }), mover.id)); continue; }
     battle.log.push(ev('move', t('cf.zoneCross', { name: mover.label, zone: z.label }), mover.id));
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
