@@ -68,16 +68,20 @@ describe('Focalisation — maladresse élargie (l.140)', () => {
 });
 
 describe('« Repousser les Vents » — armure portée (LDB 46 l.150-152)', () => {
-  const mailles: ItemInstance = { uid: 'a1', name: 'Chemise de mailles', subType: 'mailles', kind: 'armor', enc: 2, equipped: true, pa: 2, locs: ['corps'], qualities: [] } as never;
+  const mailles: ItemInstance = { uid: 'a1', name: 'Chemise de mailles', subType: 'mailles', kind: 'armor', enc: 2, equipped: true, pa: 2, locs: ['corps'], qualities: [{ id: 'flexible' }] } as never; // LDB 63 l.50
   const cuir: ItemInstance = { uid: 'a2', name: 'Veste de cuir', subType: 'cuir-souple', kind: 'armor', enc: 1, equipped: true, pa: 1, locs: ['corps'], qualities: [] } as never;
   const chaosArmour: ItemInstance = { uid: 'a3', name: 'Armure du Chaos', subType: 'armure-du-chaos', kind: 'armor', enc: 2, equipped: true, pa: 2, locs: ['corps'], qualities: [] } as never;
-  it('−1 DR par PA de la pièce la mieux protégée', () => {
+  const plastron: ItemInstance = { uid: 'a4', name: 'Plastron de cuir', subType: 'cuir-bouilli', kind: 'armor', enc: 2, equipped: true, pa: 2, locs: ['corps'], qualities: [] } as never;
+  it('−1 DR par PA sur la Localisation la mieux protégée : PA cumulés à la Localisation (LDB 63 l.50)', () => {
     expect(armourCastDRPenalty(wiz())).toBe(0);
-    expect(armourCastDRPenalty(wiz({ items: [mailles, cuir] }))).toBe(2);
+    expect(armourCastDRPenalty(wiz({ items: [mailles, cuir] }))).toBe(3);
+    expect(armourCastDRPenalty(wiz({ items: [plastron, cuir] }))).toBe(2);
+    expect(armourCastDRPenalty(wiz({ items: [mailles, { ...cuir, locs: ['brasG'] }] }))).toBe(2);
   });
   it('Magie des Arcanes (Métal) ignore le métal ; (Bêtes) ignore le cuir — inconditionnel', () => {
     const metalMage = wiz({ items: [mailles], talents: [{ talentId: 'magie-des-arcanes', spec: 'metal', times: 1 }] });
     expect(armourCastDRPenalty(metalMage)).toBe(0);
+    expect(armourCastDRPenalty({ ...metalMage, items: [mailles, cuir] })).toBe(1);
     const beastMage = wiz({ items: [cuir], talents: [{ talentId: 'magie-des-arcanes', spec: 'bete', times: 1 }] });
     expect(armourCastDRPenalty(beastMage)).toBe(0);
     // …mais pas l'inverse.

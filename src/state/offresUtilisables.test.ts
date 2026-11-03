@@ -3,13 +3,14 @@
  * dans l'invariant d'affichage `OffreRendue`, pas une seconde source d'offre : ce qui est offert se
  * dit au dériveur unique, ce qui est joué passe par `jouerAction`.
  *
+ * Le verdict d'offre lui-même (`porteDOffre`) se joue au banc du noyau (`src/noyau/interactionsDExploration.hors-store.test.ts`).
+ *
  * Scènes FABRIQUÉES (doctrine : jamais une scène de campagne utilisée comme fixture).
  */
 import { tableTotale } from '../lib/tableTotale';
 import { describe, expect, it, vi } from 'vitest';
 import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { offresUtilisables } from './offresUtilisables';
-import { porteDOffre } from '../noyau/interactionsDExploration';
 import { useGame, type GameState } from './store';
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -85,10 +86,5 @@ describe('offresUtilisables — la pastille de toute entité À PORTÉE, sans su
     const prises = offresUtilisables(useGame.getState())[0].offres;
     expect(prises.length, 'le geste ne disparaît pas : il se refuse').toBe(1);
     expect(prises[0].gate).toEqual({ ok: false, reason: 'Toutes les places sont occupées.' });
-  });
-
-  it('le VERDICT est la source unique du clic comme de la pastille (`porteDOffre`)', () => {
-    const sc = poser([coffre()]);
-    expect(porteDOffre(sc, sc.entities[0], 'authoree'), 'rien ne refuse une action authorée offerte').toEqual({ ok: true });
   });
 });

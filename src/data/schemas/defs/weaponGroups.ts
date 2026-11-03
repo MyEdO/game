@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { enumNomme, maniementSchema } from '../grammaire/valeurs';
+import { enumNomme, maniementSchema, matiereDArmureSchema } from '../grammaire/valeurs';
 import { qualityRefSchema } from '../grammaire/reference';
 import { tableTotale } from '../../../lib/tableTotale';
 
@@ -33,7 +33,7 @@ const doc = document(
   famille,
   {
     kind: enumNomme(KINDS),
-    material: z.enum(['metal', 'leather', 'chaos']).optional(),
+    material: matiereDArmureSchema.optional(),
     combat: z.enum(['melee', 'ranged']).optional(),
     /** Qualités COMMUNES à toute la famille, mergées par `resolveQualities` (LDB 62 l.137). */
     qualities: z.array(qualityRefSchema).optional(),
@@ -53,7 +53,7 @@ const doc = document(
     },
     material: {
       label: 'Matériau (armure)',
-      hint: 'Matériau typé de l’armure (exemptions de Magie des Arcanes) — présent seulement sur les Groupes d’armure',
+      hint: 'Matériau typé de l’armure (Perforante, Domaines des Cieux et du Métal, exemptions de Magie des Arcanes) — présent seulement sur les Groupes d’armure',
     },
     combat: {
       label: 'Registre de combat',

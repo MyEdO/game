@@ -216,6 +216,14 @@ describe('spawn — Taille d’un profil : Trait Taille, sinon Talent de Taille,
   });
 });
 
+// LDB 85 l.37-39 (#1463).
+describe('statbloc d’éditeur — l’Armure du Trait fait les PA du combattant, comme une créature', () => {
+  it('Trait Armure 5 → 5 PA à chaque localisation', () => {
+    const c = statblockToCombatant({ type: 'statblock', label: 'Dragon des ténèbres', char: {}, traits: [{ id: 'armure', value: 5 }] }, 'e1', { x: 0, y: 0 });
+    expect(Object.values(c.armour)).toEqual([5, 5, 5, 5, 5, 5]);
+  });
+});
+
 // LDB 10 l.109.
 describe('spawn — Béni : les Bénédictions du culte au spawn, comme à la création d’un héros', () => {
   const at = { x: 0, y: 0 };

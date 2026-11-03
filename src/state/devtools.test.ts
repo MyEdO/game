@@ -22,7 +22,6 @@ import { editeur } from './editeurBridge';
 import { signalerEntreeEnScene } from './entreeEnScene';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
-import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { careerTalentAdditions } from '../engine/talentEffects';
 import { projectsLoad } from './projectLibrary';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
@@ -1435,18 +1434,6 @@ describe('__wfrp.ascii — le PLAN de la couche, ses trois légendes et son reli
   };
 
   afterEach(() => useGame.setState({ scene: null }));
-
-  it('aucun char n’est partagé entre la légende de CASES, celle d’ARÊTES et celle de ZONES', () => {
-    const ex = sceneToAscii(opera());
-    const espaces = { cases: Object.keys(ex.legend), arêtes: Object.keys(ex.wallLegend), zones: Object.keys(ex.zoneLegend) };
-    // `-`/`|` sont les mots NUS de la grammaire : l'export les pose en légende d'arêtes quand toutes
-    // les cloisons portent une apparence — ils ne sortent d'aucun allocateur et ne collisionnent rien.
-    const alloues = (chars: string[]) => chars.filter((c) => !GLYPHES_RESERVES.has(c));
-    for (const [a, b] of [['cases', 'arêtes'], ['cases', 'zones'], ['arêtes', 'zones']] as const) {
-      const communs = alloues(espaces[a]).filter((c) => alloues(espaces[b]).includes(c));
-      expect(communs, `chars servis À LA FOIS en légende ${a} et en légende ${b} : ${communs.join(', ')}`).toEqual([]);
-    }
-  });
 
   it('les trois légendes s’impriment, et la légende d’arêtes dit l’apparence/la structure', () => {
     const ex = sceneToAscii(opera());

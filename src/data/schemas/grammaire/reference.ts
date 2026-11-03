@@ -6,7 +6,7 @@ import { libelleDeValeur, nommerChamps } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
 import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, refMorte, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
@@ -31,12 +31,14 @@ export function refusDArgDeTrait(id: string, arg: string): string | null {
 }
 
 /** Capacité que la def d'un Trait DÉCLARE pour admettre un champ d'instance : une fourchette fixe un
- *  Indice (`indice`), l'Indice par Localisation a la sienne (`parLocalisation`), un Trait d'attaque confère
- *  des Traits à ses touches (`attaque`), la Difficulté de l'État qu'un Trait inflige a la sienne (`difficulte`). */
-const CAPACITES_DE_TRAIT = { plage: 'indice', parLocalisation: 'parLocalisation', confere: 'attaque', difficulte: 'difficulte' } as const;
+ *  Indice (`indice`), l'Indice par Localisation et la matière de l'armure ont la leur (`parLocalisation`), un
+ *  Trait d'attaque confère des Traits à ses touches (`attaque`), la Difficulté de l'État qu'un Trait inflige a
+ *  la sienne (`difficulte`). */
+const CAPACITES_DE_TRAIT = { plage: 'indice', parLocalisation: 'parLocalisation', matiere: 'parLocalisation', confere: 'attaque', difficulte: 'difficulte' } as const;
 const declareLaCapacite = {
   plage: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.plage),
   parLocalisation: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.parLocalisation),
+  matiere: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.matiere),
   confere: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.confere),
   difficulte: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.difficulte),
 };
@@ -103,16 +105,16 @@ function refusDeVarianteDeCible(id: string, arg: string): string | null {
 const idDeTrait: z.ZodType<string, string> = idDe('trait');
 
 /** Les libellés des champs du Trait posé. */
-const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, difficulte: { label: "Difficulté" }, confere: { label: "Traits conférés" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } } as const;
+const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, matiere: { label: "matière" }, difficulte: { label: "Difficulté" }, confere: { label: "Traits conférés" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } } as const;
 
 /** Les refus du Trait posé : une seule clé de valeur, la capacité de la def, l'`arg` (un individu, hors du
  *  registre, n'est admis que dans une scène, `regime`). EDOC 11 l.648 ; #3045 */
-function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?: { min: number; max: number }; parLocalisation?: unknown; confere?: unknown; difficulte?: unknown }, ctx: z.RefinementCtx, regime: RegimeDeCible): void {
+function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?: { min: number; max: number }; parLocalisation?: unknown; matiere?: unknown; confere?: unknown; difficulte?: unknown }, ctx: z.RefinementCtx, regime: RegimeDeCible): void {
   const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
   if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });
   if (t.parLocalisation && t.arg !== undefined) ctx.addIssue({ code: 'custom', path: ['arg'], message: `Trait « ${t.id} » : un Indice par Localisation nomme ses zones, sans Aspect.` });
   if (t.plage && !(Number.isInteger(t.plage.min) && Number.isInteger(t.plage.max) && t.plage.min >= 0 && t.plage.min < t.plage.max)) ctx.addIssue({ code: 'custom', path: ['plage'], message: `Trait « ${t.id} » : une fourchette d'Indice va d'un entier positif ou nul à un entier plus grand.` });
-  for (const champ of ['plage', 'parLocalisation', 'confere', 'difficulte'] as const) {
+  for (const champ of ['plage', 'parLocalisation', 'matiere', 'confere', 'difficulte'] as const) {
     const refus = t[champ] === undefined ? null : refusDeCapaciteDeTrait(t.id, champ);
     if (refus) ctx.addIssue({ code: 'custom', path: [champ], message: refus });
   }
@@ -136,6 +138,9 @@ const champsDuTraitPose = {
   plage: plageSchema.optional(),
   /** Indice par Localisation (AA 09 l.184), à la place de l'Indice unique ; admis si la def le déclare. */
   parLocalisation: parLocalisationSchema.optional(),
+  /** Matière de l'armure, à toutes ses Localisations ; admise si la def déclare l'Indice par Localisation.
+   *  LDB 62 l.270 ; LDB 63 l.97 ; LDB 85 l.39 ; #1463 */
+  matiere: matiereDArmureSchema.optional(),
   /** Difficulté des Tests qui éliminent l'État que le Trait inflige (MDG 16 l.226 ; LDB 16 l.70) ; admise
    *  si la def la déclare. */
   difficulte: difficultySchema.optional(),

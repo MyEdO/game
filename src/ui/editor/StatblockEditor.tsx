@@ -170,15 +170,6 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
         />{' '}
         Suit les règles de Personnage (Corruption/composant/maladie)
       </label>
-      <label className="ed-field">
-        Armure (PA uniforme)
-        <NumberField
-          variant="nu"
-          label="Armure (PA uniforme)"
-          value={stat.armour ?? 0}
-          onChange={(n) => onChange({ ...stat, armour: n || undefined })}
-        />
-      </label>
     </div>
   );
 }

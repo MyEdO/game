@@ -8,12 +8,11 @@ import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, W
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised, effectiveWeaponRange } from './weaponDamage';
-import { armourMaterialOf } from './armourBypass';
 import { groupeAPoudre } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
-import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, matiereDuGroupe, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
 
@@ -1161,11 +1160,11 @@ export function endommagerLArmeTenue(c: Combatant, weapon: Weapon): 'intacte' | 
 /** Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — endommage de
  *  1 PA la première pièce de CUIR portée encore intacte, re-dérive l'armure. Retourne la
  *  localisation touchée, ou null si rien en cuir (ennemi à armure plate : matière inconnue → MJ).
- *  Matière lue au Groupe du TYPE d'armure `subType` (`armourMaterialOf`, champ `material` de
+ *  Matière lue au Groupe du TYPE d'armure `subType` (`matiereDuGroupe`, champ `material` de
  *  `weaponGroups.json`). */
 export function damageLeatherArmour(c: Combatant): HitLocation | null {
   const piece = (c.items ?? []).find(
-    (i) => i.equipped && i.kind === 'armor' && armourMaterialOf(i) === 'leather' && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
+    (i) => i.equipped && i.kind === 'armor' && matiereDuGroupe(i.subType) === 'leather' && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
   );
   if (!piece) return null;
   piece.damageTaken = (piece.damageTaken ?? 0) + 1;

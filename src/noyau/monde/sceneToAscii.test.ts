@@ -6,6 +6,8 @@ import { sceneToAscii } from './sceneToAscii';
 import { glypheDe, tousLesTerrains } from './terrain';
 import { setDataset } from '../../data/overrides';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { buildOperaFloorplan } from '../../scenes/opera/floorplan';
+import { GLYPHES_RESERVES } from '../../data/schemas/grammaire/carte-ascii';
 
 /** Scène réelle la plus riche du dépôt (paquet éditeur : 32×38, 2 niveaux). */
 const diligenceScene = () => paquetDuJeu(diligenceCampaign).scenes[0];
@@ -251,6 +253,22 @@ describe('sceneToAscii — les glyphes DÉCLARÉS au dataset sont RÉSERVÉS (#1
       expect(Object.values(exp.legend).sort()).toEqual(sansGlyphe.map((t) => t.id).sort());
     } finally {
       setDataset('terrains', avant as never);
+    }
+  });
+});
+
+/** Les trois légendes de l'export — cases, arêtes, zones — sur la scène la plus riche du dépôt (l'Opéra : deux couches,
+ *  murs à apparence, relief). */
+describe('sceneToAscii — les trois légendes sont disjointes (#1789)', () => {
+  it('aucun char n’est partagé entre la légende de CASES, celle d’ARÊTES et celle de ZONES', () => {
+    const ex = sceneToAscii(buildOperaFloorplan());
+    const espaces = { cases: Object.keys(ex.legend), arêtes: Object.keys(ex.wallLegend), zones: Object.keys(ex.zoneLegend) };
+    // `-`/`|` sont les mots NUS de la grammaire : l'export les pose en légende d'arêtes quand toutes
+    // les cloisons portent une apparence — ils ne sortent d'aucun allocateur et ne collisionnent rien.
+    const alloues = (chars: string[]) => chars.filter((c) => !GLYPHES_RESERVES.has(c));
+    for (const [a, b] of [['cases', 'arêtes'], ['cases', 'zones'], ['arêtes', 'zones']] as const) {
+      const communs = alloues(espaces[a]).filter((c) => alloues(espaces[b]).includes(c));
+      expect(communs, `chars servis À LA FOIS en légende ${a} et en légende ${b} : ${communs.join(', ')}`).toEqual([]);
     }
   });
 });

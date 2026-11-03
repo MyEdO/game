@@ -33,7 +33,7 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
 
 /** Une armure porte son TYPE d'armure : `subType` = id de la sous-liste `armour` des Groupes
  *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
- *  (`armourMaterialOf`, `src/engine/armourBypass.ts`) lisent. Jugé par le refus de la sous-liste
+ *  (`matiereDuGroupe`, `src/data/index.ts`) lisent. Jugé par le refus de la sous-liste
  *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
  *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
 const refusDuTypeDArmure = (subType: string | null): string | null =>

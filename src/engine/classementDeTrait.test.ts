@@ -7,7 +7,7 @@
  * d'Armure (#1463).
  */
 import { describe, it, expect } from 'vitest';
-import { aspectAToutesLocalisations, classerParenthese, emplacementsDesPieces, formaterParLocalisation, lireAspectIndice, lireParLocalisation, lirePlage, localisationsDeZone } from './classementDeTrait';
+import { aspectAToutesLocalisations, classerParenthese, emplacementsDesPieces, formaterParLocalisation, lireAspectIndice, lireMatiere, lireParLocalisation, lirePlage, localisationsDeZone } from './classementDeTrait';
 
 /** Catalogue d'armures de fixture, colonne Emplacements de LDB 63 l.42-58. */
 const pieces = emplacementsDesPieces([
@@ -40,15 +40,15 @@ describe('lirePlage', () => {
 
 describe('emplacementsDesPieces', () => {
   it('rend les Emplacements d’une pièce nommée, pluriel, casse et « en » pour « de » ignorés', () => {
-    expect(pieces('Plastron')).toEqual(['corps']);
-    expect(pieces('heaume')).toEqual(['tete']);
-    expect(pieces('cotte de maille')).toEqual(['brasG', 'brasD', 'corps']);
-    expect(pieces('veste en cuir')).toEqual(['brasG', 'brasD', 'corps']);
-    expect(pieces('Jambières de cuir')).toEqual(['jambeG', 'jambeD']);
+    expect(pieces('Plastron')?.locs).toEqual(['corps']);
+    expect(pieces('heaume')?.locs).toEqual(['tete']);
+    expect(pieces('cotte de maille')?.locs).toEqual(['brasG', 'brasD', 'corps']);
+    expect(pieces('veste en cuir')?.locs).toEqual(['brasG', 'brasD', 'corps']);
+    expect(pieces('Jambières de cuir')?.locs).toEqual(['jambeG', 'jambeD']);
   });
   it('lit une pièce dont le profil sous-entend la matière, et le Casque pour la Tête', () => {
-    expect(pieces('Calotte')).toEqual(['tete']);
-    expect(pieces('Casque')).toEqual(['tete']);
+    expect(pieces('Calotte')?.locs).toEqual(['tete']);
+    expect(pieces('Casque')?.locs).toEqual(['tete']);
   });
   it('rend `undefined` pour un nom hors de la table', () => {
     expect(pieces('Plates')).toBeUndefined();
@@ -120,12 +120,56 @@ describe('classerParenthese', () => {
 
 describe('aspectAToutesLocalisations', () => {
   it.each([
-    'Moyenne', 'Légère', 'Peau', 'Fourrure', 'Fourrures', 'Cuirs', 'Peau épaisse', 'Peau de chitine', 'Écailles épineuses',
+    'Moyenne', 'Légère', 'Lourde', 'Peau', 'Fourrure', 'Fourrures', 'Cuirs', 'Peau épaisse', 'Peau de chitine', 'Écailles épineuses',
     'Fausse Plate', 'Demi- plate', 'Demi-plate', 'Plate complète', 'Cuirs et Plates', "Cuirs d'un Doktor de la Peste", 'Divers',
   ])('« %s » vaut à toutes les Localisations', (aspect) => {
     expect(aspectAToutesLocalisations(aspect)).toBe(true);
   });
   it.each(['Veste de cuir', 'Chemise de mailles', 'Plastron', 'Bouclier', 'Heaume 2, Plates 3', 'Calotte et veste de cuir', 'Plastron et Heaume', 'Peau 1', 'Cuir clouté sur le torse', 'Fourrure aux bras', 'Écailles des pattes avant'])('« %s » ne s’y lit pas', (aspect) => {
     expect(aspectAToutesLocalisations(aspect)).toBe(false);
+  });
+});
+
+describe('lireMatiere', () => {
+  /** Catalogue de fixture à Groupes et PA, LDB 63 l.41-58 ; matières des Groupes de `weaponGroups.json`. */
+  const MATIERES: Record<string, 'leather' | 'metal'> = { 'cuir-souple': 'leather', 'cuir-bouilli': 'leather', mailles: 'metal', plate: 'metal' };
+  const table = emplacementsDesPieces([
+    { label: 'Calotte de cuir', loc: 'Tête', pa: 1, subType: 'cuir-souple' },
+    { label: 'Veste de cuir', loc: 'Bras, Corps', pa: 1, subType: 'cuir-souple' },
+    { label: 'Jambières de cuir', loc: 'Jambes', pa: 1, subType: 'cuir-souple' },
+    { label: 'Chemise de mailles', loc: 'Corps', pa: 2, subType: 'mailles' },
+    { label: 'Cotte de mailles', loc: 'Bras, Corps', pa: 2, subType: 'mailles' },
+    { label: 'Heaume', loc: 'Tête', pa: 2, subType: 'plate' },
+    { label: 'Plastron', loc: 'Corps', pa: 2, subType: 'plate' },
+    { label: "Jambières d'acier", loc: 'Jambes', pa: 2, subType: 'plate' },
+  ], (groupe) => MATIERES[groupe]);
+  it('pièces de la table : la matière de leur Groupe (MCLB 02 l.101, EDO 03 l.303, EDO 02 l.284)', () => {
+    expect(lireMatiere('Plastron et Heaume', { indice: 2, pieces: table })).toBe('metal');
+    expect(lireMatiere('Calotte et veste de cuir', { indice: 1, pieces: table })).toBe('leather');
+    expect(lireMatiere('Chemise de mailles', { indice: 2, pieces: table })).toBe('metal');
+    expect(lireMatiere('Casque', { indice: 2, pieces: table })).toBe('metal');
+  });
+  it('deux matières : métal quand les pièces de métal atteignent l’Indice partout, sinon inconnue (EDOC 10 l.130)', () => {
+    expect(lireMatiere('Veste de cuir et cotte de mailles', { indice: 2, pieces: table })).toBe('metal');
+    expect(lireMatiere('Calotte de cuir et Plastron', { indice: 2, pieces: table })).toBeUndefined();
+    expect(lireMatiere('Jambières', { indice: 1, pieces: table })).toBeUndefined();
+  });
+  it('Aspect : règles rapides, ensembles, nature du corps (LDB 63 l.97 ; LDB 85 l.39)', () => {
+    expect(lireMatiere('Légère 2')).toBe('leather');
+    expect(lireMatiere('Moyenne')).toBe('metal');
+    expect(lireMatiere('Lourde 3')).toBe('metal');
+    expect(lireMatiere('Cuirs', { indice: 1, pieces: table })).toBe('leather');
+    expect(lireMatiere('Demi-plate')).toBe('metal');
+    expect(lireMatiere('Plate complète')).toBe('metal');
+    expect(lireMatiere('Peau 1')).toBe('peau');
+    expect(lireMatiere('Peau de chitine')).toBe('peau');
+    expect(lireMatiere('Écailles épineuses')).toBe('peau');
+    expect(lireMatiere("Cuirs d'un Doktor de la Peste")).toBe('leather');
+  });
+  it('ni pièce ni matière : inconnue', () => {
+    expect(lireMatiere('Corps, Bras', { indice: 1, pieces: table })).toBeUndefined();
+    expect(lireMatiere('Divers')).toBeUndefined();
+    expect(lireMatiere('Fausse Plate')).toBeUndefined();
+    expect(lireMatiere('Cuirs et Plates')).toBeUndefined();
   });
 });

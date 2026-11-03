@@ -235,6 +235,10 @@ export const ENTREES_OUTIL = [
  *
  * L'oubli des règles projetées à la compaction (`scripts/hooks/regles-projection-oubli.mjs`, #2683) : les DEUX
  * surfaces, qui portent toutes deux la projection et rendent `source: 'compact'`.
+ *
+ * La fin de tour d'une session inscrite (`scripts/hooks/fin-de-tour.mjs`, #3261) : surface Claude seule ; Codex
+ * rend la sienne par son pont (`scripts/ops/session-codex.mjs`). Elle porte `DRAPEAU_REFUS_NON_BLOQUANT` de
+ * `scripts/node-requis.mjs`, ici en littéral : l'importer évaluerait la porte (confronté par `scripts/node-requis.test.mjs`).
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
@@ -243,6 +247,7 @@ export const HOOKS_DE_SESSION = [
   { phase: 'SubagentStart', script: 'contexte-sous-agent.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Règles communes et mémoire du dépôt au sous-agent' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
   { phase: 'SessionStart', script: 'regles-projection-oubli.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Oubli des règles projetées à la compaction' },
+  { phase: 'Stop', script: 'fin-de-tour.mjs', arguments: ['--refus-non-bloquant'], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Fin de tour de la session inscrite' },
 ];
 
 /**

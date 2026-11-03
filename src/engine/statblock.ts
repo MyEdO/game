@@ -22,7 +22,6 @@ export interface CustomStatblock {
   type: 'statblock';
   label: string;
   char: Partial<Record<CharKey | 'M' | 'B', number>>;
-  armour?: number; // PA uniforme sur toutes localisations
   /** Traits POSÉS du profil custom (id + value/arg) — édités par picker, résolus au spawn (`traitsDuPorteur`). */
   traits?: TraitPose[];
   /** Catégorie de Taille (LDB 85) — sinon dérivée du trait « Taille (X) », défaut Moyenne. */

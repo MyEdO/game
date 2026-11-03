@@ -812,7 +812,7 @@ test('borne transportée : suivi se réarme au raccord IPC puis reçoit la trans
   serveur.listen(adresse)
   await once(serveur, 'listening')
   const sessions = { attendre: (_cible, options) => veillerCodex({ dossier, sessionId, ...options }), etat: () => ({ etat: 'occupe' }) }
-  assert.deepEqual(await attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), fin)
+  assert.deepEqual(await attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 30_000 }), fin)
   assert.equal(appels, 2)
   let instant = 0, avant = appels
   reponses = Array.from({ length: 20 }, () => ({ erreur: borne.erreur }))

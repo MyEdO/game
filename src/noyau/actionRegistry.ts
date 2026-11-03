@@ -761,7 +761,7 @@ export function currentInterludeAction(get: () => Jeu): ActionDef | undefined {
 
 /** Modes ARMABLES de `battle.action`, DÉRIVÉS du registre (`armed`) + les modes qui n'appartiennent
  *  à aucune action de barre, déclarés ici avec leur porteur (garde de parité :
- *  `src/state/action-atteignabilite.test.ts`). */
+ *  `src/noyau/action-atteignabilite.hors-store.test.ts`). */
 export const MODES_HORS_REGISTRE = {
   /** Armé par la RÉSOLUTION d'un sort de Téléportation (case d'arrivée), jamais par une case. */
   teleport: 'sort de Téléportation (combatFlow)',

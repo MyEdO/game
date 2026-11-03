@@ -283,6 +283,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'SceneEntity.combat.optionals.hidden @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.id @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.maison @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.matiere @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.natural @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.parLocalisation @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.plage @ src/data/schemas/grammaire/reference.ts',

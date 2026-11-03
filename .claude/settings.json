@@ -114,6 +114,22 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/fin-de-tour.mjs",
+              "--refus-non-bloquant"
+            ],
+            "timeout": 10,
+            "statusMessage": "Fin de tour de la session inscrite"
+          }
+        ]
+      }
     ]
   }
 }

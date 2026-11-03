@@ -1,10 +1,13 @@
+/**
+ * `campaignData` (#767) : la lecture, par les lecteurs du web, de la couche de campagne chargée dans le store. La
+ * résolution `giveTrapping` campagne-d'abord se joue au banc du noyau (`src/noyau/giveTrapping-campagne-d-abord.hors-store.test.ts`).
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { presetPnjById } from './campaignData';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { emptyScene } from '../noyau/monde/scene';
-import { applyEffects } from '../noyau/combatEffects';
 import type { Combatant } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -60,22 +63,3 @@ describe('campaignData — lecture de la couche chargée dans le store (#767)', 
   });
 });
 
-describe('campaignData — câblage giveTrapping campagne-d’abord par le chemin d’état réel (#767)', () => {
-  it('giveTrapping d’un objet de campagne crée l’objet DE CAMPAGNE (kind melee) quand la couche est chargée', () => {
-    loadCampaign();
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
-    const it = (useGame.getState().party[0].items ?? []).find((i) => i.trappingId === LAME_CAMPAGNE);
-    expect(it?.label).toBe('Lame maudite');
-    expect(it?.kind).toBe('melee'); // objet à stats du narratif, pas un customTrapping
-  });
-
-  it('sans couche chargée : le MÊME giveTrapping tombe sur un customTrapping (kind misc) — la clé est au bon site', () => {
-    useGame.setState({ party: [hero()], campaignNarratif: null });
-    useGame.getState().startScene(fixtureScene('nu-scene'));
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
-    const it = (useGame.getState().party[0].items ?? []).find((i) => i.label === LAME_CAMPAGNE || i.trappingId === LAME_CAMPAGNE);
-    expect(it).toBeTruthy();
-    expect(it?.trappingId).toBeUndefined(); // customTrapping : aucune réf catalogue
-    expect(it?.kind).toBe('misc'); // pas de stats — la campagne n'est PAS chargée
-  });
-});
