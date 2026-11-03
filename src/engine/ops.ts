@@ -48,7 +48,7 @@ import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
-import { suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
+import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
@@ -2477,8 +2477,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'suppressPsych': {
-        const suppressed = suppressPsychTraits(target);
-        if (!suppressed) {
+        if (!target.psychTraits?.length && !effectivePsychTraits(target).length && !isFrenzyCapable(target)) {
           lines.push(t('op.noPsychToSuppress', { name: target.label }));
           break;
         }
@@ -2486,7 +2485,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
-          suppressedPsych: suppressed,
+          suppressedPsych: suppressPsychTraits(target),
         });
         lines.push(t('op.suppressPsych', { name: target.label, src: nomDeSource(ctx) }));
         break;

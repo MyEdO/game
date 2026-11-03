@@ -2153,6 +2153,9 @@
     "test": null,
     "desc": "Vous pouvez entrer en Frénésie comme décrit à la page 190.",
     "specs": [],
+    "confereTrait": {
+      "id": "frenesie"
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2330,68 +2333,15 @@
       ]
     },
     "desc": "Vous êtes consumé par la Haine pour quelque chose dans le Vieux Monde, comme décrit à la page 190. Chaque fois que vous prenez ce Talent, vous développez une certaine haine envers un nouveau groupe. Voici quelques exemples de groupes que vous pouvez haïr : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmarites, morts-vivants, Sorciers dissidents.",
-    "specs": [
-      {
-        "id": "heretiques",
-        "label": "Hérétiques"
-      },
-      {
-        "id": "hommes-betes",
-        "label": "Hommes-bêtes"
-      },
-      {
-        "id": "hors-la-loi",
-        "label": "Hors-la-loi"
-      },
-      {
-        "id": "manannites",
-        "label": "Manannites"
-      },
-      {
-        "id": "monstres",
-        "label": "Monstres"
-      },
-      {
-        "id": "morts-vivants",
-        "label": "Morts-vivants"
-      },
-      {
-        "id": "peaux-vertes",
-        "label": "Peaux-vertes"
-      },
-      {
-        "id": "sigmarites",
-        "label": "Sigmarites"
-      },
-      {
-        "id": "sorciers-dissidents",
-        "label": "Sorciers dissidents"
-      },
-      {
-        "id": "suivants-de-stromfels",
-        "label": "Suivants de Stromfels"
-      },
-      {
-        "id": "suivants-du-chaos",
-        "label": "Suivants du Chaos"
-      },
-      {
-        "id": "cultistes",
-        "label": "Cultistes",
-        "source": {
-          "book": "ennemi-dans-l-ombre-compagnon",
-          "page": 42,
-          "note": "EDOC 10 l.130"
-        },
-        "pool": false
-      }
-    ],
+    "specsSource": "ciblesPsy",
+    "confereTrait": {
+      "id": "haine"
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "haine-sacree",

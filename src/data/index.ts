@@ -1097,6 +1097,8 @@ export interface TalentData {
   /** Le domaine de ce Talent accepte-t-il un TEXTE LIBRE hors `specs[]` ? Même sémantique que
    *  `SkillData.specsOpen` (absent/`false` = FERMÉ, `spec` DOIT être un id de `specs[]`). */
   specsOpen?: boolean;
+  /** Trait de créature conféré, la spécialisation de l'instance en argument (`traitsConferes`). LDB 10 l.506, l.548 */
+  confereTrait?: { id: string };
   /** Borne haute de plage d100 sur le Tableau des Talents aléatoires (null = hors table). */
   rand?: number | null;
   source: SourceRef;

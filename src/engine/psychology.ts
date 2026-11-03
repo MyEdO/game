@@ -25,6 +25,8 @@ import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
 import { diseasePsychTraits } from './disease';
+import { traitsConferes } from './talentEffects';
+import { parsePsychTraits } from './psych/registry';
 import { applyActiveEffect, type GameOp } from './ops';
 import type { Flow } from './flowCore';
 
@@ -409,13 +411,10 @@ export function sansPeurFace(self: Combatant, kind: PsychType, s: SourceEnVue): 
  *  Codex) ; plus aucun fichier de code par trait. */
 export { parsePsychTraits } from './psych/registry';
 
-/** Baume pour un esprit blessé (LDB 43 l.70) : « Tous les Traits Psychologiques sont retirés pour la
- *  durée du Miracle » — les Traits psy de `c` sont DÉPLACÉS hors de la fiche (à porter par
- *  l'ActiveEffect `suppressedPsych`) ; les afflictions actives (`psychState`), dérivées des
- *  Traits, sont apaisées avec eux. Retourne les Traits suspendus, ou null s'il n'y en a aucun. */
-export function suppressPsychTraits(c: Combatant): PsychTrait[] | null {
+/** Retire les Traits psy de la fiche de `c` et apaise ses afflictions (`psychState`) ; rend les Traits retirés, que
+ *  porte l'effet de suppression. LDB 43 l.70 */
+export function suppressPsychTraits(c: Combatant): PsychTrait[] {
   const traits = c.psychTraits ?? [];
-  if (!traits.length) return null;
   c.psychTraits = [];
   c.psychState = [];
   return traits;
@@ -516,12 +515,11 @@ export function cibleEnVue(porteur: Combatant, affliction: PsychAffliction, sour
   return { present: membres.length > 0, hostile: membres.some((s) => hostile(s, porteur)) };
 }
 
-/** Le combattant peut-il entrer en Frénésie (LDB 21 l.31) ? Trait de créature, Talent « Frénésie »,
- *  OU Trait psy 'frenesie' OCTROYÉ (mutation / maladie active — ex. Rage meurtrière), lu via
- *  `effectivePsychTraits` (seul point de lecture des psychTraits, dérivés-maladie compris). */
+/** Le combattant peut-il entrer en Frénésie : Trait posé ou conféré par un Talent, ou Trait psy effectif ; jamais
+ *  sous un effet de suppression des Traits psy. LDB 21 l.31 ; LDB 10 l.506 ; LDB 43 l.70 */
 export function isFrenzyCapable(c: Combatant): boolean {
-  return traitCapability(c.traits, 'frenzyCapable')
-    || (c.talents ?? []).some((t) => t.talentId === 'frenesie')
+  if (psySuspendue(c)) return false;
+  return traitCapability([...(c.traits ?? []), ...traitsConferes(c)], 'frenzyCapable')
     || effectivePsychTraits(c).some((p) => p.type === 'frenesie');
 }
 
@@ -574,22 +572,15 @@ function peurHeriteeSurmontee(r: { success: boolean; sansPeur?: boolean }): bool
   return !!r.sansPeur && r.success;
 }
 
-/** Traits psychologiques EFFECTIFS de `c` : ceux STOCKÉS (`c.psychTraits` — natifs, mutations, sorts
- *  accordés) PLUS ceux DÉRIVÉS des maladies ACTIVES (symptômes manifestés portant `grantPsychTrait` — Rage
- *  meurtrière → Haine + Frénésie). POINT DE LECTURE UNIQUE des Traits psy possédés : un symptôme actif rend
- *  son porteur sujet au Trait tant que la maladie dure et le perd à la guérison, SANS attache/détache (re-
- *  dérivé à chaque lecture, comme les pénalités continues `diseasePassiveOps`). Lu par les déclencheurs
- *  (`targetedTrigger`) et la pénalité sociale (`skills.containedSocialPenalty`). Les manipulations qui
- *  ÉCRIVENT la donnée persistée (acquisition `poserLeTraitAcquis`, suppression « Baume », sérialisation)
- *  restent sur `c.psychTraits` brut — un Trait transitoire de maladie ne s'acquiert ni ne se suspend.
- *
- *  « Vous êtes mon meilleur ami ! » (Ivresse 3-4, LDB 09 l.480) : « Ignorez tous vos Préjugés et
- *  toutes vos Animosités existants » — un porteur d'`ActiveEffect.ignoreAnimosity` (op générique
- *  `ignoreAnimosity`, kind-agnostique) ne possède plus les Traits `animosite`/`prejuge` tant que
- *  l'effet dure : ni nouveau déclenchement (`targetedTrigger`), ni malus social contenu
- *  (`skills.containedSocialPenalty`/`socialPsychMod`). */
+/** Un effet de suppression des Traits psy (`suppressedPsych`, même vide) est-il actif sur `c` ? LDB 43 l.70 */
+const psySuspendue = (c: Combatant): boolean => (c.activeEffects ?? []).some((e) => e.suppressedPsych !== undefined);
+
+/** Traits psy EFFECTIFS de `c`, seul point de lecture : ceux de sa fiche (`c.psychTraits`), plus ceux DÉRIVÉS à
+ *  la lecture des maladies actives (`diseasePsychTraits`) et des Talents (`traitsConferes`), que masque un effet
+ *  de suppression actif ; sans Animosité ni Préjugé sous `ignoreAnimosity`. LDB 43 l.70 ; LDB 09 l.480 ;
+ *  LDB 10 l.548 */
 export function effectivePsychTraits(c: Combatant): PsychTrait[] {
-  const derived = diseasePsychTraits(c);
+  const derived = psySuspendue(c) ? [] : [...diseasePsychTraits(c), ...(parsePsychTraits(traitsConferes(c)).psychTraits ?? [])];
   const all = derived.length ? [...(c.psychTraits ?? []), ...derived] : (c.psychTraits ?? []);
   if ((c.activeEffects ?? []).some((e) => e.ignoreAnimosity)) {
     return all.filter((p) => p.type !== 'animosite' && p.type !== 'prejuge');

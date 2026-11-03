@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { refOuSpec } from '../grammaire/ref';
+import { ref, refOuSpec } from '../grammaire/ref';
 
 export const file = 'talents.json';
 export const famille = 'entite';
@@ -76,6 +76,8 @@ const doc = document(
     /** LDB 46 l.177 ; VDM 02 l.190-192 */
     grantsArcaneDomain: z.literal(true).optional(),
     specsOpen: z.boolean().optional(),
+    /** LDB 10 l.506, l.548 */
+    confereTrait: ref('trait').optional(),
     rand: z.number().nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
     /** Désignateur : `careerSkillAdditions` (`engine/talentEffects.ts`), la spec du Talent porteur. */
@@ -96,6 +98,7 @@ const doc = document(
     },
     grantsArcaneDomain: { label: 'Ouvre un Domaine arcanique' },
     specsOpen: { label: 'Spécialisation ouverte' },
+    confereTrait: { label: 'Trait conféré', hint: 'Trait de créature que le Talent confère, sa spécialisation en argument' },
     rand: { label: 'Seuil aléatoire (d100)' },
     effects: { label: 'Effets déclenchés' },
     passive: { label: 'Effets passifs' },

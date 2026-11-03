@@ -139,8 +139,8 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
   });
   it('buyTalent : le coût compte les acquisitions du Talent, toutes utilisations (LDB 07 l.105 ; LDB 10 l.17-18)', () => {
     const h = hero(1000);
-    h.talents.push({ talentId: 'haine', spec: 'peaux-vertes', times: 1 });
-    expect(buyTalent(h, 'haine', 'morts-vivants')).toEqual({ ok: true, cost: 200 });
+    h.talents.push({ talentId: 'haine', spec: 'peau-verte', times: 1 });
+    expect(buyTalent(h, 'haine', 'mort-vivant')).toEqual({ ok: true, cost: 200 });
   });
   it('buyTalent : un nouveau Domaine est un nouveau Talent Magie des Arcanes (LDB 46 l.177)', () => {
     const h = hero(1000);

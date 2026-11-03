@@ -104,6 +104,16 @@
     "label": "Ulricain"
   },
   {
+    "id": "manannite",
+    "type": "groups",
+    "label": "Manannite"
+  },
+  {
+    "id": "stromfelsien",
+    "type": "groups",
+    "label": "Suivant de Stromfels"
+  },
+  {
     "id": "tileen",
     "type": "groups",
     "label": "Tiléen"
@@ -443,11 +453,15 @@
     "id": "heretiques",
     "type": "groups",
     "label": "Hérétiques",
+    "inclut": [
+      "cultiste"
+    ],
     "source": {
       "book": "livre-de-base",
       "page": 80,
       "note": "LDB 08 l.1732"
-    }
+    },
+    "maison": "Groupe composite (#3045) : l'Hérétique que hait le Flagellant est l'adorateur des Puissances de la Ruine, il vise donc les cultistes. Lecture révisable."
   },
   {
     "id": "intrus",

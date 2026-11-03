@@ -168,5 +168,11 @@
     "type": "raw.manifest",
     "label": "Autres options",
     "bloque": "Rassemblement : l'aide d'un Personnage à Guérison (Test de Guérison Intermédiaire (+0) qui soigne des Blessures supplémentaires aux autres) et les potions de guérison ou autres possessions (ADE II 08 l.122) : aucun site ne les résout, seul le Test de Résistance du Personnage se joue (`openMassBattleRally`)"
+  },
+  {
+    "id": "4e/psychologie#vice-cible-talent-et-trait",
+    "type": "raw.manifest",
+    "label": "Vice (Cible) (talent et trait)",
+    "ticket": "#3257"
   }
 ]

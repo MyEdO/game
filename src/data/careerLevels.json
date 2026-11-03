@@ -23374,7 +23374,7 @@
     "talents": [
       {
         "id": "haine",
-        "spec": "suivants-de-stromfels"
+        "spec": "stromfelsien"
       },
       {
         "id": "loup-de-mer"
@@ -23888,11 +23888,11 @@
         "of": [
           {
             "id": "haine",
-            "spec": "manannites"
+            "spec": "manannite"
           },
           {
             "id": "haine",
-            "spec": "suivants-du-chaos"
+            "spec": "chaos"
           }
         ]
       },

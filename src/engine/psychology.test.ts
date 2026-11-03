@@ -6,7 +6,7 @@ import type { Combatant } from './types';
 import { applyOps } from './ops';
 import { deFixe } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
-import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, combattantDeTest } from './combattantDeTest.testkit';
 
 describe('Psychologie (pur)', () => {
   it('parsePsychTraits : « Peur N » / « Terreur N » / Immunité', () => {
@@ -155,5 +155,22 @@ describe('Valeur de Calme : la valeur de Test, États compris (LDB 16 l.125)', (
     expect(calmeValue(c)).toBe(60);
     c.conditions = [{ id: 'sonne', value: 3 }];
     expect(calmeValue(c)).toBe(30);
+  });
+});
+
+describe('Talent qui confère un Trait psy : même chemin que le Trait (LDB 10 l.548 ; LDB 21 l.39)', () => {
+  const porteur = (talents: Combatant['talents']): Combatant => combattantDeTest({ label: 'Porteur', talents });
+  const orque = combattantDeTest({ id: 'orque', label: 'Orque', groups: ['peau-verte'] });
+
+  it('Haine (Groupe) : la Haine de cette Cible, celle du Trait posé arg Groupe', () => {
+    const c = porteur([{ talentId: 'haine', spec: 'peau-verte', times: 1 }]);
+    expect(effectivePsychTraits(c)).toEqual([{ type: 'haine', cible: ciblePsy.groupe('peau-verte') }]);
+    expect(effectivePsychTraits(c)).toEqual(parsePsychTraits([{ id: 'haine', arg: 'peau-verte' }]).psychTraits);
+    expect(targetedTrigger(c, [sourceCombattant(orque)])).toMatchObject({ type: 'haine', sourceId: 'orque' });
+  });
+  it('Haine sans spécialisation : aucune Cible, aucun Test', () => {
+    const c = porteur([{ talentId: 'haine', times: 1 }]);
+    expect(effectivePsychTraits(c).filter((p) => p.cible)).toEqual([]);
+    expect(targetedTrigger(c, [sourceCombattant(orque)])).toBeNull();
   });
 });
