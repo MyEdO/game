@@ -3,7 +3,7 @@
  * entité de scène posée, jouer un son ponctuel. Handlers du registre `EFFECT_HANDLERS`.
  * ⚠ Suite sous `test.isolate:false` (vite.config.ts) : AUCUN `vi.mock`/`vi.spyOn`, et ce fichier
  * NETTOIE intégralement derrière lui (reset du singleton `useGame`, désabonnement du bus) pour ne
- * PAS fuiter d'état aux fichiers du même worker (sinon un test aval — ex. `campaign-snapshot` — casse).
+ * PAS fuiter d'état aux fichiers du même worker.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';

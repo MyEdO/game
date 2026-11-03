@@ -447,7 +447,7 @@ Les chapitres `LDB 77-83`, `ZI`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` co
 - `src/engine/combat.ts` — `LDB 85 l.253` (Nuée : ignore les règles de Taille), `l.360-362` (Atouts, multiplicateur de Dégâts, Frappe Mortelle par Taille), `l.366` (+10 au plus petit), `l.370` (pénalité de Parade), `l.387` (Piétinement).
 - `src/noyau/combatFlow.ts` l.674, 1770 — `LDB 85 l.373-374` (désengagement gratuit), `LDB 85 l.386-387` (Piétinement).
 - `src/engine/psychology.ts` l.119-130 — `LDB 85 l.382-383` (Peur/Terreur par Taille).
-- `src/state/aim-bigger.test.ts` — `LDB 76 l.40` (localisation gratuite ≥ 2 cat).
+- `src/noyau/aim-bigger.test.ts` — `LDB 76 l.40` (localisation gratuite ≥ 2 cat).
 
 ### Écarts ou points à vérifier
 

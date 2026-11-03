@@ -127,7 +127,7 @@ function placesPartielles(scene: Scene): PlacePartielle[] {
   const out: PlacePartielle[] = [];
   // L'ÉCHELLE de la scène, passée à la règle des places : l'ancre d'une place est MÉTRIQUE au
   // catalogue, le plan de la scène est en CASES — la division vit avec la règle
-  // (`data/props.types.ts`, site déclaré par `state/echelle-de-scene.test.ts`).
+  // (`data/props.types.ts`, site déclaré par `noyau/monde/echelle-de-scene.test.ts`).
   const mpt = sceneMetresPerTile(scene);
   for (const ent of scene.entities) {
     if (ent.kind !== 'prop') continue;
