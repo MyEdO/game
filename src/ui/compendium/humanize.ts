@@ -509,7 +509,7 @@ export function humanizeOp(o: GameOp): string {
     case 'incomingSpellDRMod': return typeof o.amount === 'number' && o.amount < 0
       ? `réduit de ${-o.amount} par point le DR des Sorts qui l'affectent`
       : `modifie ${deFormule(o.amount)} par point le DR des Sorts qui l'affectent`;
-    case 'sbBonus': return `gagne +${o.amount} au Bonus de Force pour ses Dégâts`;
+    case 'sbBonus': return `gagne +${o.amount} au Bonus de Force`;
     case 'attackKeyword': return `voit ses attaques comptées comme magiques`;
     case 'mitigateIncoming': return `annule les Dégâts qu'il subit${o.unlessKeyword === 'magic' ? ' (sauf attaques magiques)' : ''}`;
     case 'moveScale': return `voit son Mouvement ${o.num === 1 && o.den === 2 ? 'réduit de moitié' : `multiplié par ${o.num}/${o.den}`}${pendant(o)}`;

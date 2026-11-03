@@ -13,7 +13,7 @@
  */
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
-import { bonus, effectiveChar, blessuresPosees } from '../../engine/characteristics';
+import { bonus, bonusDeForce, effectiveChar, blessuresPosees } from '../../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
@@ -59,7 +59,7 @@ export function hitProbability(attacker: Combatant, target: Combatant, weapon: W
 export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'ranged', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
   const p = hitProbability(attacker, target, weapon, kind, distanceTiles, env, metresPerTile);
   if (!Number.isFinite(p)) return NaN;
-  const bf = bonus(effectiveChar(attacker, 'force'));
+  const bf = bonusDeForce(attacker);
   const totalDamage = finite(effectiveWeaponDamage(weapon, Number.isFinite(bf) ? bf : 0) + AVG_DR, NaN);
   if (!Number.isFinite(totalDamage)) return NaN;
   return p * safeWounds(weapon, target, totalDamage, attacker.size);

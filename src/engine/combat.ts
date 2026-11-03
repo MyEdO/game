@@ -9,7 +9,7 @@
 import { RNG } from './dice';
 import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason } from './tests';
-import { bonus, effectiveChar, baseWithTraits } from './characteristics';
+import { bonus, bonusDeForce, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
@@ -23,7 +23,7 @@ import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
 import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
-import { traumaDodgePenaltyParts, damageSBBonus, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
+import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
@@ -1117,7 +1117,7 @@ export function backstabWeapon(foe: Combatant): Weapon {
 /** Arme de MÊLÉE de la main principale de `c`, la plus forte non Défensive ; Mains nues si cette main est
  *  vide. LDB 10 l.500 ; LDB 14 l.139 ; LDB 85 l.33-35, l.47 ; #1595 c.6237601266 (feuilles 2b, 2c). */
 export function armeDeMainPrincipale(c: Combatant): Weapon {
-  const sb = bonus(effectiveChar(c, 'force'));
+  const sb = bonusDeForce(c);
   const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'off' && !hasQuality(w, 'defensive'));
   return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, sb) >= effectiveWeaponDamage(w, sb) ? m : w), undefined) ?? unarmedWeapon();
 }
@@ -1760,7 +1760,7 @@ function applyHit(
     };
   }
   // Charge montée (LDB 14 l.183) : DÉGÂTS calculés avec la Force (Bonus) et la Taille de la MONTURE.
-  let sb = (dmgProxy ? dmgProxy.sb : bonus(effectiveChar(attacker, 'force'))) + damageSBBonus(attacker); // +1 BF en Frénésie via `sbBonus` (psychology.json, LDB 21 l.33)
+  let sb = dmgProxy ? dmgProxy.sb : bonusDeForce(attacker);
   // Tueur (LDB 10) : « utilisez le Bonus d'Endurance de votre adversaire comme votre Bonus de Force
   // s'il est plus élevé ; déterminez toujours ce point avant toute autre règle ».
   if (isSlayer(attacker)) sb = Math.max(sb, bonus(effectiveChar(defender, 'endurance')));

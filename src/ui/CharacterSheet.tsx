@@ -10,7 +10,7 @@ import { isWeaponActive, maxEncumbrance, totalEncumbrance, apparencesCandidates,
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, LOCALISATIONS_DE_COUP } from '../engine/types';
-import { effectiveChar, bonus } from '../engine/characteristics';
+import { bonusDeForce } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
 import { buildAdvancementView } from '../noyau/monde/advancement';
@@ -570,7 +570,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
           carrierId={hero.id}
           items={items}
           party={party}
-          forceBonus={bonus(effectiveChar(hero, 'force'))}
+          forceBonus={bonusDeForce(hero)}
           weaponHighlighted={(it) => isWeaponActive(hero, it.uid)}
           weaponHandLabel={(it) => {
             // E1 : état « en main » SANS jargon « set » (les sets = fonction avancée, cf. onglet Combat) —

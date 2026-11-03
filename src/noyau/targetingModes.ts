@@ -20,7 +20,7 @@ import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
 import { refusActionDepensee, refusHorsDEtatDAgir } from './refusDuTour';
@@ -233,7 +233,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   // En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
   // un seuil écrit ici : la pièce la plus longue du bord donne la Portée moyenne, le socle fait le reste.
   const mpt = sceneMetresPerTile(get().scene);
-  const gbf = () => bonus(effectiveChar(ship, 'force')); // paresseux : la portée navale est fixe (number) → BF jamais évalué
+  const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
   if (maxRange && rangeBandModifier(combatDistance(ship, target), maxRange, mpt) == null)
     return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };

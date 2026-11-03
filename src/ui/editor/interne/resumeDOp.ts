@@ -63,7 +63,7 @@ export function opSummary(o: GameOp): string {
     case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
     case 'endPsych': return 'instance' in o ? 'cet état' : psychologyLabel(o.type.id);
     case 'beginPsych': return `${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
-    case 'sbBonus': return `+${o.amount} BF aux Dégâts`;
+    case 'sbBonus': return `+${o.amount} au Bonus de Force`;
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
     case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char]}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
