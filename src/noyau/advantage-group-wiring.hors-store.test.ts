@@ -13,7 +13,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * CÂBLAGE des deux coutures d'intégration du modèle « Avantage de groupe » (AA 11) — par le BANC du noyau
  * (le propriétaire du jeu), pas un contexte forgé : `combatSlice.startCombat` (ouverture des réserves de camp) et
  * `combatFlow.resolveRoundBoundary` (transfert de domination de fin de Round). Les tests unitaires de
- * `state/combat/advantage-group.test.ts` appellent les primitives à la main : ils ne prouvent PAS que
+ * `noyau/combat/advantage-group.test.ts` appellent les primitives à la main : ils ne prouvent PAS que
  * quelqu'un les appelle en jeu. Ici, la seule entrée est `startCombat` / le franchissement de Round.
  */
 function startFixtureCombat() {

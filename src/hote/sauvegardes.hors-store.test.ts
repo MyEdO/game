@@ -60,6 +60,13 @@ describe('les emplacements de sauvegarde sur un stockage', () => {
     expect(prendreLesRetraitsDeSauvegardes(s)).toEqual([{ slot: 3, cause: 'autreFormat' }, { slot: AUTO_SLOT, cause: 'illisible' }]);
   });
 
+  it('écrire sur une save d’un autre format l’écrase', () => {
+    const s = stockageEnMemoire();
+    s.setItem(cleDEmplacement(1), autreFormat());
+    expect(ecrireLaSauvegarde(s, 1, save())).toBe(true);
+    expect(lireLaSauvegarde(s, 1)).toEqual(save());
+  });
+
   it('un emplacement jeté, réécrit puis jeté de nouveau avant la prise : une seule entrée', () => {
     const s = stockageEnMemoire();
     s.setItem(cleDEmplacement(1), autreFormat());
