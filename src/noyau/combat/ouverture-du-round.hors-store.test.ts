@@ -95,7 +95,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });
     banc.getState().confirmRoundStart();
     const cle = () => `2:0:${banc.getState().battle!.order[0]}`;
-    for (let i = 0; i < 20 && banc.getState().battle!.tourIA?.cle !== cle(); i++) banc.reprendreLesEnAttente();
-    expect(banc.getState().battle!.tourIA?.cle, 'le tour de l’IA en tête est décidé : elle a joué').toBe(cle());
+    for (let i = 0; i < 20 && banc.getState().battle!.tourEnCours?.cle !== cle(); i++) banc.reprendreLesEnAttente();
+    expect(banc.getState().battle!.tourEnCours?.cle, 'le tour de l’IA en tête est décidé : elle a joué').toBe(cle());
   });
 });
