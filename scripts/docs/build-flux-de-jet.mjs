@@ -196,10 +196,10 @@ function rendu() {
     return plat(m[2])
   }
   const GARDES = [
-    'src/state/rollFlowWiring.test.ts',
+    'src/noyau/rollFlowWiring.test.ts',
     DRIFT,
     'src/noyau/maneuver-defense-cascade.hors-store.test.ts',
-    'src/state/jet-owner-vs-spec.test.ts',
+    'src/noyau/jet-owner-vs-spec.test.ts',
     'src/ui/active-modal.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
