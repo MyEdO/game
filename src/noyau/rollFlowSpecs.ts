@@ -11,7 +11,7 @@
  */
 import type { Jeu } from './etat';
 import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
-import type { PendingActivity, ActivityOppositionOn } from './interludeFlow';
+import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { FLOW_VERBS, type RollVerb, type FlowVerbs } from './flowVerbs';
@@ -32,7 +32,7 @@ import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
 import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
-import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
+import { REDERIVATIONS, attackTestOf, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
@@ -308,6 +308,21 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
   const pj = { roll: jet.roll, target: p.target, base: p.skillBase, success: jet.success, sl: jet.sl, isDouble: false };
   const opp = resolveOpposed(pj, et);
   return { held: opp.winner !== 'defender', enemySL: et.sl - jet.sl };
+}
+
+/** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
+ *  « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule), sinon simple —
+ *  SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
+function lireDeDActivite(p: PendingActivity, tr: { roll: number; target: number; sl: number; success: boolean }): Partial<PendingActivityFields> {
+  if (p.target2 != null) {
+    const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
+    return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
+  }
+  if (p.battle === 'round' && p.enemyValue != null) {
+    const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
+    return { roll: tr.roll, sl: tr.sl, success: v.held, enemySL: v.enemySL };
+  }
+  return { roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success };
 }
 
 // ── Fabriques d'ISSUE CANONIQUE (cf. `TestOutcome`) — les DEUX formes récurrentes, écrites UNE fois.
@@ -653,7 +668,7 @@ export const FLOWS = paresseux({
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
         const weapon = p.weapon ?? firedWeapon(actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
-        return { skill: weapon.type === 'ranged' ? 'projectiles' : 'corps-a-corps' };
+        return attackTestOf(actor, weapon, weapon.type === 'ranged' ? 'ranged' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
@@ -1061,6 +1076,13 @@ export const FLOWS = paresseux({
     bonus: {
       derive: (_s, r) => bumpResultSL(r),
     },
+    // Inversion (LDB 12 l.42) du Round : le Test du Test étendu (Studieux LDB 11 l.55, Lecture rapide
+    // LDB 10 l.634 sur Recherche ; jetons).
+    reverse: {
+      skillOf: (_s, _r, _a, _g, p) => ({ skill: p.skill?.id, spec: p.skill?.spec, char: p.char }),
+      current: (r, p) => (r.result ? { roll: r.result.roll, target: p.target } : null),
+      evaluate: (_s, _r, _a, _g, tr) => ({ patch: { result: { roll: tr.roll, sl: tr.sl, success: tr.success } }, issue: tr }),
+    },
   }),
 
   /**
@@ -1379,6 +1401,16 @@ export const FLOWS = paresseux({
       actorTR: (p) => p.result ?? null,
       applyRoll: (_s, _slot, _actor, _get, tr) => ({ result: tr }),
       dieTarget: (p, actor) => (p.result?.target != null ? cibleBrute(p.result) : cibleBrute(ligneDAttaquantDeManoeuvre(actor, 'capacite-de-combat'))),
+    },
+    // Inversion (LDB 12 l.42) : le Test de Corps à corps du Battement (LDB 10 l.103) — jeton
+    // d'Entraînement au Combat (LDB 23 l.209).
+    reverse: {
+      skillOf: (_s, _p, actor) => attackTestOf(actor, undefined, 'melee'),
+      current: (p) => (p.result ? { roll: p.result.roll, target: p.result.target } : null),
+      evaluate: (_s, p, _a, _g, tr) => ({
+        patch: { result: hydrateTR({ roll: tr.roll, ...cibleMesuree(p.result!), base: p.result!.base, success: tr.success, sl: tr.sl }) },
+        issue: tr,
+      }),
     },
   }),
 
@@ -1776,17 +1808,7 @@ export const FLOWS = paresseux({
     // « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule).
     die: {
       read: (p) => (p.roll != null && p.target != null ? { roll: p.roll, target: p.target, critable: false } : null),
-      write: (_s, p, _a, _g, tr) => {
-        if (p.target2 != null) {
-          const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
-          return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
-        }
-        if (p.battle === 'round' && p.enemyValue != null) {
-          const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
-          return { roll: tr.roll, sl: tr.sl, success: v.held, enemySL: v.enemySL };
-        }
-        return { roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success };
-      },
+      write: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr),
     },
     key: 'pendingActivity',
     rolled: (p) => p.roll != null,
@@ -1874,6 +1896,21 @@ export const FLOWS = paresseux({
         }
         // Simple : +1 DR, `success` INTACT (bumpSL ; LDB 17 l.24).
         return { sl: p.sl + 1 };
+      },
+    },
+    // Inversion (LDB 12 l.42) : la Compétence du Test (Studieux LDB 11 l.55 et Lecture rapide LDB 10 l.634
+    // sur Recherche, Sociable LDB 11 l.25 sur Ragot). Les jetons « pour votre prochaine aventure »
+    // (LDB 23 l.209/218) ne valent que sur une Scène de bataille, jouée DANS l'aventure ; une Activité
+    // se joue « Entre deux aventures » (LDB 23 l.5 ; ADE II 8 l.65). Un Test combiné (deux Tests sur un
+    // dé, LDB 12 l.206) et un Round de Focalisation (`resolveFocus`) ne s'inversent pas.
+    reverse: {
+      skillOf: (_s, p) => (p.target2 != null || p.ritualSpell
+        ? null
+        : { skill: p.chosenSkill, spec: p.chosenSkillSpec, ...(p.battle === 'round' ? {} : { horsAventure: true as const }) }),
+      current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
+      evaluate: (_s, p, _a, _g, tr) => {
+        const patch = lireDeDActivite(p, { ...tr, target: p.target });
+        return { patch, issue: { roll: tr.roll, sl: tr.sl, success: activityWon({ ...p, ...patch }) } };
       },
     },
     touch: touchActors,
@@ -2021,7 +2058,7 @@ export const FLOWS = paresseux({
     // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel de `resolve` (+DR de
     // réussite, Capricieux, DR exigé).
     reverse: {
-      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec }),
+      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, char: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (_s, p, actor, _get, tr) => {
         const sl = tr.sl + (tr.success ? drDeReussiteDuTest(actor, p) : 0) + (p.capriciousDR ?? 0);

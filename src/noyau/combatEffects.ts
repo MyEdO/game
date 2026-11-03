@@ -927,6 +927,9 @@ export function openSkillTest(
   });
   const def = candidates.find((c) => c.id === best.actor.id) ?? candidates[0];
   if (!def) return false;
+  // L'interlocuteur d'un dialogue déclare sur sa fiche ce qu'il est (amateur d'art, de théâtre) : ACE 12 l.60-62.
+  const parle = get().dialogue?.speakerId;
+  const contrepartie = parle ? get().scene?.entities.find((e) => e.id === parle)?.amateur : undefined;
   // Compétence/Caractéristique RÉELLE (cadre de jet) ≠ intitulé de situation (titre). Char → libellé long.
   const skill = testSkillLabel({ skill: spec.skill, char: spec.characteristic });
   const label = spec.label || skill || 'Test';
@@ -938,6 +941,7 @@ export function openSkillTest(
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
       capriciousRoll, capriciousDR: capDR || undefined,
+      ...(contrepartie ? { contexte: contrepartie } : {}),
       ...structuredClone({ onSuccess, onFailure, after }), // #2097
       candidates: candidates.length > 1 ? candidates : undefined,
       ...(opts?.noOwnTestFailed ? { noOwnTestFailed: true } : {}),
@@ -2092,7 +2096,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel({ skill: e.skill, char: e.characteristic }), e.label, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { char: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },

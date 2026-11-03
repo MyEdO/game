@@ -19,7 +19,7 @@ import { freeCons, type Consequence } from './rollSeam';
  *   - Activité sans Test → `out.activityDone` ; spec FERMÉE sans Test → son refus nommé (#2588) ;
  *   - `onSuccess` → ops appliqués par `applyOps` ;
  *   - `failExtenue` → op `condition` Exténué, ligne dérivée par `opConsequenceLine` (EDOC 8 l.133) ;
- *   - `rerollToken` → jeton d'inversion de la Compétence pratiquée (EDOC 8 l.172 ; décision de règle
+ *   - `reverseToken` → jeton d'inversion de la Compétence pratiquée (EDOC 8 l.172 ; décision de règle
  *     2026-11-03, #3059) ;
  *   - issues individuelles (`countsAsRest`/`gatherInfo`) → notes narratives. */
 export function appliquerIssueActivite(
@@ -34,7 +34,7 @@ export function appliquerIssueActivite(
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
   else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
-  const jetonDePratique: GameOp[] = r.success && r.stageOutcome === 'rerollToken' && spec.target != null && 'skill' in spec.test
+  const jetonDePratique: GameOp[] = r.success && r.stageOutcome === 'reverseToken' && spec.target != null && 'skill' in spec.test
     ? [{ op: 'grantReverseToken', skill: spec.test.skill }]
     : [];
   const ops = [...r.ops, ...jetonDePratique];

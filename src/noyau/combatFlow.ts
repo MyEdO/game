@@ -39,7 +39,7 @@ import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReac
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain, isColdBlooded,
+  isSkittishMount, immuneToSpellDomain,
 } from '../engine/traits/dispatch';
 import {
   isMagicMissile,
@@ -171,7 +171,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, coldBloodedAdjust, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -226,7 +226,8 @@ import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage 
 import { bestDefenseMode, hasFreeWeaponAttack, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
+import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, type TableStepDef, type CascadeApplier } from './cascade';
+import { inversionDeTalent } from '../engine/reverseToken';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -7916,11 +7917,16 @@ function passeDePsy(get: Get, set: SetFn, collect: (get: Get, c: Combatant, roun
   return surfacees;
 }
 
-/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes.
- *  À sang-froid ne vaut que sur ce jet sans pilote : LDB 85 l.13 ; #3045 */
+/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes :
+ *  la voie Talent de l'inversion (À sang-froid compris) s'y prend d'office, celle qu'une rangée pilotée
+ *  offre au clic. LDB 85 l.13 ; #3045 */
 function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDecl, row: BatchParticipant): void {
   const jet = garanti(row.result, c.id, 'rangée de Psychologie jetée');
-  const r = estJete(jet) ? coldBloodedAdjust(jet, isColdBlooded(c.traits)) : jet;
+  const inv = estJete(jet)
+    ? inversionDeTalent(c, { skill: row.skillId, spec: row.spec, contexte: 'psych' }, jet.roll, jet.target,
+      (tr) => evaluerRangeeBatch(row, hydrateTR({ ...tr, target: row.target, base: row.base })))
+    : null;
+  const r = inv ? { ...jet, ...inv } : jet;
   journaliserPsy(get, set, c, resultLines(resolveCombatPsychRow(get, set, c, decl, psychRowMeta(row), r, false)).map((l) => l.text));
 }
 

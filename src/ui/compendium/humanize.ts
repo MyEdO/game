@@ -435,7 +435,7 @@ export function humanizeOp(o: GameOp): string {
         : `gagne ${valeur} sou(s) de cuivre dans sa bourse${note}`;
     }
     case 'statusMod': return `${typeof o.amount === 'number' && o.amount < 0 ? 'perd' : 'gagne'} ${humanizeFormula(o.amount)} Standing pour la prochaine aventure`;
-    case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''} une fois pendant sa prochaine aventure`;
+    case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : o.char ? `un Test ${deElide(CHAR_LABELS[o.char])}` : 'un Test concernant sa cible'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''} ${o.illimite ? 'à chaque Test' : 'une fois'} pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${traitLisible(o.trait)}`;
     case 'grantPsychTrait': return `gagne l'état psychologique ${libelleDuTraitOctroye(o)}${pendant(o)}${o.resistanceSiAmis ? ', résistible si la cible et la personne sont amies' : ''}`;

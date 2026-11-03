@@ -8,7 +8,7 @@
  * (`reverseRoll`, engine/tests.ts) — PAS une relance. Deux VOIES, deux gates RAW DISTINCTES (#508
  * réfutation) :
  *  - le Talent PERMANENT (`talentReverseFailed`, LDB 10 — Chat de gouttière/Lecture rapide/Noctambule/
- *    Pansement de fortune/Pharmacologie/Pilote/Sociable/Studieux) : « inverser un Test RATÉ si cela
+ *    Pansement de fortune/Pharmacologie/Pilote/Sociable/Studieux ; Trait À sang-froid, LDB 85 l.13) : « inverser un Test RATÉ si cela
  *    entraîne un succès » — gate STRICTE (jet actuellement raté ET le renversé réussit).
  *  - le jeton d'Activité (LDB 23 l.209/218) : « vous pouvez inverser un Test [de la Compétence
  *    associée / concernant votre cible] » — AUCUNE restriction d'échec ni de conversion. Offert dès
@@ -22,10 +22,12 @@
  * succès ») et annoncée est celle de la RANGÉE du flux (`EvaluationDeRangee` : ré-opposition, +DR), la
  * même que celle qu'elle écrit.
  */
-import type { ActiveEffect, Combatant, ReverseQuery } from './types';
+import type { ActiveEffect, CharKey, Combatant, ContexteDeTest, JetonDInversion, ReverseQuery } from './types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { evaluateTest, reverseRoll } from './tests';
 import { talentReverseFailed } from './combatFeatures/dispatch';
+import { isColdBlooded } from './traits/dispatch';
+import { effectiveSkillCharKey } from './skills';
 import { removeActiveEffects } from './conditions';
 
 /** Issue d'un dé pour une rangée : dé, DR, réussite. */
@@ -42,18 +44,35 @@ function naturel(roll: number, target: number): IssueDuDe {
   return { roll: e.roll, sl: e.sl, success: e.success };
 }
 
-/** Un jeton d'inversion couvre-t-il le Test `q` ? Contexte d'abord (un jeton à contexte ne vaut que dans
- *  ce contexte, ADE II 09 l.33), puis Compétence : `skill` absent sur le jeton = tout Test (l.218) ; sinon
+/** Caractéristique du Test `q` pour `c` : celle de sa Compétence, sinon la Caractéristique testée. */
+function caracDuTest(c: Combatant, q: ReverseQuery): CharKey | undefined {
+  return q.skill ? effectiveSkillCharKey(c, q.skill, { spec: q.spec }) : q.char;
+}
+
+/** Contexte PLUS LARGE qu'un contexte inclut : un amateur de théâtre est un amateur d'art (décision de
+ *  règle ACE 12 l.60-62, 2026-11-03). */
+const CONTEXTE_INCLUS_DANS: Partial<Record<ContexteDeTest, ContexteDeTest>> = { amateurDeTheatre: 'amateurDArt' };
+
+/** Le contexte d'un jeton couvre-t-il celui du Test ? */
+function contexteCouvre(jeton: ContexteDeTest, test: ContexteDeTest | undefined): boolean {
+  return test != null && (jeton === test || CONTEXTE_INCLUS_DANS[test] === jeton);
+}
+
+/** Un jeton d'inversion couvre-t-il le Test `q` de `c` ? Aucun hors d'une aventure (LDB 23 l.209/218 :
+ *  « pendant votre prochaine aventure »). Contexte d'abord (un jeton à contexte ne vaut que dans ce
+ *  contexte, ADE II 09 l.33), puis Compétence : `skill` absent sur le jeton = tout Test (l.218) ; sinon
  *  match STRUCTURÉ par id (comme `talentReverseFailed`). */
-function tokenMatches(tok: ReverseQuery, q: ReverseQuery): boolean {
-  if (tok.contexte != null && tok.contexte !== q.contexte) return false;
+function tokenMatches(c: Combatant, tok: JetonDInversion, q: ReverseQuery): boolean {
+  if (q.horsAventure) return false;
+  if (tok.contexte != null && !contexteCouvre(tok.contexte, q.contexte)) return false;
+  if (tok.char != null && tok.char !== caracDuTest(c, q)) return false;
   if (tok.skill == null) return true;
   return refCouvre({ id: tok.skill, spec: tok.spec }, { id: q.skill, spec: q.spec });
 }
 
-/** Rang de spécificité d'un jeton : contexte, puis Compétence, puis Spécialisation. */
-function specificite(tok: ReverseQuery): number {
-  return (tok.contexte != null ? 4 : 0) + (tok.skill != null ? 2 : 0) + (tok.spec != null ? 1 : 0);
+/** Rang d'un jeton : l'illimité d'abord (rien ne se brûle), puis contexte, Compétence, Spécialisation. */
+function specificite(tok: JetonDInversion): number {
+  return (tok.illimite ? 8 : 0) + (tok.contexte != null ? 4 : 0) + (tok.skill != null || tok.char != null ? 2 : 0) + (tok.spec != null ? 1 : 0);
 }
 
 /** Le jeton de `c` qui couvre `q` — le PLUS SPÉCIFIQUE : un jeton générique (« Observer une cible ») ne
@@ -61,25 +80,31 @@ function specificite(tok: ReverseQuery): number {
 function jetonApplicable(c: Combatant, q: ReverseQuery): ActiveEffect | undefined {
   let best: ActiveEffect | undefined;
   for (const e of c.activeEffects ?? []) {
-    if (!e.reverseToken || !tokenMatches(e.reverseToken, q)) continue;
+    if (!e.reverseToken || !tokenMatches(c, e.reverseToken, q)) continue;
     if (!best || specificite(e.reverseToken) > specificite(best.reverseToken!)) best = e;
   }
   return best;
 }
 
 /** Consomme le jeton d'inversion de `c` couvrant `q` (le plus spécifique), le retire de `c.activeEffects`
- *  et renvoie `true` — `false` si aucun jeton ne correspond (rien de consommé). */
+ *  sauf s'il est illimité, et renvoie `true` — `false` si aucun jeton ne correspond (rien de consommé). */
 export function consumeReverseToken(c: Combatant, q: ReverseQuery): boolean {
   const jeton = jetonApplicable(c, q);
   if (!jeton) return false;
-  removeActiveEffects(c, (e) => e === jeton);
+  if (!jeton.reverseToken!.illimite) removeActiveEffects(c, (e) => e === jeton);
   return true;
 }
 
+/** Capacité PERMANENTE d'inverser un Test RATÉ de `c` : un Talent (LDB 10), ou le Trait À sang-froid
+ *  sur un Test de Force Mentale (LDB 85 l.13). Son plafond de DR éventuel, `null` si aucune. */
+function capacitePermanente(c: Combatant, q: ReverseQuery): { capDR?: number } | null {
+  return talentReverseFailed(c, q) ?? (isColdBlooded(c.traits) && caracDuTest(c, q) === 'force-mentale' ? {} : null);
+}
+
 /** Le Test naturel que la voie TALENT pose (dé renversé, DR plafonné), `null` si elle n'est pas offerte :
- *  gate STRICTE RAW (LDB 10) — la rangée est RATÉE et l'inversion la rend réussie. */
+ *  gate STRICTE RAW (LDB 10 ; LDB 85 l.13) — la rangée est RATÉE et l'inversion la rend réussie. */
 function voieTalent(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee): IssueDuDe | null {
-  const rf = talentReverseFailed(c, q);
+  const rf = capacitePermanente(c, q);
   if (!rf) return null;
   const actuel = evaluer(naturel(roll, target));
   if (!actuel || actuel.success) return null;
@@ -94,6 +119,13 @@ function inversion(c: Combatant, q: ReverseQuery, roll: number, target: number, 
   const talent = voieTalent(c, q, roll, target, evaluer);
   if (talent) return { tr: talent, viaTalent: true };
   return jetonApplicable(c, q) ? { tr: naturel(reverseRoll(roll), target), viaTalent: false } : null;
+}
+
+/** Issue de la RANGÉE inversée par la seule voie TALENT, `null` si elle n'est pas offerte : la rangée
+ *  qu'aucun joueur ne tient la prend d'office, gratuite et sans perte (LDB 10 ; LDB 85 l.13). */
+export function inversionDeTalent(c: Combatant, q: ReverseQuery, roll: number, target: number, evaluer: EvaluationDeRangee = TEST_NATUREL): IssueDuDe | null {
+  const tr = voieTalent(c, q, roll, target, evaluer);
+  return tr ? evaluer(tr) : null;
 }
 
 /** `c` dispose-t-il d'une inversion OFFERTE (Talent OU jeton) pour ce jet ? Pure (aucune consommation) —

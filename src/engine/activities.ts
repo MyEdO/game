@@ -85,7 +85,7 @@ export interface BattleOutcome {
  *   - `gatherInfo` (Recueillir des informations, l.153) : DR questions au MJ (récit) ;
  *   - `noSurprise` (Rester aux aguets, l.157) : le groupe ne peut être surpris cette Étape ;
  *   - `mapMade` (Établir des cartes, l.161) : carte d'itinéraire → Orientation/Savoir Accessible ;
- *   - `rerollToken` (Pratiquer une Compétence, l.172) : un jeton d'inversion d'un Test futur de la Compétence ;
+ *   - `reverseToken` (Pratiquer une Compétence, l.172) : un jeton d'inversion d'un Test futur de la Compétence ;
  *   - `countsAsRest` (Récupérer, l.176) : l'Étape compte comme un repos (guérison) ;
  *   - `campCare` (Monter un camp, l.180) : chaque DR retire un Exténué OU guérit un Personnage.
  *  Rencontres (l.186-233) :
@@ -94,7 +94,7 @@ export interface BattleOutcome {
  *   - `fullRecovery` (Voyage tranquille) : guérir toutes les Blessures + retirer tous les Exténué ;
  *   - `worsenWeather` (Très mauvais temps) : +40 au prochain jet de Météo. */
 export type StageOutcome =
-  | 'suppressExposure' | 'gatherInfo' | 'noSurprise' | 'mapMade' | 'rerollToken' | 'countsAsRest' | 'campCare'
+  | 'suppressExposure' | 'gatherInfo' | 'noSurprise' | 'mapMade' | 'reverseToken' | 'countsAsRest' | 'campCare'
   | 'extraActivity' | 'skipStage' | 'fullRecovery' | 'worsenWeather';
 
 /**
@@ -679,7 +679,7 @@ export const STAGE_OUTCOME_AGG: Partial<Record<StageOutcome, StageOutcomeAgg>> =
   campCare: 'stack',
   mapMade: 'extended',
   countsAsRest: 'self',
-  rerollToken: 'self',
+  reverseToken: 'self',
   gatherInfo: 'self',
 };
 
@@ -696,7 +696,7 @@ export interface StageAggregation {
   /** Jets d'un Test ÉTENDU par issue, dans l'ordre, réussis ou non — ex. `mapMade` ; cumulés par
    *  `extendedTestSteps` (LDB 12 l.170-185). */
   etendus: Partial<Record<StageOutcome, { success: boolean; sl: number }[]>>;
-  /** Issues INDIVIDUELLES par héros (succès) — ex. `countsAsRest`, `rerollToken`. */
+  /** Issues INDIVIDUELLES par héros (succès) — ex. `countsAsRest`, `reverseToken`. */
   selfByHero: Record<string, StageOutcome[]>;
 }
 

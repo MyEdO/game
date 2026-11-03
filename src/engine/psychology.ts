@@ -8,7 +8,7 @@ import { Combatant, type Difficulty, type EffectSource, type TerreurSubie } from
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG } from './dice';
-import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose, reverseRoll } from './tests';
+import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
@@ -457,17 +457,6 @@ export function isPsychImmune(c: Combatant, foesMaxAdvantage?: number): boolean 
   return !!c.psychImmune
     || (c.activeEffects ?? []).some((e) => e.psychImmune)
     || (c.psychState ?? []).some((p) => findPsychologyById(p.type)?.psychImmune);
-}
-
-/** À sang-froid (LDB 85 l.13) : « Elle peut inverser tous ses Tests de Force Mentale échoués » —
- *  un jet RATÉ est relu avec ses chiffres inversés (91 → 19) si cela le rend réussi. Pur. */
-export function coldBloodedAdjust(
-  t: { roll: number; target: number; success: boolean; sl: number },
-  coldBlooded: boolean,
-): { roll: number; target: number; success: boolean; sl: number } {
-  if (!coldBlooded || t.success) return t;
-  const e = evaluateTest(reverseRoll(t.roll), t.target);
-  return e.success ? { roll: e.roll, target: e.target, success: e.success, sl: e.sl } : t;
 }
 
 const EFFET_IMMUNITE_PSY = 'determination-psych';

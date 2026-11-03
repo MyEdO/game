@@ -310,6 +310,7 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   armPreempt: { parUI: true },
   cascadeResist: { parUI: true },
   cascadeReverse: { parUI: true },
+  extendedTestReverse: { parUI: true },
   // PHASE 1 du Contre-sort (#1042/#1059) : le choix de déclaration vit SUR la rangée, dans la modale
   // d'incantation ; « tout déclarer » est un verbe NULLAIRE du drive d'auto-cadence (aucun bouton).
   counterspellDeclare: { parUI: true },
