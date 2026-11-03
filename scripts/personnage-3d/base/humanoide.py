@@ -250,8 +250,10 @@ def construire(args):
             restaurer(action, figee[action.name])
         ajouter_feminin_et_carrure(squelette, corps, squelette_f, corps_f, bornes)
         ajouter_corpulence(squelette, corps, args.mpfb)
-        finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)))
-        return etats_aux_facteurs_neutres(table, silhouettes(peaux))
+        neutres = etats_aux_facteurs_neutres(table, silhouettes(peaux))
+        finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)), clips,
+                              neutres)
+        return neutres
 
     def poser_les_clips():
         for action in clips:

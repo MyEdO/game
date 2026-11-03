@@ -439,7 +439,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         self.champs = {'feminin': lo * d, 'carrure_moins': lo * d}
 
     def mesure(self, etats=None, monde=None):
-        return mesurer_domaine(self.w, self.x, self.aretes, [(self.etats if etats is None else etats, self.matrices)], numpy.eye(3) if monde is None else monde)
+        return mesurer_domaine(self.w, self.x, self.aretes, [(self.etats if etats is None else etats, self.matrices, ())], numpy.eye(3) if monde is None else monde)
 
     def test_un_coin_hors_est_refuse_puis_corrige_collectivement(self):
         sans_coins = {'cellulesSilhouettes': [], 'etats': [e
@@ -518,7 +518,7 @@ class DomaineDuGabarit(unittest.TestCase):
         jeux = {}
         for etat in etats['etats']:
             jeux.setdefault(json.dumps(etat['facteurs'], sort_keys=True), []).append(etat)
-        self.groupes = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']}, numpy.eye(4)[None, None])
+        self.groupes = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']}, numpy.eye(4)[None, None], ())
                         for jeu in jeux.values()]
         self.cles = sorted({nom for e in etats['etats'] for poids in (e['poidsGabarit'], e['poidsReference'])
                             for nom in poids if nom.startswith('gabarit_')})
@@ -553,7 +553,7 @@ class DomaineDuGabarit(unittest.TestCase):
 
     def test_une_cle_croisee_hors_bornes_marque_sa_silhouette_aux_seuls_etats_du_gabarit(self):
         self.assertIn('gabarit_legs_plus_feminin', self.cles)
-        neutres = [(d, m) for d, m in self.groupes if all(not p for p in d['etats'][0]['poidsGabarit'].values())]
+        neutres = [(d, m, c) for d, m, c in self.groupes if all(not p for p in d['etats'][0]['poidsGabarit'].values())]
         self.assertEqual(len(neutres), 1)
         sans = mesurer_domaine(self.w, self.x, self.aretes, neutres, numpy.eye(3), self.derivees('gabarit_legs_plus_feminin'))
         self.assertFalse(any(m.any() for m in sans(self.champs).values()))
@@ -607,7 +607,7 @@ class MinimumContinu(unittest.TestCase):
         self.assertAlmostEqual(minimum['rapport'], .1 / numpy.sqrt(2.01), places=12)
         self.assertAlmostEqual(minimum['poids']['corpulence'], .5)
         self.assertAlmostEqual(minimum['poids']['carrure_moins'], .5)
-        marques = mesurer_domaine(w, x, aretes, [(demandes, matrices)], numpy.eye(3))(champs)
+        marques = mesurer_domaine(w, x, aretes, [(demandes, matrices, ())], numpy.eye(3))(champs)
         self.assertTrue(all(m[0] for m in marques.values()))
 
     def test_le_minimum_interieur_de_clip_refuse_malgre_les_coins_valides(self):
@@ -624,6 +624,15 @@ class MinimumContinu(unittest.TestCase):
         self.assertTrue(numpy.isfinite(trace.domaine_clip.bas[0]))
         for nom in champs:
             self.assertAlmostEqual(trace.domaine_clip.poids[nom][0], .5)
+
+    def test_la_finition_marque_les_cles_d_un_defaut_de_clip(self):
+        clip = numpy.eye(4)
+        clip[2, 2] = .01
+        x, w, aretes, demandes, champs, matrices, _ = arete_du_domaine(clip=clip, z=.5)
+        au_repos = mesurer_domaine(w, x, aretes, [(demandes, matrices[:1], ())], numpy.eye(3))(champs)
+        self.assertFalse(any(m.any() for m in au_repos.values()))
+        en_clip = mesurer_domaine(w, x, aretes, [(demandes, matrices[:1], ()), (demandes, matrices, (1,))], numpy.eye(3))(champs)
+        self.assertTrue(all(m[0] for m in en_clip.values()))
 
     def test_une_topologie_absente_est_un_refus_nomme(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()

@@ -14,7 +14,8 @@
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
   (`fondu`). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
   (`formes.lisser`), fondu compris : aux facteurs non neutres, par les clés `gabarit_*` cuites sur les champs courants
-  (`cuisson_gabarit.cuisson_des_champs`, #3104).
+  (`cuisson_gabarit.cuisson_des_champs`, #3104) ; et jusqu'à `ETIREMENT_EN_CLIP` sous les clips, aux facteurs neutres
+  (#3104 issuecomment-6613477119, #3294).
 - Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
   après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
   chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
@@ -338,9 +339,9 @@ def lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde
 
 
 def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None):
-    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » : `groupes`, `[(domaine, matrices)]` ; `derivees`, des champs
+    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » : `groupes`, `[(domaine, matrices, clips)]` ; `derivees`, des champs
     aux décalages monde des clés qui en dérivent (`cuisson_gabarit.cuisson_des_champs`)."""
-    etats = [e for domaine, _ in groupes for e in domaine['etats']]
+    etats = [e for domaine, _, _ in groupes for e in domaine['etats']]
     vus, hors, domaines = None, None, None
 
     def mesurer(champs):
@@ -357,12 +358,12 @@ def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None):
             touchees = sommets[aretes].any(axis=1)
         if touchees.any():
             traces = []
-            extremes(w, aretes[touchees], etats_ponderes(x, monde, [(d, m, ()) for d, m in groupes]), traces)
-            hors[:, touchees] = numpy.concatenate([t.cotes_repos for t in traces]) >= 0
+            extremes(w, aretes[touchees], etats_ponderes(x, monde, groupes), traces)
+            hors[:, touchees] = numpy.concatenate([(t.cotes_repos >= 0) | (t.cotes_clip >= 0) for t in traces])
             for nom in champs:
                 domaines[nom][touchees] = numpy.logical_or.reduce([
-                    (t.domaine_repos.cotes >= 0) & (t.domaine_repos.poids.get(nom, numpy.zeros(len(t.domaine_repos.bas))) != 0)
-                    for t in traces])
+                    (d.cotes >= 0) & (d.poids.get(nom, numpy.zeros(len(d.bas))) != 0)
+                    for t in traces for d in (t.domaine_repos, t.domaine_clip)])
         vus = {nom: d.copy() for nom, d in monde.items()}
         return {nom: hors[[e['poidsSilhouettes'].get(nom, 0) != 0 for e in etats]].any(axis=0) | domaines[nom]
                 for nom in champs}
@@ -380,7 +381,7 @@ def refuser_les_inertes(finis):
             f'{nom} {v:.4f} m <= {SOL_TOLERANCE_M} m' for nom, v in inertes.items()))
 
 
-def finir_les_silhouettes(squelette, corps, secondaires, table, etats):
+def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, etats_des_clips):
     """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
@@ -402,9 +403,12 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats):
     corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
     vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
 
-    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles):
-        domaine = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']}, matrices)
-                   for jeu, matrices, _ in piles]
+    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles), \
+            groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
+        domaine = [({'etats': jeu, 'cellulesSilhouettes': cellules}, matrices, longueurs)
+                   for (jeu, matrices, longueurs), cellules in [
+                       *((pile, etats['cellulesSilhouettes']) for pile in piles),
+                       *((pile, etats_des_clips['cellulesSilhouettes']) for pile in piles_des_clips)]]
         au_repos = mesurer_domaine(w, x, aretes, domaine, vers_le_monde, cuisson_des_champs(squelette, corps, table))
         finis = lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, au_repos)
     for nom, d in finis.items():
