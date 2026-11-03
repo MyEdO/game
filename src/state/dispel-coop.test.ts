@@ -1,19 +1,7 @@
 /**
- * L'ÉLECTION DU PORTEUR EST UN CHOIX D'ÉCRAN — elle se joue chez l'ÉMETTEUR (#1411).
- *
- * Mode Dissiper (LDB 46 l.158-162), spec HUD §1d : le clic-token élit le PORTEUR, il reste à choisir
- * LEQUEL de ses Sorts dissiper — c'est le panneau-paramètre de la console qui le demande. Rien n'est
- * engagé par cette élection : elle vit à la racine du store (`dispelCarrierId`), hors `battle`, et le
- * snapshot de l'hôte l'efface (`coop.instantaneDeLaCoop`).
- *
- * Le défaut mesuré : `battleClickEntity` est un intent d'allowlist, donc chez l'invité il partait à
- * l'hôte, qui exécutait `dispelSelectCarrier` DANS SON PROPRE STORE — un panneau étranger s'ouvrait
- * chez l'hôte, et l'invité n'en voyait jamais aucun (son élection n'existait nulle part).
- *
- * La couture est celle, déjà écrite, du verdict d'armement (`localIntent.argsAvecVerdictLocal`) : ce
- * qui est un mode d'écran se calcule et se JOUE chez l'émetteur. Ici le mode de ciblage DÉCLARE que
- * son clic n'est qu'une élection (`TargetingMode.electionLocale`), et `emettreIntentInvite` la joue
- * en local au lieu d'émettre. Seul le COMMIT (`battleDispelSpell`, allowlisté) voyage.
+ * L'élection du porteur se JOUE chez l'émetteur (#1411) : le mode de ciblage déclare que son clic n'est
+ * qu'une élection (`TargetingMode.electionLocale`), et `emettreIntentInvite` la joue en local au lieu
+ * d'émettre ; seul le COMMIT (`battleDispelSpell`, allowlisté) voyage. LDB 46 l.158-162
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
