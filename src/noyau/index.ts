@@ -56,6 +56,8 @@ export { objetDuNarratif } from './monde/resolveursDuNarratif';
 export { equipementDessine, equipementDEntite } from './equipementDessine';
 export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
+export { engagement, refusDEngagement } from './creation/engagement';
+export type { CreatorDraft } from './creation/brouillon';
 export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
 export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';

@@ -17,7 +17,7 @@ import { useGame } from '../../state/store';
 import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
 import { NumberField } from '../NumberField';
 import { stockageDuRoster } from '../../state/roster';
-import { ajouterAuRoster, chargerLeRoster } from '../../hote/roster';
+import { chargerLeRoster, engagerLeHeros } from '../../hote/roster';
 import {
   species as allSpecies,
   careersForSpecies,
@@ -157,6 +157,16 @@ import {
   careerSkillsDone,
   talentsDone,
   skillsSubMessage,
+  skillsSubDone,
+  etapeDeRang,
+  careerXpDuProchainJet,
+  charsXpDeLaMethode,
+  rerollDraftChars,
+  repartition,
+  bornesDuCompteur,
+  valeurDuCompteur,
+  withCompteur,
+  type Compteur,
   type SkillsSub,
   speciesTalentFixedEntries,
   speciesTalentChoiceEntries,
@@ -166,17 +176,16 @@ import {
   withRandomTalentSpec,
   withSpeciesTalentChoice,
   CAREER_CHAR_ADVANCES,
-  buildHero,
   draftFromHero,
   probeHero,
   xpTotal,
 } from '../../noyau/creation/brouillon';
-import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, speciesAllowed } from '../../engine/creation';
+import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_CHARS_KEPT, XP_CHARS_REASSIGNED, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED, speciesAllowed } from '../../engine/creation';
 import { formuleDeRevenus } from '../../engine/money';
 import { t as msg } from '../../i18n'; // `msg` : alias local — `t` nomme aussi un trapping ou une minuterie dans ce module
 import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { GatedAction, raisonSi } from '../GatedAction';
-import { refusComposition, refusDAjoutAuGroupe } from '../../noyau/partyFlow';
+import { refusDEngagement } from '../../noyau/creation/engagement';
 import { Grid, Row } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
@@ -221,10 +230,7 @@ const TalentRef = ({ talent }: { talent: RefDesignee }) => <TalentChip talent={{
 export function CharacterCreator() {
   const party = useGame((s) => s.party);
   const setScreen = useGame((s) => s.setScreen);
-  const addHero = useGame((s) => s.partyAddHero);
-  const replaceHero = useGame((s) => s.partyReplaceHero);
   const editingHeroId = useGame((s) => s.editingHeroId);
-  const refusDAjout = useGame((s) => (s.editingHeroId ? refusComposition(s) : refusDAjoutAuGroupe(s, undefined, s.net.mySeat)));
   const setEditingHero = useGame((s) => s.setEditingHero);
 
   // MODE ÉDITION : héros déjà dans le groupe (bouton « Modifier ») → on rouvre son brouillon.
@@ -241,9 +247,10 @@ export function CharacterCreator() {
 
   const [d, setD] = useState<CreatorDraft>(() => editing?.draft ?? newDraft(graineDEntropie()));
   const [step, setStep] = useState(0);
+  const refusDEngager = useGame((s) => refusDEngagement(s, d, editing?.heroId));
 
   const ids = stepIds();
-  const curId = ids[step] ?? ids[ids.length - 1]; // garde-fou si la règle change le nombre d'étapes
+  const curId = etapeDeRang(step);
   const err = validateStep(d, curId);
   const canNext = err == null;
 
@@ -279,8 +286,7 @@ export function CharacterCreator() {
     return () => { delete w.__wfrpCreator; };
   }, [d]);
   const [skillsSub, setSkillsSub] = useState<SkillsSub>('race');
-  const skillsSubDone =
-    skillsSub === 'race' ? speciesSkillsDone(d) : skillsSub === 'career' ? careerSkillsDone(d) : talentsDone(d);
+  const sousEcranSolde = skillsSubDone(d, skillsSub);
 
   const closeCreator = () => {
     setEditingHero(null);
@@ -288,17 +294,7 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    const hero = buildHero(d, editing?.heroId); // édition : on conserve l'id du héros
-    const wealth = draftWealth(d).montant;
-    ajouterAuRoster(stockageDuRoster(), { hero, wealth, draft: d }); // roster persistant + brouillon EXACT (round-trip futur)
-    if (editing) {
-      // Remplacement EN PLACE (primitive atomique) : préserve l'index/ordre et transfère la
-      // possession au même siège — pas de re-crédit de la Richesse (déjà comptée à la création).
-      replaceHero(editing.heroId, hero);
-    } else {
-      addHero(hero, wealth); // côté invité : intent vers l'hôte (l'état arrive par snapshot)
-    }
-    closeCreator();
+    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, editing?.heroId) === null) closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };
@@ -362,7 +358,7 @@ export function CharacterCreator() {
         <button className="btn" disabled={step === 0} onClick={() => setStep(step - 1)}>
           ← Précédent
         </button>
-        <span className={`hint wizard-hint${(curId === 'skills' ? !skillsSubDone : !!err) ? ' warn-text' : ''}`}>
+        <span className={`hint wizard-hint${(curId === 'skills' ? !sousEcranSolde : !!err) ? ' warn-text' : ''}`}>
           {curId === 'skills'
             ? skillsSubMessage(d, skillsSub)
             : err ??
@@ -385,8 +381,8 @@ export function CharacterCreator() {
         ) : (
           <GatedAction
             id="creator-commit"
-            enabled={!refusDAjout && canNext}
-            {...raisonSi(refusDAjout)}
+            enabled={!refusDEngager}
+            {...raisonSi(refusDEngager)}
             onClick={create}
             label={editing ? 'Enregistrer les modifications' : 'Engager ce héros →'}
           />
@@ -494,7 +490,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
       </span>
       <span className="dicewell-copy">
         <span className="dicewell-txt">Tirer aux dés — d100</span>
-        <span className="dicewell-sub">sa race au hasard : <b>+20 PX de création</b> (garder le tirage)</span>
+        <span className="dicewell-sub">sa race au hasard : <b>+{XP_SPECIES_ACCEPTED} PX de création</b> (garder le tirage)</span>
       </span>
     </button>
   ) : (
@@ -505,7 +501,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
       </span>
       <span className="dicewell-copy">
         <span className="dicewell-txt">
-          Jet : <b>{d.speciesRoll.roll}</b> — borne {rolledFamily} · {kept ? '+20 PX conservé' : '+0 PX (choix libre)'}
+          Jet : <b>{d.speciesRoll.roll}</b> — borne {rolledFamily} · +{speciesXp(d)} PX {kept ? 'conservé' : '(choix libre)'}
         </span>
       </span>
     </div>
@@ -706,19 +702,19 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
       <span className="dicewell-copy">
         <span className="dicewell-txt">
           {d.careerRolls.length >= 3 ? (
-            <>Jets : <b>{d.careerRolls.map((r) => r.roll).join(' · ')}</b> — 3 choix · {kept ? `+${careerXp(d)} PX conservé` : '+0 PX (choix libre)'}</>
+            <>Jets : <b>{d.careerRolls.map((r) => r.roll).join(' · ')}</b> — 3 choix · +{careerXp(d)} PX {kept ? 'conservé' : '(choix libre)'}</>
           ) : (
-            <>Jet : <b>{rolledLast.roll}</b> — {kept ? `+${careerXp(d)} PX conservé` : '+0 PX (choix libre)'}</>
+            <>Jet : <b>{rolledLast.roll}</b> — +{careerXp(d)} PX {kept ? 'conservé' : '(choix libre)'}</>
           )}
         </span>
         {d.careerRolls.length === 1 && (
           <button type="button" className="btn small" style={{ marginTop: 4 }} onClick={() => trigger()}>
-            <Icon id="nav/dice" size="sm" /> Pas convaincu : 2 jets de plus (3 choix, +{XP_CAREER_TOP3} PX)
+            <Icon id="nav/dice" size="sm" /> Pas convaincu : 2 jets de plus (3 choix, +{careerXpDuProchainJet(d)} PX)
           </button>
         )}
         {d.careerRolls.length >= 3 && (
           <button type="button" className="btn small" style={{ marginTop: 4 }} onClick={() => trigger()}>
-            <Icon id="nav/dice" size="sm" /> Continuer à relancer (0 PX)
+            <Icon id="nav/dice" size="sm" /> Continuer à relancer (+{careerXpDuProchainJet(d)} PX)
           </button>
         )}
       </span>
@@ -868,9 +864,9 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
   const pairs = charRollPairs(d);
   const chars = draftChars(d);
   const careerKeys = careerCharKeys(d);
-  const allocTotal = Object.values(d.charAdvancesAlloc).reduce((a, b) => a + (b ?? 0), 0);
-  const pbTotal = CHAR_KEYS.reduce((a, k) => a + d.pointBuy[k], 0);
-  const splitTotal = d.fateSplit.fate + d.fateSplit.resilience;
+  const points = repartition(d, 'points');
+  const augmentations = repartition(d, 'augmentation');
+  const destin = repartition(d, 'destin');
   // CÉRÉMONIE SÉQUENTIELLE des dix 2d10 (#393 agentivité) : aucun dé à l'écran avant le geste
   // « Tirer aux dés » (caracs à « — ») ; le geste commit le brouillon (`rollDraftChars` — valeurs
   // figées par le seed, découvertes seulement) puis les rangées roulent UNE PAR UNE (`seq` = rangée
@@ -901,13 +897,13 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
     const justFinished = prevSeqRef.current != null && seq == null;
     if (justFinished) {
       setCharsAttention(
-        allocTotal < CAREER_CHAR_ADVANCES && careerKeys.length > 0 ? 'alloc'
-        : sp && splitTotal < sp.fate.extra ? 'fate'
+        augmentations.total < augmentations.quota ? 'alloc'
+        : destin.total < destin.quota ? 'fate'
         : null,
       );
     }
     prevSeqRef.current = seq;
-    // Ancré volontairement sur `seq` SEUL (front descendant) : lit allocTotal/splitTotal/sp/careerKeys
+    // Ancré volontairement sur `seq` SEUL (front descendant) : lit augmentations/destin
     // à CET instant plutôt que de les re-suivre en continu — un scroll UNIQUE en fin de cérémonie,
     // jamais un cursor qui recentre à chaque frappe de stepper ensuite.
   }, [seq]);
@@ -944,12 +940,12 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
         <OptionChooser
           layout="seg"
           options={[
-            { key: 'rolled', label: `Aux dés — garder le tirage`, value: undefined, mode: 'rolled' as const, px: d.charRerolls === 0 ? '+50 PX' : '+0 PX' },
-            { key: 'reassigned', label: `Aux dés — réorganiser ensuite`, mode: 'reassigned' as const, px: d.charRerolls === 0 ? '+25 PX' : '+0 PX' },
-            { key: 'pointBuy', label: 'Répartir 100 points', mode: 'pointBuy' as const, px: '0 PX' },
-          ].map(({ key, label, mode, px }) => ({
+            { key: 'rolled', label: `Aux dés — garder le tirage`, mode: 'rolled' as const },
+            { key: 'reassigned', label: `Aux dés — réorganiser ensuite`, mode: 'reassigned' as const },
+            { key: 'pointBuy', label: `Répartir ${repartition(d, 'points').quota} points`, mode: 'pointBuy' as const },
+          ].map(({ key, label, mode }) => ({
             key,
-            label: <>{label} <em className="hint" style={{ fontStyle: 'normal' }}>{px}</em></>,
+            label: <>{label} <em className="hint" style={{ fontStyle: 'normal' }}>+{charsXpDeLaMethode(d, mode)} PX</em></>,
             selected: d.charMode === mode,
             onSelect: () => setD({ ...d, charMode: mode }),
           }))}
@@ -961,13 +957,13 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
       {d.charMode !== 'pointBuy' && (
         <CreatorDice
           label="Tirer les dix jets — 2d10 par Caractéristique"
-          hint={<>Garder le tirage : +50 PX · réorganiser ensuite : +25 PX · relancer : +0 PX.</>}
+          hint={<>Garder le tirage : +{XP_CHARS_KEPT} PX · réorganiser ensuite : +{XP_CHARS_REASSIGNED} PX · relancer : +{charsXpDeLaMethode(rerollDraftChars(d), d.charMode)} PX.</>}
           rolled={!!d.charsRolled}
           xp={charsXp(d)}
           frisson={false}
           onRoll={() => startCeremony(rollDraftChars(d))}
         >
-          <button className="btn small" disabled={seq != null} onClick={() => startCeremony({ ...d, charRerolls: d.charRerolls + 1 })}>
+          <button className="btn small" disabled={seq != null} onClick={() => startCeremony(rerollDraftChars(d))}>
             <Icon id="nav/dice" size="sm" /> Relancer les dix jets (bonus perdus)
           </button>
         </CreatorDice>
@@ -984,7 +980,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
             title={<>{tirageMain}<small>{tirageSub}</small></>}
             right={
               d.charMode === 'pointBuy' ? (
-                <b className={pbTotal === 100 ? 'ok-text' : 'warn-text'}>Points : {pbTotal}/100</b>
+                <b className={points.total === points.quota ? 'ok-text' : 'warn-text'}>Points : {points.total}/{points.quota}</b>
               ) : (
                 <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutral'} />
               )
@@ -1047,7 +1043,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                           </select>
                         )}
                         {d.charMode === 'pointBuy' && (
-                          <AllocStepper value={d.pointBuy[k]} min={4} max={18} onChange={(v) => setD({ ...d, pointBuy: { ...d.pointBuy, [k]: v } })} label={CHAR_LABELS[k]} />
+                          <AllocStepper d={d} setD={setD} compteur={{ genre: 'points', k }} label={CHAR_LABELS[k]} />
                         )}
                       </>
                     }
@@ -1063,7 +1059,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
               Résilience plutôt qu'un widget recopié de l'ancien créateur. */}
           <Band
             title={<>Augmentations gratuites<small>{CAREER_CHAR_ADVANCES} sur les Caractéristiques de carrière</small></>}
-            right={<b className={allocTotal === CAREER_CHAR_ADVANCES ? 'ok-text' : 'warn-text'}>{allocTotal}/{CAREER_CHAR_ADVANCES}</b>}
+            right={<b className={augmentations.total === augmentations.quota ? 'ok-text' : 'warn-text'}>{augmentations.total}/{augmentations.quota}</b>}
           >
             <PlaqueGrid>
               {careerKeys.map((k, i) => (
@@ -1072,12 +1068,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                   attention={charsAttention === 'alloc' && i === 0}
                   content={<CodexRef category="characteristics" id={k} label={CHAR_LABELS[k]}>{CHAR_LABELS[k]}</CodexRef>}
                   meta={
-                    <AllocStepper
-                      value={d.charAdvancesAlloc[k] ?? 0}
-                      max={Math.min(CAREER_CHAR_ADVANCES, (d.charAdvancesAlloc[k] ?? 0) + (CAREER_CHAR_ADVANCES - allocTotal))}
-                      onChange={(v) => setD({ ...d, charAdvancesAlloc: { ...d.charAdvancesAlloc, [k]: v } })}
-                      label={CHAR_LABELS[k]}
-                    />
+                    <AllocStepper d={d} setD={setD} compteur={{ genre: 'augmentation', k }} label={CHAR_LABELS[k]} />
                   }
                 />
               ))}
@@ -1086,7 +1077,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
 
           <Band
             title={<>Destin &amp; Résilience<small>+{sp.fate.extra} à répartir</small></>}
-            right={<b className={splitTotal === sp.fate.extra ? 'ok-text' : 'warn-text'}>{splitTotal}/{sp.fate.extra}</b>}
+            right={<b className={destin.total === destin.quota ? 'ok-text' : 'warn-text'}>{destin.total}/{destin.quota}</b>}
           >
             <p className="hint">
               <Icon id="resource/fate" size="sm" /> Destin : survie & Chance. <Icon id="resource/resilience" size="sm" /> Résilience :
@@ -1099,12 +1090,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                 meta={
                   <>
                     <em>race : {sp.fate.fate}</em>
-                    <AllocStepper
-                      value={d.fateSplit.fate}
-                      max={Math.min(sp.fate.extra, d.fateSplit.fate + (sp.fate.extra - splitTotal))}
-                      onChange={(v) => setD({ ...d, fateSplit: { ...d.fateSplit, fate: v } })}
-                      label="Destin"
-                    />
+                    <AllocStepper d={d} setD={setD} compteur={{ genre: 'destin', k: 'fate' }} label="Destin" />
                   </>
                 }
               />
@@ -1113,12 +1099,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                 meta={
                   <>
                     <em>race : {sp.fate.resilience}</em>
-                    <AllocStepper
-                      value={d.fateSplit.resilience}
-                      max={Math.min(sp.fate.extra, d.fateSplit.resilience + (sp.fate.extra - splitTotal))}
-                      onChange={(v) => setD({ ...d, fateSplit: { ...d.fateSplit, resilience: v } })}
-                      label="Résilience"
-                    />
+                    <AllocStepper d={d} setD={setD} compteur={{ genre: 'destin', k: 'resilience' }} label="Résilience" />
                   </>
                 }
               />
@@ -1141,7 +1122,11 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
  *  du créateur (± 1 entre `min` et `max`) — un décrément/incrément d'UNE unité. Mort du `Stepper`
  *  local du créateur (verdict utilisateur 2026-07-15 : « on créait des primitives ou on fait encore
  *  du code spécifique création ? ») : ce site consomme la MÊME primitive que la table marchande. */
-function AllocStepper({ value, min = 0, max, onChange, label }: { value: number; min?: number; max: number; onChange: (v: number) => void; label: string }) {
+/** Le stepper du compteur d'allocation `compteur` : valeur, bornes et écriture du noyau (`bornesDuCompteur`, `withCompteur`). */
+function AllocStepper({ d, setD, compteur, label }: { d: CreatorDraft; setD: (d: CreatorDraft) => void; compteur: Compteur; label: string }) {
+  const value = valeurDuCompteur(d, compteur);
+  const { min, max } = bornesDuCompteur(d, compteur);
+  const onChange = (v: number) => setD(withCompteur(d, compteur, v));
   return (
     <QtyStepper
       center={<b>{value}</b>}
@@ -1229,7 +1214,7 @@ export function StarScreen({ d, setD }: StepProps) {
             <>
               le ciel a rendu <b>{d.starRollValue ?? '—'}</b> — {rollLabel ?? '—'}
               {' · '}
-              <b>{starXp(d) > 0 ? `+${XP_STAR_ROLLED} PX conservé` : '+0 PX (choix libre)'}</b>
+              <b>+{starXp(d)} PX {starXp(d) > 0 ? 'conservé' : '(choix libre)'}</b>
             </>
           }
           onRoll={() => {
@@ -1239,7 +1224,7 @@ export function StarScreen({ d, setD }: StepProps) {
         />
       </StepHeader>
       <p className="hint" style={{ margin: '0 0 8px' }}>
-        Tourner la roue à la main choisit librement (+0 PX) ; le d100 s'arrête sur la fourchette du signe tiré, et le
+        Tourner la roue à la main choisit librement ; le d100 s'arrête sur la fourchette du signe tiré, et le
         garder rapporte +{XP_STAR_ROLLED} PX de création. L'Étoile du Sorcier ouvre quatre destins — la roue
         les déplie si l'aiguille s'y pose.
       </p>
@@ -1598,7 +1583,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
             {entries.map((c) => {
               const { k, v } = charOf(c.ref.id);
               const adv = d.skillAdvances[c.cle] ?? 0;
-              const raceTier = d.speciesPlus5.some((r) => memeRef(r, c.designee)) ? 5 : d.speciesPlus3.some((r) => memeRef(r, c.designee)) ? 3 : 0;
+              const raceTier = c.designee ? speciesSkillTier(d, c.designee) : 0;
               const nom = c.designee ? refLabel('skills', c.designee) : advancementLabel('skills', c.ref);
               return (
                 <PlaqueRow
@@ -1617,12 +1602,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
                       {c.ref.choix != null && adv > 0 && (
                         <SpecSelect category="skills" id={c.ref.id} options={poolDuJoker('skill', c.ref).filter(c.libre)} value={d.specChoices[c.adresse] ?? ''} onChange={(spec) => setD(withCareerSkillSpec(d, c, spec))} />
                       )}
-                      <AllocStepper
-                        value={adv}
-                        max={Math.min(MAX_ADV_PER_SKILL, adv + (CAREER_SKILL_ADVANCES - total))}
-                        onChange={(val) => setD({ ...d, skillAdvances: { ...d.skillAdvances, [c.cle]: val } })}
-                        label={nom}
-                      />
+                      <AllocStepper d={d} setD={setD} compteur={{ genre: 'competence', cle: c.cle }} label={nom} />
                     </>
                   }
                   value={adv > 0 ? `+${adv}` : '—'}
