@@ -26,7 +26,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Draine une cascade influençable (héros piloté-humain → modale, #274) — même patron que les autres
- *  suites (`cascadeRoll`+`cascadeNext`, ex. `river-voyage-flow.test.ts`). */
+ *  suites (`cascadeRoll`+`cascadeNext`, ex. `river-voyage-flow.hors-store.test.ts`). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 50) {

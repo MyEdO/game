@@ -15,7 +15,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { difficultyText } from '../noyau/difficultyText';
 import { refLabel } from '../data';
 import { t } from '../i18n';
-import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../engine/ficheDeTest.testkit';
 import { lignesDeJet } from './ligneDeJet.testkit';
 import { combattantDeModale } from './combattantDeModale.testkit';
 
