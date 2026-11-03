@@ -24,7 +24,7 @@ import {
   constructionDeFragment, constructionsReserveesDuCorpus, scanConstructionsReservees,
 } from '../scripts/guards/lib/canonUnique.mjs';
 import { corpusDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { fragmentBlocsSchema, fragmentCelluleSchema } from './data/schemas/grammaire/valeurs';
 
 const FOYER = 'src/data/source/decoupe.ts';
@@ -40,7 +40,7 @@ const FRAGMENT = [{
     constructeurs: { [FOYER]: ['fragmentBlocs', 'intervalleDe', 'fragmentCellule', 'scelle'] },
   }),
   foyer: FOYER,
-  domaine: (rel: string) => !estFichierVitest(rel),
+  domaine: (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel),
 }];
 
 const IMPORTE = "import { fragmentBlocs, scelle } from '../data/source/decoupe';\n";

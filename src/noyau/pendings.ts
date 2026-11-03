@@ -176,7 +176,7 @@ export interface PendingTest {
   /** Réussite forcée par Résilience AVANT le jet (LDB 17 l.68) : affichage « garanti », sans dé. */
   forced?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`) — jamais posé sur ce flux :
-   *  sans cible dérivable, la saisie y est refusée (garde `fixed-die-inventaire.test.ts`). */
+   *  sans cible dérivable, la saisie y est refusée (garde `fixed-die-inventaire.hors-store.test.ts`). */
   fixed?: boolean;
   /** Relance par Chance déjà effectuée (LDB 12 l.40 : 1 relance max par Test). */
   rerolled?: boolean;

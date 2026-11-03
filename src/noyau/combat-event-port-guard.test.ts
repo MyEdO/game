@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanCombatEventPort } from '../../scripts/guards/lib/combatEventPort.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * QUARANTAINE D'IMPORT du bus d'événements de combat (#316 — « le bus est l'UNIQUE porte »).
@@ -35,7 +35,7 @@ describe('quarantaine d’import — bus d’événements de combat unique (#316
   it('fireTriggers / runCombatHooks importés UNIQUEMENT par la porte + les modules bus-owned', () => {
     const offenders: string[] = [];
     for (const { rel, text } of readCorpus(SCAN_DIRS, { tests: true })) {
-      if (estFichierVitest(rel) || WHITELIST.has(rel)) continue;
+      if (estFichierVitest(rel) || estKitDeTest(rel) || WHITELIST.has(rel)) continue;
       for (const { line, symbol } of scanCombatEventPort(text)) {
         offenders.push(`${rel}:${line} importe ${symbol}`);
       }

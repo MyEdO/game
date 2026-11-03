@@ -3,7 +3,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { valeursDe } from './data/schemas/grammaire/meta';
 import { effectTriggerSchema } from './data/schemas/grammaire/mecanique';
 import type { EffectTrigger } from './engine/flowCore';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * GARDE DE COMPLÉTUDE (nouvelle classe, #316) : « zéro trigger d'authoring sans point d'émission ».
@@ -33,7 +33,7 @@ const DEDICATED_EMITTERS = ['src/noyau/triggeredEffects.ts', 'src/noyau/upkeep.t
 
 function tsFiles(): { rel: string; src: string }[] {
   return readCorpus(['src'], { tests: true })
-    .filter(({ rel }) => !estFichierVitest(rel))
+    .filter(({ rel }) => !estFichierVitest(rel) && !estKitDeTest(rel))
     .map(({ rel, text }) => ({ rel, src: text }));
 }
 

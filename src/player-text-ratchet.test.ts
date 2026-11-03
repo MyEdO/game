@@ -50,7 +50,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /** GEL DU 2026-08-17 (`as CascadeStep` en TEST) — 35 casts dans 15 fichiers. Zéro en production. E7 en a
  *  éteint DEUX, dans des fichiers déjà ouverts pour la migration : leur cast ne servait qu'à blanchir un
@@ -327,7 +327,7 @@ describe('#1318 V8a₀ T2 — les `as CascadeStep` des TESTS sont GELÉS (la pro
   const reel = recense(process.cwd(), compteCasts, undefined, HORS_CASCADE_STEP);
 
   it('AUCUN cast de conteneur en PRODUCTION — c’est le lint qui l’y refuse, et le fait le confirme', () => {
-    expect(Object.keys(reel).filter((f) => !estFichierVitest(f)), 'un `as CascadeStep` hors test rouvrirait la voie canonique').toEqual([]);
+    expect(Object.keys(reel).filter((f) => !estFichierVitest(f) && !estKitDeTest(f)), 'un `as CascadeStep` hors test rouvrirait la voie canonique').toEqual([]);
   });
 
   it('les fichiers de TEST ne dépassent pas leur gel', () => {

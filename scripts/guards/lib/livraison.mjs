@@ -4,7 +4,7 @@
 // Ticket #2328, Attendu, verbatim : « Ceux-ci restent exigés là où la livraison se juge : commit de
 // solde, porte de publication. » Une fusion se COMMITE sans eux (lot 1) ; la résolution qu'elle porte
 // se juge avant la publication, par son propre message, ou par un commit POSTÉRIEUR de la plage qui nomme son sha.
-import { estFichierVitest } from './fichierVitest.mjs'
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
 import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
 
@@ -35,7 +35,7 @@ export const TRAILERS = Object.freeze({
  *  tests d'écran n'a pas davantage de capture à montrer. */
 export function estFichierEcran(path) {
   const p = String(path ?? '').replace(/\\/g, '/')
-  if (estFichierVitest(p)) return false
+  if (estFichierVitest(p) || estKitDeTest(p)) return false
   if (/^src\/ui\/styles\/.+\.css$/.test(p)) return true
   return /^src\/(ui|gameIso)\/.+\.tsx$/.test(p)
 }

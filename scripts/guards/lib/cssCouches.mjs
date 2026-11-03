@@ -18,7 +18,7 @@
 // la réécriture, enrichi de `media`.
 
 import { dossierDe, estZone, zoneDe } from './couches.mjs';
-import { SUFFIXE_SUITE } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 
 /** Feuilles PARTAGÉES de `src/ui/styles/` : aucune primitive ne les possède, aucun module d'écran
  *  n'en fait partie. Source UNIQUE — `SHARED_CSS_FILES` (ui-ratchets), `CSS_PARTAGES`
@@ -424,14 +424,13 @@ export function modulesDePrimitive(manifeste) {
   return new Set(manifeste.map((e) => e.css).filter((c) => typeof c === 'string'));
 }
 
-/** Racine des importeurs comptés, et ce qui n'en est pas un : une suite de test, la galerie QC. */
+/** Racine des importeurs comptés, et ce qui n'en est pas un : un instrument ou un kit de test (`fichierVitest.mjs`), la galerie QC. */
 const RACINE_DES_IMPORTEURS = 'src/';
 const GALERIE = 'src/ui/gallery/';
-const SUITE = new RegExp(`${SUFFIXE_SUITE}$`);
 
 /** Un importeur compte-t-il pour la RÉUTILISATION d'une primitive ? */
 export const importeurCompte = (chemin) =>
-  chemin.startsWith(RACINE_DES_IMPORTEURS) && !chemin.startsWith(GALERIE) && !SUITE.test(chemin);
+  chemin.startsWith(RACINE_DES_IMPORTEURS) && !chemin.startsWith(GALERIE) && !estFichierVitest(chemin) && !estKitDeTest(chemin);
 
 /**
  * Les `fichier` du manifeste RÉUTILISÉS (#1806 L1) : importés directement par au moins 2 fichiers de

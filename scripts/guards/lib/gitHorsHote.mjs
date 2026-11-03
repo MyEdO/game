@@ -7,7 +7,7 @@
 //     `scripts/guards` (leur bibliothèque) : une porte qui n'importe pas l'hôte y est prise ;
 //   · toute source suivie qui IMPORTE l'hôte : elle compose ses lectures, elle lit donc git par lui
 //     seul (`scripts/ops/publier.mjs`).
-// Hors instruments Vitest (`estFichierVitest` : une suite FORGE des dépôts, un banc n'est pas une porte)
+// Hors instruments Vitest (`estFichierVitest` : une suite FORGE des dépôts, un banc n'est pas une porte), hors kits de test (`estKitDeTest`)
 // et hors l'hôte lui-même. Un module neuf y entre en naissant, ou en important l'hôte.
 //
 // LES TESTS DE `scripts/` (`estFichierVitest`, sources suivies) : le `lanceur` seul y est un site. Leur
@@ -38,7 +38,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, fichiersDuGrep, listerImage } from './gitPorte.mjs'
-import { estFichierVitest } from './fichierVitest.mjs'
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { analyserCorpus, typescript } from './dialecte.mjs'
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
@@ -63,7 +63,7 @@ export const IMPORT_DE_L_HOTE = "from[[:space:]]+['\"][^'\"]*gitPorte\\.mjs['\"]
 export function sourcesDesPortes(racine = RACINE) {
   const depot = depotDe(racine)
   const sources = [...listerImage(depot, INDEX, ...DOSSIERS_DES_PORTES), ...fichiersDuGrep(depot, [], IMPORT_DE_L_HOTE, [])]
-  return [...new Set(sources)].filter((f) => MODULE.test(f) && !estFichierVitest(f) && f !== HOTE).sort()
+  return [...new Set(sources)].filter((f) => MODULE.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && f !== HOTE).sort()
 }
 
 /** Le texte sans ses commentaires, longueurs conservées (les index restent ceux de la source). */

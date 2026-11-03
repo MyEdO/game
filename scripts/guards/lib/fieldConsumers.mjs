@@ -50,15 +50,15 @@ import * as ts from 'typescript/unstable/ast'
 import { SymbolFlags } from 'typescript/unstable/sync'
 import { join, relative, resolve, sep } from 'node:path'
 import { listerArbre, parUnitesDeCode } from './lister.mjs'
-import { estFichierVitest } from './fichierVitest.mjs'
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { repoProgram, libererSessions } from './tsProgram.mjs'
 
-/** Fichiers de PRODUCTION `.ts(x)` sous `dir`, hors `*.test.ts(x)`, en ORDRE TOTAL (`listerArbre`).
+/** Fichiers de PRODUCTION `.ts(x)` sous `dir`, hors instruments et kits de test (`fichierVitest.mjs`), en ORDRE TOTAL (`listerArbre`).
  *  L'ordre des RACINES décide de celui de `program.getSourceFileNames().map((file) => program.getSourceFile(file))`, donc de l'index des accès,
  *  donc du site cité en exemple par le rapport : sans ordre total, le même dépôt rend deux `.md`
  *  différents selon la machine. */
 export function listProdFiles(dir) {
-  return listerArbre(dir, { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) })
+  return listerArbre(dir, { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
     .map((rel) => join(dir, rel))
 }
 

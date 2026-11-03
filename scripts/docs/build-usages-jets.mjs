@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { shellZones, rowZones, scanRollShellUsage } from './lib/rollShellUsage.mjs'
 import { analyserCorpus } from '../guards/lib/dialecte.mjs'
-import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -28,7 +28,7 @@ function rendu() {
 
   /** Fichiers de PRODUCTION (hors tests) de `src/`, en chemin relatif POSIX, en ORDRE TOTAL. */
   function prodFiles(dir) {
-    return listerArbre(join(ROOT, dir), { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) })
+    return listerArbre(join(ROOT, dir), { filtre: (rel) => /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
       .map((rel) => ({ rel: `${dir}/${rel}`, text: readFileSync(join(ROOT, dir, rel), 'utf8') }))
   }
 

@@ -69,7 +69,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 import path from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { repoProgram, libererSessions } from './tsProgram.mjs';
-import { estFichierVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 
 /** Fichiers d'INTERFACE : un écrivain qui y vit est joignable au clic par construction — l'auteur
  *  ouvre l'écran. Crédit DIRECT. */
@@ -96,7 +96,7 @@ const PIPELINE_PATH = [/^src[\\/]noyau[\\/]mapSpec\.ts$/, /^src[\\/]scenes[\\/]/
 const isUiPath = (rel) => UI_PATH.some((re) => re.test(rel));
 const isAuthorPath = (rel) => AUTHOR_PATH.some((re) => re.test(rel));
 const isPipelinePath = (rel) => PIPELINE_PATH.some((re) => re.test(rel));
-const isTestFile = (rel) => estFichierVitest(rel);
+const isTestFile = (rel) => estFichierVitest(rel) || estKitDeTest(rel);
 
 const SCENE_FILE = 'src/noyau/monde/scene.ts';
 
