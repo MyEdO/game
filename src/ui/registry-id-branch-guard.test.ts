@@ -70,12 +70,6 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
 const RAW_KNOWN: Record<string, number> = {
   'scripts/qc/opera-furniture-check.mts': 1,
   'src/engine/activities.ts': 1,
-  // SAIN (#1612) : `bourseInstanceOf` RETROUVE l'instance de la Bourse dans l'inventaire par l'id
-  // STABLE de son trapping (`BOURSE_TRAPPING_ID`, `trappings.json`) — un LOOKUP par référence, pas un
-  // branchement de comportement : aucune conduite ne diffère selon l'id. Même patron que le jumeau
-  // `careerSlots` ('focalisation') ci-dessous ; la constante de module est
-  // résolue par le scan brut (L2 #1548), donc la factorisation ne l'assainit pas et ne le prétend pas.
-  'src/engine/bourse.ts': 1,
   'src/engine/careerSlots.ts': 1, // reste `s.id === 'focalisation'` (lookup par id stable)
   'src/engine/corruption.ts': 2,
   'src/engine/crewedWeapon.ts': 1,

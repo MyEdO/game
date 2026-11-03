@@ -210,6 +210,9 @@ export type Condition =
   /** Le Test courant est-il un TEST D'ÉQUIPAGE à bord (MDG 14) ? Gate du bonus « Commandant émérite »
    *  (MDG 09 l.54 : « à bord de votre bateau ou impliquant votre équipage »). Hors Test d'équipage = false. */
   | { kind: 'crewTest' }
+  /** Le Test courant se joue-t-il pendant un Round de combat (`ctx.roundDeCombat`) ? Ligne « Tests : » de
+   *  Pansement de fortune et de Chirurgie (LDB 10 l.182, l.897). Hors contexte = false. */
+  | { kind: 'roundDeCombat' }
   /** Distance (cases) à l'adversaire VIVANT le plus proche, comparée par `op` à `value` (Brisé : Très
    *  difficile si ≤ 3, LDB 16 l.58). Précalculée (`ctx.nearestFoeDist`). Aucun adversaire / hors combat = +∞. */
   | { kind: 'nearestFoe'; op: CompareOp; value: number }
@@ -292,6 +295,8 @@ export interface ConditionCtx {
   /** Le Test courant est-il un TEST D'ÉQUIPAGE à bord (MDG 14) — lu par la Condition `crewTest`
    *  (Commandant émérite : « à bord de votre bateau ou impliquant votre équipage », MDG 09 l.54). */
   crewTest?: boolean;
+  /** Le Test courant se joue-t-il pendant un Round de combat — lu par la Condition `roundDeCombat`. */
+  roundDeCombat?: boolean;
 }
 
 /** Évalue une Condition — SOURCE UNIQUE de l'évaluation des conditions (triggers, choix de dialogue,
@@ -385,6 +390,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'hiddenFromFoes': return !!ctx.hiddenFromFoes;
     case 'engaged': return !!ctx.engaged;
     case 'crewTest': return !!ctx.crewTest;
+    case 'roundDeCombat': return !!ctx.roundDeCombat;
     case 'nearestFoe': return applyCompareOp(ctx.nearestFoeDist ?? Infinity, cond.op, cond.value);
     case 'capability': {
       const a = cond.who === 'caster' ? ctx.caster : ctx.target;

@@ -282,6 +282,7 @@ export function humanizeCondition(c: Condition, neg = false): string {
     case 'hiddenFromFoes': return `la cible ${neg ? "n'est pas cachée" : 'est cachée'} de l'ennemi`;
     case 'engaged': return `la cible ${neg ? "n'est pas engagée" : 'est engagée'} avec un ennemi`;
     case 'crewTest': return neg ? "ce n'est pas un Test d'équipage" : "il s'agit d'un Test d'équipage";
+    case 'roundDeCombat': return neg ? 'hors des Rounds de combat' : 'pendant un Round de combat';
     case 'nearestFoe': return `l'ennemi le plus proche ${opWord(c.op, neg)} ${c.value} cases`;
     case 'capability': return `${who(c.who)} ${neg ? "n'a pas" : 'a'} la capacité « ${c.id} »${c.value != null ? ` (${c.op ?? '>='} ${c.value})` : ''}`;
     case 'relation': return `${who(c.who)} ${neg ? "n'est pas" : 'est'} ${REL_PLAYER[c.is]}`;
@@ -447,6 +448,7 @@ export function humanizeOp(o: GameOp): string {
     case 'cureDisease': return `guérit ${o.count ?? 1} maladie(s)`;
     case 'reduceDiseaseDays': return `raccourcit ${o.disease ? diseaseLabel(o.disease) : 'une maladie'} de ${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)`;
     case 'preventInfection': return `voit ses Blessures protégées de l'infection`;
+    case 'aideMedicale': return `reçoit une Aide Médicale`;
     case 'exposeDisease': return `est exposé à la maladie ${diseaseLabel(o.disease)}`;
     case 'contractDisease': return `contracte la maladie ${diseaseLabel(o.disease)}`;
     case 'kill': return `meurt (sauf point de Destin dépensé)`;

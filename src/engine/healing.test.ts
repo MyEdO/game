@@ -94,19 +94,26 @@ describe('engine/healing — calculs DR (purs)', () => {
   });
 
   it('stopBleedOutcome : retire 1+DR borné aux pions ; Exténué quand tout retiré ; échec = rien', () => {
-    expect(stopBleedOutcome(2, 5, true)).toEqual({ removed: 3, gainExtenue: false });
-    expect(stopBleedOutcome(2, 2, true)).toEqual({ removed: 2, gainExtenue: true });
-    expect(stopBleedOutcome(0, 3, true)).toEqual({ removed: 1, gainExtenue: false });
-    expect(stopBleedOutcome(5, 3, false)).toEqual({ removed: 0, gainExtenue: false });
+    const G = { test: 'guerison', bandages: false } as const;
+    expect(stopBleedOutcome(2, 5, true, G)).toEqual({ removed: 3, gainExtenue: false });
+    expect(stopBleedOutcome(2, 2, true, G)).toEqual({ removed: 2, gainExtenue: true });
+    expect(stopBleedOutcome(0, 3, true, G)).toEqual({ removed: 1, gainExtenue: false });
+    expect(stopBleedOutcome(5, 3, false, G)).toEqual({ removed: 0, gainExtenue: false });
+  });
+
+  it('stopBleedOutcome sous Bandages : Guérison 1 + DR + 1 (LDB 09 l.261, LDB 74 l.41) ; Dextérité 1', () => {
+    expect(stopBleedOutcome(1, 4, true, { test: 'guerison', bandages: true }).removed).toBe(3); // 4 − 3 = 1 restant
+    expect(stopBleedOutcome(1, 4, true, { test: 'guerison', bandages: false }).removed).toBe(2); // 4 − 2 = 2 restants
+    expect(stopBleedOutcome(3, 4, true, { test: 'dexterite', bandages: true }).removed).toBe(1); // 4 − 1 = 3 restants
+    expect(stopBleedOutcome(3, 4, false, { test: 'dexterite', bandages: true }).removed).toBe(0);
   });
 });
 
 describe('engine/healing — mutateurs', () => {
-  it('applyHealWounds : +PB plafonné max, pose le flag, lève l’Inconscient quand on repasse >0 (LDB 18 l.15)', () => {
+  it('applyHealWounds : +PB plafonné max, lève l’Inconscient quand on repasse >0 (LDB 18 l.15)', () => {
     const t = hero({ id: 't', wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }, { id: 'a-terre', value: 1 }], roundsAtZero: 3 });
     applyHealWounds(t, 5);
     expect(t.wounds.current).toBe(5);
-    expect(t.soinRencontreUtilise).toBe(true);
     expect(t.conditions.find((c) => c.id === 'inconscient')).toBeUndefined(); // reprend connaissance
     expect(t.conditions.find((c) => c.id === 'a-terre')).toBeTruthy();        // mais reste à terre
     expect(t.roundsAtZero).toBe(0);
@@ -123,7 +130,7 @@ describe('engine/healing — mutateurs', () => {
 
   it('applyStopBleed : retire les pions ; Exténué quand le dernier part (LDB 16 l.109)', () => {
     const t = hero({ id: 't', conditions: [{ id: 'hemorragique', value: 2 }] });
-    applyStopBleed(t, 1); // 1+1 = 2 pions retirés
+    applyStopBleed(t, 1, { test: 'guerison', bandages: false } as const); // 1+1 = 2 pions retirés
     expect(t.conditions.find((c) => c.id === 'hemorragique')).toBeUndefined();
     expect(t.conditions.find((c) => c.id === 'extenue')).toBeTruthy();
   });

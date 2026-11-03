@@ -26,12 +26,12 @@ import { compatibleAmmo, activeLoadout, isUnarmed } from '../engine/items';
 import { aRecharger } from '../engine/weaponLoad';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
-import { actorHasSkill, possesses } from '../engine/skills';
+import { actorHasSkill } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { wastesAction, endTurnArmed } from './endTurnGuard';
-import { HEAL_SKILL, healableTargets } from '../engine/healing';
+import { healableTargets, modesDOuverture } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from './monde/commandTeam';
 import { controlsCombatant } from './netOwnership';
@@ -382,9 +382,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     return sp ? [sp] : [];
   },
   'cibles-soin': ({ active, battle }) =>
-    possesses(active, HEAL_SKILL)
-      ? healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true })
-      : [],
+    healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true }).filter((c) => modesDOuverture(c, active).length > 0),
   'cibles-aspersion': ({ active, battle }) =>
     hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. */

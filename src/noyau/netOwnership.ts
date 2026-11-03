@@ -559,6 +559,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
     // Choix de l'arme d'enfoncement (EDO 11 l.93) : la rangée appartient au siège de SON héros.
     ['forceDoorChoisirArme', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
+    // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
+    // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
+    ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
     // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
     // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet, `counterspellCancel`
     // dans `combatSlice`) ; phase close → `null`, le repli universel décide comme avant. Prédicat

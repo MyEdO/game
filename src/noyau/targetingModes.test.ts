@@ -97,14 +97,23 @@ describe('currentTargetingMode — aiguilleur unique', () => {
 describe('candidates des modes à liste', () => {
   beforeEach(() => { useGame.setState({ battle: null, party: [], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null }); });
 
-  it('soin : candidates = alliés soignables (un allié blessé adjacent)', () => {
+  it('soin : candidates = alliés que CE soigneur peut soigner (un allié blessé adjacent)', () => {
     const { hero, ally } = combat({ action: 'heal' });
     ally.wounds.current = Math.max(0, ally.wounds.max - 4); // soignable
+    hero.skills = [...hero.skills.filter((sk) => sk.id !== 'guerison'), { id: 'guerison', advances: 10, characteristic: 'intelligence' } as never];
     useGame.setState({ battle: { ...useGame.getState().battle! } });
     const mode = currentTargetingMode(useGame.getState);
     const ids = mode.candidates!(useGame.getState, hero).map((c) => c.id);
     expect(ids).toContain('h2');
     expect(ids).not.toContain('e1'); // jamais un ennemi
+  });
+  it('soin : un soigneur sans Guérison ni Bandages n’a aucune candidate (LDB 09 ; LDB 74 l.41)', () => {
+    const { hero, ally } = combat({ action: 'heal' });
+    ally.wounds.current = Math.max(0, ally.wounds.max - 4);
+    hero.skills = hero.skills.filter((sk) => sk.id !== 'guerison');
+    hero.items = hero.items?.filter((it) => it.trappingId !== 'bandages');
+    useGame.setState({ battle: { ...useGame.getState().battle! } });
+    expect(currentTargetingMode(useGame.getState).candidates!(useGame.getState, hero)).toEqual([]);
   });
 
   it('surincantation : candidates = overcastTargetCandidates (autres ennemis en portée, hors la cible)', () => {

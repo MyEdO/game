@@ -10,7 +10,7 @@ import type { OvercastAxis } from '../engine/overcast';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { IndiceAffiché } from './monde/clues';
-import type { HealMode } from '../engine/healing';
+import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
 import type { RollFlowActionsMap } from './rollFlowSpecs';
 import type { PossessionInput } from '../engine/possession';
@@ -315,6 +315,10 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   battleWater: (targetId?: IdDeCombattant) => void;
   /** Pré-jet : bascule le mode de soin (Blessures ⇄ Hémorragie) dans la modale ouverte. */
   healSetMode: (mode: HealMode) => void;
+  /** Pré-jet : le Test du soin (Guérison ⇄ Dextérité). */
+  healSetTest: (test: TestDeSoin) => void;
+  /** Pré-jet : engage les Bandages du héros `porteurId`, ou les retire (`null`). */
+  healSetBandages: (porteurId: IdDeHeros | null) => void;
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie), PNJ payant via l'effet `medicalAid`. */
   openMedic: (opts?: { patientId?: IdDeHeros; npc?: MedicNpc }) => void;

@@ -6,7 +6,13 @@
  */
 import type { TrappingRef } from '../data';
 import type { PossessionInput } from './possession';
-import { rollDice, type RNG } from './dice';
+import { rollDice, type DiceSpec, type RNG } from './dice';
+
+/** Le nombre d'unités qu'une ref de dotation donne : `count.fixed`, `count.roll` par `tirer` (l'appelant y roule
+ *  `rollDice` sur son `RNG`, #663), sinon 1. */
+export function compteDeLaDotation(ref: TrappingRef, tirer: (de: DiceSpec) => number): number {
+  return 'count' in ref && ref.count ? ('fixed' in ref.count ? ref.count.fixed : tirer(ref.count.roll)) : 1;
+}
 
 /** PUR — n'écrit rien, l'appelant (noyau/possessionsFlow.ts) matérialise via `addPossession`. Ignore
  *  `{id}` (objet de sac, buildInventory) et `{text}` (flavor hors catalogue). `count.fixed` spawn N
@@ -15,7 +21,7 @@ import { rollDice, type RNG } from './dice';
 export function possessionGrantsFromRefs(refs: TrappingRef[], ownerId: string, rng: RNG): PossessionInput[] {
   const grants: PossessionInput[] = [];
   for (const ref of refs) {
-    const n = 'count' in ref && ref.count ? ('fixed' in ref.count ? ref.count.fixed : rollDice(ref.count.roll, rng)) : 1;
+    const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
     if ('vehicleId' in ref) {
       // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `addPossession` ne fait
       // qu'un spread SUPERFICIEL (`{...p, uid}`, possessionsFlow.ts) : un `items`/`location` partagé

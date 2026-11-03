@@ -119,6 +119,7 @@ export function opSummary(o: GameOp): string {
     case 'actGate': return `Test de ${CHAR_LABELS[o.char]} chaque Round pour agir`;
     case 'delayed': return `${o.ops.length} op(s) différée(s)${o.afterDuration ? ' (à la dissipation)' : ''}`;
     case 'preventInfection': return 'pas d’infection';
+    case 'aideMedicale': return 'Aide Médicale';
     case 'cureCriticalWound': return `${o.count ?? 1} critique(s)`;
     case 'amputer': return `${o.sequels.map((id) => traumaLabelOf(id)).join(' + ') || 'aucune séquelle'}${o.unitesPerSL ? ' (+1 par DR)' : ''}`;
     case 'suppressPsych': return 'Traits psy. apaisés';

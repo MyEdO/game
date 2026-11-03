@@ -6945,6 +6945,9 @@
         "ops": [
           {
             "op": "preventInfection"
+          },
+          {
+            "op": "aideMedicale"
           }
         ]
       }
@@ -7784,12 +7787,7 @@
         "type": "ops",
         "ops": [
           {
-            "op": "removeCondition",
-            "id": "hemorragique",
-            "value": 1
-          },
-          {
-            "op": "preventInfection"
+            "op": "aideMedicale"
           }
         ]
       }

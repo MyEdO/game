@@ -146,7 +146,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: flatRead('pendingAppraise'),
   },
   heal: {
-    state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'wounds', intBonus: 4, skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'wounds', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingHeal'),
   },
   surgery: {

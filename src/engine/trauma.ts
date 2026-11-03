@@ -476,7 +476,7 @@ export function consolidateAmputations(c: Combatant): string[] {
  * Aide Médicale reçue (LDB 18 l.307-312 : Compétence Guérison réussie, bandage/cataplasme, ou sort/prière de
  * soin) : lève le drapeau `awaitingMedicalAid` de TOUTES les séquelles en attente — le PREMIER acte de soin des
  * 3 formes stoppe leur aggravation (escalade « 1 doigt de plus par Round » de « Main ouverte », AA 07 l.127 / LDB).
- * Appelé par les 3 formes (ops `heal`/`healCaster`/`preventInfection` ; succès de Guérison en infirmerie). Pur.
+ * Appelé par les 3 formes (ops `heal`/`healCaster`/`aideMedicale` ; soin de Guérison réussi ou sous Bandages). Pur.
  */
 export function receiveMedicalAid(c: Combatant): string[] {
   const awaiting = (c.traumas ?? []).filter((t) => t.awaitingMedicalAid);

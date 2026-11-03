@@ -12,7 +12,9 @@
 import type { Jeu } from './etat';
 import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
-import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
+import type { Combatant, ReverseQuery, Weapon, CharKey } from '../engine/types';
+import { evalCondition, type Condition } from '../engine/flowCore';
+import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/healing';
 import type { Get, Set } from './flowTypes';
 import { FLOW_VERBS, type RollVerb, type FlowVerbs } from './flowVerbs';
 import { deDuJet, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
@@ -177,15 +179,41 @@ const DEFENSE_LABEL_FALLBACK = 'Intimidation';
  *  rangées) — la lecture, jamais une seconde source : `stepOpposedFreeze` (noyau/cascade.ts) décide
  *  seul de ce qu'est un freeze. `undefined` hors cascade ou sur une étape non opposée. */
 /** +DR d'un Test de Compétence/Caractéristique RÉUSSI (LDB 10) — règle UNIVERSELLE `talentTestSLBonus`
- *  (matcher STRUCTURÉ `test.matches`, par id ; le contexte `when` n'est pas évalué ici), PLUS les +DR
- *  d'effet actif/trait par Compétence (`skillDRBonus`, MDG 09 l.232) et par Caractéristique
- *  (`charDRBonusOf`, MDG 09 l.236), et le −DR hors de son terrain (MDG 16 l.17). Lu par le jet naturel
- *  et par l'inversion. */
-function drDeReussiteDuTest(actor: Combatant, p: PendingTest): number {
-  return talentTestSLBonus(actor, { skill: p.skillId, char: p.char, spec: p.spec })
-    + (p.skillId ? skillDRBonus(actor, p.skillId, p.spec) : 0)
-    + charDRBonusOf(actor, p.char ?? (p.skillId ? effectiveSkillCharKey(actor, p.skillId, { spec: p.spec }) : undefined))
+ *  (matcher STRUCTURÉ `test.matches`, par id ; son contexte `when` évalué sur l'état : Round de combat,
+ *  Condition `roundDeCombat`), PLUS les +DR d'effet actif/trait par Compétence (`skillDRBonus`, MDG 09
+ *  l.232) et par Caractéristique (`charDRBonusOf`, MDG 09 l.236), et le −DR hors de son terrain (MDG 16
+ *  l.17). Lu par le jet naturel et par l'inversion, du Test de scène comme du soin. */
+function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: { skill?: string; char?: CharKey; spec?: string }): number {
+  const whenHolds = (cond: Condition) => evalCondition(cond, { flags: s.flags, gameTime: s.gameTime, roundDeCombat: !!s.battle });
+  return talentTestSLBonus(actor, test, whenHolds)
+    + (test.skill ? skillDRBonus(actor, test.skill, test.spec) : 0)
+    + charDRBonusOf(actor, test.char ?? (test.skill ? effectiveSkillCharKey(actor, test.skill, { spec: test.spec }) : undefined))
     + offTerrainTestDR(actor);
+}
+
+/** Le Test d'un `pendingTest`, tel que `drDeReussiteDuTest` le lit. */
+const testDeScene = (p: PendingTest) => ({ skill: p.skillId, char: p.char, spec: p.spec });
+
+/** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la valeur figée du
+ *  pending, +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
+function jetDeSoin(s: Jeu, p: { skillValue: number; difficulty: Difficulty }, actor: Combatant | undefined, test: TestDeSoin): JetPose {
+  const res = rollTest(p.skillValue, p.difficulty, battleRng());
+  return jetPose({ ...res, ...issueDuSoin(s, actor, test, res) });
+}
+
+/** Issue d'un dé du soin (tiré, fixé, renversé) : le dé, +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) —
+ *  SOURCE UNIQUE du jet, du dé fixé et de l'inversion. */
+function issueDuSoin(s: Jeu, actor: Combatant | undefined, test: TestDeSoin, tr: { roll: number; sl: number; success: boolean }) {
+  return { roll: tr.roll, sl: tr.sl + (tr.success && actor ? drDeReussiteDuTest(s, actor, IDS_DU_TEST_DE_SOIN[test]) : 0), success: tr.success };
+}
+
+/** Accesseur du dé fixé d'un Test de soin : lit le jet posé (sinon la cible, tant qu'il reste à forcer) et réécrit
+ *  l'issue par `issueDuSoin` (le +DR de Talent compris). */
+function deDuSoin<P extends PendingBase & { roll: number | null; target: number; clamped?: number; sl: number; success: boolean }>(test: (p: P) => TestDeSoin, aForcer: (p: P) => boolean) {
+  return {
+    read: (p: P): ForcedPick | null => (p.roll != null ? deDuJet({ roll: p.roll, ...cibleMesuree(p) }) : aForcer(p) ? { roll: bestForcedRoll(cibleBrute(p)), target: cibleBrute(p), critable: false } : null),
+    write: (s: Jeu, p: P, actor: Combatant | undefined, _get: Get, tr: TestResult) => issueDuSoin(s, actor, test(p), tr) as Partial<P>,
+  };
 }
 
 function currentStepFreeze(s: Jeu) {
@@ -2028,7 +2056,7 @@ export const FLOWS = paresseux({
       },
     },
     resolve: (_s, p, actor, _get, forced) => {
-      const tDR = actor ? drDeReussiteDuTest(actor, p) : 0;
+      const tDR = actor ? drDeReussiteDuTest(_s, actor, testDeScene(p)) : 0;
       // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
       // l'ouverture du Test (`openSkillTest`) et appliqué ICI, au DR du Test RÉSOLU.
       const capDR = p.capriciousDR ?? 0;
@@ -2060,8 +2088,8 @@ export const FLOWS = paresseux({
     reverse: {
       skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, char: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
-      evaluate: (_s, p, actor, _get, tr) => {
-        const sl = tr.sl + (tr.success ? drDeReussiteDuTest(actor, p) : 0) + (p.capriciousDR ?? 0);
+      evaluate: (s, p, actor, _get, tr) => {
+        const sl = tr.sl + (tr.success ? drDeReussiteDuTest(s, actor, testDeScene(p)) : 0) + (p.capriciousDR ?? 0);
         const issue = { roll: tr.roll, sl, success: tr.success && meetsRequiredSL(p.requireSL, sl) };
         return { patch: issue, issue };
       },
@@ -2182,11 +2210,22 @@ export const FLOWS = paresseux({
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
-    resolve: simpleTestResolve((p) => p.skillValue, (p) => p.difficulty, { actorless: true }), // Médecine bakée : le soigneur peut être un PNJ hors actorIn → actorless (jamais nul faute d'acteur live)
+    resolve: (s, p, actor) => jetDeSoin(s, p, actor, p.test), // le soigneur peut être un PNJ hors actorIn : le jet se fait sans acteur live
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU mode chirurgie :
     // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
     lens: flatRollLens((p) => (p.success || p.mode === 'surgery') ? null : cibleBrute(p)),
+    die: deDuSoin<PendingHeal>((p) => p.test, (p) => !p.success && p.mode !== 'surgery'),
+    // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
+    // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
+    reverse: {
+      skillOf: (_s, p) => (p.test === 'dexterite' ? { char: 'dexterite' } : { skill: HEAL_SKILL, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
+      current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
+      evaluate: (s, p, actor, _get, tr) => {
+        const issue = issueDuSoin(s, actor, p.test, tr);
+        return { patch: issue, issue };
+      },
+    },
   }),
 
   /** Chirurgie — le Test de Médecine d'UNE passe (Test ÉTENDU, LDB 10 l.184 / 12 l.200). Calque
@@ -2198,11 +2237,12 @@ export const FLOWS = paresseux({
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
-    resolve: simpleTestResolve((p) => p.skillValue, (p) => p.difficulty, { actorless: true }), // Médecine bakée : le soigneur peut être un PNJ hors actorIn → actorless (jamais nul faute d'acteur live)
+    resolve: (s, p, actor) => jetDeSoin(s, p, actor, 'guerison'), // le chirurgien peut être un PNJ hors actorIn : le jet se fait sans acteur live
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi → rien à forcer)
     // vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
     lens: flatRollLens((p) => p.success ? null : cibleBrute(p)),
+    die: deDuSoin<PendingSurgery>(() => 'guerison', (p) => !p.success),
   }),
 });
 

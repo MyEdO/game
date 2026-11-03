@@ -20,18 +20,38 @@ function hero(p: Partial<Combatant>): Combatant {
   }) as Combatant;
 }
 
-// Effets STRUCTURÉS (Flow, feuilles EffectOp) — comme le catalogue migré (#50).
-const BANDAGE = item({ uid: 'b1', label: 'Bandages', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'hemorragique', value: 1 }, { op: 'preventInfection' }] } } });
-const POTION = item({ uid: 'p1', label: 'Potion de guérison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
+// Consommables du CATALOGUE : leur Flow se lit par `trappingId` (`consommableDe`).
+const BANDAGE = item({ uid: 'b1', label: 'Bandages', trappingId: 'bandages' });
+const POTION = item({ uid: 'p1', label: 'Potion de guérison', trappingId: 'potion-de-guerison' });
 
 describe('usePartyItem — consommables hors combat (fiche)', () => {
-  it('bandages : retire 1 pion Hémorragique et consomme l’objet', () => {
+  // LDB 18 l.311 ; LDB 16 l.107 ; décision de l'orchestrateur (2026-11-03, #3059) : le Bandage seul est une Aide Médicale.
+  it('bandage seul : Aide Médicale (séquelle en attente levée), Hémorragique sans verrou inchangé, aucune prévention d’Infection, une unité consommée', () => {
+    const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], traumas: [{ traumaId: 'z', awaitingMedicalAid: true }] as never, items: [BANDAGE, { ...BANDAGE, uid: 'b2' }] });
+    banc.setState({ party: [h] });
+    banc.getState().usePartyItem('h1', 'b1');
+    const p = banc.getState().party.find((c) => c.id === 'h1')!;
+    expect(p.traumas![0].awaitingMedicalAid).toBe(false);
+    expect(p.conditions.find((c) => c.id === 'hemorragique')?.value).toBe(3);
+    expect(p.woundDressed).toBeUndefined();
+    expect(p.items!.map((i) => i.uid)).toEqual(['b2']);
+  });
+
+  it('bandage seul sur un Hémorragique verrouillé « par Aide Médicale » : l’État est retiré', () => {
+    const h = hero({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'medicalAid' }], items: [BANDAGE] });
+    banc.setState({ party: [h] });
+    banc.getState().usePartyItem('h1', 'b1');
+    const p = banc.getState().party.find((c) => c.id === 'h1')!;
+    expect(p.conditions.find((c) => c.id === 'hemorragique')).toBeUndefined();
+  });
+
+  it('bandage seul sans Aide Médicale attendue : refusé et dit, l’unité est gardée', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], items: [BANDAGE] });
     banc.setState({ party: [h] });
     banc.getState().usePartyItem('h1', 'b1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
-    expect(p.conditions.find((c) => c.id === 'hemorragique')?.value).toBe(2); // 3 − 1
-    expect(p.items!.find((i) => i.uid === 'b1')).toBeUndefined(); // consommé
+    expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe('Blessé n’attend aucune Aide Médicale. Bandages ne lui apporterait rien : l’objet est gardé.');
+    expect(p.items!.map((i) => i.uid)).toEqual(['b1']);
   });
 
   it('potion de guérison : soigne du Bonus d’Endurance et se consomme', () => {

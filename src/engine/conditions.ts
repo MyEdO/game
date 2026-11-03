@@ -293,6 +293,11 @@ function actLifts(unlockBy: import('./types').ConditionUnlock, act: import('./ty
   return unlockBy === act || (act === 'magic' && unlockBy === 'medicalAid');
 }
 
+/** `c` porte-t-il un État dont l'acte `act` lève le verrou (`releaseConditionLocks` en retirerait un) ? */
+export function aUnVerrouLevePar(c: Combatant, act: import('./types').ConditionUnlock): boolean {
+  return c.conditions.some((inst) => inst.unlockBy != null && actLifts(inst.unlockBy, act));
+}
+
 /** Applique un acte de soin `act` : RETIRE tout État dont le verrou `unlockBy` est levé par cet acte (LDB 18 :
  *  « ne peut être retiré QUE par [acte] » ⇒ l'acte est ce qui le soigne). SOURCE UNIQUE appelée à chaque point
  *  de soin (`receiveMedicalAid`/soin magique → medicalAid/magic ; fin de Chirurgie → surgery). Pur ; renvoie le journal. */

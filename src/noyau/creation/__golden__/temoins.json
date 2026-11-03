@@ -123,6 +123,11 @@
    "besace",
    "necessaire-d-ecriture",
    "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
    "necessaire-d-ecriture"
   ],
   "wounds": {
@@ -270,6 +275,14 @@
    "besace",
    "craie",
    "justaucorps-de-cuir",
+   "chiffons",
+   "chiffons",
+   "chiffons",
+   "chiffons",
+   "chiffons",
+   "chiffons",
+   "chiffons",
+   "chiffons",
    "chiffons"
   ],
   "wounds": {
@@ -417,6 +430,10 @@
    "besace",
    "craie",
    "justaucorps-de-cuir",
+   "chiffons",
+   "chiffons",
+   "chiffons",
+   "chiffons",
    "chiffons"
   ],
   "wounds": {
@@ -563,6 +580,11 @@
    "bourse",
    "besace",
    "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
    "feuille-de-parchemin",
    "grimoire",
    "baton-de-combat"
@@ -722,6 +744,9 @@
    "besace",
    "necessaire-d-ecriture",
    "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
    "symbole-religieux",
    "robes"
   ],
@@ -880,6 +905,8 @@
    "bourse",
    "besace",
    "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "feuille-de-parchemin",
    "feuille-de-parchemin",
    "necessaire-d-ecriture"
   ],

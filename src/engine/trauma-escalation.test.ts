@@ -44,13 +44,13 @@ describe('#166/#167 — Aide Médicale reçue (LDB 18 l.307-312) : flag partagé
     const c = C({ traumas: [plaie('brasD')] });
     expect(receiveMedicalAid(c)).toEqual([]);
   });
-  it('les formes op (sort/prière = heal ; bandage/cataplasme = preventInfection) lèvent le flag via applyOps', () => {
+  it('les formes op (sort/prière = heal ; bandage/cataplasme = aideMedicale) lèvent le flag via applyOps', () => {
     const gate = (): Trauma => plaie('brasD', { awaitingMedicalAid: true, perRound: FINGER_PER_ROUND });
     const cHeal = C({ wounds: blessuresDeBase(10, 3), traumas: [gate()] });
     applyOps(cHeal, [{ op: 'heal', amount: 2 }], { rng: desDuTest });
     expect(cHeal.traumas!.every((t) => !t.awaitingMedicalAid)).toBe(true);
     const cBandage = C({ traumas: [gate()] });
-    applyOps(cBandage, [{ op: 'preventInfection' }], { rng: desDuTest });
+    applyOps(cBandage, [{ op: 'aideMedicale' }], { rng: desDuTest });
     expect(cBandage.traumas!.every((t) => !t.awaitingMedicalAid)).toBe(true);
   });
 });

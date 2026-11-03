@@ -195,9 +195,9 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   // rencontre » (Guérison seulement) ni réveil ici — le réveil du repos (+ À Terre) reste géré
   // ci-dessous (`applyHealWounds` ne couvre pas À Terre).
   if (soin && recoveryRoll?.success && c.wounds.current < c.wounds.max)
-    applyHealWounds(c, Math.max(0, recoveryRoll.sl) + be, { skillCheck: false, wake: false, log: () => [] });
+    applyHealWounds(c, Math.max(0, recoveryRoll.sl) + be, { wake: false, log: () => [] });
   // volet b : +BE INCONDITIONNEL.
-  if (soin && c.wounds.current < c.wounds.max) applyHealWounds(c, be, { skillCheck: false, wake: false, log: () => [] });
+  if (soin && c.wounds.current < c.wounds.max) applyHealWounds(c, be, { wake: false, log: () => [] });
   // Symptôme « blessé » : la plaie reste ouverte.
   if (blesse > 0) c.wounds.current = Math.max(dayStartPB, c.wounds.current - blesse);
   // Réveil : > 0 PB lève l'Inconscient et relève l'À Terre (l.28). PAS applyHealWounds (soin de rencontre).

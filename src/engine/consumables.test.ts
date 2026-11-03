@@ -7,6 +7,7 @@ import { itemFromTrappingById } from './items';
 import { makeRNG } from './dice';
 import { desDuTest } from './dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { garanti } from '../lib/garanti';
 
 const user = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -21,11 +22,11 @@ const item = (over: Partial<ItemInstance> = {}): ItemInstance =>
   ({ uid: 'i', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
 
 describe('consommables — effet en FLOW (#50 : migration GameOp[] → Flow)', () => {
-  it('isConsumable = Flow présent et non vide (un seq sans étape = rien à boire)', () => {
-    expect(isConsumable(item({ consumable: doFlow([{ op: 'heal', amount: 1 }]) }))).toBe(true);
-    expect(isConsumable(item({ consumable: { kind: 'test', test: { skill: { id: 'resistance' }}, success: { kind: 'seq', steps: [] }, fail: doFlow([]) } }))).toBe(true);
-    expect(isConsumable(item())).toBe(false);
-    expect(isConsumable(item({ consumable: { kind: 'seq', steps: [] } }))).toBe(false);
+  it('isConsumable = Flow du CATALOGUE (lu par `trappingId`) présent et non vide', () => {
+    expect(isConsumable(garanti(itemFromTrappingById('potion-de-guerison'), 'potion-de-guerison', 'objet'))).toBe(true);
+    expect(isConsumable(garanti(itemFromTrappingById('belladone'), 'belladone', 'objet'))).toBe(true); // Flow à nœud `test`
+    expect(isConsumable(garanti(itemFromTrappingById('corde'), 'corde', 'objet'))).toBe(false);
+    expect(isConsumable(item())).toBe(false); // objet hors catalogue
   });
 
   it('consumableUntilTime : « Durée : 2d10 minutes » résolue AU BOIRE depuis now (dés tirés une fois)', () => {
