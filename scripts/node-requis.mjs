@@ -1,5 +1,6 @@
 // PORTE DE VERSION DE NODE (#1801) : `package.json` `engines.node`, lu ici, confronté au Node qui
-// évalue ce module. Non conforme → message sur stderr et sortie `CODE_DE_REFUS`.
+// évalue ce module. Non conforme → message sur stderr et sortie `CODE_DE_REFUS`, ou
+// `CODE_DE_REFUS_NON_BLOQUANT` sous le drapeau d'argv `DRAPEAU_REFUS_NON_BLOQUANT`.
 //
 // Chargée sans condition, par effet d'évaluation — un point d'entrée `import.meta.main` (Node >= 22.18)
 // ne se déclare pas « principal » sous un Node plus ancien et sort 0 sans rien faire. Les points
@@ -7,7 +8,8 @@
 //   - `npm run gates` (`scripts/gates/toutes.mjs`), les `.mjs` que lancent les hooks shell du
 //     `core.hooksPath` de `postinstall` (un `post-*` sort 0 malgré le refus), les pilotes
 //     `merge.<nom>.driver` de `postinstall`, les hooks de session de `.claude/settings.json` et
-//     `.codex/hooks.json` (`HOOKS_DE_SESSION`) : la porte est leur premier
+//     `.codex/hooks.json` (`HOOKS_DE_SESSION`), la phase `Stop` sous `CODE_DE_REFUS_NON_BLOQUANT` par son
+//     drapeau : la porte est leur premier
 //     import, donc la première ÉVALUATION ; leur clôture d'imports STATIQUE, chargée et liée avant
 //     toute évaluation, ne porte ni module TypeScript ni attribut d'import — ce qui en a besoin se
 //     charge après la porte, par `import()` ;
@@ -29,6 +31,12 @@ import semver from 'semver'
  */
 export const CODE_DE_REFUS = 2
 
+/** Drapeau d'argv d'un point d'entrée dont le code 2 ne doit pas bloquer : un hook d'agent `Stop`. */
+export const DRAPEAU_REFUS_NON_BLOQUANT = '--refus-non-bloquant'
+
+/** Code de sortie du refus sous `DRAPEAU_REFUS_NON_BLOQUANT` : non nul, et pas 2, qui empêche un `Stop` de s'arrêter. */
+export const CODE_DE_REFUS_NON_BLOQUANT = 1
+
 /**
  * Message de refus, ou `null` si `version` satisfait `plage`. PUR.
  * @param {string | undefined} plage valeur de `engines.node`
@@ -48,5 +56,5 @@ const { engines } = JSON.parse(readFileSync(new URL('../package.json', import.me
 const refus = refusDeVersion(engines?.node, process.versions.node)
 if (refus) {
   console.error(refus)
-  process.exit(CODE_DE_REFUS)
+  process.exit(process.argv.includes(DRAPEAU_REFUS_NON_BLOQUANT) ? CODE_DE_REFUS_NON_BLOQUANT : CODE_DE_REFUS)
 }

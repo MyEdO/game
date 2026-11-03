@@ -228,24 +228,34 @@ export function outilsSession() {
 
 export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE, dormir = pause } = {}) {
   if (options.timeoutMs === 0) refuser('SUIVI : timeout strictement positif requis')
+  const debut = horloge(), restant = () => options.timeoutMs - (horloge() - debut)
   if (!parentVivant) {
-    const pidParent = lireParent(), instantParent = horloge()
-    parentVivant = () => estPidVivantDepuis(pidParent, instantParent, identite)
+    const pidParent = lireParent()
+    parentVivant = () => estPidVivantDepuis(pidParent, debut, identite)
   }
-  let depuis = options.depuis
+  let depuis = options.depuis, carte, refus
   do {
     const fin = await rejouer(async () => {
       if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
-      let resultat
-      try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
-      catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
-      if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
-      depuis = resultat?.curseur ?? resultat?.seq ?? depuis
-      const carte = sessions.etat(cible)
-      if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return await sessions.attendre(cible, { timeoutMs: 0, depuis })
-      return null
+      const reste = restant()
+      if (reste <= 0) return null
+      refus = undefined
+      try {
+        let resultat
+        try { resultat = await sessions.attendre(cible, { ...options, timeoutMs: reste, depuis }) }
+        catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
+        if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
+        depuis = resultat?.curseur ?? resultat?.seq ?? depuis
+        carte = sessions.etat(cible)
+        if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return await sessions.attendre(cible, { timeoutMs: 0, depuis })
+        return null
+      } catch (e) { refus = e; throw e }
     }, { borneMs: options.timeoutMs, horloge, dormir })
     if (fin) return fin
+    if (restant() <= 0) {
+      if (refus) throw refus
+      return { etat: 'indeterminee', raison: 'ATTENTE TIMEOUT', carte }
+    }
   } while (true)
 }
 

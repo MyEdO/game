@@ -3,10 +3,11 @@ import { createServer } from 'node:net'
 import { veillerCodex } from './session-codex.mjs'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { EventEmitter } from 'node:events'
+import { EventEmitter, once } from 'node:events'
+import { Readable } from 'node:stream'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { syncBuiltinESMExports } from 'node:module'
@@ -15,6 +16,8 @@ import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneCon
 import { rejouer, refusSession } from './session-rejeu.mjs'
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, attendreSuivi } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
+import { finDeTour } from '../hooks/fin-de-tour.mjs'
+import { ajouterTransition, lireTransitions } from './session-transitions.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
@@ -46,7 +49,7 @@ test('veille suivie : bornes et aucune réarment avec curseur ; pannes et parent
   const appels = [], fin = { type: 'fin', etat: 'inactif', curseur: 9 }
   const reponses = [Object.assign(new Error('borne'), { code: 'BORNE_IPC_CODEX' }), { type: 'aucune', etat: 'indeterminee', curseur: 8 }, fin]
   const sessions = { etat: () => ({ etat: 'vivante' }), attendre: async (_c, o) => { appels.push(o); const r = reponses.shift(); if (r instanceof Error) throw r; return r } }
-  assert.equal(await attendreSuivi(sessions, 'cible', { timeoutMs: 10, depuis: 7 }, { parentVivant: () => true }), fin)
+  assert.equal(await attendreSuivi(sessions, 'cible', { timeoutMs: 10, depuis: 7 }, { parentVivant: () => true, horloge: () => 0 }), fin)
   assert.deepEqual(appels.map((o) => o.depuis), [7, 7, 8])
   for (const code of ['EOF', 'EACCES', 'EPROTO', undefined]) {
     const panne = Object.assign(new Error('Borne IPC Codex atteinte'), { code })
@@ -218,11 +221,11 @@ test('suivi : parent et instant capturés une fois malgré le réarmement', asyn
   }
   assert.equal(await attendreSuivi(sessions, 'cible', { timeoutMs: 10 }, {
     lireParent: () => ++lecturesParent === 1 ? process.pid : 0,
-    horloge: () => { lecturesHorloge++; return 100 },
+    horloge: () => lecturesHorloge++ === 0 ? 100 : 50,
     identite: { lireCreation: (pid) => { mesures.push(pid); return 99 }, toleranceMs: 0 },
   }), fin)
   assert.equal(lecturesParent, 1)
-  assert.equal(lecturesHorloge, 1)
+  assert.ok(lecturesHorloge > 1, 'l’échéance relit l’horloge ; l’instant du parent reste sa première lecture')
   assert.deepEqual(mesures, [process.pid, process.pid])
 })
 
@@ -245,7 +248,7 @@ test('suivi : parentVivant injecté évite toute mesure native', async () => {
   assert.equal(await attendreSuivi({ attendre: async () => fin }, 'cible', { timeoutMs: 10 }, {
     parentVivant: () => true,
     lireParent: interdit,
-    horloge: interdit,
+    horloge: () => 0,
     identite: { lireCreation: interdit, toleranceMs: 0 },
   }), fin)
 })
@@ -611,7 +614,7 @@ test('#3178 : veille CLI épinglée malgré enfant créé et parent fermé', asy
     } })
     const parent = b.reserver({ nom: 'parent', agent: 'codex' }); b.revendiquer(parent)
     let sortie = ''
-    const code = await commandeSession(['attendre', '2461', '--suivre', '--timeout-ms', '500'], { cwd: b.dossier, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions, stdout: { write: (s) => { sortie += s } } })
+    const code = await commandeSession(['attendre', '2461', '--suivre', '--timeout-ms', '30000'], { cwd: b.dossier, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions, stdout: { write: (s) => { sortie += s } } })
     assert.ok(vues.length > 0)
     assert.ok(vues.every((id) => id === parent.carte.sessionId), JSON.stringify(vues))
     const fin = JSON.parse(sortie)
@@ -1979,4 +1982,88 @@ test('#3150 lireRapportDe : une lecture tenue est transitoire, une lecture en pa
   assert.throws(() => lireRapportDe(chemin), (e) => refusSession(e).categorie === 'transitoire' && /LECTURE RAPPORT : EBUSY/.test(e.message))
   assert.throws(() => lireRapportDe(chemin), (e) => refusSession(e).categorie === 'panne' && /LECTURE RAPPORT : EIO/.test(e.message))
   assert.throws(() => lireRapportDe(join(b.dossier, 'absent.json')), (e) => refusSession(e).categorie === 'panne' && /RAPPORT ABSENT/.test(e.message))
+})
+
+/** Le contexte de session que le banc a posé pour la session `id`, et l'environnement qui la porte (#3261). */
+const inscription = (b, id) => {
+  const contexte = JSON.parse(readFileSync(join(b.dossier, `${id}.hook-context`), 'utf8'))
+  return { contexte, env: { WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') }, journal: join(b.dossier, `${id}.claude.jsonl`) }
+}
+const STOP_DU_BANC = { hook_event_name: 'Stop', session_id: 'native-banc', transcript_path: 'transcripts/native-banc.jsonl' }
+const INACTIF_DU_BANC = { type: 'inactif', etat: 'inactif', transcript: STOP_DU_BANC.transcript_path }
+const stdinDe = (entree) => Readable.from([JSON.stringify(entree)])
+const HOOK_FIN_DE_TOUR = fileURLToPath(new URL('../hooks/fin-de-tour.mjs', import.meta.url))
+
+test('#3261 hook Stop : la fin de tour de la session inscrite s’ajoute à son journal ; autre session, SubagentStop, hors inscription : rien', async (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId, { env, journal } = inscription(b, id)
+  for (const entree of [{ ...STOP_DU_BANC, session_id: 'native-autre' }, { ...STOP_DU_BANC, hook_event_name: 'SubagentStop' }]) assert.equal(await finDeTour({ env, stdin: stdinDe(entree) }), null, JSON.stringify(entree))
+  assert.equal(existsSync(journal), false)
+  const premiere = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) }), seconde = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) })
+  assert.deepEqual([premiere, seconde], [1, 2].map((seq) => ({ sessionId: id, seq, curseur: seq, ...INACTIF_DU_BANC })))
+  const { transcript_path: _transcript, ...sansTranscript } = STOP_DU_BANC
+  for (const entree of [sansTranscript, { ...STOP_DU_BANC, transcript_path: '' }, { ...STOP_DU_BANC, transcript_path: 7 }]) {
+    const t = await finDeTour({ env, stdin: stdinDe(entree) })
+    assert.deepEqual(t, { sessionId: id, seq: t.seq, curseur: t.seq, type: 'inactif', etat: 'inactif' }, JSON.stringify(entree))
+  }
+  assert.deepEqual(readFileSync(journal, 'utf8').trim().split('\n').map((l) => JSON.parse(l).transition).slice(0, 2), [premiere, seconde])
+  assert.equal(await finDeTour({ env: {}, stdin: new Readable({ read() { assert.fail('stdin lu hors session inscrite') } }) }), null)
+})
+
+test('#3261 lireTransitions : une dernière ligne en cours d’écriture, sans saut de ligne final, est ignorée ; une ligne terminée invalide est une panne', (t) => {
+  const b = banc(t), journal = join(b.dossier, 'session.claude.jsonl')
+  const transitions = [1, 2].map(() => ajouterTransition(journal, 'session', 'inactif', { etat: 'inactif' }))
+  appendFileSync(journal, '{"transition":{"sessionId":"sess')
+  assert.deepEqual(lireTransitions(journal, 'session'), transitions)
+  appendFileSync(journal, '\n')
+  assert.throws(() => lireTransitions(journal, 'session'), (e) => refusSession(e).categorie === 'panne' && /Journal de session illisible/.test(e.message))
+})
+
+test('#3261 hook Stop, processus réel : hors session inscrite il sort seul, stdin ouvert ; inscrit, il écrit la transition', async (t) => {
+  const env = { ...process.env }; delete env.WFRP_SESSION_START
+  const debut = Date.now(), enfant = spawn(process.execPath, [HOOK_FIN_DE_TOUR], { env, stdio: ['pipe', 'pipe', 'pipe'] })
+  t.after(() => { enfant.stdin.destroy(); enfant.kill() })
+  let sortie = ''
+  enfant.stdout.on('data', (d) => { sortie += d }); enfant.stderr.on('data', (d) => { sortie += d })
+  const fin = await Promise.race([once(enfant, 'close'), delai(2_000).then(() => ['encore vivant'])])
+  assert.deepEqual([fin[0], sortie], [0, ''])
+  assert.ok(Date.now() - debut < 2_000, `${Date.now() - debut} ms`)
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const inscrit = inscription(b, r.carte.sessionId)
+  const vu = spawnSync(process.execPath, [HOOK_FIN_DE_TOUR], { env: { ...env, ...inscrit.env }, input: JSON.stringify(STOP_DU_BANC), encoding: 'utf8', timeout: 20_000 })
+  assert.deepEqual([vu.status, vu.stdout, vu.stderr], [0, '', ''])
+  assert.deepEqual(readFileSync(inscrit.journal, 'utf8').trim().split('\n').map((l) => JSON.parse(l).transition), [{ sessionId: r.carte.sessionId, seq: 1, curseur: 1, ...INACTIF_DU_BANC }])
+})
+
+test('#3261 attendre Claude : la fin de tour est rendue comme celle de Codex, curseur compris ; carte fermée : sortie', async (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId, { env } = inscription(b, id)
+  assert.equal((await b.sessions.attendre(id, { timeoutMs: 100 })).etat, 'indeterminee')
+  const fin = await finDeTour({ env, stdin: stdinDe(STOP_DU_BANC) })
+  assert.deepEqual(await b.sessions.attendre(id, { timeoutMs: 100 }), fin)
+  assert.deepEqual([fin.type, fin.seq, fin.curseur], ['inactif', 1, 1])
+  assert.deepEqual(await b.sessions.attendre(id, { timeoutMs: 100, depuis: 0 }), fin)
+  assert.equal((await b.sessions.attendre(id, { timeoutMs: 100, depuis: 1 })).etat, 'indeterminee')
+  assert.deepEqual(await attendreSuivi(b.sessions, id, { timeoutMs: 1_000, depuis: 0 }, { parentVivant: () => true }), fin)
+  b.sessions.muter(id, (c) => { c.etat = 'fermee'; c.issueSortie = 'sortie' })
+  assert.equal((await b.sessions.attendre(id, { timeoutMs: 100 })).etat, 'sortie')
+})
+
+test('#3261 attendreSuivi borné : à l’échéance, ATTENTE TIMEOUT et sortie ; chaque attente reçoit au plus le temps restant', { timeout: 10_000 }, async () => {
+  for (const variante of ['indeterminee', 'BORNE_IPC_CODEX']) {
+    const { horloge, dormir } = horlogeFactice(), recus = [], carte = { etat: 'vivante' }, timeoutMs = 1_000, pas = 300
+    const sessions = {
+      etat: () => carte,
+      attendre: async (_cible, o) => {
+        recus.push({ timeoutMs: o.timeoutMs, restant: timeoutMs - horloge() })
+        await dormir(Math.min(pas, o.timeoutMs))
+        await new Promise(setImmediate)
+        if (variante === 'BORNE_IPC_CODEX') throw Object.assign(new Error('borne'), { code: 'BORNE_IPC_CODEX' })
+        return { type: 'aucune', etat: 'indeterminee', curseur: 0 }
+      },
+    }
+    assert.deepEqual(await attendreSuivi(sessions, 'cible', { timeoutMs, depuis: 0 }, { parentVivant: () => true, horloge, dormir }), { etat: 'indeterminee', raison: 'ATTENTE TIMEOUT', carte }, variante)
+    assert.ok(horloge() <= timeoutMs + pas, `${variante} : ${horloge()} ms`)
+    assert.ok(recus.length > 1 && recus.every((x) => x.timeoutMs <= Math.max(1, x.restant)), `${variante} : ${JSON.stringify(recus)}`)
+  }
 })

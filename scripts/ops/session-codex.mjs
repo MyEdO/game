@@ -9,6 +9,7 @@ import { createInterface } from 'node:readline'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { refusSession, rejouer, BORNES_DE_REJEU } from './session-rejeu.mjs'
+import { lireTransitions, transitionDe } from './session-transitions.mjs'
 
 export const MAX_MESSAGE_CODEX = 64 * 1024
 export const ANNEXES_CODEX = Object.freeze({ journalCodex: 'codex.jsonl', stderrCodex: 'codex.stderr.log', socketCodex: 'codex.sock' })
@@ -132,15 +133,7 @@ export function projeterJournalCodex(journal, echo = process.stdout, diagnostic 
   lire.fermer = () => { fermee = true; clearImmediate(reprise); morceaux = []; longueur = 0; nettoyer() }
   return lire
 }
-function lireTransitions(dossier, sessionId) {
-  const p = chemins(dossier, sessionId).journal
-  if (!existsSync(p)) return []
-  try {
-    const transitions = readFileSync(p, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((x) => x.transition).map((x) => x.transition)
-    if (transitions.some((x, i) => x.sessionId !== sessionId || x.seq !== i + 1 || x.curseur !== x.seq)) throw Error('Identité ou séquence discontinue')
-    return transitions
-  } catch (e) { throw refus('panne', `Journal Codex illisible : ${e.message}`) }
-}
+const transitionsDe = (dossier, sessionId) => lireTransitions(chemins(dossier, sessionId).journal, sessionId)
 function messageValide(message, requestId) {
   if (typeof message !== 'string' || !message.trim() || Buffer.byteLength(message, 'utf8') > MAX_MESSAGE_CODEX) throw refus('validation', `Message requis, au plus ${MAX_MESSAGE_CODEX} octets UTF-8`)
   if (typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(requestId)) throw refus('validation', 'requestId requis (1 à 128 caractères alphanumériques, _ ou -)')
@@ -197,12 +190,12 @@ export async function veillerCodex({ dossier, sessionId, depuis = 0, timeoutMs =
   identite(sessionId)
   curseurValide(depuis)
   if (timeoutMs !== 0) delaiValide(timeoutMs, 3_600_000)
-  const deja = lireTransitions(dossier, sessionId).find((x) => x.seq > depuis)
+  const deja = transitionsDe(dossier, sessionId).find((x) => x.seq > depuis)
   if (deja) return deja
   if (timeoutMs === 0) return { type: 'aucune', sessionId, seq: depuis, curseur: depuis, etat: 'indeterminee' }
   try { return await connexion({ dossier, sessionId, timeoutMs }, { op: 'veiller', depuis, timeoutMs }) }
   catch (e) {
-    const derniere = lireTransitions(dossier, sessionId).find((x) => x.seq > depuis)
+    const derniere = transitionsDe(dossier, sessionId).find((x) => x.seq > depuis)
     if (derniere) return derniere
     throw e
   }
@@ -227,7 +220,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   function cause(e) { if (!premiereCause) premiereCause = e.message || String(e) }
   let projections = Promise.resolve(), projectionRefusee = false
   function transition(type, instantane) {
-    const t = { sessionId: carte.sessionId, seq: ++seq, curseur: seq, type, ...instantane }
+    const t = transitionDe(carte.sessionId, ++seq, type, instantane)
     journal({ transition: t })
     for (const ab of abonnements) if (t.seq > ab.depuis) ab.repondre(t)
     return t
@@ -445,7 +438,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
         if (q.op === 'veiller') {
           curseurValide(q.depuis)
           delaiValide(q.timeoutMs, 3_600_000)
-          const deja = lireTransitions(dossier, carte.sessionId).find((t) => t.seq > q.depuis)
+          const deja = transitionsDe(dossier, carte.sessionId).find((t) => t.seq > q.depuis)
           if (deja) return repondre(deja)
           abonnement = { depuis: q.depuis, repondre }
           abonnements.add(abonnement)
