@@ -65,7 +65,7 @@ describe('Guérison (HealModal) — la Difficulté vit sur la LIGNE', () => {
       battle: null, party: [healer, patient],
       pendingHeal: {
         healerId: healer.id, healerName: healer.label, targetId: patient.id, targetName: patient.label,
-        mode: 'wounds', intBonus: 4, skillValue: 45, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
+        mode: 'wounds', intBonus: 4, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
     act(() => root.render(<HealModal />));
@@ -89,7 +89,7 @@ describe('fenêtre de Guérison — le patient montre ses ÉTATS, et une seule f
       pendingHeal: {
         healerId: healer?.id ?? 'pnj-soigneur', healerName: healer?.label ?? 'Médecin',
         targetId: patient.id, targetName: patient.label,
-        mode: 'bleed', intBonus: 4, skillValue: 45, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
+        mode: 'bleed', intBonus: 4, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
   };
@@ -119,7 +119,7 @@ describe('Guérison par un PNJ tarifé — pas d’A→B sans fiche', () => {
       battle: null, party: [patient],
       pendingHeal: {
         healerId: 'pnj-soigneur', healerName: 'Médecin', targetId: patient.id, targetName: patient.label,
-        mode: 'wounds', intBonus: 4, skillValue: 45, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
+        mode: 'wounds', intBonus: 4, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
     act(() => root.render(<HealModal />));
@@ -199,7 +199,7 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
       battle: null, party: [healer, patient], medic: { patientId: patient.id },
       pendingHeal: {
         healerId: healer.id, healerName: healer.label, targetId: patient.id, targetName: patient.label,
-        mode: 'wounds', intBonus: 4, skillValue: 45, difficulty: DIFF, target: 65, roll: null, success: false, sl: 0,
+        mode: 'wounds', intBonus: 4, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
     act(() => root.render(<MedicModal />));

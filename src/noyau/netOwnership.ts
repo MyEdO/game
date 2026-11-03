@@ -557,6 +557,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
     // siège de SON héros, patron `counterspellDeclare`.
     ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
+    // Choix de l'arme d'enfoncement (EDO 11 l.93) : la rangée appartient au siège de SON héros.
+    ['forceDoorChoisirArme', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
     // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
     // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet, `counterspellCancel`
     // dans `combatSlice`) ; phase close → `null`, le repli universel décide comme avant. Prédicat

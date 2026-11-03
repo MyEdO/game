@@ -447,6 +447,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
   forceDoorConfirm: () => void;
   forceDoorCancel: () => void;
+  /** Avant son jet, le héros frappe avec une arme de `armesDEnfoncement` (`armeUid`) ou à mains nues (absent). EDO 11 l.93. */
+  forceDoorChoisirArme: (heroId: IdDeHeros, armeUid?: string) => void;
   /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
    *  à désigner, la suite se joue sans suspension. */
   designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;

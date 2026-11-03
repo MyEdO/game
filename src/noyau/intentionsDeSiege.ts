@@ -169,6 +169,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
   // du tombant, `netOwnership`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
   fallAcross: 'invité', fallChoose: 'invité',
+  // Enfoncer une porte : choix de l'arme d'une rangée, routé par le siège de son héros (`netOwnership`).
+  forceDoorChoisirArme: 'invité',
   // Approche d'une source de Peur (ouverte par `battleClickTile`/`battleClickEntity`) : résolution.
   approachConfirm: 'invité', approachCancel: 'invité',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse) + résolution du jet de dissipation.

@@ -339,10 +339,10 @@ interface OuvertureDeBataille {
   heroIds?: string[]; support?: SupportDetail;
 }
 
-/** Un Test de bataille monté : sa `PendingActivity`, que le flux `activity` (RollShell) résout (combiné/opposé
- *  compris) et dont `confirmBattleActivity` applique l'issue, et les LIGNES de jet que `rollLine` en a montées
- *  (seconde compétence d'un Test combiné comprise), que le volet rend. */
-export interface TestDeBataille { pending: PendingActivity; ligne: RollLineParts; ligne2?: RollLineParts }
+/** Un Test de bataille monté : sa `PendingActivity` (sa ligne de jet comprise, `pending.ligne`), que le flux
+ *  `activity` (RollShell) résout (combiné/opposé compris) et dont `confirmBattleActivity` applique l'issue, et la
+ *  ligne de la seconde compétence d'un Test combiné, que le volet rend. */
+export interface TestDeBataille { pending: PendingActivity; ligne2?: RollLineParts }
 
 /** Monte le Test de bataille de `o`. PUR. */
 function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
@@ -364,14 +364,14 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
     : {};
   const pa: PendingActivityFields = {
     heroId: o.actor.id, kind: 'catalog', activityId: o.def.id, battle: o.battle,
-    label: o.label ?? o.def.label, skillLabel, skillValue: o.skillValue, difficulty: o.difficulty,
+    label: o.label ?? o.def.label, skillLabel, skillValue: o.skillValue, difficulty: o.difficulty, ligne,
     roll: null, target, sl: 0, success: false,
     ...(o.mod ? { mod: o.mod, modLabel: o.modLabel } : {}),
     ...(o.support ? { support: o.support } : {}),
     ...(o.heroIds ? { heroIds: o.heroIds } : {}),
     ...combined,
   };
-  return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ligne, ...(ligne2 ? { ligne2 } : {}) };
+  return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ...(ligne2 ? { ligne2 } : {}) };
 }
 
 /** Ouvre la modale d'un Test de bataille (canal UNIQUE : PendingActivity + flux `activity`). */

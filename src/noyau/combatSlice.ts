@@ -4,6 +4,7 @@
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import type { Get, Set } from './flowTypes';
+import type { RollFlowHandlers } from './rollFlowFactory';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import { ACTION_GATES, actionGate, type ActionRunCtx, type BattleActionMode } from './actionRegistry';
@@ -18,7 +19,7 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -34,7 +35,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre, coupFerme } from './targetingHolder';
 import { refusDeCourse } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative, defenseDodgeMods } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -361,14 +362,17 @@ function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode
  * SOCLE des verbes NULLAIRES du drive d'auto-cadence (#1030 — `STEP_WINDOW_AUTO`, `combatAuto.ts`, qui
  * n'enchaîne que des verbes sans argument alors que ces fenêtres sont par-`pid`). Une SEULE table de
  * possession (`influencesLocally`, #1005 : celle qui décide déjà de l'affordance de la rangée dans
- * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation.
+ * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation. Une rangée que son flux
+ * refuse (`refusDuSlot`) ne se tente pas : tout lancer n'est pas un geste sur elle.
  */
 function rollAllOwnedRows(
-  s: Jeu,
+  get: Get,
+  flow: RollFlowHandlers,
   rows: readonly { id: string; interactive?: boolean; result: unknown }[] | undefined,
   roll: (id: string) => void,
 ): void {
-  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id)) roll(p.id);
+  const s = get();
+  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id) && !flow.refusDuSlot(get, p.id)) roll(p.id);
 }
 
 /** Ce qu'un clic-sol REFUSÉ dit au joueur, par raison du résolveur (`resolveMovement`). Les raisons
@@ -1910,6 +1914,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const present = servingCrewPresent(active, battle.combatants);
       const w = present != null ? crewedFireWeapon(w0, present) : w0;
       const skillValue = combatValue(active, 'ranged', w); // CT + avances Projectiles (Spé du groupe d'arme)
+      const ligne = rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } });
       set({
         pendingReload: {
           actorId: active.id,
@@ -1920,7 +1925,8 @@ export function createCombatSlice(get: Get, set: Set) {
           skillValue,
           difficulty: 'intermediaire',
           roll: null,
-          ...cibleMesuree(rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } })),
+          ligne,
+          ...cibleMesuree(ligne),
           sl: 0,
           success: false,
         },
@@ -1954,15 +1960,16 @@ export function createCombatSlice(get: Get, set: Set) {
       const sout = soutienDetail(servants, chef, 'projectiles', undefined, 'Poudre noire',
         chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
       const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
+      const ligne = rollLine({
+        actor: chef, difficulty: 'intermediaire', valeur: skillValue,
+        soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
+      });
       set({
         pendingReload: {
           actorId: chef.id, actorName: chef.label, weaponUid: w.uid!,
           reload: reloadDRTarget(w), progressBefore: poste.reloadProgress ?? 0,
           skillValue, difficulty: 'intermediaire', roll: null,
-          ...cibleMesuree(rollLine({
-            actor: chef, difficulty: 'intermediaire', valeur: skillValue,
-            soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
-          })), sl: 0, success: false,
+          ligne, ...cibleMesuree(ligne), sl: 0, success: false,
           posteUid, shipId, soutien: sout.bonus ? sout : undefined,
         },
       });
@@ -2896,12 +2903,13 @@ export function createCombatSlice(get: Get, set: Set) {
       if (raison) return void refuserGesteDuSiege(get, set, raison);
       const skillValue = testValue(healer, 'guerison');
       const difficulty = healDifficulty(mode);
+      const ligne = rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue });
       set({
         pendingHeal: {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
           skillValue, difficulty, roll: null, success: false, sl: 0,
-          ...cibleMesuree(rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue })),
+          ligne, ...cibleMesuree(ligne),
         },
         battle: { ...battle, action: null },
       });
@@ -2920,10 +2928,11 @@ export function createCombatSlice(get: Get, set: Set) {
       if (raison) return void refuserGesteDuSiege(get, set, raison);
       const difficulty = healDifficulty(mode);
       const soigneur = actorIn(get(), ph.healerId);
-      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ...cibleMesuree(rollLine({
+      const ligne = rollLine({
         actor: soigneur, ...(soigneur ? { test: { skill: 'guerison' } } : {}),
         difficulty, valeur: ph.skillValue, soutien: ph.support,
-      })) } });
+      });
+      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
     },
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
@@ -3269,7 +3278,7 @@ export function createCombatSlice(get: Get, set: Set) {
      *  la fenêtre est multi-participants (#1040) — un `counterspellRoll(pid)` par rangée.
      *  Table de possession UNIQUE (`influencesLocally`, #1005) : la même qui décide de l'affordance de
      *  la rangée dans `CastModal`. Idempotent (une rangée déjà roulée ne rejoue pas, garde `opRoll`). */
-    counterspellRollAll: () => rollAllOwnedRows(get(), get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
+    counterspellRollAll: () => rollAllOwnedRows(get, FLOWS.counterspell, get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
     /**
      * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
      * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `counterspellConfirm` ci-dessous) ou
@@ -3383,7 +3392,7 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Homologue d'opposition de `counterspellRollAll` : toute rangée jouable ICI et sans jet oppose
      *  son Test (mêmes conditions, même socle `rollAllOwnedRows`). Les rangées TÉMOIN sont déjà roulées
      *  à l'ouverture (`openCastOpposition`) — après ce verbe, plus rien n'est dû à `oppositionConfirm`. */
-    oppositionRollAll: () => rollAllOwnedRows(get(), get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
+    oppositionRollAll: () => rollAllOwnedRows(get, FLOWS.castOpposition, get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
     oppositionConfirm: () => {
       const pco = get().pendingCastOpposition;
       const pc = get().pendingCast;

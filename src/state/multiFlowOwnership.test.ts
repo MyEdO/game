@@ -54,7 +54,7 @@ const FIXTURES: Record<string, Partial<GameState>> = {
     ] } },
   } as unknown as Partial<GameState>,
   counterspell: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<GameState>,
-  opposition: { ...groupCascade, pendingCastOpposition: { kind: 'resist', char: 'fm', participants: parts } } as unknown as Partial<GameState>,
+  opposition: { ...groupCascade, pendingCastOpposition: { test: { char: 'force-mentale' }, participants: parts } } as unknown as Partial<GameState>,
   forceDoor: {
     ...groupCascade,
     pendingForceDoor: { label: 'Porte', doorBE: 3, doorB: 10, doorBmax: 10, participants: parts },

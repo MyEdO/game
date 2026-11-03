@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { combatValue } from '../engine/combat';
-import { battementFoes } from '../noyau/combatManeuvers';
+import { cibleMesuree } from '../engine/tests';
+import { battementFoes, ligneDAttaquantDeManoeuvre } from '../noyau/combatManeuvers';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { OptionChooser } from './OptionChooser';
@@ -38,13 +38,14 @@ export function BattementModal() {
   const r = pb.result;
   const rolled = !!r;
   const foes = battementFoes(attacker, battle);
+  const ligne = ligneDAttaquantDeManoeuvre(attacker, 'capacite-de-combat');
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: attacker,
     row: {
       combatant: attacker,
-      d: r ? testBreakdown(libelleDeTest('corps-a-corps'), combatValue(attacker, 'melee'), r) : undefined,
-      pending: testPending(libelleDeTest('corps-a-corps'), combatValue(attacker, 'melee')),
+      d: r ? testBreakdown(libelleDeTest('corps-a-corps'), ligne.base, r, ligne.difficulty, ligne.mods) : undefined,
+      pending: testPending(libelleDeTest('corps-a-corps'), ligne.base, cibleMesuree(ligne), ligne.difficulty, ligne.mods),
     },
     onRoll: roll,
     rerolled: !!pb.rerolled,

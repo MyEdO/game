@@ -145,12 +145,6 @@
     "bloque": "`careers.json` ne porte pas la Compétence en italique du Niveau 1 (LDB 07 l.82, LDB 08 l.110) : `incomeSkillOf` prend la première Compétence du Niveau 1 que le héros possède"
   },
   {
-    "id": "4e/combat#reperes-de-conversion-grille",
-    "type": "raw.manifest",
-    "label": "Repères de conversion (grille)",
-    "bloque": "LDB 15 l.35 ; LDB 10 l.500 — la Charge d'un héros manuel (`targetingModes.ts`) n'appelle pas `subirLaCharge` : aucune continuation du tour du héros après une riposte, et `chargeUndo` ; Frappe réactive et tout effet `onCharged` restent muets contre lui"
-  },
-  {
     "id": "4e/combat#autres-options",
     "type": "raw.manifest",
     "label": "Autres options",

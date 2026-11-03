@@ -104,7 +104,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/combatEffects.ts': 3,
   'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
-  'src/noyau/combatManeuvers.ts': 3,
+  'src/noyau/combatManeuvers.ts': 1,
   'src/noyau/combatSlice.ts': 1,
   'src/noyau/gesteDArete.ts': 1, // `talentId === 'grimpeur'` (LDB 15 l.57)
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`

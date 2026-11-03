@@ -21,7 +21,8 @@ import { castInfoIsPrayer } from '../engine/magic';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { formatDice } from '../engine/dice';
 import { formatWardSave } from '../engine/traits/dispatch';
-import { findCrewRoleById, findSpellById, refLabel } from '../data';
+import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../data';
+import { idsDuTest } from '../engine/skills';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
@@ -101,7 +102,7 @@ export const libelleDEvaluation = (pa: { skillLabel?: string; mode?: keyof typeo
   pa.skillLabel ?? refLabel('skills', { id: APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill });
 
 /** Le libellé de ligne d'une opposition de cible à une incantation. */
-export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'skill' | 'char'>): string => pcs.char ?? pcs.skill ?? 'Opposition';
+export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'test'>): string => testSkillLabel(idsDuTest(pcs.test));
 
 /** Le libellé de ligne d'une rangée de Test d'équipage : le rôle tenu, étoilé s'il est essentiel. */
 export function libelleDeRole(part: { roleId: string; essential?: boolean }): string {
@@ -214,7 +215,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   opposition: (s) => {
     const pcs = s.pendingCastOpposition;
     if (!pcs) return null;
-    return vue('opposition', rangees(pcs.participants, (p) => ligne(p.id, libelleDOppositionDeSort(pcs), p.result?.oppose)));
+    return vue('opposition', rangees(pcs.participants, (p) => ligne(p.id, libelleDOppositionDeSort(pcs), p.result?.oppose, p.ligne.target)));
   },
   extendedTest: (s) => {
     const p = s.pendingExtendedTest;

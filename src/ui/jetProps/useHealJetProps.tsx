@@ -6,7 +6,7 @@ import type { ComponentProps } from 'react';
 import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
 import { OptionChooser } from '../OptionChooser';
-import { testValueSplit, testBreakdown, testPending } from '../breakdown';
+import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../noyau/flowOutcomes';
@@ -59,11 +59,8 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const bleed = target ? stacks(target, 'hemorragique') : 0;
   const lodged = target ? lodgedAmmoCount(target) : 0;
 
-  // Soutien des assistants de soin (LDB 12) et composantes de la valeur de Test (États, séquelles,
-  // passifs, effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu
-  // (LDB 09 l.17). Soigneur PNJ tarifé (aucune fiche dans le pool) : la garde de reconstruction de la
-  // primitive laisse l'affichage inchangé.
-  const { base, mods: supMods } = testValueSplit(healer, ph.skillValue, { support: ph.support, skill: 'guerison' });
+  // Ligne montée à l'ouverture (`ph.ligne`, Soutien LDB 12 compris).
+  const { base, mods: supMods } = ph.ligne;
   const actorRow: BuiltRollRow = buildRollRow({
     actor: healer,
     row: {
