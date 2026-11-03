@@ -36,7 +36,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   undead: z.boolean().optional(),
   wardSave: z.boolean().optional(),
   damageImmunity: z.boolean().optional(),
-  spellDomainImmunity: z.string().optional(),
+  spellDomainImmunity: idDe('domain').optional(),
   counterOnDefenseWin: z.boolean().optional(),
   counterRequiresFastParry: z.boolean().optional(),
   counterDeclaredPerLevel: z.boolean().optional(),

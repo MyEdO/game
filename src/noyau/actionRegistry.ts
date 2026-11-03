@@ -17,7 +17,7 @@ import type { BattleState, Jeu } from './etat';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
-import { isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, refusVerrouDAction } from '../engine/conditions';
+import { isOutOfAction, refusDeDetermination, raisonVerrouEtat, refusVerrouDAction } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
@@ -177,14 +177,8 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   desengagement: desengagementGate,
   /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `battleRun` et `computeRunReach`. */
   'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
-  // Deux refus, un seul gate : plus de point en réserve, OU un État que rien ne lève (le fait porteur
-  // le déclare — LDB 20 l.188 ; source unique `raisonRefusDetermination`). `conditionId` absent (dépenses
-  // Psychologie/Critique de LDB 17 l.59-60) : seule la réserve compte.
-  'determination-en-reserve': ({ active, args }) => {
-    if ((active.resolve ?? 0) <= 0) return no(t('agate.noResolve'));
-    const refus = args?.conditionId ? raisonRefusDetermination(active, args.conditionId) : undefined;
-    return refus ? no(refus) : ok;
-  },
+  /** Verdict `refusDeDetermination` (LDB 17 l.59-61, LDB 20 l.188), que lisent aussi `spendResolveCondition` et `DeterminationButton`. */
+  'determination-en-reserve': ({ active, args }) => verdict(refusDeDetermination(active, args?.conditionId) ?? null),
   'attaque-libre-frenesie': ({ active }) =>
     hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')),
   'pietinement-gratuit': ({ active, battle }) =>

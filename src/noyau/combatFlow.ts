@@ -5879,8 +5879,8 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   const caster = actorIn(get(), touche.casterId);
   if (!caster) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: touche.spell.label })] };
   const spell = touche.spell;
-  // Manifestation de Ghur (Middenheim, #18) : un Projectile du Domaine de la Bête n'affecte PAS le
-  // porteur — ses Dégâts ET ses effets (effets négatifs du Sort de la Bête) sont sautés sur cette cible.
+  // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28) :
+  // ses Dégâts ET ses effets sont sautés sur cette cible.
   if (immuneToSpellDomain(cible.traits, spell.domainId)) return clore(get, touche, [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
   const lignes: string[] = [];
   let mres = touche.mres;
@@ -6144,8 +6144,7 @@ export function applyCast(
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
         if (opp?.resisted) { logLines.push(tr('cf.spellResisted', { name: t.label, spell: spell.label })); continue; }
-        // Manifestation de Ghur (Middenheim, #18) : un Sort du Domaine de la Bête n'applique aucun de ses
-        // effets au porteur (immunité par lore — `spellDomainImmunity`, lue par id depuis ses Traits).
+        // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28).
         if (immuneToSpellDomain(t.traits, spell.domainId)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
         // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
         // cible — magnitude et durée échelonnées sur `ctx.sl` suivent ; sous le NI, le Sort ne l'affecte plus.
@@ -6252,6 +6251,8 @@ export function applyCast(
     for (const t of [target, ...extraTargets]) {
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
       if (extras?.opposedOutcome?.[t.id]?.resisted) continue;
+      // Immunité de Domaine (`domainesImmunises`) : le rider est un effet du Sort. VDM 13 l.24, l.61 ; ZI 08 l.28
+      if (immuneToSpellDomain(t.traits, spell.domainId)) continue;
       // Riders « à la touche » du Domaine = DONNÉE (`domains.json`), dispatchés comme les autres onHit ;
       // le gating « cible adverse / vivante / résiste par Talent » vit dans les Conditions Flow.
       logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }));

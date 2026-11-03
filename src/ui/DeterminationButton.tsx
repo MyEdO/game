@@ -5,22 +5,21 @@ import { conditionLabel } from '../data';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { GatedAction } from './GatedAction';
-import { raisonRefusDetermination } from '../engine/conditions';
+import { refusDeDetermination } from '../engine/conditions';
 import { RULE_REF } from '../engine/ruleRefs';
 import { t } from '../i18n';
 
 /**
- * Détermination en modale de jet (LDB 17 l.59-61) : AVANT de lancer, un héros qui subit des
- * États négatifs (À Terre, Sonné, Aveuglé… → malus au jet) peut en retirer un — le panneau
- * pré-rempli recalcule alors ses modificateurs. Bouton « Détermination ×n » → mini-picker des
- * États présents (même règle que `battleSpendResolve` de la barre d'action).
+ * Détermination en modale de jet (LDB 17 l.61) : AVANT de lancer, tout combattant porteur d'États
+ * (le panneau pré-rempli recalcule alors ses modificateurs). Bouton « Détermination ×n » → mini-picker
+ * des États présents. Existence et refus par État : verdict `refusDeDetermination`, celui du gate
+ * `determination-en-reserve` et du geste `spendResolveCondition`.
  */
 export function DeterminationButton({ combatant, onSpend }: { combatant?: Combatant | null; onSpend: (condition: string) => void }) {
   const [open, setOpen] = useState(false);
-  if (!combatant || combatant.kind !== 'hero') return null;
+  if (!combatant || refusDeDetermination(combatant) || combatant.conditions.length === 0) return null;
   const resolve = combatant.resolve ?? 0;
-  const conds = combatant.conditions ?? [];
-  if (resolve <= 0 || conds.length === 0) return null;
+  const conds = combatant.conditions;
   return (
     <>
       <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap sourdine={open}>
@@ -36,7 +35,7 @@ export function DeterminationButton({ combatant, onSpend }: { combatant?: Combat
         conds.map((c) => {
           // Un État que rien ne lève (LDB 20 l.188) reste OFFERT et porte sa raison au survol/focus —
           // jamais retiré en silence, jamais un bouton muet (arbitrage user 2026-08-24).
-          const refus = raisonRefusDetermination(combatant, c.id);
+          const refus = refusDeDetermination(combatant, c.id);
           return (
             <GatedAction
               key={c.id}

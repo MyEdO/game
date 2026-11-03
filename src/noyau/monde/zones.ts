@@ -18,6 +18,9 @@ import { isDescriptiveZone, type ZoneArea, type SceneEffectZone } from './scene'
 import { isOutOfAction } from '../../engine/conditions';
 import { isProfane } from '../../engine/corruption';
 import { groupMatch, groupesDe } from '../../engine/groups';
+import { immuneToSpellDomain } from '../../engine/traits/dispatch';
+import { findSpellById } from '../../data';
+import { t } from '../../i18n';
 
 export interface BattleZone {
   /** id STABLE de la zone authoree (`SceneEffectZone.id`), propage par `sceneZonesToBattle` — identite
@@ -60,6 +63,12 @@ export interface BattleZone {
 /** Le combattant `mover` est-il GATÉ par la zone `z` (ciblé par sa barrière / son `perRound`) ? `gate:
  *  'profane'` → seulement les profanes (LDB 48). Sans gate → tout le monde. */
 const zoneTargets = (z: BattleZone, mover: Combatant): boolean => z.gate !== 'profane' || isProfane(mover);
+
+/** La zone est-elle sans effet sur `c` : posée par un Sort d'un Domaine auquel il est immunisé
+ *  (`immuneToSpellDomain`) ? SEUL prédicat de la traversée, du Test de traversée et du Round.
+ *  VDM 13 l.24, l.61 ; ZI 08 l.28 */
+export const zoneSansEffetSur = (z: BattleZone, c: Combatant): boolean =>
+  z.source?.kind === 'spell' && immuneToSpellDomain(c.traits, findSpellById(z.source.id)?.domainId);
 
 export const zoneCovers = (z: BattleZone, p: Pt): boolean =>
   z.tiles.some((t) => t.x === p.x && t.y === p.y && (t.z ?? 0) === (p.z ?? 0));
@@ -194,6 +203,7 @@ export function crossZones(
   for (const z of zones ?? []) {
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
+    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.spellDomainImmune', { name: mover.label, spell: z.label })); continue; }
     lines.push(`${mover.label} traverse ${z.label} !`);
     lines.push(...applyOps(mover, z.onCross, { caster: resolveCaster(z.casterId), rng, label: z.label }));
   }
@@ -214,7 +224,7 @@ export function zonesRoundTick(
     const caster = z.casterId ? combatants.find((c) => c.id === z.casterId) : undefined;
     for (const c of combatants) {
       if (!c.pos || c.dead || isOutOfAction(c)) continue;
-      if (!zoneCovers(z, c.pos) || !zoneTargets(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
+      if (!zoneCovers(z, c.pos) || !zoneTargets(z, c) || zoneSansEffetSur(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
       for (const line of applyOps(c, z.perRound, { caster, rng, label: z.label })) out.push({ line, combatant: c });
     }
   }

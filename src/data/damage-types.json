@@ -18,5 +18,17 @@
     "id": "magique",
     "type": "damage-types",
     "label": "Magique"
+  },
+  {
+    "id": "magie-flamboyante",
+    "type": "damage-types",
+    "label": "Magie flamboyante",
+    "domaine": "feu"
+  },
+  {
+    "id": "shyish",
+    "type": "damage-types",
+    "label": "Shyish",
+    "domaine": "mort"
   }
 ]

@@ -684,7 +684,7 @@ export function flowEffects<E = EffectOp>(flow: Flow<E>): E[] {
 /** La feuille est-elle un `EffectOp` (`{type:'ops'}`) ? Garde STRUCTURELLE — un `Flow<E>` générique peut
  *  porter d'autres feuilles (l'`Effect` complet côté state : transition/dialogue…), mais l'extraction
  *  d'ops ne concerne que les feuilles EffectOp. Source unique du narrowing pour les walkers ci-dessous. */
-function isEffectOp(e: unknown): e is EffectOp {
+export function isEffectOp(e: unknown): e is EffectOp {
   return typeof e === 'object' && e !== null && (e as { type?: unknown }).type === 'ops';
 }
 

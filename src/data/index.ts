@@ -1512,6 +1512,8 @@ export interface StatusData {
 export interface EtatData extends StatusData {
   /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
+  /** Type de Dégâts (`damage-types.json`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
+  typeDeDegats?: string;
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -3352,6 +3354,7 @@ export interface BreathTypeData {
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
+  typeDeDegats?: string;
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
@@ -3366,7 +3369,7 @@ export function breathTypeLabel(id: string | null | undefined): PlayerText {
 /** Type de Dégâts ignoré par le Trait Immunité (LDB 85 : « poison, magiques ou électriques ») — argument du
  *  Trait Immunité (multi-valeurs) ET valeur de la Condition `has … what:'immunity'` (Venin (Poison)…). Registre SSOT
  *  (`damage-types.json`, éditable). */
-export interface DamageTypeData { id: string; type: 'damage-types'; label: string; }
+export interface DamageTypeData { id: string; type: 'damage-types'; label: string; domaine?: string; }
 export const damageTypes = damageTypesJson as DamageTypeData[];
 const typeDegatsParId = indexParId('damageTypes', damageTypes);
 /** Résout un Type de Dégâts par son `id` STABLE. */

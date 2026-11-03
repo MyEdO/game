@@ -27,11 +27,11 @@ const heros = (): Combatant => (blessuresSurLeProfil({
   resolve: 1,
 }) as unknown as Combatant);
 
-function monter(depenses: string[]) {
+function monter(depenses: string[], combatant: Combatant = heros()) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<DeterminationButton combatant={heros()} onSpend={(c) => depenses.push(c)} />); });
+  act(() => { root.render(<DeterminationButton combatant={combatant} onSpend={(c) => depenses.push(c)} />); });
 }
 
 afterEach(() => {
@@ -57,6 +57,17 @@ describe('DeterminationButton', () => {
     const pion = [...container.querySelectorAll('button')].find((b) => b.textContent?.trim().startsWith('Inconscient'))!;
     act(() => { pion.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(depenses, 'la LOGIQUE reste keyée par id').toEqual(['inconscient']);
+  });
+
+  it('un PNJ à Détermination 2 voit le bouton : le verdict est celui du gate, jamais le type de porteur (LDB 17 l.61)', () => {
+    monter([], { ...heros(), kind: 'enemy', resolve: 2 } as Combatant);
+    const ouvrir = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Détermination'));
+    expect(ouvrir?.textContent).toContain('×2');
+  });
+
+  it('Détermination 0 : aucun bouton', () => {
+    monter([], { ...heros(), resolve: 0 } as Combatant);
+    expect(container.querySelector('button')).toBeNull();
   });
 
   it('divulgation ouverte : la bulle Codex du bouton se retire et ne rouvre pas sur l’option révélée', () => {
