@@ -221,6 +221,12 @@ describe('relireTrait / relireTraits — ce que la chaîne ne dit pas reste à s
     expect(relireTraits([textes[1], textes[0]], avant), 'inversion').toEqual([avant[1], avant[0]]);
   });
 
+  it('la matière de l’Armure, que la chaîne ne dit pas, reste à la même valeur et tombe avec elle (#1463)', () => {
+    const veste: TraitPose = { id: 'armure', parLocalisation: { tete: 0, brasG: 1, brasD: 1, corps: 1, jambeG: 0, jambeD: 0 }, matiere: 'leather' };
+    expect(relireTrait('Armure (Bras 1, Corps 1)', veste)).toEqual(veste);
+    expect(relireTrait('Armure (Bras 2, Corps 2)', veste)).toEqual({ id: 'armure', parLocalisation: { tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 } });
+  });
+
   it('doublons de même id : une valeur changée garde les drapeaux de SA pose, jamais ceux de la voisine', () => {
     const avant: TraitPose[] = [{ id: 'arme', value: 3, natural: true, maison: 'm3' }, { id: 'arme', value: 5, maison: 'm5' }];
     expect(relireTraits(['Arme +5', 'Arme +4'], avant)).toEqual([avant[1], { id: 'arme', value: 4, natural: true }]);
@@ -292,6 +298,24 @@ describe('pli d’une rangée de Trait posé — fourchette et Indice par Locali
     valider(tete);
     expect(ecrits).toEqual([[{ id: 'armure', parLocalisation: { ...parLocalisation, tete: 2 } }]]);
     expect(host.querySelector<HTMLInputElement>('.trait-row input')!.value).toBe('Armure (Tête 2, Bras 3, Corps 3, Jambes 1)');
+  });
+});
+
+describe('pli d’une rangée de Trait posé — matière de l’Armure (#1463)', () => {
+  it('TraitListField : la matière se choisit au pli, l’Indice par Localisation reste', () => {
+    const parLocalisation = { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 };
+    const ecrits: TraitPose[][] = [];
+    const host = monter(<TraitListField chemin="banc/traits" label="Traits" value={[{ id: 'armure', parLocalisation }]} onChange={(v) => ecrits.push(v)} />);
+    const choix = [...host.querySelectorAll('label')].find((l) => l.textContent?.startsWith('Matière de l’armure'))!.querySelector('select')!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(choix, 'metal');
+      choix.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(ecrits).toEqual([[{ id: 'armure', parLocalisation, matiere: 'metal' }]]);
+  });
+  it('un Trait sans Indice par Localisation n’offre aucune matière', () => {
+    const host = monter(<TraitListField chemin="banc/traits" label="Traits" value={[{ id: 'peur', value: 2 }]} onChange={() => {}} />);
+    expect([...host.querySelectorAll('label')].some((l) => l.textContent?.startsWith('Matière de l’armure'))).toBe(false);
   });
 });
 

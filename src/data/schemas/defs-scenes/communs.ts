@@ -58,7 +58,6 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   type: z.literal('statblock'),
   label: z.string(),
   char: charStatsSchema,
-  armour: z.number().optional(),
   traits: z.array(traitPoseDeSceneSchema).optional(),
   size: sizeCategorySchema.optional(),
   groups: groupesDuStatblocSchema.optional(),
@@ -68,4 +67,4 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   randomChars: z.boolean().optional(),
   inert: z.boolean().optional(),
   followsCharacterRules: z.boolean().optional(),
-}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, armour: { label: "armure" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, randomChars: { label: "caractéristiques aléatoires" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });
+}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, randomChars: { label: "caractéristiques aléatoires" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });

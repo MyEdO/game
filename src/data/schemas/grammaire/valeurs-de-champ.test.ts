@@ -164,7 +164,9 @@ const NOMMES = [
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
   'melee|ranged|all',
   'action|movement',
-  'all|metal|leather|nonMagic|nonMetal',
+  'all|metal|nonMagic|nonMetal',
+  // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
+  'metal|leather|chaos|peau',
   'd10|d100',
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
@@ -256,7 +258,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'le-plus-lent|aucun',
   'localisation|porteur',
   'majeure|mineure-x2',
-  'metal|leather|chaos',
   'mineure|arcane|invocation|beni|chaos',
   'mineur|majeur',
   'minutes|hours|days',

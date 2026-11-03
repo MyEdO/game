@@ -14,7 +14,8 @@
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
-import { bonus, effectiveChar, blessuresReconciliees } from './characteristics';
+import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
+import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
@@ -1866,10 +1867,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Défaut : ignore BE+PA. `ignoreTB:false` → déduit le Bonus d'Endurance ; `ignoreAP:false` → déduit les PA.
         const tb = o.ignoreTB === false ? bonus(effectiveChar(target, 'endurance')) : 0;
         // `apFrom:'least'` → PA de la Localisation la moins protégée (En Flammes) ; sinon le Corps.
-        const totalAP = o.apFrom === 'least'
-          ? Math.max(0, Math.min(...Object.values(target.armour)))
-          : Math.max(0, target.armour.corps ?? 0);
-        const bypass = o.bypassArmour ? bypassedAP(target, 'corps', o.bypassArmour, totalAP) : 0; // attribut de Domaine : perce le métal/non-magique
+        const locDesPA = o.apFrom === 'least'
+          ? LOCALISATIONS_DE_COUP.reduce((m, l) => (effectiveArmourAt(target, l) < effectiveArmourAt(target, m) ? l : m))
+          : 'corps';
+        const totalAP = effectiveArmourAt(target, locDesPA);
+        const bypass = o.bypassArmour ? bypassedAP(target, locDesPA, o.bypassArmour, totalAP) : 0; // attribut de Domaine : perce le métal/non-magique
         // PA de la Localisation (si non ignorés) + PA situationnels du coup (`extraAP` : poupe/Bélier de collision…).
         const ap = (o.ignoreAP === false ? Math.max(0, totalAP - bypass) : 0) + (o.extraAP ?? 0);
         const n = Math.max(o.min ?? 0, raw - tb - ap);

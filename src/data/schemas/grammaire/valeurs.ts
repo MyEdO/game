@@ -885,6 +885,11 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
  *  ne porte de valeur hors de ces 6 (vérifié au parse). */
 export const hitLocationSchema = z.enum(LOCALISATIONS_DE_COUP);
 
+/** Matière d'une armure : celle du Groupe d'une pièce (`weaponGroups.material`) et celle du Trait Armure posé
+ *  (`TraitPose.matiere`). LDB 63 l.41-58 ; LDB 63 l.97 ; LDB 85 l.39 ; VDM 02 l.169 ; #1463. */
+export const matiereDArmureSchema = enumNomme({ metal: 'métal', leather: 'cuir', chaos: 'armure du Chaos', peau: 'peau' });
+export type MatiereDArmure = z.infer<typeof matiereDArmureSchema>;
+
 /** Indice par Localisation : les six Localisations, chacune son Indice. AA 09 l.184 ; MCLB 02 l.101. */
 export const parLocalisationSchema = nommerChamps(
   z.strictObject(tableTotale(LOCALISATIONS_DE_COUP, () => z.number().int().nonnegative())),

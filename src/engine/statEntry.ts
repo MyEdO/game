@@ -10,6 +10,7 @@
 import type { CharKey, Difficulty, EffectSource } from './types';
 import type { SizeCategory } from './size';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
+import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs';
 import { hashSeed, makeRNG } from './dice';
 import { lirePlage, type ParLocalisation, type Plage } from './classementDeTrait';
 import type { FormuleSansTirage } from './ops';
@@ -149,6 +150,8 @@ export interface TraitInstance extends SansFourchette {
   src?: EffectSource;
   /** Indice par Localisation (AA 09 l.184), lu par `armourFromTraits`. */
   parLocalisation?: ParLocalisation;
+  /** Matière de l'armure du Trait, lue par `sourcesDArmureA` (`engine/armourBypass`). LDB 62 l.270 ; LDB 85 l.39 */
+  matiere?: MatiereDArmure;
   /** Difficulté des Tests qui éliminent l'État que le Trait inflige. MDG 16 l.226 ; LDB 16 l.70 */
   difficulte?: Difficulty;
   /** Traits conférés aux touches de ce Trait d'attaque, lus par l'arme qui en naît. ZI 03 l.75, l.77 */

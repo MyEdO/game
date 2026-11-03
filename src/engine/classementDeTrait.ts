@@ -9,14 +9,17 @@ import { tableTotale } from '../lib/tableTotale.ts';
 import { LOCALISATIONS_DE_COUP, type HitLocation } from './localisations.ts';
 import type { CharKey } from './types.ts';
 import type { FormuleSansTirage } from './ops.ts';
+import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs.ts';
 
 
 /** Fourchette d'Indice imprimée, bornes incluses (`lirePlage`). */
 export type Plage = { min: number; max: number };
 /** Indice par Localisation : chaque Localisation, son nombre de PA (`lireParLocalisation`). */
 export type ParLocalisation = Record<HitLocation, number>;
-/** Emplacements d'une pièce d'armure nommée, ou `undefined` (`emplacementsDesPieces`). */
-export type PiecesDArmure = (nom: string) => readonly HitLocation[] | undefined;
+/** Une pièce d'armure de la table : ses Emplacements, ses PA, la matière de son Groupe. LDB 63 l.41-58 */
+export type PieceDArmure = { locs: readonly HitLocation[]; pa?: number; matiere?: MatiereDArmure };
+/** La pièce d'armure nommée, ou `undefined` (`emplacementsDesPieces`). */
+export type PiecesDArmure = (nom: string) => PieceDArmure | undefined;
 /** La Caractéristique qu'abrège un sigle imprimé (« F », « FM »), ou `undefined`. */
 export type CaracDuSigle = (sigle: string) => CharKey | undefined;
 /** Ce que l'appelant sait d'une parenthèse : l'Indice imprimé hors d'elle, les pièces d'armure du Trait qui
@@ -54,8 +57,8 @@ const ZONES = new Map<string, readonly HitLocation[]>([
   ...Object.entries(AUTRES_ZONES),
 ]);
 
-/** LDB 63 l.55-56 ; MSR 09 l.1504. */
-const PIECES_HORS_TABLE: Readonly<Record<string, readonly HitLocation[]>> = { casque: ['tete'] };
+/** Pièce nommée hors de la table → la pièce de la table qu'elle désigne. LDB 63 l.55-56 ; MSR 09 l.1504. */
+const PIECES_HORS_TABLE: Readonly<Record<string, string>> = { casque: 'heaume' };
 
 /** Localisations d'une zone nommée (« Tête », « Pattes avant »), ou `undefined`. */
 export const localisationsDeZone = (mot: string): readonly HitLocation[] | undefined => ZONES.get(norm(mot).replace(/\s+/g, ' '));
@@ -66,9 +69,12 @@ const singulier = (mot: string): string => mot.replace(/s$/, '');
  *  cuir », EDOC 11 l.169). */
 const nomDePiece = (nom: string): string => norm(nom).split(/\s+/).map((m) => (m === 'en' ? 'de' : singulier(m))).join(' ');
 
-/** Noms des Aspects d'Armure à toutes les Localisations, au singulier. LDB 63 l.97-103 ; LDB 85 l.39 ;
- *  docs/raw/4e/combat.md « Parenthèse de l'Armure dans les profils » ; #1463. */
-const ASPECTS_A_TOUTES_LOCALISATIONS = new Set(['legere', 'moyenne', 'peau', 'ecaille', 'fourrure', 'chitine', 'cuir', 'plate', 'divers'].map(singulier));
+/** Noms des Aspects d'Armure à toutes les Localisations, au singulier, et la matière que chacun nomme.
+ *  LDB 63 l.97-103 ; LDB 85 l.39 ; docs/raw/4e/combat.md « Parenthèse de l'Armure dans les profils » ; #1463. */
+const ASPECTS_A_TOUTES_LOCALISATIONS: ReadonlyMap<string, MatiereDArmure | undefined> = new Map(([
+  ['legere', 'leather'], ['moyenne', 'metal'], ['lourde', 'metal'], ['cuir', 'leather'], ['plate', 'metal'],
+  ['peau', 'peau'], ['ecaille', 'peau'], ['fourrure', 'peau'], ['chitine', 'peau'], ['divers', undefined],
+] as const).map(([nom, matiere]) => [singulier(nom), matiere]));
 
 /** L'Aspect d'une Armure, sans Indice, vaut-il à toutes les Localisations : chacun de ses
  *  groupes (séparés par « , » ou « et ») a, avant son premier complément (« de », « d'un »), traits d'union
@@ -85,20 +91,25 @@ export function aspectAToutesLocalisations(aspect: string): boolean {
   });
 }
 
-/** Emplacements d'une pièce d'armure nommée, lus au catalogue des armures (`{ label, loc }`) : le nom de
- *  la pièce, ou son début quand le profil sous-entend la matière (« Calotte et Veste de cuir », EDO 03
- *  l.303). Un nom que le catalogue ne nomme pas, ou dont les pièces candidates divergent, rend
- *  `undefined`. LDB 63 l.13 ; LDB 63 l.39-58. */
-export function emplacementsDesPieces(catalogue: readonly { label: string; loc?: string | null }[]): PiecesDArmure {
-  const pieces = catalogue.flatMap((p) => (p.loc ? [{ nom: nomDePiece(p.label), locs: p.loc.split(',').flatMap((z) => localisationsDeZone(z) ?? []) }] : []));
+/** La pièce d'armure nommée, lue au catalogue des armures (`{ label, loc, pa, subType }`) : le nom de la pièce,
+ *  ou son début quand le profil sous-entend la matière (« Calotte et Veste de cuir », EDO 03 l.303). Sa matière
+ *  est celle de son Groupe (`subType`), que `matiereDuGroupe` lit à chaque lecture. Un nom que le catalogue ne
+ *  nomme pas, ou dont les pièces candidates divergent par leurs Emplacements, rend `undefined`. LDB 63 l.13 ;
+ *  LDB 63 l.39-58. */
+export function emplacementsDesPieces(
+  catalogue: readonly { label: string; loc?: string | null; pa?: number | null; subType?: string | null }[],
+  matiereDuGroupe: (groupe: string) => MatiereDArmure | undefined = () => undefined,
+): PiecesDArmure {
+  const pieces = catalogue.flatMap((p) => (p.loc ? [{ nom: nomDePiece(p.label), locs: p.loc.split(',').flatMap((z) => localisationsDeZone(z) ?? []), pa: p.pa ?? undefined, groupe: p.subType ?? undefined }] : []));
   return (nom) => {
-    const cle = nomDePiece(nom);
-    if (cle in PIECES_HORS_TABLE) return PIECES_HORS_TABLE[cle];
+    const cle = PIECES_HORS_TABLE[nomDePiece(nom)] ?? nomDePiece(nom);
     const exactes = pieces.filter((p) => p.nom === cle);
     const candidates = exactes.length ? exactes : pieces.filter((p) => [' de ', " d'", ' d’'].some((lien) => p.nom.startsWith(cle + lien)));
     const [premiere, ...autres] = candidates;
     if (!premiere || autres.some((p) => p.locs.join() !== premiere.locs.join())) return undefined;
-    return premiere.locs;
+    const matiere = premiere.groupe === undefined ? undefined : matiereDuGroupe(premiere.groupe);
+    const memes = autres.every((p) => p.pa === premiere.pa && (p.groupe === undefined ? undefined : matiereDuGroupe(p.groupe)) === matiere);
+    return { locs: premiere.locs, ...(memes && premiere.pa !== undefined ? { pa: premiere.pa } : {}), ...(memes && matiere ? { matiere } : {}) };
   };
 }
 
@@ -140,7 +151,7 @@ export function lireParLocalisation(texte: string, { indice, pieces }: ContexteD
   };
   for (const segment of segments) {
     const m = /^(.*?)(?:\s+(\d+))?$/.exec(segment);
-    const zone = m && (localisationsDeZone(m[1]) ?? pieces?.(m[1]));
+    const zone = m && (localisationsDeZone(m[1]) ?? pieces?.(m[1])?.locs);
     if (!m || !zone) return undefined;
     enAttente.push(...zone);
     if (m[2] !== undefined && !poser(Number(m[2]))) return undefined;
@@ -174,6 +185,28 @@ export function formaterIndiceRelatif(f: FormuleSansTirage, sigle: (k: CharKey) 
   const [b, n] = f.sum;
   if (typeof b !== 'object' || b === null || !('bonusOf' in b) || typeof n !== 'number') return undefined;
   return `B${sigle(b.bonusOf)} ${n < 0 ? '-' : '+'}${Math.abs(n)}`;
+}
+
+/** Matière d'un Aspect d'Armure : celle que nomme le premier mot de chacun de ses groupes (le dernier élément
+ *  d'un mot composé, « Demi-plate »), la même pour tous, ou `undefined`. LDB 63 l.97 ; LDB 85 l.39 */
+function matiereDeLAspect(aspect: string): MatiereDArmure | undefined {
+  const matieres = nomDePiece(aspect).split(/\s*,\s*|\s+et\s+/).map((groupe) => ASPECTS_A_TOUTES_LOCALISATIONS.get(singulier(groupe.split(' ')[0].split('-').pop() ?? '')));
+  return matieres.every((m) => m === matieres[0]) ? matieres[0] : undefined;
+}
+
+/** Matière d'une parenthèse d'Armure : celle des pièces de la table qu'elle nomme toutes (`pieces`), sinon celle
+ *  de son Aspect (« Peau 1 », « Légère », « Cuir »). Des pièces de matières différentes valent `metal` quand, à
+ *  chaque Localisation protégée, les PA des pièces de métal atteignent l'Indice imprimé, et `undefined` sinon ;
+ *  une zone nommée sans pièce rend `undefined`. docs/raw/4e/combat.md « Parenthèse de l'Armure dans les
+ *  profils » ; LDB 63 l.41-58 ; #1463 */
+export function lireMatiere(texte: string, contexte: ContexteDeParenthese = {}): MatiereDArmure | undefined {
+  const noms = texte.split(/\s*,\s*|\s+et\s+/).map((s) => /^(.*?)(?:\s+\d+)?$/.exec(s.trim())?.[1] ?? '').filter(Boolean);
+  const pieces = noms.map((nom) => (localisationsDeZone(nom) ? undefined : contexte.pieces?.(nom)));
+  if (!noms.length || !pieces.every((p): p is PieceDArmure => p !== undefined)) return matiereDeLAspect(lireAspectIndice(texte)?.aspect ?? texte);
+  if (pieces.every((p) => p.matiere === pieces[0].matiere)) return pieces[0].matiere;
+  const indices = lireParLocalisation(texte, contexte);
+  const metal = (loc: HitLocation): number => pieces.filter((p) => p.matiere === 'metal' && p.locs.includes(loc)).reduce((n, p) => n + (p.pa ?? 0), 0);
+  return indices && LOCALISATIONS_DE_COUP.every((loc) => metal(loc) >= indices[loc]) ? 'metal' : undefined;
 }
 
 /** Classement du texte d'une parenthèse d'un Trait à Indice imprimé : fourchette, Indice par

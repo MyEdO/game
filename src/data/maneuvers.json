@@ -782,7 +782,9 @@
                     "op": "grantTrait",
                     "trait": {
                       "id": "armure",
-                      "value": 2
+                      "arg": "Peau",
+                      "value": 2,
+                      "matiere": "peau"
                     }
                   },
                   {

@@ -18,7 +18,7 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { emptyArmour, deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
+import { deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -374,7 +374,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     advantage: 0,
     conditions: [],
     weapons: [],
-    armour: emptyArmour(sb.armour ?? 0),
+    armour: armourFromTraits(traits),
     size,
     bodyShape: swarm ? 'humanoide' : bodyShapeForSpecies(appearance?.species), // Tableau de Localisation (LDB 76 l.15-29) — espèce AUTHORÉE (id, jamais sb.label), Nuée force 'humanoide' (#814 : divergence possible avec `bodyShapeOf` sur un preset de campagne fusionnant Nuée hors registre global)
     ...(sb.inert ? { inert: true } : {}), // affût inerte servi (AA/MDG 12) : ciblable, sans réaction de combat ni tour

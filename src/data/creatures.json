@@ -295,7 +295,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 1
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "prejuge"
@@ -383,7 +384,8 @@
       {
         "id": "armure",
         "arg": "Légère",
-        "value": 2
+        "value": 2,
+        "matiere": "leather"
       },
       {
         "id": "brutal"
@@ -1093,7 +1095,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 1
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "bestial"
@@ -1351,7 +1354,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 1
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "bestial"
@@ -11965,7 +11969,9 @@
       },
       {
         "id": "armure",
-        "value": 2
+        "arg": "Peau",
+        "value": 2,
+        "matiere": "peau"
       },
       {
         "id": "morsure",
@@ -12172,7 +12178,9 @@
       },
       {
         "id": "armure",
-        "value": 1
+        "arg": "Peau",
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "foulee"
@@ -12263,7 +12271,8 @@
       },
       {
         "id": "armure",
-        "value": 2
+        "value": 2,
+        "matiere": "metal"
       }
     ],
     "optionals": [],
@@ -13417,7 +13426,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 2
+        "value": 2,
+        "matiere": "peau"
       },
       {
         "id": "increvable"
@@ -13549,7 +13559,8 @@
           "corps": 2,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "metal"
       }
     ],
     "optionals": [],
@@ -13665,7 +13676,8 @@
           "corps": 2,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "metal"
       },
       {
         "id": "prejuge"
@@ -13790,7 +13802,8 @@
           "corps": 3,
           "jambeG": 3,
           "jambeD": 3
-        }
+        },
+        "matiere": "metal"
       }
     ],
     "optionals": [],
@@ -14095,7 +14108,8 @@
           "corps": 1,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "leather"
       },
       {
         "id": "prejuge"
@@ -15575,7 +15589,8 @@
           "corps": 1,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "leather"
       },
       {
         "id": "haine",
@@ -15701,7 +15716,8 @@
           "corps": 2,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "metal"
       },
       {
         "id": "prejuge"
@@ -16680,7 +16696,8 @@
       {
         "id": "armure",
         "arg": "Cuir",
-        "value": 2
+        "value": 2,
+        "matiere": "leather"
       }
     ],
     "optionals": [],
@@ -16742,7 +16759,8 @@
       {
         "id": "armure",
         "arg": "Cuir",
-        "value": 2
+        "value": 2,
+        "matiere": "leather"
       }
     ],
     "optionals": [],
@@ -19189,7 +19207,8 @@
       },
       {
         "id": "armure",
-        "value": 4
+        "value": 4,
+        "matiere": "metal"
       },
       {
         "id": "champion"
@@ -21501,7 +21520,8 @@
       },
       {
         "id": "armure",
-        "value": 2
+        "value": 2,
+        "matiere": "metal"
       },
       {
         "id": "magique"
