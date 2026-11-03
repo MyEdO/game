@@ -62,8 +62,8 @@ même `sink`.
 `resolveFreeAttacks`, une fois par déclencheur (LDB 10 l.500). Celui-ci itère `freeAttackSourcesOf(actor,
 arme)` (les sources d'`effectSourcesOf`, arme de la touche comprise, chacune taguée `key`/`cap`) et lit la MÊME
 enveloppe d'effet que le bus (`ciblesDeLEffet` : `condition`/`attackType`/`coupCritique`/`optional`/hors
-de combat, cible `on`). Sites : `onCharged` → `subirLaCharge` (charge de l'IA, recette `charge`) — la Charge d'un héros manuel n'émet
-pas `onCharged` (dette `4e/combat#reperes-de-conversion-grille`, `src/data/raw.manifest.json`) ;
+de combat, cible `on`). Sites : `onCharged` → `subirLaCharge`, appelé par `declarerLaCharge`, déclaration UNIQUE
+d'une Charge de l'IA comme du joueur (recette `charge` : `subirLaCharge` sans déplacement) ;
 `onHit` → la suite du coup PRINCIPAL (`gratuitesALaTouche`, héros et IA). Les effets de manœuvre et de
 Domaine (`applyTriggeredEffects` hors bus) ne portent aucun `grantFreeAttack` (`data-wellformed`, famille 6ter).
 Un **Trait/État** de créature qui riposte `onCharged`/`onHit` fonctionne comme un talent, sans chemin
@@ -84,8 +84,8 @@ restent des hooks ordonnés (interleave par `order`, y compris le cross-phase `o
 
 Triggers CÂBLÉS par #316 (jadis orphelins) : `onAttackResolved` (fin de résolution d'attaque),
 `onCastResolved` (post-`runCastFlow`/`applyCast`), `onMiscast` (`applyMiscast`), `onCharged`
-(`subirLaCharge` — les Flows `grantFreeAttack` sont sautés par le bus, la Frappe réactive part de
-`resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
+(`subirLaCharge`, par `declarerLaCharge` — les Flows `grantFreeAttack` sont sautés par le bus, la Frappe réactive
+part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
 (LDB 14 l.7) / dévié (`applyOpposedCritical`, `resolveDeviation` mode `self`) émet désormais `onCrit` via le
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
 Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Blessure critique non létale, avec

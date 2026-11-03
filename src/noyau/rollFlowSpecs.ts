@@ -535,6 +535,16 @@ function paresseux<T extends Record<string, () => unknown>>(fabriques: T): { rea
   return table;
 }
 
+/** Pourquoi l'Annuler d'avant le jet est refusé, `null` s'il est offert : la 2ᵉ frappe d'un Maniement de deux armes
+ *  (LDB 10 l.767-773) ; une Charge dont la cible a répondu (LDB 15 l.35 ; LDB 10 l.500). Lu par `onCancel` et par
+ *  la fenêtre (`fenetreDAttaque`). */
+export function refusDAnnulerLAttaque(pa: PendingAttack): string | null {
+  if (pa.result) return null;
+  if (pa.dualSecond) return t('cs.secondCoupImpose');
+  if (pa.fromCharge && !pa.chargeUndo) return t('cs.chargeEngagee');
+  return null;
+}
+
 /** Test de Force Mentale contre une Bénédiction de Protection — LDB 41 l.142. */
 const JET_DE_PROTECTION = { test: { char: 'force-mentale' }, difficulty: 'accessible' } as const;
 
@@ -635,7 +645,7 @@ export const FLOWS = paresseux({
     // imposée, fin de balayage pour un cleave, sinon fermeture (+ cascade combat étape 0).
     onCancel: (get, set) => {
       const pa = get().pendingAttack;
-      if (pa?.dualSecond) return; // 2ᵉ frappe d'un dual : engagée dès que la cible est choisie (le jet est imposé)
+      if (pa && refusDAnnulerLAttaque(pa)) return void refuserGeste(get, set, refusDAnnulerLAttaque(pa)!);
       // Prix de la déclaration payé et non joué (`coutPaye`) : rendu AVANT tout jet, quel que soit le geste.
       if (pa && !pa.result && pa.coutPaye) {
         const attacker = inBattleId(get().battle, pa.attackerId);
@@ -643,25 +653,26 @@ export const FLOWS = paresseux({
         const b = get().battle;
         if (b) set({ battle: { ...b, movementUsed: Math.max(0, (b.movementUsed ?? 0) - pa.coutPaye.movement) } });
       }
-      // Charge : Annuler AVANT tout jet (`result===null`) DÉFAIT le misclic — comme annuler un déplacement,
-      // mais pour la manœuvre combinée « déplacement + attaque ». On restaure positions, orientation, Mouvement,
-      // Avantage (+1 de charge rendu) et `chargedThisTurn`. Une fois le dé lancé, la charge est ENGAGÉE (RAW LDB 15).
+      // Annuler ferme aussi la séquence-jet de combat (étape 0 non encore validée).
+      const seq = get().pendingCascade;
+      const closeSeq = seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack';
+      // Charge : Annuler AVANT tout jet (`result===null`) DÉFAIT le misclic tant que la cible n'a pas répondu
+      // (`chargeUndo`, posé par le geste) — comme annuler un déplacement, mais pour la manœuvre combinée
+      // « déplacement + attaque ». On restaure positions, orientation, Mouvement, Avantage (+1 de charge rendu) et
+      // `chargedThisTurn`. Dé lancé ou cible qui a répondu : la charge est ENGAGÉE, l'Annuler est refusé. LDB 15 l.35 ; LDB 10 l.500
       if (pa?.fromCharge) {
         const battle = get().battle;
-        if (pa.result || !pa.chargeUndo || !battle) { if (!pa.result) set({ pendingAttack: null }); return; } // dé lancé → engagé (pas d'undo)
+        if (pa.result || !battle || !pa.chargeUndo) return;
         const u = pa.chargeUndo;
         for (const c of battle.combatants) { const p = u.pos[c.id]; if (p) c.pos = { ...p }; } // restaure TOUS (un grand a pu en déplacer d'autres)
         const attacker = inBattleId(battle, pa.attackerId);
         if (attacker) { attacker.gainedAdvThisRound = u.gainedAdvBefore; attacker.chargedThisTurn = u.chargedBefore; attacker.chargeAvecAvantage = u.avecAvantageBefore; if (u.advGained) campSpend(get, attacker, u.advGained); } // rend le +1 Avantage de la charge
         clearApproachMoves(attacker); // la charge est DÉFAITE (position d'avant restaurée) : aucune approche due (LDB 21 l.27)
-        set({ facing: { ...u.facing }, battle: { ...battle, movementUsed: u.movementUsed, movedPreAction: u.movedPreAction, action: null, reachable: new Map(), preview: null }, pendingAttack: null });
+        set({ facing: { ...u.facing }, battle: { ...battle, movementUsed: u.movementUsed, movedPreAction: u.movedPreAction, action: null, reachable: new Map(), preview: null }, pendingAttack: null, ...(closeSeq ? { pendingCascade: null } : {}) });
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
       if (pa?.cleave) { set({ pendingAttack: null }); return get().cleaveEnd(); } // annuler = terminer le balayage (cleaveEnd clôt la cascade)
-      // Annuler ferme aussi la séquence-jet de combat (étape 0 non encore validée).
-      const seq = get().pendingCascade;
-      const closeSeq = seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack';
       set({ pendingAttack: null, ...(closeSeq ? { pendingCascade: null } : {}) });
     },
   }),

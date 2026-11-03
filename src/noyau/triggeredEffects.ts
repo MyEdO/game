@@ -278,6 +278,9 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
    *  câblé via le hook du store). Absent → pas de routage (les flows non-`test` passent par
    *  `runPureFlowLines`, qui rend le `string[]` tissé inline par l'appelant). */
   set?: SetFn;
+  /** Compte des effets EXERCÉS (passés par l'enveloppe `ciblesDeLEffet`), tenu par l'émetteur qui le fournit
+   *  (`emitCombatEvent`). */
+  exercices?: { n: number };
   /** Pose le drapeau `deferInteractiveTest` sur la résolution d'un Test routé : un porteur SURFACÉ
    *  (`surfaceOf` — un siège humain QUELCONQUE le tient, cadence manuelle) ne pousse PAS son étape ICI
    *  (la cascade n'est pas ouverte au moment où le hook `end-of-round` diffuse) — elle est COLLECTÉE par
@@ -464,6 +467,7 @@ export function applyTriggeredEffects(
   for (const eff of effects) {
     if (flowHasFreeAttack(eff.flow)) continue;
     for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
+      if (ctx.exercices) ctx.exercices.n++;
       // Flow PORTANT un nœud `test` (à n'importe quelle profondeur — top-level Mâchoires, ou enfoui sous
       // `if`/`seq` : Venin/Hurlement/2 enchants) routé vers la voie cadence-aware (héros manuel → cascade
       // influençable ; ennemi/auto → inline) plutôt qu'avalé silencieusement — seulement si l'appelant
