@@ -10,7 +10,7 @@ import {
   constructionsReserveesDuCorpus, lectureBruteDeCollection, scanConstructionsReservees, type SiteAdmis,
 } from '../../scripts/guards/lib/canonUnique.mjs';
 import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /** Où la collection brute est légitime : la déclaration des vues, le seam, la racine générée, et le
  *  Codex (qui montre tout le catalogue). */
@@ -47,7 +47,7 @@ const PARAMETRES = {
   seam: { module: 'src/data/overrides.ts', fonctions: ['datasetArray', 'collectionDuDataset', 'datasetSerializeRoot'] },
   dataset: 'trappings',
 } as const;
-const domaine = (rel: string) => !estFichierVitest(rel);
+const domaine = (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel);
 const GARDE = { ...lectureBruteDeCollection({ ...PARAMETRES, sitesAdmis: SITES_ADMIS }), foyer: FOYER, domaine };
 const SANS_SITES = { ...lectureBruteDeCollection(PARAMETRES), foyer: FOYER, domaine };
 

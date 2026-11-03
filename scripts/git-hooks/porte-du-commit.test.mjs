@@ -1196,6 +1196,7 @@ test('estFichierEcran : src/ui et src/gameIso, jamais leurs tests', () => {
   assert.equal(estFichierEcran('src/ui/RollShell.tsx'), true)
   assert.equal(estFichierEcran('src/gameIso/stage/GameStage3D.tsx'), true)
   assert.equal(estFichierEcran('src/ui/RollShell.test.tsx'), false)
+  assert.equal(estFichierEcran('src/ui/ligneDeJet.testkit.tsx'), false)
   assert.equal(estFichierEcran('src/engine/combat.ts'), false)
 })
 

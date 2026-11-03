@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { comparerPoids } from '../../scripts/guards/lib/cssConservation.mjs';
 import {
   FEUILLES_PARTAGEES,
@@ -85,7 +85,7 @@ const FICHIERS_UI = (): readonly Fichier[] => readCorpus(['src/ui'], { exts: ['.
 /** Chemin depuis `src/ui/` — la clé des baselines et des exemptions. */
 const rel = (f: Fichier) => f.rel.slice('src/ui/'.length);
 const nomDe = (f: Fichier) => f.rel.slice(f.rel.lastIndexOf('/') + 1);
-const estTest = (f: Fichier) => estFichierVitest(f.rel);
+const estTest = (f: Fichier) => estFichierVitest(f.rel) || estKitDeTest(f.rel);
 const estCss = (f: Fichier) => f.rel.endsWith('.css');
 const estTsx = (f: Fichier) => f.rel.endsWith('.tsx');
 
@@ -866,7 +866,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
   it('la matière du grand titre est POSÉE par au moins DEUX fichiers `.tsx` hors galerie', () => {
     const poseurs = new Set<string>();
     for (const { rel: chemin, text } of readCorpus(['src'], { exts: ['.tsx'] })) {
-      if (chemin.includes('/gallery/') || estFichierVitest(chemin)) continue;
+      if (chemin.includes('/gallery/')) continue;
       for (const m of text.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) {
         if ((m[1] ?? m[2]).split(/\s+/).includes('display-title')) poseurs.add(chemin);
       }
@@ -1264,17 +1264,17 @@ function scanRefusMuet(files: readonly Fichier[]): Record<string, number> {
 
 describe('#1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints)', () => {
   it('(xvii) <input type="number"> à la main : aucune hausse par fichier (composer NumberField)', () => {
-    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estFichierVitest(f.rel));
+    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f));
     assertRatchet(scanNumberInputs(files), NUMBER_INPUT_BASELINE, '`<input type="number">` (primitive `NumberField`)');
   });
 
   it('(xix) raison de refus MUETTE (`<button disabled title=…>`) : aucune hausse, zéro côté joueur', () => {
-    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estFichierVitest(f.rel));
+    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f));
     assertRatchet(scanRefusMuet(files), REFUS_MUET_BASELINE, '`<button disabled title=…>` (primitive `GatedAction`)');
   });
 
   it('(xix) le stock restant est ENTIÈREMENT dans l’atelier — aucun écran joueur ne porte de refus muet', () => {
-    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estFichierVitest(f.rel));
+    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f));
     const joueur = Object.entries(scanRefusMuet(files))
       .filter(([f]) => !/^(editor|compendium|gallery)\//.test(f))
       .map(([f, n]) => `${f} : ${n}`);

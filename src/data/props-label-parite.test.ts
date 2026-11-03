@@ -18,7 +18,7 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import propsJson from './props.json';
 import { fileURLToPath } from 'node:url';
 import { DECOR_DEFS_DIR, labelDArt } from '../../scripts/guards/lib/propArtLabels.mjs';
@@ -29,7 +29,7 @@ const entrees = propsJson as { id: string; label: string }[];
 /** Les ids des defs d'ART : un fichier `<id>.ts` du répertoire des defs, hors tests. */
 const idsDArt = (): string[] =>
   listerDossier(join(RACINE, DECOR_DEFS_DIR))
-    .filter((f) => f.endsWith('.ts') && !estFichierVitest(f))
+    .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && !estKitDeTest(f))
     .map((f) => f.replace(/\.ts$/, ''))
     .sort();
 

@@ -18,7 +18,7 @@ import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RACINE } from './bindingsVivants.mjs';
 import { analyserCorpus, typescript } from './dialecte.mjs';
-import { estFichierVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { attributDe, depotDe, listerImage, refusDeGit, SUIVI } from './gitPorte.mjs';
 import { estModule } from './importGraph.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
@@ -118,13 +118,13 @@ function moduleDeLaLigne(args: readonly string[]): string | typeof TOUS | null {
 /**
  * Les modules qui MESURENT parmi `fichiers` : ceux qui exportent une liaison `regenerations`
  * (`export const`, `export function`, `export async function`), lus sur l'arbre syntaxique. Une
- * déclaration de types (`.d.mts`), un instrument (`estFichierVitest`) ou un fichier hors `estModule`
+ * déclaration de types (`.d.mts`), un instrument (`estFichierVitest`), un kit de test (`estKitDeTest`) ou un fichier hors `estModule`
  * n'en est pas un. PUR.
  */
 export function modulesQuiMesurent(fichiers: Iterable<{ rel: string; text: string }>): string[] {
   const ts = typescript();
   const estExporte = (st: { modifiers?: readonly { kind: number }[] }) => Boolean(st.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
-  const candidats = [...fichiers].filter((f) => estModule(f.rel) && !/\.d\.[cm]?ts$/.test(f.rel) && !estFichierVitest(f.rel));
+  const candidats = [...fichiers].filter((f) => estModule(f.rel) && !/\.d\.[cm]?ts$/.test(f.rel) && !estFichierVitest(f.rel) && !estKitDeTest(f.rel));
   const vus: string[] = [];
   for (const { fichier, sourceFile } of analyserCorpus(candidats)) {
     const exporte = sourceFile?.statements.some((st) => {

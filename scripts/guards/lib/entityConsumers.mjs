@@ -74,7 +74,7 @@ import { fileURLToPath } from 'node:url';
 import { listerArbre, listerDossier } from './lister.mjs';
 import { dirname, join } from 'node:path';
 import { dossierDesProjetsLivres, listerProjetsLivres } from './projetsLivres.mjs';
-import { estFichierVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { analyserCorpus, typescript } from './dialecte.mjs';
 import { DECROISSANT } from './stockDeSites.mjs';
 
@@ -197,11 +197,11 @@ function isGeneratedFile(path, text) {
   return /GÉNÉRÉ[\s\S]{0,120}?NE PAS ÉDITER/i.test(head);
 }
 
-/** Fichiers `.ts(x)` de PRODUCTION sous `srcDir`, hors fichiers GÉNÉRÉS, `{ rel, chemin, text }` (`rel`
+/** Fichiers `.ts(x)` de PRODUCTION sous `srcDir`, hors instruments et kits de test (`fichierVitest.mjs`) et fichiers GÉNÉRÉS, `{ rel, chemin, text }` (`rel`
  *  RELATIF à `srcDir`), en ORDRE TOTAL : l'ordre décide de celui des sites `recognized` et des clés
  *  `clesDObjet`, donc du `.md` rendu. */
 function fichiersDeProduction(srcDir) {
-  return listerArbre(srcDir, { filtre: (rel) => /\.(ts|tsx)$/.test(rel) && !estFichierVitest(rel) })
+  return listerArbre(srcDir, { filtre: (rel) => /\.(ts|tsx)$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel) })
     .map((rel) => { const chemin = join(srcDir, rel); return { rel, chemin, text: readFileSync(chemin, 'utf8') }; })
     .filter(({ chemin, text }) => !isGeneratedFile(chemin, text));
 }

@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { reglesCss, FEUILLES_PARTAGEES } from '../../scripts/guards/lib/cssCouches.mjs';
 import { OWNERS } from '../../scripts/guards/lib/marqueursPossedes.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -182,7 +182,7 @@ function classesDefiniesPar(cssRel: string): Set<string> {
 function posesParFichier(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
   for (const { rel, text } of readCorpus(['src'], { exts: ['.tsx'] })) {
-    if (estFichierVitest(rel)) continue;
+    if (estFichierVitest(rel) || estKitDeTest(rel)) continue;
     for (const m of stripComments(text).matchAll(/className\s*=\s*(\{[\s\S]*?\}|"[^"]*"|'[^']*'|`[^`]*`)/g)) {
       for (const seg of m[1].matchAll(/(["'`])([^"'`]*)\1/g)) {
         for (const tok of seg[2].split(/[\s${}]+/)) {
@@ -224,7 +224,7 @@ function mentionsDuTexte(text: string): string[] {
 function mentionsParFichier(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
   for (const { rel, text } of readCorpus(['src'], { exts: ['.tsx', '.ts'] })) {
-    if (estFichierVitest(rel)) continue;
+    if (estFichierVitest(rel) || estKitDeTest(rel)) continue;
     for (const tok of mentionsDuTexte(text)) {
       if (!out.has(tok)) out.set(tok, new Set());
       out.get(tok)!.add(rel);

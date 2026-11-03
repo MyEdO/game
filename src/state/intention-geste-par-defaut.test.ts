@@ -23,7 +23,7 @@ import { runAction } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
-/** Même combat témoin que `intention-portee.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
+/** Même combat témoin que `intention-portee.hors-store.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });

@@ -20,7 +20,7 @@
 import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
-import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { basename } from 'node:path'
 import { loadSource, findAlias, aliasDoc, readUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
@@ -131,7 +131,7 @@ function rendu() {
   function fichiersSources(dir, exts) {
     return listerArbre(dir, {
       descendre: (rel) => !rel.split('/').includes('node_modules'),
-      filtre: (rel) => exts.some((x) => rel.endsWith(x)) && !estFichierVitest(rel),
+      filtre: (rel) => exts.some((x) => rel.endsWith(x)) && !estFichierVitest(rel) && !estKitDeTest(rel),
     }).map((rel) => `${dir}/${rel}`)
   }
 

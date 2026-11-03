@@ -5,7 +5,7 @@
 //
 // SOURCE : un `.d.ts` n'en est pas une (aucun corps) — il est hors corpus SANS option (`EST_DECLARATION`).
 // Ni un INSTRUMENT Vitest : la suite `.test.` comme le banc `.bench.`, dans TOUS les dialectes lus
-// ici (`.ts`/`.tsx` de `src`, `.mts`/`.mjs` de `scripts/qc`). Le prédicat vit en UN exemplaire,
+// ici (`.ts`/`.tsx` de `src`, `.mts`/`.mjs` de `scripts/qc`), ni un KIT de test (`*.testkit.*`, `estKitDeTest`). Les prédicats vivent en UN exemplaire,
 // `fichierVitest.mjs` — ce corpus le CONSOMME, il n'en tient pas une seconde copie.
 //
 // FRONTIÈRE : cette lib LIT, MÉMOÏSE sa lecture et dit si une déclaration gardée s'applique à un
@@ -55,7 +55,7 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
 import { listerArbre } from './lister.mjs';
-import { estFichierVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { fileURLToPath } from 'node:url';
 
 /** Racine du dépôt : `scripts/guards/lib/` → `../../../`. */
@@ -69,13 +69,13 @@ const EST_DECLARATION = /\.d\.ts$/;
 
 /**
  * Le fichier est-il retenu par un corpus de ces options ? Le prédicat que `readCorpus` applique dans
- * sa marche : une extension de `exts`, un INSTRUMENT Vitest seulement sous `tests`, jamais un `.d.ts`.
+ * sa marche : une extension de `exts`, un INSTRUMENT Vitest ou un KIT de test seulement sous `tests`, jamais un `.d.ts`.
  * @param {string} nom nom ou chemin du fichier
  * @param {{ exts?: readonly string[], tests?: boolean }} [opts] mêmes défauts que `readCorpus`
  * @returns {boolean}
  */
 export function estRetenu(nom, { exts = ['.ts', '.tsx'], tests = false } = {}) {
-  return exts.some((e) => nom.endsWith(e)) && (tests || !estFichierVitest(nom)) && !EST_DECLARATION.test(nom);
+  return exts.some((e) => nom.endsWith(e)) && (tests || !estFichierVitest(nom) && !estKitDeTest(nom)) && !EST_DECLARATION.test(nom);
 }
 
 /**
@@ -120,7 +120,7 @@ export function entreeDe(p) {
  *   Windows `SRC/x` est une clé distincte, donc un mémo manqué, jamais un corpus faux.
  * @param {{ exts?: string[], tests?: boolean }} [opts] `exts` = extensions retenues
  *   (défaut `.ts`/`.tsx`) ; `tests` = garder les INSTRUMENTS Vitest — suites `.test.` ET bancs
- *   `.bench.`, tous dialectes (`estFichierVitest`, `fichierVitest.mjs`) — (défaut : non). L'option
+ *   `.bench.`, tous dialectes (`estFichierVitest`, `fichierVitest.mjs`), et KITS de test (`estKitDeTest`) — (défaut : non). L'option
  *   INCLUT exactement ce que le filtre exclut : un seul prédicat décide des deux côtés. Les `*.d.ts`
  *   sont hors corpus, sans option (cf. `EST_DECLARATION`).
  * @returns {ReadonlyArray<Readonly<{ abs: string, rel: string, text: string }>>} gelé, `rel` =

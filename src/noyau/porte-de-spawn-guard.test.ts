@@ -11,14 +11,14 @@
 import { describe, it, expect } from 'vitest';
 import { appelReserve, constructionsReserveesDuCorpus, scanConstructionsReservees } from '../../scripts/guards/lib/canonUnique.mjs';
 import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 const FOYER = 'src/noyau/monde/spawn.ts';
 
 const PORTE_DE_SPAWN = [{
   ...appelReserve({ nom: 'constructeur hors de la porte de spawn', fonctions: { [FOYER]: ['creatureToCombatant', 'statblockToCombatant'] } }),
   foyer: FOYER,
-  domaine: (rel: string) => !estFichierVitest(rel),
+  domaine: (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel),
 }];
 
 const IMPORTE = "import { creatureToCombatant, statblockToCombatant } from './spawn';\n";
