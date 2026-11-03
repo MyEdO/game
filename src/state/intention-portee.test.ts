@@ -7,32 +7,20 @@
  * selectionner volontairement depuis l'interface. Car actuellement pour charger, il est difficile de
  * connaitre la distance. »
  *
- * Ce que cette sonde mesure, dans cet ordre :
- *  (a) la portée peinte est EXACTEMENT celle du moteur (Course, Charge, Mouvement) — jamais un calcul
- *      parallèle ; la bande de Charge vaut `chargeReach` = 2×M cases (LDB 15 l.35-37, la Course du
- *      Tableau des Mouvements, LDB 15 l.18-31) ;
- *  (b) l'annulation : Échap (registre clavier) ET re-clic de la case ;
- *  (c) LA NON-RÉGRESSION : sans intention armée, le clic-case et le clic-ennemi font EXACTEMENT ce
- *      qu'ils faisaient (aperçu au 1ᵉʳ tap, attaque sur l'ennemi) ; avec intention, le même clic
- *      commet et l'intention se dissout ;
- *  (d) COOP : l'intention est LOCALE — elle survit au snapshot de l'hôte, ne voyage pas dans ce
- *      snapshot, et son armement n'est pas un intent réseau.
+ * Ce que cette sonde mesure, côté web : la vue de surbrillance du champ (`combatHighlightsView`) peint
+ * la portée du moteur, et Échap (registre clavier `intent-cancel`) dissout l'intention. Le reste du
+ * patron se joue au banc du noyau (`src/noyau/intention-portee.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { computeChargeReach, computeRunReach, displayedReach } from '../noyau/combatFlow';
+import { computeRunReach } from '../noyau/combatFlow';
 import { intentReach, armedIntentPortee } from '../noyau/localIntent';
 import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
 import type { HighlightsView } from '../gameIso/builders/highlights';
 import { runAction } from '../noyau/actionRegistry';
 import { runBindingById } from './clavier/keybindings';
-import { applyNetSnapshot } from './netFlow';
-import { instantaneDeLaCoop } from '../noyau/coop';
-import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
-import { chargeReach } from '../engine/movement';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { effectiveMovement } from '../engine/encumbrance';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
@@ -49,12 +37,6 @@ function setup() {
   const turn = b.order.indexOf(H.id);
   useGame.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false, preview: null }, localIntent: null });
   return { H, E: b.combatants.find((c) => c.kind === 'enemy')! };
-}
-
-/** Première case atteignable à la distance `d` exactement. */
-function pickAtDist(reach: Map<string, number>, d: number): { x: number; y: number } {
-  for (const [k, v] of reach) if (v === d) { const [x, y] = k.split(',').map(Number); return { x, y }; }
-  throw new Error(`aucune case atteignable à distance ${d}`);
 }
 
 const get = () => useGame.getState();
@@ -82,37 +64,6 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
     const vue = vueDuChamp();
     expect([...vue.runReach.keys()].sort()).toEqual([...attendu.keys()].sort());
     expect(intentReach(get).size, 'la Course peint sa zone DEUX fois').toBe(0);
-  });
-
-  it('Charge armée → la bande peinte EST `computeChargeReach`, de rayon `chargeReach` = 2×M', () => {
-    const { H } = setup();
-    const M = effectiveMovement(H);
-    runAction('charge', get);
-    const bande = intentReach(get);
-    expect([...bande.keys()].sort()).toEqual([...computeChargeReach(get).keys()].sort());
-    // La bande DÉBORDE la Marche : c'est tout l'objet du bouton (« difficile de connaître la distance »).
-    expect(chargeReach(M)).toBe(2 * M);
-    expect(Math.max(...bande.values())).toBeGreaterThan(Math.max(...displayedReach(get).values()));
-    expect(Math.max(...bande.values())).toBeLessThanOrEqual(chargeReach(M));
-  });
-
-  it('Mouvement armé → la bande peinte EST la portée de Marche affichée', () => {
-    setup();
-    runAction('mouvement', get);
-    expect([...intentReach(get).keys()].sort()).toEqual([...displayedReach(get).keys()].sort());
-  });
-
-  it('Attaque armée → AUCUNE bande de cases : sa portée se lit aux bandes de tir existantes', () => {
-    setup();
-    runAction('attaque', get, { attackId: 'arme' });
-    expect(armedIntentPortee(get)).toBe('portee-arme');
-    expect(intentReach(get).size).toBe(0);
-  });
-
-  it('aucune intention → aucune bande (la portée d’intention ne se peint QUE sur demande)', () => {
-    setup();
-    expect(get().localIntent).toBeNull();
-    expect(intentReach(get).size).toBe(0);
   });
 
   // INVARIANT TRANSVERSE : aucune intention qui porte SA bande de cases ne se peint VIDE. La SURFACE
@@ -156,96 +107,5 @@ describe('(b) annulation', () => {
     runBindingById('intent-cancel', get);
     expect(get().localIntent).toBeNull();
     expect(intentReach(get).size).toBe(0);
-  });
-
-  it('re-clic de la MÊME case dissout l’intention (bascule)', () => {
-    setup();
-    runAction('course', get);
-    runAction('course', get);
-    expect(get().localIntent).toBeNull();
-  });
-
-  it('armer une AUTRE intention remplace la première (une seule à la fois)', () => {
-    setup();
-    runAction('course', get);
-    runAction('charge', get);
-    expect(get().localIntent).toEqual({ actionId: 'charge' });
-  });
-
-  it('le tour qui s’achève emporte l’intention', () => {
-    setup();
-    runAction('charge', get);
-    get().battleEndTurn();
-    expect(get().localIntent).toBeNull();
-  });
-});
-
-describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas', () => {
-  it('SANS intention, un clic-case non confirmé reste un APERÇU (le héros ne bouge pas)', () => {
-    const { H } = setup();
-    const dest = pickAtDist(displayedReach(get), 2);
-    get().battleClickTile(dest);
-    const h = get().battle!.combatants.find((c) => c.id === H.id)!;
-    expect(h.pos).toEqual({ x: 6, y: 10 }); // rien n'a bougé
-    expect(get().battle!.preview).toMatchObject({ kind: 'move', tile: dest });
-  });
-
-  it('SANS intention, un clic-case CONFIRMÉ déplace, comme avant', () => {
-    const { H } = setup();
-    const dest = pickAtDist(displayedReach(get), 2);
-    get().battleClickTile(dest, { confirm: true });
-    expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
-    expect(get().battle!.movementUsed).toBe(2);
-  });
-
-  it('SANS intention, un clic-ennemi au contact ouvre l’attaque, comme avant', () => {
-    const { H, E } = setup();
-    E.pos = { x: H.pos!.x + 1, y: H.pos!.y };
-    get().battleClickEntity(E.id, { confirm: true });
-    expect(get().pendingAttack).toMatchObject({ attackerId: H.id, targetId: E.id });
-  });
-
-  it('AVEC intention, le MÊME clic commet le geste et dissout l’intention', () => {
-    const { H } = setup();
-    const dest = pickAtDist(displayedReach(get), 2);
-    runAction('mouvement', get);
-    get().battleClickTile(dest); // pas de `confirm` : l'intention armée VAUT confirmation
-    expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
-    expect(get().localIntent, 'l’intention doit se dissoudre au commit').toBeNull();
-  });
-
-  it('AVEC intention de Course, le clic d’une case LOINTAINE part en Course réelle (Test de `course`)', () => {
-    setup();
-    const marche = displayedReach(get);
-    const course = computeRunReach(get);
-    const loin = [...course.keys()].find((k) => !marche.has(k))!;
-    const [x, y] = loin.split(',').map(Number);
-    runAction('course', get);
-    get().battleClickTile({ x, y });
-    expect(get().pendingRun ?? get().pendingCascade, 'la Course réelle n’a pas démarré').toBeTruthy();
-    expect(get().localIntent).toBeNull();
-  });
-});
-
-describe('(d) COOP : l’intention est LOCALE au client', () => {
-  it('un snapshot de l’hôte NE TUE PAS l’intention armée', () => {
-    setup();
-    runAction('charge', get);
-    const snap = JSON.parse(JSON.stringify({ ...instantaneDeLaCoop(get()) })) as Record<string, unknown>;
-    applyNetSnapshot(useGame.setState, snap);
-    expect(get().localIntent, 'le snapshot a désarmé la case du client').toEqual({ actionId: 'charge' });
-  });
-
-  it('l’intention ne VOYAGE pas dans le snapshot (la case armée de l’hôte n’allume rien chez l’invité)', () => {
-    setup();
-    runAction('charge', get);
-    expect('localIntent' in instantaneDeLaCoop(get())).toBe(false);
-  });
-
-  it('l’ARMEMENT n’est pas un intent réseau (seul le COMMIT du geste en est un)', () => {
-    expect(GUEST_INTENTS).not.toContain('battleArmIntent');
-    // Le commit, lui, passe par les portes de clic déjà exposées.
-    expect(GUEST_INTENTS).toContain('battleClickTile');
-    expect(GUEST_INTENTS).toContain('battleClickEntity');
   });
 });
