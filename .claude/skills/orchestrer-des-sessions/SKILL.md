@@ -55,7 +55,12 @@ Doctrine : fiche `.claude/memory/user-doctrine-orchestrateur-de-sessions-max5.md
    `fermer` exige, et seul son hachage est stocké. Un jeton perdu laisse la session vivante, sans
    moyen de la fermer.
 3. **Veille** : `attendre <id> --timeout-ms <n> --suivre`, en fond, avec `n` ≤ 3600000 : au-delà, la
-   commande refuse aussitôt sans rien surveiller.
+   commande refuse aussitôt sans rien surveiller. La veille rend une transition (`type`, `seq`,
+   `curseur`) : Codex rend `fin` avec son rapport validé, ou `inactif` ; une session Claude rend
+   `inactif` à CHAQUE fin de tour (hook `Stop`), y compris quand elle attend ses agents, avec
+   `transcript` (son transcript natif, dont le dernier message assistant dit si elle a rendu). Sur
+   `inactif` d'une session qui n'a pas rendu, nouvelle veille `--depuis <curseur>`. À l'échéance, la
+   commande rend `indeterminee` (`ATTENTE TIMEOUT`, code 3) et sort.
 4. **Retour** : lis le rapport et ferme la session dans le même geste (`fermer <id>`, jeton par stdin
    `{"jeton":"…"}`). Une session n'est jamais gardée au repos : son cache refroidit. Le lot suivant part
    dans une session NEUVE, jamais par `--resume` ni par un message à une session rendue. `archiver`

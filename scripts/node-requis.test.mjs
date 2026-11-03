@@ -14,11 +14,17 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { clotureDImports } from './guards/lib/importGraph.mjs'
-import { CODE_DE_REFUS, refusDeVersion } from './node-requis.mjs'
+import { CODE_DE_REFUS, CODE_DE_REFUS_NON_BLOQUANT, DRAPEAU_REFUS_NON_BLOQUANT, refusDeVersion } from './node-requis.mjs'
 import { RACINE, DOSSIER_HOOKS, HOOKS_SHELL, HOOKS_AGENT, MODULES_HOOKS_AGENT, MODULES_PAR_HOOK, MODULES_LANCES } from './test/lib/bancNodeRequis.mjs'
 
 /** Claude Code : seul le code de sortie 2 d'un hook `PreToolUse` bloque l'outil. */
 const CODE_BLOQUANT_PRETOOLUSE = 2
+
+/** Le code de refus attendu d'un point d'entrée lancé avec `args`. */
+const codeAttendu = (args) => (args.includes(DRAPEAU_REFUS_NON_BLOQUANT) ? CODE_DE_REFUS_NON_BLOQUANT : CODE_DE_REFUS)
+
+/** Les arguments que la commande du hook d'agent `h` passe après son module. */
+const argumentsDeclares = (h) => { const mots = h.args ?? h.command.split(' '); return mots.slice(mots.findIndex((m) => m.endsWith(`scripts/hooks/${h.script}`)) + 1) }
 
 /** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
@@ -147,19 +153,41 @@ test('la porte refuse sous le code qui BLOQUE un hook d’agent `PreToolUse`', (
   }
 })
 
+test('la porte sous `DRAPEAU_REFUS_NON_BLOQUANT` refuse sous un code qui ne bloque pas un `Stop`, même message', () => {
+  const racine = arbreIntenable()
+  try {
+    const r = spawnSync(process.execPath, [join('scripts', 'node-requis.mjs'), DRAPEAU_REFUS_NON_BLOQUANT], { cwd: racine, env: envNu(), encoding: 'utf8' })
+    assert.equal(r.status, CODE_DE_REFUS_NON_BLOQUANT, r.stdout + r.stderr)
+    assert.notEqual(CODE_DE_REFUS_NON_BLOQUANT, CODE_BLOQUANT_PRETOOLUSE)
+    assert.match(r.stderr, REFUS)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('hooks d’agent `Stop` : chacun porte `DRAPEAU_REFUS_NON_BLOQUANT`, le littéral de `HOOKS_DE_SESSION` confronté à la porte', () => {
+  const stops = HOOKS_AGENT.filter((h) => h.phase === 'Stop')
+  assert.ok(stops.length, 'aucun hook Stop déclaré')
+  for (const h of stops) assert.ok(argumentsDeclares(h).includes(DRAPEAU_REFUS_NON_BLOQUANT), h.path)
+})
+
 test('hooks d’agent : lus sur `.claude/settings.json` et `.codex/hooks.json`, chaque commande lance un module de `scripts/hooks/`', () => {
   assert.deepEqual(HOOKS_AGENT.filter((h) => !h.script).map((h) => h.path), [])
   assert.ok(MODULES_HOOKS_AGENT.includes('scripts/hooks/repartiteur.mjs'), MODULES_HOOKS_AGENT.join('\n'))
 })
 
-test('chargement de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent sous un Node sans retrait de types : la porte refuse — `CODE_DE_REFUS`, son message, stdout vide', () => {
+test('chargement de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent (leurs arguments déclarés) sous un Node sans retrait de types : la porte refuse — `CODE_DE_REFUS`, ou `CODE_DE_REFUS_NON_BLOQUANT` sous son drapeau ; son message, stdout vide', () => {
   const racine = arbreDesModules()
+  const lancements = new Map([
+    ...MODULES_LANCES.filter((m) => !MODULES_HOOKS_AGENT.includes(m)).map((m) => [m, [m]]),
+    ...HOOKS_AGENT.filter((h) => h.script).map((h) => { const l = [`scripts/hooks/${h.script}`, ...argumentsDeclares(h)]; return [l.join(' '), l] }),
+  ])
   try {
-    for (const module of MODULES_LANCES) {
-      const r = spawnSync(process.execPath, ['--no-experimental-strip-types', module], { cwd: racine, env: envNu(), encoding: 'utf8' })
-      assert.equal(r.status, CODE_DE_REFUS, `${module} : ${r.stdout}${r.stderr}`)
-      assert.match(r.stderr, REFUS, module)
-      assert.equal(r.stdout, '', module)
+    for (const [nom, lancement] of lancements) {
+      const r = spawnSync(process.execPath, ['--no-experimental-strip-types', ...lancement], { cwd: racine, env: envNu(), encoding: 'utf8' })
+      assert.equal(r.status, codeAttendu(lancement), `${nom} : ${r.stdout}${r.stderr}`)
+      assert.match(r.stderr, REFUS, nom)
+      assert.equal(r.stdout, '', nom)
     }
   } finally {
     rmSync(racine, { recursive: true, force: true })
