@@ -21,9 +21,10 @@ from formes import STAGNATION_M, aux_noeuds, lisser, pas_laplacien, rapports, re
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
-from seuils import ETIREMENT_DES_CLES, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
-from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction,  # noqa: E402
-                         fondu, lisser_sous_correction, mesurer_domaine, refuser_les_inertes)
+from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
+from silhouettes import (ANNEAUX_AUX_PLIS, MARGE_AUX_PLIS, AnneauIndetectable, ComposanteSansAppui,  # noqa: E402
+                         ContraintesLiees, correction, fondu, fondu_aux_plis, lisser_sous_correction, marges_au_neutre,
+                         mesurer_domaine, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
@@ -788,6 +789,31 @@ class Fondu(unittest.TestCase):
         w = numpy.array([[0.0, 1.0], [MAJORITE_DU_POIDS, 1.0 - MAJORITE_DU_POIDS], [demi, 1.0 - demi]])
         libre = fondu(w, noms, {'pied'}, numpy.array([0, 0, 2]))
         self.assertTrue(numpy.allclose(libre, [0.0, 0.0, 0.5]))
+
+
+
+class Plis(unittest.TestCase):
+    """silhouettes.marges_au_neutre et silhouettes.fondu_aux_plis (#3104 issuecomment-6613477119)."""
+
+    def test_la_marge_se_mesure_sans_cle_posee(self):
+        clip = numpy.eye(4)
+        clip[:3, :3] *= 3
+        x, w, aretes, demandes, _, matrices, _ = arete_du_domaine(clip=clip)
+        marges = marges_au_neutre(w, x, aretes, [(demandes, matrices, (1,))])
+        self.assertAlmostEqual(marges[0], numpy.log(ETIREMENT_EN_CLIP[1] / 3))
+
+    def test_un_pli_tient_ses_noeuds_puis_rend_le_decalage_sur_ses_anneaux(self):
+        n = ANNEAUX_AUX_PLIS + 3
+        aretes = numpy.array([[k, k + 1] for k in range(n)])
+        marges = numpy.full(len(aretes), MARGE_AUX_PLIS)
+        marges[0] = MARGE_AUX_PLIS / 2
+        groupe = numpy.array([*range(n + 1), 2])
+        plis = fondu_aux_plis(aretes, marges, groupe)
+        self.assertTrue(numpy.all(plis[:2] == 0))
+        self.assertTrue(numpy.all(plis[ANNEAUX_AUX_PLIS + 2:n + 1] == 1))
+        self.assertTrue(numpy.all(numpy.diff(plis[:n + 1]) >= 0))
+        self.assertTrue(0 < plis[2] < 1)
+        self.assertEqual(plis[-1], plis[2])
 
 
 if __name__ == '__main__':

@@ -12,7 +12,8 @@
 - Extrémités invariantes : les pieds, les mains des prises et la tête (`extremites`) ; un sommet garde son décalage en
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
-  (`fondu`). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
+  (`fondu`). Aux plis, un sommet ne bouge pas non plus : nœuds des arêtes sans marge sous les clips du neutre, puis
+  fondu sur quelques anneaux (`fondu_aux_plis`, #3104 issuecomment-6613477119, #3294). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
   (`formes.lisser`, région pleine), fondu compris : aux facteurs non neutres, par les clés `gabarit_*` cuites sur les
   champs courants (`cuisson_gabarit.cuisson_des_champs`, #3104) ; puis, sans fondu neuf, en région locale jusqu'à
   `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres (#3104 issuecomment-6613477119, #3294).
@@ -28,6 +29,7 @@ Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
 """
 import json
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import numpy
@@ -39,13 +41,20 @@ from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, n
 from poids import deformer, etats_ponderes, extremes, jumeaux, peau_lineaire
 from cuisson_gabarit import cuisson_des_champs, groupes_de_peau
 from script_node import lancer
-from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS, SOL_TOLERANCE_M
+from seuils import ETIREMENT_EN_CLIP, INFLUENCES_MAX, MAJORITE_DU_POIDS, SOL_TOLERANCE_M
 
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
 PASSES_DE_LISSAGE = 400
 """Passes de lissage sous correction (`lisser_sous_correction`) au-delà desquelles la construction s'arrête : valeur
 d'ingénierie #3104 (147 passes mesurées sur la base `humanoide` le 2026-11-03)."""
+MARGE_AUX_PLIS = 0.7
+"""Marge au neutre en clip (`marges_au_neutre`) sous laquelle une arête est un pli que les silhouettes ne déplacent pas
+(`fondu_aux_plis`) : valeur d'ingénierie #3104 (capture r9 du 2026-11-03 : 220 arêtes hors bornes, 7 avec
+`ANNEAUX_AUX_PLIS` = 3, dont 2 déjà hors bornes au neutre)."""
+ANNEAUX_AUX_PLIS = 3
+"""Anneaux d'arêtes sur lesquels une silhouette reprend son décalage autour d'un pli (`fondu_aux_plis`) : valeur
+d'ingénierie #3104, mesurée avec `MARGE_AUX_PLIS`."""
 
 
 def bornes_de_st():
@@ -88,6 +97,35 @@ def fondu(w, noms, extremes, groupe):
     noeud = numpy.ones(groupe.max() + 1)
     numpy.minimum.at(noeud, groupe, sommet)
     return noeud[groupe]
+
+
+def marges_au_neutre(w, x, aretes, groupes):
+    """Par arête de `aretes`, sa marge à `ETIREMENT_EN_CLIP` sous les clips de `groupes` (`[(domaine, matrices, clips)]`),
+    aucune clé posée : le plus petit des logarithmes du rapport le plus bas sur la borne basse et de la borne haute sur
+    le rapport le plus haut ; négative hors des bornes."""
+    bas, haut = extremes(w, aretes, etats_ponderes(x, defaultdict(float), groupes))
+    with numpy.errstate(divide='ignore'):
+        return numpy.minimum(numpy.log(bas.min(axis=0) / ETIREMENT_EN_CLIP[0]),
+                             numpy.log(ETIREMENT_EN_CLIP[1] / haut.max(axis=0)))
+
+
+def fondu_aux_plis(aretes, marges, groupe):
+    """Par sommet, la part de son décalage qu'il garde aux plis (#3104 issuecomment-6613477119, #3294) : 0 sur les nœuds
+    des arêtes de `aretes` dont la marge au neutre (`marges`, `marges_au_neutre`) est sous `MARGE_AUX_PLIS`, puis
+    `lisse(0, 1)` de la distance en arêtes rapportée à `ANNEAUX_AUX_PLIS` + 1 ; un sommet prend la part de son nœud
+    (`groupe`, `poids.jumeaux`)."""
+    distance = numpy.full(groupe.max() + 1, ANNEAUX_AUX_PLIS + 1.0)
+    front = numpy.zeros(len(distance), dtype=bool)
+    front[aretes[marges < MARGE_AUX_PLIS].ravel()] = True
+    distance[front] = 0
+    for k in range(1, ANNEAUX_AUX_PLIS + 1):
+        voisins_du_front = numpy.zeros(len(distance), dtype=bool)
+        voisins_du_front[aretes[front[aretes[:, 0]], 1]] = True
+        voisins_du_front[aretes[front[aretes[:, 1]], 0]] = True
+        front = voisins_du_front & (distance > k)
+        distance[front] = k
+    t = distance / (ANNEAUX_AUX_PLIS + 1)
+    return (t * t * (3 - 2 * t))[groupe]
 
 
 def ramener(rig, rig_source, noms):
@@ -387,39 +425,43 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     groupe = jumeaux(x)
-    libre = fondu(w, noms, extremites(squelette), groupe)
     repos = positions(corps.data)
     aretes = aretes_des_triangles(corps, groupe)
     cles = [nom for nom in SILHOUETTES if nom in noms_des_cles(corps)]
     rapports_de_st = rapports_de_carrure(table['st'])
     bruts = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in cles}
-    for nom, (brut, _) in bruts.items():
-        r = rapports(repos, brut * libre[:, None], aretes)
-        print('SILHOUETTE', nom, 'brute sous le fondu : rapports au repos', round(float(r.min()), 4),
-              round(float(r.max()), 3), flush=True)
     lus = anneaux(squelette, corps, x, w, noms)
     print('ANNEAUX', len(lus['anneaux']), '; le plus épais', lus['anneaux'][lus['lePlusEpais']]['os'],
           round(lus['anneaux'][lus['lePlusEpais']]['rayon'], 4), 'm ;',
           ' '.join(f"{a['os']}:{len(a['sommets'])}" for a in lus['anneaux']), flush=True)
-    corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
     vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
 
     def groupes(piles, cellules):
         return [({'etats': jeu, 'cellulesSilhouettes': cellules}, matrices, longueurs) for jeu, matrices, longueurs in piles]
 
-    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles):
-        repos = groupes(piles, etats['cellulesSilhouettes'])
-        au_repos = mesurer_domaine(w, x, aretes, repos, vers_le_monde, cuisson_des_champs(squelette, corps, table))
+    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles), \
+            groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
+        du_repos = groupes(piles, etats['cellulesSilhouettes'])
+        domaine = du_repos + groupes(piles_des_clips, etats_des_clips['cellulesSilhouettes'])
+        plis = fondu_aux_plis(aretes, marges_au_neutre(w, x, aretes, domaine), groupe)
+        libre = fondu(w, noms, extremites(squelette), groupe) * plis
+        print('SILHOUETTES plis : sommets tenus', int((plis == 0).sum()), 'en fondu', int(((plis > 0) & (plis < 1)).sum()),
+              flush=True)
+        for nom, (brut, _) in bruts.items():
+            r = rapports(repos, brut * libre[:, None], aretes)
+            print('SILHOUETTE', nom, 'brute sous le fondu : rapports au repos', round(float(r.min()), 4),
+                  round(float(r.max()), 3), flush=True)
+        corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
+        derivees = cuisson_des_champs(squelette, corps, table)
+        au_repos = mesurer_domaine(w, x, aretes, du_repos, vers_le_monde, derivees)
         pleins = lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, au_repos, 'pleine')
-        with groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
-            domaine = repos + groupes(piles_des_clips, etats_des_clips['cellulesSilhouettes'])
-            en_clip = mesurer_domaine(w, x, aretes, domaine, vers_le_monde, cuisson_des_champs(squelette, corps, table))
-            finis = lisser_sous_correction({nom: (d, bruts[nom][1]) for nom, d in pleins.items()}, groupe, aretes,
-                                           (libre > 0).astype(numpy.float64), corriger, vers_le_monde, en_clip, 'locale')
+        en_clip = mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees)
+        finis = lisser_sous_correction({nom: (d, bruts[nom][1]) for nom, d in pleins.items()}, groupe, aretes,
+                                       (libre > 0).astype(numpy.float64), corriger, vers_le_monde, en_clip, 'locale')
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',
-              round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; extrémités',
+              round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; tenus',
               round(float(numpy.linalg.norm(d[libre == 0], axis=1).max(initial=0)), 6), 'm', flush=True)
     print('SILHOUETTES sommets invariants', int((libre == 0).sum()), 'en fondu', int(((libre > 0) & (libre < 1)).sum()),
           'sur', len(libre), flush=True)
