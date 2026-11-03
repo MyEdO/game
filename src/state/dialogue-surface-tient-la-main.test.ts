@@ -1,19 +1,14 @@
 /**
- * UNE SURFACE TIENT LA MAIN → la conversation attend (#1869 correctif 2, condition 1).
- *
- * Une réponse ne se choisit que si la conversation est CE QUE LE JOUEUR A SOUS LES YEUX. Le verdict
- * « une surface tient la main » vit à l'ARBITRE (`surfaceTientLaMain`, `noyau/modalArbiter.ts`),
- * dérivé de ses registres ; `conversationRepond` le consomme, donc le VERBE et les touches
- * `dialogue-choice-N` avec lui.
- *
- * Contrats POSITIFS, un par surface : sous chacune la conversation ne répond pas ; au témoin, elle
- * répond. Puis la question du juge, jouée par le store et le dispatcher RÉEL des touches
- * (`runBindingById`) sur la donnée committée : une réponse qui ouvre une fenêtre en RESTANT au nœud.
+ * UNE SURFACE TIENT LA MAIN → la conversation attend (#1869 correctif 2, condition 1), côté web : un écran PAR SIÈGE
+ * de l'adaptateur (fiche, menu système, codex) ne refuse pas la réponse de l'invité qui décide, et la question du juge,
+ * jouée par le store et le dispatcher RÉEL des touches (`runBindingById`) sur la donnée committée : une réponse qui
+ * ouvre une fenêtre en RESTANT au nœud. Le verdict par surface se joue au banc du noyau
+ * (`src/noyau/dialogue-surface-tient-la-main.hors-store.test.ts`).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { GameState } from './store';
-import { conversationRepond, ouvrirDialogue } from '../noyau/dialogue';
+import { ouvrirDialogue } from '../noyau/dialogue';
 import { runBindingById } from './clavier/keybindings';
 import { withActingSeat } from '../noyau/netOwnership';
 import { parseProject } from '../noyau/worldMap';
@@ -42,55 +37,6 @@ function temoin(over: Partial<GameState> = {}) {
   } as Partial<GameState>);
 }
 
-const repond = () => conversationRepond(useGame.getState());
-
-describe('conversationRepond — une surface qui tient la main suspend la conversation', () => {
-  beforeEach(() => temoin());
-
-  it('témoin : la conversation est à l’écran, elle répond', () => {
-    expect(repond()).toBe(true);
-  });
-
-  it('marché ouvert : elle attend', () => {
-    temoin({ merchant: { entityId: 'forgeron' } as GameState['merchant'] });
-    expect(repond()).toBe(false);
-  });
-
-  it('butin (fenêtre hors-modale) : elle attend', () => {
-    temoin({ pendingLoot: { title: 'Butin', money: { gold: 0, silver: 1, brass: 0 } } as unknown as GameState['pendingLoot'] });
-    expect(repond()).toBe(false);
-  });
-
-  it('jeux de taverne ouverts : elle attend', () => {
-    temoin({ tavernGames: { result: null } as GameState['tavernGames'] });
-    expect(repond()).toBe(false);
-  });
-
-  it('document ouvert : elle attend', () => {
-    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
-    expect(repond()).toBe(false);
-  });
-
-  it('écran plein (écran de groupe) : elle attend', () => {
-    temoin({ screen: 'party' });
-    expect(repond()).toBe(false);
-  });
-
-  it('carte du monde, port, marché de terre (exploration) : elle attend', () => {
-    temoin({ worldMapOpen: true });
-    expect(repond()).toBe(false);
-    temoin({ port: {} as GameState['port'] });
-    expect(repond()).toBe(false);
-    temoin({ landMarket: {} as GameState['landMarket'] });
-    expect(repond()).toBe(false);
-  });
-
-  it('file de journal ou commande d’interlude en souffrance : aucune surface, elle répond', () => {
-    temoin({ pendingLogQueue: [{ line: 'x' }], pendingOrders: [{ heroId: 'h', trappingId: 't' }] });
-    expect(repond()).toBe(true);
-  });
-});
-
 describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse de l’invité qui décide', () => {
   // L'invité (siège 1) tient la décision de groupe ; l'hôte applique son intent DANS SON store.
   // Une surface par siège de l'hôte (fiche, menu système, codex) est SON écran : elle ne lit pas le
@@ -105,10 +51,6 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
     expect(repondreCommeInvite({ sheetId: 'h1' })).toBe('n2');
     expect(repondreCommeInvite({ gameMenuOpen: true })).toBe('n2');
     expect(repondreCommeInvite({ codexOverlay: { key: 'skills', id: 'intuition' } as unknown as GameState['codexOverlay'] })).toBe('n2');
-  });
-
-  it('document PARTAGÉ ouvert : la réponse de l’invité attend', () => {
-    expect(repondreCommeInvite({ document: { title: 'Lettre', text: '…', remise: 1 } })).toBe('n1');
   });
 });
 

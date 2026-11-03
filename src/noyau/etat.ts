@@ -85,7 +85,7 @@ export interface BattleState {
    *  `battleFocusSpell`→`pendingFocus`, `battleUseItem`, `battlePickup`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
    *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
-   *  parité gardée par `src/state/action-atteignabilite.test.ts`. */
+   *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
   selectedSpellId: string | null;
