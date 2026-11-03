@@ -12,13 +12,14 @@ import { siegeMultiplier } from '../engine/structures';
  * LDB 62 : Allonge = mêlée, Portée = distance en mètres). SOURCE UNIQUE consommée par le Sac
  * (`CharacterSheet`), l'encart « En main » et le popover d'arme (`EquipmentPanel`) — fin des trois copies
  * dont deux affichaient « [object Object] » (un `WeaponDamageSpec` / `reach` brut non routé par `damageString`).
- * Marche pour un `ItemInstance` (Sac/popover) comme pour un `Weapon` dérivé (armes EN MAIN). `strBonus` = BF
- * du porteur, injecté dans les Dégâts résolus ET la Portée (arme de jet `{bf}` → BF×N) ; « Spécial » → total 0.
+ * Marche pour un `ItemInstance` (Sac/popover) comme pour un `Weapon` dérivé (armes EN MAIN). `force` = BF
+ * du porteur (`forceDuPorteur`), injecté dans les Dégâts résolus ET la Portée (arme de jet `{bf}` → BF×N) ;
+ * « Spécial » → total 0.
  */
-export function weaponStatParts(it: ItemInstance | Weapon, strBonus: number): string[] {
+export function weaponStatParts(it: ItemInstance | Weapon, force: { bf: number; passif: number }): string[] {
   const parts: string[] = [];
-  if (it.damage) parts.push(`Dégâts ${damageString(it.damage)} (${effectiveWeaponDamage(it as Weapon, strBonus)})`);
-  const rangeM = effectiveRange(it.range, strBonus); // SPEC → mètres (BF×N pour une arme de jet)
+  if (it.damage) parts.push(`Dégâts ${damageString(it.damage)} (${effectiveWeaponDamage(it as Weapon, force)})`);
+  const rangeM = effectiveRange(it.range, force.bf); // SPEC → mètres (BF×N pour une arme de jet)
   if (rangeM != null) parts.push(`Portée ${rangeM} m`);
   else if (it.reach) parts.push(`Allonge ${it.reach}`);
   const note = conditionalDamageNote(it as QualityCarrier & { damage?: WeaponDamageSpec | null; onHitEffects?: TriggeredEffect[] });

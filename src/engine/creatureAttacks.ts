@@ -31,6 +31,8 @@ export interface CreatureAttack {
   label: string;
   /** Indice de Dégâts (« +N », BF inclus) si présent, sinon 0 — lu de l'INSTANCE du trait. */
   bonus: number;
+  /** L'Indice `bonus` inclut déjà le BF du porteur (`TraitData.bfInclus`), lu par `freeAttackWeapon`. */
+  bfInclus?: true;
   /** Alias explicite de `bonus` pour la résolution de Dégâts (`{indiceOf}`) — l'Indice de la manœuvre. */
   indice: number;
   /** Comment l'attaque se déclenche (dérivé de `def.activation`). */
@@ -159,6 +161,7 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
         ...(def.targeting === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
         ...(def.kind === 'tentacules' ? { perTentacle: true } : {}),
         ...(inst.confere?.length ? { confere: inst.confere } : {}),
+        ...(inst.value != null && findTraitById(inst.id)?.bfInclus ? { bfInclus: true as const } : {}),
       });
     }
   }

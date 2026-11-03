@@ -20,7 +20,7 @@ describe('effectiveWeapon — combat au contact (LDB 62 l.176)', () => {
     expect(r.damage).toEqual({ plusBF: true, flat: 1 });
     expect(r.qualities).toEqual([{ id: 'inoffensive' }]);
     expect(hasQuality(r, 'empaleuse')).toBe(false);
-    expect(effectiveWeaponDamage(r, 4)).toBe(5); // BF4 + 1
+    expect(effectiveWeaponDamage(r, { bf: 4, passif: 0 })).toBe(5); // BF4 + 1
   });
   it('Très longue / Moyenne (> Courte) au contact → improvisée', () => {
     expect(effectiveWeapon(w('Très longue'), { auContact: true }).damage).toEqual({ plusBF: true, flat: 1 });

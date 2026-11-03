@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { ev } from '../noyau/combatLog';
 import { resultLine, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { progresDeDissipation } from '../noyau/progresEtendu';
 import { t } from '../i18n';
 
 /**
@@ -29,9 +30,9 @@ export function DispelModal() {
   if (!pd) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pd.casterId);
   if (!caster) return null;
-  const prev = caster.dispel?.spellId === pd.spellId && caster.dispel.spellCasterId === pd.spellCasterId ? caster.dispel.total : 0;
   const r = pd.result;
-  const cum = Math.min(pd.ni, prev + (r?.sl ?? 0));
+  const { prev, step } = progresDeDissipation(pd, caster);
+  const cum = Math.min(pd.ni, step?.total ?? prev);
   // Soutien de dissipation à plusieurs (LDB 12) et composantes de la valeur de Test (États, séquelles,
   // passifs, effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu
   // (LDB 09 l.17). Compétence testée = celle que `battleDispelSpell`/`oocDispelSpell` roulent.
@@ -78,7 +79,7 @@ export function DispelModal() {
       /* La PROGRESSION (DR du Round, cumul vers le NI) vit dans ses zones : ✓/✗ ±DR sur la ligne de
          jet, cumul/cible sur la barre de DR de la rangée. Reste à l'issue le seul fait que rien
          d'autre n'énonce — le sort a cédé. */
-      outcome={r && cum >= pd.ni ? [recapLineOfEvent(
+      outcome={step?.done ? [recapLineOfEvent(
         ev('cast', resultLine(freeCons([`${caster.label} — ${pd.label} est dissipé !`])), caster.id),
         battle?.combatants ?? party,
       )] : undefined}

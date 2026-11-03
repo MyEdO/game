@@ -155,7 +155,7 @@ import {
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
-import { effectiveChar, bonus, bonusDeForce } from '../engine/characteristics';
+import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
@@ -970,7 +970,7 @@ export function previewAttack(
     : combatDistance(attacker, target);
   // Estimation de dégâts (R4) : dégâts d'arme (Force incluse) et encaissé de la cible. Le `soak` est dérivé
   // de `woundsFromHit` (oracle) avec un dégât large → capture exactement PA + réduction d'armure (Perforante…).
-  const dmg = effectiveWeaponDamage(weapon, bonusDeForce(attacker));
+  const dmg = effectiveWeaponDamage(weapon, forceDuPorteur(attacker));
   const base = combatValue(attacker, kind, weapon);
   const loc = location ?? 'corps';
   const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
@@ -3255,7 +3255,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   // L'arme BRISÉE disparaît des mains du porteur : le journal le dit UNE fois, par la PREMIÈRE cause
   // (Bâclé ici, sinon la ligne de l'Incident), sans quoi elle s'évapore en silence.
   if (casse === 'brisee' && hasQuality(weapon, 'bacle')) log.push(tr('store.toolBroken', { tool: weapon.label, name: c.label }));
-  const sb = bonusDeForce(c);
+  const force = forceDuPorteur(c);
   const units = r.roll % 10;
   switch (r.kind) {
     case 'selfWound':
@@ -3287,7 +3287,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (allies.length) {
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
-        const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1 (l.165)
+        const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1 (l.165)
         ally.wounds.current = Math.max(0, ally.wounds.current - lost);
         if (ally.wounds.current <= 0) applyZeroWounds(ally);
         log.push(tr('cf.fumbleHitAlly', { name: ally.label, loc: locationLabel(loc, ally.bodyShape), lost }));
@@ -3298,7 +3298,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
     case 'misfire': {
-      const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1
+      const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1
       c.wounds.current = Math.max(0, c.wounds.current - lost);
       if (c.wounds.current <= 0) applyZeroWounds(c);
       log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.fumbleMisfireDetruite' : 'cf.fumbleMisfire', { lost }));
@@ -3311,7 +3311,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           .map((id) => inBattleId(battle, id))
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
-          const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size);
+          const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
           s.wounds.current = Math.max(0, s.wounds.current - sLost);
           if (s.wounds.current <= 0) applyZeroWounds(s);
           log.push(tr('cf.fumbleMisfireCrew', { name: s.label, lost: sLost }));
@@ -3337,7 +3337,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         for (let i = 0; i < salve.hits; i++) {
           for (const s of salveCrew) {
             const loc: HitLocation = salve.entry.location === 'brasPrincipal' ? 'brasD' : hitLocationByShape(reverseRoll(battleRng().int(1, 100)), s.bodyShape);
-            const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, sb) + battleRng().int(0, 9), 0, 1, c.size);
+            const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, force) + battleRng().int(0, 9), 0, 1, c.size);
             s.wounds.current = Math.max(0, s.wounds.current - sLost);
             if (s.wounds.current <= 0) applyZeroWounds(s);
             log.push(tr('cf.artillerySalveHit', { name: s.label, lost: sLost, loc: locationLabel(loc, s.bodyShape) }));
@@ -6416,7 +6416,7 @@ function domainBreathType(caster: Combatant): string | undefined {
 export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: string | null }): number {
   const cb = findDomainById(spell.domainId)?.castBonus;
   if (!cb || !caster.pos) return 0;
-  const radius = Math.max(1, Math.ceil(bonus(effectiveChar(caster, cb.radiusStat)) / 2));
+  const radius = Math.max(1, Math.ceil(bonusDe(caster, cb.radiusStat) / 2));
   let pions = 0;
   for (const c of s.battle?.combatants ?? []) {
     if (!c.pos || isOutOfAction(c)) continue;
@@ -7832,7 +7832,7 @@ interface CombatPsychRowMeta { prevDR: number; sansPeur: boolean }
 
 /** Charge utile d'une RANGÉE, avec ses défauts neutres (aucun cumul, aucun allègement). */
 function psychRowMeta(part: BatchParticipant): CombatPsychRowMeta {
-  return { prevDR: Number(part.meta?.prevDR ?? 0), sansPeur: !!part.meta?.sansPeur };
+  return { prevDR: part.extendedDrDone ?? 0, sansPeur: !!part.meta?.sansPeur };
 }
 
 /** Un Test de Psychologie de combat DÛ par un héros, avant regroupement : la déclaration de règle qui
@@ -7865,7 +7865,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       // La calculer à la main ici l'oubliait : un héros Brisé ×2 testait sa Peur à pleine valeur.
       ...rollStep({ actor: c, test: { skill: skill.id, spec: skill.spec }, combat: { kind: 'test' }, difficulty }),
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
-      meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
+      ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
     label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),

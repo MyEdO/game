@@ -15,7 +15,6 @@ import type {
   PendingRun,
   PendingApproach,
   PendingWard,
-  PendingFocus,
   PendingFrenzy,
   PendingReload,
   PendingStateRecovery,
@@ -26,6 +25,7 @@ import type {
   PendingDistraire,
 } from './pendings';
 import { garanti } from '../lib/garanti';
+import { progresDActivite } from './progresEtendu';
 import { battementRemoval } from './combatManeuvers';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
@@ -34,7 +34,7 @@ import { estCibleType } from '../engine/psych/ciblage';
 import { psychologyLabel } from '../data';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';
-import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
+import { isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
 import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/bargain';
 import { healWoundsDelta, cappedHealAmount } from '../engine/healing';
 import { corruptionGain } from '../engine/corruption';
@@ -136,7 +136,7 @@ export function describeActivity(pa: PendingActivity): string {
   // (source unique, même règle RAW que `runActivityResolver`). Les autres dérivent des bandes.
   switch (def.resolver) {
     case 'craftExtended': {
-      const { total: after, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, pa.drTarget ?? 1);
+      const { total: after, done } = garanti(progresDActivite(pa), pa.activityId, 'cible d’Artisanat');
       return done ? t('out.craftDone') : t('out.craftProgress', { after, target: String(pa.drTarget) });
     }
     case 'identify':
@@ -246,10 +246,8 @@ export function describeReload(pr: PendingReload, after: number, weaponName: str
  *  cumul vers le NI) vit dans SES zones — ✓/✗ ±DR sur la ligne de jet, cumul/cible sur la barre de DR
  *  (#1078 LOT B2, patron Dissipation/Test étendu) : ne reste à l'issue que ce qu'aucune autre zone
  *  n'énonce, le NI ATTEINT. Chaîne vide sinon — donc aucun cadre d'issue. */
-export function describeFocus(pf: PendingFocus, prev: number, ni: number): string {
-  const r = pf.result;
-  if (!r) return '';
-  return prev + r.dr >= ni ? t('out.focusDone') : '';
+export function describeFocus(step: { done: boolean } | null): string {
+  return step?.done ? t('out.focusDone') : '';
 }
 
 /** Entrée en Frénésie (LDB 21 l.31) : issue (source unique popin ↔ journal). `name` = le combattant. */

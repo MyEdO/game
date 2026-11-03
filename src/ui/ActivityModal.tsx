@@ -6,6 +6,7 @@ import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending, testValueSplit, opposedLines } from './breakdown';
 import { activityById, activityModLines } from '../engine/activities';
 import { describeActivity } from '../noyau/flowOutcomes';
+import { progresDActivite } from '../noyau/progresEtendu';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
 import { libelleDePuissance } from '../noyau/jetsEnVue';
@@ -33,7 +34,7 @@ export function ActivityModal() {
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;
-  const after = Math.max(0, (pa.drBefore ?? 0) + pa.sl);
+  const progres = progresDActivite(pa);
 
   // Contexte de BATAILLE rendu en LIGNES de mod (source unique « base + mods » de la coquille), pas en
   // sous-titre ad hoc : Soutien multi-PJ (LDB 12, fondu dans `skillValue` → base RÉELLE = value − bonus,
@@ -77,7 +78,7 @@ export function ActivityModal() {
     key: 'actor',
     fortune: actor?.fortune ?? 0,
     /* Test ÉTENDU (Artisanat) : barre de DR de RANGÉE — site unique `RollRow` (arbitrage user 2026-07-11). */
-    extendedDr: pa.drTarget != null ? { cum: rolled ? after : pa.drBefore ?? 0, target: pa.drTarget } : undefined,
+    extendedDr: progres ? { cum: rolled ? progres.total : pa.drBefore ?? 0, target: progres.cible } : undefined,
   });
 
   const rows: BuiltRollRow[] = [actorRow];

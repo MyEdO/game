@@ -7,40 +7,40 @@ const item = (o: Partial<ItemInstance>): ItemInstance =>
 
 describe('weaponStatParts (composeur partagé des stats d’arme)', () => {
   it('mêlée : « Dégâts +BF+4 (7) · Allonge Longue » (BF=3 injecté, jamais [object Object])', () => {
-    const parts = weaponStatParts(item({ damage: { plusBF: true, flat: 4 }, reach: 'Longue' }), 3);
+    const parts = weaponStatParts(item({ damage: { plusBF: true, flat: 4 }, reach: 'Longue' }), { bf: 3, passif: 0 });
     expect(parts).toEqual(['Dégâts +BF+4 (7)', 'Allonge Longue']);
     expect(parts.join(' · ')).not.toContain('[object Object]');
   });
 
   it('distance : Portée en mètres, pas d’Allonge (range prime)', () => {
-    const parts = weaponStatParts(item({ kind: 'ranged', damage: { plusBF: true, flat: 3 }, range: 50 }), 4);
+    const parts = weaponStatParts(item({ kind: 'ranged', damage: { plusBF: true, flat: 3 }, range: 50 }), { bf: 4, passif: 0 });
     expect(parts).toEqual(['Dégâts +BF+3 (7)', 'Portée 50 m']);
   });
 
   it('Dégâts plats sans BF (« +9 ») : total = la valeur fixe', () => {
-    expect(weaponStatParts(item({ damage: { plusBF: false, flat: 9 } }), 5)).toEqual(['Dégâts +9 (9)']);
+    expect(weaponStatParts(item({ damage: { plusBF: false, flat: 9 } }), { bf: 5, passif: 0 })).toEqual(['Dégâts +9 (9)']);
   });
 
   it('Dégâts littéraux (« Spécial ») : total 0, jamais [object Object]', () => {
-    const parts = weaponStatParts(item({ damage: { literal: 'Spécial' }, reach: 'Moyenne' }), 3);
+    const parts = weaponStatParts(item({ damage: { literal: 'Spécial' }, reach: 'Moyenne' }), { bf: 3, passif: 0 });
     expect(parts).toEqual(['Dégâts Spécial (0)', 'Allonge Moyenne']);
   });
 
   it('sans Dégâts : seule l’Allonge sort', () => {
-    expect(weaponStatParts(item({ damage: undefined, reach: 'Courte' }), 3)).toEqual(['Allonge Courte']);
+    expect(weaponStatParts(item({ damage: undefined, reach: 'Courte' }), { bf: 3, passif: 0 })).toEqual(['Allonge Courte']);
   });
 
   it('accepte un Weapon dérivé (armes EN MAIN)', () => {
     const w: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [] };
-    expect(weaponStatParts(w, 3)).toEqual(['Dégâts +BF+4 (7)', 'Allonge Moyenne']);
+    expect(weaponStatParts(w, { bf: 3, passif: 0 })).toEqual(['Dégâts +BF+4 (7)', 'Allonge Moyenne']);
   });
 
   it('arme de JET : Portée RÉSOLUE en mètres avec le BF (spec {bf} → BF×N)', () => {
-    const parts = weaponStatParts(item({ kind: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 } }), 4);
+    const parts = weaponStatParts(item({ kind: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 } }), { bf: 4, passif: 0 });
     expect(parts).toContain('Portée 12 m'); // BF4 × 3
     expect(parts.join(' · ')).not.toContain('[object Object]');
     // Dynamique : un BF différent change la Portée.
-    expect(weaponStatParts(item({ kind: 'ranged', damage: { literal: 'Spécial' }, range: { bf: 3 } }), 2)).toContain('Portée 6 m');
+    expect(weaponStatParts(item({ kind: 'ranged', damage: { literal: 'Spécial' }, range: { bf: 3 } }), { bf: 2, passif: 0 })).toContain('Portée 6 m');
   });
 });
 
@@ -71,7 +71,7 @@ describe('conditionalDamageNote — #135 : dégâts CONDITIONNELS dérivés des 
 describe('weaponStatParts — reporte la note conditionnelle EN PARTIE SUPPLÉMENTAIRE (#135)', () => {
   it('Bélier tenu en main : « Dégâts…·Allonge…·note conditionnelle » (armes normales inchangées)', () => {
     const w: Weapon = { label: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 10 }, reach: 'Moyenne', qualities: [{ id: 'siege' }, { id: 'belier' }] };
-    expect(weaponStatParts(w, 4)).toEqual([
+    expect(weaponStatParts(w, { bf: 4, passif: 0 })).toEqual([
       'Dégâts +BF+10 (14)',
       'Allonge Moyenne',
       'contre une porte uniquement — sinon Arme improvisée (+BF+1) · ×2 contre une structure',

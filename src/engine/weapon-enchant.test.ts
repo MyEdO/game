@@ -83,7 +83,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
       op: 'augmentWeapon', addQualities: ['magique'], damageBonus: { bonusOf: 'sociabilite' },
       onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }, { op: 'condition', id: 'a-terre' }])],
     }], { rng: desDuTest, label: 'Marteau ardent de Sigmar', caster: priest, defaultDurationRounds: 4 });
-    expect(effectiveWeaponDamage(fighter.weapons[0], 3)).toBe(3 + 4 + 4); // BF 3 + arme 4 + BSoc 4 du prêtre
+    expect(effectiveWeaponDamage(fighter.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4 + 4); // BF 3 + arme 4 + BSoc 4 du prêtre
     expect(isMagicWeapon(fighter.weapons[0])).toBe(true);
     // L'onHit est replié sur l'arme (weapon.onHitEffects) ; exécuté par le dispatcher → 2 États sur la cible.
     const victim = dummy({ id: 'v' });
@@ -97,10 +97,10 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
       label: 'Épée ardente de Rhuin', defaultDurationRounds: 1,
     });
     expect(c.weapons[0].qualities.some((q) => q.id === 'percutante')).toBe(true);
-    expect(effectiveWeaponDamage(c.weapons[0], 3)).toBe(3 + 4 + 6);
+    expect(effectiveWeaponDamage(c.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4 + 6);
     endOfRound(c, desDuTest); // Round écoulé → dissipation
     expect(c.weapons[0].qualities.some((q) => q.id === 'percutante')).toBe(false);
-    expect(effectiveWeaponDamage(c.weapons[0], 3)).toBe(3 + 4);
+    expect(effectiveWeaponDamage(c.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4);
     expect(heldEnchants(c)).toBeUndefined(); // enchant retiré de l'objet
   });
 

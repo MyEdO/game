@@ -667,10 +667,11 @@ export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS
  *  Lu par les armes du catalogue (`trappings`) et les manœuvres qui portent leurs Dégâts (`maneuvers`). ZI */
 export const weaponDamageSpecSchema = z.union([
   nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
-  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }), {
+  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional(), bfInclus: z.literal(true).optional() }), {
     plusBF: { label: 'Ajouter le Bonus de Force' },
     flat: { label: 'Valeur fixe' },
     bare: { label: 'Mains nues' },
+    bfInclus: { label: 'Indice BF inclus' },
   }),
 ]);
 

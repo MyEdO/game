@@ -76,7 +76,9 @@ export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResol
 function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapon | null {
   // Indice de créature = SB déjà inclus → PAS de token BF (« +N », « -N » négatif) ; à défaut d'Indice,
   // arme générique « +BF » nu (SB-relatif). Le constructeur d'arme UNIQUE porte les deux conventions.
-  const dmg: WeaponDamageSpec = t.value != null ? { plusBF: false, flat: t.value } : { plusBF: true, flat: 0, bare: true };
+  const dmg: WeaponDamageSpec = t.value != null
+    ? { plusBF: false, flat: t.value, ...(findTraitById(t.id)?.bfInclus ? { bfInclus: true as const } : {}) }
+    : { plusBF: true, flat: 0, bare: true };
   // Quel(s) Trait(s) ARMENT une créature est DÉCLARÉ par l'entrée du registre : `specsSource` nomme LE
   // catalogue où se résout son `arg` (`weaponsMelee`/`weaponsRanged`, cf. `SPEC_SOURCES`). Un troisième
   // trait porteur d'arme coûte cette ligne de `traits.json` — et la source passée à `catalogItem` EST

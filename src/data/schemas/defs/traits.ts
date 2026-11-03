@@ -140,6 +140,8 @@ const doc = document(
     range: z.boolean().optional(),
     /** LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
     attaque: z.boolean().optional(),
+    /** LDB 85 l.35, l.47, l.83, l.237, l.405 */
+    bfInclus: z.literal(true).optional(),
     /** LDB 16 l.70 ; MDG 16 l.226 */
     difficulte: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
@@ -184,6 +186,10 @@ const doc = document(
       label: 'Trait d’attaque',
       hint: 'L’Indice du Trait est celui des Dégâts d’une attaque, affiché « +N » ; une instance peut conférer des Traits à ses touches (`confere`)',
     },
+    bfInclus: {
+      label: 'Indice BF inclus',
+      hint: 'L’Indice de Dégâts du Trait inclut déjà le Bonus de Force : une hausse passive du BF s’y ajoute (`bfInclus` des Dégâts)',
+    },
     difficulte: {
       label: 'Porte une Difficulté',
       hint: 'Une instance peut fixer la Difficulté des Tests qui éliminent l’État que le Trait inflige (`difficulte`)',
@@ -217,7 +223,7 @@ const doc = document(
     edit: { dataset: 'traits' },
   },
   /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen', 'attaque', 'difficulte'] } },
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen', 'attaque', 'bfInclus', 'difficulte'] } },
 );
 
 export const schema = doc.schema;

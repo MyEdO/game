@@ -5,7 +5,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
 import { ItemIcon } from './ItemIcon';
 import { MediaSelect, type MediaOption } from './MediaSelect';
-import { bonusDeForce } from '../engine/characteristics';
+import { forceDuPorteur } from '../engine/characteristics';
 import { qualityRefLabel } from '../data';
 import { weaponStatParts } from './weaponStats';
 import { Icon } from './Icon';
@@ -80,8 +80,8 @@ const capeOpt = (c: ItemInstance): MediaOption => ({ key: c.uid, media: <ItemIco
 
 /** Corps du popover de stats (arme invoquée / hors-catalogue) : Dégâts résolus + Allonge/Portée
  *  (composeur partagé `weaponStatParts`) + qualités. */
-function weaponStatsBody(it: ItemInstance, strBonus: number): string {
-  return [...weaponStatParts(it, strBonus), weaponQualities(it)].filter(Boolean).join(' · ');
+function weaponStatsBody(it: ItemInstance, force: { bf: number; passif: number }): string {
+  return [...weaponStatParts(it, force), weaponQualities(it)].filter(Boolean).join(' · ');
 }
 
 /**
@@ -180,13 +180,13 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const capes = items.filter(isCapeItem);
   const wornCape = capes.find((i) => i.equipped);
   const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.destroyed);
-  const strBonus = bonusDeForce(hero);
+  const force = forceDuPorteur(hero);
 
   const activeWeapons = hero.weapons.filter((w) => !isUnarmed(w));
 
   /** `fallback` popover d'une arme (stats + qualités) — sert l'invoquée/enchantée hors catalogue. */
   const weaponFallback = (it?: ItemInstance, conjured?: boolean) =>
-    it ? { sub: conjured ? 'Arme invoquée' : undefined, body: weaponStatsBody(it, strBonus) } : undefined;
+    it ? { sub: conjured ? 'Arme invoquée' : undefined, body: weaponStatsBody(it, force) } : undefined;
 
   return (
     <Grid cols={2} stackBelow={900} gap="lg" className="equip-panel">
@@ -358,7 +358,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                   <ItemIcon item={w} size="sm" />
                   <span className="weap-text">
                     <CodexRef category="trappings" id={objetSourceDeLArme(hero, w)?.trappingId} label={w.label}>{w.label}</CodexRef>{' '}
-                    <em>{weaponStatParts(w, strBonus).join(' · ')}</em>
+                    <em>{weaponStatParts(w, force).join(' · ')}</em>
                     {(() => {
                       const resolved = resolveQualities(w);
                       return resolved.length > 0 && (

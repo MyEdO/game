@@ -9,7 +9,7 @@
 import { RNG } from './dice';
 import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason } from './tests';
-import { bonus, bonusDeForce, effectiveChar, baseWithTraits } from './characteristics';
+import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
@@ -1116,9 +1116,9 @@ export function backstabWeapon(foe: Combatant): Weapon {
 /** Arme de MÊLÉE de la main principale de `c`, la plus forte non Défensive ; Mains nues si cette main est
  *  vide. LDB 10 l.500 ; LDB 14 l.139 ; LDB 85 l.33-35, l.47 ; #1595 c.6237601266 (feuilles 2b, 2c). */
 export function armeDeMainPrincipale(c: Combatant): Weapon {
-  const sb = bonusDeForce(c);
+  const force = forceDuPorteur(c);
   const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'off' && !hasQuality(w, 'defensive'));
-  return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, sb) >= effectiveWeaponDamage(w, sb) ? m : w), undefined) ?? unarmedWeapon();
+  return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, force) >= effectiveWeaponDamage(w, force) ? m : w), undefined) ?? unarmedWeapon();
 }
 
 /** Arme d'une attaque gratuite, construite depuis sa manœuvre : libellé (`def.label`), NOM unique de la
@@ -1130,7 +1130,7 @@ export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
   const { def } = gratuite;
   const w = buildWeapon({
     label: def.label, attackKind: def.kind, natural: true, ...(def.subType ? { subType: def.subType.id } : {}),
-    damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus },
+    damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus, ...(gratuite.bfInclus ? { bfInclus: true as const } : {}) },
   });
   return gratuite.confere?.length ? { ...w, traitsConferes: gratuite.confere } : w; // ZI 03 l.77
 }
@@ -1768,7 +1768,7 @@ function applyHit(
   // par le TABLEAU DE COMPARAISON DES TAILLES (l.618-637), qui « remplace les modificateurs normaux » de
   // Taille (l.616) → `noSize` ; plancher 0 Blessure (un coup trop faible ricoche, comme la bordée).
   const hullAdj = hullHitAdjust(dmgSize, weapon, defender);
-  const weaponDmg = effectiveWeaponDamage(weapon, sb); // Dégâts réduits par l'usure de l'arme (LDB 62 l.135)
+  const weaponDmg = effectiveWeaponDamage(weapon, { bf: sb, passif: bonusPassifDeForce(attacker) }); // Dégâts réduits par l'usure de l'arme (LDB 62 l.135)
   const units = atkBd.roll % 10; // dé des unités (LDB 62 l.244/266) ; « 00 » → 0
   // Dévastatrice (max(DR, unités)) / Percutante (+unités), annulés par Inoffensive ; Atouts conférés
   // par la Taille (attaquant plus grand, LDB 85 l.360) fusionnés via `extra` (qualityDamageStep).
