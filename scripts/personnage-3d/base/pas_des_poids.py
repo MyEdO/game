@@ -457,28 +457,27 @@ class Region:
 
     def resoudre(self, plans):
         """La `Projection` sur le `w` le plus proche de `self.origine` sous `plans`, sans dépasser `INFLUENCES_MAX` os par
-        sommet : l'os actif le plus léger des sommets en excès sort, puis nouvelle résolution. Sans `w`, le statut de
-        `plus_proche`."""
+        sommet : chaque sommet en excès perd son os actif le plus léger, puis nouvelle résolution. Sans `w`, le statut
+        de `plus_proche`."""
         while True:
             colonnes = {(s, o): j for j, (s, o) in enumerate((s, o) for s in self.sommets for o in sorted(self.os[s]))}
             x, statut = self.resoudre_colonnes(plans, colonnes)
             if x is None:
                 return Projection(None, statut)
-            exces = None
+            exces = []
             for s in self.sommets:
                 actifs = [(x[colonnes[s, o]], o) for o in sorted(self.os[s]) if x[colonnes[s, o]] > 1e-9]
                 if len(actifs) > INFLUENCES_MAX:
-                    poids, os = min(actifs)
-                    if exces is None or poids < exces[0]:
-                        exces = (poids, s, os)
-            if exces is None:
+                    exces.append((s, min(actifs)[1]))
+            if not exces:
                 w = self.origine.copy()
                 w[self.sommets] = 0.0
                 for (s, o), j in colonnes.items():
                     w[s, o] = max(x[j], 0.0)
                 w[self.sommets] = w[self.sommets] / w[self.sommets].sum(axis=1, keepdims=True)
                 return Projection(w, 'ok')
-            self.os[exces[1]].discard(exces[2])
+            for s, os in exces:
+                self.os[s].discard(os)
 
     def resoudre_colonnes(self, plans, colonnes):
         n = len(colonnes)
