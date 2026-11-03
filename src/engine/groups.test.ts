@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf, racesDe, selonLOrdreDesGroupes } from './groups';
-import { targetedTrigger, sourceCombattant } from './psychology';
+import { groupesDe, groupesPercus, groupsFor, groupMatch, hiddenGroupsOf, racesDe, selonLOrdreDesGroupes } from './groups';
+import { targetedTrigger, targetCausedSourcesFor, sourceCombattant, type PsychType } from './psychology';
 import type { Combatant } from './types';
-import { creatures, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
+import { addCondition, removeCondition } from './conditions';
+import { combattantDeTest } from './combattantDeTest.testkit';
+import { creatures, domains, etats, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, psychologies, SPEC_SOURCES, talents, traits, type SpecsSource } from '../data';
 import { resetData, setDataset } from '../data/overrides';
 import { schema as groupsSchema } from '../data/schemas/defs/groups';
 import groupsJson from '../data/groups.json';
@@ -211,5 +213,83 @@ describe('selonLOrdreDesGroupes — l’ordre de `groups.json`', () => {
     expect(selonLOrdreDesGroupes(['skaven', 'groupe-perime', 'humain', 'skaven'])).toEqual(['humain', 'skaven']);
     const ordre = groups.map((g) => g.id);
     expect(ordre.indexOf('humain')).toBeLessThan(ordre.indexOf('skaven'));
+  });
+});
+
+describe('Groupes d’un fait de fiche, lus par `groupesDe` (EDOC 12 l.170-197 ; #3045)', () => {
+  /** Un Talent qui porte des Groupes, un Talent qui n'en porte pas. */
+  const talentAGroupes = talents.find((t) => t.grantGroups?.length);
+  const talentSansGroupe = talents.find((t) => !t.grantGroups && !t.grantSpecGroups);
+  /** Un Domaine qui porte des Groupes, et la définition (Talent, Trait) dont la spécialisation le nomme. */
+  const domaine = domains.find((d) => d.grantGroups?.length);
+  const nommeLeDomaine = (def: { specsSource?: SpecsSource; grantSpecGroups?: true }) =>
+    !!def.grantSpecGroups && !!def.specsSource && SPEC_SOURCES[def.specsSource].entree(domaine!.id) !== undefined;
+  const talentDuDomaine = talents.find(nommeLeDomaine);
+  const traitDuDomaine = traits.find(nommeLeDomaine);
+  /** Un État qui porte des Groupes. */
+  const etat = etats.find((e) => e.grantGroups?.length);
+
+  it('précondition : la donnée porte chaque forme', () => {
+    expect([talentAGroupes, talentSansGroupe, domaine, talentDuDomaine, traitDuDomaine, etat].every(Boolean)).toBe(true);
+  });
+
+  it('un Talent porté accorde ses `grantGroups` ; un Talent sans Groupe, rien', () => {
+    expect(groupesDe({ talents: [{ talentId: talentAGroupes!.id }] })).toEqual(talentAGroupes!.grantGroups);
+    expect(groupesDe({ talents: [{ talentId: talentSansGroupe!.id }] })).toEqual([]);
+  });
+
+  it('la spécialisation d’un Talent qui nomme un Domaine porteur accorde ses Groupes ; sans spécialisation, aucun', () => {
+    expect(groupesDe({ talents: [{ talentId: talentDuDomaine!.id, spec: domaine!.id }] })).toEqual(expect.arrayContaining(domaine!.grantGroups!));
+    expect(groupesDe({ talents: [{ talentId: talentDuDomaine!.id }] })).not.toEqual(expect.arrayContaining(domaine!.grantGroups!));
+  });
+
+  it('l’argument d’un Trait qui nomme un Domaine porteur accorde ses Groupes, retirés de la vue perçue si le Trait est dissimulé', () => {
+    const vu = { traits: [{ id: traitDuDomaine!.id, arg: domaine!.id }] };
+    expect(groupesDe(vu)).toEqual(expect.arrayContaining(domaine!.grantGroups!));
+    expect(groupesPercus(vu)).toEqual(expect.arrayContaining(domaine!.grantGroups!));
+    const cache = { traits: [{ id: traitDuDomaine!.id, arg: domaine!.id, hidden: true }] };
+    expect(groupesDe(cache)).toEqual(expect.arrayContaining(domaine!.grantGroups!));
+    expect(hiddenGroupsOf(cache)).toEqual(expect.arrayContaining(domaine!.grantGroups!));
+    for (const g of domaine!.grantGroups!) expect(groupesPercus(cache)).not.toContain(g);
+  });
+
+  it('une maladie en incubation ne range dans aucun Groupe ; déclarée, dans `maladie`', () => {
+    expect(groupesDe({ diseases: [{ phase: 'incubation' }] })).toEqual([]);
+    expect(groupesDe({ diseases: [{ phase: 'active' }] })).toEqual(['maladie']);
+  });
+
+  it('un État porté accorde ses Groupes ; retiré, plus rien', () => {
+    const c = combattantDeTest();
+    addCondition(c, etat!.id);
+    expect(groupesDe(c)).toEqual(etat!.grantGroups);
+    removeCondition(c, etat!.id, 99);
+    expect(groupesDe(c)).toEqual([]);
+  });
+
+  it('cas canonique : un Effrayé dont la Cible est le Groupe de l’État voit un combattant qui le porte, comme une scène qui porte ce Groupe', () => {
+    const phobie = psychologies.find((p) => p.targetCauses);
+    const cible = psychologies.find((p) => !!p.cibles && !p.targetCauses && p.triggerOn !== 'threatened');
+    expect(phobie && cible).toBeTruthy();
+    const groupe = etat!.grantGroups![0];
+    const effraye = combattantDeTest({ id: 'effraye', psychTraits: [{ type: phobie!.id as PsychType, cible: ciblePsy.groupe(groupe), indice: 0 }] });
+    const vise = combattantDeTest({ id: 'vise', psychTraits: [{ type: cible!.id as PsychType, cible: ciblePsy.groupe(groupe) }] });
+    const source = combattantDeTest({ id: 'source' });
+    expect(targetCausedSourcesFor(effraye, sourceCombattant(source))).toEqual([]);
+    expect(targetedTrigger(vise, [sourceCombattant(source)])).toBeNull();
+    addCondition(source, etat!.id);
+    const lieu = { genre: 'etiquette', id: 'scene', label: 'Scène', groups: [groupe] } as const;
+    expect(targetCausedSourcesFor(effraye, sourceCombattant(source))).toEqual(targetCausedSourcesFor(effraye, lieu));
+    expect(targetCausedSourcesFor(effraye, sourceCombattant(source))).not.toEqual([]);
+    expect(targetedTrigger(vise, [sourceCombattant(source)])?.sourceId).toBe('source');
+  });
+});
+
+describe('`SPEC_SOURCES[src].entree` : une entrée seulement sur un registre de racine (#3045)', () => {
+  it('un vocabulaire ou une niche ne rend aucune entrée, sans lever', () => {
+    const vocabulaire = (Object.keys(SPEC_SOURCES) as SpecsSource[]).find((s) => s === 'sizes')!;
+    expect(() => SPEC_SOURCES[vocabulaire].entree(SPEC_SOURCES[vocabulaire].pool()[0])).not.toThrow();
+    expect(SPEC_SOURCES[vocabulaire].entree(SPEC_SOURCES[vocabulaire].pool()[0])).toBeUndefined();
+    const culte = SPEC_SOURCES.cultBlessings.pool()[0];
+    expect(SPEC_SOURCES.cultBlessings.entree(culte)?.id).toBe(culte);
   });
 });

@@ -15,7 +15,7 @@ import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
-import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
+import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from './merchants.types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
@@ -1085,8 +1085,11 @@ export interface TalentData {
    *  `cultChaos` (Béni / Invocation / Magie du Chaos → `gods.id` filtrés, AFFICHE le nom du dieu) ou
    *  `seaShanties` (Chanson de marin). Quand présent, `specs[]` est ABSENT (le pool dérive). */
   specsSource?: SpecsSource;
-  /** Le `spec` de ce Talent nomme un CULTE (`GodData.id`) dont les `grantGroups` sont accordés au
-   *  porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent = aucun Groupe. */
+  /** Ids de `groups.json` accordés au porteur du Talent (`groupesDe`). Absent = aucun Groupe. */
+  grantGroups?: string[];
+  /** Le `spec` de ce Talent nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
+   *  `grantGroups` sont accordés au porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent =
+   *  aucun Groupe. */
   grantSpecGroups?: true;
   /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que le porteur PRATIQUE — il
    *  compte donc dans les Domaines TENUS et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
@@ -1507,6 +1510,8 @@ export interface StatusData {
 }
 
 export interface EtatData extends StatusData {
+  /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
+  grantGroups?: string[];
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -1898,6 +1903,9 @@ export interface TraitData {
   /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `ciblesPsy`/`diseases`/`sizes`/
    *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
   specsSource?: SpecsSource;
+  /** L'`arg` de ce Trait nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
+   *  `grantGroups` sont accordés au porteur (`groupesDe`). Absent = l'`arg` n'ouvre aucun Groupe. */
+  grantSpecGroups?: true;
   /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
    *  = FERMÉ (l'`arg` DOIT être un id du pool `specsSource`). */
   specsOpen?: boolean;
@@ -2104,6 +2112,9 @@ export interface DomainData {
   arcane?: string;
   /** `VDM 02 l.192` (`careerSlots.arcaneDomainGate`) — Nécromancie, Démonologie (LDB 50). */
   dark?: boolean;
+  /** Ids de `groups.json` accordés au porteur d'un Talent ou d'un Trait dont la spécialisation nomme ce
+   *  Domaine (`grantSpecGroups`, `groupesDe`). Absent = aucun Groupe. */
+  grantGroups?: string[];
   /** Tables d'effets (`tables.json`) DÉCLARÉES par le Domaine, par CLÉ de rôle — résolues par l'op
    *  `rollDomainTable` (`engine/ops.ts`). Clé `arcaneMark` : Marques Arcaniques du Vent
    *  (`VDM 02 l.238`). Le lien Domaine→table vit ici, jamais dans le code. */
@@ -2997,8 +3008,8 @@ export interface GodData {
   id: string;
   type: 'gods';
   label: string;
-  /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent qui porte
-   *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
+  /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent ou un Trait qui porte
+   *  `grantSpecGroups` et dont la spécialisation nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
   title?: string;
   blessings: string[];
@@ -3553,31 +3564,34 @@ export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type'
   return (RACINES_VIVANTES[espaceDe(type)] as readonly { id: string; label: string }[]).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
- *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers ; sinon l'id. */
-function libelleDeSource(decl: SourceDeSpecs): (id: string) => string {
+ *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */
+function libelleDeSource(decl: SourceDeSpecs, entree: (id: string) => Readonly<Record<string, unknown>> | undefined): (id: string) => string {
   const libelle = decl.libelle;
   if ('vocabulaire' in libelle) {
     const table: Readonly<Record<string, string>> = VOCABULAIRES[libelle.vocabulaire];
     return (id) => table[id] ?? id;
   }
-  const { fichier } = lireCleDEspace(decl.univers);
   return (id) => {
-    const entree = entreeDeRacine(fichier, id);
-    return (entree && libelleDeLElement(entree, libelle.champs)) ?? id;
+    const e = entree(id);
+    return (e && libelleDeLElement(e, libelle.champs)) ?? id;
   };
 }
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
- *  joueur ; `label()` = affichage. `admetEntree()` juge une entrée résolue par le filtre déclaré de
- *  l'univers, campagne comprise. Le pool borne le CHOIX joueur ; l'univers (⊇ pool) est le catalogue de
- *  l'entrée qui la déclare (`catalogueSpecs`, `grammaire/ref.ts`), le Triton compris (MDG 16 l.283). */
+ *  joueur ; `label()` = affichage ; `entree()` = l'entrée de l'univers qu'un id nomme, lue sur la racine
+ *  vivante de son document (`entreeDeRacine`) ; aucune hors d'une source `resoutEnEntree` (vocabulaire, niche). `admetEntree()` juge
+ *  une entrée résolue par le filtre déclaré de l'univers, campagne comprise. Le pool borne le CHOIX joueur ;
+ *  l'univers (⊇ pool) est le catalogue de l'entrée qui la déclare (`catalogueSpecs`, `grammaire/ref.ts`), le
+ *  Triton compris (MDG 16 l.283). */
 export const SPEC_SOURCES = tableTotale(
   Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
-  (src): { pool(): string[]; label(id: string): string; admetEntree(entree: { readonly id: string }): boolean } => {
+  (src): { pool(): string[]; label(id: string): string; entree(id: string): Readonly<Record<string, unknown>> | undefined; admetEntree(entree: { readonly id: string }): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
-    const { filtre } = lireCleDEspace(decl.univers);
+    const { fichier, filtre } = lireCleDEspace(decl.univers);
+    const entree = resoutEnEntree(src) ? (id: string) => entreeDeRacine(fichier, id) : () => undefined;
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
-      label: libelleDeSource(decl),
+      label: libelleDeSource(decl, entree),
+      entree,
       admetEntree: (entree) => filtre ? retenuParFiltre(filtre, entree as Readonly<Record<string, unknown>>) : (lireLEspace(decl.univers)?.has(entree.id) ?? false),
     };
   },

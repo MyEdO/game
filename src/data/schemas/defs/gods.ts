@@ -15,8 +15,8 @@ const doc = document(
   'gods',
   famille,
   {
-    /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent qui porte
-     *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
+    /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent ou un Trait qui porte
+     *  `grantSpecGroups` et dont la spécialisation nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     title: z.string().optional(),
     blessings: refs('spell'),

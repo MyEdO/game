@@ -18197,7 +18197,10 @@
       "species": "humain",
       "sex": "M",
       "tenue": "nu"
-    }
+    },
+    "grantGroups": [
+      "magie"
+    ]
   },
   {
     "id": "jaego-roth",
@@ -20887,7 +20890,10 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 174
-    }
+    },
+    "grantGroups": [
+      "feu"
+    ]
   },
   {
     "id": "elementaire-incarne-de-la-mort",

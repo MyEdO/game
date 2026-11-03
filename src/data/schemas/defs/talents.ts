@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { ref, refOuSpec } from '../grammaire/ref';
+import { ref, refOuSpec, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'talents.json';
 export const famille = 'entite';
@@ -70,8 +71,8 @@ const doc = document(
     specs: specsSchema.optional(),
     size: sizeCategorySchema.optional(),
     specsSource: specsSourceSchema.optional(),
-    /** Le `spec` de ce Talent nomme un CULTE (`gods.json`) : ses `grantGroups` sont accordés au
-     *  porteur (`groupesDe`). Absent = le `spec` n'ouvre aucun Groupe d'appartenance. */
+    /** EDOC 12 l.170-197 ; #3045 */
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     grantSpecGroups: z.literal(true).optional(),
     /** LDB 46 l.177 ; VDM 02 l.190-192 */
     grantsArcaneDomain: z.literal(true).optional(),
@@ -92,9 +93,10 @@ const doc = document(
     specs: { label: 'Spécialisations', hint: 'Liste fermée de spécialisations proposées' },
     size: { label: 'Taille requise' },
     specsSource: { label: 'Registre de spécialisations' },
+    grantGroups: { label: 'Groupes accordés' },
     grantSpecGroups: {
-      label: 'Groupes du culte choisi',
-      hint: 'La spécialisation nomme un culte dont les Groupes sont accordés au porteur',
+      label: 'Groupes de la spécialisation',
+      hint: 'La spécialisation nomme une entrée du registre (culte, Domaine) dont les Groupes sont accordés au porteur',
     },
     grantsArcaneDomain: { label: 'Ouvre un Domaine arcanique' },
     specsOpen: { label: 'Spécialisation ouverte' },

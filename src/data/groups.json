@@ -204,7 +204,13 @@
   {
     "id": "demonologue",
     "type": "groups",
-    "label": "Démonologue"
+    "label": "Démonologue",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 84,
+      "note": "EDOC 13 l.606"
+    },
+    "maison": "Porté par qui pratique la Démonologie : Magie des Arcanes ou Lanceur de Sorts qui nomme ce Domaine (EDOC 13 l.198, LDB 50 l.9 ; #3045). Lecture révisable."
   },
   {
     "id": "khorne",
@@ -309,7 +315,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par ce qui brûle : un combattant En flammes, l'Élémentaire incarné du Feu, un lieu qui le déclare (Q3 A, #3045). Lecture révisable."
   },
   {
     "id": "figures-symboles-de-guerre",
@@ -385,7 +392,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par qui lance des sorts : Talents Magie des Arcanes, Magie mineure, Sorcier !, Magie du Chaos, Bénédiction de Tzeentch, Trait Lanceur de Sorts, et Triton, lanceur de sorts sans l'un ni l'autre (Q1 A, #3045). Lecture révisable."
   },
   {
     "id": "maladie",
@@ -394,7 +402,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par le porteur d'une maladie déclarée, sortie d'incubation, symptômes suspendus compris (Q2 A, #3045). Lecture révisable."
   },
   {
     "id": "eau",

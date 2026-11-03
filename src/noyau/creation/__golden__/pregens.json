@@ -431,7 +431,8 @@
   "xp": 0,
   "size": "moyenne",
   "groups": [
-   "humain"
+   "humain",
+   "magie"
   ],
   "designations": {
    "sorcier": [

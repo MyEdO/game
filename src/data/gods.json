@@ -283,7 +283,10 @@
     "source": {
       "book": "livre-de-base",
       "page": 217
-    }
+    },
+    "grantGroups": [
+      "khorne"
+    ]
   },
   {
     "id": "kurnous",
@@ -473,7 +476,10 @@
     "source": {
       "book": "livre-de-base",
       "page": 217
-    }
+    },
+    "grantGroups": [
+      "nurgle"
+    ]
   },
   {
     "id": "quinsberry",
@@ -650,7 +656,10 @@
     "source": {
       "book": "livre-de-base",
       "page": 217
-    }
+    },
+    "grantGroups": [
+      "slaanesh"
+    ]
   },
   {
     "id": "stromfels",
@@ -746,7 +755,10 @@
     "source": {
       "book": "livre-de-base",
       "page": 217
-    }
+    },
+    "grantGroups": [
+      "tzeentch"
+    ]
   },
   {
     "id": "ulric",
