@@ -1,18 +1,18 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { useGame } from './store';
-import type { BattleState } from '../noyau/etat';
-import { type PendingAttack } from '../noyau/pendings';
-import { avanceEtapeCascade } from '../noyau/cascade.testkit';
-import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } from '../noyau/combatFlow';
-import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from '../noyau/netOwnership';
-import { modalOwnerOf } from '../noyau/modalArbiter';
-import { willAutoResolve } from '../noyau/combatAuto';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, surUnBancHorsTest, type Banc } from './banc.testkit';
+import type { BattleState, NetState } from './etat';
+import { type PendingAttack } from './pendings';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } from './combatFlow';
+import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
+import { willAutoResolve } from './combatAuto';
 import { evaluateTest, maxForcedRoll } from '../engine/tests';
 import { hitLocation, reverseRoll } from '../engine/combat';
-import { netSeatClosed } from './netFlow';
-import { seedBattleRng } from '../noyau/battleRng';
-import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
-import { setCadence, resetCadence } from '../engine/cadence';
+import { fermerLeSiege } from './sieges';
+import { seedBattleRng } from './battleRng';
+import { setDesFixes } from '../engine/fixedDie';
+import { setCadence } from '../engine/cadence';
 import type { AttackResult } from '../engine/combat';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -33,7 +33,10 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w
 const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 
-function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?: Partial<ReturnType<typeof useGame.getState>['net']>) {
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?: Partial<NetState>) {
   seedBattleRng(7);
   const enemy = mk('e', 'enemy', enemyPos, enemyWeapons);
   const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
@@ -42,9 +45,9 @@ function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?:
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({
+  banc.setState({
     battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null,
-    net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {}, ...net },
+    net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {}, ...net },
   });
   return { enemy, hero };
 }
@@ -52,30 +55,30 @@ function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?:
 describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne décide de rien', () => {
   it('A — siège MJ posé (attaquant CONDUIT par un humain), mêlée sur un héros : la fenêtre s’OUVRE (plus de jet volé)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
-    expect(aiDriven(useGame.getState(), enemy), 'l’ennemi n’est PAS piloté par l’IA').toBe(false);
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
-    const pd = useGame.getState().pendingDefense!;
+    expect(aiDriven(banc.getState(), enemy), 'l’ennemi n’est PAS piloté par l’IA').toBe(false);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    const pd = banc.getState().pendingDefense!;
     expect(pd.defenderId).toBe(hero.id);
-    expect(useGame.getState().pendingCascade?.participants.some((s) => s.jet === 'defense' && s.actorId === hero.id)).toBe(true);
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.jet === 'defense' && s.actorId === hero.id)).toBe(true);
   });
 
   it('B — siège MJ posé, tir à Bout Portant sur un héros : la fenêtre s’OUVRE (plus de tir non opposé)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [bow], { gmSeat: 0 });
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
-    expect(useGame.getState().pendingDefense!.modes).toContain('esquive');
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(banc.getState().pendingDefense!.modes).toContain('esquive');
   });
 
   it('B bis — tir hors Bout Portant sur un héros nu : AUCUNE fenêtre (le RAW ne donne aucun mode, LDB 13 l.125)', () => {
     const { enemy, hero } = setup({ x: 10, y: 0 }, [bow], { gmSeat: 0 });
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(false);
-    expect(useGame.getState().pendingDefense).toBeNull();
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(false);
+    expect(banc.getState().pendingDefense).toBeNull();
   });
 
   it('C — SANS siège MJ, coop hôte : le héros d’un AUTRE siège surface aussi, et SON siège tient le jet', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
-    expect(defenseSurfaced(useGame.getState(), hero), 'seat-agnostique : le siège local ne décide pas').toBe(true);
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
-    const s = useGame.getState();
+    expect(defenseSurfaced(banc.getState(), hero), 'seat-agnostique : le siège local ne décide pas').toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    const s = banc.getState();
     expect(s.pendingDefense!.defenderId).toBe(hero.id);
     expect(intentAllowedFor(s, 1, 'defenseRoll'), 'le siège 1 (propriétaire du héros) roule').toBe(true);
     expect(intentAllowedFor(s, 0, 'defenseRoll'), 'l’hôte ne roule pas le héros d’un autre').toBe(false);
@@ -84,10 +87,10 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
   it('E — héros `aiControlled` : PAS de fenêtre, mais le repli `bestRangedDefense` reste (aucune amputation)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [bow]);
     hero.aiControlled = true;
-    expect(defenseSurfaced(useGame.getState(), hero)).toBe(false);
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(false);
+    expect(defenseSurfaced(banc.getState(), hero)).toBe(false);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(false);
     seedBattleRng(7);
-    const r = resolveAttack(useGame.getState, enemy, hero)!;
+    const r = resolveAttack(banc.getState, enemy, hero)!;
     expect(r.res.defenderDetail, 'le héros piloté-IA oppose sa défense RAW (Bout Portant)').toBeTruthy();
   });
 });
@@ -95,8 +98,8 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
 describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’interpose sans avancer le tour', () => {
   it('gmSeat mêlée sur héros : attackRoll→attackConfirm interpose la fenêtre ; defenseConfirm ne fait PAS avancer le tour', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
-    const g = useGame.getState;
-    openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    const g = banc.getState;
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
     expect(g().pendingAttack, 'la cascade d’attaque est ouverte').toBeTruthy();
     g().attackRoll();
     expect(g().pendingAttack!.result!.defenderDetail, 'aucune défense roulée en silence au jet d’attaque').toBeUndefined();
@@ -115,9 +118,9 @@ describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’int
 
   it('héros → PNJ avec un siège MJ : la fenêtre s’ouvre POUR le siège MJ (changement assumé)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
-    const g = useGame.getState;
-    useGame.setState({ battle: { ...g().battle!, turn: 1 } }); // tour du héros
-    openAttackCascade(g, useGame.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    const g = banc.getState;
+    banc.setState({ battle: { ...g().battle!, turn: 1 } }); // tour du héros
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
     g().attackRoll();
     g().attackConfirm();
     const pd = g().pendingDefense;
@@ -136,24 +139,23 @@ describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’int
  * départage sur les DEUX cibles (recette : « 55 > 40 » annoté sous une ligne qui affiche « 45 +10 »).
  */
 describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ compris', () => {
-  afterEach(() => resetDesFixes());
 
   it('DR égaux : le départage cite les valeurs NUES (45 > 40), pas les cibles modifiées (55 > 40)', () => {
     setDesFixes(true);
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     enemy.advantage = 1; // +10 à l'attaque (Avantage) : la cible (55) s'écarte de la valeur nue (45)
     hero.characteristics['capacite-de-combat'] = 25; // Esquive (Agilité 40) = sa meilleure défense
-    const g = useGame.getState as unknown as () => Record<string, (...a: unknown[]) => void>;
-    openAttackCascade(useGame.getState, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    const g = banc.getState as unknown as () => Record<string, (...a: unknown[]) => void>;
+    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
     g().attackRoll();
     g().attackSetForcedRoll(21); // DR 3 côté attaque (cible 55)
     g().attackConfirm();
-    const parked = useGame.getState().pendingDefense!;
+    const parked = banc.getState().pendingDefense!;
     expect(parked.atk.base, 'le jet d’attaque PARQUÉ garde sa valeur nue').toBe(45);
     expect(parked.mode).toBe('esquive');
     g().defenseRoll();
     g().defenseSetForcedRoll(12); // DR 3 côté défense (cible 40) → DR ÉGAUX
-    const pd = useGame.getState().pendingDefense!;
+    const pd = banc.getState().pendingDefense!;
     expect(pd.def!.sl, 'précondition : les DR sont égaux, seul le départage peut trancher').toBe(parked.atk.sl);
     expect(pd.def!.base, 'le dé POSÉ ne dépouille pas le jet de sa valeur nue').toBe(40);
     expect(pd.result!.attackerDetail!.decided).toEqual({ by: 'valeur', own: 45, other: 40 });
@@ -164,18 +166,18 @@ describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ co
 describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
   it('siège MJ fermé → `net.gmSeat` null et l’ennemi repasse à l’IA (plus de modale orpheline)', () => {
     const { enemy } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } });
-    expect(aiDriven(useGame.getState(), enemy)).toBe(false);
-    netSeatClosed(useGame.getState, useGame.setState, 1);
-    const net = useGame.getState().net;
+    expect(aiDriven(banc.getState(), enemy)).toBe(false);
+    banc.setState({ net: fermerLeSiege(banc.getState().net, 1) });
+    const net = banc.getState().net;
     expect(net.gmSeat ?? null, 'le rôle MJ ne survit pas à son siège').toBeNull();
     expect(net.ownership['h'], 'ses héros reviennent à l’hôte').toBe(0);
-    expect(aiDriven(useGame.getState(), enemy), 'sans siège MJ, l’ennemi est à l’IA').toBe(true);
+    expect(aiDriven(banc.getState(), enemy), 'sans siège MJ, l’ennemi est à l’IA').toBe(true);
   });
 
   it('la fermeture d’un AUTRE siège ne touche pas le rôle MJ', () => {
     setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, slots: [0, 1, 2, 0], seatNames: { 1: 'MJ', 2: 'Autre' } });
-    netSeatClosed(useGame.getState, useGame.setState, 2);
-    expect(useGame.getState().net.gmSeat).toBe(1);
+    banc.setState({ net: fermerLeSiege(banc.getState().net, 2) });
+    expect(banc.getState().net.gmSeat).toBe(1);
   });
 });
 
@@ -185,10 +187,10 @@ describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
  *  et rend le résultat OPPOSÉ figé par la fenêtre (`pendingDefense.result`, avant l'Appliquer). */
 function playWindow(seed: number, pa: Partial<PendingAttack>, opts?: { force?: boolean }): AttackResult {
   const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
-  const g = useGame.getState;
+  const g = banc.getState;
   if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forceSuccess` est un no-op
   seedBattleRng(seed);
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attack');
   g().attackRoll();
   if (opts?.force) g().attackForceSuccess();
   g().attackConfirm();
@@ -212,9 +214,9 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
   /** Le tir de l'ennemi sur le héros : à distance `x` > 1 il reste passif (`pendingAttack.result`), au contact il est défendu (`pendingDefense.result`). */
   function tirerSur(seed: number, x: number, pa: Partial<PendingAttack>): AttackResult {
     const { enemy, hero } = setup({ x, y: 0 }, [bow], { gmSeat: 0 });
-    const g = useGame.getState;
+    const g = banc.getState;
     seedBattleRng(seed);
-    openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attack');
     g().attackRoll();
     const passif = g().pendingAttack!.result!;
     if (x > 1) return passif;
@@ -250,30 +252,29 @@ describe('#989 R2 — Résilience « Je ne faillirai pas ! » (LDB 17 l.68) hono
 });
 
 describe('#989 R3 — cadence Rapide : l’auto-résolution suit le SIÈGE propriétaire (jamais « l’hôte par défaut »)', () => {
-  afterEach(() => resetCadence());
 
   it('C — fenêtre possédée par le siège MJ : l’hôte ne l’auto-résout PAS ; le siège MJ, si', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, ownership: { h: 1 } });
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     setCadence('rapide');
-    expect(willAutoResolve(useGame.getState()), 'l’hôte ne roule pas la défense d’un héros du siège 1').toBe(false);
-    useGame.setState({ net: { ...useGame.getState().net, mySeat: 1 } });
-    expect(willAutoResolve(useGame.getState()), 'le siège propriétaire, lui, auto-résout').toBe(true);
+    expect(willAutoResolve(banc.getState()), 'l’hôte ne roule pas la défense d’un héros du siège 1').toBe(false);
+    banc.setState({ net: { ...banc.getState().net, mySeat: 1 } });
+    expect(willAutoResolve(banc.getState()), 'le siège propriétaire, lui, auto-résout').toBe(true);
   });
 
   it('C bis — étape MONDE/ennemi conduit par le MJ : l’hôte ne vole pas le jet (même routage `seatOwns`)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, hero, enemy)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, hero, enemy)).toBe(true);
     setCadence('rapide');
-    expect(willAutoResolve(useGame.getState())).toBe(false);
+    expect(willAutoResolve(banc.getState())).toBe(false);
   });
 
   it('SOLO (net par défaut) : comportement inchangé — tout est auto-résolu localement', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     setCadence('rapide');
-    expect(willAutoResolve(useGame.getState())).toBe(true);
+    expect(willAutoResolve(banc.getState())).toBe(true);
   });
 });
 
@@ -282,9 +283,9 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
   function playToFumble(seed: number, wounds: number) {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     hero.wounds.current = wounds;
-    const g = useGame.getState;
+    const g = banc.getState;
     seedBattleRng(seed);
-    openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
     g().attackRoll(); g().attackConfirm(); g().defenseRoll();
     const res = g().pendingDefense!.result!;
     return { hero, res, confirm: () => g().defenseConfirm(), state: g };
@@ -292,10 +293,13 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
 
   // Graine DÉTERMINISTE : défense RATÉE sur un double (Maladresse, LDB 14 l.13) ET touche qui blesse.
   let seed = 0;
-  for (let sd = 1; sd <= 800 && !seed; sd++) {
-    const { hero, res } = playToFumble(sd, 18);
-    if (defenderFumbled(res, hero.weapons[0], hero) && res.hit && (res.woundsLost ?? 0) > 0) seed = sd;
-  }
+  surUnBancHorsTest((b) => {
+    banc = b;
+    for (let sd = 1; sd <= 800 && !seed; sd++) {
+      const { hero, res } = playToFumble(sd, 18);
+      if (defenderFumbled(res, hero.weapons[0], hero) && res.hit && (res.woundsLost ?? 0) > 0) seed = sd;
+    }
+  });
 
   it('une graine de Maladresse de défense AVEC touche existe', () => {
     expect(seed).toBeGreaterThan(0);
@@ -332,28 +336,28 @@ describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manue
   it('ennemi conduit par le MJ : `ownsLocal` (gate d’AFFICHAGE) répond comme `intentAllowedFor`', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, hero, enemy)).toBe(true);
-    const s0 = useGame.getState();
+    expect(maybeOpenDefense(banc.getState, banc.setState, hero, enemy)).toBe(true);
+    const s0 = banc.getState();
     expect(modalOwnerOf(s0), 'la fenêtre est celle de l’ennemi').toBe(enemy.id);
     expect(ownsLocal(s0, enemy.id), 'l’HÔTE ne rend pas la fenêtre du MJ (bandeau spectateur)').toBe(false);
     expect(intentAllowedFor(s0, 0, 'defenseRoll'), 'et il ne peut pas agir non plus').toBe(false);
-    useGame.setState({ net: { ...s0.net, mySeat: 1 } }); // on se place au siège MJ
-    const s1 = useGame.getState();
+    banc.setState({ net: { ...s0.net, mySeat: 1 } }); // on se place au siège MJ
+    const s1 = banc.getState();
     expect(ownsLocal(s1, enemy.id), 'le MJ VOIT sa fenêtre').toBe(true);
     expect(intentAllowedFor(s1, 1, 'defenseRoll'), 'afficher et agir répondent pareil').toBe(true);
   });
 
   it('héros d’un autre siège : inchangé (le gate d’affichage reste l’ownership)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
-    expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
-    expect(ownsLocal(useGame.getState(), hero.id)).toBe(false);
-    useGame.setState({ net: { ...useGame.getState().net, mySeat: 1 } });
-    expect(ownsLocal(useGame.getState(), hero.id)).toBe(true);
+    expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
+    expect(ownsLocal(banc.getState(), hero.id)).toBe(false);
+    banc.setState({ net: { ...banc.getState().net, mySeat: 1 } });
+    expect(ownsLocal(banc.getState(), hero.id)).toBe(true);
   });
 
   it('SOLO (net par défaut) : `ownsLocal` reste vrai pour tous — bit-à-bit', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    const s = useGame.getState();
+    const s = banc.getState();
     expect([ownsLocal(s, hero.id), ownsLocal(s, enemy.id), ownsLocal(s, undefined)]).toEqual([true, true, true]);
   });
 });
@@ -368,10 +372,10 @@ describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manue
  */
 function playForcings(seed: number, opts: { atk?: boolean; def?: boolean }) {
   const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
-  const g = useGame.getState;
+  const g = banc.getState;
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(seed);
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
   g().attackRoll();
   if (opts.atk) g().attackForceSuccess();
   g().attackConfirm();
@@ -387,10 +391,10 @@ function playForcings(seed: number, opts: { atk?: boolean; def?: boolean }) {
  *  la sonde DIFFÉRENTIELLE (double forçage vs dés nus) ET des sondes de garantie simple. */
 function playPosed(opts: { forceAtk?: boolean; forceDef?: boolean; atkDie?: number | 'pire'; defDie?: number | 'pire'; seed?: number }) {
   const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
-  const g = useGame.getState;
+  const g = banc.getState;
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(opts.seed ?? 3);
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
   g().attackRoll();
   if (opts.forceAtk) g().attackForceSuccess();
   // « pire » = la réussite la MOINS bonne (DR naturel minimal) : sans garantie, ce dé perd l'opposition.
@@ -491,18 +495,18 @@ describe('#989 B3 — Maladresse de défense d’un héros d’un AUTRE siège (
     for (let sd = 1; sd <= 800 && !seed; sd++) {
       const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], net);
       seedBattleRng(sd);
-      if (!maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)) continue;
-      useGame.getState().defenseRoll();
-      const pd = useGame.getState().pendingDefense!;
+      if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero)) continue;
+      banc.getState().defenseRoll();
+      const pd = banc.getState().pendingDefense!;
       if (defenderFumbled(pd.result!, hero.weapons[0], hero)) seed = sd;
     }
     expect(seed, 'une graine de Maladresse de défense existe').toBeGreaterThan(0);
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], net);
     seedBattleRng(seed);
-    maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero);
-    useGame.getState().defenseRoll();
-    useGame.getState().defenseConfirm();
-    const c = useGame.getState().pendingCascade;
+    maybeOpenDefense(banc.getState, banc.setState, enemy, hero);
+    banc.getState().defenseRoll();
+    banc.getState().defenseConfirm();
+    const c = banc.getState().pendingCascade;
     expect(c?.participants.some((s) => s.jet === 'fumble' && s.actorId === hero.id),
       'le héros d’un autre siège joue SA Maladresse (surfaçage, pas affordance locale)').toBe(true);
   });

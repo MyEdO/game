@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * CE QUE LA FENÊTRE DE DÉFENSE FERA APRÈS LE COUP — la donnée portée par `pendingDefense.suite`,
  * jugée sur ses EFFETS observables à la fermeture (LDB 85 l.41-43 : chaque attaque gratuite est un
- * Test d'attaque COMPLET, sa fenêtre comprise). Patron mk()/setup() de `defense-surfacage.test.ts`.
+ * Test d'attaque COMPLET, sa fenêtre comprise). Patron mk()/setup() de `defense-surfacage.hors-store.test.ts`.
  */
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;

@@ -109,7 +109,7 @@ const construireCarte = (): WorldMap => ({
       modes: ['mer'],
       sea: true,
       // Cap EST : vent de dos sur les vents dominants d'OUEST (MDG 13 l.253) — même convention que
-      // tous les autres fixtures/scénarios maritimes (`seaHeading: 'est'`, cf. sea-voyage-flow.test.ts
+      // tous les autres fixtures/scénarios maritimes (`seaHeading: 'est'`, cf. sea-voyage-flow.hors-store.test.ts
       // et al.). `seaHeading: 'ouest'` mettait ce cap DIRECTEMENT contre les vents dominants (`windAspect`
       // renvoie 'face' quand cap==vent), un vent de face quasi permanent (#408) : la traversée pouvait
       // s'étirer sur plusieurs DIZAINES de jours (Affaler quasi systématique dès Vent violent), très loin

@@ -4,14 +4,13 @@
  * profondeur (allowlist d'intents puis route de possession), l'unicité de l'occupant sur la dernière
  * place, et la parité hôte → invité par le snapshot.
  */
-import { describe, it, expect } from 'vitest';
-import { useGame, type GameState } from './store';
-import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { assignSeat, seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
-import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
-import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
-import { applyNetSnapshot } from './netFlow';
-import { instantaneDeLaCoop } from '../noyau/coop';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { emptyScene, type Scene } from './monde/scene';
+import { assignSeat, seatPoseOf, type SeatOccupant } from './monde/seating';
+import { intentAllowedFor, ROUTES } from './netOwnership';
+import { GUEST_INTENTS } from './intentionsDeSiege';
+import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -27,6 +26,9 @@ const hero = (id: string): Combatant =>
 const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
 const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap((m) => Object.values(m));
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
 /** Table à 4 places dont TROIS sont déjà tenues : « nord » est la DERNIÈRE, sous les pieds du groupe. */
 function derniereePlaceLibre(): void {
   const s = emptyScene('scene-test', 12, 12);
@@ -38,11 +40,11 @@ function derniereePlaceLibre(): void {
     { id: 'pnj-3', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 5 } },
   ];
   s.seatAssignments = { [PROP]: { 'place-2': pris('pnj-1'), 'place-3': pris('pnj-2'), 'place-4': pris('pnj-3') } };
-  useGame.setState({ party: [hero('h1'), hero('h2')], battle: null, journal: [], dialogue: null, mode: 'exploration' });
-  useGame.getState().startScene(s);
-  useGame.setState({
+  banc.setState({ party: [hero('h1'), hero('h2')], battle: null, journal: [], dialogue: null, mode: 'exploration' });
+  banc.getState().startScene(s);
+  banc.setState({
     partyPos: { ...ABORD_NORD },
-    net: { ...useGame.getState().net, mode: 'host', mySeat: MJ, gmSeat: MJ, ownership: { h1: MJ, h2: INVITE } },
+    net: { ...banc.getState().net, mode: 'host', mySeat: MJ, gmSeat: MJ, ownership: { h1: MJ, h2: INVITE } },
   });
 }
 
@@ -61,7 +63,7 @@ describe('route coop de l’assise — aucun intent dédié, deux barrières ind
 
   it('barrière 2 — la route refuse par elle-même tout siège autre que le MJ/hôte', () => {
     derniereePlaceLibre();
-    const s = useGame.getState() as GameState;
+    const s = banc.getState();
     expect(intentAllowedFor(s, MJ, 'interactEntity', [PROP])).toBe(true);
     expect(intentAllowedFor(s, INVITE, 'interactEntity', [PROP])).toBe(false);
   });
@@ -70,13 +72,13 @@ describe('route coop de l’assise — aucun intent dédié, deux barrières ind
 describe('un seul gagnant sur la DERNIÈRE place', () => {
   it('la transaction s’écrit sur l’état COURANT : rejouée sur une scène périmée, elle ne double pas l’occupation', () => {
     derniereePlaceLibre();
-    const perimee = useGame.getState().scene!;
-    useGame.getState().interactEntity(PROP);
-    expect(seatPoseOf(useGame.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ slotId: 'place-1' });
+    const perimee = banc.getState().scene!;
+    banc.getState().interactEntity(PROP);
+    expect(seatPoseOf(banc.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ slotId: 'place-1' });
 
-    useGame.setState({ scene: perimee }); // snapshot périmé remis en place (rattrapage réseau)
-    useGame.getState().interactEntity(PROP);
-    const sc = useGame.getState().scene!;
+    banc.setState({ scene: perimee }); // snapshot périmé remis en place (rattrapage réseau)
+    banc.getState().interactEntity(PROP);
+    const sc = banc.getState().scene!;
     expect(occupants(sc)).toHaveLength(4);                       // 3 PNJ + UN seul corps de groupe
     expect(occupants(sc).filter((o) => o.kind === 'party')).toHaveLength(1);
     expect(sc.seatAssignments![PROP]['place-1']).toEqual({ kind: 'party', rang: 1 });
@@ -84,42 +86,42 @@ describe('un seul gagnant sur la DERNIÈRE place', () => {
 
   it('un second EMPLACEMENT ne peut pas s’y glisser : la place est prise', () => {
     derniereePlaceLibre();
-    useGame.getState().interactEntity(PROP);
+    banc.getState().interactEntity(PROP);
     // La place tenue l'est par un EMPLACEMENT (rang 1). Un autre emplacement du même groupe qui
     // tenterait la même place est refusé par la transaction elle-même, sur l'état COURANT.
-    const sc = useGame.getState().scene!;
-    expect(assignSeat(sc, PROP, 'place-1', { kind: 'party', rang: 2 }, useGame.getState().party.length))
+    const sc = banc.getState().scene!;
+    expect(assignSeat(sc, PROP, 'place-1', { kind: 'party', rang: 2 }, banc.getState().party.length))
       .toMatchObject({ ok: false, reason: 'slot-occupe' });
     expect(occupants(sc)).toHaveLength(4);
   });
 
   it('permuter l’ordre du groupe LÈVE la chaise : elle ne se transmet pas au corps qui prend le rang', () => {
     derniereePlaceLibre();
-    useGame.getState().interactEntity(PROP);
+    banc.getState().interactEntity(PROP);
     // Le siège invité pilote h2 ; le porter en tête change le corps présent au rang 1. La place se
     // lève — elle ne passe pas de main en main, et aucune seconde occupation de groupe n'apparaît.
-    useGame.setState((s) => ({ party: [s.party[1], s.party[0]] }));
-    const sc = useGame.getState().scene!;
+    banc.setState((s) => ({ party: [s.party[1], s.party[0]] }));
+    const sc = banc.getState().scene!;
     expect(occupants(sc).filter((o) => o.kind === 'party')).toEqual([]);
     expect(occupants(sc)).toHaveLength(3); // les trois PNJ authorés gardent la leur
     // …et la place ainsi rendue est de nouveau prenable par le geste du meneur.
-    useGame.getState().interactEntity(PROP);
-    expect(seatPoseOf(useGame.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ slotId: 'place-1' });
+    banc.getState().interactEntity(PROP);
+    expect(seatPoseOf(banc.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ slotId: 'place-1' });
   });
 });
 
 describe('parité hôte → invité', () => {
   it('le snapshot de l’hôte porte l’assise, et l’invité qui l’applique voit la MÊME place unique', () => {
     derniereePlaceLibre();
-    useGame.getState().interactEntity(PROP);
-    const snap = instantaneDeLaCoop(useGame.getState());
+    banc.getState().interactEntity(PROP);
+    const snap = instantaneDeLaCoop(banc.getState());
 
     // L'invité part d'un état DIVERGENT (personne d'assis) puis reçoit le snapshot.
-    useGame.setState((s) => ({ scene: { ...s.scene!, seatAssignments: {} } }));
-    expect(seatPoseOf(useGame.getState().scene!, { kind: 'party', rang: 1 })).toBeNull();
+    banc.setState((s) => ({ scene: { ...s.scene!, seatAssignments: {} } }));
+    expect(seatPoseOf(banc.getState().scene!, { kind: 'party', rang: 1 })).toBeNull();
 
-    applyNetSnapshot(useGame.setState, snap);
-    const sc = useGame.getState().scene!;
+    banc.setState(appliquerLInstantane(snap, banc.getState()).etat);
+    const sc = banc.getState().scene!;
     expect(seatPoseOf(sc, { kind: 'party', rang: 1 })).toMatchObject({ propId: PROP, slotId: 'place-1' });
     expect(occupants(sc)).toHaveLength(4);
   });
