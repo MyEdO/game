@@ -146,7 +146,7 @@ describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 1
 
   it('Premiers Secours hors combat (infirmerie, Test de Guérison réussi retire l’État, LDB 09 l.261 / LDB 16 l.107-109) évite la mort SANS consommer de Destin', () => {
     const c = mk({ current: 3, conditions: [{ id: 'hemorragique', value: 3 }], fate: 0 });
-    applyStopBleed(c, 2); // panse : Test de Guérison réussi, DR 2 → retire 1+2 = 3 pions (tous)
+    applyStopBleed(c, 2, { test: 'guerison', bandages: false }); // panse : Test de Guérison réussi, DR 2 → retire 1+2 = 3 pions (tous)
     expect(hasCondition(c, 'hemorragique')).toBe(false);
     outOfCombatUpkeep([c], 1, fixed(5)); // même jet qui, non traité, tue le cas précédent
     expect(c.dead).toBeFalsy();

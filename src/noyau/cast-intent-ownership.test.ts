@@ -70,7 +70,7 @@ const INVENTORY: Record<string, readonly string[]> = {
   frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
   approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse'],
   ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
-  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
+  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'],
   surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   corruption: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist'],
   test:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse'],

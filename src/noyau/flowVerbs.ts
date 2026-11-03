@@ -101,7 +101,7 @@ export const FLOW_VERBS = {
   ward:         { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'], jetOwner: { pending: 'pendingWard', field: 'attackerId' } },
   // Soin / Chirurgie : le SOIGNEUR roule et dépense (le patient ne lance rien) — `targetId` ne porte
   // aucun jet.
-  heal:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingHeal', field: 'healerId' } },
+  heal:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'], jetOwner: { pending: 'pendingHeal', field: 'healerId' } },
   surgery:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingSurgery', field: 'healerId' } },
   corruption:   { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist'], jetOwner: { pending: 'pendingCorruption', field: 'heroId' } },
   // Test générique : `actorId` est MUTABLE (`testSetActor` — le Test change de testeur en place) ; la

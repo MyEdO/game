@@ -28,7 +28,9 @@ import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { isFrenzied } from '../engine/psychology';
-import { healableTargets, combatHealModes, HEAL_MODES } from '../engine/healing';
+import { healableTargets, modesDOuverture, soinDOuverture, HEAL_MODES } from '../engine/healing';
+import { libelleDeTest } from './jetsEnVue';
+import { garanti } from '../lib/garanti';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
 import { findSpellById } from '../data';
 import { isStructure, structureImmune } from '../engine/structures';
@@ -193,7 +195,7 @@ const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
   'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'augmentWeapon', 'giveTrapping', 'freeReroll',
   'gainResource', 'arrowWard', 'attackWardFM', 'castWard', 'domeWard', 'weatherWard', 'mitigateIncoming',
-  'ignoreStatePenalties', 'noBreath', 'noHunger', 'preventInfection', 'reduceDiseaseDays', 'diseaseTestMod', 'suppressSymptom', 'skillDRBonus',
+  'ignoreStatePenalties', 'noBreath', 'noHunger', 'preventInfection', 'aideMedicale', 'reduceDiseaseDays', 'diseaseTestMod', 'suppressSymptom', 'skillDRBonus',
   'martyr', 'endPsych', 'removePsychTrait', 'suppressPsych', 'gainAdvantage', 'topUpAdvantage', 'critTwice',
   'grantCareerSkill', 'grantCareerTalent',
 ]);
@@ -450,12 +452,15 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
 const soignablesAPortee = (get: Get, active: Combatant): Combatant[] =>
   healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
 
-/** Mode SOIN (Guérison, LDB 09) : réticule « Soigner » sur soi + alliés adjacents qu'un soin de combat
- *  atteint (`combatHealModes`) ; à portée sans soin de combat, la cible est refusée au clic. */
+/** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
+ *  adjacents qu'un soin de combat ouvert par `active` atteint (`modesDOuverture`) ; à portée sans soin de combat, la
+ *  cible est refusée au clic. */
 function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTargeting {
   if (!soignablesAPortee(get, active).some((c) => c.id === target.id)) return { kind: 'none' };
-  if (!combatHealModes(target).length) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
-  return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: 'Guérison', base: 0, mod: 0, dmg: null };
+  const mode = modesDOuverture(target, active)[0];
+  if (!mode) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
+  const test = garanti(soinDOuverture(active, mode), mode, 'soin ouvert').test;
+  return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
 }
 
 /** Sorts permanents dissipables PORTÉS par un combattant donné (regroupés par (sort, lanceur) —
@@ -791,12 +796,12 @@ const BATTERY_MODE: TargetingMode = {
 };
 const HEAL_MODE: TargetingMode = {
   id: 'heal', affordance: healAffordance, anneauCandidats: 'ami',
-  candidates: (get, active) => soignablesAPortee(get, active).filter((c) => combatHealModes(c).length > 0),
-  commitCombatant: (get, _set, _active, id) => {
+  candidates: (get, active) => soignablesAPortee(get, active).filter((c) => modesDOuverture(c, active).length > 0),
+  commitCombatant: (get, _set, active, id) => {
     const target = inBattleId(get().battle, id);
     if (!target) return;
     // Mode par défaut au ciblage-carte (la modale permet de basculer) ; sans soin de combat, `battleHeal` dit le refus.
-    get().battleHeal(id, combatHealModes(target)[0] ?? HEAL_MODES[0]);
+    get().battleHeal(id, modesDOuverture(target, active)[0] ?? HEAL_MODES[0]);
   },
 };
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la

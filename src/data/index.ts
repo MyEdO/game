@@ -1295,7 +1295,7 @@ export interface TrappingData {
    *  feuilles `do` d'ops (MÊME vocabulaire que sorts/passifs), branches `if` (Fleur de lune par race),
    *  nœuds `test` pour les Tests « au boire » (Brise-cœur/Belladone/Nécessaire antipoison), résolus
    *  cadence-aware par le runner state (`runConsumable`). Édité au Codex via `FlowEditor` (comme les
-   *  effets d'un sort). Copié sur `ItemInstance.consumable` à la construction. */
+   *  effets d'un sort). Lu au catalogue par `consommableDe` (`engine/consumables.ts`). */
   consumable?: import('../engine/flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — résolue AU BOIRE
    *  (dés tirés une fois), les ops durables du Flow expirent à l'échéance (`purgeClockEffects`). */

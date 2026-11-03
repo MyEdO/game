@@ -403,7 +403,7 @@ export const TABLES = {
         if (enc.stageOutcome === 'fullRecovery') {
           for (const h of party.filter((x) => !x.dead)) {
             // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
-            if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { skillCheck: false, wake: false, log: () => [] });
+            if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { wake: false, log: () => [] });
             const ex = stacks(h, 'extenue');
             if (ex > 0) removeCondition(h, 'extenue', ex);
           }

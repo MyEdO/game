@@ -24,7 +24,8 @@ import { seedBattleRng } from '../noyau/battleRng';
 import type { AttackResult } from '../engine/combat';
 import { campaignStart, MINUTES_PER_DAY } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
-import { loadWeapon, unloadWeapon, setReloadProgress, recomputeLoadout } from '../engine/items';
+import { loadWeapon, unloadWeapon, setReloadProgress, recomputeLoadout, itemFromTrappingById } from '../engine/items';
+import { garanti } from '../lib/garanti';
 import { loadRegister, weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 // L'état de charge vit sur l'ARME (chaque arme à distance gère son
 // rechargement et sa munition) — raccourci de FIXTURE vers l'arme à distance du combattant.
@@ -1997,8 +1998,8 @@ describe('Utiliser un consommable en combat (store)', () => {
       ...over,
     });
 
-  const potion = (uid: string, name: string, consumable: ItemInstance['consumable']) =>
-    ({ uid, label: name, kind: 'misc', qualities: [], enc: 0, equipped: false, consumable }) as ItemInstance;
+  /** Un consommable du catalogue (son Flow se lit par `trappingId`). */
+  const potion = (uid: string, trappingId: string): ItemInstance => ({ ...garanti(itemFromTrappingById(trappingId), trappingId, 'consommable'), uid });
 
   const mkBattle = (h: Combatant, over = {}): BattleState => ({
     combatants: [h],
@@ -2018,7 +2019,7 @@ describe('Utiliser un consommable en combat (store)', () => {
   it('Potion de guérison : soigne du Bonus d’Endurance, consomme l’objet, coûte l’Action', () => {
     const h = combatHero({
       wounds: blessuresDeBase(12, 5),
-      items: [potion('p1', 'Potion de guérison', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } })],
+      items: [potion('p1', 'potion-de-guerison')],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().battleUseItem('p1');
@@ -2031,7 +2032,7 @@ describe('Utiliser un consommable en combat (store)', () => {
   it('Potion de vitalité : retire l’État Exténué (toutes les piles)', () => {
     const h = combatHero({
       conditions: [{ id: 'extenue', value: 2 }],
-      items: [potion('p2', 'Potion de vitalité', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'extenue', all: true }] } })],
+      items: [potion('p2', 'potion-de-vitalite')],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().battleUseItem('p2');
@@ -2042,7 +2043,7 @@ describe('Utiliser un consommable en combat (store)', () => {
 
   it('Potion de vitalité sans Exténué : refusée et dite avant de boire, objet et Action gardés', () => {
     const h = combatHero({
-      items: [potion('p4', 'Potion de vitalité', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'extenue', all: true }] } })],
+      items: [potion('p4', 'potion-de-vitalite')],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h), refus: null });
     useGame.getState().battleUseItem('p4');
@@ -2055,7 +2056,7 @@ describe('Utiliser un consommable en combat (store)', () => {
   it('Action déjà consommée : aucune utilisation (objet conservé)', () => {
     const h = combatHero({
       wounds: blessuresDeBase(12, 5),
-      items: [potion('p3', 'Potion de guérison', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } })],
+      items: [potion('p3', 'potion-de-guerison')],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h, { acted: true }) });
     useGame.getState().battleUseItem('p3');

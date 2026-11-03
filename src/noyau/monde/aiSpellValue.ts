@@ -215,7 +215,7 @@ function summonValue(op: Extract<GameOp, { op: 'summon' }>, caster: Combatant, c
 function opIsBeneficial(op: GameOp): boolean {
   switch (op.op) {
     case 'heal': case 'healCaster': case 'cureCriticalWound': case 'cureDisease':
-    case 'reduceDiseaseDays': case 'diseaseTestMod': case 'suppressSymptom': case 'preventInfection': case 'removeCondition': case 'endPsych':
+    case 'reduceDiseaseDays': case 'diseaseTestMod': case 'suppressSymptom': case 'preventInfection': case 'aideMedicale': case 'removeCondition': case 'endPsych':
     case 'grantTalent': case 'grantTrait': case 'augmentWeapon': case 'grantWeapon':
     case 'grantNaturalWeapon': case 'ap': case 'gainResource': case 'gainAdvantage': case 'topUpAdvantage':
     case 'freeReroll': case 'critTwice': case 'ignoreStatePenalties': case 'suppressPsych':

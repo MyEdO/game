@@ -77,6 +77,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'hiddenFromFoes': return 'caché (hors de vue de l’ennemi)';
     case 'engaged': return 'engagé avec un ennemi';
     case 'crewTest': return 'au sein d’un Test d’équipage';
+    case 'roundDeCombat': return 'pendant un Round de combat';
     case 'nearestFoe': return `ennemi le + proche ${c.op} ${c.value} cases`;
     case 'capability': return `${libelleDeValeur(actorRefSchema, c.who)} : capacité « ${c.id || '?'} » ${c.op ?? '>='} ${c.value ?? 1}`;
     case 'relation': return `${libelleDeValeur(actorRefSchema, c.who)} : ${libelleDeValeur(relationOrCampSchema, c.is)}`;

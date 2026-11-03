@@ -9,7 +9,7 @@
  * (régime du store Zustand, qui remplace `party`).
  */
 import type { Combatant, ItemInstance } from './types';
-import { contexteDeNaissanceDObjet, itemFromTrappingById } from './items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, objetDuTrapping } from './items';
 import { fromBrass, toBrass, type Money } from './money';
 
 /** Id de trapping de la Bourse (`trappings.json`) — la seule graphie de cette référence. */
@@ -19,7 +19,7 @@ const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2
 
 /** Instance `ItemInstance` de la Bourse d'un héros, ou `undefined` s'il n'en a pas. */
 export function bourseInstanceOf(hero: Combatant): ItemInstance | undefined {
-  return hero.items?.find((i) => i.trappingId === BOURSE_TRAPPING_ID);
+  return objetDuTrapping(hero, BOURSE_TRAPPING_ID);
 }
 
 /** Montant porté par la Bourse d'un héros — `0` s'il n'en a pas (encore). */

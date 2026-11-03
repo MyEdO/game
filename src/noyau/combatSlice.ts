@@ -72,12 +72,13 @@ import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { HEAL_SKILL, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
+import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode, type TestDeSoin } from '../engine/healing';
+import { jetDuSoigneur, parametresDuSoin, refusDesBandages, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
-import { testValue, actorHasSkill, soutienDetail, possesses } from '../engine/skills';
+import { testValue, actorHasSkill, soutienDetail } from '../engine/skills';
 import { rollOups } from '../engine/oups';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -408,7 +409,7 @@ function retireEtatParDetermination(c: Combatant, conditionName: string, now: nu
   if (raisonRefusDetermination(c, conditionName)) return { retire: false, soigne: 0 };
   const avant = stacks(c, conditionName);
   const soigne = soinDeDetermination(c, conditionName);
-  if (soigne > 0) applyHealWounds(c, soigne, { skillCheck: false, wake: false, log: () => [] });
+  if (soigne > 0) applyHealWounds(c, soigne, { wake: false, log: () => [] });
   const src = c.conditions.find((x) => x.id === conditionName)?.derivedFrom?.src;
   const fenetre = src ? fenetreDetermination(c, conditionName, now, battleRng()) : undefined;
   if (src && fenetre) {
@@ -2896,18 +2897,19 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle) return;
       const healer = activeCombatant(battle);
       if (!healer || !controlsCombatant(get(), healer) || refuseParSonEntree(get, set, 'heal', healer, battle)) return;
-      if (battle.action !== 'heal' || !possesses(healer, HEAL_SKILL)) return; // le commit du mode armé (`HEAL_MODE`)
+      if (battle.action !== 'heal') return; // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
       if (!target) return;
-      const raison = raisonDeModeDeSoinEnCombat(target, mode);
-      if (raison) return void refuserGesteDuSiege(get, set, raison);
-      const skillValue = testValue(healer, 'guerison');
-      const difficulty = healDifficulty(mode);
-      const ligne = rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue });
+      const ouverture = soinDOuverture(healer, mode);
+      const raison = raisonDeModeDeSoinEnCombat(target, mode) ?? (ouverture ? null : refusDuTestDeSoin(healer, mode, { test: 'guerison', bandages: false }));
+      if (raison || !ouverture) return void refuserGesteDuSiege(get, set, garanti(raison, mode, 'refus du soin'));
+      const { skillValue, difficulty, ligne } = jetDuSoigneur(healer, ouverture.test, mode);
       set({
         pendingHeal: {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
+          // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (`healSetBandages`).
+          test: ouverture.test, bandagesDe: ouverture.bandages ? healer.id : null,
           skillValue, difficulty, roll: null, success: false, sl: 0,
           ligne, ...cibleMesuree(ligne),
         },
@@ -2923,16 +2925,39 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!ph || ph.roll != null) return;
       const target = actorIn(get(), ph.targetId);
       if (!target) return;
-      // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
-      const raison = get().battle ? raisonDeModeDeSoinEnCombat(target, mode) : t('heal.modeFixeALInfirmerie');
-      if (raison) return void refuserGesteDuSiege(get, set, raison);
-      const difficulty = healDifficulty(mode);
       const soigneur = actorIn(get(), ph.healerId);
+      // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
+      const raison = get().battle
+        ? raisonDeModeDeSoinEnCombat(target, mode) ?? refusDuTestDeSoin(soigneur ?? null, mode, parametresDuSoin(ph))
+        : t('heal.modeFixeALInfirmerie');
+      if (raison) return void refuserGesteDuSiege(get, set, raison);
+      const bandagesDe = actePanse(mode) ? ph.bandagesDe : null;
+      const difficulty = difficulteDuSoin(ph.test, mode);
       const ligne = rollLine({
-        actor: soigneur, ...(soigneur ? { test: { skill: 'guerison' } } : {}),
-        difficulty, valeur: ph.skillValue, soutien: ph.support,
+        actor: soigneur, ...(soigneur ? { test: IDS_DU_TEST_DE_SOIN[ph.test] } : {}),
+        difficulty, valeur: ph.skillValue, soutien: ph.test === 'guerison' ? ph.support : undefined,
       });
-      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+      set({ pendingHeal: { ...ph, mode, bandagesDe, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+    },
+
+    /** Pré-jet : le Test du soin (Guérison ⇄ Dextérité, LDB 74 l.41), jugé par `refusDuTestDuSoin` ; valeur, Difficulté
+     *  et ligne re-dérivées du soigneur combattant (un PNJ soigneur ne jette que sa Guérison). */
+    healSetTest: (test: TestDeSoin) => {
+      const ph = get().pendingHeal;
+      if (!ph) return;
+      if (refuseSi(get, set, () => refusDuTestDuSoin(get(), test))) return;
+      const soigneur = garanti(actorIn(get(), ph.healerId), ph.healerId, 'soigneur combattant');
+      const { skillValue, difficulty, ligne } = jetDuSoigneur(soigneur, test, ph.mode, ph.support);
+      set({ pendingHeal: { ...ph, test, skillValue, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+    },
+
+    /** Pré-jet : engage les Bandages du héros `porteurId` (`null` : les retire), jugé par `refusDesBandages` ; la route
+     *  coop n'admet que le siège du porteur (`netOwnership`). */
+    healSetBandages: (porteurId: string | null) => {
+      const ph = get().pendingHeal;
+      if (!ph) return;
+      if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
+      set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
     },
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
@@ -2950,22 +2975,25 @@ export function createCombatSlice(get: Get, set: Set) {
       const st = get();
       const target = actorIn(st, ph.targetId);
       if (!target) return;
-      let log: string[];
+      const log: string[] = [];
+      // Bandages engagés : une unité s'use réussite ou échec (décision de l'orchestrateur, 2026-11-03, #3059, maison).
+      const porteur = ph.bandagesDe ? actorIn(st, ph.bandagesDe) : undefined;
+      const panse = !!porteur && retirerUnBandage(porteur);
+      if (panse && porteur) log.push(t('heal.bandageUtilise', { name: porteur.label }));
+      const params = { test: ph.test, bandages: panse };
       if (ph.mode === 'wounds') {
-        const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng());
-        log = r.log;
+        const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
+        log.push(...r.log);
         if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: `+${r.healed}`, kind: 'heal' }); // flottant de soin (R8)
       } else if (ph.mode === 'bleed') {
-        log = resolveBleedHeal(target, ph.sl, ph.success);
+        log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
       } else if (ph.mode === 'ammo') {
-        log = resolveExtractLodgedAmmo(target, ph.success); // LDB 62 l.250 — Test de Guérison Intermédiaire
+        log.push(...resolveExtractLodgedAmmo(target, ph.success)); // LDB 62 l.250 — Test de Guérison Intermédiaire
       } else {
-        log = treatTrauma(target, ph.sl, ph.success); // mode 'trauma' — l'échec consomme aussi le jet (LDB 18 l.222)
+        log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'trauma' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
-      // Compétence Guérison RÉUSSIE = Aide Médicale (LDB 18 l.308) : lève l'escalade en attente (« Main
-      // ouverte » : plus de doigt perdu par Round) ET les verrous d'État « par Aide Médicale » (LDB 18 :
-      // Sonné/Inconscient/Aveuglé). Un échec ne soigne pas → n'est pas de l'Aide Médicale.
-      if (ph.success) log = [...log, ...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid')];
+      // Aide Médicale (LDB 18 l.308-311) : le soin réussi, ou le bandage appliqué, réussi ou non.
+      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid'));
       finishPlayerAction(get, set, log, 'heal'); // sortie commune combat / hors combat
     },
 

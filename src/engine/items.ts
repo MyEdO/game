@@ -30,6 +30,9 @@ import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, isUnbreakable, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
+import { rollDice, type RNG } from './dice';
+import { compteDeLaDotation } from './possessionGrants';
+import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
@@ -148,7 +151,6 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   capabilities: true,
   improvised: false,
   container: false,
-  consumable: false,
   consumableDuration: false,
   ammoRangeMod: false,
 } as const satisfies Partial<Record<keyof TrappingData, boolean>>;
@@ -392,8 +394,8 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
  * Matérialise une `TrappingRef` RÉSOLUE (`{id, spec?, count?, qualities?}` — après
  * `resolveTrappingChoices`) en objet de sac. COUTURE UNIQUE ref → objet : le catalogue donne les
  * stats (`itemFromTrappingById`), la REF donne ce que la dotation ajoute par-dessus — la
- * spécialisation imprimée entre parenthèses (`ItemInstance.spec`), la quantité d'un paquet de
- * munitions, les Atouts ATTACHÉS. Aucun site ne recopie ces trois gestes : ils vivent ici.
+ * spécialisation imprimée entre parenthèses (`ItemInstance.spec`) et les Atouts ATTACHÉS. Le `count`
+ * de la ref se lit à `buildInventory`.
  */
 export function itemFromTrappingRef(
   ref: Extract<TrappingRef, { id: string }>,
@@ -403,12 +405,16 @@ export function itemFromTrappingRef(
   const it = itemFromTrappingById(ref.id, resolveTrapping);
   if (!it) return null;
   if (ref.spec) it.spec = ref.spec;
-  if (it.kind === 'ammo' && ref.count && 'fixed' in ref.count) it.qty = ref.count.fixed; // quantité de la carrière
   if (ref.qualities?.length) {
     // #657
     it.qualities = [...(it.qualities ?? []), ...ref.qualities.map(qualityInstance)];
   }
   return deciderApparenceALaNaissance(it, contexte, resolveTrapping);
+}
+
+/** La première instance que `c` porte du trapping `trappingId` (lookup par id STABLE), `undefined` sinon. */
+export function objetDuTrapping(c: Pick<Combatant, 'items'>, trappingId: string): ItemInstance | undefined {
+  return c.items?.find((i) => i.trappingId === trappingId);
 }
 
 /** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
@@ -1173,16 +1179,25 @@ export function damageScore(d?: WeaponDamageSpec): number {
 }
 
 /** Construit l'inventaire d'un héros depuis des `TrappingRef[]` (possessions de Classe + niveau de
- *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; le `count` d'une munition
- *  donne sa quantité. Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
+ *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; son `count`
+ *  (`compteDeLaDotation`, tiré sur `rng`) donne la quantité d'une munition, sinon autant d'objets, comme
+ *  l'achat (`merchantFlow`). Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
  *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). */
-export function buildInventory(refs: TrappingRef[], contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
+export function buildInventory(refs: TrappingRef[], rng: RNG, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
     if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
     if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
+    const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
     const it = itemFromTrappingRef(ref, undefined, contexte);
-    if (it) items.push(it);
+    if (!it) continue;
+    if (it.kind === 'ammo') {
+      if (ref.count) it.qty = n;
+      items.push(it);
+      continue;
+    }
+    items.push(it);
+    for (let i = 1; i < n; i++) items.push(garanti(itemFromTrappingRef(ref, undefined, contexte), ref.id, 'unité de dotation'));
   }
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
   // SANS conflit de couche (max une pièce par couche × localisation, meilleure PA d'abord —

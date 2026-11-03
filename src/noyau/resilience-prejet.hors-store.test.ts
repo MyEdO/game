@@ -70,7 +70,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
     banc.setState({
       party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1 })],
       battle: null,
-      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, sl: 0, success: false, roll: null, target: 50 } as any,
+      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
     });
     banc.getState().healForceSuccess();
     const ph = banc.getState().pendingHeal!;

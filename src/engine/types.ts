@@ -1167,11 +1167,6 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   sizeFor?: import('./size').SizeCategory;
   equipped: boolean;
   desc?: string;
-  /** Effet d'un CONSOMMABLE (potion/drogue/bandage) en **Flow** (noyau `engine/flowCore`, feuilles
-   *  EffectOp) — copié du trapping (`TrappingData.consumable`). Un Test « au boire » (Brise-cœur,
-   *  Belladone…) est un nœud `{kind:'test'}` du Flow, résolu cadence-aware par le runner state
-   *  (`runConsumable`) — jamais un jet silencieux. `isConsumable` = Flow non vide. */
-  consumable?: import('./flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — copiée du trapping,
    *  résolue AU BOIRE (`consumableUntilTime`) → `ctx.defaultUntilTime` des ops appliquées. */
   consumableDuration?: import('./consumables').ConsumableDuration;
@@ -1698,10 +1693,9 @@ export interface Combatant {
    *  sert les escalades conditionnées à l'occurrence (« Si vous tombez une seconde fois sur cette blessure… »,
    *  Blessure majeure à l'oreille, LDB 18 l.71) — lu par `resolveCritique` (`escalation.onRepeat`). */
   critEntriesSuffered?: string[];
-  /** La blessure a été PANSÉE (matériel stérile / pansement) DANS le combat courant — un soin de Guérison
-   *  réussi ou un bandage suffit : « aucune Infection ne se développera suite à la blessure »
-   *  (LDB 09 l.260 ; cataplasme de guérison LDB 72 l.20). Empêche la contraction d'Infection Mineure
-   *  en fin de combat. Transitoire (par rencontre). */
+  /** La blessure a été PANSÉE DANS le combat courant — soin de Blessures réussi sous Bandages
+   *  (`resolveWoundsHeal`), ou op `preventInfection` (cataplasme de guérison, Cautériser) : LDB 09 l.260,
+   *  LDB 72 l.20. Empêche la contraction d'Infection Mineure en fin de combat. Transitoire (par rencontre). */
   woundDressed?: boolean;
   /** Traumatismes subis (LDB 18) — persistants ; effets en-combat lus par effectiveChar/effectiveMovement. */
   traumas?: Trauma[];

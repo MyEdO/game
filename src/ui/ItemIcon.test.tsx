@@ -37,8 +37,8 @@ describe('ItemIcon : le glyphe de la catégorie de l’objet', () => {
     expect(html(itemFromTrappingById('cape')!)).toContain(iconSvg('item/cloak'));
   });
 
-  it('consommable (Flow structuré) → item/consumable', () => {
-    const potion = mk({ kind: 'misc', label: 'Potion de guérison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
+  it('consommable (Flow du catalogue) → item/consumable', () => {
+    const potion = mk({ kind: 'misc', label: 'Potion de guérison', trappingId: 'potion-de-guerison' }); // Flow lu au catalogue
     expect(html(potion)).toContain(iconSvg('item/consumable'));
   });
 

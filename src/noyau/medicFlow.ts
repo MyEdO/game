@@ -217,7 +217,7 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
   set({
     pendingHeal: {
       healerId: healer.id ?? 'pnj-soigneur', healerName: healer.label, targetId: patient.id, targetName: patient.label,
-      mode: act, intBonus: healer.intBonus, skillValue: healer.skill, support: healer.support,
+      mode: act, intBonus: healer.intBonus, test: 'guerison', bandagesDe: null, skillValue: healer.skill, support: healer.support,
       difficulty, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, paidCost,
     },
   });

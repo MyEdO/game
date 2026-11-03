@@ -746,7 +746,12 @@
           "skill": {
             "id": "guerison"
           },
-          "manual": true
+          "when": {
+            "kind": "not",
+            "of": {
+              "kind": "roundDeCombat"
+            }
+          }
         }
       ]
     },
@@ -3625,7 +3630,16 @@
     },
     "test": {
       "raw": "Guérison pendant les Rounds de combat",
-      "matches": []
+      "matches": [
+        {
+          "skill": {
+            "id": "guerison"
+          },
+          "when": {
+            "kind": "roundDeCombat"
+          }
+        }
+      ]
     },
     "desc": "Vous êtes habitué à traiter rapidement les blessures. Si vous ratez un Test de Guérison quand vous utilisez des Bandages, vous pouvez inverser le résultat si cela entraîne un succès ; cependant, si vous le faites, vous ne pouvez pas obtenir plus de +1 DR, car vous vous concentrez sur la vitesse plutôt que sur la précision.",
     "specs": [],

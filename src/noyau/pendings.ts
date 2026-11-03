@@ -19,7 +19,7 @@ import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
 import type { ManeuverDef, StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
-import type { HealMode } from '../engine/healing';
+import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { PsychType, TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
@@ -2423,7 +2423,11 @@ export interface PendingHeal {
   targetName: string;
   mode: HealMode; // 'wounds' | 'bleed' | 'trauma' | 'ammo' (jamais 'surgery'/'recovery' — cf. medicFlow)
   intBonus: number; // Bonus d'Intelligence du soigneur
-  skillValue: number; // testValue(soigneur, 'Guérison') — Soutien FONDU
+  /** Test déclaré (`refusDuTestDeSoin`, `healSetTest`). */
+  test: TestDeSoin;
+  /** Héros dont les Bandages sont engagés (`healSetBandages`, `refusDesBandages`) ; `null` : aucun. */
+  bandagesDe: string | null;
+  skillValue: number; // valeur du Test déclaré — Soutien FONDU (Guérison)
   /** SOUTIEN (LDB 12) des assistants de soin, déjà fondu dans `skillValue` — porté pour l'affichage. */
   support?: SupportDetail;
   difficulty: Difficulty; // 'intermediaire' (+0, LDB 09 l.243)

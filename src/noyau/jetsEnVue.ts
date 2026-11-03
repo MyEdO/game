@@ -311,7 +311,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   ward: (s) => s.pendingWard && vue('ward', [ligne(s.pendingWard.attackerId, libelleDeTest('force-mentale'), s.pendingWard.result)]),
   heal: (s) => {
     const p = s.pendingHeal;
-    return p && vue('heal', [ligne(p.healerId, libelleDeTest('guerison'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('heal', [ligne(p.healerId, libelleDeTest(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
   surgery: (s) => {
     const p = s.pendingSurgery;
