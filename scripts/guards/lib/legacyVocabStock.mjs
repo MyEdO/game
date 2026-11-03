@@ -735,13 +735,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/reveal.test.ts",
-    motif: "désormais",
-    ancre: "type le refuse désormais (`CascadeTableDone`) ; ce couple test + directive en est la mesure.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/rollflow-outcome-invariant.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue",
@@ -829,13 +822,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/targetingModes.ts",
     motif: "désormais",
     ancre: "offensif non-Projectile (Choc, Sommeil…) se cible désormais sur l'ennemi, comme le tir.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/state/trample.test.ts",
-    motif: "désormais",
-    ancre: "// La Marche consommée par l'approche est désormais TRACÉE — la gate de Se cabrer (l.205 ci-dessus,",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

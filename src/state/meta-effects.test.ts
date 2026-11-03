@@ -1,9 +1,7 @@
 /**
- * Méta-flux comme Effets de scène (#83) : les événements de campagne s'exposent comme des `Effect`
- * authorables, câblés sur les SURFACES EXISTANTES — `sessionEnd` ouvre `SessionEndModal` (via le flag
- * `sessionEndOpen`), `openCharacterCreator` émet `EVT.HEROS_A_CREER`, que le store câble sur l'assistant
- * existant (`setEditingHero(null)` + écran `creator`, #2817 D5). Aucun nouveau moteur : on branche sur ce
- * qui existe.
+ * Méta-flux comme Effets de scène (#83), côté web : `openCharacterCreator` émet `EVT.HEROS_A_CREER`, que le
+ * store câble sur l'assistant existant (`setEditingHero(null)` + écran `creator`, #2817 D5). `sessionEnd` se
+ * joue au banc du noyau (`src/noyau/meta-effects.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
@@ -13,15 +11,7 @@ import { createHero } from '../engine/character';
 describe('Méta-effets de scène (#83)', () => {
   beforeEach(() => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    useGame.setState({ party: [h], journal: [], sessionEndOpen: false, screen: 'campaign', editingHeroId: 'x' });
-  });
-
-  it('sessionEnd ouvre l’écran de fin de séance existant', () => {
-    expect(useGame.getState().sessionEndOpen).toBe(false);
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'sessionEnd' }]);
-    expect(useGame.getState().sessionEndOpen).toBe(true);
-    useGame.getState().closeSessionEnd();
-    expect(useGame.getState().sessionEndOpen).toBe(false);
+    useGame.setState({ party: [h], journal: [], screen: 'campaign', editingHeroId: 'x' });
   });
 
   it('openCharacterCreator ouvre l’assistant existant pour un NOUVEAU héros', () => {

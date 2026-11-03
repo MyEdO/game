@@ -5,7 +5,7 @@ import { etats, psychologies, refLabel } from '../data';
 import { setDataset } from '../data/overrides';
 import { deElide, t } from '../i18n';
 import { DIFFICULTY_LABELS } from '../engine/types';
-import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../engine/ficheDeTest.testkit';
 
 const cond = (name: string, value = 1): ConditionInstance => ({ id: name, value });
 const buff = (label: string, bonus: number, roundsLeft: number, char?: CharKey): ActiveEffect => ({ label, bonus, duration: { scale: "rounds", left: roundsLeft }, char });
