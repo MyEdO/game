@@ -139,12 +139,6 @@
     "bloque": "Tir parfait de Fanmaris (AA 12 l.9), Défense de Leitdorf (AA 12 l.28-30) et Méthode Alcatani (AA 12 l.41-43) : leur bénéfice « pour la prochaine aventure » n'est pas appliqué — aucune manœuvre de combat déclarée une fois par aventure (Tir parfait, attaque opposée de Leitdorf) ni octroi temporaire de rangs de Coude-à-coude à d'autres Personnages ; l'Activité se joue et se consomme sans effet"
   },
   {
-    "id": "4e/activites#nouvelle-activite-convalescence-ade-ii-annexe-i",
-    "type": "raw.manifest",
-    "label": "Nouvelle Activité : Convalescence — ADE II Annexe I",
-    "bloque": "Échec de Convalescence (ADE II 09 l.33) : aucun effet appliqué — `FLOWS.cascade` et `FLOWS.cascadeBatch` ne déclarent pas `reverse`, et `reverse.skillOf` ne nomme que la Compétence ; un jeton d'inversion ne peut pas viser le Test de Calme qui résiste à un Trait psychologique (`CascadeStep.combatPsych`, `CascadeStep.encounterPsych`)"
-  },
-  {
     "id": "4e/activites#revenus",
     "type": "raw.manifest",
     "label": "Revenus",

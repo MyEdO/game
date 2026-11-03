@@ -7,8 +7,8 @@ import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } f
 import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { willAutoResolve } from '../noyau/combatAuto';
-import { evaluateTest, maxForcedRoll } from '../engine/tests';
-import { hitLocation, reverseRoll } from '../engine/combat';
+import { evaluateTest, maxForcedRoll, reverseRoll } from '../engine/tests';
+import { hitLocation } from '../engine/combat';
 import { netSeatClosed } from './netFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';

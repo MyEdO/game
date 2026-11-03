@@ -68,7 +68,7 @@ const INVENTORY: Record<string, readonly string[]> = {
   focus:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   dispel:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
-  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
+  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse'],
   ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
   heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],

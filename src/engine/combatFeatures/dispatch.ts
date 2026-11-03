@@ -3,7 +3,7 @@
  * (niveau = `times` du talent) et expose des helpers typés consommés par combat.ts / combatFlow /
  * rollFlows / store. Aucune mutation. Même patron que `engine/qualities/dispatch.ts`.
  */
-import type { Combatant, RangeBandId, Weapon } from '../types';
+import type { Combatant, RangeBandId, ReverseQuery, Weapon } from '../types';
 import { isShieldItem } from '../items';
 import { findTalentById, findTraitById } from '../../data';
 import { canStrikeFirst } from '../qualities/dispatch';
@@ -349,13 +349,13 @@ export function hasBargainBonus(c: Combatant): boolean {
 }
 
 /** Inversion d'un Test RATÉ de la Compétence `{ skill, spec }` (Sociable → Ragot, Pharmacologie →
- *  Métier (Apothicaire)…) : renvoie le plafond de DR éventuel (`capDR`), `null` si aucun talent ne
+ *  Métier (Apothicaire)…), dans le contexte que le Talent déclare (Pilote, Pansement de fortune) : renvoie le plafond de DR éventuel (`capDR`), `null` si aucun talent ne
  *  s'applique. Réf STRUCTURÉE par id. LDB 10. */
-export function talentReverseFailed(c: Combatant, q: { skill?: string; spec?: string }): { capDR?: number } | null {
+export function talentReverseFailed(c: Combatant, q: ReverseQuery): { capDR?: number } | null {
   if (!q.skill) return null;
   for (const { def } of featuresOf(c)) {
     const rf = def.reverseFailed;
-    if (!rf) continue;
+    if (!rf || (rf.contexte != null && rf.contexte !== q.contexte)) continue;
     if (rf.skills.some((s) => refCouvre(s, { id: q.skill, spec: q.spec }))) return { capDR: rf.capDR };
   }
   return null;
