@@ -98,11 +98,15 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
   beforeEach(() => setDataset('breathTypes', [...avant, ...TYPES]));
   afterEach(() => setDataset('breathTypes', avant));
 
-  it('sans Type du registre : Dégâts d’Arme égaux à l’Indice, BE et PA déduits, aucune règle de Type', () => {
-    const e = frappe('texte-libre-fixture');
+  it('sans Type : Dégâts d’Arme égaux à l’Indice, BE et PA déduits, aucune règle de Type', () => {
+    const e = frappe();
     expect(e.wounds.current).toBe(30 - (15 - 3 - 5));
     expect(e.conditions).toEqual([]);
-    expect(souffle('texte-libre-fixture').label).toBe(findManeuverById('souffle')!.label);
+    expect(souffle().label).toBe(findManeuverById('souffle')!.label);
+  });
+  it.each(['bave-gluante', 'soporifique', 'cauchemars'])('le Type « %s » du Zoo impérial ignore les PA (ZI 02 l.56, ZI 03 l.27, ZI 13 l.128)', (id) => {
+    const e = frappe(id);
+    expect(e.wounds.current).toBe(30 - (15 - 3));
   });
   it('un Type applique sa règle : PA ignorées et son État', () => {
     const e = frappe('perce-fixture');
