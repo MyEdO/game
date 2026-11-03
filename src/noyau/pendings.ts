@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
+import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -141,6 +141,9 @@ export interface PendingTest {
   psychMod?: number;
   /** Libellé lisible du malus psy social (« Animosité −20 envers Elfe ») pour la modale de Test. */
   psychDetail?: string;
+  /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
+   *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
+  contexte?: ContexteDeTest;
   /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
@@ -1554,6 +1557,10 @@ export interface PendingExtendedTest extends PendingBase {
   actorId: string; // qui effectue le Test (solo)
   label: string; // « Enfoncer la porte »
   skillLabel: string; // « Force » / « Athlétisme » (affichage)
+  /** Test lancé en STRUCTURE (Compétence + Spécialisation), lu par l'inversion (Talent, jeton) ; absent :
+   *  Test de la Caractéristique `char`. LDB 12 l.42 */
+  skill?: RefDesignee;
+  char?: CharKey;
   target: number; // cible effective d'UN Round (difficulté déjà appliquée)
   targetDR: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
   total: number; // DR cumulé courant (dépend des Rounds précédents → c'est ce qui rend le flux SÉQUENTIEL)
@@ -2120,6 +2127,14 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
   rollLabel?: string;
+  /** COMPÉTENCE réellement lancée (id + Spécialisation), posée par le mint depuis le Test de la ligne —
+   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skillId`. Absente : Test de
+   *  Caractéristique, ou étape sans jet. */
+  skillId?: string;
+  spec?: string;
+  /** CONTEXTE du Test de l'étape (LDB 12 l.42), déclaré par son producteur (Psychologie, péril des eaux)
+   *  — lu par l'inversion, qui n'offre une source qu'au Test que son passage vise. */
+  contexte?: ContexteDeTest;
   /** ENJEU de l'étape (#331/#1117) : ce que le jet met en jeu — une RÉFÉRENCE de donnée (`StakeRef` :
    *  clé de dataset + valeurs calculées), JAMAIS un texte. Le résolveur UNIQUE (`resolveStake`) rend
    *  le texte ET la fiche de règle au moment de l'affichage : un producteur ne peut ni écrire l'enjeu

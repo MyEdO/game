@@ -12,6 +12,7 @@ import { describeBattement } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { VsHeader } from './VsHeader';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
 
 /**
@@ -28,6 +29,7 @@ export function BattementModal() {
   const bonusSL = useGame((s) => s.battementBonusSL);
   const darkPact = useGame((s) => s.battementDarkPact);
   const force = useGame((s) => s.battementForceSuccess);
+  const reverse = useGame((s) => s.battementReverse); // Inversion (LDB 12 l.42)
   const setFoe = useGame((s) => s.battementSetFoe);
   const confirm = useGame((s) => s.battementConfirm);
   const cancel = useGame((s) => s.battementCancel);
@@ -57,6 +59,8 @@ export function BattementModal() {
     // Résilience AVANT le jet (LDB 17 l.68) : on lance puis on force la réussite (dé PAR DÉFAUT = DR max
     // → plus d'Avantage retiré). PAS de choix du dé : l'Avantage retiré ne dépend que du DR.
     preRollForce: () => { roll(); force(); },
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.battement`).
+    ...(FLOWS.battement.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.battement.reversePreview(useGame.getState) } } : {}),
   });
 
   const actions: RollAction[] = [

@@ -10,9 +10,9 @@
  * (références RAW en place). Ne rien y « simplifier » sans citer la source.
  */
 import type { Jeu } from './etat';
-import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, BatchParticipant } from './pendings';
-import type { PendingActivity, ActivityOppositionOn } from './interludeFlow';
-import type { Combatant, Weapon } from '../engine/types';
+import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
+import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
+import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { FLOW_VERBS, type RollVerb, type FlowVerbs } from './flowVerbs';
 import { deDuJet, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
@@ -32,13 +32,13 @@ import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
 import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
-import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
+import { REDERIVATIONS, attackTestOf, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
+import { refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -176,9 +176,35 @@ const DEFENSE_LABEL_FALLBACK = 'Intimidation';
 /** Opposition FIGÉE de l'étape de cascade COURANTE (celle dont le flux `cascadeBatch` lance les
  *  rangées) — la lecture, jamais une seconde source : `stepOpposedFreeze` (noyau/cascade.ts) décide
  *  seul de ce qu'est un freeze. `undefined` hors cascade ou sur une étape non opposée. */
+/** +DR d'un Test de Compétence/Caractéristique RÉUSSI (LDB 10) — règle UNIVERSELLE `talentTestSLBonus`
+ *  (matcher STRUCTURÉ `test.matches`, par id ; le contexte `when` n'est pas évalué ici), PLUS les +DR
+ *  d'effet actif/trait par Compétence (`skillDRBonus`, MDG 09 l.232) et par Caractéristique
+ *  (`charDRBonusOf`, MDG 09 l.236), et le −DR hors de son terrain (MDG 16 l.17). Lu par le jet naturel
+ *  et par l'inversion. */
+function drDeReussiteDuTest(actor: Combatant, p: PendingTest): number {
+  return talentTestSLBonus(actor, { skill: p.skillId, char: p.char, spec: p.spec })
+    + (p.skillId ? skillDRBonus(actor, p.skillId, p.spec) : 0)
+    + charDRBonusOf(actor, p.char ?? (p.skillId ? effectiveSkillCharKey(actor, p.skillId, { spec: p.spec }) : undefined))
+    + offTerrainTestDR(actor);
+}
+
 function currentStepFreeze(s: Jeu) {
   const p = s.pendingCascade;
   return p ? stepOpposedFreeze(p.participants[p.cursor]) : undefined;
+}
+
+/** Lecture du dé `tr` d'une étape-Test MONO contre sa cible : seuil, ré-opposition au jet figé, sinon
+ *  le Test naturel — SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
+function evaluerEtape(st: CascadeStep, target: number, tr: TestResult): CascadeRoll {
+  if (st.evaluation === 'seuil') return lireDeEtape(tr.roll, target, st.evaluation);
+  const opp = stepOpposedFreeze(st);
+  return opp ? opposedCascadeRoll(tr, opp, target, st.base) : { roll: tr.roll, target, sl: tr.sl, success: tr.success };
+}
+
+/** Le Test qu'une inversion vise sur une étape de cascade : la Compétence lancée et le contexte que
+ *  l'étape déclare (`CascadeStepCore.contexte`). */
+function requeteDEtape(st: CascadeStep, skill: string | undefined, spec: string | undefined): ReverseQuery {
+  return { skill, spec, ...(st.contexte ? { contexte: st.contexte } : {}) };
 }
 
 // ── Délégués de jet du store : générateur + types (fin de la duplication ~113 lignes) ──
@@ -282,6 +308,21 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
   const pj = { roll: jet.roll, target: p.target, base: p.skillBase, success: jet.success, sl: jet.sl, isDouble: false };
   const opp = resolveOpposed(pj, et);
   return { held: opp.winner !== 'defender', enemySL: et.sl - jet.sl };
+}
+
+/** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
+ *  « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule), sinon simple —
+ *  SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
+function lireDeDActivite(p: PendingActivity, tr: { roll: number; target: number; sl: number; success: boolean }): Partial<PendingActivityFields> {
+  if (p.target2 != null) {
+    const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
+    return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
+  }
+  if (p.battle === 'round' && p.enemyValue != null) {
+    const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
+    return { roll: tr.roll, sl: tr.sl, success: v.held, enemySL: v.enemySL };
+  }
+  return { roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success };
 }
 
 // ── Fabriques d'ISSUE CANONIQUE (cf. `TestOutcome`) — les DEUX formes récurrentes, écrites UNE fois.
@@ -627,17 +668,17 @@ export const FLOWS = paresseux({
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
         const weapon = p.weapon ?? firedWeapon(actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
-        return { skill: weapon.type === 'ranged' ? 'projectiles' : 'corps-a-corps' };
+        return attackTestOf(actor, weapon, weapon.type === 'ranged' ? 'ranged' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
-      applyRoll: (s, p, actor, _get, tr) => {
+      evaluate: (s, p, actor, _get, tr) => {
         const target = actorIn(s, p.targetId); if (!target) return null;
         const ad = p.result!.attackerDetail!;
         // `tr.success` = issue RÉELLE du dé renversé (le jeton, libre, peut ne PAS convertir un échec
         // — ni forcer un succès, `forcedTR`) ; seule la voie Talent (gate stricte échec→succès dans
         // `applyReverse`) garantit `tr.success:true` par construction.
         const atk2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(ad), base: ad.base, success: tr.success, sl: tr.sl });
-        return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
+        return { patch: { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
       },
     },
     // « Annuler » : défaire la charge misclic AVANT le jet
@@ -744,11 +785,11 @@ export const FLOWS = paresseux({
     reverse: {
       skillOf: (_s, p) => ({ skill: p.mode === 'parade' ? 'corps-a-corps' : p.mode === 'esquive' ? 'esquive' : undefined }),
       current: (p) => (p.def ? { roll: p.def.roll, target: p.def.target } : null),
-      applyRoll: (s, p, actor, _get, tr) => {
+      evaluate: (s, p, actor, _get, tr) => {
         const attacker = actorIn(s, p.attackerId); if (!attacker) return null;
-        // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.applyRoll — jamais forcé).
+        // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.evaluate — jamais forcé).
         const def2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(p.def!), base: p.def!.base, success: tr.success, sl: tr.sl });
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) };
+        return { patch: { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) }, issue: tr };
       },
     },
   }),
@@ -1035,6 +1076,13 @@ export const FLOWS = paresseux({
     bonus: {
       derive: (_s, r) => bumpResultSL(r),
     },
+    // Inversion (LDB 12 l.42) du Round : le Test du Test étendu (Studieux LDB 11 l.55, Lecture rapide
+    // LDB 10 l.634 sur Recherche ; jetons).
+    reverse: {
+      skillOf: (_s, _r, _a, _g, p) => ({ skill: p.skill?.id, spec: p.skill?.spec, char: p.char }),
+      current: (r, p) => (r.result ? { roll: r.result.roll, target: p.target } : null),
+      evaluate: (_s, _r, _a, _g, tr) => ({ patch: { result: { roll: tr.roll, sl: tr.sl, success: tr.success } }, issue: tr }),
+    },
   }),
 
   /**
@@ -1055,14 +1103,7 @@ export const FLOWS = paresseux({
     // depuis `st.base`) — l'accesseur n'en est pas une seconde source (LDB 12 l.160).
     die: {
       read: (st) => (st.target != null && estJete(st.result) ? { roll: st.result.roll, target: st.target, critable: false } : null),
-      write: (_s, st, _a, _g, tr) => {
-        if (st.target == null) return null;
-        const opp = stepOpposedFreeze(st);
-        if (st.evaluation === 'seuil') return { result: lireDeEtape(tr.roll, st.target, st.evaluation) };
-        return opp
-          ? { result: opposedCascadeRoll(tr, opp, st.target, st.base) }
-          : { result: { roll: tr.roll, target: st.target, sl: tr.sl, success: tr.success } };
-      },
+      write: (_s, st, _a, _g, tr) => (st.target == null ? null : { result: evaluerEtape(st, st.target, tr) }),
       // Dé CHOISI au titre de la Résilience sur une étape OPPOSÉE : le DR est planché À EMPORTER
       // (LDB 17 l.68 « S'il s'agit d'un Test opposé, vous l'emportez avec au moins DR +1 ») — sans ce
       // plancher, la ré-opposition ci-dessus rendrait la réussite ACHETÉE au dé, donc au hasard.
@@ -1100,6 +1141,17 @@ export const FLOWS = paresseux({
       return { result: { roll: t.roll, target: st.target, sl: t.sl, success: t.success } };
     },
     outcome: (st) => testOutcome(st.result),
+    // Inversion (LDB 12 l.42) sur une étape-Test : la Compétence et le contexte de l'étape. Un dé lu en
+    // seuil n'est pas un Test.
+    reverse: {
+      skillOf: (_s, st) => (st.evaluation === 'seuil' ? null : requeteDEtape(st, st.skillId, st.spec)),
+      current: (st) => (st.target != null && !st.jet && estJete(st.result) ? { roll: st.result.roll, target: st.target } : null),
+      evaluate: (_s, st, _a, _g, tr) => {
+        if (st.target == null) return null;
+        const result = evaluerEtape(st, st.target, hydrateTR({ roll: tr.roll, target: st.target, base: st.base, success: tr.success, sl: tr.sl }));
+        return { patch: { result }, issue: { roll: result.roll, sl: result.sl, success: result.success } };
+      },
+    },
     // Résilience GLOBALE + Résistance (Menace) sur les étapes taguées `menace` (Contraction/Corruption/
     // Venin) ; `picker` (dé choisi) UNIQUEMENT sur une Peur de COMBAT (Test ÉTENDU, le DR
     // gagné dépend du dé, LDB 21 l.27) — pas sur une étape BINAIRE (Terreur/cible/Test de scène/nuit/opposé).
@@ -1350,6 +1402,16 @@ export const FLOWS = paresseux({
       applyRoll: (_s, _slot, _actor, _get, tr) => ({ result: tr }),
       dieTarget: (p, actor) => (p.result?.target != null ? cibleBrute(p.result) : cibleBrute(ligneDAttaquantDeManoeuvre(actor, 'capacite-de-combat'))),
     },
+    // Inversion (LDB 12 l.42) : le Test de Corps à corps du Battement (LDB 10 l.103) — jeton
+    // d'Entraînement au Combat (LDB 23 l.209).
+    reverse: {
+      skillOf: (_s, _p, actor) => attackTestOf(actor, undefined, 'melee'),
+      current: (p) => (p.result ? { roll: p.result.roll, target: p.result.target } : null),
+      evaluate: (_s, p, _a, _g, tr) => ({
+        patch: { result: hydrateTR({ roll: tr.roll, ...cibleMesuree(p.result!), base: p.result!.base, success: tr.success, sl: tr.sl }) },
+        issue: tr,
+      }),
+    },
   }),
 
   /**
@@ -1517,14 +1579,8 @@ export const FLOWS = paresseux({
     // la règle du site) ; sinon l'issue est celle du dé.
     die: {
       read: (r: BatchParticipant) => (estJete(r.result) ? { roll: r.result.roll, target: r.result.target, critable: false } : null),
-      write: (s: Jeu, r: BatchParticipant, _a: Combatant | undefined, _g: Get, tr: TestResult) => {
-        const opp = currentStepFreeze(s);
-        return {
-          result: opp
-            ? opposedCascadeRoll(tr, opp, r.target, r.base)
-            : { roll: tr.roll, target: r.target, sl: tr.sl, success: tr.success },
-        } as Partial<BatchParticipant>;
-      },
+      write: (s: Jeu, r: BatchParticipant, _a: Combatant | undefined, _g: Get, tr: TestResult) =>
+        ({ result: evaluerRangeeBatch(r, tr, currentStepFreeze(s)) }) as Partial<BatchParticipant>,
       // Même plancher que l'étape MONO : sur une bande OPPOSÉE, le dé choisi par la Résilience EMPORTE
       // l'opposition (LDB 17 l.68), il ne la retente pas.
       floorSL: (_r: BatchParticipant, _a: Combatant | undefined, p: PendingCascade) => {
@@ -1580,6 +1636,19 @@ export const FLOWS = paresseux({
     // La rangée PORTE son verdict (`CascadeRoll.success` — opposition comprise) : l'issue le LIT au
     // lieu de recomparer dé et cible, qui ne décrit qu'un Test simple.
     outcome: (r) => testOutcome(r.result),
+    // Inversion (LDB 12 l.42) PAR RANGÉE : la Compétence de la rangée, le contexte de la bande. Rangée
+    // immunisée (Détermination) ou témoin : rien à inverser.
+    reverse: {
+      skillOf: (s, r) => {
+        const st = s.pendingCascade?.participants[s.pendingCascade.cursor];
+        return !st || st.evaluation === 'seuil' ? null : requeteDEtape(st, r.skillId, r.spec);
+      },
+      current: (r) => (!r.immune && estJete(r.result) ? { roll: r.result.roll, target: r.result.target } : null),
+      evaluate: (s, r, _a, _g, tr) => {
+        const result = evaluerRangeeBatch(r, hydrateTR({ roll: tr.roll, target: r.target, base: r.base, success: tr.success, sl: tr.sl }), currentStepFreeze(s));
+        return { patch: { result } as Partial<BatchParticipant>, issue: { roll: result.roll, sl: result.sl, success: result.success } };
+      },
+    },
     // Chance « +1 DR » (LDB 17 l.24) : sur une rangée OPPOSÉE, on RE-OPPOSE le jet amélioré au jet figé
     // (le +1 peut faire BASCULER l'issue) — sinon simple report du DR.
     bonus: {
@@ -1701,6 +1770,13 @@ export const FLOWS = paresseux({
       return simpleTestResultResolve((q: PendingApproach, a) => valeurDuTest(a, q.test), (q: PendingApproach) => q.test.difficulty)(s, p, actor);
     },
     outcome: (p) => testOutcome(p.result),
+    // Inversion (LDB 12 l.42) : le Test d'approche résiste à la Peur (LDB 21 l.27) — contexte `psych`
+    // (ADE II 09 l.33).
+    reverse: {
+      skillOf: (_s, p) => ({ skill: p.test.skill.id, spec: p.test.skill.spec, contexte: 'psych' }),
+      current: (p) => (p.result?.target != null ? { roll: p.result.roll, target: p.result.target } : null),
+      evaluate: (_s, p, _a, _g, tr) => ({ patch: { result: { ...p.result!, roll: tr.roll, sl: tr.sl, success: tr.success } }, issue: tr }),
+    },
   }),
 
   /** Bénédiction de Protection (LDB 41 l.142) : Test de Force Mentale Accessible (+20) qui DIFFÈRE la
@@ -1732,17 +1808,7 @@ export const FLOWS = paresseux({
     // « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule).
     die: {
       read: (p) => (p.roll != null && p.target != null ? { roll: p.roll, target: p.target, critable: false } : null),
-      write: (_s, p, _a, _g, tr) => {
-        if (p.target2 != null) {
-          const c = evaluateCombinedTest(tr.roll, p.target, p.target2);
-          return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
-        }
-        if (p.battle === 'round' && p.enemyValue != null) {
-          const v = holdVerdict(p, { roll: tr.roll, sl: tr.sl, success: tr.success });
-          return { roll: tr.roll, sl: tr.sl, success: v.held, enemySL: v.enemySL };
-        }
-        return { roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success };
-      },
+      write: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr),
     },
     key: 'pendingActivity',
     rolled: (p) => p.roll != null,
@@ -1830,6 +1896,21 @@ export const FLOWS = paresseux({
         }
         // Simple : +1 DR, `success` INTACT (bumpSL ; LDB 17 l.24).
         return { sl: p.sl + 1 };
+      },
+    },
+    // Inversion (LDB 12 l.42) : la Compétence du Test (Studieux LDB 11 l.55 et Lecture rapide LDB 10 l.634
+    // sur Recherche, Sociable LDB 11 l.25 sur Ragot). Les jetons « pour votre prochaine aventure »
+    // (LDB 23 l.209/218) ne valent que sur une Scène de bataille, jouée DANS l'aventure ; une Activité
+    // se joue « Entre deux aventures » (LDB 23 l.5 ; ADE II 8 l.65). Un Test combiné (deux Tests sur un
+    // dé, LDB 12 l.206) et un Round de Focalisation (`resolveFocus`) ne s'inversent pas.
+    reverse: {
+      skillOf: (_s, p) => (p.target2 != null || p.ritualSpell
+        ? null
+        : { skill: p.chosenSkill, spec: p.chosenSkillSpec, ...(p.battle === 'round' ? {} : { horsAventure: true as const }) }),
+      current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
+      evaluate: (_s, p, _a, _g, tr) => {
+        const patch = lireDeDActivite(p, { ...tr, target: p.target });
+        return { patch, issue: { roll: tr.roll, sl: tr.sl, success: activityWon({ ...p, ...patch }) } };
       },
     },
     touch: touchActors,
@@ -1947,17 +2028,7 @@ export const FLOWS = paresseux({
       },
     },
     resolve: (_s, p, actor, _get, forced) => {
-      // +DR de Talent (LDB 10) sur un Test RÉUSSI — règle UNIVERSELLE `talentTestSLBonus` (matcher
-      // STRUCTURÉ `test.matches`, par id). Le contexte `when` n'est pas
-      // évalué ici (défaut conservateur ; cf. plan). PLUS les +DR d'effet actif/trait : par Compétence
-      // (`skillDRBonus` — chanson « De toutes les terreurs » : +1 DR Calme, MDG 09 l.232) et par
-      // Caractéristique (`charDRBonusOf` — « Camarades d'équipage » : +1 DR Sociabilité, l.236).
-      const tDR = actor
-        ? talentTestSLBonus(actor, { skill: p.skillId, char: p.char, spec: p.spec })
-          + (p.skillId ? skillDRBonus(actor, p.skillId, p.spec) : 0)
-          + charDRBonusOf(actor, p.char ?? (p.skillId ? effectiveSkillCharKey(actor, p.skillId, { spec: p.spec }) : undefined))
-          + offTerrainTestDR(actor) // hors de son terrain : −DR à TOUS les Tests (Créature marine, MDG 16 l.17)
-        : 0;
+      const tDR = actor ? drDeReussiteDuTest(actor, p) : 0;
       // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
       // l'ouverture du Test (`openSkillTest`) et appliqué ICI, au DR du Test RÉSOLU.
       const capDR = p.capriciousDR ?? 0;
@@ -1984,18 +2055,15 @@ export const FLOWS = paresseux({
     // Studieux/Lecture rapide/Pharmacologie/Chat de gouttière/Noctambule/Pansement de fortune, MÊME
     // formule « vous pouvez ») : CHOIX du joueur (#558), offert par la rangée d'influence — jamais
     // automatique. `applyReverse` (engine/reverseToken.ts) tente le Talent (gratuit, illimité) PUIS le
-    // jeton d'Activité (consommé) ; les +DR de Talent/effet actif (`tDR`) s'appliquent PAR-DESSUS,
-    // comme sur un jet naturel.
+    // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel de `resolve` (+DR de
+    // réussite, Capricieux, DR exigé).
     reverse: {
-      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec }),
+      skillOf: (_s, p) => ({ skill: p.skillId, spec: p.spec, char: p.char, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
-      applyRoll: (_s, p, actor, _get, tr) => {
-        const tDR = talentTestSLBonus(actor, { skill: p.skillId, char: p.char, spec: p.spec })
-          + (p.skillId ? skillDRBonus(actor, p.skillId, p.spec) : 0)
-          + charDRBonusOf(actor, p.char ?? (p.skillId ? effectiveSkillCharKey(actor, p.skillId, { spec: p.spec }) : undefined))
-          + offTerrainTestDR(actor);
-        const sl = tr.sl + tDR + (p.capriciousDR ?? 0);
-        return { roll: tr.roll, sl, success: tr.success && meetsRequiredSL(p.requireSL, sl) };
+      evaluate: (_s, p, actor, _get, tr) => {
+        const sl = tr.sl + (tr.success ? drDeReussiteDuTest(actor, p) : 0) + (p.capriciousDR ?? 0);
+        const issue = { roll: tr.roll, sl, success: tr.success && meetsRequiredSL(p.requireSL, sl) };
+        return { patch: issue, issue };
       },
     },
   }),

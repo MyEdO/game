@@ -3641,7 +3641,8 @@
             "id": "guerison"
           }
         ],
-        "capDR": 1
+        "capDR": 1,
+        "contexte": "bandages"
       }
     }
   },
@@ -3867,7 +3868,8 @@
             "id": "voile"
           }
         ],
-        "capDR": 1
+        "capDR": 1,
+        "contexte": "perilDesEaux"
       }
     }
   },

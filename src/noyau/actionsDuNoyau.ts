@@ -436,7 +436,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
   counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  startExtendedTest: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
+  startExtendedTest: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; char?: CharKey; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
   // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
   extendedTestNext: () => void;

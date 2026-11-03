@@ -10,6 +10,7 @@ import { progresDActivite } from '../noyau/progresEtendu';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
 import { libelleDePuissance } from '../noyau/jetsEnVue';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
 
 /**
@@ -29,6 +30,7 @@ export function ActivityModal() {
   const reroll = useGame((s) => s.activityReroll);
   const bonusSL = useGame((s) => s.activityBonusSL);
   const darkPact = useGame((s) => s.activityDarkPact);
+  const reverse = useGame((s) => s.activityReverse); // Inversion (LDB 12 l.42)
   const cancel = useGame((s) => s.activityCancel);
   const confirm = useGame((s) => s.activityConfirm);
   if (!pa) return null;
@@ -69,6 +71,8 @@ export function ActivityModal() {
     fortune: actor?.fortune ?? 0,
     /* Test ÉTENDU (Artisanat) : barre de DR de RANGÉE — site unique `RollRow` (arbitrage user 2026-07-11). */
     extendedDr: progres ? { cum: rolled ? progres.total : pa.drBefore ?? 0, target: progres.cible } : undefined,
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.activity`).
+    ...(FLOWS.activity.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.activity.reversePreview(useGame.getState) } } : {}),
   });
 
   const rows: BuiltRollRow[] = [actorRow];

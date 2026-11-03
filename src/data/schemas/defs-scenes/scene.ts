@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { amateurSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -129,6 +129,8 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   postes: z.array(authoredShipPosteSchema).optional(),
   upgrades: z.array(navalTraitRefSchema).optional(),
   dialogueId: z.string().optional(),
+  /** Contrepartie d'un Test de Sociabilité qui lit les jetons de Mécénat — arbitrage MAISON (ACE 12 l.60-62). */
+  amateur: amateurSchema.optional(),
   appearance: entityAppearanceSchema.optional(),
   anim: roleAmbiantSchema.optional(),
   /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
@@ -176,7 +178,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     }), { optionals: { label: "options" }, spells: { label: "sorts" , texte: { regime: "technique"} }, randomChars: { label: "caractéristiques aléatoires" }, skills: { label: "Compétences" }, hiddenUntilCombat: { label: "caché jusqu’au combat" } })
     .optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, weapon: { label: "arme" , texte: { regime: "technique"} }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, weapon: { label: "arme" , texte: { regime: "technique"} }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
  *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */

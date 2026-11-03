@@ -99,6 +99,7 @@ const psychBands = makeBandFactory<PsychDue>({
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
     encounterPsych: d,
+    contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     stake: combatStakeRef('encounterPsych', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
     // les rend en chips codex-liées avant le jet, et le verdict est le MÊME bloc filtré (#1117).

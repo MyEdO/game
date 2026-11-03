@@ -1,6 +1,7 @@
 // LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544.
 import { describe, it, expect } from 'vitest';
-import { lancerDeLaSecondeMain, reverseRoll, causeDuCoupCritique } from './combat';
+import { lancerDeLaSecondeMain, causeDuCoupCritique } from './combat';
+import { reverseRoll } from './tests';
 import type { RNG } from './dice';
 import { aucunDe } from './dice.testkit';
 
