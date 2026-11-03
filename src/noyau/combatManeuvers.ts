@@ -23,7 +23,7 @@ import type { RNG } from '../engine/dice';
 import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL, baseTestModLines, weaponSkillId, GRAPPLE_TEST_CTX } from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
-import { effectiveChar, bonus } from '../engine/characteristics';
+import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';
 import { testValue, skillBaseValue } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
@@ -349,7 +349,7 @@ export function maneuverAttackerDifficulty(kind: AttackKind): Difficulty {
  *  Dégâts/États restent data (`GameOp`). Vide ou ≤ 0 → null. Zéro regex (donnée déjà structurée). */
 function measureMeters(spec: ManeuverMeasure | undefined, ref: Combatant): number | null {
   if (!spec) return null;
-  const m = (spec.bonusOf ? bonus(effectiveChar(ref, spec.bonusOf)) : 0) + (spec.plus ?? 0);
+  const m = (spec.bonusOf ? bonusDe(ref, spec.bonusOf) : 0) + (spec.plus ?? 0);
   return m > 0 ? m : null;
 }
 /** Mètres → CASES (grille 2 m/case), min 1 ; null conservé. */

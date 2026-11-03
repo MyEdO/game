@@ -480,6 +480,7 @@
     "grantGroups": [
       "feu"
     ],
+    "typeDeDegats": "feu",
     "effects": [
       {
         "trigger": "onRoundEnd",

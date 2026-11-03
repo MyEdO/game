@@ -104,3 +104,17 @@ describe('EquipmentPanel (rendu)', () => {
     expect(html).toContain('Empaleuse');
   });
 });
+
+describe('EquipmentPanel — Bonus de Force affiché (LDB 21 l.33)', () => {
+  const forte = (frenetique: boolean): Combatant => {
+    const c = mkHero();
+    c.characteristics.force = 40;
+    if (frenetique) c.psychState = [{ type: 'frenesie' }];
+    return c;
+  };
+  it('Arme simple (+BF+4), Force 40 : « Dégâts +BF+4 (9) » en Frénésie, (8) sinon', () => {
+    expect(renderToStaticMarkup(<EquipmentPanel hero={forte(true)} />)).toContain('(9)');
+    expect(renderToStaticMarkup(<EquipmentPanel hero={forte(false)} />)).toContain('(8)');
+    expect(renderToStaticMarkup(<EquipmentPanel hero={forte(false)} />)).not.toContain('(9)');
+  });
+});

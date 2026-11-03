@@ -8,7 +8,8 @@
       "page": 341
     },
     "ignoreAP": true,
-    "etat": "en-flammes"
+    "etat": "en-flammes",
+    "typeDeDegats": "feu"
   },
   {
     "id": "froid",
@@ -40,7 +41,8 @@
       "page": 341
     },
     "ignoreAP": true,
-    "etat": "sonne"
+    "etat": "sonne",
+    "typeDeDegats": "electrique"
   },
   {
     "id": "poison",
@@ -51,7 +53,8 @@
       "page": 341
     },
     "ignoreAP": true,
-    "etat": "empoisonne"
+    "etat": "empoisonne",
+    "typeDeDegats": "poison"
   },
   {
     "id": "fumee",

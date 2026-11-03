@@ -1512,6 +1512,8 @@ export interface StatusData {
 export interface EtatData extends StatusData {
   /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
+  /** Type de Dégâts (`damage-types.json`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
+  typeDeDegats?: string;
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -1897,6 +1899,9 @@ export interface TraitData {
   /** Trait d'ATTAQUE : son Indice est celui des Dégâts (« +N ») et une instance peut conférer des Traits à
    *  ses touches (`TraitPose.confere`). LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
   attaque?: boolean;
+  /** L'Indice de Dégâts du Trait inclut déjà le Bonus de Force (`WeaponDamageSpec.bfInclus`). LDB 85 l.35,
+   *  l.47, l.83, l.237, l.405 */
+  bfInclus?: true;
   /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
    *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
   difficulte?: boolean;
@@ -3349,6 +3354,7 @@ export interface BreathTypeData {
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
+  typeDeDegats?: string;
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
@@ -3363,7 +3369,7 @@ export function breathTypeLabel(id: string | null | undefined): PlayerText {
 /** Type de Dégâts ignoré par le Trait Immunité (LDB 85 : « poison, magiques ou électriques ») — argument du
  *  Trait Immunité (multi-valeurs) ET valeur de la Condition `has … what:'immunity'` (Venin (Poison)…). Registre SSOT
  *  (`damage-types.json`, éditable). */
-export interface DamageTypeData { id: string; type: 'damage-types'; label: string; }
+export interface DamageTypeData { id: string; type: 'damage-types'; label: string; domaine?: string; }
 export const damageTypes = damageTypesJson as DamageTypeData[];
 const typeDegatsParId = indexParId('damageTypes', damageTypes);
 /** Résout un Type de Dégâts par son `id` STABLE. */

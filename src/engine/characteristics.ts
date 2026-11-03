@@ -87,6 +87,29 @@ export function effectiveChar(c: Combatant, key: CharKey): number {
   return charRetenue(c, key);
 }
 
+/** Part PASSIVE du Bonus de Force de `c` : Σ des passifs `sbBonus`. LDB 21 l.33 */
+export function bonusPassifDeForce(c: Combatant): number {
+  return passiveMods(c).reduce((n, m) => n + (m.op.op === 'sbBonus' ? m.op.amount : 0), 0);
+}
+
+/** Bonus de la Caractéristique `k` de `c`, lue par `lire` (défaut : `effectiveChar`) ; la Force y ajoute sa
+ *  part passive (`bonusPassifDeForce`). SOURCE UNIQUE de tout lecteur d'un Bonus de Caractéristique d'un
+ *  combattant. LDB 21 l.33 */
+export function bonusDe(c: Combatant, k: CharKey, lire: (k: CharKey) => number = (q) => effectiveChar(c, q)): number {
+  return bonus(lire(k)) + (k === 'force' ? bonusPassifDeForce(c) : 0);
+}
+
+/** Bonus de Force de `c` (`bonusDe`) : Dégâts, Portée `{bf}`, fiche, IA. LDB 21 l.33 */
+export function bonusDeForce(c: Combatant): number {
+  return bonusDe(c, 'force');
+}
+
+/** Le Bonus de Force de `c` tel que les Dégâts d'une arme le lisent (`effectiveWeaponDamage`) : total, et
+ *  part passive pour un Indice qui inclut déjà le BF. LDB 21 l.33 ; LDB 85 l.35 */
+export function forceDuPorteur(c: Combatant): { bf: number; passif: number } {
+  return { bf: bonusDeForce(c), passif: bonusPassifDeForce(c) };
+}
+
 /** Caractéristique qui entre dans le recalcul des Blessures max : sans les effets `blessuresAuTotal` (#3060). */
 function charDesBlessures(c: Combatant, key: CharKey): number {
   return charRetenue(c, key, (e) => !e.blessuresAuTotal);
@@ -115,9 +138,14 @@ export function effectiveArmourAt(c: Combatant, location: keyof Combatant['armou
 /** Points de Blessure d'un profil (`woundsForSize`) : LDB 05 l.365, LDB 85 l.393-401 ; `traits` : LDB 85 l.142
  *  (Fabriqué), LDB 85 l.130 (Endurant). */
 export function maxWounds(chars: Characteristics, size: SizeCategory = 'moyenne', traits?: TraitList): number {
-  const be = bonus(chars.endurance);
-  const bfm = traitCapability(traits, 'woundsUseForce') ? bonus(chars.force) : bonus(chars['force-mentale']);
-  return woundsForSize(bonus(chars.force), be, bfm, size, traitCapability(traits, 'bonusWoundsBE') ? be : 0);
+  return blessuresDesBonus((k) => bonus(chars[k]), size, traits);
+}
+
+/** Points de Blessure d'après les Bonus `b` du porteur (`maxWounds`). */
+function blessuresDesBonus(b: (k: CharKey) => number, size: SizeCategory, traits?: TraitList): number {
+  const be = b('endurance');
+  const bfm = traitCapability(traits, 'woundsUseForce') ? b('force') : b('force-mentale');
+  return woundsForSize(b('force'), be, bfm, size, traitCapability(traits, 'bonusWoundsBE') ? be : 0);
 }
 
 /** Parts du maximum des Blessures (LDB 05 l.1001, LDB 10 l.384, LDB 48 l.23, LDB 71 l.20, LDB 85 l.253) :
@@ -125,12 +153,12 @@ export function maxWounds(chars: Characteristics, size: SizeCategory = 'moyenne'
  *  (`attrMod{wounds}` de `passiveMods` et des effets actifs). */
 function partsDesBlessures(c: Combatant): { derive: number; facteur: number; plats: number } {
   const lire = (k: CharKey): number => charDesBlessures(c, k);
-  const profil = { ...c.characteristics, force: lire('force'), endurance: lire('endurance'), 'force-mentale': lire('force-mentale') };
+  const bonusDuPorteur = (k: CharKey): number => bonusDe(c, k, lire);
   const effets = (c.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.wounds ?? 0), 0);
   return {
-    derive: maxWounds(profil, tailleCourante(c), c.traits),
+    derive: blessuresDesBonus(bonusDuPorteur, tailleCourante(c), c.traits),
     facteur: isSwarm(c.traits) ? 5 : 1,
-    plats: sommeAttrMods(passiveMods(c), 'wounds', lire) + effets,
+    plats: sommeAttrMods(passiveMods(c), 'wounds', { carac: lire, bonusDe: bonusDuPorteur }) + effets,
   };
 }
 

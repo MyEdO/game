@@ -34,6 +34,13 @@ describe('IA — auto-récupération d’État (LDB 16 l.66/l.84)', () => {
     expect(action.kind).toBe('melee');
   });
 
+  it('En flammes + Immunité (Feu) : rien à éteindre, il attaque (LDB 85 l.174)', () => {
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }], traits: [{ id: 'immunite', arg: 'feu' }] });
+    const h = mk('h', 'hero', { x: 5, y: 6 });
+    const action = chooseEnemyAction(input(e, [h]));
+    expect(action.kind).toBe('melee');
+  });
+
   it('Empêtré (Mouvement nul) sans cible au contact : se libère plutôt que perdre son tour', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] });
     const h = mk('h', 'hero', { x: 9, y: 9 }); // loin

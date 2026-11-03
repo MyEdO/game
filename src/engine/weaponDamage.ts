@@ -19,13 +19,14 @@ function effectiveDamageTaken(w: Weapon): number {
 /** Dégâts d'arme effectifs après réduction par `damageTaken` (la composante fixe positive est
  *  réduite, plancher 0 → BF+0 improvisée ; une composante négative — mains nues — est préservée).
  *  Lit la donnée STRUCTURÉE (`WeaponDamageSpec`) — zéro parsing de chaîne ; « Spécial » (literal) → 0. */
-export function effectiveWeaponDamage(w: Weapon, strengthBonus: number): number {
+export function effectiveWeaponDamage(w: Weapon, force: { bf: number; passif: number }): number {
   const d = w.damage;
   const usesBF = 'plusBF' in d && d.plusBF;
+  const passif = 'bfInclus' in d && d.bfInclus ? force.passif : 0; // LDB 85 l.35 ; LDB 21 l.33
   const flat = 'flat' in d ? d.flat : 0;
   const dt = effectiveDamageTaken(w); // Solide(N) absorbe les N premiers points (LDB 60 l.30)
   const reduced = flat >= 0 ? Math.max(0, flat - dt) : flat;
-  return Math.max(0, (usesBF ? strengthBonus : 0) + reduced);
+  return Math.max(0, (usesBF ? force.bf : 0) + passif + reduced);
 }
 
 /** Portée d'arme EFFECTIVE en mètres (MIROIR de `effectiveWeaponDamage` pour les Dégâts) : résout une

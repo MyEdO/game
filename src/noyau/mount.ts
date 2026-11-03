@@ -10,7 +10,7 @@ import { effectiveMovement } from '../engine/encumbrance';
 import { sizeGap, type SizeCategory } from '../engine/size';
 import { fearSizeAsMount, runMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { ModLine, AttackOptions } from '../engine/combat';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonusDeForce } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
@@ -58,7 +58,7 @@ export const mountOf = (battle: BattleState, rider: Combatant): Combatant | unde
  *  hors Charge ou sans monture. SOURCE UNIQUE du jet d'origine et de ses re-dérivations. */
 export const chargeDmgProxy = (combatants: Combatant[] | undefined, rider: Combatant, fromCharge: boolean | undefined): AttackOptions['dmgProxy'] => {
   const m = fromCharge && rider.mountId ? combatants?.find((c) => c.id === rider.mountId) : undefined;
-  return m && { sb: bonus(effectiveChar(m, 'force')), size: m.size };
+  return m && { sb: bonusDeForce(m), size: m.size };
 };
 
 /** Géométrie de COMBAT d'un combattant, à partir d'une liste brute de combattants (utilisable hors

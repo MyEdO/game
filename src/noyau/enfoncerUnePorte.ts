@@ -5,7 +5,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { testValue } from '../engine/skills';
 import { attackTestOf } from '../engine/combat';
 import { effectiveWeaponDamage } from '../engine/weaponDamage';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonusDeForce, forceDuPorteur } from '../engine/characteristics';
 import type { ForceDoorParticipant, PendingForceDoor } from './pendings';
 import { rollLine, type RollLineParts } from './rollSeam';
 
@@ -41,8 +41,7 @@ export function ligneDEnfoncement(actor: Combatant, arme: Weapon | undefined): R
 /** Dégâts infligés à la porte au DR `sl` — EDO 11 l.93-95 ; décision de l'orchestrateur (2026-11-03,
  *  #3059) : avec une arme, ⌊dégâts de l'arme ÷ 2⌋ au lieu du Bonus de Force. */
 export function degatsDEnfoncement(actor: Combatant, arme: Weapon | undefined, sl: number, doorBE: number): number {
-  const bf = bonus(effectiveChar(actor, 'force'));
-  return Math.max(0, sl + (arme ? Math.floor(effectiveWeaponDamage(arme, bf) / 2) : bf) - doorBE);
+  return Math.max(0, sl + (arme ? Math.floor(effectiveWeaponDamage(arme, forceDuPorteur(actor)) / 2) : bonusDeForce(actor)) - doorBE);
 }
 
 /** Bilan d'un Round d'enfoncement — EDO 11 l.89-95. `complet` : tous les héros ont frappé. */

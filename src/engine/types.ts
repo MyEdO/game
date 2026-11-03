@@ -344,12 +344,13 @@ export type { ArmourBypass };
 
 /** Spécification STRUCTURÉE des Dégâts d'arme (LDB 62). La présence du token `BF` (Bonus de Force) est
  *  PORTEUSE de sens — exprimée explicitement par `plusBF`, jamais par accident de chaîne. `flat` DÉJÀ
- *  résolu (négatif autorisé : Indice −2). `bare` : « +BF » NU (Tentacule/Piétinement) ≠ « +BF+0 ».
+ *  résolu (négatif autorisé : Indice −2). `bare` : « +BF » NU (Tentacule/Piétinement) ≠ « +BF+0 ». `bfInclus` : `flat` est un Indice qui
+ *  inclut déjà le BF du porteur (`TraitData.bfInclus`), sa part passive s'y ajoute (`effectiveWeaponDamage`).
  *  `literal` = escape hatch pour les Dégâts non chiffrables (« Spécial »). Affichage dérivé par
  *  `damageString` ; remplace la chaîne « +BF+4 » re-parsée par regex au runtime. */
 export type WeaponDamageSpec =
   | { literal: string }
-  | { plusBF: boolean; flat: number; bare?: true };
+  | { plusBF: boolean; flat: number; bare?: true; bfInclus?: true };
 
 /** Portée d'arme à distance (LDB 62) : `number` = mètres FIXES (arc/arbalète/arme à feu) ; `{ bf }` =
  *  Bonus de Force × `bf` mètres (armes de JET — javelot/couteau de lancer/bombe…). Résolue À L'USAGE

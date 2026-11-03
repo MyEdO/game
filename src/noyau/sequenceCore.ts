@@ -32,7 +32,7 @@ import {
 import { runCascadeImmediate, stepInteraction, stepReady } from './cascade';
 import { estJete, extendedTestStep } from '../engine/tests';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonus, bonusDe } from '../engine/characteristics';
 import { applyOps, type GameOp } from '../engine/ops';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
@@ -227,13 +227,13 @@ export function sequenceTableRow(params: SequenceParams, sl: number): SequenceTa
 /* ── FAMILLE (3bis) : BONUS DE CARACTÉRISTIQUE AJOUTÉ AU DR ──────────────────────────────────────*/
 
 /** Bonus de Caractéristique DÉCLARÉ (`params.drBonus`) d'un porteur, 0 sans déclaration. La
- *  Caractéristique est lue à l'accesseur CANONIQUE (`effectiveChar`) : États, séquelles et passifs y
+ *  Caractéristique est lue à l'accesseur CANONIQUE (`bonusDe`) : États, séquelles et passifs y
  *  sont compris — un bras de fer se joue avec la Force qu'on a ce soir-là, pas celle de la fiche
  *  (`LDB 16`). Un camp ABSTRAIT n'a pas de Combatant : son Bonus se lit sur la valeur nue que la
  *  table lui donne (chiffre des dizaines, `engine/characteristics.bonus`). */
 export function sequenceDrBonus(params: SequenceParams, actor: Combatant | undefined, valeurNue?: number): number {
   if (!params.drBonus) return 0;
-  return actor ? bonus(effectiveChar(actor, params.drBonus)) : bonus(valeurNue ?? 0);
+  return actor ? bonusDe(actor, params.drBonus) : bonus(valeurNue ?? 0);
 }
 
 /* ── FAMILLE (4) : EFFETS PAR MANCHE ─────────────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ export function sequenceAttritionEvery(params: SequenceParams, actor: Combatant 
   const every = params.rounds?.attritionEvery;
   if (every == null) return 0;
   if (typeof every === 'number') return every;
-  return actor ? bonus(effectiveChar(actor, every.charBonus)) : 0;
+  return actor ? bonusDe(actor, every.charBonus) : 0;
 }
 
 export const PERTE_DU_TOUR: readonly GameOp[] = [{ op: 'spendAdvantage' }]; // LDB 14 l.219 ; AA 11 l.42-44

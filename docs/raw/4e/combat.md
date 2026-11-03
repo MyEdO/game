@@ -3016,7 +3016,7 @@ Le **Trait Arme (Indice)** est l'attaque de mêlée par défaut (dents, griffes,
 | **Morsure (Indice)** | Attaque gratuite, pendant son tour | **1 Avantage** | CC opposé | Indice (BF inclus) | aucun (mais voir Vampirique / Venin) |
 | **Cornes (Aspect)(Indice)** | Attaque gratuite **en Chargeant** | **0** (gagnée avec l'Avantage de Charge) | CC opposé | Indice (BF inclus) | aucun ; Aspect noté entre parenthèses |
 | **Attaque Caudale (Indice)** | Attaque gratuite, pendant son tour | **1 Avantage** | CC opposé | Indice (BF inclus) | cible de **Taille inférieure** qui perd des PB → État **À Terre** |
-| **Langue Préhensile (Indice)(Portée)** | Attaque gratuite, pendant son tour | **1 Avantage** | CT / **Esquive** (à distance) | Indice (BF inclus) | sur touche : 1 **Empêtré** ; Taille inférieure → entraînée vers la créature ; puis relâcher / Attaque gratuite d'Arme / **Empoignade** |
+| **Langue Préhensile (Indice)(Portée)** | Attaque gratuite, pendant son tour | **1 Avantage** | CT / **Esquive** (à distance) | Indice (LDB 85 l.213 : BF non inclus) | sur touche : 1 **Empêtré** ; Taille inférieure → entraînée vers la créature ; puis relâcher / Attaque gratuite d'Arme / **Empoignade** |
 | **Tentacules # (Indice)** | **1 Attaque gratuite PAR tentacule** | **0** | CC opposé (par tentacule) | Indice (BF inclus) | sur Dégâts : peut infliger **Empêtré** → **Empoignade** avec ce tentacule |
 | **Constricteur** | sur toute touche d'une attaque | — | (attache l'attaque) | — | toute touche réussie → **Empêtré** ; puis **Empoignade** |
 | **Toile (Indice)** | sur toute touche | — | (attache l'attaque) | — | sur touche → 1 **Empêtré** de **Force = Indice** |
@@ -3242,7 +3242,14 @@ La sauvegarde agit sur le coup reçu, pas sur le jet de l'attaquant, et le texte
 
 **Éthéré.** « La créature est immatérielle, ce qui lui permet de **passer à travers les objets solides**. Elle ne peut être blessée que par les **Attaques magiques**. » — `LDB 85 l.134`. Une attaque non magique ne la blesse pas ; seules les Attaques magiques (sorts, arme magique, créature *Magique*/*Démoniaque*) la blessent. Le texte dit *blessée*, pas *touchée* : un double réussi d'une arme non magique reste un Critique obtenu au jet de l'attaquant (`LDB 13 l.183`), que la cible ne subit pas ; la seconde frappe du *Maniement de deux armes* garde « le lancer du tableau des Critiques » (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
 
-**Immunité (Type).** « La créature est totalement immunisée à un certain *Type* de Dégâts, comme ceux du poison, magiques ou électriques. **Tous les Dégâts de ce *Type*, y compris les Dégâts Critiques, sont ignorés.** » Annulation totale (Dégâts + Critiques) du type indiqué entre parenthèses (ex. *Immunité (Poison)*, *Immunité (Feu)*). — `LDB 85 l.172-173`
+**Immunité (Type).** « La créature est totalement immunisée à un certain *Type* de Dégâts, comme ceux du poison, magiques ou électriques. **Tous les Dégâts de ce *Type*, y compris les Dégâts Critiques, sont ignorés.** » Annulation totale (Dégâts + Critiques) du type indiqué entre parenthèses (ex. *Immunité (Poison)*, *Immunité (Feu)*). — `LDB 85 l.172-174`
+
+- Souffle d'un Type de Dégâts (`LDB 85 l.326-328`) : l'Immunité à ce Type annule ses Dégâts et la règle du Type (Souffle (Poison) : ni Dégâts ni *Empoisonné*) — lecture recommandée, révisable (#3074).
+- *Immunité (Feu)* couvre le Souffle (Feu) et l'État *En flammes* (« Dégâts de feu, y compris pour l'État *En flammes* et les attaques de Souffle » — `VDM 10 l.153`), pas les Sorts du Domaine du Feu, que « Immunité (Feu, Magie flamboyante) » nomme à part (`ZI 08 l.28`) — lecture recommandée, révisable (#3074).
+- *Immunité (Magie flamboyante)*, *Immunité (Shyish)*, « Immunité (tous les feux) » (= Feu + Magie flamboyante) : immunité aux effets des Sorts du Domaine nommé, comme *Manifestation de Ghur* (`ZI 08 l.28` ; `VDM 13 l.24`, `l.61`) — lecture recommandée, révisable (#3074).
+- Souffle (Corrosion et Poison) (`EDOC 13 l.237`) : *Immunité (Poison)* annule la règle Poison, pas les Dégâts ni la corrosion — lecture recommandée, révisable (#3074).
+- *Immunité (Magique)* : aucun porteur en donnée, rien n'est typé « magique » — lecture recommandée, révisable (#3074).
+- La perte de fin de Round d'*Empoisonné* (`LDB 16 l.72`) n'est pas typée : sans objet, *Immunité (Poison)* bloque la pose de l'État — lecture recommandée, révisable (#3074).
 
 **Résistance à la Magie (Indice).** « La Magie n'affecte pas la créature autant que les autres. Le **DR de tous les Sorts** l'affectant est **réduit du nombre indiqué**. Ainsi, *Résistance à la Magie 2* réduit le DR de 2. » Ce n'est pas une annulation : on **soustrait l'Indice au nombre de Degrés de Réussite** du lanceur sur cette cible (réduisant la puissance/durée/dégâts par-DR du sort). — `LDB 85 l.302`
 
@@ -3298,7 +3305,7 @@ Les Dégâts dus au **Feu** sont notés à part et **jamais** régénérés. —
 - `LDB 85 l.277-278` — **Protection (Indice)** : 1d10 après chaque coup, ≥ Indice → coup ignoré même Critique (ward save).
 - `LDB 85 l.95-98` — **Démoniaque (Indice)** : attaques Magiques + sauvegarde 1d10 ≥ Indice (Critique inclus) + à 0 PB banni vers les Royaumes du Chaos ; sans besoin d'eau/nourriture/air.
 - `LDB 85 l.132-134` — **Éthéré** : immatériel, traverse les solides, blessé uniquement par Attaques magiques.
-- `LDB 85 l.172-173` — **Immunité (Type)** : Dégâts du Type (Critiques inclus) totalement ignorés.
+- `LDB 85 l.172-174` — **Immunité (Type)** : Dégâts du Type (Critiques inclus) totalement ignorés.
 - `LDB 85 l.302` — **Résistance à la Magie (Indice)** : DR de tous les Sorts l'affectant réduit de l'Indice (ex. 2 → −2 DR).
 - `LDB 85 l.195-195` — **Insensible à la Douleur** : pénalités de Critiques non-amputants ignorées ; États subis normalement.
 - `LDB 85 l.293-302` — **Régénération** : début de Round, >0 PB → +1d10 PB ; à 0 PB → 8+ régénère 1 PB ; 10 régénère aussi 1 Critique ; Feu jamais régénéré (noté à part).

@@ -90,6 +90,8 @@ export const TYPES = {
   breathType: { espace: 'breath-types.json', catalogue: 'types de Souffle' },
   // LDB 85 l.174
   damageType: { espace: 'damage-types.json', catalogue: 'types de Dégâts' },
+  // VDM 13 l.61 ; ZI 08 l.28
+  domain: { espace: 'domains.json', catalogue: 'domaines' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

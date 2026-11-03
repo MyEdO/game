@@ -45,9 +45,9 @@ export interface CarrierInventoryProps {
   carrierId: string;
   /** Objets du porteur (`hero.items` / `possession.items`). */
   items: ItemInstance[];
-  /** Groupe pour le calcul mécanique des armes (BF du porteur) — `bonus(effectiveChar(hero,'force'))`
-   *  côté héros ; 0 par défaut (porteur sans caractéristiques). */
-  forceBonus?: number;
+  /** BF du porteur pour le calcul mécanique des armes — `forceDuPorteur(hero)` côté héros ; nul par
+   *  défaut (porteur sans caractéristiques). */
+  force?: { bf: number; passif: number };
   /** Autre porteurs éligibles au « Donner » (typiquement le reste du groupe) — filtré de `carrierId`. */
   party?: Combatant[];
   /** Surbrillance « équipé/en main » d'une arme — défaut `it.equipped` (héros injecte `isWeaponActive`). */
@@ -70,7 +70,7 @@ const GROUPS: { label: string; pred: (it: ItemInstance) => boolean }[] = [
 export function CarrierInventory({
   carrierId,
   items,
-  forceBonus = 0,
+  force = { bf: 0, passif: 0 },
   party = [],
   weaponHighlighted,
   weaponHandLabel,
@@ -105,7 +105,7 @@ export function CarrierInventory({
       ? (it.suspectedQualities?.length ? `soupçonné : ${it.suspectedQualities.join(', ')}` : null)
       : (resolvedQuals.length ? <QualityChips qualities={resolvedQuals} /> : null);
     if (it.kind === 'melee' || it.kind === 'ranged') {
-      const mech = weaponStatParts(it, forceBonus).join(' · ');
+      const mech = weaponStatParts(it, force).join(' · ');
       return <>{mech}{mech && quals ? ' · ' : ''}{quals}</>;
     }
     if (it.kind === 'armor')

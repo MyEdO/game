@@ -70,7 +70,7 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { HEAL_SKILL, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
@@ -2145,13 +2145,17 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Détermination (LDB 17 l.59-61) : même règle que `battleSpendResolve`, mais pour N'IMPORTE QUEL
      *  COMBATTANT porteur de Détermination, par id, sans toucher au mode d'action — un héros en défense
      *  (il n'est pas l'actif) comme un acteur AUTO-PILOTÉ Brisé (l'IA s'en sert pour se ressaisir : retirer
-     *  un pion d'un État verrouillant sans coûter l'Action, hôte-autoritaire). Un ennemi sans Détermination
-     *  (`resolve` 0/absent) → no-op : la garde `kind` héros est levée, seul le pool de Détermination compte. */
+     *  un pion d'un État verrouillant sans coûter l'Action, hôte-autoritaire). Verdict `refusDeDetermination`,
+     *  dit au siège qui pilote le porteur (`controlsCombatant`), muet pour un acteur de l'IA. */
     spendResolveCondition: (combatantId: string, conditionName: string) => {
       const s = get();
       const hero = actorIn(s, combatantId);
-      if (!hero || (hero.resolve ?? 0) <= 0) return;
-      if (!hero.conditions.some((c) => c.id === conditionName)) return;
+      if (!hero) return;
+      const refus = refusDeDetermination(hero, conditionName);
+      if (refus) {
+        if (controlsCombatant(s, hero)) refuserGesteDuSiege(get, set, refus);
+        return;
+      }
       const { retire, soigne } = retireEtatParDetermination(hero, conditionName, s.gameTime);
       if (!retire) return; // rien à lever : le point n'est pas débité
       hero.resolve = (hero.resolve ?? 0) - 1;
