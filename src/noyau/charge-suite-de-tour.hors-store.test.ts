@@ -16,6 +16,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { seedBattleRng } from './battleRng';
 import { startCascade } from './cascade';
 import { avanceEtapeCascade } from './cascade.testkit';
+import { fenetreDAttaque } from './fenetreDAttaque';
 import { cleDeFixture } from './noyau.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { bus, EVT } from './bus';
@@ -616,6 +617,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     cliquerLaCharge();
     banc.reprendreTout();
     expect(frappeOuverte(), 'aucune réaction : la frappe s’ouvre annulable').toEqual({ de: 'h', fromCharge: true, annulable: true });
+    expect(fenetreDAttaque(g())?.annulation, 'la fenêtre offre l’Annuler').toBeNull();
     g().attackCancel();
     expect([qui('h').pos, qui('h').chargedThisTurn, frappeOuverte(), g().pendingCascade], 'Annuler rend la case de départ et ferme la séquence').toEqual([{ x: 4, y: 0 }, false, null, null]);
     cliquerLaCharge();
@@ -629,6 +631,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     jouerLaSequence();
     banc.reprendreTout();
     const depuis = { ...qui('h').pos! };
+    expect(fenetreDAttaque(g())?.annulation, 'la fenêtre ferme l’Annuler avec le texte du geste').toBe('La Charge est engagée : la cible a répondu, le Test de Corps à corps est dû.');
     g().attackCancel();
     expect([frappeOuverte()?.annulable, qui('h').pos, qui('h').chargedThisTurn], 'la cible a répondu : Annuler est refusé, la Charge reste').toEqual([false, depuis, true]);
   });

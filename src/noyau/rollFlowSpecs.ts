@@ -534,6 +534,16 @@ function paresseux<T extends Record<string, () => unknown>>(fabriques: T): { rea
   return table;
 }
 
+/** Pourquoi l'Annuler d'avant le jet est refusé, `null` s'il est offert : la 2ᵉ frappe d'un Maniement de deux armes
+ *  (LDB 10 l.767-773) ; une Charge dont la cible a répondu (LDB 15 l.35 ; LDB 10 l.500). Lu par `onCancel` et par
+ *  la fenêtre (`fenetreDAttaque`). */
+export function refusDAnnulerLAttaque(pa: PendingAttack): string | null {
+  if (pa.result) return null;
+  if (pa.dualSecond) return t('cs.secondCoupImpose');
+  if (pa.fromCharge && !pa.chargeUndo) return t('cs.chargeEngagee');
+  return null;
+}
+
 export const FLOWS = paresseux({
   /**
    * Attaque (modale différée). Le JET INITIAL reste métier (`attackRoll` : +1 Avantage si cible
@@ -626,7 +636,7 @@ export const FLOWS = paresseux({
     // imposée, fin de balayage pour un cleave, sinon fermeture (+ cascade combat étape 0).
     onCancel: (get, set) => {
       const pa = get().pendingAttack;
-      if (pa?.dualSecond) return; // 2ᵉ frappe d'un dual : engagée dès que la cible est choisie (le jet est imposé)
+      if (pa && refusDAnnulerLAttaque(pa)) return void refuserGeste(get, set, refusDAnnulerLAttaque(pa)!);
       // Prix de la déclaration payé et non joué (`coutPaye`) : rendu AVANT tout jet, quel que soit le geste.
       if (pa && !pa.result && pa.coutPaye) {
         const attacker = inBattleId(get().battle, pa.attackerId);
@@ -643,8 +653,7 @@ export const FLOWS = paresseux({
       // `chargedThisTurn`. Dé lancé ou cible qui a répondu : la charge est ENGAGÉE, l'Annuler est refusé. LDB 15 l.35 ; LDB 10 l.500
       if (pa?.fromCharge) {
         const battle = get().battle;
-        if (pa.result || !battle) return;
-        if (!pa.chargeUndo) return void refuserGeste(get, set, t('cs.chargeEngagee'));
+        if (pa.result || !battle || !pa.chargeUndo) return;
         const u = pa.chargeUndo;
         for (const c of battle.combatants) { const p = u.pos[c.id]; if (p) c.pos = { ...p }; } // restaure TOUS (un grand a pu en déplacer d'autres)
         const attacker = inBattleId(battle, pa.attackerId);

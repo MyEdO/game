@@ -7,7 +7,7 @@
  * catalogue par `t()`, comme ceux de `jetsEnVue`.
  */
 import type { Jeu } from './etat';
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS, refusDAnnulerLAttaque } from './rollFlowSpecs';
 import { composeRollLabel, type RollLabelRef } from './rollSeam';
 import { oppositionDuCoup, type OppositionEnVue } from './jetsEnVue';
 import { combatDistance } from './monde/footprint';
@@ -110,6 +110,8 @@ export interface FenetreDAttaque {
   attente: string | null;
   /** La Localisation du Coup Critique d'un jet forcé, à choisir ; `null` sinon. LDB 17 l.68 */
   critiqueALocaliser: ChoixNomme<HitLocation> | null;
+  /** Pourquoi l'Annuler d'avant le jet est refusé (`refusDAnnulerLAttaque`), `null` s'il est offert. */
+  annulation: string | null;
 }
 
 /** Fiche Codex du NOM du jet d'attaque, même source que son libellé (`attackTestOf`) : la Caractéristique qui
@@ -266,5 +268,6 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     critiqueALocaliser: res && pa.forced && coup?.compte.relance
       ? choix('attackSetCritLocation', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
       : null,
+    annulation: refusDAnnulerLAttaque(pa),
   };
 }

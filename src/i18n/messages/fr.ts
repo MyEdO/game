@@ -1095,6 +1095,7 @@ export const fr = {
   'cs.charge': '{name} charge {target}{adv}.',
   'cs.fragChargeAdv': ' (+{adv} Avantage)',
   'cs.chargeEngagee': 'La Charge est engagée : la cible a répondu, le Test de Corps à corps est dû.',
+  'cs.secondCoupImpose': 'Le second coup est engagé : son jet est imposé.',
   'cs.meleeOutOfRange': 'Cible hors de portée de mêlée.',
   'cs.cursorInvalidTile': 'Case non valide pour cette action.',
   'cs.refusCourseNonArmee': 'Trop loin pour marcher — armez la Course pour aller jusque-là.',
