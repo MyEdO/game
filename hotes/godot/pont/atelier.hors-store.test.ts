@@ -2,7 +2,7 @@
  * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`, section « Atelier 3D ») : `modelesDeLAtelier` rend chaque base avec
  * ses points d'accroche, emplacements puis prises, à chaque point les éléments rigides de cette base dont un mesh pend à
  * l'os du point (`osDesRigides`), ses lignes de pièce tirées de la garde-robe (#3086, D3), où vont ses éléments liés au
- * squelette ou en surface, le fichier GLB de chaque base et de chaque élément servi, et pour ces seuls éléments les noms de
+ * squelette ou en surface et ses accessoires rigides, le fichier GLB de chaque base et de chaque élément servi, et pour ces seuls éléments les noms de
  * leurs surfaces `blason`, et la marche de chaque base (l'unique clip de ses appuis et sa vitesse au sol, au gabarit
  * neutre) ; les emblèmes sont la sous-liste `embleme` de la garde-robe ; un rigide sans os n'est servi nulle part, les
  * refus de l'index sont rendus, une base à marche ambiguë est refusée seule, un manifeste schéma 2 est ignoré.
@@ -28,9 +28,9 @@ const teteNaine = {
 const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
 const bouclier = {
   ...elementSchema3('humanoide'), cle: { apparence: 'rond' },
-  surfaces: [{ nom: 'metal', teinte: true }, { nom: 'champ', teinte: true, blason: true }], glb: empreinte(glbDElement('spine', ['metal', 'champ'])),
+  surfaces: [{ nom: 'metal', palette: 'metal' }, { nom: 'champ', palette: 'vet1', blason: true }], glb: empreinte(glbDElement('spine', ['metal', 'champ'])),
 };
-const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', teinte: true, blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
+const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', palette: 'accent', blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
 const orpheline = { ...elementSchema3('nain'), cle: { apparence: 'hache' } };
 const schema2 = { schema_version: 2, model: 'Lame.glb' };
 
@@ -54,7 +54,7 @@ describe('modelesDeLAtelier', () => {
     expect(modeles.bases[0].marche).toEqual({ clip: 'Walk_Loop', vitesse: 1.25 });
   });
 
-  it('chaque point porte exactement les éléments rigides de la base dont un mesh pend à son os, ni le squelette ni la surface', () => {
+  it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
     expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['bouclier'], main: ['epee'], off: ['epee'] });
   });
 
@@ -69,8 +69,8 @@ describe('modelesDeLAtelier', () => {
 
   it('un sélecteur d’axe offre chaque id de sa sous-liste avec les éléments de la base dont la clé le vaut : une tête sans élément a une liste vide', () => {
     const choixDe = (kind: 'tete' | 'coiffure') => gardeRobe.flatMap((g) => (g.kind === kind ? [{ id: g.id, label: g.label, elements: g.id === 'nain' ? ['teteNaine'] : [] }] : []));
-    expect(lignes.find((l) => l.sorte === 'tete')).toEqual({ sorte: 'tete', choix: choixDe('tete') });
-    expect(lignes.find((l) => l.sorte === 'coiffure')).toEqual({ sorte: 'coiffure', choix: choixDe('coiffure') });
+    expect(lignes.find((l) => l.sorte === 'tete')).toEqual({ sorte: 'tete', label: 'Tête', choix: choixDe('tete') });
+    expect(lignes.find((l) => l.sorte === 'coiffure')).toEqual({ sorte: 'coiffure', label: 'Coiffure', choix: choixDe('coiffure') });
     const tete = lignes.find((l) => l.sorte === 'tete');
     expect(tete && 'choix' in tete ? tete.choix.find(({ id }) => id === 'humain') : undefined).toEqual({ id: 'humain', label: gardeRobe.find(({ id }) => id === 'humain')?.label, elements: [] });
   });
@@ -88,8 +88,10 @@ describe('modelesDeLAtelier', () => {
     });
   });
 
-  it('chaque élément servi, quelle que soit sa liaison, et lui seul, donne les noms de ses surfaces `blason`, liste vide sans surface `blason`', () => {
-    expect(modeles.blasons).toEqual({ bouclier: ['champ'], epee: [], chemise: ['ecusson'], teteNaine: [], broche: [] });
+  it('chaque base et chaque élément servi, quelle que soit sa liaison, et eux seuls, donnent leurs surfaces ; une base sans `surfaces`, aucune', () => {
+    expect(modeles.surfaces).toEqual({ humanoide: [], bouclier: bouclier.surfaces, epee: epee.surfaces, chemise: chemise.surfaces, teteNaine: teteNaine.surfaces, broche: broche.surfaces });
+    const peinte = { ...humanoide, surfaces: [{ nom: 'peau', palette: 'peau' }] };
+    expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }).surfaces).toEqual({ humanoide: peinte.surfaces });
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
@@ -114,20 +116,23 @@ describe('modelesDeLAtelier', () => {
     expect(avecElfe.glb).toEqual({ humanoide: 'humanoide.glb', epee: 'epee.glb' });
   });
 
-  it('un accessoire dont aucune pièce de la base n’offre l’emplacement est rapporté, sans refus, et n’est servi à aucun point', () => {
+  it('un accessoire rigide est servi à la ligne de son emplacement, jamais à un point ; si ni la base ni aucune de ses pièces ne l’offre, il est rapporté, sans refus, et servi nulle part', () => {
     const plumet = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'plumet' }, couche: 'tenue' };
     const casque = { ...chemise, categorie: 'armure', cle: { piece: 'casque' }, couche: 'armure', emplacements: { cimier: dos } };
+    const servis = (m: ReturnType<typeof modelesDeLAtelier>) => [...m.bases[0].points, ...m.bases[0].lignes].flatMap((l) => ('elements' in l ? l.elements : []));
     const sansCimier = modelesDeLAtelier({ humanoide, plumet }, { humanoide: [], plumet: ['root'] });
     expect(sansCimier.rapport).toEqual(['[emplacement-non-offert] plumet : plumet se pose sur cimier, que ni la base `humanoide` ni aucune de ses pièces n’offre']);
     expect(sansCimier.refus).toEqual([]);
-    expect(sansCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual([]);
+    expect(servis(sansCimier)).toEqual([]);
     expect(sansCimier.glb).toEqual({ humanoide: 'humanoide.glb' });
-    const avecCimier = modelesDeLAtelier({ humanoide, casque, plumet }, { humanoide: [], casque: [], plumet: ['root'] });
+    const avecCimier = modelesDeLAtelier({ humanoide, casque, plumet }, { humanoide: [], casque: [], plumet: ['spine'] });
     expect(avecCimier.rapport).toEqual([]);
-    expect(avecCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual(['plumet', 'plumet']);
+    expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
+    expect(avecCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual([]);
+    expect(servis(avecCimier)).toEqual(['casque', 'plumet']);
   });
 
   it('un manifeste schéma 2 est ignoré', () => {
-    expect(modelesDeLAtelier({ schema2 }, {})).toEqual({ bases: [], glb: {}, refus: [], rapport: [], blasons: {}, emblemes: modeles.emblemes });
+    expect(modelesDeLAtelier({ schema2 }, {})).toEqual({ bases: [], glb: {}, refus: [], rapport: [], surfaces: {}, libelles: {}, emblemes: modeles.emblemes });
   });
 });

@@ -5,7 +5,7 @@
  * joue sur SON état local, et le snapshot suivant de l'hôte l'efface — sans message ni journal.
  *
  * Quatre familles, une par cause :
- *  - opposition de cible (`jetResist('opposition')`/`oppositionConfirm`) : la cible d'un Sort opposé pouvait
+ *  - opposition de cible (`jetResist('opposition')`/`jetConfirm('opposition')`) : la cible d'un Sort opposé pouvait
  *    jeter mais pas appliquer ;
  *  - hotbar (`battleSelectAttack`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
  *  - Tir rapide (`armPreempt`/`preemptRangedShot`, Talent « Tir rapide ») : pendant la pause de début
@@ -95,11 +95,11 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
     expect(part.result!.oppose.sl, 'DR imposé = Bonus d’Endurance').toBe(bonus(43));
   });
 
-  it('oppositionConfirm : la cible invitée APPLIQUE — la fenêtre d’opposition se referme', () => {
+  it('jetConfirm@opposition : la cible invitée APPLIQUE — la fenêtre d’opposition se referme', () => {
     setup();
     ouvreOpposition();
     expect(applyIntent(1, 'jetResist', ['opposition', 'h2'])).toBe('appliquee');
-    expect(applyIntent(1, 'oppositionConfirm', []), 'la cible pouvait jeter mais pas appliquer').toBe('appliquee');
+    expect(applyIntent(1, 'jetConfirm', ['opposition']), 'la cible pouvait jeter mais pas appliquer').toBe('appliquee');
     expect(banc.getState().pendingCastOpposition, 'l’opposition reste ouverte : le Sort ne se résout jamais').toBeNull();
   });
 
@@ -107,13 +107,13 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
     setup();
     ouvreOpposition();
     const s = banc.getState();
-    // Router `oppositionConfirm` sur le LANCEUR (patron mono `jetOwner`) rendrait le Sort inapplicable :
+    // Router `jetConfirm('opposition')` sur le LANCEUR (patron mono `jetOwner`) rendrait le Sort inapplicable :
     // le lanceur est un ENNEMI et aucun siège ne porte le rôle MJ → personne ne peut le clore.
     for (const seat of [0, 1, 2]) expect(seatInfluences(s, seat, 'e1'), `siège ${seat} sur le lanceur ennemi`).toBe(false);
     // La règle retenue (repli sur le owner de la fenêtre, '*') laisse la fenêtre applicable par ses
     // participants — l'agrégation elle-même REFUSE tant qu'une rangée interactive n'a pas jeté.
-    for (const seat of [0, 1, 2]) expect(intentAllowedFor(s, seat, 'oppositionConfirm', []), `siège ${seat}`).toBe(true);
-    applyIntent(0, 'oppositionConfirm', []);
+    for (const seat of [0, 1, 2]) expect(intentAllowedFor(s, seat, 'jetConfirm', ['opposition']), `siège ${seat}`).toBe(true);
+    applyIntent(0, 'jetConfirm', ['opposition']);
     expect(banc.getState().pendingCastOpposition, 'agrégation d’une rangée DUE : refusée par l’action').not.toBeNull();
   });
 
@@ -121,7 +121,7 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     ouvreOpposition();
     banc.getState().jetResist('opposition', 'h2');
-    banc.getState().oppositionConfirm();
+    banc.getState().jetConfirm('opposition');
     expect(banc.getState().pendingCastOpposition).toBeNull();
   });
 

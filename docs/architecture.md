@@ -67,7 +67,7 @@ vocabulaire (`GameOp`, `Formula`, `Condition`). Détail et cas limites : `docs/c
 
 Sites trop divergents pour une source unique propre — ne pas « globaliser » de force.
 
-- `confirmPending` : les `xConfirm` divergent par leur garde de résultat et réutilisent `battle`
+- `confirmPending` : les corps de clôture (`CloturesDuJet`) divergent par leur garde de résultat et réutilisent `battle`
   localement ; un wrapper ne raccourcirait rien.
 - `useMasterDetail` : le rejet portait sur le HOOK D'ÉTAT partagé (marchand ⇄ carte divergent après
   sélection) et reste valide. Le GABARIT DE LAYOUT (slots liste/détail, aucun état) en a été extrait
@@ -465,7 +465,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   rollFlowFactory.ts / rollFlowSpecs.ts  FABRIQUE générique des flux de jet différé (« une situation = une modale ») +
                               specs des flux (attack/defense/cast/disengage/run/focus/psych/
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
-                              bargain) — un nouveau jet = 1 spec + 1 xConfirm. Résilience « Je ne
+                              bargain) — un nouveau jet = 1 spec + 1 corps de clôture. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory
                               `forceSuccess`/`setForcedRoll` + UI `ForcedRollPicker`). Un flux qui
                               l'offre déclare `caps: { forced: true }` ; son `resolve(s,p,actor,get,

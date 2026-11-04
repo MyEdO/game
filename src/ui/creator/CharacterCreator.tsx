@@ -67,7 +67,7 @@ import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../
 import { damageString, itemFromTrappingById, itemLabel } from '../../engine/items';
 import { skillBaseValue } from '../../engine/skills';
 import { effectiveChar } from '../../engine/characteristics';
-import { rangeSpecLabel, ammoRangeModLabel } from '../weaponStats';
+import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';

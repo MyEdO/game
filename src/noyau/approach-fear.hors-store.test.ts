@@ -327,7 +327,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.getState().battleGainAdvantage('intuition');
     const pt = banc.getState().pendingTest!;
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(H.approachMoves).toBeUndefined();
     expect(brise(E.id)).toBe(1);
   });

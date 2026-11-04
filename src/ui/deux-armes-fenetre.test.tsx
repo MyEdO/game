@@ -65,7 +65,7 @@ const g = useGame.getState;
 const surDefense = (defenderId: string) => {
   expect(g().pendingDefense?.defenderId, 'la fenêtre du défenseur s’interpose').toBe(defenderId);
   act(() => g().jetRoll('defense'));
-  act(() => g().defenseConfirm());
+  act(() => g().jetConfirm('defense'));
 };
 
 describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recette 6133978543)', () => {
@@ -75,7 +75,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
       act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
       act(() => g().attackSetDualMode(true));
       act(() => g().jetRoll('attack'));
-      act(() => g().attackConfirm());
+      act(() => g().jetConfirm('attack'));
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 1ʳᵉ frappe a touché : la 2ᵉ attend sa cible').toBeTruthy();
       expect(pickActiveModalKey(g()), 'aucune fenêtre sans corps n’est élue').not.toBe('cascade');
@@ -84,7 +84,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
       const seq = g().pendingCascade!;
       expect(seq.participants[seq.cursor].jet, 'la 2ᵉ frappe est rendue par une étape d’attaque').toBe('attack');
       expect(host!.querySelector('.modal-overlay'), 'la fenêtre de la 2ᵉ frappe est montée').not.toBeNull();
-      act(() => g().attackConfirm());
+      act(() => g().jetConfirm('attack'));
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 2ᵉ frappe est appliquée').toBeNull();
       expect(g().pendingAttack).toBeNull();

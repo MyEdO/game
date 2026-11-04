@@ -5,7 +5,7 @@
  * (`pertesDArgentDuTirage`), clôture (`devisDeCloture` ; LDB 23 l.15, l.191).
  */
 import type { Jeu } from './etat';
-import { siOuvert } from './rollFlowSpecs';
+import type { CloturesDuJet } from './rollFlowSpecs';
 import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
 import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
@@ -343,7 +343,7 @@ export interface PendingActivityFields extends PendingBase {
   traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
-   *  sur le héros — routée par `confirmActivity` vers le résolveur de bataille. `prep` = Activité de
+   *  sur le héros — routée par `jetConfirm('activity')` vers le résolveur de bataille. `prep` = Activité de
    *  préparation ('bataille') ; `round` = Scène cinématique d'un Round ('bataille-round'). */
   battle?: 'prep' | 'round';
   /** Modificateur de SITUATION (fondu dans la cible, en LIGNE de mod pour la modale) : Menace −20 (l.219)
@@ -560,7 +560,7 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depositIndex: number, p
 
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
  *  héros (deltas NON exprimables en `GameOp` : DR du Test étendu, crédit différé des Revenus,
- *  compteur d'acharnement — fusionnés dans l'écriture finale de `confirmActivity`). */
+ *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetConfirm('activity')`). */
 interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState>; closeOps?: GameOp[] }
 
 /** Ce résolveur appartient-il à la famille INTERLUDE (`RESOLVER_OWNER`) ? */
@@ -568,7 +568,7 @@ const ownedByInterlude = (r: ActivityResolver): r is ResolverOf<'interlude'> => 
 
 /** Dispatch des résolveurs BESPOKE d'issue d'Activité (`ActivityDef.resolver` + bandes `resolver`) —
  *  chacun RÉUTILISE une logique PURE existante et implémente la règle RAW vérifiée. Le `patch` porte
- *  les deltas d'état d'interlude (le `set` final est fait par `confirmActivity`). FERMÉ sur le
+ *  les deltas d'état d'interlude (le `set` final est fait par `jetConfirm('activity')`). FERMÉ sur le
  *  sous-ensemble POSSÉDÉ par l'interlude (`RESOLVER_OWNER`) : un résolveur d'une autre famille qui
  *  arriverait ici est une erreur de routage, elle CRIE. */
 function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa: PendingActivity, h: Combatant, st: InterludeHeroState): ResolverResult {
@@ -938,10 +938,6 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
  *  l'issue vient de la DONNÉE de l'`ActivityDef` — bandes `outcomes`/`onSuccess` (GameOp + `resolver`
  *  de bande) OU `resolver` DIRECT (Revenus/Artisanat/Apprentissage/Identification, sans table). Les
  *  `patch` des résolveurs sont ACCUMULÉS puis fusionnés dans l'unique écriture finale. */
-export function confirmActivity(get: Get, set: Set): void {
-  siOuvert('activity', 'apply', get, () => appliquerLActivite(get, set));
-}
-
 function appliquerLActivite(get: Get, set: Set): void {
   const pa = get().pendingActivity;
   if (!pa || !pa.activityId) return;
@@ -1185,7 +1181,6 @@ export function creerActionsDInterlude(get: Get, set: Set) {
   return {
     startInterlude: (weeks) => startInterlude(get, set, weeks),
     interludeEnd: () => interludeEnd(get, set),
-    activityConfirm: () => confirmActivity(get, set),
     interludeCraftStart: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
     interludeBank: (heroId, kind, amountBrass, rate) => bankDeposit(get, set, heroId, kind, amountBrass, rate),
     interludeWithdraw: (index) => bankWithdraw(get, set, index),
@@ -1193,6 +1188,10 @@ export function creerActionsDInterlude(get: Get, set: Set) {
     interludeEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
     interludeActivity: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function cloturesDInterlude(get: Get, set: Set) {
+  return { activity: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

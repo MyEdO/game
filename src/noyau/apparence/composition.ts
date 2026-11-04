@@ -6,7 +6,7 @@
  * `optionsDuNoeud`), et ses axes (`AXES`) ; `lireComposition` la valide, seule validation d'une composition, et
  * `presetDeComposition` rend son entrée JSON, l'enveloppe d'un preset reprise, et les fautes de son schéma.
  */
-import { choixDeLaFeuilleDId, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, type GabaritId } from '../../data';
+import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, type GabaritId } from '../../data';
 import { serializeDataset } from '../../data/serialize';
 import type { TenueId } from '../../data/schemas/defs/garde-robe';
 import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
@@ -136,7 +136,7 @@ export interface Choix {
 }
 
 /** Les champs d'une composition qui portent un catalogue. */
-const CHAMPS_CATALOGUES = ['race', 'gabarit', 'sex', 'tete', 'coiffure', 'tenue', 'pieces', 'objets', 'prises'] as const;
+const CHAMPS_CATALOGUES = ['race', 'gabarit', 'sex', 'tete', 'coiffure', 'tenue', 'pieces', 'objets', 'prises', 'couleurs'] as const;
 
 type ChampCatalogue = (typeof CHAMPS_CATALOGUES)[number];
 const estChampCatalogue = (champ: string): champ is ChampCatalogue => (CHAMPS_CATALOGUES as readonly string[]).includes(champ);
@@ -153,7 +153,12 @@ export type Axe = { champ: (typeof AXES)[number]; label: string } & (
   | { forme: 'plage'; min: number; max: number; neutre: number }
 );
 
-export type CataloguesDeComposition = Record<ChampCatalogue, Choix[]> & { axes: Axe[]; presets: (Choix & { composition: Composition })[] };
+export type CataloguesDeComposition = Record<ChampCatalogue, Choix[]> & {
+  axes: Axe[];
+  presets: (Choix & { composition: Composition })[];
+  /** Les couleurs du nuancier (`materials.json`, domaine `couleur`), chacune avec sa valeur `#rrggbb`. */
+  nuancier: (Choix & { couleur: string })[];
+};
 
 /** La première feuille `idDe` atteinte sous `noeud`, largeur d'abord, hors des clés de record. */
 function feuilleDe(noeud: unknown): FeuilleDId | undefined {
@@ -201,13 +206,15 @@ function axeDuChamp(champ: (typeof AXES)[number]): Axe {
 }
 
 /** Les catalogues d'une composition : par champ, ses choix ; `prises` nomme les mains, dont l'objet se choisit dans
- *  `objets` ; `axes`, ses axes (`axeDuChamp`) ; `presets`, les presets de `presets-de-personnage.json`, chacun avec sa
- *  composition, l'entrée sans son enveloppe. */
+ *  `objets` ; `couleurs` nomme les emplacements de palette, dont la couleur se choisit dans `nuancier` ; `axes`, ses axes
+ *  (`axeDuChamp`) ; `presets`, les presets de `presets-de-personnage.json`, chacun avec sa composition, l'entrée sans son
+ *  enveloppe. */
 export function cataloguesDeComposition(): CataloguesDeComposition {
   return {
     ...tableTotale(CHAMPS_CATALOGUES, choixDuChamp),
     axes: AXES.map(axeDuChamp),
     presets: presetsDePersonnage.map((p) => ({ id: p.id, label: p.label, composition: compositionDuPreset(p) })),
+    nuancier: matieresDe('couleur').map((c) => ({ id: c.id, label: c.label, couleur: c.color })),
   };
 }
 

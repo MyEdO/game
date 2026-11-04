@@ -26,7 +26,7 @@ export function ShantyModal() {
   const bonus = useGesteDeJet('jetBonusSL', 'shanty');
   const darkPact = useGesteDeJet('jetDarkPact', 'shanty');
   const force = useGesteDeJet('jetForceSuccess', 'shanty');
-  const confirm = useGame((s) => s.shantyConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'shanty');
   const cancel = useGesteDeJet('jetCancel', 'shanty');
   const setSong = useGame((s) => s.shantySetSong);
   if (!p || !battle) return null;
@@ -54,7 +54,7 @@ export function ShantyModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

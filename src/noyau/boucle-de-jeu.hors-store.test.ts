@@ -264,14 +264,14 @@ describe('Boucle de jeu (store)', () => {
 
   it('Attaque (jet = étape 0) : une touche simple clôt la séquence (jet seul → resume)', () => {
     mkAttackSeq({ hit: true, attackerRoll: 23, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'Touché' });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull(); // aucune conséquence empilée → séquence finalisée
   });
 
   it('Attaque (jet = étape 0) : un Coup Critique s’empile DANS la même séquence (pas de 2ᵉ fenêtre)', () => {
     mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const seq = banc.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');
     expect(seq?.participants[0]?.jet).toBe('attack');                          // le jet reste l'étape 0
@@ -329,7 +329,7 @@ describe('Boucle de jeu (store)', () => {
     expect(typeof banc.getState().pendingTest!.isDouble).toBe('boolean');
   });
 
-  // resolveTest avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
+  // jetConfirm('test') avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
   function mkToolTest(quality: string, over: Partial<import('../noyau/pendings').PendingTest>): Combatant {
     const hero = combattantDeTest({
       id: 'h1', label: 'Lest', kind: 'hero',
@@ -351,35 +351,35 @@ describe('Boucle de jeu (store)', () => {
     return hero;
   }
 
-  it('resolveTest : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
+  it('jetConfirm@test : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
     mkToolTest('Pratique', {}); // roll 48 ≤ 50, sl 0 < requireSL 1 → +1 DR ⇒ sl 1 ≥ 1
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().flags['reussi']).toBe(true);
   });
 
-  it('resolveTest : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
+  it('jetConfirm@test : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
     mkToolTest('Pratique', { roll: 60, sl: -1, requireSL: 0 }); // roll 60 > 50 → raté au dé
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
 
-  it('resolveTest : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
+  it('jetConfirm@test : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
     mkToolTest('Peu Fiable', {}); // sl 0 −1 = −1 < requireSL 1 → reste raté
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
 
-  it('resolveTest : outil Bâclé qui Maladresse (échec + double) se brise', () => {
+  it('jetConfirm@test : outil Bâclé qui Maladresse (échec + double) se brise', () => {
     mkToolTest('Bâclé', { roll: 55, sl: -1, requireSL: 0, isDouble: true });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     const item = banc.getState().party[0].items!.find((i) => i.uid === 't1')!;
     expect(item.destroyed).toBe(true);
     expect(banc.getState().journal.some((l) => l.includes('se brise'))).toBe(true);
   });
 
-  it('resolveTest : sans outil, l’issue est inchangée (branche échec)', () => {
+  it('jetConfirm@test : sans outil, l’issue est inchangée (branche échec)', () => {
     mkToolTest('', { itemUid: undefined });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
 
@@ -493,7 +493,7 @@ describe('Boucle de jeu (store)', () => {
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     const st = banc.getState();
     // La Maladresse est l'étape COURANTE de la cascade combat ; sa donnée (arme/résultat) vit SUR l'étape.
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
@@ -507,8 +507,8 @@ describe('Boucle de jeu (store)', () => {
 
   it('Déviation Critique — défenseur héros crité : le curseur AVANCE sur l’étape deviation (anti soft-lock Auto-combat)', () => {
     // Régression : un héros crité en DÉFENSE → applyAttackResult empile l'étape 'deviation' et suspend ;
-    // defenseConfirm doit avancer le curseur HORS de l'étape défense (pendingDefense déjà nulle), sinon le
-    // pilote Auto-combat boucle dessus (defenseConfirm no-op) = soft-lock vécu.
+    // jetConfirm('defense') doit avancer le curseur HORS de l'étape défense (pendingDefense déjà nulle), sinon le
+    // pilote Auto-combat boucle dessus (jetConfirm('defense') no-op) = soft-lock vécu.
     setRule('combat-critical-deflect', true);
     seedBattleRng(424242);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
@@ -534,7 +534,7 @@ describe('Boucle de jeu (store)', () => {
       },
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     const st = banc.getState();
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
     expect(cur?.kind).toBe('deviation'); // le curseur a QUITTÉ l'étape défense orpheline
@@ -627,7 +627,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().jetSetForcedRoll('cast', 23);
     expect(banc.getState().pendingCast!.result).not.toBeNull();
     expect(banc.getState().pendingCast!.result!.isCritical, 'jet déterministe non critique').toBe(false);
-    banc.getState().castConfirm(); // « Appliquer » : résout
+    banc.getState().jetConfirm('cast'); // « Appliquer » : résout
     st = banc.getState();
     // L'action est consommée, l'incantation journalisée, et la modale fermée.
     expect(st.battle!.acted).toBe(true);
@@ -650,7 +650,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
     banc.getState().battleClickEntity(heroC.id); // se cibler soi-même → ouvre la modale
     banc.getState().jetRoll('cast'); // « Lancer »
-    banc.getState().castConfirm(); // « Appliquer »
+    banc.getState().jetConfirm('cast'); // « Appliquer »
     st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     const failed = st.battle!.log.some((l) => l.text.includes('échoue'));
@@ -679,7 +679,7 @@ describe('Boucle de jeu (store)', () => {
     const before = enemy.wounds.current;
     banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale d'attaque
     banc.getState().jetRoll('attack'); // lance le jet
-    banc.getState().attackConfirm(); // applique le résultat
+    banc.getState().jetConfirm('attack'); // applique le résultat
     st = banc.getState();
     const enemyAfter = st.battle!.combatants.find((c) => c.id === enemy.id)!;
     expect(enemyAfter.wounds.current).toBeLessThan(before);
@@ -707,7 +707,7 @@ describe('Boucle de jeu (store)', () => {
       },
     });
     // Acquittement bloqué tant que le jet n'a pas eu lieu.
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().pendingTest).not.toBeNull();
     // « Lancer » : le jet se fait.
     banc.getState().jetRoll('test');
@@ -719,7 +719,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.roll).not.toBeNull();
     // Acquittement : ferme la modale.
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().pendingTest).toBeNull();
   });
 
@@ -781,7 +781,7 @@ describe('Boucle de jeu (store)', () => {
     pd = banc.getState().pendingDefense!;
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1); // 1 point dépensé
     expect(pd.atk.roll).toBe(atkRoll); // l'attaque (pd.atk) n'est JAMAIS relancée
-    banc.getState().defenseConfirm(); // Appliquer → ferme
+    banc.getState().jetConfirm('defense'); // Appliquer → ferme
     expect(banc.getState().pendingDefense).toBeNull();
   });
 
@@ -911,7 +911,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id);
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.engagedWith).toContain(H.id);
@@ -1069,7 +1069,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'failure',
       },
     });
-    banc.getState().disengageConfirm();
+    banc.getState().jetConfirm('disengage');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(1); // adversaire +1 (l.89)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id); // toujours Engagé
@@ -1103,7 +1103,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'success',
       },
     });
-    banc.getState().disengageConfirm();
+    banc.getState().jetConfirm('disengage');
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(Ha.advantage).toBe(1); // +1 Avantage (l.89)
@@ -1186,7 +1186,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'tie',
       },
     });
-    banc.getState().disengageConfirm();
+    banc.getState().jetConfirm('disengage');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // statu quo : pas de +1 à l'adversaire
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id); // reste Engagé
@@ -1220,7 +1220,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'success',
       },
     });
-    banc.getState().disengageConfirm();
+    banc.getState().jetConfirm('disengage');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toEqual([]); // libéré de E1 ET E2
   });
@@ -1281,7 +1281,7 @@ describe('Boucle de jeu (store)', () => {
 
     // Test `fuite` INFLUENÇABLE (flux `flee`) : Lancer → Appliquer (applique le coup + complète la fuite).
     banc.getState().jetRoll('flee', H.id);
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     st = banc.getState();
     Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     Ea = st.battle!.combatants.find((c) => c.id === E.id)!;
@@ -1905,7 +1905,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(pa.gear).toEqual({ scope: 'loot', index: 0 });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.identified).toBeUndefined(); // révélé = champ absent
     banc.getState().assignLootGear(0, 'a');
@@ -1925,7 +1925,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(pa.skillLabel).toBe('Intuition');
     // Échec : l'artefact ne se laisse plus sonder (detectTried), rien de révélé.
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     let line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.detectTried).toBe(true);
     expect(line.effect.identified).toBe(false);
@@ -1937,7 +1937,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().appraiseGear('loot', 0, 'detect');
     pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.magicKnown).toBe(true);
     expect(line.effect.identified).toBeUndefined(); // tout révélé
@@ -1950,7 +1950,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().appraiseGear('loot', 0, 'detect');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.detectTried).toBe(true);
     expect(line.effect.magicKnown).toBeUndefined();
@@ -1962,7 +1962,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().appraiseGear('loot', 0);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     expect(banc.getState().pendingLoot!.gear[0].effect.appraiseTriedDay).toBeDefined();
     // Même jour : la re-tentative est refusée (pas de modale).
     banc.getState().appraiseGear('loot', 0);
@@ -2371,7 +2371,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     banc.getState().preemptRangedShot(H.id, E.id);
     expect(banc.getState().pendingAttack?.interrupt).toBe(true); // modale de tir ouverte, tireur non-actif
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     let st = banc.getState();
     expect(st.pendingAttack).toBeNull();                 // tir résolu
     expect(st.pendingRoundStart).not.toBeNull();          // TOUJOURS à la pause de début de Round (aucun tour avancé)
@@ -2616,7 +2616,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().battleClickEntity(E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect((h.items ?? []).find((i) => i.uid === 'am1')!.qty).toBe(1); // 2 → 1
     expect(rangedOf(h).loaded).toBe(false); // Recharge 1 → déchargé
@@ -2641,7 +2641,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().battle!.acted).toBe(false); // l'Action n'est consommée qu'à Appliquer
   });
 
-  it('jetRoll@reload + reloadConfirm : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
+  it('jetRoll@reload + jetConfirm@reload : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
@@ -2651,7 +2651,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const pr = banc.getState().pendingReload!;
     expect(pr.roll).not.toBeNull();
     const expected = Math.max(0, 0 + pr.sl); // formule du Test étendu (clamp à 0)
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     if (expected >= 1) {
       expect(rangedOf(h).loaded).toBe(true);
@@ -2679,7 +2679,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().jetRoll('reload');
     const pr = { ...banc.getState().pendingReload! };
     const journalAvant = banc.getState().journal.length;
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const evs = banc.getState().battle!.log.filter((e) => e.kind === 'reload');
     expect(evs, 'UNE ligne d’issue, dans le journal de COMBAT').toHaveLength(1);
     expect(banc.getState().journal.length, 'canal COMBAT : rien dans le journal narratif').toBe(journalAvant);
@@ -2689,7 +2689,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].text]);
   });
 
-  it('reloadConfirm : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
+  it('jetConfirm@reload : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
     const { H } = archer();
     H.weapons = [{ label: 'Arbalète lourde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 100, qualities: [{ id: 'recharge', value: 2 }], subType: 'Arbalète', reload: 2 }];
     rangedOf(H).loaded = false;
@@ -2699,7 +2699,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().jetRoll('reload');
     const pr = banc.getState().pendingReload!;
     const expected = Math.max(0, 0 + pr.sl);
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(expected >= 2);
     expect(rangedOf(h).reloadProgress).toBe(expected >= 2 ? 0 : expected);
@@ -2839,7 +2839,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(h).loadedAmmoUid).toBe('am1');
   });
 
-  it('reloadConfirm CAPTURE la munition choisie sur le coup chargé', () => {
+  it('jetConfirm@reload CAPTURE la munition choisie sur le coup chargé', () => {
     const { H } = archer();
     H.items!.push(am2());
     rangedOf(H).loaded = false;
@@ -2851,7 +2851,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(true);
     expect(rangedOf(h).loadedAmmoUid).toBe('am2');
@@ -2871,14 +2871,14 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } });
     // La sélection change APRÈS le chargement : le coup déjà chargé, lui, ne change pas.
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(2); // 3 → 2 : le coup chargé est parti
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(2); // l'autre pile n'a pas bougé
@@ -2893,7 +2893,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(1); // capturée : 2 → 1
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(3); // sélection courante : intacte
@@ -2913,7 +2913,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'fl2')!.qty).toBe(4);
     expect(h.items!.find((i) => i.uid === 'fl1')!.qty).toBe(5);
@@ -2932,7 +2932,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().pendingAttack).not.toBeNull();
   });
 
-  it('reloadConfirm : cumul sous 0 → reloadProgress revient à 0 (Test étendu « recommence », LDB 12 l.174)', () => {
+  it('jetConfirm@reload : cumul sous 0 → reloadProgress revient à 0 (Test étendu « recommence », LDB 12 l.174)', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 1;
@@ -2942,7 +2942,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 95, target: 40, sl: -2, success: false,
       },
     });
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).reloadProgress).toBe(0); // 1 + (-2) = -1 → plancher 0
     expect(rangedOf(h).loaded).toBe(false);
@@ -2970,7 +2970,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // — ou l'inverse — casse cette égalité).
     const dv = d.difficultyCombined ?? (d.difficulty ? DIFFICULTY_MODIFIERS[d.difficulty] : 0);
     expect(d.target - d.base).toBe(dv + (d.mods ?? []).reduce((s, m) => s + m.value, 0));
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.aiming).toBe(false);
   });
 
@@ -3383,7 +3383,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
-  it('bargainConfirm : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
+  it('jetConfirm@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
     banc.getState().startBargain('buy');
@@ -3392,7 +3392,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
     const lose = { roll: 80, target: 45, success: false, sl: -3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: win, merchantRoll: lose, result: { attacker: win, defender: lose, winner: 'attacker', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
-    banc.getState().bargainConfirm();
+    banc.getState().jetConfirm('bargain');
     expect(banc.getState().pendingBargain).toBeNull();
     expect(banc.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
     expect(banc.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
@@ -3402,7 +3402,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
-  it('bargainConfirm : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
+  it('jetConfirm@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
     banc.getState().startBargain('buy');
@@ -3410,7 +3410,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
-    banc.getState().bargainConfirm();
+    banc.getState().jetConfirm('bargain');
     expect(banc.getState().merchant!.soured).toBe(true);
     banc.getState().startBargain('sell'); // marchand méfiant → toute négociation bloquée
     expect(banc.getState().pendingBargain).toBeNull();
@@ -3493,24 +3493,24 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(banc.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
 
-  it('resolveAppraise : succès → identified=true (révèle l’objet) (#2e)', () => {
+  it('jetConfirm@appraise : succès → identified=true (révèle l’objet) (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
     banc.getState().appraiseItem('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     expect(banc.getState().party[0].items!.find((i) => i.uid === 'm')!.identified).toBe(true);
     expect(banc.getState().pendingAppraise).toBeNull();
   });
 
-  it('resolveAppraise : échec → l’objet reste non identifié (#2e)', () => {
+  it('jetConfirm@appraise : échec → l’objet reste non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
     banc.getState().appraiseItem('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 90, success: false, sl: -3 } });
-    banc.getState().resolveAppraise();
+    banc.getState().jetConfirm('appraise');
     expect(banc.getState().party[0].items!.find((i) => i.uid === 'm')!.identified).toBe(false);
   });
 

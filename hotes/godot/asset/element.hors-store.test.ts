@@ -23,7 +23,7 @@ const glbAvec = (os: string | null, sansUv: readonly string[] = []) => glbDEleme
 const OCTETS = glbAvec('hand_r');
 const GLB = empreinte(OCTETS);
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
-const TEINTE = [{ nom: 'plaque', teinte: true }];
+const METAL = [{ nom: 'plaque', palette: 'metal' }];
 
 /** Un manifeste valide par catégorie. */
 const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
@@ -37,13 +37,13 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   },
   armure: {
     categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'],
-    emplacements: { poitrine: { os: 'spine_01', position: [0, 0.12, 0.14], rotation: [0, 0, 0] } }, silhouettes: ['feminin'], surfaces: TEINTE,
+    emplacements: { poitrine: { os: 'spine_01', position: [0, 0.12, 0.14], rotation: [0, 0, 0] } }, silhouettes: ['feminin'], surfaces: METAL,
   },
-  accessoire: { categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couche: 'tenue', surfaces: TEINTE },
-  rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
+  accessoire: { categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couche: 'tenue', surfaces: METAL },
+  rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: METAL },
   trait: { categorie: 'trait', cle: { trait: 'verrues' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['torse'], surfaces: [{ nom: 'peau', palette: 'peau' }] },
-  decor: { categorie: 'decor', cle: { prop: 'tonneau' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
-  vehicule: { categorie: 'vehicule', cle: { definition: 'carrosse' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
+  decor: { categorie: 'decor', cle: { prop: 'tonneau' }, liaison: { mode: 'rigide' }, surfaces: METAL },
+  vehicule: { categorie: 'vehicule', cle: { definition: 'carrosse' }, liaison: { mode: 'rigide' }, surfaces: METAL },
 };
 
 const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}, octets = OCTETS) => ({ schema: 3, base: 'humanoide', ...VALIDES[categorie], glb: empreinte(octets), ...surcharge });
@@ -60,12 +60,8 @@ describe('validerElement : un manifeste valide par catégorie', () => {
   it.each(CATEGORIES_D_ELEMENT)('%s', (categorie) => {
     expect(verdict(manifeste(categorie))).toEqual({ ok: true, manifeste: manifeste(categorie) });
   });
-  it('une surface déclare `blason: true` en option', () => {
-    const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] });
-    expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
-  });
-  it('une surface à palette déclare `blason: true` en option', () => {
-    const blason = manifeste('vetement', { surfaces: [{ nom: 'tissu', palette: 'vet1', blason: true }] });
+  it.each([['armure', 'plaque', 'metal'], ['vetement', 'tissu', 'vet1']] as const)('une surface d’un élément `%s` déclare `blason: true` en option', (categorie, nom, palette) => {
+    const blason = manifeste(categorie, { surfaces: [{ nom, palette, blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
   });
 });
@@ -73,12 +69,12 @@ describe('validerElement : un manifeste valide par catégorie', () => {
 describe('validerElement : les surfaces se lisent sur tout nœud à mesh, pas seulement le mesh pendu', () => {
   const plaque = glbDElement('hand_r', ['tissu'], [], { garde: [{ materiau: 'plaque', uv: true }] });
   it('un matériau porté par un second nœud à mesh est une surface du GLB', () => {
-    const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, plaque);
+    const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, plaque);
     expect(verdict(blason, plaque)).toEqual({ ok: true, manifeste: blason });
   });
   it('une primitive sans `TEXCOORD_0` sous un second nœud à mesh refuse l’emblème', () => {
     const octets = glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: false }] });
-    expect(codes(...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, octets))).toEqual(['uv-absente']);
+    expect(codes(...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, octets))).toEqual(['uv-absente']);
   });
 });
 
@@ -88,7 +84,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', '`couvre` requis manquant', manifeste('vetement', { couvre: undefined })],
   ['forme', 'liaison sans `mode`', manifeste('rigide', { liaison: 'rigide' })],
   ['forme', 'emplacement sans triplet', manifeste('vetement', { emplacements: { dos: { os: 'spine_01', position: [0, 0], rotation: [0, 0, 0] } } })],
-  ['forme', 'surface nommée deux fois', manifeste('rigide', { surfaces: [...TEINTE, ...TEINTE] })],
+  ['forme', 'surface nommée deux fois', manifeste('rigide', { surfaces: [...METAL, ...METAL] })],
   ['forme', 'empreinte du GLB mal formée', manifeste('rigide', { glb: { sha256: 'xyz', octets: 1 } })],
   ['glb-different', 'empreinte différente des octets livrés', manifeste('rigide', { glb: { ...GLB, sha256: 'a'.repeat(64) } })],
   ['glb-different', 'taille différente des octets livrés', manifeste('rigide', { glb: { ...GLB, octets: GLB.octets + 1 } })],
@@ -116,14 +112,13 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['emplacement-sur-os-absent', 'emplacement sur un os inconnu', manifeste('vetement', { emplacements: { cimier: { os: 'chapeau', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
   ['emplacement-inconnu', 'emplacement absent de la garde-robe', manifeste('armure', { emplacements: { nombril: { os: 'spine_01', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
   ['silhouette-absente', 'shape key que la base ne porte pas', manifeste('tete', { silhouettes: ['visage_inverse'] })],
-  ['surface-hors-categorie', 'teinte sur un vêtement', manifeste('vetement', { surfaces: TEINTE })],
-  ['surface-hors-categorie', 'palette sur un rigide', manifeste('rigide', { surfaces: PALETTE })],
+  ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
-  ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: false }] })],
-  ['forme', 'blason sans couleur', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
-  ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', teinte: true }] })],
-  ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, glbAvec('hand_r', ['plaque']))],
-  ['uv-absente', 'blason sur une surface dont une primitive sur deux a `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, glbDElement('hand_r', MATERIAUX, [], { mixtes: ['plaque'] }))],
+  ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: false }] })],
+  ['forme', 'blason sans emplacement de palette', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
+  ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', palette: 'bois' }] })],
+  ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbAvec('hand_r', ['plaque']))],
+  ['uv-absente', 'blason sur une surface dont une primitive sur deux a `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbDElement('hand_r', MATERIAUX, [], { mixtes: ['plaque'] }))],
   ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', { surfaces: [] }, GLB_DE_BASE)],
   ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],
@@ -137,7 +132,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
-      'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
+      'silhouette-absente': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
@@ -213,7 +208,7 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
     writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(base));
     if (cas !== 'base-absente') writeFileSync(join(d, 'base.glb'), GLB_DE_BASE);
     const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined }
-      : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] }
+      : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', palette: 'metal' }] }
       : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure')
       : cas === 'tete' ? tete('humain') : cas === 'cle-inconnue-tete' ? tete('humain-m-1')
       : cas === 'tete-monstrueuse' ? tete('skaven') : cas === 'cle-inconnue-tete-monstrueuse' ? tete('rat')

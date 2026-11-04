@@ -36,7 +36,7 @@ const rolledRow = (over: Partial<RollRowData> = {}): BuiltRollRow => ({
 // pour le cas mono. Les actions sont donc seulement Annuler + Appliquer, que le flux de la coquille juge.
 const actions: RollAction[] = [
   { key: 'cancel', label: 'Annuler', onClick: noop, verbe: 'cancel' },
-  { key: 'apply', label: 'Appliquer', onClick: noop, verbe: 'apply' },
+  { key: 'apply', label: 'Appliquer', onClick: noop, verbe: 'confirm' },
 ];
 
 /** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.run.rolled`). */

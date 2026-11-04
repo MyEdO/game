@@ -1,22 +1,23 @@
 /**
  * Schéma de `materials.json` — LE dataset des matières du monde (#1686 lot 2), consommé comme
- * `MaterialEntry[]` (`src/data/materials.types.ts`), en quatre domaines : les matières de décor
+ * `MaterialEntry[]` (`src/data/materials.types.ts`), en cinq domaines : les matières de décor
  * volumique, celles de toiture (les couvertures et le « plan » vu du dessus, marqué `vueDeDessus`),
- * celles de relief et les palettes de teintes d’objet du domaine `objet`.
+ * celles de relief, les palettes de teintes d’objet du domaine `objet` et les couleurs nommées du nuancier
+ * (`couleur`).
  *
  * Le champ de charge `domain` porte l'identité : ses valeurs sont celles de `DOMAINES_MATIERE`
  * (`src/data/materials.types.ts`), tenues sous `satisfies` contre les domaines de `MaterialRef` plus
- * `objet`, qui vit hors du pivot de rendu du sol.
+ * `objet` et `couleur`, qui vivent hors du pivot de rendu du sol.
  *
  * UNE SEULE FORME D'ENTRÉE, la disjonction portée par la charge par domaine, que `document()` borne
  * au parse (`refusDeCharge`, `grammaire/collection-cle.ts`) : toutes les clés de charge sont déclarées
  * `.optional()`, et la charge (1) EXIGE par domaine ses clés requises, (2) REFUSE toute clé d'un AUTRE
  * domaine, nommément. Une union de
- * quatre `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
+ * cinq `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
  * `document()` ne saurait y poser ni sa provenance, ni son `type`, ni ses métas d'édition.
  *
- * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les quatre domaines — `detail` l'est par
- * `roof` et `relief`, et par eux seuls. `color` (décor), `N`/`E`/`S`/`O` (pentes de toit),
+ * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les cinq domaines — `detail` l'est par
+ * `roof` et `relief`, `color` par `prop` et `couleur`, et par eux seuls. `N`/`E`/`S`/`O` (pentes de toit),
  * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes
  * (`src/gameIso/backends/webgl/faceColors.ts`).
  */
@@ -38,6 +39,7 @@ const LIBELLES_DE_DOMAINE = {
   roof: 'Toiture',
   relief: 'Relief',
   objet: 'Objet',
+  couleur: 'Couleur',
 } as const satisfies Record<MaterialDomain, string>;
 
 /**
@@ -47,6 +49,7 @@ const LIBELLES_DE_DOMAINE = {
  */
 const CHARGE_PAR_DOMAINE = {
   objet: { cles: ['palette'], requises: ['palette'] },
+  couleur: { cles: ['color'], requises: ['color'] },
   prop: { cles: ['color', 'roughness', 'metalness'], requises: ['color', 'roughness', 'metalness'] },
   roof: {
     cles: [

@@ -220,7 +220,7 @@ function jouerUnSite(n: Noeud, issue: boolean, opts?: { branchesVides?: boolean 
       ...(opts?.branchesVides ? { onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW, after: EMPTY_FLOW } : {}),
       roll: issue ? 1 : 99, success: issue, sl: slDe(issue),
     } });
-    get().resolveTest();
+    get().jetConfirm('test');
   }
   return {
     jouee: true,

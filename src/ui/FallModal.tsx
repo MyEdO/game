@@ -52,7 +52,7 @@ export function FallModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'fall');
   const darkPact = useGesteDeJet('jetDarkPact', 'fall');
   const force = useGesteDeJet('jetForceSuccess', 'fall');
-  const confirm = useGame((s) => s.fallConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'fall');
   const cancel = useGesteDeJet('jetCancel', 'fall');
   const choose = useGame((s) => s.fallChoose);
   const refusTests = useGame(useShallow(refusDesTests));
@@ -133,7 +133,7 @@ export function FallModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

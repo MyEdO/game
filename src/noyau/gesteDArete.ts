@@ -13,7 +13,8 @@ import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
 import type { MsgKey } from '../i18n';
 import { caseOpposee, type AreteUtilisable, type CapaciteArete } from './aretes';
-import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, refusDesRangeesDues, tombantsNommes, mouvementDeLAllege } from './fallMove';
+import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, tombantsNommes, mouvementDeLAllege } from './fallMove';
+import type { CloturesDuJet } from './rollFlowSpecs';
 import { sceneMetresPerTile, type Scene, isWalkable, heightAt } from './monde/scene';
 import { inBattleId, meneurDeboutDuMonde, estDebout } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -330,13 +331,6 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       if (suite.participants.every((x) => x.attempt === false)) { settleFall(get, set, suite); return; }
       set({ pendingFall: suite });
     },
-    fallConfirm: () => {
-      const p = get().pendingFall;
-      if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
-      const refus = refusDesRangeesDues(get(), p);
-      if (refus) return void refuserGeste(get, set, refus);
-      settleFall(get, set, p);
-    },
     windowAcross: (from, to) => {
       const verdict = gesteDepuis(get(), from);
       if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));
@@ -357,4 +351,11 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Les clôtures du franchissement (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+export function cloturesDeFranchissement(get: Get, set: Set) {
+  return {
+    fall: () => settleFall(get, set, garanti(get().pendingFall, 'fall', 'chute ouverte')),
+  } satisfies Partial<CloturesDuJet>;
 }

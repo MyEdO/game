@@ -33,7 +33,7 @@ export function ActivityModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'activity');
   const reverse = useGesteDeJet('jetReverse', 'activity'); // Inversion (LDB 12 l.42)
   const cancel = useGesteDeJet('jetCancel', 'activity');
-  const confirm = useGame((s) => s.activityConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'activity');
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;
@@ -122,7 +122,7 @@ export function ActivityModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

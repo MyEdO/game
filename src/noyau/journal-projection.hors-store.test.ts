@@ -136,7 +136,7 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
       target: 50, roll: 12, success: true, sl: 3, isDouble: false, base: 50, mods: [], requireSL: 0,
     } as unknown as PendingTest;
     banc.setState({ pendingTest: pt });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     const issues = banc.getState().journal.filter((l) => l.includes('Brawn réussit.'));
     expect(issues, `journal:\n${banc.getState().journal.join('\n')}`).toHaveLength(1);
   });

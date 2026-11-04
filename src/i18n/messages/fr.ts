@@ -144,8 +144,8 @@ export const fr = {
   'verbe.cascadeNext': 'Continuer',
   'verbe.cascadeFinish': 'Terminer',
   'verbe.cascadeResolveAll': 'Tout résoudre',
-  'verbe.extendedTestNext': 'Round suivant',
-  'verbe.surgeryNext': 'Appliquer la passe',
+  'verbe.extendedTest.confirm': 'Round suivant',
+  'verbe.surgery.confirm': 'Appliquer la passe',
   'verbe.surgery.cancel': 'Annuler la passe',
   'verbe.medicAbandonSurgery': 'Arrêter l’opération',
   'verbe.acquitterOuverture': 'Commencer',
@@ -181,11 +181,9 @@ export const fr = {
   'verbe.mountTargetSelect': 'Cibler',
   'verbe.openSurgeryPass': 'Opérer (une passe)',
   'verbe.renounceResolve': 'Renoncer',
-  'verbe.resolveAppraise': 'Conclure',
-  'verbe.resolveCorruption': 'Appliquer',
+  'verbe.appraise.confirm': 'Conclure',
   'verbe.resolveManannPriest': 'Prêtre de Manann',
   'verbe.resolveShoreLeave': 'Relâche à terre',
-  'verbe.resolveTest': 'Appliquer',
   'verbe.restCancel': 'Annuler',
   'verbe.restReady': 'Prêt',
   'verbe.restSet': 'Régler le repos',
@@ -1186,7 +1184,6 @@ export const fr = {
   'fall.refus.declarationsDues': 'Saut en attente : chaque tombant déclare d’abord s’il tente le Test ; reste à déclarer : {tombants}.',
   'fall.refus.declarationsDuesSuspendu': 'Saut en attente : chaque tombant déclare d’abord s’il tente le Test et s’il se suspend d’abord ; reste à déclarer : {tombants}.',
   'fall.refus.sansTest': 'Jet refusé : {tombant} saute sans Test.',
-  'fall.refus.jetsDus': 'Saut non résolu : reste à jeter : {tombants}.',
   'declaration.attente': 'en attente de la déclaration de {name}',
   'declaration.attenteFenetre': 'En attente des déclarations de la fenêtre',
   'fall.modale.denivele': 'Dénivelé de {metres}\u00a0m',
@@ -1247,7 +1244,6 @@ export const fr = {
   'cs.cannotFocus': 'Ce sort ne peut pas être focalisé.',
   'cs.focusBlocked': '{name} ne peut pas focaliser : {reason}.',
   'cs.magicMissileNeedsTarget': '{spell} est un Projectile magique — il faut une cible ennemie (en combat).',
-  'cs.oppositionAwaitingRolls': 'Opposition : le Test de {names} reste à lancer.',
   // ── Phase C : narration du flux de combat (noyau/combatFlow). ──
   'cf.coverLabel': 'Couvert ({cover})',
   'cf.castLabel': 'Incantation / NI {ni}',
@@ -2853,6 +2849,14 @@ export const fr = {
   'spellFmt.fragPlus': ' +',
   'spellFmt.clock': '{n} {unit}',
   'spellFmt.untilDawn': "Jusqu'au lever du soleil",
+
+  // ── Stats d'AFFICHAGE d'une arme (`engine/weaponStats.ts`, `ws.*`).
+  'ws.degats': 'Dégâts {spec} ({total})',
+  'ws.portee': 'Portée {m} m',
+  'ws.allonge': 'Allonge {reach}',
+  'ws.belier': 'contre une porte uniquement — sinon Arme improvisée ({dmg})',
+  'ws.siege': '×{mult} contre une structure',
+  'ws.conditionnels': 'Dégâts conditionnels — voir Effets',
 
   // ── #1318 V8c₄ — MONTURES EN VOYAGE (`engine/mountTravel.ts`, `mt.*`, EDOC 07 l.142-174). Les
   // libellés de Test viennent de la DONNÉE (`refLabel('skills', …)`) : « Chevaucher »/« Résistance »

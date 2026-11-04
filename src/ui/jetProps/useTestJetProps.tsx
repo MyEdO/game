@@ -19,7 +19,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
  * (LDB 12). La situation « Test » est une cascade à une étape `jet:'test'`, rendue par `CascadeModal`
  * via ce hook (une seule fenêtre, comme l'attaque via `useAttackJetProps`). `pendingTest` reste le
- * porteur de données ; `resolveTest` (onConfirm) applique la branche réussite/échec ET ferme la cascade.
+ * porteur de données ; `jetConfirm('test')` (onConfirm) applique la branche réussite/échec ET ferme la cascade.
  *
  * Rendu calqué sur l'étape-jet de cascade : QUI tente le Test → PORTRAIT (jamais le nom en clair).
  *  - Plusieurs candidats : `PortraitPicker` (choix du lanceur par portrait, sélectionné mis en avant) ;
@@ -37,7 +37,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
   const reverseVerb = useGesteDeJet('jetReverse', 'test');
   const setActor = useGame((s) => s.testSetActor);
-  const resolve = useGame((s) => s.resolveTest);
+  const resolve = useGesteDeJet('jetConfirm', 'test');
   const cancel = useGesteDeJet('jetCancel', 'test');
   if (!pt) return null;
   const rolled = pt.roll != null;
@@ -69,7 +69,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // `FLOWS.test.fermetures(get).cancel` ; referme la cascade sans dépenser l'Action).
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'apply' },
+    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'confirm' },
   ];
 
   return {

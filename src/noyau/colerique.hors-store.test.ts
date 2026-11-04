@@ -26,7 +26,7 @@ function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeSte
   if (!banc.getState().pendingCast!.result) banc.getState().jetRoll('cast');
   const pc = banc.getState().pendingCast!;
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
-  banc.getState().castConfirm();
+  banc.getState().jetConfirm('cast');
   const oui = (v: boolean | undefined) => (v ? 'yes' : 'no');
   return draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? gestes.calme : undefined), (e) => {
     if (e.kind === 'personneChoisie') return gestes.personne;

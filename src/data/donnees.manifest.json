@@ -597,7 +597,7 @@
           "files": [
             "materials.json"
           ],
-          "desc": "LES matières du monde — un document, le domaine (`prop` décor volumique · `roof` toiture · `relief`) porté par l'entrée"
+          "desc": "LES matières du monde — un document, le domaine (`prop` décor volumique · `roof` toiture · `relief` · `couleur` nuancier de la palette des personnages) porté par l'entrée"
         },
         {
           "files": [

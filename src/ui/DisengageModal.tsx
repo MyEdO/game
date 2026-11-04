@@ -34,10 +34,10 @@ const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice
  * - **'choice'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
  *   Fuir + Résilience pré-jet, rendu dans un `Modal` simple (RollShell ne fait pas les menus).
  * - **'esquive'** : `RollShell` opposé (2 rangées) — [0] Corps à corps du foe FIGÉ (témoin) vs
- *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `disengageConfirm`.
+ *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetConfirm('disengage')`.
  * - **'fuir'** : `RollShell` (flux MULTI `flee`, 2 slots) — [0] le coup dans le dos du FRAPPEUR,
  *   [1] le Test du FUYARD (fiche `fuite`, présent seulement si le coup a fait des Blessures). Chaque rangée
- *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `fleeConfirm`.
+ *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `jetConfirm('flee')`.
  */
 export function DisengageModal() {
   const pd = useGame((s) => s.pendingDisengage);
@@ -48,14 +48,14 @@ export function DisengageModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'disengage');
   const darkPact = useGesteDeJet('jetDarkPact', 'disengage');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'disengage');
-  const confirm = useGame((s) => s.disengageConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'disengage');
   const flee = useGame((s) => s.disengageFlee);
   const fleeRoll = useGesteDeJet('jetRoll', 'flee');
   const fleeReroll = useGesteDeJet('jetReroll', 'flee');
   const fleeBonusSL = useGesteDeJet('jetBonusSL', 'flee');
   const fleeDarkPact = useGesteDeJet('jetDarkPact', 'flee');
   const fleeForce = useGesteDeJet('jetForceSuccess', 'flee');
-  const fleeConfirm = useGame((s) => s.fleeConfirm);
+  const fleeConfirm = useGesteDeJet('jetConfirm', 'flee');
   const cancel = useGesteDeJet('jetCancel', 'disengage');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
@@ -163,7 +163,7 @@ export function DisengageModal() {
       : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
 
     const rolled = !!res && (!toucheDu || !!jet);
-    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, verbe: 'apply', flux: 'flee' }];
+    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, verbe: 'confirm', flux: 'flee' }];
 
     return (
       <RollShell
@@ -219,7 +219,7 @@ export function DisengageModal() {
   }, { key: 'mover' });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

@@ -3,7 +3,7 @@
  * `resolveCasting`, `evaluateCasting`) sait déjà tout (`domainAttributes.test.ts`, 12 tests verts) ;
  * ici on vérifie le CÂBLAGE côté state — `seaMagicContext` (`combatOrParty.ts`) fournit `{ atSea, wind }`
  * aux deux call-sites (`jetRoll('cast')`, `rollFlowSpecs` spec `cast`/`focus`) et l'exception
- * Harmonisation aethyrique de Vie (`combatSlice.focusConfirm`).
+ * Harmonisation aethyrique de Vie (`combatSlice.jetConfirm('focus')`).
  */
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -110,7 +110,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
     });
   });
 
-  describe('Vie (Ghyran, MDG 02 l.186) — focusConfirm : Harmonisation aethyrique en mer', () => {
+  describe('Vie (Ghyran, MDG 02 l.186) — jetConfirm@focus : Harmonisation aethyrique en mer', () => {
     const spellId = 'don-de-vie'; // Domaine Vie
 
     // Le jet de Focalisation est POSÉ (Critique) : seule la CIBLE du contrecoup est sous mesure —
@@ -127,7 +127,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
         party: [w],
         pendingFocus: { casterId: w.id, spellId, result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } },
       });
-      banc.getState().focusConfirm();
+      banc.getState().jetConfirm('focus');
       // Le contrecoup est une ÉTAPE à table : elle se joue, et ce qu'elle rend au joueur vit sur elle
       // (révélation) autant qu'au journal.
       return draineEtLit(banc.getState).join('\n');

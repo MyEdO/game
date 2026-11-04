@@ -703,7 +703,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
   // HORS COMBAT, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
   // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
-  // `noOwnTestFailed` tamponne la ré-entrance (resolveTest ne ré-émet pas).
+  // `noOwnTestFailed` tamponne la ré-entrance (jetConfirm('test') ne ré-émet pas).
   if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     if (flowTestGated(flow.test, target, cc)) return; // gate fermée → no-op (identique à la voie inline)

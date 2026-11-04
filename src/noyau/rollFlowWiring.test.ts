@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { creerVerbesDeJet } from './rollFlowSpecs';
+import { creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET } from './flowVerbs';
 import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intentionsDeSiege';
 import type { Get, Set as SetFn } from './flowTypes';
@@ -9,27 +9,26 @@ import { sitesDeDelegueManuscrit } from '../../scripts/guards/lib/delegueDeVerbe
 /**
  * Garde de la SOURCE UNIQUE `FLOW_VERBS` : prouve que les miroirs d'un flux de jet — le TYPE (`VerbesDeJet`, vérifié
  * par `tsc` via `ActionsDuNoyau extends`), le RUNTIME (`creerVerbesDeJet`) et les INTENTS coop
- * (`noyau/intentionsDeSiege.ts`) — restent alignés sur la table, dans les DEUX sens : les dix verbes de jet et chaque
- * action de `resolution` sont des intents (#1017 — surface dérivée de la possession, sans marqueur à poser), et aucun
+ * (`noyau/intentionsDeSiege.ts`) — restent alignés sur la table, dans les DEUX sens : les verbes de jet, clôture
+ * comprise, sont des intents (#1017 — surface dérivée de la possession, sans marqueur à poser), et aucun
  * nom DÉRIVABLE ne dort dans la part manuelle `MANUAL_COMBAT_INTENTS` (une entrée recopiée = une 2ᵉ source).
  */
 const noopGet = (() => ({})) as unknown as Get;
 const noopSet = (() => {}) as unknown as SetFn;
-const ENTRIES = Object.entries(FLOW_VERBS) as [string, { kind: 'mono' | 'multi'; verbs: readonly string[]; resolution?: readonly string[] }][];
+const ENTRIES = Object.entries(FLOW_VERBS) as [string, { kind: 'mono' | 'multi'; verbs: readonly string[] }][];
 const NOMS_DE_JET = Object.values(NOM_DU_VERBE_DE_JET);
-const RESOLUTIONS = ENTRIES.flatMap(([, w]) => w.resolution ?? []);
 
 describe('câblage des flux de jet — source unique FLOW_VERBS', () => {
-  it('runtime : creerVerbesDeJet expose EXACTEMENT les dix verbes de jet (`NOM_DU_VERBE_DE_JET`)', () => {
-    expect(new Set(Object.keys(creerVerbesDeJet(noopGet, noopSet)))).toEqual(new Set(NOMS_DE_JET));
+  it('runtime : creerVerbesDeJet expose EXACTEMENT les verbes de jet (`NOM_DU_VERBE_DE_JET`)', () => {
+    expect(new Set(Object.keys(creerVerbesDeJet(noopGet, noopSet, {} as CloturesDuJet)))).toEqual(new Set(NOMS_DE_JET));
   });
 
-  it('intents : chaque verbe de jet et chaque action de `resolution` est exposé (surface DÉRIVÉE, #1017, #1050)', () => {
-    expect([...NOMS_DE_JET, ...RESOLUTIONS].filter((n) => !COMBAT_INTENTS.has(n)), 'hors COMBAT_INTENTS — la dérivation `coopFlowIntents` a été rompue').toEqual([]);
+  it('intents : chaque verbe de jet est exposé (surface DÉRIVÉE, #1017, #1050)', () => {
+    expect(NOMS_DE_JET.filter((n) => !COMBAT_INTENTS.has(n)), 'hors COMBAT_INTENTS — la dérivation `coopFlowIntents` a été rompue').toEqual([]);
   });
 
   it('intents : la part MANUELLE ne recopie aucun nom dérivable de FLOW_VERBS (source unique)', () => {
-    const derivable = new Set<string>([...NOMS_DE_JET, ...RESOLUTIONS]);
+    const derivable = new Set<string>(NOMS_DE_JET);
     const recopies = MANUAL_COMBAT_INTENTS.filter((n) => derivable.has(n));
     expect(recopies, 'intent dérivable recopié à la main — le retirer de MANUAL_COMBAT_INTENTS').toEqual([]);
   });

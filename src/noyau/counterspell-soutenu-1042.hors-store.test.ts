@@ -4,6 +4,7 @@ import type { Jeu } from './etat';
 import { counterspellJoinable, counterspellSoutenu, counterspellSoutienFor, counterspellDeclarePhase, autoDeclareWitnessRows } from './combatFlow';
 import { intentAllowedFor } from './netOwnership';
 import { seedBattleRng } from './battleRng';
+import { fermeturesDuFlux } from './verbesOuverts';
 import { castingValue } from '../engine/magic';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * RAW : `LDB 46 l.162` (« Plusieurs lanceurs de Sorts tentant de dissiper le même Sort effectuent leur
  * lancer séparément. S'ils incantent en utilisant le même Domaine, ils peuvent décider d'effectuer un
  * Test Soutenu à la place. » — § Dissiper des Sorts permanents, TRANSPOSÉ à la fenêtre réactive :
- * transposition maison, tag au site canonique `counterspellConfirm`) ; `LDB 12 l.189` (un seul jet, le
+ * transposition maison, tag au site canonique `jetConfirm('counterspell')`) ; `LDB 12 l.189` (un seul jet, le
  * plus fort lance, +10 par soutien), `l.195` (≥1 Augmentation), `l.198` (plafond = Bonus de Carac).
  * Contrats couverts ici (réfs nues) : phase 1 verrouille les jets, `pass` ne consomme rien, N solos
  * déclarés jettent tous, composition figée après la phase, mix libre, drive de cadence — #1042, #1059.
@@ -208,9 +209,8 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     // (1) EFFET : en phase 1, un siège ne referme pas la fenêtre des autres — décliner s'y dit `pass`.
     banc.getState().jetCancel('counterspell');
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste ouverte').toBeTruthy();
-    // (2) ROUTE : la MÊME frontière côté réseau (l'intent n'atteint jamais l'effet).
-    const s = banc.getState();
-    expect(intentAllowedFor(s, 0, 'jetCancel', ['counterspell']), 'aucun siège ne ferme pendant la phase').toBe(false);
+    // (2) FENÊTRE : la fermeture que l'effet applique est celle que la fenêtre montre à chaque siège.
+    expect(fermeturesDuFlux(banc.getState(), 'counterspell').cancel, 'aucun siège ne ferme pendant la phase').toBe('declarationsDues');
     // (3) TOUT-PASS : la dernière déclaration ferme la fenêtre par le résolveur canonique, sans jet.
     declare(h1.id, 'pass');
     declare(h2.id, 'pass');

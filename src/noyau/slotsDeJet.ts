@@ -80,7 +80,7 @@ export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boole
 /**
  * HÔTE EN ATTENTE (#1765) — « cette étape-jet attend que sa fenêtre rende sa donnée » : son slot vit et elle
  * n'est pas validée (`committed`). Le curseur ne la franchit pas — ni par un « Suivant », ni par « Tout
- * lancer » : c'est sa fenêtre qui la rend (`defenseConfirm` pose `committed`, `attackConfirm` vide son
+ * lancer » : c'est sa fenêtre qui la rend (`jetConfirm('defense')` pose `committed`, `jetConfirm('attack')` vide son
  * slot). Prédicat PUR et TOTAL sur les `HostJet`, lu par `cascade.stepReady`.
  */
 export function hoteEnAttente(s: Partial<Jeu>, step: CascadeStep): boolean {

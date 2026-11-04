@@ -381,7 +381,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     banc.getState().jetRoll('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
     expect(banc.getState().pendingShipManeuver!.participants.every((x) => x.result)).toBe(true);
     expect(banc.getState().facing.ship).toBe('N'); // cap encore intact : application différée à la confirmation
-    banc.getState().shipManeuverConfirm();
+    banc.getState().jetConfirm('shipManeuver');
     const st = banc.getState();
     expect(st.pendingShipManeuver).toBeNull();
     expect(st.battle!.acted).toBe(true); // un jet = une Action

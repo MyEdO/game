@@ -7,10 +7,12 @@
  *      possède le héros est ACCEPTÉ, tout autre siège (hôte compris) est REFUSÉ — même quand la
  *      modale hôte dirait '*' (étape de groupe) ou désignerait un TIERS (le navire) ;
  *  (c) tout flux multi DÉCLARE sa politique `pidIsActor` (aucun trou silencieux) et un flux
- *      `pidIsActor:false` (`pid` = id d'étape/de Round) ne prend JAMAIS son `pid` pour un acteur.
+ *      `pidIsActor:false` (`pid` = id d'étape/de Round) ne prend JAMAIS son `pid` pour un acteur ;
+ *  (d) un verbe de fenêtre (`estVerbeDeFenetre` : annulation, clôture) n'appartient à aucune rangée : sa route
+ *      rend la décision au repli universel, le owner de la modale.
  */
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
+import { estVerbeDeFenetre, FLOW_VERBS, NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
 import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from './intentionsDeSiege';
 import type { Jeu } from './etat';
@@ -87,7 +89,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
     for (const [flux, w] of MULTI) {
       if (w.pidIsActor) continue;
       for (const v of w.verbs) {
-        if (v === 'cancel') continue;
+        if (estVerbeDeFenetre(v)) continue;
         if (intentAllowedFor(s, 1, NOM_DU_VERBE_DE_JET[v], argsDuGeste(flux, v, H_OWNER)) === true && intentAllowedFor(s, 0, NOM_DU_VERBE_DE_JET[v], argsDuGeste(flux, v, H_OWNER)) === false) fuites.push(`${NOM_DU_VERBE_DE_JET[v]}@${flux}`);
       }
     }
@@ -120,7 +122,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
     it(`(b) ${flux} : le siège propriétaire du participant est ACCEPTÉ, tout autre siège REFUSÉ`, () => {
       const s = base(FIXTURES[flux]);
       for (const v of w.verbs) {
-        if (v === 'cancel') continue;
+        if (estVerbeDeFenetre(v)) continue;
         const intent = NOM_DU_VERBE_DE_JET[v];
         const args = (x: string) => argsDuGeste(flux, v, x);
         // Le participant du siège 1 : SON siège agit, l'hôte et le siège TIERS sont refusés.
@@ -133,6 +135,21 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
       }
     });
   }
+
+  it('(d) l’annulation et la clôture d’un flux multi se rendent au repli universel, jamais à une rangée', () => {
+    const verdicts: string[] = [];
+    for (const [flux, w] of MULTI) {
+      if (!(flux in FIXTURES)) continue;
+      const s = base(FIXTURES[flux]);
+      for (const v of w.verbs.filter(estVerbeDeFenetre)) {
+        for (const seat of [0, 1, 2]) {
+          const verdict = ROUTES.get(NOM_DU_VERBE_DE_JET[v])!.rule(s, seat, [flux]);
+          if (verdict !== null) verdicts.push(`${NOM_DU_VERBE_DE_JET[v]}@${flux} siège ${seat} : ${verdict}`);
+        }
+      }
+    }
+    expect(verdicts, 'verbe de fenêtre tranché par une rangée au lieu du repli').toEqual([]);
+  });
 
   it('fallChoose : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
     const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<Jeu>);

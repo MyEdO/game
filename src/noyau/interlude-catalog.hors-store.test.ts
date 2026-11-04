@@ -51,7 +51,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   const forceRoll = (roll: number, success: boolean, sl: number) => {
     banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
   };
 
   it('gate `where` : hors d’Altdorf (pas de place liée à la scène), la Pénitence est indisponible', () => {

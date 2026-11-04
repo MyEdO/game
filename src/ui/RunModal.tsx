@@ -27,7 +27,7 @@ export function RunModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'run');
   const darkPact = useGesteDeJet('jetDarkPact', 'run');
   const force = useGesteDeJet('jetForceSuccess', 'run');
-  const confirm = useGame((s) => s.runConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'run');
   const cancel = useGesteDeJet('jetCancel', 'run');
   if (!pr || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pr.combatantId);
@@ -54,7 +54,7 @@ export function RunModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

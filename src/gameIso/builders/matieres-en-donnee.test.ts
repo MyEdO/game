@@ -184,6 +184,9 @@ function codeSeul(src: string, sauf?: string): string {
 
 /** Un id CITÉ en littéral (la mesure commune des trois bras). */
 const citeId = (id: string) => new RegExp(`(['"\`])${id}\\1`);
+/** Une ligne qui CITE en littéral l'id d'une matière, en une seule expression compilée une fois. */
+const citeUneMatiere = (ligne: string) => CITE_UNE_MATIERE.test(ligne);
+const CITE_UNE_MATIERE = new RegExp(`(['"\`])(?:${materials.map((m) => m.id).join('|')})\\1`);
 
 /** Les MEMBRES littéraux d'une UNION, déclarée (`type X = 'a' | 'b'`) comme écrite en place. */
 const membresDUnion = (union: string): string[] => [...union.matchAll(/(['"`])([^'"`\n]*)\1/g)].map((m) => m[2]);
@@ -287,7 +290,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     for (const f of fichiers().filter((x) => duStore(x.rel))) {
       const sansCommentaires = codeNu(f.code);
       sansCommentaires.forEach((l, i) => {
-        if (materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l)))
+        if (citeUneMatiere(l))
           nus.push({ rel: f.rel, ligne: i + 1, texte: l });
       });
     }
@@ -308,13 +311,12 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * différence = exemption morte, à re-trier — pas à garder « au cas où ».
    */
   it('chaque NEUTRALISEUR est exercé par un site du périmètre (aucune exemption morte)', () => {
-    const cite = (l: string) => materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l));
     for (const n of NEUTRALISEURS) {
       const exerce = fichiers().some((f) => {
         const avec = codeSeul(f.code).split('\n');
         return codeSeul(f.code, n.nom)
           .split('\n')
-          .some((l, i) => cite(l) && !cite(avec[i]));
+          .some((l, i) => citeUneMatiere(l) && !citeUneMatiere(avec[i]));
       });
       expect(exerce, `neutraliseur mort : « ${n.nom} » ne blanchit plus aucun site du périmètre — re-trier l’exemption.`).toBe(true);
     }

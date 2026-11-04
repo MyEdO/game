@@ -64,7 +64,7 @@ export function ReloadModalView({
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
   ];
 
   return (
@@ -96,7 +96,7 @@ export function ReloadModal() {
   const reroll = useGesteDeJet('jetReroll', 'reload');
   const bonusSL = useGesteDeJet('jetBonusSL', 'reload');
   const darkPact = useGesteDeJet('jetDarkPact', 'reload');
-  const confirm = useGame((s) => s.reloadConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'reload');
   const cancel = useGesteDeJet('jetCancel', 'reload');
   if (!pr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pr.actorId);

@@ -57,7 +57,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     banc.getState().attackSetCritLocation('jambeG');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBe('jambeG');
     const resRef = banc.getState().pendingAttack!.result!; // même objet, muté en place par applyAttackResult
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(resRef.location).toBe('jambeG'); // la Localisation CHOISIE est celle réellement résolue, pas un re-tirage
   });
 

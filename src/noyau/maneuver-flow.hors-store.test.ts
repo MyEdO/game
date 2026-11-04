@@ -59,7 +59,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(pm!.result).toBeNull(); // rien n’est tiré avant Lancer
     banc.getState().jetRoll('maneuver');
     expect(banc.getState().pendingManeuver!.result).toBeTruthy();
-    banc.getState().maneuverConfirm();
+    banc.getState().jetConfirm('maneuver');
     const st = banc.getState();
     expect(st.pendingManeuver).toBeNull();
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -83,7 +83,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // tous les Av dépensés
   });
 
-  it('Étreinte : manœuvre-Action → maneuverConfirm pose `acted`', () => {
+  it('Étreinte : manœuvre-Action → jetConfirm@maneuver pose `acted`', () => {
     banc.getState().seedRng(2);
     const { H, E } = setup();
     H.traits = [{ id: 'etreinte-glaciale' }];
@@ -94,7 +94,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(pm!.kind).toBe('etreinte');
     expect(pm!.avantageSpent).toBe(2);
     banc.getState().jetRoll('maneuver');
-    banc.getState().maneuverConfirm();
+    banc.getState().jetConfirm('maneuver');
     const st = banc.getState();
     expect(st.battle!.acted).toBe(true); // Étreinte = Action (LDB 85 l.112)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // 2 − 2
@@ -113,7 +113,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     banc.getState().maneuverSetAvantage(6); // dépense tout → +6 DR
     expect(banc.getState().pendingManeuver!.avantageSpent).toBe(6);
     banc.getState().jetRoll('maneuver');
-    banc.getState().maneuverConfirm();
+    banc.getState().jetConfirm('maneuver');
     const st = banc.getState();
     expect(st.battle!.acted).toBe(true); // Regard = Action (l.238)
     const e2 = st.battle!.combatants.find((c) => c.id === E.id)!;
@@ -145,7 +145,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     expect(banc.getState().pendingManeuver!.result!.success).toBe(false); // jet raté
     banc.getState().jetForceSuccess('maneuver');
     expect(banc.getState().pendingManeuver!.result!.success).toBe(true); // forcé réussi
-    banc.getState().maneuverConfirm();
+    banc.getState().jetConfirm('maneuver');
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBeLessThan(before);
   });
 
@@ -159,7 +159,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     banc.setState({ facing: { [H.id]: 'S' } }); // dos tourné à la cible avant la manœuvre
     activate('souffle', E.id);
     banc.getState().jetRoll('maneuver');
-    banc.getState().maneuverConfirm();
+    banc.getState().jetConfirm('maneuver');
     expect(banc.getState().facing[H.id]).toBe('N');
   });
 
@@ -178,7 +178,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     activate('souffle', D.id);
     banc.getState().jetRoll('maneuver');
     D.dead = true; // elle tombe avant que le souffle ne parte → la zone se recentre sur le plus proche vivant
-    banc.getState().maneuverConfirm();
+    banc.getState().jetConfirm('maneuver');
     expect(banc.getState().facing[H.id]).toBe('N');
   });
 });

@@ -46,7 +46,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       expect(res.defenderDetail, 'la défense du Mutant n’a pas été jouée').toBeTruthy();
       expect(res).toMatchObject({ hit: true, critical: true });
 
-      const confirmation = partie.envoyer({ type: 'attackConfirm', args: [] });
+      const confirmation = partie.envoyer({ type: 'jetConfirm', args: ['attack'] });
       expect(confirmation.issue).toBe('appliquee');
       expect(emis(confirmation)).toContain('anim_attack');
       expect(confirmation.journal.flatMap((l) => (l.de === 'combat' ? [l.evenement.kind] : [])), 'l’appel ne rend pas les lignes de combat qu’il a écrites').toEqual(expect.arrayContaining(['crit', 'death']));

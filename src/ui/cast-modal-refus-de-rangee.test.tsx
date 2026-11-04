@@ -49,9 +49,9 @@ beforeEach(() => { seedBattleRng(7); host = document.createElement('div'); docum
 afterEach(() => { act(() => root.unmount()); host.remove(); useGame.setState({ pendingCast: null, pendingCounterspell: null, pendingCastOpposition: null, battle: null, party: [] }); });
 
 describe('Contre-sort — la rangée refusée ne propose aucun geste et dit le refus', () => {
-  it('phase de déclaration : CTA et « Laisser passer » fermés sur l’attente, aucune Résilience avant jet', () => {
+  it('phase de déclaration : CTA, « Laisser passer » et « Appliquer » fermés sur l’attente, aucune Résilience avant jet', () => {
     monterContreSort([{ id: 'A', interactive: true, declared: 'solo', result: null }, { id: 'B', interactive: true, result: null }]);
-    expect(boutons()).toEqual(['Contrer seul', 'S’unir [fermé]', 'Passer', 'Contre-sort [fermé]', 'Contrer seul', 'S’unir [fermé]', 'Passer', 'Contre-sort [fermé]', 'Laisser passer [fermé]', 'Appliquer']);
+    expect(boutons()).toEqual(['Contrer seul', 'S’unir [fermé]', 'Passer', 'Contre-sort [fermé]', 'Contrer seul', 'S’unir [fermé]', 'Passer', 'Contre-sort [fermé]', 'Laisser passer [fermé]', 'Appliquer [fermé]']);
     expect(raisonDe('A')).toBe('En attente des déclarations de la fenêtre');
   });
 

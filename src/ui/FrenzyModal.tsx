@@ -24,7 +24,7 @@ export function FrenzyModal() {
   const reroll = useGesteDeJet('jetReroll', 'frenzy');
   const darkPact = useGesteDeJet('jetDarkPact', 'frenzy');
   const force = useGesteDeJet('jetForceSuccess', 'frenzy');
-  const confirm = useGame((s) => s.frenzyConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'frenzy');
   const cancel = useGesteDeJet('jetCancel', 'frenzy');
   if (!pf || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pf.combatantId);
@@ -52,7 +52,7 @@ export function FrenzyModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

@@ -3,7 +3,7 @@
  * FLOWS.battement/FLOWS.distraire → resolveBattement/resolveDistraire produit bien l'effet RAW :
  *  - Battement (LDB 10 l.103) : Action, Test de CC non opposé → retire de l'Avantage adverse ;
  *  - Distraire (LDB 10 l.364) : Mouvement, Test opposé Athlétisme vs Calme → pose `distractedRounds`.
- * On pilote le VRAI flux (battleX → xRoll → xConfirm), avec des Caractéristiques rendant l'issue
+ * On pilote le VRAI flux (battleX → jetRoll(flux) → jetConfirm(flux)), avec des Caractéristiques rendant l'issue
  * déterministe, et on vérifie l'effet + le coût (Action pour Battement, Mouvement pour Distraire).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -60,7 +60,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     banc.getState().jetRoll('battement'); // le flux tire le jet de CC (figé)
     banc.getState().jetForceSuccess('battement'); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
     expect(banc.getState().pendingBattement!.result!.success).toBe(true);
-    banc.getState().battementConfirm(); // Appliquer → resolveBattement
+    banc.getState().jetConfirm('battement'); // Appliquer → resolveBattement
 
     const st = banc.getState();
     expect(st.pendingBattement).toBeNull();
@@ -84,7 +84,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
 
     banc.getState().jetRoll('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
     expect(banc.getState().pendingDistraire!.result).toBe('success');
-    banc.getState().distraireConfirm(); // Appliquer → resolveDistraire
+    banc.getState().jetConfirm('distraire'); // Appliquer → resolveDistraire
 
     const st = banc.getState();
     expect(st.pendingDistraire).toBeNull();
@@ -101,7 +101,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     banc.getState().battleBattement();
     banc.getState().jetRoll('battement');
     expect(banc.getState().pendingBattement!.result!.success).toBe(false);
-    banc.getState().battementConfirm();
+    banc.getState().jetConfirm('battement');
     const e2 = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e2.advantage).toBe(3); // rien retiré sur un échec (manv.battementFail)
   });

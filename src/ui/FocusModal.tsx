@@ -27,7 +27,7 @@ export function FocusModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'focus');
   const darkPact = useGesteDeJet('jetDarkPact', 'focus');
   const force = useGesteDeJet('jetForceSuccess', 'focus');
-  const confirm = useGame((s) => s.focusConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'focus');
   const cancel = useGesteDeJet('jetCancel', 'focus');
   if (!pf) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pf.casterId); // combat (file) ou hors combat (groupe)
@@ -62,7 +62,7 @@ export function FocusModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

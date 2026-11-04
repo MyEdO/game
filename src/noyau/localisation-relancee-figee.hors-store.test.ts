@@ -125,7 +125,7 @@ describe('Localisation relancée — défense pilotée, `openSurfacedDefense` (T
       openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
       g().jetRoll('attack');
       const ouverture = g().pendingAttack?.result?.critLocation;
-      g().attackConfirm();
+      g().jetConfirm('attack');
       if (!ouverture || !g().pendingDefense) continue;
       g().jetRoll('defense');
       const resolue = g().pendingDefense!.result!.critLocation;

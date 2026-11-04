@@ -33,7 +33,7 @@ export function CrewTestModal() {
   const bonus = useGesteDeJet('jetBonusSL', 'crewTest');
   const darkPact = useGesteDeJet('jetDarkPact', 'crewTest');
   const force = useGesteDeJet('jetForceSuccess', 'crewTest');
-  const confirm = useGame((s) => s.crewTestConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'crewTest');
   const cancel = useGesteDeJet('jetCancel', 'crewTest');
   if (!p) return null;
   return (
@@ -83,7 +83,7 @@ export function CrewTestModalView({ p, battle, party, owns, roll, reroll, bonus,
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
     ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

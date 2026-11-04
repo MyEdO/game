@@ -64,7 +64,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
     expect(get().localIntent, 'témoin : le clic a bien dissous l’intention').toBeNull();
     banc.setState({ pendingApproach: { ...get().pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();
-    get().approachConfirm();
+    get().jetConfirm('approach');
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(get().refus, 'le geste GAGNÉ au jet a été refusé à la relance').toBeNull();

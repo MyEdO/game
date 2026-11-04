@@ -5,9 +5,9 @@
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
-import { creerVerbesDeJet } from './rollFlowSpecs';
+import { creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { FlowKey, NomDeVerbeDeJet, RollVerb } from './flowVerbs';
-import { createCombatSlice } from './combatSlice';
+import { cloturesDuCombat, createCombatSlice } from './combatSlice';
 import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
@@ -15,26 +15,26 @@ import { creerActionsDuChapitre } from './chapitreRecap';
 import { creerActionsDeCampagne } from './campagne';
 import { creerActionsDeVision } from './visionState';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
-import { creerActionsDInterlude } from './interludeFlow';
+import { cloturesDInterlude, creerActionsDInterlude } from './interludeFlow';
 import { creerActionsDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { creerActionsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
 import { creerActionsDeMarche } from './marcheDuGroupe';
-import { creerActionsDeFranchissement } from './gesteDArete';
+import { cloturesDeFranchissement, creerActionsDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { creerActionsDeConversation } from './conversation';
-import { creerActionsDuMarchand } from './merchantFlow';
+import { cloturesDuMarchand, creerActionsDuMarchand } from './merchantFlow';
 import { creerActionsDeTaverne } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { creerActionsDIssueDeCombat } from './issueDeCombat';
-import { creerActionsDuMedecin } from './medicFlow';
+import { cloturesDuMedecin, creerActionsDuMedecin } from './medicFlow';
 import { creerActionsDuRepos } from './restFlow';
 import { creerActionsDeLEquipage } from './shipCrew';
 import { creerActionsDesConsommables } from './consumableFlow';
-import { creerActionsDesTestsDeScene } from './testsDeScene';
-import { creerActionsDuLotDEtal } from './etalLotFlow';
-import { creerActionsDeCorruption } from './corruptionFlow';
+import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene } from './testsDeScene';
+import { cloturesDuLotDEtal } from './etalLotFlow';
+import { cloturesDeCorruption, creerActionsDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerActionsDuVoyage } from './travelFlow';
@@ -55,12 +55,26 @@ function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, No
   return actions;
 }
 
+/** Le corps de la clôture de chaque flux, que seul `jetConfirm(flux)` appelle : un flux sans clôture ne compile pas. */
+function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {
+  return {
+    ...cloturesDuCombat(get, set),
+    ...cloturesDeCorruption(get, set),
+    ...cloturesDuLotDEtal(get, set),
+    ...cloturesDeFranchissement(get, set),
+    ...cloturesDInterlude(get, set),
+    ...cloturesDuMedecin(get, set),
+    ...cloturesDuMarchand(get, set),
+    ...cloturesDesTestsDeScene(get, set),
+  } satisfies CloturesDuJet;
+}
+
 /** Les actions du noyau sur le propriétaire `get`/`set` (le `set` brut, qui écrit aussi les clés
  *  réservées de leurs seuls écrivains), une fabrique par concept. */
 export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): ActionsDuNoyau {
   return {
-    // Les dix verbes de jet, le flux en argument : leur SEUL écrivain.
-    ...creerVerbesDeJet(get, set),
+    // Les verbes de jet, le flux en argument : leur SEUL écrivain.
+    ...creerVerbesDeJet(get, set, cloturesDuJet(get, set)),
     ...horsDelegues({
       ...createCombatSlice(get, set),
       ...creerActionsDuRegistre(get),
@@ -88,7 +102,6 @@ export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): Actions
       ...creerActionsDeLEquipage(get, set),
       ...creerActionsDesConsommables(get, set),
       ...creerActionsDesTestsDeScene(get, set),
-      ...creerActionsDuLotDEtal(get, set),
       ...creerActionsDeCorruption(get, set),
       ...creerActionsDuJournal(get, set),
       ...creerActionsDAvanceeDHorloge(get, set),

@@ -99,7 +99,7 @@ describe('un tour complet par le pont', () => {
     expect(corpsDe(suite.vue, 'jet'), 'le jet tombé dit son verdict').toMatchObject({ type: 'jet', verdict: expect.any(String) });
     const issue = corpsDe(suite.vue, 'issue');
     expect(issue, 'le jet tombé dit son issue').toMatchObject({ type: 'ligne' });
-    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('attackConfirm');
+    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetConfirm@attack');
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
@@ -128,7 +128,7 @@ describe('un tour complet par le pont', () => {
     const evenements = [...journal];
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
-    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('defenseConfirm');
+    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense confirmée, sa fenêtre se ferme').toBeUndefined();

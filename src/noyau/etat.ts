@@ -445,10 +445,10 @@ export interface EtatDeJeu {
    *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.counterspell`). Null = pas de réaction. */
   pendingCounterspell: PendingCounterspell | null;
   /** Test Étendu en cours (LDB 12 : DR cumulé vers une cible, ex. crochetage) : flux multi
-   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `extendedTestNext`. */
+   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetConfirm('extendedTest')`. */
   pendingExtendedTest: PendingExtendedTest | null;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
-   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `forceDoorConfirm`. */
+   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetConfirm('forceDoor')`. */
   pendingForceDoor: PendingForceDoor | null;
   /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
   pendingDesignationHeros: PendingDesignationHeros | null;
@@ -476,8 +476,8 @@ export interface EtatDeJeu {
   sequence: EtatDeSequence | null;
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
    *  figée (`pendingCast.result`) — multijet DANS la modale de cast (cible IA = rangée témoin
-   *  auto-roulée, cible héros = interactive). `oppositionConfirm` agrège → `pendingCast.opposedOutcome`
-   *  → `castConfirm` applique (cible résistante = aucune op ; sinon ops à la marge). */
+   *  auto-roulée, cible héros = interactive). `jetConfirm('opposition')` agrège → `pendingCast.opposedOutcome`
+   *  → `jetConfirm('cast')` applique (cible résistante = aucune op ; sinon ops à la marge). */
   pendingCastOpposition: PendingCastOpposition | null;
   /** Télégraphe d'intention ENNEMI : réticule « qui l'adversaire vise » + manière (`kind`), montré
    *  ~0,85 s AVANT l'action. Alimente le réticule/la ligne sur la carte ET la bannière d'annonce. */

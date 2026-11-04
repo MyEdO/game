@@ -72,7 +72,7 @@ import { isOptionalNote, type TraitList } from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import type { NomDIndividu } from '../../engine/psych/ciblage';
 import { damageString } from '../../engine/items';
-import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
+import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
 import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';

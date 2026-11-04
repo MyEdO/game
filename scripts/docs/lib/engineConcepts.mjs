@@ -181,6 +181,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/weaponDamage.ts', "Dégâts d'arme"],
   ['src/engine/weaponGroup.ts', "Groupe d'arme"],
   ['src/engine/weaponLoad.ts', "Chargement d'arme (munition, chambre)"],
+  ['src/engine/weaponStats.ts', "Stats d'affichage d'arme"],
   ['src/engine/wearPenalty.ts', 'Pénalité de port (armure)'],
   ['src/engine/weatherTestMod.ts', 'Modificateur de test météo'],
   ['src/engine/windsOfMagic.ts', 'Vents de Magie'],

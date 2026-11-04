@@ -72,7 +72,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     // Le Test `fuite` passe par le flux `flee` (jet INFLUENÇABLE) : Lancer puis Appliquer.
     banc.getState().jetRoll('flee', H.id);
     expect(fleeTouche(banc.getState().pendingDisengage!)!.jet).toBeTruthy(); // Test `fuite` résolu
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
 
     // « Appliquer » applique le coup dans le dos puis complète la fuite (libération + Course).
     const after = banc.getState();
@@ -119,7 +119,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
 
     // « Appliquer » : broken = 1 + max(0, 1) = 2 États Brisés (au lieu de 3 sans le +1 DR).
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     st = banc.getState();
     expect(stacks(st.battle!.combatants.find((c) => c.id === H.id)!, COND.brise)).toBe(2);
     expect(st.pendingDisengage).toBeNull();
@@ -181,7 +181,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const critBefore = live(fuyard.id).criticalWounds ?? 0;
     const pdAfter = banc.getState().pendingDisengage!;
     if (fleeToucheDu(pdAfter)) banc.getState().jetRoll('flee', fleeTouche(pdAfter)!.id);
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     draineCascade(banc.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
 
     expect(live(fuyard.id).criticalWounds ?? 0).toBeGreaterThan(critBefore); // Blessure critique RAW appliquée
@@ -208,7 +208,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     });
 
     const critBefore = live(fuyard.id).criticalWounds ?? 0;
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     draineCascade(banc.getState); // la sévérité du dépassement se tire DANS la fenêtre (#1426)
 
     const f = live(fuyard.id);
@@ -312,7 +312,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       const bs = fleeBackstab(banc.getState().pendingDisengage!)!;
       banc.getState().jetRoll('flee', bs.id);
       expect(fleeBackstab(banc.getState().pendingDisengage!)!.result!.hit, 'pré-requis : le coup dans le dos touche').toBe(true);
-      banc.getState().fleeConfirm();
+      banc.getState().jetConfirm('flee');
       const pc = banc.getState().pendingCleave;
       expect(pc?.attackerId, 'le balayage est offert').toBe(H.id);
       expect(pc?.hitIds).toEqual([E1.id]);
@@ -357,7 +357,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(fleeBackstab(pd)!.interactive, 'pré-requis : le frappeur est conduit par l’IA').toBe(false);
     expect(fleeBackstab(pd)!.result!.cleave, 'pré-requis : la touche d’un plus grand pose le balayage').toBe(true);
     if (fleeToucheDu(pd)) banc.getState().jetRoll('flee', fleeTouche(pd)!.id);
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     draineCascade(banc.getState);
     const pdef = banc.getState().pendingDefense;
     expect(pdef?.attackerId, 'le frappeur enchaîne : fenêtre de défense du voisin du fuyard').toBe(E.id);
@@ -388,7 +388,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       },
     });
 
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
 
     // (1) SUSPENDU : le choix Dévier/Subir est posé, la fuite N'EST PAS complétée.
     const casc = banc.getState().pendingCascade!;
@@ -425,7 +425,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(res.attackerDetail!.label).not.toMatch(/Projectiles/); // jet de CC, pas de CT
     const pdNow = banc.getState().pendingDisengage!;
     if (fleeToucheDu(pdNow)) banc.getState().jetRoll('flee', fleeTouche(pdNow)!.id);
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     const log = banc.getState().battle!.log;
     expect(log.some((e) => e.kind === 'attack' && e.actorId === frappeur.id)).toBe(true);
     expect(log.some((e) => e.kind === 'shoot')).toBe(false); // jamais la branche TIR (munitions/dispersion)
@@ -482,7 +482,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(fleeTouche(pdB)!.interactive).toBe(true);
     // Le fuyard peut mener la fenêtre à son terme tout seul.
     banc.getState().jetRoll('flee', H.id);
-    banc.getState().fleeConfirm();
+    banc.getState().jetConfirm('flee');
     expect(banc.getState().pendingDisengage).toBeNull();
   });
 });

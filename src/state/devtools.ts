@@ -207,7 +207,7 @@ function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: strin
   return { kind: couche.kind, plan: couche.plan, nom, selecteur: '[data-wfrp-dialogue-dessus]' };
 }
 
-/** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
+/** Trace du DERNIER Test résolu (`jetConfirm('test')`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
  *  chargé dynamiquement, #514). Abonnement au scope module = une SEULE souscription (`installDevtools`
  *  n'est appelé qu'une fois, `main.tsx`). */
@@ -270,7 +270,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
- *                           (convention jetRoll(flux)/<flux>Confirm/jetCancel(flux) ; reveals/Round ont leur verbe propre)
+ *                           (convention jetRoll(flux)/jetConfirm(flux)/jetCancel(flux) ; reveals/Round ont leur verbe propre)
  *   __wfrp.killEnemies()  → élimine tous les ennemis du combat et déclenche la victoire (flux normal) ;
  *                           killEnemies({withQualityLoot:true}) → ajoute au butin un objet catalogué à qualités
  *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (startInterlude — sans voyager jusqu'à Altdorf)
@@ -352,7 +352,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           clics, jamais via ce raccourci
  */
 /** Flux « jet différé » pilotable parmi des `pending*` ouverts — convention pending<Flux> ↔
- *  `jetRoll(flux)`/`<flux>Confirm`/`jetCancel(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
+ *  `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
  *  CIBLAGE (Cleave/DualStrike/choix de monture) sont exclues. */
 function devFluxOf(open: string[]): string | null {
   const special = new Set(['pendingRoundStart', 'pendingVictory', 'pendingCleave', 'pendingDualStrike', 'pendingMountTarget']);
@@ -371,13 +371,7 @@ function devDriveModal(verb: 'Roll' | 'Confirm' | 'Cancel'): string {
   if (verb === 'Confirm' && open.includes('pendingRoundStart')) { (s.confirmRoundStart as () => void)(); return '✓ Round lancé'; }
   const flux = devFluxOf(open);
   if (!flux) return `✗ pas de flux pilotable parmi : ${open.join(', ')}`;
-  if (verb === 'Confirm') {
-    const fn = s[`${flux}Confirm`];
-    if (typeof fn !== 'function') return `✗ action ${flux}Confirm introuvable (modales ouvertes : ${open.join(', ')})`;
-    (fn as () => void)();
-    return `✓ ${flux}Confirm()`;
-  }
-  const deJet = verb === 'Roll' ? 'roll' : 'cancel';
+  const deJet = verb === 'Roll' ? 'roll' : verb === 'Confirm' ? 'confirm' : 'cancel';
   if (!fluxAccepte(flux, deJet)) return `✗ le flux ${flux} n’a pas de geste ${deJet} (modales ouvertes : ${open.join(', ')})`;
   const nom = NOM_DU_VERBE_DE_JET[deJet];
   (s[nom] as (flux: string) => void)(flux);
@@ -1316,7 +1310,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       };
     },
 
-    /** DERNIER Test résolu (`resolveTest`, en/hors combat) — lecture SEULE de la trace posée par le
+    /** DERNIER Test résolu (`jetConfirm('test')`, en/hors combat) — lecture SEULE de la trace posée par le
      *  SEAM `EVT.TEST_RESOLVED` (`noyau/testsDeScene.ts`), pour lire le DR sans parser `innerText` (recette #514).
      *  `null` si aucun Test résolu depuis le chargement de la page. */
     lastRoll: () => (lastRollTrace ? { ...lastRollTrace } : null),
@@ -1498,14 +1492,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       aiTurnLog().slice(-n).map((r) =>
         `R${r.round} ${r.label}: ${r.action}${r.top.length ? '  | ' + r.top.map((t) => `${t.kind}${t.spell ? ':' + t.spell : ''}${t.targetId ? '→' + t.targetId : ''}=${t.utility}`).join('  ') : '  (forcé)'}`),
 
-    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetRoll(flux)`/`<flux>Confirm`/`jetCancel(flux)`). */
+    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`). */
     modal: () => {
       const s = g() as unknown as Record<string, unknown>;
       const open = Object.keys(s).filter((k) => /^pending/.test(k) && (Array.isArray(s[k]) ? (s[k] as unknown[]).length > 0 : s[k] != null));
       if (!open.length) return { open: [], actions: [] };
       const flux = devFluxOf(open);
       const names = flux
-        ? [...(fluxAccepte(flux, 'roll') ? [`jetRoll('${flux}')`] : []), ...(typeof s[`${flux}Confirm`] === 'function' ? [`${flux}Confirm`] : []), ...(fluxAccepte(flux, 'cancel') ? [`jetCancel('${flux}')`] : [])]
+        ? (['roll', 'confirm', 'cancel'] as const).filter((v) => fluxAccepte(flux, v)).map((v) => `${NOM_DU_VERBE_DE_JET[v]}('${flux}')`)
         : [];
       return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ['confirmRoundStart'] : [] };
     },

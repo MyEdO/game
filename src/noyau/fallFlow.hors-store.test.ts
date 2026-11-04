@@ -17,7 +17,7 @@ import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
  * Câblage de la chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : `fallAcross` ouvre une étape À
  * PARTICIPANTS — une rangée par TOMBANT (le groupe en exploration, l'actif en combat), chacune DÉCLARE
  * (`fallChoose(id, …)`). Toutes sautent sans Test → résolution IMMÉDIATE ; sinon « Appliquer »
- * (`fallConfirm`). Chaque tombant subit SA hauteur ; réduite à 0 m ou moins → AUCUN Dégât. Le sous-titre que la
+ * (`jetConfirm('fall')`). Chaque tombant subit SA hauteur ; réduite à 0 m ou moins → AUCUN Dégât. Le sous-titre que la
  * fenêtre de cascade rend aux dés de chute se joue en `src/state/fallFlow.test.ts`.
  */
 
@@ -119,11 +119,11 @@ describe('fallAcross — exploration, un tombant', () => {
     expect(g().party[0].wounds.current).toBeLessThan(before); // 3×4m + 1d10 − BE
   });
 
-  it('« Tenter » ouvre le Test — aucune résolution avant `fallConfirm`', () => {
+  it('« Tenter » ouvre le Test — aucune résolution avant `jetConfirm(\'fall\')`', () => {
     g().fallAcross(top, foot);
     g().fallChoose(H, true);
     expect(rangee(H)).toMatchObject({ attempt: true, result: null });
-    g().fallConfirm(); // sans jet : refusé
+    g().jetConfirm('fall'); // sans jet : refusé
     expect(g().pendingFall).not.toBeNull();
     expect(g().partyPos).toEqual(top);
   });
@@ -133,7 +133,7 @@ describe('fallAcross — exploration, un tombant', () => {
     g().fallAcross(top, foot);
     g().fallChoose(H, true);
     poserResultat(H, { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 });
-    g().fallConfirm();
+    g().jetConfirm('fall');
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual({ ...foot, z: 0 });
     expect(drainerChutes(), 'aucun 1d10 de chute ouvert').toEqual([]);
@@ -145,7 +145,7 @@ describe('fallAcross — exploration, un tombant', () => {
     g().fallAcross(top, foot);
     g().fallChoose(H, true);
     poserResultat(H, { success: true, roll: 40, target: 90, dr: 2, effectiveMetres: 2 });
-    g().fallConfirm();
+    g().jetConfirm('fall');
     expect(drainerChutes()).toEqual([[H, 2]]);
   });
 
@@ -200,7 +200,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
     expect(g().pendingFall, 'B n’a pas déclaré : l’étape reste ouverte').not.toBeNull();
     g().fallChoose(B, true);
     poserResultat(B, { success: true, roll: 20, target: 90, dr: 3, effectiveMetres: 1 });
-    g().fallConfirm();
+    g().jetConfirm('fall');
     expect(g().partyPos).toEqual({ ...foot, z: 0 });
     expect(drainerChutes()).toEqual([[A, 4], [B, 1]]);
     const apres = g().party.map((h) => h.wounds.current);
@@ -215,7 +215,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
     g().fallChoose(A, true);
     g().fallChoose(B, false);
     poserResultat(A, { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 });
-    g().fallConfirm();
+    g().jetConfirm('fall');
     expect(drainerChutes()).toEqual([[B, 4]]);
     expect(g().party[0].wounds.current).toBe(avant[0]);
     expect(g().party[1].wounds.current).toBeLessThan(avant[1]);
@@ -286,12 +286,12 @@ describe('fallAcross — combat', () => {
     expect(b.acted).toBe(false);
   });
 
-  it('« Tenter » : le Test consomme l’Action (LDB 13 l.86-88), une fois `fallConfirm` appelé', () => {
+  it('« Tenter » : le Test consomme l’Action (LDB 13 l.86-88), une fois `jetConfirm(\'fall\')` appelé', () => {
     const { H } = setup();
     banc.getState().fallAcross(top, foot);
     banc.getState().fallChoose(H.id, true);
     poserResultat(H.id, { success: true, roll: 40, target: 90, dr: 2, effectiveMetres: 2 });
-    banc.getState().fallConfirm();
+    banc.getState().jetConfirm('fall');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.acted).toBe(true);

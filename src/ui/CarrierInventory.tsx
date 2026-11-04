@@ -17,7 +17,7 @@ import { isConsumable } from '../engine/consumables';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, porteurLocalise, type Carrier } from '../noyau/monde/carrier';
 import { carriersColocated } from '../engine/cargo';
-import { weaponStatParts } from './weaponStats';
+import { weaponStatParts } from '../engine/weaponStats';
 import { PlaqueRow } from './PlaqueRow';
 import { ItemIcon } from './ItemIcon';
 import { CodexRef } from './compendium/CodexRef';

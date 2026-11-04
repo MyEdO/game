@@ -28,17 +28,15 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     expect(classee(table).actionNeuve).toBe('interne');
   });
 
-  it('seules les actions MANUSCRITES s’écrivent : ni champ d’état, ni verbe de jet ou résolution de flux', () => {
+  it('seules les actions MANUSCRITES s’écrivent : ni champ d’état, ni verbe de jet', () => {
     const neuve: ActionManuscrite<EtatAvecActionNeuve> = 'actionNeuve';
     // @ts-expect-error — un champ d'état n'est pas une action
     const champ: ActionManuscrite<EtatAvecActionNeuve> = 'champNeuf';
     // @ts-expect-error — un verbe de jet a sa classe DÉRIVÉE de `FLOW_VERBS`
     const delegue: ActionManuscrite = 'jetReroll';
-    // @ts-expect-error — une `resolution` de flux aussi
-    const resolution: ActionManuscrite = 'bargainConfirm';
     // @ts-expect-error — quatre classes, aucune autre
     const classe: ClasseCoop = 'miroir';
-    expect([neuve, champ, delegue, resolution, classe]).toHaveLength(5);
+    expect([neuve, champ, delegue, classe]).toHaveLength(4);
   });
 
   it('une action `<prefix><Maj>…` d’un flux de jet est `invité` (#1017, #1050)', () => {
@@ -102,6 +100,6 @@ describe('Activités d’interlude allowlistées (audit M7) — l’ouverture/cl
   it('les activités par héros et le flux de jet sont permis à l’invité', () => {
     for (const name of INTERLUDE_INTENTS) expect(GUEST_INTENTS.has(name), name).toBe(true);
     expect(INTERLUDE_INTENTS.has('interludeActivity')).toBe(true); // chemin UNIQUE des Activités à jet
-    expect(INTERLUDE_INTENTS.has('activityConfirm')).toBe(true);
+    expect(GUEST_INTENTS.has('jetConfirm'), 'la clôture du jet d’Activité').toBe(true);
   });
 });
