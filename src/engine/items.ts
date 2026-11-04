@@ -552,8 +552,8 @@ export function isOffHandEligible(it: ItemInstance): boolean {
 }
 
 /** Couche de PORT d'une pièce d'armure (LDB 63) : le « Cuir souple » « peut être porté sans pénalité
- *  sous n'importe quelle autre Armure » (l.93) ; une armure Flexible « peut être portée sous une
- *  couche d'armure non Flexible » (l.105-106) ; le reste forme la couche extérieure rigide.
+ *  sous n'importe quelle autre Armure » (l.60) ; une armure Flexible « peut être portée sous une
+ *  couche d'armure non Flexible » (l.74) ; le reste forme la couche extérieure rigide.
  *  Une seule pièce par couche et par localisation. */
 export type ArmourLayer = 'souple' | 'flexible' | 'rigide';
 export function armourLayer(it: ItemInstance): ArmourLayer {
@@ -1030,7 +1030,7 @@ const emplacementDe = (pieces: ItemInstance[]): EmplacementPorte =>
   ({ porte: pieces.find((i) => i.equipped), candidats: pieces.filter((i) => !i.equipped) });
 
 /** L'emplacement d'armure de la couche `couche` sur les localisations `locs` : les armures de `items`
- *  qui couvrent l'une d'elles dans cette couche. LDB 63 l.93, l.105-106 */
+ *  qui couvrent l'une d'elles dans cette couche. LDB 63 l.60, l.74 */
 export function emplacementDArmure(items: ItemInstance[], locs: readonly HitLocation[], couche: ArmourLayer): EmplacementPorte {
   return emplacementDe(items.filter((i) => i.kind === 'armor' && (i.locs ?? []).some((l) => locs.includes(l)) && armourLayer(i) === couche));
 }
