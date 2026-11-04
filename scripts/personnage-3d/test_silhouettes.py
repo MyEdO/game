@@ -384,6 +384,25 @@ class Rabot(unittest.TestCase):
         self.assertTrue(numpy.allclose(resultat[self.noeud == voisin], RABOT * champ[self.noeud == voisin]))
         self.assertTrue(numpy.array_equal(resultat[self.noeud == loin], champ[self.noeud == loin]))
 
+    def test_la_region_gagne_un_anneau_quand_la_mesure_rend_aux_noeuds_ce_que_la_passe_leur_ote(self):
+        marque = numpy.zeros(len(self.aretes), dtype=bool)
+        marque[0] = True
+        premier = region_locale(self.aretes, marque, 0, len(self.x))
+        voisin = numpy.flatnonzero(region_locale(self.aretes, marque, 1, len(self.x)) & ~premier)[0]
+        champ = numpy.zeros_like(self.x)
+        champ[premier[self.noeud]] = [0.0, 0.0, 20 * STAGNATION_M]
+        champ[self.noeud == voisin] = [0.0, 0.0, 20 * STAGNATION_M]
+        marques = iter([marque, marque, numpy.zeros_like(marque)])
+
+        def rendre(pile):
+            pile = pile.copy()
+            pile[premier[self.noeud]] = champ[premier[self.noeud]][:, None]
+            return pile, next(marques)[:, None]
+
+        resultat, passes = raboter(champ[:, None], self.noeud, self.aretes, self.facteur, rendre, PASSES_MAX)
+        self.assertEqual(passes, 2)
+        self.assertTrue(numpy.allclose(resultat[self.noeud == voisin, 0], RABOT * champ[self.noeud == voisin]))
+
     def test_le_rabot_garde_la_direction_de_la_cle_et_rend_ses_bornes(self):
         rabote, passes = self.raboter(self.bosse)
         self.assertGreater(passes, 0)
