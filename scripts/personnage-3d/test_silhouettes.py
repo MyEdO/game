@@ -1,6 +1,6 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
-erreurs nommées ; silhouettes.lisser_sous_correction, lissage mesuré sur les clés corrigées jusqu'aux bornes
-d'étirement, du repère du mesh au repère monde et retour ; formes.lisser, pas laplacien ou rabot des clés marquées ; silhouettes.mesurer_domaine,
+erreurs nommées ; silhouettes.raboter_sous_correction, rabot mesuré sur les clés corrigées jusqu'aux bornes
+d'étirement, du repère du mesh au repère monde et retour ; formes.raboter, rabot des clés marquées ; silhouettes.mesurer_domaine,
 mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud."""
 import contextlib
 import io
@@ -17,13 +17,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import RABOT, aux_noeuds, lisser, rapports, region_locale  # noqa: E402
+from formes import RABOT, aux_noeuds, raboter, rapports, region_locale  # noqa: E402
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
 from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction, fondu,  # noqa: E402
-                         lisser_sous_correction, mesurer_domaine, refuser_les_inertes)
+                         mesurer_domaine, raboter_sous_correction, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
@@ -263,26 +263,26 @@ class LissageSousCorrection(unittest.TestCase):
         return brut
 
     def finir(self, bruts, bornes=BORNES, vers_le_monde=None):
-        """`lisser_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté dans ce repère par
+        """`raboter_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté dans ce repère par
         l'inverse de `vers_le_monde` (par défaut l'identité)."""
         vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
         repos = self.x @ numpy.linalg.inv(vers_le_monde)
         with contextlib.redirect_stdout(io.StringIO()):
-            return lisser_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
+            return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
                                           lambda champs: {nom: hors_de(rapports(repos, d, self.aretes), bornes)
-                                                          for nom, d in champs.items()}, 'rabot')
+                                                          for nom, d in champs.items()})
 
     def hors(self, champ, bornes=BORNES):
         return int(hors_de(rapports(self.x, champ, self.aretes), bornes).sum())
 
-    def test_le_champ_rendu_est_la_correction_du_dernier_lissage_et_tient_les_bornes(self):
+    def test_le_champ_rendu_est_la_correction_du_dernier_rabot_et_tient_les_bornes(self):
         fini = self.finir({'k': (self.translation(), None)})['k']
         _, (corrige,) = self.vus[-1]
         self.assertTrue(numpy.array_equal(fini, corrige))
         self.assertEqual(self.hors(fini), 0)
         self.assertEqual(numpy.abs(fini[self.libre == 0]).max(), 0.0)
 
-    def test_le_lissage_se_mesure_sur_le_champ_corrige(self):
+    def test_le_rabot_se_mesure_sur_le_champ_corrige(self):
         def tripler(champs):
             self.vus.append([d.copy() for d, _ in champs])
             return [3.0 * d for d, _ in champs], {'bouchon': 'triple'}
@@ -299,9 +299,9 @@ class LissageSousCorrection(unittest.TestCase):
     def test_une_correction_infaisable_leve_au_bout_des_passes(self):
         """Une carrure de rapport 1,7 porte le cercle de l'anneau le plus épais à 1,7 fois son rayon, au-delà de 1,6."""
         radial = self.x * [1.0, 1.0, 0.0]
-        with mock.patch.object(silhouettes, 'PASSES_DE_LISSAGE', 4), self.assertRaises(RuntimeError) as leve:
+        with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 4), self.assertRaises(RuntimeError) as leve:
             self.finir({'k': (0.21 * radial, 1.7)}, bornes=(0.6, 1.6))
-        self.assertRegex(str(leve.exception), r'^[1-9]\d* arête\(s\) hors bornes après 4 passes de lissage$')
+        self.assertRegex(str(leve.exception), r'^[1-9]\d* arête\(s\) hors bornes après 4 passes de rabot$')
 
     def test_la_correction_se_fait_au_repere_monde_et_le_champ_revient_au_repere_du_mesh(self):
         """Les mêmes clés, au repère monde sous l'identité, et au repère d'un mesh tourné : le champ rendu au repère du
@@ -318,8 +318,8 @@ class LissageSousCorrection(unittest.TestCase):
             self.assertLess(numpy.abs(rendus[nom] @ vers_le_monde - attendu).max(), 1e-9, nom)
 
 
-class Lissage(unittest.TestCase):
-    """formes.lisser sur le cylindre : une bosse tangente sur un seul nœud du niveau 7 sort ses arêtes de `BORNES`."""
+class Rabot(unittest.TestCase):
+    """formes.raboter sur le cylindre : une bosse tangente sur un seul nœud du niveau 7 sort ses arêtes de `BORNES`."""
     BORNES = (0.7, 1.4)
     BOSSE = 7 * (SECTEURS + 1)
 
@@ -335,39 +335,12 @@ class Lissage(unittest.TestCase):
         self.vus.append(masque)
         return masque
 
-    def lisser(self, champ, facteur=None, hors=None, region='rabot'):
+    def raboter(self, champ, facteur=None, hors=None):
         mesure = hors or self.hors
-        resultat, passes = lisser(champ[:, None], self.noeud, self.aretes,
-                                  self.facteur if facteur is None else facteur,
-                                  lambda pile: mesure(pile[:, 0])[:, None], PASSES_MAX, region)
+        resultat, passes = raboter(champ[:, None], self.noeud, self.aretes,
+                                   self.facteur if facteur is None else facteur,
+                                   lambda pile: mesure(pile[:, 0])[:, None], PASSES_MAX)
         return resultat[:, 0], passes
-
-    def test_la_region_pleine_lisse_aussi_loin_des_aretes_marquees(self):
-        large = numpy.zeros_like(self.bosse)
-        loin = int(numpy.argmax(numpy.linalg.norm(self.x - self.x[self.BOSSE], axis=1)))
-        large[self.noeud == self.noeud[loin]] = [0.0, 0.01, 0.0]
-        premiere = []
-
-        def une_passe(champ):
-            premiere.append(champ.copy())
-            return self.hors(champ) if len(premiere) < 3 else numpy.zeros(len(self.aretes), dtype=bool)
-
-        for region, bouge in (('rabot', False), ('pleine', True)):
-            premiere.clear()
-            resultat, _ = self.lisser(self.bosse + large, hors=une_passe, region=region)
-            self.assertEqual(not numpy.allclose(resultat[loin], (self.bosse + large)[loin] * self.facteur[loin]), bouge, region)
-
-    def test_une_region_inconnue_est_refusee(self):
-        with self.assertRaisesRegex(ValueError, 'région'):
-            self.lisser(self.bosse, region='voisine')
-
-    def test_la_convergence_voit_une_arete_hors_des_noeuds_marques_au_depart(self):
-        lisse, _ = self.lisser(self.bosse, region='pleine')
-        depart = numpy.zeros(len(self.x), dtype=bool)
-        depart[self.aretes[self.vus[0]].ravel()] = True
-        dehors = [m & ~depart[self.aretes].all(axis=1) for m in self.vus[1:]]
-        self.assertTrue(any(m.any() for m in dehors))
-        self.assertFalse(hors_de(rapports(self.x, lisse, self.aretes), self.BORNES).any())
 
     def test_une_arete_hors_bornes_aux_deux_extremites_tenues_leve(self):
         facteur = numpy.ones(len(self.x))
@@ -376,7 +349,7 @@ class Lissage(unittest.TestCase):
         marque = numpy.zeros(len(self.aretes), dtype=bool)
         marque[0] = True
         with self.assertRaises(RuntimeError) as leve:
-            self.lisser(self.bosse, facteur, lambda _: marque)
+            self.raboter(self.bosse, facteur, lambda _: marque)
         self.assertRegex(str(leve.exception), r'^1 arête\(s\) hors bornes aux deux extrémités tenues')
 
     def test_une_passe_ne_rabote_que_les_noeuds_des_aretes_marquees(self):
@@ -384,7 +357,7 @@ class Lissage(unittest.TestCase):
         marque = numpy.zeros(len(self.aretes), dtype=bool)
         marque[0] = True
         mesures = iter([marque, numpy.zeros_like(marque)])
-        resultat, passes = self.lisser(champ, hors=lambda _: next(mesures))
+        resultat, passes = self.raboter(champ, hors=lambda _: next(mesures))
         self.assertEqual(passes, 1)
         valeur = aux_noeuds(champ, self.noeud)
         dans = region_locale(self.aretes, marque, 0, len(valeur))
@@ -394,7 +367,7 @@ class Lissage(unittest.TestCase):
         self.assertGreater(int((~dans[self.noeud]).sum()), len(self.x) // 2)
 
     def test_le_rabot_garde_la_direction_de_la_cle_et_rend_ses_bornes(self):
-        rabote, passes = self.lisser(self.bosse)
+        rabote, passes = self.raboter(self.bosse)
         self.assertGreater(passes, 0)
         self.assertFalse(hors_de(rapports(self.x, rabote, self.aretes), self.BORNES).any())
         bosse = self.noeud == self.noeud[self.BOSSE]
@@ -406,10 +379,10 @@ class Lissage(unittest.TestCase):
         z = self.x[:, 2]
         large = numpy.zeros_like(self.x)
         large[:, 0] = 0.01 * numpy.clip(0.4 - z, 0.0, None)
-        lisse, passes = self.lisser(self.bosse + large)
+        rabote, passes = self.raboter(self.bosse + large)
         self.assertGreater(passes, 0)
-        self.assertFalse(hors_de(rapports(self.x, lisse, self.aretes), self.BORNES).any())
-        self.assertTrue(numpy.array_equal(lisse[z < 0.2], large[z < 0.2]))
+        self.assertFalse(hors_de(rapports(self.x, rabote, self.aretes), self.BORNES).any())
+        self.assertTrue(numpy.array_equal(rabote[z < 0.2], large[z < 0.2]))
 
 
 class SilhouettesInertes(unittest.TestCase):
@@ -473,8 +446,8 @@ class DomaineDesSilhouettes(unittest.TestCase):
                               anneaux(self.p, NIVEAUX_DES_ANNEAUX))
         mesure = self.mesure()
         with contextlib.redirect_stdout(io.StringIO()):
-            finis = lisser_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), mesure, 'rabot')
+            finis = raboter_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
+                                           libre, corriger, numpy.eye(3), mesure)
         self.assertFalse(any(m.any() for m in self.mesure()(finis).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
@@ -495,7 +468,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
                 numpy.testing.assert_array_equal(obtenu[nom], entier[nom])
                 numpy.testing.assert_array_equal(tourne[nom], entier[nom])
 
-    def test_une_cle_valide_non_participante_reste_intacte_pendant_le_lissage_collectif(self):
+    def test_une_cle_valide_non_participante_reste_intacte_pendant_le_rabot_collectif(self):
         z = self.p[:, 2]
         libre = ((z > 0.05) & (z < HAUTEUR - 0.05)).astype(float)
         corriger = correction(self.p, self.aretes, self.noeud, libre == 0,
@@ -511,8 +484,8 @@ class DomaineDesSilhouettes(unittest.TestCase):
             return {**marques, 'temoin': numpy.zeros(len(self.aretes), dtype=bool)}
 
         with contextlib.redirect_stdout(io.StringIO()):
-            finis = lisser_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), hors, 'rabot')
+            finis = raboter_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
+                                           libre, corriger, numpy.eye(3), hors)
         numpy.testing.assert_allclose(finis['temoin'], temoin, rtol=0, atol=TOLERANCE)
         self.assertTrue(all(numpy.abs(finis[n] - champs[n]).max() > 0 for n in self.champs))
         self.assertFalse(any(m.any() for m in hors(finis).values()))

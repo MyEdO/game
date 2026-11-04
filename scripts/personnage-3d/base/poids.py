@@ -17,7 +17,7 @@ from seuils import (ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, I
                     TOLERANCE_JUMEAUX_POSITION_M)
 
 PASSES_MAX = 200
-"""Passes de correction des poids, de `formes.lisser` et de `point_fixe.atteindre_le_point_fixe`, au-delà desquelles la construction s'arrête."""
+"""Passes de correction des poids, de `formes.raboter` et de `point_fixe.atteindre_le_point_fixe`, au-delà desquelles la construction s'arrête."""
 
 
 def cadence():

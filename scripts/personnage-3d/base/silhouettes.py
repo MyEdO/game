@@ -12,16 +12,15 @@
 - Extrémités invariantes : les pieds, les mains des prises et la tête (`extremites`) ; un sommet garde son décalage en
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
-  (`fondu`). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
-  (`formes.lisser`, région pleine), fondu compris : aux facteurs non neutres, par les clés `gabarit_*` cuites sur les
-  champs courants (`cuisson_gabarit.cuisson_des_champs`, #3104) ; puis, sans fondu neuf, rabotés aux seules arêtes
-  fautives jusqu'à `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres (`formes.lisser`, région rabot, #3104).
+  (`fondu`). Les champs sont rabotés ensemble, fondu compris, aux seules arêtes fautives (`formes.raboter`, #3104) :
+  jusqu'à `ETIREMENT_DES_CLES` au repos sur tout le domaine de `etatsDuGabarit`, aux facteurs non neutres par les
+  clés `gabarit_*` cuites sur les champs courants (`cuisson_gabarit.cuisson_des_champs`, #3104), et jusqu'à
+  `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres.
 - Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
-  après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
+  après le rabot et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
   chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
   de `st`. Les anneaux sont ceux de la garde, calculés sur le maillage de la construction par `anneaux.mjs`
-  (`anneaux`). Le lissage se mesure sur les clés corrigées, et ne lisse qu'autour des arêtes fautives
-  (`lisser_sous_correction`), hotes/godot/pont/CONTRAT.md, « Gabarit d'une base ». Les sommets jumeaux prennent le
+  (`anneaux`). Le rabot se mesure sur les clés corrigées (`raboter_sous_correction`), hotes/godot/pont/CONTRAT.md, « Gabarit d'une base ». Les sommets jumeaux prennent le
   même décalage ; puis chaque clé passe aux peaux secondaires par liaison de surface (`formes.transferer_les_cles`).
 
 Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
@@ -34,8 +33,8 @@ import numpy
 
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
 from noms_silhouettes import FEMININ, CARRURE_MOINS, CARRURE_PLUS, SILHOUETTES
-from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
-                    rapports, transferer_les_cles, transporter, voisins)
+from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, noms_des_cles, positions, poser_la_cle,
+                    raboter, rapports, transferer_les_cles, transporter, voisins)
 from poids import deformer, etats_ponderes, extremes, jumeaux, peau_lineaire
 from cuisson_gabarit import cuisson_des_champs, groupes_de_peau
 from script_node import lancer
@@ -43,9 +42,9 @@ from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS, SOL_TOLERANCE_M
 
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
-PASSES_DE_LISSAGE = 400
-"""Passes de lissage sous correction (`lisser_sous_correction`) au-delà desquelles la construction s'arrête : valeur
-d'ingénierie #3104 (147 passes mesurées sur la base `humanoide` le 2026-11-03)."""
+PASSES_DE_RABOT = 400
+"""Passes de rabot sous correction (`raboter_sous_correction`) au-delà desquelles la construction s'arrête : valeur
+d'ingénierie #3104 (53 passes mesurées sur la capture r9 de la base `humanoide` le 2026-11-04)."""
 
 
 def bornes_de_st():
@@ -315,10 +314,9 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
-def lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, region):
+def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors):
     """#3104 ; #3101 issuecomment-6489583109. Les champs `bruts` (nom -> (champ au repère du mesh, rapport de
-    `correction` ou `None`)) lissés ensemble (`formes.lisser`, nœuds `groupe`, arêtes `aretes`, fondu `libre`, région
-    `region`) jusqu'à
+    `correction` ou `None`)) rabotés ensemble (`formes.raboter`, nœuds `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à
     ce que leur correction (`corriger`, repère monde `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête
     que marque `hors` (nom -> champ corrigé au repère du mesh) ; rend, par nom, le champ corrigé au repère du mesh."""
     inverse = numpy.linalg.inv(vers_le_monde)
@@ -332,10 +330,10 @@ def lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde
         mesures = hors(corriges(pile)[0])
         return numpy.stack([mesures[nom] for nom in noms], axis=1)
 
-    pile, passes = lisser(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, masque,
-                          PASSES_DE_LISSAGE, region)
+    pile, passes = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, masque,
+                           PASSES_DE_RABOT)
     finis, sonde = corriges(pile)
-    print('SILHOUETTES lissage', region, passes, 'passe(s) ; correction', sonde, flush=True)
+    print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sonde, flush=True)
     return finis
 
 
@@ -412,11 +410,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
                   round(float(r.max()), 3), flush=True)
         corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
         derivees = cuisson_des_champs(squelette, corps, table)
-        au_repos = mesurer_domaine(w, x, aretes, du_repos, vers_le_monde, derivees)
-        pleins = lisser_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, au_repos, 'pleine')
-        en_clip = mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees)
-        finis = lisser_sous_correction({nom: (d, bruts[nom][1]) for nom, d in pleins.items()}, groupe, aretes,
-                                       (libre > 0).astype(numpy.float64), corriger, vers_le_monde, en_clip, 'rabot')
+        finis = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
+                                        mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees))
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',

@@ -1,5 +1,5 @@
-"""Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, lissage ou rabot d'un
-champ de décalages jusqu'à ce qu'aucune arête ne soit hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
+"""Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, rabot d'un champ de
+décalages jusqu'à ce qu'aucune arête ne soit hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
 et transfert des clés d'une source vers une cible par liaison de surface (modificateur Surface Deform), pour les peaux
 secondaires de la base comme pour les éléments posés sur elle.
 """
@@ -8,7 +8,7 @@ import numpy
 from mathutils.bvhtree import BVHTree
 
 RABOT = 0.9
-"""Facteur dont une passe `'rabot'` de `lisser` multiplie une clé aux nœuds de ses arêtes marquées : valeur
+"""Facteur dont une passe de `raboter` multiplie une clé aux nœuds de ses arêtes marquées : valeur
 d'ingénierie #3104 (capture r9 du 2026-11-04 : 53 passes, `feminin` garde 85 % de son amplitude et 5 cm au sein,
 contre 68 % et 3,4 cm à 0,7)."""
 
@@ -61,16 +61,6 @@ def aux_noeuds(champ, noeud):
     return valeur / numpy.maximum(numpy.bincount(noeud, minlength=n), 1).reshape(-1, *[1] * (champ.ndim - 1))
 
 
-def pas_laplacien(valeur, aretes):
-    """Un pas de lissage laplacien, pas 1/2, des valeurs `valeur` (nœuds, …) le long des arêtes `aretes`
-    (`aretes_des_triangles`) : chaque nœud prend la moitié de sa valeur et la moitié de la moyenne de ses voisins."""
-    a, b = numpy.concatenate([aretes[:, 0], aretes[:, 1]]), numpy.concatenate([aretes[:, 1], aretes[:, 0]])
-    somme = numpy.zeros_like(valeur)
-    numpy.add.at(somme, a, valeur[b])
-    voisins = numpy.maximum(numpy.bincount(a, minlength=len(valeur)), 1).reshape(-1, *[1] * (valeur.ndim - 1))
-    return 0.5 * valeur + 0.5 * somme / voisins
-
-
 def region_locale(aretes, masque, anneaux, n):
     """Par nœud (`n` nœuds), s'il est extrémité d'une arête de `aretes` que marque `masque`, ou à au plus `anneaux`
     arêtes d'une telle extrémité : (nœuds,) booléen."""
@@ -81,17 +71,13 @@ def region_locale(aretes, masque, anneaux, n):
     return dans
 
 
-def lisser(champ, noeud, aretes, facteur, hors, passes_max, region):
-    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), repris passe après passe
-    jusqu'à ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête. Tous les
-    champs sont remesurés à chaque passe ; seules les clés marquées prennent le pas. `region` `'pleine'` : un
-    `pas_laplacien` sur les nœuds `noeud` et leurs arêtes `aretes`, sur tous les nœuds ; `'rabot'` : la clé multipliée
-    par `RABOT` sur les seuls nœuds de ses arêtes marquées, qui garde sa forme ailleurs. Les sommets d'un même nœud
-    reçoivent la même valeur. Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont
-    un `facteur` nul, qu'aucun pas ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la
-    construction."""
-    if region not in ('pleine', 'rabot'):
-        raise ValueError(f"région {region!r} : 'pleine' ou 'rabot'")
+def raboter(champ, noeud, aretes, facteur, hors, passes_max):
+    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), rabotés passe après
+    passe jusqu'à ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête : une
+    passe multiplie chaque clé marquée par `RABOT` sur les seuls nœuds `noeud` de ses arêtes `aretes` marquées, et la
+    laisse intacte ailleurs. Tous les champs sont remesurés à chaque passe. Les sommets d'un même nœud reçoivent la
+    même valeur. Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont un `facteur`
+    nul, qu'aucune passe ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la construction."""
     valeur = aux_noeuds(champ, noeud)
     for passe in range(passes_max + 1):
         resultat = valeur[noeud] * facteur[:, None, None]
@@ -101,16 +87,12 @@ def lisser(champ, noeud, aretes, facteur, hors, passes_max, region):
         tenues = marquees & (facteur[aretes] == 0).all(axis=1)[:, None]
         if tenues.any():
             raise RuntimeError(f'{int(tenues.any(axis=1).sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '
-                               'lissage ne les change')
+                               'rabot ne les change')
         if passe == passes_max:
-            raise RuntimeError(f'{int(marquees.any(axis=1).sum())} arête(s) hors bornes après {passes_max} passes de lissage')
-        lisse = pas_laplacien(valeur, aretes) if region == 'pleine' else None
+            raise RuntimeError(f'{int(marquees.any(axis=1).sum())} arête(s) hors bornes après {passes_max} passes de rabot')
         valeur = valeur.copy()
         for cle in numpy.flatnonzero(marquees.any(axis=0)):
-            if region == 'pleine':
-                valeur[:, cle] = lisse[:, cle]
-            else:
-                valeur[region_locale(aretes, marquees[:, cle], 0, len(valeur)), cle] *= RABOT
+            valeur[region_locale(aretes, marquees[:, cle], 0, len(valeur)), cle] *= RABOT
 
 
 def voisins(rig, noms):

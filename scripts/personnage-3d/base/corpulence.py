@@ -9,7 +9,7 @@ armature, la position, la direction et la longueur des articulations MakeHuman (
 corps se pose par le skin linéaire aux poids de l'export (`poids.peau_lineaire`) et chaque sommet se lie au donneur :
 l'os dominant d'une face du donneur est celui de ses sommets aux poids du rig `game_engine` de MPFB, dont les os portent
 les noms d'UAL (`OS_DU_DONNEUR`). Le delta lu au point lié revient au repos par l'inverse de ce même skin, sommet par
-sommet ; le lissage de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
+sommet ; le rabot de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
 (`silhouettes.finir_les_silhouettes`).
 """
 import gzip
