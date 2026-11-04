@@ -40,9 +40,9 @@ describe('CharKey fermé — les tokens courts ne s’écrivent pas (#311, #2724
     const profil: CreatureData['char'] = { 'capacite-de-combat': 40, M: 4, B: null };
     // @ts-expect-error TS2353
     const profilCourt: CreatureData['char'] = { CC: 40 };
-    const test: NonNullable<MiscastRowEntry['test']> = { characteristic: 'force-mentale', difficulty: 'moyenne', onFail: [] };
+    const test: NonNullable<MiscastRowEntry['test']> = { characteristic: 'force-mentale', difficulty: 'intermediaire', onFail: [] };
     // @ts-expect-error TS2322
-    const testCourt: NonNullable<MiscastRowEntry['test']> = { characteristic: 'FM', difficulty: 'moyenne', onFail: [] };
+    const testCourt: NonNullable<MiscastRowEntry['test']> = { characteristic: 'FM', difficulty: 'intermediaire', onFail: [] };
     const cavalier: NonNullable<MountIncidentEffects['riderTest']> = { skill: { id: 'chevaucher' }, char: 'agilite', difficulty: 'complexe', fallM: 2 };
     // @ts-expect-error TS2322
     const cavalierCourt: NonNullable<MountIncidentEffects['riderTest']> = { skill: { id: 'chevaucher' }, char: 'Ag', difficulty: 'complexe', fallM: 2 };

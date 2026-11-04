@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /**
  * Schéma de `artillery-misfire.json` — Incidents de Tir d'Artillerie par Salve (Aux Armes, AA
- * l.3940-3946). Reflet de `ArtilleryMisfireEntry` (`src/data/artilleryMisfire.ts`), table SŒUR de
+ * l.3940-3946). Type de `ArtilleryMisfireEntry` (`src/data/artilleryMisfire.ts`), table SŒUR de
  * `structure-criticals.json` (même patron `{enveloppe, die, entries}`).
  */
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { plageSchema } from '../grammaire/valeurs';
 export const file = 'artillery-misfire.json';
 export const famille = 'config';
 
-const artilleryMisfireEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -43,7 +43,7 @@ const doc = document(
     codex: { keys: ['artilleryMisfire'] },
     edit: { niche: { categories: { artilleryMisfire: 'entries' } } },
   },
-  { rangee: artilleryMisfireEntrySchema, deDeTirage: true },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

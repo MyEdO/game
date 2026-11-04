@@ -18,7 +18,7 @@ import { travelVehicles, travelModeLabels } from '../engine/travel';
 import { consolidateAmputations, traumaById, type TraumaFiche } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from './mutations';
-import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from '../engine/miscast';
+import { rollMiscast, miscastRowAt, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { tableStepDef, tableStepIds } from '../noyau/cascade';
@@ -214,9 +214,10 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une rangée d’Incantation Imparfaite ÉDITÉE : `rollMiscast` joue la NOUVELLE, comme `miscastRowAt`', () => {
     // `RUNTIME_ROWS` dépliait les rangées (ops closées, Tests) une fois à l'import : `rollMiscast`
     // servait le libellé d'AVANT pendant que `miscastRowAt` servait déjà le nouveau.
-    const rangees = MISCAST_TABLES.find((t) => t.id === 'miscast-mineure')!.entries;
+    const rangees = datasetArray('miscastMinor');
     const premiere = rangees[0];
     const de = premiere.min;
+    if (de === null) throw new Error('miscast-mineure : la première rangée a une borne basse ouverte');
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe(premiere.label);
 
     setDataset('miscastMinor', rangees.map((r) => (r.id === premiere.id ? { ...r, label: 'Contrecoup révisé QC' } : r)));

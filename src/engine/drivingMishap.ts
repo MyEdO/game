@@ -15,12 +15,14 @@
 import { RNG, d10 } from './dice';
 import { findTableEntry } from './tables';
 import drivingMishapJson from '../data/driving-mishap.json';
+import { rangeesDe, type RangeeDe } from '../data/rangees';
+import type * as accidents from '../data/schemas/defs/driving-mishap';
 
-export type DrivingMishapOutcome = 'harness' | 'jolt' | 'wheel' | 'crash';
-/** Entrée du Tableau des accidents de Conduite d'attelage — MÊME schéma que `driving-mishap.json::entries`
- *  (exportée pour l'exposition Codex, #422 : `data/overrides.ts` la réutilise pour typer la table live). */
-export interface MishapEntry { id: string; min: number; max: number; label: string; outcome: DrivingMishapOutcome; desc: string }
-const MISHAP_TABLE = (drivingMishapJson as { entries: MishapEntry[] }).entries;
+/** Entrée du Tableau des accidents de Conduite d'attelage. */
+type MishapEntry = RangeeDe<typeof accidents>;
+export type DrivingMishapOutcome = MishapEntry['outcome'];
+/** Le Tableau VIVANT — la collection que le Codex édite (`drivingMishap`, `data/overrides.ts`). */
+export const MISHAP_TABLE = rangeesDe<typeof accidents>(drivingMishapJson);
 
 /** 1d10 sur le Tableau des accidents de Conduite d'attelage (LDB 09 l.142). Renvoie l'entrée + le dé. */
 export function rollDrivingMishap(rng: RNG): { roll: number; entry: MishapEntry } {

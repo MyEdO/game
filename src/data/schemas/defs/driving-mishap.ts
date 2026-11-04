@@ -16,7 +16,7 @@ export const file = 'driving-mishap.json';
 export const famille = 'config';
 
 /** Une rangée du 1d10 : `outcome` = identifiant de l'ISSUE tirée. */
-const mishapEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -39,7 +39,7 @@ const doc = document(
     codex: { keys: ['drivingMishap'] },
     edit: { niche: { categories: { drivingMishap: 'entries' } } },
   },
-  { rangee: mishapEntrySchema },
+  { rangee },
 );
 
 export const schema = doc.schema;

@@ -19,6 +19,8 @@ import { CATEGORY_BY_SOURCE_KIND } from '../engine/types';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
+import { rangeesDe } from './rangees';
+import type * as imparfaites from './schemas/defs/miscast';
 
 
 /** Entrées d'enjeu de VOYAGE encore sans fiche — chacune attend SA curation verbatim (patron L0a).
@@ -174,7 +176,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
       mutations, mutationTables, interludeEvents,
       artilleryMisfire: ARTILLERY_MISFIRE,
       structureCriticals: STRUCTURE_CRITICALS,
-      miscastWrath: (miscastRawJson as unknown as { id: string; entries: { id: string }[] }[]).find((d) => d.id === 'miscast-colere')!.entries,
+      miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
     };
     const muettes: string[] = [];
     for (const [dataset, e] of [

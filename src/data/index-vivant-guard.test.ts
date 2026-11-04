@@ -101,11 +101,11 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
   });
 
   it('une entrée du seam à valeur d’APPEL est surveillée sous sa CLÉ, jamais sous sa fabrique', () => {
-    // `miscastMinor: miscastEntries('miscast-mineure')` : `miscastEntries` est une fonction PRIVÉE
-    // d'`overrides.ts` — la retenir comme binding posait un nom FANTÔME que personne n'importe, et
+    // `miscastMinor: rangeesDe<…>(miscastRawJson, 'miscast-mineure')` : `rangeesDe` est la PORTE des
+    // rangées (`data/rangees.ts`), pas un dataset — la retenir comme binding posait un nom FANTÔME, et
     // laissait le nom réellement exposé du dataset hors du vocabulaire des DEUX gardes.
     for (const cle of ['miscastMinor', 'miscastMajor', 'miscastWrath']) expect(parBinding.get(cle)).toBe(cle);
-    expect(parBinding.has('miscastEntries'), 'la fabrique n’est pas un binding').toBe(false);
+    expect(parBinding.has('rangeesDe'), 'la porte n’est pas un binding').toBe(false);
     // Les entrées à valeur de MEMBRE gardent leur objet porteur (lui, est bien importé ailleurs) —
     // et les shorthands leur propre nom.
     expect(parBinding.get('shipConstruction')).toBe('shipHullSizes');

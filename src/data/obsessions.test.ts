@@ -49,7 +49,7 @@ describe('Tableau des Obsessions (EDOC 12 l.170)', () => {
   });
 
   it('le tirage (2d10) rend l’id d’une rangée du Tableau', () => {
-    const ids = new Set(OBSESSIONS.map((e) => e.id));
+    const ids = new Set<string>(OBSESSIONS.map((e) => e.id));
     for (let s = 0; s < 30; s++) expect(ids.has(TIRAGE_DE_CIBLE.obsessions(makeRNG(s)))).toBe(true);
   });
 });

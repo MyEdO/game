@@ -1,13 +1,13 @@
 import { nommerChamps } from '../grammaire/meta';
 /** VDM 02 l.205-215 ; VDM 02 l.198 */
 import { z } from 'zod';
-import { document, type DocumentARangees } from '../grammaire/document';
+import { document } from '../grammaire/document';
 
 export const file = 'surincantation.json';
 export const famille = 'config';
 
 /** Un palier : des DR dépensés sur UNE colonne. */
-const palierSchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string().min(1),
   dr: z.number().int().min(1),
@@ -36,10 +36,9 @@ const doc = document(
     codex: { keys: ['surincantation'] },
     edit: { niche: { categories: { surincantation: 'entries' } } },
   },
-  { rangee: palierSchema },
+  { rangee },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SurincantationData = DocumentARangees<z.infer<typeof palierSchema>>;
