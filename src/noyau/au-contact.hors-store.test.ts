@@ -92,6 +92,26 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     expect(st.battle!.acted).toBe(true); // le Test opposé EST l'Action
   });
 
+  /** LDB 62 l.176 : le Test opposé EST l'Action — avant le jet on y renonce sans coût, après il se joue. */
+  it('renoncer avant le jet ferme la fenêtre sans rien consommer ; après le jet, le refus est dit et rien ne bouge', () => {
+    const { H, enemies } = setup();
+    const E = enemies[0];
+    enemies.slice(1).forEach((e) => (e.dead = true));
+    engageAndActivate(H, [E]);
+    banc.getState().battleAuContact(E.id);
+    banc.getState().auContactCancel();
+    expect(banc.getState().pendingAuContact).toBeNull();
+    expect(banc.getState().battle!.acted).toBe(false);
+
+    banc.getState().battleAuContact(E.id);
+    banc.getState().auContactRoll();
+    const lance = banc.getState().pendingAuContact;
+    expect(lance?.result).toBeTruthy();
+    banc.getState().auContactCancel();
+    expect(banc.getState().pendingAuContact).toBe(lance);
+    expect(banc.getState().refus?.texte).toBe(`Renoncement refusé : ${H.label} a déjà engagé son action, elle se joue jusqu’au bout.`);
+  });
+
   it('le héros vainqueur choisit « combat normal » → le contact est retiré (statu quo) + Action consommée', () => {
     const { H, enemies } = setup();
     const E = enemies[0];

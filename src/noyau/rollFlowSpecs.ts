@@ -15,7 +15,7 @@ import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } fro
 import type { Combatant, ReverseQuery, Weapon, CharKey } from '../engine/types';
 import { evalCondition, type Condition } from '../engine/flowCore';
 import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/healing';
-import type { Get, Set } from './flowTypes';
+import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, type RollVerb, type FlowVerbs } from './flowVerbs';
 import { deDuJet, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
 import { TestOutcome } from '../engine/testOutcome';
@@ -25,6 +25,7 @@ import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import {
+  lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
   resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset,
 } from './combatFlow';
 import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, ligneDAttaquantDeManoeuvre, distraireAttackValue, distraireAttackBase } from './combatManeuvers';
@@ -53,6 +54,10 @@ import { rule } from '../engine/policy';
 import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
+import { reprendreLaSuite } from './combatEffects';
+import { appliquerLotEtal } from './etalLotFlow';
+import { distributeCredit } from './bourseFlow';
+import { toMoney } from '../engine/money';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
 
@@ -435,6 +440,10 @@ const resultRollLens = <P extends import('./rollFlowFactory').PendingBase & { re
   dieTarget,
 });
 
+/** L'action engagée (le Test opposé qui EST l'Action, ou la Fuite) ne se renonce plus : le refus dit qui l'a engagée. */
+const refusDeRenoncer = (s: Jeu, porteurId: string): string =>
+  t('jet.refus.renoncerEngage', { name: actorIn(s, porteurId)?.label ?? porteurId });
+
 /** Fabrique PARTAGÉE des Tests opposés BINAIRES (issue success/tie/fail) où SEUL le jet de l'ACTEUR se
  *  (re)joue tandis que le foe reste FIGÉ — le jet de l'acteur est l'« attaquant » du Test opposé
  *  (`resolveOpposed`/`disengageOutcome`). Désengagement (Esquive), Au Contact (Corps à corps), Empoignade
@@ -452,8 +461,11 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
   foeTR: (p: P) => TestResult | null | undefined;
   /** Le jet a-t-il été lancé ? Défaut : le jet de l'acteur est posé. */
   rolled?: (p: P) => boolean;
-  /** L'annulation métier du flux (`RollFlowSpec.onCancel`) ; absente, le teardown par défaut. */
-  onCancel?: RollFlowSpec<P>['onCancel'];
+  /** Refus de l'annulation (`RollFlowSpec.refusDAnnuler`). */
+  refusDAnnuler?: RollFlowSpec<P>['refusDAnnuler'];
+  /** Garde et patch du jet INITIAL (phase ouverte au jet), `null` quand le jet est refusé ; absent, le jet se
+   *  joue dès que le foe a jeté. Le jet lui-même reste `rollActor` + `opposedPatch`. */
+  ouvrirLeJet?: (s: Jeu, p: P) => Partial<P> | null;
 }): RollFlowHandlers {
   const opposedPatch = (p: P, tr: TestResult): Partial<P> => {
     const foe = cfg.foeTR(p)!; // présent sur tous les chemins (resolve garde `foeTR != null` ; applyRoll = post-jet)
@@ -461,7 +473,14 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
   };
   return makeRollFlow<P>({
     key: cfg.key,
-    ...(cfg.onCancel ? { onCancel: cfg.onCancel } : {}),
+    ...(cfg.refusDAnnuler ? { refusDAnnuler: cfg.refusDAnnuler } : {}),
+    ...(cfg.ouvrirLeJet ? {
+      onRoll: (get: Get, set: Set, p: P) => {
+        const s = get(); const ouverture = cfg.ouvrirLeJet!(s, p); const actor = actorIn(s, cfg.actorId(p));
+        if (!ouverture || !actor || cfg.foeTR(p) == null) return;
+        set({ [cfg.key]: { ...p, ...ouverture, ...opposedPatch(p, cfg.rollActor(s, actor)) } } as PatchDeFlux);
+      },
+    } : {}),
     rolled: cfg.rolled ?? ((p) => cfg.actorTR(p) != null),
     actor: (s, p) => actorIn(s, cfg.actorId(p)),
     caps: { forced: true },
@@ -630,6 +649,7 @@ export const FLOWS = paresseux({
    */
   attack: () => makeRollFlow<PendingAttack>({
     key: 'pendingAttack',
+    onRoll: lancerLAttaque,
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.attackerId),
     // Résolveur UNIQUE (`caps.forced`) : jet normal (relance Chance/Pacte = re-résolution complète,
@@ -830,6 +850,8 @@ export const FLOWS = paresseux({
    */
   cast: () => makeRollFlow<PendingCast>({
     key: 'pendingCast',
+    onRoll: lancerLIncantation,
+    onCancel: renoncerALIncantation,
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.casterId),
     // Résolveur UNIQUE (`caps.forced`) : jet normal (Relance Chance/Pacte) OU Résilience
@@ -927,6 +949,7 @@ export const FLOWS = paresseux({
    */
   counterspell: () => makeRollFlow<PendingCounterspell, CounterParticipant>({
     key: 'pendingCounterspell',
+    onCancel: laisserPasserLeContreSort,
     // PARALLÈLE : chaque participant est un contre-lanceur (slot indépendant).
     multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuContreSort },
     rolled: (part) => !!part.result,
@@ -1080,6 +1103,8 @@ export const FLOWS = paresseux({
    */
   extendedTest: () => makeRollFlow<PendingExtendedTest, ExtendedTestRound>({
     key: 'pendingExtendedTest',
+    // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
+    onCancel: (get, set, p) => { set({ pendingExtendedTest: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
     // Le Round porte {roll, sl, success} SANS cible (elle vit sur le pending) : accesseur explicite.
     die: {
       read: (r, _a, p) => (r.result && p ? { roll: r.result.roll, target: p.target, critable: false } : null),
@@ -1226,6 +1251,8 @@ export const FLOWS = paresseux({
    */
   etalLot: () => makeRollFlow<PendingEtalLot, EtalLotRow>({
     key: 'pendingEtalLot',
+    // « Renoncer » applique le lot TEL QU'IL EST TOMBÉ : un étal existe de toute façon.
+    onCancel: appliquerLotEtal,
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     rolled: () => true,
     actor: () => undefined,
@@ -1251,6 +1278,8 @@ export const FLOWS = paresseux({
    */
   forceDoor: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
     key: 'pendingForceDoor',
+    // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
+    onCancel: (get, set, p) => { set({ pendingForceDoor: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
     die: roll3Die<ForceDoorParticipant, PendingForceDoor>(),
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     rolled: (r) => !!r.result,
@@ -1281,8 +1310,8 @@ export const FLOWS = paresseux({
   }),
 
   /**
-   * Désengagement — Test opposé d'Esquive (LDB 15 l.43-68). Le JET INITIAL reste métier
-   * (`disengageRoll` : transition de phase choice → esquive) ; le jet du foe (`p.atk`) reste figé.
+   * Désengagement — Test opposé d'Esquive (LDB 15 l.43-68). Le JET INITIAL ouvre la phase (`ouvrirLeJet` :
+   * choice → esquive) ; le jet du foe (`p.atk`) reste figé.
    * Issue BINAIRE (success/tie/fail) → pas de choix du dé.
    */
   disengage: () => opposedBinaryFlow<PendingDisengage>({
@@ -1292,20 +1321,15 @@ export const FLOWS = paresseux({
     rollActor: (s, actor) => rollMeleeDefender(actor, 'esquive', battleRng(), defenseDodgeMods(s, actor)), // Esquive du mover (= « attaquant »)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk, // jet du foe FIGÉ (LDB 15 l.43-68)
-    // Renoncer : au menu seulement, refusé et dit au-delà (LDB 15 l.49, l.63 ; patron `castCancel`, #1031).
-    onCancel: (get, set, p) => {
-      if (p.phase !== 'choice') {
-        refuserGeste(get, set, t('disengage.refus.renoncerEngage', { name: actorIn(get(), p.moverId)?.label ?? p.moverId }));
-        return;
-      }
-      set({ pendingDisengage: null, pendingCascade: null });
-    },
+    // « Esquiver » : au menu seulement, option fermée par `refusDEsquiveDeDesengagement`.
+    ouvrirLeJet: (s, p) => (s.battle && p.phase === 'choice' && !p.refusEsquive ? { phase: 'esquive' } : null),
+    // LDB 15 l.49, l.63
+    refusDAnnuler: (s, p) => (p.phase !== 'choice' ? refusDeRenoncer(s, p.moverId) : null),
   }),
 
   /**
    * « Au Contact » — Test opposé de Corps à corps (LDB 62 l.176, Option « Longueur d'arme »). CALQUE
-   * EXACT du Désengagement : le jet INITIAL du mover reste métier (`auContactRoll`) ; le jet du foe
-   * (`p.atk`) reste FIGÉ ; seul le jet de Corps à corps du mover se (re)joue (Chance/+1 DR/Pacte/
+   * du Désengagement, sans phase de menu : le jet du foe (`p.atk`) reste FIGÉ ; seul le jet de Corps à corps du mover se (re)joue (Chance/+1 DR/Pacte/
    * Résilience). Issue BINAIRE (success/tie/fail) → la Résilience fait simplement l'emporter.
    */
   auContact: () => opposedBinaryFlow<PendingAuContact>({
@@ -1315,6 +1339,8 @@ export const FLOWS = paresseux({
     rollActor: (_s, actor) => rollDisengageAttack(actor, battleRng()), // Corps à corps du mover (LDB 62 l.176)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk,
+    // LDB 62 l.176
+    refusDAnnuler: (s, p) => (p.result ? refusDeRenoncer(s, p.moverId) : null),
   }),
 
   /**
@@ -1329,6 +1355,8 @@ export const FLOWS = paresseux({
     rollActor: (_s, actor) => rollGrappleForce(actor, battleRng()), // Force de l'acteur (LDB 14 l.161)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk,
+    // LDB 14 l.161
+    refusDAnnuler: (s, p) => (p.result ? refusDeRenoncer(s, p.actorId) : null),
   }),
 
   /**
@@ -2207,6 +2235,11 @@ export const FLOWS = paresseux({
    *  multi-passes) a son propre flux `surgery` ci-dessous (une passe = une modale influençable). */
   heal: () => makeRollFlow<PendingHeal>({
     key: 'pendingHeal',
+    // Acte PAYANT d'un PNJ (infirmerie) remboursé au GROUPE tant que rien n'est lancé (débit `payFromGroup`, LDB 75).
+    onCancel: (get, set, p) => {
+      if (p.paidCost && p.roll == null) distributeCredit(get, set, toMoney(p.paidCost));
+      set({ pendingHeal: null });
+    },
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
@@ -2234,6 +2267,8 @@ export const FLOWS = paresseux({
    *  le Test d'infection vivent dans `surgeryNext` (medicFlow), comme `extendedTestNext`. */
   surgery: () => makeRollFlow<PendingSurgery>({
     key: 'pendingSurgery',
+    // Annule la PASSE posée, avant son jet : l'opération armée (`medic.surgery`), son cumul et l'acte payé restent.
+    onCancel: (_get, set, p) => { if (p.roll == null) set({ pendingSurgery: null }); },
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },

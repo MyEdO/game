@@ -337,7 +337,6 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       if (refus) return void refuserGeste(get, set, refus);
       settleFall(get, set, p);
     },
-    fallCancel: () => set({ pendingFall: null }),
     windowAcross: (from, to) => {
       const verdict = gesteDepuis(get(), from);
       if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));

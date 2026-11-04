@@ -74,12 +74,6 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
       set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
     },
-    // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
-    extendedTestCancel: () => {
-      const suite = get().pendingExtendedTest?.suite;
-      set({ pendingExtendedTest: null, pendingCascade: null });
-      reprendreLaSuite(get, set, suite);
-    },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     startForceDoor: (opts) => {
       set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
@@ -120,12 +114,6 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       }
       const { armeUid: _ancienne, ...reste } = part;
       set({ pendingForceDoor: { ...p, participants: p.participants.map((x) => (x.id === heroId ? { ...reste, ...(armeUid ? { armeUid } : {}) } : x)) } });
-    },
-    // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
-    forceDoorCancel: () => {
-      const suite = get().pendingForceDoor?.suite;
-      set({ pendingForceDoor: null, pendingCascade: null });
-      reprendreLaSuite(get, set, suite);
     },
     // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) sur un Test de scène (hors combat) — cycle
     // UNIFIÉ par la fabrique rollFlow (les variantes combat attack/defense/cast vivent dans combatSlice).

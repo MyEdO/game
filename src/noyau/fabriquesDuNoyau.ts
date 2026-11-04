@@ -5,7 +5,8 @@
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
-import { buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
+import { buildRollFlowActions } from './rollFlowSpecs';
+import type { FlowKey, RollVerb } from './flowVerbs';
 import { createCombatSlice } from './combatSlice';
 import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
@@ -45,10 +46,12 @@ import { creerActionsDuMarcheTerrestre } from './landMarketFlow';
 import { creerActionsDeLAuberge } from './innFlow';
 import { creerActionsDesActivitesEnMer } from './seaActivities';
 
-/** Les actions MANUSCRITES : aucune ne porte le nom d'un délégué de jet (`RollFlowActionsMap`), qui
- *  écraserait en silence celui que `buildRollFlowActions` génère — une clé redéclarée ne compile pas.
+/** Les actions MANUSCRITES : aucune ne porte un nom `<flux><Verbe>` de l'espace des délégués de jet
+ *  (préfixe de `FLOW_VERBS`, verbe de `RollVerb`), que le flux expose ce verbe ou non — le verbe d'un
+ *  flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Une telle clé ne compile pas.
  *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
-function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, keyof RollFlowActionsMap>]: 'délégué de jet : généré par buildRollFlowActions' }): T {
+type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}`;
+function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'délégué de jet : généré par buildRollFlowActions' }): T {
   return actions;
 }
 

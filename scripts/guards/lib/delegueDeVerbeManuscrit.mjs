@@ -9,10 +9,10 @@
  * `verbes` : les verbes des délégués générés, lus par l'appelant dans `FLOW_VERBS`.
  *
  * FRONTIÈRE avec le verrou de compilation `horsDelegues` (`src/noyau/fabriquesDuNoyau.ts`), qui
- * refuse toute clé de `RollFlowActionsMap` redéclarée par une fabrique : ce scanner voit ce que le
- * verrou ne peut pas voir — un délégué écrit sous un nom que la table ne génère PAS (verbe absent de
- * `FLOW_VERBS`, la forme de #2903), et l'appel direct hors de toute fabrique (un écran qui contourne
- * le délégué, donc le routage coop, `src/ui/forcedDieRow.ts`).
+ * refuse toute clé `<flux><Verbe>` (flux de `FLOW_VERBS` × verbe de jet) déclarée par une fabrique,
+ * que la table la génère ou non (#2961) : ce scanner voit ce que le verrou ne peut pas voir — l'appel
+ * direct d'un handler, sous un autre nom ou hors de toute fabrique (un écran qui contourne le
+ * délégué, donc le routage coop, `src/ui/forcedDieRow.ts`).
  *
  * ANGLE MORT : un handler lu dans une liaison locale (`const flow = FLOWS.x; flow.cancel(…)`) puis
  * appelé n'est pas vu ; le générateur lui-même appelle ainsi un paramètre (`flow[v]`).

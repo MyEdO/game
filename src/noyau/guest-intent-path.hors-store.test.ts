@@ -23,6 +23,8 @@ import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
 import { draineCascade } from './cascade.testkit';
 import { modalOwnerOf } from './modalArbiter';
+import { jetOwnedIntents } from './flowVerbs';
+import { intentAllowedFor } from './netOwnership';
 import { refusDAjoutAuGroupe } from './partyFlow';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -227,7 +229,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     expect(apres.pendingDisengage, 'le Désengagement engagé reste ouvert').toBe(avant.pendingDisengage);
     expect(apres.pendingCascade, 'sa cascade-hôte aussi').toBe(avant.pendingCascade);
     expect(apres.battle!.combatants.find((c) => c.id === enemy.id)!.advantage).toBe(avantageDuFoe);
-    expect(apres.refus?.texte).toBe('Renoncement refusé : h2 a déjà engagé son Désengagement, il se joue jusqu’au bout.');
+    expect(apres.refus?.texte).toBe('Renoncement refusé : h2 a déjà engagé son action, elle se joue jusqu’au bout.');
   });
 
   it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {
@@ -241,5 +243,33 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     expect(applyIntent(2, 'disengageCancel')).toBe('refusee');
     expect(banc.getState().pendingDisengage).toBe(avant.pendingDisengage);
     expect(banc.getState().pendingCascade).toBe(avant.pendingCascade);
+  });
+});
+
+/**
+ * #2961 — les annulations et jets d'un flux MONO, écrits à la main jusque-là, sont les verbes `cancel`/`roll`
+ * générés : leur possession suit le PORTEUR du jet (`jetOwner`), joué par `appliquerLIntentionDUnSiege`.
+ */
+describe('#2961 — annulations et jets migrés : la possession suit le porteur du jet', () => {
+  const ANNULATIONS_NUES = ['battement', 'distraire', 'maneuver', 'run', 'shanty', 'approach', 'ward', 'reload', 'handGate', 'recover', 'focus', 'dispel', 'frenzy', 'bargain', 'appraise'].map((f) => `${f}Cancel`);
+  const AUTRES = ['auContactCancel', 'grappleCancel', 'castCancel', 'healCancel', 'surgeryCancel', 'attackRoll', 'castRoll', 'disengageRoll', 'auContactRoll', 'grappleRoll'];
+
+  it.each([...ANNULATIONS_NUES, ...AUTRES])('%s : routé par le porteur, un siège tiers est refusé, celui du porteur passe', (verbe) => {
+    setup();
+    const route = jetOwnedIntents()[verbe];
+    expect(route, `${verbe} n’est pas routé par le porteur`).toBeDefined();
+    const pending = { [route.field]: 'h2' };
+    banc.setState({ [route.pending]: pending } as never);
+    expect(applyIntent(2, verbe)).toBe('refusee');
+    expect((banc.getState() as unknown as Record<string, unknown>)[route.pending]).toBe(pending);
+    expect(intentAllowedFor(banc.getState(), 1, verbe)).toBe(true);
+  });
+
+  it.each(ANNULATIONS_NUES)('%s : le siège du porteur referme son jet', (verbe) => {
+    setup();
+    const route = jetOwnedIntents()[verbe];
+    banc.setState({ [route.pending]: { [route.field]: 'h2' } } as never);
+    expect(applyIntent(1, verbe)).toBe('appliquee');
+    expect((banc.getState() as unknown as Record<string, unknown>)[route.pending]).toBeNull();
   });
 });

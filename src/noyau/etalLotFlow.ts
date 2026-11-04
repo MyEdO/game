@@ -79,9 +79,7 @@ export function creerActionsDuLotDEtal(get: Get, set: Set) {
   return {
     // LOT DE DÉS d'un étal (#1426) — les deux gestes de BLOC. « Valider » rejoue le générateur avec les
     // dés du lot (posés ou naturels) : c'est le MÊME code que l'ouverture sans fenêtre, nourri par un rng
-    // rejoueur qui ne consomme aucun aléa vivant. « Renoncer » applique le lot TEL QU'IL EST TOMBÉ — un
-    // étal existe de toute façon, la fenêtre n'est qu'une offre de pose.
+    // rejoueur qui ne consomme aucun aléa vivant. « Renoncer » est le verbe `cancel` du flux (`FLOWS.etalLot`).
     etalLotConfirm: () => { appliquerLotEtal(get, set); },
-    etalLotCancel: () => { appliquerLotEtal(get, set); },
   } satisfies Partial<ActionsDuNoyau>;
 }

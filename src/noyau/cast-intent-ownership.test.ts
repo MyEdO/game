@@ -52,33 +52,33 @@ const JET_OWNED = ENTRIES.filter(([, w]) => w.kind === 'mono' && !!w.jetOwner);
  * disparue sortirait de l'itération sans rien casser (leçon #1015).
  */
 const INVENTORY: Record<string, readonly string[]> = {
-  attack:     ['reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse'],
+  attack:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse'],
   defense:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'],
-  cast:       ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  disengage:  ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  auContact:  ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  grapple:    ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'],
-  distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  run:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'],
-  reload:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  handGate:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  recover:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  focus:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  dispel:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
-  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse'],
-  ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact'],
-  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'],
-  surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
+  cast:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  disengage:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  auContact:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  grapple:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel'],
+  distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  run:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
+  reload:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  handGate:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  recover:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  focus:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  dispel:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
+  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel'],
+  ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
+  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel'],
+  surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
   corruption: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist'],
   test:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse'],
   steamSave:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   activity:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse'],
-  bargain:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  appraise:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  shanty:     ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'],
+  bargain:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  appraise:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
+  shanty:     ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
 };
 
 /** Actions de RÉSOLUTION manuscrites routées par le porteur (`FlowVerbs.resolution`, #1017) —
@@ -86,8 +86,8 @@ const INVENTORY: Record<string, readonly string[]> = {
  *  seulement de l'influencer. Seuls les flux dont la fenêtre vit hors `MODAL_DEFS` et hors combat en
  *  déclarent (le repli `modalOwnerOf` y désigne l'hôte, pas le porteur). */
 const RESOLUTION: Record<string, readonly string[]> = {
-  bargain: ['bargainConfirm', 'bargainCancel'],
-  appraise: ['resolveAppraise', 'appraiseCancel'],
+  bargain: ['bargainConfirm'],
+  appraise: ['resolveAppraise'],
 };
 
 const H_HOST = 'h1'; // héros du siège 0 (hôte)

@@ -1068,11 +1068,9 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     repairItem: (uid, heroId) => repairItem(get, set, uid, heroId),
     startBargain: (mode) => startBargain(get, set, mode),
     bargainConfirm: () => bargainConfirm(get, set),
-    bargainCancel: () => set({ pendingBargain: null }),
     appraiseItem: (uid, heroId, mode) => appraiseItem(get, set, uid, heroId, mode),
     appraiseGear: (scope, index, mode) => appraiseGear(get, set, scope, index, mode),
     resolveAppraise: () => resolveAppraise(get, set),
-    appraiseCancel: () => set({ pendingAppraise: null }),
     barterExchange: (opts) => barterExchange(get, set, opts),
     setSellHalving: (uid, delta) => setSellHalving(get, set, uid, delta),
   } satisfies Partial<ActionsDuNoyau>;
