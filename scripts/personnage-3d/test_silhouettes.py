@@ -22,9 +22,9 @@ import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
-from silhouettes import (ANNEAUX_AUX_PLIS, MARGE_AUX_PLIS, AnneauIndetectable, ComposanteSansAppui,  # noqa: E402
-                         ContraintesLiees, correction, fondu, fondu_aux_plis, lisser_sous_correction, marges_au_neutre,
-                         mesurer_domaine, refuser_les_inertes)
+from silhouettes import (ANNEAUX_AUX_PLIS, JEU_AUX_PLIS_M, MARGE_AUX_PLIS, AnneauIndetectable,  # noqa: E402
+                         ComposanteSansAppui, ContraintesLiees, correction, fondu, fondu_aux_plis, lisser_sous_correction,
+                         mesurer_domaine, plis_au_neutre, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
@@ -793,28 +793,36 @@ class Fondu(unittest.TestCase):
 
 
 class Plis(unittest.TestCase):
-    """silhouettes.marges_au_neutre et silhouettes.fondu_aux_plis (#3104 issuecomment-6613477119)."""
+    """silhouettes.plis_au_neutre et silhouettes.fondu_aux_plis (#3104 issuecomment-6613477119)."""
 
-    def test_la_marge_se_mesure_sans_cle_posee(self):
+    def plis(self, facteur, longueur):
         clip = numpy.eye(4)
-        clip[:3, :3] *= 3
+        clip[:3, :3] *= facteur
         x, w, aretes, demandes, _, matrices, _ = arete_du_domaine(clip=clip)
-        marges = marges_au_neutre(w, x, aretes, [(demandes, matrices, (1,))])
-        self.assertAlmostEqual(marges[0], numpy.log(ETIREMENT_EN_CLIP[1] / 3))
+        x[1, :3] *= longueur / numpy.linalg.norm(x[1, :3])
+        return plis_au_neutre(w, x, aretes, [(demandes, matrices, (1,))])[0]
+
+    def test_un_pli_se_mesure_sans_cle_posee_en_marge_relative_ou_en_jeu_absolu(self):
+        etire = ETIREMENT_EN_CLIP[1] * numpy.exp(-MARGE_AUX_PLIS)
+        self.assertTrue(self.plis(etire * 1.01, 1.0))
+        self.assertFalse(self.plis(etire * 0.99, 1.0))
+        ecrase = ETIREMENT_EN_CLIP[0] * numpy.exp(MARGE_AUX_PLIS) * 1.5
+        longueur = JEU_AUX_PLIS_M / (ecrase - ETIREMENT_EN_CLIP[0])
+        self.assertFalse(self.plis(ecrase, longueur * 1.01))
+        self.assertTrue(self.plis(ecrase, longueur * 0.99))
 
     def test_un_pli_tient_ses_noeuds_puis_rend_le_decalage_sur_ses_anneaux(self):
         n = ANNEAUX_AUX_PLIS + 3
         aretes = numpy.array([[k, k + 1] for k in range(n)])
-        marges = numpy.full(len(aretes), MARGE_AUX_PLIS)
-        marges[0] = MARGE_AUX_PLIS / 2
+        plis = numpy.zeros(len(aretes), dtype=bool)
+        plis[0] = True
         groupe = numpy.array([*range(n + 1), 2])
-        plis = fondu_aux_plis(aretes, marges, groupe)
-        self.assertTrue(numpy.all(plis[:2] == 0))
-        self.assertTrue(numpy.all(plis[ANNEAUX_AUX_PLIS + 2:n + 1] == 1))
-        self.assertTrue(numpy.all(numpy.diff(plis[:n + 1]) >= 0))
-        self.assertTrue(0 < plis[2] < 1)
-        self.assertEqual(plis[-1], plis[2])
-
+        parts = fondu_aux_plis(aretes, plis, groupe)
+        self.assertTrue(numpy.all(parts[:2] == 0))
+        self.assertTrue(numpy.all(parts[ANNEAUX_AUX_PLIS + 2:n + 1] == 1))
+        self.assertTrue(numpy.all(numpy.diff(parts[:n + 1]) >= 0))
+        self.assertTrue(0 < parts[2] < 1)
+        self.assertEqual(parts[-1], parts[2])
 
 if __name__ == '__main__':
     unittest.main()

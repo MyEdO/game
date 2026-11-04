@@ -13,7 +13,7 @@
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
   (`fondu`). Aux plis, un sommet ne bouge pas non plus : nœuds des arêtes sans marge sous les clips du neutre, puis
-  fondu sur quelques anneaux (`fondu_aux_plis`, #3104 issuecomment-6613477119, #3294). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
+  fondu sur quelques anneaux (`plis_au_neutre`, `fondu_aux_plis`, #3104 issuecomment-6613477119, #3294). Les champs sont lissés ensemble jusqu'à `ETIREMENT_DES_CLES` sur tout le domaine de `etatsDuGabarit`
   (`formes.lisser`, région pleine), fondu compris : aux facteurs non neutres, par les clés `gabarit_*` cuites sur les
   champs courants (`cuisson_gabarit.cuisson_des_champs`, #3104) ; puis, sans fondu neuf, en région locale jusqu'à
   `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres (#3104 issuecomment-6613477119, #3294).
@@ -49,12 +49,16 @@ PASSES_DE_LISSAGE = 400
 """Passes de lissage sous correction (`lisser_sous_correction`) au-delà desquelles la construction s'arrête : valeur
 d'ingénierie #3104 (147 passes mesurées sur la base `humanoide` le 2026-11-03)."""
 MARGE_AUX_PLIS = 0.7
-"""Marge au neutre en clip (`marges_au_neutre`) sous laquelle une arête est un pli que les silhouettes ne déplacent pas
-(`fondu_aux_plis`) : valeur d'ingénierie #3104 (capture r9 du 2026-11-03 : 220 arêtes hors bornes, 7 avec
-`ANNEAUX_AUX_PLIS` = 3, dont 2 déjà hors bornes au neutre)."""
+"""Marge relative au neutre en clip (logarithme, `plis_au_neutre`) sous laquelle une arête est un pli que les
+silhouettes ne déplacent pas (`fondu_aux_plis`) : valeur d'ingénierie #3104 (capture r9 du 2026-11-03 : 220 arêtes
+hors bornes, 7 avec `ANNEAUX_AUX_PLIS` = 3, dont 2 déjà hors bornes au neutre)."""
+JEU_AUX_PLIS_M = 0.001
+"""Jeu absolu au neutre en clip (m, `plis_au_neutre`) sous lequel une arête est aussi un pli : valeur d'ingénierie
+#3104 (construction r12 du 2026-11-03 : une arête du creux du genou, écrasée à 3 % en clip, garde 0,7 mm de jeu et
+reste hors bornes sous des clés de quelques millimètres ; capture r9 : 6 arêtes)."""
 ANNEAUX_AUX_PLIS = 3
 """Anneaux d'arêtes sur lesquels une silhouette reprend son décalage autour d'un pli (`fondu_aux_plis`) : valeur
-d'ingénierie #3104, mesurée avec `MARGE_AUX_PLIS`."""
+d'ingénierie #3104, mesurée avec `MARGE_AUX_PLIS` et `JEU_AUX_PLIS_M`."""
 
 
 def bornes_de_st():
@@ -99,24 +103,27 @@ def fondu(w, noms, extremes, groupe):
     return noeud[groupe]
 
 
-def marges_au_neutre(w, x, aretes, groupes):
-    """Par arête de `aretes`, sa marge à `ETIREMENT_EN_CLIP` sous les clips de `groupes` (`[(domaine, matrices, clips)]`),
-    aucune clé posée : le plus petit des logarithmes du rapport le plus bas sur la borne basse et de la borne haute sur
-    le rapport le plus haut ; négative hors des bornes."""
+def plis_au_neutre(w, x, aretes, groupes):
+    """Par arête de `aretes`, vrai si c'est un pli : sous les clips de `groupes` (`[(domaine, matrices, clips)]`), aucune
+    clé posée, sa marge relative à `ETIREMENT_EN_CLIP` (le plus petit des logarithmes du rapport le plus bas sur la
+    borne basse et de la borne haute sur le rapport le plus haut) est sous `MARGE_AUX_PLIS`, ou son jeu absolu (les
+    mêmes écarts aux bornes, en longueur de l'arête au repos) est sous `JEU_AUX_PLIS_M`."""
     bas, haut = extremes(w, aretes, etats_ponderes(x, defaultdict(float), groupes))
+    bas, haut = bas.min(axis=0), haut.max(axis=0)
+    longueurs = numpy.linalg.norm(x[aretes[:, 0], :3] - x[aretes[:, 1], :3], axis=1)
     with numpy.errstate(divide='ignore'):
-        return numpy.minimum(numpy.log(bas.min(axis=0) / ETIREMENT_EN_CLIP[0]),
-                             numpy.log(ETIREMENT_EN_CLIP[1] / haut.max(axis=0)))
+        marges = numpy.minimum(numpy.log(bas / ETIREMENT_EN_CLIP[0]), numpy.log(ETIREMENT_EN_CLIP[1] / haut))
+    jeux = numpy.minimum(bas - ETIREMENT_EN_CLIP[0], ETIREMENT_EN_CLIP[1] - haut) * longueurs
+    return (marges < MARGE_AUX_PLIS) | (jeux < JEU_AUX_PLIS_M)
 
 
-def fondu_aux_plis(aretes, marges, groupe):
+def fondu_aux_plis(aretes, plis, groupe):
     """Par sommet, la part de son décalage qu'il garde aux plis (#3104 issuecomment-6613477119, #3294) : 0 sur les nœuds
-    des arêtes de `aretes` dont la marge au neutre (`marges`, `marges_au_neutre`) est sous `MARGE_AUX_PLIS`, puis
-    `lisse(0, 1)` de la distance en arêtes rapportée à `ANNEAUX_AUX_PLIS` + 1 ; un sommet prend la part de son nœud
-    (`groupe`, `poids.jumeaux`)."""
+    des arêtes de `aretes` que marque `plis` (`plis_au_neutre`), puis `lisse(0, 1)` de la distance en arêtes rapportée
+    à `ANNEAUX_AUX_PLIS` + 1 ; un sommet prend la part de son nœud (`groupe`, `poids.jumeaux`)."""
     distance = numpy.full(groupe.max() + 1, ANNEAUX_AUX_PLIS + 1.0)
     front = numpy.zeros(len(distance), dtype=bool)
-    front[aretes[marges < MARGE_AUX_PLIS].ravel()] = True
+    front[aretes[plis].ravel()] = True
     distance[front] = 0
     for k in range(1, ANNEAUX_AUX_PLIS + 1):
         voisins_du_front = numpy.zeros(len(distance), dtype=bool)
@@ -443,7 +450,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
             groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
         du_repos = groupes(piles, etats['cellulesSilhouettes'])
         domaine = du_repos + groupes(piles_des_clips, etats_des_clips['cellulesSilhouettes'])
-        plis = fondu_aux_plis(aretes, marges_au_neutre(w, x, aretes, domaine), groupe)
+        plis = fondu_aux_plis(aretes, plis_au_neutre(w, x, aretes, domaine), groupe)
         libre = fondu(w, noms, extremites(squelette), groupe) * plis
         print('SILHOUETTES plis : sommets tenus', int((plis == 0).sum()), 'en fondu', int(((plis > 0) & (plis < 1)).sum()),
               flush=True)
