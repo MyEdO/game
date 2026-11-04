@@ -93,6 +93,19 @@ describe('EquipmentPanel (rendu)', () => {
     expect(html).toContain('deux mains'); // titre de la cellule 2nde bloquée
   });
 
+  it('2nde main : la pénalité du moteur, Ambidextre comprise (−20 sans, −10 à 1×)', () => {
+    const malus = (h: Combatant) => [...renderToStaticMarkup(<EquipmentPanel hero={h} />).matchAll(/off-malus[^>]*>([^<]*)</g)].map((m) => m[1]);
+    expect(malus(mkHero())).toEqual(['−20', '−20']);
+    const ambi = mkHero();
+    ambi.talents = [{ talentId: 'ambidextre', times: 1 }];
+    expect(malus(ambi)).toEqual(['−10', '−10']);
+  });
+
+  it('emplacement couche × zone : la pièce d’une autre couche n’est jamais candidate', () => {
+    const html = renderToStaticMarkup(<EquipmentPanel hero={mkHero()} />);
+    expect(html.match(/Plastron · PA 2/g)).toHaveLength(1); // la seule couche Extérieure du Corps
+  });
+
   it('« En main » : les qualités de l’arme = chips canoniques (EntityRef)', () => {
     const h = mkHero();
     h.loadouts![0].main = 'halle'; // Hallebarde : Défensive/Taille/Empaleuse

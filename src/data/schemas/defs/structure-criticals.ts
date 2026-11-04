@@ -7,7 +7,7 @@ import { ecartsDeCouverture, plageOuverteSchema } from '../grammaire/valeurs';
 export const file = 'structure-criticals.json';
 export const famille = 'config';
 
-const structureCritEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -36,7 +36,7 @@ const doc = document(
     edit: { niche: { categories: { structureCriticals: 'entries' } } },
   },
   {
-    rangee: structureCritEntrySchema,
+    rangee,
     deDeTirage: true,
     // AA 10 l.116-127 ; patron `advancementCosts.ts`.
     affinerDataset: (dataset) =>

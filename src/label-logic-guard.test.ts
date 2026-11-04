@@ -16,7 +16,7 @@ import {
 } from '../scripts/guards/lib/labelLogic.mjs';
 import { listerArbre } from '../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../scripts/guards/lib/stock.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 import { skillRefLabel, talentRefLabel, talents } from './data';
 import { parseSkillRef, parseTalentRef, parseTraitInstance } from './data/refFormatLivre';
 import { formatTrait } from './engine/traits/dispatch';

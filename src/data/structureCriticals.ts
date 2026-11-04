@@ -1,5 +1,7 @@
 import structureCriticalsJson from './structure-criticals.json';
 import { parseDiceRequired } from '../engine/dice';
+import { rangeesDe, type RangeeDe } from './rangees';
+import type * as critiquesDeStructure from './schemas/defs/structure-criticals';
 
 export const STRUCTURE_CRITICALS_DIE = parseDiceRequired(structureCriticalsJson.die, 'structure-criticals.die');
 
@@ -18,22 +20,8 @@ export const STRUCTURE_CRITICALS_DIE = parseDiceRequired(structureCriticalsJson.
  *  - `note` : effets verbatim sur les PERSONNES (Dégâts = Bonus d'Endurance, Tests d'Athlétisme, couvert,
  *    Limite d'Encombrement) — appliqués par le résolveur de combat (qui connaît occupants/couvert).
  */
-export interface StructureCritEntry {
-  min: number;
-  /** `null` : « 96 ou plus », AA 10 l.127 (`BandeOuverte`, `engine/tables`). */
-  max: number | null;
-  /** id STABLE (slug) — toute réf passe par lui, jamais le `label`. */
-  id: string;
-  label: string;
-  /** Blessures supplémentaires de la Structure (0 = Triviale ; null = détruite). */
-  wounds: number | null;
-  /** Blessure Triviale (« T », AA 07 l.77-79) : 0 Blessure, ne compte pas vers la destruction. */
-  trivial?: boolean;
-  /** « Effondrement » : la Structure est détruite. */
-  destroyed?: boolean;
-  note: string;
-}
+export type StructureCritEntry = RangeeDe<typeof critiquesDeStructure>;
 
-export const STRUCTURE_CRITICALS = (structureCriticalsJson as { entries: StructureCritEntry[] }).entries;
+export const STRUCTURE_CRITICALS = rangeesDe<typeof critiquesDeStructure>(structureCriticalsJson);
 /** Libellé de la table (rangée de tirage `TableRollLine`). */
 export const STRUCTURE_CRITICALS_LABEL: string = structureCriticalsJson.label;

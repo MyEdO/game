@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { reglesCss } from '../../scripts/guards/lib/cssCouches.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 // Commentaires NEUTRALISÉS (même précaution que `ui-ratchets`) : un commentaire qui NOMME la classe
 // n'est pas une règle — sans ça, la sonde reste verte alors que la déclaration a disparu (mesuré).

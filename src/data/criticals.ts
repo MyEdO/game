@@ -156,7 +156,7 @@ export const CRITIQUE_DOCS = criticalsJson as unknown as CritDoc[];
 
 /**
  * Rangées LIVE d'UN document-table, par id de DOCUMENT — FAIL-FAST : un id absent laisserait une
- * catégorie Codex sur un tableau vide, sans un mot (patron `miscastEntries`, `src/data/overrides.ts`).
+ * catégorie Codex sur un tableau vide, sans un mot (patron `rangeesDe`, `src/data/rangees.ts`).
  */
 export function critiqueEntries(docId: string): CritTable {
   const doc = CRITIQUE_DOCS.find((d) => d.id === docId);

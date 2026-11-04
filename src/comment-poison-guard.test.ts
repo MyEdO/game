@@ -28,7 +28,7 @@ import {
 } from '../scripts/guards/lib/commentPoison.mjs';
 import { LEGACY_VOCAB_SITES } from '../scripts/guards/lib/legacyVocabStock.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).

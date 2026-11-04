@@ -11,10 +11,10 @@ import { EXEMPTIONS, bouclesPilotes, corpusMesure, regenerations, sitesDeBoucles
 import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import type { CascadeStep } from './pendings';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { cleDeFixture } from './noyau.testkit';
 
 const STOCK = 'scripts/guards/lib/piloteCascadeStock.mjs';
@@ -245,7 +245,7 @@ describe('le kit LÈVE sur une étape qui porte à la fois une table et un dé n
     const etape: CascadeStep = { id: 's0', kind: cleDeFixture('table'), table: { tableId: 't' }, de: {} };
     const rien = () => {};
     const etat = { pendingCascade: cascadeDeTest([etape]), cascadeTableRoll: rien, cascadeDieRoll: rien, cascadeNext: rien };
-    expect(() => avanceEtapeCascade(() => etat as unknown as GameState)).toThrow(/« s0 ».*`table`.*`de`/);
+    expect(() => avanceEtapeCascade(() => etat as unknown as Jeu)).toThrow(/« s0 ».*`table`.*`de`/);
   });
 });
 

@@ -103,10 +103,10 @@ test('les deux prédicats se DÉRIVENT des fragments exportés — une source, q
 test('estKitDeTest : un KIT de test, ni une suite, ni sa déclaration, ni la production', () => {
   for (const rel of ['src/scenes/partage.testkit.ts', 'src/ui/x.testkit.tsx', 'scripts/guards/lib/lint.testkit.mjs', 'k.testkit.mts'])
     assert.equal(estKitDeTest(rel), true, `kit : ${rel}`)
-  for (const rel of ['src/detenteur.testkit.test.ts', 'scripts/guards/lib/lint.testkit.d.mts', 'src/state/exempleTestKit.ts', 'src/testkit.ts', 'src/a.testkit.ts.bak']) {
+  for (const rel of ['src/lib/detenteur.testkit.test.ts', 'scripts/guards/lib/lint.testkit.d.mts', 'src/state/exempleTestKit.ts', 'src/testkit.ts', 'src/a.testkit.ts.bak']) {
     assert.equal(estKitDeTest(rel), false, `pas un kit : ${rel}`)
   }
-  assert.equal(estSuiteVitest('src/detenteur.testkit.test.ts'), true)
+  assert.equal(estSuiteVitest('src/lib/detenteur.testkit.test.ts'), true)
   assert.equal(EST_KIT_DE_TEST.source, `${SUFFIXE_KIT}$`)
   assert.equal(EST_KIT_DE_TEST.global, false)
 })

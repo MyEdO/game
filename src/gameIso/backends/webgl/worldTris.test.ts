@@ -44,7 +44,7 @@ import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import { memoByRef } from '../../../noyau/monde/sceneMemo';
 import { TW } from '../../../geometry/iso';
 import type { Face } from '../../builders/types';
-import { detenteur } from '../../../detenteur.testkit';
+import { detenteur } from '../../../lib/detenteur.testkit';
 
 /**
  * Scènes-témoins BÂTIES et listes RETENUES par l'identité de la scène, dans UN détenteur du fichier

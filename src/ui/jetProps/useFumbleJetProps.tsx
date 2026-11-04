@@ -6,6 +6,7 @@ import { Icon } from '../Icon';
 import { drawRow } from '../rollRowBuild';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
 import { libelleDuJet } from '../../noyau/libelles';
+import { fermeturesDeLaMaladresse } from '../../noyau/verbesOuverts';
 import { t } from '../../i18n';
 
 /**
@@ -44,6 +45,7 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
         rollFrisson: true,
       }),
     ],
-    actions: [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' }],
+    // Un tirage hors des flux de jet : sa clôture se juge par `fermeturesDeLaMaladresse`.
+    actions: fermeturesDeLaMaladresse(step).fumbleConfirm ? [] : [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm }],
   };
 }

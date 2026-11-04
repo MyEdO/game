@@ -4,7 +4,6 @@ import { applyMiscast } from '../combatFlow';
 import { seedBattleRng } from '../battleRng';
 import { avanceEtapeCascade } from '../cascade.testkit';
 import { createHero } from '../../engine/character';
-import { summarizeEffects, chipCodex } from '../../gameIso/effectIcons';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -16,7 +15,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * ANCRAGE DE RÈGLE d'un contrecoup — chemin RÉEL (`applyMiscast` → `finishMiscast` → `runCombatFlow`,
  * qui partagent UN `OpsCtx`). L'effet durable posé par « Purifier la chair » (`LDB 40 l.75`) est une
  * pastille du joueur : sans entité SOURCE, elle s'affiche nue (ni fiche, ni popover — arbitrage user
- * 2026-07-18). La source est la RANGÉE tirée, dans la catégorie que sa table déclare en donnée.
+ * 2026-07-18). La source est la RANGÉE tirée, dans la catégorie que sa table déclare en donnée. La
+ * pastille de cette source et sa fiche : `src/gameIso/miscast-chip-codex.test.ts`.
  */
 describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)', () => {
   function setup() {
@@ -71,13 +71,5 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     expect(cause, 'la cause récurrente est posée').toBeTruthy();
     expect(cause!.source, 'l’ancrage est la RANGÉE, dans la catégorie que sa table déclare')
       .toEqual({ kind: 'miscastWrath', id: 'colere-purifier-la-chair' });
-
-    const chip = summarizeEffects(h.conditions, h.activeEffects).visible
-      .find((c) => c.kind === 'buff' && c.source?.id === 'colere-purifier-la-chair');
-    expect(chip, 'la pastille de l’effet porte son entité source').toBeTruthy();
-    const cible = chipCodex(chip!);
-    expect(cible, 'une pastille reliée à aucune règle n’ouvrirait ni fiche ni popover').toBeTruthy();
-    expect(cible!.category).toBe('miscastWrath');
-    expect(cible!.id, 'le popover ouvre la fiche de LA rangée').toBe('colere-purifier-la-chair');
   });
 });

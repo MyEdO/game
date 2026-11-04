@@ -209,7 +209,7 @@ export interface WeatherCondition {
  * Codex (`weather.json` conditions). Aucune carte FR ne double ce dataset : `weatherCondition(w).label`
  * EST le libellé de la météo, partout.
  *
- * FAIL-FAST NOMINATIF (patron `data/overrides.ts::miscastEntries`) : un id sans fiche est
+ * FAIL-FAST NOMINATIF (patron `data/rangees.ts::rangeesDe`) : un id sans fiche est
  * structurellement inatteignable — le `superRefine` de complétude du schéma refuse la suppression aux
  * trois portes (CI, boot dev, save Codex). Ce throw n'est que la ceinture : mieux vaut nommer l'id
  * absent qu'afficher une météo muette.

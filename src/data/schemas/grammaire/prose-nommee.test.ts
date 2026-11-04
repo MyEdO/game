@@ -15,7 +15,7 @@ import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { resolve } from 'node:path';
 import { couleurHexSchema } from './valeurs';
 import { refOuSpec } from './ref';
-import { detenteur } from '../../../detenteur.testkit';
+import { detenteur } from '../../../lib/detenteur.testkit';
 
 const SOURCE = { book: 'ennemi-dans-l-ombre', page: 12 };
 const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };

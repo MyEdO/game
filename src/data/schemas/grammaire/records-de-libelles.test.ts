@@ -46,7 +46,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { descendre } from './descente';
-import { detenteur } from '../../../detenteur.testkit';
+import { detenteur } from '../../../lib/detenteur.testkit';
 
 /** Les vocabulaires (jeux d'options) d'enum atteints par le registre (`descendre`). */
 function vocabulairesDuRegistre(): Set<string>[] {

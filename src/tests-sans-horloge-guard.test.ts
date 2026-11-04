@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { codeSeul } from '../scripts/guards/lib/codeSeul.mjs';
 import { RACINES_DE_LA_SUITE, estDeLaSuiteDuNoyau } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 
 /**
  * TESTS SANS HORLOGE (#1788) — un test de `src/` prouve un CONTRAT DE TRAVAIL, jamais une durée.

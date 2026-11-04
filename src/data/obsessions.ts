@@ -7,29 +7,19 @@
  */
 import { RNG, rollExpr } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import type { z } from 'zod';
 import type { TableDeCibles } from './schemas/grammaire/mecanique';
-import type { obsessionEntrySchema } from './schemas/defs/obsessions';
+import type * as obsessions from './schemas/defs/obsessions';
+import { rangeesDe } from './rangees';
 import obsessionsJson from './obsessions.json';
 
-/** Une rangée du Tableau des Obsessions : plage de 2d10 → id du Groupe-Cible. */
-export type ObsessionEntry = z.input<typeof obsessionEntrySchema>;
-
-interface ObsessionTableFile {
-  source: { book: string; page: number; note?: string };
-  entries: ObsessionEntry[];
-}
-
-const FILE = obsessionsJson as ObsessionTableFile;
-
-/** Le Tableau des Obsessions (2d10 = 2..20). */
-export const OBSESSIONS: readonly ObsessionEntry[] = FILE.entries;
+/** Le Tableau des Obsessions (2d10 = 2..20) : plage de 2d10 → id du Groupe-Cible. */
+export const OBSESSIONS = rangeesDe<typeof obsessions>(obsessionsJson);
 /** Provenance (livre + folio) — traçabilité (EDOC 12 folio 69). */
-export const OBSESSIONS_SOURCE = FILE.source;
+export const OBSESSIONS_SOURCE = obsessionsJson.source;
 
 /** Le tirage de chaque table de Cibles, RNG seedable : l'id du Groupe de la rangée tirée. */
 export const TIRAGE_DE_CIBLE: Readonly<Record<TableDeCibles, (rng: RNG) => string>> = {
-  obsessions: (rng) => findTableEntry(OBSESSIONS as ObsessionEntry[], rollExpr('2d10', rng)).id,
+  obsessions: (rng) => findTableEntry(OBSESSIONS, rollExpr('2d10', rng)).id,
 };
 
 /** Les Groupes que chaque table de Cibles peut tirer : ses rangées, lues à l'appel. */

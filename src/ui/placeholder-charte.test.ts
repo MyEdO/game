@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /**
  * Le TEXTE FANTÔME d'un champ de saisie (consigne, ou valeur effective héritée quand le champ est

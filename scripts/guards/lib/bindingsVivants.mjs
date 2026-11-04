@@ -64,10 +64,10 @@ function entrees(corps) {
 
 /**
  * Le NOM SURVEILLÉ d'une entrée `clé: valeur` du littéral `ARRAYS`, selon la FORME de sa valeur :
- *  - IDENTIFIANT NU (`axes: allAxes`, `obsessions: OBSESSIONS as ObsessionEntry[]`) → cet identifiant,
+ *  - IDENTIFIANT NU (`axes: allAxes`, `landCargo: LAND_CARGO_ENTRIES as LandCargoEntry[]`) → cet identifiant,
  *    c'est lui que les modules importent ;
  *  - MEMBRE (`shipHullSizes: shipConstruction.standard`) → l'objet PORTEUR, vivant et importable ;
- *  - APPEL (`miscastMinor: miscastEntries('miscast-mineure')`) → la CLÉ. Aucun binding n'existe sous
+ *  - APPEL (`miscastMinor: rangeesDe<…>(miscastRawJson, 'miscast-mineure')`) → la CLÉ. Aucun binding n'existe sous
  *    le nom de la fabrique : la retenir posait un nom FANTÔME que personne n'importe, pendant que le
  *    nom réellement exporté du dataset (`miscastMinor`) sortait du vocabulaire des deux gardes.
  */

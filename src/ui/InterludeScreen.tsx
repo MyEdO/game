@@ -9,10 +9,10 @@ import { actorStatus } from '../engine/social';
 import { interludeCatalog, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
 import {
   blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeCloture, effetBloquantLesRevenus, effetsDeLaPeriode, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite,
-  refusDArtisanat, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
+  refusDArtisanat, refusDeClore, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
   type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot, type PreJetDActivite,
 } from '../noyau/verdictsDInterlude';
-import { refusDeGesteSurLeGroupe, totalDesBourses } from '../noyau/bourseFlow';
+import { totalDesBourses } from '../noyau/bourseFlow';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
@@ -185,7 +185,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   // UI UNIQUE (#1262) : le siège se lit par le routage d'état, jamais par une comparaison recopiée.
   const ownsHero = (id: string) => ownsLocalNet(net, id);
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
-  const refusDeClore = refusDeGesteSurLeGroupe({ net });
+  const refusClore = refusDeClore({ net, interlude });
   const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, scene, worldMap, favors };
   return (
     <div className="interlude-shell tx-ink">
@@ -253,8 +253,8 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
                 /* Bataille en attente : la clôture ENGAGE la bataille (interludeEnd → massBattleBegin, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
                 ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
-                    descOfferte={t('interlude.close.bataille.desc')} enabled={!refusDeClore} {...raisonSi(refusDeClore)} onClick={() => setPhase('closing')} />
-                : <GatedAction id="interlude-close" label={t('interlude.close.btn')} enabled={!refusDeClore} {...raisonSi(refusDeClore)} onClick={() => setPhase('closing')} />}
+                    descOfferte={t('interlude.close.bataille.desc')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />
+                : <GatedAction id="interlude-close" label={t('interlude.close.btn')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />}
             </div>
           </>
         )}

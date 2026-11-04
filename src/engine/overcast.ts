@@ -11,7 +11,8 @@ import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
 import { rule } from './policy';
 import surincantationJson from '../data/surincantation.json';
-import type { SurincantationData } from '../data/schemas/defs/surincantation';
+import { rangeesDe, type RangeeDe } from '../data/rangees';
+import type * as surincantation from '../data/schemas/defs/surincantation';
 
 export type OvercastSource = 'arcane' | 'blessing' | 'miracle';
 export type OvercastAxis = 'range' | 'zone' | 'duration' | 'targets' | 'damage';
@@ -76,11 +77,11 @@ function overcastModel(source: OvercastSource): 'ldb' | 'vdm' {
  *  DR dépensés sur UNE colonne → effet obtenu. `targets` = Cibles ADDITIONNELLES ;
  *  `range`/`zone`/`duration` = multiplicateurs de la valeur listée ; `damage` = Dégât en plus
  *  (Projectiles magiques uniquement, `VDM 02 l.198`). */
-type OvercastRow = SurincantationData['entries'][number];
+type OvercastRow = RangeeDe<typeof surincantation>;
 /** La table EFFECTIVEMENT lue par le moteur — MÊME référence que le module JSON (singleton ESM) :
  *  une édition au Compendium est vue en direct, et la garde de parité (`overcast.test.ts`) refuse
  *  toute ré-inscription en dur (une copie littérale ne serait plus la même référence). */
-export const VDM_OVERCAST: OvercastRow[] = (surincantationJson as unknown as SurincantationData).entries;
+export const VDM_OVERCAST = rangeesDe<typeof surincantation>(surincantationJson);
 
 /** Rangée atteinte par `dr` DR dépensés sur une colonne (le PALIER le plus haut ≤ `dr`) ; `null` en
  *  dessous du plus petit palier. Indépendant de l'ordre d'authoring des rangées. */

@@ -32,7 +32,8 @@ export interface FenetreDeDefense {
   /** Les armes qui parent (hors Mains nues) et celle du jet (`parryWeaponOf`). */
   armesDeParade: Weapon[];
   parade: Weapon | undefined;
-  reaction: ChoixNomme;
+  /** La réaction et l'arme de parade se règlent avant le jet ; `null` une fois jeté. */
+  reaction: ChoixNomme | null;
   armeDeParade: ChoixNomme | null;
   /** AA 13 l.84 : son coût en Avantages dans son libellé. */
   porteBouclier: ChoixNomme<'damage' | 'push'> | null;
@@ -89,8 +90,8 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     social,
     armesDeParade,
     parade,
-    reaction: choix('defenseSetMode', pd.mode, reactions),
-    armeDeParade: pd.mode === 'parade' && armesDeParade.length >= 2
+    reaction: res ? null : choix('defenseSetMode', pd.mode, reactions),
+    armeDeParade: !res && pd.mode === 'parade' && armesDeParade.length >= 2
       ? choix('defenseSetParryWeapon', pd.parryWeaponUid ?? parade?.uid ?? null, armesDeParade.map((w) => ({ valeur: w.uid!, libelle: libelleDeParade(w) })))
       : null,
     porteBouclier: coutDuBouclier > 0

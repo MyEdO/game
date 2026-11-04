@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { detenteur } from '../../../src/detenteur.testkit';
+import { detenteur } from '../../../src/lib/detenteur.testkit';
 
 let destructionsFabrique = 0;
 let constructions = 0;

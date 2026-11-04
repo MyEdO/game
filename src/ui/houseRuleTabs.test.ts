@@ -37,3 +37,22 @@ describe('houseRuleTabs — découpe dérivée du registre des règles optionnel
     expect(tabs.map((t) => t.key)).toEqual(['g:Seul']);
   });
 });
+
+describe('Registre des règles optionnelles — l’option VDM s’auto-rend dans le panneau (#733)', () => {
+  const RULE = 'magic-vdm-incantation';
+
+  it('le panneau la RENDRA sans une ligne d’UI : elle est dans la découpe dérivée du registre', () => {
+    const tabs = houseRuleTabs();
+    expect(tabs.flatMap((t) => t.rules.map((r) => r.id))).toContain(RULE);
+    expect(tabs.reduce((n, t) => n + t.rules.length, 0)).toBe(OPTIONAL_RULES.length); // partition TOTALE
+  });
+
+  it('le groupe Magie atteint le seuil et obtient son PROPRE onglet', () => {
+    const magie = OPTIONAL_RULES.filter((r) => r.group === 'Magie');
+    expect(magie.length).toBeGreaterThanOrEqual(OWN_TAB_MIN);
+    const tab = houseRuleTabs().find((t) => t.key === 'g:Magie');
+    expect(tab).toBeTruthy();
+    expect(tab!.groups).toEqual(['Magie']);
+    expect(tab!.rules.map((r) => r.id)).toContain(RULE);
+  });
+});
