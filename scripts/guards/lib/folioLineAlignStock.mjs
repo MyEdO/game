@@ -50,7 +50,7 @@
 // 2 causes seulement : `eyes.json` ×10 (une note unique, qui DIT elle-même « pagination Marker
 // estimée entre les folios 37 et 41 » — déclaré 40, mesuré 39) et `weather.json` ×4 (« EDOC 8
 // l.52-59 » — déclaré 33, mesuré 32). Le cliquet étant DÉCROISSANT-SEULEMENT, l'élargissement exige
-// d'ARBITRER ces 14 au `Source/` d'abord : le régénérateur REFUSERAIT de les écrire (#1469 L1d).
+// d'ARBITRER ces 14 au `Source/` d'abord : le régénérateur REFUSERAIT de les écrire.
 
 export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/careers.json', ref: 'alchimiste-ordinaire', occurrence: 1 },

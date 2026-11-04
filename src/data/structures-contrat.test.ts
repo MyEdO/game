@@ -38,7 +38,7 @@ import {
   signature,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
 import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
-import { CONTENU_A_SOURCER, SANS_LIVRE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
+import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
@@ -286,7 +286,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual(lignes(courant));
   });
 
-  it('l’inventaire `STRUCTURES_ENVELOPPE` porte chaque divergence d’enveloppe MESURÉE, hors la `source` absente (volet `DETTE_ENVELOPPE`)', () => {
+  it('l’inventaire `STRUCTURES_ENVELOPPE` porte chaque divergence d’enveloppe MESURÉE, hors la `source` absente (refusée au parse)', () => {
     const enveloppe = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'STRUCTURES_ENVELOPPE')!;
     const divergence = (role: string, cle: string, motif: DivergenceEnveloppe['motif'], detail = ''): DivergenceEnveloppe => ({ role, cle, motif, detail, document: 'x.json', chemin: '(entrées)', entrees: 2 });
     const temoins = [
@@ -857,9 +857,8 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
   });
 
   /**
-   * Le rôle `source` se mesure selon `provenanceMesuree` (`src/data/schemas/grammaire/sans-livre.ts`) :
-   * un type cité EN PROFONDEUR ou définitivement SANS LIVRE n'est pas compté ; le CONTENU dont le
-   * sourçage reste dû (L1d #1469) l'est, bien que la fabrique l'exempte.
+   * Le rôle `source` se mesure selon `exigeSource` (`src/data/schemas/grammaire/sans-livre.ts`) :
+   * un type cité EN PROFONDEUR ou SANS LIVRE n'est pas compté.
    */
   it('le rôle `source` compte l’absence selon le régime mesuré du type', () => {
     const muet = (type: string | undefined) =>
@@ -871,11 +870,9 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
       ]).map((e) => `${e.role} | ${e.cle} | ${e.motif}`);
     const absente = ['source | source | clé absente'];
     const [enProfondeur] = Object.keys(SOURCE_EN_PROFONDEUR);
-    const definitif = Object.keys(SANS_LIVRE).find((t) => !(t in CONTENU_A_SOURCER));
-    const [aSourcer] = Object.keys(CONTENU_A_SOURCER);
+    const [sansLivre] = Object.keys(SANS_LIVRE_DEFINITIF);
     expect(muet(enProfondeur), 'EN PROFONDEUR : la racine ne porte jamais de source.').toEqual([]);
-    expect(muet(definitif), 'SANS LIVRE définitif : rien d’exigible.').toEqual([]);
-    expect(muet(aSourcer), 'contenu à sourcer : la dette L1d reste au dénominateur.').toEqual(absente);
+    expect(muet(sansLivre), 'SANS LIVRE : rien d’exigible.').toEqual([]);
     expect(muet('hors-regime'), 'hors régime : l’absence reste au dénominateur.').toEqual(absente);
     expect(muet(undefined), 'sans type : aucun régime ne s’applique.').toEqual(absente);
   });

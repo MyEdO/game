@@ -527,8 +527,8 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   });
 
   // #1318 E1 : l'état civil ne pose plus d'`<input type="number">` au site (le wrapper `IdentityField`
-  // le faisait, invisible au cliquet xvii). `details.json` ne chiffre que le TIRAGE (`ageBase`/`ageRoll`,
-  // `heightBase`/`heightRoll`) : aucun plafond n'est authoré — seul le plancher structurel est posé, et
+  // le faisait, invisible au cliquet xvii). `details.json` ne chiffre que le TIRAGE (`age`,
+  // `taille`) : aucun plafond n'est authoré — seul le plancher structurel est posé, et
   // une donnée absente laisse le champ VIDE (jamais un 0 fabriqué qui se persisterait comme un âge).
   it('étape Détails — Âge et Taille : plancher 1, aucun plafond inventé, champ VIDE quand la donnée manque', () => {
     const d = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');

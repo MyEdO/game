@@ -12,7 +12,7 @@
  * `<Prose>` : ce n'est pas un texte de règle copié/collé verbatim d'un livre, mais une notice
  * éditoriale du dataset lui-même.
  *
- * SANS PROVENANCE : `books` est inscrit à `SANS_LIVRE` — un livre ne se cite pas lui-même.
+ * SANS PROVENANCE : `books` est inscrit à `SANS_LIVRE_DEFINITIF` — un livre ne se cite pas lui-même.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

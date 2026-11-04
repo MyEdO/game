@@ -25,7 +25,7 @@ import { ref, refs, specRef, refOuSpec, pick, tirageSurTable, idDe, estSpecialis
 import { flowTestSchema } from './mecanique';
 import { byId, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
-import { SANS_LIVRE } from './sans-livre';
+import { SANS_LIVRE_DEFINITIF } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { entreePartielle as creaturePartielle } from '../defs/creatures';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
@@ -72,11 +72,11 @@ describe('document() — enveloppe posée par la fabrique', () => {
   });
 
   it('rend `source` optionnelle pour un type de la liste SANS LIVRE, et pour lui seul', () => {
-    const [typeSansLivre] = Object.keys(SANS_LIVRE);
+    const [typeSansLivre] = Object.keys(SANS_LIVRE_DEFINITIF);
     const rendu = document(typeSansLivre, 'config', { valeur: z.number() }, { valeur: { label: 'Valeur' } }, EXPOSITION);
     expect(rendu.schema.safeParse({ id: 'x', type: typeSansLivre, label: 'X', valeur: 1 }).success).toBe(true);
     const typeHorsListe = 'type-jouet-hors-liste';
-    expect(SANS_LIVRE[typeHorsListe]).toBeUndefined();
+    expect(SANS_LIVRE_DEFINITIF[typeHorsListe]).toBeUndefined();
     const exige = document(typeHorsListe, 'config', { valeur: z.number() }, { valeur: { label: 'Valeur' } }, EXPOSITION);
     expect(exige.schema.safeParse({ id: 'x', type: typeHorsListe, label: 'X', valeur: 1 }).success).toBe(false);
     expect(exige.schema.safeParse({ id: 'x', type: typeHorsListe, label: 'X', valeur: 1, source: SOURCE_REELLE }).success).toBe(true);

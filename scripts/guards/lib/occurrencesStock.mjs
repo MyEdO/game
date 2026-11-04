@@ -57,15 +57,6 @@ export const DETTE_OPS = Object.freeze({
     : 'Emboîter la référence du payload (`skill: {id, spec}`, `OP_DEFS`, src/data/schemas/grammaire/mecanique.ts).'),
 })
 
-/** Le volet DETTE_ENVELOPPE (L1d #1469) : un site par type de `CONTENU_A_SOURCER` (`src/data/schemas/grammaire/sans-livre.ts`),
- *  dont la provenance se mesure sans que la fabrique l'exige, mesuré par `sitesDEnveloppeASourcer` (`corpusDesComptes.mts`). */
-export const DETTE_ENVELOPPE = Object.freeze({
-  nom: 'DETTE_ENVELOPPE',
-  site: (e) => e.type,
-  nombre: () => 1,
-  cible: () => 'Sourcer le document et retirer son type de `CONTENU_A_SOURCER` (src/data/schemas/grammaire/sans-livre.ts) : la fabrique exige alors sa provenance.',
-})
-
 const cibleDeFeuille = () =>
   'Rendre au chemin sa feuille `idDe` : une référence se pose par la fabrique (`ref`/`refs`/`specRef`/`pick`, src/data/schemas/grammaire/ref.ts), jamais en chaîne nue.'
 
@@ -156,13 +147,13 @@ export const STRUCTURES_LOCALES = Object.freeze({
 
 /**
  * Tout ce que juge la PORTE DES COMPTES (`jugerLesComptes`, `scripts/guards/lib/corpusDesComptes.mts`) : les collections
- * à compte, comptées par `occurrencesDe`, les volets `DETTE_OPS` et `DETTE_ENVELOPPE`, le plancher `FEUILLES_D_ID`, le
+ * à compte, comptées par `occurrencesDe`, le volet `DETTE_OPS`, le plancher `FEUILLES_D_ID`, le
  * volet `STRUCTURES_LOCALES` et le volet `SOURCE_FORMAT` (`scripts/raw/check-source-format.mjs`). Un volet à stock nomme
  * son porteur, l'un de `PORTEURS_SOUS_LA_PORTE` (`porteursDesComptes.mjs`).
  */
 export const SOUS_LA_PORTE = Object.freeze([
   ...COLLECTIONS_A_COMPTE.map((c) => Object.freeze({ ...c, nombre: occurrencesDe })),
-  DETTE_OPS, DETTE_ENVELOPPE, FEUILLES_D_ID, STRUCTURES_LOCALES, SOURCE_FORMAT,
+  DETTE_OPS, FEUILLES_D_ID, STRUCTURES_LOCALES, SOURCE_FORMAT,
 ])
 
 /** Les collections à compte par nom. */

@@ -366,7 +366,7 @@ function rendu() {
     "**Provenance** — un raffinement PRÉ-sceau refuse l'entrée qui n'a NI `source` NI `maison` (`maison` =",
     "la RAISON en clair d'un arbitrage, une CHAÎNE, jamais un drapeau). Les types dont la provenance n'est",
     "pas exigible (vocabulaires d'app, documents dont la source vit en profondeur) sont listés dans",
-    "`SANS_PROVENANCE_EXIGEE` (`src/data/schemas/grammaire/sans-livre.ts`, union de `SANS_LIVRE` et",
+    "`SANS_PROVENANCE_EXIGEE` (`src/data/schemas/grammaire/sans-livre.ts`, union de `SANS_LIVRE_DEFINITIF` et",
     "`SOURCE_EN_PROFONDEUR`), seule table consultée par `exigeSource`.",
     "",
     "**`options`** :",

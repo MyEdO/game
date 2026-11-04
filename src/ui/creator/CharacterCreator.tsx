@@ -2070,8 +2070,8 @@ function IdentityField({ label, value, onChange, onClear }: {
 
 /** Champ IDENTITÉ NOMBRE du registre d'état civil (âge, taille) — la grandeur passe par la primitive
  *  partagée, jamais par un `<input type="number">` du site. `details.json` ne chiffre que le TIRAGE
- *  (`ageBase`/`ageRoll`, `heightBase`/`heightRoll`) : aucun plafond n'est authoré, seul le plancher
- *  structurel de la grandeur (un entier strictement positif) est posé. */
+ *  (`age`, `taille`) : aucun plafond n'est authoré, seul le plancher structurel de la grandeur (1)
+ *  est posé. */
 function IdentityNumberField({ label, value, onChange, onClear }: {
   label: string;
   value: number | undefined;

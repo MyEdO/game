@@ -4,7 +4,8 @@
  * Le mode de panne fermé ici est la 4ᵉ CLÉ posée sur un descripteur de dé : `miscast.json` a écrit
  * quatre ans durant `{n, sides, sinPlus:true}` — un dé porteur d'un drapeau que seul
  * `engine/miscast.ts` savait lire, invisible au `DiceSpec` du moteur (`src/engine/dice.ts`) comme à
- * `rollDice`/`formatDice`. Un dé authoré n'a que `{n, sides, plus?}` ; ce que le RAW ajoute au dé
+ * `rollDice`/`formatDice`. Un dé authoré n'a que les clés de `diceSpecSchema` (`{n, sides, fois?, plus?}`,
+ * toutes lues par `rollDice`/`formatDice`/`parseDice`) ; ce que le RAW ajoute au dé hors de ces clés
  * (« 1d10 + (Points de Péché) », LDB 40 l.58/62/65/68/73/75) est un TERME DE FORMULE
  * (`{sum:[{dice}, {sinPoints:true}]}`), jamais une clé de plus sur le dé.
  *
@@ -14,11 +15,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { diceSpecSchema } from './schemas/grammaire/valeurs';
 
 const ROOT = process.cwd();
 const RACINES = ['src/data', 'src/scenes'];
-/** Les 3 seules clés d'un `DiceSpec` (`src/engine/dice.ts`). */
-const CANON = ['n', 'sides', 'plus'];
+/** Les seules clés d'un `DiceSpec` (`src/engine/dice.ts`), lues à son schéma. */
+const CANON = Object.keys(diceSpecSchema.shape);
 /** Expression de dé écrite EN CHAÎNE (`3d10`, `1d10+15`, `d10`) — la graphie que `rollExpr` accepte. */
 const EXPRESSION_DE_DE = /^\s*\d*\s*d\s*\d+/i;
 
@@ -55,10 +57,10 @@ describe('dé — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     expect(offenders, 'dé(s) portant une clé HORS `DiceSpec` — ce que le RAW ajoute au dé est un terme de formule').toEqual([]);
 
-    // Les SIGNATURES écrites sont les deux formes du `DiceSpec`, et rien d'autre. Aucun compte n'est
+    // Les SIGNATURES écrites sont les trois formes du `DiceSpec`, et rien d'autre. Aucun compte n'est
     // figé ici : un dé authoré de plus est une donnée neuve, pas une régression — le cardinal, lui,
     // est asserté par la migration (`scripts/migrations/2026-09-01-1463-de-sin-points.mjs`).
-    expect(Object.keys(signatures).sort(), 'signatures de dé observées').toEqual(['n,plus,sides', 'n,sides']);
+    expect(Object.keys(signatures).sort(), 'signatures de dé observées').toEqual(['fois,n,plus,sides', 'n,plus,sides', 'n,sides']);
     expect(
       Object.values(signatures).reduce((a, b) => a + b, 0),
       'le corpus de dés a FONDU sous la mesure de référence (134) : la sonde ne mesure plus ce qu’elle croit.',

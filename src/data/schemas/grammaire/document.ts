@@ -557,7 +557,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
   // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
-  // (`SANS_LIVRE` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme
+  // (`SANS_LIVRE_DEFINITIF` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme
   // ceux dont le livre est cité par SOUS-ENTRÉE — dans les deux cas rien n'est exigible à l'entrée de
   // racine. Refine PRÉ-sceau : `superRefine` rend un `ZodObject` encore extensible (mesuré zod
   // 4.4.3), donc `affinerEntree` reçoit bien un objet.

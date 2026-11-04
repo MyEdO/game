@@ -1,6 +1,17 @@
 /**
- * Part DÉFINITIVE de `SANS_LIVRE` : configuration de rendu, manifestes d’outillage, vocabulaire des actes, index
- * d’app des livres et artefacts générés dont la provenance est portée par bande. Aucun sourçage n’y est dû.
+ * Documents SANS LIVRE (#1466 L1a, étendu #1467 L1b V-Src) — liste NOMINATIVE datée des types de
+ * document qui n'ont AUCUN livre : configuration de rendu, manifestes d’outillage, vocabulaire des actes,
+ * index d’app des livres, artefacts générés dont la provenance est portée par bande, catalogues
+ * d’application. Aucun sourçage n’y est dû. À ne pas confondre avec `SOURCE_EN_PROFONDEUR` (même
+ * ci-dessous) : ceux-là ONT un livre, cité par sous-entrée, et ce sont deux régimes distincts.
+ * Partout ailleurs la provenance est REQUISE, sous la forme `source` OU `maison` (refine de fabrique,
+ * `document.ts`) : un document de jeu sans folio n'est pas interdit, il doit DIRE pourquoi.
+ *
+ * `actions.json` est le vocabulaire des actes du moteur (certaines de ses entrées citent malgré tout un
+ * folio, d'où une source optionnelle et non interdite).
+ *
+ * Clé = `type` du document, égal au nom de base de son dataset. Aucune entrée ne s'ajoute sans sa
+ * raison mesurée.
  */
 export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   ambiance: 'configuration de rendu — ambiances lumineuses/sonores de scène, aucun folio ne les imprime',
@@ -35,7 +46,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   'progression-schemas.derived':
     'artefact GÉNÉRÉ par scripts/data/gen-progression-schemas.py — la provenance est PORTÉE PAR CHAQUE BANDE (book, page = folio imprimé, page PDF, ordonnée), relevée sur la page ; une source racine recopierait à la main ce que le générateur mesure',
   // Catalogues d'application : l'objet décrit est le dépôt ou son contenu, pas une règle. Décision
-  // utilisateur du 2026-11-04 consignée à #1469.
+  // utilisateur du 2026-11-04 : « Oui, sans livre définitif ».
   groups:
     'index d’app des groupes cibles ({id,label}) — tags de regroupement/rencontre, pas une notion RAW nommée ; les espèces sourcées vivent dans species.json',
   names:
@@ -54,50 +65,14 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
 };
 
 /**
- * Part de CONTENU de `SANS_LIVRE` (classe (3) de #1467 L1b V-Src, hors index d’app des livres et artefacts
- * générés) : son sourçage reste dû, lot L1d #1469. La fabrique l’exempte, la mesure d’enveloppe en compte l’absence
- * (`provenanceMesuree`). Une clé ne sort d’ici que par le commit qui source son document, ou par une décision
- * utilisateur datée au ticket qui la déclare définitivement sans livre.
- */
-export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
-  // ── #1467 L1b V-Src (2026-08-27) — jugé le 2026-08-26. Chaque raison est MESURÉE au geste sur la
-  // donnée réelle ; aucune n'est close par « … ».
-
-  // (3) MIXTES — plusieurs provenances PAR CLÉ (et par colonne d'espèce pour `details`), aucune racine unique.
-  sizes:
-    'plusieurs provenances par clé, aucune racine unique : `rangedMod` = LDB 14 l.118 (folio 162), `shipboardEnc` = MDG 12 l.25 (folio 92), `footprintSide` = MAISON (LDB 15 l.12 ne chiffre rien) ; l’emplacement MDG se poserait en `alsoIn` de racine, que l’atelier d’objet unique du Codex rend en JSON brut (`src/ui/compendium/no-json-fields.test.ts`)',
-  details:
-    'plusieurs provenances par colonne : `ageBase`/`ageRoll`/`heightBase`/`heightRoll` = LDB 05 l.705-728 (folio 39) pour humain/nain/elfe/halfling, NADJ 15 l.80 et l.112 (folio 89) pour gnome, ADE II 02 l.278 et l.315 pour ogre ; la Taille gnome imprimée « 1d10 × 2,5 cm + 100 cm » n’a pas de forme dans « base + N d10 » (`heightRoll` 2,5) ; `texts` est de la prose d’application',
-};
-
-/**
- * Documents SANS LIVRE (#1466 L1a, étendu #1467 L1b V-Src) — liste NOMINATIVE datée des types de
- * document qui n'ont AUCUN livre : vocabulaire d'application, configuration de rendu, structure du
- * dépôt. À ne pas confondre avec `SOURCE_EN_PROFONDEUR` (même ci-dessous) : ceux-là ONT un livre,
- * cité par sous-entrée, et ce sont deux dettes qui ne se soldent pas ensemble.
- * Partout ailleurs la provenance est
- * REQUISE, sous la forme `source` OU `maison` (refine de fabrique, `document.ts`) : un document de
- * jeu sans folio n'est pas interdit, il doit DIRE pourquoi (le sourçage des datasets de CONTENU qui
- * n'en portent pas reste le lot L1d #1469).
- *
- * Les configurations de RENDU et les manifestes d'outillage de cette liste sont des données de
- * l'application, pas des règles ; `actions.json` est le vocabulaire des actes du moteur (certaines de
- * ses entrées citent malgré tout un folio, d'où une source optionnelle et non interdite).
- *
- * Clé = `type` du document, égal au nom de base de son dataset. Une entrée ne se retire que par le
- * commit qui SOURCE le document ; aucune entrée ne s'ajoute sans sa raison mesurée.
- */
-export const SANS_LIVRE: Readonly<Record<string, string>> = { ...SANS_LIVRE_DEFINITIF, ...CONTENU_A_SOURCER };
-
-/**
  * Documents dont la provenance est CITÉE EN PROFONDEUR (#1467 L1b V-Src) — régime DISTINCT de
- * `SANS_LIVRE` : ceux-ci ONT un livre, plusieurs même, mais pas à la RACINE. Chaque sous-entrée
+ * `SANS_LIVRE_DEFINITIF` : ceux-ci ONT un livre, plusieurs même, mais pas à la RACINE. Chaque sous-entrée
  * porte son `source: {book,page}` ; la racine, elle, ne doit JAMAIS en porter — `auditDataset`
  * (`scripts/guards/lib/citationCoverage.mjs:83`) rend `{total:1, cited:1}` dès qu'une racine cite,
  * ce qui ferait sortir ses sous-entrées du dénominateur de la garde de couverture. Verrouillé par
  * `src/data/source-racine-aveugle.test.ts`.
  *
- * La fabrique les exempte comme `SANS_LIVRE` (même effet : aucune provenance exigée à l'entrée de
+ * La fabrique les exempte comme `SANS_LIVRE_DEFINITIF` (même effet : aucune provenance exigée à l'entrée de
  * racine), mais le MOTIF n'est pas le même et les deux listes ne se soldent pas ensemble — d'où deux
  * constantes.
  */
@@ -119,16 +94,18 @@ export const SOURCE_EN_PROFONDEUR: Readonly<Record<string, string>> = {
 };
 
 /** UNION des deux régimes d'exemption — ce que la fabrique ET le cliquet consultent. */
-export const SANS_PROVENANCE_EXIGEE: Readonly<Record<string, string>> = { ...SANS_LIVRE, ...SOURCE_EN_PROFONDEUR };
+export const SANS_PROVENANCE_EXIGEE: Readonly<Record<string, string>> = { ...SANS_LIVRE_DEFINITIF, ...SOURCE_EN_PROFONDEUR };
 
 /** Une PROVENANCE (`source` ou `maison`) est-elle exigée par la fabrique pour ce type de document ? */
 export function exigeSource(type: string): boolean {
   return !(type in SANS_PROVENANCE_EXIGEE);
 }
 
+/** Part de CONTENU de `SANS_LIVRE`, vide : le détecteur de la BASE de `comptes:plage` l'importe encore depuis le `src/`
+ *  de la tête (`scripts/guards/lib/corpusDesComptes.mts:5-11`). */
+export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {};
 
-/** La mesure d'enveloppe compte-t-elle l'absence de provenance de ce type ? Partout où la fabrique
- *  l'exige, et sur le contenu dont le sourçage reste dû (`CONTENU_A_SOURCER`). */
+/** Même lecture que `CONTENU_A_SOURCER` par le détecteur de la base (`scripts/docs/lib/structures-lexique.mts`). */
 export function provenanceMesuree(type: string): boolean {
   return exigeSource(type) || type in CONTENU_A_SOURCER;
 }

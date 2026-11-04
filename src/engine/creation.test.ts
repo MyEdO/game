@@ -222,6 +222,14 @@ describe('Détails (LDB 05 l.701-768)', () => {
       expect(t).toBeLessThanOrEqual(160);
     }
   });
+  it('Taille gnome : 1d10 × 2,5 cm + 100 cm, bornée 102,5 à 125 (NADJ 15 l.112)', () => {
+    const gnome = findSpeciesById('gnomes')!;
+    const tailles = new Set<number>();
+    for (let seed = 1; seed <= 200; seed++) tailles.add(rollHeight(gnome, makeRNG(seed)));
+    expect(Math.min(...tailles)).toBe(102.5);
+    expect(Math.max(...tailles)).toBe(125);
+    expect([...tailles].every((t) => (t - 100) % 2.5 === 0)).toBe(true);
+  });
   it('yeux/cheveux : libellé non vide tiré des tables, déterministe', () => {
     const elf = findSpeciesById('hauts-elfes')!;
     expect(rollEyes(elf, makeRNG(3))).toBe(rollEyes(elf, makeRNG(3)));

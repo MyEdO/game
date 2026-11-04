@@ -710,8 +710,8 @@ export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silve
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
 export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
-/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, plus?}`, partagé par `CountSpec.roll` et `Formula.dice`. */
-export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, plus: { label: "ajout" } });
+/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
+export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
 
 /** `ShipSize` (`src/data/index.ts`) — les sept Tailles de bateau du tableau standard (`MDG 12 l.122-129`),
  *  dérivées de la LONGUEUR par `shipSizeOfLength` (`src/engine/shipBuild.ts`). Déclarées ICI une fois :
@@ -780,8 +780,8 @@ export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(),
 
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`
- * (#310). Clé de `species.json.refChar`, `hairs.json`/`eyes.json.color`, `details.json.ageBase`/
- * `ageRoll`/`heightBase`/`heightRoll` (#313 — ces 4 Record étaient label-keyés). `names.json` en
+ * (#310). Clé de `species.json.refChar`, `hairs.json`/`eyes.json.color`, `details.json.age`/
+ * `taille` (#313). `names.json` en
  * reste EXCLU par exception documentée (`defs/names.ts`) : le label EST la donnée affichée.
  */
 export const raceKeySchema = z.enum(['humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain']);

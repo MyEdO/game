@@ -306,7 +306,7 @@ function rendu() {
   out += `Un SITE = un appel **où le dé tombe** : une primitive de \`engine/dice\` IMPORTÉE dans ce fichier, un\n`
   out += `\`.int(\` de RNG, ou un export de \`src/engine\` derrière lequel le dé tombe **sans franchir d'autre\n`
   out += `frontière exportée** (\`engineDiceRollers\` : corps de l'export, ou helper module-local qu'il appelle —\n`
-  out += `\`rollStock\` → \`fullStock\` → \`rollDice\`, \`rollAge\` → \`rollDetailFormula\` → \`roll\`). La clôture\n`
+  out += `\`rollStock\` → \`fullStock\` → \`rollDice\`, \`rollEyes\` → \`rollDetail\` → \`roll\`). La clôture\n`
   out += `transitive COMPLÈTE, elle, remonterait jusqu'aux helpers génériques (\`createHero\`, \`contractDisease\`,\n`
   out += `\`spellRangeTiles\`, \`zdeRadiusTiles\`, \`durationClockMinutes\`…) : 423 sites « où un dé pourrait tomber »\n`
   out += `au lieu de ceux où il tombe, et un stock qui ne peut plus descendre à zéro.\n`

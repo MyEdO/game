@@ -18,7 +18,7 @@
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
-import { roll, d100, type RNG, type DiceSpec } from '../engine/dice';
+import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import type { CascadeStep, CascadeStepMeta, PendingCascade, ReprisePilote, RowSurface, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
 import { formatWardSave } from '../engine/traits/dispatch';
@@ -268,7 +268,7 @@ export function plageNaturelle(spec: DiceSpec): { min: number; max: number } {
  * résolveur moteur), sinon `n` dés de `sides` faces sont totalisés ; `keepHighest` (N > 1) rejoue le
  * tirage NATUREL et retient le plus élevé — un dé POSÉ n'est jamais re-tiré.
  *
- * Le TOTAL est `naturel + spec.plus + mod` : c'est lui que la conséquence consomme (dé nu) ou que le
+ * Le TOTAL est `totalDuDe(spec, naturel) + mod` : c'est lui que la conséquence consomme (dé nu) ou que le
  * lookup lit (table, où il est le dé EFFECTIF). `modPerActor` a déjà été versé dans `mod` par le site
  * unique de composition (`declVivante`). PUR (RNG injecté), aucun concept de domaine.
  */
@@ -281,7 +281,7 @@ export function roulerDe(decl: CascadeDeTirage, spec: DiceSpec, rng: RNG): Casca
   }
   let natural = decl.forcedRoll ?? roll(spec.n, spec.sides, rng);
   if (decl.forcedRoll == null) for (let i = 1; i < (decl.keepHighest ?? 1); i++) natural = Math.max(natural, roll(spec.n, spec.sides, rng));
-  return { roll: natural, total: natural + (spec.plus ?? 0) + (decl.mod ?? 0) };
+  return { roll: natural, total: totalDuDe(spec, natural) + (decl.mod ?? 0) };
 }
 
 /** Ramène une SAISIE libre aux naturels que CE tirage peut sortir — borne PARTAGÉE de la pose d'un dé

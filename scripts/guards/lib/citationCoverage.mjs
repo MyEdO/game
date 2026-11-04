@@ -150,8 +150,6 @@ export function auditDataset(data) {
  * @type {Record<string, string>}
  */
 export const EXEMPT_DATASETS = {
-  'details.json': "`ageBase`/`ageRoll`/`heightBase`/`heightRoll` : LDB `05` l.705-728 (folio 39) pour humain/nain/elfe/halfling, NADJ `15` l.80 et l.112 (folio 89) pour gnome, ADE II `02` l.278 et l.315 pour ogre ; la Taille gnome imprimée « 1d10 × 2,5 cm + 100 cm » n'a pas de forme dans « base + N d10 », et `texts` est de la prose d'application — aucune strate n'est citable tant que cette valeur ment.",
-  'sizes.json': "3 tables, 3 provenances : `rangedMod` = LDB folio 162 (`14 - _GoBack.md` l.118-131), `shipboardEnc` = MDG folio 92 (`12` l.25-33), `footprintSide` = MAISON (aucune barre chiffrée au canon, cf. `src/engine/size.ts:40-49`). Aucune des trois n'est une entrée narrative sourçable individuellement : les deux tables RAW portent leur réf à leur foyer (`src/data/schemas/defs/sizes.ts:2-4`), la troisième n'a pas de folio à citer.",
   // (`reglesOptionnelles.json` n'est PAS exempté : sa dette de folios est un cliquet DÉCROISSANT,
   //  `BASELINES` de `src/data/citation-coverage-guard.test.ts` — E8 du programme #1318.)
 };

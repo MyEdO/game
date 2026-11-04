@@ -1057,7 +1057,7 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
   /**
    * MORSURE DU HELPER PRIVÉ — le dé ne tombe pas dans le corps de l'export, mais dans un helper
    * MODULE-LOCAL qu'il appelle : c'est la forme RÉELLE de `merchantFlow.rollStock` → `fullStock` →
-   * `rollDice` et de `rollAge`/`rollEyes`/`rollHair`/`rollHeight` → `rollDetailFormula` → `roll`.
+   * `rollDice` et de `rollEyes`/`rollHair` → `rollDetail` → `roll`.
    * Un critère à UN SAUT les rendait invisibles (10 sites réels, dont `merchantFlow.ts` en entier —
    * que `ENGINE_DELEGATED_ROLL_STOCK` classait pourtant déjà en dette : deux stocks du même dé ne
    * peuvent pas se contredire). La frontière est l'EXPORT, pas le nombre de sauts.
