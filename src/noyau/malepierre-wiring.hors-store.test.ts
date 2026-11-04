@@ -149,10 +149,9 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     w.items = [carried];
     banc.setState({ party: [w] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
-    banc.getState().castRoll();
+    banc.getState().castForceSuccess(); // au lieu du jet, ouvre `forced` (LDB 17 l.68) — requis avant `castSetForcedRoll`
     const before = banc.getState().pendingCast!.result!;
     expect(before.malepierreConsumed).toBeGreaterThan(0);
-    banc.getState().castForceSuccess(); // ouvre `forced` (LDB 17 l.68) — requis avant `castSetForcedRoll`
     banc.getState().castSetForcedRoll(1);
     const after = banc.getState().pendingCast!.result!;
     const tr0 = evaluateTest(1, before.target);

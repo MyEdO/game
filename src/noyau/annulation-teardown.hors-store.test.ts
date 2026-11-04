@@ -21,7 +21,7 @@ describe('cancel par défaut : la cascade se ferme avec le flux qu’elle héber
   });
 
   it('flux hébergé (Test) : son pending et sa cascade-hôte se ferment ensemble', () => {
-    banc.setState({ pendingTest: { actorId: 'h1' } as unknown as Jeu['pendingTest'], pendingCascade: cascade });
+    banc.setState({ pendingTest: { actorId: 'h1', cancellable: true } as unknown as Jeu['pendingTest'], pendingCascade: cascade });
     banc.getState().testCancel();
     expect(banc.getState().pendingTest).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();

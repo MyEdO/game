@@ -79,8 +79,6 @@ export function AuContactModal() {
     onForce: force,
   }, {
     rollLabel: t('verbe.roll'),
-    // Résilience AVANT le jet (LDB 17 l.68) : Corps à corps forcé à l'emporter.
-    preRollForce: () => { roll(); force(); },
   });
 
   const issue = pd.def
@@ -88,8 +86,8 @@ export function AuContactModal() {
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
   ];
 
   if (pd.phase === 'choice') {
