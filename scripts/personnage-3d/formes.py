@@ -11,6 +11,9 @@ RABOT = 0.9
 """Facteur dont une passe de `raboter` multiplie une clé aux nœuds de ses arêtes marquées : valeur
 d'ingénierie #3104 (capture r9 du 2026-11-04 : 53 passes, `feminin` garde 85 % de son amplitude et 5 cm au sein,
 contre 68 % et 3,4 cm à 0,7)."""
+STAGNATION_M = 1e-3
+"""Variation par passe sous laquelle la région de rabot d'une clé gagne un anneau (`raboter`) : valeur d'ingénierie
+#3104 (construction r16 du 2026-11-04 : sans anneau, 80 arêtes par clé restent en défaut après 39 passes)."""
 
 
 def positions(mesh, cle=None):
@@ -74,11 +77,13 @@ def region_locale(aretes, masque, anneaux, n):
 def raboter(champ, noeud, aretes, facteur, hors, passes_max):
     """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), rabotés passe après
     passe jusqu'à ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête : une
-    passe multiplie chaque clé marquée par `RABOT` sur les seuls nœuds `noeud` de ses arêtes `aretes` marquées, et la
-    laisse intacte ailleurs. Tous les champs sont remesurés à chaque passe. Les sommets d'un même nœud reçoivent la
+    passe multiplie chaque clé marquée par `RABOT` sur les nœuds `noeud` de ses arêtes `aretes` marquées
+    (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne un anneau de voisins dès que la clé y
+    varie de moins de `STAGNATION_M` sur une passe. Tous les champs sont remesurés à chaque passe. Les sommets d'un même nœud reçoivent la
     même valeur. Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont un `facteur`
     nul, qu'aucune passe ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la construction."""
     valeur = aux_noeuds(champ, noeud)
+    anneaux = numpy.zeros(valeur.shape[1], dtype=int)
     for passe in range(passes_max + 1):
         resultat = valeur[noeud] * facteur[:, None, None]
         marquees = numpy.asarray(hors(resultat))
@@ -92,7 +97,11 @@ def raboter(champ, noeud, aretes, facteur, hors, passes_max):
             raise RuntimeError(f'{int(marquees.any(axis=1).sum())} arête(s) hors bornes après {passes_max} passes de rabot')
         valeur = valeur.copy()
         for cle in numpy.flatnonzero(marquees.any(axis=0)):
-            valeur[region_locale(aretes, marquees[:, cle], 0, len(valeur)), cle] *= RABOT
+            dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
+            variation = (1 - RABOT) * numpy.linalg.norm(valeur[dans, cle], axis=-1).max()
+            valeur[dans, cle] *= RABOT
+            if variation < STAGNATION_M:
+                anneaux[cle] += 1
 
 
 def voisins(rig, noms):

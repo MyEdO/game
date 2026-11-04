@@ -327,10 +327,13 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
         return {nom: d @ inverse for nom, d in zip(noms, champs)}, sonde
 
     def masque(pile):
-        mesures = hors(corriges(pile)[0])
+        courants = corriges(pile)[0]
+        mesures = hors(courants)
         marques = numpy.stack([mesures[nom] for nom in noms], axis=1)
-        print('SILHOUETTES rabot : arêtes en défaut', {nom: int(marques[:, k].sum()) for k, nom in enumerate(noms)},
-              flush=True)
+        print('SILHOUETTES rabot : arêtes en défaut, décalage corrigé le plus grand à leurs nœuds (m)',
+              {nom: (int(marques[:, k].sum()),
+                     round(float(numpy.linalg.norm(courants[nom][aretes[marques[:, k]].ravel()], axis=1).max(initial=0)), 5))
+               for k, nom in enumerate(noms)}, flush=True)
         return marques
 
     pile, passes = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, masque,

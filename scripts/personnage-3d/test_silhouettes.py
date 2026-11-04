@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import RABOT, aux_noeuds, raboter, rapports, region_locale  # noqa: E402
+from formes import RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale  # noqa: E402
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
@@ -365,6 +365,22 @@ class Rabot(unittest.TestCase):
         attendu[dans] = RABOT * valeur[dans]
         self.assertTrue(numpy.array_equal(resultat, attendu[self.noeud]))
         self.assertGreater(int((~dans[self.noeud]).sum()), len(self.x) // 2)
+
+    def test_la_region_gagne_un_anneau_quand_la_cle_y_stagne(self):
+        marque = numpy.zeros(len(self.aretes), dtype=bool)
+        marque[0] = True
+        premier = region_locale(self.aretes, marque, 0, len(self.x))
+        second = region_locale(self.aretes, marque, 1, len(self.x)) & ~premier
+        voisin = numpy.flatnonzero(second)[0]
+        loin = numpy.flatnonzero(region_locale(self.aretes, marque, 2, len(self.x)) & ~second & ~premier)[0]
+        champ = numpy.zeros_like(self.x)
+        champ[self.noeud == voisin] = [0.0, 0.0, 10 * STAGNATION_M]
+        champ[self.noeud == loin] = [0.0, 0.0, 10 * STAGNATION_M]
+        mesures = iter([marque, marque, numpy.zeros_like(marque)])
+        resultat, passes = self.raboter(champ, hors=lambda _: next(mesures))
+        self.assertEqual(passes, 2)
+        self.assertTrue(numpy.allclose(resultat[self.noeud == voisin], RABOT * champ[self.noeud == voisin]))
+        self.assertTrue(numpy.array_equal(resultat[self.noeud == loin], champ[self.noeud == loin]))
 
     def test_le_rabot_garde_la_direction_de_la_cle_et_rend_ses_bornes(self):
         rabote, passes = self.raboter(self.bosse)
