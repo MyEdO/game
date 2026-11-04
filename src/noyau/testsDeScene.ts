@@ -10,7 +10,7 @@ import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
 import { tablesPosees, type FragmentDeTables } from './tablesPosees';
-import { FLOWS, meetsRequiredSL } from './rollFlowSpecs';
+import { FLOWS, meetsRequiredSL, siOuvert } from './rollFlowSpecs';
 import { armeDEnfoncement, bilanDuRound } from './enfoncerUnePorte';
 import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
@@ -20,6 +20,7 @@ import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { garanti } from '../lib/garanti';
 import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -41,7 +42,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: opts.actorId }));
       if (steps.length) openSequence(get, set, { title: opts.label, icon: 'ui/key', purpose: 'test', steps });
     },
-    extendedTestNext: () => {
+    extendedTestNext: () => siOuvert('extendedTest', 'apply', get, () => {
       const p = get().pendingExtendedTest;
       if (!p) return;
       const issue = issueDuRound(p);
@@ -73,7 +74,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       }
       // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
       set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
-    },
+    }),
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     startForceDoor: (opts) => {
       set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
@@ -138,9 +139,10 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       });
     },
     /** Acquitte un test de compétence : applique la branche réussite/échec. */
-    resolveTest: () => {
+    resolveTest: () => siOuvert('test', 'apply', get, () => {
       const pt = get().pendingTest;
-      if (!pt || pt.roll == null) return; // pas d'acquittement avant le jet
+      if (!pt) return;
+      const lance = garanti(pt.roll, pt.actorId, 'jet du Test');
       // ACQUITTEMENT par le goulot (`FLOWS.test.apply`) : l'issue est déclarée AU FLUX (`spec.issue`),
       // journalisée là — ici on acquitte, avant de fermer (l'issue se lit sur le pending qui l'a produite).
       FLOWS.test.apply(get);
@@ -152,9 +154,9 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Pratique/Peu Fiable : ±1 DR sur un Test RATÉ (LDB 60 l.22/58). Ne repêche qu'un échec qui a
       // réussi le d100 mais manqué le seuil requireSL (jamais un roll > cible → on ne crée pas de réussite).
       const drDelta = tool ? craftTestDRAdjust(tool, pt.success) : 0;
-      const effSuccess = drDelta !== 0 ? pt.roll <= pt.target && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
+      const effSuccess = drDelta !== 0 ? lance <= pt.target && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
       // SEAM d'observation pure (recette navigateur, #514) — jamais lu par du code de règles.
-      bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: pt.roll, target: pt.target });
+      bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: lance, target: pt.target });
       // Bâclé : un outil Bâclé qui Maladresse (échec + double) se brise (LDB 60, généralisé hors combat).
       if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
         tool.destroyed = true;
@@ -190,7 +192,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
       if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
       cloturer(get, set, issue, clotures);
-    },
+    }),
   } satisfies Partial<ActionsDuNoyau>;
 }
 

@@ -5,6 +5,8 @@
  * (`pertesDArgentDuTirage`), clôture (`devisDeCloture` ; LDB 23 l.15, l.191).
  */
 import type { Jeu } from './etat';
+import { siOuvert } from './rollFlowSpecs';
+import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
 import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
@@ -13,17 +15,16 @@ import { startCascade } from './cascade';
 import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
-import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
-import { garanti } from '../lib/garanti';
 import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, refusDeClore, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
@@ -938,8 +939,12 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
  *  de bande) OU `resolver` DIRECT (Revenus/Artisanat/Apprentissage/Identification, sans table). Les
  *  `patch` des résolveurs sont ACCUMULÉS puis fusionnés dans l'unique écriture finale. */
 export function confirmActivity(get: Get, set: Set): void {
+  siOuvert('activity', 'apply', get, () => appliquerLActivite(get, set));
+}
+
+function appliquerLActivite(get: Get, set: Set): void {
   const pa = get().pendingActivity;
-  if (!pa || pa.roll == null || !pa.activityId) return;
+  if (!pa || !pa.activityId) return;
   // Activité/Scène de BATAILLE de masse (ADE II 8) : l'issue porte sur l'ARMÉE (application distincte
   // par `confirmBattleActivity`, canal de jet identique). BUDGET UNIQUE (l.65 : « comme à l'accoutumée,
   // ils ne peuvent participer qu'à un maximum de trois Activités ») : une prépa de bataille EST une
@@ -973,7 +978,7 @@ export function confirmActivity(get: Get, set: Set): void {
   const source: EffectSource = { kind: 'activity', id: def.id };
   // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'fumble'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
-  const fumble = isFumble(pa.roll, pa.success);
+  const fumble = isFumble(garanti(pa.roll, pa.heroId, 'jet de l’Activité'), pa.success);
   // Résolveur DIRECT (pas de table d'issues) : Revenus/Artisanat/Apprentissage/Identification —
   // ils agissent/consomment MÊME sur échec (RAW). Les résolveurs de BANDE restent dans la boucle.
   if (def.resolver && !def.outcomes?.length && !def.onSuccess?.length) {
@@ -1126,7 +1131,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
 /** Clôture : applique le devis (`devisDeCloture`) que le récap affiche, puis le temps passe (repos
  *  standard). Touche toutes les bourses : geste du groupe. LDB 23 l.15, l.33, l.191 */
 export function interludeEnd(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
+  if (refuseSi(get, set, refusDeClore)) return;
   const devis = devisDeCloture(get());
   if (!devis) return;
   const lines: string[] = [];

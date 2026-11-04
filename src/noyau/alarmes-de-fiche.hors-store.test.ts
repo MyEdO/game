@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
+import { sheetAlarms, alarmsFingerprint, atterritSurEtat, empreinteDeFiche } from './alarmesDeFiche';
 import type { Combatant, Trauma, ItemInstance } from '../engine/types';
 import type { Disease } from '../engine/disease';
 import type { Mutation } from '../engine/corruption';
@@ -38,10 +38,9 @@ const mkDisease = (id: string): Disease => ({
 
 const mkItem = (uid: string, enc: number): ItemInstance => ({ uid, kind: 'misc', enc, qualities: [] } as unknown as ItemInstance);
 
-/** `sheetAlarms` sert UNIQUEMENT la règle d'atterrissage (auto-ouverture de l'onglet État à
- *  l'apparition d'une affliction NOUVELLE, `CharacterSheet.tsx`) — plus l'affichage de l'aside
- *  (désormais `EffectChips`). Contrat : détecter les afflictions par `key` d'identité + `label`
- *  porteur du compte/degré (les deux seuls champs lus par `alarmsFingerprint`). */
+/** `sheetAlarms` sert la règle d'atterrissage (ouverture de la fiche sur l'onglet État à l'apparition
+ *  d'une affliction NOUVELLE). Contrat : détecter les afflictions par `key` d'identité + `label` porteur
+ *  du compte/degré (les deux seuls champs lus par `alarmsFingerprint`). */
 describe('sheetAlarms', () => {
   it('héros sain : aucune affliction', () => {
     expect(sheetAlarms(mkHero())).toEqual([]);
@@ -115,5 +114,15 @@ describe('sheetAlarms', () => {
     hero.mutations = [{ label: 'Griffes', kind: 'physique' } as Mutation];
     const fp3 = alarmsFingerprint(sheetAlarms(hero));
     expect(fp3).not.toBe(fp1);
+  });
+
+  it('atterrissage : héros sain jamais ; alarme jamais vue oui ; empreinte vue non ; alarme nouvelle oui', () => {
+    expect(atterritSurEtat(mkHero(), undefined)).toBe(false);
+    const hero = mkHero((c) => { c.corruption = 2; });
+    expect(empreinteDeFiche(hero)).toBe('corruption:Corruption 2');
+    expect(atterritSurEtat(hero, undefined)).toBe(true);
+    expect(atterritSurEtat(hero, 'corruption:Corruption 2')).toBe(false);
+    hero.corruption = 3;
+    expect(atterritSurEtat(hero, 'corruption:Corruption 2')).toBe(true);
   });
 });

@@ -4,7 +4,7 @@ import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { typeNonNomme } from './data/schemas/defs-scenes/scene';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 
 /**
  * PERSONNAGE SANS FICHE DANS UNE FIXTURE (#1882) — un test qui pose un `kind:'personnage'` sans porteur

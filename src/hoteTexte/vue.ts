@@ -135,10 +135,16 @@ export function replier(texte: string): string[] {
   });
 }
 
-/** Les verbes de la fenêtre, chacun par sa signature (`VERBES`, lus du type du noyau), repliés, et l'id que leurs
- *  paramètres `pid` attendent. */
-const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] =>
-  f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : [];
+/** Les verbes ouverts de la fenêtre, chacun par sa signature (`VERBES`, lus du type du noyau), repliés, et l'id que leurs
+ *  paramètres `pid` attendent ; puis ceux que son jet ferme maintenant, chacun avec sa raison (`Projection.fenetre.fermes`). */
+const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] => {
+  const ouverts = f.verbes.filter((v) => !(v in f.fermes));
+  const fermes = Object.entries(f.fermes);
+  return [
+    ...(ouverts.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${ouverts.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : []),
+    ...(fermes.length ? replier(`fermés : ${fermes.map(([v, raison]) => `${v} (${raison})`).join(' · ')}`) : []),
+  ];
+};
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 

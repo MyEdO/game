@@ -23,7 +23,8 @@
  *  LDB 10 — exposé par les seuls flux à `caps.resist` (Tests qui « résistent à une menace »).
  *  `cancel` = « Annuler » unifié (cascade-aware + `onCancel` métier) — exposé par les flux annulables ;
  *  sans `pid` (annuler ferme la modale/cascade entière, pas un slot). */
-export type RollVerb = 'roll' | 'reroll' | 'bonusSL' | 'darkPact' | 'forceSuccess' | 'setForcedRoll' | 'resist' | 'determine' | 'cancel' | 'reverse';
+export const VERBES_DE_JET = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'determine', 'cancel', 'reverse'] as const;
+export type RollVerb = (typeof VERBES_DE_JET)[number];
 
 interface FlowVerbsBase {
   verbs: readonly RollVerb[];

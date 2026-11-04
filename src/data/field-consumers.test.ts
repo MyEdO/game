@@ -9,7 +9,7 @@ import { mesurerChampsDeSchema } from '../../scripts/guards/lib/schemaFieldConsu
 import { z } from 'zod';
 import { variantOf } from './schemas/grammaire/valeurs';
 import { nommerChamps } from './schemas/grammaire/meta';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { markSchema } from './schemas/defs/progression-schemas-derived';
 
 /**

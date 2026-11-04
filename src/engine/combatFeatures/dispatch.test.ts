@@ -3,6 +3,7 @@ import { offHandPenalty, attackModesFor, hasInstinctiveDiction, hasFocusHarmony 
 import { slugId } from '../../data/slug';
 import type { Combatant } from '../types';
 import { modDeRegle } from '../reglesChiffrees';
+import { penaliteDeMainSecondaire } from '../combat';
 
 const mk = (talents: { name: string; times: number }[]): Combatant =>
   ({ id: 'c', name: 'X', kind: 'hero', talents: talents.map((t) => ({ talentId: slugId(t.name), times: t.times })), skills: [] } as unknown as Combatant);
@@ -39,5 +40,13 @@ describe('hasInstinctiveDiction / hasFocusHarmony (#317 — prévention d\'Impar
   it('Harmonisation aethyrique (LDB 10 l.556) → hasFocusHarmony', () => {
     expect(hasFocusHarmony(mk([{ name: 'Harmonisation aethyrique', times: 1 }]))).toBe(true);
     expect(hasFocusHarmony(mk([]))).toBe(false);
+  });
+});
+
+describe('penaliteDeMainSecondaire : la valeur que l’attaque applique et que la fiche affiche', () => {
+  it('sans Ambidextre −20 ; Ambidextre 1× −10 ; 2× 0 (LDB 14 l.78 ; LDB 10)', () => {
+    expect(penaliteDeMainSecondaire(mk([]))).toBe(-20);
+    expect(penaliteDeMainSecondaire(mk([{ name: 'Ambidextre', times: 1 }]))).toBe(-10);
+    expect(penaliteDeMainSecondaire(mk([{ name: 'Ambidextre', times: 2 }]))).toBe(0);
   });
 });

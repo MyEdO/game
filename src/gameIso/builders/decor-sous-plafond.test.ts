@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { findPropById, props } from '../data';
-import { setDataset } from '../data/overrides';
-import { empriseLocaleM, type PropPrimitive } from '../data/props.types';
-import { emptyScene, heightAt, tileAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde/scene';
-import { propFootTiles } from '../noyau/monde/footprint';
-import { parseProject } from '../noyau/worldMap';
-import { fieldHeightAt, massCovers, resolveNappes } from '../gameIso/builders/roofs';
-import { SCENARIOS } from './test-scenarios/_registry.generated';
+import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
+import { findPropById, props } from '../../data';
+import { setDataset } from '../../data/overrides';
+import { empriseLocaleM, type PropPrimitive } from '../../data/props.types';
+import { emptyScene, heightAt, tileAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
+import { propFootTiles } from '../../noyau/monde/footprint';
+import { parseProject } from '../../noyau/worldMap';
+import { fieldHeightAt, massCovers, resolveNappes } from './roofs';
+import { SCENARIOS } from '../../scenes/test-scenarios/_registry.generated';
 
 /**
  * AUCUN DÉCOR VOLUMIQUE NE TRAVERSE UNE DALLE NI UN TOIT (#1343). Le corps d'un décor posé au niveau

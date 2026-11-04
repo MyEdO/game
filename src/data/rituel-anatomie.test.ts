@@ -3,25 +3,20 @@
  *
  * Un Rituel EST un Sort (`VDM 02 l.363`) : il vit dans `spells.json` et se résout comme un Sort
  * (`l.379`). Ce qu'il imprime EN PLUS, ce sont les rubriques de `SpellData.ritual`. Un champ n'est
- * admis au schéma qu'avec un CONSOMMATEUR : la fiche Codex des Sorts (`ui/compendium/registry.ts`)
- * pour les rubriques de prose, `eligibleTalent` (`engine/grimoire.ts`) pour la LISTE de Domaines de
- * la rubrique **Type** (`l.381`). Ce test part de la donnée réelle et assène le résultat sur ces
- * consommateurs : débrancher `ritualSection`, le fait `NI`/`PX` ou `arcaneDomainsOf` le rend rouge.
+ * admis au schéma qu'avec un CONSOMMATEUR : la fiche Codex des Sorts (`ui/compendium/registry.ts`,
+ * prouvée par `src/ui/compendium/codex-rituel-rubriques.test.ts`) pour les rubriques de prose,
+ * `eligibleTalent` (`engine/grimoire.ts`) pour la LISTE de Domaines de la rubrique **Type** (`l.381`).
+ * Ce test part de la donnée réelle et assène le résultat sur ce consommateur : débrancher
+ * `arcaneDomainsOf` le rend rouge.
  */
 import { describe, it, expect } from 'vitest';
 import { spells, domains } from './index';
 import { schema as spellsSchema } from './schemas/defs/spells';
-import { CODEX } from '../ui/compendium/registry';
-import type { CodexItem } from '../ui/compendium/registry';
 import { arcaneDomainsOf, eligibleTalent, learnableSpells, spellCost } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const RITUELS = spells.filter((s) => s.isRitual);
-const items = new Map<string, CodexItem>(CODEX.find((c) => c.key === 'spells')!.items.map((i) => [i.id, i]));
-const textOf = (item: CodexItem): string =>
-  (item.sections ?? []).filter((s) => s.title === 'Rituel').flatMap((s) => s.rows).map((r) => (r.t === 'text' ? r.text : '')).join('\n');
-const factOf = (item: CodexItem, label: string): string | undefined => (item.meta ?? []).find((f) => f.label === label)?.value;
 
 /** Lanceur témoin : un Talent Magie des Arcanes sur `domainId`, plus les Talents supplémentaires
  *  fournis (Magie du Chaos pour la clause `chaosMagic` d'une valeur réduite). */
@@ -58,35 +53,6 @@ describe('donnée — les Rituels de VDM portent leur anatomie', () => {
     expect(spellsSchema.safeParse([base]).success).toBe(true);
     const inconnue = { ...base, ritual: { ...base.ritual, sacrificeOps: [] } };
     expect(spellsSchema.safeParse([inconnue]).success).toBe(false);
-  });
-});
-
-describe('fiche Codex — chaque rubrique admise atteint le lecteur', () => {
-  it('les quatre rubriques de prose sont rendues VERBATIM, pour les 17', () => {
-    for (const r of RITUELS) {
-      const item = items.get(r.id)!;
-      expect(item, r.id).toBeTruthy();
-      const md = textOf(item);
-      for (const k of ['type', 'components', 'conditions', 'sacrifices', 'consequences'] as const) {
-        expect(md, `${r.id}.${k}`).toContain(r.ritual![k]);
-      }
-    }
-  });
-
-  it('les PX d’apprentissage sont un fait d’en-tête, pour les 17', () => {
-    for (const r of RITUELS) {
-      const attendu = r.ritual!.reduced ? `${r.ritual!.xp} (${r.ritual!.reduced.xp})` : String(r.ritual!.xp);
-      expect(factOf(items.get(r.id)!, 'PX d’apprentissage'), r.id).toBe(attendu);
-    }
-  });
-
-  it('NI : le nombre imprimé, ou le texte de la rubrique quand elle vise la cible', () => {
-    // `VDM 02 l.398` : « **NI :** 50 (25) » — la parenthèse de difficulté réduite est imprimée.
-    expect(factOf(items.get('art-de-la-malediction')!, 'NI')).toBe('50 (25)');
-    expect(factOf(items.get('art-de-la-malediction')!, 'PX d’apprentissage')).toBe('200 (100)');
-    const variable = RITUELS.filter((r) => r.cn == null);
-    expect(variable.map((r) => r.id)).toEqual(['les-faux-croisees', 'invocation-de-demon', 'lier-une-bete-monstrueuse']);
-    for (const r of variable) expect(factOf(items.get(r.id)!, 'NI'), r.id).toBe(r.ritual!.cnFrom);
   });
 });
 

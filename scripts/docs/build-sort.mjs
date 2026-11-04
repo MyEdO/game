@@ -225,6 +225,7 @@ function rendu() {
     'src/engine/spellDuration.test.ts',
     'src/noyau/spell-impure-ops.hors-store.test.ts',
     'src/data/vdm-spells-variantes.test.ts',
+    'src/ui/compendium/codex-vdm-spells-variantes.test.ts',
     'src/ui/compendium/no-json-fields.test.ts',
     'src/data/id-collisions.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))

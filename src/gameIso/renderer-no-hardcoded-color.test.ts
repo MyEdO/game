@@ -22,7 +22,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url)); // …/src/gameIso/
 const SOUS_GAMEISO = 'src/gameIso/';

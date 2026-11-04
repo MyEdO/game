@@ -1,21 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { touchActors, combatantClickActs } from './combatOrParty';
 import { actorIn } from './monde/combatants';
-import { useGame } from '../state/store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './monde/spawn';
+import { poserLeCombat } from './combatOrParty.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const c = (id: string): Combatant => combattantDeTest({ id, label: id });
 const state = (over: Partial<Jeu>): Jeu => ({ party: [], battle: null, ...over } as unknown as Jeu);
-
-/** Arène d'herbe minimale (combatantClickActs dérive l'affordance d'attaque → besoin d'une scène). */
-const arena = () => {
-  const w = 16, h = 12;
-  return { id: 's', dimensions: { w, h }, levels: [{ z: 0, tiles: new Array(w * h).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
-};
 
 describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () => {
   describe('actorIn : résout l’acteur dans le bon ensemble', () => {
@@ -35,56 +31,29 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
   });
 
   describe('combatantClickActs : décideur PARTAGÉ carte ⇄ frise/curseur — DÉRIVÉ du mode courant', () => {
-    beforeEach(() => { useGame.setState({ battle: null, party: [], inspectId: null }); });
-    function combat(over: Record<string, unknown> = {}) {
-      const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-      const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
-      const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 }); // adjacent au héros
-      const battle = {
-        combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
-        turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
-        movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, ...over,
-      } as never;
-      useGame.setState({ battle, scene: arena(), party: [hero, ally] });
-      return { hero, ally, enemy };
-    }
+    const combat = (over?: Record<string, unknown>) => poserLeCombat(banc.setState, over);
 
     it('ennemi en mode NEUTRE → action (attaque)', () => {
       const { enemy } = combat();
-      expect(combatantClickActs(useGame.getState, enemy)).toBe(true);
-    });
-    it('aucun MODE d’inspection ne coupe le clic (#1822) : fiche de l’ennemi ouverte, il s’attaque toujours ; l’allié, jamais', () => {
-      const { enemy, ally } = combat();
-      useGame.setState({ inspectId: enemy.id });
-      expect(combatantClickActs(useGame.getState, enemy)).toBe(true);
-      expect(combatantClickActs(useGame.getState, ally)).toBe(false);
+      expect(combatantClickActs(banc.getState, enemy)).toBe(true);
     });
     it('allié en mode NEUTRE → pas d’action (son inspection est le geste secondaire)', () => {
       const { ally } = combat();
-      expect(combatantClickActs(useGame.getState, ally)).toBe(false);
+      expect(combatantClickActs(banc.getState, ally)).toBe(false);
     });
     it('allié blessé en mode SOIN → action (le mode cible les alliés soignables)', () => {
       const { ally } = combat({ action: 'heal' });
       ally.wounds.current = Math.max(0, ally.wounds.max - 3); // soignable
-      useGame.setState({ battle: { ...useGame.getState().battle! } });
-      expect(combatantClickActs(useGame.getState, ally)).toBe(true);
+      banc.setState({ battle: { ...banc.getState().battle! } });
+      expect(combatantClickActs(banc.getState, ally)).toBe(true);
     });
     it('allié sain en mode SOIN → pas d’action (rien à soigner)', () => {
       const { ally } = combat({ action: 'heal' });
-      expect(combatantClickActs(useGame.getState, ally)).toBe(false);
+      expect(combatantClickActs(banc.getState, ally)).toBe(false);
     });
     it('battle absent → pas d’action', () => {
-      useGame.setState({ battle: null });
-      expect(combatantClickActs(useGame.getState, c('z'))).toBe(false);
-    });
-
-    it('COQUE ennemie (#240) : le verdict du clic ne dépend pas de la fiche ouverte', () => {
-      combat();
-      const hull = combattantDeTest({ id: 'hull1', label: 'Le Serpent de Sel', kind: 'npc', bodyShape: 'vehicule' });
-      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants, hull] } });
-      const avant = combatantClickActs(useGame.getState, hull);
-      useGame.setState({ inspectId: hull.id });
-      expect(combatantClickActs(useGame.getState, hull)).toBe(avant);
+      banc.setState({ battle: null });
+      expect(combatantClickActs(banc.getState, c('z'))).toBe(false);
     });
   });
 

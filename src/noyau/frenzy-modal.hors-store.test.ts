@@ -53,6 +53,15 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
     expect(banc.getState().pendingFrenzy).toBeNull();
   });
 
+  it('frenzyConfirm avant le jet : la clôture est fermée (`jetNonLance`), rien ne bouge', () => {
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    H.traits = [{ id: 'frenesie' }];
+    banc.getState().battleFrenzy();
+    banc.getState().frenzyConfirm();
+    expect(banc.getState().pendingFrenzy, 'la fenêtre reste ouverte').toBeTruthy();
+    expect(banc.getState().battle!.acted).toBe(false);
+  });
+
   it('frenzyConfirm sur échec → pas frenzied mais Action consommée', () => {
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     H.traits = [{ id: 'frenesie' }];

@@ -1,12 +1,12 @@
 /**
- * Jeux de taverne (NADJ 16) — câblage store : une partie est une SÉQUENCE (socle `sequenceCore`,
+ * Jeux de taverne (NADJ 16) — câblage du noyau : une partie est une SÉQUENCE (socle `sequenceCore`,
  * #1279) dont chaque manche s'ouvre en fenêtre ; elle se joue de bout en bout via `drain()` (patron
  * `port-sell-cargo.hors-store.test.ts`). DEUX MONTAGES : héros contre HÉROS → BANDE (une rangée par camp, chaque
  * siège joue son jet) ; héros contre la SALLE → mono à jet adverse FIGÉ dans `meta.opposed.aT` (#579),
  * dont la ré-opposition sous influence (Chance « +1 DR ») est vérifiée contre `resolveOpposed`.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame } from '../state/store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
@@ -27,7 +27,10 @@ import type { Combatant } from '../engine/types';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 
-const get = useGame.getState.bind(useGame);
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const get = () => banc.getState();
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 async function drain(): Promise<void> {
@@ -51,7 +54,7 @@ function twoHeroes(): [Combatant, Combatant] {
 }
 
 beforeEach(() => {
-  useGame.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null });
+  banc.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null });
   seedBattleRng(3);
   setRule('tavern-games', true); // la table s'ouvre sous l'option (`refusDOuvrirLaTaverne`)
 });
@@ -60,7 +63,7 @@ afterEach(() => resetRule('tavern-games'));
 describe('playTavernGame', () => {
   it('HÉROS contre HÉROS : la manche s’ouvre en BANDE (une rangée par camp), jamais mono + jet figé', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().openTavernGames();
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 20 });
     expect(get().tavernGames?.result).toBeNull();
@@ -78,8 +81,8 @@ describe('playTavernGame', () => {
 
   it('partie entre compagnons : issue stockée après la cascade, gagnant cohérent, bourse inchangée', async () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
-    creditBourse(get, useGame.setState, a.id, { gold: 5, silver: 0, brass: 0 });
+    banc.setState({ party: [a, b] });
+    creditBourse(get, banc.setState, a.id, { gold: 5, silver: 0, brass: 0 });
     const purseBefore = toBrass(partyMoneyTotal(get));
     get().openTavernGames();
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 20 });
@@ -96,7 +99,7 @@ describe('playTavernGame', () => {
 
   it('bras de fer (Test étendu) : plusieurs manches, premier à 10 DR cumulés', async () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     await drain();
     const res = get().tavernGames!.result!;
@@ -106,7 +109,7 @@ describe('playTavernGame', () => {
 
   it('Test opposé RÉEL (#579) : contre la SALLE, le jet adverse est roulé et FIGÉ AVANT que le joueur ne lance', () => {
     const [a] = twoHeroes();
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.result).toBeNull(); // le joueur n'a pas encore lancé SON jet
@@ -117,7 +120,7 @@ describe('playTavernGame', () => {
 
   it('habitué au profil standard : jet figé sans attackerId (aucun banc), sous le nom de sa fiche', () => {
     const [a] = twoHeroes();
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.meta?.opposed?.aT).toBeTruthy();
@@ -128,7 +131,7 @@ describe('playTavernGame', () => {
   it('ORACLE RAW : l’habitué joue la valeur de SON profil standard — Pari non acquis = Int (LDB 77 l.23 Nain 30, l.45 Elfe 40)', () => {
     const [a] = twoHeroes();
     const valeurAuProfil = (profil: string) => {
-      useGame.setState({ party: [a], sequence: null, pendingCascade: null });
+      banc.setState({ party: [a], sequence: null, pendingCascade: null });
       get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: profil } });
       return activeSequence<{ opponentValue: number }>(get)!.payload.opponentValue;
     };
@@ -138,7 +141,7 @@ describe('playTavernGame', () => {
 
   it('jeu d’ÉQUIPE : les coéquipiers jouent LEUR profil ; sans lui, la partie est REFUSÉE en le nommant (#1882)', () => {
     const [a] = twoHeroes();
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'torchon', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     expect(get().sequence, 'aucune partie sans profil de coéquipier').toBeNull();
     expect(get().journal.slice(-1)[0]).toContain('choisissez le profil de vos coéquipiers');
@@ -150,7 +153,7 @@ describe('playTavernGame', () => {
   it('Chance « +1 DR » RÉ-OPPOSE le jet du joueur contre l’adversaire FIGÉ — jamais un second tirage', () => {
     const [a] = twoHeroes();
     a.fortune = 3;
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const stepId = get().pendingCascade!.participants[0].id;
     get().cascadeRoll(stepId);
@@ -183,7 +186,7 @@ describe('playTavernGame', () => {
     const [a, b] = twoHeroes();
     addCondition(a, COND.empoisonne);
     addCondition(b, COND.empoisonne);
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     const game = findTavernGameById('dominos')!;
     // Le défiant est le PLUS FAIBLE des deux — mais sa Compétence NUE dépasse la valeur de Test
     // EMPOISONNÉE de son vis-à-vis. C'est le piège du mixte, et il ne tient que si les deux nues
@@ -204,7 +207,7 @@ describe('playTavernGame', () => {
     expect(ra.target).toBe(nue(fort) - 10);
     // DR ÉGAL POSÉ sur les deux rangées : seule la Compétence NUE peut trancher.
     const pose = (r: typeof rb) => ({ ...r, result: { roll: 11, target: r.target, sl: 2, success: true } });
-    useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: [pose(rb), pose(ra)] }] } });
+    banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: [pose(rb), pose(ra)] }] } });
     get().cascadeNext();
     expect(get().tavernGames!.result!.winner, 'la nue la plus haute l’emporte').toBe('opponent');
   }
@@ -216,7 +219,7 @@ describe('playTavernGame', () => {
   });
   async function recomposeDepuisLeMetaFige(): Promise<void> {
     const [a] = twoHeroes();
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const aT = step.meta!.opposed!.aT;
@@ -249,7 +252,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
       ...r,
       result: { roll: sl[r.id] >= 0 ? 11 : 99, target: r.target!, sl: sl[r.id], success: sl[r.id] >= 0 },
     }));
-    useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
+    banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
     get().cascadeNext();
   }
 
@@ -257,7 +260,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('le DR d’une manche PERDUE se RETIRE du cumul (LDB 12 l.174) — le plancher PAR MANCHE est mort', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const bfA = bonus(a.characteristics.force);
     const bfB = bonus(b.characteristics.force);
@@ -276,7 +279,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('le cumul est planché à 0 sur le TOTAL, jamais en dessous (LDB 12 l.174)', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     poseManche({ [a.id]: -20, [b.id]: 1 });
     expect(cum().player).toBe(0);
@@ -285,7 +288,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
   it('+1 Avantage au GAGNANT de chaque tour (l.34), et à lui seul', () => {
     const [a, b] = twoHeroes();
     a.advantage = 0; b.advantage = 0;
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     poseManche({ [a.id]: 4, [b.id]: 1 });
     expect(get().party.find((h) => h.id === a.id)!.advantage).toBe(1);
@@ -294,7 +297,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('+1 État Exténué tous les (Bonus d’Endurance) tours sans vainqueur (l.34)', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const beA = bonus(a.characteristics.endurance);
     expect(beA, 'le harnais n’a de sens qu’avec un intervalle réel').toBeGreaterThan(1);
@@ -314,7 +317,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
    */
   it('la manche qui EMPORTE la partie n’inflige pas l’Exténué, même au rang du Bonus d’Endurance (l.34)', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const beA = bonus(a.characteristics.endurance);
     expect(beA).toBeGreaterThan(1);
@@ -330,7 +333,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('premier à 10 DR cumulés : la partie s’achève sur SON nom (l.34)', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     poseManche({ [a.id]: 5, [b.id]: 0 });
     expect(get().sequence, 'la partie continue sous la cible').not.toBeNull();
@@ -345,7 +348,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('une partie emportée en UNE manche le dit au singulier', () => {
     const [a, b] = twoHeroes();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     poseManche({ [a.id]: 10, [b.id]: 0 });
     const res = get().tavernGames!.result!;
@@ -374,7 +377,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('+1 Avantage par tour gagné, CUMULÉ : trois tours gagnés d’affilée = 3 (LDB 14 l.204-209)', () => {
     const [a, b] = endurants();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     for (let i = 0; i < 3; i++) gagne(a, b);
     expect(get().sequence, 'la partie court encore').not.toBeNull();
@@ -386,7 +389,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const [a, b] = endurants();
     const plafond = advantageCapFor(a);
     a.advantage = plafond - 1; b.advantage = 0;
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     gagne(a, b);
     gagne(a, b);
@@ -395,7 +398,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('l’Avantage entre dans la CIBLE du Test de Force, +10 par pion, ligne nommée (LDB 14 l.215)', () => {
     const [a, b] = endurants();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const cibleA = rangee(a.id).target!;
     const cibleB = rangee(b.id).target!;
@@ -412,7 +415,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     expect(tavernParams(findTavernGameById('bras-de-fer')!).avantage).toBe(true);
     const [a, b] = endurants();
     b.characteristics.force = a.characteristics.force; // départage par la valeur nue (LDB 12 l.160) : égal
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     gagne(a, b);
     gagne(a, b);
@@ -430,7 +433,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('l’Avantage de la partie revient à 0 à son dénouement (LDB 14 l.219, NADJ 16 l.34)', () => {
     const [a, b] = endurants();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     gagne(a, b);
     expect(adv(a.id)).toBe(1);
@@ -442,7 +445,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('ABANDON : la partie est perdue par celui qui renonce, et son Avantage revient à 0', () => {
     const [a, b] = endurants();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().openTavernGames();
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     gagne(a, b);
@@ -459,7 +462,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('ABANDON : le résultat dit le cumul du tableau de marque, plancher 0, et les manches JOUÉES (LDB 12 l.174)', () => {
     const [a, b] = endurants();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     poseManche({ [a.id]: 1, [b.id]: 0 });
     poseManche({ [a.id]: -10, [b.id]: -9 });
@@ -473,7 +476,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('ABANDON avant toute manche jouée : le détail se réduit à l’abandon, et le journal dit le MÊME texte et l’issue', () => {
     const [a, b] = endurants();
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     get().sequenceAbandon();
     expect(get().tavernGames!.result!.detail).toBe(`${a.label} abandonne.`);
@@ -483,7 +486,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
   it('un État reçu en cours de partie fait perdre tout l’Avantage, et le journal le dit (LDB 16 l.7)', () => {
     const [a, b] = twoHeroes();
     for (const h of [a, b]) { h.characteristics.endurance = 15; h.advantage = 0; }
-    useGame.setState({ party: [a, b] });
+    banc.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     gagne(a, b);
     const heros = get().party.find((h) => h.id === a.id)!;
@@ -494,7 +497,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('contre un HABITUÉ (sans fiche suivie) : son Avantage de camp entre dans SON jet figé, tenu par la même règle', () => {
     const [a] = endurants();
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
     const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
@@ -513,11 +516,11 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   it('contre un HABITUÉ : son gain est le montant DÉCLARÉ par les ops `winner`, comme celui du héros (NADJ 16 l.34)', () => {
     const [a] = endurants();
-    useGame.setState({ party: [a] });
+    banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence!;
     const declare = { ...seq.params.rounds, winner: [{ op: 'gainAdvantage' as const, amount: 2 }] };
-    useGame.setState({ sequence: { ...seq, params: { ...seq.params, rounds: declare } } });
+    banc.setState({ sequence: { ...seq, params: { ...seq.params, rounds: declare } } });
     const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
     const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
     poseMono(-30);
@@ -530,7 +533,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     setRule('combat-aa-avantage-groupe', true);
     try {
       const [a] = endurants();
-      useGame.setState({ party: [a] });
+      banc.setState({ party: [a] });
       get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
       const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
       const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
@@ -548,7 +551,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const pc = get().pendingCascade!;
     const step = pc.participants[0];
     const result = { roll: sl >= 0 ? 11 : 99, target: step.target!, sl, success: sl >= 0, isDouble: false };
-    useGame.setState({ pendingCascade: { ...pc, participants: [{ ...step, result }] } });
+    banc.setState({ pendingCascade: { ...pc, participants: [{ ...step, result }] } });
     get().cascadeNext();
   }
 });
@@ -562,12 +565,11 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
  */
 describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre', () => {
   beforeEach(() => {
-    useGame.setState(useGame.getInitialState(), true);
-    useGame.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    banc.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('une seconde partie ouverte en pleine partie est REFUSÉE — la première survit intacte', () => {
-    const g = useGame.getState.bind(useGame);
+    const g = banc.getState;
     const [a, b] = g().party;
     g().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     expect(activeSequence<{ gameId: string }>(g)?.payload.gameId, 'la première partie doit être ouverte').toBe('flechettes');
@@ -578,10 +580,10 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
   });
 
   it('une partie DÉNOUÉE rouvre la porte — le refus tient à la partie en cours, pas à un verrou', () => {
-    const g = useGame.getState.bind(useGame);
+    const g = banc.getState;
     const [a, b] = g().party;
     g().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
-    useGame.setState({ sequence: null, pendingCascade: null }); // dénouement : le socle vide le slot
+    banc.setState({ sequence: null, pendingCascade: null }); // dénouement : le socle vide le slot
 
     g().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     expect(activeSequence<{ gameId: string }>(g)?.payload.gameId).toBe('dominos');
@@ -597,12 +599,11 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
  */
 describe('#1279 S4 — le formulaire est masqué pendant TOUTE partie, quel que soit le jeu', () => {
   beforeEach(() => {
-    useGame.setState(useGame.getInitialState(), true);
-    useGame.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    banc.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('hors partie, le formulaire est offert', () => {
-    expect(tavernPartieEnCours(useGame.getState())).toBe(false);
+    expect(tavernPartieEnCours(banc.getState())).toBe(false);
   });
 
   // Une partie dont TOUTES les rangées naissent témoins se dénoue dans le même tick (il ne reste
@@ -612,9 +613,9 @@ describe('#1279 S4 — le formulaire est masqué pendant TOUTE partie, quel que 
   const survivantes: string[] = [];
   for (const jeu of TAVERN_GAMES.map((x) => x.id)) {
     it(`${jeu} : tant que la partie court, le formulaire est masqué`, () => {
-      const g = useGame.getState.bind(useGame);
+      const g = banc.getState;
       const [a, b] = g().party;
-      creditBourse(g, useGame.setState.bind(useGame), a.id, { gold: 0, silver: 5, brass: 0 });
+      creditBourse(g, banc.setState, a.id, { gold: 0, silver: 5, brass: 0 });
       g().playTavernGame({ gameId: jeu, challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 24, tablePlayers: 2 });
       if (!activeSequence(g)) return; // partie dénouée dans le tick : plus rien à masquer
       survivantes.push(jeu);

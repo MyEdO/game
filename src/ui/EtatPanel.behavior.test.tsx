@@ -11,8 +11,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Combatant } from '../engine/types';
-import { EtatPanel } from './EtatPanel';
-import { ETAT_ANCHOR_CRITIQUES } from './sheetAlarms';
+import { EtatPanel, ETAT_ANCHOR_CRITIQUES } from './EtatPanel';
 import { useGame } from '../state/store';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -60,8 +59,6 @@ describe('EtatPanel — comportement clic (LOT L pt.3)', () => {
 
   it('3(a) — les ids etat-* du DOM existent (absence de la rubrique Critiques, présence de la rubrique États actives) : ne vérifie QUE l’existence, pas le comportement de clic (couvert par 3(b)/2 ci-dessous)', () => {
     mount();
-    // `ETAT_ANCHOR_CRITIQUES` = MÊME constante que consomme `sheetAlarms()` — l'ancre cliquée par
-    // la bande d'alarmes doit exister sur CETTE bande de section (pas de dérive post-refonte LOT K).
     expect(document.getElementById(ETAT_ANCHOR_CRITIQUES)).toBeNull(); // pas de critique ici (héros sain de critiques)
     expect(document.getElementById('etat-etats')).not.toBeNull();
   });

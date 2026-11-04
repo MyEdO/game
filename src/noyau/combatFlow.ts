@@ -4748,7 +4748,7 @@ export function advanceCombatJet(get: () => Jeu): void {
 /** Jet d'attaque (verbe `roll` du flux `attack`, `FLOWS.attack.onRoll`). */
 export function lancerLAttaque(get: Get, set: SetFn): void {
   const { battle, pendingAttack: pa } = get();
-  if (!battle || !pa || pa.result) return;
+  if (!battle || !pa) return;
   const attacker = inBattleId(battle, pa.attackerId);
   const target = inBattleId(battle, pa.targetId);
   if (!attacker || !target) return;
@@ -4775,7 +4775,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
 /** Test d'Incantation (verbe `roll` du flux `cast`, `FLOWS.cast.onRoll`). */
 export function lancerLIncantation(get: Get, set: SetFn): void {
   const { pendingCast: pc } = get();
-  if (!pc || pc.result) return;
+  if (!pc) return;
   const caster = actorIn(get(), pc.casterId);
   const target = actorIn(get(), pc.targetId);
   const spell = effectiveSpellOf(pc); // NI ×2 si lecture au grimoire (LDB 47 l.21)
@@ -4824,16 +4824,8 @@ export function renoncerALIncantation(get: Get, set: SetFn): void {
   const pc = get().pendingCast;
   if (!pc) return;
   const caster = actorIn(get(), pc.casterId);
-  // VERROU POST-JET (#1031) — `LDB 46 l.24` : le Test d'Incantation jeté, le Sort « est lancé »
-  // ou « la tentative échoue et rien ne se produit » ; le jet engage. Le geste est REFUSÉ et le
-  // dit (l'UI neutralise déjà Échap, cette garde tient aussi face à un intent réseau, qui
-  // laissait sinon un `pendingCounterspell` orphelin sans son incantation).
-  if (pc.result) {
-    if (caster) castRefused(get, set, caster, tr('cs.castCancelLocked', { name: caster.label }));
-    return;
-  }
-  // Pré-jet : rien ne peut avoir ouvert de fenêtre de Contre-sort (elle naît AU jet) — on la purge
-  // tout de même, l'incantation qu'elle oppose disparaît ici.
+  // Le jet lancé refuse le geste avant ce point (`FLOWS.cast.refusDAnnuler`). Aucune fenêtre de Contre-sort
+  // n'est encore ouverte (elle naît AU jet) : on la purge tout de même, l'incantation qu'elle oppose disparaît ici.
   set({ pendingCast: null, pendingCascade: null, pendingCounterspell: null }); // TERMINAL : ferme data + cascade-hôte
   // Modale d'un lanceur ENNEMI fermée sans appliquer : reprendre le tour suspendu (anti soft-lock).
   if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
@@ -4843,14 +4835,8 @@ export function renoncerALIncantation(get: Get, set: SetFn): void {
 export function laisserPasserLeContreSort(get: Get, set: SetFn): void {
   const pcs = get().pendingCounterspell;
   if (!pcs) return;
-  // « Laisser passer » DÉCLINE la fenêtre ENTIÈRE : le geste n'existe plus dès qu'une rangée a
-  // chanté — l'issue à appliquer se lit alors par « Appliquer » (`counterspellConfirm`, qui
-  // agrège l'état courant). Sans ce refus, un clic tardif jetait un Contre-sort GAGNANT.
-  // PORTE UNIQUE en PHASE 1 (#1042/#1059) : tant qu'une rangée n'a pas déclaré, un siège ne
-  // referme pas la fenêtre des autres — décliner s'y dit `pass` sur SA rangée, et une fenêtre
-  // toute-passée se clôt d'elle-même par `counterspellConfirm` (cf. `counterspellDeclare`).
-  // La MÊME frontière est portée par la route de l'intent (`ROUTES`, netOwnership) : les deux bouts.
-  if (counterspellChanted(pcs) || counterspellDeclarePhase(pcs)) return;
+  // « Laisser passer » DÉCLINE la fenêtre ENTIÈRE, fermée dès qu'une rangée a chanté ou doit encore
+  // déclarer (#1042/#1059) : `FLOWS.counterspell.annulation` et la garde de `cancel` de la fabrique.
   set({ pendingCounterspell: null });
   applyCounterspellFallback(get, set, pcs); // aucun surfacé n'a tenté → l'IA chante à leur place
   resumeAfterCounterspell(get, set); // la chaîne reprend (agnostique IA/zone)
@@ -4936,14 +4922,6 @@ export function isDispellableCast(pc: PendingCast, spell: SpellLike): boolean {
  *  sélection — chant inline (aucun surfacé) et repli IA quand les surfacés déclinent. */
 export function bestCounterspeller(candidates: readonly Combatant[]): Combatant | undefined {
   return [...candidates].sort((a, b) => castingValue(b, 'langue', 'magick') - castingValue(a, 'langue', 'magick'))[0];
-}
-
-/** Une rangée de la fenêtre a-t-elle CHANTÉ ? Plusieurs contre-lanceurs peuvent tenter contre la
- *  MÊME incantation (#1040, cf. `counterspellConfirm` dans `src/noyau/combatSlice.ts`) — ce prédicat
- *  ne désigne donc personne : il dit que la fenêtre porte déjà une issue à appliquer, ce que
- *  « Laisser passer » jetterait. PUR (lu aussi par la modale). */
-export function counterspellChanted(pcs: PendingCounterspell | null | undefined): boolean {
-  return !!pcs?.participants.some((p) => !!p.result);
 }
 
 /** Combattants d'une fenêtre de Contre-sort (rangées → acteurs vivants de l'état). PUR. */

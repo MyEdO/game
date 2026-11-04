@@ -84,7 +84,7 @@ const MEMOS = new Set(['memoByRef', 'memoByRefDeps'])
 
 /** La primitive de DÉTENTION d'un fichier de test : module (chemin sans extension depuis la racine)
  *  et nom exporté. Son appel, importé de ce module dans un fichier de test, rend un lecteur libéré. */
-export const PRIMITIVE_DE_DETENTION = Object.freeze({ module: 'src/detenteur.testkit', nom: 'detenteur' })
+export const PRIMITIVE_DE_DETENTION = Object.freeze({ module: 'src/lib/detenteur.testkit', nom: 'detenteur' })
 const LIBERATIONS = new Set(['afterAll', 'afterEach'])
 const REMPLISSAGES = new Set(['set', 'add', 'push', 'unshift'])
 const AFFECTATIONS = new Set([

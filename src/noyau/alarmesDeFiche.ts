@@ -1,32 +1,25 @@
-import { Combatant } from '../engine/types';
+/**
+ * Les ALARMES de la fiche d'un héros et la règle d'atterrissage qu'elles servent (§3.2 design v4, #492) :
+ * l'apparition d'une affliction NOUVELLE (empreinte jamais vue) ouvre la fiche sur l'onglet État. L'hôte
+ * garde l'empreinte DÉJÀ VUE par héros, état d'écran éphémère jamais sérialisé (`sheetAlarmsSeen` du store
+ * web) ; la projection, l'empreinte et le verdict viennent d'ici.
+ */
+import type { Combatant } from '../engine/types';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { diseaseLabel } from '../data';
 import { isPsychAfflictionActive } from '../engine/psychology';
 import { identiteDeCiblage, libelleDePsy, type NomDIndividu } from '../engine/psych/ciblage';
 
-/** ids STABLES des rubriques de l'onglet État — ancres de scroll RENDUES par `EtatPanel.tsx`.
- *  (La Corruption est une jauge de la bande Constitution, pas une Section : elle n'en reçoit pas.) */
-export const ETAT_ANCHOR_CRITIQUES = 'etat-critiques';
-export const ETAT_ANCHOR_MALADIES = 'etat-maladies';
-export const ETAT_ANCHOR_MUTATIONS = 'etat-mutations';
-export const ETAT_ANCHOR_TRAUMAS = 'etat-traumas';
-export const ETAT_ANCHOR_PSYCHOLOGIE = 'etat-psychologie';
-export const ETAT_ANCHOR_ENCOMBREMENT = 'etat-encombrement';
-
-/** Une affliction du héros, réduite à ce qui sert la RÈGLE D'ATTERRISSAGE (`key` d'identité + `label`
- *  porteur du compte/degré) : `alarmsFingerprint` ne lit que ces deux champs. L'AFFICHAGE (aside) ne
- *  passe plus par ici — il compose la primitive d'effets actifs des portraits (`EffectChips`). */
+/** Une affliction du héros : `key` d'identité, `label` porteur du compte ou du degré. */
 export interface SheetAlarm {
   key: string;
   label: string;
 }
 
-/** Afflictions du héros pour la RÈGLE D'ATTERRISSAGE (§3.2 design v4, #492) : l'apparition d'une
- *  affliction NOUVELLE (empreinte jamais vue) force l'onglet État à la première ouverture de la fiche.
- *  Ne porte JAMAIS Blessures/États bénins (déjà sur les vitals + les chips d'effets actifs de l'aside).
- *  Le `label` inclut le compte/degré : sa variation (une Corruption qui monte, une Séquelle de plus)
- *  compte comme une affliction nouvelle. Le `label` d'une affliction ciblée nomme sa Cible (`libelleDePsy`,
- *  l'individu par `nomDIndividu`). */
+/** Afflictions du héros pour la règle d'atterrissage. Ne porte JAMAIS Blessures ni États bénins (déjà sur
+ *  les vitals et les chips d'effets actifs). Le `label` inclut le compte ou le degré : sa variation (une
+ *  Corruption qui monte, une Séquelle de plus) compte comme une affliction nouvelle. Le `label` d'une
+ *  affliction ciblée nomme sa Cible (`libelleDePsy`, l'individu par `nomDIndividu`). */
 export function sheetAlarms(hero: Combatant, nomDIndividu?: NomDIndividu): SheetAlarm[] {
   const out: SheetAlarm[] = [];
 
@@ -37,7 +30,7 @@ export function sheetAlarms(hero: Combatant, nomDIndividu?: NomDIndividu): Sheet
   if (corruption > 0) out.push({ key: 'corruption', label: `Corruption ${corruption}${hero.damned ? ' — DAMNÉ' : ''}` });
 
   for (const d of hero.diseases ?? []) {
-    // `d.name` = id STABLE (`diseaseDefs()`), jamais l'affichage — `diseaseLabel` résout (repli sur l'id).
+    // `d.id` = id STABLE (`diseaseDefs()`), jamais l'affichage — `diseaseLabel` résout (repli sur l'id).
     out.push({ key: `maladie-${d.id}`, label: diseaseLabel(d.id) });
   }
 
@@ -58,11 +51,22 @@ export function sheetAlarms(hero: Combatant, nomDIndividu?: NomDIndividu): Sheet
   return out;
 }
 
-/** Empreinte STABLE d'une liste d'alarmes (keys+labels joints, triés) — compare deux relevés
- *  indépendamment de l'ordre de production ; sert la règle d'atterrissage (`sheetAlarmsSeen`). */
+/** Empreinte STABLE d'une liste d'alarmes (keys+labels joints, triés) : compare deux relevés
+ *  indépendamment de l'ordre de production. */
 export function alarmsFingerprint(alarms: SheetAlarm[]): string {
   return alarms
     .map((a) => `${a.key}:${a.label}`)
     .sort()
     .join('|');
+}
+
+/** L'empreinte des alarmes courantes du héros, celle que l'hôte retient comme VUE. */
+export const empreinteDeFiche = (hero: Combatant, nomDIndividu?: NomDIndividu): string =>
+  alarmsFingerprint(sheetAlarms(hero, nomDIndividu));
+
+/** La fiche s'ouvre-t-elle sur l'onglet État ? Oui ssi le héros porte une alarme et que leur empreinte
+ *  diffère de l'empreinte `vue` (absente = jamais vue). */
+export function atterritSurEtat(hero: Combatant, vue: string | undefined, nomDIndividu?: NomDIndividu): boolean {
+  const alarmes = sheetAlarms(hero, nomDIndividu);
+  return alarmes.length > 0 && alarmsFingerprint(alarmes) !== vue;
 }

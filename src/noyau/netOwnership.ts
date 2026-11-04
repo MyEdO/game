@@ -564,7 +564,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
     // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
     // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet,
-    // `combatFlow.laisserPasserLeContreSort`) ; phase close → `null`, le repli universel décide comme avant. Prédicat
+    // `FLOWS.counterspell.annulation`) ; phase close → `null`, le repli universel décide comme avant. Prédicat
     // STRUCTUREL (une rangée sans `declared`) : `netOwnership` reste une feuille, sans import de flux.
     ['counterspellCancel', { rule: (s) => ((s.pendingCounterspell?.participants ?? []).some((p) => !p.declared) ? false : null) }],
     ['counterspellDeclareAll', {
