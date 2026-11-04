@@ -23,7 +23,7 @@ import { battleRng } from './battleRng';
 import { surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './pendings';
 import { lotEnregistreur, lotRejoueur, type EtalDraw } from './monde/etalLot';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { CloturesDuJet } from './rollFlowSpecs';
 import { tablesPosees } from './tablesPosees';
 
 /** Un générateur d'étal : il TIRE (via le rng qu'on lui donne), il POSE son état, il ne rend rien.
@@ -61,11 +61,11 @@ const enRangee = (d: EtalDraw): EtalLotRow => ({
 });
 
 /**
- * DÉNOUEMENT du lot (les deux gestes de bloc y mènent) : rejoue le générateur avec les dés du lot,
+ * DÉNOUEMENT du lot (`jetConfirm('etalLot')`) : rejoue le générateur avec les dés du lot,
  * ferme la fenêtre, puis laisse venir ce qui suit l'étal. Le rejeu ne consomme AUCUN aléa vivant —
  * sauf débordement DIT (`lotRejoueur`) quand un dé posé ouvre une branche que le lot n'avait pas vue.
  */
-export function appliquerLotEtal(get: Get, set: Set): void {
+function appliquerLotEtal(get: Get, set: Set): void {
   const p = get().pendingEtalLot;
   if (!p) return;
   const entree = tablesPosees().generateursDEtal[p.cible];
@@ -75,11 +75,6 @@ export function appliquerLotEtal(get: Get, set: Set): void {
   entree.apres?.(get, set);
 }
 
-export function creerActionsDuLotDEtal(get: Get, set: Set) {
-  return {
-    // LOT DE DÉS d'un étal (#1426) — les deux gestes de BLOC. « Valider » rejoue le générateur avec les
-    // dés du lot (posés ou naturels) : c'est le MÊME code que l'ouverture sans fenêtre, nourri par un rng
-    // rejoueur qui ne consomme aucun aléa vivant. « Renoncer » est le verbe `cancel` du flux (`FLOWS.etalLot`).
-    etalLotConfirm: () => { appliquerLotEtal(get, set); },
-  } satisfies Partial<ActionsDuNoyau>;
+export function cloturesDuLotDEtal(get: Get, set: Set) {
+  return { etalLot: () => appliquerLotEtal(get, set) } satisfies Partial<CloturesDuJet>;
 }

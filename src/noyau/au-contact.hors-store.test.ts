@@ -82,7 +82,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     // Force l'issue « le mover l'emporte » (déterminisme), puis le héros tranche.
     banc.setState({ pendingAuContact: { ...pd, result: 'success' } });
-    banc.getState().auContactConfirm();
+    banc.getState().jetConfirm('auContact');
     expect(banc.getState().pendingAuContact?.phase).toBe('choice');
     banc.getState().auContactChoose('contact');
 
@@ -122,7 +122,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     banc.getState().battleAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'success' } });
-    banc.getState().auContactConfirm();
+    banc.getState().jetConfirm('auContact');
     banc.getState().auContactChoose('normal');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(false);
@@ -139,7 +139,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     banc.getState().battleAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
-    banc.getState().auContactConfirm(); // pas de phase de choix montrée — l'IA tranche
+    banc.getState().jetConfirm('auContact'); // pas de phase de choix montrée — l'IA tranche
 
     expect(banc.getState().pendingAuContact).toBeNull();
     expect(areInContact(live(H.id), live(E.id))).toBe(true);
@@ -158,7 +158,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     banc.getState().battleAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
     banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
-    banc.getState().auContactConfirm();
+    banc.getState().jetConfirm('auContact');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(true);
   });

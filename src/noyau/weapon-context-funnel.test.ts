@@ -8,7 +8,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 // Funnel UNIQUE des règles d'arme contextuelles (LDB 62) : `firedWeapon` lie attaquant ⊕ arme ⊕ contexte.
 // La MÊME arme transformée sert la touche/les Dégâts (resolveAttack) ET la Maladresse sur un RATÉ
-// (attackConfirm/IA re-dérivent via firedWeapon → attackerFumbled/dangerousNine voient la Dangereuse).
+// (jetConfirm('attack')/IA re-dérivent via firedWeapon → attackerFumbled/dangerousNine voient la Dangereuse).
 
 const CHARS = { 'capacite-de-combat': 50, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const fleau: Weapon = { label: 'Fléau', type: 'melee', subType: 'fleau', reach: 'Moyenne', uid: 'fl', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'perturbante' }] };

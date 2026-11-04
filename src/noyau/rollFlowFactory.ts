@@ -11,8 +11,8 @@
  *
  * La fabrique centralise la plomberie commune (gardes, dépense de Chance/Résilience, drapeau
  * `rerolled`, patch de re-rendu) ; chaque flux ne déclare QUE sa partie métier via `RollFlowSpec`
- * (cf. `rollFlows.ts`). L'action « Appliquer » (`xConfirm`) reste écrite à la main dans le store :
- * ses effets sont tous différents — c'est la règle, pas la plomberie.
+ * (cf. `rollFlows.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetConfirm(flux)`) reste écrit à la
+ * main : ses effets sont tous différents — c'est la règle, pas la plomberie.
  *
  * Garde-fou : les primitives de résolution (RNG, moteur) ne sont appelées QUE par `resolve`/
  * `reresolve`/`bonus.derive`/`force.derive`, eux-mêmes invoqués uniquement par les résolveurs
@@ -36,7 +36,7 @@ import { applyReverse, reverseAvailable as engineReverseAvailable, reversePrevie
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
 import { canFixDie } from './netOwnership';
-import { VERBES_DE_JET } from './flowVerbs';
+import { VERBES_DE_JET, type RollVerb } from './flowVerbs';
 import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 
@@ -64,12 +64,8 @@ export type FermetureDuJet =
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
 export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);
 
-/** Les verbes du cycle de jet que la fabrique juge : ceux de `RollVerb`, et `apply`, la clôture qui applique le jet. */
-const VERBES_DU_CYCLE = [...VERBES_DE_JET, 'apply'] as const;
-export type VerbeDuCycle = (typeof VERBES_DU_CYCLE)[number];
-
-/** Ce qui ferme chaque verbe du cycle (`null` : ouvert), lu par `RollFlowHandlers.fermetures`. */
-export type FermeturesDuJet = Record<VerbeDuCycle, FermetureDuJet | null>;
+/** Ce qui ferme chaque verbe de jet (`null` : ouvert), clôture (`confirm`) comprise, lu par `RollFlowHandlers.fermetures`. */
+export type FermeturesDuJet = Record<RollVerb, FermetureDuJet | null>;
 
 /** Ressources d'influence du jeteur — dérivées du `Combatant`, ou fournies en primitives par une
  *  vue pure (rangée sans objet `Combatant`). Construite par `actorInfluenceView`, jamais à la main. */
@@ -396,14 +392,14 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
   /** MULTI : le jet de la FENÊTRE est posé, quand ce ne sont pas tous ses slots (une rangée déclarée sans Test, un
    *  Test du fuyard qui n'est pas dû). Absent : chaque slot est lancé. */
   jetPose?: (p: P) => boolean;
-  /** QUAND la fenêtre se clôt (`apply`) et s'annule (`cancel`) : par défaut, la clôture une fois le jet posé
-   *  (`jetPose`) et l'annulation tant qu'aucun jet n'est lancé ; `toujours`, à tout moment de la fenêtre. La garde
-   *  de `cancel` et les clôtures que le store écrit à la main (`fermetures(…)`) lisent cette déclaration. */
-  clotures?: { apply?: 'toujours'; cancel?: 'toujours' };
+  /** QUAND la fenêtre se clôt (`confirm`) et s'annule (`cancel`) : par défaut, la clôture une fois le jet posé
+   *  (`jetPose`) et l'annulation tant qu'aucun jet n'est lancé ; `toujours`, à tout moment de la fenêtre. Les gardes
+   *  de `cancel` et de `confirm` (`fermetures(…)`) lisent cette déclaration. */
+  clotures?: { confirm?: 'toujours'; cancel?: 'toujours' };
   /** Ce qui ferme l'annulation du pending au-delà de son jet (`null` : rien). Absent : rien. */
   annulation?: (p: P) => FermetureDuJet | null;
-  /** Ce qui ferme la clôture (`apply`) du jet posé (`null` : rien). Absent : rien. */
-  cloture?: (p: P) => FermetureDuJet | null;
+  /** Ce qui ferme la clôture (`confirm`) du jet posé, lu sur l'état `s` (`null` : rien). Absent : rien. */
+  cloture?: (p: P, s: Jeu) => FermetureDuJet | null;
   /** Test OPPOSÉ : le slot PERD l'opposition, jet propre réussi compris (`RollInfluenceView.lost`, LDB 17 l.68). */
   perdu?: (slot: Slot) => boolean;
 }
@@ -486,7 +482,7 @@ export interface RollFlowHandlers {
   reversePreview: (get: Get, pid?: string) => IssueDuDe | null;
   /** Ce qui FERME chaque verbe du cycle sur le slot `pid` maintenant (`null` : ouvert), d'après les gardes des ops
    *  (`opRoll`, `opReroll`, `opBonusSL`, `opDarkPact`, `opForceSuccess`, `opSetForcedRoll`, `opResist`, inversion,
-   *  annulation) et la clôture `apply`. Sans `pid`, un flux MULTI se juge en fenêtre : son jet posé (`jetPose`), son
+   *  annulation) et la clôture `confirm`. Sans `pid`, un flux MULTI se juge en fenêtre : son jet posé (`jetPose`), son
    *  annulation tant qu'aucun slot n'est lancé. PUR, lu par `verbesOuverts.ts`. */
   fermetures: (get: Get, pid?: string) => FermeturesDuJet;
 }
@@ -792,12 +788,12 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   const handlers: RollFlowHandlers = {
     fermetures(get, pid) {
       const s = get(); const p = pendingOf(s);
-      const partout = (f: FermetureDuJet): FermeturesDuJet => tableTotale(VERBES_DU_CYCLE, () => f);
+      const partout = (f: FermetureDuJet): FermeturesDuJet => tableTotale(VERBES_DE_JET, () => f);
       if (!p) return partout('sansJet');
       const fenetre = !!spec.multi && pid == null;
-      const apply = spec.clotures?.apply === 'toujours' || jetPose(p) ? spec.cloture?.(p) ?? null : 'jetNonLance';
+      const confirm = spec.clotures?.confirm === 'toujours' || jetPose(p) ? spec.cloture?.(p, s) ?? null : 'jetNonLance';
       const slot = fenetre ? slotDe(p) : slotLu(get, p, pid);
-      if (!slot) return fenetre ? { ...partout('sansJet'), cancel: fermetureDeLAnnulation(s, p), apply } : partout('sansJet');
+      if (!slot) return fenetre ? { ...partout('sansJet'), cancel: fermetureDeLAnnulation(s, p), confirm } : partout('sansJet');
       const actor = spec.actor(s, slot, p);
       const rolled = spec.rolled(slot);
       const faits: RollInfluenceView = { rolled, failed: isFailed(slot), rerolled: slot.rerolled };
@@ -819,7 +815,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         determine: !spec.caps?.determine ? 'nonOffert' : parActeur((a) => spec.caps!.determine!.fermeture(s, slot, a)),
         cancel: fermetureDeLAnnulation(s, p),
         reverse: typeof voie === 'string' ? voie : null,
-        apply: fenetre || !spec.multi ? apply : spec.clotures?.apply === 'toujours' || rolled ? null : 'jetNonLance',
+        confirm: fenetre || !spec.multi ? confirm : spec.clotures?.confirm === 'toujours' || rolled ? null : 'jetNonLance',
       };
     },
     slotOf(get, pid) {

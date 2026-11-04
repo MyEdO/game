@@ -361,7 +361,7 @@ describe('__wfrp — autres commandes de recette', () => {
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
-    useGame.getState().resolveTest();
+    useGame.getState().jetConfirm('test');
     expect(buildApi().lastRoll()).toEqual({ actorId: hero.id, success: true, sl: 1, roll: 42, target: 50 });
   });
 
@@ -601,7 +601,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
     g().battleRun({ x: ici.x + 3, y: ici.y });
     g().jetRoll('run');
-    g().runConfirm();
+    g().jetConfirm('run');
     expect(g().battle!.runBudget, 'la Course a posé son budget').toBeGreaterThan(0);
     expect(api.turn(heroId)).toMatch(/^✓/);
     const b = g().battle!;

@@ -74,7 +74,7 @@ export function AppraiseModalView({
   const actions: RollAction[] = owned
     ? [
         { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
-        { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'apply' },
+        { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
       ]
     : [];
 
@@ -106,7 +106,7 @@ export function AppraiseModal() {
   const reroll = useGesteDeJet('jetReroll', 'appraise');
   const bonusSL = useGesteDeJet('jetBonusSL', 'appraise');
   const darkPact = useGesteDeJet('jetDarkPact', 'appraise');
-  const confirm = useGame((s) => s.resolveAppraise);
+  const confirm = useGesteDeJet('jetConfirm', 'appraise');
   const cancel = useGesteDeJet('jetCancel', 'appraise');
   // COOP (#1017) : ABONNEMENT à `net` AVANT le retour anticipé — une ré-attribution de siège en cours
   // de fenêtre re-rend la modale (sinon `owned` reste figé sur le 1er rendu).

@@ -82,7 +82,7 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouerLeGeste(suite, attendu(suite)));
     expect(suite.vue.attaque!.jete).toBe(true);
     expect(suite.vue.attaque!.issue, 'le jet tombé dit son issue').not.toBeNull();
-    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('attackConfirm');
+    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetConfirm@attack');
     const issue = suite.vue.attaque!.issue!.ligne;
     let journal: LigneDuJournal[];
     ({ suite, journal } = jouerLeGeste(suite, attendu(suite)));
@@ -109,7 +109,7 @@ describe('un tour complet par le pont', () => {
     const lignes = [...journal];
     ({ suite, journal } = jouerLeGeste(suite, attendu(suite)));
     lignes.push(...journal);
-    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('defenseConfirm');
+    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
     ({ suite, journal } = jouerLeGeste(suite, attendu(suite)));
     lignes.push(...journal);
     expect(suite.vue.defense, 'la Défense confirmée, sa fenêtre se ferme').toBeNull();

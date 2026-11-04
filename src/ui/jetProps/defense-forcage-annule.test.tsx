@@ -49,7 +49,7 @@ function play(opts: { atk?: boolean; def?: boolean }): string {
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
   g().jetRoll('attack');
   if (opts.atk) g().jetForceSuccess('attack');
-  g().attackConfirm();
+  g().jetConfirm('attack');
   g().jetRoll('defense');
   if (opts.def) g().jetForceSuccess('defense');
   return monterRacine(<Probe />).container.textContent ?? '';

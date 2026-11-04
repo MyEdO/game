@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { ROUTES } from '../noyau/netOwnership';
-import { NOM_DU_VERBE_DE_JET, resolutionsDuPorteur } from '../noyau/flowVerbs';
+import { NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
 import { ACTIONS } from '../data/index';
 import { KEYBINDINGS } from './clavier/keybindings';
 
@@ -152,7 +152,7 @@ describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclar
   });
 
   it('toute route NOMINATIVE de `ROUTES` figure dans EMISSION (aucune route sans verdict d’émission)', () => {
-    const derivees = new Set<string>([...Object.values(NOM_DU_VERBE_DE_JET), ...Object.keys(resolutionsDuPorteur())]);
+    const derivees = new Set<string>(Object.values(NOM_DU_VERBE_DE_JET));
     const routes = [...ROUTES.keys()].filter((a) => !derivees.has(a));
     expect(routes.length, 'précondition : la table expose bien ses routes nominatives').toBeGreaterThan(10);
     const sansVerdict = routes.filter((n) => !(n in EMISSION) && !ROUTES.get(n)!.horsAllowlist);

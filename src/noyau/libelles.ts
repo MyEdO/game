@@ -15,7 +15,7 @@ import type { FermetureDuJet } from './rollFlowFactory';
 /** Les préfixes des flux de jet, du plus long au plus court : `cascadeBatch` avant `cascade`. */
 const PREFIXES = Object.keys(FLOW_VERBS).sort((a, b) => b.length - a.length);
 
-/** Le suffixe d'un verbe manuscrit `<flux><Suffixe>` (`attackConfirm`), son initiale en minuscule ; `null` hors d'un flux. */
+/** Le suffixe d'un verbe manuscrit `<flux><Suffixe>` (`attackSetWeapon`), son initiale en minuscule ; `null` hors d'un flux. */
 function suffixeDuFlux(verbe: string): string | null {
   const prefixe = PREFIXES.find((p) => verbe.startsWith(p) && /^[A-Z]/.test(verbe.slice(p.length)));
   return prefixe ? `${verbe.charAt(prefixe.length).toLowerCase()}${verbe.slice(prefixe.length + 1)}` : null;

@@ -649,7 +649,7 @@ export function openMassBattleRally(get: Get, set: Set): void {
   });
 }
 
-// ── Application des issues (appelée par `confirmActivity` pour une `PendingActivity` de bataille) ───
+// ── Application des issues (appelée par `jetConfirm('activity')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
 function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number): MassBattleState {
@@ -785,9 +785,9 @@ function applyHoldResolution(
   return { mb: next, lines };
 }
 
-/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `confirmActivity`).
+/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetConfirm('activity')`).
  *  Route selon le contexte (préparation / Scène de Round) et le genre. Le budget d'Activité (une prépa =
- *  une Activité d'interlude, l.65) est décrémenté par `confirmActivity`, PAS ici (application ⊥ budget). */
+ *  une Activité d'interlude, l.65) est décrémenté par `jetConfirm('activity')`, PAS ici (application ⊥ budget). */
 export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): void {
   const mb = get().massBattle;
   if (!mb || pa.roll == null || !pa.activityId) return;

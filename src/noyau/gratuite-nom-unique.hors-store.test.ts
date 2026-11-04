@@ -75,7 +75,7 @@ function nomsDeLaDefense(): Map<string, string> {
   const noms = new Map<string, string>();
   for (let garde = 0; garde < 10 && g().pendingDefense; garde++) {
     g().jetRoll('defense');
-    g().defenseConfirm();
+    g().jetConfirm('defense');
     banc.reprendreTout();
     const pd = g().pendingDefense;
     const kind = pd?.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;

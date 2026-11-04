@@ -53,7 +53,7 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     expect(banc.getState().pendingCorruption?.kind).toBe('seuil'); // le jet est VISIBLE
     banc.getState().jetRoll('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
   }
   it('héros avec Résilience → la mutation est SUSPENDUE (pendingRenounce)', () => {
     const h = hero();

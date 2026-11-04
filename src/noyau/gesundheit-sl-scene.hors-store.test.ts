@@ -1,6 +1,6 @@
 /**
  * #458 : le DR (SL) d'un Test de consommable HORS COMBAT doit atteindre les ops de succès du Flow —
- * chaîne usePartyItem→runSceneConsumableFlow→openSkillTest→resolveTest→runFlow→applyEffectsLoot→
+ * chaîne usePartyItem→runSceneConsumableFlow→openSkillTest→jetConfirm('test')→runFlow→applyEffectsLoot→
  * applyEffects→handler 'ops' (`combatEffects.ts`), symétrique au chemin combat (`triggeredTest.ts:159`,
  * `runPureFlowLines(..., { sl: t.sl })`). Donnée réelle : Gesundheit (`trappings.json`, MSRC 4 l.186) —
  * `reduceDiseaseDays.daysPerSL` sur `blessure-purulente`.
@@ -54,7 +54,7 @@ describe('Gesundheit hors combat (#458) — le DR du Test de scène atteint redu
 
     const before = banc.getState().party.find((c) => c.id === 'h1')!.diseases![0].minutesLeft;
     banc.setState({ pendingTest: { ...pt, roll: 1, success: true, sl: 3 } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
 
     const after = banc.getState().party.find((c) => c.id === 'h1')!.diseases![0].minutesLeft;
     expect(before - after).toBe(3 * MINUTES_PER_DAY);
@@ -69,7 +69,7 @@ describe('Gesundheit hors combat (#458) — le DR du Test de scène atteint redu
     const pt = banc.getState().pendingTest!;
     const before = banc.getState().party.find((c) => c.id === 'h1')!.diseases![0].minutesLeft;
     banc.setState({ pendingTest: { ...pt, roll: 1, success: true, sl: 0 } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
 
     const after = banc.getState().party.find((c) => c.id === 'h1')!.diseases![0].minutesLeft;
     expect(before - after).toBe(0);

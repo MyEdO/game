@@ -49,7 +49,7 @@ describe('battleShipReload — Test étendu de recharge d’un poste (MDG 12 / L
     setup();
     banc.getState().battleShipReload('ship', 'canon');
     banc.getState().jetRoll('reload');
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const st = banc.getState();
     const poste = st.battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
     expect(poste.loaded).toBe(true); // la PIÈCE est rechargée
@@ -101,7 +101,7 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     // Round 1 : bordée tribord → la pièce tire puis est DÉCHARGÉE.
     banc.getState().battleShipBattery('ship', 'target');
     banc.getState().jetRoll('shipBattery', 'gunner');
-    banc.getState().shipBatteryConfirm();
+    banc.getState().jetConfirm('shipBattery');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(false);
     // Même Round : 2e bordée impossible (aucune pièce ne porte → ne s'ouvre pas).
     banc.getState().battleShipBattery('ship', 'target');
@@ -111,7 +111,7 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.getState().battleShipReload('ship', 'canon');
     expect(banc.getState().pendingReload).toBeTruthy();
     banc.getState().jetRoll('reload');
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(true); // rechargée
     // Round 2, après recharge : la bordée redevient possible.
     banc.getState().battleShipBattery('ship', 'target');

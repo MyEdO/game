@@ -126,7 +126,7 @@ function clotureDeCascade(done: PendingCascade): void {
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
- * Test étendu (`extendedTestNext`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
+ * Test étendu (`jetConfirm('extendedTest')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de

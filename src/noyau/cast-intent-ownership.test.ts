@@ -25,7 +25,7 @@
  * structure — seule l'assertion nominative la rattrape.
  */
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, resolutionsDuPorteur, type JetOwnerRef, type RollVerb } from './flowVerbs';
+import { estVerbeDeFenetre, FLOW_VERBS, NOM_DU_VERBE_DE_JET, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import { intentAllowedFor, seatInfluences } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import { GUEST_INTENTS } from './intentionsDeSiege';
@@ -35,7 +35,7 @@ import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
 
-type Entry = { kind: 'mono' | 'multi'; verbs: readonly RollVerb[]; jetOwner?: JetOwnerRef; resolution?: readonly string[] };
+type Entry = { kind: 'mono' | 'multi'; verbs: readonly RollVerb[]; jetOwner?: JetOwnerRef };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
 const JET_OWNED = ENTRIES.filter(([, w]) => w.kind === 'mono' && !!w.jetOwner);
 
@@ -51,42 +51,33 @@ const JET_OWNED = ENTRIES.filter(([, w]) => w.kind === 'mono' && !!w.jetOwner);
  * disparue sortirait de l'itération sans rien casser (leçon #1015).
  */
 const INVENTORY: Record<string, readonly RollVerb[]> = {
-  attack:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse'],
-  defense:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'],
-  cast:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  disengage:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  auContact:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  grapple:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel'],
-  distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  run:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
-  reload:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  handGate:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  recover:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  focus:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  dispel:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
-  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel'],
-  ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
-  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel'],
-  surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  corruption: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist'],
-  test:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse'],
-  steamSave:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  activity:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse'],
-  bargain:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  appraise:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'],
-  shanty:     ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel'],
-};
-
-/** Actions de RÉSOLUTION manuscrites routées par le porteur (`FlowVerbs.resolution`, #1017) —
- *  littérales elles aussi : leur route est ce qui permet au porteur invité de CLORE son jet, et pas
- *  seulement de l'influencer. Seuls les flux dont la fenêtre vit hors `MODAL_DEFS` et hors combat en
- *  déclarent (le repli `modalOwnerOf` y désigne l'hôte, pas le porteur). */
-const RESOLUTION: Record<string, readonly string[]> = {
-  bargain: ['bargainConfirm'],
-  appraise: ['resolveAppraise'],
+  attack:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'],
+  defense:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'],
+  cast:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  disengage:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  auContact:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  grapple:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'],
+  distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  run:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  reload:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  handGate:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  recover:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  focus:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  dispel:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel', 'confirm'],
+  ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'],
+  surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  corruption: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'],
+  test:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse', 'confirm'],
+  steamSave:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'confirm'],
+  activity:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'],
+  bargain:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  appraise:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  shanty:     ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
 };
 
 const H_HOST = 'h1'; // héros du siège 0 (hôte)
@@ -125,13 +116,6 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     // déclare (une ligne retirée = un flux qui sort de l'itération, sans échec). Cette liste NOMME les
     // verbes attendus → toute ligne `jetOwner` disparue (ou ajoutée sans garde de flux réel) est rouge.
     expect(Object.fromEntries(JET_OWNED.map(([p, w]) => [p, [...w.verbs].sort()]))).toEqual(Object.fromEntries(Object.entries(INVENTORY).map(([p, vs]) => [p, [...vs].sort()])));
-    // Les actions de résolution déclarées sont routées par le MÊME porteur que les verbes du flux, et elles seules.
-    const porteur = resolutionsDuPorteur();
-    expect(Object.keys(porteur).sort()).toEqual(Object.values(RESOLUTION).flat().sort());
-    for (const [prefix, actions] of Object.entries(RESOLUTION)) {
-      const jet = (FLOW_VERBS as unknown as Record<string, Entry>)[prefix].jetOwner;
-      for (const a of actions) expect(porteur[a], `${a} routée par le porteur de ${prefix}`).toEqual(jet);
-    }
   });
 
   /**
@@ -141,7 +125,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
    */
   it('#700 — la chute (multi) : ses intents suivent le TOMBANT de la rangée, jamais le porteur mono', () => {
     const verbes: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'];
-    expect([...FLOW_VERBS.fall.verbs].filter((v) => v !== 'cancel').sort()).toEqual([...verbes].sort());
+    expect([...FLOW_VERBS.fall.verbs].filter((v) => !estVerbeDeFenetre(v)).sort()).toEqual([...verbes].sort());
     const s = state(CAST_JET, H_HOST, {
       pendingCascade: null,
       pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: [
@@ -165,10 +149,6 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     for (const [prefix, w] of JET_OWNED) {
       const exposed = w.verbs.filter((v) => GUEST_INTENTS.has(NOM_DU_VERBE_DE_JET[v]));
       expect(exposed, `surface invité de ${prefix}`).toEqual(INVENTORY[prefix].filter((v) => w.verbs.includes(v)));
-      // …et les actions qui CLOSENT le jet (Conclure/Appliquer/Annuler) le sont aussi : influencer sans
-      // pouvoir clore laisse le geste s'exécuter en local puis mourir au snapshot.
-      const closables = (RESOLUTION[prefix] ?? []).filter((a) => GUEST_INTENTS.has(a));
-      expect(closables, `actions de clôture atteignables de ${prefix}`).toEqual(RESOLUTION[prefix] ?? []);
     }
   });
 
@@ -248,14 +228,14 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   /**
    * #1017 — le porteur joue son flux ENTIER. Sonde sur le Marchandage : sa fenêtre vit HORS
    * `MODAL_DEFS` et hors combat, donc le repli `modalOwnerOf` rend `null` puis retombe sur le
-   * combattant ACTIF (absent) = l'hôte. Sans la route `resolution`, le négociateur invité roulait,
+   * combattant ACTIF (absent) = l'hôte. Sans la route par porteur de sa clôture, le négociateur invité roulait,
    * relançait, dépensait sa Résilience… et son « Conclure » s'exécutait chez lui avant d'être écrasé
    * au snapshot de l'hôte.
    */
   it('(g) résolution d’un flux HORS registre de modales : Conclure suit le porteur, pas l’hôte', () => {
     const s = state({ pending: 'pendingBargain', field: 'playerId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
     expect(modalOwnerOf(s), 'précondition : aucune modale du registre ne couvre le Marchandage').toBeNull();
-    for (const [a, args] of [['bargainConfirm', []], geste('bargain', 'cancel')] as const) {
+    for (const [a, args] of [geste('bargain', 'confirm'), geste('bargain', 'cancel')] as const) {
       expect(intentAllowedFor(s, 1, a, [...args]), `${a} : le siège du négociateur clôt SON marchandage`).toBe(true);
       expect(intentAllowedFor(s, 0, a, [...args]), `${a} : l’hôte ne clôt pas le jet d’un autre siège`).toBe(false);
       expect(intentAllowedFor(s, 2, a, [...args]), `${a} : le MJ non plus`).toBe(false);
@@ -263,12 +243,12 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     // Négociateur du siège HÔTE : le verdict s'inverse — l'hôte clôt, l'invité non (rien n'est ouvert
     // « à tous » par cette route).
     const h = state({ pending: 'pendingBargain', field: 'playerId' }, H_HOST, { pendingCascade: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(h, 0, 'bargainConfirm', [])).toBe(true);
-    expect(intentAllowedFor(h, 1, 'bargainConfirm', [])).toBe(false);
-    // Évaluation : même contrat (« Appliquer » = `resolveAppraise`, nom hors motif `<prefix><Verbe>`).
+    expect(intentAllowedFor(h, 0, 'jetConfirm', ['bargain'])).toBe(true);
+    expect(intentAllowedFor(h, 1, 'jetConfirm', ['bargain'])).toBe(false);
+    // Évaluation : même contrat.
     const a = state({ pending: 'pendingAppraise', field: 'actorId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(a, 1, 'resolveAppraise', [])).toBe(true);
-    expect(intentAllowedFor(a, 0, 'resolveAppraise', [])).toBe(false);
+    expect(intentAllowedFor(a, 1, 'jetConfirm', ['appraise'])).toBe(true);
+    expect(intentAllowedFor(a, 0, 'jetConfirm', ['appraise'])).toBe(false);
   });
 
   it('SOLO (siège unique, aucune attribution) : le joueur garde ses propres dépenses', () => {

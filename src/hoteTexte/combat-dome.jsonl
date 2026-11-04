@@ -5,5 +5,5 @@
 {"offre":"end-turn"}
 {"offre":"end-turn"}
 {"type":"jetRoll","args":["defense"]}
-{"type":"defenseConfirm","args":[]}
+{"type":"jetConfirm","args":["defense"]}
 {"type":"confirmRoundStart","args":[]}

@@ -7,7 +7,7 @@
  * La CHIRURGIE (Test ÉTENDU, LDB 10 l.184 / 12 l.200) est « armée » sur l'infirmerie (`medic.surgery` :
  * chirurgien figé, patient verrouillé) ; chaque passe est un jet INFLUENÇABLE (`pendingSurgery` via
  * `FLOWS.surgery` — Chance/Pacte/Résilience comme tout jet de héros), qui inflige 1d10 PB + 1 Hémorragie
- * et cumule le DR (DrBar) à l'application (`surgeryNext`). Le Test d'infection du patient (cible atteinte)
+ * et cumule le DR (DrBar) à l'application (`jetConfirm('surgery')`). Le Test d'infection du patient (cible atteinte)
  * est un jet SUBI poussé en RÉVÉLATION témoin. Entre deux passes, Bander (wounds) et Hémorragie (bleed)
  * redeviennent des ACTES NORMAUX du même patient — jet complet (Chance/Résilience), sans interrompre le cumul.
  *
@@ -20,7 +20,7 @@ import type { ChoixNomme } from './reglages';
 import { fenetreDuJeu } from './combatAuto';
 import { libelleDuParametre } from './libelles';
 import { garanti } from '../lib/garanti';
-import { siOuvert } from './rollFlowSpecs';
+import type { CloturesDuJet } from './rollFlowSpecs';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { battleRng } from './battleRng';
 import { d10 } from '../engine/dice';
@@ -232,7 +232,7 @@ export function medicSetWound(get: Get, set: Set, idx: number): void {
 }
 
 /** Les Blessures Critiques que l'opération armée (`medic.surgery`) peut viser, au rang que `medicSetWound` reçoit et que
- *  `surgeryNext` lit : à rééduquer (`recoverableTraumas`) ou à opérer (`surgeryTraumas`) ; vide sans opération armée
+ *  `jetConfirm('surgery')` lit : à rééduquer (`recoverableTraumas`) ou à opérer (`surgeryTraumas`) ; vide sans opération armée
  *  ou une passe tentée. */
 export function plaiesDeLOperation(s: Jeu): Trauma[] {
   const m = s.medic;
@@ -262,8 +262,8 @@ export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<number> | null 
 
 /** OUVRE le jet INFLUENÇABLE d'UNE passe de Chirurgie (`pendingSurgery`) depuis l'opération armée
  *  (`medic.surgery`) — le jet de Médecine du chirurgien passe par `FLOWS.surgery` (Chance/Pacte/
- *  Résilience ; PNJ → influence no-op), `surgeryNext` applique. Idempotent : no-op si une passe est
- *  déjà posée (appelé pour la 1re passe ET pour rouvrir la suivante depuis `surgeryNext`). Ne TIRE rien. */
+ *  Résilience ; PNJ → influence no-op), `jetConfirm('surgery')` applique. Idempotent : no-op si une passe est
+ *  déjà posée (appelé pour la 1re passe ET pour rouvrir la suivante depuis `jetConfirm('surgery')`). Ne TIRE rien. */
 export function openSurgeryPass(get: Get, set: Set): void {
   const m = get().medic;
   const sg = m?.surgery;
@@ -286,7 +286,7 @@ export function openSurgeryPass(get: Get, set: Set): void {
   });
 }
 
-/** APPLIQUE une passe de l'opération étendue (calque `extendedTestNext`) : prend le jet FIGÉ de `pendingSurgery`
+/** APPLIQUE une passe de l'opération étendue (calque `jetConfirm('extendedTest')`) : prend le jet FIGÉ de `pendingSurgery`
  *  (déjà roulé + influencé en modale) et cumule le DR (repart à 0 sous 0, LDB 12 l.174).
  *  - `kind:'surgery'` : chaque passe inflige 1d10 PB + 1 Hémorragie (LDB 10 l.184) ; à 0 PB → interruption.
  *    Cible atteinte → Blessure Critique réparée + Test d'infection du PATIENT (LDB 10 l.184) DIFFÉRÉ en ÉTAPE de
@@ -295,10 +295,6 @@ export function openSurgeryPass(get: Get, set: Set): void {
  *    usage du membre rendu (séquelle « membre désactivé » retirée) + `recoveryPenalty` posé à la cible avec une
  *    durée d'horloge PARTAGÉE de 1d10 jours (charMod −10 / `moveScale` jambe) ; pas de Test d'infection.
  *  Sinon (les deux) → cumule sur `medic.surgery` et RÉOUVRE la passe suivante. */
-export function surgeryNext(get: Get, set: Set): void {
-  siOuvert('surgery', 'apply', get, () => appliquerLaPasse(get, set));
-}
-
 function appliquerLaPasse(get: Get, set: Set): void {
   const ps = get().pendingSurgery;
   const m = get().medic;
@@ -368,8 +364,11 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
     medicAct: (act) => medicAct(get, set, act),
     medicSetWound: (idx) => medicSetWound(get, set, idx),
     openSurgeryPass: () => openSurgeryPass(get, set),
-    surgeryNext: () => surgeryNext(get, set),
     medicAbandonSurgery: () => medicAbandonSurgery(get, set),
     closeMedic: () => closeMedic(get, set),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function cloturesDuMedecin(get: Get, set: Set) {
+  return { surgery: () => appliquerLaPasse(get, set) } satisfies Partial<CloturesDuJet>;
 }

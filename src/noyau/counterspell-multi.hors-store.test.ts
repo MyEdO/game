@@ -14,7 +14,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Contre-sort à plusieurs CANDIDATS (Dissipation, LDB 46 l.156) — flux MULTI : le Sort ENNEMI est
  * figé dans `pendingCast`, chaque contre-lanceur éligible a SA rangée
  * (`pendingCounterspell.participants`) avec son propre cycle d'influence. PLUSIEURS peuvent tenter
- * contre la MÊME incantation (`VDM 02 l.184`, `LDB 46 l.162` ; #1040, cf. `counterspellConfirm`,
+ * contre la MÊME incantation (`VDM 02 l.184`, `LDB 46 l.162` ; #1040, cf. `jetConfirm('counterspell')`,
  * src/noyau/combatSlice.ts) : chacun
  * consomme SON essai du Round (l.156, par personnage), un succès quelconque dissipe, et l'échec
  * collectif laisse le Sort se résoudre au MEILLEUR DR opposé.
@@ -90,7 +90,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     expect(parts.find((p) => p.id === h2.id)!.result, 'passer, c’est ne pas tenter').toBeNull();
     expect(cur(h1.id).dispelledThisRound, 'le chanteur consomme SON essai du Round').toBe(true);
     expect(cur(h2.id).dispelledThisRound, 'passer ne brûle rien').toBeFalsy();
-    banc.getState().counterspellConfirm();
+    banc.getState().jetConfirm('counterspell');
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast).toBeNull();
   });
@@ -105,7 +105,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       row(E.id, false, -3, 8, 'RATÉ'),
       row(E2.id, true, 4, 1, 'DISSIPÉ'),
     ] } } as unknown as Partial<Jeu>);
-    banc.getState().counterspellConfirm();
+    banc.getState().jetConfirm('counterspell');
     const res = banc.getState().pendingCast!.result!;
     expect(res.dispelled, 'un succès quelconque dissipe (l.156 : « Sur un succès, vous dissipez le Sort »)').toBe(true);
     expect(res.cast).toBe(false);
@@ -120,7 +120,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       row(E.id, false, -3, 8, 'FAIBLE'), // premier à avoir chanté, mais le plus mauvais DR
       row(E2.id, false, 1, 4, 'MEILLEUR'),
     ] } } as unknown as Partial<Jeu>);
-    banc.getState().counterspellConfirm();
+    banc.getState().jetConfirm('counterspell');
     const res = banc.getState().pendingCast!.result!;
     expect(res.dispelled).toBeFalsy();
     expect(res.log, 'le DR retenu est le plus haut des Contre-sorts ratés').toContain('MEILLEUR');
@@ -145,7 +145,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     expect(parts.find((p) => p.id === h2.id)!.result, 'aucun jet pour une rangée non déclarée').toBeNull();
     expect(cur(h2.id).resilience, 'le Point n’est PAS dépensé sur un geste refusé').toBe(1);
     expect(cur(h2.id).dispelledThisRound, 'son essai du Round reste INTACT').toBeFalsy();
-    banc.getState().counterspellConfirm();
+    banc.getState().jetConfirm('counterspell');
     expect(banc.getState().pendingCast).toBeNull();
   });
 
@@ -184,7 +184,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     banc.getState().jetCancel('counterspell');
     const parLaisser = { log: banc.getState().pendingCast!.result!.log, essai: !!cur(E1.id).dispelledThisRound };
     const E2b = openVierge();
-    banc.getState().counterspellConfirm();
+    banc.getState().jetConfirm('counterspell');
     const parAppliquer = { log: banc.getState().pendingCast!.result!.log, essai: !!cur(E2b.id).dispelledThisRound };
     expect(parLaisser.log, 'l’IA chante dans les deux cas').toContain('Contre-sort de');
     expect(parAppliquer, 'deux boutons, même état → même issue').toEqual(parLaisser);

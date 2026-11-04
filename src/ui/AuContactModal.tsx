@@ -36,7 +36,7 @@ export function AuContactModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'auContact');
   const darkPact = useGesteDeJet('jetDarkPact', 'auContact');
   const force = useGesteDeJet('jetForceSuccess', 'auContact');
-  const confirm = useGame((s) => s.auContactConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'auContact');
   const choose = useGame((s) => s.auContactChoose);
   const cancel = useGesteDeJet('jetCancel', 'auContact');
   if (!pd || !battle) return null;
@@ -88,7 +88,7 @@ export function AuContactModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   if (pd.phase === 'choice') {

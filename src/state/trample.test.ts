@@ -65,7 +65,7 @@ describe('Piétinement en combat (store)', () => {
     expect(useGame.getState().pendingCascade, 'la modale s’ouvre').toBeTruthy();
     useGame.getState().jetRoll('attack');
     expect(useGame.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    useGame.getState().attackConfirm();
+    useGame.getState().jetConfirm('attack');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);

@@ -43,7 +43,7 @@ describe('Tir immobile (heldGround)', () => {
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
       pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT, heldGround: true },
     });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(M); // Mouvement consommé par l'immobilisation
@@ -56,7 +56,7 @@ describe('Tir immobile (heldGround)', () => {
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
       pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT },
     });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(0); // pas d'immobilisation → Mouvement intact

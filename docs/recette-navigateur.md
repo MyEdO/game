@@ -803,7 +803,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `aim('id')` | vérité state du ciblage pour l'actif (`ok`/`invalid`/`none` + raison, compétence, dégâts) | uniquement en combat |
 | `pad('A'\|'B'\|…)` / `padDir('up'\|…)` | simule bouton/direction manette (shim DEV, MÊME chemin que la vraie manette) | requiert le shim `window.__wfrpPad(Dir)` installé (`useGamepad` monté) |
 | `padUp('LT'\|…)` / `padDirUp('up'\|…)` | RELÂCHE le bouton/la direction — obligatoire pour tout geste MAINTENU (marche tenue, rotation caméra) | sans lui le geste armé ne s'arrête jamais |
-| `modal()` | modale(s) `pending*` ouvertes + actions dérivées | gestes `jetRoll(flux)`/`<flux>Confirm`/`jetCancel(flux)` uniquement (voir doctrine ci-dessous) |
+| `modal()` | modale(s) `pending*` ouvertes + actions dérivées | gestes `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)` uniquement (voir doctrine ci-dessous) |
 | `roll()` / `confirm()` / `cancel()` | pilotent LA modale ouverte par convention | `✗ aucune modale ouverte` / `✗ pas de flux pilotable` si hors convention |
 | `log(n=8)` | `{ journal, combat }` : les `n` dernières entrées du journal d'exploration (`journal`) et les `n` dernières lignes du feed de combat, `[kind] texte` (`combat`) | lecture seule |
 | `aiLog(n=50)` | diagnostic IA : action choisie + classement des candidats par tour | `(forcé)` = garde psychologie/RAW hors scoring |
@@ -815,10 +815,8 @@ sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénari
 `__wfrp.scenario('dome', 11)` : quatre combattants, une sorcière, sorts `dome`,
 `bouclier-anti-fleches`, `flechette`, `lumiere` ; parcours détaillé § Dôme.
 
-**Flux HORS gestes `jetRoll(flux)`/`<flux>Confirm`/`jetCancel(flux)`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
-les couvrent PAS — cliquer les VRAIS boutons) : `pendingCorruption` (Exposition/Seuil de Corruption,
-LDB 19) se résout par l'action `resolveCorruption` — bouton **« Continuer »** de la modale
-(`src/ui/CorruptionModal.tsx`), jamais `corruptionConfirm` (n'existe pas) ; `pendingCascade` se
+**Flux HORS gestes `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
+les couvrent PAS — cliquer les VRAIS boutons) : `pendingCascade` se
 résout par `cascadeResolveAll` (bouton **« Tout lancer »**, résout d'un coup le reste sans influence)
 puis `cascadeFinish` (bouton **« Terminer »** du bilan) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
 par étape (bouton « Continuer »/« Terminer » de la dernière étape), cf. `src/ui/CascadeModal.tsx`.
@@ -1031,8 +1029,8 @@ combat, `pendingTest` de scène en interlude) — pilotable Chance/Résilience, 
 le résout inline. Garde de ré-entrance : ce FM ne ré-émet jamais le trigger (`noOwnTestFailed`).
 
 **Points d'émission de `onOwnTestFailed`** (pour ne pas chercher à l'aveugle) :
-- `testsDeScene.resolveTest` — Test de scène/compétence/combat (chemin modal joueur) ;
-- `interludeFlow.confirmActivity` — Activité d'interlude ratée ;
+- `testsDeScene.cloturesDesTestsDeScene` (`jetConfirm('test')`) — Test de scène/compétence/combat (chemin modal joueur) ;
+- `interludeFlow.appliquerLActivite` (`jetConfirm('activity')`) — Activité d'interlude ratée ;
 - `combatFlow.applyAttackResult` — l'**ATTAQUANT** rate son jet d'attaque (CC/CT) **et** le **DÉFENSEUR**
   rate sa Parade/Esquive (Test opposé) — le porteur uniquement, pas la défense d'un non-porteur ;
 - `triggeredEffects.resolveInlineFlowTest` + `combat/triggeredTest` (inline ennemi/auto) ;

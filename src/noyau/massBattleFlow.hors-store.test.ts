@@ -50,7 +50,7 @@ const leftOf = (heroId: string) => banc.getState().interlude?.perHero[heroId]?.l
 function resolveBattleTest(over: { roll: number; success: boolean; sl: number } & Record<string, unknown>) {
   const pa = banc.getState().pendingActivity!;
   banc.setState({ pendingActivity: { ...pa, ...over } });
-  banc.getState().activityConfirm();
+  banc.getState().jetConfirm('activity');
 }
 
 const mbState = (): MassBattleState => banc.getState().massBattle!;
@@ -339,7 +339,7 @@ describe('Scène MENACE (Intrus l.219)', () => {
     banc.getState().massBattleScene('ligne-de-mire');
     const pa = pending()!;
     expect(pa.target).toBe(Math.max(1, Math.min(99, pa.skillValue - 20)));
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'intrus', hits: 3, hitters: ['h1'] } },
@@ -847,7 +847,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     const pa = pending()!;
     expect(pa.battle).toBeUndefined(); // Activité d'interlude ordinaire (pas de bataille)
     banc.setState({ pendingActivity: { ...pa, roll: 50, success: true, sl: 1 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(leftOf(hero)).toBe(0);
 
     // 4ᵉ Activité : budget épuisé → la préparation de bataille (Sabotage) est REFUSÉE (l.65).

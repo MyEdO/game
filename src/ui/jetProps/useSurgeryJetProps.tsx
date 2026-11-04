@@ -12,7 +12,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * Jet d'UNE passe de Chirurgie (Test ÉTENDU influençable), données de la coquille — calque `useHealJetProps` :
- * « Lancer » → Chance (relance / +1 DR) → Résilience → « Appliquer la passe » (surgeryNext). Le chirurgien
+ * « Lancer » → Chance (relance / +1 DR) → Résilience → « Appliquer la passe » (jetConfirm('surgery')). Le chirurgien
  * peut être un héros (Chance/Résilience) ; PNJ payant → ressources à 0. « Annuler » et Échap (avant le jet)
  * annulent la PASSE posée (jetCancel('surgery')) : l'opération armée, son cumul et le patient restent, et le
  * pied de l'infirmerie reprend « Arrêter l'opération » (`MedicModal`).
@@ -27,7 +27,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   const bonusSL = useGesteDeJet('jetBonusSL', 'surgery');
   const darkPact = useGesteDeJet('jetDarkPact', 'surgery');
   const force = useGesteDeJet('jetForceSuccess', 'surgery');
-  const next = useGame((s) => s.surgeryNext);
+  const next = useGesteDeJet('jetConfirm', 'surgery');
   const cancel = useGesteDeJet('jetCancel', 'surgery');
   if (!ps) return null;
   const surgeon = party.find((c) => c.id === ps.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
@@ -57,7 +57,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   const recovery = kind === 'recovery';
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: 'Appliquer la passe', onClick: next, verbe: 'apply' },
+    { key: 'confirm', label: 'Appliquer la passe', onClick: next, verbe: 'confirm' },
   ];
   return {
     flowKey: 'surgery',

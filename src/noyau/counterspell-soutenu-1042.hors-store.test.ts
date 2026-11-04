@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * RAW : `LDB 46 l.162` (« Plusieurs lanceurs de Sorts tentant de dissiper le même Sort effectuent leur
  * lancer séparément. S'ils incantent en utilisant le même Domaine, ils peuvent décider d'effectuer un
  * Test Soutenu à la place. » — § Dissiper des Sorts permanents, TRANSPOSÉ à la fenêtre réactive :
- * transposition maison, tag au site canonique `counterspellConfirm`) ; `LDB 12 l.189` (un seul jet, le
+ * transposition maison, tag au site canonique `jetConfirm('counterspell')`) ; `LDB 12 l.189` (un seul jet, le
  * plus fort lance, +10 par soutien), `l.195` (≥1 Augmentation), `l.198` (plafond = Bonus de Carac).
  * Contrats couverts ici (réfs nues) : phase 1 verrouille les jets, `pass` ne consomme rien, N solos
  * déclarés jettent tous, composition figée après la phase, mix libre, drive de cadence — #1042, #1059.

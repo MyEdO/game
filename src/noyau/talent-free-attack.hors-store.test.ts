@@ -48,7 +48,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     H.talents = [...(H.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
     H.advantage = 3; // de quoi payer l'attaque supplémentaire (coût Avantage)
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBe(1); // le talent a tiré son attaque supplémentaire, 1× ce Round
   });
@@ -75,7 +75,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     const { H, E } = setup();
     H.advantage = 3;
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBeUndefined();
   });

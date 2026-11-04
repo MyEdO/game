@@ -191,7 +191,7 @@ describe('Pré-jet d’Apprentissage — l’acharnement est un modificateur du 
     const { b, h } = ouvrir('learn');
     b.actions.jetRoll('activity');
     b.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 99, success: false, sl: -2 } }));
-    b.actions.activityConfirm();
+    b.actions.jetConfirm('activity');
     const talentId = learnableTalents(h)[0].id;
     expect(b.getState().interlude!.perHero[h.id].learnFails?.[talentId], 'témoin : une tentative ratée').toBe(1);
     const preJet = preJetDActivite(b.getState(), h.id, activityById('learn')!, { talentId })!;

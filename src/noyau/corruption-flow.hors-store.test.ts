@@ -31,7 +31,7 @@ beforeEach(() => {
   banc.getState().seedRng(13);
 });
 
-describe('Effet corruptionExposure → modale → resolveCorruption', () => {
+describe('Effet corruptionExposure → modale → jetConfirm@corruption', () => {
   it('ouvre pendingCorruption sur le héros visé ; le gain suit corruptionGain (niveau + DR)', () => {
     const { a, party } = party2();
     banc.setState({ party });
@@ -44,7 +44,7 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
     expect(rolled.roll).not.toBeNull();
     // On force l'échec pour un résultat déterministe (mineure + échec → +1).
     banc.setState({ pendingCorruption: { ...rolled, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect(banc.getState().pendingCorruption).toBeNull();
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption).toBe(1);
     expect(banc.getState().journal.join('\n')).toMatch(/Corruption/);
@@ -108,7 +108,7 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
 
     // Le seuil acquitté (réussite : Corruption contenue), la fenêtre passe à l'Exposition en file.
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 1, target: 40, sl: 4, success: true } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect(banc.getState().pendingCorruption?.heroId, 'les deux fenêtres se succèdent').toBe(b.id);
     expect(banc.getState().pendingCorruption?.level).toBe('majeure');
     expect(banc.getState().corruptionQueue).toEqual([]);
@@ -120,7 +120,7 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'moderee', nature: 'spirituelle', heroId: a.id }]);
     banc.getState().jetRoll('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 5, target: 45, sl: 4, success: true } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption ?? 0).toBe(0);
   });
 });
@@ -153,7 +153,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     banc.getState().jetRoll('corruption');
     // Échec forcé (déterministe) puis acquittement → mutation (−BFM) + révélation témoin.
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     // Les dés de la mutation sont des étapes : elle tombe en les jouant, et la RÉVÉLATION est une
     // étape d'AFFICHAGE de la MÊME séquence — on la cueille au passage, avant la clôture.
     let reveal: RevealEntry | undefined;
@@ -181,7 +181,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     expect(pc.align).toBe('nurgle'); // l'alignement voyage source → modale
     banc.getState().jetRoll('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);
@@ -202,7 +202,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     gainCorruption(banc.getState, banc.setState, a, 1);
     banc.getState().jetRoll('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 3, target: 30, sl: 2, success: true } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect(banc.getState().party.find((h) => h.id === a.id)!.mutations ?? []).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/contient sa Corruption/);
   });
@@ -217,7 +217,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     gainCorruption(banc.getState, banc.setState, a, 1);
     banc.getState().jetRoll('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect(banc.getState().pendingRenounce).toBeTruthy();
     banc.getState().renounceResolve(false); // subir la mutation
     draineCascade(banc.getState);
@@ -316,7 +316,7 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
     expect(pc.align).toBe('nurgle'); // l\'alignement voyage source -> modale
     banc.getState().jetRoll('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 30, sl: -7, success: false } });
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);

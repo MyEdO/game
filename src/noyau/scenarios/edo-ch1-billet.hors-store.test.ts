@@ -88,7 +88,7 @@ function marchander(joueur: (cible: number) => number, vendeur: number): Bargain
   imposerLesD100(joueur(pb.playerSkill), vendeur);
   get().jetRoll('bargain');
   vi.restoreAllMocks();
-  get().bargainConfirm();
+  get().jetConfirm('bargain');
   return get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')];
 }
 /** Victoire nette de 1 à 5 DR : le joueur réussit d'un Degré (cible − 10), le vendeur fait 27 sur 27 (DR 0). */

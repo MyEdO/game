@@ -91,7 +91,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
     while (get().pendingExtendedTest && garde++ < 60) {
       const p = get().pendingExtendedTest!;
       get().jetRoll('extendedTest', p.rounds[p.rounds.length - 1].id);
-      get().extendedTestNext();
+      get().jetConfirm('extendedTest');
     }
     expect(get().flags.cede).toBe(true);
     expect(get().flags['apres-test']).toBe(true);
@@ -111,7 +111,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
     let garde = 0;
     while (get().pendingForceDoor && garde++ < 60) {
       for (const part of get().pendingForceDoor!.participants) get().jetRoll('forceDoor', part.id);
-      get().forceDoorConfirm();
+      get().jetConfirm('forceDoor');
     }
     expect(get().flags['porte-ouverte']).toBe(true);
     expect(get().flags['apres-porte']).toBe(true);

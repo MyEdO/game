@@ -95,7 +95,7 @@ async function runSeaActivities() {
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
       if (!cur.result) get().jetRoll('extendedTest', cur.id);
-      get().extendedTestNext();
+      get().jetConfirm('extendedTest');
       await tick();
       continue;
     }

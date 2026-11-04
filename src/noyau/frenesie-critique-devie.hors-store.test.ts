@@ -30,7 +30,7 @@ const defenseEchoue = (id: string) => {
   expect(g().pendingDefense?.defenderId).toBe(id);
   g().jetRoll('defense');
   g().jetSetForcedRoll('defense', 97);
-  g().defenseConfirm();
+  g().jetConfirm('defense');
 };
 
 function monte() {
@@ -60,7 +60,7 @@ function monte() {
   openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attack');
   g().jetRoll('attack');
   expect(g().pendingAttack?.result?.critical, 'le jet 1 doit être un Coup Critique').toBe(true);
-  g().attackConfirm();
+  g().jetConfirm('attack');
   defenseEchoue(gob.id);
 
   // L'étape critique : sévérité tirée, puis « Dévier ».
@@ -86,7 +86,7 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
     g().jetRoll('attack');
     g().jetSetForcedRoll('attack', 21); // LDB 13 l.183
     expect(g().pendingAttack?.result?.critical, 'le 2ᵉ coup touche sans Coup Critique').toBe(false);
-    g().attackConfirm();
+    g().jetConfirm('attack');
     defenseEchoue(man.id);
     expect(g().pendingCleave ?? null).toBeNull();
     expect(g().battle!.acted).toBe(false);

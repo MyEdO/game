@@ -10,7 +10,7 @@ import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
 import { tablesPosees, type FragmentDeTables } from './tablesPosees';
-import { FLOWS, meetsRequiredSL, siOuvert } from './rollFlowSpecs';
+import { FLOWS, meetsRequiredSL, type CloturesDuJet } from './rollFlowSpecs';
 import { armeDEnfoncement, bilanDuRound } from './enfoncerUnePorte';
 import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
@@ -26,7 +26,7 @@ import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
- *  (`extendedTestNext`) et par la fenêtre. LDB 12 l.170-185 */
+ *  (`jetConfirm('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
   return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
@@ -42,39 +42,6 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: opts.actorId }));
       if (steps.length) openSequence(get, set, { title: opts.label, icon: 'ui/key', purpose: 'test', steps });
     },
-    extendedTestNext: () => siOuvert('extendedTest', 'apply', get, () => {
-      const p = get().pendingExtendedTest;
-      if (!p) return;
-      const issue = issueDuRound(p);
-      if (!issue) return; // le Round courant doit avoir été lancé
-      const { total, done } = issue;
-      // BORNE d'essais (Commerce d'opportunité, MDG 15 l.274-286 : « ≤ 3 tentatives ») — cible non
-      // atteinte à la DERNIÈRE tentative permise = une ISSUE (résolue par `outcome`), pas une boucle infinie.
-      const exhausted = !done && p.maxAttempts != null && p.rounds.length >= p.maxAttempts;
-      if (done || exhausted) {
-        set({ pendingExtendedTest: null, pendingCascade: null }); // ferme la cascade-hôte aussi
-        get().log(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
-        if (done && p.dispel) {
-          // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
-          const b = get().battle;
-          const n = b ? dissipateSpell(b.combatants, p.dispel.spellId, p.dispel.casterId) : 0;
-          set(touchActors(get()));
-          get().log(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
-        }
-        if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
-        // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `maxAttempts`.
-        if (p.outcome) {
-          const applier = tablesPosees().issuesDeTestEtendu[p.outcome.kind];
-          const out = applier?.(get, set, p, total, done);
-          const line = out?.consequences ? resultLine(out.consequences) : '';
-          if (line) get().log(line);
-        }
-        reprendreLaSuite(get, set, p.suite);
-        return;
-      }
-      // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
-      set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
-    }),
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     startForceDoor: (opts) => {
       set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
@@ -89,21 +56,6 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       const steps: BuiltCascadeStep[] = [];
       pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'forceDoor', groupOwner: true }));
       if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
-    },
-    forceDoorConfirm: () => {
-      const p = get().pendingForceDoor;
-      if (!p) return;
-      const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);
-      if (cede) {
-        set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
-        get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
-        if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
-        reprendreLaSuite(get, set, p.suite);
-      } else {
-        // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
-        set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
-        get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
-      }
     },
     forceDoorChoisirArme: (heroId, armeUid) => {
       const p = get().pendingForceDoor;
@@ -138,8 +90,79 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
         ...(etape ? { pendingCascade: etape } : {}),
       });
     },
+  } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
+export const GENRES_HOTES = ['extendedJet', 'forceDoorStep'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
+     *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
+    testRateDeLActeur: (get, set, c) => {
+      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
+      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
+      if (fired.length) fired.forEach((l) => get().log(l));
+      set({ ...touchActors(get()) });
+    },
+  },
+} satisfies FragmentDeTables;
+
+/** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+export function cloturesDesTestsDeScene(get: Get, set: Set) {
+  return {
+    extendedTest: () => {
+      const p = get().pendingExtendedTest;
+      if (!p) return;
+      const issue = issueDuRound(p);
+      if (!issue) return; // le Round courant doit avoir été lancé
+      const { total, done } = issue;
+      // BORNE d'essais (Commerce d'opportunité, MDG 15 l.274-286 : « ≤ 3 tentatives ») — cible non
+      // atteinte à la DERNIÈRE tentative permise = une ISSUE (résolue par `outcome`), pas une boucle infinie.
+      const exhausted = !done && p.maxAttempts != null && p.rounds.length >= p.maxAttempts;
+      if (done || exhausted) {
+        set({ pendingExtendedTest: null, pendingCascade: null }); // ferme la cascade-hôte aussi
+        get().log(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
+        if (done && p.dispel) {
+          // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
+          const b = get().battle;
+          const n = b ? dissipateSpell(b.combatants, p.dispel.spellId, p.dispel.casterId) : 0;
+          set(touchActors(get()));
+          get().log(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
+        }
+        if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
+        // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `maxAttempts`.
+        if (p.outcome) {
+          const applier = tablesPosees().issuesDeTestEtendu[p.outcome.kind];
+          const out = applier?.(get, set, p, total, done);
+          const line = out?.consequences ? resultLine(out.consequences) : '';
+          if (line) get().log(line);
+        }
+        reprendreLaSuite(get, set, p.suite);
+        return;
+      }
+      // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
+      set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
+    },
+    forceDoor: () => {
+      const p = get().pendingForceDoor;
+      if (!p) return;
+      const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);
+      if (cede) {
+        set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
+        get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
+        if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
+        reprendreLaSuite(get, set, p.suite);
+      } else {
+        // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
+        set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
+        get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
+      }
+    },
     /** Acquitte un test de compétence : applique la branche réussite/échec. */
-    resolveTest: () => siOuvert('test', 'apply', get, () => {
+    test: () => {
       const pt = get().pendingTest;
       if (!pt) return;
       const lance = garanti(pt.roll, pt.actorId, 'jet du Test');
@@ -192,23 +215,6 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
       if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
       cloturer(get, set, issue, clotures);
-    }),
-  } satisfies Partial<ActionsDuNoyau>;
-}
-
-/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
-export const GENRES_HOTES = ['extendedJet', 'forceDoorStep'] as const;
-
-/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
-export const TABLES = {
-  clotures: {
-    /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
-     *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
-    testRateDeLActeur: (get, set, c) => {
-      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
-      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
-      if (fired.length) fired.forEach((l) => get().log(l));
-      set({ ...touchActors(get()) });
     },
-  },
-} satisfies FragmentDeTables;
+  } satisfies Partial<CloturesDuJet>;
+}

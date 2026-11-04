@@ -31,7 +31,7 @@ export function DistraireModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'distraire');
   const force = useGesteDeJet('jetForceSuccess', 'distraire');
   const setFoe = useGame((s) => s.distraireSetFoe);
-  const confirm = useGame((s) => s.distraireConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'distraire');
   const cancel = useGesteDeJet('jetCancel', 'distraire');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
@@ -73,7 +73,7 @@ export function DistraireModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

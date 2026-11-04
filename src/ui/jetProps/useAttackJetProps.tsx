@@ -20,7 +20,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, verbe: 'apply' };
+  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, verbe: 'confirm' };
 }
 
 /**
@@ -44,7 +44,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const darkPact = useGesteDeJet('jetDarkPact', 'attack');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'attack');
   const reverseVerb = useGesteDeJet('jetReverse', 'attack');
-  const confirm = useGame((s) => s.attackConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'attack');
   const cancel = useGesteDeJet('jetCancel', 'attack');
   const setHarpoonRopeCut = useGame((s) => s.attackSetHarpoonRopeCut);
   const setWithhold = useGame((s) => s.attackSetWithhold);

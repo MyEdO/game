@@ -105,7 +105,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     });
 
     // La munition se fixe au CHARGEMENT : la voie IA (dispatch INLINE, aucune fenêtre) pose la MÊME capture
-    // que la voie joueur (`reloadConfirm`) — un combattant piloté ne joue pas une autre règle que le même
+    // que la voie joueur (`jetConfirm('reload')`) — un combattant piloté ne joue pas une autre règle que le même
     // combattant joué à la souris.
     it('le rechargement de l’IA CAPTURE la munition choisie (parité stricte avec la voie joueur)', () => {
       seedBattleRng(7);

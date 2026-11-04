@@ -86,9 +86,9 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   it('attaque : avant le jet, lancer, annuler ou choisir le dé par Résilience ; après, la clôture et les influences que le jet réussi admet', () => {
     const avant = verbes(enEtape('attack', { pendingAttack: attaque() }));
     expect(avant.ouverts).toEqual(['jetCancel@attack', 'jetForceSuccess@attack', 'jetRoll@attack']);
-    expect(avant.fermes).toMatchObject({ attackConfirm: 'jetNonLance', 'jetReroll@attack': 'jetNonLance', 'jetSetForcedRoll@attack': 'jetNonLance' });
+    expect(avant.fermes).toMatchObject({ 'jetConfirm@attack': 'jetNonLance', 'jetReroll@attack': 'jetNonLance', 'jetSetForcedRoll@attack': 'jetNonLance' });
     const apres = verbes(enEtape('attack', { pendingAttack: attaque(COUP) }));
-    expect(apres.ouverts).toEqual(['attackConfirm', 'jetBonusSL@attack', 'jetDarkPact@attack', 'jetSetForcedRoll@attack']);
+    expect(apres.ouverts).toEqual(['jetConfirm@attack', 'jetBonusSL@attack', 'jetDarkPact@attack', 'jetSetForcedRoll@attack']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@attack': 'jetLance', 'jetCancel@attack': 'jetLance', 'jetReroll@attack': 'jetReussi', 'jetForceSuccess@attack': 'jetReussi', 'jetReverse@attack': 'sansVoieDInversion' });
   });
 
@@ -102,18 +102,18 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   it('défense : avant le jet, le jet ou la Résilience ; après, la clôture et toute l’influence d’un jet raté', () => {
     const avant = verbes(enEtape('defense', { pendingDefense: defense(false) }));
     expect(avant.ouverts).toEqual(['jetForceSuccess@defense', 'jetRoll@defense']);
-    expect(avant.fermes).toMatchObject({ defenseConfirm: 'jetNonLance', 'jetReroll@defense': 'jetNonLance', 'jetSetForcedRoll@defense': 'jetNonLance' });
+    expect(avant.fermes).toMatchObject({ 'jetConfirm@defense': 'jetNonLance', 'jetReroll@defense': 'jetNonLance', 'jetSetForcedRoll@defense': 'jetNonLance' });
     const apres = verbes(enEtape('defense', { pendingDefense: defense(true) }));
-    expect(apres.ouverts).toEqual(['defenseConfirm', 'jetBonusSL@defense', 'jetDarkPact@defense', 'jetForceSuccess@defense', 'jetReroll@defense', 'jetSetForcedRoll@defense']);
+    expect(apres.ouverts).toEqual(['jetConfirm@defense', 'jetBonusSL@defense', 'jetDarkPact@defense', 'jetForceSuccess@defense', 'jetReroll@defense', 'jetSetForcedRoll@defense']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@defense': 'jetLance' });
   });
 
   it('Test : avant le jet, lancer, annuler ou la Résilience, la Détermination sans malus psychologique fermée ; après, la clôture', () => {
     const avant = verbes(enEtape('test', { pendingTest: test(false) }));
     expect(avant.ouverts).toEqual(['jetCancel@test', 'jetForceSuccess@test', 'jetRoll@test']);
-    expect(avant.fermes).toMatchObject({ resolveTest: 'jetNonLance', 'jetDetermine@test': 'sansMalusPsy', 'jetSetForcedRoll@test': 'jetNonLance' });
+    expect(avant.fermes).toMatchObject({ 'jetConfirm@test': 'jetNonLance', 'jetDetermine@test': 'sansMalusPsy', 'jetSetForcedRoll@test': 'jetNonLance' });
     const apres = verbes(enEtape('test', { pendingTest: test(true) }));
-    expect(apres.ouverts).toEqual(['jetBonusSL@test', 'jetDarkPact@test', 'jetSetForcedRoll@test', 'resolveTest']);
+    expect(apres.ouverts).toEqual(['jetBonusSL@test', 'jetDarkPact@test', 'jetSetForcedRoll@test', 'jetConfirm@test']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@test': 'jetLance', 'jetCancel@test': 'jetLance', 'jetReroll@test': 'jetReussi', 'jetForceSuccess@test': 'jetReussi' });
     expect(verbes(enEtape('test', { pendingTest: test(false, false) })).fermes['jetCancel@test'], 'un Test de scène ne s’annule pas').toBe('nonOffert');
   });
@@ -121,9 +121,9 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   it('incantation : avant le jet, le jet ou la Résilience ; après, la clôture et les influences d’un jet réussi', () => {
     const avant = verbes(enEtape('cast', { pendingCast: incantation(false) }));
     expect(avant.ouverts).toEqual(['jetCancel@cast', 'jetForceSuccess@cast', 'jetRoll@cast']);
-    expect(avant.fermes).toMatchObject({ castConfirm: 'jetNonLance', 'jetReroll@cast': 'jetNonLance', 'jetSetForcedRoll@cast': 'jetNonLance' });
+    expect(avant.fermes).toMatchObject({ 'jetConfirm@cast': 'jetNonLance', 'jetReroll@cast': 'jetNonLance', 'jetSetForcedRoll@cast': 'jetNonLance' });
     const apres = verbes(enEtape('cast', { pendingCast: incantation(true) }));
-    expect(apres.ouverts).toEqual(['castConfirm', 'jetBonusSL@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
+    expect(apres.ouverts).toEqual(['jetConfirm@cast', 'jetBonusSL@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@cast': 'jetLance', 'jetReroll@cast': 'jetReussi', 'jetForceSuccess@cast': 'jetReussi' });
   });
 
@@ -160,9 +160,9 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   });
 
   it('incantation Critique d’un Sort : la clôture attend le choix de l’effet (LDB 46 l.28-32)', () => {
-    expect(verbes(enEtape('cast', { pendingCast: incantation(true, true) })).fermes.castConfirm).toBe('choixCritiqueDu');
+    expect(verbes(enEtape('cast', { pendingCast: incantation(true, true) })).fermes['jetConfirm@cast']).toBe('choixCritiqueDu');
     const choisi = verbes(enEtape('cast', { pendingCast: { ...incantation(true, true), critChoice: 'puissance' } }));
-    expect(choisi.ouverts).toContain('castConfirm');
+    expect(choisi.ouverts).toContain('jetConfirm@cast');
   });
 });
 
@@ -191,7 +191,7 @@ describe('fermeturesDuFlux — la clôture d’une opposition au Sort', () => {
   it('se montre refusée tant qu’une cible interactive n’a pas opposé son Test', () => {
     const cible = (result: OppositionParticipant['result']) => ({ id: H.id, interactive: true, result }) as OppositionParticipant;
     const opposition = (part: OppositionParticipant) => ({ pendingCastOpposition: { participants: [part] } as unknown as PendingCastOpposition });
-    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible(null)) } as Jeu, 'opposition').apply).toBe('oppositionsDues');
-    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible({ oppose: tr(30, 40), resisted: true, margin: 0 })) } as Jeu, 'opposition').apply).toBeNull();
+    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible(null)) } as Jeu, 'opposition').confirm).toBe('oppositionsDues');
+    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible({ oppose: tr(30, 40), resisted: true, margin: 0 })) } as Jeu, 'opposition').confirm).toBeNull();
   });
 });

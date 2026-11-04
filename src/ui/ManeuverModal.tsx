@@ -27,7 +27,7 @@ export function ManeuverModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'maneuver');
   const force = useGesteDeJet('jetForceSuccess', 'maneuver');
   const setAvantage = useGame((s) => s.maneuverSetAvantage);
-  const confirm = useGame((s) => s.maneuverConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'maneuver');
   const cancel = useGesteDeJet('jetCancel', 'maneuver');
   const awaitingDefense = useGame(maneuverDefensePending);
   if (!pm || !battle) return null;

@@ -53,7 +53,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     expect(done.sl).toBe(bonus(43)); // « utilisez votre Bonus d'Endurance comme DR » → 4
     expect(banc.getState().party[0].resistanceUsed).toContain('corruption');
     // Modérée + succès à DR 4 (≥ 2) → 0 Point de Corruption au resolve.
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect(banc.getState().party[0].corruption ?? 0).toBe(0);
   });
 
@@ -62,13 +62,13 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     banc.getState().jetResist('corruption');
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     // 2e exposition, même séance : la spec est consommée → le verbe ne fait RIEN (pas de jet posé).
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.roll).toBeUndefined();
     banc.getState().jetRoll('corruption'); // le jet normal reste possible
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     // Début de séance (couture UNIQUE restoreFortune) → compteur remis, le talent est de nouveau offert.
     banc.getState().restoreFortuneNow();
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
@@ -102,7 +102,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.sl).toBe(bonus(43)); // DR = Bonus d'Endurance = 4
     expect(banc.getState().party[0].resistanceUsed).toContain('corruption');
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     // Majeure : « Sur un Succès Minime (0-1 DR), gagnez 2 Points […] Sur un Succès Impressionnant
     // (4+ DR), vous ne gagnez aucun Point » (LDB 19 l.58).
     expect(banc.getState().party[0].corruption ?? 0).toBe(0);
@@ -141,7 +141,7 @@ describe('Résistance (Mutation) — Test de SEUIL de Corruption (LDB 19 l.70)',
     expect(pc.menace).toBe('mutation');
     banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.success).toBe(true);
-    banc.getState().resolveCorruption();
+    banc.getState().jetConfirm('corruption');
     expect((a.mutations ?? []).length).toBe(0); // contenu « pour cette fois »
     expect(a.resistanceUsed).toContain('mutation');
   });

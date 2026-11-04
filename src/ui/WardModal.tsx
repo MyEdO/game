@@ -24,7 +24,7 @@ export function WardModal() {
   const reroll = useGesteDeJet('jetReroll', 'ward');
   const darkPact = useGesteDeJet('jetDarkPact', 'ward');
   const force = useGesteDeJet('jetForceSuccess', 'ward');
-  const confirm = useGame((s) => s.wardConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'ward');
   const cancel = useGesteDeJet('jetCancel', 'ward');
   if (!pw || !battle) return null;
   const attacker = battle.combatants.find((x) => x.id === pw.attackerId);
@@ -49,7 +49,7 @@ export function WardModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

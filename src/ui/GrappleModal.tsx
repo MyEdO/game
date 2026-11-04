@@ -31,7 +31,7 @@ export function GrappleModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'grapple');
   const force = useGesteDeJet('jetForceSuccess', 'grapple');
   const breakGrapple = useGame((s) => s.grappleBreak);
-  const confirm = useGame((s) => s.grappleConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'grapple');
   const choose = useGame((s) => s.grappleChoose);
   const cancel = useGesteDeJet('jetCancel', 'grapple');
   if (!pd || !battle) return null;
@@ -116,7 +116,7 @@ export function GrappleModal() {
     ...(pd.canBreak
       ? [{ key: 'break', label: "Briser l'Empoignade", onClick: breakGrapple, title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
       : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

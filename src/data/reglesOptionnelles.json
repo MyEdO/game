@@ -725,7 +725,7 @@
     "type": "reglesOptionnelles",
     "label": "Assister une Entreprise coûte un créneau (maison)",
     "ref": "LDB 12 l.189 / ADE II 8 l.81",
-    "maison": "#257 — LDB 23 l.5 / ADE II 8 l.65 bornent le budget par « participer à une Activité » ; le Soutien (LDB 12 l.187-200) et Planification (ADE II 8 l.81) ne chiffrent aucun coût d’Activité pour l’assistant. Défaut `false` : `confirmActivity` ne décompte que le meneur.",
+    "maison": "#257 — LDB 23 l.5 / ADE II 8 l.65 bornent le budget par « participer à une Activité » ; le Soutien (LDB 12 l.187-200) et Planification (ADE II 8 l.81) ne chiffrent aucun coût d’Activité pour l’assistant. Défaut `false` : `jetConfirm('activity')` ne décompte que le meneur.",
     "group": "Activités",
     "kind": "flag",
     "default": false,

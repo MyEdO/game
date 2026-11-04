@@ -75,7 +75,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     expect(cast.cast, 'DR 7 = NI du Sort : l’incantation passe').toBe(true);
     expect(cast.sl).toBe(7);
     expect(cast.base, 'le lanceur porte sa nue depuis `evaluateCasting`').toBe(44);
-    banc.getState().castConfirm(); // ouvre l'opposition (cible IA = rangée témoin auto-roulée)
+    banc.getState().jetConfirm('cast'); // ouvre l'opposition (cible IA = rangée témoin auto-roulée)
 
     // Dé de la cible FIXÉ au premier qui produit le MÊME DR que l'incantation → le départage joue.
     const de = Array.from({ length: 100 }, (_, i) => i + 1)
@@ -101,7 +101,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     expect(REPLIS_DEUX_CIBLES.count, 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(temoin + 1);
 
     const avant = REPLIS_DEUX_CIBLES.count;
-    banc.getState().castConfirm();                     // jet témoin auto-roulé → resolveOpposed
+    banc.getState().jetConfirm('cast');                     // jet témoin auto-roulé → resolveOpposed
     banc.getState().jetSetForcedRoll('opposition', 42, E.id); // dé fixé → re-opposition
     banc.getState().jetBonusSL('opposition', E.id);           // +1 DR → re-opposition
     expect(REPLIS_DEUX_CIBLES.count, 'un départage de l’opposition est retombé sur les cibles').toBe(avant);

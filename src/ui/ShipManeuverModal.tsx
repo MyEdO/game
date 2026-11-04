@@ -36,7 +36,7 @@ export function ShipManeuverModal() {
   const bonus = useGesteDeJet('jetBonusSL', 'shipManeuver');
   const darkPact = useGesteDeJet('jetDarkPact', 'shipManeuver');
   const force = useGesteDeJet('jetForceSuccess', 'shipManeuver');
-  const confirm = useGame((s) => s.shipManeuverConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'shipManeuver');
   const cancel = useGesteDeJet('jetCancel', 'shipManeuver');
   const milieu = useGame((s) => milieuDuVoyage(s.travelPlan));
   if (!p || !battle) return null;
@@ -64,7 +64,7 @@ export function ShipManeuverModal() {
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
     ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
-    { key: 'confirm', label: 'Manœuvrer', onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: 'Manœuvrer', onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

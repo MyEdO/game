@@ -73,7 +73,7 @@ export function StateRecoveryModalView({
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
   ];
 
   return (
@@ -103,7 +103,7 @@ export function StateRecoveryModal() {
   const reroll = useGesteDeJet('jetReroll', 'recover');
   const bonusSL = useGesteDeJet('jetBonusSL', 'recover');
   const darkPact = useGesteDeJet('jetDarkPact', 'recover');
-  const confirm = useGame((s) => s.recoverConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'recover');
   const cancel = useGesteDeJet('jetCancel', 'recover');
   if (!sr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === sr.actorId);

@@ -165,7 +165,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     // #989 : la défense du héros est SURFACÉE — l'attaque gratuite ne la roule plus en silence.
     expect(banc.getState().pendingDefense?.defenderId).toBe(H.id);
     banc.getState().jetRoll('defense');
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     const st = banc.getState();
     expect(st.battle!.log.length).toBeGreaterThan(logBefore); // une attaque a bien été résolue
     expect(st.battle!.acted).toBe(false); // gratuite : l'Action n'est pas consommée

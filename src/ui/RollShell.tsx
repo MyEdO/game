@@ -8,9 +8,9 @@ import { RollRow, type RollRowProps, defaultRollLabel } from './RollRow';
 import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
-import { FLOW_VERBS, type FlowKey } from '../noyau/flowVerbs';
+import { FLOW_VERBS, type FlowKey, type RollVerb } from '../noyau/flowVerbs';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
-import { FERMETURES_DITES, type FermetureDuJet, type VerbeDuCycle } from '../noyau/rollFlowFactory';
+import { FERMETURES_DITES, type FermetureDuJet } from '../noyau/rollFlowFactory';
 import { libelleDeLaFermeture } from '../noyau/libelles';
 import { avecSigne } from '../engine/types';
 import { refusDeRangee, rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
@@ -73,7 +73,7 @@ export interface RollAction {
   refus?: string;
   /** Le verbe du cycle de jet que joue le bouton : il n'est montré que tant que le noyau le laisse ouvert
    *  (`fermeturesDuFlux`). Absent : le bouton ne joue aucun verbe du cycle, il est toujours montré. */
-  verbe?: VerbeDuCycle;
+  verbe?: RollVerb;
   /** Le flux qui juge `verbe`, quand ce n'est pas celui de la coquille (`flowKey`). */
   flux?: FlowKey;
   /** Le slot de ce flux qui juge `verbe` (flux à plusieurs jets) ; absent, la fenêtre entière. */
@@ -274,7 +274,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
   // annule tant que le flux de la coquille laisse l'annulation ouverte (`fermeturesDuFlux`), sinon avant le jet.
   // Congédiement PARTIEL par construction (`dismissStack.ts:12-14`) : la fenêtre qui porte le jet
   // (`Modal` de la coquille ou boîte d'un hôte) ne se ferme que par son démontage, jamais par l'appui.
-  const fermeture = (verbe: VerbeDuCycle, flux: FlowKey | undefined, pid?: string): FermetureDuJet | null => {
+  const fermeture = (verbe: RollVerb, flux: FlowKey | undefined, pid?: string): FermetureDuJet | null => {
     if (flux) return fermeturesDuFlux(state, flux, pid)[verbe];
     if (import.meta.env.DEV) throw new Error(`RollShell : le verbe « ${verbe} » n'a aucun flux qui le juge (flowKey ou RollAction.flux).`);
     return null;

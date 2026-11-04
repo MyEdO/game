@@ -25,7 +25,7 @@ export function ApproachModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'approach');
   const force = useGesteDeJet('jetForceSuccess', 'approach');
   const reverse = useGesteDeJet('jetReverse', 'approach'); // Inversion (LDB 12 l.42)
-  const confirm = useGame((s) => s.approachConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'approach');
   const cancel = useGesteDeJet('jetCancel', 'approach');
   if (!pa || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pa.combatantId);
@@ -56,7 +56,7 @@ export function ApproachModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

@@ -56,7 +56,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().jetRoll('activity');
     // Force un succès propre (déterminisme du gain testé côté moteur).
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(banc.getState().pendingActivity).toBeNull();
     const after = st();
     expect(after.didRevenus).toBe(true);
@@ -96,7 +96,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().jetRoll('activity');
     const pa = banc.getState().pendingActivity!;
     banc.setState({ pendingActivity: { ...pa, roll: 1, success: true, sl: Math.max(1, pa.drTarget ?? 1) , drBefore: pa.drTarget } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     const after = st();
     expect(hero().craft).toBeUndefined();
     expect(after.left).toBe(2);
@@ -104,7 +104,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(made).toBeTruthy();
   });
 
-  it('Rituel : `openRitualFocus` engage puis `resolveFocus` cumule le DR jusqu’au NI réduit de moitié, puis clôt (VDM 02 l.777) — Activité `blocked` au catalogue (#879), mécanisme exercé DIRECTEMENT (openRitualFocus + jetRoll@activity/activityConfirm, hors de la porte fermée au joueur)', () => {
+  it('Rituel : `openRitualFocus` engage puis `resolveFocus` cumule le DR jusqu’au NI réduit de moitié, puis clôt (VDM 02 l.777) — Activité `blocked` au catalogue (#879), mécanisme exercé DIRECTEMENT (openRitualFocus + jetRoll@activity/jetConfirm@activity, hors de la porte fermée au joueur)', () => {
     const h = hero();
     h.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 10 });
     h.spells = ['graver-une-pierre-d-ogham']; // NI 50, aucun Domaine requis (`domains: []`)
@@ -146,7 +146,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     // représentatifs d'un Round réel (`resolveFocus` mesure ~1,39 DR de moyenne) : cette trajectoire de
     // 2 Rounds n'est pas jouable en l'état (#879).
     banc.setState({ pendingActivity: { ...pa, sl: 10, success: true } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(hero().ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 10, drTarget: 25 });
     expect(st().left).toBe(2);
     // 2e Round, sans re-préciser `spellId` : reprend le Rituel engagé (`h.ritual`), achève (10+20 ≥ 25).
@@ -163,7 +163,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     });
     banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, sl: 20, success: true } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(hero().ritual).toBeUndefined();
     expect(st().left).toBe(1);
     expect(banc.getState().journal.join('\n')).toMatch(/achève le Rituel/);
@@ -231,7 +231,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().jetRoll('activity');
     // Échec forcé : PX/argent dépensés en vain, +10 cumulé.
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(hero().xp).toBe(200);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - (pa.tutorBrass ?? 0)); // tuteur payé MÊME sur échec
     expect(st().learnFails?.['chanceux']).toBe(1); // clé = id stable
@@ -242,7 +242,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect([reprise.skillValue, reprise.mod, reprise.modLabel]).toEqual([pa.skillValue, 10, 'Acharnement']);
     banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 1 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(hero().talents.some((t) => t.talentId === 'chanceux')).toBe(true);
     expect(hero().xp).toBe(100);
   });
@@ -346,7 +346,7 @@ describe('Activités d’interlude (LDB 23)', () => {
   const forceRoll = (roll: number, success: boolean, sl: number) => {
     banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
   };
 
   it('Identifier : exige Savoir (Magie) acquis (« Pour d’autres sorciers », ADE II 4 l.41)', () => {
@@ -436,7 +436,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().jetRoll('activity');
     // Force un échec « normal ou pire » (DR ≤ −2) → palier 1 des Crampes = Sonné.
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     const after = banc.getState().party.find((c) => c.id === h.id)!;
     expect(after.conditions.some((c) => c.id === 'sonne')).toBe(true);
   });
@@ -453,7 +453,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().interludeActivity(h.id, 'revenus');
     banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     const pt = banc.getState().pendingTest;
     expect(pt).toBeTruthy(); // le FM s'ouvre en MODALE (openSkillTest), pas résolu inline
     expect(pt!.skillId ?? pt!.char).toBe('force-mentale');
@@ -489,13 +489,13 @@ describe('Activités d’interlude (LDB 23)', () => {
     setupHero();
     seedBattleRng(seed);
     banc.setState({ pendingActivity: { ...basePending, sl: 0 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(banc.getState().journal.join('\n')).toContain(rowNoSL.label);
 
     setupHero();
     seedBattleRng(seed);
     banc.setState({ pendingActivity: { ...basePending, sl: -3 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(banc.getState().journal.join('\n')).toContain(rowWithSL.label);
   });
 });
@@ -533,13 +533,13 @@ describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE,
     banc.getState().jetRoll('activity');
     // Échec « désastreux » (DR ≤ −4) → palier 1 inline (Sonné) + palier 2 en MODALE (Force Mentale).
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
 
     const pt = banc.getState().pendingTest!;
     expect(pt.actorId, 'le FM de palier 2 se jette chez le malade').toBe('h3');
     const autresAvant = JSON.stringify(banc.getState().party.filter((c) => c.id !== 'h3'));
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -2 } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
 
     const apres = banc.getState().party;
     expect(apres.find((c) => c.id === 'h3')!.conditions.some((c) => c.id === 'a-terre'), 'À Terre sur le malade').toBe(true);

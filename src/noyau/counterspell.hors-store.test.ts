@@ -109,7 +109,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     // dernière déclaration referme la fenêtre par le résolveur canonique.
     if (st.pendingCounterspell) {
       for (const p of st.pendingCounterspell.participants) banc.getState().counterspellDeclare(p.id, 'pass');
-    } else banc.getState().castConfirm();
+    } else banc.getState().jetConfirm('cast');
     banc.avancer(2000);
     // Une Maladresse de l'IA déclare son étape à table comme partout (#1426) : la main ne repasse
     // qu'une fois la séquence de conséquence jouée (le socle a déjà tiré ce que nul siège ne tient).

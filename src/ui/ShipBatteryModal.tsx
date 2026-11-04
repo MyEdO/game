@@ -12,7 +12,7 @@ import { useGesteDeJet } from './useGesteDeJet';
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
  * `RollShell` + `RollRow`). Chaque Artilleur tenu = une rangée (PJ influençable / marin témoin) ;
  * le bandeau somme les DR (essentiel ×2) + Moral → le **DR PARTAGÉ** qui s'applique à TOUTES les pièces du bord
- * (l.128). Pas de virage : `extra` montre la cible + les pièces qui tirent. « Feu ! » résout la volée (`shipBatteryConfirm`).
+ * (l.128). Pas de virage : `extra` montre la cible + les pièces qui tirent. « Feu ! » résout la volée (`jetConfirm('shipBattery')`).
  */
 export function ShipBatteryModal() {
   const p = useGame((s) => s.pendingShipBattery);
@@ -23,7 +23,7 @@ export function ShipBatteryModal() {
   const bonus = useGesteDeJet('jetBonusSL', 'shipBattery');
   const darkPact = useGesteDeJet('jetDarkPact', 'shipBattery');
   const force = useGesteDeJet('jetForceSuccess', 'shipBattery');
-  const confirm = useGame((s) => s.shipBatteryConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'shipBattery');
   const cancel = useGesteDeJet('jetCancel', 'shipBattery');
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
@@ -48,7 +48,7 @@ export function ShipBatteryModal() {
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
     ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
-    { key: 'confirm', label: <><Icon id="fire/flame" size="sm" /> Feu !</>, onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: <><Icon id="fire/flame" size="sm" /> Feu !</>, onClick: confirm, verbe: 'confirm' },
   ];
 
   return (
