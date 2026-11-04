@@ -2,16 +2,45 @@
   {
     "id": "arme",
     "type": "qualitySubtypes",
-    "label": "Arme"
+    "label": "Arme",
+    "source": {
+      "book": "livre-de-base",
+      "page": 297,
+      "note": "LDB 62 l.217"
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 299,
+        "note": "LDB 62 l.309"
+      }
+    ]
   },
   {
     "id": "armure",
     "type": "qualitySubtypes",
-    "label": "Armure"
+    "label": "Armure",
+    "source": {
+      "book": "livre-de-base",
+      "page": 300,
+      "note": "LDB 63 l.68"
+    }
   },
   {
     "id": "objet",
     "type": "qualitySubtypes",
-    "label": "Objet"
+    "label": "Objet",
+    "source": {
+      "book": "livre-de-base",
+      "page": 291,
+      "note": "LDB 60 l.9"
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 292,
+        "note": "LDB 60 l.40"
+      }
+    ]
   }
 ]

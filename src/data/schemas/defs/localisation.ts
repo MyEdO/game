@@ -38,11 +38,10 @@ const doc = document(
   famille,
   {
   personnage: nommerChamps(z.strictObject({
-    source: sourceRefSchema,
     /** Clé = `BodyShape` (`src/engine/types.ts`) — seules `humanoide`/`serpent`/`araignee` sont
      *  présentes dans le JSON (les autres formes retombent sur `humanoide`, cf. `hitLocationByShape`). */
     shapes: z.record(z.string(), z.array(bodyLocEntry)),
-  }), { source: { label: 'source' }, shapes: { label: 'formes corporelles' } }),
+  }), { shapes: { label: 'formes corporelles' } }),
   navire: nommerChamps(z.strictObject({
     source: sourceRefSchema,
     entries: z.array(shipLocEntry),

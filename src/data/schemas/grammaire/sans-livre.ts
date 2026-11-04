@@ -37,25 +37,14 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
 };
 
 /**
- * Part de CONTENU de `SANS_LIVRE` (classes (1) à (3) de #1467 L1b V-Src, hors index d’app des livres et artefacts
+ * Part de CONTENU de `SANS_LIVRE` (classes (2) et (3) de #1467 L1b V-Src, hors index d’app des livres et artefacts
  * générés) : son sourçage reste dû, lot L1d #1469. La fabrique l’exempte, la mesure d’enveloppe en compte l’absence
  * (`provenanceMesuree`). Une clé ne sort d’ici que par le commit qui source son document, ou par une décision
  * utilisateur datée au ticket qui la déclare définitivement sans livre.
  */
 export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
   // ── #1467 L1b V-Src (2026-08-27) — jugé le 2026-08-26. Chaque raison est MESURÉE au geste sur la
-  // donnée réelle ; aucune n'est close par « … ». Trois classes, distinctes par ce qui MANQUE.
-
-  // (1) VOCABULAIRES DE CATÉGORISATION — id + label, aucune valeur mécanique propre. Le concept est
-  //     RAW, mais il est imprimé en PLUSIEURS endroits : un `page` scalaire en désignerait un seul.
-  qualityTypes:
-    'vocabulaire de catégorisation (id+label : Atout/Défaut) — IMPRIMÉS en trois paires de folios distinctes, un `page` scalaire en désignerait une et mentirait pour les deux autres : LDB 60 l.9 / 60 l.40 (folios 291/292), 62 l.217 / 62 l.309 (297/299), 63 l.68 / 63 l.80 (300/300). Les Qualités elles-mêmes portent chacune son folio (qualities.json)',
-  qualitySubtypes:
-    'vocabulaire de catégorisation (id+label : Arme/Armure/Objet) — même famille que `qualityTypes`, mêmes trois paires de folios ; aucune valeur mécanique propre à sourcer',
-  'damage-types':
-    'vocabulaire de catégorisation (id+label) — aucune valeur mécanique propre : le type est un PARAMÈTRE d’un Trait sourcé (traits.json), et l’énumération n’est imprimée nulle part en liste',
-  localisation:
-    'table de dé INVERSÉ (résultat de dé → zone de touche) — vocabulaire structurel du moteur ; les zones sont LDB et déjà tenues par `hitLocationSchema`, l’inversion ne l’est nulle part',
+  // donnée réelle ; aucune n'est close par « … ». Deux classes, distinctes par ce qui MANQUE.
 
   // (2) INDEX & CATALOGUES D'APPLICATION — l'objet décrit est le dépôt ou son contenu, pas une règle.
   groups:
@@ -74,12 +63,11 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
   calendarPhases:
     'découpage horaire d’app (7 phases Aube→Nuit : minute de départ + icône, moteur de lumière/vision) — le Calendrier Impérial RAW vit dans calendarMonths/calendarWeekdays (EDO Annexe 3, folio 149-150, 12/12 et 8/8 sourcés) ; aucune table de phases n’y est imprimée',
 
-  // (3) MIXTES — plusieurs provenances PAR CLÉ, aucune racine unique : leurs clés RAW sont citées à
-  //     leur foyer (`defs/*.ts`) et la DONNÉE n'en porte aucune, donc rien n'est exigible ici.
+  // (3) MIXTES — plusieurs provenances PAR CLÉ (et par colonne d'espèce pour `details`), aucune racine unique.
   sizes:
-    'plusieurs provenances par clé, aucune racine unique : `rangedMod` = LDB folio 162 (`14 - _GoBack.md` l.118-131) verbatim, `shipboardEnc` = MDG folio 92 (`12` l.25-33) verbatim, `footprintSide` = MAISON (LDB 15 l.12 ne chiffre rien). Les réfs vivent au foyer `defs/sizes.ts:2-6`',
+    'plusieurs provenances par clé, aucune racine unique : `rangedMod` = LDB 14 l.118 (folio 162), `shipboardEnc` = MDG 12 l.25 (folio 92), `footprintSide` = MAISON (LDB 15 l.12 ne chiffre rien) ; l’emplacement MDG se poserait en `alsoIn` de racine, que l’atelier d’objet unique du Codex rend en JSON brut (`src/ui/compendium/no-json-fields.test.ts`)',
   details:
-    'plusieurs provenances par clé, aucune racine unique : `ageBase`/`ageRoll`/`heightBase`/`heightRoll` = LDB folio 39 (`05` l.705-728) verbatim pour les 4 seules colonnes imprimées (humain/nain/elfe/halfling) ; `gnome`/`ogre` y sont posés sans source trouvée ; `texts` est de la prose d’application',
+    'plusieurs provenances par colonne : `ageBase`/`ageRoll`/`heightBase`/`heightRoll` = LDB 05 l.705-728 (folio 39) pour humain/nain/elfe/halfling, NADJ 15 l.80 et l.112 (folio 89) pour gnome, ADE II 02 l.278 et l.315 pour ogre ; la Taille gnome imprimée « 1d10 × 2,5 cm + 100 cm » n’a pas de forme dans « base + N d10 » (`heightRoll` 2,5) ; `texts` est de la prose d’application',
 };
 
 /**

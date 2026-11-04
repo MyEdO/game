@@ -2,11 +2,45 @@
   {
     "id": "atout",
     "type": "qualityTypes",
-    "label": "Atout"
+    "label": "Atout",
+    "source": {
+      "book": "livre-de-base",
+      "page": 291,
+      "note": "LDB 60 l.9"
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 297,
+        "note": "LDB 62 l.217"
+      },
+      {
+        "book": "livre-de-base",
+        "page": 300,
+        "note": "LDB 63 l.68"
+      }
+    ]
   },
   {
     "id": "defaut",
     "type": "qualityTypes",
-    "label": "Défaut"
+    "label": "Défaut",
+    "source": {
+      "book": "livre-de-base",
+      "page": 292,
+      "note": "LDB 60 l.40"
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 299,
+        "note": "LDB 62 l.309"
+      },
+      {
+        "book": "livre-de-base",
+        "page": 300,
+        "note": "LDB 63 l.80"
+      }
+    ]
   }
 ]
