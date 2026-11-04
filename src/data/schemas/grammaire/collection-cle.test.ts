@@ -238,9 +238,13 @@ describe('clé de collection — la co-descente re-dérive les racines, les cat�
       return undefined;
     };
     /** La racine VIVANTE d'un fichier : le module JSON que `overrides.ts` importe, pas une relecture du disque. */
+    const modules = import.meta.glob<unknown>('../../*.json', { import: 'default' });
     const racines = new Map<string, unknown>();
-    for (const fichier of new Set(Object.values(DATASET_FICHIER_DERIVE)))
-      racines.set(fichier, ((await import(`../../${fichier.replace(/\.json$/, '')}.json`)) as { default: unknown }).default);
+    for (const fichier of new Set(Object.values(DATASET_FICHIER_DERIVE))) {
+      const charger = modules[`../../${fichier}`];
+      expect(charger, `${fichier} : fichier de dataset hors de \`src/data/*.json\``).toBeDefined();
+      racines.set(fichier, await charger!());
+    }
     const nichees = DATASET_KEYS.flatMap((k) => {
       const fichier = DATASET_FICHIER_DERIVE[k];
       const tableau = datasetArray(k);
