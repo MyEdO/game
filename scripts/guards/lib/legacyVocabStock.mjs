@@ -938,13 +938,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/sheetAlarms.test.ts",
-    motif: "désormais",
-    ancre: "(désormais `EffectChips`). Contrat : détecter les afflictions par `key` d'identité + `label`",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/useRollFrisson.ts",
     motif: "désormais",
     ancre: "@param opts.frisson  Anime avant de résoudre (défaut : TRUE — #396, tout jet roule désormais ;",

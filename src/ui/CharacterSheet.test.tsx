@@ -348,6 +348,17 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(useGame.getState().sheetTab).toBe('etat');
   });
 
+  it('empreinte déjà vue : la fiche n’atterrit pas sur État ; l’onglet État retient l’empreinte du noyau', () => {
+    const alarme = { ...hero(), corruption: 3 } as Combatant;
+    useGame.setState({ party: [alarme], battle: null, sheetId: alarme.id, sheetTab: null, sheetAlarmsSeen: { [alarme.id]: 'corruption:Corruption 3' } });
+    mount(<CharacterSheet heroId={alarme.id} onClose={() => {}} />);
+    expect(useGame.getState().sheetTab).toBeNull();
+    demonterRacines();
+    useGame.setState({ sheetTab: 'etat', sheetAlarmsSeen: {} });
+    mount(<CharacterSheet heroId={alarme.id} onClose={() => {}} />);
+    expect(useGame.getState().sheetAlarmsSeen).toEqual({ [alarme.id]: 'corruption:Corruption 3' });
+  });
+
   it('gangrène du cadre : `data-gangrene` posé selon le seuil de Corruption', () => {
     const clean = hero();
     useGame.setState({ party: [clean], battle: null, sheetId: clean.id, sheetTab: 'etat' });
@@ -487,6 +498,17 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
     expect(text).toContain('Armes');
     expect(text).toContain('Armures & protections');
     expect(text).toContain('Divers');
+  });
+
+  it('« En main » : l’option 2nde porte la pénalité du moteur, Ambidextre comprise (−20 sans, −10 à 1×)', () => {
+    const malus = (h: Combatant) => {
+      useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
+      const el = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
+      act(() => { ([...el.querySelectorAll('.plaque-row')].find((r) => r.textContent?.includes('Épée')) as HTMLButtonElement).click(); });
+      return [...el.querySelectorAll('.ir-hand .off-malus')].map((e) => e.textContent);
+    };
+    expect(malus(heroWithItems())).toEqual(['−20']);
+    expect(malus({ ...heroWithItems(), talents: [{ talentId: 'ambidextre', times: 1 }] } as Combatant)).toEqual(['−10']);
   });
 
   it('une `PlaqueRow` par objet non rangé, l’objet imbriqué reste visible sous son contenant', () => {

@@ -13,7 +13,7 @@ import { startCascade } from './cascade';
 import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
-import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
@@ -23,7 +23,7 @@ import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, refusDeClore, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
@@ -1126,7 +1126,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
 /** Clôture : applique le devis (`devisDeCloture`) que le récap affiche, puis le temps passe (repos
  *  standard). Touche toutes les bourses : geste du groupe. LDB 23 l.15, l.33, l.191 */
 export function interludeEnd(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
+  if (refuseSi(get, set, refusDeClore)) return;
   const devis = devisDeCloture(get());
   if (!devis) return;
   const lines: string[] = [];

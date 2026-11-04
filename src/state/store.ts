@@ -93,7 +93,7 @@ export interface EtatDeLAdaptateur {
   /** Position de scroll du corps d'onglet (`.sheet-tabbody`), par onglet — restaurée à l'affichage. */
   sheetScroll: Partial<Record<SheetTab, number>>;
   /** Empreinte (`alarmsFingerprint`) des alarmes DÉJÀ vues par héros — la règle d'atterrissage
-   *  (`sheetAlarms.ts`) ne force l'onglet État qu'à la première ouverture depuis une alarme nouvelle.
+   *  (`atterritSurEtat`, `noyau/alarmesDeFiche.ts`) ne force l'onglet État qu'à la première ouverture depuis une alarme nouvelle.
    *  UI éphémère, non sérialisée (comme `sheetId`/`sheetTab`). */
   sheetAlarmsSeen: Record<string, string>;
   /** Combattant SURVOLÉ depuis un PORTRAIT (frise/dock) — pilote, à parité du survol du token,

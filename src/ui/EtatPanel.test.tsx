@@ -6,13 +6,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { psychologies } from '../data';
 import { Combatant } from '../engine/types';
-import { EtatPanel, zoneAfflictions } from './EtatPanel';
+import { EtatPanel, zoneAfflictions, ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties } from '../engine/trauma';
 import { useGame } from '../state/store';
-import { ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
 import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-/** Héros minimal, patron `sheetAlarms.test.ts`/`CharacterSheet.test.tsx` (mkHero). */
+/** Héros minimal, patron `CharacterSheet.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
   const c = blessuresSurLeProfil({
     id: 'h',
