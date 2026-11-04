@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { z } from 'zod';
-import { familleDuRepere, idDe, idsDe, mesureDuParse, reperesDuParse, declarationDeFeuilleDId, type FeuilleDId } from './ref';
+import { familleDuRepere, idDe, idsDe, mesureDuParse, recordDIds, reperesDuParse, declarationDeFeuilleDId, type FeuilleDId } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { famillesConstruites, gameOpSchema } from './mecanique';
 import { descendre } from './descente';
@@ -63,6 +63,15 @@ describe('reperesDuParse — le path de DONNÉE de chaque référence validée p
 
   it('CLÉ DE RECORD : la référence portée par une clé est rendue `parCle`', () => {
     expect(reperesDuParse(z.record(idDe('shipStation'), z.number()), { [POSTE]: 3 })).toEqual([{ path: [POSTE], type: 'shipStation', parCle: true }]);
+  });
+
+  it('`recordDIds` : la clé est rendue `parCle`, la référence de sa valeur à son path', () => {
+    const s = recordDIds('shipStation', z.strictObject({ s: idDe('skill') }));
+    expect(reperesDuParse(s, { [POSTE]: { s: COMPETENCE } })).toEqual([
+      { path: [POSTE, 's'], type: 'skill', parCle: false },
+      { path: [POSTE], type: 'shipStation', parCle: true },
+    ]);
+    expect(s.safeParse({ [POSTE]: { s: COMPETENCE } }).success, 'hors mesure, le record valide sans issue').toBe(true);
   });
 
   it('une donnée INVALIDE au parse normal LÈVE en nommant le path — jamais un slot en moins en silence', () => {
@@ -169,14 +178,27 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
       if (r instanceof Promise) throw new Error(`${nom} : parse ASYNC, hors du parse de mesure`);
       const nouvelles = r.issues.slice(avant);
       if (feuille && estUneReference(feuille, valeur)) {
-        const validee = sonde.mesure ? nouvelles.length > 0 && nouvelles.every((i) => i.params !== undefined) : nouvelles.length === 0;
+        const emet = sonde.mesure && !feuille.repereDuPorteur;
+        const validee = emet ? nouvelles.length > 0 && nouvelles.every((i) => i.params !== undefined) : nouvelles.length === 0;
         if (validee) {
           const cle = `${nom} « ${String(valeur)} »`;
           const compte = sonde.mesure ? sonde.validees.mesure : sonde.validees.normal;
           compte.set(cle, (compte.get(cle) ?? 0) + 1);
-          if (sonde.mesure) {
+          if (emet) {
             sonde.nbEmis += 1;
             for (const i of nouvelles) sonde.emis.add(i.params!);
+          }
+        }
+      }
+      // Repère qu'un PORTEUR émet pour sa clé (`recordDIds`, feuille `repereDuPorteur`) : une `invalid_key`
+      // faite d'un repère de référence qu'aucune feuille n'a déjà émis.
+      if (sonde.mesure) {
+        for (const i of nouvelles) {
+          if (i.code !== 'invalid_key') continue;
+          for (const j of i.issues ?? []) {
+            if (familleDuRepere(j.params) !== 'reference' || sonde.emis.has(j.params!)) continue;
+            sonde.emis.add(j.params!);
+            sonde.nbEmis += 1;
           }
         }
       }
@@ -248,6 +270,11 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
     expect(masquagesDuTemoin(s, { [POSTE]: { s: COMPETENCE } })).toEqual([
       `témoin SAUT : témoin{}.s « ${COMPETENCE} » validée 1× au parse normal, 0× au parse de mesure`,
     ]);
+  });
+
+  it('D′ — `recordDIds` : la clé ET la valeur sont mesurées', () => {
+    const s = recordDIds('shipStation', z.strictObject({ s: idDe('skill') }));
+    expect(masquagesDuTemoin(s, { [POSTE]: { s: COMPETENCE } })).toEqual([]);
   });
 
   it('E — `.catch` au-dessus d’une feuille `idDe`', () => {

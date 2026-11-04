@@ -276,7 +276,7 @@ describe('rejeu des migrations — le verdict VOIT le fichier NEUF (#1466 T3bis-
  * imprime entre parenthèses est une MAGNITUDE (`AA 08 l.87` « Taillade (XA) », l.136 « Taillade (1A) »),
  * pas une spécialisation : elle vit en `value`, et sa FORME d'affichage est déclarée par la qualité
  * (`QualityData.indice.unite`). La clé `spec` était une seconde graphie de la même chose ; le verrou est
- * ICI, au parse, pour qu'aucune donnée ne puisse la reposer en silence (#1661).
+ * ICI, au parse, pour qu'aucune donnée ne puisse la reposer en silence.
  */
 describe('`qualityRefSchema` — `{id, value?}` : la MAGNITUDE est une valeur, jamais une `spec`', () => {
   it('`spec` est REFUSÉE au parse, et le refus NOMME la clé', () => {

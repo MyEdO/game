@@ -140,6 +140,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   minRangeBand: true,
   sizeFor: true,
   requiresMastery: true,
+  usagesAPied: true,
   shield: true,
   unarmed: true,
   derivedWeapon: false,
