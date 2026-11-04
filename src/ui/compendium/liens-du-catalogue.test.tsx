@@ -21,7 +21,7 @@ import { porteurDeRangee } from './CodexEntry'; // la SEULE composition rangée+
 import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
-import { detenteur } from '../../detenteur.testkit';
+import { detenteur } from '../../lib/detenteur.testkit';
 
 interface Rangee {
   cat: string;

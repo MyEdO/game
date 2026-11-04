@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { materials, matieresDe, findTeinteById, structureAppearances } from './index';
-import { DOMAINES_MATIERE, type MaterialEntry } from './materials.types';
-import { propMaterial } from '../gameIso/catalog/propMaterials';
-import { roofMaterial } from '../gameIso/catalog/roofs';
-import { reliefMaterial } from '../gameIso/catalog/relief';
-import { terrains } from './index';
+import { materials, matieresDe, findTeinteById, structureAppearances } from '../../data/index';
+import { DOMAINES_MATIERE, type MaterialEntry } from '../../data/materials.types';
+import { propMaterial } from './propMaterials';
+import { roofMaterial } from './roofs';
+import { reliefMaterial } from './relief';
+import { terrains } from '../../data/index';
 
 /**
  * IDENTITÉ D'UNE MATIÈRE DU MONDE (#1686) — l'identité est le couple (DOMAINE, id), et l'id est

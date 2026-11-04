@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { maneuvers, traits, traitProjectingManeuver } from './index';
-import { codexLookupById } from '../ui/compendium/registry';
 
 /**
  * Une manœuvre est la PROJECTION mécanique d'un Trait de créature (#1226) : le trait porte la prose
@@ -71,25 +70,5 @@ describe('manœuvre → Trait projetant : une entité, une prose (#1226)', () =>
     for (const mot of ['Froid', 'Corrosif', 'Feu', 'Électricité', 'Poison', 'Fumée']) {
       expect(souffle.desc, `le verbatim du trait Souffle couvre le Type ${mot}`).toContain(mot);
     }
-  });
-});
-
-/** Chemin RÉEL d'affichage : la fiche Codex d'une manœuvre (`codexLookupById`, le registre vivant). */
-describe('Codex — la fiche d’une manœuvre affiche le VERBATIM de son trait (#1226)', () => {
-  it('« Souffle » rend le verbatim du trait Souffle, jamais un résumé', () => {
-    const item = codexLookupById('maneuvers', 'souffle');
-    expect(item).toBeDefined();
-    expect(item!.desc).toBe(traits.find((t) => t.id === 'souffle')!.desc);
-    expect(item!.desc).toContain('Le souffle de la créature est une arme puissante.');
-  });
-
-  it('« Morsure » rend le verbatim du trait Morsure', () => {
-    const item = codexLookupById('maneuvers', 'morsure');
-    expect(item!.desc).toBe(traits.find((t) => t.id === 'morsure')!.desc);
-  });
-
-  it('toutes les fiches de manœuvre portent une prose (aucune fiche muette après la suppression des descs)', () => {
-    const muettes = maneuvers.filter((m) => !codexLookupById('maneuvers', m.id)?.desc).map((m) => m.id);
-    expect(muettes, `Fiche Codex sans prose :\n${muettes.join('\n')}`).toEqual([]);
   });
 });

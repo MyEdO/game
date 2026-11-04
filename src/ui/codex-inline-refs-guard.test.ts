@@ -2,7 +2,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE — toute référence Codex écrite EN LITTÉRAL dans l'UI pointe une fiche qui EXISTE.
  *
- * ANGLE MORT COMBLÉ (mesuré 2026-08-17) : `src/engine/rule-refs.test.ts` ne parcourt que le registre
+ * ANGLE MORT COMBLÉ (mesuré 2026-08-17) : `src/ui/compendium/codex-rule-refs.test.ts` ne parcourt que le registre
  * `RULE_REF` (et les deux producteurs dynamiques énumérés). Les refs écrites à la main au site
  * d'affichage — `rule: { category: 'regles', id: 'mouvement' }` d'une case de console,
  * `<CodexRef category="regles" id="calme-d-approche">` d'une barre d'action — n'étaient couvertes par
@@ -22,7 +22,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * ANGLE MORT DÉCLARÉ (et ASSERTÉ plus bas, jamais implicite) : un scan STATIQUE ne voit que les
  * littéraux. Une ref dont l'`id` est calculé (`id={spell.id}`, `` id: `regle-${k}` ``, variable) ou
  * dont la catégorie l'est (`category={RULE_REF.chance.category}`) est HORS PÉRIMÈTRE : elle relève
- * des gardes de domaine (`rule-refs.test.ts` pour `RULE_REF`, les gardes de catalogue pour les ids de
+ * des gardes de domaine (`codex-rule-refs.test.ts` pour `RULE_REF`, les gardes de catalogue pour les ids de
  * donnée). Ces sites sont COMPTÉS ici, jamais résolus — leur nombre est publié par le test de
  * couverture pour qu'on sache ce que cette garde ne dit pas.
  *

@@ -122,7 +122,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
   /**
    * ALPHABET MÉTÉO DE VOYAGE — le canon est le SCHÉMA (`weatherIdSchema`, `defs/weather.ts`) : le moteur
    * en dérive `type Weather` (`engine/travelStages.ts`), l'éditeur ses `<option>`
-   * (`CodexEdit.WeatherRangesField`) et les domaines de test leur énumération (`engine/rule-refs.test.ts`).
+   * (`CodexEdit.WeatherRangesField`) et les domaines de test leur énumération (`ui/compendium/codex-rule-refs.test.ts`).
    *
    * SEUIL COMPLET (`complet: true`), et il est MESURÉ (2026-08-30, scan sur tout `src/`) : au seuil
    * GÉNÉRIQUE de `recopieDeCanon` (≥2 membres) ce canon rapporte 14 sites dont AUCUN ne re-déclare l'alphabet.

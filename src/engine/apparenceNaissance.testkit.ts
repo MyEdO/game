@@ -1,6 +1,6 @@
-import { apparences } from './data';
-import { setDataset } from './data/overrides';
-import { createHero } from './engine/character';
+import { apparences } from '../data';
+import { setDataset } from '../data/overrides';
+import { createHero } from './character';
 
 type Apparence = (typeof apparences)[number];
 let catalogueInitial: Apparence[] | undefined;

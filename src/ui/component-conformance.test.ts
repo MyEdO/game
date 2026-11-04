@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /**
  * Gardes du SYSTÈME DE COMPOSANTS unifié (#236). Une garde par classe de conformité, scan de source

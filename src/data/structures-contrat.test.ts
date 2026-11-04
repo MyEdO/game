@@ -8,7 +8,7 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import {
   classerValeur,

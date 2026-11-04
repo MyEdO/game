@@ -8,7 +8,7 @@ import { applyOps } from './ops';
 import { makeRNG } from './dice';
 import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
-import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaissance, varianteDeNaissance } from '../apparenceNaissance.testkit';
+import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaissance, varianteDeNaissance } from './apparenceNaissance.testkit';
 
 afterEach(restaurerApparencesDeNaissance);
 

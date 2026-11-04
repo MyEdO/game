@@ -3,8 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { VARIABLE_PARTIE } from '../scripts/test/partition.mjs';
-import { spawnBorne } from '../scripts/guards/lib/processusBorne.mjs';
+import { VARIABLE_PARTIE } from '../../scripts/test/partition.mjs';
+import { spawnBorne } from '../../scripts/guards/lib/processusBorne.mjs';
 import { detenteur, enCollecte } from './detenteur.testkit';
 
 const PRECHARGE = './detenteur.testkit?precharge';
@@ -42,9 +42,9 @@ describe('destructeur du détenteur', () => {
   });
 
   it('prouve le cycle afterAll réel et son erreur de destruction observable', async () => {
-    const racine = fileURLToPath(new URL('../', import.meta.url));
-    const fixture = fileURLToPath(new URL('../scripts/test/fixtures/detenteur-afterall.fixture.ts', import.meta.url)).replace(/\\/g, '/');
-    const config = fileURLToPath(new URL('../scripts/test/fixtures/detenteur-afterall.config.ts', import.meta.url));
+    const racine = fileURLToPath(new URL('../../', import.meta.url));
+    const fixture = fileURLToPath(new URL('../../scripts/test/fixtures/detenteur-afterall.fixture.ts', import.meta.url)).replace(/\\/g, '/');
+    const config = fileURLToPath(new URL('../../scripts/test/fixtures/detenteur-afterall.config.ts', import.meta.url));
     const dossier = mkdtempSync(join(tmpdir(), 'detenteur-afterall-'));
     const fichier = join(dossier, 'rapport.json');
     const env: NodeJS.ProcessEnv = { ...process.env, WFRP_DETENTEUR_AFTERALL_RAPPORT: fichier };
@@ -52,7 +52,7 @@ describe('destructeur du détenteur', () => {
     try {
       const execution = await spawnBorne({
         argv: [
-          fileURLToPath(new URL('../scripts/test/run.mjs', import.meta.url)),
+          fileURLToPath(new URL('../../scripts/test/run.mjs', import.meta.url)),
           fixture, '--regime=lot', '--maxWorkers=1', '--config', config,
         ], cwd: racine, env, fichier: join(dossier, 'sortie.log'), limiteMs: 60_000, fluxDistincts: true,
       });

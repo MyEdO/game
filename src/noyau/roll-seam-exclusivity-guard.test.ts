@@ -14,7 +14,7 @@ import * as canon from '../../scripts/guards/lib/canonUnique.mjs';
 import * as programmes from '../../scripts/guards/lib/tsProgram.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /**
  * Garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme #276).

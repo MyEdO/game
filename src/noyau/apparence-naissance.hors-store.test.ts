@@ -4,7 +4,7 @@ import { applyEffects } from './combatEffects';
 import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
 import { withBourseMoney } from '../engine/bourse';
 import type { MerchantState } from './merchantFlow';
-import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaissance, varianteDeNaissance } from '../apparenceNaissance.testkit';
+import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaissance, varianteDeNaissance } from '../engine/apparenceNaissance.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

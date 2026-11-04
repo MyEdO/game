@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /**
  * Garde STRUCTURELLE (#1117) — une classe `rm-*` posée dans le markup DOIT avoir une règle CSS.

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { listProdFiles, scanFieldReads } from '../scripts/guards/lib/fieldConsumers.mjs';
 import type * as TS from 'typescript/unstable/ast';
 import { ast, typescript } from '../scripts/guards/lib/dialecte.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 
 /**
  * LECTEURS DE PORTE (#700) — une porte SECRÈTE non révélée n'est pas une porte pour le JEU : le seul

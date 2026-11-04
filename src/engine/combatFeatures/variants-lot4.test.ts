@@ -2,7 +2,8 @@
  * Preuve de COMPORTEMENT — variantes réglées de `talents.json` (#563/#564). 4 provenances de lecture de
  * la MÊME variante, sur de VRAIES entités du catalogue (jamais un id synthétique) : (1) la capacité
  * MÉCANIQUE (`dispatch.ts`, `featuresOf` via `effectiveEntry`), (2) l'affichage Codex (le registre RÉEL
- * `ui/compendium/registry.ts`), (3) le câblage `combatFlow` (Frappe blessante →
+ * `ui/compendium/registry.ts`, prouvé par `src/ui/compendium/codex-talents-variantes.test.ts`), (3) le
+ * câblage `combatFlow` (Frappe blessante →
  * `hasCritRollTwiceTalent`/`critRollTwiceFor`), (4) la table de NON-RÉGRESSION de la `CombatFeature`
  * effective de CHAQUE talent à variante (liste DÉRIVÉE du catalogue) sous la sémantique REPLACE. Chaque cas couvre les DEUX modes
  * (règle `combat-aa-avantage-groupe` active/inactive).
@@ -10,10 +11,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { itemFromTrappingById, weaponFromItem } from '../items';
 import { setRule, resetRule } from '../policy';
-import { activeVariant, effectiveEntry } from '../variants';
+import { effectiveEntry } from '../variants';
 import { findTalentById, talents } from '../../data';
 import { slugId } from '../../data/slug';
-import { CODEX } from '../../ui/compendium/registry';
+import { ALL_VARIANT_CARRIERS, ruleOf } from './variantesDeTalent.testkit';
 import {
   hasStealAdvantage, stealsOneAdvantage, shieldReactionCost, shieldAdvantageLevel,
   retreatAdvantageCost, keptAdvantageOnDisengage, canDisengageWithLessAdvantage,
@@ -114,47 +115,6 @@ describe('provenance 1 — capacité MÉCANIQUE (dispatch.featuresOf, via effect
 });
 
 const VARIANT_TALENTS = ['artilleur', 'battement', 'cavalier-emerite', 'coude-a-coude', 'distraire', 'frappe-blessante', 'fuite', 'impitoyable', 'porte-bouclier', 'rechargement-rapide', 'renversement'];
-
-/** Tous les porteurs de variante du catalogue — DÉRIVÉ (une curation qui en ajoute un entre
- *  automatiquement dans les preuves ci-dessous, quelle que soit la règle qui le gate). */
-const ALL_VARIANT_CARRIERS = (talents as unknown as { id: string; variants?: unknown[] }[])
-  .filter((t) => t.variants?.length).map((t) => t.id).sort();
-
-/** Règle optionnelle qui gate la variante d'un porteur, LUE dans la donnée — jamais un id de règle
- *  écrit en dur dans la preuve (deux variantes co-activables sont déjà interdites par
- *  `src/data/variants-integrity.test.ts`, la première suffit). */
-const ruleOf = (id: string): string =>
-  (findTalentById(id) as unknown as { variants: { when: { rule: string } }[] }).variants[0].when.rule;
-
-/** Fiche Codex RÉELLE d'un talent, re-projetée après un changement de règle optionnelle. */
-function codexTalent(id: string) {
-  return CODEX.find((c) => c.key === 'talents')!.items.find((i) => i.id === id)!;
-}
-const metaOf = (id: string, label: string) => codexTalent(id).meta?.find((f) => f.label === label)?.value;
-
-describe('provenance 2 — affichage CODEX (le registre RÉEL ui/compendium/registry.ts, via effectiveEntry)', () => {
-  it('la desc de chaque talent à variante bascule base ↔ variante avec SA règle, et la fiche Codex suit', () => {
-    for (const id of ALL_VARIANT_CARRIERS) {
-      const t = findTalentById(id)!;
-      const td = t as unknown as { variants?: { when: { rule: string }; desc?: string }[] };
-      expect(activeVariant(td.variants)).toBeUndefined(); // mode de base : aucune variante active
-      expect(codexTalent(id).desc).toBe(t.desc);
-      setRule(ruleOf(id), true);
-      const v = activeVariant(td.variants);
-      expect(v?.desc).toBeTruthy();
-      expect(v?.desc).not.toBe(t.desc); // la variante diffère toujours du texte de base
-      expect(codexTalent(id).desc).toBe(v!.desc);
-      expect(codexTalent(id).source?.page).toBe((v as unknown as { source?: { page: number } }).source!.page);
-      resetRule(ruleOf(id));
-    }
-  });
-
-  it('Fuite ! (#564) : la ligne « Tests » republiée par AA est CONSOMMÉE — la fiche Codex l’affiche', () => {
-    expect(metaOf('fuite', 'Test')).toBe('Athlétisme quand vous Fuyez');
-    setRule('combat-aa-avantage-groupe', true);
-    expect(metaOf('fuite', 'Test')).toBe("Athlétisme quand vous Fuyez ou quand vous êtes la Cible d'une Poursuite");
-  });
-});
 
 describe('Fuite ! — l’entrée EFFECTIVE porte le `test` de la variante (#564, AA 13 l.64-68)', () => {
   const eff = () => effectiveEntry(findTalentById('fuite')!);

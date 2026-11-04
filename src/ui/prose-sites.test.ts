@@ -30,7 +30,7 @@ import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { SITES_PROSE } from './liage';
 import { CHAMPS_PROSE_DE_SCENE } from '../data/schemas/grammaire/champs-prose-de-scene';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /** Prop de markdown de la racine du point fixe : tout part de `<Prose md>`. */
 const RACINE_PORTEUSE = { balise: 'Prose', prop: 'md' };
