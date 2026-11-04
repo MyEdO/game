@@ -354,6 +354,31 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(banc.getState().pendingSurgery).toBeNull(); // la passe est fermée à la réussite
   });
 
+  it('#2961 — Chirurgie : « Annuler la passe » ferme la passe avant son jet sans toucher l’opération ; après le jet, elle est sans effet ; « Arrêter l’opération » ferme les deux', () => {
+    const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });
+    banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
+    banc.getState().openMedic({ patientId: 'p' });
+    banc.getState().medicAct('surgery');
+    banc.getState().openSurgeryPass();
+    expect(banc.getState().pendingSurgery).not.toBeNull();
+    banc.getState().surgeryCancel();
+    expect(banc.getState().pendingSurgery).toBeNull();
+    expect(banc.getState().medic?.surgery).toBeTruthy();
+
+    banc.getState().openSurgeryPass();
+    banc.getState().surgeryRoll();
+    const jouee = banc.getState().pendingSurgery;
+    expect(jouee?.roll).toEqual(expect.any(Number));
+    banc.getState().surgeryCancel();
+    expect(banc.getState().pendingSurgery).toBe(jouee);
+
+    banc.getState().medicAbandonSurgery();
+    expect(banc.getState().pendingSurgery).toBeNull();
+    expect(banc.getState().medic?.surgery).toBeUndefined();
+    expect(banc.getState().medic).not.toBeNull();
+  });
+
   it('Chirurgie : à la cible atteinte, le Test d’infection du PATIENT est DIFFÉRÉ en étape cascade INFLUENÇABLE (Résistance +20, Menace : Maladie) — plus de jet silencieux, Infection non contractée avant l’influence', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });

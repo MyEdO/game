@@ -13,7 +13,7 @@ import { t } from '../../i18n';
  * Jet d'UNE passe de Chirurgie (Test ÉTENDU influençable), données de la coquille — calque `useHealJetProps` :
  * « Lancer » → Chance (relance / +1 DR) → Résilience → « Appliquer la passe » (surgeryNext). Le chirurgien
  * peut être un héros (Chance/Résilience) ; PNJ payant → ressources à 0. « Annuler » et Échap (avant le jet)
- * annulent la PASSE posée (surgeryPassCancel) : l'opération armée, son cumul et le patient restent, et le
+ * annulent la PASSE posée (surgeryCancel) : l'opération armée, son cumul et le patient restent, et le
  * pied de l'infirmerie reprend « Arrêter l'opération » (`MedicModal`).
  */
 export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
@@ -27,7 +27,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   const darkPact = useGame((s) => s.surgeryDarkPact);
   const force = useGame((s) => s.surgeryForceSuccess);
   const next = useGame((s) => s.surgeryNext);
-  const cancel = useGame((s) => s.surgeryPassCancel);
+  const cancel = useGame((s) => s.surgeryCancel);
   if (!ps) return null;
   const surgeon = party.find((c) => c.id === ps.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
   const fortune = surgeon?.fortune ?? 0;

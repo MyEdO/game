@@ -582,7 +582,7 @@ export interface EtatDeJeu {
    *  aide immédiate ; persistée SOURCE UNIQUE, même patron que `bank`/`pendingOrders`. */
   favors: Favor[];
   /** Jet d'Activité en attente (Revenus / lancer d'Artisanat — modale, fabrique rollFlow).
-   *  Délégués `activity{Roll,Reroll,BonusSL,DarkPact}` : générés (RollFlowActionsMap). */
+   *  Délégués `activity*` : verbes générés depuis FLOW_VERBS (RollFlowActionsMap). */
   pendingActivity: PendingActivity | null;
   /** Combat de masse / Puissance de Bataille (ADE II 08) : état de la bataille abstraite en cours
    *  (Puissance des deux armées, Round, Scènes) — null hors bataille. */

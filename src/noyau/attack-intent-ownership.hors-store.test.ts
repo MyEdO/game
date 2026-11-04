@@ -169,10 +169,11 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
   });
 });
 
-describe('#1013 — NON-RÉGRESSION : le jet, l’application et la reprise d’attaque ne sont pas gatés par le porteur', () => {
-  it('`attackRoll`/`attackConfirm`/`defenseConfirm` restent des intents MANUELS (hors verbes de flux)', () => {
+describe('#1013/#2961 — le jet d’attaque suit l’attaquant, l’application et la reprise restent manuelles', () => {
+  it('`attackRoll` est le verbe `roll` du flux d’attaque, routé par l’attaquant ; `attackConfirm`/`defenseConfirm` restent MANUELS', () => {
     const map = jetOwnedIntents();
-    for (const i of ['attackRoll', 'attackConfirm', 'defenseConfirm']) {
+    expect(map.attackRoll).toEqual({ pending: 'pendingAttack', field: 'attackerId' });
+    for (const i of ['attackConfirm', 'defenseConfirm']) {
       expect(MANUAL_COMBAT_INTENTS).toContain(i);
       expect(map[i], `${i} n’est pas routé par porteur`).toBeUndefined();
     }

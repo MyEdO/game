@@ -181,6 +181,27 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     expect(stacks(live(H.id), COND.empetre)).toBe(1); // 3 − (1 + DR 1) = 1
   });
 
+  /** LDB 14 l.161 : le Test opposé de Force EST l'Action — avant le jet on y renonce, après il se joue. */
+  it('renoncer avant le jet ferme la fenêtre sans rien consommer ; après le jet, le refus est dit et rien ne bouge', () => {
+    const { H, enemies } = setup();
+    const E = enemies[0];
+    enemies.slice(1).forEach((e) => (e.dead = true));
+    activate(H, E);
+    setGrapple(live(H.id), live(E.id));
+    banc.getState().battleGrapple(E.id);
+    banc.getState().grappleCancel();
+    expect(banc.getState().pendingGrapple).toBeNull();
+    expect(banc.getState().battle!.acted).toBe(false);
+
+    banc.getState().battleGrapple(E.id);
+    banc.getState().grappleRoll();
+    const lance = banc.getState().pendingGrapple;
+    expect(lance?.result).toBeTruthy();
+    banc.getState().grappleCancel();
+    expect(banc.getState().pendingGrapple).toBe(lance);
+    expect(banc.getState().refus?.texte).toBe(`Renoncement refusé : ${H.label} a déjà engagé son action, elle se joue jusqu’au bout.`);
+  });
+
   it('Test de Force PERDU → l’adversaire gagne +1 Avantage', () => {
     const { H, enemies } = setup();
     const E = enemies[0];
