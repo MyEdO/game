@@ -89,7 +89,7 @@ import type { GameOp } from '../../engine/ops';
 import { species, careers, levelsForCareer, stars, mutations, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { formatTrait } from '../../engine/traits/dispatch';
-import { relireTrait, parseSkillRef } from '../editor/refFormatLivre';
+import { relireTrait, parseSkillRef } from '../../data/refFormatLivre';
 import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { makePregens } from '../../data/pregens';

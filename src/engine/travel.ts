@@ -80,7 +80,7 @@ export function routeDistanceLabel(km: number, sea: boolean | undefined): string
   return `${Math.round(km)} ${distanceUnit(sea)}`;
 }
 
-/** `IconId` du pictogramme d'un mode de voyage (registre `src/ui/icons/`, famille `travel/*`) :
+/** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `travel/*`) :
  *  donnée `vehicle.icon` ; `'pied'`/`'monture'`/`'mer'` → id fixe, défaut véhicule → `travel/coach`. */
 export function travelModeIcon(mode: TravelMode): string {
   if (mode === 'pied') return 'travel/foot';

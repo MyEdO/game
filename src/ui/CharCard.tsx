@@ -4,7 +4,7 @@ import { Money, libelleDEchelon } from '../engine/money';
 import { actorStatus } from '../engine/social';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { Coins } from './Coins';
 import { RoseAxes, type RoseAxisValue } from './RoseAxes';
 import { MetalStatus } from './MetalStatus';

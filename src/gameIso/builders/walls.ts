@@ -25,9 +25,10 @@ import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import type { Face, GP, WallEl } from './types';
 import type { FloorView } from './floors';
 import {
-  closureAppearance, edgeAppearance, edgeKey, facadeEdges, fieldHeightAt, massFootprintCells, massSpaceCells, nappeKey, resolveNappes,
+  closureAppearance, edgeAppearance, edgeKey, facadeEdges, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes,
   WALL_NB, type FacadeEdge, type RoofField,
 } from './roofs';
+import { massFootprintCells } from '../../noyau/monde/buildings';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
 /** Ouverture d'une porte bois sans config de def. */

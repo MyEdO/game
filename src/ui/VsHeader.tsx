@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Combatant } from '../engine/types';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 import { CharFrame } from './CharFrame';
 import { Icon } from './Icon';
 

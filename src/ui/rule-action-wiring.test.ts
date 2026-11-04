@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { useGame } from '../state/store';
-import { ICON_DEFS } from './icons';
+import { ICON_DEFS } from '../data/icons';
 
 /**
  * CÂBLAGE des actions déclarées sur le registre des règles optionnelles (`OptionalRule.action`).
@@ -30,7 +30,7 @@ describe('règles optionnelles — actions déclarées, câblage store & icônes
     ).toEqual([]);
     expect(
       actions.filter((a) => !iconIsRegistered(a.icon)),
-      'action.icon absente du registre src/ui/icons/ — le rendu lèverait en DEV',
+      'action.icon absente du registre src/data/icons/ — le rendu lèverait en DEV',
     ).toEqual([]);
   });
 

@@ -60,6 +60,16 @@ export function buildingFeatures(style: string | undefined): BuildingFeature[] {
   return style === undefined ? [] : vues().parId[style]?.features ?? [];
 }
 
+/** Union des rectangles d'une emprise (`BuildingMass.footprint`, plusieurs rectangles) en un ensemble de
+ *  cellules (clés « x,y »). */
+export function massFootprintCells(footprint: readonly ArchitectureRect[]): Set<string> {
+  const out = new Set<string>();
+  for (const rect of footprint)
+    for (let y = rect.y; y < rect.y + rect.h; y++)
+      for (let x = rect.x; x < rect.x + rect.w; x++) out.add(`${x},${y}`);
+  return out;
+}
+
 /** Boîte englobante d'une empreinte de masse (`BuildingMass.footprint`, plusieurs rectangles). */
 export function massFootBBox(footprint: readonly ArchitectureRect[]): ArchitectureRect {
   const x = Math.min(...footprint.map((r) => r.x));

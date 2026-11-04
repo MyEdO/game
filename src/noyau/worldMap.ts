@@ -37,7 +37,7 @@ export interface MapPlace {
   scene: string;
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
-  /** Icône du médaillon (id du registre src/ui/icons), défaut `nav/entry-point`. */
+  /** Icône du médaillon (id du registre src/data/icons), défaut `nav/entry-point`. */
   icon?: string;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
    *  maritime (commerce, événements d'escale, chantier). `lighthouse` : un phare veille sur l'approche
@@ -82,7 +82,7 @@ export interface PlacePoi {
   id: string;
   label: string;
   pos: { x: number; y: number };
-  /** Icône du médaillon (id du registre `src/ui/icons`), défaut `nav/entry-point`. */
+  /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
   icon?: string;
   sceneId?: string;
   serviceKind?: string;
@@ -345,7 +345,7 @@ export interface ResolvedPlaceService {
   enterLabel?: string;
 }
 
-/** Icône (id du registre `src/ui/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
+/** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
  *  hub, le plan et l'aperçu d'éditeur. */
 export function serviceIcon(s: ResolvedPlaceService): string {
@@ -725,7 +725,7 @@ export function playerEntryError(err: unknown, geste: GesteDuJoueur): string {
 /** Le refus de la porte (`ProjetRefuse`) JOURNALISÉ (`console.error`, diagnostic) puis remplacé par un
  *  message générique : le langage de schéma n'atteint jamais l'écran du joueur. Toute autre erreur
  *  n'est pas un refus de la porte : elle remonte telle quelle (même règle que
- *  `refusDeLaPorteDuProjet`, `ui/editor/ProjectModals.tsx`). */
+ *  `refusDeLaPorteDuProjet`, `noyau/persistance/refusDeLaPorte.ts`). */
 export function refusJoueur(err: unknown, diagnostic: string, generique: string): string {
   exigerUnRefus(err);
   console.error(diagnostic, err.message);

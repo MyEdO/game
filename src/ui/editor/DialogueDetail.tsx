@@ -10,7 +10,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { Ctx } from './EffectList';
 import { Icon } from '../Icon';
-import { ICON_DEFS } from '../icons';
+import { ICON_DEFS } from '../../data/icons';
 import { FlowEditor } from './FlowEditor';
 import { WhenEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';

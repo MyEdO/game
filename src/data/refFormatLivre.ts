@@ -12,16 +12,16 @@
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from '../../data';
-import { ARG_JOKER, traitAdmet } from '../../data/schemas/grammaire/reference';
-import { specAuCatalogue } from '../../data/schemas/grammaire/ref';
-import { slugId } from '../../data/slug';
-import { parseStatEntry } from '../../engine/statEntry';
-import { classerParenthese, lireMatiere } from '../../engine/classementDeTrait';
-import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { t } from '../../i18n';
-import { norm } from '../../lib/normalize';
-import { DIFFICULTY_NAMES, type Difficulty } from '../../engine/types';
+import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from './index';
+import { ARG_JOKER, traitAdmet } from './schemas/grammaire/reference';
+import { specAuCatalogue } from './schemas/grammaire/ref';
+import { slugId } from './slug';
+import { parseStatEntry } from '../engine/statEntry';
+import { classerParenthese, lireMatiere } from '../engine/classementDeTrait';
+import type { TraitPose } from './schemas/grammaire/reference';
+import { t } from '../i18n';
+import { norm } from '../lib/normalize';
+import { DIFFICULTY_NAMES, type Difficulty } from '../engine/types';
 
 /** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). Le mot lu est celui que
  *  l'affichage compose (`ref.motAuChoix`, `choixLabel`). */

@@ -2,7 +2,7 @@
 /**
  * `parseProject` est la porte UNIQUE des documents de projet (#811, #877) : « Exporter JSON »,
  * « Importer JSON… » et « ▶ Tester » la passent comme « Enregistrer ». La modale « Avancé » passe
- * sa propre porte, le schéma des blocs (`SCHEMA_BLOCS_AVANCES` + `validateDocument`, `saveAdvanced`).
+ * sa propre porte, le schéma des blocs (`lireBlocsAvances`, `data/schemas/blocsAvances.ts`, `saveAdvanced`).
  * Mesuré sur le chemin RÉEL : `<Editor>` monté, menu Fichier déroulé, et le Blob que
  * `downloadText` fabrique intercepté.
  *

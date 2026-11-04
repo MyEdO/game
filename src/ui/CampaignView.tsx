@@ -7,7 +7,7 @@ import { actionGate, runAction } from '../noyau/actionRegistry';
 import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { refusDeSauvegarde } from '../noyau/persistance/save';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { ciblageEntiteArme } from '../noyau/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
 import { SceneErrorBoundary } from './SceneErrorBoundary';

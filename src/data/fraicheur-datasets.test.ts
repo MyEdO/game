@@ -13,7 +13,7 @@ import {
   traits, trappings, characteristics, props, etats, weather, vehicles,
   findTraitById, findTrappingById, findPropById, charAbr,
 } from './index';
-import { parseTraitInstance } from '../ui/editor/refFormatLivre';
+import { parseTraitInstance } from './refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
 import { consolidateAmputations, traumaById, type TraumaFiche } from '../engine/trauma';
 import type { Combatant } from '../engine/types';

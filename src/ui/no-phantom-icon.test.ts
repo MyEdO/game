@@ -5,16 +5,16 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { iconRefsIn } from '../../scripts/guards/lib/iconRefs.mjs';
-import { ICON_DEFS } from './icons';
+import { ICON_DEFS } from '../data/icons';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou anti-icône-fantôme (#269) : une réf d'icône `icon: '...'`/`"icon": "..."` posée en
  * DONNÉE (`src/state/**`, `src/scenes/**`, `src/data/*.json`) porte le type large `IconIdInput`
- * (`src/ui/icons/types.ts`) — pas l'union `IconId` GÉNÉRÉE qui verrouille `src/ui/**` à la
+ * (`src/data/icons/types.ts`) — pas l'union `IconId` GÉNÉRÉE qui verrouille `src/ui/**` à la
  * compilation. Une réf inconnue n'y throw QU'AU RENDU (DEV), absorbée en silence par
  * `SceneErrorBoundary` — c'est ce trou que ce test de BUILD ferme : toute réf littérale hors du
- * registre (`src/ui/icons/_registry.generated.ts`, régénéré par `npm run gen`) fait échouer la suite.
+ * registre (`src/data/icons/_registry.generated.ts`, régénéré par `npm run gen`) fait échouer la suite.
  * Mécanique d'extraction (regex `icon:`/`"icon":`, dédup, ligne de 1ʳᵉ occurrence) :
  * `scripts/guards/lib/iconRefs.mjs` (module .mjs pur).
  */
@@ -52,7 +52,7 @@ describe('garde-fou anti-icône-fantôme (réfs de donnée → registre d’icô
     expect(scanned, 'la garde doit scanner AU MOINS un id — sinon elle est morte').toBeGreaterThan(0);
     expect(
       offenders,
-      'Icône fantôme détectée — déposer une def dans src/ui/icons/defs/ puis `npm run gen`',
+      'Icône fantôme détectée — déposer une def dans src/data/icons/defs/ puis `npm run gen`',
     ).toEqual([]);
   });
 });

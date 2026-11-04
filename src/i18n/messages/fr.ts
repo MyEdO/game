@@ -3291,6 +3291,9 @@ export const fr = {
   'adv.jumpNeedsGm': 'saut de niveau impossible (option MJ requise)',
   'adv.newCareerFirstLevel': 'nouvelle carrière : 1er niveau uniquement',
 
+  // Refus de la porte du projet (`noyau/persistance/refusDeLaPorte.ts`) : les fautes après la première, COMPTÉES.
+  'projet.refus.autresFautes': '(et {n} autre{s} à corriger)',
+
   // ── #1318 V8c₅ — EMPLACEMENTS DE CARRIÈRE et Domaines d'Arcane (`engine/careerSlots.ts`, `slot.*`,
   // LDB 10 « Schéma des Talents » / LDB 46 l.177, repris VDM 02 l.190-192). `reason` → `pf.designateRefused`.
   // Emplacement de spécialisation NON DÉSIGNÉ, régime LIBRE (`LDB 09 l.40`) — porte unique de rendu
@@ -3298,7 +3301,7 @@ export const fr = {
   'ref.auChoix': '{base} ({mot})',
   'ref.motAuChoix': 'Au choix',
   // Liants des faces d'affichage de la donnée (#1988) — lus AUSSI par les parseurs de saisie « format
-  // livre » (`ui/editor/refFormatLivre.ts`) : l'affichage et la saisie partagent la même clé.
+  // livre » (`data/refFormatLivre.ts`) : l'affichage et la saisie partagent la même clé.
   'ref.ou': 'ou',
   // Tête de « n parmi », partagée par le texte (`advancementLabel`) et les chips (`EntityChoice`).
   'ref.parmi': '{n} parmi :',

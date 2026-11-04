@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { GatedAction } from './GatedAction';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { RuleDivider } from './Ornaments';
 import { t } from '../i18n';
 

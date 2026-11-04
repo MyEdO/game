@@ -12,7 +12,7 @@
  * `LDB 09 l.40`.
  */
 import { describe, it, expect } from 'vitest';
-import { parseSkillRef, parseTalentRef, parseTraitInstance } from './refFormatLivre';
+import { parseSkillRef, parseTalentRef, parseTraitInstance } from '../../data/refFormatLivre';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { formatTrait } from '../../engine/traits/dispatch';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';

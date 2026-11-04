@@ -45,7 +45,7 @@ import { EntityRef } from './EntityChip';
 import { GameOpChips } from './GameOpChips';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
 import { Icon } from './Icon';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { PlaqueRow } from './PlaqueRow';
 import { Band } from './Band';
 

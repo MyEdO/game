@@ -8,7 +8,8 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChipDeRefus, type RefusRendu } from './ChipDeRefus';
+import { ChipDeRefus } from './ChipDeRefus';
+import type { RefusRendu } from '../noyau/persistance/refusDeLaPorte';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

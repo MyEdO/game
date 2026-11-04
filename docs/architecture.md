@@ -191,7 +191,7 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             des sorts vivent dans SpellData (spells.json) — l'ancien registre spellspecs/
                             et le repli regex sont SUPPRIMÉS (Migration #5)
                             UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
-                            `npm run gen` à part du registre `src/ui/icons/defs/`, par l'option
+                            `npm run gen` à part du registre `src/data/icons/defs/`, par l'option
                             `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en

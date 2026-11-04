@@ -1,5 +1,5 @@
 import type { HealMode } from '../engine/healing';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 
 /**
  * VOCABULAIRE d'un acte de soin — source UNIQUE de `useHealJetProps`, `useSurgeryJetProps` et du

@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
 import { Icon } from './Icon';
 import { Stack } from './Layout';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { fateSaveOptions, type FateSaveOption } from '../engine/fortune';

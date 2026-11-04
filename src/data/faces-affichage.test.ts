@@ -7,7 +7,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { fr } from '../i18n/messages/fr';
 import { advancementLabel, choixLabel, skillRefLabel, trappingRefLabel, type TrappingRef } from './index';
-import { parseSkillRef } from '../ui/editor/refFormatLivre';
+import { parseSkillRef } from './refFormatLivre';
 
 const catalogue = fr as Record<string, string>;
 const livre = { ...catalogue };

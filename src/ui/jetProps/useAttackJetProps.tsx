@@ -13,7 +13,7 @@ import { VsHeader } from '../VsHeader';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../icons';
+import type { IconIdInput } from '../../data/icons';
 import { Row } from '../Layout';
 
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou

@@ -6,7 +6,7 @@ import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTr
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds } from '../../data';
 import { Icon, IconG } from '../Icon';
-import { ICON_DEFS } from '../icons';
+import { ICON_DEFS } from '../../data/icons';
 import { ScreenShell } from '../ScreenShell';
 import { planChrome } from '../PlanChrome';
 import { NumberField } from '../NumberField';
@@ -196,7 +196,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
                 {sel?.kind === 'place' && sel.id === p.id && <circle r="2.1" fill="none" stroke="var(--accent)" strokeWidth="0.4" />}
                 {linkFrom === p.id && <circle r="2.1" fill="none" stroke="var(--gold2)" strokeWidth="0.3" strokeDasharray="0.7 0.55" />}
                 {/* Médaillon — MÊME langage que le rendu joueur (`WorldMapView`) : `p.icon` = id du registre
-                    src/ui/icons (le champ « Icône » ci-dessous n'invite plus l'emoji, #361). Une valeur
+                    src/data/icons (le champ « Icône » ci-dessous n'invite plus l'emoji, #361). Une valeur
                     hors catalogue (un emoji brut) reste affichée en repli, jamais silencieuse. */}
                 <circle r="1.5" fill="url(#wme-medal)" stroke="var(--wm-age-spot)" strokeWidth="0.22" filter="url(#wme-drop)" />
                 {p.icon && ICON_DEFS[p.icon] ? (

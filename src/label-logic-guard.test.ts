@@ -18,7 +18,7 @@ import { listerArbre } from '../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../scripts/guards/lib/stock.mjs';
 import { detenteur } from './detenteur.testkit';
 import { skillRefLabel, talentRefLabel, talents } from './data';
-import { parseSkillRef, parseTalentRef, parseTraitInstance } from './ui/editor/refFormatLivre';
+import { parseSkillRef, parseTalentRef, parseTraitInstance } from './data/refFormatLivre';
 import { formatTrait } from './engine/traits/dispatch';
 import type { TraitInstance } from './engine/statEntry';
 import type { TraitPose } from './data/schemas/grammaire/reference';
@@ -182,9 +182,9 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
 describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée par la déclaration qui porte son site', () => {
   const coutures = (fichier: string) => Object.keys(RATCHET_EXCEPTIONS).filter((k) => k.startsWith(`${fichier}#`));
 
-  it('seuls deux fichiers portent une couture : `data/index.ts` et le parseur `ui/editor/refFormatLivre.ts`', () => {
+  it('seuls deux fichiers portent une couture : `data/index.ts` et le parseur `data/refFormatLivre.ts`', () => {
     const fichiers = new Set(Object.keys(RATCHET_EXCEPTIONS).map((k) => k.split('#')[0]));
-    expect([...fichiers].sort()).toEqual(['data/index.ts', 'ui/editor/refFormatLivre.ts']);
+    expect([...fichiers].sort()).toEqual(['data/index.ts', 'data/refFormatLivre.ts']);
   });
 
   it('`data/index.ts` : chaque site est DANS un résolveur par libellé de #909, ou dans un index lu par lui SEUL', () => {
@@ -245,11 +245,11 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
   };
 
   it('`refFormatLivre` : chaque site est dans le parseur de SAISIE, qui rend un id — l’aller-retour affichage → saisie tient', () => {
-    const rel = 'src/ui/editor/refFormatLivre.ts';
+    const rel = 'src/data/refFormatLivre.ts';
     const texte = readFileSync(join(ROOT, rel), 'utf8');
     const sf = ast({ rel, text: texte })!;
     const lignes = texte.split('\n');
-    const sites = coutures('ui/editor/refFormatLivre.ts');
+    const sites = coutures('data/refFormatLivre.ts');
     expect(sites.length).toBeGreaterThan(0);
     for (const cle of sites) {
       const decl = cle.split('#')[1];

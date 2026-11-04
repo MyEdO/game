@@ -83,7 +83,7 @@ import { RefField } from '../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../icons';
+import type { IconIdInput } from '../../data/icons';
 import { nextEntityId } from '../../lib/entityId';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';

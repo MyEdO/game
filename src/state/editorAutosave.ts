@@ -19,7 +19,7 @@ export interface EditorAutosaveRecord {
 
 /** Ce que l'éditeur peut faire d'un enregistrement relu : le reprendre, sa scène prouvée par
  *  `sceneSchema`, ou l'AFFICHER refusé avec le refus MESURÉ de la porte (cause, fautes et leur lieu),
- *  que l'écran traduit (`refusDeLaPorteDuProjet`, `ui/editor/ProjectModals.tsx`). Un enregistrement
+ *  que l'écran traduit (`refusDeLaPorteDuProjet`, `noyau/persistance/refusDeLaPorte.ts`). Un enregistrement
  *  refusé n'est jamais retiré par la relecture : l'écarter reste un geste de l'auteur. */
 export type RepriseLocale =
   | { readonly ok: true; readonly record: EditorAutosaveRecord }

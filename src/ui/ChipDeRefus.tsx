@@ -1,10 +1,7 @@
 import { useRef } from 'react';
 import { Stack } from './Layout';
 import { useRamenerEnVue } from './useRamenerEnVue';
-
-/** Un refus RENDU : `message` en mots du joueur ou de l'auteur, `detail` = le rapport technique,
- *  replié sous le message quand le message ne le reprend pas. */
-export type RefusRendu = { message: string; detail?: string };
+import type { RefusRendu } from '../noyau/persistance/refusDeLaPorte';
 
 /** Le message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé), en
  *  `role="alert"` — `role="status"` pour l'état PERMANENT d'un champ (`fixe`) : le message en
