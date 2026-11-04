@@ -10,6 +10,8 @@ import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs'
 import type { Combatant } from '../../../engine/types';
 import { desDuTest } from '../../../engine/dice.testkit';
 import { conditionIds } from '../../index';
+import { validateDataset } from '../validate';
+import { t } from '../../../i18n';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
@@ -81,6 +83,34 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
+  it('un `onlyGroups` de `wounds`/`condition` (ops loose) est jugé AU CHAMP : liste d’ids de Groupe connus (#1473)', () => {
+    for (const base of [{ op: 'wounds', amount: 1 }, { op: 'condition', id: conditionIds()[0] }]) {
+      expect(gameOpSchema.safeParse({ ...base, onlyGroups: ['demon'] }).success, base.op).toBe(true);
+      for (const [onlyGroups, chemin, message] of [
+        [['groupe-fantome'], 'onlyGroups.0', '« groupe-fantome » est absent du catalogue des groupes (groups.json).'],
+        ['groupe-fantome', 'onlyGroups', undefined],
+        [[42], 'onlyGroups.0', undefined],
+      ] as const) {
+        const res = gameOpSchema.safeParse({ ...base, onlyGroups });
+        expect(res.success, `${base.op} ${JSON.stringify(onlyGroups)}`).toBe(false);
+        const issue = res.error!.issues.find((i) => i.path.join('.') === chemin);
+        expect(issue, `${base.op} ${JSON.stringify(onlyGroups)}`).toBeDefined();
+        if (message) expect(issue!.message).toBe(message);
+      }
+    }
+  });
+
+  it('dialecte miscast : un État hors du registre est refusé au chargement, par le MÊME refus que les ops loose (#1473)', () => {
+    const miscast = JSON.parse(readFileSync(new URL('../../miscast.json', import.meta.url), 'utf8')) as { entries: { ops?: Record<string, unknown>[] }[] }[];
+    expect(validateDataset('miscast.json', miscast)).toBeNull();
+    for (const op of ['condition', 'removeCondition']) {
+      const doc = structuredClone(miscast);
+      const noeud = doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition')!;
+      Object.assign(noeud, { op, id: 'etat-fantome' });
+      expect(validateDataset('miscast.json', doc), op).toContain(t('etats.inconnu', { id: 'etat-fantome' }));
+    }
+  });
+
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {
     const res = gameOpSchema.safeParse({ op: 'nImporteQuoi' });
     expect(res.success).toBe(false);
@@ -110,8 +140,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('`skillDRBonus` : cible EXCLUSIVE — `skill` OU `testType`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     expect(gameOpSchema.safeParse({ op: 'skillDRBonus', skill: { id: 'calme' }, bonus: 1 }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: 'poursuite', bonus: 1 }).success).toBe(true);
-    for (const cible of [{ skill: { id: 'calme' }, testType: 'poursuite' }, {}]) {
+    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: 'progression-poursuite', bonus: 1 }).success).toBe(true);
+    for (const cible of [{ skill: { id: 'calme' }, testType: 'progression-poursuite' }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'skillDRBonus', ...cible, bonus: 1 });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);

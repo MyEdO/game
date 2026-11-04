@@ -92,6 +92,11 @@ export const TYPES = {
   damageType: { espace: 'damage-types.json', catalogue: 'types de Dégâts' },
   // VDM 13 l.61 ; ZI 08 l.28
   domain: { espace: 'domains.json', catalogue: 'domaines' },
+  book: { espace: 'books.json', catalogue: 'livres' },
+  trauma: { espace: 'traumas.json', catalogue: 'séquelles' },
+  lightTone: { espace: 'lightTones.json', catalogue: 'tons de lumière' },
+  seaCargo: { espace: 'sea-cargo.json#cargoes', catalogue: 'cargaisons maritimes' },
+  landCargo: { espace: 'land-cargo.json#cargoes', catalogue: 'cargaisons terrestres' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -194,6 +199,12 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
     : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
+}
+
+/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un payload LOOSE que nulle
+ *  feuille ne porte (`refusLoose`, `grammaire/mecanique.ts`). */
+export function refusDeLId(type: TypeEntite, id: string, sousListe?: SousListe): string | null {
+  return refusDe(type, sousListe, `refusDeLId('${type}')`, id);
 }
 
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
@@ -366,8 +377,13 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * `giveTrapping` : objets de la campagne, `noyau/monde/resolveursDuNarratif.ts`, sinon objet `custom`) ; un id
  * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
  * du type.
+ *
+ * `nue` : la sortie reste un `string` sans marque — la réf que le moteur et ses appelants construisent
+ * nue partout (`SourceRef.book`, `grammaire/valeurs.ts`). Le jugement au parse est le même.
  */
-export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string> {
+export function idDe<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, options: { readonly ouverte?: boolean; readonly nue: true }): z.ZodType<string, string>;
+export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string>;
+export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean; readonly nue?: true }): z.ZodType<Id<T>, string> {
   const ouverte = options?.ouverte === true;
   const site =
     (sousListe === undefined
@@ -526,6 +542,12 @@ export function reperesDuParse(schema: z.ZodType, donnee: unknown): readonly Rep
 export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>> {
   const liste = z.array(idDe(type, opts?.sousListe));
   return opts?.min === undefined ? liste : liste.min(opts.min);
+}
+
+/** Record keyé par les ids de `type` : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
+ *  catalogue, jamais la « clé invalide » générique de zod. */
+export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V) {
+  return z.record(idDe(type), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message });
 }
 
 /** Méta du champ `id` de toute référence construite ici. */
@@ -837,6 +859,24 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
   return noeudASpecialisation(type, extra, regime);
 }
 
+/** Une issue de FORME : la valeur n'a pas la silhouette de la branche (type ou clé). */
+const estDeForme = (issue: { readonly code: string }): boolean => issue.code === 'invalid_type' || issue.code === 'unrecognized_keys';
+
+/**
+ * UNION DE FORMES — union dont les branches se distinguent par leur silhouette (`{ id }`, `{ id, spec }`,
+ * `{ pick, of }`…). Une valeur refusée par toutes l'est par le message de la PREMIÈRE branche dont elle a
+ * la forme (aucune issue de type ni de clé) — celui d'`idDe` nomme l'id et son catalogue —, jamais par
+ * l'« Entrée invalide » générique d'une union.
+ */
+export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
+  return z.union(branches, {
+    error: (iss) => {
+      const parBranche = (iss as { errors?: readonly (readonly { code: string; message: string }[])[] }).errors ?? [];
+      return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
+    },
+  });
+}
+
 /**
  * Choix « n parmi » : `{ pick, of: [...] }` (liste énumérée) ou `{ pick, table }` (tirage sur une
  * table d100). Remplace les graphies `choice[]` et `random` des lots L2/L3.
@@ -851,7 +891,7 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
+  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
   const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }

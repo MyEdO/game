@@ -2,17 +2,21 @@ import { nommerChamps } from '../grammaire/meta';
 
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { plageSchema } from '../grammaire/valeurs';
+import { ouReserve, plageSchema } from '../grammaire/valeurs';
+import { idDe } from '../grammaire/ref';
 
 export const file = 'interludeEvents.json';
 export const famille = 'entite';
+
+/** Classes visées par un effet de revenu : ids de `classes.json`, `'*'` = toutes. */
+const classesDeRevenuSchema = z.array(ouReserve(idDe('classe'), '*'));
 
 const fxSchema = nommerChamps(z.strictObject({
   moneyPct: z.number().optional(),
   partyWide: z.boolean().optional(),
   revenuePct: z.number().optional(),
-  revenueClasses: z.array(z.string()).optional(),
-  revenueBlockedClasses: z.array(z.string()).optional(),
+  revenueClasses: classesDeRevenuSchema.optional(),
+  revenueBlockedClasses: classesDeRevenuSchema.optional(),
   bankPct: z.number().optional(),
   fortuneMaxDelta: z.number().optional(),
   loseActivity: z.boolean().optional(),

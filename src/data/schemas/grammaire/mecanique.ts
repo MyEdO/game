@@ -19,7 +19,7 @@ import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, contexteDeTestSchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
@@ -193,11 +193,10 @@ const DECLARATIONS_D_OPS = {
    *  mobilité » — un Trait de créature qui tranche un membre s'écrit avec elle), mais AUCUNE donnée
    *  committée ne la porte aujourd'hui : ses seuls producteurs sont les rangées de Critique, où
    *  `noeudAmputation` (engine/critical.ts) la fabrique depuis `entry.amputation`. Son payload est typé
-   *  ICI comme celui de toute op authorée ; ses `sequels` sont des ids de fiche `traumas.json`, dataset
-   *  absent de `TYPES` jusqu'à R2 v2 de #1473 (même graphie que `amputationSchema`). */
+   *  ICI comme celui de toute op authorée ; ses `sequels` sont des ids de fiche `traumas.json` (même graphie que `amputationSchema`). */
   amputer: nommerChamps(z.strictObject({
     op: z.literal('amputer'),
-    sequels: z.array(z.string()),
+    sequels: refs('trauma'),
     loc: hitLocationSchema.optional(),
     unites: formulaSchema.optional(),
     unitesPerSL: perSLSchema.optional(),
@@ -472,28 +471,25 @@ const DECLARATIONS_D_OPS = {
     gate: z.literal('profane').optional(),
     noCorruption: z.boolean().optional(),
   }), { op: { label: "opération"  }, shape: { label: "forme"  }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
-  /** `addQualities`/`removeQualities` : ids de Qualité, hors de `TYPES` — gardés
-   *  par `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`). */
   augmentWeapon: nommerChamps(z.strictObject({
     op: z.literal('augmentWeapon'),
-    addQualities: z.array(z.string()).optional(),
+    addQualities: refs('quality').optional(),
     damageBonus: formulaSchema.optional(),
     bypass: armourBypassSchema.optional(),
     requiresWeapon: refs('apparence', { sousListe: RACINE_D_APPARENCE }).optional(),
-    removeQualities: z.array(z.string()).optional(),
+    removeQualities: refs('quality').optional(),
     removeType: z.enum(['atout', 'defaut']).optional(),
     suppressEnchants: z.boolean().optional(),
     passive: passifsDe(z.lazy(() => gameOpSchema)).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
   }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
-  /** scripts/guards/lib/gameOpRefFk.mjs */
   grantWeapon: nommerChamps(z.strictObject({
     op: z.literal('grantWeapon'),
     label: z.string(),
     damage: formulaSchema,
     damagePlus: z.number().optional(),
     plusBF: z.boolean().optional(),
-    qualities: z.array(z.string()).optional(),
+    qualities: refs('quality').optional(),
     subType: ref('weaponGroup').optional(),
     reach: reachSchema.optional(),
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
@@ -581,6 +577,15 @@ export const CHAMPS_EXCLUS_DE_CARRIED = [
 /** Champs d'une op `condition`/`removeCondition` qui nomment un État. */
 const CHAMPS_ID_D_ETAT = ['id', 'onlyIfCondition', 'unlessCondition'] as const;
 
+/** Refus d'un id d'État hors de `etatConnu` (#1463 LD.1, #2995), posé au champ qui le porte : le
+ *  refus UNIQUE des ops loose et du dialecte miscast (`defs/miscast.ts`). */
+export function refuserEtatsInconnus(v: Readonly<Record<string, unknown>>, champs: readonly string[], ctx: z.RefinementCtx): void {
+  for (const champ of champs) {
+    const id = v[champ];
+    if (typeof id === 'string' && !etatConnu(id)) ctx.addIssue({ code: 'custom', path: [champ], message: t('etats.inconnu', { id }) });
+  }
+}
+
 /**
  * Refus qui portent sur une op encore LOOSE (`OPS_NON_TYPEES`) : ce que le payload strict dirait s'il
  * existait, dit AU PARSE plutôt qu'à l'application. Une entrée meurt avec le typage de son op.
@@ -588,15 +593,23 @@ const CHAMPS_ID_D_ETAT = ['id', 'onlyIfCondition', 'unlessCondition'] as const;
  *   (`messageRecurrenceHorloge`, `engine/ops.ts`).
  * — `condition` : `carried` + tout `CHAMPS_EXCLUS_DE_CARRIED`, refusé NOMINATIVEMENT (#1695).
  * — `condition`, `removeCondition` : un id d'État hors de `etatConnu` (#1463 LD.1, #2995).
+ * — `condition`, `wounds` : un `onlyGroups` qui n'est pas une liste, ou dont un id est hors de
+ *   `refs('groupe', { sousListe: CIBLE_D_APPARTENANCE })` (#1473).
  */
 function refusLoose(v: Record<string, unknown>, ctx: z.RefinementCtx): void {
-  if (v.op !== 'condition' && v.op !== 'removeCondition') return;
-  for (const champ of CHAMPS_ID_D_ETAT) {
-    const id = v[champ];
-    if (typeof id === 'string' && !etatConnu(id)) {
-      ctx.addIssue({ code: 'custom', path: [champ], message: t('etats.inconnu', { id }) });
-    }
+  if ((v.op === 'condition' || v.op === 'wounds') && v.onlyGroups !== undefined) {
+    if (!Array.isArray(v.onlyGroups)) ctx.addIssue({ code: 'invalid_type', expected: 'array', input: v.onlyGroups, path: ['onlyGroups'] });
+    else v.onlyGroups.forEach((id: unknown, i) => {
+      if (typeof id !== 'string') {
+        ctx.addIssue({ code: 'invalid_type', expected: 'string', input: id, path: ['onlyGroups', i] });
+        return;
+      }
+      const refus = refusDeLId('groupe', id, CIBLE_D_APPARTENANCE);
+      if (refus !== null) ctx.addIssue({ code: 'custom', path: ['onlyGroups', i], message: refus });
+    });
   }
+  if (v.op !== 'condition' && v.op !== 'removeCondition') return;
+  refuserEtatsInconnus(v, CHAMPS_ID_D_ETAT, ctx);
   if (v.op !== 'condition') return;
   if (v.perRound === true && (v.durationMinutes != null || v.durationHours != null)) {
     ctx.addIssue({ code: 'custom', path: ['perRound'], message: messageRecurrenceHorloge(String(v.id ?? '')) });

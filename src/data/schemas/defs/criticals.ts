@@ -5,6 +5,7 @@ import { document } from '../grammaire/document';
 import { suiteAvecPas } from '../grammaire/cle-d-espace';
 import { difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
 import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
+import { refs } from '../grammaire/ref';
 
 
 export const critTableSchema = enumNomme({ tete: 'Tête', bras: 'Bras', corps: 'Corps', jambe: 'Jambe' });
@@ -74,7 +75,7 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
 /** LDB 18 l.237. */
 export const amputationSchema = nommerChamps(z.strictObject({
   difficulty: difficultySchema,
-  sequels: z.array(z.string()),
+  sequels: refs('trauma'),
 
   unites: formulaSchema.optional(),
   // LDB 18 l.171 ; AA 07 l.171.

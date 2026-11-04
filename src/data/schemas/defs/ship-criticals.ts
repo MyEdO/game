@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe, shipCritEntrySchema } from '../grammaire/mecanique';
 import { formulaSchema, replisSansExposeSchema, shipSizeSchema } from '../grammaire/valeurs';
-import { idDe } from '../grammaire/ref';
+import { recordDIds } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'ship-criticals.json';
@@ -14,7 +14,7 @@ export const famille = 'config';
 /** MDG 13 l.684-688 */
 const bandeDeChuteSchema = nommerChamps(z.strictObject({
   tailles: z.array(shipSizeSchema).min(1),
-  hauteurs: z.record(idDe('shipStation'), formulaSchema),
+  hauteurs: recordDIds('shipStation', formulaSchema),
 }), { tailles: { label: 'Tailles' }, hauteurs: { label: 'Hauteurs' } });
 
 /** Table de hauteur de chute, référencée par son id depuis l'op `fall` (`{ hauteur: { table } }`). */

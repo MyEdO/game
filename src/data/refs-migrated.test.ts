@@ -1,22 +1,21 @@
 /**
  * Garde-fou INVARIANT (multilangue) : les champs de référence migrés ne contiennent QUE des refs
- * STRUCTURÉES (par id), jamais de libellé brut, et les ids de catalogue résolvent. Toute régression
- * (un libellé qui se faufile, un id fantôme) casse ici. Cf. `AGENTS.md` § Pour TOUT agent.
+ * STRUCTURÉES (par id), jamais de libellé brut. Un id fantôme d'un document se refuse au PARSE de son
+ * schéma (`idDe`, `grammaire/ref.ts`) ; restent ici ce que le parse ne voit pas — constantes de code,
+ * runtime, stocks nommés. Cf. `AGENTS.md` § Pour TOUT agent.
  */
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
 import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
 import {
-  trappings, qualities, spells, creatures, classes, careers, careerLevels, species, gods, etats, maladies, weaponGroups,
-  traits, stars, talents, maneuvers, skills, domains, crewRoles,
-  byId, findTalentById, findTrappingById, findQualityById, findSeaShantyById,
-  findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
-  findCreatureById, findVehicleById, refEntiteResolue, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
+  creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
+  talents, skills, domains,
+  byId, findTalentById, findTrappingById, findSeaShantyById,
+  findConditionById, findDiseaseById, findWeaponGroupById, findGroupById, findQualityById, findCrewTestTypeById, findLightToneById,
   mutationTables,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
-import { avancement } from './schemas/grammaire/avancement';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
@@ -25,28 +24,17 @@ import { COND } from '../engine/conditions';
 import { DISEASES } from '../engine/disease';
 import { findLieuServiceById } from './index';
 import { SERVICE_CITE } from '../noyau/worldMap';
-import { terrainEntree } from '../noyau/monde/terrain';
-import pregensJson from './pregens.json';
 import { makePregens } from './pregens';
-import interludeEventsJson from './interludeEvents.json';
-import tavernGamesJson from './tavernGames.json';
-import seaWeatherJson from './sea-weather.json';
-import traumasJson from './traumas.json';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
 import { CHAR_KEYS } from '../engine/types';
 import { fileURLToPath } from 'node:url';
-import { readFileSync } from 'node:fs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { fauteDEspece } from './schemas/grammaire/valeurs';
-import {
-  GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender,
-} from '../../scripts/guards/lib/gameOpRefFk.mjs';
+import { GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender } from '../../scripts/guards/lib/gameOpRefFk.mjs';
 import { champsDOpASlot, opsDuParse, slotsDOpNonJuges, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
-import { NARRATIVE_MARKERS, etatConnu } from '../engine/conditions';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 import { norm } from '../lib/normalize';
 
@@ -58,29 +46,6 @@ const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const CORPUS_SCANNE = scanDuCorpus(REPO_ROOT);
 
 describe('refs migrées — refs structurées par id, zéro libellé résiduel', () => {
-  it('trappings.qualities = QualityRef[] {id} qui résout (id stable)', () => {
-    for (const t of trappings) for (const q of t.qualities) {
-      expect(isObj(q)).toBe(true);
-      expect(findQualityById(q.id)).toBeTruthy();
-    }
-  });
-
-  it('trappings.subType = weaponGroupId qui résout (jamais un libellé brut) — y compris derivedWeapon.subType imbriqué', () => {
-    const groupIds = new Set(weaponGroups.map((g) => g.id));
-    for (const t of trappings) {
-      if (t.subType != null) {
-        expect(groupIds.has(t.subType), `${t.label} → ${t.subType}`).toBe(true);
-        expect(findWeaponGroupById(t.subType)).toBeTruthy();
-      }
-      // derivedWeapon (prothèse-arme, ex. Crochet) PORTE SON PROPRE subType — un libellé y échappait
-      // au garde-fou ci-dessus (Crochet.derivedWeapon.subType: "Base" au lieu de l'id "base").
-      const dwSubType = t.derivedWeapon?.subType;
-      if (dwSubType != null) {
-        expect(groupIds.has(dwSubType), `${t.label}.derivedWeapon → ${dwSubType}`).toBe(true);
-      }
-    }
-  });
-
   it('weaponGroups portent un id stable + kind valide', () => {
     const kinds = new Set(['weapon', 'ammo', 'armour', 'inventory']);
     for (const g of weaponGroups) { expect(typeof g.id).toBe('string'); expect(kinds.has(g.kind), g.kind).toBe(true); }
@@ -94,31 +59,11 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     }
   });
 
-  it('classes.trappings + careerLevels.trappings = TrappingRef ({id}/{vehicleId}/{creatureId} résout, {text} narratif, {choice}/{wildcard} = emplacements RÉCURSIFS)', () => {
-    function checkTrappingRef(tr: unknown): void {
-      expect(isObj(tr)).toBe(true);
-      const t = tr as Record<string, unknown>;
-      if ('choice' in t) { expect(Array.isArray(t.choice)).toBe(true); for (const b of t.choice as unknown[]) checkTrappingRef(b); }
-      else if ('wildcard' in t) expect(typeof t.wildcard).toBe('string');
-      else if ('vehicleId' in t) expect(findVehicleById(t.vehicleId as string)).toBeTruthy();
-      else if ('creatureId' in t) expect(findCreatureById(t.creatureId as string)).toBeTruthy();
-      else if ('id' in t) expect(itemFromTrappingById(t.id as string)).toBeTruthy();
-      else expect(typeof t.text).toBe('string');
-    }
-    const all = [...classes.flatMap((c) => c.trappings), ...careerLevels.flatMap((l) => l.trappings)];
-    for (const tr of all) checkTrappingRef(tr);
-  });
-
-  it('creatures : skills/talents/optionals/trappings structurés (zéro chaîne)', () => {
+  it('creatures : skills/talents/optionals structurés (zéro chaîne)', () => {
     for (const c of creatures) {
       for (const sk of c.skills) expect(isObj(sk) && typeof sk.id === 'string').toBe(true);
       for (const t of c.talents) expect(isObj(t) && typeof t.id === 'string').toBe(true);
       for (const o of c.optionals) expect(isObj(o)).toBe(true); // OptionalEntry : TraitInstance OU note composée (#174)
-      for (const tr of c.trappings) {
-        expect(isObj(tr)).toBe(true);
-        if ('creatureId' in tr) expect(findCreatureById(tr.creatureId as string)).toBeTruthy();
-        else if ('id' in tr) expect(itemFromTrappingById(tr.id as string)).toBeTruthy();
-      }
     }
   });
 
@@ -133,12 +78,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 
   it('chaque service de lieu que le code cite par id (`SERVICE_CITE`) existe au catalogue (#1906)', () => {
     expect(Object.values(SERVICE_CITE).filter((id) => !findLieuServiceById(id))).toEqual([]);
-  });
-
-  it('careers/classes/species portent un id ; careers.class = classId qui résout', () => {
-    for (const c of careers) { expect(typeof c.id).toBe('string'); expect(findClassById(c.class), c.label).toBeTruthy(); }
-    for (const cl of classes) expect(typeof cl.id).toBe('string');
-    for (const s of species) expect(typeof s.id).toBe('string');
   });
 
   it('etats portent un id ; la constante moteur COND est synchrone avec etats.json', () => {
@@ -157,64 +96,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     const ids = new Set(maladies.map((m) => m.id));
     for (const id of Object.values(DISEASES)) { expect(ids.has(id), id).toBe(true); expect(findDiseaseById(id), id).toBeTruthy(); }
     expect(Object.values(DISEASES).length).toBe(9); // les 9 maladies LDB 20 câblées
-  });
-
-  it('chaque maladie.symptoms.symptomId résout dans symptoms.json (catalogue éditable)', () => {
-    for (const m of maladies) for (const s of m.symptoms) expect(findSymptomById(s.symptomId), `${m.id}:${s.symptomId}`).toBeTruthy();
-  });
-
-  it('careerLevels.career = careerId qui résout', () => {
-    for (const l of careerLevels) expect(findCareerById(l.career), l.label).toBeTruthy();
-  });
-
-  it('pregens.species/career = ids qui résolvent', () => {
-    for (const p of pregensJson as { label: string; species: string; career: string }[]) {
-      expect(findSpeciesById(p.species), p.label).toBeTruthy();
-      expect(findCareerById(p.career), p.label).toBeTruthy();
-    }
-  });
-
-  it('interludeEvents.fx.revenue(Blocked)Classes = classId qui résout (ou « * »)', () => {
-    for (const e of interludeEventsJson as { fx?: { revenueClasses?: string[]; revenueBlockedClasses?: string[] } }[]) {
-      for (const c of [...(e.fx?.revenueClasses ?? []), ...(e.fx?.revenueBlockedClasses ?? [])]) {
-        if (c === '*') continue;
-        expect(findClassById(c), c).toBeTruthy();
-      }
-    }
-  });
-
-  // `AdvancementRef` (`src/data/index.ts`) : une référence d'avancement porte son `id` À PLAT, que la
-  // spécialisation soit arrêtée (`spec`) ou laissée au choix (`choix`) — `advancementBaseId`
-  // (index.ts) et `slotOptionsFromRef` (`src/engine/careerSlots.ts`) lisent le MÊME id dans les deux
-  // régimes. La CATÉGORIE vient de la liste porteuse (`skills` vs `talents`), jamais d'un
-  // « skill OU talent ».
-  it('refs d’avancement (régime `spec` comme `choix`) pointent un id de Compétence/Talent réel', () => {
-    const bad: string[] = [];
-    const ck = (cat: 'skills' | 'talents', a: unknown, where: string): void => {
-      if (!isObj(a)) return;
-      const find = (id: string) => (cat === 'skills' ? byId('skill', id) : findTalentById(id));
-      if ('id' in a) { const id = a.id as string; if (!find(id)) bad.push(`${where} ${cat} → ${JSON.stringify(id)}`); }
-      if ('of' in a) (a.of as unknown[]).forEach((o, i) => ck(cat, o, `${where}.of[${i}]`));
-    };
-    for (const s of species) {
-      s.skills.forEach((a, i) => ck('skills', a, `species(${s.id}).skills[${i}]`));
-      s.talents.forEach((a, i) => ck('talents', a, `species(${s.id}).talents[${i}]`));
-    }
-    for (const l of careerLevels) {
-      l.skills.forEach((a, i) => ck('skills', a, `careerLevel(${l.label}).skills[${i}]`));
-      l.talents.forEach((a, i) => ck('talents', a, `careerLevel(${l.label}).talents[${i}]`));
-    }
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  // NON-VACANCE de la garde ci-dessus, et VERROU PAR CONSTRUCTION : depuis L2 #1548 la fabrique
-  // `avancement(type)` (`schemas/grammaire/avancement.ts`) refine l'id AU PARSE contre le registre
-  // généré — un emplacement à id fantôme ne charge plus, quel que soit son régime.
-  it('un emplacement d’avancement à id fantôme est REFUSÉ par le schéma (contre-épreuve)', () => {
-    const porte = avancement('skill');
-    expect(porte.safeParse({ id: 'langue', choix: true }).success).toBe(true);
-    expect(porte.safeParse({ id: 'langue-fantome', choix: true }).success).toBe(false);
-    expect(porte.safeParse({ pick: 1, of: [{ id: 'langue-fantome' }] }).success).toBe(false);
   });
 
   /**
@@ -330,90 +211,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     expect(morts, morts.join('\n')).toEqual([]);
   });
 
-  // `TrappingRef.wildcard` (`src/data/index.ts`) est une AUTRE forme : une chaîne de CATÉGORIE
-  // d'équipement (« n'importe quelle arme »), pas un id de registre — `resolveTrappingChoices`
-  // (`src/engine/trappingChoices.ts`) la remplace par l'id choisi, `trappingRefLabel` (index.ts)
-  // et le pré-tiré (`src/data/schemas/defs/pregens.ts`) la reconnaissent par sa valeur. Le
-  // vocabulaire est donc CLOS : une catégorie inconnue est un emplacement que rien ne sait remplir.
-  it('classes/careerLevels : tout {wildcard} de dotation appartient au vocabulaire CLOS des emplacements', () => {
-    const SLOTS = new Set(['arme']);
-    const bad: string[] = [];
-    const ck = (tr: unknown, where: string): void => {
-      if (!isObj(tr)) return;
-      if ('choice' in tr) { (tr.choice as unknown[]).forEach((b, i) => ck(b, `${where}.choice[${i}]`)); return; }
-      if ('wildcard' in tr && !SLOTS.has(tr.wildcard as string)) bad.push(`${where} → ${JSON.stringify(tr.wildcard)}`);
-    };
-    classes.forEach((c) => c.trappings.forEach((tr, i) => ck(tr, `class(${c.id}).trappings[${i}]`)));
-    careerLevels.forEach((l) => l.trappings.forEach((tr, i) => ck(tr, `careerLevel(${l.label}).trappings[${i}]`)));
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  // ── Phase F — ops de Flow & champs de talent : qualité/talent par id, jamais un libellé ──
-  /** Visite récursive de chaque nœud-objet d'une arborescence de données (Flow/effets imbriqués). */
-  const walk = (node: unknown, fn: (o: Record<string, unknown>) => void): void => {
-    if (Array.isArray(node)) { node.forEach((x) => walk(x, fn)); return; }
-    if (!isObj(node)) return;
-    fn(node);
-    for (const v of Object.values(node)) walk(v, fn);
-  };
-  /** Tous les datasets porteurs de `GameOp` (Flow de sorts/traits/etc. + effet de signe). */
-  const opDatasets: unknown[] = [...spells, ...traits, ...creatures, ...qualities, ...stars];
-
-  it('ops addQualities / grantWeapon.qualities = id de Qualité qui résout', () => {
-    walk(opDatasets, (o) => {
-      const lists: unknown[] = [];
-      if (o.op === 'augmentWeapon' && Array.isArray(o.addQualities)) lists.push(o.addQualities);
-      if ((o.op === 'grantWeapon' || o.op === 'grantNaturalWeapon') && Array.isArray(o.qualities)) lists.push(o.qualities);
-      for (const q of lists.flat()) {
-        expect(typeof q, JSON.stringify(o)).toBe('string'); // id de Qualité, pas un objet/libellé brut
-        expect(findQualityById(q as string), String(q)).toBeTruthy();
-      }
-    });
-  });
-
-  // ── Spine des Tests : aucune compétence résolue par LIBELLÉ (multilangue) ──
-  // Un Test déclenché authoré est un nœud de STRUCTURE Flow (`{kind:'test', test:FlowTest}`) ; ses
-  // Compétences (côté défenseur `test.skill`, côté attaquant OPPOSÉ `test.opposed.attackerSkill`) sont
-  // des skillId stables. Tous doivent RÉSOUDRE.
-  it('FlowTest.skill / FlowTest.opposed.attackerSkill → skillId qui résout (jamais un libellé)', () => {
-    const skillCarrying = [...spells, ...traits, ...maneuvers, ...qualities, ...creatures, ...stars];
-    walk(skillCarrying, (o) => {
-      // RÉFÉRENCES emboîtées `{ id, spec? }` (le slot `skill` d'un conteneur de Test)…
-      const refs: unknown[] = [];
-      // …et l'id NU que reste `opposed.attackerSkill` (slot d'id, pas de référence — lot L3).
-      const ids: unknown[] = [];
-      if (o.kind === 'test' && isObj(o.test)) {
-        const t = o.test as Record<string, unknown>;
-        if (t.skill != null) refs.push(t.skill);
-        expect(t.spec, `FlowTest : « spec » FRÈRE de « skill » — la spécialisation vit DANS la référence : ${JSON.stringify(o)}`).toBeUndefined();
-        if (isObj(t.opposed) && (t.opposed as Record<string, unknown>).attackerSkill != null) ids.push((t.opposed as Record<string, unknown>).attackerSkill);
-      }
-      for (const r of refs) {
-        expect(isObj(r), `réf de Compétence à PLAT : ${JSON.stringify(o)}`).toBe(true);
-        const id = (r as { id: string }).id;
-        expect(byId('skill', id), `${JSON.stringify(o)} → ${String(id)}`).toBeTruthy();
-      }
-      for (const s of ids) {
-        expect(typeof s, JSON.stringify(o)).toBe('string');
-        expect(byId('skill', s as string), `${JSON.stringify(o)} → ${String(s)}`).toBeTruthy();
-      }
-    });
-  });
-
-  it('scènes : FlowTest.skill / extendedTest.skill = skillId qui résout', () => {
-    walk(areneProject, (o) => {
-      if (o.kind === 'test' && isObj(o.test)) {
-        const s = (o.test as Record<string, unknown>).skill;
-        if (s != null) expect(byId('skill', (s as { id: string }).id), `FlowTest → ${JSON.stringify(s)}`).toBeTruthy();
-        const hs = (o.test as Record<string, unknown>).easierIf;
-        if (isObj(hs) && isObj((hs as Record<string, unknown>).hasSkill)) {
-          expect(byId('skill', ((hs as Record<string, unknown>).hasSkill as { id: string }).id)).toBeTruthy();
-        }
-      }
-      if (o.type === 'extendedTest' && o.skill != null) expect(byId('skill', (o.skill as { id: string }).id), `extendedTest → ${JSON.stringify(o.skill)}`).toBeTruthy();
-    });
-  });
-
   it('skills.characteristic = CharKey stable (jamais un libellé inter-table)', () => {
     for (const s of skills) expect(CHAR_KEYS as readonly string[], `${s.label} → ${s.characteristic}`).toContain(s.characteristic);
   });
@@ -423,13 +220,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     for (const t of talents) {
       const a = (t as { addCharacteristic?: string }).addCharacteristic;
       if (a != null) expect(ok.has(a), `${t.label} → ${a}`).toBe(true);
-    }
-  });
-
-  it('domains.castBonus.perCondition = id d\'État qui résout (jamais un libellé inter-table)', () => {
-    for (const d of domains) {
-      const pc = (d as { castBonus?: { perCondition?: string } }).castBonus?.perCondition;
-      if (pc) expect(findConditionById(pc), `${d.label} → ${pc}`).toBeTruthy();
     }
   });
 
@@ -520,12 +310,10 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   });
 
   // ── L'ADMISSION d'une `spec` se juge au SCHÉMA, par l'ENTRÉE visée (`refusDeSpec`, `grammaire/ref.ts`),
-  // sur tout document registré de `src/data` et `src/scenes` (`schema-contract.test.ts`). Restent ici ce
-  // que le schéma ne voit pas :
-  //  - une entrée OUVERTE (`entreeOuverte`) admet un texte libre, mais un texte dont le normalisé est un
-  //    libellé FR CONNU de ses `specs[]` est une régression de migration (devrait être l'id) ;
-  //  - les pré-tirés RUNTIME (`makePregens()`), composés en mémoire, jamais parsés par un schéma.
-  describe('GARDE — libellés connus sur entrée OUVERTE, et pré-tirés runtime', () => {
+  // sur tout document registré de `src/data` et `src/scenes` (`schema-contract.test.ts`), libellé FR connu
+  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`makePregens()`),
+  // composés en mémoire, jamais parsés par un schéma.
+  describe('GARDE — pré-tirés runtime', () => {
 
     const OPEN = new Map<string, { ids: Set<string>; byLabel: Map<string, string> }>();
     for (const [type, defs] of [['skill', skills], ['talent', talents]] as const) {
@@ -553,18 +341,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       for (const v of Object.values(node)) walk(v, where);
     }
 
-    it('creatures/careerLevels/species/stars/traits/trappings/talents/skills/crewRoles/tavernGames/seaWeather/pregens(runtime) : aucun libellé FR connu sur une entrée OUVERTE', () => {
-      walk(creatures, 'creatures');
-      walk(careerLevels, 'careerLevels');
-      walk(species, 'species');
-      walk(stars, 'stars');
-      walk(traits, 'traits');
-      walk(trappings, 'trappings');
-      walk(talents, 'talents(self-réf)'); // ex. Oreille absolue.passive → Divertissement (Chant)
-      walk(skills, 'skills(self-réf)');
-      walk(crewRoles, 'crewRoles');
-      walk(tavernGamesJson, 'tavernGames');
-      walk(seaWeatherJson, 'seaWeather');
+    it('pregens(runtime — makePregens) : aucun libellé FR connu sur une entrée OUVERTE', () => {
       walk(makePregens(), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
       expect(nonMigres, nonMigres.join('\n')).toEqual([]);
     });
@@ -767,38 +544,6 @@ describe('Talents de statbloc, de Carrière et d’espèce — observations nomm
   });
 });
 
-// ── CONTRAT POSITIF — Corps à corps / Projectiles sont des Compétences GROUPÉES (LDB 62 l.139) : la
-// seule `spec` admissible est un id de `weaponGroups.json`. L'armement naturel d'une créature est porté
-// par son TRAIT (LDB 85 l.33), pas par un descripteur posé en `spec`. Contrat SANS liste d'exception :
-// une nouvelle entrée de bestiaire qui réintroduirait « Griffes » y échoue.
-describe('spec de Compétence GROUPÉE — corps-a-corps/projectiles ne portent QUE des Groupes d’armes', () => {
-  const GROUPED_COMBAT_SKILLS = new Set(['corps-a-corps', 'projectiles']);
-
-  function collect(node: unknown, where: string, arrKey: string | null, out: { where: string; skillId: string; spec: string }[], seen: { n: number }): void {
-    if (Array.isArray(node)) { node.forEach((x) => collect(x, where, arrKey, out, seen)); return; }
-    if (!isObj(node)) return;
-    if (arrKey === 'skills' && typeof node.id === 'string' && GROUPED_COMBAT_SKILLS.has(node.id)) {
-      seen.n++;
-      if (typeof node.spec === 'string') out.push({ where, skillId: node.id, spec: node.spec });
-    }
-    for (const [k, v] of Object.entries(node)) collect(v, where, Array.isArray(v) ? k : (k === 'ref' ? arrKey : null), out, seen);
-  }
-
-  it('creatures/careerLevels/species : toute spec de corps-a-corps/projectiles résout dans weaponGroups', () => {
-    const specs: { where: string; skillId: string; spec: string }[] = [];
-    const seen = { n: 0 };
-    collect(creatures, 'creatures', null, specs, seen);
-    collect(careerLevels, 'careerLevels', null, specs, seen);
-    collect(species, 'species', null, specs, seen);
-    // NON-VACUITÉ : sans lignes scannées, le contrat serait vert à vide.
-    expect(seen.n).toBeGreaterThan(0);
-    expect(weaponGroups.length).toBeGreaterThan(0);
-    const hors = specs.filter((s) => !findWeaponGroupById(s.spec))
-      .map((s) => `${s.where} : ${s.skillId} → ${JSON.stringify(s.spec)}`);
-    expect(hors, hors.join('\n')).toEqual([]);
-  });
-});
-
 // #622
 describe('careerLevels.trappings — dotations textuelles nommées', () => {
   it('chaque dotation textuelle est déclarée et soldée', () => {
@@ -829,99 +574,9 @@ describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un
     for (const [k, v] of Object.entries(node)) collect(v, `${where}.${k}`, out);
   }
 
-  it('projets Arène + Loup-et-Saumure : tout appearance.species est une espèce d’apparence', () => {
+  it('scénarios de test : tout appearance.species de la party, construite en TS et jamais parsée, est une espèce d’apparence', () => {
     const bad: string[] = [];
-    collect(areneProject, 'arene-projet.json', bad);
-    collect(loupProject, 'loup-et-saumure-projet.json', bad);
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  it('scénarios de test (scene + extraScenes + party) : tout appearance.species est une espèce d’apparence', () => {
-    const bad: string[] = [];
-    for (const s of SCENARIOS) {
-      const c = s.construire();
-      collect(c.scene, `${s.id}.scene`, bad);
-      if (c.extraScenes) collect(c.extraScenes, `${s.id}.extraScenes`, bad);
-      collect(c.party, `${s.id}.party`, bad);
-    }
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-});
-
-// ── GÉNÉRALISATION À TOUTE LA DONNÉE AUTHORÉE (#1537) : les deux racines de données (`src/data`,
-// `src/scenes`) lues sur DISQUE, tout `appearance.species` / `appearanceOverride.species` de chaîne.
-describe('appearance(.Override).species — TOUTE la donnée authorée des deux racines est une espèce d’apparence', () => {
-  const RACINES = ['data', 'scenes'].map((d) => fileURLToPath(new URL(`../${d}`, import.meta.url)));
-  const jsonFiles = (dir: string): string[] =>
-    listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') }).map((rel) => `${dir}/${rel}`);
-
-  it('tout species authoré dans src/data + src/scenes passe `fauteDEspece`', () => {
-    const files = RACINES.flatMap(jsonFiles);
-    const bad: string[] = [];
-    let sites = 0;
-    const scan = (node: unknown, fichier: string, chemin: string): void => {
-      if (Array.isArray(node)) { node.forEach((x, i) => scan(x, fichier, `${chemin}[${i}]`)); return; }
-      if (!isObj(node)) return;
-      for (const cle of ['appearance', 'appearanceOverride'] as const) {
-        const app = node[cle];
-        if (isObj(app) && typeof app.species === 'string') {
-          sites++;
-          const faute = fauteDEspece(app.species);
-          if (faute) bad.push(`${fichier} : ${chemin}.${cle}.species — ${faute}`);
-        }
-      }
-      for (const [k, v] of Object.entries(node)) scan(v, fichier, `${chemin}.${k}`);
-    };
-    for (const f of files) {
-      const norm = f.replace(/\\/g, '/');
-      const rel = norm.slice(norm.lastIndexOf('/src/') + 1);
-      let doc: unknown;
-      try { doc = JSON.parse(readFileSync(f, 'utf8')); } catch { continue; }
-      scan(doc, rel, '$');
-    }
-    expect(bad, bad.join('\n')).toEqual([]);
-    expect(files.length, 'aucun JSON balayé — le walker est cassé').toBeGreaterThan(100);
-    expect(sites, `${sites} sites species — le walker ne mesure plus rien`).toBeGreaterThan(250);
-  });
-});
-
-// ── SWEEP DE RÉFÉRENCES DE SCÈNE (#223) — chaque `SceneEntity` d'un
-// projet/scénario ne porte que des IDS STABLES (doctrine « labels interdits ») qui RÉSOLVENT au
-// chargement, sinon repli silencieux/bruyant :
-//  - `personnage`.ref → créature ∪ véhicule (coque) ∪ engin de siège (trapping du sous-type armes-de-siege), les 3 familles
-//    légitimes du spawn (`spawnEnemy`) ; `undefined` (statbloc/générique) toléré.
-//  - `weapon` → `trappingId` EXACT du catalogue d'armes (`findTrappingById`).
-// Toute violation ci-dessus = `fichier/entité/valeur`. DUR partout (projets régénérés par l'auteur en ids).
-describe('refs de scène — ref/weapon = ids EXACTS du catalogue (#223, labels interdits)', () => {
-  const ENTITY_KINDS = new Set(['heroStart', 'personnage', 'prop']);
-  function sweep(node: unknown, where: string, out: string[]): void {
-    if (Array.isArray(node)) { node.forEach((x, i) => sweep(x, `${where}[${i}]`, out)); return; }
-    if (!isObj(node)) return;
-    if (typeof node.kind === 'string' && ENTITY_KINDS.has(node.kind) && isObj(node.pos)) {
-      const who = `${where}(${node.id ?? node.label ?? node.kind})`;
-      if (node.kind === 'personnage' && typeof node.ref === 'string' && !refEntiteResolue(node.ref))
-        out.push(`${who}.ref = ${JSON.stringify(node.ref)} (ni créature ∪ véhicule ∪ engin de siège)`);
-      if (typeof node.weapon === 'string' && !findTrappingById(node.weapon))
-        out.push(`${who}.weapon = ${JSON.stringify(node.weapon)} (pas un trappingId du catalogue d'armes)`);
-    }
-    for (const [k, v] of Object.entries(node)) sweep(v, `${where}.${k}`, out);
-  }
-
-  it('projets Arène + Loup-et-Saumure : ref/weapon = ids exacts (DUR)', () => {
-    const bad: string[] = [];
-    sweep(areneProject, 'arene-projet.json', bad);
-    sweep(loupProject, 'loup-et-saumure-projet.json', bad);
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  it('scénarios de test (scene + extraScenes + party) : ref/weapon de chaque entité résolvent', () => {
-    const bad: string[] = [];
-    for (const s of SCENARIOS) {
-      const c = s.construire();
-      sweep(c.scene, `${s.id}.scene`, bad);
-      if (c.extraScenes) sweep(c.extraScenes, `${s.id}.extraScenes`, bad);
-      sweep(c.party, `${s.id}.party`, bad);
-    }
+    for (const s of SCENARIOS) collect(s.construire().party, `${s.id}.party`, bad);
     expect(bad, bad.join('\n')).toEqual([]);
   });
 });
@@ -968,61 +623,19 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
   });
 });
 
-// ── PROTHÈSES (traumas.json) — `prosthesis[].trappingId` est la ref par laquelle une séquelle sait
-// quel objet ANNULE son effet (`cancels: 'all'|'movement'`, `src/engine/trauma.ts`). Un id fantôme
-// rend l'annulation inatteignable en silence : le porteur garde sa séquelle quoi qu'il équipe.
-describe('traumas.prosthesis — trappingId = id du catalogue qui résout', () => {
-  interface ProsthesisRow { id: string; prosthesis?: { trappingId: string; cancels: string }[] }
-  const rows = traumasJson as ProsthesisRow[];
-
-  const scan = (fiches: ProsthesisRow[]): string[] => {
-    const bad: string[] = [];
-    for (const f of fiches) {
-      (f.prosthesis ?? []).forEach((p, i) => {
-        if (!findTrappingById(p.trappingId)) bad.push(`traumas.json(${f.id}).prosthesis[${i}] → ${JSON.stringify(p.trappingId)}`);
-      });
-    }
-    return bad;
-  };
-
-  it('chaque prothèse déclarée pointe une entrée réelle de trappings.json', () => {
-    const bad = scan(rows);
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  it('la garde n’est pas vacante — une fiche à prothèse fantôme est REFUSÉE (contre-épreuve)', () => {
-    expect(rows.some((f) => (f.prosthesis?.length ?? 0) > 0)).toBe(true); // le scan a bien de la matière à voir
-    expect(scan([{ id: 'fixture', prosthesis: [{ trappingId: 'jambe-de-bois-fantome', cancels: 'movement' }] }])).toHaveLength(1);
-  });
-});
-
-// ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847) — `applyOps` (`src/engine/ops.ts`)
-// empile sans valider ; le gate d'édition ne voit que ce qui passe par l'UI. Le PÉRIMÈTRE (quels
-// champs d'op portent une référence) est DÉRIVÉ de l'union `GameOp` par le TypeChecker, moins les
-// CHAMPS D'OP À SLOT d'`OP_DEFS` (`champsDOpASlot`), vérifiés au parse ; la CIBLE de chaque autre
-// champ est déclarée dans `scripts/guards/lib/gameOpRefFk.mjs` — dont l'en-tête écrit ce que la garde
-// ne voit pas. Les registres sont câblés ICI, où ils sont typés.
-describe('GameOp — toute référence de la donnée committée résout dans son registre (#847)', () => {
+// ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847, #1473). Le PÉRIMÈTRE (quels champs d'op portent
+// une chaîne) est DÉRIVÉ de l'union `GameOp` par le TypeChecker ; chaque champ est un CHAMP D'OP À SLOT
+// d'`OP_DEFS` (`champsDOpASlot`), jugé au parse par sa feuille `idDe`, ou il porte sa classification
+// dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `coveredBy` | `nonRef`). Les registres des
+// champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
+describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
   const MUTATION_TABLE_IDS = new Set(mutationTables.map((t) => t.id));
-  const TRAUMA_IDS = new Set((traumasJson as { id: string }[]).map((t) => t.id));
 
   const resolvers: Record<string, (id: string) => boolean> = {
-    etats: (id) => !!etatConnu(id),
-    groups: (id) => !!findGroupById(id),
-    psychology: (id) => !!findPsychologyById(id),
-    traits: (id) => !!findTraitById(id),
-    talents: (id) => !!findTalentById(id),
-    skills: (id) => !!byId('skill', id),
-    maladies: (id) => !!findDiseaseById(id),
-    symptoms: (id) => !!findSymptomById(id),
-    traumas: (id) => TRAUMA_IDS.has(id),
-    trappings: (id) => !!findTrappingById(id),
     qualities: (id) => !!findQualityById(id),
     weaponGroups: (id) => !!findWeaponGroupById(id),
-    creatures: (id) => !!findCreatureById(id),
     crewTestTypes: (id) => !!findCrewTestTypeById(id),
     mutationTables: (id) => MUTATION_TABLE_IDS.has(id),
-    terrains: (id) => terrainEntree(id) !== undefined,
     lightTones: (id) => !!findLightToneById(id),
   };
 
@@ -1032,7 +645,6 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   const sources = [...CORPUS.brutParNom].map(([file, data]) => ({ file, data }));
   const CHAMPS_A_SLOT = champsDOpASlot();
   const scan = scanGameOpRefs({ sources, resolvers, champsASlot: CHAMPS_A_SLOT });
-
   it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', { timeout: 30_000 }, () => {
     const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
     expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(0);
@@ -1043,7 +655,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   it('une cible déclarée sur un champ d’op à slot sort en `stale`, raison nommée (contre-épreuve)', { timeout: 30_000 }, () => {
     expect(CHAMPS_A_SLOT.has('removeTrait.trait')).toBe(true);
     const declare = GAMEOP_FIELD_TARGETS as Record<string, unknown>;
-    declare['removeTrait.trait'] = { registry: 'traits' };
+    declare['removeTrait.trait'] = { nonRef: 'fixture' };
     try {
       const { stale: doublon } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
       expect(doublon.map((c) => c.key)).toEqual(['removeTrait.trait']);
@@ -1053,18 +665,16 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     }
   });
 
-  // COUVERTURE (#1473) : le scan saute les champs d'op à slot (`champsDOpASlot`, dérivé d'`OP_DEFS`), que
-  // le parse juge par leur feuille `idDe`. Ce test prouve la JOINTURE : tout nœud `GameOp` que le scan
-  // visite est ATTEINT par le parse de mesure (`opsDuParse`, par IDENTITÉ d'objet). « Atteint » seul ne
-  // juge rien (`marquerOpAtteinte` précède `OP_DEFS[v.op]`) : c'est le couple « atteint » + champs sautés
-  // dérivés d'`OP_DEFS` qui couvre — un champ d'une op de `OPS_NON_TYPEES` reste au scan FK. Un nœud non
-  // atteint pend sous un conteneur que le parse ne descend pas : son conteneur se type.
+  // COUVERTURE (#1473) : un champ d'op à slot est jugé par sa feuille `idDe` là où le parse ATTEINT son
+  // nœud. Ce test prouve la JOINTURE : tout nœud `GameOp` du corpus est ATTEINT par le parse de mesure
+  // (`opsDuParse`, par IDENTITÉ d'objet). Un nœud non atteint pend sous un conteneur que le parse ne
+  // descend pas : son conteneur se type.
   // Stock NOMINATIF, compte EXACT par document : les ops du dialecte `jsonOpSchema`
   // (`schemas/defs/miscast.ts`), lot de mort #1902.
   const HORS_PARSE: Record<string, number> = { 'miscast.json': 77 };
   const ATTEINTES = opsDuParse(CORPUS, DEFS);
+  /** La jointure corpus ↔ parse : les nœuds d'op que le parse de mesure n'atteint pas. */
   type NoeudDOp = (typeof scan.noeudsDOp)[number];
-  /** La jointure scan ↔ parse : les nœuds d'op visités que le parse de mesure n'atteint pas. */
   const horsDuParse = (noeuds: readonly NoeudDOp[], atteintes: ReadonlySet<object>) => noeuds.filter((n) => !atteintes.has(n.noeud));
   const ligneHorsParse = (n: NoeudDOp) => `${n.path} : ${n.op}`;
   it('tout nœud GameOp du corpus est atteint par le parse de mesure, hors stock nominatif', () => {
@@ -1077,8 +687,8 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     expect(parDocument, 'le stock HORS_PARSE est EXACT : un compte qui baisse se reporte au stock').toEqual(HORS_PARSE);
   });
 
-  // Conteneur OPAQUE : `seaEventDef.params`, `z.record(z.string(), z.unknown())` (`schemas/defs/sea-events.ts:35`).
-  it('une op typée sous un conteneur que le parse ne descend pas est vue du scan, absente du parse, nommée hors parse (fixture)', () => {
+  // Conteneur OPAQUE : `seaEventDef.params`, `z.record(z.string(), z.unknown())` (`schemas/defs/sea-events.ts`).
+  it('une op typée sous un conteneur que le parse ne descend pas est vue du corpus, absente du parse, nommée hors parse (fixture)', () => {
     const def = DEFS.find((d) => d.file === 'sea-events.json');
     expect(def, 'def de sea-events.json introuvable').toBeTruthy();
     const document = structuredClone(CORPUS.brutParNom.get('sea-events.json')) as { boardEvents: { params: Record<string, unknown> }[] };
@@ -1091,9 +701,8 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     expect(horsDuParse(noeuds, atteintes).map(ligneHorsParse)).toEqual(['sea-events.json.boardEvents[0].params.ops[0] : domeWard']);
   });
 
-  // Le stock HORS_PARSE n'a pas de parse d'op : chaque chaîne de ses champs d'op à slot, que le scan
-  // saute, est une CASE validée par `idDe` au parse de SON document (`slotsDuParse`), ou elle n'est
-  // jugée par personne.
+  // Le stock HORS_PARSE n'a pas de parse d'op : chaque chaîne de ses champs d'op à slot est une CASE
+  // validée par `idDe` au parse de SON document (`slotsDuParse`), ou elle n'est jugée par personne.
   const renduNonJuge = (v: { path: string; valeur: string }) => `${v.path} = ${JSON.stringify(v.valeur)}`;
   it('hors du parse d’op, toute chaîne d’un champ d’op à slot est jugée par le parse de son document', () => {
     const nonJuges = slotsDOpNonJuges(scan.noeudsDOp, ATTEINTES, slotsDuParse(CORPUS, DEFS), CHAMPS_A_SLOT).map(renduNonJuge);
@@ -1105,7 +714,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     expect(miscastDef, 'def de miscast.json introuvable').toBeTruthy();
     const [table] = structuredClone(CORPUS.brutParNom.get('miscast.json')) as { entries: { id: string; ops?: object[] }[] }[];
     const rangee = table.entries.find((e) => e.id === 'mineure-langue-maladroite')!;
-    rangee.ops!.push({ op: 'condition', id: 'etat-fantome' });
+    rangee.ops!.push({ op: 'castPenalty', id: 'id-fantome' });
     table.entries = [rangee];
     const brutParNom = new Map<string, unknown>([['miscast.json', [table]]]);
     const noeuds = scanGameOpRefs({ sources: [{ file: 'miscast.json', data: [table] }], resolvers }).noeudsDOp;
@@ -1113,9 +722,9 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     expect(noeuds.filter((n) => atteintes.has(n.noeud)), 'la fixture doit rester HORS du parse d’op').toEqual([]);
     const slots = slotsDuParse({ brutParNom }, [miscastDef!]);
     expect(slotsDOpNonJuges(noeuds, atteintes, slots, CHAMPS_A_SLOT)).toEqual([]);
-    const avecSlot = new Set([...CHAMPS_A_SLOT, 'condition.id']);
+    const avecSlot = new Set([...CHAMPS_A_SLOT, 'castPenalty.id']);
     expect(slotsDOpNonJuges(noeuds, atteintes, slots, avecSlot).map(renduNonJuge))
-      .toEqual(['miscast.json[0].entries[0].ops[1].id = "etat-fantome"']);
+      .toEqual(['miscast.json[0].entries[0].ops[1].id = "id-fantome"']);
   });
 
   it('une op sous un conteneur d’ops est atteinte par le parse : une valeur OBJET fantôme y est REFUSÉE (contre-épreuve)', () => {
@@ -1130,7 +739,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     expect(scan.missingResolvers, scan.missingResolvers.join(', ')).toEqual([]);
   });
 
-  it('src/data/*.json + src/scenes/**.json : toute ref d’op résout', () => {
+  it('src/data/*.json + src/scenes/**.json : toute ref d’op que le parse ne juge pas résout', () => {
     expect(sources.length, 'aucun document scanné').toBeGreaterThan(50);
     const lines = scan.offenders.map(formatOffender);
     expect(lines, lines.join('\n')).toEqual([]);
@@ -1139,47 +748,30 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   // Le format d'une cible est un ensemble FERMÉ (`gameOpRefFk.mjs`, doc de `GAMEOP_FIELD_TARGETS`) :
   // `{ registry }` | `{ nonRef }` | `{ coveredBy }`. Une clé hors de cet ensemble serait lue par
   // PERSONNE dans `scanGameOpRefs` — donc une tolérance muette, ou un champ tenu pour gardé sans l'être.
-  it('le format d’une cible est fermé : aucune clé hors registry/nonRef/coveredBy', () => {
-    const CLES = new Set(['registry', 'nonRef', 'coveredBy']);
+  it('le format d’une cible est fermé : une seule clé, registry, nonRef ou coveredBy, non vide', () => {
+    const CLES = ['registry', 'nonRef', 'coveredBy'];
     const anomalies: string[] = [];
     for (const [cible, decl] of Object.entries(GAMEOP_FIELD_TARGETS as Record<string, Record<string, unknown>>)) {
-      for (const cle of Object.keys(decl)) {
-        if (!CLES.has(cle)) anomalies.push(`${cible} : clé « ${cle} » hors du format fermé`);
-      }
-      const formes = ['registry', 'nonRef', 'coveredBy'].filter((k) => k in decl);
-      if (formes.length !== 1) {
-        anomalies.push(`${cible} : ${formes.length} forme(s) déclarée(s) [${formes.join(', ')}] — il en faut une et une seule`);
-      }
-      for (const k of ['registry', 'nonRef', 'coveredBy']) {
-        if (k in decl && (typeof decl[k] !== 'string' || !decl[k])) anomalies.push(`${cible} : « ${k} » n’est pas un texte non vide`);
-      }
+      const cles = Object.keys(decl);
+      if (cles.length !== 1 || !CLES.includes(cles[0])) anomalies.push(`${cible} : clés [${cles.join(', ')}] hors du format fermé`);
+      for (const v of Object.values(decl)) if (typeof v !== 'string' || !v) anomalies.push(`${cible} : valeur absente`);
     }
     expect(anomalies, anomalies.join('\n')).toEqual([]);
   });
 
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
-    const fixture = [{
+    const fixture = (tone: string) => [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'removeCondition', id: 'aveugle' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'light', radiusM: 3, tone }] } } }] }],
     }];
-    expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders).toEqual([]);
-    const phantom = [{
-      file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'removeCondition', id: 'etat-fantome' }] } } }] }],
-    }];
-    const out = scanGameOpRefs({ sources: phantom, resolvers }).offenders;
+    expect(scanGameOpRefs({ sources: fixture('flamme'), resolvers }).offenders).toEqual([]);
+    const out = scanGameOpRefs({ sources: fixture('ton-fantome'), resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('etats');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].id');
+    expect(out[0].registry).toBe('lightTones');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].tone');
   });
 
-  it('le registre `etats` résout par `etatConnu` : un marqueur narratif (`NARRATIVE_MARKERS`) passe, un libellé est un offenseur', () => {
-    const [{ id: marqueur }] = NARRATIVE_MARKERS;
-    const fixture = [{ file: 'fixture.json', data: [{ op: 'condition', id: marqueur }, { op: 'condition', id: 'Frénésie' }] }];
-    expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders.map((o) => o.value)).toEqual(['Frénésie']);
-  });
-
-  it('un champ NON-RÉFÉRENCE porte sa justification, un champ gardé ailleurs nomme sa garde', () => {
+  it('un champ NON-RÉFÉRENCE porte sa justification, un champ jugé ailleurs nomme son refus', () => {
     for (const [key, t] of Object.entries(GAMEOP_FIELD_TARGETS)) {
       if ('registry' in t) { expect(resolvers[t.registry], `${key} → registre inconnu ${t.registry}`).toBeTruthy(); continue; }
       const why = 'nonRef' in t ? t.nonRef : t.coveredBy;

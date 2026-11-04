@@ -245,7 +245,7 @@ export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
  * `scripts/guards/lib/folioIntegrity.mjs`, qui recoupe la `desc` verbatim et les `data-folio`).
  */
 export const sourceRefSchema = nommerChamps(z.strictObject({
-  book: z.string(),
+  book: idDe('book', undefined, { nue: true }),
   page: z.number(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
    *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
@@ -505,16 +505,15 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
 );
 
 /**
- * `RuleValue` (`src/engine/policy.ts:44`) — valeur effective d'une règle optionnelle du registre
- * `OPTIONAL_RULES` (`policy.ts:43`, lue par `rule(id)`). Union fermée retapée, même raison que
+ * `RuleValue` (`src/engine/policy.ts`) — valeur effective d'une règle optionnelle du registre
+ * `OPTIONAL_RULES` (`src/engine/policy.ts`, lue par `rule(id)`). Union fermée retapée, même raison que
  * `combatFeatureSchema` ci-dessus : le type n'a pas de contrepartie runtime à dériver.
  */
 export const ruleValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 
-/** Garde d'une variante RÉGLÉE : la règle optionnelle visée et la valeur attendue. `rule` DOIT être
- *  un id du registre `OPTIONAL_RULES` (`src/engine/policy.ts:43`), jamais un label ni un flag
- *  parallèle (gardes `src/data/variants-integrity.test.ts`) ; `equals` défaut `true`. */
-export const variantWhenSchema = nommerChamps(z.strictObject({ rule: z.string(), equals: ruleValueSchema.optional() }), { rule: { label: "règle" }, equals: { label: "égalité" } });
+/** Garde d'une variante RÉGLÉE : la règle optionnelle visée (`OPTIONAL_RULES`, `src/engine/policy.ts`)
+ *  et la valeur attendue ; `equals` défaut `true`. */
+export const variantWhenSchema = nommerChamps(z.strictObject({ rule: idDe('regleOptionnelle'), equals: ruleValueSchema.optional() }), { rule: { label: "règle" }, equals: { label: "égalité" } });
 
 /**
  * Fabrique de VARIANTE d'un dataset (#563/#564 — ex. « Aux Armes, Annexe I : Avantage de groupe »).
@@ -1190,7 +1189,7 @@ type EntreeMarqueur = { id: string; echangeable: false };
  *
  * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
  * Ce champ DISCRIMINE l'élément : une rangée est l'une ou l'autre variante, jamais les deux.
- * Le catalogue est une collection à clé `id` (`grammaire/collection-cle.ts`).
+ * Le catalogue est une collection à clé `id` et un ESPACE d'ids (`grammaire/collection-cle.ts`).
  *
  * @param marchand schéma d'une cargaison échangeable (doit porter `label`, `avail` et `echangeable?: true`)
  * @param marqueur schéma d'un marqueur de colonne Production/Produits (`echangeable: false`)
@@ -1218,7 +1217,7 @@ export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeM
       }
     }
   });
-  return marquerCollection(catalogue, marqueDeListe<EntreeMarchande | EntreeMarqueur>('id'));
+  return marquerCollection(catalogue, marqueDeListe<EntreeMarchande | EntreeMarqueur>('id', {}));
 }
 
 /**
