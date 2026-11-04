@@ -806,8 +806,8 @@ export interface SpeciesData {
   family: string;
   /** Variante régionale/sous-espèce (« Middenheim », « Norse »…) — absent pour l'espèce nominale. */
   variant?: string;
-  /** id STABLE (`RaceKey`, #313) — colonne des tables Âge/Taille/Yeux/Cheveux (`ageBase`/`ageRoll`/
-   *  `heightBase`/`heightRoll`/`hairs.color`/`eyes.color`). */
+  /** id STABLE (`RaceKey`, #313) — colonne des tables Âge/Taille/Yeux/Cheveux (`details.age`/
+   *  `details.taille`/`hairs.color`/`eyes.color`). */
   refChar: RaceKey;
   /** id STABLE (`RefCareerId`, #313) — colonne du Tableau des Classes et Carrières aléatoires
    *  (`CareerData.rand`). */
@@ -1642,13 +1642,11 @@ export interface DetailText {
   all: string;
   bySpecies: Partial<Record<RaceKey, string>>;
 }
-/** Formules d'Âge/Taille (LDB 05 l.691-707) : « base + N d10 », par colonne `RaceKey` (#313) —
- *  + textes d'aide (conventions de noms, espérance de vie, tailles moyennes, Ambitions). */
+/** Jets d'Âge/Taille (LDB 05 l.705-728), un `DiceSpec` par colonne `RaceKey` (#313) — + textes
+ *  d'aide (conventions de noms, espérance de vie, tailles moyennes, Ambitions). */
 export interface DetailsData {
-  ageBase: Partial<Record<RaceKey, number>>;
-  ageRoll: Partial<Record<RaceKey, number>>;
-  heightBase: Partial<Record<RaceKey, number>>;
-  heightRoll: Partial<Record<RaceKey, number>>;
+  age: Record<RaceKey, DiceSpec>;
+  taille: Record<RaceKey, DiceSpec>;
   texts: {
     nom: DetailText;
     age: DetailText;

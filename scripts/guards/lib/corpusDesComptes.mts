@@ -33,13 +33,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lierDependances } from '../../migrations/replay-head.mjs';
 import { scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
 import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mecanique';
-import { CONTENU_A_SOURCER } from '../../../src/data/schemas/grammaire/sans-livre';
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
 import { GitIndisponible, INDEX, TRONC, baseCommune, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import {
-  COLLECTIONS_A_COMPTE, DETTE_ENVELOPPE, DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, motifAPlat,
+  COLLECTIONS_A_COMPTE, DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, motifAPlat,
   type CorpusDesComptes, type EntreeDeCompte, type SiteDeDetteDOp,
 } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
@@ -59,10 +58,6 @@ export const sitesDeDetteDOps = (nonTypees: Iterable<string>, opDefs: Readonly<R
   ...Object.entries(refsAPlat(opDefs)).flatMap(([op, cles]) => cles.map((cle) => ({ op, motif: motifAPlat(cle) }))),
 ];
 
-/** Les sites de `DETTE_ENVELOPPE` : un par type de `aSourcer` (`CONTENU_A_SOURCER`). PURE. */
-export const sitesDEnveloppeASourcer = (aSourcer: Readonly<Record<string, string>>): { type: string }[] =>
-  Object.keys(aSourcer).sort().map((type) => ({ type }));
-
 /** Le corpus des comptes de la racine `root` : les redéclarations de l'AST de ses defs. */
 export const corpusDesComptes = (root: string): CorpusDesComptes => ({ redeclarations: scannerRedeclarations(root).redeclarations });
 
@@ -76,12 +71,11 @@ export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(CO
 const enEntrees = (sites: readonly object[]): EntreeDeCompte[] => sites as unknown as EntreeDeCompte[];
 
 /** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte, les volets
- *  `DETTE_OPS`, `DETTE_ENVELOPPE`, `FEUILLES_D_ID` et `STRUCTURES_LOCALES` (le code de l'image) et `SOURCE_FORMAT`. */
+ *  `DETTE_OPS`, `FEUILLES_D_ID` et `STRUCTURES_LOCALES` (le code de l'image) et `SOURCE_FORMAT`. */
 const comptesDeLaRacine = (root: string): Comptes =>
   new Map([
     ...comptesDuCorpus(corpusDesComptes(root)),
     [DETTE_OPS.nom, enEntrees(sitesDeDetteDOps(OPS_NON_TYPEES, OP_DEFS))],
-    [DETTE_ENVELOPPE.nom, enEntrees(sitesDEnveloppeASourcer(CONTENU_A_SOURCER))],
     [FEUILLES_D_ID.nom, enEntrees(sitesEnEntrees(cheminsDeDocument()))],
     [STRUCTURES_LOCALES.nom, enEntrees(sitesEnEntrees(sitesDeStructure()))],
     [SOURCE_FORMAT.nom, enEntrees(sitesEnEntrees(scanAll()))],

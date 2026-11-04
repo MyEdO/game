@@ -1,7 +1,7 @@
 /**
  * Schéma de `primitives.manifest.json` — manifeste des primitives partagées (#298), source unique de
  * « qu'est-ce qui est canonique » consommée par `scripts/docs/build-systemes.mjs`. Vocabulaire
- * app-interne (tooling), pas une donnée RAW — cf. `EXEMPT_DATASETS` (citationCoverage.mjs).
+ * app-interne (tooling), pas une donnée RAW — cf. `SANS_LIVRE_DEFINITIF` (`grammaire/sans-livre.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

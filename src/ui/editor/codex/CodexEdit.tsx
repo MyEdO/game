@@ -299,7 +299,9 @@ const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'advantageCost', 'advantage
 /** Le document de la catégorie porte-t-il `alsoIn` (clé d'enveloppe, `CLES_ENVELOPPE` de `grammaire/document.ts`) ? */
 const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
-  return ds !== undefined && noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
+  if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
+  const objet = editableObjectDataset(categoryKey);
+  return objet?.mode === 'single' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**

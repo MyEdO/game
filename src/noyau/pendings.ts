@@ -2016,7 +2016,7 @@ export interface SeuilDeSauvegarde {
 }
 
 /** Issue d'un dé NU (posée par `roulerDe`) : le dé NATUREL (celui qu'un siège pose, celui que la
- *  rangée montre) et le TOTAL qui fait la conséquence (`naturel + spec.plus + mod`). */
+ *  rangée montre) et le TOTAL qui fait la conséquence (`totalDuDe(spec, naturel) + mod`). */
 export interface CascadeDeResult {
   roll: number;
   total: number;

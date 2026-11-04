@@ -1,8 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
-/** LDB 05 l.691-707. */
+/** LDB 05 l.705-728 ; NADJ 15 l.80, l.112 ; ADE II 02 l.278, l.315. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { raceKeySchema } from '../grammaire/valeurs';
+import { diceSpecSchema, raceKeySchema } from '../grammaire/valeurs';
 
 export const file = 'details.json';
 export const famille = 'config';
@@ -19,11 +19,9 @@ const doc = document(
   'details',
   famille,
   {
-    /** Base + jet d'Âge (« base + N d10 ») par colonne `raceKeySchema` (id stable, #313) — partiel. */
-    ageBase: z.partialRecord(raceKeySchema, z.number()),
-    ageRoll: z.partialRecord(raceKeySchema, z.number()),
-    heightBase: z.partialRecord(raceKeySchema, z.number()),
-    heightRoll: z.partialRecord(raceKeySchema, z.number()),
+    /** Jets d'Âge et de Taille, un `DiceSpec` par colonne `raceKeySchema` (id stable, #313). */
+    age: z.record(raceKeySchema, diceSpecSchema),
+    taille: z.record(raceKeySchema, diceSpecSchema),
     texts: nommerChamps(z.strictObject({
       nom: detailTextSchema,
       age: detailTextSchema,
@@ -39,10 +37,8 @@ const doc = document(
     }),
   },
   {
-    ageBase: { label: 'Âge de base', hint: 'Base du jet d’Âge, par colonne d’espèce' },
-    ageRoll: { label: 'Jets d’Âge', hint: 'Nombre de d10 ajoutés à la base, par colonne d’espèce' },
-    heightBase: { label: 'Taille de base', hint: 'Base du jet de Taille, par colonne d’espèce' },
-    heightRoll: { label: 'Jets de Taille', hint: 'Nombre de d10 ajoutés à la base, par colonne d’espèce' },
+    age: { label: 'Jet d’Âge', hint: 'Dés de l’Âge de départ, par colonne d’espèce' },
+    taille: { label: 'Jet de Taille', hint: 'Dés de la Taille de départ en cm, par colonne d’espèce' },
     texts: { label: 'Textes d’aide', hint: 'Aides affichées à la création : Nom, Âge, Taille, Ambitions' },
   },
   { codex: { keys: ['details'] }, edit: { object: 'single' } },

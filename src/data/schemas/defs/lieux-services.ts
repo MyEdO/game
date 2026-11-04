@@ -4,7 +4,7 @@
  * (`MapPlace.port`/`MapPlace.market`). Consommé par référence (`MapPlace.services[].kind`) et résolu
  * par `placeServices` (`src/noyau/worldMap.ts`) : id STABLE → libellé/icône d'affichage. Vocabulaire
  * app-interne de routage d'écran (id/label/icône), aucune mécanique RAW à sourcer par entrée
- * (cf. `EXEMPT_DATASETS`, `scripts/guards/lib/citationCoverage.mjs`).
+ * (cf. `SANS_LIVRE_DEFINITIF`, `grammaire/sans-livre.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

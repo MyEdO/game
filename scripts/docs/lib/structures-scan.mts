@@ -859,7 +859,7 @@ export function scannerDonnees(
   const clesEnveloppe = new Map<string, number>();
   const groupes = new Map<string, { groupe: GroupeEnveloppe; cles: Map<string, CleNiveau1> }>();
   const ops = new Map<string, number>();
-  /** Documents portant au moins une clé `source` à une profondeur quelconque (T3, #1469). */
+  /** Documents portant au moins une clé `source` à une profondeur quelconque (T3). */
   const docsAvecSource = new Set<string>();
   const conditionsAvecOp = new Map<string, number>();
   const conditionsSansOp = new Map<string, number>();

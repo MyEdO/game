@@ -2,41 +2,111 @@
   "id": "details",
   "type": "details",
   "label": "Détails de création",
-  "ageBase": {
-    "humain": 15,
-    "halfling": 15,
-    "nain": 15,
-    "haut-elfe": 30,
-    "elfe-sylvain": 30,
-    "gnome": 20,
-    "ogre": 15
+  "source": {
+    "book": "livre-de-base",
+    "page": 39,
+    "note": "LDB 05 l.705-728"
   },
-  "ageRoll": {
-    "humain": 1,
-    "halfling": 5,
-    "nain": 10,
-    "haut-elfe": 10,
-    "elfe-sylvain": 10,
-    "gnome": 10,
-    "ogre": 5
+  "alsoIn": [
+    {
+      "book": "nuits-agitees-et-dures-journees",
+      "page": 89,
+      "note": "NADJ 15 l.80",
+      "quote": "Pour déterminer un âge de départ aléatoire, lancez 10d10+20."
+    },
+    {
+      "book": "nuits-agitees-et-dures-journees",
+      "page": 89,
+      "note": "NADJ 15 l.112",
+      "quote": "Pour déterminer une taille de départ aléatoire, lancez 1d10 × 2,5 cm + 100 cm."
+    },
+    {
+      "book": "archives-de-l-empire-2",
+      "page": 21,
+      "note": "ADE II 02 l.278",
+      "quote": "Pour déterminer un âge de départ aléatoire, lancez 5d10 + 15."
+    },
+    {
+      "book": "archives-de-l-empire-2",
+      "page": 21,
+      "note": "ADE II 02 l.315",
+      "quote": "Pour déterminer une taille de manière aléatoire, lancez 6d10 + 235 cm."
+    }
+  ],
+  "age": {
+    "humain": {
+      "n": 1,
+      "sides": 10,
+      "plus": 15
+    },
+    "halfling": {
+      "n": 5,
+      "sides": 10,
+      "plus": 15
+    },
+    "nain": {
+      "n": 10,
+      "sides": 10,
+      "plus": 15
+    },
+    "haut-elfe": {
+      "n": 10,
+      "sides": 10,
+      "plus": 30
+    },
+    "elfe-sylvain": {
+      "n": 10,
+      "sides": 10,
+      "plus": 30
+    },
+    "gnome": {
+      "n": 10,
+      "sides": 10,
+      "plus": 20
+    },
+    "ogre": {
+      "n": 5,
+      "sides": 10,
+      "plus": 15
+    }
   },
-  "heightBase": {
-    "humain": 145,
-    "halfling": 90,
-    "nain": 130,
-    "haut-elfe": 180,
-    "elfe-sylvain": 180,
-    "gnome": 100,
-    "ogre": 235
-  },
-  "heightRoll": {
-    "humain": 5,
-    "halfling": 2,
-    "nain": 3,
-    "haut-elfe": 2,
-    "elfe-sylvain": 2,
-    "gnome": 2.5,
-    "ogre": 6
+  "taille": {
+    "humain": {
+      "n": 5,
+      "sides": 10,
+      "plus": 145
+    },
+    "halfling": {
+      "n": 2,
+      "sides": 10,
+      "plus": 90
+    },
+    "nain": {
+      "n": 3,
+      "sides": 10,
+      "plus": 130
+    },
+    "haut-elfe": {
+      "n": 2,
+      "sides": 10,
+      "plus": 180
+    },
+    "elfe-sylvain": {
+      "n": 2,
+      "sides": 10,
+      "plus": 180
+    },
+    "gnome": {
+      "n": 1,
+      "sides": 10,
+      "fois": 2.5,
+      "plus": 100
+    },
+    "ogre": {
+      "n": 6,
+      "sides": 10,
+      "plus": 235
+    }
   },
   "texts": {
     "nom": {

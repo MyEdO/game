@@ -301,8 +301,8 @@ function estAppelDeDe(node) {
  * LA FRONTIÈRE EST L'EXPORT, pas le nombre de sauts. L'export compte s'il appelle une primitive de
  * dé (`AMORCE_DES`) ou un `.int(` DANS SON CORPS, **ou** s'il passe par un helper NON EXPORTÉ du
  * moteur qui, lui, tire : `merchantFlow.rollStock` → `fullStock` (module-local) → `rollDice`, ou
- * `creation.rollDetailFormula` (module-local) → `roll(n, 10, rng)` derrière `rollAge`/`rollEyes`/
- * `rollHair`/`rollHeight`. S'arrêter à UN SAUT rendait ces dés INVISIBLES : 10 sites réels manquaient,
+ * `creation.rollDetail` (module-local) → `roll(2, 10, rng)` derrière `rollEyes`/`rollHair`.
+ * S'arrêter à UN SAUT rendait ces dés INVISIBLES : 10 sites réels manquaient,
  * dont `merchantFlow.ts` en entier — que `ENGINE_DELEGATED_ROLL_STOCK` classait pourtant déjà en
  * dette. Deux stocks du même dé ne peuvent pas se contredire.
  *

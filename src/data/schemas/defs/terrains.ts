@@ -8,7 +8,7 @@
  * `solidHeightM` par les deux backends de rendu. Les scinder ferait deux catalogues à tenir
  * synchrones pour UN concept.
  *
- * PROVENANCE — `terrains` est déclaré `SANS_LIVRE` (aucun folio n'imprime de catalogue de sols) ET
+ * PROVENANCE — `terrains` est déclaré `SANS_LIVRE_DEFINITIF` (aucun folio n'imprime de catalogue de sols) ET
  * chaque entrée EXIGE son `maison` (`exiges`), comme les 41 règles de `props.json` : l'exemption
  * couvre le DOCUMENT (de l'art), elle ne couvre pas les quatre champs de règle que chaque terrain
  * porte.

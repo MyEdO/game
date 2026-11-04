@@ -530,14 +530,14 @@ export function raceDetailSection(s: (typeof species)[number]): CodexSection {
   const hairColors = [...new Set(hairs.map((e) => e.color[ref]).filter(Boolean))];
   const rows: CodexRow[] = [
     { t: 'sub', label: 'Âge' },
-    { t: 'text', text: `${details.ageBase[ref] ?? details.ageBase.humain} + ${Math.round(details.ageRoll[ref] ?? 1)}d10 ans` },
+    { t: 'text', text: `${formatDice(details.age[ref])} ans` },
   ];
   // Les textes d'âge/taille/noms sont des champs de `details.json` — la fiche de Race les AFFICHE,
-  // elle ne les porte pas : le porteur nomme l'entrée réelle. Âge/taille FORMATÉS (`base + Nd10`) et
+  // elle ne les porte pas : le porteur nomme l'entrée réelle. Âge/taille FORMATÉS (`formatDice`) et
   // les couleurs JOINTES sont, eux, fabriqués : nus.
   const dTxt = (chemin: string) => ({ type: 'details', id: 'details', chemin });
   if (txt.age.bySpecies[ref]) rows.push({ t: 'text', text: txt.age.bySpecies[ref]!, porteur: dTxt(`texts.age.bySpecies.${ref}`) });
-  rows.push({ t: 'sub', label: 'Taille' }, { t: 'text', text: `${details.heightBase[ref] ?? details.heightBase.humain} + ${Math.round(details.heightRoll[ref] ?? 1)}d10 cm` });
+  rows.push({ t: 'sub', label: 'Taille' }, { t: 'text', text: `${formatDice(details.taille[ref])} cm` });
   const tailleChemin = txt.taille.bySpecies[ref] ? `texts.taille.bySpecies.${ref}` : 'texts.taille.all';
   const tailleTxt = txt.taille.bySpecies[ref] ?? txt.taille.all;
   if (tailleTxt) rows.push({ t: 'text', text: tailleTxt, porteur: dTxt(tailleChemin) });
@@ -1872,10 +1872,10 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => [{
       id: 'details', label: 'Détails de création',
       sections: sections({
-        title: 'Formules Âge & Taille (base + Nd10)', layout: 'list',
-        rows: (Object.keys(details.ageBase) as RaceKey[]).map((sp) => ({
+        title: 'Jets d’Âge & de Taille', layout: 'list',
+        rows: (Object.keys(details.age) as RaceKey[]).map((sp) => ({
           t: 'kv', k: sp,
-          v: `Âge ${details.ageBase[sp]}+${Math.round(details.ageRoll[sp] ?? 1)}d10 · Taille ${details.heightBase[sp]}+${Math.round(details.heightRoll[sp] ?? 1)}d10 cm`,
+          v: `Âge ${formatDice(details.age[sp])} · Taille ${formatDice(details.taille[sp])} cm`,
         } as CodexRow)),
       }),
     }],

@@ -13,6 +13,7 @@ import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, contexteDeTestSchema, deDeTableSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
 import { zoneShapeSchema } from '../../../data/schemas/grammaire/mecanique';
 import { CHAR_LABELS } from '../../../engine/types';
+import { formatDice } from '../../../engine/dice';
 import { deElide } from '../../../i18n';
 import { giveTrappingLabel } from '../../../engine/items';
 import { formatWardSave, traitLisible } from '../../../engine/traits/dispatch';
@@ -42,7 +43,7 @@ export function formulaSummary(f: JsonFormula | undefined): string {
   if ('parTranche' in f) return `${formulaSummary(f.of)} ÷ ${f.parTranche}`;
   if ('sum' in f) return f.sum.map(formulaSummary).join(' + ');
   if ('times' in f) return `${formulaSummary(f.times.of)} × ${formulaSummary(f.times.factor)}`;
-  if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
+  if ('dice' in f) return formatDice(f.dice);
   throw new Error(`formulaSummary : terme de Formula hors grammaire (${JSON.stringify(f)})`);
 }
 

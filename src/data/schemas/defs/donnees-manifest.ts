@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `donnees.manifest.json` — manifeste éditorial de l'atlas des données (#903), consommé
  * par `scripts/docs/build-donnees.mjs` pour générer `docs/donnees.md`. Vocabulaire app-interne
- * (tooling), pas une donnée RAW — cf. `EXEMPT_DATASETS` (citationCoverage.mjs).
+ * (tooling), pas une donnée RAW — cf. `SANS_LIVRE_DEFINITIF` (`grammaire/sans-livre.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

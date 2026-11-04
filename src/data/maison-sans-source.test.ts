@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
 import { MAISON_SANS_SOURCE, MAISON_MASQUEES } from '../../scripts/guards/lib/integriteStock.mjs';
-import { SANS_LIVRE, SANS_PROVENANCE_EXIGEE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
+import { SANS_LIVRE_DEFINITIF, SANS_PROVENANCE_EXIGEE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 
 const DATA_DIR = __dirname;
 const SCENES_DIR = fileURLToPath(new URL('../scenes', import.meta.url));
@@ -40,7 +40,6 @@ function ecartMaison(observe: EntreeDeSite[], stock: readonly EntreeDeSite[]) {
   return ecart;
 }
 
-// #1469
 describe('maison sans source — collections nominatives', () => {
   for (const masquee of [false, true]) {
     it(masquee ? 'les exemptions ne masquent que les identités déclarées' : 'les entrées maison sans source sont déclarées et soldées', () => {
@@ -68,17 +67,17 @@ describe('maison sans source — collections nominatives', () => {
       'mass-battle', 'naval-progression', 'river-perils', 'sea-cargo', 'sea-events',
       'sea-navigation', 'sea-perils', 'sea-weather', 'ship-construction', 'weather',
     ]);
-    expect(Object.keys(SANS_LIVRE).sort()).toEqual([
+    expect(Object.keys(SANS_LIVRE_DEFINITIF).sort()).toEqual([
       'actions', 'ambiance', 'apparences', 'books', 'buildings', 'calendarPhases',
-      'decorPalette', 'defauts-de-compilation', 'details', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
+      'decorPalette', 'defauts-de-compilation', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
       'lightTones', 'materials', 'merchantFamilies', 'merchants', 'names', 'pregens',
       'primitives.manifest', 'progression-schemas.derived', 'props',
       'raceAppearance', 'raw.manifest',
-      'semences-de-scene', 'sizes', 'speciesRace', 'structureAppearance',
+      'semences-de-scene', 'speciesRace', 'structureAppearance',
       'systemes.manifest', 'teintesJeu', 'terrains',
     ]);
 
-    const communes = Object.keys(SANS_LIVRE).filter((k) => k in SOURCE_EN_PROFONDEUR);
+    const communes = Object.keys(SANS_LIVRE_DEFINITIF).filter((k) => k in SOURCE_EN_PROFONDEUR);
     expect(communes).toEqual([]);
 
   });

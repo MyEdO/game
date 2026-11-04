@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import {
-  baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, refsAPlat, refusDesComptes, sitesDEnveloppeASourcer, sitesDeDetteDOps,
+  baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, refsAPlat, refusDesComptes, sitesDeDetteDOps,
   verdictDesDetecteurs, type Comptes,
 } from '../scripts/guards/lib/corpusDesComptes.mts';
 import { idDe, ref, refs } from './data/schemas/grammaire/ref';
@@ -83,14 +83,6 @@ describe('volets mesurés au SCHÉMA seul : une dette de code naît sous la port
   it('DETTE_OPS : une référence emboîtée mise À PLAT est refusée', () => {
     const aPlat = { ...opDefs, typee: z.strictObject({ op: z.literal('typee'), skill: idDe('skill') }) };
     expect(refusDesComptes(ops([]), ops([], aPlat))).toEqual([expect.stringMatching(/^DETTE_OPS : typee \| à plat:skill — site NEUF : la dette NAÎT\. Emboîter/)]);
-  });
-
-  it('DETTE_ENVELOPPE : un type de plus dans `CONTENU_A_SOURCER` est refusé ; un type sourcé, qui en sort, ne refuse rien', () => {
-    const enveloppe = (aSourcer: Record<string, string>) => comptes({ DETTE_ENVELOPPE: sitesDEnveloppeASourcer(aSourcer) });
-    expect(refusDesComptes(enveloppe({ names: 'x' }), enveloppe({ names: 'x', sizes: 'y' }))).toEqual([
-      expect.stringMatching(/^DETTE_ENVELOPPE : sizes — site NEUF : la dette NAÎT\. Sourcer le document/),
-    ]);
-    expect(refusDesComptes(enveloppe({ names: 'x', sizes: 'y' }), enveloppe({ names: 'x' }))).toEqual([]);
   });
 });
 
@@ -381,9 +373,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     'src/data/structure-criticals.json': /ne couvrent pas/,
     'src/data/teintesJeu.json': /Clé non reconnue/,
     'src/data/defauts-de-compilation.json': null,
-    'src/data/details.json': null,
     'src/data/semences-de-scene.json': null,
-    'src/data/sizes.json': null,
     'src/data/speciesRace.json': null,
   };
 

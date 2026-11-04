@@ -108,6 +108,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "degats-arme", signature: "literal", date: "2026-10-13" },
   { concept: "de", signature: "n,sides", date: "2026-08-23" },
   { concept: "de", signature: "n,plus,sides", date: "2026-08-23" },
+  { concept: "de", signature: "fois,n,plus,sides", date: "2026-11-04" },
   // #1463 L-de-1 : la COMPOSITION d'une `Formula` (`formulaSchema`, `grammaire/valeurs.ts`) et le
   // terme de Péché qui s'y ajoute (`sinPointsSchema`) — LDB 40 l.58/62/63/65/68/71/72/73/75/77.
   { concept: "formule", signature: "sum", date: "2026-09-01" },

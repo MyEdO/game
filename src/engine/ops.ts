@@ -13,7 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
-import { RNG, roll, type DiceSpec, rollDice } from './dice';
+import { RNG, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
@@ -249,7 +249,7 @@ export function formulaExpectation(f: Formula, ref: Combatant): number {
 /** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}` et tout objet
  *  inconnu (formule malformée) 0. */
 function jetEspere(t: TermeDeJet): number {
-  if ('dice' in t) return t.dice.n * (t.dice.sides + 1) / 2 + (t.dice.plus ?? 0);
+  if ('dice' in t) return totalDuDe(t.dice, t.dice.n * (t.dice.sides + 1) / 2);
   if ('rolled' in t) return 5.5;
   return 0;
 }
