@@ -77,7 +77,7 @@ function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stageWeather')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
-  get().cascadeTableSetForcedRoll(meteo.id, rangee.min);
+  get().jetSetForcedRoll('cascadeTirage', rangee.min, meteo.id);
 }
 
 /** Les `kind` des étapes de la NUIT de halte, couchage dehors et sans repas. */
@@ -320,7 +320,7 @@ describe('#2533 (5) — péripéties : le d10 passe par la porte des jets (LDB 5
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
     expect(seuil.worldOwner).toBe(true);
     expect(seuil.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
-    get().cascadeTableSetForcedRoll(seuil.id, 3);
+    get().jetSetForcedRoll('cascadeTirage', 3, seuil.id);
     const tire = get().pendingCascade!.participants.find((s) => s.id === seuil.id)!.table!.result!;
     expect(tire.roll).toBe(3);
     expect(tire.lines).toEqual([t('tf.perilNone')]);
@@ -334,14 +334,14 @@ describe('#2533 (5) — péripéties : le d10 passe par la porte des jets (LDB 5
     setup(map({ perilDie: 8 }));
     get().startTravel('r1', 'pied');
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
-    get().cascadeTableSetForcedRoll(seuil.id, 8);
+    get().jetSetForcedRoll('cascadeTirage', 8, seuil.id);
     get().cascadeNext();
     const table = get().pendingCascade!.participants.find((s) => s.kind === 'landPerilTable')!;
     expect(table, 'le seuil atteint insère la table des péripéties').toBeTruthy();
     expect(table.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
     expect(table.table!.result).toBeUndefined();
     const narratif = PERIPETIES.find((p) => p.kind === 'narratif')!;
-    get().cascadeTableSetForcedRoll(table.id, narratif.roll);
+    get().jetSetForcedRoll('cascadeTirage', narratif.roll, table.id);
     expect(get().pendingCascade!.participants.find((s) => s.id === table.id)!.table!.result!.id).toBe(narratif.id);
     draineCascade(get);
     expect(get().journal.join('\n')).toContain(narratif.label);

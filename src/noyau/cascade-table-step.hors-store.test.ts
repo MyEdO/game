@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * ÉTAPE À TABLE (#942 L2) — le TIRAGE SUR TABLEAU est une interaction d'étape de cascade, résolue en UN
  * site (`rollTableStep` : dé, `mod` appliqué avant le lookup, `findTableEntry`, id de ligne STABLE),
- * exercée par les VRAIES coutures du noyau (`cascadeTableRoll`/`cascadeNext`/`cascadeResolveAll`) et par
+ * exercée par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/`cascadeNext`/`cascadeResolveAll`) et par
  * le pilote immédiat. La table est résolue par le registre (`tableStepDef`), peuplé par les modules de
  * domaine (le cœur générique ne nomme aucune table).
  */
@@ -63,7 +63,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1')] });
     banc.getState().cascadeNext(); // pas encore tiré → no-op (la modale force d'abord le dé)
     expect(applied).toHaveLength(0);
-    banc.getState().cascadeTableRoll('t1');
+    banc.getState().jetRoll('cascadeTirage', 't1');
     const res = banc.getState().pendingCascade!.participants[0].table!.result!;
     expect(res.roll).toBeGreaterThanOrEqual(1);
     expect(res.roll).toBeLessThanOrEqual(100);
@@ -77,14 +77,14 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
 
   it('dé INJECTÉ (`forcedRoll`) : la ligne correspondante, aucun dé consommé', () => {
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1', { tableId: SYNTH, forcedRoll: 97 })] });
-    banc.getState().cascadeTableRoll('t1');
+    banc.getState().jetRoll('cascadeTirage', 't1');
     const res = banc.getState().pendingCascade!.participants[0].table!.result!;
     expect(res).toMatchObject({ roll: 97, die: 97, id: 'haute' });
   });
 
   it('`mod` appliqué au dé AVANT le lookup (convention `rollTable`) : 48 + 10 = 58 → la ligne haute', () => {
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1', { tableId: SYNTH, forcedRoll: 48, mod: 10 })] });
-    banc.getState().cascadeTableRoll('t1');
+    banc.getState().jetRoll('cascadeTirage', 't1');
     const res = banc.getState().pendingCascade!.participants[0].table!.result!;
     expect(res.roll).toBe(48); // le dé NATUREL reste lisible
     expect(res.die).toBe(58); // le dé EFFECTIF a servi au lookup
@@ -92,10 +92,10 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     expect(res.lines[0]).toBe('ligne haute (dé 58)');
   });
 
-  it('un dé déjà tiré ne se relance pas en douce (`cascadeTableRoll` idempotent sur l’étape résolue)', () => {
+  it('un dé déjà tiré ne se relance pas en douce (`jetRoll(\'cascadeTirage\')` idempotent sur l’étape résolue)', () => {
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [tableStep('t1', { tableId: SYNTH, forcedRoll: 7 })] });
-    banc.getState().cascadeTableRoll('t1');
-    banc.getState().cascadeTableRoll('t1');
+    banc.getState().jetRoll('cascadeTirage', 't1');
+    banc.getState().jetRoll('cascadeTirage', 't1');
     expect(banc.getState().pendingCascade!.participants[0].table!.result).toMatchObject({ roll: 7, id: 'basse' });
   });
 
@@ -180,7 +180,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     });
     try {
       setDataset('mutationTables', livrees.filter((t) => t.id !== retiree.id));
-      expect(() => banc.getState().cascadeTableRoll('t1'))
+      expect(() => banc.getState().jetRoll('cascadeTirage', 't1'))
         .toThrowError(new RegExp(`« ${retiree.id} ».*retirée de la donnée`));
     } finally {
       setDataset('mutationTables', livrees);
@@ -191,7 +191,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
 
 /**
  * MODE TABLE (#942 L3) — côté ÉTAT : les deux affordances de la modale (champ « Fixer le dé », clic
- * sur une ligne) POSENT LE DÉ par UN seul délégué (`cascadeTableSetForcedRoll`), gaté par l'option de
+ * sur une ligne) POSENT LE DÉ par UN seul délégué (`jetSetForcedRoll('cascadeTirage')`), gaté par l'option de
  * confort « Dés fixés » + le siège qui contrôle l'étape (`canFixDie`). Le dé posé est le dé NATUREL :
  * le `mod` de la déclaration s'applique APRÈS (résolveur unique) — d'où le calcul `min − mod` de la
  * ligne visée, et les lignes qu'aucun dé n'atteint sous ce `mod`.
@@ -239,7 +239,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
   it('POSER le dé d’une ligne (mod −10) : la ligne CLIQUÉE sort, le dé naturel est celui qui l’atteint', () => {
     open(-10);
     const nat = naturalRollForTableRow(curStep().table!, tableStepDef(T)!.rows[1])!;
-    banc.getState().cascadeTableSetForcedRoll('tm', nat);
+    banc.getState().jetSetForcedRoll('cascadeTirage', nat, 'tm');
     expect(curStep().table!.result).toMatchObject({ roll: 61, die: 51, id: 'haute' });
     banc.getState().cascadeNext(); // la conséquence lit l'id de ligne, comme un tirage naturel
     expect(applied).toEqual([{ id: 'haute', roll: 61, die: 51 }]);
@@ -247,7 +247,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
 
   it('POSER un dé SAISI (le champ) : le naturel est le dé, `mod` appliqué après ; l’étape porte la provenance', () => {
     open(10);
-    banc.getState().cascadeTableSetForcedRoll('tm', 48);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 48, 'tm');
     expect(curStep().table!.result).toMatchObject({ roll: 48, die: 58, id: 'haute' });
     expect(curStep().fixed, 'la provenance « dé fixé » vit sur l’étape (rangée + journal)').toBe(true);
     // JOURNAL : la mention suit le jet tant que le slot est ouvert (couture unique `fixedDieMark`).
@@ -258,7 +258,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
 
   it('une SAISIE que la table ne peut pas résoudre est ramenée à ses faces utiles (jamais une levée en pleine modale)', () => {
     open(20);
-    expect(() => banc.getState().cascadeTableSetForcedRoll('tm', 100)).not.toThrow();
+    expect(() => banc.getState().jetSetForcedRoll('cascadeTirage', 100, 'tm')).not.toThrow();
     expect(curStep().table!.result).toMatchObject({ roll: 80, die: 100, id: 'haute' });
   });
 
@@ -276,16 +276,16 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
       title: 'Tirage', purpose: 'test',
       steps: [{ ...step(), actorId: 'h1' }],
     });
-    expect(intentAllowedFor(banc.getState(), 1, 'cascadeTableSetForcedRoll', ['tm', 97])).toBe(true);
-    banc.getState().cascadeTableSetForcedRoll('tm', 97);
+    expect(intentAllowedFor(banc.getState(), 1, 'jetSetForcedRoll', ['cascadeTirage', 97, 'tm'])).toBe(true);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 97, 'tm');
     expect(curStep().table!.result, 'geste légitime d’un invité tombé en silence').toMatchObject({ roll: 97, id: 'haute' });
   });
 
   it('le dé se RE-POSE tant que l’étape est courante (parité avec la saisie post-jet d’un slot de flux)', () => {
     open();
-    banc.getState().cascadeTableSetForcedRoll('tm', 7);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 7, 'tm');
     expect(curStep().table!.result).toMatchObject({ roll: 7, id: 'basse' });
-    banc.getState().cascadeTableSetForcedRoll('tm', 99); // frappe suivante : 7 → 99
+    banc.getState().jetSetForcedRoll('cascadeTirage', 99, 'tm'); // frappe suivante : 7 → 99
     expect(curStep().table!.result).toMatchObject({ roll: 99, id: 'haute' });
     banc.getState().cascadeNext(); // l'étape est validée : la fenêtre se referme
     expect(applied).toEqual([{ id: 'haute', roll: 99, die: 99 }]);
@@ -302,12 +302,12 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
 
   it('étape COMMITTÉE (conséquence appliquée, curseur avancé) : la re-pose est REFUSÉE — on ne réécrit pas l’histoire', () => {
     openTwo();
-    banc.getState().cascadeTableSetForcedRoll('s1', 9);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 9, 's1');
     const avant = stepById('s1').table!.result;
     banc.getState().cascadeNext(); // COMMIT de s1 : l'applier a joué, le curseur est sur s2
     expect(applied).toEqual([{ id: 'basse', roll: 9, die: 9 }]);
     expect(stepById('s1').committed).toBe(true);
-    banc.getState().cascadeTableSetForcedRoll('s1', 88); // tentative de réécriture
+    banc.getState().jetSetForcedRoll('cascadeTirage', 88, 's1'); // tentative de réécriture
     expect(stepById('s1').table!.result, 'un dé re-posé APRÈS la conséquence rejouerait une issue déjà subie').toEqual(avant);
     expect(applied).toHaveLength(1); // aucune conséquence rejouée
   });
@@ -319,8 +319,8 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     expect(p.cursor).toBe(p.participants.length); // curseur EN FIN = bilan
     expect(applied).toHaveLength(2); // les conséquences des deux étapes sont déjà appliquées
     const avant = p.participants.map((x) => x.table!.result!.roll);
-    banc.getState().cascadeTableSetForcedRoll('s1', 88);
-    banc.getState().cascadeTableSetForcedRoll('s2', 88);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 88, 's1');
+    banc.getState().jetSetForcedRoll('cascadeTirage', 88, 's2');
     expect(banc.getState().pendingCascade!.participants.map((x) => x.table!.result!.roll)).toEqual(avant);
     expect(applied).toHaveLength(2);
   });
@@ -363,20 +363,20 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     expect(ruleOf(st)).toBeUndefined(); // l'entrée `structure-critical` n'a que sa catégorie d'entrées
   });
 
-  it('pilote MODALE (`cascadeTableRoll`) : le renvoi vise la ligne RÉELLEMENT tirée', () => {
+  it('pilote MODALE (`jetRoll(\'cascadeTirage\')`) : le renvoi vise la ligne RÉELLEMENT tirée', () => {
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [structureStep('s1', 40)] });
-    banc.getState().cascadeTableRoll('s1');
+    banc.getState().jetRoll('cascadeTirage', 's1');
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.table!.result!.id).toBe(findTableEntry(tableDesCritiquesDeStructure(), 40).id);
     expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: st.table!.result!.id });
   });
 
-  it('pilote DÉ POSÉ (`cascadeTableSetForcedRoll`) : même descente, et un dé RE-posé re-descend', () => {
+  it('pilote DÉ POSÉ (`jetSetForcedRoll(\'cascadeTirage\')`) : même descente, et un dé RE-posé re-descend', () => {
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [structureStep('s1')] });
-    banc.getState().cascadeTableSetForcedRoll('s1', 10);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 10, 's1');
     const bas = banc.getState().pendingCascade!.participants[0];
     expect(ruleOf(bas)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 10).id });
-    banc.getState().cascadeTableSetForcedRoll('s1', 98);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 98, 's1');
     const haut = banc.getState().pendingCascade!.participants[0];
     expect(ruleOf(haut)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 98).id });
     expect(ruleOf(haut)).not.toEqual(ruleOf(bas)); // la re-pose SUIT le dé, elle ne se fige pas au premier
@@ -398,7 +398,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
       table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structureCritical'),
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
-    banc.getState().cascadeTableRoll('n1');
+    banc.getState().jetRoll('cascadeTirage', 'n1');
     const apres = banc.getState().pendingCascade!.participants[0];
     expect(apres.stake!.key!.entryId).toBeUndefined();
     expect(apres.stake).toEqual(st.stake);
@@ -410,7 +410,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll: 40 },
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
-    banc.getState().cascadeTableRoll('m1');
+    banc.getState().jetRoll('cascadeTirage', 'm1');
     expect(banc.getState().pendingCascade!.participants[0].stake).toBeUndefined();
   });
 });

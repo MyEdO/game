@@ -4,7 +4,6 @@
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import type { Get, Set } from './flowTypes';
-import type { RollFlowHandlers } from './rollFlowFactory';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import { ACTION_GATES, actionGate, type ActionRunCtx, type BattleActionMode } from './actionRegistry';
@@ -78,7 +77,6 @@ import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../e
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail } from '../engine/skills';
-import { rollOups } from '../engine/oups';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
 import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, posteARecharger } from './monde/shipPostes';
@@ -125,11 +123,10 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, maladresseCourante, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, siOuvert, type CloturesDuJet } from './rollFlowSpecs';
-import { fermeturesDeLaMaladresse } from './verbesOuverts';
 import { actionsAuthorees } from './monde/usable';
 import { fateSaveOptions } from '../engine/fortune';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -339,24 +336,6 @@ function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode
   const line = resolveGrappleWin(actor, foe, mode, dr, forceRoll);
   set({ pendingGrapple: null, battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, actor.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
-}
-
-/**
- * Rangées d'une fenêtre MULTI que le siège local peut jouer et qui n'ont pas de jet : chacune jette.
- * SOCLE des verbes NULLAIRES du drive d'auto-cadence (#1030 — `STEP_WINDOW_AUTO`, `combatAuto.ts`, qui
- * n'enchaîne que des verbes sans argument alors que ces fenêtres sont par-`pid`). Une SEULE table de
- * possession (`influencesLocally`, #1005 : celle qui décide déjà de l'affordance de la rangée dans
- * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation. Une rangée que son flux
- * refuse (`refusDuSlot`) ne se tente pas : tout lancer n'est pas un geste sur elle.
- */
-function rollAllOwnedRows(
-  get: Get,
-  flow: RollFlowHandlers,
-  rows: readonly { id: string; interactive?: boolean; result: unknown }[] | undefined,
-  roll: (id: string) => void,
-): void {
-  const s = get();
-  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id) && !flow.refusDuSlot(get, p.id)) roll(p.id);
 }
 
 /** Ce qu'un clic-sol REFUSÉ dit au joueur, par raison du résolveur (`resolveMovement`). Les raisons
@@ -1844,41 +1823,6 @@ export function createCombatSlice(get: Get, set: Set) {
       poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid });
     },
     dualStrikeSkip: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); }, // « peut viser » = optionnel : pas de 2ᵉ → pas d'Avantage (LDB 10 l.767-773)
-    // Maladresse : la donnée vit SUR l'étape COURANTE de la cascade (`step.fumble`) — source unique.
-    fumbleRoll: () => {
-      const pc = get().pendingCascade;
-      const i = pc?.cursor ?? -1;
-      const step = pc?.participants[i];
-      if (!pc || step?.jet !== 'fumble' || !step.fumble || fermeturesDeLaMaladresse(step).fumbleRoll) return; // un seul jet sur le Tableau des Oups !
-      const result = rollOups(step.fumble.weapon, battleRng());
-      set({ pendingCascade: { ...pc, participants: pc.participants.map((s, k) => (k === i ? { ...s, fumble: { ...s.fumble!, result } } : s)) } });
-    },
-    fumbleConfirm: () => {
-      const { battle, pendingCascade: pc } = get();
-      const step = pc?.participants[pc.cursor];
-      if (!battle || !pc || step?.jet !== 'fumble' || !step.fumble || fermeturesDeLaMaladresse(step).fumbleConfirm) return;
-      const oups = garanti(step.fumble.result, step.actorId, 'tirage des Oups !');
-      const c = inBattleId(battle, step.actorId);
-      // La queue du coup dont cette Maladresse est un temps d'après-coup (#1508 T3b-4) : elle reprend
-      // une fois la Maladresse appliquée — ou voyage avec le dé de casse qui la diffère.
-      const coup = step.fumble.coup;
-      if (!c) journaliser(get, set, [t('cascade.cibleDisparue', { label: step.fumble.weapon.label })], 'info');
-      // Une casse d'arme peut partir à la porte (#1508 T3b-4) : la Maladresse n'est alors PAS appliquée,
-      // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
-      // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
-      const differee = !!c && applyOups(get, set, c, step.fumble.weapon, oups, new Map(), coup) === OPS_DIFFEREES;
-      const suite = get().pendingCascade;
-      // Fail-fast : une casse différée sans étape derrière elle ferait FERMER la cascade au curseur
-      // (`advanceCascade`, curseur au bout) — le dé en vol serait perdu avec sa Maladresse.
-      if (differee && (suite ? suite.participants.length - (suite.cursor + 1) : 0) <= 0) {
-        throw new Error('#1508 — casse d’arme différée sans étape derrière la Maladresse : le curseur fermerait la cascade sur un dé jamais servi.');
-      }
-      // L'après-coup qui tient la main a poussé ses étapes DERRIÈRE celle-ci : la suite est le curseur.
-      if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? OPS_DIFFEREES : undefined);
-      // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
-      get().cascadeNext();
-    },
-
     // ── Défense réactive (héros attaqué par l'IA en mêlée) ──
     defenseSetMode: (mode: DefenseMode) => {
       const { pendingDefense: pd, battle } = get();
@@ -2375,12 +2319,6 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingCast: { ...pc, zone: { ...pc.zone, placing: on } } });
     },
     // Contre-sort (flux multi) : chaque verbe cible un participant via `pid` (fabrique unique).
-    /** Toute rangée jouable ICI et sans jet lance son Contre-sort. Verbe NULLAIRE : le drive
-     *  d'auto-cadence (`STEP_WINDOW_AUTO`, `combatAuto.ts`) n'enchaîne que des verbes sans argument, et
-     *  la fenêtre est multi-participants (#1040) — un `jetRoll('counterspell', pid)` par rangée.
-     *  Table de possession UNIQUE (`influencesLocally`, #1005) : la même qui décide de l'affordance de
-     *  la rangée dans `CastModal`. Idempotent (une rangée déjà roulée ne rejoue pas, garde `opRoll`). */
-    counterspellRollAll: () => rollAllOwnedRows(get, FLOWS.counterspell, get().pendingCounterspell?.participants, (id) => get().jetRoll('counterspell', id)),
     /**
      * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
      * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetConfirm('counterspell')` ci-dessous) ou
@@ -2425,15 +2363,6 @@ export function createCombatSlice(get: Get, set: Set) {
 
     cascadeChoose: (pid: string, key: string) => setCascadeChoice(get, set, pid, key),
     cascadeAmount: (pid: string, n: number) => setCascadeAmount(get, set, pid, n),
-    cascadeTableRoll: (pid: string) => rollCascadeTable(get, set, pid),
-    // MODE TABLE (#942 L3) : POSER le dé d'une étape à table (champ « Fixer le dé » OU clic sur une
-    // ligne — `pid` + dé NATUREL). Délégué NU, comme `cascadeTableRoll` : l'option « Dés fixés » est
-    // CLIENT-SIDE (elle arme l'affordance chez celui qui clique, `ui/forcedDieRow.ts`) et un geste reçu
-    // par le réseau est autorisé par le SIÈGE ÉMETTEUR (`intentAllowedFor`) — cf. `opSetForcedRoll`.
-    cascadeTableSetForcedRoll: (pid: string, roll: number) => setCascadeTableForcedRoll(get, set, pid, roll),
-    // DÉ NU (#1508) : les deux mêmes verbes, le même goulot d'état — seule la LECTURE du dé change.
-    cascadeDieRoll: (pid: string) => rollCascadeDe(get, set, pid),
-    cascadeDieSetForcedRoll: (pid: string, roll: number) => setCascadeDeForcedRoll(get, set, pid, roll),
     cascadeNext: () => dispatchCascadeDone(get, set, advanceCascade(get, set)),
     // → BILAN (la modale reste ouverte) : rend `null`, rien à router. Rend une cascade FINALISÉE dans le
     // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
@@ -2453,10 +2382,6 @@ export function createCombatSlice(get: Get, set: Set) {
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).
-    /** Homologue d'opposition de `counterspellRollAll` : toute rangée jouable ICI et sans jet oppose
-     *  son Test (mêmes conditions, même socle `rollAllOwnedRows`). Les rangées TÉMOIN sont déjà roulées
-     *  à l'ouverture (`openCastOpposition`) — après ce verbe, plus rien n'est dû à `jetConfirm('opposition')`. */
-    oppositionRollAll: () => rollAllOwnedRows(get, FLOWS.castOpposition, get().pendingCastOpposition?.participants, (id) => get().jetRoll('opposition', id)),
     /** Ouvre une incantation HORS COMBAT (couture D) : un héros lanceur du groupe cible self/allié.
      *  Réservé aux sorts NON-offensifs — les Projectiles magiques exigent une cible ennemie (combat). */
     oocCastSpell: (casterId: string, spellId: string, targetId: string, fromGrimoire?: boolean) => {
@@ -2621,6 +2546,32 @@ export function createCombatSlice(get: Get, set: Set) {
 /** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
 export function cloturesDuCombat(get: Get, set: Set) {
   return {
+    // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.fumble`) s'appliquent.
+    fumble: () => {
+      const battle = get().battle;
+      const step = maladresseCourante(get().pendingCascade);
+      if (!battle || !step) return;
+      const oups = garanti(step.fumble.result, step.actorId, 'tirage des Oups !');
+      const c = inBattleId(battle, step.actorId);
+      // La queue du coup dont cette Maladresse est un temps d'après-coup (#1508 T3b-4) : elle reprend
+      // une fois la Maladresse appliquée — ou voyage avec le dé de casse qui la diffère.
+      const coup = step.fumble.coup;
+      if (!c) journaliser(get, set, [t('cascade.cibleDisparue', { label: step.fumble.weapon.label })], 'info');
+      // Une casse d'arme peut partir à la porte (#1508 T3b-4) : la Maladresse n'est alors PAS appliquée,
+      // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
+      // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
+      const differee = !!c && applyOups(get, set, c, step.fumble.weapon, oups, new Map(), coup) === OPS_DIFFEREES;
+      const suite = get().pendingCascade;
+      // Fail-fast : une casse différée sans étape derrière elle ferait FERMER la cascade au curseur
+      // (`advanceCascade`, curseur au bout) — le dé en vol serait perdu avec sa Maladresse.
+      if (differee && (suite ? suite.participants.length - (suite.cursor + 1) : 0) <= 0) {
+        throw new Error('#1508 — casse d’arme différée sans étape derrière la Maladresse : le curseur fermerait la cascade sur un dé jamais servi.');
+      }
+      // L'après-coup qui tient la main a poussé ses étapes DERRIÈRE celle-ci : la suite est le curseur.
+      if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? OPS_DIFFEREES : undefined);
+      // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
+      get().cascadeNext();
+    },
     // « Appliquer » : l'Esquive consomme l'Action dans les DEUX issues (l.89).
     disengage: () => {
       const { battle, scene, pendingDisengage: pd } = get();

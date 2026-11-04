@@ -84,7 +84,7 @@ function drainCascade(): void {
     const p = banc.getState().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (cur?.participants && cur.participants.some((part) => !part.result)) { for (const part of cur.participants) if (!part.result) banc.getState().jetRoll('cascadeBatch', part.id); }
-    else if (cur?.table && !cur.table.result) banc.getState().cascadeTableRoll(cur.id); // étape à TABLE (Météo d'Étape…)
+    else if (cur?.table && !cur.table.result) banc.getState().jetRoll('cascadeTirage', cur.id); // étape à TABLE (Météo d'Étape…)
     else if (cur && cur.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
     else banc.getState().cascadeNext();
   }

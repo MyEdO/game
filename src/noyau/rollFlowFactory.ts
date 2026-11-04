@@ -26,6 +26,7 @@ import { canReroll } from '../engine/fortune';
 import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves, type MenaceId } from '../engine/menace';
 import { consumeActiveFlag, freeRerollOf } from '../engine/activeFlags';
 import { touchActors } from './combatOrParty';
+import { journaliser } from './combatLog';
 import { surfaceOf } from './rollSeam';
 import { gainCorruption } from './corruptionFlow';
 
@@ -35,7 +36,7 @@ import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBru
 import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview, type EvaluationDeRangee, type IssueDuDe } from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
-import { canFixDie } from './netOwnership';
+import { canFixDie, influencesLocally } from './netOwnership';
 import { VERBES_DE_JET, type RollVerb } from './flowVerbs';
 import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
@@ -440,6 +441,10 @@ export interface RollFlowHandlers {
   /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
    *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
   refusDuSlot: (get: Get, pid?: string) => string | null;
+  /** Les rangées d'un flux multi à lancer : sans jet et que le flux ne refuse pas ; `duSiege` (la rangée est son acteur,
+   *  `pidIsActor`), les seules rangées `interactive` que le siège qui décide influence (`influencesLocally`). Le jet
+   *  sans rangée les lance toutes. */
+  rangeesALancer: (get: Get, duSiege: boolean) => string[];
   /** ACTEUR du slot visé — celui que les verbes d'influence DÉBITENT (`spec.actor`, l'entrée de
    *  `opReroll`/`opBonusSL`/`opForceSuccess`/`opDarkPact`). Accesseur PUR en LECTURE SEULE, même
    *  patron que `slotOf` ci-dessus (extraction de `locate` sans son `commit`). Il ouvre le PORTEUR
@@ -826,6 +831,15 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
     },
     refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
+    rangeesALancer(get, duSiege) {
+      const s = get(); const p = pendingOf(s);
+      if (!p || !spec.multi) return [];
+      const multi = spec.multi;
+      return multi.slots(p)
+        .filter((slot) => !spec.rolled(slot) && (!duSiege || (!!(slot as { interactive?: boolean }).interactive && influencesLocally(s, multi.idOf(slot)))))
+        .map((slot) => multi.idOf(slot))
+        .filter((id) => !multi.refusDuSlot?.(s, id));
+    },
     // GOULOT d'acquittement des flux à fenêtre : l'issue est DÉRIVÉE de la déclaration du flux
     // (`spec.issue`), jamais composée au site. La LIGNE DE DÉ n'y est pas ré-émise : la fenêtre l'a
     // montrée (les jets SANS fenêtre reçoivent la leur du dériveur, au goulot des cascades).
@@ -921,7 +935,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // vit le dé — jamais la valeur saisie (le résolveur peut en appliquer une autre).
       const fresh = handlers.slotOf(get, pid);
       const applied = fresh ? handlers.picker?.(fresh, actor)?.roll : undefined;
-      if (applied != null) get().log(actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied }));
+      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'info', { actorId: actor?.id });
     },
     resist(get, set, pid) {
       if (!spec.caps?.resist) return;

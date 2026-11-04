@@ -113,8 +113,8 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   /** Ouvre la séquence, POSE (`dePose`) ou LANCE le dé, valide l'étape — le geste de la fenêtre. */
   function jouerSauvegarde(dePose?: number): void {
     startCascade(banc.getState, banc.setState, { title: 'Sauvegarde', purpose: 'test', steps: [sauvegardeStep()] });
-    if (dePose != null) banc.getState().cascadeDieSetForcedRoll('sauvegarde-ilyanwe', dePose);
-    else banc.getState().cascadeDieRoll('sauvegarde-ilyanwe');
+    if (dePose != null) banc.getState().jetSetForcedRoll('cascadeTirage', dePose, 'sauvegarde-ilyanwe');
+    else banc.getState().jetRoll('cascadeTirage', 'sauvegarde-ilyanwe');
     banc.getState().cascadeNext();
   }
 
@@ -155,7 +155,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   it('F1’ — dé POSÉ en combat : la ligne de `battle.log` porte la mention « (dé fixé) »', () => {
     ouvrirCombat();
     jouerSauvegarde(6);
-    expect(logDeCombat()[0].text, 'la transparence du dé posé ne se perd pas en passant au journal de combat')
+    expect(logDeCombat().find((e) => e.text.includes('sauvegarde'))!.text, 'la transparence du dé posé ne se perd pas en passant au journal de combat')
       .toContain('(dé fixé)');
   });
 

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, fermeturesDeLaFenetre, fenetreDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
-import { fermeturesDeLaMaladresse, fermeturesDuFlux } from './verbesOuverts';
+import { fermeturesDuFlux } from './verbesOuverts';
 import { rollOups } from '../engine/oups';
 import { makeRNG } from '../engine/dice';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
@@ -175,15 +175,19 @@ describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)
   });
 });
 
-describe('fermeturesDeLaMaladresse — le tirage des Oups ! (LDB 14), hors des flux de jet', () => {
+describe('la Maladresse (LDB 14) : le flux `fumble`, son tirage puis sa clôture', () => {
   const maladresse = (tire: boolean): CascadeStep => ({
     ...etape('fumble'), fumble: { weapon: H.weapons[0], result: tire ? rollOups(H.weapons[0], makeRNG(3)) : null },
   });
 
   it('le tirage s’ouvre tant qu’il n’est pas tiré, son application une fois tiré', () => {
-    expect(fermeturesDeLaMaladresse(maladresse(false))).toEqual({ fumbleRoll: null, fumbleConfirm: 'jetNonLance' });
-    expect(fermeturesDeLaMaladresse(maladresse(true))).toEqual({ fumbleRoll: 'jetLance', fumbleConfirm: null });
-    expect(fermeturesDeLaMaladresse(etape('fumble'))).toEqual({ fumbleRoll: 'sansJet', fumbleConfirm: 'sansJet' });
+    expect(verbes({ pendingCascade: cascade(maladresse(false)) })).toMatchObject({ ouverts: ['jetRoll@fumble'], fermes: { 'jetConfirm@fumble': 'jetNonLance' } });
+    expect(verbes({ pendingCascade: cascade(maladresse(true)) })).toMatchObject({ ouverts: ['jetConfirm@fumble'], fermes: { 'jetRoll@fumble': 'jetLance' } });
+  });
+
+  it('une étape sans Maladresse ne se tire ni ne s’applique', () => {
+    const s = { ...BASE, pendingCascade: cascade(etape('fumble')) } as Jeu;
+    expect([fermeturesDuFlux(s, 'fumble').roll, fermeturesDuFlux(s, 'fumble').confirm]).toEqual(['sansJet', 'sansJet']);
   });
 });
 

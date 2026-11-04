@@ -2057,7 +2057,7 @@ function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
     : undefined;
   // UNE INSTANCE = UN ID : deux Critiques sur la MÊME cible à la MÊME localisation dans la même
   // séquence (Balayage, deux frappes du Maniement de deux armes) portaient le même id d'étape — les
-  // seams keyés par id (`liveMerge` de `commitStep`, la pose du dé `cascadeTableSetForcedRoll`) ne les
+  // seams keyés par id (`liveMerge` de `commitStep`, la pose du dé `jetSetForcedRoll('cascadeTirage')`) ne les
   // distinguaient plus. L'INDEX d'append est le discriminant canonique de la porte (`rollSeam`, forme
   // FABRIQUE : « il distingue deux étapes de MÊME clé dans une séquence »).
   if (spec.severite) {

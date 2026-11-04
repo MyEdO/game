@@ -119,6 +119,12 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
       return { roll: r.roll, success: r.success };
     },
   },
+  // Dé NU d'étape : il tombe, ni réussite ni échec ; la garde lit la valeur posée contre la cible commune.
+  cascadeTirage: {
+    state: { pendingCascade: cascadeDeTest([{ id: 'd1', kind: cleDeFixture('de'), actorId: 'H', de: { spec: { n: 1, sides: 100 }, result: { roll: 88, total: 88 } } }]) },
+    pid: 'd1',
+    read: (s) => { const v = P<{ participants: { de: { result: { roll: number } } }[] }>(s, 'pendingCascade').participants[0].de.result.roll; return { roll: v, success: v <= T }; },
+  },
   flee: {
     state: { pendingDisengage: { moverId: 'E', foeId: 'H', fuir: { participants: [{ id: 'H', kind: 'backstab', interactive: true, result: atkResult }] } } },
     pid: 'H',

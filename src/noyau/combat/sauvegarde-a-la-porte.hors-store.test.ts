@@ -93,7 +93,7 @@ function capter(): void {
 function poser(valeur: number): void {
   const st = etapeCourante()!;
   expect(st, 'aucune étape à jouer').toBeDefined();
-  banc.getState().cascadeDieSetForcedRoll(st.id, valeur);
+  banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st.id);
   banc.getState().cascadeNext();
   capter();
 }
@@ -461,7 +461,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
 
     // 3) Le joueur joue la fenêtre : d100 de sévérité DANS l'étape (patron `deviation-paths.hors-store.test.ts:356`),
     //    puis « Dévier » — et la reprise finale honore toujours la suite.
-    banc.getState().cascadeTableRoll(dev[0].id);
+    banc.getState().jetRoll('cascadeTirage', dev[0].id);
     const apres = etapesDeviation()[0];
     expect(apres.deviation?.mode === 'melee' ? apres.deviation.suite : undefined, 'le PLI post-dé reconduit la suite dans la `PendingDeviation`').toEqual({ deferAttackerAdvantage: true });
     resolveDeviation(banc.getState, banc.setState, apres.deviation!, true);
@@ -718,8 +718,8 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetConfirm(
     expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
       `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
     // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
-    banc.getState().fumbleRoll();
-    banc.getState().fumbleConfirm();
+    banc.getState().jetRoll('fumble');
+    banc.getState().jetConfirm('fumble');
     const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
   });

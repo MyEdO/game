@@ -26,6 +26,8 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 
 let banc: Banc;
+/** Les lignes du journal de combat (`journaliser` : combat ouvert → `battle.log`). */
+const lignesDeCombat = (): string[] => (banc.getState().battle?.log ?? []).map((e) => e.text);
 beforeEach(() => {
   banc = ouvrirLeBanc();
 });
@@ -109,10 +111,10 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(resil);
   });
 
-  it('le journal porte la mention « dé fixé »', () => {
+  it('le journal de combat porte la mention « dé fixé »', () => {
     setupAttack();
     banc.getState().jetSetForcedRoll('attack', 33);
-    const log = banc.getState().journal.join('\n');
+    const log = lignesDeCombat().join('\n');
     expect(log).toContain('dé fixé');
     // La valeur JOURNALISÉE est celle RÉELLEMENT appliquée au jet, relue sur le slot après commit.
     expect(log).toContain(String(attackRoll()));
@@ -196,7 +198,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     openHandGate();
     setDesFixes(true);
     banc.getState().jetSetForcedRoll('handGate', 41);
-    expect(banc.getState().journal.join('\n')).toMatch(/Héros : dé fixé à 41/);
+    expect(lignesDeCombat().join('\n')).toMatch(/Héros : dé fixé à 41/);
   });
 });
 
@@ -277,9 +279,8 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('aucun doublon : la ligne de fixation n’est pas re-marquée', () => {
     setupAttack();
     setDesFixes(true);
-    banc.setState({ journal: [] });
     banc.getState().jetSetForcedRoll('attack', 33);
-    const ligne = banc.getState().journal.find((l) => l.includes('dé fixé'))!;
+    const ligne = lignesDeCombat().find((l) => l.includes('dé fixé'))!;
     expect(ligne).toBe('Att : dé fixé à 33.');
   });
 
@@ -321,14 +322,14 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
   it('E1 dé POSÉ + E2 dé NATUREL : seule la ligne d’E1 porte la mention', () => {
     banc.getState().seedRng(4);
     startCascade(banc.getState, banc.setState, { title: 'Séquence', purpose: 'test', steps: [etape('e1'), etape('e2')] });
-    banc.getState().cascadeTableSetForcedRoll('e1', 33);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 33, 'e1');
     banc.setState({ journal: [] });
     banc.getState().cascadeNext(); // conséquence d'E1 : dé SAISI
     const apresE1 = banc.getState().journal.join('\n');
     expect(apresE1).toContain('conséquence de e1');
     expect(apresE1, 'la ligne du dé posé a perdu sa mention').toContain('dé fixé');
     banc.setState({ journal: [] });
-    banc.getState().cascadeTableRoll('e2'); // dé NATUREL
+    banc.getState().jetRoll('cascadeTirage', 'e2'); // dé NATUREL
     expect(banc.getState().pendingCascade!.participants[1].fixed).toBeUndefined();
     banc.getState().cascadeNext(); // conséquence d'E2
     const apresE2 = banc.getState().journal.join('\n');

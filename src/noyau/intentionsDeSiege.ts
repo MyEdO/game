@@ -103,22 +103,14 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   castAllocOvercast: 'invité', castSetChosenTableRolls: 'invité', castToggleExtraTarget: 'invité',
   castPickTargets: 'invité',
   castPlaceZone: 'invité',
-  // Contre-sort / opposition de cible : « tout lancer » des rangées de CE siège (verbe NULLAIRE du
-  // drive d'auto-cadence, `combatAuto.STEP_WINDOW_AUTO`).
-  counterspellRollAll: 'invité', oppositionRollAll: 'invité',
   // PHASE 1 du Contre-sort (#1042/#1059) : chaque candidat DÉCLARE depuis SA RANGÉE (contrer seul /
   // s'unir / passer) — contribution de table routée par la possession de son porteur (patron #1050) ;
-  // `counterspellDeclareAll` est le verbe NULLAIRE du drive d'auto-cadence, comme `counterspellRollAll`.
+  // `counterspellDeclareAll` est le verbe NULLAIRE du drive d'auto-cadence.
   counterspellDeclare: 'invité', counterspellDeclareAll: 'invité',
   // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
-  // (#1279 Sf, jumeau du choix) / tirage sur table / navigation (valider l'étape, tout résoudre, terminer le bilan).
+  // (#1279 Sf, jumeau du choix) / navigation (valider l'étape, tout résoudre, terminer le bilan).
   cascadeNext: 'invité', cascadeResolveAll: 'invité', cascadeFinish: 'invité',
-  cascadeChoose: 'invité', cascadeAmount: 'invité', cascadeTableRoll: 'invité',
-  // Mode table (#942 L3) : poser le dé d'une étape à table (champ ou clic sur une ligne) — autorisé par la
-  // possession du siège ÉMETTEUR (`intentAllowedFor`) ; l'option « Dés fixés » est CLIENT-SIDE.
-  cascadeTableSetForcedRoll: 'invité',
-  // DÉ NU (#1508) : les deux mêmes verbes pour l'autre lecture du même dé — même routage de possession.
-  cascadeDieRoll: 'invité', cascadeDieSetForcedRoll: 'invité',
+  cascadeChoose: 'invité', cascadeAmount: 'invité',
   // désengagement : Sacrifier l'Avantage, fuir
   disengageConfirmA: 'invité',
   disengageFlee: 'invité',
@@ -165,8 +157,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument) + ready-check.
   restSet: 'invité', restReady: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les intents `cascade*` dérivés.)
-  fateNegate: 'invité', fateSurvive: 'invité', fateAccept: 'invité', fumbleRoll: 'invité',
-  fumbleConfirm: 'invité',
+  fateNegate: 'invité', fateSurvive: 'invité', fateAccept: 'invité',
   cleaveAttack: 'invité', cleaveEnd: 'invité', dualStrikeAttack: 'invité', dualStrikeSkip: 'invité',
   roundStartPromote: 'invité', confirmRoundStart: 'invité', roundStartReady: 'invité',
   renounceResolve: 'invité',

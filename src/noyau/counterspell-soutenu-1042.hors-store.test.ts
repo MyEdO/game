@@ -103,7 +103,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result, 'le jet attend que TOUTE la fenêtre ait déclaré').toBeNull();
     expect(live(h1.id).dispelledThisRound, 'le verrou ne brûle rien').toBeFalsy();
-    banc.getState().counterspellRollAll();
+    banc.getState().jetRoll('counterspell');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'le drive ne force pas la phase').toBe(true);
     declare(h2.id, 'pass'); // dernière déclaration → phase 2
     expect(counterspellDeclarePhase(banc.getState().pendingCounterspell)).toBe(false);
@@ -308,11 +308,11 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     for (const h of heroes) affaiblir(h.id); // chants ratés : la lice reste ouverte du premier au dernier
     openWindow([h1.id, h2.id, h3.id]);
     seedBattleRng(11);
-    banc.getState().counterspellRollAll();
+    banc.getState().jetRoll('counterspell');
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'phase 1 : rien ne part').toBe(true);
     banc.getState().counterspellDeclareAll();
     expect(banc.getState().pendingCounterspell!.participants.every((p) => p.declared === 'solo')).toBe(true);
-    banc.getState().counterspellRollAll();
+    banc.getState().jetRoll('counterspell');
     expect(banc.getState().pendingCounterspell!.participants.filter((p) => p.result).length,
       'phase 2 : chaque rangée du siège chante').toBe(3);
   });

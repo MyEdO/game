@@ -2179,8 +2179,8 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  LECTURES du même geste, jamais deux dés à jeter dans la même fenêtre. */
   de?: CascadeDeDecl;
   /** PROVENANCE du dé de cette étape : SAISI par le joueur (option de confort « Dés fixés »,
-   *  `engine/fixedDie.ts`) et non tiré. Écrit par la fabrique de flux pour une étape-JET
-   *  (`commit(..,{fixed:true})`) et par `setCascadeTableForcedRoll` pour une étape à TABLE. Lu par la
+   *  `engine/fixedDie.ts`) et non tiré. Écrit par la fabrique de flux (`commit(..,{fixed:true})`) pour une
+   *  étape-JET (flux `cascade`) comme pour une étape à TABLE ou à dé nu (flux `cascadeTirage`). Lu par la
    *  rangée (`RollRow.fixedMark`) et par le marquage du journal (`fixedDieMark.slotFixed`, qui parcourt
    *  les `participants` des slots ouverts). */
   fixed?: boolean;
@@ -2233,9 +2233,9 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Étape-JET « Maladresse » (LDB 14, Tableau des Oups !) : SOURCE UNIQUE de la maladresse — l'arme
    *  utilisée + le résultat tiré vivent ICI (l'acteur est `actorId`). Plus de `pendingFumble` top-level
    *  parallèle à désynchroniser : si l'étape existe la donnée existe, si la cascade ferme la maladresse
-   *  s'en va — orphelin structurellement impossible. Flux : `fumbleRoll` (rollOups → result),
-   *  `fumbleConfirm` (applyOups). `coup` = la queue du coup dont cette Maladresse est un temps
-   *  d'après-coup : `fumbleConfirm` la reprend une fois la Maladresse appliquée. */
+   *  s'en va — orphelin structurellement impossible. Flux : `jetRoll('fumble')` (rollOups → result),
+   *  `jetConfirm('fumble')` (applyOups). `coup` = la queue du coup dont cette Maladresse est un temps
+   *  d'après-coup : `jetConfirm('fumble')` la reprend une fois la Maladresse appliquée. */
   fumble?: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup };
   /** DÉCLARATION d'une BANDE de Psychologie À LA RENCONTRE (LDB 21) : l'entrée de règle mise en jeu
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont

@@ -126,19 +126,19 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
   });
 
   /**
-   * `oppositionRollAll` (verbe NULLAIRE du drive d'auto-cadence, #1030) roule les rangées que le siège
-   * ÉMETTEUR influence. Deux mesures dans un même geste : la ROUTE (posséder une rangée due suffit —
-   * le repli aurait rendu la fenêtre au owner de la modale) et l'EFFET (l'hôte exécute au nom du siège
-   * émetteur : sans siège AGISSANT dans `influencesLocally`, il roulait SES rangées à lui).
+   * « Tout lancer » (`jetRoll('opposition')` sans rangée, #3327) roule les rangées que le siège ÉMETTEUR influence. Deux
+   * mesures dans un même geste : la ROUTE (posséder une rangée due suffit) et l'EFFET (l'hôte exécute au nom du siège
+   * émetteur, `influencesLocally`).
    */
-  it('oppositionRollAll : le siège émetteur roule SA rangée, jamais celle d’un autre siège', () => {
+  it('« Tout lancer » : le siège émetteur roule SA rangée, jamais celle d’un autre siège', () => {
     setup();
     ouvreOpposition();
     const pco = banc.getState().pendingCastOpposition!;
     banc.setState({ pendingCastOpposition: { ...pco, participants: [
       { id: 'h2', interactive: true, result: null }, { id: 'h3', interactive: true, result: null },
     ] } as never });
-    expect(applyIntent(1, 'oppositionRollAll', [])).toBe('appliquee');
+    expect(applyIntent(3, 'jetRoll', ['opposition']), 'un siège sans rangée due').toBe('refusee');
+    expect(applyIntent(1, 'jetRoll', ['opposition'])).toBe('appliquee');
     const parts = banc.getState().pendingCastOpposition!.participants;
     expect(parts.find((p) => p.id === 'h2')!.result, 'la rangée du siège émetteur').not.toBeNull();
     expect(parts.find((p) => p.id === 'h3')!.result, 'l’hôte roulait la rangée d’un AUTRE siège').toBeNull();
@@ -238,5 +238,30 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
   it('étape INCONNUE (fermée) : personne ne joue le verbe', () => {
     cascadeMenace();
     for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'jetResist', ['cascade', 'inexistante']), `siège ${seat}`).toBe('refusee');
+  });
+});
+
+describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent au siège de la fenêtre de l’étape', () => {
+  it('jetRoll@fumble sans rangée puis jetConfirm@fumble : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
+    const { e1 } = setup();
+    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'fumble', fumble: { weapon: e1.weapons[0], result: null } }]) });
+    expect(applyIntent(1, 'jetRoll', ['fumble']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
+    expect(banc.getState().pendingCascade!.participants[0].fumble!.result).toBeNull();
+    expect(applyIntent(0, 'jetRoll', ['fumble'])).toBe('appliquee');
+    expect(banc.getState().pendingCascade!.participants[0].fumble!.result, 'la rangée d’une étape sans acteur propre se lance sans possession de siège').toBeTruthy();
+    expect(applyIntent(1, 'jetConfirm', ['fumble'])).toBe('refusee');
+    expect(applyIntent(0, 'jetConfirm', ['fumble'])).toBe('appliquee');
+    expect(banc.getState().pendingCascade, 'la Maladresse appliquée clôt l’étape').toBeNull();
+    expect(banc.getState().battle!.log.map((e) => e.text).join(' | '), 'les Oups ! tirés sont écrits au journal de combat').toMatch(/^e1 — Maladresse/);
+  });
+
+  it('jetRoll@cascadeTirage et jetSetForcedRoll@cascadeTirage : le dé de l’étape d’un héros se joue à SON siège', () => {
+    setup();
+    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'd0', kind: 'triggeredTest', actorId: 'h2', de: { spec: { n: 1, sides: 10 } } }]) });
+    expect(applyIntent(2, 'jetRoll', ['cascadeTirage', 'd0']), 'un tiers tirait le dé du héros d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'jetSetForcedRoll', ['cascadeTirage', 3, 'd0'])).toBe('refusee');
+    expect(banc.getState().pendingCascade!.participants[0].de!.result).toBeUndefined();
+    expect(applyIntent(1, 'jetRoll', ['cascadeTirage', 'd0'])).toBe('appliquee');
+    expect(banc.getState().pendingCascade!.participants[0].de!.result).toBeTruthy();
   });
 });

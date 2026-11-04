@@ -52,7 +52,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
     const p = banc.getState().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (!cur) break;
-    if (cur.kind === 'miscastTable' && !cur.table?.result) banc.getState().cascadeTableRoll(cur.id);
+    if (cur.kind === 'miscastTable' && !cur.table?.result) banc.getState().jetRoll('cascadeTirage', cur.id);
     const jouee = banc.getState().pendingCascade?.participants[p.cursor];
     if (jouee?.kind === 'miscastTable' && jouee.table?.result && !vus.has(jouee.id)) {
       vus.add(jouee.id);
@@ -73,7 +73,7 @@ function mageSolo(seed = 3): Combatant {
 
 const steps = (): CascadeStep[] => (banc.getState().pendingCascade?.participants ?? []) as CascadeStep[];
 const stepAt = (i: number) => steps()[i];
-const poser = (id: string, roll: number) => banc.getState().cascadeTableSetForcedRoll(id, roll);
+const poser = (id: string, roll: number) => banc.getState().jetSetForcedRoll('cascadeTirage', roll, id);
 const suivant = () => banc.getState().cascadeNext();
 
 /** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `noyau/mutation-step.hors-store.test.ts`. */

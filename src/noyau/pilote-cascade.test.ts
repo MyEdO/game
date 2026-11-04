@@ -114,7 +114,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   it('le kit ET un choix joué à la main : un site, que le kit soit appelé directement ou par un helper', () => {
     expect(refs(ajoute(`for (let i = 0; i < 20; i++) { ${CHOIX_A_LA_MAIN} avanceEtapeCascade(g); }`, KIT))).toEqual(['it:morsure']);
     expect(refs(ajoute(`for (let i = 0; i < 20; i++) { ${CHOIX_A_LA_MAIN} avanceMorsure(); }`, PAR_HELPER))).toEqual(['it:morsure']);
-    expect(refs(ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) { g().cascadeTableRoll(\'s0\'); avanceMorsure(); }', PAR_HELPER))).toEqual(['it:morsure']);
+    expect(refs(ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) { g().jetRoll(\'cascadeTirage\', \'s0\'); avanceMorsure(); }', PAR_HELPER))).toEqual(['it:morsure']);
   });
 
   it('une boucle IMBRIQUÉE ne se compte qu’une fois : l’interne', () => {
@@ -244,7 +244,7 @@ describe('le kit LÈVE sur une étape qui porte à la fois une table et un dé n
   it('`avanceEtapeCascade` nomme l’étape à deux porteurs au lieu d’en jouer un', () => {
     const etape: CascadeStep = { id: 's0', kind: cleDeFixture('table'), table: { tableId: 't' }, de: {} };
     const rien = () => {};
-    const etat = { pendingCascade: cascadeDeTest([etape]), cascadeTableRoll: rien, cascadeDieRoll: rien, cascadeNext: rien };
+    const etat = { pendingCascade: cascadeDeTest([etape]), jetRoll: rien, jetSetForcedRoll: rien, cascadeNext: rien };
     expect(() => avanceEtapeCascade(() => etat as unknown as Jeu)).toThrow(/« s0 ».*`table`.*`de`/);
   });
 });

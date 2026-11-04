@@ -69,7 +69,7 @@ function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stageWeather')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
-  get().cascadeTableSetForcedRoll(meteo.id, rangee.min);
+  get().jetSetForcedRoll('cascadeTirage', rangee.min, meteo.id);
 }
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });

@@ -59,7 +59,7 @@ export function soutienDe(st: LigneJugeable): number {
 
 /** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande), sur la TABLE
  *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`jetSetForcedRoll('cascade')` /
- *  `jetSetForcedRoll('cascadeBatch')` / `cascadeTableSetForcedRoll` / `cascadeDieSetForcedRoll`), le geste d'un
+ *  `jetSetForcedRoll('cascadeBatch')` / `jetSetForcedRoll('cascadeTirage')`), le geste d'un
  *  joueur. `undefined` = le dé est lancé ; `null` = le banc REFUSE de lancer le dé de TABLE ou de DÉ NU,
  *  qui ne tombe alors que si le socle le résout lui-même (sur une rangée de Test, `null` vaut `undefined`).
  *  L'étape suffit à dire quel dé : `jetteLeDe` LÈVE sur une étape qui porte à la fois `table` et `de`, si
@@ -78,21 +78,19 @@ export type ChoisitCle = (etape: CascadeStep) => string | undefined;
  *  remplace aussi un dé résolu d'office), LAISSÉ si le banc le refuse, LANCÉ sinon s'il n'est pas tombé. */
 function jetteLeDe(get: () => Jeu, cur: CascadeStep, poser?: PoseDe): void {
   if (cur.table && cur.de) throw new Error(`étape « ${cur.id} » : elle porte à la fois une \`table\` et un \`de\` — le kit ne sait quel dé jouer`);
-  const s = get();
-  const porteur = cur.table
-    ? { tombe: !!cur.table.result, pose: s.cascadeTableSetForcedRoll, lance: s.cascadeTableRoll }
-    : cur.de && { tombe: !!cur.de.result, pose: s.cascadeDieSetForcedRoll, lance: s.cascadeDieRoll };
-  if (!porteur) return;
+  const de = cur.table ?? cur.de;
+  if (!de) return;
   const n = poser?.(cur);
   if (n === null) return;
-  if (n !== undefined) porteur.pose(cur.id, n);
-  else if (!porteur.tombe) porteur.lance(cur.id);
+  if (n !== undefined) get().jetSetForcedRoll('cascadeTirage', n, cur.id);
+  else if (!de.result) get().jetRoll('cascadeTirage', cur.id);
 }
 
 /**
  * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est LANCÉE (bande → chaque rangée non
  * roulée ; table ou dé nu → son dé ; jet → son dé — chacun POSÉ par `poser` s'il le fixe), TRANCHÉE
- * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE. Rend le `kind` de l'étape jouée
+ * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE ; une Maladresse se tire et s'applique par les verbes
+ * de son flux (`jetRoll('fumble')`, `jetConfirm('fumble')`). Rend le `kind` de l'étape jouée
  * (`undefined` si aucune cascade active).
  *
  * Pilote CANONIQUE de la cascade en test (#1426) : une copie par fichier dérive, et c'est ainsi qu'un
@@ -108,6 +106,11 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
   const p = get().pendingCascade;
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
+  if (cur?.jet === 'fumble') {
+    get().jetRoll('fumble');
+    get().jetConfirm('fumble');
+    return cur.kind;
+  }
   if (cur) {
     // ORDRE de `stepInteraction` (chaîne de PRIORITÉ), jamais un `else if` : une étape porte une table
     // ET un choix (la sévérité d'un Critique se tire DANS la fenêtre de Déviation) — le dé se lance

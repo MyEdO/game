@@ -131,8 +131,8 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     // Maladresse est un dé du HÉROS (`jetSurfaced`), que le pilote mène par `JET_AUTO.fumble`.
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor]).toMatchObject({ jet: 'fumble', actorId: H.id });
-    banc.getState().fumbleRoll();
-    banc.getState().fumbleConfirm();
+    banc.getState().jetRoll('fumble');
+    banc.getState().jetConfirm('fumble');
     expect(banc.getState().pendingCascade).toBeNull();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['frappe-reactive']).toBe(1); // a riposté 1× contre ce chargeur

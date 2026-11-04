@@ -400,7 +400,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
     // (2) « Subir » : le Critique s'applique, PUIS la fuite se complète (Brisé + libération + Course).
     const devId = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
-    banc.getState().cascadeTableRoll(devId); // le d100 de sévérité tombe DANS la MÊME fenêtre (#1426)
+    banc.getState().jetRoll('cascadeTirage', devId); // le d100 de sévérité tombe DANS la MÊME fenêtre (#1426)
     banc.getState().cascadeChoose(devId, 'subir');
     draineCascade(banc.getState, 4);
     const f = live(fuyard.id);

@@ -972,7 +972,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     const avant = get().pendingCascade;
     get().cascadeNext();
     expect(get().pendingCascade, 'aucune avancée tant que la table n’est pas tirée').toBe(avant);
-    get().cascadeTableSetForcedRoll(meteo.id, 7);
+    get().jetSetForcedRoll('cascadeTirage', 7, meteo.id);
     expect(etapeCourante()!.table!.result!.roll).toBe(7);
     get().cascadeNext();
     expect(get().pendingCascade!.cursor, 'la pose débloque la séquence').toBeGreaterThan(0);

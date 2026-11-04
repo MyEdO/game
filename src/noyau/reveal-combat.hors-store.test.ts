@@ -111,7 +111,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     const suspended = applyAttackResult(banc.getState, banc.setState, enemy, hero, enemy.weapons[0], res);
     expect(suspended).toBe(OPS_DIFFEREES);
     const devId = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
-    banc.getState().cascadeTableRoll(devId); // le dé de sévérité tombe DANS la MÊME fenêtre (#1426)
+    banc.getState().jetRoll('cascadeTirage', devId); // le dé de sévérité tombe DANS la MÊME fenêtre (#1426)
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation');
     expect(dev?.reveal?.kind).toBe('critical'); // panneau riche porté par l'étape, sous la ligne de dé
 
@@ -128,7 +128,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({ pendingCascade: null });
     applyAttackResult(banc.getState, banc.setState, enemy, hero, enemy.weapons[0], res);
     const devId2 = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
-    banc.getState().cascadeTableRoll(devId2);
+    banc.getState().jetRoll('cascadeTirage', devId2);
     banc.getState().cascadeChoose(devId2, 'devier');
     banc.getState().cascadeNext();
     expect(heroNow().criticalWounds ?? 0).toBe(0); // pas de Blessure critique appliquée

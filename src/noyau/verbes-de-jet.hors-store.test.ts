@@ -30,7 +30,7 @@ describe('frontière : un geste de jet que son flux refuse se dit, et ne change 
   it.each([
     ['un flux inconnu', () => (g().jetRoll as (flux: string) => void)('zz-inconnu'), 'jet.refus.gesteAbsent'],
     ['un flux qui n’a pas ce verbe (Résistance sur l’incantation)', () => (g().jetResist as (flux: string) => void)('cast'), 'jet.refus.gesteAbsent'],
-    ['une rangée absente sur un flux à plusieurs jets', () => (g().jetRoll as (flux: string) => void)('fall'), 'jet.refus.rangee'],
+    ['une rangée absente sur un flux à plusieurs jets', () => (g().jetReroll as (flux: string) => void)('fall'), 'jet.refus.rangee'],
     ['une rangée posée sur un flux à un jet', () => g().jetRoll('attack', 'x'), 'jet.refus.rangee'],
   ] as const)('%s', (_cas, geste, cle) => {
     const avant = g();

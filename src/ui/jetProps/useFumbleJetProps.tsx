@@ -6,7 +6,7 @@ import { Icon } from '../Icon';
 import { drawRow } from '../rollRowBuild';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
 import { libelleDuJet } from '../../noyau/libelles';
-import { fermeturesDeLaMaladresse } from '../../noyau/verbesOuverts';
+import { useGesteDeJet } from '../useGesteDeJet';
 import { t } from '../../i18n';
 
 /**
@@ -15,14 +15,14 @@ import { t } from '../../i18n';
  * via ce hook). La Maladresse est une CONSÉQUENCE du Test raté sur un double : comme le Critique, elle
  * vit DANS la MÊME fenêtre que l'attaque/défense, plus dans une modale d'arbitre séparée. AUCUNE influence
  * (la Chance agit AVANT qu'un Test ne devienne Maladresse ; une fois actée, l'Oups ! est subi). Le jet est
- * un tirage de TABLE (pas de cible / DR) : `Lancer` → `result`, `Appliquer` → applyOups. `null` si aucune
- * Maladresse en attente.
+ * un tirage de TABLE (pas de cible / DR) : `jetRoll('fumble')` → `result`, `jetConfirm('fumble')` → applyOups. `null`
+ * si aucune Maladresse en attente.
  */
 export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
   const pc = useGame((s) => s.pendingCascade);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.fumbleRoll);
-  const confirm = useGame((s) => s.fumbleConfirm);
+  const lancer = useGesteDeJet('jetRoll', 'fumble');
+  const confirm = useGesteDeJet('jetConfirm', 'fumble');
   const step = pc?.participants[pc.cursor]; // SOURCE UNIQUE : l'étape courante PORTE la maladresse (`step.fumble`)
   if (!battle || !pc || step?.jet !== 'fumble' || !step.fumble) return null;
   const combatant = battle.combatants.find((c) => c.id === step.actorId);
@@ -30,6 +30,7 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
   const r = step.fumble.result;
   const rolled = !!r;
   return {
+    flowKey: 'fumble',
     title: <><Icon id="nav/dice" size="sm" /> {libelleDuJet('fumble')}</>,
     // Z1 : l'ACTEUR et le FAIT qui ouvre la fenêtre. Le NOM DE LA TABLE se lit sur la ligne de tirage
     // (`TableRollLine`, ci-dessous) et sur le bouton de lancement — jamais une troisième fois ici.
@@ -41,11 +42,10 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
       drawRow({
         row: { note: r ? <TableRollLine table={libelleDeTest('oups')} roll={r.roll} result={r.label} /> : undefined },
         rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer sur le Tableau des Oups !</>,
-        onRoll: roll,
+        onRoll: () => lancer(step.id),
         rollFrisson: true,
       }),
     ],
-    // Un tirage hors des flux de jet : sa clôture se juge par `fermeturesDeLaMaladresse`.
-    actions: fermeturesDeLaMaladresse(step).fumbleConfirm ? [] : [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm }],
+    actions: [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' }],
   };
 }

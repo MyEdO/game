@@ -168,7 +168,7 @@ describe('coop — le geste d’un INVITÉ sur SON héros ABOUTIT (jamais un rej
     expect(canFixDie(useGame.getState(), 'A')).toBe(false);
     useGame.getState().jetSetForcedRoll('attack', 33);
     expect(attackRoll()).toBe(33);
-    expect(useGame.getState().journal.join('\n')).toContain('dé fixé');
+    expect(useGame.getState().battle!.log.map((e) => e.text).join('\n'), 'combat ouvert : la ligne va au journal de combat (`journaliser`)').toContain('dé fixé');
   });
 });
 

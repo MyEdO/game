@@ -192,7 +192,7 @@ describe('Boucle de jeu (store)', () => {
   function joueLaSeverite() {
     const st = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(st, 'une seule étape porte le tirage ET la décision').toHaveLength(1);
-    banc.getState().cascadeTableRoll(st[0].id);
+    banc.getState().jetRoll('cascadeTirage', st[0].id);
     return banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!;
   }
 
@@ -409,7 +409,7 @@ describe('Boucle de jeu (store)', () => {
     expect(heroes[0].label).toBe('A');
   });
 
-  it('Maladresse — fumbleConfirm applique l’auto-blessure (Oups! 01-20)', () => {
+  it('Maladresse — la clôture du flux `fumble` applique l’auto-blessure (Oups! 01-20)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().startScene(testScene());
@@ -420,7 +420,7 @@ describe('Boucle de jeu (store)', () => {
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().fumbleConfirm();
+    banc.getState().jetConfirm('fumble');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
     expect(banc.getState().pendingCascade).toBeNull(); // l'étape Maladresse unique se ferme (donnée portée par l'étape)
@@ -436,7 +436,7 @@ describe('Boucle de jeu (store)', () => {
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().fumbleConfirm();
+    banc.getState().jetConfirm('fumble');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
     expect(after.traumas?.[0]?.ops?.some((o) => o.op === 'moveScale')).toBe(true); // jambe → Mouvement ÷2
@@ -583,7 +583,7 @@ describe('Boucle de jeu (store)', () => {
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().fumbleConfirm();
+    banc.getState().jetConfirm('fumble');
     const hMid = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (2) Fin de combat (victoire) → writeback vers le groupe.
