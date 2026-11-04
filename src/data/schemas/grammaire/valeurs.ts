@@ -622,6 +622,10 @@ export const difficultySchema = enumNomme(DIFFICULTY_LABELS);
  */
 export const couvertDifficultySchema = enumNomme(tableTotale(COUVERT_DIFFICULTES, (d) => DIFFICULTY_LABELS[d]));
 
+/** `DeckCoverClass` (`src/engine/types.ts`) — couvert gradué d'un poste de pont ou d'un décor : porte UNIQUE
+ *  des defs qui le portent (`vehicles`, `naval-traits`, `props`). */
+export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
+
 /**
  * `CharKey` (`src/engine/types.ts`) — les 10 Caractéristiques. Réf récurrente (Conditions `compare`,
  * `Formula.bonusOf`/`charOf`, `FlowTest.characteristic`, `AdvancementRef`…) — porte UNIQUE des defs qui

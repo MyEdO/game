@@ -1,5 +1,5 @@
 /**
- * MORSURE des PORTES de `2026-09-24-1473-graphie-ops-de-talent.mjs` (#1473) — volet `src/data` : les ops
+ * MORSURE des PORTES de `2026-09-24-1473-graphie-ops-de-talent.mjs` — volet `src/data` : les ops
  * `grantTalent` / `grantCareerTalent` passent de `{ talentId, spec? }` à `talent: { id, spec? }`, et les
  * réfs de Talent d'axe (`axes.json › [].talents[]`) de `{ talentId, spec? }` à `{ id, spec? }`.
  *

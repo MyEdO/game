@@ -24,7 +24,7 @@ import { nommerNoeud } from './schemas/grammaire/meta';
  *  2. toute spec demandée par une PORTE JOUEUR résout, et résout DANS le pool — sinon l'écran qui
  *     l'affiche ne peut pas l'offrir. Sur une entrée OUVERTE, le parse admet le texte libre : ce
  *     contrat l'y refuse. Le libellé et la sentinelle « au choix », eux, sont refusés AU PARSE
- *     (`ref.ts#refusDeSpec`, #1473) ;
+ *     (`ref.ts#refusDeSpec`) ;
  *  3. un EMPLACEMENT (`choix: true`, joker « au choix ») ne vise jamais une entrée à pool vide
  *     (`LDB 09 l.40`) — garde `#1897` en fin de fichier (`choixSansPoolJoueur`). Pour un TALENT, des
  *     `specs` inline ne font pas un domaine groupé (`LDB 10 l.17` ; `attirant`, `EDOC 12 l.84`) ; une

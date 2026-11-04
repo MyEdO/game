@@ -138,7 +138,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   /** Marchand : archétype + surcharges de prix et des 3 règles maison Marché (LDB 59/60). */
   merchant: nommerChamps(z
     .strictObject({
-      archetype: z.string(),
+      archetype: idDe('merchant'),
       settlement: z.enum(['village', 'ville', 'cite']).optional(),
       resaleRate: z.number().optional(),
       buyMarkup: z.number().optional(),

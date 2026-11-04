@@ -46,7 +46,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stoc
 
 const DATA_DIR = __dirname;
 
-/** Couverture MESURÉE le 2026-10-14 (#1473, même mesure que `book-source-integrity.test.ts` et
+/** Couverture MESURÉE le 2026-10-14 (même mesure que `book-source-integrity.test.ts` et
  *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4480 entrées à `source:{book,page}`, dont 1319
  *  citent AUSSI une ligne — 504 jugées ici, 815 écartées (807 hors-forme, 8 queue-trouée), soit 11,3 %
  *  des folios vérifiés machine par cette voie. Les deux bornes ci-dessous rendent ces chiffres

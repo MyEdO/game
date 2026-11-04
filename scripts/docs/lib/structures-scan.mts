@@ -336,13 +336,13 @@ export type FormeObservee = {
 /**
  * UNE occurrence de référence comptée par le scan, avec le COUPLE `(dataset, champ)` qu'il lui
  * attribue et le `statut` de sa forme — une instance par occurrence, l'unité du champ `occurrences`
- * des formes de la strate `Référence` (#1473, #3021).
+ * des formes de la strate `Référence` (#3021).
  */
 export type OccurrenceDeReference = { readonly dataset: string; readonly champ: string; readonly statut: FormeObservee['statut'] };
 /**
  * Occurrences de référence keyées par leur PORTEUR (l'objet ou la liste PARSÉS du document, par
  * identité) puis par la CLÉ ou l'INDICE qui y pose la valeur : c'est la case où une valeur lue à un
- * path déclaré tombe (#1473).
+ * path déclaré tombe.
  */
 export type ReferencesParPorteur = ReadonlyMap<object, ReadonlyMap<string | number, OccurrenceDeReference>>;
 export type SignatureOrpheline = {
@@ -944,7 +944,7 @@ export function scannerDonnees(
   const occurrencesDeReference: OccurrenceDeReference[] = [];
   /**
    * Compte UNE occurrence de référence à sa forme ET l'inscrit à ses cases `(porteur, clé)` : l'unique
-   * site où la strate `Référence` compte, pour que le couple attribué soit celui de la forme (#1473).
+   * site où la strate `Référence` compte, pour que le couple attribué soit celui de la forme.
    * Ses cases sont ses cases de RÉFÉRENCE : une clé dont la valeur est une chaîne, hors `CLES_DE_SPECIALISATION`
    * (#3021) ; un nombre (`{random:N}`) ou un tableau d'objets (`{choice:[…]}`) n'en ouvre aucune.
    */
@@ -1198,12 +1198,12 @@ export function scannerDonnees(
     /** Les entrées PARTIELLES embarquées du corpus, objet → fiche (`entreesPartiellesEmbarquees`). */
     entreesPartielles: reperes as ReadonlyMap<object, EntreePartielleEmbarquee>,
     /** Le JSON PARSÉ de chaque document, keyé par nom : celui dont les objets portent les
-     *  occurrences de `referencesParPorteur` (#1473). */
+     *  occurrences de `referencesParPorteur`. */
     brutParNom,
     /** Les collections à clé DÉCLARÉES présentes dans les documents (`collectionsDesDocuments`). */
     collections,
     referencesParPorteur: referencesParPorteur as ReferencesParPorteur,
-    /** TOUTES les occurrences de la strate `Référence`, y compris celles sans case de référence (#1473). */
+    /** TOUTES les occurrences de la strate `Référence`, y compris celles sans case de référence. */
     occurrencesDeReference: occurrencesDeReference as readonly OccurrenceDeReference[],
     index: { ids: index.size, libelles: libelles.size, collisions, labelsQuiSontDesIds },
     /** Valeurs qui ne résolvent QUE vers un dataset hors des cibles majoritaires de leur site. */

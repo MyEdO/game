@@ -1,6 +1,6 @@
 /**
  * PARSE DE MESURE (`reperesDuParse`, `grammaire/ref.ts`) — le côté DÉCLARÉ du volet SLOTS
- * (`docs/structures-donnees.md` §6) est ce que `idDe` valide au parse (#1473 R1). Ce banc tient :
+ * (`docs/structures-donnees.md` §6) est ce que `idDe` valide au parse. Ce banc tient :
  *  - le PATH de donnée de chaque repère, à travers la récursion (`z.lazy`), l'union (première branche
  *    propre), la clé de record, et le report d'une issue de payload d'op (`gameOpSchema`) ;
  *  - la BORNE du mode : aucun parse hors `reperesDuParse` n'émet de repère, même quand il lève ;

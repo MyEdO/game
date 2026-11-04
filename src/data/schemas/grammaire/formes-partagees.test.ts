@@ -224,7 +224,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
 });
 
 /**
- * `flowTestSchema.menace` (#1346, #1473) — CLÉ ÉTRANGÈRE vers un id de spec du talent « Résistance
+ * `flowTestSchema.menace` (#1346) — CLÉ ÉTRANGÈRE vers un id de spec du talent « Résistance
  * (Menace) » (LDB 10 l.1016-1020), jugée par `menaceSchema` (`specFermeeDe('talent', 'resistance')`) :
  * résolue au catalogue (`talents.json`) à la VALIDATION.
  */

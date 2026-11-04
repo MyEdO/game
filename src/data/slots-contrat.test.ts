@@ -38,7 +38,7 @@ const GARDE = {
     decroissant: false,
     raison:
       'La dette d’ADOPTION du registre est INVENTORIÉE (`CASES_DE_REFERENCE`, une ligne par case avec sa forme), hors de la porte et sans stock (#3021) : ' +
-      'elle se solde en faisant ADOPTER la fabrique de référence par le schéma du champ (L2/L3, #1473).',
+      'elle se solde en faisant ADOPTER la fabrique de référence par le schéma du champ (L2/L3).',
   },
   ticket: '#1466',
 } as const;

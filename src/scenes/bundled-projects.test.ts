@@ -10,7 +10,7 @@ import { parseProject, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { validateScene } from '../noyau/validateScene';
 import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
-import { books, buildings, findCrewRoleById, findVehicleById, merchantArchetypeById } from '../data';
+import { books, buildings, findCrewRoleById, findVehicleById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import { flowFromEffects } from '../noyau/monde/flow';
@@ -154,17 +154,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
         }
       }
     }
-    expect(fautifs).toEqual([]);
-  });
-
-  /** Un marchand d'auteur pointe un ARCHÉTYPE du registre (`MERCHANT_ARCHETYPES`, `data/index.ts`) — sinon son stock est vide. */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : tout marchand référence un archétype RÉEL du registre', (file) => {
-    const doc = parseProject(lireProjetLivre(file));
-    const fautifs = doc.scenes.flatMap((sc) =>
-      sc.entities
-        .filter((e) => e.merchant?.archetype && !merchantArchetypeById.has(e.merchant.archetype))
-        .map((e) => `${sc.id}:${e.id} archétype « ${e.merchant!.archetype} »`),
-    );
     expect(fautifs).toEqual([]);
   });
 
