@@ -75,7 +75,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     const { h1, h2 } = setupZoneAwaitingCounter();
     // Rangée DÉCLARÉE (#1042/#1059) : « Laisser passer » n'existe qu'une fois la composition arrêtée.
     banc.setState({ pendingCounterspell: { participants: [{ id: h1.id, interactive: true, declared: 'solo', result: null }] } as never });
-    banc.getState().counterspellCancel(); // personne ne contre → castConfirm pose la zone sur (8,8)
+    banc.getState().jetCancel('counterspell'); // personne ne contre → castConfirm pose la zone sur (8,8)
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast).toBeNull(); // pending fermé (zone posée → pas de soft-lock)
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;

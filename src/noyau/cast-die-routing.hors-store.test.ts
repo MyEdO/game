@@ -52,10 +52,10 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
         { id: 'B', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: '' } },
       ] },
     } as never);
-    st().counterspellForceSuccess('B');
+    st().jetForceSuccess('counterspell', 'B');
     const apres = heroResilience('B');
     expect(apres, 'la Résilience de B n’a pas été dépensée').toBe(2);
-    st().counterspellSetForcedRoll('B', CHOISI);
+    st().jetSetForcedRoll('counterspell', CHOISI, 'B');
 
     const parts = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; success: boolean } } }[] }>('pendingCounterspell').participants;
     const [cA, cB] = [parts[0].result, parts[1].result];
@@ -75,10 +75,10 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
         { id: 'B', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
       ] },
     } as never);
-    st().oppositionForceSuccess('A');
+    st().jetForceSuccess('opposition', 'A');
     const apres = heroResilience('A');
     expect(apres, 'la Résilience de A n’a pas été dépensée').toBe(2);
-    st().oppositionSetForcedRoll('A', CHOISI);
+    st().jetSetForcedRoll('opposition', CHOISI, 'A');
 
     const parts = P<{ participants: { result: { resisted: boolean; margin: number; oppose: { roll: number; sl: number } } }[] }>('pendingCastOpposition').participants;
     const [oA, oB] = [parts[0].result, parts[1].result];

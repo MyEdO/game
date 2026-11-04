@@ -66,8 +66,9 @@ export const fr = {
   'defense.refus.avantages': 'Il faut {cout} Avantages : {nom} en a {avantage}.',
   'defense.refus.ripostesPortees': 'Riposte déjà portée {n} fois ce Round : Niveau {plafond}.',
   // Action de la modale d'attaque quand aucune Défense ne s'interpose : elle applique le coup.
-  // Le libellé d'un verbe de fenêtre (`libelleDuVerbe`, `noyau/libelles.ts`) : `verbe.<id>`, sinon celui du suffixe de
-  // son flux (`verbe.<suffixe>`, `flowActionName`). Lu par le web, la fenêtre d'attaque et tout hôte.
+  // Le libellé d'un geste de fenêtre (`libelleDuGeste`, `noyau/libelles.ts`) : `verbe.<flux>.<verbe>` pour un verbe de
+  // jet, sinon `verbe.<id>`, sinon celui du suffixe de son flux (`verbe.<suffixe>`). Lu par le web, la fenêtre
+  // d'attaque et tout hôte.
   'verbe.roll': 'Lancer',
   'verbe.rollAll': 'Tout lancer',
   // Ce qui ferme un verbe du cycle de jet (`FermetureDuJet`, `noyau/rollFlowFactory.ts`), lu par le web et par tout hôte.
@@ -94,6 +95,8 @@ export const fr = {
   'jet.ferme.oppositionsDues': 'Une cible n’a pas encore opposé son Test.',
   'jet.ferme.choixCritiqueDu': 'Choisis l’effet de ton Incantation Critique.',
   'jet.ferme.actionEngagee': 'L’action est engagée, elle se joue jusqu’au bout.',
+  'jet.refus.gesteAbsent': 'Ce jet n’a pas ce geste.',
+  'jet.refus.rangee': 'Ce geste ne vise pas la bonne rangée du jet.',
   'verbe.declareAll': 'Tout déclarer',
   'verbe.reroll': 'Relancer',
   'verbe.bonusSL': 'Chance : +1 DR',
@@ -143,7 +146,7 @@ export const fr = {
   'verbe.cascadeResolveAll': 'Tout résoudre',
   'verbe.extendedTestNext': 'Round suivant',
   'verbe.surgeryNext': 'Appliquer la passe',
-  'verbe.surgeryCancel': 'Annuler la passe',
+  'verbe.surgery.cancel': 'Annuler la passe',
   'verbe.medicAbandonSurgery': 'Arrêter l’opération',
   'verbe.acquitterOuverture': 'Commencer',
   'verbe.ajournerChapterRecap': 'Plus tard',

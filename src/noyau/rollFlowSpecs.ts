@@ -3,7 +3,7 @@
  *
  * Chaque entrée de `FLOWS` déclare la partie MÉTIER d'un flux (comment résoudre le jet, quand il
  * est relançable, comment la Chance « +1 DR » et la Résilience re-dérivent le résultat) ; le store
- * câble les handlers générés sous les noms canoniques (`battementRoll`, `battementReroll`…) et garde
+ * câble les handlers générés sous les noms canoniques (`jetRoll('battement')`, `jetReroll('battement')`…) et garde
  * la main sur « Appliquer » (`xConfirm`) et « Annuler ».
  *
  * Fidélité : chaque `resolve`/`derive` reprend À L'IDENTIQUE le code historique du store
@@ -17,7 +17,8 @@ import type { Combatant, ReverseQuery, Weapon, CharKey } from '../engine/types';
 import { evalCondition, type Condition } from '../engine/flowCore';
 import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/healing';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
-import { FLOW_VERBS, flowActionName, type RollVerb, type FlowVerbs } from './flowVerbs';
+import { fluxAccepte, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
+import { refuserGeste } from './refusVisible';
 import { deDuJet, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase, type VerbeDuCycle } from './rollFlowFactory';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
@@ -240,77 +241,69 @@ function requeteDEtape(st: CascadeStep, skill: string | undefined, spec: string 
   return { skill, spec, ...(st.contexte ? { contexte: st.contexte } : {}) };
 }
 
-// ── Délégués de jet du store : générateur + types (fin de la duplication ~113 lignes) ──
-//
-// Chaque flux de `FLOWS` est câblé dans le store sous des noms canoniques `<prefix><Verbe>`
-// (`battementRoll`, `battementReroll`…). Ces délégués étaient écrits À LA MAIN, un par ligne — un
-// SOUS-ENSEMBLE hétérogène des 6 verbes par flux (un flux sans `caps.forced` n'expose pas
-// `…ForceSuccess`/`…SetForcedRoll`, etc.). `rollFlowActions`/`rollFlowActionsMulti` reproduisent
-// EXACTEMENT le même ensemble de clés (le store passe la liste des verbes voulus) sans rien
-// recopier ; le runtime est byte-identique (mêmes appels `FLOWS.<x>.<m>(get, set[, …])`).
+// ── Les verbes de jet du noyau : un par verbe de `VERBES_DE_JET`, le flux en premier argument ──
 
-
-const capitalize = <S extends string>(s: S): Capitalize<S> =>
-  (s.charAt(0).toUpperCase() + s.slice(1)) as Capitalize<S>;
-
-/** Délégués MONO : `setForcedRoll` prend `(roll)`, les autres `()`. Clé = `${prefix}${Verbe}`. */
-export type MonoRollActions<P extends string, A extends RollVerb> = {
-  [K in A as `${P}${Capitalize<K>}`]: K extends 'setForcedRoll' ? (roll: number) => void : () => void;
-};
-/** Délégués MULTI : `pid` en tête (slot ciblé) ; `setForcedRoll` prend `(pid, roll)` ; `cancel` reste
- *  sans argument (il ferme la situation entière, pas un participant). */
-export type MultiRollActions<P extends string, A extends RollVerb> = {
-  [K in A as `${P}${Capitalize<K>}`]: K extends 'setForcedRoll' ? (pid: string, roll: number) => void : K extends 'cancel' ? () => void : (pid: string) => void;
-};
+/** Les dix verbes de jet du noyau (`NOM_DU_VERBE_DE_JET`) : chacun joue son verbe sur le flux `flux` qui l'accepte
+ *  (`FluxDuVerbe`), sur la rangée `pid` d'un flux à plusieurs jets (`viseUneRangee`). `jetSetForcedRoll` pose le dé
+ *  `roll` ; `jetCancel` ferme la fenêtre entière, sans rangée. */
+export interface VerbesDeJet {
+  jetRoll: (flux: FluxDuVerbe<'roll'>, pid?: string) => void;
+  jetReroll: (flux: FluxDuVerbe<'reroll'>, pid?: string) => void;
+  jetBonusSL: (flux: FluxDuVerbe<'bonusSL'>, pid?: string) => void;
+  jetDarkPact: (flux: FluxDuVerbe<'darkPact'>, pid?: string) => void;
+  jetForceSuccess: (flux: FluxDuVerbe<'forceSuccess'>, pid?: string) => void;
+  jetSetForcedRoll: (flux: FluxDuVerbe<'setForcedRoll'>, roll: number, pid?: string) => void;
+  jetResist: (flux: FluxDuVerbe<'resist'>, pid?: string) => void;
+  jetDetermine: (flux: FluxDuVerbe<'determine'>, pid?: string) => void;
+  jetCancel: (flux: FluxDuVerbe<'cancel'>) => void;
+  jetReverse: (flux: FluxDuVerbe<'reverse'>, pid?: string) => void;
+}
 
 /** Le geste PRÉ-ARMÉ de la Résilience avant le jet (LDB 17 l.68), encadré en un geste (`withPreRollFixedDie`) : « au
  *  lieu de lancer les dés », le forçage se passe du dé quand le flux le sait ; sinon le jet du flux tombe d'abord, par
- *  son délégué `<prefix>Roll` (le jet métier d'un flux qui ne l'expose pas comme verbe), puis il est forcé. */
-function auJetDu(prefix: string, get: Get, set: Set, pid?: string): (forcer: () => boolean) => void {
+ *  son verbe `roll` quand il l'accepte, puis il est forcé. */
+function auJetDu(h: RollFlowHandlers, flux: FlowKey, get: Get, set: Set, pid?: string): (forcer: () => boolean) => void {
   return (forcer) => {
     let sansDe = false;
     withPreRollFixedDie(get, set, () => {
       sansDe = forcer();
-      const lancer = (get() as unknown as Readonly<Record<string, unknown>>)[flowActionName(prefix, 'roll')];
-      if (!sansDe && typeof lancer === 'function') (lancer as (pid?: string) => void)(pid);
+      if (!sansDe && fluxAccepte(flux, 'roll')) h.roll(get, set, pid);
     }, () => { if (!sansDe) forcer(); });
   };
 }
 
-/** Délégués MONO d'un flux : les verbes listés, `() => FLOWS.x.m(get, set)` ; la Résilience porte son jet pré-armé. */
-export function rollFlowActions<P extends string, const A extends readonly RollVerb[]>(
-  prefix: P, flow: RollFlowHandlers, get: Get, set: Set, verbs: A,
-): MonoRollActions<P, A[number]> {
-  const out: Record<string, (roll?: number) => void> = {};
-  for (const v of verbs) {
-    out[`${prefix}${capitalize(v)}`] = v === 'setForcedRoll'
-      ? (roll?: number) => flow.setForcedRoll(get, set, roll as number)
-      : v === 'forceSuccess'
-        ? () => flow.forceSuccess(get, set, undefined, auJetDu(prefix, get, set))
-        : () => flow[v](get, set);
-  }
-  return out as MonoRollActions<P, A[number]>;
+/** Ce qui refuse le geste de jet `verbe` venu d'une frontière (JSON d'un hôte, intention d'un siège) : un flux qui
+ *  ne l'accepte pas, une rangée absente sur un flux à plusieurs jets, ou posée sur un flux à un jet ; `null` : il se
+ *  joue. */
+function refusDuGesteDeJet(verbe: RollVerb, flux: unknown, pid: unknown): string | null {
+  if (!fluxAccepte(flux, verbe)) return t('jet.refus.gesteAbsent');
+  return viseUneRangee(flux, verbe) === (typeof pid === 'string') ? null : t('jet.refus.rangee');
 }
 
-/** Délégués MULTI d'un flux : `pid` en tête, `(pid) => FLOWS.x.m(get, set, pid)` ; la Résilience porte son jet pré-armé. */
-export function rollFlowActionsMulti<P extends string, const A extends readonly RollVerb[]>(
-  prefix: P, flow: RollFlowHandlers, get: Get, set: Set, verbs: A,
-): MultiRollActions<P, A[number]> {
-  const out: Record<string, (a?: string | number, b?: number) => void> = {};
-  for (const v of verbs) {
-    out[`${prefix}${capitalize(v)}`] = v === 'setForcedRoll'
-      ? (pid?: string | number, roll?: number) => flow.setForcedRoll(get, set, roll as number, pid as string)
-      : v === 'cancel'
-        ? () => flow.cancel(get, set) // « Annuler » ferme la situation entière (pas de `pid`)
-        : v === 'forceSuccess'
-          ? (pid?: string | number) => flow.forceSuccess(get, set, pid as string, auJetDu(prefix, get, set, pid as string))
-          : (pid?: string | number) => flow[v](get, set, pid as string);
-  }
-  return out as MultiRollActions<P, A[number]>;
+/** Les dix verbes de jet du noyau sur `get`/`set` : chacun refuse, et le dit, le geste que son flux n'accepte pas
+ *  (`refusDuGesteDeJet`), sinon joue le handler de son flux (`FLOW_HANDLERS`). */
+export function creerVerbesDeJet(get: Get, set: Set): VerbesDeJet {
+  const jouer = (verbe: RollVerb, flux: unknown, pid: unknown, geste: (h: RollFlowHandlers, f: FlowKey, rangee: string | undefined) => void): void => {
+    const refus = refusDuGesteDeJet(verbe, flux, pid);
+    if (refus) { refuserGeste(get, set, refus); return; }
+    geste(FLOW_HANDLERS[flux as FlowKey], flux as FlowKey, pid as string | undefined);
+  };
+  const simple = (verbe: Exclude<RollVerb, 'setForcedRoll' | 'forceSuccess' | 'cancel'>) =>
+    (flux: FlowKey, pid?: string) => jouer(verbe, flux, pid, (h, _f, rangee) => h[verbe](get, set, rangee));
+  return {
+    jetRoll: simple('roll'),
+    jetReroll: simple('reroll'),
+    jetBonusSL: simple('bonusSL'),
+    jetDarkPact: simple('darkPact'),
+    jetResist: simple('resist'),
+    jetDetermine: simple('determine'),
+    jetReverse: simple('reverse'),
+    jetForceSuccess: (flux, pid) => jouer('forceSuccess', flux, pid, (h, f, rangee) => h.forceSuccess(get, set, rangee, auJetDu(h, f, get, set, rangee))),
+    jetSetForcedRoll: (flux, roll, pid) => jouer('setForcedRoll', flux, pid, (h, _f, rangee) => h.setForcedRoll(get, set, roll, rangee)),
+    jetCancel: (flux) => jouer('cancel', flux, undefined, (h) => h.cancel(get, set)),
+  };
 }
 
-// `RollFlowActionsMap` (surface EXACTE des délégués de jet du store) est DÉRIVÉE de `FLOW_WIRING` —
-// voir sa définition en bas de fichier (après la table). Fin de la recopie à la main des 36 lignes.
 
 /** Spec PARTAGÉE des Tests d'équipage MULTI (MDG 14) : un jet PAR RÔLE tenu (`rollCrewRole`), Résilience
  *  = DR max du contributeur (`forceCrewRole`), Chance « +1 DR » sur SON jet. Consommée par les 3 flux jumeaux
@@ -663,7 +656,7 @@ export function ligneDeProtection(actor: Combatant): RollLineParts {
 
 export const FLOWS = paresseux({
   /**
-   * Attaque (modale différée). Le JET INITIAL reste métier (`attackRoll` : +1 Avantage si cible
+   * Attaque (modale différée). Le JET INITIAL reste métier (`jetRoll('attack')` : +1 Avantage si cible
    * Sonnée, annulation hors portée/LdV, victime de déviation dans la mêlée) — comme `attackConfirm`.
    * Le cycle Chance/Pacte/Résilience/dé choisi vit ICI, identique à tous les flux.
    */
@@ -708,7 +701,7 @@ export const FLOWS = paresseux({
       const battle = s.battle;
       if (!battle) return null;
       const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.intoCrowd, p.heldGround, attackWeaponOf(battle, actor, target, p), p.withhold);
-      // MÊME gel que `attackRoll` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
+      // MÊME gel que `jetRoll('attack')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
       return r ? { result: r.res, victimId: r.victim?.id, weapon: r.weapon } : null;
@@ -866,7 +859,7 @@ export const FLOWS = paresseux({
 
   /**
    * Incantation / Prière. Tout jet qui remplace `result` change le budget de Surincantation : l'allocation
-   * retombe (`castRelance`, `overcastReset`). Le JET INITIAL reste métier (`castRoll` : wards journalisés,
+   * retombe (`castRelance`, `overcastReset`). Le JET INITIAL reste métier (`jetRoll('cast')` : wards journalisés,
    * Surincantation automatique de l'IA, déclaration de Contre-sort ennemi) — le cycle
    * Chance/Pacte/Résilience/dé choisi vit ici.
    */
@@ -2344,13 +2337,7 @@ export const FLOWS = paresseux({
   }),
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SOURCE UNIQUE du câblage des flux de jet différé : la table `FLOW_VERBS` vit dans `flowVerbs.ts`
-// (données pures, sans import runtime) et se ré-exporte ici pour ses consommateurs de flux.
-// ─────────────────────────────────────────────────────────────────────────────
-
-
-/** Handler (runtime) par flux — préfixe → `FLOWS.x`. `satisfies Record<keyof typeof FLOW_VERBS, …>`
+/** Handler (runtime) par flux de `FLOW_VERBS` (flowVerbs.ts) — clé → `FLOWS.x`. `satisfies Record<FlowKey, …>`
  *  force l'EXHAUSTIVITÉ : tout flux de `FLOW_VERBS` doit avoir son handler ici (sinon `tsc` casse).
  *  Décorrélé de la clé `FLOWS` (shipBattery→battery, opposition→castOpposition). */
 export const FLOW_HANDLERS = paresseux({
@@ -2363,55 +2350,16 @@ export const FLOW_HANDLERS = paresseux({
   counterspell: () => FLOWS.counterspell, cascade: () => FLOWS.cascade, opposition: () => FLOWS.castOpposition, extendedTest: () => FLOWS.extendedTest,
   forceDoor: () => FLOWS.forceDoor, shipManeuver: () => FLOWS.shipManeuver, shipBattery: () => FLOWS.battery, crewTest: () => FLOWS.crewTest,
   cascadeBatch: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot,
-} satisfies Record<keyof typeof FLOW_VERBS, () => RollFlowHandlers>);
+} satisfies Record<FlowKey, () => RollFlowHandlers>);
 
 /** Les rangées INTERACTIVES d'une opposition au Sort encore sans jet : la clôture les attend (`oppositionConfirm`). */
 export const oppositionsEnAttente = (p: PendingCastOpposition): OppositionParticipant[] =>
   p.participants.filter((part) => part.interactive && !part.result);
 
-/** Un geste du cycle que le store écrit à la main (`<flux>Confirm`, `<flux>Cancel`…) : `geste` ne joue que tant que le
+/** Un geste du cycle que le store écrit à la main (`<flux>Confirm`, `resolveTest`, `surgeryNext`…) : `geste` ne joue que tant que le
  *  flux ouvre ce verbe (`RollFlowHandlers.fermetures`, la fenêtre que lit `verbesOuverts`). */
 export function siOuvert(flux: keyof typeof FLOW_HANDLERS, verbe: VerbeDuCycle, get: Get, geste: () => void): void {
   if (!FLOW_HANDLERS[flux].fermetures(get)[verbe]) geste();
-}
-
-/** Un flux → ses délégués (Mono ou Multi selon `kind`) ; verbes lus depuis `FLOW_VERBS`. */
-type WiringActions<P extends string, W extends FlowVerbs> =
-  W['kind'] extends 'multi'
-    ? MultiRollActions<P, W['verbs'][number]>
-    : MonoRollActions<P, W['verbs'][number]>;
-
-/** Aplatit une union d'objets en leur intersection (`{a} | {b}` → `{a} & {b}`). */
-type UnionToIntersection<U> =
-  (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
-
-/** Matérialise une intersection CALCULÉE en objet PLAT — sinon `interface ActionsDuNoyau extends …` n'en
- *  voit pas les membres (une intersection issue de `UnionToIntersection` reste « lazy »). */
-type FlattenActions<T> = { [K in keyof T]: T[K] };
-
-/**
- * Surface EXACTE des délégués de jet du store (`<prefix><Verbe>`), DÉRIVÉE de `FLOW_VERBS` (sans le
- * handler → aucune réf à `Jeu`, donc PAS de cycle) : une entrée par flux → l'intersection de tous
- * les `Mono/MultiRollActions`, aplatie. `ActionsDuNoyau extends RollFlowActionsMap` (`actionsDuNoyau.ts`) rend l'invariant
- * BIDIRECTIONNEL : ajouter/retirer un flux ou un verbe dans `FLOW_VERBS` change ce type → le store doit
- * tout réimplémenter (via `buildRollFlowActions`), sinon `tsc` casse.
- */
-export type RollFlowActionsMap = FlattenActions<UnionToIntersection<{
-  [P in keyof typeof FLOW_VERBS]: WiringActions<P & string, (typeof FLOW_VERBS)[P]>
-}[keyof typeof FLOW_VERBS]>>;
-
-/** Assemble les ~113 délégués de jet du store (`<prefix><Verbe>`) depuis `FLOW_VERBS` + `FLOW_HANDLERS`
- *  — remplace les 40 spreads `rollFlowActions(Multi)` éparpillés dans le store. Neutre : les délégués ne
- *  dépendent que de `(get, set)`. */
-export function buildRollFlowActions(get: Get, set: Set): RollFlowActionsMap {
-  const out: Record<string, unknown> = {};
-  for (const [prefix, w] of Object.entries(FLOW_VERBS)) {
-    const flow = FLOW_HANDLERS[prefix as keyof typeof FLOW_HANDLERS];
-    Object.assign(out, w.kind === 'multi'
-      ? rollFlowActionsMulti(prefix, flow, get, set, w.verbs)
-      : rollFlowActions(prefix, flow, get, set, w.verbs));
-  }
-  return out as RollFlowActionsMap;
 }
 
 /** Le refus de la rangée de Contre-sort `pid` (`null` si elle lance maintenant) : phase de déclaration ouverte

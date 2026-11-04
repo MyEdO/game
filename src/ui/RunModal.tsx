@@ -11,6 +11,7 @@ import { describeRun } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de Course (LDB 15 l.41) : « Lancer » jette le Test de `pendingRun.test`,
@@ -21,13 +22,13 @@ import { t } from '../i18n';
 export function RunModal() {
   const pr = useGame((s) => s.pendingRun);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.runRoll);
-  const reroll = useGame((s) => s.runReroll);
-  const bonusSL = useGame((s) => s.runBonusSL);
-  const darkPact = useGame((s) => s.runDarkPact);
-  const force = useGame((s) => s.runForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'run');
+  const reroll = useGesteDeJet('jetReroll', 'run');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'run');
+  const darkPact = useGesteDeJet('jetDarkPact', 'run');
+  const force = useGesteDeJet('jetForceSuccess', 'run');
   const confirm = useGame((s) => s.runConfirm);
-  const cancel = useGame((s) => s.runCancel);
+  const cancel = useGesteDeJet('jetCancel', 'run');
   if (!pr || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pr.combatantId);
   if (!c) return null;

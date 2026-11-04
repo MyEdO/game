@@ -48,7 +48,7 @@ describe('battleShipReload — Test étendu de recharge d’un poste (MDG 12 / L
     seedBattleRng(1); // jet bas → réussite, DR ≥ 1 → 5 + DR ≥ 6 → rechargée
     setup();
     banc.getState().battleShipReload('ship', 'canon');
-    banc.getState().reloadRoll();
+    banc.getState().jetRoll('reload');
     banc.getState().reloadConfirm();
     const st = banc.getState();
     const poste = st.battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
@@ -100,7 +100,7 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.setState({ battle: { combatants: [cycleShip(), gunnerPJ(), foe()], order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingReload: null, scene: null as never });
     // Round 1 : bordée tribord → la pièce tire puis est DÉCHARGÉE.
     banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().shipBatteryRoll('gunner');
+    banc.getState().jetRoll('shipBattery', 'gunner');
     banc.getState().shipBatteryConfirm();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(false);
     // Même Round : 2e bordée impossible (aucune pièce ne porte → ne s'ouvre pas).
@@ -110,7 +110,7 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, round: 2, crewActed: {} } as never });
     banc.getState().battleShipReload('ship', 'canon');
     expect(banc.getState().pendingReload).toBeTruthy();
-    banc.getState().reloadRoll();
+    banc.getState().jetRoll('reload');
     banc.getState().reloadConfirm();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(true); // rechargée
     // Round 2, après recharge : la bordée redevient possible.

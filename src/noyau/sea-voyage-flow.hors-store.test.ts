@@ -309,7 +309,7 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const muet = barreSansVoile();
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const step = driveToCrewStep('progression')!;
-    for (const r of step.participants!) if (r.id !== muet) get().cascadeBatchRoll(r.id);
+    for (const r of step.participants!) if (r.id !== muet) get().jetRoll('cascadeBatch', r.id);
     const p = get().pendingCascade!;
     const rolled = p.participants[p.cursor];
     const somme = rolled.participants!.filter((r) => r.id !== muet).reduce((t, r) => t + jete(r.result).sl * (r.essential ? 2 : 1), 0);
@@ -326,10 +326,10 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const points = { fortune: Math.max(1, avant.fortune ?? 0), resilience: Math.max(1, avant.resilience ?? 0) };
     Object.assign(avant, points);
     seedBattleRng(9);
-    get().cascadeBatchRoll(muet);
-    get().cascadeBatchForceSuccess(muet);
-    get().cascadeBatchBonusSL(muet);
-    get().cascadeBatchReroll(muet);
+    get().jetRoll('cascadeBatch', muet);
+    get().jetForceSuccess('cascadeBatch', muet);
+    get().jetBonusSL('cascadeBatch', muet);
+    get().jetReroll('cascadeBatch', muet);
     const p = get().pendingCascade!;
     expect(p.participants[p.cursor].participants!.find((r) => r.id === muet)!.result).toEqual(ECHEC_SANS_JET);
     const apres = get().party.find((h) => h.id === muet)!;
@@ -501,8 +501,8 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       if (cur?.kind === 'progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
       if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
-      else if (cur && !cur.result) get().cascadeRoll(cur.id);
+      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetRoll('cascadeBatch', part.id); }
+      else if (cur && !cur.result) get().jetRoll('cascade', cur.id);
       get().cascadeNext();
     }
     expect(phare).toBeTruthy(); // l'étape du phare a bien été atteinte (port à phare, km 1 → dans la portée dès le jour 1)
@@ -2431,7 +2431,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     runSeaDay(get, set);
     const st = soutenues().find((x) => x.kind === 'sea-force-pace')!;
     const attendu = st.target!;
-    get().cascadeRoll(st.id);
+    get().jetRoll('cascade', st.id);
     const roule = (get().pendingCascade!.participants.find((x) => x.id === st.id))!;
     expect(roule.result, 'le jet a bien eu lieu').toBeTruthy();
     expect(roule.result!.target, 'la cible ROULÉE est la cible soutenue').toBe(attendu);
@@ -2801,11 +2801,11 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
       avanceEtapeCascade(get);
     }
     expect(id, 'étape sea-salissures atteinte').toBeTruthy();
-    get().cascadeRoll(id!);
-    get().cascadeSetForcedRoll(id!, 96);
+    get().jetRoll('cascade', id!);
+    get().jetSetForcedRoll('cascade', 96, id!);
     const avant = get().party.map((h) => [h.resilience, h.fortune]);
-    get().cascadeForceSuccess(id!);
-    get().cascadeReroll(id!);
+    get().jetForceSuccess('cascade', id!);
+    get().jetReroll('cascade', id!);
     const st = get().pendingCascade!.participants.find((x) => x.id === id)!;
     expect(st.result?.success, 'l’échec du navire reste un échec').toBe(false);
     expect(get().party.map((h) => [h.resilience, h.fortune]), 'aucune ressource de héros dépensée').toEqual(avant);

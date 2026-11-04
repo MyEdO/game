@@ -713,7 +713,7 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
       // Rangée TÉMOIN auto-roulée à l'ouverture (précédent `battleCrewTest`) : le coup dans le dos d'un
       // frappeur non joué est résolu tout de suite ; celui d'un héros l'attend (il porte son cycle).
-      if (!played(foe)) get().fleeRoll(foe.id);
+      if (!played(foe)) get().jetRoll('flee', foe.id);
       // Aucune modale affichable (aucun des deux acteurs JOUÉ, combat fini, Destin en attente) →
       // résolution HEADLESS par LE MÊME flux (jamais un chemin de calcul parallèle). MÊME prédicat que
       // les rangées ci-dessus (`played`) — une fenêtre se joue exactement quand une rangée est
@@ -724,9 +724,9 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       const pdOpen = get().pendingDisengage;
       if (!pdOpen?.fuir) return;
-      if (!fleeBackstab(pdOpen)?.result) get().fleeRoll(foe.id);
+      if (!fleeBackstab(pdOpen)?.result) get().jetRoll('flee', foe.id);
       const pdRolled = get().pendingDisengage;
-      if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().fleeRoll(mover.id);
+      if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetRoll('flee', mover.id);
       tracerLaFuite(get, set, mover, foe, { dos: true, touche: true });
       get().fleeConfirm();
     },
@@ -746,7 +746,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const res = garanti(fleeBackstab(pd)?.result, pd.moverId, 'coup dans le dos de la Fuite');
       const toucheSlot = fleeTouche(pd);
       if (fleeToucheDu(pd) && !toucheSlot?.jet) {
-        get().fleeRoll(mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
+        get().jetRoll('flee', mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
         tracerLaFuite(get, set, mover, foe, { dos: false, touche: true });
         return get().fleeConfirm();
       }
@@ -1287,7 +1287,7 @@ export function createCombatSlice(get: Get, set: Set) {
         battle: { ...battle, action: null, preview: null },
       });
       // Auto-roule les TÉMOINS (marins PNJ) — leur jet initial est résolu sans influence (cf. makeRollFlow).
-      for (const part of opened.participants) if (!part.interactive) get().shipManeuverRoll(part.id);
+      for (const part of opened.participants) if (!part.interactive) get().jetRoll('shipManeuver', part.id);
     },
     shipManeuverSetTurn: (steps: number) => {
       const p = get().pendingShipManeuver;
@@ -1328,7 +1328,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened },
         battle: { ...battle, action: null, preview: null },
       });
-      for (const part of opened.participants) if (!part.interactive) get().shipBatteryRoll(part.id); // témoins (marins PNJ) auto-roulés
+      for (const part of opened.participants) if (!part.interactive) get().jetRoll('shipBattery', part.id); // témoins (marins PNJ) auto-roulés
     },
     shipBatteryConfirm: () => siOuvert('shipBattery', 'apply', get, () => {
       const { battle, pendingShipBattery: p } = get();
@@ -1393,7 +1393,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingCrewTest: { shipId: ship.id, testTypeId, ...opened },
         battle: { ...battle, action: null, preview: null },
       });
-      for (const part of opened.participants) if (!part.interactive) get().crewTestRoll(part.id); // témoins auto-roulés
+      for (const part of opened.participants) if (!part.interactive) get().jetRoll('crewTest', part.id); // témoins auto-roulés
     },
     crewTestConfirm: () => siOuvert('crewTest', 'apply', get, () => {
       const { battle, pendingCrewTest: p } = get();
@@ -1666,7 +1666,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
       if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.outOfRange'));
       if (blocked) return void refuserGeste(get, set, t('cf.noLoSMasked'));
-      // Le tir se résout par la modale de jet NORMALE (attackRoll/attackConfirm) ; le tireur n'est PAS actif.
+      // Le tir se résout par la modale de jet NORMALE (jetRoll('attack')/attackConfirm) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → attackConfirm applique le tir sans avancer le tour + épuise son tour normal.
       // La modale d'attaque est rendue par la CASCADE (CascadeModal → useAttackJetProps), comme TOUTE attaque :
       // on ouvre donc une cascade à une étape `jet:'attack'` pour le tireur (refermée par attackConfirm).
@@ -2220,7 +2220,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `attack`) — Résilience (forceSuccess/setForcedRoll) plus bas.
-    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `attackCancel`.
+    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `jetCancel('attack')`.
     attackConfirm: () => siOuvert('attack', 'apply', get, () => {
       const { battle, pendingAttack: pa } = get();
       if (!battle || !pa) return;
@@ -2358,7 +2358,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // étape `attack` (`pendingAttack` mis à jour par cleaveAttack/dualStrikeAttack) ; on n'avance qu'au bout.
       advanceCombatJet(get);
     }),
-    // `attackCancel` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
+    // `jetCancel('attack')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
     // (`FLOWS.attack.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
     // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la case d'impact est déposée par le placeur
     // ('siege', commitPlacedZone). Ouvre la modale de tir de la pièce indirecte servie (`pendingAttack` siège) :
@@ -2880,7 +2880,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
 
     // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — surgeryNext applique
-    // (medicFlow), surgeryCancel annule la passe, medicAbandonSurgery l'opération. openSurgeryPass POSE la
+    // (medicFlow), jetCancel('surgery') annule la passe, medicAbandonSurgery l'opération. openSurgeryPass POSE la
     // passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
 
     /** « Appliquer » : applique le soin (le jet est déjà figé). Coûte l'Action en combat. L'infirmerie
@@ -3145,10 +3145,10 @@ export function createCombatSlice(get: Get, set: Set) {
     // Contre-sort (flux multi) : chaque verbe cible un participant via `pid` (fabrique unique).
     /** Toute rangée jouable ICI et sans jet lance son Contre-sort. Verbe NULLAIRE : le drive
      *  d'auto-cadence (`STEP_WINDOW_AUTO`, `combatAuto.ts`) n'enchaîne que des verbes sans argument, et
-     *  la fenêtre est multi-participants (#1040) — un `counterspellRoll(pid)` par rangée.
+     *  la fenêtre est multi-participants (#1040) — un `jetRoll('counterspell', pid)` par rangée.
      *  Table de possession UNIQUE (`influencesLocally`, #1005) : la même qui décide de l'affordance de
      *  la rangée dans `CastModal`. Idempotent (une rangée déjà roulée ne rejoue pas, garde `opRoll`). */
-    counterspellRollAll: () => rollAllOwnedRows(get, FLOWS.counterspell, get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
+    counterspellRollAll: () => rollAllOwnedRows(get, FLOWS.counterspell, get().pendingCounterspell?.participants, (id) => get().jetRoll('counterspell', id)),
     /**
      * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
      * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `counterspellConfirm` ci-dessous) ou
@@ -3247,7 +3247,7 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Homologue d'opposition de `counterspellRollAll` : toute rangée jouable ICI et sans jet oppose
      *  son Test (mêmes conditions, même socle `rollAllOwnedRows`). Les rangées TÉMOIN sont déjà roulées
      *  à l'ouverture (`openCastOpposition`) — après ce verbe, plus rien n'est dû à `oppositionConfirm`. */
-    oppositionRollAll: () => rollAllOwnedRows(get, FLOWS.castOpposition, get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
+    oppositionRollAll: () => rollAllOwnedRows(get, FLOWS.castOpposition, get().pendingCastOpposition?.participants, (id) => get().jetRoll('opposition', id)),
     oppositionConfirm: () => {
       const pco = get().pendingCastOpposition;
       const pc = get().pendingCast;
@@ -3461,7 +3461,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
     // applier 'combatPsych', résolue par les handlers `cascade*`. La Détermination (LDB 17 l.59) est offerte
-    // sur la RANGÉE par `cascadeBatchDetermine`.
+    // sur la RANGÉE par `jetDetermine('cascadeBatch')`.
     // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',
     // ouverte par `openEncounterPsych` à l'entrée de scène.
 

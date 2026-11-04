@@ -7,7 +7,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
-import type { FLOW_VERBS } from './flowVerbs';
 import {
   GUEST_INTENTS, PARTY_INTENTS, INTERLUDE_INTENTS,
   type ActionManuscrite, type ClasseCoop, type Ouverture, type TableDesClasses,
@@ -29,12 +28,12 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     expect(classee(table).actionNeuve).toBe('interne');
   });
 
-  it('seules les actions MANUSCRITES s’écrivent : ni champ d’état, ni délégué ou résolution de flux', () => {
+  it('seules les actions MANUSCRITES s’écrivent : ni champ d’état, ni verbe de jet ou résolution de flux', () => {
     const neuve: ActionManuscrite<EtatAvecActionNeuve> = 'actionNeuve';
     // @ts-expect-error — un champ d'état n'est pas une action
     const champ: ActionManuscrite<EtatAvecActionNeuve> = 'champNeuf';
-    // @ts-expect-error — un délégué de flux a sa classe DÉRIVÉE de `FLOW_VERBS`
-    const delegue: ActionManuscrite = 'attackReroll';
+    // @ts-expect-error — un verbe de jet a sa classe DÉRIVÉE de `FLOW_VERBS`
+    const delegue: ActionManuscrite = 'jetReroll';
     // @ts-expect-error — une `resolution` de flux aussi
     const resolution: ActionManuscrite = 'bargainConfirm';
     // @ts-expect-error — quatre classes, aucune autre
@@ -64,29 +63,6 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     // @ts-expect-error — `dispelSelectCarrier` n'écrit qu'un champ hors snapshot
     const election: TableDesClasses = { ...t, dispelSelectCarrier: 'invité' };
     expect([ouvreur.appraiseItem, election.dispelSelectCarrier]).toEqual(['invité', 'invité']);
-  });
-
-  it('les actions d’un flux multi SANS `coop` n’ont pas de classe dérivée : elles s’écrivent', () => {
-    type FluxNonCoop = typeof FLOW_VERBS & { faux: { kind: 'multi'; pidIsActor: true; verbs: readonly ['roll']; resolution: readonly ['fauxConfirm'] } };
-    type FluxCoop = typeof FLOW_VERBS & { faux: { kind: 'multi'; pidIsActor: true; coop: true; verbs: readonly ['roll']; resolution: readonly ['fauxConfirm'] } };
-    type EtatAvecFlux = Jeu & { fauxRoll: (pid: string) => void; fauxConfirm: () => void };
-    const delegue: ActionManuscrite<EtatAvecFlux, FluxNonCoop> = 'fauxRoll';
-    const resolution: ActionManuscrite<EtatAvecFlux, FluxNonCoop> = 'fauxConfirm';
-    // @ts-expect-error — en `coop: true`, le délégué est dérivé
-    const derive: ActionManuscrite<EtatAvecFlux, FluxCoop> = 'fauxRoll';
-    expect([delegue, resolution, derive]).toHaveLength(3);
-  });
-
-  it('un délégué ou une `resolution` d’un flux multi SANS `coop` prend une classe LIBRE, mais en prend une', () => {
-    type FluxNonCoop = typeof FLOW_VERBS & { faux: { kind: 'multi'; pidIsActor: true; verbs: readonly ['roll']; resolution: readonly ['fauxConfirm'] } };
-    type EtatAvecFlux = Jeu & { fauxRoll: (pid: string) => void; fauxConfirm: () => void; fauxSetBar: () => void };
-    const t = { battleEndTurn: 'invité' } as TableDesClasses;
-    const hote: TableDesClasses<EtatAvecFlux, FluxNonCoop> = { ...t, fauxRoll: 'hôte', fauxConfirm: 'interne', fauxSetBar: 'invité' };
-    // @ts-expect-error — hors délégué et `resolution`, une action `<prefix><Maj>…` reste `invité`
-    const prefixe: TableDesClasses<EtatAvecFlux, FluxNonCoop> = { ...t, fauxRoll: 'hôte', fauxConfirm: 'interne', fauxSetBar: 'hôte' };
-    // @ts-expect-error — `fauxConfirm` n'a pas de classe
-    const sansClasse: TableDesClasses<EtatAvecFlux, FluxNonCoop> = { ...t, fauxRoll: 'hôte', fauxSetBar: 'invité' };
-    expect([hote.fauxRoll, hote.fauxConfirm, prefixe.fauxSetBar, sansClasse.fauxRoll]).toEqual(['hôte', 'interne', 'hôte', 'hôte']);
   });
 
   it('une ouverture `interne` nomme son site `<module>.<fonction>`', () => {

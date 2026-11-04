@@ -319,7 +319,7 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de {skill
         return;
       }
       const c = p.participants[p.cursor];
-      if (c && c.target != null && !c.result) get().cascadeRoll(c.id);
+      if (c && c.target != null && !c.result) get().jetRoll('cascade', c.id);
       else get().cascadeNext();
     }
   });

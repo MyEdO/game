@@ -93,7 +93,7 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 2;
     pietiner(E.id);
     expect(banc.getState().pendingAttack!.freeKind).toBe('pietinement');
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     expect(pa.weapon!.attackKind, 'l’arme du JET est celle du Piétinement').toBe('pietinement');
     expect(pa.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
@@ -108,7 +108,7 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 2;
     banc.getState().battleSelectAttack('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true });
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     expect(H.weapons.some((w) => w.attackKind === 'morsure'), 'aucune arme tenue ne porte la Morsure').toBe(false);
     expect(pa.weapon!.attackKind).toBe('morsure');
@@ -127,7 +127,7 @@ describe('Piétinement en combat (store)', () => {
     E.advantage = 0;
     const before = E.wounds.current;
     pietiner(E.id);
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     expect(advDe(H.id)).toBe(0);
     expect(advDe(E.id)).toBe(1);
@@ -221,7 +221,7 @@ describe('Piétinement en combat (store)', () => {
     const paye = banc.getState();
     expect(paye.pendingAttack, 'la déclaration a ouvert le jet').toBeTruthy();
     expect(advDe(H.id) < 2 || paye.battle!.movementUsed > 0, 'la déclaration a PAYÉ').toBe(true);
-    banc.getState().attackCancel();
+    banc.getState().jetCancel('attack');
     const st = banc.getState();
     expect(st.pendingAttack).toBeNull();
     expect(advDe(H.id), 'Avantage rendu').toBe(2);
@@ -392,7 +392,7 @@ describe('Piétinement en combat (store)', () => {
     H.size = 'grande';
     H.advantage = 3;
     pietiner(E.id);
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     h.advantage = 3;
@@ -408,7 +408,7 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 3;
     expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime }).ok).toBe(true);
     pietiner(E.id);
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     banc.reprendreTout();
     const b = banc.getState().battle!;

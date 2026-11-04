@@ -127,7 +127,7 @@ describe('flux shipBattery (store) — bordée jouable bout-en-bout (MDG 14 l.12
     expect(p.side).toBe('tribord'); // cible plein est, cap N → bordée tribord
     expect(p.participants.some((x) => x.id === 'gunner' && x.essential)).toBe(true); // l'Artilleur est ESSENTIEL (★)
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current;
-    banc.getState().shipBatteryRoll('gunner'); // le PJ Artilleur lance SON jet
+    banc.getState().jetRoll('shipBattery', 'gunner'); // le PJ Artilleur lance SON jet
     expect(banc.getState().pendingShipBattery!.participants.every((x) => x.result)).toBe(true);
     banc.getState().shipBatteryConfirm();
     expect(banc.getState().pendingShipBattery).toBeNull();
@@ -145,7 +145,7 @@ describe('flux shipBattery (store) — bordée jouable bout-en-bout (MDG 14 l.12
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never });
     banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().shipBatteryRoll('gunner');
+    banc.getState().jetRoll('shipBattery', 'gunner');
     banc.getState().shipBatteryConfirm();
     const poste = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
     expect(poste.loaded).toBe(false); // a tiré → déchargée, reste muette jusqu'à la fin du Test étendu de recharge
@@ -158,7 +158,7 @@ describe('flux shipBattery (store) — bordée jouable bout-en-bout (MDG 14 l.12
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never });
     banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().shipBatteryRoll('gunner');
+    banc.getState().jetRoll('shipBattery', 'gunner');
     banc.getState().shipBatteryConfirm();
     expect(banc.getState().battle!.crewActed?.['ship']).toContain('gunner'); // l'Artilleur a agi ce Round
     // Parallélisme (MDG 14 l.37) : la bordée est une tâche d'équipage, elle NE consomme PAS le tour du navire
@@ -192,7 +192,7 @@ const setupNaval = (poste: ShipPoste, hull: Combatant, extra: Combatant[] = []) 
   banc.setState({ battle: { combatants: [ship, gunnerPJ(), hull, ...extra], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
     party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: navScene() as never });
   banc.getState().battleShipBattery('ship', 'target');
-  banc.getState().shipBatteryRoll('gunner');
+  banc.getState().jetRoll('shipBattery', 'gunner');
   banc.getState().shipBatteryConfirm();
 };
 
@@ -271,7 +271,7 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
   it('créature : la bordée jouée bout-en-bout la blesse, sans aucun État naval', () => {
     monter(pirate());
     banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().shipBatteryRoll('gunner');
+    banc.getState().jetRoll('shipBattery', 'gunner');
     banc.getState().shipBatteryConfirm();
     expect(cible().wounds.current).toBeLessThan(30);
     expect(cible().conditions.filter((c) => /navire|voie-d-eau/.test(c.id))).toEqual([]);
@@ -307,7 +307,7 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
     banc.setState({ battle: { combatants: [ship, gunnerPJ(), chariot(), voisin], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: { ...navScene(), metresPerTile: 2 } as never });
     banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().shipBatteryRoll('gunner');
+    banc.getState().jetRoll('shipBattery', 'gunner');
     banc.getState().shipBatteryConfirm();
     expect(cible().wounds.current).toBeLessThan(90);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'm1')!.wounds.current).toBeLessThan(6);
@@ -325,7 +325,7 @@ describe('bordée et véhicule routier réel (chariot-lourd) — EDOC 07 l.332-3
       party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingCascade: null, refus: null, scene: navScene() as never });
     banc.getState().battleShipBattery('ship', 'target');
     expect(banc.getState().pendingShipBattery, `refus : ${banc.getState().refus?.texte}`).not.toBeNull();
-    banc.getState().shipBatteryRoll('gunner');
+    banc.getState().jetRoll('shipBattery', 'gunner');
     expect(() => banc.getState().shipBatteryConfirm()).not.toThrow();
     const c = banc.getState().battle!.combatants.find((x) => x.id === 'target')!;
     expect(c.wounds.current).toBeLessThan(90);

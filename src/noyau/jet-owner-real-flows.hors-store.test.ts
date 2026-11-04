@@ -50,10 +50,15 @@ const NET_COOP = { ...NET0, mode: 'host' as const, mySeat: 0, gmSeat: 2, ownersh
 const NET_SOLO = { ...NET0, mode: 'local' as const, mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 
 const g = () => banc.getState();
-const verbs = (prefix: string, list: string[]) => list.map((v) => `${prefix}${v[0].toUpperCase()}${v.slice(1)}`);
-const argsOf = (intent: string) => (intent.endsWith('SetForcedRoll') ? [42] : []);
-/** Verdict des 3 sièges pour un intent : [hôte, joueur, MJ]. */
-const seats = (intent: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), seat, intent, argsOf(intent)));
+/** Les gestes de jet `list` sur le flux `flux`, par leur identité `verbe@flux` (`cleDuGeste`). */
+const verbs = (flux: string, list: string[]) => list.map((v) => `jet${v[0].toUpperCase()}${v.slice(1)}@${flux}`);
+/** Le verbe et les arguments du geste `verbe@flux` (`VerbesDeJet`). */
+const geste = (cle: string): [string, unknown[]] => {
+  const [verbe, flux] = cle.split('@');
+  return [verbe, verbe === 'jetSetForcedRoll' ? [flux, 42] : [flux]];
+};
+/** Verdict des 3 sièges pour un geste : [hôte, joueur, MJ]. */
+const seats = (cle: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), seat, ...geste(cle)));
 
 const INFLUENCE = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'];
 const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resist']);
@@ -159,7 +164,7 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_SOLO, party: [] });
     g().battleRun({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId).toBe('a');
-    for (const i of RUN_VERBS) expect(intentAllowedFor(g(), 0, i, argsOf(i)), i).toBe(true);
+    for (const i of RUN_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });
 
   it('HORS COMBAT (Activité d’interlude) : idem', () => {
@@ -172,6 +177,6 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     g().interludeActivity('a', 'observer-une-cible');
     expect(g().pendingActivity?.heroId).toBe('a');
-    for (const i of ACTIVITY_VERBS) expect(intentAllowedFor(g(), 0, i, argsOf(i)), i).toBe(true);
+    for (const i of ACTIVITY_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });
 });

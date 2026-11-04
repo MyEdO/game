@@ -41,13 +41,13 @@ function setBattle(combatants: Combatant[]) {
 }
 
 describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB 19 l.23-75)', () => {
-  it('l’Effet corruptionExposure tague la modale `menace: corruption` ; `corruptionResist` = auto-succès à DR = BE + spec consommée', () => {
+  it('l’Effet corruptionExposure tague la modale `menace: corruption` ; `jetResist@corruption` = auto-succès à DR = BE + spec consommée', () => {
     const a = hero();
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'moderee', nature: 'physique', heroId: a.id }]);
     const pc = banc.getState().pendingCorruption!;
     expect(pc.menace).toBe('corruption');
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     const done = banc.getState().pendingCorruption!;
     expect(done.success).toBe(true);
     expect(done.sl).toBe(bonus(43)); // « utilisez votre Bonus d'Endurance comme DR » → 4
@@ -61,18 +61,18 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     const a = hero();
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     banc.getState().resolveCorruption();
     // 2e exposition, même séance : la spec est consommée → le verbe ne fait RIEN (pas de jet posé).
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.roll).toBeUndefined();
-    banc.getState().corruptionRoll(); // le jet normal reste possible
+    banc.getState().jetRoll('corruption'); // le jet normal reste possible
     banc.getState().resolveCorruption();
     // Début de séance (couture UNIQUE restoreFortune) → compteur remis, le talent est de nouveau offert.
     banc.getState().restoreFortuneNow();
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.success).toBe(true);
   });
 
@@ -81,9 +81,9 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     const a = hero();
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionRoll();
+    banc.getState().jetRoll('corruption');
     expect(banc.getState().pendingCorruption!.success).toBe(false);
-    banc.getState().corruptionResist(); // rattrapage post-échec
+    banc.getState().jetResist('corruption'); // rattrapage post-échec
     expect(banc.getState().pendingCorruption!.success).toBe(true);
     expect(banc.getState().party[0].resistanceUsed).toContain('corruption');
   });
@@ -96,10 +96,10 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     const a = hero({ fortune: 0 });
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'majeure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionRoll();
+    banc.getState().jetRoll('corruption');
     const jet = banc.getState().pendingCorruption!;
     expect({ roll: jet.roll, target: jet.target, success: jet.success, sl: jet.sl }).toEqual({ roll: 40, target: 43, success: true, sl: 0 });
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.sl).toBe(bonus(43)); // DR = Bonus d'Endurance = 4
     expect(banc.getState().party[0].resistanceUsed).toContain('corruption');
     banc.getState().resolveCorruption();
@@ -113,9 +113,9 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     const a = hero({ fortune: 0 });
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'majeure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionRoll();
+    banc.getState().jetRoll('corruption');
     expect(banc.getState().pendingCorruption!.sl).toBe(bonus(43));
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.roll).toBe(2); // le jet naturel tient
     expect(banc.getState().party[0].resistanceUsed ?? []).toEqual([]);
   });
@@ -124,7 +124,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     const a = hero({ talents: [{ talentId: 'resistance', spec: 'poison', times: 1 }] });
     banc.setState({ party: [a] });
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.roll).toBeUndefined();
     expect(banc.getState().party[0].resistanceUsed ?? []).toEqual([]);
   });
@@ -139,7 +139,7 @@ describe('Résistance (Mutation) — Test de SEUIL de Corruption (LDB 19 l.70)',
     const pc = banc.getState().pendingCorruption!;
     expect(pc.kind).toBe('seuil');
     expect(pc.menace).toBe('mutation');
-    banc.getState().corruptionResist();
+    banc.getState().jetResist('corruption');
     expect(banc.getState().pendingCorruption!.success).toBe(true);
     banc.getState().resolveCorruption();
     expect((a.mutations ?? []).length).toBe(0); // contenu « pour cette fois »
@@ -148,7 +148,7 @@ describe('Résistance (Mutation) — Test de SEUIL de Corruption (LDB 19 l.70)',
 });
 
 describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51)', () => {
-  it('étape `combatEndDisease` taguée `menace: maladie` ; cascadeResist → réussite à DR = BE → PAS de contraction', () => {
+  it('étape `combatEndDisease` taguée `menace: maladie` ; jetResist@cascade → réussite à DR = BE → PAS de contraction', () => {
     const a = hero({ diseaseExposure: [{ disease: 'blessure-purulente' }] });
     setBattle([a]);
     banc.setState({ party: [hero()] });
@@ -159,7 +159,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
     const bande = p.participants.find((s) => s.kind === 'combatEndDisease')!;
     const row = bande.participants!.find((r) => r.id === a.id)!;
     expect(row.menace).toBe('maladie');
-    banc.getState().cascadeBatchResist(row.id);
+    banc.getState().jetResist('cascadeBatch', row.id);
     const rolled = banc.getState().pendingCascade!.participants
       .find((s) => s.id === bande.id)!.participants!.find((r) => r.id === a.id)!;
     expect(rolled.result).toEqual({ roll: 1, target: row.target, sl: bonus(43), success: true });
@@ -170,7 +170,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
 });
 
 describe('Résistance (Magie) — opposition à un Sort (« résister aux sorts »)', () => {
-  it('pendingCastOpposition tagué `menace: magie` ; oppositionResist → la cible RÉSISTE (DR = BE)', () => {
+  it('pendingCastOpposition tagué `menace: magie` ; jetResist@opposition → la cible RÉSISTE (DR = BE)', () => {
     const a = hero();
     const foe = hero({ id: 'e', label: 'E', kind: 'enemy', talents: [] });
     banc.setState({ party: [a] });
@@ -182,7 +182,7 @@ describe('Résistance (Magie) — opposition à un Sort (« résister aux sorts 
       } as never,
       pendingCastOpposition: { participants: [{ id: a.id, interactive: true, result: null }], test: { char: 'force-mentale' }, menace: 'magie' } as never,
     });
-    banc.getState().oppositionResist(a.id);
+    banc.getState().jetResist('opposition', a.id);
     const part = banc.getState().pendingCastOpposition!.participants[0];
     expect(part.result!.resisted).toBe(true);
     expect(part.result!.oppose.sl).toBe(bonus(43));

@@ -95,7 +95,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
   } as unknown as AttackResult;
   const suite = ennemiDefend ? { enchainement: { mode: 'aucun' as const } } : undefined;
   expect(maybeOpenDefense(g, banc.setState, attaquant, defenseur, attaquant.weapons[0], suite), 'la fenêtre du défenseur s’ouvre').toBe(true);
-  g().defenseRoll();
+  g().jetRoll('defense');
   banc.setState({ pendingDefense: {
     ...g().pendingDefense!, result: res, mode: 'parade', parryWeaponUid: parade.uid,
     ...(charge === 'reaction' ? { shieldReaction: 'push' as const } : {}),
@@ -110,7 +110,7 @@ function jouer(): string[] {
     const pd = g().pendingDefense;
     if (pd) {
       trace.push(`defense(${pd.weapon.label}→${pd.defenderId})`);
-      if (!pd.result) { g().defenseRoll(); g().defenseSetForcedRoll(97); }
+      if (!pd.result) { g().jetRoll('defense'); g().jetSetForcedRoll('defense', 97); }
       g().defenseConfirm();
       continue;
     }
@@ -223,7 +223,7 @@ describe('Maladresse de l’ATTAQUANT : une écriture, au temps `oupsAttaquant` 
   it('héros qui rate sur un double : UNE Maladresse, AVANT la suite (Action de la manœuvre rendue ensuite)', () => {
     const { h, e } = duel();
     openAttackCascade(g, banc.setState, { attackerId: h.id, targetId: e.id, location: null, result: null, weaponUid: 'sw', freeKind: 'morsure' }, 'Attaque', 'action/attack');
-    g().attackRoll();
+    g().jetRoll('attack');
     banc.setState({ pendingAttack: { ...g().pendingAttack!, result: {
       hit: true, attackerRoll: 33, netSL: 1, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: null,
       defenderDefeated: false, log: 'touche.', attackerDetail: { roll: 33, success: false, sl: -2 },

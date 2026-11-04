@@ -10,6 +10,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { confirmerLeCoup } from './jetProps/useAttackJetProps';
 import { libelleDeManoeuvre } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de MANŒUVRE de créature (LDB 85) qu'un héros active (mutation/polymorphie) : elle influence
@@ -20,14 +21,14 @@ import { t } from '../i18n';
 export function ManeuverModal() {
   const pm = useGame((s) => s.pendingManeuver);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.maneuverRoll);
-  const reroll = useGame((s) => s.maneuverReroll);
-  const bonusSL = useGame((s) => s.maneuverBonusSL);
-  const darkPact = useGame((s) => s.maneuverDarkPact);
-  const force = useGame((s) => s.maneuverForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'maneuver');
+  const reroll = useGesteDeJet('jetReroll', 'maneuver');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'maneuver');
+  const darkPact = useGesteDeJet('jetDarkPact', 'maneuver');
+  const force = useGesteDeJet('jetForceSuccess', 'maneuver');
   const setAvantage = useGame((s) => s.maneuverSetAvantage);
   const confirm = useGame((s) => s.maneuverConfirm);
-  const cancel = useGame((s) => s.maneuverCancel);
+  const cancel = useGesteDeJet('jetCancel', 'maneuver');
   const awaitingDefense = useGame(maneuverDefensePending);
   if (!pm || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pm.attackerId);

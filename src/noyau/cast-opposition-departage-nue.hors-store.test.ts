@@ -81,7 +81,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     const de = Array.from({ length: 100 }, (_, i) => i + 1)
       .find((r) => { const t = evaluateTest(r, testeeE); return t.success && t.sl === cast.sl; });
     expect(de, `aucun dé ne donne DR ${cast.sl} sur une cible de ${testeeE}`).toBe(1);
-    banc.getState().oppositionSetForcedRoll(E.id, de!);
+    banc.getState().jetSetForcedRoll('opposition', de!, E.id);
 
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;
     expect(part.result!.oppose.sl, 'DR égal : le départage tranche').toBe(cast.sl);
@@ -102,8 +102,8 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
 
     const avant = REPLIS_DEUX_CIBLES.count;
     banc.getState().castConfirm();                     // jet témoin auto-roulé → resolveOpposed
-    banc.getState().oppositionSetForcedRoll(E.id, 42); // dé fixé → re-opposition
-    banc.getState().oppositionBonusSL(E.id);           // +1 DR → re-opposition
+    banc.getState().jetSetForcedRoll('opposition', 42, E.id); // dé fixé → re-opposition
+    banc.getState().jetBonusSL('opposition', E.id);           // +1 DR → re-opposition
     expect(REPLIS_DEUX_CIBLES.count, 'un départage de l’opposition est retombé sur les cibles').toBe(avant);
   });
 });

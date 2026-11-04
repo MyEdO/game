@@ -199,7 +199,7 @@ describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () 
     expect(step.refus).toBe(refus);
     seedBattleRng(9);
     startCascade(get, set, { title: 'Sonde', purpose: 'test', steps: [step] });
-    get().cascadeRoll('muet');
+    get().jetRoll('cascade', 'muet');
     expect(get().pendingCascade!.participants[0].result).toEqual(ECHEC_SANS_JET);
     expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(9).int(1, 1_000_000));
   });

@@ -14,6 +14,7 @@ import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre d'Au contact. */
 const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-roll', choice: 'au-contact-choice' };
@@ -30,14 +31,14 @@ const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll:
 export function AuContactModal() {
   const pd = useGame((s) => s.pendingAuContact);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.auContactRoll);
-  const reroll = useGame((s) => s.auContactReroll);
-  const bonusSL = useGame((s) => s.auContactBonusSL);
-  const darkPact = useGame((s) => s.auContactDarkPact);
-  const force = useGame((s) => s.auContactForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'auContact');
+  const reroll = useGesteDeJet('jetReroll', 'auContact');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'auContact');
+  const darkPact = useGesteDeJet('jetDarkPact', 'auContact');
+  const force = useGesteDeJet('jetForceSuccess', 'auContact');
   const confirm = useGame((s) => s.auContactConfirm);
   const choose = useGame((s) => s.auContactChoose);
-  const cancel = useGame((s) => s.auContactCancel);
+  const cancel = useGesteDeJet('jetCancel', 'auContact');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);

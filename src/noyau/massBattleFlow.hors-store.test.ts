@@ -548,7 +548,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
       },
     });
     seedBattleRng(SEED);
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     const pa = pending()!;
     expect(pa.sl).toBe(pjSL);
     expect(pa.enemySL).toBe(0); // DR strictement égaux : seul le départage tranche
@@ -988,7 +988,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     banc.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ fortune: 1 });
     seedBattleRng(99);
-    banc.getState().activityReroll();
+    banc.getState().jetReroll('activity');
     expect(pending()!.rerolled).toBe(true); // `failed` true pour un partiel → la relance de Chance a lieu
   });
 
@@ -998,7 +998,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     const pa0 = pending()!;
     banc.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ resilience: 1 });
-    banc.getState().activityForceSuccess();
+    banc.getState().jetForceSuccess('activity');
     const pa = pending()!;
     expect(pa.combinedLevel).toBe('full');
     expect(pa.success2).toBe(true);
@@ -1011,7 +1011,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     banc.setState({ pendingActivity: { ...pa0, roll: 10, success: true, sl: 2, success2: true, sl2: 2, combinedLevel: 'full' } });
     grant({ resilience: 1 });
     const id = pending()!.heroId;
-    banc.getState().activityForceSuccess();
+    banc.getState().jetForceSuccess('activity');
     expect(banc.getState().party.find((h) => h.id === id)!.resilience).toBe(1); // non dépensée (activityWon → null)
   });
 
@@ -1024,7 +1024,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     expect(pa0.mod).toBe(-20); // pénalité de Menace Intrus (l.219)
     expect(pa0.target).toBe(Math.max(1, Math.min(99, pa0.skillValue - 20))); // mod fondu par l'opener
     seedBattleRng(5);
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     expect(pending()!.target).toBe(pa0.target); // la résolution NE l'écrase PAS par une cible sans mod
   });
 
@@ -1041,7 +1041,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     // PJ « réussi » numériquement (roll ≤ cible) MAIS l'ennemi l'emporte à l'opposition (enemySL 3 > 0).
     banc.setState({ pendingActivity: { ...pa0, roll: 20, target: 50, sl: pjSL, success: false, enemySL: 3 } });
     grant({ fortune: 1 });
-    banc.getState().activityBonusSL();
+    banc.getState().jetBonusSL('activity');
     const pa = pending()!;
     expect(pa.sl).toBe(pjSL + 1);
     expect(pa.enemySL).toBe(2); // +1 DR au PJ → −1 au DR net de l'ennemi

@@ -3,9 +3,9 @@
  * (Animosité/Préjugé envers l'interlocuteur, LDB 21) : la dépense pose l'IMMUNITÉ à la Psychologie
  * (source unique `spendResolveForPsychImmunity`) et, sur le Test EN COURS, le malus tombe.
  *
- * Elle passe par le VERBE de flux `determine` (`FLOWS.test.caps.determine` → action `testDetermine`),
+ * Elle passe par le VERBE de flux `determine` (`FLOWS.test.caps.determine` → action `jetDetermine('test')`),
  * le même que l'étape de cascade psy — plus aucune action manuscrite parallèle (#1017 G3) : c'est ce
- * qui la rend routable par la possession (`jetOwnedIntents`) et donc jouable par le siège du testeur
+ * qui la rend routable par la possession (le porteur du jet, `jetOwner`) et donc jouable par le siège du testeur
  * en coop.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -48,7 +48,7 @@ describe('Test de scène — Détermination contre un malus psy social (LDB 17 l
 
   it('dépense 1 Détermination et RETIRE le malus de la valeur ET de la cible', () => {
     banc.setState({ party: [mk('h1', 2)], pendingTest: pending() });
-    banc.getState().testDetermine();
+    banc.getState().jetDetermine('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.skillValue).toBe(45);
     expect(pt.target).toBe(45);
@@ -63,7 +63,7 @@ describe('Test de scène — Détermination contre un malus psy social (LDB 17 l
   it('pose l’IMMUNITÉ à la Psychologie (pas seulement la levée du malus du Test courant)', () => {
     banc.setState({ party: [mk('h1', 2)], pendingTest: pending() });
     expect(isPsychImmune(banc.getState().party[0]), 'précondition : pas immunisé avant la dépense').toBe(false);
-    banc.getState().testDetermine();
+    banc.getState().jetDetermine('test');
     const hero = banc.getState().party[0];
     expect(isPsychImmune(hero), 'immunisé à la Psychologie après la dépense').toBe(true);
     const eff = (hero.activeEffects ?? []).find((e) => e.psychImmune);
@@ -79,7 +79,7 @@ describe('Test de scène — Détermination contre un malus psy social (LDB 17 l
   it('le Test social SUIVANT de la fenêtre n’a plus le malus — sans nouvelle dépense', () => {
     banc.setState({ party: [avecAnimosite(2)], pendingTest: pending() });
     expect(socialPsychMod(banc.getState().party[0], ['elfe']), 'précondition : Animosité −20 envers Elfe').toBe(-20);
-    banc.getState().testDetermine();
+    banc.getState().jetDetermine('test');
     const hero = banc.getState().party[0];
     expect(socialPsychMod(hero, ['elfe']), 'Test SUIVANT ouvert dans la fenêtre : plus de malus').toBe(0);
     expect(socialPsychLabel(hero, ['elfe']), 'et plus d’étiquette de malus à afficher').toBeUndefined();
@@ -88,7 +88,7 @@ describe('Test de scène — Détermination contre un malus psy social (LDB 17 l
 
   it('sans point de Détermination : aucun effet (ni sur le Test, ni sur la réserve)', () => {
     banc.setState({ party: [mk('h1', 0)], pendingTest: pending() });
-    banc.getState().testDetermine();
+    banc.getState().jetDetermine('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.skillValue).toBe(25);
     expect(pt.psychMod).toBe(-20);
@@ -98,14 +98,14 @@ describe('Test de scène — Détermination contre un malus psy social (LDB 17 l
 
   it('APRÈS le jet : refusé (le malus a déjà pesé sur le dé)', () => {
     banc.setState({ party: [mk('h1', 2)], pendingTest: { ...pending(), roll: 30, success: false, sl: -1 } as PendingTest });
-    banc.getState().testDetermine();
+    banc.getState().jetDetermine('test');
     expect(banc.getState().pendingTest!.skillValue).toBe(25);
     expect(banc.getState().party[0].resolve).toBe(2);
   });
 
   it('sans malus psy : rien à ignorer, la réserve n’est pas entamée', () => {
     banc.setState({ party: [mk('h1', 2)], pendingTest: { ...pending(), skillValue: 45, target: 45, psychMod: 0, psychDetail: undefined } as PendingTest });
-    banc.getState().testDetermine();
+    banc.getState().jetDetermine('test');
     expect(banc.getState().party[0].resolve).toBe(2);
   });
 });

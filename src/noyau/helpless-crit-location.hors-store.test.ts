@@ -49,7 +49,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forced`),
     // mais gratuit — cf. LDB 16 l.113 « sans avoir à dépenser un Point de Résilience ».
     expect(banc.getState().pendingAttack?.forced).toBe(true);
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     expect(pa.result?.critical).toBe(true); // helplessTest (combat.ts) : Critique déjà forcé (inchangé par #124)
     // AVANT #124, `attackSetCritLocation` était bloqué par le garde `!pa.forced` (combatSlice.ts) :

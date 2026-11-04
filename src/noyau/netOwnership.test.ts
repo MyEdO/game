@@ -94,8 +94,8 @@ describe('possession réseau (netOwnership)', () => {
       pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
     });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'defenseRoll')).toBe(true);
-    expect(intentAllowedFor(s, 0, 'defenseRoll')).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRoll', ['defense'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRoll', ['defense'])).toBe(false);
   });
 
   it("sort ENNEMI ('*') : tout le monde peut agir (Contre-sort multi)", () => {
@@ -278,7 +278,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   it('modale de jet d’Activité (arbitre M8) : owner = héros du pending', () => {
     const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as Jeu['pendingActivity'] });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'activityRoll')).toBe(true);
-    expect(intentAllowedFor(s, 0, 'activityRoll')).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRoll', ['activity'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRoll', ['activity'])).toBe(false);
   });
 });

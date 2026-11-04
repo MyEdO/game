@@ -40,8 +40,8 @@ async function drain(): Promise<void> {
       const cur = p.participants[p.cursor];
       // Une manche héros-vs-héros est une BANDE : chaque rangée À JOUER se lance par son propre verbe.
       if (cur?.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().cascadeBatchRoll(row.id);
-      } else if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
+      } else if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
       get().cascadeNext();
     }
     await tick();
@@ -156,10 +156,10 @@ describe('playTavernGame', () => {
     banc.setState({ party: [a] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const stepId = get().pendingCascade!.participants[0].id;
-    get().cascadeRoll(stepId);
+    get().jetRoll('cascade', stepId);
     const before = get().pendingCascade!.participants[0];
     const aT = before.meta!.opposed!.aT;
-    get().cascadeBonusSL(stepId);
+    get().jetBonusSL('cascade', stepId);
     const after = jete(get().pendingCascade!.participants[0].result);
     // Le DR propre du défenseur monte de +1 (Chance, LDB 17 l.24) — jamais un nouveau jet de l'adversaire.
     expect(after.sl).toBe(before.result!.sl + 1);

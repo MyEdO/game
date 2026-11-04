@@ -89,7 +89,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     // Fenêtre de Contre-sort telle que `routeCounterspell` la pose après le jet figé (ici, un
     // contre-lanceur adverse possédé par un siège).
     banc.setState({ pendingCounterspell: { participants: [{ id: E.id, interactive: true, declared: 'solo', result: null }] } });
-    banc.getState().counterspellCancel(); // aucun Contre-sort retenu → la fenêtre se ferme
+    banc.getState().jetCancel('counterspell'); // aucun Contre-sort retenu → la fenêtre se ferme
     expect(banc.getState().pendingCounterspell).toBeNull();
     // Le LANCEUR est surfacé (héros manuel) : sa modale d'incantation tient encore ses choix — la
     // chaîne ne repart pas toute seule (#1028, `resumeAfterCounterspell`), c'est « Appliquer » qui la relance.

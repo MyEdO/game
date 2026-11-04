@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { ROUTES } from '../noyau/netOwnership';
-import { jetOwnedIntents, participantOwnedIntents } from '../noyau/flowVerbs';
+import { NOM_DU_VERBE_DE_JET, resolutionsDuPorteur } from '../noyau/flowVerbs';
 import { ACTIONS } from '../data/index';
 import { KEYBINDINGS } from './clavier/keybindings';
 
@@ -64,9 +64,6 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   massBattleActivity: { parUI: true },
   // Tir rapide (#1050) : le badge de la frise ARME la visée ; le tir lui-même part du clic-token.
   armPreempt: { parUI: true },
-  cascadeResist: { parUI: true },
-  cascadeReverse: { parUI: true },
-  extendedTestReverse: { parUI: true },
   // PHASE 1 du Contre-sort (#1042/#1059) : le choix de déclaration vit SUR la rangée, dans la modale
   // d'incantation ; « tout déclarer » est un verbe NULLAIRE du drive d'auto-cadence (aucun bouton).
   counterspellDeclare: { parUI: true },
@@ -75,9 +72,6 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // Choix de l'arme d'enfoncement (EDO 11 l.93) : option de la rangée dans `ForceDoorModal`.
   forceDoorChoisirArme: { parUI: true },
   healSetBandages: { parUI: true },
-  // « Laisser passer » : action de la barre de la modale d'incantation — routée depuis #1042 pour
-  // porter la frontière de phase (elle tombait sur le repli universel avant).
-  counterspellCancel: { parUI: true },
   counterspellDeclareAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
   preemptRangedShot: { interne: 'combatSlice.battleClickEntity — le clic voyage par battleClickEntity (visée armée)', dans: 'src/noyau/combatSlice.ts' },
   // Verbes NULLAIRES du drive d'auto-cadence (#1030) : aucun bouton, le pilote local les enchaîne.
@@ -158,7 +152,7 @@ describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclar
   });
 
   it('toute route NOMINATIVE de `ROUTES` figure dans EMISSION (aucune route sans verdict d’émission)', () => {
-    const derivees = new Set([...Object.keys(jetOwnedIntents()), ...participantOwnedIntents()]);
+    const derivees = new Set<string>([...Object.values(NOM_DU_VERBE_DE_JET), ...Object.keys(resolutionsDuPorteur())]);
     const routes = [...ROUTES.keys()].filter((a) => !derivees.has(a));
     expect(routes.length, 'précondition : la table expose bien ses routes nominatives').toBeGreaterThan(10);
     const sansVerdict = routes.filter((n) => !(n in EMISSION) && !ROUTES.get(n)!.horsAllowlist);

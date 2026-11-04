@@ -31,7 +31,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     let guard = 0;
     while (banc.getState().pendingForceDoor && guard++ < 40) {
       const p = banc.getState().pendingForceDoor!;
-      p.participants.forEach((part) => banc.getState().forceDoorRoll(part.id)); // chacun SON jet
+      p.participants.forEach((part) => banc.getState().jetRoll('forceDoor', part.id)); // chacun SON jet
       expect(banc.getState().pendingForceDoor!.participants.every((x) => x.result)).toBe(true);
       banc.getState().forceDoorConfirm(); // applique la somme du Round
     }
@@ -72,7 +72,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
   it('Résilience garantit un coup ; chaque héros dépense SES propres ressources', () => {
     const [a] = heroes();
     banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 50, heroIds: [a.id] });
-    banc.getState().forceDoorForceSuccess(a.id); // « Je ne faillirai pas ! » → DR max → dégâts
+    banc.getState().jetForceSuccess('forceDoor', a.id); // « Je ne faillirai pas ! » → DR max → dégâts
     const r = banc.getState().pendingForceDoor!.participants[0].result!;
     expect(r.damage).toBeGreaterThan(0);
     expect(banc.getState().party[0].resilience).toBe(1); // 1 Point de Résilience dépensé (le SIEN)
@@ -87,7 +87,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     a.characteristics['capacite-de-combat'] = 65; // Bagarre (Corps à corps) → cible ~65 (dizaines 6)
     banc.setState({ party: [a] });
     banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 80, heroIds: [a.id] });
-    banc.getState().forceDoorForceSuccess(a.id); // « Je ne faillirai pas ! »
+    banc.getState().jetForceSuccess('forceDoor', a.id); // « Je ne faillirai pas ! »
     const r = banc.getState().pendingForceDoor!.participants[0].result!;
     const maxDR = Math.floor(Math.min(r.target, 95) / 10); // dizaines de la cible = DR forcé MAXIMAL
     expect(maxDR).toBeGreaterThan(1);   // cible élevée → DR max clairement > 1

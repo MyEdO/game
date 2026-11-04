@@ -12,6 +12,7 @@ import { ev } from '../noyau/combatLog';
 import { describeBargain } from '../noyau/flowOutcomes';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Vue pure de la modale de Marchandage (Test OPPOSÉ, testable sans store). */
 export function BargainModalView({
@@ -124,12 +125,12 @@ export function BargainModalView({
 export function BargainModal() {
   const pb = useGame((s) => s.pendingBargain);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.bargainRoll);
-  const reroll = useGame((s) => s.bargainReroll);
-  const bonusSL = useGame((s) => s.bargainBonusSL);
-  const darkPact = useGame((s) => s.bargainDarkPact);
+  const roll = useGesteDeJet('jetRoll', 'bargain');
+  const reroll = useGesteDeJet('jetReroll', 'bargain');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'bargain');
+  const darkPact = useGesteDeJet('jetDarkPact', 'bargain');
   const confirm = useGame((s) => s.bargainConfirm);
-  const cancel = useGame((s) => s.bargainCancel);
+  const cancel = useGesteDeJet('jetCancel', 'bargain');
   // COOP (#1017) : l'ABONNEMENT à `net` (attribution des sièges) vit AVANT le retour anticipé — une
   // ré-attribution en cours de fenêtre doit re-rendre la modale, pas figer l'affordance du 1er rendu.
   useGame((s) => s.net);

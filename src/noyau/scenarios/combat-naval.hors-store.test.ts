@@ -187,7 +187,7 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
     banc.getState().battleShipBattery(BARGE, PIRATE);
     const p = banc.getState().pendingShipBattery;
     expect(p, `bordée refusée : ${banc.getState().refus?.texte}`).not.toBeNull();
-    for (const x of p!.participants) if (!x.result) banc.getState().shipBatteryRoll(x.id);
+    for (const x of p!.participants) if (!x.result) banc.getState().jetRoll('shipBattery', x.id);
     expect(() => banc.getState().shipBatteryConfirm()).not.toThrow();
     draineCascade(banc.getState);
     const coups = banc.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));

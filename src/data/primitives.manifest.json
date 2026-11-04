@@ -731,6 +731,15 @@
     "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
   },
   {
+    "id": "useGesteDeJet",
+    "type": "primitives.manifest",
+    "label": "useGesteDeJet",
+    "fichier": "src/ui/useGesteDeJet.ts",
+    "concept": "le geste d'un bouton de modale de jet : un verbe de jet du noyau (`jet<Verbe>(flux, …)`, `VerbesDeJet`) lié au flux de la modale, qui ne prend plus que la rangée `pid` et le dé posé",
+    "perimetre": "modales de jet (`CastModal`, `DisengageModal`, `FallModal`, `CascadeModal`…) et lentilles `jetProps/`",
+    "verrou": "`horsDelegues` (`src/noyau/fabriquesDuNoyau.ts`) : aucune action `<flux><Verbe>` ni `jet<Verbe>` écrite à la main ; `rollFlowWiring.test.ts` — aucun handler de verbe appelé hors des verbes de jet"
+  },
+  {
     "id": "useRamenerEnVue",
     "type": "primitives.manifest",
     "label": "useRamenerEnVue / ramenerEnVue",

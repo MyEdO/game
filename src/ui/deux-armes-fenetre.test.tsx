@@ -64,7 +64,7 @@ function duel(gmSeat: number | undefined) {
 const g = useGame.getState;
 const surDefense = (defenderId: string) => {
   expect(g().pendingDefense?.defenderId, 'la fenêtre du défenseur s’interpose').toBe(defenderId);
-  act(() => g().defenseRoll());
+  act(() => g().jetRoll('defense'));
   act(() => g().defenseConfirm());
 };
 
@@ -74,7 +74,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
       const { bretteur, gobelin } = duel(gmSeat);
       act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
       act(() => g().attackSetDualMode(true));
-      act(() => g().attackRoll());
+      act(() => g().jetRoll('attack'));
       act(() => g().attackConfirm());
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 1ʳᵉ frappe a touché : la 2ᵉ attend sa cible').toBeTruthy();

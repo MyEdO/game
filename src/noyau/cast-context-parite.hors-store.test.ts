@@ -1,5 +1,5 @@
 /**
- * #1064 — PARITÉ du contexte d'incantation : le PREMIER jet (`castRoll`) et la RELANCE
+ * #1064 — PARITÉ du contexte d'incantation : le PREMIER jet (`jetRoll('cast')`) et la RELANCE
  * (`FLOWS.cast.reresolve`) lisent le MÊME contexte (`castContextMods`) — « N'écoutez point la
  * Sorcière » (LDB 42), attribut de Domaine (LDB 48 l.157) et bonus d'ENVIRONNEMENT de Domaine
  * (Ghyran, LDB 48 l.690). Avant ce lot, le bonus d'environnement n'était appliqué QU'À LA RELANCE :
@@ -46,16 +46,16 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     const M = setup();
     const spell = findSpellById(SPELL)!;
     expect(domainEnvironmentBonus(spell, 'rural')).toBe(10); // la donnée porte bien le bonus
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     const first = banc.getState().pendingCast!.result!;
     expect(first.target).toBe(castingValue(M as Combatant, 'langue', 'magick') + 10);
   });
 
   it('la RELANCE rend la même cible que le premier jet (aucun mod n’apparaît/disparaît)', () => {
     setup();
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     const first = banc.getState().pendingCast!.result!.target;
-    banc.getState().castReroll();
+    banc.getState().jetReroll('cast');
     expect(banc.getState().pendingCast!.result!.target).toBe(first);
   });
 

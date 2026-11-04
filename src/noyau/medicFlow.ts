@@ -350,7 +350,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
 }
 
 /** Annule la Chirurgie : le cumul du Test étendu (LDB 12 l.170-174) est perdu. Jamais commencée
- *  (aucune passe appliquée) → l'acte PNJ est remboursé, comme `healCancel`. Ferme la passe en cours
+ *  (aucune passe appliquée) → l'acte PNJ est remboursé, comme `jetCancel('heal')`. Ferme la passe en cours
  *  (`pendingSurgery`) ET l'opération armée (`medic.surgery`). */
 export function medicAbandonSurgery(get: Get, set: Set): void {
   const m = get().medic;

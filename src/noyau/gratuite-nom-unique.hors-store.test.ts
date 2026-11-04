@@ -74,7 +74,7 @@ function nomsDeLaDefense(): Map<string, string> {
   expect(maybeOpenDefense(g, banc.setState, E, H, E.weapons[0], suite), 'la fenêtre de l’attaque d’Arme s’ouvre').toBe(true);
   const noms = new Map<string, string>();
   for (let garde = 0; garde < 10 && g().pendingDefense; garde++) {
-    g().defenseRoll();
+    g().jetRoll('defense');
     g().defenseConfirm();
     banc.reprendreTout();
     const pd = g().pendingDefense;

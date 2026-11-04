@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Test de Dextérité (+20) PAR ACTION de « Main ensanglantée » (Aux Armes bras 46-50, l.2569) : interposé
@@ -19,13 +20,13 @@ import { t } from '../i18n';
 export function HandGateModal() {
   const pg = useGame((s) => s.pendingHandGate);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.handGateRoll);
-  const reroll = useGame((s) => s.handGateReroll);
-  const bonusSL = useGame((s) => s.handGateBonusSL);
-  const darkPact = useGame((s) => s.handGateDarkPact);
-  const force = useGame((s) => s.handGateForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'handGate');
+  const reroll = useGesteDeJet('jetReroll', 'handGate');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'handGate');
+  const darkPact = useGesteDeJet('jetDarkPact', 'handGate');
+  const force = useGesteDeJet('jetForceSuccess', 'handGate');
   const confirm = useGame((s) => s.handGateConfirm);
-  const cancel = useGame((s) => s.handGateCancel);
+  const cancel = useGesteDeJet('jetCancel', 'handGate');
   if (!pg || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pg.attackerId);
   const rolled = pg.roll != null;

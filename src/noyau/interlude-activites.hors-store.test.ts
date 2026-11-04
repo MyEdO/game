@@ -107,7 +107,7 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     const { banc, heroId } = apresLeTirage();
     banc.actions.interludeActivity(heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId, 'témoin : les Revenus sont ouverts').toBe(heroId);
-    banc.actions.activityRoll();
+    banc.actions.jetRoll('activity');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
     epuiser(banc, heroId);
     const st = () => banc.getState().interlude!.perHero[heroId];
@@ -122,7 +122,7 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     expect(banc.getState().massBattle?.phase, 'témoin : la bataille attend sa préparation').toBe('prep');
     banc.actions.massBattleActivity('reperage', heroId);
     expect(banc.getState().pendingActivity?.battle, 'témoin : une préparation est ouverte').toBe('prep');
-    banc.actions.activityRoll();
+    banc.actions.jetRoll('activity');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
     epuiser(banc, heroId);
     const bataille = JSON.stringify(banc.getState().massBattle);

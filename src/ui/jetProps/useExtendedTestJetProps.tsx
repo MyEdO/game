@@ -7,6 +7,7 @@ import { Icon } from '../Icon';
 import { resultLines, freeCons } from '../../noyau/rollSeam';
 import { issueDuRound } from '../../noyau/testsDeScene';
 import { FLOWS } from '../../noyau/rollFlowSpecs';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test ÉTENDU (LDB 12 l.170-186).
@@ -23,14 +24,14 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingExtendedTest);
-  const roll = useGame((s) => s.extendedTestRoll);
-  const reroll = useGame((s) => s.extendedTestReroll);
-  const bonusSL = useGame((s) => s.extendedTestBonusSL);
-  const darkPact = useGame((s) => s.extendedTestDarkPact);
-  const force = useGame((s) => s.extendedTestForceSuccess);
-  const reverse = useGame((s) => s.extendedTestReverse); // Inversion (LDB 12 l.42)
+  const roll = useGesteDeJet('jetRoll', 'extendedTest');
+  const reroll = useGesteDeJet('jetReroll', 'extendedTest');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'extendedTest');
+  const darkPact = useGesteDeJet('jetDarkPact', 'extendedTest');
+  const force = useGesteDeJet('jetForceSuccess', 'extendedTest');
+  const reverse = useGesteDeJet('jetReverse', 'extendedTest'); // Inversion (LDB 12 l.42)
   const next = useGame((s) => s.extendedTestNext);
-  const cancel = useGame((s) => s.extendedTestCancel);
+  const cancel = useGesteDeJet('jetCancel', 'extendedTest');
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const actor = pool.find((c) => c.id === p.actorId);

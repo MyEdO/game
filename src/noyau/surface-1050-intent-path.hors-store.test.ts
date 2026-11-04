@@ -5,12 +5,12 @@
  * joue sur SON état local, et le snapshot suivant de l'hôte l'efface — sans message ni journal.
  *
  * Quatre familles, une par cause :
- *  - opposition de cible (`oppositionResist`/`oppositionConfirm`) : la cible d'un Sort opposé pouvait
+ *  - opposition de cible (`jetResist('opposition')`/`oppositionConfirm`) : la cible d'un Sort opposé pouvait
  *    jeter mais pas appliquer ;
  *  - hotbar (`battleSelectAttack`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
  *  - Tir rapide (`armPreempt`/`preemptRangedShot`, Talent « Tir rapide ») : pendant la pause de début
  *    de Round il n'y a AUCUN combattant actif, donc le repli universel rendait l'hôte ;
- *  - Résistance (Menace) d'une étape de cascade (`cascadeResist`).
+ *  - Résistance (Menace) d'une étape de cascade (`jetResist('cascade')`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -83,13 +83,13 @@ function ouvreOpposition() {
 }
 
 describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE (Sort ennemi)', () => {
-  it('oppositionResist : seul le siège de la CIBLE l’obtient, et son auto-succès est écrit', () => {
+  it('jetResist@opposition : seul le siège de la CIBLE l’obtient, et son auto-succès est écrit', () => {
     setup();
     ouvreOpposition();
-    expect(applyIntent(2, 'oppositionResist', ['h2']), 'un tiers brûlait le Talent de la cible').toBe('refusee');
-    expect(applyIntent(0, 'oppositionResist', ['h2']), 'l’hôte n’est pas le porteur de la rangée').toBe('refusee');
+    expect(applyIntent(2, 'jetResist', ['opposition', 'h2']), 'un tiers brûlait le Talent de la cible').toBe('refusee');
+    expect(applyIntent(0, 'jetResist', ['opposition', 'h2']), 'l’hôte n’est pas le porteur de la rangée').toBe('refusee');
     expect(banc.getState().pendingCastOpposition!.participants[0].result).toBeNull();
-    expect(applyIntent(1, 'oppositionResist', ['h2'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetResist', ['opposition', 'h2'])).toBe('appliquee');
     const part = banc.getState().pendingCastOpposition!.participants[0];
     expect(part.result!.resisted, 'la cible résiste (LDB : le Test réussit d’office)').toBe(true);
     expect(part.result!.oppose.sl, 'DR imposé = Bonus d’Endurance').toBe(bonus(43));
@@ -98,7 +98,7 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
   it('oppositionConfirm : la cible invitée APPLIQUE — la fenêtre d’opposition se referme', () => {
     setup();
     ouvreOpposition();
-    expect(applyIntent(1, 'oppositionResist', ['h2'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetResist', ['opposition', 'h2'])).toBe('appliquee');
     expect(applyIntent(1, 'oppositionConfirm', []), 'la cible pouvait jeter mais pas appliquer').toBe('appliquee');
     expect(banc.getState().pendingCastOpposition, 'l’opposition reste ouverte : le Sort ne se résout jamais').toBeNull();
   });
@@ -120,7 +120,7 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
   it('NON-RÉGRESSION SOLO : hors coop, la cible résiste et applique comme avant', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     ouvreOpposition();
-    banc.getState().oppositionResist('h2');
+    banc.getState().jetResist('opposition', 'h2');
     banc.getState().oppositionConfirm();
     expect(banc.getState().pendingCastOpposition).toBeNull();
   });
@@ -224,12 +224,12 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
     });
   };
 
-  it('cascadeResist : le siège de l’acteur de l’étape agit ; la fenêtre partagée n’ouvre PAS le geste à tous', () => {
+  it('jetResist@cascade : le siège de l’acteur de l’étape agit ; la fenêtre partagée n’ouvre PAS le geste à tous', () => {
     cascadeMenace();
-    expect(applyIntent(2, 'cascadeResist', ['st0']), 'étape partagée : un tiers brûlait la Résistance d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'cascadeResist', ['st0'])).toBe('refusee');
+    expect(applyIntent(2, 'jetResist', ['cascade', 'st0']), 'étape partagée : un tiers brûlait la Résistance d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'jetResist', ['cascade', 'st0'])).toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].result).toBeUndefined();
-    expect(applyIntent(1, 'cascadeResist', ['st0'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetResist', ['cascade', 'st0'])).toBe('appliquee');
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.result!.success).toBe(true);
     expect(step.result!.sl, 'DR imposé = Bonus d’Endurance').toBe(bonus(43));
@@ -237,6 +237,6 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
 
   it('étape INCONNUE (fermée) : personne ne joue le verbe', () => {
     cascadeMenace();
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'cascadeResist', ['inexistante']), `siège ${seat}`).toBe('refusee');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'jetResist', ['cascade', 'inexistante']), `siège ${seat}`).toBe('refusee');
   });
 });

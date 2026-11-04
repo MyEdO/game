@@ -29,8 +29,8 @@ describe('Cadence — couverture & validité de la politique auto', () => {
       ...Object.values(JET_AUTO).flatMap((p) => (p.mode === 'self' ? [...p.drive] : [])),
     ];
     expect(drives.length).toBeGreaterThan(0);
-    for (const name of drives) {
-      expect(typeof st[name as string], `noyau.${String(name)}`).toBe('function');
+    for (const g of drives) {
+      expect(typeof st[g.verbe], `noyau.${g.verbe}`).toBe('function');
     }
   });
 

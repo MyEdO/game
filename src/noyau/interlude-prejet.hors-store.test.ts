@@ -189,7 +189,7 @@ describe('Pré-jet d’Activité — la voie retenue est TENTABLE (LDB 09 l.30)'
 describe('Pré-jet d’Apprentissage — l’acharnement est un modificateur du Test (LDB 23 l.72)', () => {
   it('après une tentative ratée : Agilité 37, Difficile, +10 nommé', () => {
     const { b, h } = ouvrir('learn');
-    b.actions.activityRoll();
+    b.actions.jetRoll('activity');
     b.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 99, success: false, sl: -2 } }));
     b.actions.activityConfirm();
     const talentId = learnableTalents(h)[0].id;
@@ -323,7 +323,7 @@ function confronteAuVolet(b: Banc, heroId: string, def: ActivityDef, cibles: Cib
     return false;
   }
   if (refus != null || pj.refus != null) ecarts.push(`${ctx} ${def.id} : jet posé malgré le refus « ${refus ?? pj.refus} »`);
-  b.actions.activityRoll();
+  b.actions.jetRoll('activity');
   const lance = b.getState().pendingActivity!;
   const affiche = { test: testSkillLabel(idsDuTest(pj.test)), valeur: pj.value, difficulte: pj.ligne.difficulty, mod: pj.mods.reduce((n, m) => n + m.value, 0), cible: pj.ligne.target };
   const jet = { test: pa.skillLabel, valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod ?? 0, cible: lance.target };

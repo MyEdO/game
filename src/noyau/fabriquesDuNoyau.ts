@@ -5,8 +5,8 @@
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
-import { buildRollFlowActions } from './rollFlowSpecs';
-import type { FlowKey, RollVerb } from './flowVerbs';
+import { creerVerbesDeJet } from './rollFlowSpecs';
+import type { FlowKey, NomDeVerbeDeJet, RollVerb } from './flowVerbs';
 import { createCombatSlice } from './combatSlice';
 import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
@@ -46,12 +46,12 @@ import { creerActionsDuMarcheTerrestre } from './landMarketFlow';
 import { creerActionsDeLAuberge } from './innFlow';
 import { creerActionsDesActivitesEnMer } from './seaActivities';
 
-/** Les actions MANUSCRITES : aucune ne porte un nom `<flux><Verbe>` de l'espace des délégués de jet
- *  (préfixe de `FLOW_VERBS`, verbe de `RollVerb`), que le flux expose ce verbe ou non — le verbe d'un
- *  flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Une telle clé ne compile pas.
- *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
-type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}`;
-function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'délégué de jet : généré par buildRollFlowActions' }): T {
+/** Les actions MANUSCRITES : aucune ne porte le nom d'un verbe de jet (`NomDeVerbeDeJet`) ni un nom `<flux><Verbe>`
+ *  (clé de `FLOW_VERBS`, verbe de `RollVerb`) — un geste de jet est le verbe générique de son verbe, le flux en
+ *  argument ; le verbe d'un flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Une telle clé ne
+ *  compile pas. Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
+type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet;
+function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet : verbe générique de creerVerbesDeJet' }): T {
   return actions;
 }
 
@@ -59,8 +59,8 @@ function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, No
  *  réservées de leurs seuls écrivains), une fabrique par concept. */
 export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): ActionsDuNoyau {
   return {
-    // Les délégués de jet (mono et multi), dérivés de `FLOW_VERBS` : leur SEUL écrivain.
-    ...buildRollFlowActions(get, set),
+    // Les dix verbes de jet, le flux en argument : leur SEUL écrivain.
+    ...creerVerbesDeJet(get, set),
     ...horsDelegues({
       ...createCombatSlice(get, set),
       ...creerActionsDuRegistre(get),

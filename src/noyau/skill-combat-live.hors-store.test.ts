@@ -46,7 +46,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     seedBattleRng(1);
     setDefense(H, E);
     banc.getState().defenseSetMode('social');
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');
     expect(dd.label).toBe('Intimidation');
@@ -60,7 +60,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     seedBattleRng(1);
     setDefense(H, E);
     banc.getState().defenseSetMode('parade');
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('parade');
     expect(dd.base).toBe(combatValue(H, 'melee', H.weapons[0]));

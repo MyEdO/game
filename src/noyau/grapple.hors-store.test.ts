@@ -189,15 +189,15 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     activate(H, E);
     setGrapple(live(H.id), live(E.id));
     banc.getState().battleGrapple(E.id);
-    banc.getState().grappleCancel();
+    banc.getState().jetCancel('grapple');
     expect(banc.getState().pendingGrapple).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false);
 
     banc.getState().battleGrapple(E.id);
-    banc.getState().grappleRoll();
+    banc.getState().jetRoll('grapple');
     const lance = banc.getState().pendingGrapple;
     expect(lance?.result).toBeTruthy();
-    banc.getState().grappleCancel();
+    banc.getState().jetCancel('grapple');
     expect(banc.getState().pendingGrapple).toBe(lance);
     expect(banc.getState().refus?.texte).toBe(`Renoncement refusé : ${H.label} a déjà engagé son action, elle se joue jusqu’au bout.`);
   });

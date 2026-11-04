@@ -8,6 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Sauvegarde d'Initiative d'une PANNE DE VAPEUR « Fuite de vapeur » (MDG 12 l.326-328) : la personne qui
@@ -18,11 +19,11 @@ import { t } from '../i18n';
 export function SteamSaveModal() {
   const p = useGame((s) => s.pendingSteamSave);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.steamSaveRoll);
-  const reroll = useGame((s) => s.steamSaveReroll);
-  const bonusSL = useGame((s) => s.steamSaveBonusSL);
-  const darkPact = useGame((s) => s.steamSaveDarkPact);
-  const forceSuccess = useGame((s) => s.steamSaveForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'steamSave');
+  const reroll = useGesteDeJet('jetReroll', 'steamSave');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'steamSave');
+  const darkPact = useGesteDeJet('jetDarkPact', 'steamSave');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'steamSave');
   const confirm = useGame((s) => s.steamSaveConfirm);
   if (!p) return null;
   const actor = party.find((c) => c.id === p.actorId);

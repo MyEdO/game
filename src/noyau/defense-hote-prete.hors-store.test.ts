@@ -51,7 +51,7 @@ function setup(seed: number) {
 function jusquALaChaineDestabilisee(seed: number): boolean {
   const { tireur, ours } = setup(seed);
   if (!maybeOpenDefense(g, banc.setState, ours, tireur, undefined, undefined, ours.chargedThisTurn)) return false;
-  g().defenseRoll();
+  g().jetRoll('defense');
   if (!g().pendingDefense?.result?.hit) return false;
   g().defenseConfirm();
   const s = g();
@@ -102,7 +102,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       if (!jusquALaChaineDestabilisee(seed)) continue;
       const avant = etapeCourante();
       if (avant?.jet === 'defense') continue;
-      g().defenseRoll();
+      g().jetRoll('defense');
       const pd = g().pendingDefense;
       if (!pd?.result) continue;
       mesures++;

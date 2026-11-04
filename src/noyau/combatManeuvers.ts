@@ -710,7 +710,7 @@ export function distraireFoes(mover: Combatant, battle: BattleState): Combatant[
 }
 
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps
- *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`battementRoll`). */
+ *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetRoll('battement')`). */
 export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: Combatant): void {
   set({ pendingBattement: { attackerId: attacker.id, foeId: foe.id, result: null } });
 }

@@ -151,7 +151,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
     expect(compteDuCoup(res, epee, H, cible, 0).compte.relance).toBe(current === 0);
   });
 
-  /** Un Projectile incanté par castRoll sans double, appliqué par la chaîne d'incantation ; rend le journal et
+  /** Un Projectile incanté par jetRoll('cast') sans double, appliqué par la chaîne d'incantation ; rend le journal et
    *  la Localisation de touche (LDB 46). `sauve` : la cible porte Protection 1+ (LDB 85 l.278). */
   function projectile(current: number, sauve = false): { journal: string; touche: string } {
     for (let seed = 1; seed < 100; seed++) {
@@ -171,7 +171,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       cible.important = true;
       if (sauve) cible.traits = [...(cible.traits ?? []), { id: 'protection', value: 1 }];
       banc.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false, result: null } as never });
-      banc.getState().castRoll();
+      banc.getState().jetRoll('cast');
       const jet = banc.getState().pendingCast!.result!;
       if (!jet.cast || jet.isCritical || jet.isFumble) continue;
       resolveCastChain(banc.getState, banc.setState);
@@ -200,7 +200,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
 
 const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
 
-/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `attackRoll` la
+/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `jetRoll('attack')` la
  *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `attackConfirm`. */
 function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.getState().seedRng(3);

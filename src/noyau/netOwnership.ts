@@ -12,17 +12,13 @@ import { seatOwns, jetSurfaced } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
-import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, type JetOwnerRef } from './flowVerbs';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, fluxAccepte, resolutionsDuPorteur, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
 import { WORLD_STEP_OWNER } from './pendings';
 
-/** Intents de JET dont le 1ᵉʳ argument est l'id du combattant qui tient le slot — DÉRIVÉS de
- *  `FLOW_VERBS` (`kind:'multi'` + `pidIsActor`), jamais énumérés à la main. */
-const PARTICIPANT_OWNED_INTENTS: ReadonlySet<string> = new Set(participantOwnedIntents());
-
-/** Intents de JET dont la possession suit le PORTEUR du jet (`s[pending][field]`) — DÉRIVÉS de
- *  `FLOW_VERBS` (`kind:'mono'` + `jetOwner`), jamais énumérés à la main. */
-const JET_OWNED_INTENTS: Readonly<Record<string, JetOwnerRef>> = jetOwnedIntents();
+/** Clôtures (`resolution`) des flux MONO, dont la possession suit le PORTEUR du jet (`s[pending][field]`) — DÉRIVÉES
+ *  de `FLOW_VERBS`, jamais énumérées à la main. */
+const RESOLUTIONS_DU_PORTEUR: Readonly<Record<string, JetOwnerRef>> = resolutionsDuPorteur();
 
 /** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
  *  registre, jamais énumérés à la main. */
@@ -443,12 +439,9 @@ const routeRollAll = (rows: (s: Jeu) => readonly { id: string; interactive?: boo
  * Le repli aurait rendu le owner de la MODALE, qui vaut `'*'` sur une étape de GROUPE : n'importe quel
  * siège aurait brûlé la ressource d'autrui (#1005).
  */
-const CASCADE_ACTEUR_D_ETAPE: Route = {
-  rule: (s, seat, args) => {
-    const pid = idArg(args[0]);
-    const step = s.pendingCascade?.participants.find((p) => p.id === pid);
-    return !!step && seatInfluences(s, seat, step.actorId); // étape inconnue/fermée → personne
-  },
+const acteurDEtape = (s: Jeu, seat: number, pid: string | undefined): boolean => {
+  const step = s.pendingCascade?.participants.find((p) => p.id === pid);
+  return !!step && seatInfluences(s, seat, step.actorId); // étape inconnue/fermée → personne
 };
 
 /**
@@ -466,6 +459,33 @@ const routeJet = (jet: JetOwnerRef): Route => ({
     const pending = (s as unknown as Record<string, Record<string, unknown> | null | undefined>)[jet.pending];
     const ownerId = pending && typeof pending[jet.field] === 'string' ? (pending[jet.field] as string) : undefined;
     return !!ownerId && seatInfluences(s, seat, ownerId); // jet fermé/inconnu → personne ne dépense
+  },
+});
+
+/** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetSetForcedRoll`). */
+const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
+
+/**
+ * Possession d'un geste de jet `verbe`, d'après le flux qu'il vise (1ᵉʳ argument) — un flux qui ne l'accepte pas :
+ * personne.
+ *  - flux MONO : le porteur du jet (`routeJet`) ;
+ *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
+ *  - « Laisser passer » le Contre-sort : refusé à TOUT siège tant qu'une rangée n'a pas déclaré (#1042/#1059, 2ᵉ bout
+ *    de la garde d'effet, `FLOWS.counterspell.annulation`), puis le repli universel — prédicat STRUCTUREL (une rangée
+ *    sans `declared`) : `netOwnership` reste une feuille, sans import de flux ;
+ *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; l'annulation, qui
+ *    ferme la fenêtre de TOUS, et les flux dont la rangée n'a pas d'acteur propre (Round, étape, dé) retombent sur le
+ *    repli universel (le owner de LEUR modale).
+ */
+const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
+  rule: (s, seat, args) => {
+    const flux = args[0];
+    if (!fluxAccepte(flux, verbe)) return false;
+    const w: FlowVerbs = FLOW_VERBS[flux];
+    if (w.kind === 'mono') return routeJet(w.jetOwner).rule(s, seat, args);
+    if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
+    if (flux === 'counterspell' && verbe === 'cancel') return (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared) ? false : null;
+    return w.pidIsActor && verbe !== 'cancel' ? seatOwns(s, seat, rangeeDuGeste(verbe, args)) : null;
   },
 });
 
@@ -562,17 +582,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
     // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
     ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
-    // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
-    // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet,
-    // `FLOWS.counterspell.annulation`) ; phase close → `null`, le repli universel décide comme avant. Prédicat
-    // STRUCTUREL (une rangée sans `declared`) : `netOwnership` reste une feuille, sans import de flux.
-    ['counterspellCancel', { rule: (s) => ((s.pendingCounterspell?.participants ?? []).some((p) => !p.declared) ? false : null) }],
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],
-    // Résistance (Menace) et inversion d'une étape de cascade : routées sur l'acteur de l'étape (cf. ci-dessus).
-    ['cascadeResist', CASCADE_ACTEUR_D_ETAPE],
-    ['cascadeReverse', CASCADE_ACTEUR_D_ETAPE],
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
@@ -583,12 +595,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
       }] as readonly [string, Route],
     ),
   ],
-  // Flux MULTI dont le slot porte SON acteur (`FLOW_VERBS.pidIsActor`) : le JET d'un participant est
-  // piloté par le propriétaire de CE combattant (1ᵉʳ arg = son id). Les décisions de GROUPE (Confirm/
-  // Cancel) restent ouvertes ('*' via le owner de la modale), et les flux à `pidIsActor:false`
-  // (`cascade`, `extendedTest` : args[0] = id d'étape/de Round) tombent sur le owner de LEUR modale.
-  [...PARTICIPANT_OWNED_INTENTS].map((a) => [a, PAR_ARG0] as const),
-  Object.entries(JET_OWNED_INTENTS).map(([a, jet]) => [a, routeJet(jet)] as const),
+  // Les gestes de jet, routés par le flux qu'ils visent (`routeDuVerbeDeJet`), puis les clôtures des flux mono.
+  VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),
+  Object.entries(RESOLUTIONS_DU_PORTEUR).map(([a, jet]) => [a, routeJet(jet)] as const),
   Object.entries(HORS_MODAL_OWNED_INTENTS).map(([a, def]) => [a, routeHorsModal(def)] as const),
 );
 

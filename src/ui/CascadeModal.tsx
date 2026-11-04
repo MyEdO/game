@@ -46,6 +46,7 @@ import { libelleDuDe, lectureDuTotal, libelleDuSeuil, libelleDeTable, libelleDuJ
 import { cumulEtenduDeRangee } from '../noyau/progresEtendu';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
@@ -122,21 +123,21 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingCascade);
   const identites = useIdentites();
-  const batchRoll = useGame((s) => s.cascadeBatchRoll); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
-  const batchReroll = useGame((s) => s.cascadeBatchReroll);
-  const batchBonusSL = useGame((s) => s.cascadeBatchBonusSL);
-  const batchDarkPact = useGame((s) => s.cascadeBatchDarkPact);
-  const batchForce = useGame((s) => s.cascadeBatchForceSuccess);
-  const batchResist = useGame((s) => s.cascadeBatchResist); // Résistance (Menace) PAR RANGÉE (LDB 10)
-  const batchDetermine = useGame((s) => s.cascadeBatchDetermine); // Détermination PAR RANGÉE (LDB 17 l.59)
-  const batchReverse = useGame((s) => s.cascadeBatchReverse); // Inversion PAR RANGÉE (LDB 12 l.42)
-  const roll = useGame((s) => s.cascadeRoll);
-  const reroll = useGame((s) => s.cascadeReroll);
-  const bonusSL = useGame((s) => s.cascadeBonusSL);
-  const darkPact = useGame((s) => s.cascadeDarkPact);
-  const force = useGame((s) => s.cascadeForceSuccess);
-  const resistAct = useGame((s) => s.cascadeResist); // Résistance (Menace) : auto-succès du talent (LDB 10)
-  const reverseAct = useGame((s) => s.cascadeReverse); // Inversion (LDB 12 l.42)
+  const batchRoll = useGesteDeJet('jetRoll', 'cascadeBatch'); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
+  const batchReroll = useGesteDeJet('jetReroll', 'cascadeBatch');
+  const batchBonusSL = useGesteDeJet('jetBonusSL', 'cascadeBatch');
+  const batchDarkPact = useGesteDeJet('jetDarkPact', 'cascadeBatch');
+  const batchForce = useGesteDeJet('jetForceSuccess', 'cascadeBatch');
+  const batchResist = useGesteDeJet('jetResist', 'cascadeBatch'); // Résistance (Menace) PAR RANGÉE (LDB 10)
+  const batchDetermine = useGesteDeJet('jetDetermine', 'cascadeBatch'); // Détermination PAR RANGÉE (LDB 17 l.59)
+  const batchReverse = useGesteDeJet('jetReverse', 'cascadeBatch'); // Inversion PAR RANGÉE (LDB 12 l.42)
+  const roll = useGesteDeJet('jetRoll', 'cascade');
+  const reroll = useGesteDeJet('jetReroll', 'cascade');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'cascade');
+  const darkPact = useGesteDeJet('jetDarkPact', 'cascade');
+  const force = useGesteDeJet('jetForceSuccess', 'cascade');
+  const resistAct = useGesteDeJet('jetResist', 'cascade'); // Résistance (Menace) : auto-succès du talent (LDB 10)
+  const reverseAct = useGesteDeJet('jetReverse', 'cascade'); // Inversion (LDB 12 l.42)
   const next = useGame((s) => s.cascadeNext);
   const choose = useGame((s) => s.cascadeChoose); // étape « choix » : pose l'option retenue
   const setAmount = useGame((s) => s.cascadeAmount); // étape « quantité » : pose le nombre saisi

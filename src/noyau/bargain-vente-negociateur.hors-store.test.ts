@@ -13,7 +13,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`startBargain` →
- * `bargainRoll` → `bargainConfirm`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
+ * `jetRoll('bargain')` → `bargainConfirm`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
  */
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
@@ -36,7 +36,7 @@ function marchanderLaVente(joueur: number, marchand: number): void {
   get().openMerchant('pnj');
   get().startBargain('sell');
   imposerLesD100(joueur, marchand);
-  get().bargainRoll();
+  get().jetRoll('bargain');
 }
 
 describe('#2547 — vente marchandée par un Négociateur (LDB 59 l.54, LDB 10 l.818)', () => {

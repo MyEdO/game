@@ -14,6 +14,7 @@ import { VsHeader } from './VsHeader';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant
@@ -24,15 +25,15 @@ import { t } from '../i18n';
 export function BattementModal() {
   const pb = useGame((s) => s.pendingBattement);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.battementRoll);
-  const reroll = useGame((s) => s.battementReroll);
-  const bonusSL = useGame((s) => s.battementBonusSL);
-  const darkPact = useGame((s) => s.battementDarkPact);
-  const force = useGame((s) => s.battementForceSuccess);
-  const reverse = useGame((s) => s.battementReverse); // Inversion (LDB 12 l.42)
+  const roll = useGesteDeJet('jetRoll', 'battement');
+  const reroll = useGesteDeJet('jetReroll', 'battement');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'battement');
+  const darkPact = useGesteDeJet('jetDarkPact', 'battement');
+  const force = useGesteDeJet('jetForceSuccess', 'battement');
+  const reverse = useGesteDeJet('jetReverse', 'battement'); // Inversion (LDB 12 l.42)
   const setFoe = useGame((s) => s.battementSetFoe);
   const confirm = useGame((s) => s.battementConfirm);
-  const cancel = useGame((s) => s.battementCancel);
+  const cancel = useGesteDeJet('jetCancel', 'battement');
   if (!pb || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pb.attackerId);
   const foe = battle.combatants.find((c) => c.id === pb.foeId);

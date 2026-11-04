@@ -35,7 +35,7 @@ function openFailedTest(heroId: string, heroName: string) {
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
     },
   });
-  banc.getState().testRoll();
+  banc.getState().jetRoll('test');
   // Jet propre RATÉ forcé (gate de relance, LDB 12 l.13).
   banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
 }
@@ -47,7 +47,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
     const hero = blessedHero(0);
     banc.setState({ party: [hero] });
     openFailedTest(hero.id, hero.label);
-    banc.getState().testReroll();
+    banc.getState().jetReroll('test');
     const h = banc.getState().party[0];
     expect(banc.getState().pendingTest!.rerolled).toBe(true); // relance effectuée
     expect(hasActiveFlag(h, 'freeReroll')).toBe(false); // drapeau consommé
@@ -59,7 +59,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
     hero.fortune = 0;
     banc.setState({ party: [hero] });
     openFailedTest(hero.id, hero.label);
-    banc.getState().testReroll();
+    banc.getState().jetReroll('test');
     expect(banc.getState().pendingTest!.rerolled).toBeFalsy();
   });
 
@@ -67,7 +67,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
     const hero = blessedHero(2);
     banc.setState({ party: [hero] });
     openFailedTest(hero.id, hero.label);
-    banc.getState().testReroll();
+    banc.getState().jetReroll('test');
     const h = banc.getState().party[0];
     expect(h.fortune).toBe(2); // Chance intacte
     expect(hasActiveFlag(h, 'freeReroll')).toBe(false);

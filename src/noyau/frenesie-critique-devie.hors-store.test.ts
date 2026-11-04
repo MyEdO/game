@@ -28,8 +28,8 @@ const seedDuCritique = (): number => {
 /** La défense de `id`, tenue par le siège MJ, se joue et échoue (97). */
 const defenseEchoue = (id: string) => {
   expect(g().pendingDefense?.defenderId).toBe(id);
-  g().defenseRoll();
-  g().defenseSetForcedRoll(97);
+  g().jetRoll('defense');
+  g().jetSetForcedRoll('defense', 97);
   g().defenseConfirm();
 };
 
@@ -58,7 +58,7 @@ function monte() {
 
   g().seedRng(seedDuCritique());
   openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attack');
-  g().attackRoll();
+  g().jetRoll('attack');
   expect(g().pendingAttack?.result?.critical, 'le jet 1 doit être un Coup Critique').toBe(true);
   g().attackConfirm();
   defenseEchoue(gob.id);
@@ -83,8 +83,8 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
     const { man } = monte();
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
     g().cleaveAttack(man.id);
-    g().attackRoll();
-    g().attackSetForcedRoll(21); // LDB 13 l.183
+    g().jetRoll('attack');
+    g().jetSetForcedRoll('attack', 21); // LDB 13 l.183
     expect(g().pendingAttack?.result?.critical, 'le 2ᵉ coup touche sans Coup Critique').toBe(false);
     g().attackConfirm();
     defenseEchoue(man.id);

@@ -75,7 +75,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     expect(pd?.phase).toBe('roll');
     expect(pd?.atk).not.toBeNull(); // jet du foe FIGÉ d'avance
 
-    banc.getState().auContactRoll();
+    banc.getState().jetRoll('auContact');
     pd = banc.getState().pendingAuContact!;
     expect(pd.def).not.toBeNull();
     expect(pd.result).not.toBeNull();
@@ -99,15 +99,15 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
     banc.getState().battleAuContact(E.id);
-    banc.getState().auContactCancel();
+    banc.getState().jetCancel('auContact');
     expect(banc.getState().pendingAuContact).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false);
 
     banc.getState().battleAuContact(E.id);
-    banc.getState().auContactRoll();
+    banc.getState().jetRoll('auContact');
     const lance = banc.getState().pendingAuContact;
     expect(lance?.result).toBeTruthy();
-    banc.getState().auContactCancel();
+    banc.getState().jetCancel('auContact');
     expect(banc.getState().pendingAuContact).toBe(lance);
     expect(banc.getState().refus?.texte).toBe(`Renoncement refusé : ${H.label} a déjà engagé son action, elle se joue jusqu’au bout.`);
   });

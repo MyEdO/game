@@ -2,7 +2,7 @@
  * #337 — filage FINAL de la Magie des mers (MDG 02 l.178-186) : le moteur pur (`resolveFocus`,
  * `resolveCasting`, `evaluateCasting`) sait déjà tout (`domainAttributes.test.ts`, 12 tests verts) ;
  * ici on vérifie le CÂBLAGE côté state — `seaMagicContext` (`combatOrParty.ts`) fournit `{ atSea, wind }`
- * aux deux call-sites (`combatSlice.castRoll`, `rollFlowSpecs` spec `cast`/`focus`) et l'exception
+ * aux deux call-sites (`jetRoll('cast')`, `rollFlowSpecs` spec `cast`/`focus`) et l'exception
  * Harmonisation aethyrique de Vie (`combatSlice.focusConfirm`).
  */
 import { describe, it, beforeEach, expect } from 'vitest';
@@ -32,14 +32,14 @@ function freshCastState(w: Combatant, travelPlan: unknown = null): void {
 }
 
 describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
-  describe('Cieux (Azyr, MDG 02 l.184) — resolveCasting via castRoll : le DR bouge selon le vent', () => {
+  describe('Cieux (Azyr, MDG 02 l.184) — resolveCasting via jetRoll@cast : le DR bouge selon le vent', () => {
     const spellId = 'arc-de-t-essla'; // Domaine Cieux
 
     function castSl(w: Combatant, travelPlan: unknown): number {
       freshCastState(w, travelPlan);
       banc.getState().seedRng(21);
       banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, focused: true, result: null } });
-      banc.getState().castRoll();
+      banc.getState().jetRoll('cast');
       return banc.getState().pendingCast!.result!.sl;
     }
 
@@ -70,21 +70,21 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
       banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never });
       banc.getState().seedRng(21);
       banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, focused: true, result: null } });
-      banc.getState().castRoll();
+      banc.getState().jetRoll('cast');
       const withVesselOnly = banc.getState().pendingCast!.result!.sl;
       const baseline = castSl(w, null);
       expect(withVesselOnly).toBe(baseline);
     });
   });
 
-  describe('Cieux (Azyr, MDG 02 l.184) — resolveMagicMissile via castRoll (#337, dernier reliquat) : le DR bouge selon le vent', () => {
+  describe('Cieux (Azyr, MDG 02 l.184) — resolveMagicMissile via jetRoll@cast (#337, dernier reliquat) : le DR bouge selon le vent', () => {
     const spellId = 'arc-de-t-essla'; // Domaine Cieux, Projectile magique (LDB 46 l.101 : le Projectile EST le Test d'Incantation)
 
     function missileSl(w: Combatant, travelPlan: unknown): number {
       freshCastState(w, travelPlan);
       banc.getState().seedRng(21);
       banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: true, focused: true, result: null } });
-      banc.getState().castRoll();
+      banc.getState().jetRoll('cast');
       return banc.getState().pendingCast!.result!.sl;
     }
 

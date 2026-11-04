@@ -74,7 +74,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const test = p2.participants.find((s) => s.kind === 'triggeredTest' && s.rollLabel === 'Calme')!;
     expect(test).toBeTruthy();
     expect(test.result).toBeFalsy(); // influençable (Chance/Pacte/Résilience) — pas de jet silencieux
-    banc.getState().cascadeRoll(test.id);
+    banc.getState().jetRoll('cascade', test.id);
     expect(banc.getState().pendingCascade!.participants.find((s) => s.id === test.id)!.result!.success).toBe(true);
     banc.getState().cascadeNext();
     expect(isFrenzied(H)).toBe(false); // « Vous pouvez y mettre fin avec un Test de Calme réussi »

@@ -14,7 +14,7 @@ const g = () => banc.getState();
 
 /** Une créature Énorme au contact d'un héros Moyen, Avantage 3 : le Piétinement (LDB 85 l.387) lui est
  *  ouvert. `tourDe` pose le combattant actif ; la créature frappe ensuite une gratuite d'Arme (forme de
- *  `applyTalentFreeAttack`) dont la défense se résout par `defenseRoll` puis `defenseConfirm`.
+ *  `applyTalentFreeAttack`) dont la défense se résout par `jetRoll('defense')` puis `defenseConfirm`.
  *  `fileEpuisee` : la file du tour déjà vidée, état que pose `aiCreatureFreeAttacks` en fin de file. */
 function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
@@ -35,7 +35,7 @@ function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   banc.setState({ battle: { ...b, turn: b.order.indexOf(tourDe === 'heros' ? heros.id : E.id), acted: false } });
   const suite: SuiteDeCoup = { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' }, enchainement: { mode: 'aucun' } };
   expect(maybeOpenDefense(g, banc.setState, E, heros, E.weapons[0], suite), 'la fenêtre de la gratuite d’Arme s’ouvre').toBe(true);
-  g().defenseRoll();
+  g().jetRoll('defense');
   g().defenseConfirm();
   const creature = g().battle!.combatants.find((c) => c.id === E.id)!;
   return { herosId: heros.id, creature };

@@ -600,7 +600,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const ici = combattant().pos!;
     for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
     g().battleRun({ x: ici.x + 3, y: ici.y });
-    g().runRoll();
+    g().jetRoll('run');
     g().runConfirm();
     expect(g().battle!.runBudget, 'la Course a posé son budget').toBeGreaterThan(0);
     expect(api.turn(heroId)).toMatch(/^✓/);

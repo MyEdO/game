@@ -15,6 +15,7 @@ import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import type { IconIdInput } from '../icons';
 import { Row } from '../Layout';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
@@ -37,14 +38,14 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const setLocation = useGame((s) => s.attackSetLocation);
   const setWeapon = useGame((s) => s.attackSetWeapon);
   const setDualMode = useGame((s) => s.attackSetDualMode);
-  const roll = useGame((s) => s.attackRoll);
-  const reroll = useGame((s) => s.attackReroll);
-  const bonusSL = useGame((s) => s.attackBonusSL);
-  const darkPact = useGame((s) => s.attackDarkPact);
-  const forceSuccess = useGame((s) => s.attackForceSuccess);
-  const reverseVerb = useGame((s) => s.attackReverse);
+  const roll = useGesteDeJet('jetRoll', 'attack');
+  const reroll = useGesteDeJet('jetReroll', 'attack');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'attack');
+  const darkPact = useGesteDeJet('jetDarkPact', 'attack');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'attack');
+  const reverseVerb = useGesteDeJet('jetReverse', 'attack');
   const confirm = useGame((s) => s.attackConfirm);
-  const cancel = useGame((s) => s.attackCancel);
+  const cancel = useGesteDeJet('jetCancel', 'attack');
   const setHarpoonRopeCut = useGame((s) => s.attackSetHarpoonRopeCut);
   const setWithhold = useGame((s) => s.attackSetWithhold);
   const setGrapple = useGame((s) => s.attackSetGrapple);

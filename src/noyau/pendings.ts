@@ -400,10 +400,10 @@ export interface PendingAttack {
   /** Undo PRÉ-JET d'une Charge (jeu vidéo : annuler un misclic comme on annule un déplacement/une attaque) :
    *  état d'AVANT la charge pour restaurer positions/orientation/Mouvement/Avantage/chargedThisTurn si on
    *  Annule AVANT tout jet (`result === null`). Une fois le dé lancé, la charge est engagée (RAW). Capturé à
-   *  la déclaration de charge (targetingModes), rejoué par `attackCancel`. */
+   *  la déclaration de charge (targetingModes), rejoué par `jetCancel('attack')`. */
   chargeUndo?: { pos: Record<string, Pt>; facing: Record<string, Dir8>; movedPreAction: boolean; movementUsed: number; advGained: number; gainedAdvBefore: boolean; chargedBefore: boolean; avecAvantageBefore: boolean };
   /** PRIX payé à la DÉCLARATION (`AttackOption.cost` : Avantage, Mouvement consommé), rendu par
-   *  `attackCancel` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
+   *  `jetCancel('attack')` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
   coutPaye?: { advantage: number; movement: number };
   /** Victime réelle si le tir a dévié dans la mêlée vers un allié (LDB 14 l.116) — sinon = targetId. */
   victimId?: string;
@@ -835,7 +835,7 @@ export interface PendingCorruption {
   rerolled?: boolean;
   /** Menace du talent « Résistance (Menace) » (LDB 10) couverte par CE Test : `corruption` (exposition,
    *  l.23-75 — résister au GAIN de Points) ou `mutation` (seuil, l.70 — l'échec fait MUTER). Posé à
-   *  l'ouverture ; offre l'auto-succès via `corruptionResist`. */
+   *  l'ouverture ; offre l'auto-succès via `jetResist('corruption')`. */
   menace?: MenaceId;
 }
 /** Contexte d'un Critique (qui l'inflige + l'arme/sort en libellé) — modale enrichie + B. de Sauvagerie.
@@ -1392,7 +1392,7 @@ export interface PendingCast {
   /** Incantation CRITIQUE (LDB 46 l.26-32) : choix du lanceur — Blessure Critique
    *  (Projectile à Dégâts) / Puissance totale (lancé quel que soit le NI, dissipable) /
    *  Force inéluctable (indissipable). ÉCRIT avant toute application : par le lanceur (modale) ou par
-   *  le moteur pour un lanceur qu'il conduit (`castRoll`) — les gardes ne lisent QUE ce champ. */
+   *  le moteur pour un lanceur qu'il conduit (`jetRoll('cast')`) — les gardes ne lisent QUE ce champ. */
   critChoice?: 'critique' | 'puissance' | 'ineluctable';
   /** Forme choisie pour une arme invoquée à forme libre (Arme aethyrique, op `grantWeapon` +
    *  `chooseForm`) — le lanceur sélectionne la Compétence de Corps à corps/profil d'arme. Défaut
@@ -1423,7 +1423,7 @@ export interface PendingCast {
     /** ZdE d'un lanceur IA : CENTRE auto-choisi par l'IA pure (sur un paquet de héros, `ai.ts`
      *  `castArea.center`), MÉMORISÉ tant que `center` reste null. C'est l'ÉQUIVALENT du curseur souris
      *  d'un héros : `castConfirm` (chemin PARTAGÉ) le lit pour poser la zone tout seul quand le lanceur
-     *  est `aiDriven` — exactement comme l'auto-combat fournit `castRoll`/`castConfirm`. La pose vit ainsi
+     *  est `aiDriven` — exactement comme l'auto-combat fournit `jetRoll('cast')`/`castConfirm`. La pose vit ainsi
      *  dans le `castConfirm` UNIQUE (gardée par `aiDriven`), pas dans un chemin spécial de Contre-sort.
      *  Absent = pose joueur classique (attend le clic réel). */
     autoCenter?: { x: number; y: number } };
@@ -2413,7 +2413,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
   restNights?: { p: import('./restFlow').PendingRest; nightsLeft: number };
 }
 
-/** Soin de Guérison en attente (LDB 09-Compétences) : flux modale — « Lancer » (healRoll) → Chance
+/** Soin de Guérison en attente (LDB 09-Compétences) : flux modale — « Lancer » (jetRoll('heal')) → Chance
  *  (relance / +1 DR) → Résilience → « Appliquer » (healConfirm). Soigneur/cible résolus par `actorIn`
  *  (combat ⇄ groupe, cf. combatOrParty). `intBonus` figé à l'ouverture. La CHIRURGIE n'est PLUS un
  *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (noyau/medicFlow). */

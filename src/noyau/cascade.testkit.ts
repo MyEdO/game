@@ -58,8 +58,8 @@ export function soutienDe(st: LigneJugeable): number {
 }
 
 /** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande), sur la TABLE
- *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`cascadeSetForcedRoll` /
- *  `cascadeBatchSetForcedRoll` / `cascadeTableSetForcedRoll` / `cascadeDieSetForcedRoll`), le geste d'un
+ *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`jetSetForcedRoll('cascade')` /
+ *  `jetSetForcedRoll('cascadeBatch')` / `cascadeTableSetForcedRoll` / `cascadeDieSetForcedRoll`), le geste d'un
  *  joueur. `undefined` = le dé est lancé ; `null` = le banc REFUSE de lancer le dé de TABLE ou de DÉ NU,
  *  qui ne tombe alors que si le socle le résout lui-même (sur une rangée de Test, `null` vaut `undefined`).
  *  L'étape suffit à dire quel dé : `jetteLeDe` LÈVE sur une étape qui porte à la fois `table` et `de`, si
@@ -114,16 +114,16 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
     // d'abord, le choix se tranche ensuite, sur la MÊME étape. En exclusif, le choix resterait non
     // tranché et `cascadeNext` drainerait à vide.
     if (cur.target != null && !cur.result) {
-      get().cascadeRoll(cur.id);
+      get().jetRoll('cascade', cur.id);
       const n = poser?.(cur);
-      if (n != null) get().cascadeSetForcedRoll(cur.id, n);
+      if (n != null) get().jetSetForcedRoll('cascade', n, cur.id);
     }
     if (cur.participants) {
       for (const part of cur.participants) {
         if (part.result) continue;
-        get().cascadeBatchRoll(part.id);
+        get().jetRoll('cascadeBatch', part.id);
         const n = poser?.(cur, part);
-        if (n != null) get().cascadeBatchSetForcedRoll(part.id, n);
+        if (n != null) get().jetSetForcedRoll('cascadeBatch', n, part.id);
       }
     }
     jetteLeDe(get, cur, poser);

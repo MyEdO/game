@@ -4,6 +4,6 @@
 {"offre":"end-turn"}
 {"offre":"end-turn"}
 {"offre":"end-turn"}
-{"type":"defenseRoll","args":[]}
+{"type":"jetRoll","args":["defense"]}
 {"type":"defenseConfirm","args":[]}
 {"type":"confirmRoundStart","args":[]}

@@ -30,17 +30,17 @@ const appel = (methode: string, entree?: unknown): Reponse => {
 /** Le geste joué, ses jetons repris : la dernière suite et toutes les lignes de journal. */
 const jouer = (geste: Record<string, unknown>) => drainer(appel, appel('jouer', geste));
 
-/** Le geste du verbe `verbe` joué comme Godot le joue : ses arguments posés par la fenêtre, puis `saisies`. */
-const jouerLeGeste = (s: Suite, verbe: string, ...saisies: unknown[]) => {
-  const g = gesteDe(s.vue, verbe);
+/** Le geste d'identité `cle` joué comme Godot le joue : ses arguments posés par la fenêtre, puis `saisies`. */
+const jouerLeGeste = (s: Suite, cle: string, ...saisies: unknown[]) => {
+  const g = gesteDe(s.vue, cle);
   return jouer({ type: g.verbe, args: argsDe(g, ...saisies) });
 };
 
-/** Le verbe du geste que la fenêtre attend maintenant. */
+/** L'identité du geste que la fenêtre attend maintenant. */
 const attendu = (s: Suite): string => {
   const g = s.vue.fenetre?.gestes.filter((x) => x.attendu) ?? [];
-  expect(g.length, `un seul geste attendu dans ${JSON.stringify(s.vue.fenetre?.gestes.map((x) => x.verbe))}`).toBe(1);
-  return g[0].verbe;
+  expect(g.length, `un seul geste attendu dans ${JSON.stringify(s.vue.fenetre?.gestes.map((x) => x.cle))}`).toBe(1);
+  return g[0].cle;
 };
 
 const actifDe = (s: Suite) => s.vue.projection.combat!.actif!;
@@ -69,7 +69,7 @@ describe('un tour complet par le pont', () => {
     const [cible] = suite.vue.projection.combat!.cibles.liste; // les cibles que le clic accepte, la Charge armée
     ({ suite } = jouer({ type: suite.vue.champ.combattant, args: [cible] }));
     expect(suite.vue.attaque, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ attaquantId: heros.id, cibleId: cible, jete: false });
-    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('attackRoll');
+    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');
 
     const localiser = gesteDe(suite.vue, 'attackSetLocation');
     expect(localiser.rendu, 'la Localisation : un choix nommé').toMatch(/^(choix|liste)$/);
@@ -105,7 +105,7 @@ describe('un tour complet par le pont', () => {
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'defenseJet' } });
     expect(suite.vue.defense, 'la Défense dit qui attaque qui').toMatchObject({ attaquantId: adversaire.id, jete: false });
     expect(suite.vue.fenetre!.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: suite.vue.projection.combat!.voisins.liste.find((v) => v.id === suite.vue.defense!.defenseurId)!.nom });
-    expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('defenseRoll');
+    expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetRoll@defense');
     const lignes = [...journal];
     ({ suite, journal } = jouerLeGeste(suite, attendu(suite)));
     lignes.push(...journal);

@@ -28,7 +28,7 @@ describe('choix d’un Sort lancé hors combat', () => {
       const [w, s] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
       const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
       banc.getState().oocCastSpell(w.id, sort.id, s.id);
-      banc.getState().castRoll();
+      banc.getState().jetRoll('cast');
       const pc = banc.getState().pendingCast!;
       banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: 10, isCritical: false, isFumble: false } } });
       banc.getState().castConfirm();

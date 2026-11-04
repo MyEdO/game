@@ -105,7 +105,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
   it('interposition du chemin PILOTÉ (`openSurfacedDefense`) : étape hôte + pending cohérents', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingCascade: null } as never); // la fenêtre d'attaque se ferme, la défense s'interpose
     expect(openSurfacedDefense(banc.getState, banc.setState, enemy, hero, sword, pa)).toBe(true);
@@ -194,7 +194,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { wiz, cible } = deuxHeros();
     banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, focused: false, result: null } } as never);
     openCastCascade(banc.getState, banc.setState, wiz);
-    // `castRoll` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
+    // `jetRoll('cast')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
     // est donc celui d'un jet DÉJÀ lancé, pas celui d'une cascade fraîche.
     const pc0 = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' } } } as never);
@@ -243,7 +243,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
       const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
       seedBattleRng(sd);
       if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero)) continue;
-      banc.getState().defenseRoll();
+      banc.getState().jetRoll('defense');
       const pd = banc.getState().pendingDefense!;
       const d = pd.result?.defenderDetail;
       if (d && !d.success && d.roll % 11 === 0) seed = sd;
@@ -253,7 +253,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     seedBattleRng(seed);
     maybeOpenDefense(banc.getState, banc.setState, enemy, hero);
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     const res = banc.getState().pendingDefense!.result!;
     const crit = resolveCritique('ldb', hero, 'corps', battleRng(), { forcedRoll: 30 });
     // Reprise d'une attaque SUSPENDUE par la fenêtre de Critique de la victime (`resolveDeviation` est

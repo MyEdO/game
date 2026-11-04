@@ -57,8 +57,8 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     expect(pb!.foeId).toBe(E.id);
     expect(pb!.result).toBeNull(); // rien n’est tiré avant Lancer
 
-    banc.getState().battementRoll(); // le flux tire le jet de CC (figé)
-    banc.getState().battementForceSuccess(); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
+    banc.getState().jetRoll('battement'); // le flux tire le jet de CC (figé)
+    banc.getState().jetForceSuccess('battement'); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
     expect(banc.getState().pendingBattement!.result!.success).toBe(true);
     banc.getState().battementConfirm(); // Appliquer → resolveBattement
 
@@ -82,7 +82,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     expect(pd!.atk).toBeNull(); // Athlétisme du mover pas encore lancé
     expect(pd!.defRoll).toBeTruthy(); // Calme du foe déjà figé
 
-    banc.getState().distraireRoll(); // le flux tire l’Athlétisme, opposé au Calme figé
+    banc.getState().jetRoll('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
     expect(banc.getState().pendingDistraire!.result).toBe('success');
     banc.getState().distraireConfirm(); // Appliquer → resolveDistraire
 
@@ -99,7 +99,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     H.characteristics['capacite-de-combat'] = 1; // échec quasi certain
     engage(H, E);
     banc.getState().battleBattement();
-    banc.getState().battementRoll();
+    banc.getState().jetRoll('battement');
     expect(banc.getState().pendingBattement!.result!.success).toBe(false);
     banc.getState().battementConfirm();
     const e2 = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
@@ -158,7 +158,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     expect(actionGate('distraire', ctx(H)).ok, 'une fumée entre les deux ne ferme pas le geste').toBe(true);
     banc.getState().battleDistraire();
     expect(banc.getState().pendingDistraire?.foeId, 'le dispatcher ouvre bien sur cet adversaire').toBe(E.id);
-    banc.getState().distraireCancel();
+    banc.getState().jetCancel('distraire');
     const b2 = banc.getState().battle!;
     b2.combatants.filter((c) => c.kind === 'enemy').forEach((c) => (c.dead = true));
     banc.setState({ battle: { ...b2 } });

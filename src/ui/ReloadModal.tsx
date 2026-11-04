@@ -12,6 +12,7 @@ import { describeReload } from '../noyau/flowOutcomes';
 import { progresDeRecharge } from '../noyau/progresEtendu';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Vue pure de la modale de rechargement (testable sans store). */
 export function ReloadModalView({
@@ -91,12 +92,12 @@ export function ReloadModalView({
 export function ReloadModal() {
   const pr = useGame((s) => s.pendingReload);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.reloadRoll);
-  const reroll = useGame((s) => s.reloadReroll);
-  const bonusSL = useGame((s) => s.reloadBonusSL);
-  const darkPact = useGame((s) => s.reloadDarkPact);
+  const roll = useGesteDeJet('jetRoll', 'reload');
+  const reroll = useGesteDeJet('jetReroll', 'reload');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'reload');
+  const darkPact = useGesteDeJet('jetDarkPact', 'reload');
   const confirm = useGame((s) => s.reloadConfirm);
-  const cancel = useGame((s) => s.reloadCancel);
+  const cancel = useGesteDeJet('jetCancel', 'reload');
   if (!pr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pr.actorId);
   return (

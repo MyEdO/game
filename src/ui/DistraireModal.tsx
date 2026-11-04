@@ -12,6 +12,7 @@ import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de Distraire (LDB 10 l.364 / AA 13 l.51) : Mouvement, Test OPPOSÉ Athlétisme (mover) vs Calme
@@ -24,14 +25,14 @@ import { t } from '../i18n';
 export function DistraireModal() {
   const pd = useGame((s) => s.pendingDistraire);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.distraireRoll);
-  const reroll = useGame((s) => s.distraireReroll);
-  const bonusSL = useGame((s) => s.distraireBonusSL);
-  const darkPact = useGame((s) => s.distraireDarkPact);
-  const force = useGame((s) => s.distraireForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'distraire');
+  const reroll = useGesteDeJet('jetReroll', 'distraire');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'distraire');
+  const darkPact = useGesteDeJet('jetDarkPact', 'distraire');
+  const force = useGesteDeJet('jetForceSuccess', 'distraire');
   const setFoe = useGame((s) => s.distraireSetFoe);
   const confirm = useGame((s) => s.distraireConfirm);
-  const cancel = useGame((s) => s.distraireCancel);
+  const cancel = useGesteDeJet('jetCancel', 'distraire');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);

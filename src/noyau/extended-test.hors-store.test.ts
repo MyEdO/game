@@ -31,7 +31,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
       const p = banc.getState().pendingExtendedTest!;
       expect(p.total).toBe(prevTotal); // le total reporté du Round précédent (dépendance séquentielle)
       const cur = p.rounds[p.rounds.length - 1];
-      banc.getState().extendedTestRoll(cur.id);
+      banc.getState().jetRoll('extendedTest', cur.id);
       const rr = banc.getState().pendingExtendedTest!.rounds;
       expect(rr[rr.length - 1].result).toBeTruthy(); // chaque Round a SON jet
       banc.getState().extendedTestNext();
@@ -75,11 +75,11 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
     banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
     const p = banc.getState().pendingExtendedTest!;
     banc.setState({ pendingExtendedTest: { ...p, rounds: [{ id: 'round-1', interactive: true, result: { roll: 88, sl: -5, success: false }, rerolled: false }] } });
-    banc.getState().extendedTestReroll('round-1'); // Chance : relance le Round propre raté
+    banc.getState().jetReroll('extendedTest', 'round-1'); // Chance : relance le Round propre raté
     expect(banc.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
     // Résilience (nouveau flux) : Round garanti réussi.
     banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
-    banc.getState().extendedTestForceSuccess('round-1');
+    banc.getState().jetForceSuccess('extendedTest', 'round-1');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0); // 1 Point de Résilience dépensé
   });

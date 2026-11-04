@@ -61,8 +61,8 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
     if (s.pendingRoundStart) { g().confirmRoundStart(); continue; }
-    if (s.pendingFateSave) { g().fateNegate(); if (g().pendingFateSave) g().fateSurvive(); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().handGateRoll(); else g().handGateConfirm(); continue; }
-    if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().defenseRoll(); continue; }
+    if (s.pendingFateSave) { g().fateNegate(); if (g().pendingFateSave) g().fateSurvive(); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetRoll('handGate'); else g().handGateConfirm(); continue; }
+    if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetRoll('defense'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().defenseConfirm(); continue; }
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {
       const a = s.battle.combatants.find((x) => x.id === s.pendingDualStrike!.attackerId)!;
@@ -78,7 +78,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
       if (!g().pendingAttack) g().cleaveEnd();
       continue;
     }
-    if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().attackRoll(); else g().attackConfirm(); continue; }
+    if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetRoll('attack'); else g().attackConfirm(); continue; }
     if (cur?.jet === 'fumble') { g().fumbleRoll(); g().fumbleConfirm(); continue; }
     if (c && !cur?.jet) { avanceEtapeCascade(g); banc.avancer(50); continue; }
     if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {

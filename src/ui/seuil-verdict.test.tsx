@@ -44,7 +44,7 @@ const libelle = () => host.querySelector('.rm-roll-label')?.textContent ?? '';
 const poser = (roll: number) => {
   const cur = useGame.getState().pendingCascade!.participants[useGame.getState().pendingCascade!.cursor];
   // Le geste de la rangée : LANCER puis SUBSTITUER (`ui/forcedDieRow.ts`).
-  act(() => { if (!cur.result) useGame.getState().cascadeRoll(cur.id); useGame.getState().cascadeSetForcedRoll(cur.id, roll); });
+  act(() => { if (!cur.result) useGame.getState().jetRoll('cascade', cur.id); useGame.getState().jetSetForcedRoll('cascade', roll, cur.id); });
   render();
 };
 

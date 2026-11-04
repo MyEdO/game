@@ -210,7 +210,7 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 3; // assez pour 3 Morsures si elles n'étaient PAS plafonnées
     banc.getState().battleSelectAttack('morsure');
     banc.getState().battleClickEntity(E.id, { confirm: true }); // E adjacent → frappe directe
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     const st = banc.getState();
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;

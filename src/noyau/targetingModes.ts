@@ -607,7 +607,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     // Charge (LDB 15 l.35-37) : se ruer au contact (portée de Course) puis attaquer — manœuvre
     // PLEINE (consomme tout le Mouvement). Combat monté : empreinte/Course de la MONTURE.
     // Undo PRÉ-JET (retour playtest) : capture l'état d'AVANT la charge pour pouvoir Annuler un misclic
-    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`attackCancel`) — positions, orientation,
+    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`jetCancel('attack')`) — positions, orientation,
     // Mouvement, Avantage, chargé.
     const chargeUndo = {
       pos: Object.fromEntries(battle.combatants.filter((c) => c.pos).map((c) => [c.id, { ...c.pos! }])),

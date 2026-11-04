@@ -1,6 +1,6 @@
 // LES VERBES DE LA PARTIE (#2898 lot C), lus du TYPE que `Partie.envoyer` accepte : `Intention` porte
 // `Parameters<ActionsDuNoyau[K]>` (src/noyau/partie.ts), donc chaque membre de l'interface `ActionsDuNoyau`
-// (src/noyau/actionsDuNoyau.ts, `RollFlowActionsMap` dérivé compris) est un verbe, et la signature de son appel
+// (src/noyau/actionsDuNoyau.ts, `VerbesDeJet` compris) est un verbe, et la signature de son appel
 // donne ses paramètres. Le vérificateur de types résout chaque paramètre en une FORME JSON (`Forme`,
 // src/hote/formes.ts) : la même lecture sert la table du doc (scripts/docs/build-hote-texte.mjs) et la
 // validation des arguments d'un verbe (src/hote/verbes.generated.ts, scripts/gen-verbes.mjs). Aucune forme écrite à la main.

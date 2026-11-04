@@ -7,9 +7,8 @@
 import { expect } from 'vitest';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';
-import { horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
-import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
-import { VERBES } from '../../../src/hote/verbes.generated';
+import { cleDuGeste, horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
+import { parametresDuGeste, type ArgumentDuGeste, type GesteDeLaFenetre } from '../../../src/hote/gestes';
 
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
@@ -62,24 +61,30 @@ function fautesDeLArgument(ou: string, a: ArgumentDuGeste): string[] {
   ];
 }
 
-/** Ce qu'il manque à la vue pour dessiner chaque verbe de la fenêtre qui tient la main : son geste, son libellé (jamais
- *  son id), chacun de ses paramètres (`VERBES`) en argument, l'id désigné posé, chaque argument saisi nommé
- *  (`fautesDeLArgument`), et le titre de la fenêtre. */
+/** Ce qu'il manque à la vue pour dessiner chaque geste de la fenêtre qui tient la main : son geste, son libellé (jamais
+ *  son id), chacun de ses paramètres (`parametresDuGeste`) en argument,
+ *  le flux d'un geste de jet et l'id désigné posés, chaque argument saisi nommé (`fautesDeLArgument`), et le titre de
+ *  la fenêtre. */
 export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   const f = vue.projection.fenetre;
   if (!f) return vue.fenetre ? ['une fenêtre dessinée sans fenêtre qui tient la main'] : [];
   if (!vue.fenetre) return [`la fenêtre ${f.cle} n’est pas dessinée`];
-  const ids = new Set([f.cle, ...f.verbes]);
+  const cles = f.gestes.map(cleDuGeste);
+  const ids = new Set([f.cle, ...cles, ...f.gestes.map((g) => g.verbe)]);
   const fautes = [
     ...(ids.has(vue.fenetre.titre) ? [`titre ${vue.fenetre.titre} : un id`] : []),
-    ...(vue.fenetre.gestes.map((g) => g.verbe).join() === f.verbes.join() ? [] : [`gestes ${vue.fenetre.gestes.map((g) => g.verbe).join()} ≠ verbes ${f.verbes.join()}`]),
+    ...(vue.fenetre.gestes.map((g) => g.cle).join() === cles.join() ? [] : [`gestes ${vue.fenetre.gestes.map((g) => g.cle).join()} ≠ gestes de la fenêtre ${cles.join()}`]),
   ];
   for (const g of vue.fenetre.gestes) {
-    const parametres = VERBES[g.verbe] ?? [];
-    if (!g.libelle || ids.has(g.libelle)) fautes.push(`${g.verbe} : libellé ${g.libelle}`);
-    if (g.arguments.map((a) => a.nom).join() !== parametres.map((p) => p.nom).join()) fautes.push(`${g.verbe} : arguments ${g.arguments.map((a) => a.nom).join()} ≠ paramètres ${parametres.map((p) => p.nom).join()}`);
+    const geste = f.gestes.find((x) => cleDuGeste(x) === g.cle);
+    if (!geste) continue;
+    const { flux } = geste;
+    const parametres = parametresDuGeste(geste);
+    if (!g.libelle || ids.has(g.libelle)) fautes.push(`${g.cle} : libellé ${g.libelle}`);
+    if (g.arguments.map((a) => a.nom).join() !== parametres.map((p) => p.nom).join()) fautes.push(`${g.cle} : arguments ${g.arguments.map((a) => a.nom).join()} ≠ paramètres ${parametres.map((p) => p.nom).join()}`);
     for (const a of g.arguments) {
-      if (a.saisie === 'fixe' && a.valeur !== f.pid) fautes.push(`${g.verbe}.${a.nom} : posé à ${String(a.valeur)}, la fenêtre désigne ${String(f.pid)}`);
+      const pose = a.nom === 'flux' ? flux : f.pid;
+      if (a.saisie === 'fixe' && a.valeur !== pose) fautes.push(`${g.cle}.${a.nom} : posé à ${String(a.valeur)}, la fenêtre désigne ${String(pose)}`);
       fautes.push(...fautesDeLArgument(`${g.verbe}.${a.nom}`, a));
       if (a.saisie === 'choix' && (g.rendu === 'bouton' || ((g.rendu === 'choix' || g.rendu === 'liste') && g.aChoisir !== a.nom))) fautes.push(`${g.verbe}.${a.nom} : des valeurs nommées que le rendu ${g.rendu} ne fait pas dire`);
     }
@@ -87,10 +92,10 @@ export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   return fautes;
 }
 
-/** Le geste du verbe `verbe` dans la fenêtre dessinée, ou l'échec qui la dit. */
-export function gesteDe(vue: VueDuPont, verbe: string): GesteDeLaFenetre {
-  const g = vue.fenetre?.gestes.find((x) => x.verbe === verbe);
-  if (!g) throw new Error(`aucun geste ${verbe} dans ${JSON.stringify(vue.fenetre?.gestes.map((x) => x.verbe))}`);
+/** Le geste d'identité `cle` (`cleDuGeste`) dans la fenêtre dessinée, ou l'échec qui la dit. */
+export function gesteDe(vue: VueDuPont, cle: string): GesteDeLaFenetre {
+  const g = vue.fenetre?.gestes.find((x) => x.cle === cle);
+  if (!g) throw new Error(`aucun geste ${cle} dans ${JSON.stringify(vue.fenetre?.gestes.map((x) => x.cle))}`);
   return g;
 }
 

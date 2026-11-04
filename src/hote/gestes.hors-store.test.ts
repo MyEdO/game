@@ -1,7 +1,7 @@
 /**
  * CHAQUE ARGUMENT D'UN VERBE DE FENÊTRE SE DESSINE EN MOTS DU JOUEUR (#2928) : pour chaque verbe que `fenetreDuJeu`
  * peut offrir (`VERBES_DES_FENETRES`), chacun de ses paramètres (`VERBES`), et chaque champ d'un objet, a son libellé
- * (`libelleDuParametre`), hormis l'id que la fenêtre pose (`pid`) ; chaque valeur littérale que sa forme énumère a le
+ * (`libelleDuParametre`), hormis ce que la fenêtre pose (`argumentsPosesDuGeste` : `pid`, `flux`) ; chaque valeur littérale que sa forme énumère a le
  * sien (`libelleDuLitteral`) ; chaque désignation qu'elle cite est une désignation du noyau (`DESIGNATIONS`), qui
  * nomme ses éléments. `fenetreADessiner` dessine ainsi, sans id à l'écran, toute fenêtre ouverte.
  */
@@ -12,10 +12,13 @@ import type { Forme } from './formes';
 import { VERBES } from './verbes.generated';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 
+/** Les paramètres que la fenêtre pose d'office (`argumentsPosesDuGeste`) : aucun ne se saisit. */
+const POSES = new Set(['pid', 'flux']);
+
 /** Ce qui manque à la forme `f` de l'argument `ou` du verbe `verbe` pour se dessiner. */
 function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
   const ici = [
-    ...(nom !== 'pid' && libelleDuParametre(verbe, nom) === null ? [`${ou} : ni \`parametre.${verbe}.${nom}\` ni \`parametre.${nom}\``] : []),
+    ...(!POSES.has(nom) && libelleDuParametre(verbe, nom) === null ? [`${ou} : ni \`parametre.${verbe}.${nom}\` ni \`parametre.${nom}\``] : []),
   ];
   const dans = (g: Forme): string[] => {
     switch (g.genre) {
@@ -26,12 +29,12 @@ function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
       default: return [];
     }
   };
-  return [...ici, ...dans(f)];
+  return POSES.has(nom) ? ici : [...ici, ...dans(f)];
 }
 
 describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur', () => {
   it('le relevé couvre les verbes des fenêtres', () => {
-    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres').toBeGreaterThan(300);
+    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres').toBeGreaterThan(100);
     expect([...VERBES_DES_FENETRES].filter((v) => !(v in VERBES)), 'verbe de fenêtre hors de VERBES').toEqual([]);
   });
 

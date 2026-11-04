@@ -644,13 +644,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/flowVerbs.ts",
-    motif: "désormais",
-    ancre: "de Résistance. Les DEUX flux qui l'exposent ont désormais leur route par PORTEUR — `opposition`",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/flowtest-derived-stake.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais l'enjeu au TYPE) → `resolveStake` (la porte unique de la surface).",

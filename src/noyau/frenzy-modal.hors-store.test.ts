@@ -36,16 +36,16 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
     expect(banc.getState().pendingFrenzy).toBeNull();
   });
 
-  it('frenzyRoll lance le Test de FM ; frenzyForceSuccess + frenzyConfirm → frenzied + Action consommée', () => {
+  it('jetRoll@frenzy lance le Test de FM ; jetForceSuccess@frenzy + frenzyConfirm → frenzied + Action consommée', () => {
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     H.traits = [{ id: 'frenesie' }];
     H.resilience = 1; // Résilience pour forcer le succès
     banc.getState().battleFrenzy();
-    banc.getState().frenzyRoll();
+    banc.getState().jetRoll('frenzy');
     const r = banc.getState().pendingFrenzy!.result!;
     expect(typeof r.success).toBe('boolean');
     expect(typeof r.roll).toBe('number');
-    banc.getState().frenzyForceSuccess(); // garantit le succès (Résilience)
+    banc.getState().jetForceSuccess('frenzy'); // garantit le succès (Résilience)
     banc.getState().frenzyConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(isFrenzied(h)).toBe(true);
@@ -68,7 +68,7 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
     H.characteristics['force-mentale'] = 1; // Test de FM raté quasi sûr
     banc.getState().seedRng(3);
     banc.getState().battleFrenzy();
-    banc.getState().frenzyRoll();
+    banc.getState().jetRoll('frenzy');
     const r = banc.getState().pendingFrenzy!.result!;
     banc.getState().frenzyConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;

@@ -51,13 +51,13 @@ describe('Cascade séquentielle influençable', () => {
     });
     // Étape 1 : seule l'étape COURANTE (cursor) est active.
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
-    banc.getState().cascadeRoll('s1');
+    banc.getState().jetRoll('cascade', 's1');
     expect(banc.getState().pendingCascade!.participants[0].result).toBeTruthy();
     banc.getState().cascadeNext(); // valide s1 → conséquence appliquée, avance sur s2
     expect(applied).toHaveLength(1);
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
     // Étape 2 → fin de cascade.
-    banc.getState().cascadeRoll('s2');
+    banc.getState().jetRoll('cascade', 's2');
     banc.getState().cascadeNext();
     expect(applied).toHaveLength(2);
     expect(banc.getState().pendingCascade).toBeNull(); // finalisée
@@ -108,10 +108,10 @@ describe('Cascade séquentielle influençable', () => {
     const h = hero();
     const failed: CascadeStep = { id: 's1', kind: cleDeFixture('tally'), actorId: h.id, label: fixtureText('s1'), rollLabel: 'Résistance', base: 30, target: 30, result: { roll: 88, target: 30, sl: -5, success: false }, rerolled: false};
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [failed] });
-    banc.getState().cascadeReroll('s1');
+    banc.getState().jetReroll('cascade', 's1');
     expect(banc.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
     // Résilience : étape garantie réussie.
-    banc.getState().cascadeForceSuccess('s1');
+    banc.getState().jetForceSuccess('cascade', 's1');
     expect(banc.getState().pendingCascade!.participants[0].result!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0);
   });
@@ -303,9 +303,9 @@ describe('Cascade séquentielle influençable', () => {
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(false); // aucun participant lancé
     banc.getState().cascadeNext(); // batch pas prêt → no-op (aucun participant lancé)
     expect(applied).toHaveLength(0);
-    banc.getState().cascadeBatchRoll(h1.id);
+    banc.getState().jetRoll('cascadeBatch', h1.id);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(false); // h2 pas encore lancé
-    banc.getState().cascadeBatchRoll(h2.id);
+    banc.getState().jetRoll('cascadeBatch', h2.id);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(true);
     banc.getState().cascadeNext(); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);
@@ -371,7 +371,7 @@ describe('Cascade séquentielle influençable', () => {
 
   // DOCTRINE DU SLOT (#942 L1) : `pendingCascade` porte UNE séquence et rien n'y est jamais écrasé —
   // append à même `purpose` (bilan compris), suspension sinon, REPRISE à la clôture. Tout est joué par
-  // les VRAIES coutures du noyau (`cascadeRoll`/`cascadeNext`/`cascadeResolveAll`/`cascadeFinish`) : la
+  // les VRAIES coutures du noyau (`jetRoll('cascade')`/`cascadeNext`/`cascadeResolveAll`/`cascadeFinish`) : la
   // reprise n'est jamais simulée à la main.
   describe('doctrine du slot : aucun écrasement (#942 L1)', () => {
     /** Résout puis TERMINE la séquence en place par les vraies actions du noyau (bouton « Tout lancer »
@@ -417,7 +417,7 @@ describe('Cascade séquentielle influençable', () => {
     it('purpose DIFFÉRENT : la séquence en vol est PARQUÉE, et REPRISE par la clôture de l’autre (vraie couture)', () => {
       const h = hero();
       startCascade(banc.getState, banc.setState, { title: 'Voyage', purpose: 'travelDay', steps: [step('s1', h.id), step('s2', h.id)], travelHalt: true });
-      banc.getState().cascadeRoll('s1'); // la 1ʳᵉ étape est déjà lancée : son jet ne doit pas disparaître
+      banc.getState().jetRoll('cascade', 's1'); // la 1ʳᵉ étape est déjà lancée : son jet ne doit pas disparaître
       const roll = banc.getState().pendingCascade!.participants[0].result;
       startCascade(banc.getState, banc.setState, { title: 'Test de scène', purpose: 'test', steps: [step('t1', h.id)] });
       expect(banc.getState().pendingCascade!.participants.map((s) => s.id)).toEqual(['t1']);

@@ -65,8 +65,8 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
       partie.envoyer({ type: 'attackSetLocation', args: [null] });
       expect(vue(partie).localisation!.choisie).toBeNull();
 
-      partie.envoyer({ type: 'attackRoll', args: [] });
-      partie.envoyer({ type: 'attackSetForcedRoll', args: [11] });
+      partie.envoyer({ type: 'jetRoll', args: ['attack'] });
+      partie.envoyer({ type: 'jetSetForcedRoll', args: ['attack', 11] });
       const apres = vue(partie);
       expect(apres.jete).toBe(true);
       expect(apres.jet && 'd' in apres.jet ? apres.jet.d?.roll : null).toBe(11);

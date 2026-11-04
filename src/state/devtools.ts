@@ -68,6 +68,7 @@ import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
 import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
+import { fluxAccepte, NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
 import { canonEdge } from '../noyau/sceneEdit';
@@ -269,7 +270,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
- *                           (convention <flux>Roll/Confirm/Cancel ; reveals/Round ont leur verbe propre)
+ *                           (convention jetRoll(flux)/<flux>Confirm/jetCancel(flux) ; reveals/Round ont leur verbe propre)
  *   __wfrp.killEnemies()  → élimine tous les ennemis du combat et déclenche la victoire (flux normal) ;
  *                           killEnemies({withQualityLoot:true}) → ajoute au butin un objet catalogué à qualités
  *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (startInterlude — sans voyager jusqu'à Altdorf)
@@ -351,7 +352,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           clics, jamais via ce raccourci
  */
 /** Flux « jet différé » pilotable parmi des `pending*` ouverts — convention pending<Flux> ↔
- *  <flux>Roll/Confirm/Cancel. Les files à verbe propre (pause de Round, victoire) et les invites de
+ *  `jetRoll(flux)`/`<flux>Confirm`/`jetCancel(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
  *  CIBLAGE (Cleave/DualStrike/choix de monture) sont exclues. */
 function devFluxOf(open: string[]): string | null {
   const special = new Set(['pendingRoundStart', 'pendingVictory', 'pendingCleave', 'pendingDualStrike', 'pendingMountTarget']);
@@ -370,10 +371,17 @@ function devDriveModal(verb: 'Roll' | 'Confirm' | 'Cancel'): string {
   if (verb === 'Confirm' && open.includes('pendingRoundStart')) { (s.confirmRoundStart as () => void)(); return '✓ Round lancé'; }
   const flux = devFluxOf(open);
   if (!flux) return `✗ pas de flux pilotable parmi : ${open.join(', ')}`;
-  const fn = s[flux + verb];
-  if (typeof fn !== 'function') return `✗ action ${flux}${verb} introuvable (modales ouvertes : ${open.join(', ')})`;
-  (fn as () => void)();
-  return `✓ ${flux}${verb}()`;
+  if (verb === 'Confirm') {
+    const fn = s[`${flux}Confirm`];
+    if (typeof fn !== 'function') return `✗ action ${flux}Confirm introuvable (modales ouvertes : ${open.join(', ')})`;
+    (fn as () => void)();
+    return `✓ ${flux}Confirm()`;
+  }
+  const deJet = verb === 'Roll' ? 'roll' : 'cancel';
+  if (!fluxAccepte(flux, deJet)) return `✗ le flux ${flux} n’a pas de geste ${deJet} (modales ouvertes : ${open.join(', ')})`;
+  const nom = NOM_DU_VERBE_DE_JET[deJet];
+  (s[nom] as (flux: string) => void)(flux);
+  return `✓ ${nom}('${flux}')`;
 }
 
 /** (Re)construit la cascade du JOUR fluvial EN COURS depuis l'état courant (vent compris) et la pose.
@@ -1490,13 +1498,15 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       aiTurnLog().slice(-n).map((r) =>
         `R${r.round} ${r.label}: ${r.action}${r.top.length ? '  | ' + r.top.map((t) => `${t.kind}${t.spell ? ':' + t.spell : ''}${t.targetId ? '→' + t.targetId : ''}=${t.utility}`).join('  ') : '  (forcé)'}`),
 
-    /** Modale(s) `pending*` ouvertes + les actions de pilotage dérivées (convention <flux>Roll/Confirm/Cancel). */
+    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetRoll(flux)`/`<flux>Confirm`/`jetCancel(flux)`). */
     modal: () => {
       const s = g() as unknown as Record<string, unknown>;
       const open = Object.keys(s).filter((k) => /^pending/.test(k) && (Array.isArray(s[k]) ? (s[k] as unknown[]).length > 0 : s[k] != null));
       if (!open.length) return { open: [], actions: [] };
       const flux = devFluxOf(open);
-      const names = flux ? ['Roll', 'Confirm', 'Cancel'].map((v) => flux + v).filter((n) => typeof s[n] === 'function') : [];
+      const names = flux
+        ? [...(fluxAccepte(flux, 'roll') ? [`jetRoll('${flux}')`] : []), ...(typeof s[`${flux}Confirm`] === 'function' ? [`${flux}Confirm`] : []), ...(fluxAccepte(flux, 'cancel') ? [`jetCancel('${flux}')`] : [])]
+        : [];
       return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ['confirmRoundStart'] : [] };
     },
 
@@ -1517,11 +1527,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return null;
     },
 
-    /** Lance le jet de LA modale ouverte (convention <flux>Roll) */
+    /** Lance le jet de LA modale ouverte (`jetRoll(flux)`) */
     roll: () => devDriveModal('Roll'),
     /** Applique/acquitte LA modale ouverte (Round → confirmRoundStart, sinon <flux>Confirm). */
     confirm: () => devDriveModal('Confirm'),
-    /** Annule LA modale ouverte (<flux>Cancel). */
+    /** Annule LA modale ouverte (`jetCancel(flux)`). */
     cancel: () => devDriveModal('Cancel'),
 
     /** RECETTE : élimine tous les ennemis du combat en cours puis passe par le flux de
@@ -1602,7 +1612,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *   - Destin/Résilience CRÉDITÉS au héros (≥1 chacun) → les boutons Chance/Résilience sont visibles
      *     dans la modale (preuve que le Test est INFLUENÇABLE avant l'écran de victoire).
      *  Puis tous les ennemis sont mis hors d'action et `checkBattleOver` ouvre la cascade
-     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (cascadeRoll/Next, Chance/
+     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetRoll('cascade')/Next, Chance/
      *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `corruption` ∈ `EXPOSURE_LADDER` ou false. */
     combatEnd: (opts?: { heroId?: string; critical?: boolean; corruption?: string | false }) => {
       const s = g();
