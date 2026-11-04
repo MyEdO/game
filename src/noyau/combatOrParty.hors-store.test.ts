@@ -4,7 +4,7 @@ import { actorIn } from './monde/combatants';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { poserLeCombat } from './combatOrParty.fixture';
+import { poserLeCombat } from './combatOrParty.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;

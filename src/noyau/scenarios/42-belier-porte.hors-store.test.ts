@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from '../../state/store';
-import { scenario } from './42-belier-porte';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { scenario } from '../../scenes/test-scenarios/42-belier-porte';
 import { resolveAttack, firedWeapon, firedAttackBlock, attackPlan } from '../../noyau/combatFlow';
 import { placeCombatant } from '../../noyau/monde/spawn';
 import { seedBattleRng } from '../../noyau/battleRng';
@@ -11,6 +11,9 @@ import { pushSlot } from '../../noyau/siegePush';
 import { hoverTargeting } from '../../noyau/targeting';
 import type { Combatant } from '../../engine/types';
 import { chebyshev } from '../../engine/grid';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -23,12 +26,12 @@ const scenarioConstruit = scenario.construire();
  * (ADE II 8 l.258, Lot 2 #156) : mouvement simple plafonné, formation rigide, seuil de pousseurs.
  */
 function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; porte: Combatant } {
-  useGame.setState({ party: scenario.construire().party });
-  useGame.getState().startScene(scenarioConstruit.scene);
-  useGame.getState().startCombat('siege-belier');
-  useGame.getState().confirmRoundStart();
-  vi.clearAllTimers();
-  const b = useGame.getState().battle!;
+  banc.setState({ party: scenario.construire().party });
+  banc.getState().startScene(scenarioConstruit.scene);
+  banc.getState().startCombat('siege-belier');
+  banc.getState().confirmRoundStart();
+  banc.abandonner();
+  const b = banc.getState().battle!;
   const ram = b.combatants.find((c) => c.postes?.length)!;
   const soldat = b.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
   const crew = (ram.postes![0].crewIds ?? []).map((id) => b.combatants.find((c) => c.id === id)!);
@@ -38,14 +41,12 @@ function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; 
 
 /** Force le tour de `id` (le Soldat, chef de pièce) — la poussée exige que l'ACTIF soit le chef. */
 function setActive(id: string): void {
-  const b = useGame.getState().battle!;
+  const b = banc.getState().battle!;
   // Tour NEUF : réinitialise l'Action ET le Mouvement (pousser consomme le Mouvement → une poussée par tour).
-  useGame.setState({ battle: { ...b, turn: b.order.indexOf(id), acted: false, action: null, movementUsed: 0 } });
+  banc.setState({ battle: { ...b, turn: b.order.indexOf(id), acted: false, action: null, movementUsed: 0 } });
 }
 
 describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une arme portée', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it("scène : une porte-de-ville brèchable sur l'arête N de (5,4), formation ALIGNÉE en x, à 3 cases de la porte", () => {
     const s = scenarioConstruit.scene;
@@ -65,7 +66,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(belier.resolveChar).toBe('force');
     expect(belier.weaponGroup).toBe('machine-de-guerre');
     expect(belier.qualities.map((q) => q.id).sort()).toEqual(['belier', 'devastatrice', 'equipe', 'percutante', 'siege'].sort());
-    const w = firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants);
+    const w = firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants);
     expect(w.crewTeamIncomplete).toBeUndefined(); // Équipe au complet → arme nette
   });
 
@@ -82,7 +83,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
 
   it('une touche RÉUSSIE contre la porte lui inflige des Blessures (Atout Bélier + Siège, ×2 dégâts structure)', () => {
     const { soldat, ram, porte } = startBelier();
-    const scene = useGame.getState().scene!;
+    const scene = banc.getState().scene!;
     expect(porte).toBeTruthy();
     // #210 : l'adjacence d'une pièce de MÊLÉE servie se mesure depuis l'EMPREINTE DE LA COQUE (`meleeWarMachineHullOf`),
     // pas depuis le chef qui la sert — c'est l'affût 2×2 qui doit toucher la porte, pas seulement le Soldat.
@@ -95,7 +96,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // Arme EXPLICITE (Bélier) : le Soldat garde SON arme personnelle en plus du poste servi (kind-agnostique,
     // comme un canonnier qui garde sa dague) — l'auto-sélection `attackWeapon` prendrait sinon sa propre arme.
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const r = resolveAttack(() => useGame.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants));
+    const r = resolveAttack(() => banc.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants));
     expect(r).not.toBeNull();
     expect(r!.weapon.resolveChar).toBe('force'); // le jet qui vient de se résoudre était bien un Test de Force
     expect(r!.res.hit).toBe(true); // Force 90 → Test quasi-garanti
@@ -107,9 +108,9 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // Neutralise 3 des 5 servants PNJ (jamais le chef) → 3/6 restants (chef + 2 servants).
     for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 };
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const w = firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants);
+    const w = firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants);
     expect(w.crewTeamIncomplete).toBe(true);
-    expect(firedAttackBlock(() => useGame.getState(), soldat, porte, belier.uid)).toBeNull(); // toujours utilisable
+    expect(firedAttackBlock(() => banc.getState(), soldat, porte, belier.uid)).toBeNull(); // toujours utilisable
   });
 
   it("sous la moitié (2/6) : INUTILISABLE — firedAttackBlock refuse l'attaque", () => {
@@ -117,7 +118,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // Neutralise 4 des 5 servants PNJ (jamais le chef) → 2/6 restants (chef + 1 servant, < moitié).
     for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 4)) c.wounds = { ...c.wounds, current: 0 };
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const block = firedAttackBlock(() => useGame.getState(), soldat, porte, belier.uid);
+    const block = firedAttackBlock(() => banc.getState(), soldat, porte, belier.uid);
     expect(block).toMatchObject({ reason: 'sous-effectif' });
   });
 
@@ -125,7 +126,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
 
   it("gate de la case « Pousser » (console via `pushSlot`, GAP intégration UI) : visible pour le CHEF, absent pour un héros sans poste, désactivé sous-effectif", () => {
     const { soldat, crew } = startBelier();
-    const combatants = useGame.getState().battle!.combatants;
+    const combatants = banc.getState().battle!.combatants;
     // CHEF d'un engin mobile → bouton VISIBLE et actif (Équipe complète 6/6).
     expect(pushSlot(soldat, combatants)).toEqual({ show: true, undercrew: false });
     // Un autre héros du groupe (ne sert AUCUN poste) → aucun bouton.
@@ -141,8 +142,8 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat } = startBelier();
     setActive(soldat.id);
     const start = { ...soldat.pos! };
-    useGame.getState().battlePushEngine();
-    const reach = useGame.getState().battle!.reachable;
+    banc.getState().battlePushEngine();
+    const reach = banc.getState().battle!.reachable;
     // Non vide ET porte des DESTINATIONS réelles (pas seulement la case de départ) : le joueur voit où pousser.
     expect(reach.size).toBeGreaterThan(1);
     const destinations = [...reach.keys()].filter((k) => k !== `${start.x},${start.y}`);
@@ -156,10 +157,10 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // La case juste au nord (vers la porte) EST une destination proposée.
     expect(reach.has(`${start.x},${start.y - 1}`)).toBe(true);
     // Toggle (parité cast/heal) : re-cliquer « Pousser » ferme le mode sans consommer l'Action.
-    useGame.getState().battlePushEngine();
-    expect(useGame.getState().battle!.action).toBeNull();
-    expect(useGame.getState().battle!.reachable.size).toBe(0);
-    expect(useGame.getState().battle!.acted).toBe(false);
+    banc.getState().battlePushEngine();
+    expect(banc.getState().battle!.action).toBeNull();
+    expect(banc.getState().battle!.reachable.size).toBe(0);
+    expect(banc.getState().battle!.acted).toBe(false);
   });
 
   it("le CHEF pousse → l'engin ET tous les servants translatent du MÊME delta (formation rigide, comme shipAdvance)", () => {
@@ -167,10 +168,10 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     setActive(soldat.id);
     const movers = [ram, ...crew];
     const before = new Map(movers.map((c) => [c.id, { ...c.pos! }]));
-    useGame.getState().battlePushEngine();
-    expect(useGame.getState().battle!.action).toBe('push');
+    banc.getState().battlePushEngine();
+    expect(banc.getState().battle!.action).toBe('push');
     const dest = { x: soldat.pos!.x, y: soldat.pos!.y - 2 };
-    useGame.getState().battleClickTile(dest);
+    banc.getState().battleClickTile(dest);
     const delta = { x: dest.x - before.get(soldat.id)!.x, y: dest.y - before.get(soldat.id)!.y };
     expect(delta).toEqual({ x: 0, y: -2 });
     for (const c of movers) {
@@ -179,11 +180,11 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     }
     // Consomme le MOUVEMENT du chef (pas l'Action, LDB 13 l.106) ; chaque servant paiera le sien à son tour
     // (loseNextMovement) ; l'engin reste SANS tour (inert, jamais dans battle.order).
-    expect(useGame.getState().battle!.action).toBeNull();
-    expect(useGame.getState().battle!.acted).toBe(false); // pousser = Mouvement, l'Action reste libre
-    expect(useGame.getState().battle!.movementUsed).toBeGreaterThan(0); // le Mouvement du chef est dépensé
+    expect(banc.getState().battle!.action).toBeNull();
+    expect(banc.getState().battle!.acted).toBe(false); // pousser = Mouvement, l'Action reste libre
+    expect(banc.getState().battle!.movementUsed).toBeGreaterThan(0); // le Mouvement du chef est dépensé
     for (const c of crew.filter((x) => x.id !== soldat.id)) expect(c.loseNextMovement).toBe(true); // servants : Mouvement à leur tour
-    expect(useGame.getState().battle!.order).not.toContain(ram.id);
+    expect(banc.getState().battle!.order).not.toContain(ram.id);
   });
 
   it('portée de poussée PLAFONNÉE à la vitesse maison (`siege-engine-push-speed`, défaut 2 cases) — RAW muet, ADE II 8 l.258', () => {
@@ -192,16 +193,16 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const cap = Number(rule('siege-engine-push-speed'));
     expect(cap).toBe(2);
     const start = { ...soldat.pos! };
-    useGame.getState().battlePushEngine();
+    banc.getState().battlePushEngine();
     // Hors de portée (cap+1) : la case n'est même pas dans `battle.reachable` → le clic est ignoré, personne ne bouge.
     const tooFar = { x: start.x, y: start.y - (cap + 1) };
-    expect(useGame.getState().battle!.reachable.has(`${tooFar.x},${tooFar.y}`)).toBe(false);
-    useGame.getState().battleClickTile(tooFar);
+    expect(banc.getState().battle!.reachable.has(`${tooFar.x},${tooFar.y}`)).toBe(false);
+    banc.getState().battleClickTile(tooFar);
     expect(soldat.pos).toEqual(start);
-    expect(useGame.getState().battle!.action).toBe('push'); // toujours ouvert : ce n'était pas un commit
+    expect(banc.getState().battle!.action).toBe('push'); // toujours ouvert : ce n'était pas un commit
     // Dans la portée (exactement le plafond) : le clic commet.
     const atCap = { x: start.x, y: start.y - cap };
-    useGame.getState().battleClickTile(atCap);
+    banc.getState().battleClickTile(atCap);
     expect(soldat.pos).toEqual(atCap);
     expect(ram.pos).toEqual({ x: atCap.x + 1, y: atCap.y }); // offset relatif chef↔engin préservé
   });
@@ -210,44 +211,44 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat: soldatA, crew: crewA } = startBelier();
     setActive(soldatA.id);
     for (const c of crewA.filter((x) => x.id !== soldatA.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 }; // 3/6 restants
-    useGame.getState().battlePushEngine();
-    expect(useGame.getState().battle!.action).toBe('push'); // effectif suffisant → poussée ouverte
+    banc.getState().battlePushEngine();
+    expect(banc.getState().battle!.action).toBe('push'); // effectif suffisant → poussée ouverte
 
-    useGame.setState({ battle: null });
+    banc.setState({ battle: null });
     const { soldat: soldatB, crew: crewB } = startBelier();
     setActive(soldatB.id);
     for (const c of crewB.filter((x) => x.id !== soldatB.id).slice(0, 4)) c.wounds = { ...c.wounds, current: 0 }; // 2/6 restants
-    useGame.getState().battlePushEngine();
-    expect(useGame.getState().battle!.action).toBeNull(); // sous la moitié → poussée IMPOSSIBLE (comme un tir sous-effectif)
+    banc.getState().battlePushEngine();
+    expect(banc.getState().battle!.action).toBeNull(); // sous la moitié → poussée IMPOSSIBLE (comme un tir sous-effectif)
   });
 
   it("EXACTEMENT 2 poussées plein Nord (cap 2, cases 2 puis 1) amènent l'empreinte au contact DIRECT de la porte (anti-régression du grind)", () => {
     const { soldat, ram, porte } = startBelier();
     const pushBy = (dy: number) => {
       setActive(soldat.id);
-      useGame.getState().battlePushEngine();
-      useGame.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      banc.getState().battlePushEngine();
+      banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     // Départ (3 cases d'écart) : hors d'Allonge, la porte étant inanimée (jamais de Charge/approche implicite).
-    expect(attackPlan(() => useGame.getState(), soldat, porte).kind).toBe('blocked');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
     pushBy(2); // (3,8) → (3,6) : reliquat de 1 case restant, toujours hors d'Allonge
-    expect(attackPlan(() => useGame.getState(), soldat, porte).kind).toBe('blocked');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
     pushBy(1); // (3,6) → (3,5) : contact — la 2e poussée suffit
     expect(soldat.pos).toEqual({ x: 3, y: 5 });
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     // Contact DIRECT (dx=0) : la case (5,5) de l'empreinte 2×2 (colonnes 4-5) est juste au Nord de la porte (5,4).
-    expect(attackPlan(() => useGame.getState(), soldat, porte).kind).toBe('attack');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('attack');
   });
 
   it("après avoir POUSSÉ la formation jusqu'à la porte (2 poussées, cap 2), le bélier l'assène (Force + Blessures)", () => {
     const { soldat: avant, ram, porte } = startBelier();
     avant.characteristics.force = 90; // Test quasi-garanti (indépendant de la mobilité testée ici)
     // La Force déplace le maximum des Blessures : l'écriture suivante copie le soldat, il se relit par son id.
-    const lu = () => useGame.getState().battle!.combatants.find((c) => c.id === avant.id)!;
+    const lu = () => banc.getState().battle!.combatants.find((c) => c.id === avant.id)!;
     const pushBy = (dy: number) => {
       setActive(avant.id);
-      useGame.getState().battlePushEngine();
-      useGame.getState().battleClickTile({ x: lu().pos!.x, y: lu().pos!.y - dy });
+      banc.getState().battlePushEngine();
+      banc.getState().battleClickTile({ x: lu().pos!.x, y: lu().pos!.y - dy });
     };
     pushBy(2); // (3,8) → (3,6)
     pushBy(1); // (3,6) → (3,5) : adjacente DIRECTE à la porte (arête N de (5,4), dx=0)
@@ -256,7 +257,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     seedBattleRng(1);
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const r = resolveAttack(() => useGame.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants));
+    const r = resolveAttack(() => banc.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants));
     expect(r).not.toBeNull();
     expect(r!.res.hit).toBe(true); // Force 90 → Test quasi-garanti
     expect(r!.res.woundsLost ?? 0).toBeGreaterThan(0); // la porte encaisse RÉELLEMENT, après le trajet poussé
@@ -269,13 +270,13 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat, porte } = startBelier();
     const pushBy = (dy: number) => {
       setActive(soldat.id);
-      useGame.getState().battlePushEngine();
-      useGame.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      banc.getState().battlePushEngine();
+      banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     pushBy(2);
     pushBy(1); // coque adjacente à la porte ; le chef (3,5) en reste à distance 2
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const w = firedWeapon(soldat, porte, undefined, useGame.getState().battle!.combatants);
+    const w = firedWeapon(soldat, porte, undefined, banc.getState().battle!.combatants);
     expect(w.uid).not.toBe(belier.uid); // jamais auto-choisi
     expect(w.type).toBe('melee'); // une arme PERSONNELLE (ou le repli générique), jamais la pièce
   });
@@ -283,11 +284,11 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
   it('option DÉDIÉE « Servir le Bélier » (weaponUid explicite) : le Bélier reste choisi, géométrie de la coque (non-régression)', () => {
     const { soldat, ram, porte } = startBelier();
     ram.pos = { x: 6, y: 5 };
-    placeCombatant(ram, useGame.getState().scene!, ram.pos);
+    placeCombatant(ram, banc.getState().scene!, ram.pos);
     soldat.pos = { x: 0, y: 0 }; // chef très loin — hors-sujet pour la pièce servie
-    placeCombatant(soldat, useGame.getState().scene!, soldat.pos);
+    placeCombatant(soldat, banc.getState().scene!, soldat.pos);
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const w = firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants);
+    const w = firedWeapon(soldat, porte, belier.uid, banc.getState().battle!.combatants);
     expect(w.uid).toBe(belier.uid);
   });
 
@@ -295,43 +296,19 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const { soldat, porte } = startBelier();
     const pushBy = (dy: number) => {
       setActive(soldat.id);
-      useGame.getState().battlePushEngine();
-      useGame.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      banc.getState().battlePushEngine();
+      banc.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     pushBy(2);
     pushBy(1); // coque adjacente (le clic « Servir » doit fonctionner sans approche)
     setActive(soldat.id);
-    const b = () => useGame.getState().battle!;
-    useGame.setState({ battle: { ...b(), selectedAttack: 'poste' } });
-    const hoverPoste = hoverTargeting(() => useGame.getState(), soldat, porte);
+    const b = () => banc.getState().battle!;
+    banc.setState({ battle: { ...b(), selectedAttack: 'poste' } });
+    const hoverPoste = hoverTargeting(() => banc.getState(), soldat, porte);
     expect(hoverPoste.kind).toBe('ok');
     expect((hoverPoste as { skill?: string }).skill).toMatch(/^Force/); // Force (armes-de-siege) : attackTestLabel + subType
-    useGame.setState({ battle: { ...b(), selectedAttack: 'arme' } });
-    const hoverArme = hoverTargeting(() => useGame.getState(), soldat, porte);
+    banc.setState({ battle: { ...b(), selectedAttack: 'arme' } });
+    const hoverArme = hoverTargeting(() => banc.getState(), soldat, porte);
     expect((hoverArme as { skill?: string }).skill).not.toMatch(/^Force/);
-  });
-
-  it('BUG-B (recette) : au clavier, en mode Pousser, la case plein NORD est sélectionnable (curseur clavier, vue iso par défaut)', () => {
-    const { soldat } = startBelier();
-    setActive(soldat.id);
-    useGame.getState().battlePushEngine();
-    const start = { ...soldat.pos! };
-    const north = { x: start.x, y: start.y - 1 };
-    expect(useGame.getState().battle!.reachable.has(`${north.x},${north.y}`)).toBe(true); // au menu du mode
-    let found = false;
-    const dirs: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'down', 'left', 'right'];
-    for (const d1 of dirs) {
-      useGame.setState({ combatCursor: null });
-      useGame.getState().moveCursor(d1);
-      const t1 = useGame.getState().combatCursor?.tile;
-      if (t1 && t1.x === north.x && t1.y === north.y) { found = true; break; }
-      for (const d2 of dirs) {
-        useGame.getState().moveCursor(d2);
-        const t2 = useGame.getState().combatCursor?.tile;
-        if (t2 && t2.x === north.x && t2.y === north.y) { found = true; break; }
-      }
-      if (found) break;
-    }
-    expect(found).toBe(true); // plein Nord atteignable en ≤ 2 pressions
   });
 });

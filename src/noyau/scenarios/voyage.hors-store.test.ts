@@ -1,15 +1,18 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { useGame } from '../../state/store';
+import { describe, it, beforeEach, expect, afterEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { distributeCredit } from '../../noyau/bourseFlow';
 import { interludeCatalog } from '../../noyau/interludeFlow';
 import { currentPlaceId } from '../../noyau/worldMap';
 import { draineCascade } from '../../noyau/cascade.testkit';
-import { scenario } from './voyage';
+import { scenario } from '../../scenes/test-scenarios/voyage';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
-/** Les 5 sous-scènes sont désormais produites par `buildScene(MapSpec)` (WorldMap/extraScenes restent sur
+/** Les 5 sous-scènes sont produites par `buildScene(MapSpec)` (WorldMap/extraScenes restent sur
  *  le TestScenario). Ce bloc verrouille l'équivalence en jeu des Scenes PRODUITES : dimensions, terrain,
  *  météo/repos, entités/dialogues déclaratifs, et l'embuscade cachée (members + hiddenUntilCombat). */
 describe('16-voyage — Scenes produites par buildScene', () => {
@@ -56,17 +59,17 @@ describe('16-voyage — intégration Voyage par Étapes', () => {
   it('règle pré-activée → postes résolus, véhicule à coque bâti, météo d’Étape journalisée', () => {
     for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as any);
     seedBattleRng(7);
-    useGame.getState().setParty(scenario.construire().party);
+    banc.getState().setParty(scenario.construire().party);
     // La LONGUE route part du hameau : on entre à p-hameau pour la prendre en diligence.
-    useGame.getState().loadProject({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-hameau', worldMap: scenarioConstruit.worldMap!, projet: null });
-    if (scenario.money) distributeCredit(useGame.getState, useGame.setState, scenario.money); // bourses du groupe (SOCLE POSSESSIONS #531)
-    useGame.getState().startTravel('r-longue', 'diligence', { classeId: 'exterieur' });
-    const plan = useGame.getState().travelPlan;
+    banc.getState().loadProject({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-hameau', worldMap: scenarioConstruit.worldMap!, projet: null });
+    if (scenario.money) distributeCredit(banc.getState, banc.setState, scenario.money); // bourses du groupe (SOCLE POSSESSIONS #531)
+    banc.getState().startTravel('r-longue', 'diligence', { classeId: 'exterieur' });
+    const plan = banc.getState().travelPlan;
     expect(plan?.vehicle?.bodyShape).toBe('vehicule'); // diligence E45/B50
     // Les jets d'Étape du jour sont une cascade influençable (`travelDay`) : la drainer pour que les
     // lignes de postes/Exposition arrivent au journal (comme la halte de nuit du fluvial).
-    draineCascade(useGame.getState);
-    const j = useGame.getState().journal;
+    draineCascade(banc.getState);
+    const j = banc.getState().journal;
     expect(j.some((l) => l.includes('Météo'))).toBe(true);
     // Postes résolus : leurs conséquences arrivent au journal en lignes STRUCTURÉES (batch #328 + #295) —
     // Exténué DÉRIVÉ de l'op, carte d'itinéraire (Test étendu cumulé), ou ration fourragée à l'agrégation.
@@ -83,18 +86,18 @@ describe('16-voyage — lieu « altdorf » : Activités d’Altdorf (ACE Annexe 
 
   it('currentPlaceId + interludeCatalog : arrivé à Altdorf, les Activités gatées `where:[altdorf]` sont proposées', () => {
     const cite = byId('test-voyage-cite');
-    useGame.setState({ scene: cite, worldMap: scenarioConstruit.worldMap, massBattle: null });
-    expect(currentPlaceId(useGame.getState())).toBe('altdorf');
-    const cat = interludeCatalog(useGame.getState());
+    banc.setState({ scene: cite, worldMap: scenarioConstruit.worldMap, massBattle: null });
+    expect(currentPlaceId(banc.getState())).toBe('altdorf');
+    const cat = interludeCatalog(banc.getState());
     expect(cat.some((d) => d.id === 'penitence')).toBe(true);
     expect(cat.some((d) => d.id === 'entrainement-arme-inhabituelle')).toBe(true);
   });
 
   it('hors d’Altdorf (autre scène du même voyage), ces Activités disparaissent du catalogue', () => {
     const village = byId('test-voyage-village');
-    useGame.setState({ scene: village, worldMap: scenarioConstruit.worldMap, massBattle: null });
-    expect(currentPlaceId(useGame.getState())).not.toBe('altdorf');
-    const cat = interludeCatalog(useGame.getState());
+    banc.setState({ scene: village, worldMap: scenarioConstruit.worldMap, massBattle: null });
+    expect(currentPlaceId(banc.getState())).not.toBe('altdorf');
+    const cat = interludeCatalog(banc.getState());
     expect(cat.some((d) => d.id === 'penitence')).toBe(false);
   });
 });

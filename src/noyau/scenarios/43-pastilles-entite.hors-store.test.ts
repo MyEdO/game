@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from '../../state/store';
-import { scenario } from './43-pastilles-entite';
-import { entityGestes } from '../../state/registreOffres';
-import type { OffreRendue } from '../../state/offreRendue';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { scenario } from '../../scenes/test-scenarios/43-pastilles-entite';
+import { offresDeLActif, offresParPorteur, type Offre } from '../actionRegistry';
+import { activeCombatant } from '../combatFlow';
+import type { Jeu } from '../etat';
 import { chebyshev } from '../../engine/grid';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -15,26 +19,29 @@ const scenarioConstruit = scenario.construire();
  * familles d'entités offrent bien leurs gestes à l'actif, à une case, sans un pas de déplacement.
  */
 function ouvrir() {
-  useGame.setState({ party: scenario.construire().party });
-  useGame.getState().startScene(scenarioConstruit.scene);
-  useGame.getState().startCombat('enc-pastilles');
-  useGame.getState().confirmRoundStart();
-  vi.clearAllTimers();
+  banc.setState({ party: scenario.construire().party });
+  banc.getState().startScene(scenarioConstruit.scene);
+  banc.getState().startCombat('enc-pastilles');
+  banc.getState().confirmRoundStart();
+  banc.abandonner();
   // L'ordre du Round est tiré à l'Initiative : on se place au TOUR DU SOLDAT, celui que le joueur
-  // exerce en recette (même patron que `42-belier-porte.test`, dont la poussée exige l'actif chef).
-  const b = useGame.getState().battle!;
+  // exerce en recette (même patron que `42-belier-porte.hors-store.test`, dont la poussée exige l'actif chef).
+  const b = banc.getState().battle!;
   const soldat = b.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
-  useGame.setState({ battle: { ...b, turn: b.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
-  return useGame.getState();
+  banc.setState({ battle: { ...b, turn: b.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
+  return banc.getState();
 }
 
-/** L'ACTION d'une offre rendue : la clé stable d'une pastille est `action|arguments du candidat`
- *  (`rendreOffre`) — deux candidats d'un même coffre y diffèrent par leur queue. */
-const actionDe = (o: OffreRendue) => o.id.split('|')[0];
+/** L'ACTION d'une offre du registre. */
+const actionDe = (o: Offre) => o.actionId;
+
+/** Les PASTILLES D'ENTITÉ de l'instant : les offres de l'actif à la surface du champ, par entité qui les porte. */
+const entityGestes = (st: Jeu) => {
+  const battle = st.battle!;
+  return offresParPorteur(offresDeLActif({ active: activeCombatant(battle)!, battle, netMode: st.net.mode, gameTime: st.gameTime, state: st }), 'pastille-entite');
+};
 
 describe('Scénario « Pastilles d’entité » — le banc de recette de la zone 4', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('le Soldat ACTIF est chef du bélier, et les trois porteurs sont à UNE case (aucun pas requis)', () => {
     const st = ouvrir();

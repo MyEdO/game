@@ -1,15 +1,16 @@
 /**
  * Jalon 5 — la LIAISON web de la sauvegarde : les actions du store (`saveGame`, `autoSave`, `loadGame`, `importGame`)
  * sur les emplacements du `localStorage` (`stockageDesSauvegardes`), le refus dit au journal, l'interface remise au
- * chargement et les retraits du chargement exposés à l'écran. La forme persistée : `src/noyau/forme-persistee.hors-store.test.ts` ;
- * les emplacements : `src/hote/sauvegardes.hors-store.test.ts` (#2404).
+ * chargement et les retraits du chargement exposés à l'écran, observés au stockage des sauvegardes du joueur (`saves.testkit.ts`).
+ * La forme persistée : `src/noyau/forme-persistee.hors-store.test.ts` ; les emplacements, leur liste et le témoin
+ * des retraits : `src/hote/sauvegardes.hors-store.test.ts` (#2404).
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame } from './store';
 import { initialNet } from '../noyau/etat';
 import { t } from '../i18n';
-import { stockageDesSauvegardes } from './saves';
-import { lireLaSauvegarde, listerLesSauvegardes, prendreLesRetraitsDeSauvegardes } from '../hote/sauvegardes';
+import { saveDuStockage } from './saves.testkit';
+import { cleDEmplacement } from '../hote/sauvegardes';
 import { lireSave, exporterLaSauvegarde } from '../noyau/persistance/save';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
@@ -31,17 +32,14 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); loadRuleOverrides({}); });
 
-  it('saveGame → slot rempli avec métadonnées (scène, horloge) ; listerLesSauvegardes le voit', () => {
+  it('saveGame → slot rempli avec métadonnées (scène, horloge)', () => {
     useGame.setState({ flags: { ...useGame.getState().flags, 'drapeau-test': true } });
     expect(useGame.getState().saveGame(1)).toBe(true);
-    const s = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
+    const s = saveDuStockage(1)!;
     expect(s.version).toBe(FORMAT_SAVE);
     expect(s.sceneLabel).toBe(testScene().label); // le NOM de la scène, pas son id
     expect(s.sceneLabel.length).toBeGreaterThan(0);
     expect((s.data.flags as Record<string, unknown>)['drapeau-test']).toBe(true);
-    const metas = listerLesSauvegardes(stockageDesSauvegardes());
-    expect(metas[0]?.slot).toBe(1);
-    expect(metas[1]).toBeNull();
   });
 
   it('round-trip : muter → sauver → réinitialiser → charger restaure données + actions vivantes', () => {
@@ -69,7 +67,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     const def = rule(id) as boolean; // défaut RAW du registre
     setRule(id, !def); // l'utilisateur active la règle maison
     expect(useGame.getState().saveGame(1)).toBe(true);
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)!.rules?.[id]).toBe(!def); // la surcharge voyage DANS la save
+    expect(saveDuStockage(1)!.rules?.[id]).toBe(!def); // la surcharge voyage DANS la save
     loadRuleOverrides({}); // « autre machine » : aucune règle maison locale → défaut
     expect(rule(id)).toBe(def);
     expect(useGame.getState().loadGame(1)).toBe(true);
@@ -90,8 +88,8 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(useGame.getState().autoSave()).toBe(false);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('store.saveInvite'));
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), 'auto')).toBeNull();
+    expect(saveDuStockage(1)).toBeNull();
+    expect(saveDuStockage('auto')).toBeNull();
   });
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
@@ -99,14 +97,14 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
     expect(useGame.getState().saveGame(1)).toBe(false);
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
+    expect(saveDuStockage(1)).toBeNull();
   });
 
   it('export / import : round-trip JSON validé', () => {
     expect(useGame.getState().saveGame(3)).toBe(true);
-    const json = exporterLaSauvegarde(lireLaSauvegarde(stockageDesSauvegardes(), 3)!);
+    const json = exporterLaSauvegarde(saveDuStockage(3)!);
     const re = lireSave(json);
-    expect(typeof re === 'object' && re.sceneLabel).toBe(lireLaSauvegarde(stockageDesSauvegardes(), 3)!.sceneLabel);
+    expect(typeof re === 'object' && re.sceneLabel).toBe(saveDuStockage(3)!.sceneLabel);
     // importGame applique la save importée à l'état.
     useGame.setState({ flags: {}, scene: null, screen: 'menu' });
     expect(useGame.getState().importGame(json)).toBeNull();
@@ -116,7 +114,6 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
 
 // #2404 · `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`
 describe('FORMAT — une save d’un autre format est jetée, jamais migrée', () => {
-  const stableKey = (slot: number) => `wfrp4.save.${slot}`;
   const save = (version: string | number, sceneLabel = 'Ancienne') => ({ version, savedAt: '2026-08-17', sceneLabel, gameTime: 3, data: { flags: { 'drapeau-x': true } } });
   const ls = () => (globalThis as { localStorage: Storage }).localStorage;
 
@@ -126,12 +123,11 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
 
   it('loadGame sur une save d’un autre format : refusé, l’état courant INTACT, l’emplacement vidé', () => {
     useGame.setState({ flags: { 'drapeau-vivant': true } });
-    ls().setItem(stableKey(1), JSON.stringify(save('autre-format')));
+    ls().setItem(cleDEmplacement(1), JSON.stringify(save('autre-format')));
     expect(useGame.getState().loadGame(1)).toBe(false);
     expect(useGame.getState().flags['drapeau-vivant']).toBe(true);
     expect(useGame.getState().flags['drapeau-x']).toBeUndefined();
-    expect(listerLesSauvegardes(stockageDesSauvegardes())[0]).toBeNull();
-    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([{ slot: 1, cause: 'autreFormat' }]);
+    expect(ls().getItem(cleDEmplacement(1))).toBeNull();
     expect(t('saveload.error.autreFormat', { emplacement: 'Emplacement 1' })).toBe('Emplacement 1 : sauvegarde d’un autre format, retirée.');
   });
 
@@ -144,14 +140,12 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
       rules: { [r.id]: !r.default, 'regle-hors-registre': true, [autre.id]: 'texte' },
       data: { party: [combattantDeTest({ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] })] },
     };
-    ls().setItem(stableKey(1), JSON.stringify(lue));
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1), 'la dérive du registre ne jette pas la save').not.toBeNull();
-    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([]);
-    expect(useGame.getState().loadGame(1)).toBe(true);
+    ls().setItem(cleDEmplacement(1), JSON.stringify(lue));
+    expect(useGame.getState().loadGame(1), 'la dérive du registre ne jette pas la save').toBe(true);
     expect(rule(r.id), 'la surcharge connue s’applique').toBe(!r.default);
     expect(rule(autre.id), 'la valeur non conforme est retirée').toBe(autre.default);
     expect(useGame.getState().party[0].conditions.map((c) => c.id), 'le héros reste, sans l’État inconnu').toEqual([connu]);
     expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'], groupes: [] });
-    expect(ls().getItem(stableKey(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
+    expect(ls().getItem(cleDEmplacement(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
   });
 });

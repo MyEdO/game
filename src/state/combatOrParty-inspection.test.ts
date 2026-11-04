@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { combatantClickActs } from '../noyau/combatOrParty';
-import { poserLeCombat } from '../noyau/combatOrParty.fixture';
+import { poserLeCombat } from '../noyau/combatOrParty.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 describe('combatantClickActs — la fiche ouverte de l’adaptateur', () => {

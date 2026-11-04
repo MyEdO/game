@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from '../../state/store';
-import { scenario } from './siege-enceinte';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
 import { combatDistance } from '../../noyau/monde/footprint';
 import { lineOfSightCover } from '../../noyau/monde/lineOfSight';
 import { isWalkable, wallBetween, setStructureDown, heightAt } from '../../noyau/monde/scene';
@@ -17,6 +17,9 @@ import { buildTokens } from '../../gameIso/builders/tokens';
 import { isOverhang, capsSolid } from '../../gameIso/builders/floors';
 import { computeStateVisibleAndLight } from '../../noyau/visionState';
 import { encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -37,8 +40,6 @@ const emplWithCrew = (crewId: string): SceneEntity =>
   scenarioConstruit.scene.entities.find((e) => e.postes?.[0]?.crewIds?.includes(crewId))!;
 
 describe('Siège — défendre la muraille (siege-enceinte)', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('carte PROFONDE 30×46, 2 niveaux ; champ d\'approche ≫ cour modeste', () => {
     const s = scenarioConstruit.scene;
@@ -160,13 +161,13 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('défenseur z=1 ↔ assaillant z=0 : distance verticale (pas de mêlée à travers le vide), LdV de tir dégagée', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const b = useGame.getState().battle!;
-    const scene = useGame.getState().scene!;
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    const b = banc.getState().battle!;
+    const scene = banc.getState().scene!;
     const hero = b.combatants.find((c) => c.kind === 'hero' && !c.aiControlled && !c.inert)!;
     // Placement PRODUCTION : `placeCombatant` stampe la hauteur métrique `pos.h` (= 4 m, chemin de ronde z1).
     hero.pos = { x: 8, y: MOUTH_ROW, z: 1 };          // sur le chemin de ronde, au-dessus de la courtine
@@ -181,10 +182,10 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const assaut = scenarioConstruit.scene.encounters!.find((e) => e.id === 'assaut')!;
     expect(assaut.siege).toBe(true);
     // Copié TEL QUEL sur l'état de bataille au démarrage (aucune re-dérivation côté runtime).
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    expect(useGame.getState().battle!.siege).toBe(true);
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    expect(banc.getState().battle!.siege).toBe(true);
   });
 
   it('SCHÉMA : le défaut du drapeau est LITTÉRAL — absent au parse, jamais matérialisé en `false`', () => {
@@ -207,12 +208,12 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('BATTERIE assaillante : le canon de siège BRÈCHE la porte tout seul (IA cible la structure)', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const b = useGame.getState().battle!;
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    const b = banc.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // mercenaire qui SERT le canon assaillant
     expect(canonnier.weapons.some((w) => w.type === 'ranged')).toBe(true); // pièce servie au spawn (poste de l'affût)
     const affutEnt = emplWithCrew('brg-canon'); // l'emplacement dont l'équipage est le mercenaire-canonnier
@@ -223,7 +224,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(b.order).not.toContain(affutEnt.id); // affût inerte → aucun tour propre
     expect(affutEnt.ref).toBe('canon-petit');
     expect(affutEnt.appearance).toBeUndefined();
-    const input = buildAiInput(canonnier, useGame.getState);
+    const input = buildAiInput(canonnier, banc.getState);
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
     const action = chooseEnemyAction(input);
     expect(action.kind).toBe('shoot');
@@ -232,17 +233,17 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('CONTRAT NÉGATIF : le MÊME canonnier, siège retiré → aucune structure en entrée, aucune décision de structure', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
     // Seul le drapeau change : même scène, même roster, même canonnier servant la même pièce.
-    useGame.setState({ battle: { ...useGame.getState().battle!, siege: undefined } });
-    const b = useGame.getState().battle!;
+    banc.setState({ battle: { ...banc.getState().battle!, siege: undefined } });
+    const b = banc.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!;
     expect(b.combatants.some(isStructure)).toBe(true); // les structures SONT là, elles ne sont plus offertes
-    const input = buildAiInput(canonnier, useGame.getState);
+    const input = buildAiInput(canonnier, banc.getState);
     expect(input.structures ?? []).toEqual([]);
     const action = chooseEnemyAction(input) as { targetId?: string; thenTargetId?: string };
     const visee = b.combatants.find((c) => c.id === (action.targetId ?? action.thenTargetId));
@@ -250,31 +251,31 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('AUCUN défaut DÉRIVÉ : un objectif « détruire la structure » sans `siege` ne rend PAS de structures', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const porte = useGame.getState().battle!.combatants.find(isStructure)!;
-    useGame.setState({
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    const porte = banc.getState().battle!.combatants.find(isStructure)!;
+    banc.setState({
       battle: {
-        ...useGame.getState().battle!,
+        ...banc.getState().battle!,
         siege: undefined,
         victoryCondition: { type: 'destroyStructure', edge: porte.structureEdge! },
       },
     });
-    const b = useGame.getState().battle!;
+    const b = banc.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!;
-    expect(buildAiInput(canonnier, useGame.getState).structures ?? []).toEqual([]);
+    expect(buildAiInput(canonnier, banc.getState).structures ?? []).toEqual([]);
   });
 
   it('DÉFENSEURS : archers PNJ alliés-IA (agissent seuls) ; pièces INERTES servies (hors tour)', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const b = useGame.getState().battle!;
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    const b = banc.getState().battle!;
     // Archers défenseurs = héros pilotés par l'IA, armés d'un arc, sur le chemin de ronde (z1).
     const archers = b.combatants.filter((c) => c.aiControlled && c.kind === 'hero' && !c.inert && !c.mannedPoste);
     expect(archers.length).toBe(5); // 4 archers 'A' + 1 guetteur 'G'
@@ -302,12 +303,12 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('ÉQUIPAGE QUALIFIÉ : chaque servant a la Projectiles du Groupe de SA pièce → compte dans l’effectif (AA 10 l.230)', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const b = useGame.getState().battle!;
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    const b = banc.getState().battle!;
     // Servant de baliste (rempart) : Groupe Arbalète → qualifié → effectif ≥ 1.
     const crewBal = b.combatants.find((c) => c.id === 'crew-baliste')!;
     expect(crewBal.skills.some((s) => s.id === 'projectiles' && s.spec === 'arbalete')).toBe(true);
@@ -362,11 +363,11 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
    * l'écran : brouillard réel et `activeZ` du combattant actif.
    */
   it('RENDU : depuis la cour, la garnison du chemin de ronde (défenseurs ET pièces servies) sort en jetons', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
-    useGame.getState().confirmRoundStart();
-    const st = useGame.getState();
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('assaut');
+    banc.getState().confirmRoundStart();
+    const st = banc.getState();
     const b = st.battle!;
     const scene = st.scene!;
     const vl = computeStateVisibleAndLight({ scene, battle: b, party: st.party, partyPos: st.partyPos, gameTime: st.gameTime, lightLevel: st.lightLevel });

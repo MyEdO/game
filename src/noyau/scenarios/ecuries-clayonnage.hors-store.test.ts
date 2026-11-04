@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { scenario } from './ecuries-clayonnage';
-import { scenario as diligence } from './diligence';
+import { describe, it, beforeEach, expect } from 'vitest';
+import { scenario } from '../../scenes/test-scenarios/ecuries-clayonnage';
+import { scenario as diligence } from '../../scenes/test-scenarios/diligence';
 import { lineOfSightCover, makeLosMemo, type LosMemo } from '../../noyau/monde/lineOfSight';
 import { wallBetween, areteOcculteEntre, structureAt, emptyScene, type Scene } from '../../noyau/monde/scene';
 import { parseWalledAscii, scanMarkers } from '../../noyau/monde/asciiMap';
 import { buildEncounter } from '../../noyau/monde/encounterAuthoring';
 import type { Pt } from '../../noyau/monde/path';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { buildAiInput } from '../../noyau/combatFlow';
 import { chooseEnemyAction } from '../../noyau/monde/ai';
 import { seedBattleRng } from '../../noyau/battleRng';
@@ -14,6 +14,9 @@ import { isStructure } from '../../engine/structures';
 import { couvertDepuisDifficulte } from '../../engine/cover';
 import { findStructureById } from '../../data';
 import { pregen, PREGEN } from '../../data/pregens';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const diligenceConstruit = diligence.construire();
 const scenarioConstruit = scenario.construire();
 
@@ -92,17 +95,17 @@ const groupe = () => [pregen(PREGEN.chasseur), pregen(PREGEN.soldat)];
 /** Ouvre le combat de la fixture sur une carte NEUVE et rend l'état de bataille. */
 function ouvrirCombat() {
   seedBattleRng(1234);
-  useGame.setState({ party: groupe() });
-  useGame.getState().startScene(carte());
-  useGame.getState().startCombat(ENC);
-  useGame.getState().confirmRoundStart();
-  return useGame.getState().battle!;
+  banc.setState({ party: groupe() });
+  banc.getState().startScene(carte());
+  banc.getState().startCombat(ENC);
+  banc.getState().confirmRoundStart();
+  return banc.getState().battle!;
 }
 type Bataille = ReturnType<typeof ouvrirCombat>;
 /** L'entrée d'IA du tour de `e` — le curseur de tour posé sur lui, comme le fait la boucle. */
 function entreeDuTour(b: Bataille, e: Bataille['combatants'][number]) {
-  useGame.setState({ battle: { ...useGame.getState().battle!, turn: b.order.indexOf(e.id), acted: false, action: null, movementUsed: 0 } });
-  return buildAiInput(e, useGame.getState);
+  banc.setState({ battle: { ...banc.getState().battle!, turn: b.order.indexOf(e.id), acted: false, action: null, movementUsed: 0 } });
+  return buildAiInput(e, banc.getState);
 }
 /** L'ennemi que la carte arme d'une arme à DISTANCE — nommé par son ARMEMENT, pas par son id. */
 const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'enemy' && c.weapons.some((w) => w.type === 'ranged'));
@@ -170,7 +173,7 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
     expect(posees, 'la fixture pose bien des structures — sans elles la garde ne mesure rien').toBeGreaterThan(0);
     const lignes = decisionsDesEnnemis();
     expect(lignes.length).toBe(enc.members!.length);
-    expect(useGame.getState().battle!.combatants.filter(isStructure).length).toBe(posees);
+    expect(banc.getState().battle!.combatants.filter(isStructure).length).toBe(posees);
     for (const { ennemi, input, cible } of lignes) {
       expect(input.structures ?? [], `${ennemi.label} reçoit des structures en entrée`).toEqual([]);
       expect(cible, `${ennemi.label} décide sans cible`).toBeTruthy();

@@ -28,6 +28,8 @@ import { findTableEntry } from './tables';
 import type { GameOp } from './ops';
 import { addClockCondition, removeActiveEffects } from './conditions'; // cycle runtime (conditions→characteristics→trauma→drunkenness) : appelés au dessoûlage, jamais à l'init
 import drunkennessJson from '../data/drunkenness.json';
+import { rangeesDe, type RangeeDe } from '../data/rangees';
+import type * as ivresse from '../data/schemas/defs/drunkenness';
 import { t } from '../i18n';
 
 // La MÉCANIQUE d'un résultat d'Ivresse (Bravoure/meilleur ami/belligérant) est RENDUE en `GameOp[]`
@@ -47,10 +49,10 @@ export interface DrunkState {
   result?: string;
 }
 
-/** Entrée du Tableau d'Ivresse — MÊME schéma que `drunkenness.json::entries` (exportée pour l'exposition
- *  Codex, #422 : `data/overrides.ts` la réutilise pour typer la table live). */
-export interface DrunkEntry { id: string; min: number; max: number; label: string; outcome: string; desc: string; ops?: GameOp[] }
-const DRUNK_TABLE = (drunkennessJson as { entries: DrunkEntry[] }).entries;
+/** Entrée du Tableau d'Ivresse. */
+type DrunkEntry = RangeeDe<typeof ivresse>;
+/** Le Tableau d'Ivresse VIVANT — la collection que le Codex édite (`drunkenness`, `data/overrides.ts`). */
+export const DRUNK_TABLE = rangeesDe<typeof ivresse>(drunkennessJson);
 
 /** Nombre d'échecs de Résistance à l'alcool accumulés. */
 export function alcoholFailures(c: Combatant): number {

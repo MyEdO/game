@@ -20,7 +20,7 @@ export type HostJet = NonNullable<CascadeStep['jet']>;
  * poser quand la donnée a disparu). Ce module n'importe AUCUN runtime : ni l'un ni l'autre n'y
  * gagne de cycle.
  */
-export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
+export const PENDING_BY_JET = {
   attack: 'pendingAttack',
   defense: 'pendingDefense',
   fumble: null,
@@ -29,7 +29,12 @@ export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
   extended: 'pendingExtendedTest',
   disengage: 'pendingDisengage',
   forceDoor: 'pendingForceDoor',
-};
+} as const satisfies Record<HostJet, PendingKey | null>;
+
+/** Les pendings porteurs d'une étape-jet : l'arbitre les rend sous la cascade, et leur annulation
+ *  ferme aussi la cascade-hôte (`rollFlowFactory`, teardown de `cancel`). */
+export type PorteurDEtape = Exclude<(typeof PENDING_BY_JET)[HostJet], null>;
+export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_BY_JET).filter((k): k is PorteurDEtape => k != null);
 
 /**
  * HÔTE ORPHELIN (#1852) — « cette étape-jet n'a PAS de quoi rendre un corps ». DÉFINITION UNIQUE,

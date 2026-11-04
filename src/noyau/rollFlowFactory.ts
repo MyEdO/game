@@ -30,6 +30,7 @@ import { surfaceOf } from './rollSeam';
 import { gainCorruption } from './corruptionFlow';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
+import { PORTEURS_D_ETAPE } from './slotsDeJet';
 import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
 import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview, type EvaluationDeRangee, type IssueDuDe } from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
@@ -340,9 +341,15 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * Undo MÉTIER optionnel de l'annulation (ex. défaire-charge de l'attaque…).
    * PRÉSENT ⇒ il OWN la fermeture (il fait lui-même tous les `set`, y compris nuller le pending et
    * avancer/nuller la cascade-hôte selon les cas) : `cancel` lui délègue tout et ne touche à rien
-   * d'autre — byte-identique aux anciennes actions bespoke. ABSENT ⇒ `cancel` applique le teardown
-   * par défaut (nulle le pending ET la cascade-hôte, cf. `cancel`). */
+   * d'autre. ABSENT ⇒ `cancel` applique le teardown par défaut (nulle le pending, et la cascade
+   * quand elle l'héberge, cf. `cancel`). */
   onCancel?: (get: Get, set: Set, p: P) => void;
+  /** Refus de l'annulation, dit au joueur (`refuserGeste`), `null` quand elle se joue. Lu avant
+   *  `onCancel` et le teardown par défaut. */
+  refusDAnnuler?: (s: Jeu, p: P) => string | null;
+  /** Jet INITIAL métier (garde de phase, effets avant le jet, journal), symétrique d'`onCancel`.
+   *  PRÉSENT ⇒ il OWN le jet : `roll` lui délègue tout. ABSENT ⇒ `roll` résout par `spec.resolve`. */
+  onRoll?: (get: Get, set: Set, p: P) => void;
   /** Patch de re-rendu après mutation en place de l'acteur. Défaut : `touchActors` (combat ⇄ groupe). */
   touch?: (s: Jeu) => PatchDeFlux;
 }
@@ -684,6 +691,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     fixable,
     roll(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;
+      if (spec.onRoll) { spec.onRoll(get, set, p); return; }
       // PAS de garde `passive` : le jet INITIAL d'un témoin doit être résolu (auto-roll IA à l'ouverture).
       const loc = locate(set, get, p, pid); if (!loc) return;
       opRoll(spec.rolled(loc.slot), () => spec.resolve(s, loc.slot, spec.actor(s, loc.slot, p), get, undefined, p), loc.commit);
@@ -798,12 +806,13 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     cancel(get, set) {
       const p = pendingOf(get());
       if (!p) return; // rien d'ouvert : no-op (pas d'undo à jouer, pas de cascade à toucher)
-      // Undo métier présent ⇒ il OWN toute la fermeture (nulle le pending, avance/nulle la cascade
-      // selon les cas). SINON teardown par défaut, CASCADE-AWARE : nuller `pendingCascade` est un
-      // no-op quand le flux est autonome (pending seul) et correct quand il est l'étape d'une cascade
-      // (l'arbitre garantit une seule modale active → toute `pendingCascade` présente est SON hôte).
+      // Undo métier présent ⇒ il OWN toute la fermeture. SINON teardown par défaut : le pending, et
+      // la cascade seulement si ce pending porte l'une de ses étapes-jets (`PORTEURS_D_ETAPE`) ; une
+      // cascade étrangère au flux reste ouverte.
+      const refus = spec.refusDAnnuler?.(get(), p);
+      if (refus) { refuserGeste(get, set, refus); return; }
       if (spec.onCancel) { spec.onCancel(get, set, p); return; }
-      set({ [spec.key]: null, pendingCascade: null } as PatchDeFlux);
+      set({ [spec.key]: null, ...((PORTEURS_D_ETAPE as readonly string[]).includes(spec.key) ? { pendingCascade: null } : {}) } as PatchDeFlux);
     },
     darkPact(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;

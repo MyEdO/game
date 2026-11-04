@@ -107,16 +107,16 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // attaque : paramètres de la modale différée + jet/appliquer propres au flux d'attaque
   attackSetLocation: 'invité', attackSetWeapon: 'invité', attackSetDualMode: 'invité',
   attackSetWithhold: 'invité', attackSetHarpoonRopeCut: 'invité', attackSetGrapple: 'invité',
-  attackSetCritLocation: 'invité', attackRoll: 'invité', attackConfirm: 'invité',
+  attackSetCritLocation: 'invité', attackConfirm: 'invité',
   // défense réactive : choix de mode/arme/réaction de bouclier + appliquer
   defenseSetMode: 'invité', defenseSetParryWeapon: 'invité', defenseSetShieldReaction: 'invité',
   defenseSetRiposte: 'invité', defenseConfirm: 'invité',
   // incantation / prière : options d'incantation + jet/appliquer/annuler
-  castRoll: 'invité', castSetCritChoice: 'invité', castSetConjureForm: 'invité',
+  castSetCritChoice: 'invité', castSetConjureForm: 'invité',
   castSetDiscreet: 'invité',
   castAllocOvercast: 'invité', castSetChosenTableRolls: 'invité', castToggleExtraTarget: 'invité',
   castPickTargets: 'invité',
-  castPlaceZone: 'invité', castConfirm: 'invité', castCancel: 'invité',
+  castPlaceZone: 'invité', castConfirm: 'invité',
   // Contre-sort / opposition de cible : « tout lancer » des rangées de CE siège (verbe NULLAIRE du
   // drive d'auto-cadence, `combatAuto.STEP_WINDOW_AUTO`). Les résolutions (`xConfirm`/`xCancel`) sont
   // DÉRIVÉES de `FLOW_VERBS.resolution` (#1050), plus recopiées ici.
@@ -134,49 +134,46 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // DÉ NU (#1508) : les deux mêmes verbes pour l'autre lecture du même dé — même routage de possession.
   cascadeDieRoll: 'invité', cascadeDieSetForcedRoll: 'invité',
   // désengagement : ouverture, jet, appliquer/fuir
-  disengageConfirmA: 'invité', disengageRoll: 'invité', disengageConfirm: 'invité',
+  disengageConfirmA: 'invité', disengageConfirm: 'invité',
   disengageFlee: 'invité',
   // « Au Contact » (LDB 62 l.176) : ouverture, jet, choix du vainqueur
-  battleAuContact: 'invité', auContactRoll: 'invité', auContactConfirm: 'invité',
-  auContactChoose: 'invité', auContactCancel: 'invité',
+  battleAuContact: 'invité', auContactConfirm: 'invité',
+  auContactChoose: 'invité',
   // Empoignade (LDB 14 l.161) : ouverture, « Briser », jet, choix du vainqueur
-  battleGrapple: 'invité', grappleBreak: 'invité', grappleRoll: 'invité', grappleConfirm: 'invité',
-  grappleChoose: 'invité', grappleCancel: 'invité',
+  battleGrapple: 'invité', grappleBreak: 'invité', grappleConfirm: 'invité',
+  grappleChoose: 'invité',
   // combat monté
   mountTargetSelect: 'invité', mountTargetCancel: 'invité',
   // résolutions/annulations des flux de jet en combat (le verbe de jet est dérivé, pas l'appliquer)
-  maneuverConfirm: 'invité', maneuverCancel: 'invité', maneuverSetAvantage: 'invité',
+  maneuverConfirm: 'invité', maneuverSetAvantage: 'invité',
   // Tour de NAVIRE (couche Mer, MDG 13-14) : le contrôleur de la coque OUVRE ; CHAQUE participant
   // (héros à un rôle) roule SA rangée, routée par la possession de son id (cf. `intentAllowedFor`,
   // primitive multi `RollParticipant`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
   battleShipManeuver: 'invité', shipManeuverSetTurn: 'invité',
   battleShipBattery: 'invité',
   battleCrewTest: 'invité',
-  runConfirm: 'invité', runCancel: 'invité', focusConfirm: 'invité', focusCancel: 'invité',
-  wardConfirm: 'invité', wardCancel: 'invité',
-  frenzyConfirm: 'invité', frenzyCancel: 'invité', reloadConfirm: 'invité', reloadCancel: 'invité',
-  handGateConfirm: 'invité', handGateCancel: 'invité', recoverConfirm: 'invité',
-  recoverCancel: 'invité',
-  healSetMode: 'invité', healSetTest: 'invité', healSetBandages: 'invité', healConfirm: 'invité', healCancel: 'invité',
+  runConfirm: 'invité', focusConfirm: 'invité',
+  wardConfirm: 'invité',
+  frenzyConfirm: 'invité', reloadConfirm: 'invité',
+  handGateConfirm: 'invité', recoverConfirm: 'invité',
+  healSetMode: 'invité', healSetTest: 'invité', healSetBandages: 'invité', healConfirm: 'invité',
   // Corruption (LDB 19 l.29) : choix de la nature de l'Influence AVANT le jet (le jet et son influence sont dérivés).
   corruptionSetNature: 'invité',
   // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR + paramètre pré-jet + résolution ; le jet et
   // ses verbes d'influence sont dérivés de `FLOW_VERBS` (mono → routés par le porteur).
   battleBattement: 'invité', battementSetFoe: 'invité', battementConfirm: 'invité',
-  battementCancel: 'invité',
   battleDistraire: 'invité', distraireSetFoe: 'invité', distraireConfirm: 'invité',
-  distraireCancel: 'invité',
   // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
   // du tombant, `netOwnership`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
   fallAcross: 'invité', fallChoose: 'invité',
   // Enfoncer une porte : choix de l'arme d'une rangée, routé par le siège de son héros (`netOwnership`).
   forceDoorChoisirArme: 'invité',
   // Approche d'une source de Peur (ouverte par `battleClickTile`/`battleClickEntity`) : résolution.
-  approachConfirm: 'invité', approachCancel: 'invité',
+  approachConfirm: 'invité',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse) + résolution du jet de dissipation.
-  battleDispelSpell: 'invité', dispelConfirm: 'invité', dispelCancel: 'invité',
+  battleDispelSpell: 'invité', dispelConfirm: 'invité',
   // Chanson de marin (MDG 09) : OUVREUR + choix de la chanson + résolution.
-  battleSingShanty: 'invité', shantySetSong: 'invité', shantyConfirm: 'invité', shantyCancel: 'invité',
+  battleSingShanty: 'invité', shantySetSong: 'invité', shantyConfirm: 'invité',
   // Test de scène/compétence (`pendingTest`) : choix du LANCEUR parmi les candidats + application de
   // la branche réussite/échec. L'ouverture reste interne (`openSkillTest`, jamais une action de store).
   testSetActor: 'invité', resolveTest: 'invité',
@@ -184,11 +181,10 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   steamSaveConfirm: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie + fermeture — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes surgery* dérivés l'influencent,
-  // surgeryNext applique, surgeryPassCancel annule la passe, surgeryCancel l'opération — une passe
-  // n'a AUCUN verbe de résolution inline.
+  // surgeryNext applique, surgeryCancel (dérivé) annule la passe, medicAbandonSurgery l'opération — une
+  // passe n'a AUCUN verbe de résolution inline.
   medicSelectPatient: 'invité', medicAct: 'invité', medicSetWound: 'invité', closeMedic: 'invité',
-  openSurgeryPass: 'invité', surgeryNext: 'invité', surgeryPassCancel: 'invité',
-  surgeryCancel: 'invité',
+  openSurgeryPass: 'invité', surgeryNext: 'invité', medicAbandonSurgery: 'invité',
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument) + ready-check.
   restSet: 'invité', restReady: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les intents `cascade*` dérivés.)

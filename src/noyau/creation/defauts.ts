@@ -17,7 +17,10 @@ import {
   rollDraftStar,
   rollDraftTalents,
   rollDraftWealth,
-  evenCareerSkillAdvances,
+  withEvenCareerSkillAdvances,
+  withSpeciesSkillDefaults,
+  withCareerTalent,
+  withEtatCivil,
   careerSkillEntries,
   careerAdvTotal,
   speciesTalentRandomCount,
@@ -40,7 +43,7 @@ import { species, careersForSpecies, levelsForCareer } from '../../data';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import type { CharKey } from '../../engine/types';
 import { talentMaxReached } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, designer, libreDEspece, speciesSkillDefaults } from '../../engine/character';
+import { CAREER_SKILL_ADVANCES, designer, libreDEspece } from '../../engine/character';
 
 function fillSpecies(d: CreatorDraft): CreatorDraft {
   if (draftSpecies(d)) return d;
@@ -88,8 +91,7 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
 
   // 5a — Compétences de race : quotas + Spécialisations (1re libre du pool de l'emplacement).
   if (cur.speciesPlus5.length !== SPECIES_SKILLS_PLUS5 || cur.speciesPlus3.length !== SPECIES_SKILLS_PLUS3) {
-    const defauts = speciesSkillDefaults(sp);
-    cur = { ...cur, speciesPlus5: defauts.plus5, speciesPlus3: defauts.plus3 };
+    cur = withSpeciesSkillDefaults(cur);
   }
   for (const ref of speciesSkillRefs(cur)) {
     const retenue = speciesSkillPick(cur, ref);
@@ -106,7 +108,7 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
   for (const t of speciesTalentRandomDrawn(cur)) if (t.utilisations.length && t.utilisationChoisie == null) cur = withRandomTalentSpec(cur, t.adresse, t.ref.spec ?? t.utilisations[0]);
 
   // 5b — Compétences de carrière : répartition égale des 40 Augmentations, 1re spécialisation libre des jokers dotés.
-  if (careerAdvTotal(cur) !== CAREER_SKILL_ADVANCES) cur = { ...cur, skillAdvances: evenCareerSkillAdvances(cur) };
+  if (careerAdvTotal(cur) !== CAREER_SKILL_ADVANCES) cur = withEvenCareerSkillAdvances(cur);
   for (const { adresse } of careerSkillEntries(cur)) {
     const c = careerSkillEntries(cur).find((e) => e.adresse === adresse)!;
     if (!c.designee && (cur.skillAdvances[c.cle] ?? 0) > 0) cur = withCareerSkillSpec(cur, c, designer('skill', c.ref, undefined, c.libre).spec ?? '');
@@ -118,7 +120,7 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
     const pick = careerTalentOptions(cur)
       .map((o) => o.selected ?? o.choices?.[0])
       .find((t) => t && !talentMaxReached(probe, t.id, t.spec));
-    if (pick) cur = { ...cur, careerTalent: pick };
+    if (pick) cur = withCareerTalent(cur, pick);
   }
 
   // Sorts de Magie mineure inclus au Talent : les N premiers.
@@ -135,7 +137,7 @@ function fillTrappings(d: CreatorDraft): CreatorDraft {
 }
 
 function fillDetails(d: CreatorDraft): CreatorDraft {
-  return d.label.trim() ? d : { ...d, label: 'Aventurier' };
+  return d.label.trim() ? d : withEtatCivil(d, { label: 'Aventurier' });
 }
 
 const STEP_FILLERS: Record<StepId, (d: CreatorDraft) => CreatorDraft> = {

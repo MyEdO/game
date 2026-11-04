@@ -13,11 +13,10 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject } from '../noyau/worldMap';
 import { ficheDEntite } from '../noyau/monde/sceneNpc';
-import { useGame } from '../state/store';
+import { presetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { testScenarios } from './test-scenarios';
 import type { Scene } from '../noyau/monde/scene';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { presetPnjById } from '../state/campaignData';
 
 const EXEMPTES = new Map<string, string>([
   ['ls-abordage-cogue|chef-cogue', 'nom propre : le chef de l’équipage de la Dent de Manann'],
@@ -38,7 +37,7 @@ function paquets(): { scenes: Scene[]; narratif?: NarratifBlock }[] {
 function enroles(): { site: string; label: string; nomDeFiche: string }[] {
   const out: { site: string; label: string; nomDeFiche: string }[] = [];
   for (const { scenes, narratif } of paquets()) {
-    useGame.setState({ campaignNarratif: narratif ?? null });
+    const presetPnjById = presetDuNarratif(narratif ?? null);
     for (const sc of scenes) for (const enc of sc.encounters)
       for (const m of enc.members ?? []) {
         const ent = sc.entities.find((e) => e.id === m.entityId && e.kind === 'personnage');
@@ -46,7 +45,6 @@ function enroles(): { site: string; label: string; nomDeFiche: string }[] {
         out.push({ site: `${sc.id}|${ent.id}`, label: ent.label, nomDeFiche: ficheDEntite({ ...ent, label: undefined }, presetPnjById).label });
       }
   }
-  useGame.setState({ campaignNarratif: null });
   return out;
 }
 

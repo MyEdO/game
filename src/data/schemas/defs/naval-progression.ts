@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.68-75 */
 import { z } from 'zod';
-import { document, type DocumentARangees } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { ecartsDeCouverture, enumNomme, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 
 /** MDG 13 l.68-75 */
@@ -17,7 +17,7 @@ export const file = 'naval-progression.json';
 export const famille = 'config';
 
 /** Une bande de DR du Test de Navigation. `mode` observés : les 5 issues RAW (ch.13 l.68-75). */
-const progressionEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   /** id STABLE = `mode` (déjà une clé fermée à 5 valeurs) — identité d'entrée pour le Codex (#422). */
   id: z.string(),
@@ -42,7 +42,7 @@ const doc = document(
     edit: { niche: { categories: { navalProgression: 'entries' } } },
   },
   {
-    rangee: progressionEntrySchema,
+    rangee,
     // MDG 13 l.71, l.75 ; patron `structure-criticals.ts`.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
@@ -62,4 +62,3 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type NavalProgressionData = DocumentARangees<z.infer<typeof progressionEntrySchema>>;

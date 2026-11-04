@@ -14,6 +14,10 @@ import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits.ts
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
+/** La PORTE des rangées d'un document à `rangee` (`src/data/rangees.ts`) : un appel lit `entries` de la
+ *  racine JSON qu'il reçoit (et, par id de document, d'un fichier qui en porte plusieurs), au type dérivé du schéma. */
+const MODULE_DE_LA_PORTE = 'src/data/rangees.ts'
+const FONCTION_DE_LA_PORTE = 'rangeesDe'
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {
   if (key === '[]') return checker.isArrayType(t) || checker.isTupleType(t) ? checker.getTypeArguments(t) : checker.getIndexInfosOfType(t).filter(i => i.keyType.flags & TypeFlags.NumberLike).map(i => i.valueType)
@@ -122,6 +126,12 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
     const fn = declaration?.initializer ?? declaration
     return fn && (ts.isArrowFunction(fn) || ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) ? fn : null
   }
+  const porteDesRangees = call => {
+    const fn = ts.isCallExpression(call) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
+    if (!fn || !ts.isFunctionDeclaration(fn) || fn.name?.text !== FONCTION_DE_LA_PORTE || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, MODULE_DE_LA_PORTE))) return null
+    const racine = origin(call.arguments[0])
+    return racine && { ...racine, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', 'entries'] : ['entries'])] }
+  }
   const originCache = new Map()
   const origin = (node, seen = new Set()) => {
     if (originCache.has(node)) return originCache.get(node)
@@ -200,6 +210,8 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
       }
     }
     if (ts.isCallExpression(node)) {
+      const porte = porteDesRangees(node)
+      if (porte) return porte
       const fn = functionOf(node.expression)
       const body = fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
       const bindings = new Map((fn?.parameters ?? []).map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
@@ -226,6 +238,11 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
         if (ts.isVariableDeclaration(node) && node.type && node.initializer) {
           const o = origin(node.initializer)
           if (o) claims.push({ ...o, type: checker.getTypeFromTypeNode(node.type), node })
+        }
+        const porte = porteDesRangees(node)
+        if (porte) {
+          claims.push({ ...porte, type: checker.getTypeAtLocation(node), node })
+          reads.push(porte)
         }
         if (ts.isCallExpression(node) && node.typeArguments?.length) {
           const fn = functionOf(node.expression)

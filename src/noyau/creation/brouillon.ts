@@ -64,9 +64,12 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
+import { findSpeciesById, findTalentById, specPoolOf, careers, careersForSpecies, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
+import { generateName } from '../../engine/names';
+import { makeRNG } from '../../engine/dice';
+import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
 
@@ -308,6 +311,11 @@ export function withCoastalSwap(d: CreatorDraft, coastalSwap: boolean): CreatorD
   return { ...d, coastalSwap, careerRolls: [], careerFreeRolls: 0 };
 }
 
+/** Lève ou rétablit le filtre des carrières par espèce (`careersForSpecies`). */
+export function withIgnoreRestrictions(d: CreatorDraft, ignoreRestrictions: boolean): CreatorDraft {
+  return ignoreRestrictions === d.ignoreRestrictions ? d : { ...d, ignoreRestrictions };
+}
+
 export function rollDraftCareer(d: CreatorDraft): CreatorDraft {
   const sp = draftSpecies(d);
   if (!sp) return d; // pas de tirage de carrière sans race (l'UI empêche d'y arriver)
@@ -399,6 +407,17 @@ export function charsXp(d: CreatorDraft): number {
 export const charsXpDeLaMethode = (d: CreatorDraft, mode: CharMode): number => charsXp({ ...d, charMode: mode, charsRolled: true });
 /** Relance les dix 2d10 (LDB 05 l.341). */
 export const rerollDraftChars = (d: CreatorDraft): CreatorDraft => ({ ...d, charRerolls: d.charRerolls + 1 });
+/** Méthode des Caractéristiques (LDB 05 l.337-341). */
+export function withCharMode(d: CreatorDraft, charMode: CharMode): CreatorDraft {
+  return charMode === d.charMode ? d : { ...d, charMode };
+}
+/** Réassignation (LDB 05 l.339) : le jet `idx` passe à `k`, la Caractéristique qui le portait prend l'ancien jet de `k`
+ *  — `assignment` reste une permutation ; un `idx` hors des dix jets rend le brouillon INCHANGÉ. */
+export function withAssignment(d: CreatorDraft, k: CharKey, idx: number): CreatorDraft {
+  const holder = CHAR_KEYS.find((kk) => d.assignment[kk] === idx);
+  if (!holder || holder === k) return d;
+  return { ...d, assignment: { ...d.assignment, [k]: idx, [holder]: d.assignment[k] } };
+}
 
 /** PX du signe astral : +25 si le signe choisi reste celui qui a été TIRÉ (ADE II 3 l.36), sinon 0. */
 export const starXp = (d: CreatorDraft): number => (d.starRoll && d.star === d.starRoll ? XP_STAR_ROLLED : 0);
@@ -421,6 +440,18 @@ export function rollDraftAstrology(d: CreatorDraft): CreatorDraft {
   const rng = fluxDeCreation(d.seed, 'astrologie');
   const signLabel = (): string => { const id = rollStar(rng).id; return garanti(findStarById(id), id, 'signe astral').label; };
   return { ...d, ascendant: signLabel(), dwellings: celestialHouses.map((h) => ({ house: h.id, sign: signLabel() })) };
+}
+
+/** Signe astral `star` (`id`), ou aucun (ADE II 3 l.36) ; changer de signe efface les spécialisations de l'ancien
+ *  (famille `signe` de `specChoices`). */
+export function withStar(d: CreatorDraft, star: string | undefined): CreatorDraft {
+  if (star === d.star) return d;
+  return { ...d, star, specChoices: horsAdresses(d.specChoices, (a) => deFamille(a, 'signe')) };
+}
+/** Spécialisation `spec` du Talent que le signe octroie par son op `k` (`adresseDeCreation.signe`) ; vide, l'efface. */
+export function withStarTalentSpec(d: CreatorDraft, k: number, spec: string): CreatorDraft {
+  const adresse = adresseDeCreation.signe(k);
+  return { ...d, specChoices: spec ? { ...d.specChoices, [adresse]: spec } : sansAdresse(d.specChoices, adresse) };
 }
 
 // ── 4) Compétences & Talents ──
@@ -535,6 +566,11 @@ export function evenCareerSkillAdvances(d: CreatorDraft): Record<string, number>
   return repartitionDeCarriere(careerSkillEntries(d));
 }
 
+/** Pose la « Répartition simple » (`evenCareerSkillAdvances`). */
+export function withEvenCareerSkillAdvances(d: CreatorDraft): CreatorDraft {
+  return { ...d, skillAdvances: evenCareerSkillAdvances(d) };
+}
+
 /** Pose la spécialisation `spec` de la Compétence de carrière `c` (LDB 09 l.38) ; ses Augmentations
  *  suivent la Compétence désignée (`cle`). */
 export function withCareerSkillSpec(d: CreatorDraft, c: CompetenceDeCarriere, spec: string): CreatorDraft {
@@ -594,6 +630,14 @@ export function withSpeciesSkillTier(d: CreatorDraft, ref: RefASpecialisation, t
   return { ...d, speciesPlus5: plus5, speciesPlus3: plus3 };
 }
 
+/** Pose la répartition par défaut des Compétences de race (`speciesSkillDefaults`, LDB 05 l.484). */
+export function withSpeciesSkillDefaults(d: CreatorDraft): CreatorDraft {
+  const sp = draftSpecies(d);
+  if (!sp) return d;
+  const { plus5, plus3 } = speciesSkillDefaults(sp);
+  return { ...d, speciesPlus5: plus5, speciesPlus3: plus3 };
+}
+
 /** Pose la spécialisation `spec` de la Compétence d'espèce retenue à l'emplacement joker `ref`. */
 export function withSpeciesSkillSpec(d: CreatorDraft, ref: RefASpecialisation, spec: string): CreatorDraft {
   const m = occupe(d, ref);
@@ -630,6 +674,13 @@ export function pettySpellQuota(d: CreatorDraft): number {
   return pettySpellQuotaFor(probeHero(d, true, true));
 }
 
+/** Retient ou bascule le sort de Magie mineure `id` (LDB 10 l.714) : retenu, il se retire ; sinon il s'ajoute tant que
+ *  le quota (`pettySpellQuota`) a de la place — au-delà, le brouillon est INCHANGÉ. */
+export function withPettySpellToggled(d: CreatorDraft, id: string): CreatorDraft {
+  if (d.pettySpells.includes(id)) return { ...d, pettySpells: d.pettySpells.filter((x) => x !== id) };
+  return d.pettySpells.length < pettySpellQuota(d) ? { ...d, pettySpells: [...d.pettySpells, id] } : d;
+}
+
 /** Refus du Talent de carrière du brouillon, ou `null` : même lecture des emplacements du Niveau 1
  *  que `createHero` (`statutOuRefus`), puis le Maxi. Un brouillon restauré passe par ici avant
  *  toute construction. */
@@ -662,6 +713,17 @@ export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation;
   });
 }
 
+/** Talent de carrière `talent`, ou aucun (LDB 05 l.535). */
+export function withCareerTalent(d: CreatorDraft, talent: RefDesignee | null | undefined): CreatorDraft {
+  return { ...d, careerTalent: talent ?? undefined };
+}
+/** Spécialisation `spec` du Talent de carrière joker `ref` (LDB 10 l.17) : il devient le Talent de carrière ; vide, le
+ *  Talent de carrière tiré de ce joker se retire, un autre reste. */
+export function withCareerTalentSpec(d: CreatorDraft, ref: RefASpecialisation, spec: string): CreatorDraft {
+  if (spec) return withCareerTalent(d, { id: ref.id, spec });
+  return d.careerTalent?.id === ref.id ? withCareerTalent(d, undefined) : d;
+}
+
 // ── 5) Possessions ──
 /** Statut d'un brouillon dont aucun Niveau n'est encore choisi : il ne gagne rien (`draftWealth`). */
 const STATUT_SANS_NIVEAU: Status = { tier: 'bronze', standing: 0 };
@@ -692,7 +754,34 @@ export function unresolvedTrappingSlots(d: CreatorDraft): string[] {
     .map((e) => trappingRefLabel(e.ref));
 }
 
+/** Option `v` de l'emplacement de dotation `adresse` (`ChoixDeDotation`). */
+export function withTrappingChoice(d: CreatorDraft, adresse: AdresseDeCreation, v: number | string): CreatorDraft {
+  return { ...d, trappingChoices: { ...d.trappingChoices, [adresse]: v } };
+}
+
 // ── 6) Détails ──
+/** Les champs d'état civil du brouillon, saisis librement par le joueur. */
+export type EtatCivil = Pick<CreatorDraft, 'label' | 'motivation' | 'ambitionShort' | 'ambitionLong' | 'age' | 'height' | 'eyes' | 'hair'>;
+/** Pose `patch` sur l'état civil ; une clé à `undefined` efface le trait facultatif. */
+export function withEtatCivil(d: CreatorDraft, patch: Partial<EtatCivil>): CreatorDraft {
+  return { ...d, ...patch };
+}
+/** Sexe suivant de `sexeSchema`, en boucle. */
+export function withSexeSuivant(d: CreatorDraft): CreatorDraft {
+  const options = sexeSchema.options;
+  return { ...d, apparence: { ...d.apparence, sex: options[(options.indexOf(d.apparence.sex) + 1) % options.length] } };
+}
+/** Nom tiré au générateur de l'espèce (`generateName`) avec la graine `graine` ; sans espèce ni table de noms, le
+ *  brouillon est INCHANGÉ. */
+export function rollDraftName(d: CreatorDraft, graine: number): CreatorDraft {
+  const sp = draftSpecies(d);
+  const label = sp ? generateName(sp.refChar, d.apparence.sex, makeRNG(graine)) : null;
+  return label ? withEtatCivil(d, { label }) : d;
+}
+/** Geste « Aux dés » du physique (`rolledDetails`) ; sans espèce, le brouillon est INCHANGÉ. */
+export function rollDraftDetails(d: CreatorDraft): CreatorDraft {
+  return draftSpecies(d) ? withEtatCivil(d, rolledDetails(d)) : d;
+}
 export function rolledDetails(d: CreatorDraft): { age: number; height: number; eyes: string; hair: string } {
   const sp = draftSpecies(d);
   if (!sp) return { age: 0, height: 0, eyes: '', hair: '' };
@@ -729,8 +818,11 @@ interface StepCtx { d: CreatorDraft; sp: ReturnType<typeof draftSpecies>; level:
  */
 const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {
   species: ({ sp }) => (sp ? null : t('crea.choisirRace')),
-  career: ({ d, level }) => {
+  career: ({ d, sp, level }) => {
     if (!d.careerId) return t('crea.choisirCarriere');
+    // La carrière reste offerte à l'espèce courante, sous le filtre courant (`careersForSpecies`) : changer d'espèce
+    // ou rétablir le filtre ne laisse pas passer une carrière hors liste.
+    if (sp && !careersForSpecies(sp.refCareer, d.ignoreRestrictions).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
     if (!level) return t('crea.carriereSansNiveau1');
     return null;
   },

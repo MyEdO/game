@@ -6,6 +6,20 @@ import { elireBinding } from './clavier/keybindings';
 const dispatch = (code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) =>
   elireBinding(code, s, { controlFocused });
 
+/** Ouvre le combat de l'arène 42-belier-porte et pose le tour NEUF du Soldat, chef de pièce du bélier. */
+async function ouvrirLeBelierAuTourDuSoldat() {
+  const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
+  const { party, scene } = scenario.construire();
+  useGame.setState({ party });
+  useGame.getState().startScene(scene);
+  useGame.getState().startCombat('siege-belier');
+  useGame.getState().confirmRoundStart();
+  const b0 = useGame.getState().battle!;
+  const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
+  useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
+  return soldat;
+}
+
 describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du bouton « Pousser »', () => {
   it('cursor-commit est sélectionné (pas d’exclusion notWhenControlFocused) quand un combatCursor est posé', () => {
     const s = {
@@ -18,15 +32,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
   });
 
   it('flux complet clavier (arène 42-belier-porte) : 2 flèches + Entrée EXÉCUTENT la poussée (positions changent, moveSnapshot posé)', async () => {
-    const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    const { party, scene } = scenario.construire();
-    useGame.setState({ party });
-    useGame.getState().startScene(scene);
-    useGame.getState().startCombat('siege-belier');
-    useGame.getState().confirmRoundStart();
-    const b0 = useGame.getState().battle!;
-    const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
-    useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
+    const soldat = await ouvrirLeBelierAuTourDuSoldat();
     useGame.getState().battlePushEngine();
     expect(useGame.getState().battle!.action).toBe('push');
     const before = { ...soldat.pos! };
@@ -44,15 +50,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
   });
 
   it('« Annuler dépl. » défait une poussée commise au CLAVIER (chemin clic déjà couvert par push-cancel-move.hors-store.test.ts)', async () => {
-    const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    const { party, scene } = scenario.construire();
-    useGame.setState({ party });
-    useGame.getState().startScene(scene);
-    useGame.getState().startCombat('siege-belier');
-    useGame.getState().confirmRoundStart();
-    const b0 = useGame.getState().battle!;
-    const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
-    useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
+    const soldat = await ouvrirLeBelierAuTourDuSoldat();
     useGame.getState().battlePushEngine();
     const before = { ...soldat.pos! };
     useGame.getState().moveCursor('up');
@@ -63,5 +61,30 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
     const st = useGame.getState();
     expect(st.battle!.combatants.find((c) => c.id === soldat.id)!.pos).toEqual(before);
     expect(st.battle!.moveSnapshot ?? null).toBeNull();
+  });
+});
+
+describe('42-belier-porte — le curseur clavier du mode Pousser', () => {
+  it('BUG-B (recette) : au clavier, en mode Pousser, la case plein NORD est sélectionnable (curseur clavier, vue iso par défaut)', async () => {
+    const soldat = await ouvrirLeBelierAuTourDuSoldat();
+    useGame.getState().battlePushEngine();
+    const start = { ...soldat.pos! };
+    const north = { x: start.x, y: start.y - 1 };
+    expect(useGame.getState().battle!.reachable.has(`${north.x},${north.y}`)).toBe(true); // au menu du mode
+    let found = false;
+    const dirs: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'down', 'left', 'right'];
+    for (const d1 of dirs) {
+      useGame.setState({ combatCursor: null });
+      useGame.getState().moveCursor(d1);
+      const t1 = useGame.getState().combatCursor?.tile;
+      if (t1 && t1.x === north.x && t1.y === north.y) { found = true; break; }
+      for (const d2 of dirs) {
+        useGame.getState().moveCursor(d2);
+        const t2 = useGame.getState().combatCursor?.tile;
+        if (t2 && t2.x === north.x && t2.y === north.y) { found = true; break; }
+      }
+      if (found) break;
+    }
+    expect(found).toBe(true); // plein Nord atteignable en ≤ 2 pressions
   });
 });

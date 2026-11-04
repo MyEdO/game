@@ -10,6 +10,9 @@ import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import incidentsMonteJson from '../data/incidents-monture.json';
 import problemesVehiculeJson from '../data/problemes-vehicule.json';
+import { rangeesDe } from '../data/rangees';
+import type * as incidentsDeMonte from '../data/schemas/defs/incidents-monture';
+import type * as problemesDeVehicule from '../data/schemas/defs/problemes-vehicule';
 import rencontresJson from '../data/rencontres-edoc.json';
 
 /** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174) DÉCLARÉE par
@@ -53,12 +56,15 @@ export interface TravelTableEntry {
   occupantOps?: import('./ops').GameOp[];
 }
 
-interface TravelTable { id: string; label: string; die: string; source: { book: string; page: number }; entries: TravelTableEntry[] }
-
 /** Incidents de monte (EDOC 07 l.150-155). */
-export const MOUNT_INCIDENTS = (incidentsMonteJson as TravelTable).entries;
+export const MOUNT_INCIDENTS: TravelTableEntry[] = rangeesDe<typeof incidentsDeMonte>(incidentsMonteJson);
 /** Problèmes de véhicule (EDOC 07 l.259-264). */
-export const VEHICLE_PROBLEMS = (problemesVehiculeJson as TravelTable).entries;
+export const VEHICLE_PROBLEMS: TravelTableEntry[] = rangeesDe<typeof problemesDeVehicule>(problemesVehiculeJson);
+
+/** Dé AUTHORÉ des Incidents de monte (`incidents-monture.json`, `die`). */
+export const MOUNT_INCIDENT_DIE = parseDiceRequired(incidentsMonteJson.die, 'incidents-monture.die');
+/** Dé AUTHORÉ des Problèmes de véhicule (`problemes-vehicule.json`, `die`). */
+export const VEHICLE_PROBLEM_DIE = parseDiceRequired(problemesVehiculeJson.die, 'problemes-vehicule.die');
 
 export function rollMountIncident(roll: number): TravelTableEntry {
   return findTableEntry(MOUNT_INCIDENTS, roll);

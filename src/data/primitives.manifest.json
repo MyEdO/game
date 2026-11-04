@@ -243,6 +243,15 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "rangeesDe",
+    "type": "primitives.manifest",
+    "label": "rangeesDe/RangeeDe",
+    "fichier": "src/data/rangees.ts",
+    "concept": "rangées VIVANTES d'un document à rangées (`options.rangee`), lues dans le module JSON de son fichier (racine que le seam mute en place) et, dans un fichier à plusieurs documents, par id de document — typées par le schéma de rangée que le def exporte",
+    "perimetre": "tout lecteur d'une table de donnée (moteur, seam, Codex)",
+    "verrou": "tsc : la rangée a le type dérivé du schéma du def (`z.output`), l'id de document est exigé pour la famille `entite` ; fail-fast à l'exécution sur un document absent"
+  },
+  {
     "id": "clockLabel",
     "type": "primitives.manifest",
     "label": "clockLabel",
