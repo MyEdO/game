@@ -77,20 +77,21 @@ def region_locale(aretes, masque, anneaux, n):
 
 def raboter(champ, noeud, aretes, facteur, mesurer, passes_max):
     """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), rabotés passe après
-    passe jusqu'à ce que `mesurer` (champs complets -> (champs mesurés, masque booléen (arêtes, clés))) ne marque plus
-    aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des silhouettes, s'y
+    passe jusqu'à ce que `mesurer` (champs complets, rabot cumulé de chaque sommet et clé (sommets, clés) -> (champs
+    mesurés, masque booléen (arêtes, clés))) ne marque plus aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des silhouettes, s'y
     applique avant le rabot suivant. Une passe multiplie chaque clé marquée par `RABOT` sur les nœuds `noeud` de ses
     arêtes `aretes` marquées (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne un anneau de
-    voisins dès que le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une passe. Un sommet de `facteur` nul reste
-    nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs mesurés de la dernière passe et le nombre
+    voisins dès que le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une passe. Un
+    sommet de `facteur` nul reste nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs mesurés de la dernière passe et le nombre
     de passes. Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucune passe ne change, ou une arête
     marquée au-delà de `passes_max` passes, arrête la construction."""
     libre = (facteur > 0)[:, None, None]
     valeur = aux_noeuds(champ * facteur[:, None, None], noeud)
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
+    cumul = numpy.ones(valeur.shape[:2])
     rabotees = {}
     for passe in range(passes_max + 1):
-        mesures, marquees = mesurer(valeur[noeud] * libre)
+        mesures, marquees = mesurer(valeur[noeud] * libre, cumul[noeud])
         marquees = numpy.asarray(marquees)
         if not marquees.any():
             return mesures, passe
@@ -109,6 +110,7 @@ def raboter(champ, noeud, aretes, facteur, mesurer, passes_max):
             dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
             rabotees[cle] = (dans, numpy.linalg.norm(valeur[dans, cle], axis=-1).max())
             valeur[dans, cle] *= RABOT
+            cumul[dans, cle] *= RABOT
 
 
 def voisins(rig, noms):

@@ -231,7 +231,9 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     arêtes `aretes` (`formes.aretes_des_triangles`), sous : une seule valeur par nœud (`noeud_de`, `poids.jumeaux`),
     d nul sur chaque nœud qui porte un sommet `fixe`, Σ d nulle sur les sommets de chaque anneau de `anneaux_du_corps`
     (`anneaux`) et, si `rapport` n'est pas `None`, moyenne de d·u sur l'anneau le plus épais égale à (rapport − 1) × son
-    rayon, u la direction radiale de chaque sommet depuis la droite de son centre et de son axe. Rend aussi le nombre
+    rayon, u la direction radiale de chaque sommet depuis la droite de son centre et de son axe. Avec `repartitions` (par
+    champ, un facteur par sommet dans ]0, 1], ou `None`), la part de d que les contraintes imposent se répartit au
+    prorata de ce facteur à chaque nœud : un nœud de facteur faible en reçoit peu. Rend aussi le nombre
     de nœuds libres, de contraintes, et la durée de la résolution de `champs` en secondes. Une composante de nœuds
     libres sans arête vers un nœud fixe lève `ComposanteSansAppui` ; des contraintes retenues liées (`liees`),
     `ContraintesLiees`."""
@@ -274,7 +276,7 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     contraintes = numpy.array([*lignes, epaisseur[:, libres].ravel()])
     etiquettes.append(f"{epais['os']} épaisseur")
 
-    def corriger(champs):
+    def corriger(champs, repartitions=None):
         debut = time.perf_counter()
         vises = {rapport is not None for _, rapport in champs}
         portees = len(contraintes) if True in vises else len(contraintes) - 1
@@ -304,7 +306,11 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
             if vise:
                 cible[-1] = (rapport - 1.0) * epais['rayon']
             d = valeur[libres].T.ravel() + libres_seuls[:, k].T.ravel()
-            d -= zz.T @ (schurs[vise] @ (c @ d - cible))
+            if repartitions is None or repartitions[k] is None:
+                d -= zz.T @ (schurs[vise] @ (c @ d - cible))
+            else:
+                reponse = zz.T * numpy.tile(aux_noeuds(repartitions[k], noeud)[libres], 3)[:, None]
+                d -= reponse @ numpy.linalg.solve(c @ reponse, c @ d - cible)
             plein = numpy.zeros((n, 3))
             plein[libres] = d.reshape(3, m).T
             resultats.append(plein[noeud])
@@ -318,14 +324,17 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     """#3104 ; #3101 issuecomment-6489583109. Les champs `bruts` (nom -> (champ au repère du mesh, rapport de
     `correction` ou `None`)) rabotés ensemble (`formes.raboter`, nœuds `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à
     ce que leur correction (`corriger`, repère monde `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête
-    que marque `hors` (nom -> champ corrigé au repère du mesh) ; rend, par nom, le champ corrigé au repère du mesh."""
+    que marque `hors` (nom -> champ corrigé au repère du mesh) ; rend, par nom, le champ corrigé au repère du mesh. La
+    correction de chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que
+    le rabot leur ôte."""
     inverse = numpy.linalg.inv(vers_le_monde)
     noms = list(bruts)
 
     sondes = []
 
-    def mesurer(pile):
-        champs, sonde = corriger([(pile[:, k] @ vers_le_monde, bruts[nom][1]) for k, nom in enumerate(noms)])
+    def mesurer(pile, cumul):
+        champs, sonde = corriger([(pile[:, k] @ vers_le_monde, bruts[nom][1]) for k, nom in enumerate(noms)],
+                                 [cumul[:, k] for k in range(len(noms))])
         sondes.append(sonde)
         courants = {nom: d @ inverse for nom, d in zip(noms, champs)}
         mesures = hors(courants)

@@ -191,6 +191,33 @@ class Correction(unittest.TestCase):
         self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX),
                               [(self.cle(), None), (self.cle(), 0.72), (self.cle(), 1.7)])
 
+    def test_des_poids_un_rendent_la_correction_sans_poids(self):
+        corriger = correction(self.x, self.aretes, self.noeud, self.fixe, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
+        champs = [(self.cle(), None), (self.cle(), 1.7)]
+        sans, _ = corriger(champs)
+        avec, _ = corriger(champs, [numpy.ones(len(self.x)), None])
+        for a, b in zip(sans, avec):
+            self.assertLess(numpy.abs(a - b).max(), TOLERANCE)
+
+    def test_les_poids_tiennent_les_contraintes_et_epargnent_les_noeuds_de_poids_faible(self):
+        """Une carrure seule : la part imposée va aux nœuds de poids un, la moitié x > 0 de poids 1e-3 en reçoit peu."""
+        lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX)
+        corriger = correction(self.x, self.aretes, self.noeud, self.fixe, lus)
+        faibles = self.x[:, 0] > 0
+        (sans,), _ = corriger([(numpy.zeros_like(self.x), 1.7)])
+        (avec,), _ = corriger([(numpy.zeros_like(self.x), 1.7)], [numpy.where(faibles, 1e-3, 1.0)])
+        self.assertLess(numpy.abs(avec[faibles]).max(), 0.01 * numpy.abs(sans[faibles]).max())
+        for anneau in lus['anneaux']:
+            s = numpy.array([v['indice'] for v in anneau['sommets']])
+            self.assertLess(numpy.abs(avec[s].sum(axis=0)).max(), TOLERANCE, anneau['os'])
+        epais = lus['anneaux'][lus['lePlusEpais']]
+        s = numpy.array([v['indice'] for v in epais['sommets']])
+        axe = numpy.array(epais['axe'])
+        radial = self.x[s] - numpy.array(epais['centre'])
+        radial -= (radial @ axe)[:, None] * axe
+        radial /= numpy.linalg.norm(radial, axis=1, keepdims=True)
+        self.assertAlmostEqual(float((avec[s] * radial).sum(axis=1).mean()), 0.7 * epais['rayon'], places=9)
+
     def test_moyenne_aux_noeuds_une_source_non_nulle_aux_fixes_et_discordante_entre_jumeaux(self):
         d0 = self.lisse() + 0.01 * self.rng.standard_normal(self.x.shape)
         jumeaux = numpy.flatnonzero(self.noeud != numpy.arange(len(self.x)))
@@ -249,8 +276,8 @@ class LissageSousCorrection(unittest.TestCase):
         self.vus = []
         corriger = correction(self.x, self.aretes, self.noeud, self.libre == 0, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
 
-        def corriger_et_noter(champs):
-            corriges, sonde = corriger(champs)
+        def corriger_et_noter(champs, repartitions=None):
+            corriges, sonde = corriger(champs, repartitions)
             self.vus.append(([d for d, _ in champs], corriges))
             return corriges, sonde
 
@@ -286,7 +313,7 @@ class LissageSousCorrection(unittest.TestCase):
         """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
         bas = self.x[:, 2] < HAUTEUR / 2
 
-        def projeter(champs):
+        def projeter(champs, repartitions=None):
             self.vus.append([d.copy() for d, _ in champs])
             return [numpy.where(bas[:, None], 0.0, d) for d, _ in champs], {'bouchon': 'projette'}
 
@@ -341,7 +368,7 @@ class Rabot(unittest.TestCase):
         mesure = hors or self.hors
         resultat, passes = raboter(champ[:, None], self.noeud, self.aretes,
                                    self.facteur if facteur is None else facteur,
-                                   lambda pile: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
+                                   lambda pile, _: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
         return resultat[:, 0], passes
 
     def test_une_arete_hors_bornes_aux_deux_extremites_tenues_leve(self):
@@ -394,7 +421,7 @@ class Rabot(unittest.TestCase):
         champ[self.noeud == voisin] = [0.0, 0.0, 20 * STAGNATION_M]
         marques = iter([marque, marque, numpy.zeros_like(marque)])
 
-        def rendre(pile):
+        def rendre(pile, _):
             pile = pile.copy()
             pile[premier[self.noeud]] = champ[premier[self.noeud]][:, None]
             return pile, next(marques)[:, None]
