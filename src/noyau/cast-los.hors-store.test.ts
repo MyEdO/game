@@ -4,11 +4,13 @@
  *  • castSpell refuse AVANT la modale (pas de pendingCast) — Projectile comme buff sur allié ;
  *  • ZdE : LdV vers la case CENTRE de la zone (clic-case) ;
  *  • Surincantation : candidats filtrés par LdV quand `sight` est fourni ;
- *  • castOutOfSightTargetIds : grisage hors-LdV du mode incantation.
+ *  • castOutOfSightTargetIds : grisage hors-LdV du mode incantation ;
+ *  • ciblesHorsDeVue : le grisage que lit le survol, tir ou sort selon le mode armé.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from './combatFlow';
+import { ciblesHorsDeVue } from './targetingModes';
 import { pregen, PREGEN, makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';
 import { findSpellById } from '../data';
@@ -136,5 +138,45 @@ describe('castOutOfSightTargetIds — grisage du mode incantation', () => {
     const ids = castOutOfSightTargetIds(banc.getState);
     expect(ids.has('e-cache')).toBe(true);
     expect(ids.has('e-vu')).toBe(false);
+  });
+});
+
+describe('ciblesHorsDeVue — le grisage que lit le survol', () => {
+  const ARC = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
+  /** Le combat de `setup`, en mode combat, avec `battle` et les armes de la lanceuse surchargées. */
+  function poser(battle: Record<string, unknown>, armes?: 'arc') {
+    const { w } = setup();
+    const avant = banc.getState().battle!;
+    const combatants = armes === 'arc' ? avant.combatants.map((c) => (c.id === w.id ? { ...c, weapons: [ARC] } : c)) : avant.combatants;
+    banc.setState({ mode: 'battle', battle: { ...avant, combatants, ...battle } as never });
+  }
+  const ids = () => [...ciblesHorsDeVue(banc.getState)].sort();
+
+  it('garde de tête : hors mode combat, ou combat fini → vide', () => {
+    poser({});
+    banc.setState({ mode: 'exploration' });
+    expect(ids()).toEqual([]);
+    poser({ over: 'victory' });
+    expect(ids()).toEqual([]);
+  });
+
+  it('Incantation armée avec un sort → grisage du SORT, sans arme à distance', () => {
+    poser({ action: 'cast', selectedSpellId: 'carreau' });
+    expect(ids()).toEqual(['e-cache']);
+  });
+
+  it('Incantation armée sans sort → verrou → vide', () => {
+    poser({ action: 'cast', selectedSpellId: null }, 'arc');
+    expect(ids()).toEqual([]);
+  });
+
+  it('verrou : Action engagée → vide', () => {
+    poser({ action: null, selectedSpellId: null, acted: true }, 'arc');
+    expect(ids()).toEqual([]);
+  });
+
+  it('défaut : grisage du TIR de l’arme portée', () => {
+    poser({ action: null, selectedSpellId: null }, 'arc');
+    expect(ids()).toEqual(['e-cache']);
   });
 });

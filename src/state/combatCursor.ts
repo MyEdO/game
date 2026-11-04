@@ -12,7 +12,7 @@ import type { Combatant } from '../engine/types';
 import { tileCenter, type Dims } from '../geometry/iso';
 import { isWalkable, liftDe, tileAt, type Scene } from '../noyau/monde/scene';
 import { estAbsent } from '../noyau/monde/terrain';
-import { intentionDuClicDeCase } from '../noyau/combatOrParty';
+import { jouerLeClicDeCase } from '../noyau/combatOrParty';
 import { currentTargetingMode, type TargetingMode } from '../noyau/targetingModes';
 import { cycleTarget, cyclePrevTarget, cursorActor } from '../noyau/targeting';
 import { refuserGeste } from '../noyau/refusVisible';
@@ -216,20 +216,15 @@ export function creerActionsDuCurseur(get: Get<GameState>, set: Set<GameState>):
       if (tgt?.pos) set({ combatCursor: { tile: { ...tgt.pos }, snappedId: tgt.id } });
     },
     commitCursor: () => {
-      const s = get();
-      const cur = s.combatCursor;
+      const cur = get().combatCursor;
       if (!cur) return;
-      const intent = intentionDuClicDeCase(get, cur.tile);
-      if (!intent) {
+      if (!jouerLeClicDeCase(get, cur.tile, true)) {
         // Mode-CASE (#198, résidus) : un commit qui tombe malgré tout sur une case non commettable
         // (occupant sans action pour ce mode) prévient — jamais muet — par la porte de refus commune
         // (`refusVisible` : le journal n'est pas affiché en combat). Hors mode-case : no-op voulu
         // (allié non actionnable, cf. combatCursor.test.ts).
         if (currentTargetingMode(get).tileValidAt) refuserGeste(get, set, t('cs.cursorInvalidTile'));
-        return;
       }
-      if (intent.kind === 'entity') s.battleClickEntity(intent.id, { confirm: true });
-      else s.battleClickTile(intent.pt, { confirm: true });
     },
     clearCursor: () => {
       if (get().combatCursor) set({ combatCursor: null });

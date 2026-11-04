@@ -169,7 +169,7 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
     runBindingById('inspecter', useGame.getState);
     expect(useGame.getState().inspectId).toBe(enemy.id);
     expect(useGame.getState().battle!.acted, 'inspecter ne consomme aucune Action').toBe(false);
-    expect(intentionDuClicDeCase(useGame.getState, { x: 7, y: 10 })).toEqual({ kind: 'entity', id: enemy.id });
+    expect(intentionDuClicDeCase(useGame.getState, { x: 7, y: 10 })).toEqual({ kind: 'combattant', id: enemy.id });
   });
 });
 

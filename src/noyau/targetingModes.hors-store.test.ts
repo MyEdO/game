@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
-import { combatantClickActs, intentionDuClicDeCase } from './combatOrParty';
+import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase } from './combatOrParty';
 import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
 import { runAction } from './actionRegistry';
@@ -39,12 +39,10 @@ function combat(over: Record<string, unknown> = {}) {
   return { hero, ally, e1, e2 };
 }
 
-/** Le clic d'une SURFACE réelle sur la case de `c` (curseur clavier/manette, clic-sol) : la porte partagée de la
- *  carte et de la frise (`intentionDuClicDeCase` → `combatantClickActs`), puis l'action du champ confirmée
- *  (`battleClickEntity`). Jamais `battleClickEntity` sans la porte — il court-circuiterait justement la porte qu'on mesure. */
+/** Le clic d'une SURFACE réelle sur la case de `c` (curseur clavier/manette, clic-sol) : le geste du noyau
+ *  (`jouerLeClicDeCase`, la porte `combatantClickActs` comprise), confirmé. */
 function cliqueSaCase(c: Combatant) {
-  const intention = intentionDuClicDeCase(banc.getState, { ...c.pos! });
-  if (intention?.kind === 'entity') banc.getState().battleClickEntity(intention.id, { confirm: true });
+  jouerLeClicDeCase(banc.getState, { ...c.pos! }, true);
 }
 
 describe('currentTargetingMode — aiguilleur unique', () => {
