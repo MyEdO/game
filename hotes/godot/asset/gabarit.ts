@@ -55,6 +55,7 @@ export interface PoseDuGabarit {
   readonly enfantsDe: Readonly<Record<string, number>>;
   readonly echellesDesOs: Readonly<Record<string, readonly [number, number, number]>>;
   readonly pieds: readonly string[];
+  readonly echelleDeVitesse: number;
 }
 
 export function poseDuGabarit({ gabarit, appuis }: Pick<ManifesteDeBase, 'gabarit'> & Partial<Pick<ManifesteDeBase, 'appuis'>>, facteurs: GabaritResolu): PoseDuGabarit {
@@ -67,7 +68,7 @@ export function poseDuGabarit({ gabarit, appuis }: Pick<ManifesteDeBase, 'gabari
       echellesDesOs[nom] = cle === 'head' ? [facteur, facteur, facteur] : [1, facteur, 1];
     }
   }
-  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [] };
+  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], echelleDeVitesse: facteurs.sl };
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */

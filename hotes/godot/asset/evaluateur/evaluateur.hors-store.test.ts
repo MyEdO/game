@@ -448,13 +448,14 @@ describe('gabarit', () => {
     expect(mesh.morphTargetInfluences?.[0]).toBeCloseTo(0.5, 9);
   });
 
-  it('`poseDuGabarit` : chaque os porte son facteur et son échelle locale, la racine porte `sl`, les pieds sont `appuis.pieds`', () => {
+  it('`poseDuGabarit` : chaque os porte son facteur et son échelle locale, la racine et la vitesse au sol portent `sl`, les pieds sont `appuis.pieds`', () => {
     const table = { ...TABLE, legs: ['cuisse', 'bassin'], arms: ['bras'], head: ['cou'] };
     expect(poseDuGabarit(gabaritEtAppuis(table, ['piedG', 'piedD']), { sl: 0.74, st: 1.25, legs: 0.62, arms: 1.3, head: 0.9 })).toEqual({
       racine: { os: 'racine', echelle: 0.74 },
       enfantsDe: { cuisse: 0.62, bassin: 0.62, bras: 1.3, cou: 0.9 },
       echellesDesOs: { cuisse: [1, 0.62, 1], bassin: [1, 0.62, 1], bras: [1, 1.3, 1], cou: [0.9, 0.9, 0.9] },
       pieds: ['piedG', 'piedD'],
+      echelleDeVitesse: 0.74,
     });
   });
 
@@ -1120,10 +1121,10 @@ describe('mesurerAppuis sur les poses de marche', () => {
 });
 
 describe('appuis des clips walk', () => {
-  const mesurer = async (marche: NonNullable<Parameters<typeof glbFabrique>[0]>['marche'] = {}, vitesseAuSol = 2, pas = 0.125) => {
-    const base = glbFabrique({ marche });
+  const mesurer = async (marche: NonNullable<Parameters<typeof glbFabrique>[0]>['marche'] = {}, vitesseAuSol = 2, pas = 0.125, sl = 1) => {
+    const base = glbFabrique({ marche, formes: formesAvecGabarit({ [FEMININ]: new Array<number>(18).fill(0) }) });
     const manifeste = { ...manifesteDe(base, ['racine', 'piedG', 'piedD']), appuis: { pieds: ['piedG', 'piedD'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'piedG', poids: 1 }], deltas: {} }], vitessesAuSol: { [marche?.nom ?? 'Walk_Loop']: vitesseAuSol } } };
-    return evaluer({ base, manifeste, pas });
+    return evaluer({ base, manifeste, pas, facteurs: { sl } });
   };
   const ecarts = (f: Awaited<ReturnType<typeof evaluer>>) => f.ecarts.filter((e) => e.garde === 'appuis');
 
@@ -1138,6 +1139,13 @@ describe('appuis des clips walk', () => {
       expect(p.glissementMax).toBeLessThan(1e-6);
       expect(p.intervalles).toBeGreaterThan(0);
     }
+  });
+
+  it.each([0.5, 1.5])('déclare au gabarit sl=%s la vitesse au sol multipliée par `sl`', async (sl) => {
+    const f = await mesurer({}, 2, 0.125, sl);
+    expect(ecarts(f)).toEqual([]);
+    expect(f.mesures.clips[0].appuis?.vitesseDeclaree).toBeCloseTo(2 * sl, 9);
+    expect(f.mesures.clips[0].appuis?.vitesseAuSol).toBeCloseTo(2 * sl, 6);
   });
 
   it('refuse une vitesse déclarée fausse et mesure le glissement dans le monde', async () => {

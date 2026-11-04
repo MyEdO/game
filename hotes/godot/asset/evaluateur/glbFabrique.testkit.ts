@@ -15,7 +15,8 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
  *  translation de `pelvis` s'il est là, sinon de `racine`, ou explicitement de `racine` par `cibleDuClip` ; en marche,
- *  deux triangles de pied et leur cycle appui/vol ; en
+ *  deux triangles de pied et leur cycle appui/vol, et en `formes` leurs shape keys, par nom, en déplacements à plat de
+ *  leurs six sommets ; en
  *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
  *  nom, en déplacements à plat de ses neuf sommets ; en bande, le triangle `Corps` au sommet (0, 1, 0) skinné sur `pelvis`
  *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets ; en `primitives`, le mesh en autant de
@@ -23,7 +24,7 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
  *  le même mesh, le même skin et la même zone. */
 export interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-export function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[]; os?: readonly string[] } = {}): Uint8Array {
+export function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; formes?: Record<string, readonly number[]>; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[]; os?: readonly string[] } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -72,7 +73,8 @@ export function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?
     attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: n }, (_, i) => (i < 6 ? [0.5, 0.5, 0, 0] : [1, 0, 0, 0])).flat()), 'VEC4');
     cles(options.anneau);
   }
-  const formes = options.anneau ?? options.bande;
+  if (options.marche && options.formes) cles(options.formes);
+  const formes = options.anneau ?? options.bande ?? (options.marche ? options.formes : undefined);
   const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   const joints = options.marche ? [1, 2, 3] : options.pelvis || options.anneau || options.bande ? [1, 2] : [1];
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');

@@ -190,7 +190,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     if (manifeste && Object.prototype.hasOwnProperty.call(manifeste.appuis.vitessesAuSol, e.clip)) posesDesPieds.push(...poserPieds(e, surfaces, manifeste.gabarit.racine));
   }
-  const appuis = mesurerAppuis(posesDesPieds, manifeste?.appuis.vitessesAuSol ?? {});
+  const appuis = mesurerAppuis(posesDesPieds, Object.fromEntries(Object.entries(manifeste?.appuis.vitessesAuSol ?? {})
+    .map(([clip, vitesse]) => [clip, vitesse * (pose?.echelleDeVitesse ?? 1)])));
   ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle));
 
