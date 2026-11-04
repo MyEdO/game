@@ -10,7 +10,13 @@
 //    `racine`, un motif de glob dont le dossier de zone est un joker est refusé (`dossierJoker`). Une zone qui survit
 //    n'écrit aucun JSX et ne lit aucun module de CODE hors des zones (`scripts/`, `server/`… ; `estCode` : une donnée
 //    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
-//    `horsZoneOuvert`).
+//    `horsZoneOuvert`). Les suites et bancs n'y sont pas.
+//  - `murs/tests-survivants` (#3058) : une suite ou un banc (`estFichierVitest`) d'une zone qui survit n'a aucun arc,
+//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeAuxInstruments`), ne charge aucun
+//    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`) et
+//    n'importe par aucun spécificateur calculé (`surCalcule`). Une cible hors des zones s'ouvre : sa clôture est
+//    le mur `scripts/corpus/guards/clotureDesInstruments.test.mjs`. `purete-imports` et ce mur partagent un seul
+//    jugeur d'arcs (`jugeurDArcs`).
 //  - `murs/reexportation` (#2817 D2) : le fichier ne réexporte rien — ni `export … from` sous aucune forme
 //    d'arc, ni `export { … }` d'une liaison importée ; la config le borne.
 //  - `murs/suite-jouee` (#2928) : une suite (`estSuiteVitest`) est jouée par la suite principale ou par celle du
@@ -27,9 +33,9 @@ import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
-import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
+import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeAuxInstruments, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
-import { estSuiteVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';
 import { estDeLaSuiteDuNoyau, estDeLaSuiteVitest } from './racinesDeLaSuite.mjs';
 
@@ -74,27 +80,50 @@ const zone = {
   },
 };
 
+/** Le message d'un paquet de l'hôte web que la zone `de` ferme. */
+const msgPaquet = (de, paquet) => `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).`;
+/** Le message d'un motif d'`import.meta.glob` dont le dossier de zone est un joker. */
+const msgJoker = (de, motif) => `Motif joker (#2882) : ${nommer(de)} ne lit pas un motif d’\`import.meta.glob\` dont le dossier de zone est un joker (\`${motif}\`) — ${TABLE} ne juge que la zone qu’un chemin nomme : écrire le dossier de la zone visée.`;
+/** Le message d'un JSX dans la zone `de`, qui survit. */
+const msgJsx = (de) => `JSX (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et n’écrit aucun JSX — sa compilation chargerait \`react/jsx-runtime\`, paquet de l’hôte web (${TABLE}, \`survit\`) : laisser le rendu à l’hôte web.`;
+
+/** Le JUGEUR D'ARCS des murs de zone (`purete`, `testsSurvivants`) : les visiteurs qui rendent chaque arc du fichier,
+ *  de la zone `de`, à son juge. La requête d'un spécificateur (`?raw`) ne fait pas partie du chemin ; dans un motif,
+ *  `?` est un joker, et un motif `!…` n'est pas jugé. Un arc sans cible lexicale (`cibleLexicale`) est un paquet :
+ *  `surPaquet(node, paquet)` ; sinon `surCible(node, cibleRel, typeSeul)`, chemin relatif à la racine. Hors de
+ *  `racine`, un motif dont le dossier de zone est un joker (`dossierJoker`) va à `surJoker(node, motif)`. Une zone qui
+ *  survit rend chaque JSX à `surJsx(node)`. `surCalcule` : celui de `visiteurDArcs`. */
+function jugeurDArcs(context, de, { surPaquet, surCible, surJoker, surJsx, surCalcule }) {
+  const racine = context.cwd;
+  const importeur = posix(context.filename);
+  const juger = (node, spec, typeSeul) => {
+    const cible = cibleLexicale(importeur, spec, racine);
+    if (cible === null) surPaquet(node, paquetDe(spec));
+    else surCible(node, posix(relative(racine, cible)), typeSeul);
+  };
+  const jugerMotif = (node, motif) => {
+    if (motif === null || motif.startsWith('!')) return;
+    const cible = cibleLexicale(importeur, motif, racine);
+    if (cible !== null && COUCHES[de].importe !== '*' && dossierJoker(posix(relative(racine, cible)))) surJoker(node, motif);
+    else juger(node, motif, false);
+  };
+  return {
+    ...visiteurDArcs({ surArc: (node, spec, { typeSeul }) => juger(node, spec.replace(/\?.*$/s, ''), typeSeul), surMotif: jugerMotif, surCalcule }),
+    ...(COUCHES[de].survit === true ? { JSXElement: surJsx, JSXFragment: surJsx } : {}),
+  };
+}
+
 const purete = {
   meta: { type: 'problem' },
   create(context) {
     const racine = context.cwd;
-    const importeur = posix(context.filename);
-    const de = zoneDe(relative(racine, importeur));
+    const de = zoneDe(relative(racine, context.filename));
     if (!estZone(de)) return {};
     const { libres, enType } = ouvertes(de);
     const ouvert = `${nommer(de)} importe ${libres.length ? libres.join(', ') : 'aucune zone'}${enType.length ? ` ; en type seul : ${enType.join(', ')}` : ''}`;
-    const importeurRel = posix(relative(racine, importeur));
+    const importeurRel = posix(relative(racine, context.filename));
     const survit = COUCHES[de].survit === true;
-    const juger = (node, spec, typeSeul) => {
-      const cible = cibleLexicale(importeur, spec, racine);
-      if (cible === null) {
-        const paquet = paquetDe(spec);
-        if (paquetFerme(de, paquet, importeurRel)) {
-          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).` });
-        }
-        return;
-      }
-      const cibleRel = posix(relative(racine, cible));
+    const surCible = (node, cibleRel, typeSeul) => {
       const vers = zoneDe(cibleRel);
       const atteint = outillageAtteint(de, importeurRel, cibleRel);
       if (atteint !== null) {
@@ -118,24 +147,37 @@ const purete = {
       const remede = ferme === 'type' ? 'déplacer la forme partagée dans une zone ouverte' : 'déplacer la forme partagée dans une zone ouverte, ou n’importer que le TYPE (`import type`)';
       context.report({ node, message: `Pureté de couche (#1709, #2882, AGENTS.md règle 3) : ${nommer(de)} n’importe rien de ${nommer(vers)} ${portee} — ${TABLE} ne l’ouvre pas (${ouvert}) : ${remede}.` });
     };
-    const jugerMotif = (node, motif) => {
-      if (motif === null || motif.startsWith('!')) return;
-      const cible = cibleLexicale(importeur, motif, racine);
-      if (cible !== null && COUCHES[de].importe !== '*' && dossierJoker(posix(relative(racine, cible)))) {
-        context.report({ node, message: `Motif joker (#2882) : ${nommer(de)} ne lit pas un motif d’\`import.meta.glob\` dont le dossier de zone est un joker (\`${motif}\`) — ${TABLE} ne juge que la zone qu’un chemin nomme : écrire le dossier de la zone visée.` });
-        return;
-      }
-      juger(node, motif, false);
-    };
-    const jsx = (node) => context.report({ node, message: `JSX (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et n’écrit aucun JSX — sa compilation chargerait \`react/jsx-runtime\`, paquet de l’hôte web (${TABLE}, \`survit\`) : laisser le rendu à l’hôte web.` });
-    return {
-      ...visiteurDArcs({
-        // La requête d'un spécificateur (`?raw`) ne fait pas partie du chemin ; dans un motif, `?` est un joker.
-        surArc: (node, spec, { typeSeul }) => juger(node, spec.replace(/\?.*$/s, ''), typeSeul),
-        surMotif: jugerMotif,
-      }),
-      ...(survit ? { JSXElement: jsx, JSXFragment: jsx } : {}),
-    };
+    return jugeurDArcs(context, de, {
+      surPaquet: (node, paquet) => { if (paquetFerme(de, paquet, importeurRel)) context.report({ node, message: msgPaquet(de, paquet) }); },
+      surCible,
+      surJoker: (node, motif) => context.report({ node, message: msgJoker(de, motif) }),
+      surJsx: (node) => context.report({ node, message: msgJsx(de) }),
+    });
+  },
+};
+
+/** Le préfixe des messages de `murs/tests-survivants`. */
+const INSTRUMENT = 'Instrument qui survit (#3058)';
+
+const testsSurvivants = {
+  meta: { type: 'problem' },
+  create(context) {
+    const racine = context.cwd;
+    const importeurRel = posix(relative(racine, context.filename));
+    const de = zoneDe(importeurRel);
+    if (!estFichierVitest(importeurRel) || !estZone(de) || COUCHES[de].survit !== true) return {};
+    const rapporter = (node, message) => context.report({ node, message: `${INSTRUMENT} — ${message}` });
+    return jugeurDArcs(context, de, {
+      surPaquet: (node, paquet) => { if (paquetFerme(de, paquet, importeurRel)) rapporter(node, msgPaquet(de, paquet)); },
+      surCible: (node, cibleRel) => {
+        const vers = zoneDe(cibleRel);
+        if (!fermeAuxInstruments(de, vers)) return;
+        rapporter(node, `Zone fermée (#2882) : une suite ou un banc de ${nommer(de)}, qui survit à la bascule, n’importe rien de ${nommer(vers)}, qui n’y survit pas, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} (\`survit\`, \`fermeAuxInstruments\`) : jouer la règle par une zone qui survit, ou poser le test de l’hôte web dans sa zone.`);
+      },
+      surJoker: (node, motif) => rapporter(node, msgJoker(de, motif)),
+      surJsx: (node) => rapporter(node, msgJsx(de)),
+      surCalcule: (node) => rapporter(node, `Spécificateur calculé (#2882) : une suite ou un banc de ${nommer(de)} n’importe que par un spécificateur LITTÉRAL — un spécificateur calculé ne se juge pas : écrire le chemin en littéral.`),
+    });
   },
 };
 
@@ -203,4 +245,4 @@ const quarantaine = {
   },
 };
 
-export default { zone, purete, reexportation, suiteJouee, quarantaine };
+export default { zone, purete, testsSurvivants, reexportation, suiteJouee, quarantaine };

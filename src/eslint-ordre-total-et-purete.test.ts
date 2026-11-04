@@ -6,13 +6,14 @@ import { blocsDeRegle, creerBancLint, lintFixtures, selectionnerMessages, config
 import { correspondGlob } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
+import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeAuxInstruments, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).
  *
  * Les zones du dépôt et leurs sens d'import se disent UNE fois, dans `COUCHES`
- * (`scripts/guards/lib/couches.mjs`), et se jouent par la gate `lint` (`murs/purete-imports`,
+ * (`scripts/guards/lib/couches.mjs`), et se jouent par la gate `lint` (`murs/purete-imports`, `murs/tests-survivants`,
  * `murs/zone`, `murs/suite-jouee`, `murs/reexportation`, `murs/quarantaine`). Ce banc lit cette table, ne la recopie pas, et MESURE la
  * config RÉSOLUE :
  *  1. CONTRAT de la table — chaque zone nommée existe, le dossier de chaque zone est à elle (`zoneDe`), une zone qui
@@ -21,8 +22,8 @@ import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, f
  *     `paquetFerme` rendent, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
  *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les murs ; une zone dont
  *     l'arbre ne porte pas le dossier se mesure sur des fixtures posées dans son dossier ;
- *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, depuis
- *     des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
+ *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, et, depuis une
+ *     suite de la zone, celui de `fermeAuxInstruments` (INSTRUMENTS, #3058), depuis des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
  *     l'index du dossier : la matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
  *  4. PAQUETS, JOKER — chaque zone × chaque paquet de l'hôte web rend le verdict de `paquetFerme` ; un motif de glob
  *     dont le dossier de zone est un joker est refusé hors de `racine` ;
@@ -31,9 +32,11 @@ import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, f
  *  6. RÉEXPORTATION, SUITE JOUÉE, QUARANTAINE — chaque forme refusée l'est, chaque forme voisine passe ; chaque
  *     fichier en quarantaine existe ;
  *  7. FERMETURE — un fichier d'une zone non déclarée est refusé, un fichier d'une zone déclarée passe.
- * Ensemble, CONTRAT, PAQUETS, JSX et HORS ZONE impliquent qu'une zone qui survit ne charge, de proche en proche, aucun
- * module d'une zone de l'hôte web ni aucun de ses paquets : chaque arc qu'elle trace mène à une zone qui survit, à un
- * paquet hors de l'hôte web, à une donnée, ou à un module d'outillage déclaré, que seul son script lit.
+ * Ensemble, CONTRAT, PAQUETS, JSX et HORS ZONE impliquent que chaque arc qu'un module d'une zone qui survit trace
+ * mène à une zone qui survit, à un paquet hors de l'hôte web, à une donnée, ou à un module d'outillage déclaré, que
+ * seul son script lit ; le mur est LEXICAL, ce module d'outillage n'y est pas suivi. Les suites et bancs de ces zones
+ * sont sous `murs/tests-survivants` (#3058 : INSTRUMENTS), et leur clôture d'imports sous le mur
+ * `scripts/corpus/guards/clotureDesInstruments.test.mjs`.
  *
  * PIÈGE MESURÉ : sans config explicite, un outil peut rendre `ruleId` nul et tout paraît « pris » par
  * vacuité — d'où la sélection par le MESSAGE du mur, puis l'assertion sur son `ruleId`.
@@ -41,10 +44,11 @@ import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, f
 
 const REGLE = 'murs/purete-imports';
 const REEX = 'murs/reexportation';
+const INSTR = 'murs/tests-survivants';
 const ZONES = Object.keys(COUCHES).filter((z) => z !== 'racine');
 
-/** Les formes d'import vers `p` ; `type` : la forme s'efface à la compilation. */
-const FORMES: { nom: string; code: (p: string) => string; type: boolean }[] = [
+/** Les formes d'import vers `p` ; `type` : la forme s'efface à la compilation ; `reexporte` : elle réexporte. */
+const FORMES: { nom: string; code: (p: string) => string; type: boolean; reexporte?: boolean }[] = [
   { nom: 'statique nommé', code: (p) => `import { X } from '${p}';\nexport const a = X;\n`, type: false },
   { nom: 'side-effect', code: (p) => `import '${p}';\n`, type: false },
   { nom: 'dynamique', code: (p) => `export const f = async () => (await import('${p}')).X;\n`, type: false },
@@ -58,7 +62,13 @@ const FORMES: { nom: string; code: (p: string) => string; type: boolean }[] = [
   { nom: '`typeof import(…)`', code: (p) => `export type A = typeof import('${p}');\n`, type: true },
   { nom: 'import type … from', code: (p) => `import type { X } from '${p}';\nexport type A = X;\n`, type: true },
   { nom: 'mixte { type X, y }', code: (p) => `import { type X, y } from '${p}';\nexport const a = y;\nexport type B = X;\n`, type: false },
-  { nom: 'export … from', code: (p) => `export { X } from '${p}';\n`, type: false },
+  { nom: 'export … from', code: (p) => `export { X } from '${p}';\n`, type: false, reexporte: true },
+  { nom: '`export *`', code: (p) => `export * from '${p}';\n`, type: false, reexporte: true },
+  { nom: '`import x = require()`', code: (p) => `import x = require('${p}');\nexport const a = x;\n`, type: false },
+  { nom: '`vi.mock`', code: (p) => `vi.mock('${p}');\n`, type: false },
+  { nom: '`vi.doMock`', code: (p) => `vi.doMock('${p}');\n`, type: false },
+  { nom: '`vi.importActual`', code: (p) => `export const f = () => vi.importActual('${p}');\n`, type: false },
+  { nom: '`vi.importMock`', code: (p) => `export const f = () => vi.importMock('${p}');\n`, type: false },
   { nom: 'import.meta.glob', code: (p) => `export const g = import.meta.glob('${p}.ts');\n`, type: false },
 ];
 
@@ -109,6 +119,12 @@ const arcsVers = (rel: string, vers: string): { p: string; cible: string; avecMo
 
 /** Le chemin d'une fixture posée à côté du fichier réel `rel`. */
 const voisin = (rel: string, i: number) => rel.replace(/(\.[^.]+)$/, `-couche-${i}$1`);
+
+/** La suite du module `rel`, dans son dialecte, jouée par la suite principale ou, hors d'elle, par celle du noyau. */
+const suite = (rel: string) => {
+  const principale = rel.replace(/(\.[^.]+)$/, '.test$1');
+  return estDeLaSuiteVitest(principale) ? principale : rel.replace(/(\.[^.]+)$/, '.hors-store.test$1');
+};
 
 describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE (#1709, #2882)', () => {
   it('CONTRAT : chaque zone nommée est déclarée, et le dossier de chaque zone est à elle', () => {
@@ -245,7 +261,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(horsReexportation.filter((rel) => regles(rel).includes(REEX))).toEqual([]);
   });
 
-  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 240_000 }, () => {
+  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…` ; depuis une suite, celui de `fermeAuxInstruments`', { timeout: 600_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
     for (const de of ZONES) {
       for (const rel of sondes(de)) {
@@ -255,15 +271,27 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
             for (const f of FORMES.filter((x) => avecMotif || x.nom !== 'import.meta.glob')) {
               const ferme = fermeture(de, vers, f.type) !== null || porteManquee(de, vers, cible) !== null;
               const filePath = voisin(rel, cas.length);
-              const reexporte = f.nom === 'export … from' && REEX in configPourFichier(filePath).rules;
+              const reexporte = f.reexporte === true && REEX in configPourFichier(filePath).rules;
               const attendu = [...(ferme ? [REGLE] : []), ...(reexporte ? [REEX] : [])].join('+') || 'passe';
               cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath, code: f.code(p) } });
             }
           }
         }
       }
+      // INSTRUMENTS (#3058) : une suite de la zone, par paire, sous chaque forme en relatif et sous chaque arc en import nommé.
+      const [rel] = sondes(de);
+      for (const vers of ZONES) {
+        if (vers === de) continue;
+        const [relatifVers, ...autres] = arcsVers(rel, vers);
+        const variantes = [...FORMES.map((f) => ({ f, arc: relatifVers })), ...autres.map((arc) => ({ f: FORMES[0], arc }))];
+        for (const { f, arc: { p } } of variantes.filter(({ f, arc }) => arc.avecMotif || f.nom !== 'import.meta.glob')) {
+          const filePath = suite(voisin(rel, cas.length));
+          cas.push({ cle: `${filePath} → ${p} (${f.nom})`, attendu: fermeAuxInstruments(de, vers) ? INSTR : 'passe', fixture: { filePath, code: f.code(p) } });
+        }
+      }
     }
-    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX]);
+    expect(cas.filter((c) => c.attendu === INSTR).length, 'aucune paire fermée aux instruments : le banc ne mesure rien').toBeGreaterThan(0);
+    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX, INSTR]);
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
@@ -292,21 +320,43 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
-  it('FORMES : un test est hors du mur de couche, un import interne à la zone passe, la requête ne compte pas', () => {
+  it('FORMES : une suite d’une zone qui survit est sous le mur des instruments, pas sous la pureté de couche ; un import interne à la zone passe, la requête ne compte pas', () => {
     const [rel] = sondes('engine');
     const [data] = sondes('data');
     const [state] = sondes('state');
     const specifieur = (de: string, vers: string) => specifieurs(de, vers)[0];
     const obtenus = verdicts([
-      { filePath: voisin(rel, 0).replace(/\.ts$/, '.test.ts'), code: `import { X } from '${specifieur(rel, 'ui')}';\nexport const a = X;\n` },
+      { filePath: suite(voisin(rel, 0)), code: `import { X } from '${specifieur(rel, 'ui')}';\nexport const a = X;\n` },
       { filePath: voisin(rel, 1), code: "import { rollD100 } from './dice';\nexport const a = rollD100;\n" },
       { filePath: voisin(data, 2), code: `import x from '${specifieur(data, 'engine')}?raw';\nexport const a = x;\n` },
       { filePath: voisin(data, 3), code: `import x from '${specifieur(data, 'ui')}?raw';\nexport const a = x;\n` },
       { filePath: voisin(data, 4), code: `export const g = import.meta.glob(['!${specifieur(data, 'ui')}.ts', '${specifieur(data, 'engine')}.ts']);\n` },
       { filePath: 'src/lib/zz-dialecte.mjs', code: "import { X } from '../engine/x.js';\nexport const a = X;\n" },
       { filePath: voisin(state, 6), code: `export const f = () => import('${relatif(state, `${dossierDe('gameIso')}X/x`)}');\n` },
-    ], [REGLE]);
-    expect(obtenus).toEqual(['passe', 'passe', 'passe', REGLE, 'passe', REGLE, 'passe']);
+    ], [REGLE, INSTR]);
+    expect(obtenus).toEqual([INSTR, 'passe', 'passe', REGLE, 'passe', REGLE, 'passe']);
+  });
+
+  it('INSTRUMENTS : une suite ou un banc d’une zone qui survit refuse le banc, le paquet de l’hôte web, le JSX et le spécificateur calculé ; `state→ui`, `noyau→scenes`, un module hors des zones, l’`import()` d’un `vi.mock` et la production passent', () => {
+    const [noyau] = sondes('noyau');
+    const [engine] = sondes('engine');
+    const [state] = sondes('state');
+    const calcule = ['import(p)', 'require(p)', 'vi.mock(p)', 'vi.doMock(p)', 'vi.importActual(p)', 'vi.importMock(p)', 'createRequire(import.meta.url)(p)', 'module.require(p)', 'require(...[p])'];
+    const cas: [cle: string, filePath: string, code: string, attendu: string][] = [
+      ['banc engine → ui (type)', voisin(engine, 0).replace(/\.ts$/, '.bench.ts'), `import type { X } from '${specifieurs(engine, 'ui')[0]}';\nexport type A = X;\n`, INSTR],
+      ['state → ui', suite(voisin(state, 1)), `import { X } from '${specifieurs(state, 'ui')[0]}';\nexport const a = X;\n`, 'passe'],
+      ['noyau → scenes', suite(voisin(noyau, 2)), `import { X } from '${specifieurs(noyau, 'scenes')[0]}';\nexport const a = X;\n`, 'passe'],
+      ['noyau → hors des zones', suite(voisin(noyau, 3)), `import { X } from '${relatif(noyau, 'scripts/zz-pont.mjs')}';\nexport const a = X;\n`, 'passe'],
+      ['noyau → react', suite(voisin(noyau, 4)), "import { useState } from 'react';\nexport const a = useState;\n", INSTR],
+      ['state → react', suite(voisin(state, 5)), "import { useState } from 'react';\nexport const a = useState;\n", 'passe'],
+      ['noyau : JSX', suite(voisin(noyau, 6)).replace(/\.ts$/, '.tsx'), 'export const A = () => <div />;\n', INSTR],
+      ['noyau : `vi.mock(import(…))`', suite(voisin(noyau, 7)), "vi.mock(import('./zz-a'));\n", 'passe'],
+      ...calcule.map((appel, i): [string, string, string, string] => [`noyau : ${appel}`, suite(voisin(noyau, 8 + i)), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, INSTR]),
+      ...calcule.map((appel, i): [string, string, string, string] => [`production noyau : ${appel}`, voisin(noyau, 20 + i), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, 'passe']),
+      ['state : import(p)', suite(voisin(state, 40)), "const p = './zz-' + 'a';\nexport const f = () => import(p);\n", 'passe'],
+    ];
+    const obtenus = verdicts(cas.map(([, filePath, code]) => ({ filePath, code })), [INSTR]);
+    expect(Object.fromEntries(cas.map(([cle], i) => [cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([cle, , , v]) => [cle, v])));
   });
 
   it('PAQUETS : chaque zone × chaque paquet de l’hôte web rend le verdict de `paquetFerme`, en valeur comme en type ; un autre paquet passe', { timeout: 60_000 }, () => {
@@ -324,11 +374,11 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
-  it('JOKER : hors de `racine`, un motif d’`import.meta.glob` dont le dossier de zone est un joker est refusé ; un dossier écrit, un motif exclu, sa propre zone et la racine passent', () => {
+  it('JOKER : hors de `racine`, un motif d’`import.meta.glob` dont le dossier de zone est un joker est refusé, suite comprise ; un dossier écrit, un motif exclu, sa propre zone et la racine passent', () => {
     const [noyau] = sondes('noyau');
     const [data] = sondes('data');
     const vers = (rel: string, motif: string) => relatif(rel, 'src').replace(/\/?$/, '/') + motif;
-    const cas: [rel: string, motif: string, attendu: string][] = [
+    const cas: [rel: string, motif: string, attendu: string, instrument?: true][] = [
       [noyau, vers(noyau, '*/x.ts'), REGLE],
       [noyau, vers(noyau, '**/*.ts'), REGLE],
       [noyau, vers(noyau, '{state,engine}/x.ts'), REGLE],
@@ -338,9 +388,15 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       [noyau, `!${vers(noyau, '*/x.ts')}`, 'passe'],
       [noyau, './**/*.ts', 'passe'],
       ['src/zz-racine.ts', './*/x.ts', 'passe'],
+      [noyau, vers(noyau, '*/x.ts'), INSTR, true],
+      [noyau, vers(noyau, '{state,engine}/x.ts'), INSTR, true],
+      [data, vers(data, '*/*.json'), INSTR, true],
+      [noyau, vers(noyau, 'engine/*.ts'), 'passe', true],
+      [noyau, `!${vers(noyau, '*/x.ts')}`, 'passe', true],
     ];
-    const obtenus = verdicts(cas.map(([rel, motif], i) => ({ filePath: voisin(rel, i), code: `export const g = import.meta.glob(['${motif}']);\n` })), [REGLE]);
-    expect(Object.fromEntries(cas.map(([rel, motif], i) => [`${rel} : ${motif}`, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([rel, motif, v]) => [`${rel} : ${motif}`, v])));
+    const fichiers = cas.map(([rel, , , instrument], i) => (instrument ? suite(voisin(rel, i)) : voisin(rel, i)));
+    const obtenus = verdicts(cas.map(([, motif], i) => ({ filePath: fichiers[i], code: `export const g = import.meta.glob(['${motif}']);\n` })), [REGLE, INSTR]);
+    expect(Object.fromEntries(cas.map(([, motif], i) => [`${fichiers[i]} : ${motif}`, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([, motif, v], i) => [`${fichiers[i]} : ${motif}`, v])));
   });
 
   it('JSX, HORS ZONE : une zone qui survit n’écrit aucun JSX et ne lit aucun module de code hors des zones, en valeur comme en type ; son outillage déclaré, une donnée, `node:` et une zone qui ne survit pas passent', () => {

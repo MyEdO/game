@@ -640,6 +640,11 @@ export const BLOCS_LINT = [
     rules: { 'murs/purete-imports': 'error' },
   },
   {
+    // #3058
+    files: CODE_DES_ZONES,
+    rules: { 'murs/tests-survivants': 'error' },
+  },
+  {
     // #2882, #2928
     files: CODE_DES_ZONES,
     rules: { 'murs/zone': 'error', 'murs/suite-jouee': 'error' },

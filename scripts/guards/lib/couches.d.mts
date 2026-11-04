@@ -60,6 +60,10 @@ export function zoneDe(rel: string): string | null;
  *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type). */
 export function fermeture(de: string, vers: string, typeSeul: boolean): null | 'execution' | 'type';
 
+/** La zone `de` d'un instrument ferme-t-elle la zone `vers` : `de` survit à la bascule et `vers`, zone de la table, n'y
+ *  survit pas (#3058) ? */
+export function fermeAuxInstruments(de: string, vers: string | null): boolean;
+
 /** `z` est-il une zone de la table ? Clé PROPRE seulement. */
 export function estZone(z: unknown): z is string;
 

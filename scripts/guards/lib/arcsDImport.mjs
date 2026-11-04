@@ -8,8 +8,10 @@
 // l'appel d'une liaison `createRequire(…)` (déclarée ou assignée, avant ou après l'appel),
 // `import.meta.glob(motif | [motifs])` (rendu au juge des motifs), `vi.importActual`, `vi.importMock`,
 // `vi.mock`, `vi.doMock`, `vi.unmock`, `vi.doUnmock`, `vitest.mock`.
-// Hors de portée : le spécificateur CALCULÉ (variable, gabarit à expression), la liaison renommée ou
-// réaffectée d'un requireur (`createRequire as cr`, `const r2 = req`, `var req = require`) et l'accès calculé (`module['require']`).
+// Un spécificateur CALCULÉ (variable, gabarit à expression, étalement) n'est pas un arc : chacune de ces formes le
+// rend au juge des spécificateurs calculés (`surCalcule`), hors de l'`import()` qu'un `vi.mock` prend en argument,
+// lui-même un arc. Hors de portée : la liaison renommée ou réaffectée d'un requireur (`createRequire as cr`,
+// `const r2 = req`, `var req = require`) et l'accès calculé (`module['require']`).
 
 const OBJETS_VITEST = new Set(['vi', 'vitest']);
 const METHODES_VITEST = new Set(['importActual', 'importMock', 'mock', 'doMock', 'unmock', 'doUnmock']);
@@ -34,16 +36,18 @@ const estImportMeta = (noeud) => noeud.type === 'MetaProperty' && noeud.meta.nam
 const efface = (node) => node.importKind === 'type' || node.exportKind === 'type'
   || (node.specifiers?.length > 0 && node.specifiers.every((s) => s.importKind === 'type' || s.exportKind === 'type'));
 
-/** Les visiteurs qui appellent `surArc(node, spec, { reexport, typeSeul })` pour chaque arc littéral, et
- *  `surMotif(node, motif)` pour chaque motif d'`import.meta.glob`. */
-export function visiteurDArcs({ surArc, surMotif = () => {} }) {
+/** Les visiteurs qui appellent `surArc(node, spec, { reexport, typeSeul })` pour chaque arc littéral,
+ *  `surMotif(node, motif)` pour chaque motif d'`import.meta.glob`, et `surCalcule(node)` pour chaque arc dont le
+ *  spécificateur est calculé. */
+export function visiteurDArcs({ surArc, surMotif = () => {}, surCalcule = () => {} }) {
   const arc = (node, source, { reexport = false, typeSeul = false } = {}) => {
     const spec = valeurDe(source);
     if (spec !== null) surArc(node, spec, { reexport, typeSeul });
+    else if (source && source.type !== 'ImportExpression') surCalcule(node);
   };
   const requireurs = new Set(['require']);
-  /** Appels d'un identifiant à spécificateur littéral : jugés à `Program:exit`, une fois connues toutes
-   *  les liaisons `createRequire(…)` du fichier. */
+  /** Appels d'un identifiant à argument : jugés à `Program:exit`, une fois connues toutes les liaisons
+   *  `createRequire(…)` du fichier. */
   const appelsDIdentifiant = [];
   return {
     ImportDeclaration: (node) => arc(node, node.source, { typeSeul: efface(node) }),
@@ -70,7 +74,7 @@ export function visiteurDArcs({ surArc, surMotif = () => {} }) {
     CallExpression: (node) => {
       const { callee, arguments: [premier] } = node;
       if (callee.type === 'Identifier') {
-        if (valeurDe(premier) !== null) appelsDIdentifiant.push({ node, nom: callee.name, source: premier });
+        if (premier) appelsDIdentifiant.push({ node, nom: callee.name, source: premier });
         return;
       }
       if (estCreateRequire(callee)) return arc(node, premier);
