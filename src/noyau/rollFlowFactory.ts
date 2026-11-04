@@ -366,7 +366,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     /** Détermination (immunité PSY temporaire, LDB 17 l.59) : MÊME catégorie que `resist` (dépenser une
      *  ressource pour infléchir un Test psy), PAS une réussite forcée. Le flux DÉCLARE l'effet SPÉCIFIQUE
      *  (dépense de Détermination + marqueur `immune` sur le slot psy), la fabrique fournit le CÂBLAGE
-     *  (interface store/intent/modale via le verbe `determine` → action `<prefix>Determine`, le handler
+     *  (interface store/intent/modale via le verbe `determine` → geste `jetDetermine(flux, …)`, le handler
      *  ci-dessous GATE `actor` et la `fermeture` du flux, puis dispatche `appliquer`). Exposé par les seuls flux à
      *  `caps.determine`. */
     determine?: {
@@ -413,7 +413,7 @@ export interface RollFlowHandlers {
   roll: (get: Get, set: Set, pid?: string) => void;
   reroll: (get: Get, set: Set, pid?: string) => void;
   bonusSL: (get: Get, set: Set, pid?: string) => void;
-  /** Résilience (LDB 17 l.68). Avant le jet, `auJet` encadre le geste pré-jet (`rollFlowActions`) : `forcer` se passe
+  /** Résilience (LDB 17 l.68). Avant le jet, `auJet` encadre le geste pré-jet (`creerVerbesDeJet`) : `forcer` se passe
    *  du dé quand le flux le sait (vrai : un point dépensé), sinon le jet du flux tombe d'abord, puis il est forcé. */
   forceSuccess: (get: Get, set: Set, pid?: string, auJet?: (forcer: () => boolean) => void) => void;
   /** Choix du dé d'un Test forcé (no-op sans `caps.forced` ou avant `forceSuccess`). */
@@ -813,7 +813,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         bonusSL: parActeur(() => fermetureDuBonus(vue, faits) ?? (bonusOffert(slot) ? null : 'nonOffert')),
         darkPact: impose ? 'jetImpose' : parActeur(() => fermetureDuPacte(vue, faits)),
         forceSuccess: fermetureDuForcage(s, get, p, slot, actor),
-        // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`ActionsDuNoyau.<flux>SetForcedRoll`).
+        // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetSetForcedRoll`).
         setForcedRoll: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
         resist: !spec.caps?.resist ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
         determine: !spec.caps?.determine ? 'nonOffert' : parActeur((a) => spec.caps!.determine!.fermeture(s, slot, a)),

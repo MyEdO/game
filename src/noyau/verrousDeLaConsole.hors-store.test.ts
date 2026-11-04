@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   creerPartie, etatInitialDuJeu, activeCombatant, actionGate, offresDeLActif,
-  type ActionCtx, type EntreesDeLaPartie, type Jeton, type Partie, type ResultatDeLAppel,
+  type ActionCtx, type EntreesDeLaPartie, type Intention, type Jeton, type Partie, type ResultatDeLAppel,
 } from './index';
 import { addCondition } from '../engine/conditions';
 import { ACTION_GATES } from './actionRegistry';
@@ -35,8 +35,8 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const verbes = e.pendingDefense ? (['defenseRoll', 'defenseConfirm'] as const) : actif ? (['battleEndTurn'] as const) : (['confirmRoundStart'] as const);
-    for (const type of verbes) jouer(partie, partie.envoyer({ type, args: [] }));
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'defenseConfirm', args: [] }] : [{ type: actif ? 'battleEndTurn' : 'confirmRoundStart', args: [] }];
+    for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
 }

@@ -53,7 +53,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   /** Ouvre l'incantation ENNEMIE figée (= ce que fait le pré-roll de `castSpell` pour un lanceur IA). */
   function enemyCast(E: Combatant, target: Combatant) {
     castSpell(banc.getState, banc.setState, E, target, 'carreau');
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
   }
   /** Incantation FIGÉE, jet POSÉ : l'agrégation se mesure sur `pendingCast.result` sans aléa. */
   function freezeCast(caster: Combatant, target: Combatant, sl: number) {
@@ -83,8 +83,8 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     openCounter([h1.id, h2.id]);
     banc.getState().counterspellDeclare(h1.id, 'solo');
     banc.getState().counterspellDeclare(h2.id, 'pass');
-    banc.getState().counterspellRoll(h1.id);
-    banc.getState().counterspellRoll(h2.id); // une rangée qui passe ne lance jamais
+    banc.getState().jetRoll('counterspell', h1.id);
+    banc.getState().jetRoll('counterspell', h2.id); // une rangée qui passe ne lance jamais
     const parts = banc.getState().pendingCounterspell!.participants;
     expect(parts.find((p) => p.id === h1.id)!.result, 'le chanteur a son jet').toBeTruthy();
     expect(parts.find((p) => p.id === h2.id)!.result, 'passer, c’est ne pas tenter').toBeNull();
@@ -140,7 +140,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       row(h1.id, false, -3, 8, 'RATÉ'),
       { id: h2.id, interactive: true, result: null },
     ] } } as unknown as Partial<Jeu>);
-    banc.getState().counterspellForceSuccess(h2.id); // « Je ne faillirai pas ! » du SECOND
+    banc.getState().jetForceSuccess('counterspell', h2.id); // « Je ne faillirai pas ! » du SECOND
     const parts = banc.getState().pendingCounterspell!.participants;
     expect(parts.find((p) => p.id === h2.id)!.result, 'aucun jet pour une rangée non déclarée').toBeNull();
     expect(cur(h2.id).resilience, 'le Point n’est PAS dépensé sur un geste refusé').toBe(1);
@@ -158,12 +158,12 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       row(E.id, true, 4, 1, 'DISSIPÉ'),
       { id: E2.id, interactive: true, result: null },
     ] } } as unknown as Partial<Jeu>);
-    banc.getState().counterspellRoll(E2.id); // plus rien à dissiper (LDB 46 l.156)
+    banc.getState().jetRoll('counterspell', E2.id); // plus rien à dissiper (LDB 46 l.156)
     const parts = banc.getState().pendingCounterspell!.participants;
     expect(parts.find((p) => p.id === E2.id)!.result, 'aucun jet sur un Sort déjà dissipé').toBeNull();
     expect(cur(E2.id).dispelledThisRound, 'sa tentative du Round reste INTACTE').toBeFalsy();
     // Le dé fixé et la Résilience passent par la MÊME couture : mêmes refus, même absence de dépense.
-    banc.getState().counterspellForceSuccess(E2.id);
+    banc.getState().jetForceSuccess('counterspell', E2.id);
     expect(banc.getState().pendingCounterspell!.participants.find((p) => p.id === E2.id)!.result).toBeNull();
     expect(cur(E2.id).dispelledThisRound).toBeFalsy();
   });
@@ -181,7 +181,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       return E;
     };
     const E1 = openVierge();
-    banc.getState().counterspellCancel();
+    banc.getState().jetCancel('counterspell');
     const parLaisser = { log: banc.getState().pendingCast!.result!.log, essai: !!cur(E1.id).dispelledThisRound };
     const E2b = openVierge();
     banc.getState().counterspellConfirm();
@@ -200,7 +200,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     // PHASE 1 (#1042/#1059) : la porte de sortie s'ouvre une fois la composition arrêtée — ici le seul
     // candidat déclare qu'il contrera, puis renonce sans jeter.
     banc.getState().counterspellDeclare(h1.id, 'solo');
-    banc.getState().counterspellCancel(); // personne ne contre
+    banc.getState().jetCancel('counterspell'); // personne ne contre
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast).toBeNull();
     expect(castLog).not.toContain('Contre-sort'); // le jet ennemi n'a pas été opposé

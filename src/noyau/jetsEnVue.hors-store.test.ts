@@ -289,11 +289,11 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
 describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie', () => {
   const partieSur = (pendingCascade: PendingCascade) => creerPartie({ ...(BASE as EtatDeJeu), pendingCascade }, ENTREES);
 
-  it('« Résistance au Sonné » : après `cascadeRoll` puis `cascadeSetForcedRoll(pid, 30)`, la ligne dit Test, cible, dé, DR et verdict', () => {
+  it('« Résistance au Sonné » : après `jetRoll@cascade` puis `jetSetForcedRoll@cascade` à 30, la ligne dit Test, cible, dé, DR et verdict', () => {
     const partie = partieSur(cascade({ id: 'sonne', kind: 'triggeredTest', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: null }));
     try {
-      partie.envoyer({ type: 'cascadeRoll', args: ['sonne'] });
-      partie.envoyer({ type: 'cascadeSetForcedRoll', args: ['sonne', 30] });
+      partie.envoyer({ type: 'jetRoll', args: ['cascade', 'sonne'] });
+      partie.envoyer({ type: 'jetSetForcedRoll', args: ['cascade', 30, 'sonne'] });
       const { sl } = evaluateTest(30, 45);
       expect(jetsEnVue(partie.etat())).toEqual([{ flux: 'cascade', oppose: null, lignes: [{ genre: 'test', qui: H.id, test: 'Résistance', cible: 45, jet: { d100: 30, dr: sl, reussi: true } }] }]);
     } finally {

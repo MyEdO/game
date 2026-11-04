@@ -6,7 +6,8 @@
  */
 import type { Jeu } from './etat';
 import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
-import { FLOW_VERBS, VERBES_DE_JET, flowActionName, type FlowKey, type FlowVerbs } from './flowVerbs';
+import { FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs } from './flowVerbs';
+import { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet, VerbeDuCycle } from './rollFlowFactory';
 import type { CascadeStep } from './pendings';
@@ -26,24 +27,33 @@ export function fermeturesDeLaMaladresse(etape: CascadeStep): { fumbleRoll: Ferm
   return { fumbleRoll: tire ? 'jetLance' : null, fumbleConfirm: tire ? null : 'jetNonLance' };
 }
 
-/** Le verbe du cycle que joue le verbe `nom` de la fenêtre sur son flux `flux` : son délégué `<flux><Verbe>`, le jet de
- *  chaque rangée (`<flux>RollAll`), la clôture (la première `resolution` déclarée, `<flux>Confirm`, ou le dernier verbe
- *  du drive pour le flux en tête). `enFenetre` : le verbe agit sur la fenêtre entière, jamais sur une rangée. `null` :
- *  le flux ne joue pas ce verbe. */
-function verbeDuCycle(fenetre: FenetreDuJeu, flux: FlowKey, nom: string): { verbe: VerbeDuCycle; enFenetre: boolean } | null {
-  const delegue = VERBES_DE_JET.find((v) => flowActionName(flux, v) === nom);
-  if (delegue) return { verbe: delegue, enFenetre: delegue === 'cancel' };
-  if (nom === flowActionName(flux, 'rollAll')) return { verbe: 'roll', enFenetre: true };
+/** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux` : un verbe de jet sur ce flux, le jet de
+ *  chaque rangée (`<flux>RollAll`), la clôture (la première `resolution` déclarée, `<flux>Confirm`, ou le dernier geste
+ *  du drive pour le flux en tête). `enFenetre` : le geste agit sur la fenêtre entière, jamais sur une rangée. `null` :
+ *  le flux ne joue pas ce geste. */
+function verbeDuCycle(fenetre: FenetreDuJeu, flux: FlowKey, g: GesteDuJeu): { verbe: VerbeDuCycle; enFenetre: boolean } | null {
+  const deJet = verbeDeJetDe(g.verbe);
+  if (deJet) return g.flux === flux ? { verbe: deJet, enFenetre: deJet === 'cancel' } : null;
+  if (g.verbe === `${flux}RollAll`) return { verbe: 'roll', enFenetre: true };
   const w: FlowVerbs = FLOW_VERBS[flux];
-  const drive = fenetre.drive ?? [];
-  const cloture = w.resolution?.[0] === nom || nom === flowActionName(flux, 'confirm') || (flux === fenetre.flux[0] && nom === drive[drive.length - 1]);
+  const dernier = fenetre.drive?.[fenetre.drive.length - 1];
+  const cloture = w.resolution?.[0] === g.verbe || g.verbe === `${flux}Confirm` || (flux === fenetre.flux[0] && !!dernier && cleDuGeste(dernier) === cleDuGeste(g));
   return cloture ? { verbe: 'apply', enFenetre: true } : null;
 }
 
-/** Ce qui ferme maintenant chaque verbe de la fenêtre qui tient la main que l'un de ses flux joue (`null` : ouvert) ;
- *  un verbe qu'aucun flux ne joue n'y figure pas. Un verbe de rangée se juge sur la rangée que la fenêtre désigne
- *  (`pid`) ; un verbe de fenêtre, sur l'étape que désigne une fenêtre dont les rangées n'ont pas d'acteur propre
- *  (`pidIsActor` faux), sinon sur la fenêtre entière. */
+/** Les arguments que la fenêtre pose d'office pour son geste `g` : le flux d'un geste de jet, et l'id qu'elle désigne
+ *  (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`). */
+export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { flux?: FlowKey; pid?: string } {
+  const deJet = verbeDeJetDe(g.verbe);
+  const pid = fenetre.pid ? { pid: fenetre.pid } : {};
+  if (!deJet || !g.flux) return pid;
+  return { flux: g.flux, ...(viseUneRangee(g.flux, deJet) ? pid : {}) };
+}
+
+/** Ce qui ferme maintenant chaque geste de la fenêtre qui tient la main que l'un de ses flux joue (`null` : ouvert),
+ *  par son identité (`cleDuGeste`) ; un geste qu'aucun flux ne joue n'y figure pas. Un geste de rangée se juge sur la
+ *  rangée que la fenêtre désigne (`pid`) ; un geste de fenêtre, sur l'étape que désigne une fenêtre dont les rangées
+ *  n'ont pas d'acteur propre (`pidIsActor` faux), sinon sur la fenêtre entière. */
 export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fenetreDuJeu(s)): ReadonlyMap<string, FermetureDuJet | null> {
   const out = new Map<string, FermetureDuJet | null>();
   if (!fenetre) return out;
@@ -56,18 +66,18 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
     parFlux.set(cle, f);
     return f;
   };
-  for (const nom of fenetre.verbes) {
+  for (const g of fenetre.gestes) {
     for (const flux of fenetre.flux) {
-      const cycle = verbeDuCycle(fenetre, flux, nom);
+      const cycle = verbeDuCycle(fenetre, flux, g);
       if (!cycle) continue;
       const w: FlowVerbs = FLOW_VERBS[flux];
       const pid = w.kind === 'multi' && (!cycle.enFenetre || !w.pidIsActor) ? fenetre.pid : undefined;
-      out.set(nom, juger(flux, pid)[cycle.verbe]);
+      out.set(cleDuGeste(g), juger(flux, pid)[cycle.verbe]);
       break;
     }
   }
   if (fenetre.etape?.jet === 'fumble') {
-    for (const [nom, f] of Object.entries(fermeturesDeLaMaladresse(fenetre.etape))) if (fenetre.verbes.includes(nom)) out.set(nom, f);
+    for (const [nom, f] of Object.entries(fermeturesDeLaMaladresse(fenetre.etape))) if (fenetre.gestes.some((g) => g.verbe === nom)) out.set(nom, f);
   }
   return out;
 }

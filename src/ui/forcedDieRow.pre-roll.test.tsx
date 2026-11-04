@@ -227,7 +227,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setDesFixes(true);
     setupPreRoll();
     resolveRoll();
-    useGame.getState().attackSetForcedRoll(33);
+    useGame.getState().jetSetForcedRoll('attack', 33);
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
     act(() => {
       root.render(
@@ -276,7 +276,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setDesFixes(true);
     setupPreRoll();
     resolveRoll();
-    useGame.getState().attackSetForcedRoll(33);
+    useGame.getState().jetSetForcedRoll('attack', 33);
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
     expect(die.fixedMark).toBe(true);
     act(() => {

@@ -310,7 +310,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().pendingTest!.itemUid).toBe('t2');
   });
 
-  it('testRoll peuple pendingTest.isDouble (booléen, pour la casse Bâclé)', () => {
+  it('jetRoll@test peuple pendingTest.isDouble (booléen, pour la casse Bâclé)', () => {
     const hero = combattantDeTest({
       id: 'h1', label: 'Lest', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -325,7 +325,7 @@ describe('Boucle de jeu (store)', () => {
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
-    banc.getState().testRoll();
+    banc.getState().jetRoll('test');
     expect(typeof banc.getState().pendingTest!.isDouble).toBe('boolean');
   });
 
@@ -620,11 +620,11 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().battleClickEntity(enemy.id);
     expect(banc.getState().pendingCast).not.toBeNull();
     expect(banc.getState().battle!.acted).toBe(false); // pas encore lancé
-    banc.getState().castRoll(); // « Lancer » : fige le jet
+    banc.getState().jetRoll('cast'); // « Lancer » : fige le jet
     // Dé FIXÉ (#939) : 23 réussit (Int 90) et n'est PAS un double — sinon l'état du RNG partagé
     // (isolate:false) peut sortir une Incantation Critique, dont l'effet se CHOISIT (LDB 46 l.28-32)
     // avant toute application : « Appliquer » resterait alors inerte et `acted` faux (classe #1014).
-    banc.getState().castSetForcedRoll(23);
+    banc.getState().jetSetForcedRoll('cast', 23);
     expect(banc.getState().pendingCast!.result).not.toBeNull();
     expect(banc.getState().pendingCast!.result!.isCritical, 'jet déterministe non critique').toBe(false);
     banc.getState().castConfirm(); // « Appliquer » : résout
@@ -649,7 +649,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
     banc.getState().battleClickEntity(heroC.id); // se cibler soi-même → ouvre la modale
-    banc.getState().castRoll(); // « Lancer »
+    banc.getState().jetRoll('cast'); // « Lancer »
     banc.getState().castConfirm(); // « Appliquer »
     st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === heroC.id)!;
@@ -678,7 +678,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     const before = enemy.wounds.current;
     banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale d'attaque
-    banc.getState().attackRoll(); // lance le jet
+    banc.getState().jetRoll('attack'); // lance le jet
     banc.getState().attackConfirm(); // applique le résultat
     st = banc.getState();
     const enemyAfter = st.battle!.combatants.find((c) => c.id === enemy.id)!;
@@ -710,12 +710,12 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().resolveTest();
     expect(banc.getState().pendingTest).not.toBeNull();
     // « Lancer » : le jet se fait.
-    banc.getState().testRoll();
+    banc.getState().jetRoll('test');
     expect(banc.getState().pendingTest!.roll).not.toBeNull();
     // Forcer un jet propre RATÉ (cible 95) pour exercer la relance (gate « jet raté », LDB 12 l.13).
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
     // Chance : relance et consomme un point.
-    banc.getState().testReroll();
+    banc.getState().jetReroll('test');
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.roll).not.toBeNull();
     // Acquittement : ferme la modale.
@@ -739,7 +739,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     banc.getState().battleClickEntity(enemy.id, { confirm: true }); // ouvre la modale
-    banc.getState().attackRoll(); // le +1 Sonné s'applique AVANT le jet
+    banc.getState().jetRoll('attack'); // le +1 Sonné s'applique AVANT le jet
     st = banc.getState();
     const heroAfter = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     expect(heroAfter.advantage).toBe(1);
@@ -770,14 +770,14 @@ describe('Boucle de jeu (store)', () => {
       },
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
     });
-    banc.getState().defenseRoll(); // « Défendre » : roule la défense + résout
+    banc.getState().jetRoll('defense'); // « Défendre » : roule la défense + résout
     let pd = banc.getState().pendingDefense!;
     expect(pd.result).not.toBeNull();
     expect(pd.def).not.toBeNull();
     // Forcer une défense propre RATÉE pour exercer la relance (gate « jet raté », LDB 12 l.13).
     banc.setState({ pendingDefense: { ...pd, def: { ...pd.def!, success: false } } });
     const atkRoll = pd.atk.roll;
-    banc.getState().defenseReroll(); // Chance : relance la DÉFENSE
+    banc.getState().jetReroll('defense'); // Chance : relance la DÉFENSE
     pd = banc.getState().pendingDefense!;
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1); // 1 point dépensé
     expect(pd.atk.roll).toBe(atkRoll); // l'attaque (pd.atk) n'est JAMAIS relancée
@@ -910,7 +910,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     banc.getState().battleClickEntity(E.id, { confirm: true });
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id);
@@ -966,7 +966,7 @@ describe('Boucle de jeu (store)', () => {
     expect(st.pendingAttack).toBeNull();
   });
 
-  it('attackCancel après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
+  it('jetCancel@attack après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
     // Avant le jet, une charge s'annule (misclic — cf. charge-undo.hors-store.test.ts) ; une fois le dé lancé
     // (`result` posé), elle est ENGAGÉE : plus d'annulation.
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
@@ -978,7 +978,7 @@ describe('Boucle de jeu (store)', () => {
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     banc.setState({ pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: { hit: false } as never, fromCharge: true } });
-    banc.getState().attackCancel();
+    banc.getState().jetCancel('attack');
     expect(banc.getState().pendingAttack).not.toBeNull(); // dé lancé → engagé
   });
 
@@ -1134,7 +1134,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'failure',
       },
     });
-    banc.getState().disengageReroll();
+    banc.getState().jetReroll('disengage');
     const stx = banc.getState();
     expect(stx.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1); // 1 point dépensé
     expect(stx.pendingDisengage!.atk!.roll).toBe(35); // jet du foe NON relancé
@@ -1280,7 +1280,7 @@ describe('Boucle de jeu (store)', () => {
     expect(Ha.engagedWith).toEqual([E.id]); // toujours Engagé tant que le Test `fuite` n'est pas confirmé
 
     // Test `fuite` INFLUENÇABLE (flux `flee`) : Lancer → Appliquer (applique le coup + complète la fuite).
-    banc.getState().fleeRoll(H.id);
+    banc.getState().jetRoll('flee', H.id);
     banc.getState().fleeConfirm();
     st = banc.getState();
     Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -2082,7 +2082,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     banc.abandonner();
   });
 
-  it('testReroll : refusée si le d100 propre est réussi (roll ≤ cible)', () => {
+  it('jetReroll@test : refusée si le d100 propre est réussi (roll ≤ cible)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 2;
     banc.setState({
@@ -2090,12 +2090,12 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 20, success: true, sl: 3, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().testReroll();
+    banc.getState().jetReroll('test');
     expect(banc.getState().party[0].fortune).toBe(2); // rien dépensé (jet réussi)
     expect(banc.getState().pendingTest!.roll).toBe(20); // jet inchangé
   });
 
-  it('testReroll : autorisée une seule fois sur un jet raté', () => {
+  it('jetReroll@test : autorisée une seule fois sur un jet raté', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 2;
     banc.setState({
@@ -2103,14 +2103,14 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 5, difficulty: 'intermediaire',
         requireSL: 0, target: 5, roll: 95, success: false, sl: -9, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().testReroll(); // 1re relance OK (jet raté)
+    banc.getState().jetReroll('test'); // 1re relance OK (jet raté)
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.rerolled).toBe(true);
-    banc.getState().testReroll(); // 2e relance refusée (déjà relancé)
+    banc.getState().jetReroll('test'); // 2e relance refusée (déjà relancé)
     expect(banc.getState().party[0].fortune).toBe(1); // pas de 2e dépense
   });
 
-  it('testBonusSL : +1 DR fait passer un Test à requireSL, et est cumulable', () => {
+  it('jetBonusSL@test : +1 DR fait passer un Test à requireSL, et est cumulable', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 3;
     banc.setState({
@@ -2118,16 +2118,16 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 2, target: 50, roll: 45, success: false, sl: 0, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().testBonusSL(); // DR 0 → 1 (< 2)
+    banc.getState().jetBonusSL('test'); // DR 0 → 1 (< 2)
     expect(banc.getState().party[0].fortune).toBe(2);
     expect(banc.getState().pendingTest!.success).toBe(false);
-    banc.getState().testBonusSL(); // DR 1 → 2 (≥ requireSL 2) → succès
+    banc.getState().jetBonusSL('test'); // DR 1 → 2 (≥ requireSL 2) → succès
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.sl).toBe(2);
     expect(banc.getState().pendingTest!.success).toBe(true);
   });
 
-  it('testBonusSL : la Chance (+1 DR) ne fabrique PAS de réussite depuis un d100 RATÉ (sans seuil de DR exigé)', () => {
+  it('jetBonusSL@test : la Chance (+1 DR) ne fabrique PAS de réussite depuis un d100 RATÉ (sans seuil de DR exigé)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 3;
     banc.setState({
@@ -2136,7 +2136,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 95, success: false, sl: -5, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().testBonusSL();
+    banc.getState().jetBonusSL('test');
     expect(banc.getState().pendingTest!.sl).toBe(-4); // le DR monte
     expect(banc.getState().pendingTest!.success).toBe(false); // l'échec du dé tient
   });
@@ -2370,7 +2370,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     seedBattleRng(1);
     banc.getState().preemptRangedShot(H.id, E.id);
     expect(banc.getState().pendingAttack?.interrupt).toBe(true); // modale de tir ouverte, tireur non-actif
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     let st = banc.getState();
     expect(st.pendingAttack).toBeNull();                 // tir résolu
@@ -2574,7 +2574,7 @@ describe('Résilience — « Je ne faillirai pas ! » (LDB 17 l.68)', () => {
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 30, difficulty: 'intermediaire',
         requireSL: 0, target: 30, roll: 95, success: false, sl: -6, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().testForceSuccess();
+    banc.getState().jetForceSuccess('test');
     expect(banc.getState().pendingTest!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0);
   });
@@ -2615,7 +2615,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect((h.items ?? []).find((i) => i.uid === 'am1')!.qty).toBe(1); // 2 → 1
@@ -2641,13 +2641,13 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().battle!.acted).toBe(false); // l'Action n'est consommée qu'à Appliquer
   });
 
-  it('reloadRoll + reloadConfirm : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
+  it('jetRoll@reload + reloadConfirm : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
     banc.getState().battleReload();
-    banc.getState().reloadRoll();
+    banc.getState().jetRoll('reload');
     const pr = banc.getState().pendingReload!;
     expect(pr.roll).not.toBeNull();
     const expected = Math.max(0, 0 + pr.sl); // formule du Test étendu (clamp à 0)
@@ -2676,7 +2676,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
     banc.getState().battleReload();
-    banc.getState().reloadRoll();
+    banc.getState().jetRoll('reload');
     const pr = { ...banc.getState().pendingReload! };
     const journalAvant = banc.getState().journal.length;
     banc.getState().reloadConfirm();
@@ -2696,7 +2696,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
     banc.getState().battleReload();
-    banc.getState().reloadRoll();
+    banc.getState().jetRoll('reload');
     const pr = banc.getState().pendingReload!;
     const expected = Math.max(0, 0 + pr.sl);
     banc.getState().reloadConfirm();
@@ -2758,7 +2758,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
     expect(banc.getState().pendingAttack, 'le pistolet chargé TIRE').not.toBeNull();
-    banc.getState().attackCancel();
+    banc.getState().jetCancel('attack');
     // (4) Retour à l'ARBALÈTE : elle est restée déchargée, avec SA progression intacte.
     h = swap('arb');
     const arb2 = h.weapons.find((w) => w.uid === 'w-arb')!;
@@ -2795,7 +2795,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // (2) Le rechargement vise l'arme DÉSIGNÉE : la modale s'ouvre sur le gauche, pas sur le droit.
     banc.getState().battleReload('p2');
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
-    banc.getState().reloadCancel();
+    banc.getState().jetCancel('reload');
     // (3) Sans uid : la 1re arme DÉCHARGÉE (ici le gauche) — jamais une arme déjà prête.
     banc.getState().battleReload();
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
@@ -2877,7 +2877,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(2); // 3 → 2 : le coup chargé est parti
@@ -2892,7 +2892,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(1); // capturée : 2 → 1
@@ -2912,7 +2912,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     banc.getState().attackConfirm();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'fl2')!.qty).toBe(4);
@@ -2961,7 +2961,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: null } });
     banc.getState().seedRng(2);
     banc.getState().battleClickEntity(E.id, { confirm: true });
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     const pa = banc.getState().pendingAttack!;
     const d = pa.result!.attackerDetail!;
     const nomme = [...(d.mods ?? []), ...(d.difficultyParts ?? [])];

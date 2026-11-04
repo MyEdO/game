@@ -47,7 +47,7 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     const save = get().pendingSteamSave;
     expect(save, 'la Fuite de vapeur a ouvert sa sauvegarde').toBeTruthy();
     expect(halte, 'la journée ne se clôt pas sous la sauvegarde en attente').not.toHaveBeenCalled();
-    get().steamSaveRoll();
+    get().jetRoll('steamSave');
     get().steamSaveConfirm();
     unsub();
     expect(halte, 'la journée se clôt UNE fois, à la reprise').toHaveBeenCalledTimes(1);

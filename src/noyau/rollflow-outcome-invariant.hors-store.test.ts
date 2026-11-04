@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *
  * Depuis le refactor, la fabrique DÉRIVE le gating de la Chance/Pacte/Résistance de l'issue unique :
  * `failed = !outcome(slot).won`. Ce test PILOTE, flux par flux (catalogue-dérivé de `FLOW_VERBS`), le
- * verbe RÉELLEMENT gaté par ce `failed` — la RELANCE de Chance (`<prefix>Reroll`) — et prouve qu'il :
+ * verbe RÉELLEMENT gaté par ce `failed` — la RELANCE de Chance (`jetReroll(flux, …)`) — et prouve qu'il :
  *   (a) est DISPONIBLE sur un résultat PERDANT (dépense 1 Point de Chance) ;
  *   (b) est un NO-OP sur un résultat GAGNANT (aucune dépense).
  * Un flux dont l'`outcome.won` NE reflète PAS son issue réelle fait donc échouer (a) ou (b).
@@ -212,26 +212,28 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
     expect(uncovered, 'flux ni couvert ni justifié').toEqual([]);
   });
 
+  /** La relance de Chance (`jetReroll`) sur le flux `flux`, la rangée `pid` posée sur un flux multi. */
+  const relancer = (flux: string, pid?: string): void =>
+    (banc.getState().jetReroll as (flux: string, pid?: string) => void)(flux, pid);
   for (const prefix of Object.keys(FLOW_VERBS)) {
     const fx = FIXTURES[prefix];
     if (!fx) {
       it.skip(`${prefix} — non piloté (${SKIP[prefix] ?? 'à couvrir'})`, () => {});
       continue;
     }
-    const rerollFn = `${prefix}Reroll`;
     it(`${prefix} : reroll DISPONIBLE sur un perdant, NO-OP sur un gagnant`, () => {
       // (a) PERDANT → outcome.won=false → failed=true → la Chance se dépense.
       seedBattleRng(9);
       banc.setState({ battle: null } as never);
       banc.setState(fx.make(false) as never);
-      (banc.getState() as unknown as Record<string, (pid?: string) => void>)[rerollFn](fx.pid);
+      relancer(prefix, fx.pid);
       expect(fortuneOfA(), `${prefix} perdant : la relance de Chance doit être DISPONIBLE (1 Point dépensé)`).toBe(0);
 
       // (b) GAGNANT → outcome.won=true → failed=false → aucune relance possible (no-op).
       seedBattleRng(9);
       banc.setState({ battle: null } as never);
       banc.setState(fx.make(true) as never);
-      (banc.getState() as unknown as Record<string, (pid?: string) => void>)[rerollFn](fx.pid);
+      relancer(prefix, fx.pid);
       expect(fortuneOfA(), `${prefix} gagnant : la relance de Chance doit être un NO-OP (Point conservé)`).toBe(1);
     });
   }

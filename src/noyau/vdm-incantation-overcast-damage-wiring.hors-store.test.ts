@@ -4,7 +4,7 @@
  * noyau, DR alloués à l'axe Dégâts par la VRAIE action de modale (`castAllocOvercast`), appliqué
  * par la VRAIE `castConfirm` (→ `applyCast`) — aucun budget/damage recalculé à la main pour
  * l'occasion. Le jet est FIGÉ AVANT l'allocation (`evaluateMissile` à 0 pas, exactement ce que fait
- * `resolveMagicMissile`/`castRoll` — l'allocation intervient après le jet) ; seule
+ * `resolveMagicMissile`/`jetRoll('cast')` — l'allocation intervient après le jet) ; seule
  * l'ALLOCATION et l'APPLICATION passent par les actions réelles du noyau. Si le fil
  * `pc.overcast.damage` → `applyCast` se débranche, ce test rougit (les deux volets rendraient le
  * MÊME delta de Blessures).

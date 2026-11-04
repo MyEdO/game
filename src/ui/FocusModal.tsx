@@ -12,6 +12,7 @@ import { progresDeFocalisation } from '../noyau/progresEtendu';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de Focalisation (LDB — Test étendu de Focalisation) : « Lancer » accumule du DR vers le NI,
@@ -21,13 +22,13 @@ export function FocusModal() {
   const pf = useGame((s) => s.pendingFocus);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.focusRoll);
-  const reroll = useGame((s) => s.focusReroll);
-  const bonusSL = useGame((s) => s.focusBonusSL);
-  const darkPact = useGame((s) => s.focusDarkPact);
-  const force = useGame((s) => s.focusForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'focus');
+  const reroll = useGesteDeJet('jetReroll', 'focus');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'focus');
+  const darkPact = useGesteDeJet('jetDarkPact', 'focus');
+  const force = useGesteDeJet('jetForceSuccess', 'focus');
   const confirm = useGame((s) => s.focusConfirm);
-  const cancel = useGame((s) => s.focusCancel);
+  const cancel = useGesteDeJet('jetCancel', 'focus');
   if (!pf) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pf.casterId); // combat (file) ou hors combat (groupe)
   if (!caster) return null;

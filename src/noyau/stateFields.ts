@@ -132,7 +132,7 @@ const STATE_FIELDS = {
   // Commandes d'interlude (LDB 22-23) : purgées explicitement à l'ouverture du prochain interlude
   // (`startInterlude`), jamais par `resetFields` (elles doivent SURVIVRE au combat/aux scènes entre-temps).
   pendingOrders: { init: [], resetOn: [] },
-  // Jet d'Activité d'interlude/bataille de masse : clos par `activityCancel`/`confirmActivity`, jamais
+  // Jet d'Activité d'interlude/bataille de masse : clos par `jetCancel('activity')`/`confirmActivity`, jamais
   // par un changement de scène/combat (l'interlude n'ouvre pas de combat pendant qu'une Activité est en cours).
   pendingActivity: { init: null, resetOn: [] },
   // Cadre de campagne (#717) : l'ouverture est posée par `loadProject` APRÈS `startScene` et le récap

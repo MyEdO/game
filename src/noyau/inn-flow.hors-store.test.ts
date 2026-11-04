@@ -59,7 +59,7 @@ function drainCascade(): void {
   while (get().pendingCascade && n++ < 20) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
     else get().cascadeNext();
   }
 }

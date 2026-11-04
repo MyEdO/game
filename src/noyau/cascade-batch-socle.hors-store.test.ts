@@ -63,12 +63,6 @@ describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', (
     // le filet de parité ci-dessus ne le couvre plus, il s'exige donc nommément.
     expect(bande, 'la Détermination n’est plus jouable nulle part').toContain('determine');
   });
-
-  it('les délégués de store correspondants existent', () => {
-    const s = banc.getState();
-    expect(typeof s.cascadeBatchResist).toBe('function');
-    expect(typeof s.cascadeBatchDetermine).toBe('function');
-  });
 });
 
 describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA RANGÉE', () => {
@@ -84,8 +78,8 @@ describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA
         row(h2.id, { meta: { psychKind: 'peur', prevDR: 0 } }),
       ])],
     });
-    banc.getState().cascadeBatchRoll(h1.id);
-    banc.getState().cascadeBatchRoll(h2.id);
+    banc.getState().jetRoll('cascadeBatch', h1.id);
+    banc.getState().jetRoll('cascadeBatch', h2.id);
     banc.getState().cascadeNext();
     expect(vues[0].meta).toEqual([
       { id: 'h1', psychKind: 'peur', prevDR: 2 },
@@ -107,7 +101,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-psy': spyApplier(vues, (step) => ({ parts: (step.participants ?? []).map((p) => ({ id: p.id, immune: p.immune })) })) } });
     startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [psychBand()] });
 
-    banc.getState().cascadeBatchDetermine(h1.id);
+    banc.getState().jetDetermine('cascadeBatch', h1.id);
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.participants![0].immune).toBe(true);
     expect(st.participants![0].result).toEqual({ roll: 50, target: 50, sl: 0, success: true });
@@ -116,7 +110,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     expect(banc.getState().party.find((c) => c.id === h1.id)!.resolve).toBe(1);
     expect(banc.getState().party.find((c) => c.id === h2.id)!.resolve).toBe(2);
 
-    banc.getState().cascadeBatchRoll(h2.id);
+    banc.getState().jetRoll('cascadeBatch', h2.id);
     banc.getState().cascadeNext();
     // L'applier de bande lit le flag PAR RANGÉE (h1 immunisé, h2 non).
     expect(vues[0].parts).toEqual([{ id: 'h1', immune: true }, { id: 'h2', immune: undefined }]);
@@ -127,7 +121,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     banc.setState({ party: [h1] });
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue': spyApplier([], () => null) } });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue', [row(h1.id)])] });
-    banc.getState().cascadeBatchDetermine(h1.id);
+    banc.getState().jetDetermine('cascadeBatch', h1.id);
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
     expect(banc.getState().party[0].resolve).toBe(2);
   });
@@ -143,7 +137,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
       title: 'Contagion', purpose: 'test',
       steps: [band('bande-menace', [row(h1.id, { menace: 'maladie' }), row(h2.id, { menace: 'maladie' })], { menace: 'maladie' })],
     });
-    banc.getState().cascadeBatchResist(h1.id);
+    banc.getState().jetResist('cascadeBatch', h1.id);
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.participants![0].result).toEqual({ roll: 1, target: 50, sl: bonus(43), success: true });
     expect(st.participants![1].result).toBeNull();
@@ -156,7 +150,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
     banc.setState({ party: [h1] });
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue2': spyApplier([], () => null) } });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue2', [row(h1.id)])] });
-    banc.getState().cascadeBatchResist(h1.id);
+    banc.getState().jetResist('cascadeBatch', h1.id);
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
     expect(banc.getState().party[0].resistanceUsed ?? []).toEqual([]);
   });

@@ -225,14 +225,14 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     expect(w.focus?.dr).toBe(3); // DR encore intacts : la conséquence est différée
   });
 
-  it('héros MANUEL : Test `maintenir` RATÉ (cascadeRoll+Next) → DR perdus + Imparfaite Mineure', () => {
+  it('héros MANUEL : Test `maintenir` RATÉ (jetRoll@cascade+Next) → DR perdus + Imparfaite Mineure', () => {
     const w = wiz();
     w.characteristics['force-mentale'] = 1; // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
     checkFocusInterruption(banc.getState, banc.setState, w);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext(); // valide l'échec → applier `triggeredTest` → branche fail → hook
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus).toBeUndefined(); // concentration BRISÉE : DR perdus
@@ -251,7 +251,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     inCombat(w);
     checkFocusInterruption(banc.getState, banc.setState, w);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus?.dr).toBe(3); // succès : focalisation gardée

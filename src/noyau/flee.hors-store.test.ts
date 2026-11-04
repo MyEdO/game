@@ -70,7 +70,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toEqual([E.id]);
 
     // Le Test `fuite` passe par le flux `flee` (jet INFLUENÇABLE) : Lancer puis Appliquer.
-    banc.getState().fleeRoll(H.id);
+    banc.getState().jetRoll('flee', H.id);
     expect(fleeTouche(banc.getState().pendingDisengage!)!.jet).toBeTruthy(); // Test `fuite` résolu
     banc.getState().fleeConfirm();
 
@@ -112,7 +112,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     });
 
     // Chance « +1 DR » : DR -2 → -1 ; l'échec NE bascule PAS en réussite (1 Point de Chance dépensé).
-    banc.getState().fleeBonusSL(H.id);
+    banc.getState().jetBonusSL('flee', H.id);
     let st = banc.getState();
     expect(fleeTouche(st.pendingDisengage!)!.jet!.sl).toBe(-1);
     expect(fleeTouche(st.pendingDisengage!)!.jet!.success).toBe(false);
@@ -173,14 +173,14 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(bs.interactive).toBe(true); // le frappeur est piloté-humain → SON jet lui revient
 
     // Dé 11 CHOISI (Résilience, LDB 17 l.68) = double → Coup Critique, exactement comme le Piétinement.
-    banc.getState().fleeRoll(bs.id);
-    banc.getState().fleeForceSuccess(bs.id);
-    banc.getState().fleeSetForcedRoll(bs.id, 11);
+    banc.getState().jetRoll('flee', bs.id);
+    banc.getState().jetForceSuccess('flee', bs.id);
+    banc.getState().jetSetForcedRoll('flee', 11, bs.id);
     expect(fleeBackstab(banc.getState().pendingDisengage!)!.result!.critical).toBe(true);
 
     const critBefore = live(fuyard.id).criticalWounds ?? 0;
     const pdAfter = banc.getState().pendingDisengage!;
-    if (fleeToucheDu(pdAfter)) banc.getState().fleeRoll(fleeTouche(pdAfter)!.id);
+    if (fleeToucheDu(pdAfter)) banc.getState().jetRoll('flee', fleeTouche(pdAfter)!.id);
     banc.getState().fleeConfirm();
     draineCascade(banc.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
 
@@ -310,7 +310,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     try {
       banc.getState().disengageFlee();
       const bs = fleeBackstab(banc.getState().pendingDisengage!)!;
-      banc.getState().fleeRoll(bs.id);
+      banc.getState().jetRoll('flee', bs.id);
       expect(fleeBackstab(banc.getState().pendingDisengage!)!.result!.hit, 'pré-requis : le coup dans le dos touche').toBe(true);
       banc.getState().fleeConfirm();
       const pc = banc.getState().pendingCleave;
@@ -356,7 +356,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const pd = banc.getState().pendingDisengage!;
     expect(fleeBackstab(pd)!.interactive, 'pré-requis : le frappeur est conduit par l’IA').toBe(false);
     expect(fleeBackstab(pd)!.result!.cleave, 'pré-requis : la touche d’un plus grand pose le balayage').toBe(true);
-    if (fleeToucheDu(pd)) banc.getState().fleeRoll(fleeTouche(pd)!.id);
+    if (fleeToucheDu(pd)) banc.getState().jetRoll('flee', fleeTouche(pd)!.id);
     banc.getState().fleeConfirm();
     draineCascade(banc.getState);
     const pdef = banc.getState().pendingDefense;
@@ -420,11 +420,11 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
     banc.getState().disengageFlee();
     const bs = fleeBackstab(banc.getState().pendingDisengage!)!;
-    banc.getState().fleeRoll(bs.id);
+    banc.getState().jetRoll('flee', bs.id);
     const res = fleeBackstab(banc.getState().pendingDisengage!)!.result!;
     expect(res.attackerDetail!.label).not.toMatch(/Projectiles/); // jet de CC, pas de CT
     const pdNow = banc.getState().pendingDisengage!;
-    if (fleeToucheDu(pdNow)) banc.getState().fleeRoll(fleeTouche(pdNow)!.id);
+    if (fleeToucheDu(pdNow)) banc.getState().jetRoll('flee', fleeTouche(pdNow)!.id);
     banc.getState().fleeConfirm();
     const log = banc.getState().battle!.log;
     expect(log.some((e) => e.kind === 'attack' && e.actorId === frappeur.id)).toBe(true);
@@ -450,10 +450,10 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     // La fenêtre est un moment PARTAGÉ ('*') : sinon le siège du frappeur ne la verrait jamais.
     expect(modalOwnerOf(st)).toBe('*');
     // Chaque siège ne lance QUE le jet de SON héros (routage par possession du 1ᵉʳ argument).
-    expect(intentAllowedFor(st, 1, 'fleeRoll', [frappeur.id])).toBe(true);
-    expect(intentAllowedFor(st, 0, 'fleeRoll', [frappeur.id])).toBe(false);
-    expect(intentAllowedFor(st, 0, 'fleeRoll', [fuyard.id])).toBe(true);
-    expect(intentAllowedFor(st, 1, 'fleeRoll', [fuyard.id])).toBe(false);
+    expect(intentAllowedFor(st, 1, 'jetRoll', ['flee', frappeur.id])).toBe(true);
+    expect(intentAllowedFor(st, 0, 'jetRoll', ['flee', frappeur.id])).toBe(false);
+    expect(intentAllowedFor(st, 0, 'jetRoll', ['flee', fuyard.id])).toBe(true);
+    expect(intentAllowedFor(st, 1, 'jetRoll', ['flee', fuyard.id])).toBe(false);
   });
 
   // Bac-à-sable MJ (`gmSeat`) : l'ennemi frappeur est piloté par un humain (le MJ) mais n'est PAS un
@@ -481,7 +481,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(fleeBackstab(pdB)!.result).toBeTruthy(); // résolu à l'ouverture : le fuyard n'attend personne
     expect(fleeTouche(pdB)!.interactive).toBe(true);
     // Le fuyard peut mener la fenêtre à son terme tout seul.
-    banc.getState().fleeRoll(H.id);
+    banc.getState().jetRoll('flee', H.id);
     banc.getState().fleeConfirm();
     expect(banc.getState().pendingDisengage).toBeNull();
   });

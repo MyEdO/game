@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * #1030 — la cadence AUTO résout les FENÊTRES RÉACTIVES de l'étape `jet:'cast'` (Contre-sort #1028,
  * opposition de cible #949) comme elle résout les jets de la cascade. Sans politique, le drive de
- * l'étape (`castRoll`/`castConfirm`) ne pouvait traverser ni l'une ni l'autre — `castConfirm`
+ * l'étape (`jetRoll('cast')`/`castConfirm`) ne pouvait traverser ni l'une ni l'autre — `castConfirm`
  * s'abstient sous Contre-sort, `oppositionConfirm` refuse d'agréger tant qu'une rangée interactive
  * n'a pas jeté — et la chaîne attendait sous Auto-combat + siège MJ un clic qui ne vient jamais.
  * Ici : chaque fenêtre se résout SANS clic, l'issue reste celle des agrégations canoniques, et la
@@ -61,7 +61,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
   /** Ouvre la fenêtre : le héros incante sur le 1ᵉʳ ennemi, dont la rangée est tenue par le siège MJ. */
   function openWindow(H: Combatant, target: Combatant) {
     castSpell(banc.getState, banc.setState, H, target, 'flechette');
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     return banc.getState().pendingCounterspell;
   }
 
@@ -120,7 +120,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
     // PHASE 1 (#1042/#1059) : la composition se déclare avant les dés — le drive auto pose le même
     // geste (`counterspellDeclareAll`), la référence manuelle le pose à la main.
     for (const p of pcsM.participants) banc.getState().counterspellDeclare(p.id, 'solo');
-    for (const p of pcsM.participants) banc.getState().counterspellRoll(p.id);
+    for (const p of pcsM.participants) banc.getState().jetRoll('counterspell', p.id);
     banc.getState().counterspellConfirm();
     const ref = banc.getState().pendingCast!.result;
     const refChanted = manual.cibles.map((c) => !!c.dispelledThisRound);
@@ -293,7 +293,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
     frozenOpposedCast(manual.H, manual.cibles[0]);
     banc.getState().castConfirm();
     const capM = captureOutcome();
-    banc.getState().oppositionRoll(manual.cibles[0].id);
+    banc.getState().jetRoll('opposition', manual.cibles[0].id);
     const rowRef = banc.getState().pendingCastOpposition!.participants[0].result;
     banc.getState().oppositionConfirm();
     capM.stop();

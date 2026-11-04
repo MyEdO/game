@@ -1,7 +1,7 @@
 /**
  * Surincantation jugée par le NOYAU (#3059) : ce qu'un hôte sans écran (hôte texte, invité) envoie à
  * `castAllocOvercast` passe par la même règle que ce que la modale propose (`overcastAxesFor`,
- * `castOvercastBudget`). Le jet se pose par ses coutures : `castRoll`, puis `castSetForcedRoll`.
+ * `castOvercastBudget`). Le jet se pose par ses coutures : `jetRoll('cast')`, puis `jetSetForcedRoll('cast')`.
  * Axes : `LDB 47 l.15`, `l.17`, `l.27`, `l.28` ; `LDB 41 l.21-27` ; `LDB 42 l.11` ; `VDM 02 l.199`.
  * Budget : `LDB 47 l.17`, `l.21` ; `LDB 46 l.31`, `l.156`. Décision #3059 (issuecomment-6452965421).
  */
@@ -54,7 +54,7 @@ function lanceur() {
   return h;
 }
 
-/** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`castRoll`, dé fixé `de`),
+/** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`jetRoll('cast')`, dé fixé `de`),
  *  joue `corps` puis ferme la partie. */
 function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grimoire?: true } = {}, de = 3, reglesMaison: Record<string, unknown> = {}): void {
   const L = lanceur();
@@ -63,8 +63,8 @@ function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grim
     pendingCast: { casterId: L.id, targetId: L.id, spellId: spell.id, missile: false, focused: false, result: null, ...extra },
   }, { ...ENTREES, reglesMaison });
   try {
-    partie.envoyer({ type: 'castRoll', args: [] });
-    partie.envoyer({ type: 'castSetForcedRoll', args: [de] });
+    partie.envoyer({ type: 'jetRoll', args: ['cast'] });
+    partie.envoyer({ type: 'jetSetForcedRoll', args: ['cast', de] });
     expect(partie.etat().pendingCast?.result, `${spell.id} n'a pas de jet`).toBeTruthy();
     corps(partie);
   } finally {
@@ -188,7 +188,7 @@ describe('Surincantation — un budget changé remet l’allocation à zéro', (
     lancer(FIXTURES.critique, (p) => {
       expect(allouer(p, 'duration', 2)).toBe(2);
       const sl = p.etat().pendingCast!.result!.sl;
-      p.envoyer({ type: 'castBonusSL', args: [] });
+      p.envoyer({ type: 'jetBonusSL', args: ['cast'] });
       expect(p.etat().pendingCast!.result!.sl, 'la Chance a ajouté son DR').toBe(sl + 1);
       expect(p.etat().pendingCast!.overcast).toBeUndefined();
     });

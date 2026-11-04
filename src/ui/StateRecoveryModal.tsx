@@ -12,6 +12,7 @@ import { remedeDeLEtat } from '../noyau/actionRegistry';
 import { conditionLabel } from '../data';
 import { libelleDeForceAdverse } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Vue pure de la modale « se libérer » (Empêtré) / « se rouler » (En flammes). Testable sans store. */
 export function StateRecoveryModalView({
@@ -98,12 +99,12 @@ export function StateRecoveryModalView({
 export function StateRecoveryModal() {
   const sr = useGame((s) => s.pendingStateRecovery);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.recoverRoll);
-  const reroll = useGame((s) => s.recoverReroll);
-  const bonusSL = useGame((s) => s.recoverBonusSL);
-  const darkPact = useGame((s) => s.recoverDarkPact);
+  const roll = useGesteDeJet('jetRoll', 'recover');
+  const reroll = useGesteDeJet('jetReroll', 'recover');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'recover');
+  const darkPact = useGesteDeJet('jetDarkPact', 'recover');
   const confirm = useGame((s) => s.recoverConfirm);
-  const cancel = useGame((s) => s.recoverCancel);
+  const cancel = useGesteDeJet('jetCancel', 'recover');
   if (!sr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === sr.actorId);
   return (

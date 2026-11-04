@@ -30,7 +30,7 @@ const LIGNE_DE_VERBE_AU_PLUS = 400
 test('#2898 le doc reste court : sous son poids, chaque ligne de la table des verbes sous sa largeur', () => {
   assert.ok(texte.length <= DOC_AU_PLUS, `docs/hote-texte.md pèse ${texte.length} caractères`)
   const verbes = texte.split('\n').filter((l) => /^\| `[a-z]\w*` \| `/.test(l))
-  assert.ok(verbes.length > 500, `témoin : la table des verbes se lit (${verbes.length})`)
+  assert.ok(verbes.length > 300, `témoin : la table des verbes se lit (${verbes.length})`)
   const longues = verbes.filter((l) => l.length > LIGNE_DE_VERBE_AU_PLUS).map((l) => `${/^\| `(\w+)`/.exec(l)[1]} (${l.length})`)
   assert.deepEqual(longues, [])
 })

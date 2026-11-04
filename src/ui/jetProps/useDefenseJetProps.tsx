@@ -18,6 +18,7 @@ import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import { CodexRef } from '../compendium/CodexRef';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /** Le titre d'une réaction de Défense, au survol de son option. */
 function titreDeLaReaction(mode: DefenseMode, libelle: string): string {
@@ -42,12 +43,12 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const setParry = useGame((s) => s.defenseSetParryWeapon);
   const setShieldReaction = useGame((s) => s.defenseSetShieldReaction);
   const setRiposte = useGame((s) => s.defenseSetRiposte);
-  const roll = useGame((s) => s.defenseRoll);
-  const reroll = useGame((s) => s.defenseReroll);
-  const bonusSL = useGame((s) => s.defenseBonusSL);
-  const darkPact = useGame((s) => s.defenseDarkPact);
-  const forceSuccess = useGame((s) => s.defenseForceSuccess);
-  const reverseVerb = useGame((s) => s.defenseReverse);
+  const roll = useGesteDeJet('jetRoll', 'defense');
+  const reroll = useGesteDeJet('jetReroll', 'defense');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'defense');
+  const darkPact = useGesteDeJet('jetDarkPact', 'defense');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'defense');
+  const reverseVerb = useGesteDeJet('jetReverse', 'defense');
   const confirm = useGame((s) => s.defenseConfirm);
   const spendResolve = useGame((s) => s.spendResolveCondition);
   const vue = pd && battle ? fenetreDeDefense(useGame.getState()) : null;

@@ -19,9 +19,9 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, AUCUN_VERBE_DE_JOUEUR, type AutoPolicy, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type VerbesDeFenetre } from './modalArbiter';
+import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type VerbesDeFenetre } from './modalArbiter';
 import { stepInteraction } from './cascade';
-import { FLOW_VERBS, flowActionName, type FlowKey, type FlowVerbs } from './flowVerbs';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
 import { influencesLocally } from './netOwnership';
 import { seatOwns } from './sieges';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
@@ -38,11 +38,11 @@ import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, reglageDeLaQuantite, reg
  * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
  */
 export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
-  attack: { mode: 'self', drive: ['attackRoll', 'attackConfirm'] },
-  defense: { mode: 'self', drive: ['defenseRoll', 'defenseConfirm'] },
-  fumble: { mode: 'self', drive: ['fumbleRoll', 'fumbleConfirm'] },
-  test: { mode: 'self', drive: ['testRoll', 'resolveTest'] },
-  cast: { mode: 'choice', autoDrive: ['castRoll', 'castConfirm'] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
+  attack: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'attack' }, { verbe: 'attackConfirm' }] },
+  defense: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'defense' }, { verbe: 'defenseConfirm' }] },
+  fumble: { mode: 'self', drive: [{ verbe: 'fumbleRoll' }, { verbe: 'fumbleConfirm' }] },
+  test: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'test' }, { verbe: 'resolveTest' }] },
+  cast: { mode: 'choice', autoDrive: [{ verbe: 'jetRoll', flux: 'cast' }, { verbe: 'castConfirm' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
   disengage: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
   extended: { mode: 'choice' },   // multi-participant (rare en combat)
   forceDoor: { mode: 'choice' },  // multi groupOwner (rare en combat)
@@ -53,7 +53,7 @@ type RangeeReactive = RangeeDeFenetre & { declared?: string };
 
 /** Une FENÊTRE RÉACTIVE qu'une étape-jet ouvre en son sein : son flux de jet multi, ses rangées (`undefined` :
  *  fermée), et le drive d'auto-cadence qui la résout (`stepWindowDrive` ; absent : l'étape garde le sien). */
-interface FenetreReactive { flux: FlowKey; rangees: (s: Jeu) => readonly RangeeReactive[] | undefined; drive?: readonly (keyof Jeu)[] }
+interface FenetreReactive { flux: FlowKey; rangees: (s: Jeu) => readonly RangeeReactive[] | undefined; drive?: readonly GesteDuJeu[] }
 
 /** Le flux de jet (`FLOW_VERBS`) de chaque étape-jet de COMBAT : ses verbes (pose du dé, relance, Fortune…)
  *  s'ajoutent à son drive. `null` : l'étape n'a pas de flux de jet. Un flux multi déclare ses `rangees`, que ses verbes
@@ -70,8 +70,8 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
-      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: ['counterspellDeclareAll', 'counterspellRollAll', 'counterspellConfirm'] },
-      { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: ['oppositionRollAll', 'oppositionConfirm'] },
+      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'counterspellDeclareAll' }, { verbe: 'counterspellRollAll' }, { verbe: 'counterspellConfirm' }] },
+      { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'oppositionRollAll' }, { verbe: 'oppositionConfirm' }] },
     ],
   },
   test: { flux: 'test', reglages: ['testSetActor'] },
@@ -88,12 +88,18 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
 const idDeLaRangeeDue = (rangees: readonly RangeeDeFenetre[] | undefined): string | undefined =>
   (rangees?.find((r) => r.interactive !== false && !r.result) ?? rangees?.[0])?.id;
 
-/** Les verbes d'un flux de jet, puis ses clôtures (`resolution`) : leurs noms sont ceux que `RollFlowActionsMap` dérive
- *  de la même table (`FLOW_VERBS`). */
-const verbesDuFlux = (cle: FlowKey): (keyof ActionsDuNoyau)[] => {
+/** Les gestes nommés par les seuls verbes `verbes` (aucun ne vise un flux de jet). */
+const nommes = (verbes: VerbesDeFenetre): GesteDuJeu[] => verbes.map((verbe) => ({ verbe }));
+
+/** Les gestes d'un flux de jet : chacun de ses verbes de jet sur lui (`NOM_DU_VERBE_DE_JET`), puis ses clôtures
+ *  (`resolution`). */
+const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   const flux: FlowVerbs = FLOW_VERBS[cle];
-  return [...flux.verbs.map((v) => flowActionName(cle, v)), ...(flux.resolution ?? [])] as (keyof ActionsDuNoyau)[];
+  return [...flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle })), ...nommes((flux.resolution ?? []) as VerbesDeFenetre)];
 };
+
+/** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
+const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
 
 /** L'id d'étape (`pid`) que prennent les verbes de l'étape courante. */
 const idDEtape = (e: CascadeStep): string => e.id;
@@ -102,65 +108,65 @@ const idDEtape = (e: CascadeStep): string => e.id;
 const pidDuFlux = (cle: 'cascade' | 'cascadeBatch') => (e: CascadeStep): string | undefined =>
   (FLOW_VERBS[cle].pidIsActor ? idDeLaRangeeDue(e.participants) : e.id);
 /** L'interaction d'étape que joue le flux de cascade `cle` : son flux, ses verbes et leur `pid`. */
-const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, verbes: verbesDuFlux(cle), pid: pidDuFlux(cle) });
+const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, gestes: gestesDuFlux(cle), pid: pidDuFlux(cle) });
 
 /** L'interaction d'étape que règle le seul verbe `verbe`, qui prend l'id d'étape puis l'argument que `lecture` règle. */
 const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (v: keyof ActionsDuNoyau) => (e: CascadeStep) => Reglage) =>
-  ({ verbes: [verbe], pid: idDEtape, reglage: lecture(verbe) });
+  ({ gestes: nommes([verbe]), pid: idDEtape, reglage: lecture(verbe) });
 
-/** Les verbes d'une étape de cascade sans jet de COMBAT, par son interaction (`stepInteraction`), l'id qu'ils prennent
- *  en premier argument (`pid`), le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une
- *  quantité) et le flux de jet qui la joue (`flux`). Record total : une interaction neuve nomme ses verbes. */
-export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { verbes: VerbesDeFenetre; pid: (e: CascadeStep) => string | undefined; reglage?: (e: CascadeStep) => Reglage; flux?: FlowKey }> = {
+/** Les gestes d'une étape de cascade sans jet de COMBAT, par son interaction (`stepInteraction`), l'id qu'ils désignent
+ *  (`pid`), le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une quantité) et le flux de
+ *  jet qui la joue (`flux`). Record total : une interaction neuve nomme ses gestes. */
+export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { gestes: readonly GesteDuJeu[]; pid: (e: CascadeStep) => string | undefined; reglage?: (e: CascadeStep) => Reglage; flux?: FlowKey }> = {
   jet: joueePar('cascade'),
   batch: joueePar('cascadeBatch'),
-  table: { verbes: ['cascadeTableRoll', 'cascadeTableSetForcedRoll'], pid: idDEtape },
-  de: { verbes: ['cascadeDieRoll', 'cascadeDieSetForcedRoll'], pid: idDEtape },
+  table: { gestes: nommes(['cascadeTableRoll', 'cascadeTableSetForcedRoll']), pid: idDEtape },
+  de: { gestes: nommes(['cascadeDieRoll', 'cascadeDieSetForcedRoll']), pid: idDEtape },
   quantite: regleePar('cascadeAmount', reglageDeLaQuantite),
   choix: regleePar('cascadeChoose', reglageDuChoix),
-  affichage: { verbes: AUCUN_VERBE_DE_JOUEUR, pid: () => undefined },
+  affichage: { gestes: AUCUN_VERBE_DE_JOUEUR, pid: () => undefined },
 };
 
-const verbesDuDrive = (pol: AutoPolicy): readonly string[] => (pol.mode === 'self' ? pol.drive : pol.mode === 'choice' ? (pol.autoDrive ?? []) : []);
+const gestesDuDrive = (pol: AutoPolicy): readonly GesteDuJeu[] => (pol.mode === 'self' ? pol.drive : pol.mode === 'choice' ? (pol.autoDrive ?? []) : []);
 
-/** Les verbes qu'une fenêtre DÉCLARE : le drive (ou l'`autoDrive`) de sa politique ou ses `intents`, les verbes et
- *  clôtures de ses `flux`, puis ses `verbes`. */
-export function verbesDeLaFenetre(def: ModalDef | HorsModalDef): readonly string[] {
-  const premiers = 'auto' in def ? verbesDuDrive(def.auto) : (def.intents ?? []);
-  return [...new Set([...premiers, ...(def.flux ?? []).flatMap(verbesDuFlux), ...(def.verbes ?? [])])];
+/** Les gestes qu'une fenêtre DÉCLARE : le drive (ou l'`autoDrive`) de sa politique ou ses `intents`, les gestes de ses
+ *  `flux`, puis ses `verbes`. */
+export function gestesDeLaFenetre(def: ModalDef | HorsModalDef): readonly GesteDuJeu[] {
+  const premiers = 'auto' in def ? gestesDuDrive(def.auto) : nommes(def.intents ?? []);
+  return uniques([...premiers, ...(def.flux ?? []).flatMap(gestesDuFlux), ...nommes(def.verbes ?? [])]);
 }
 
-/** Les verbes d'une étape-jet de COMBAT : son drive (`JET_AUTO`), ou celui de la fenêtre réactive ouverte dans l'étape
- *  (`reactive`), puis les verbes de son flux, ceux du flux de la fenêtre réactive, et ses réglages (`FENETRE_DU_JET`). */
-export function verbesDuJet(jet: NonNullable<CascadeStep['jet']>, reactive?: FenetreReactive): readonly string[] {
+/** Les gestes d'une étape-jet de COMBAT : son drive (`JET_AUTO`), ou celui de la fenêtre réactive ouverte dans l'étape
+ *  (`reactive`), puis les gestes de son flux, ceux du flux de la fenêtre réactive, et ses réglages (`FENETRE_DU_JET`). */
+export function gestesDuJet(jet: NonNullable<CascadeStep['jet']>, reactive?: FenetreReactive): readonly GesteDuJeu[] {
   const { flux, reglages = [] } = FENETRE_DU_JET[jet];
-  return [...new Set([...(reactive?.drive ?? verbesDuDrive(JET_AUTO[jet])), ...(flux ? verbesDuFlux(flux) : []), ...(reactive ? verbesDuFlux(reactive.flux) : []), ...reglages])];
+  return uniques([...(reactive?.drive ?? gestesDuDrive(JET_AUTO[jet])), ...(flux ? gestesDuFlux(flux) : []), ...(reactive ? gestesDuFlux(reactive.flux) : []), ...nommes(reglages)]);
 }
 
 /** Les clés que `fenetreDuJeu` peut rendre : chaque modale (`MODAL_DEFS`), puis chaque situation hors modale (`HORS_MODAL`). */
 export const CLES_DE_FENETRE: readonly string[] = [...MODAL_DEFS.map((d) => d.key), ...HORS_MODAL.map((d) => d.key)];
 
-/** La fenêtre qui tient la main : sa clé, son propriétaire, ses verbes, les flux de jet qui les jouent (`flux`, celui
- *  que sa politique résout en tête), l'id que ses verbes prennent en premier argument (`pid` : l'étape de cascade
- *  courante, ou la rangée due d'une fenêtre à plusieurs jets), les verbes que sa politique enchaîne pour la résoudre
+/** La fenêtre qui tient la main : sa clé, son propriétaire, ses gestes, les flux de jet qui les jouent (`flux`, celui
+ *  que sa politique résout en tête), l'id que ses gestes désignent (`pid` : l'étape de cascade courante, ou la rangée
+ *  due d'une fenêtre à plusieurs jets ; `argumentsPosesDuGeste`), les gestes que sa politique enchaîne pour la résoudre
  *  (`drive`, `AutoPolicy` : le jet, puis sa clôture), et l'étape de cascade courante quand la cascade tient la main. */
 export interface FenetreDuJeu {
   cle: string;
   proprietaire: string | undefined;
-  verbes: readonly string[];
+  gestes: readonly GesteDuJeu[];
   flux: readonly FlowKey[];
   pid?: string;
-  drive?: readonly string[];
+  drive?: readonly GesteDuJeu[];
   etape?: CascadeStep;
 }
 
 /** La FENÊTRE qui tient la main (#2898), pour un hôte qui la nomme au joueur : la modale élue (la première entrée de
- *  `MODAL_DEFS` dont le `when` tient, comme `pickActiveModalKey`), son propriétaire, ses verbes DÉCLARÉS
- *  (`verbesDeLaFenetre`) et l'id de sa rangée due (`rangees`) ; pour la cascade, ceux de l'étape courante : l'étape-jet
- *  de combat, `verbesDuJet` et la rangée due de sa fenêtre réactive ou de son flux (`FENETRE_DU_JET`) ;
- *  toute autre étape et le bilan, les verbes de son interaction (`VERBES_D_INTERACTION`) puis les clôtures de la
+ *  `MODAL_DEFS` dont le `when` tient, comme `pickActiveModalKey`), son propriétaire, ses gestes DÉCLARÉS
+ *  (`gestesDeLaFenetre`) et l'id de sa rangée due (`rangees`) ; pour la cascade, ceux de l'étape courante : l'étape-jet
+ *  de combat, `gestesDuJet` et la rangée due de sa fenêtre réactive ou de son flux (`FENETRE_DU_JET`) ;
+ *  toute autre étape et le bilan, les gestes de son interaction (`VERBES_D_INTERACTION`) puis les clôtures de la
  *  cascade (`FLOW_VERBS.cascade.resolution`) ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
- *  qui tient la main, avec ses verbes déclarés. L'étape de cascade courante est rendue avec la cascade.
+ *  qui tient la main, avec ses gestes déclarés. L'étape de cascade courante est rendue avec la cascade.
  *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
   const def = modaleActive(s);
@@ -169,18 +175,18 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     const proprietaire = def.owner(s) ?? undefined;
     const pc = cle === 'cascade' ? s.pendingCascade : null;
     const avecPid = (pid: string | undefined) => (pid ? { pid } : {});
-    if (!pc) return { cle, proprietaire, verbes: verbesDeLaFenetre(def), flux: def.flux ?? [], ...avecPid(idDeLaRangeeDue(def.rangees?.(s))), drive: verbesDuDrive(def.auto) };
+    if (!pc) return { cle, proprietaire, gestes: gestesDeLaFenetre(def), flux: def.flux ?? [], ...avecPid(idDeLaRangeeDue(def.rangees?.(s))), drive: gestesDuDrive(def.auto) };
     const etape = pc.participants[pc.cursor];
     if (etape?.jet) {
       const { flux, rangees, reactives = [] } = FENETRE_DU_JET[etape.jet];
       const reactive = reactives.find((w) => w.rangees(s));
-      return { cle, proprietaire, verbes: verbesDuJet(etape.jet, reactive), flux: [...(reactive ? [reactive.flux] : []), ...(flux ? [flux] : [])], ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? verbesDuDrive(JET_AUTO[etape.jet]), etape };
+      return { cle, proprietaire, gestes: gestesDuJet(etape.jet, reactive), flux: [...(reactive ? [reactive.flux] : []), ...(flux ? [flux] : [])], ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? gestesDuDrive(JET_AUTO[etape.jet]), etape };
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
-    return { cle, proprietaire, verbes: [...new Set([...(parInteraction?.verbes ?? []), ...FLOW_VERBS.cascade.resolution])], flux: parInteraction?.flux ? [parInteraction.flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
+    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...nommes(FLOW_VERBS.cascade.resolution)]), flux: parInteraction?.flux ? [parInteraction.flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
-  return hors ? { cle: hors.key, proprietaire: hors.owner(s), verbes: verbesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;
+  return hors ? { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;
 }
 
 /**
@@ -196,9 +202,9 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
  * précède l'opposition (une incantation n'ouvre jamais la seconde tant que la première est posée).
  * Hors cadence auto, rien ne bouge : la fenêtre attend son joueur.
  */
-const STEP_WINDOW_AUTO: readonly (FenetreReactive & { drive: readonly (keyof Jeu)[] })[] = Object.values(FENETRE_DU_JET)
+const STEP_WINDOW_AUTO: readonly (FenetreReactive & { drive: readonly GesteDuJeu[] })[] = Object.values(FENETRE_DU_JET)
   .flatMap((f) => f.reactives ?? [])
-  .filter((w): w is FenetreReactive & { drive: readonly (keyof Jeu)[] } => !!w.drive);
+  .filter((w): w is FenetreReactive & { drive: readonly GesteDuJeu[] } => !!w.drive);
 
 /**
  * Drive de la fenêtre réactive OUVERTE, ou `ATTENDRE` quand ce siège n'a pas à la résoudre.
@@ -211,7 +217,7 @@ const STEP_WINDOW_AUTO: readonly (FenetreReactive & { drive: readonly (keyof Jeu
  * change l'état et re-déclenche le tick (`planifierLeTickAuto`).
  */
 const ATTENDRE = 'attendre';
-function stepWindowDrive(s: Jeu): readonly (keyof Jeu)[] | typeof ATTENDRE | null {
+function stepWindowDrive(s: Jeu): readonly GesteDuJeu[] | typeof ATTENDRE | null {
   for (const w of STEP_WINDOW_AUTO) {
     const rows = w.rangees(s);
     if (!rows) continue;
@@ -237,16 +243,17 @@ function ownerLocal(s: Jeu): boolean {
   return seatOwns(s, s.net.mySeat, owner);
 }
 
-/** Enchaîne les actions `drive` (roll → confirm…) sur des ticks espacés, puis re-tick pour la suite. */
-function driveSelf(get: Get, set: Set, drive: readonly (keyof Jeu)[]): void {
+/** Enchaîne les gestes `drive` (roll → confirm…) sur des ticks espacés, chacun sur son flux, puis re-tick pour la suite. */
+function driveSelf(get: Get, set: Set, drive: readonly GesteDuJeu[]): void {
   const myGen = generations.suivant();
   let i = 0;
   const step = () => {
     if (myGen !== generations.courant()) return;                 // supersédé par un tick plus récent
     if (!ownerLocal(get())) return;
     if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
-    const fn = get()[drive[i++]] as undefined | (() => void);
-    if (typeof fn === 'function') fn();        // roll() idempotent, puis confirm() (ferme/avance)
+    const g = drive[i++];
+    const fn = get()[g.verbe] as undefined | ((flux?: FlowKey) => void);
+    if (typeof fn === 'function') fn(g.flux);  // roll() idempotent, puis confirm() (ferme/avance)
     programmer(step, beatHold(get, 'autoResolve'));
   };
   step();

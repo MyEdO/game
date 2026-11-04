@@ -270,7 +270,7 @@ export function applyIncomingMeleeAdvantage(get: Get, attacker: Combatant, targe
  */
 export function attackWeaponOf(battle: BattleState, attacker: Combatant, target: Combatant, pa: PendingAttack): Weapon {
   // L'attaque NATURELLE prime : son arme est SYNTHÉTISÉE (aucune arme tenue ne la porte), donc le
-  // repli par uid ne peut pas la rendre. Le JET la reçoit d'ici (`attackRoll`, `FLOWS.attack.resolve`).
+  // repli par uid ne peut pas la rendre. Le JET la reçoit d'ici (`jetRoll('attack')`, `FLOWS.attack.resolve`).
   const freeNatural = pa.freeKind ? armeDeLaGratuite(attacker, pa.freeKind, pa.weaponUid) : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
   // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
@@ -998,7 +998,7 @@ export function previewCast(
     missile?: boolean; focused?: boolean;
     /** Vents Tourbillonnants (LDB 46 l.179-190) : n'entre dans l'APERÇU pré-jet que si RÉVÉLÉS
      *  (Seconde vue) — sinon on subit les Vents sans les avoir repérés (le mod reste appliqué au
-     *  jet, cf. `castRoll`/`resolveCasting`, mais n'apparaît qu'au breakdown POST-jet). */
+     *  jet, cf. `jetRoll('cast')`/`resolveCasting`, mais n'apparaît qu'au breakdown POST-jet). */
     winds?: { roll: number; mod: number } | null;
     /** CONTEXTE du jet (état + cible visée) : l'aperçu annonce alors la CIBLE RÉELLE — protection de
      *  la victime, attribut et environnement de Domaine (`castContextMods`) compris. Absent (aucune
@@ -4892,9 +4892,9 @@ export function castSpell(
   });
   openCastCascade(get, set, caster); // « Une situation = une modale » : hôte la situation d'incantation dans la cascade
   // Lanceur PILOTÉ PAR L'IA : le MOTEUR roule l'incantation (plus de « Lancer » joueur — on ne lance pas
-  // le dé d'un combattant automate) ; `castRoll` aiguille ensuite le Contre-sort comme pour tout lanceur.
+  // le dé d'un combattant automate) ; `jetRoll('cast')` aiguille ensuite le Contre-sort comme pour tout lanceur.
   // Sans fenêtre, la modale pré-roulée sert de RÉVÉLATION (résultat + « Appliquer », sans « Lancer »).
-  if (aiDriven(get(), caster) && get().battle) get().castRoll();
+  if (aiDriven(get(), caster) && get().battle) get().jetRoll('cast');
 }
 
 /**
@@ -5036,7 +5036,7 @@ export function withPreRollFixedDie(get: Get, set: SetFn, roll: () => void, appl
  *  - aucun surfacé → aucune fenêtre : le meilleur lanceur chante seul, jet inline.
  * DIFFÈRE tant que l'effet d'une Incantation Critique n'est pas ÉCRIT dans `pc.critChoice` (`LDB 46
  * l.28-32` : le choix décide de la dissipabilité) — un lanceur conduit par le moteur l'écrit à son jet
- * (`castRoll`), un lanceur surfacé le tranche dans sa modale, et `castConfirm` rappelle l'aiguilleur.
+ * (`jetRoll('cast')`), un lanceur surfacé le tranche dans sa modale, et `castConfirm` rappelle l'aiguilleur.
  * Renvoie `true` quand une FENÊTRE est ouverte (le flux appelant se suspend jusqu'à
  * `counterspellConfirm`/`Cancel`).
  * NE ROUTE PAS pendant un geste de dé PRÉ-ARMÉ (`preRollFixedDiePending`) : ce geste lance d'abord un
@@ -5128,7 +5128,7 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
   // la cible ne voit JAMAIS la fenêtre où se tient son Test et le sort s'appliquerait sans opposition.
   shareCastStep(get, set, participants.filter((p) => p.interactive).map((p) => p.id), pc.casterId);
   // Cibles IA (témoin) : jet auto-roulé immédiatement (révélé dans la modale, jamais caché).
-  for (const p of participants) if (!p.interactive) get().oppositionRoll(p.id);
+  for (const p of participants) if (!p.interactive) get().jetRoll('opposition', p.id);
   return true;
 }
 
@@ -5174,7 +5174,7 @@ export function openCastOppositionStep(get: Get, set: SetFn): boolean {
  * la/des cible(s), (3) application. Seul site qui porte (1)→(2) ; (2)→(3) est gardé ici ET dans
  * `castConfirm` (appelé aussi par la modale, l'auto-combat et les intentions réseau) par la MÊME
  * implémentation `openCastOppositionStep`. Les reprises de flux
- * (`counterspellConfirm`/`counterspellCancel`/`oppositionConfirm`) passent toutes par ici.
+ * (`counterspellConfirm`/`jetCancel('counterspell')`/`oppositionConfirm`) passent toutes par ici.
  * (1) avant (2)/(3) — LDB 46 l.156 : « Sur un succès, vous dissipez le Sort ; sur un échec, le Sort
  * utilise le DR du Test opposé pour déterminer si l'incantation a réussi normalement. »
  */
@@ -5186,7 +5186,7 @@ export function resolveCastChain(get: Get, set: SetFn): void {
 }
 
 /**
- * Reprise APRÈS la fenêtre de Contre-sort (`counterspellConfirm`/`counterspellCancel`) : la chaîne ne
+ * Reprise APRÈS la fenêtre de Contre-sort (`counterspellConfirm`/`jetCancel('counterspell')`) : la chaîne ne
  * repart SEULE que si le lanceur n'est pas surfacé (Sort ennemi à l'IA — la fenêtre était la seule
  * étape jouée de sa situation). Un lanceur SURFACÉ tient encore SA modale d'incantation, ouverte AVANT
  * le Contre-sort (Surincantation, choix du Critique, « Appliquer ») : l'issue de la Dissipation revient
@@ -5250,7 +5250,7 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
 /** « Une situation = une modale » (pattern wrapper-fold) : OUVRE une cascade `combat` à UNE étape
  *  `jet:'cast'` qui HÔTE toute la situation d'incantation (jet → opposition de cible → Contre-sort →
  *  Surincantation/pose de zone → Critique → effets). `pendingCast` reste le porteur de données ; ses
- *  résolveurs (`castConfirm`/`castCancel`/`castCommitZone`/`oppositionConfirm`/`counterspellConfirm`)
+ *  résolveurs (`castConfirm`/`jetCancel('cast')`/`castCommitZone`/`oppositionConfirm`/`counterspellConfirm`)
  *  ferment LES DEUX au point terminal. La cascade reste OUVERTE pour TOUTE la situation. Lanceur
  *  ENNEMI → `groupOwner:true` (l'arbitre `cascade` met l'owner à '*' : moment partagé + Contre-sort
  *  multi en coop) ; HÉROS → owner dérivé de `actorId` (le lanceur). Hôte aussi l'incantation HORS
@@ -5700,7 +5700,7 @@ export function applyCounterspell(get: Get, set: SetFn, counter: Combatant): boo
 
 /** Fenêtre de Contre-sort refermée SANS QU'AUCUNE rangée ait chanté : le meilleur contre-lanceur IA
  *  qu'elle recensait chante à leur place — le jet inline qu'il aurait eu sans siège possédant.
- *  SOURCE UNIQUE du repli, partagée par « Laisser passer » (`counterspellCancel`) et par
+ *  SOURCE UNIQUE du repli, partagée par « Laisser passer » (`jetCancel('counterspell')`) et par
  *  « Appliquer » sur fenêtre vierge (`counterspellConfirm`) : deux boutons, même état → même issue. */
 export function applyCounterspellFallback(get: Get, set: SetFn, pcs: PendingCounterspell): void {
   const ia = bestCounterspeller(pcs.participants
@@ -7630,7 +7630,7 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
       if (!cible) { advanceTurn(get, set); return; }
       castSpell(get, set, acteur, cible, geste.spellId);
       // La modale d'incantation témoin (Lancer → Contre-sort → Appliquer) SUSPEND le tour de l'IA : la reprise
-      // est portée par castConfirm/castCancel → resumeEnemyTurn. castSpell peut refuser (contrecoup bloquant,
+      // est portée par castConfirm/jetCancel('cast') → resumeEnemyTurn. castSpell peut refuser (contrecoup bloquant,
       // hors de portée…) → pas de modale → l'acteur passe.
       if (!get().pendingCast) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'));
       return;
@@ -7669,10 +7669,10 @@ function lancerLaZone(get: Get, set: SetFn, acteur: Combatant, spellId: string, 
   // Porte le centre auto-choisi sur le pending (zone non encore posée, `center` reste null pour que le
   // Contre-sort s'intercale) — `castConfirm` PARTAGÉ posera la zone dessus une fois la fenêtre close.
   if (pc.zone) set({ pendingCast: { ...pc, zone: { ...pc.zone, autoCenter: centre } } });
-  // Jet figé de l'IA (Surincantation no-op pour une ZdE — toutes cibles arrosées) ; `castRoll`
+  // Jet figé de l'IA (Surincantation no-op pour une ZdE — toutes cibles arrosées) ; `jetRoll('cast')`
   // aiguille le Contre-sort : fenêtre ouverte → le tour de l'IA est SUSPENDU, repris par
   // counterspellConfirm/Cancel (→ resolveCastChain : pose & reprise).
-  get().castRoll();
+  get().jetRoll('cast');
   if (get().pendingCounterspell) return;
   // Aucun Contre-sort : MÊME résolveur PARTAGÉ que le missile — castConfirm pose la zone sur autoCenter
   // (caster aiDriven) puis reprend le tour de l'IA. Zéro chemin spécial.
@@ -7789,7 +7789,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   }
   for (const [indice, craintifs] of bandes) {
     // DEUX déplacements de la même source dans la même cascade = deux bandes de MÊME clé de règle : la
-    // fabrique à `index` (pushStep) les distingue, sans quoi `cascadeBatchRoll` retrouverait la première.
+    // fabrique à `index` (pushStep) les distingue, sans quoi `jetRoll('cascadeBatch')` retrouverait la première.
     // La bande est MONTÉE DANS la fabrique (et non recopiée après coup) : l'id indexé fait partie de la
     // déclaration, et l'étape sort mintée du socle.
     const ft = testFor(indice);
@@ -8454,7 +8454,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // le `castConfirm` PARTAGÉ le lira pour poser la zone tout seul (gardé par `aiDriven`), exactement
       // comme l'auto-combat fournit ses jets. PLUS de `castCommitZone` bespoke ici : la pose vit dans le
       // `castConfirm` UNIQUE. PARITÉ RAW (LDB 46 l.156) : la fenêtre de Contre-sort s'intercale AVANT la
-      // pose (`routeCounterspell`, appelé par `castRoll`) ; dissipée → `castConfirm` ne pose RIEN.
+      // pose (`routeCounterspell`, appelé par `jetRoll('cast')`) ; dissipée → `castConfirm` ne pose RIEN.
       const center = action.center;
       // Télégraphe de ZONE (parité missile) : peint le DISQUE cible (centre + rayon) ~0,7 s avant la
       // résolution, au lieu de l'ancien `actorAim` dégénéré (ligne enemy→enemy, n'indiquait PAS l'aire).
@@ -8470,7 +8470,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     }
     case 'focus': {
       // Focalisation (LDB 46) : on ouvre la modale comme le joueur ; en Auto le driver résout
-      // focusRoll→focusConfirm (qui reprend le tour via aiDriven, cf. focusConfirm). Calqué sur reload.
+      // jetRoll('focus')→focusConfirm (qui reprend le tour via aiDriven, cf. focusConfirm). Calqué sur reload.
       if (!canAct) return advanceTurn(get, set);
       get().battleFocusSpell(action.spell);
       if (!get().pendingFocus) advanceTurn(get, set);

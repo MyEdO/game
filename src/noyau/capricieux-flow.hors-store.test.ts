@@ -47,7 +47,7 @@ describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 1
   it('jet RÉUSSI + table à 1 → DR −2, la réussite est INCHANGÉE', () => {
     seedBattleRng(7); // d10 = 1, puis d100 = 7 → DR 6 réussi
     openCharme(true);
-    banc.getState().testRoll();
+    banc.getState().jetRoll('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.roll).toBe(7);
     expect(pt.success).toBe(true);
@@ -57,7 +57,7 @@ describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 1
   it('jet réussi DE JUSTESSE + table à 1 → DR −1 (le RAW ne pose aucun plancher), la réussite tient', () => {
     seedBattleRng(35); // d10 = 1, puis d100 = 51 (cible 60) → DR 1 réussi
     openCharme(true);
-    banc.getState().testRoll();
+    banc.getState().jetRoll('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.roll).toBe(51);
     expect(pt.success).toBe(true); // le d100 est passé : la table ne défait pas l'issue
@@ -67,7 +67,7 @@ describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 1
   it('jet RATÉ + table à 10 → DR +2, l’échec est INCHANGÉ (aucune réussite créée)', () => {
     seedBattleRng(36); // d10 = 10, puis d100 = 95 → DR −3 raté
     openCharme(true);
-    banc.getState().testRoll();
+    banc.getState().jetRoll('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.roll).toBe(95);
     expect(pt.success).toBe(false);
@@ -79,7 +79,7 @@ describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 1
       openCharme();
       banc.setState({ pendingTest: { ...banc.getState().pendingTest!, capriciousDR: capDR } });
       seedBattleRng(24); // MÊME graine → MÊME d100 pour les trois entrées
-      banc.getState().testRoll();
+      banc.getState().jetRoll('test');
       const pt = banc.getState().pendingTest!;
       return { roll: pt.roll, sl: pt.sl, success: pt.success };
     };

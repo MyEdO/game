@@ -8,7 +8,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Incantation HORS COMBAT (couture D, LDB 21/Magie) — RÉUTILISE le flux d'incantation existant
- * (pas de duplication) : `pendingCast` + castRoll/…/castConfirm + applyCast, rendus optionnels au
+ * (pas de duplication) : `pendingCast` + jetRoll('cast')/…/castConfirm + applyCast, rendus optionnels au
  * combat (acteurs résolus dans `battle?.combatants ?? party` ; sortie vers `journal` hors combat).
  * Les Projectiles magiques (offensifs) restent réservés au combat.
  */
@@ -27,7 +27,7 @@ function forceCast(casterId: string) {
   const h = banc.getState().party.find((c) => c.id === casterId)!;
   if (!banc.getState().pendingCast!.result!.cast) {
     h.resilience = (h.resilience ?? 0) + 1;
-    banc.getState().castForceSuccess();
+    banc.getState().jetForceSuccess('cast');
   }
 }
 
@@ -48,7 +48,7 @@ describe('Incantation hors combat (couture D)', () => {
     expect(pc!.casterId).toBe(priest.id);
     expect(pc!.targetId).toBe(ally.id);
 
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     forceCast(priest.id);
     const before = banc.getState().party.find((h) => h.id === ally.id)!.wounds.current;
     banc.getState().castConfirm();
@@ -88,7 +88,7 @@ describe('Incantation hors combat (couture D)', () => {
     expect(pf).toBeTruthy();
     expect(pf!.casterId).toBe(wiz.id);
 
-    banc.getState().focusRoll();
+    banc.getState().jetRoll('focus');
     expect(banc.getState().pendingFocus!.result).toBeTruthy();
     banc.getState().focusConfirm();
 

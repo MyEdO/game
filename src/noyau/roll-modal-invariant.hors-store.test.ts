@@ -311,7 +311,7 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     // La défense du héros est SURFACÉE (#989) : `attackConfirm` interpose SA fenêtre — le héros défend,
     // PUIS l'application reprend et la Maladresse de l'ennemi conduit remonte au nom de l'ennemi.
     expect(get().pendingDefense?.defenderId, 'la défense du héros s’interpose').toBe(H.id);
-    get().defenseRoll();
+    get().jetRoll('defense');
     get().defenseConfirm();
     const c = get().pendingCascade;
     expect(c?.participants.some((s) => s.jet === 'fumble' && s.actorId === E.id), 'la Maladresse de l’ennemi conduit REMONTE au nom de l’ennemi').toBe(true);

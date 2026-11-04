@@ -3,6 +3,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { tableRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';
 import { flowStakeRef } from '../data';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * FENÊTRE DE LOT d'un étal (#1426) — les tirages d'ouverture d'un marché/port, tous ensemble, chacun
@@ -21,7 +22,7 @@ import { flowStakeRef } from '../data';
 export function EtalLotModal() {
   const p = useGame((s) => s.pendingEtalLot);
   const confirm = useGame((s) => s.etalLotConfirm);
-  const cancel = useGame((s) => s.etalLotCancel);
+  const cancel = useGesteDeJet('jetCancel', 'etalLot');
   if (!p) return null;
 
   const rows: BuiltRollRow[] = p.participants.map((r) => tableRow({

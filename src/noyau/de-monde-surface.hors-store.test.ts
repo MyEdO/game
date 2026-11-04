@@ -632,7 +632,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     const parts0 = get().pendingEtalLot!.participants;
     const dernier = parts0[parts0.length - 1];
     const neuf = dernier.value === dernier.max ? dernier.min : dernier.max;
-    get().etalLotSetForcedRoll(dernier.id, neuf);
+    get().jetSetForcedRoll('etalLot', neuf, dernier.id);
     const apres = get().pendingEtalLot!.participants.map((r) => r.value);
     expect(apres[apres.length - 1], 'la valeur saisie est la valeur posée').toBe(neuf);
     expect(apres.slice(0, -1), 'aucun autre dé n’a bougé').toEqual(avant.slice(0, -1));
@@ -657,8 +657,8 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     const l2 = get().pendingEtalLot!;
     const a = l2.participants[paire - 1];
     const b = l2.participants[paire];
-    get().etalLotSetForcedRoll(a.id, b.value);
-    get().etalLotSetForcedRoll(b.id, a.value);
+    get().jetSetForcedRoll('etalLot', b.value, a.id);
+    get().jetSetForcedRoll('etalLot', a.value, b.id);
     get().etalLotConfirm();
     expect(etal(), 'deux dés permutés ne peuvent pas rendre le même étal').not.toEqual(direct);
   });

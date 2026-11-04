@@ -89,7 +89,7 @@ describe('#1143 — le bandeau annonce l’attaque EN COURS, jamais le beat pré
     expect(txt).not.toContain(STALE);
 
     // Défense jouée et APPLIQUÉE : l'issue est journalisée → elle prend le bandeau, le télégraphe s'efface.
-    act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseConfirm(); });
+    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().defenseConfirm(); });
     expect(useGame.getState().actorAim).toBeNull();
     const after = banner();
     expect(after).not.toContain('Rat géant attaque Gunnar');
@@ -127,7 +127,7 @@ describe('#1143 — le bandeau annonce l’attaque EN COURS, jamais le beat pré
     act(() => { vi.runOnlyPendingTimers(); });
     expect(useGame.getState().pendingDefense).not.toBeNull();
 
-    act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseConfirm(); });
+    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().defenseConfirm(); });
 
     // L'attaque principale est journalisée ; la Morsure a rouvert une fenêtre (tour toujours suspendu).
     const lines = useGame.getState().battle!.log.map((e) => e.text);

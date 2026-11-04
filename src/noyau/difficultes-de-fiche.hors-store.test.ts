@@ -104,11 +104,11 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     restaurerFiche();
   });
 
-  it('Course : `battleRun` pose le Test de `course`, `runRoll` le jette', () => {
+  it('Course : `battleRun` pose le Test de `course`, `jetRoll@run` le jette', () => {
     const { H } = auCombat();
     g().battleRun({ x: 16, y: 10 });
     expect(g().pendingRun!.test).toMatchObject(testDeFiche('course', 'courir'));
-    g().runRoll();
+    g().jetRoll('run');
     expect(g().pendingRun!.result!.target).toBe(cible(H, 'course', 'courir'));
   });
 
@@ -135,7 +135,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
-  it('Chute volontaire : `fallAcross` pose le Test de `chute`, `fallRoll` le jette', () => {
+  it('Chute volontaire : `fallAcross` pose le Test de `chute`, `jetRoll@fall` le jette', () => {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
@@ -143,7 +143,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
     g().fallChoose(hero.id, true);
-    g().fallRoll(hero.id);
+    g().jetRoll('fall', hero.id);
     expect(g().pendingFall!.participants[0].result!.target).toBe(cible(hero, 'chute', 'tenter'));
   });
 
@@ -156,7 +156,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
   });
 
-  it('Fuite : `disengageFlee` pose le Test de `fuite` sur le slot du fuyard, `fleeRoll` le jette', () => {
+  it('Fuite : `disengageFlee` pose le Test de `fuite` sur le slot du fuyard, `jetRoll@flee` le jette', () => {
     const { H, E } = auCombat();
     E.characteristics['capacite-de-combat'] = 90;
     H.engagedWith = [E.id];
@@ -167,7 +167,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     });
     g().disengageFlee();
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));
-    g().fleeRoll(H.id);
+    g().jetRoll('flee', H.id);
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(cible(H, 'fuite', 'touche-en-fuyant'));
   });
 
@@ -177,7 +177,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ battle: { ...g().battle!, reachable: new Map([['11,10', 1]]) } });
     g().battleClickTile({ x: 11, y: 10 }, { confirm: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
-    g().approachRoll();
+    g().jetRoll('approach');
     expect(g().pendingApproach!.result!.target).toBe(cible(H, 'calme-d-approche', 'se-rapprocher'));
   });
 
@@ -214,7 +214,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
     g().corruptionSetNature('spirituelle');
     expect(g().pendingCorruption).toMatchObject({ nature: 'spirituelle', test: testDeFiche('influences-corruptrices', 'spirituelle') });
-    g().corruptionRoll();
+    g().jetRoll('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'influences-corruptrices', 'spirituelle'));
   });
 
@@ -232,7 +232,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
     banc.setState({ interlude: { ...itl } });
     g().interludeActivity(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
-    g().activityRoll();
+    g().jetRoll('activity');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
     g().activityConfirm();
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
@@ -301,7 +301,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero] });
     gainCorruption(g, banc.setState, hero, 1);
     expect(g().pendingCorruption).toMatchObject({ kind: 'seuil', test: testDeFiche('corrompu', 'contenir') });
-    g().corruptionRoll();
+    g().jetRoll('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'corrompu', 'contenir'));
   });
 });

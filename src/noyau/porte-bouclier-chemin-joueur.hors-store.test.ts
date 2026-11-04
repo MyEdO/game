@@ -85,23 +85,23 @@ describe('Porte-bouclier — chemin joueur, arme de parade déclarée sur tout c
 
   it('jet nu gagné : la frappe du bouclier part', () => {
     ouvreParadeAuBouclier(1);
-    G().defenseRoll();
+    G().jetRoll('defense');
     attendFrappe();
   });
 
   it('dé fixé (Résilience) gagnant : parade au bouclier conservée, la frappe part', () => {
     ouvreParadeAuBouclier(1);
-    G().defenseRoll();
-    G().defenseSetForcedRoll(5);
+    G().jetRoll('defense');
+    G().jetSetForcedRoll('defense', 5);
     expect(G().pendingDefense!.def!.roll).toBe(5);
     attendFrappe();
   });
 
   it('forçage (« Je ne faillirai pas ! ») : parade au bouclier conservée, la frappe part', () => {
     ouvreParadeAuBouclier(5);
-    G().defenseRoll();
+    G().jetRoll('defense');
     expect(G().pendingDefense!.result!.advantageTo).toBe('attacker');
-    G().defenseForceSuccess();
+    G().jetForceSuccess('defense');
     expect(G().pendingDefense!.forced).toBe(true);
     attendFrappe();
   });

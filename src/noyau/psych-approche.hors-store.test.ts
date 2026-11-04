@@ -44,7 +44,7 @@ describe('Approche sous Peur (store)', () => {
     let st = banc.getState();
     expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'tile', pt: { x: 11, y: 10 } } });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
-    banc.getState().approachCancel(); // renoncer avant le jet : aucune trace
+    banc.getState().jetCancel('approach'); // renoncer avant le jet : aucune trace
     // S'éloigner (9,10) : aucun Test.
     banc.getState().battleClickTile({ x: 9, y: 10 }, { confirm: true });
     st = banc.getState();

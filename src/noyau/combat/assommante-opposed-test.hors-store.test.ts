@@ -75,7 +75,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(step.meta?.opposed?.attackerLabel, 'aucun libellé authoré : « Force » se dérive').toBeUndefined();
   });
 
-  it('(a) HÉROS : cascadeRoll+cascadeNext → l’issue (Sonné ou non) SUIT resolveOpposed(jetDéfenseur, Force figée)', () => {
+  it('(a) HÉROS : jetRoll@cascade+cascadeNext → l’issue (Sonné ou non) SUIT resolveOpposed(jetDéfenseur, Force figée)', () => {
     seedBattleRng(3);
     const { H, wielder } = setup();
     wielder.characteristics.force = 60;
@@ -85,7 +85,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     const aT = step.meta!.opposed!.aT; // attaquant figé
 
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     // Le jet du défenseur (Résistance) est posé sur l’étape ; l’issue doit être COHÉRENTE avec resolveOpposed
     // (ATTAQUANT figé en 1ʳᵉ position, comme la production) : la victime résiste si l’attaquant ne l’emporte pas.
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
@@ -114,7 +114,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(testValue(H, 'resistance')).toBe(testValue(wielder, undefined, 'force'));
 
     // seed POSÉ ICI (après le spawn qui consomme le RNG d’initiative) : la 1ʳᵉ consommation est le jet de
-    // l’ATTAQUANT, la 2ᵉ celui du défenseur (cascadeRoll). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
+    // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetRoll('cascade')). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
     seedBattleRng(113);
     fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
@@ -123,7 +123,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(fNue);
     expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(fNue);
 
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     // Le cœur de la preuve : jet défenseur == jet attaquant (même roll/cible/DR) → ÉGALITÉ stricte.
     expect(rolled.roll).toBe(aT.roll);

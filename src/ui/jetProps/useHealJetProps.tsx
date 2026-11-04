@@ -17,6 +17,7 @@ import { HEAL_ACT } from '../healSubtitle';
 import { VsHeader } from '../VsHeader';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * Flux de jet d'un SOIN (Guérison, LDB 09-Compétences) : « Lancer » → Chance (relance / +1 DR) →
@@ -25,19 +26,19 @@ import { t } from '../../i18n';
  *  - hors combat : l'infirmerie (`MedicModal`, `embedded`), qui pose le jet dans SA boîte
  *    (`useRollShell`) et reste ouverte après « Appliquer ».
  * Le soigneur peut être un PNJ payant : sa Chance/Résilience valent 0 (boutons inertes), et
- * « Annuler » avant le jet rembourse l'acte (healCancel).
+ * « Annuler » avant le jet rembourse l'acte (jetCancel('heal')).
  */
 export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {}): ComponentProps<typeof RollShell> | null {
   const ph = useGame((s) => s.pendingHeal);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.healRoll);
-  const reroll = useGame((s) => s.healReroll);
-  const bonusSL = useGame((s) => s.healBonusSL);
-  const darkPact = useGame((s) => s.healDarkPact);
-  const force = useGame((s) => s.healForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'heal');
+  const reroll = useGesteDeJet('jetReroll', 'heal');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'heal');
+  const darkPact = useGesteDeJet('jetDarkPact', 'heal');
+  const force = useGesteDeJet('jetForceSuccess', 'heal');
   const confirm = useGame((s) => s.healConfirm);
-  const cancel = useGame((s) => s.healCancel);
+  const cancel = useGesteDeJet('jetCancel', 'heal');
   const setMode = useGame((s) => s.healSetMode);
   const setTest = useGame((s) => s.healSetTest);
   const setBandages = useGame((s) => s.healSetBandages);

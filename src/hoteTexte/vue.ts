@@ -6,13 +6,14 @@
  */
 import {
   effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
-  LOCALISATIONS_DE_COUP, ACTIONS,
-  type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
+  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
+  type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { t } from '../i18n';
 import { ecritALaForme, signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
+import { parametresDuGeste } from '../hote/gestes';
 import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection, type ProprietaireDeLaFenetre } from '../hote/projection';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
@@ -135,13 +136,17 @@ export function replier(texte: string): string[] {
   });
 }
 
-/** Les verbes ouverts de la fenêtre, chacun par sa signature (`VERBES`, lus du type du noyau), repliés, et l'id que leurs
+/** La signature d'un geste (`parametresDuGeste`) : le flux d'un verbe de jet y est écrit en valeur. */
+const signatureDuGeste = (g: GesteDuJeu): string =>
+  signature(g.verbe, parametresDuGeste(g).map((p) => (p.nom === 'flux' && g.flux ? { ...p, forme: { genre: 'litteral' as const, valeur: g.flux } } : p)));
+
+/** Les gestes ouverts de la fenêtre, chacun par sa signature (`signatureDuGeste`), repliés, et l'id que leurs
  *  paramètres `pid` attendent ; puis ceux que son jet ferme maintenant, chacun avec sa raison (`Projection.fenetre.fermes`). */
 const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] => {
-  const ouverts = f.verbes.filter((v) => !(v in f.fermes));
+  const ouverts = f.gestes.filter((g) => !(cleDuGeste(g) in f.fermes));
   const fermes = Object.entries(f.fermes);
   return [
-    ...(ouverts.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${ouverts.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : []),
+    ...(ouverts.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${ouverts.map(signatureDuGeste).join(' · ')}`) : []),
     ...(fermes.length ? replier(`fermés : ${fermes.map(([v, raison]) => `${v} (${raison})`).join(' · ')}`) : []),
   ];
 };

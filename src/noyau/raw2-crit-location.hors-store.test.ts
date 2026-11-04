@@ -74,13 +74,13 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
     banc.getState().battleClickEntity(E.id, { confirm: true });
     seedBattleRng(3);
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     expect(banc.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
   }
   /** « Je ne faillirai pas ! » : le résultat choisi réussit sans double. */
   function forcer(valeur = 21) {
-    banc.getState().attackForceSuccess();
-    banc.getState().attackSetForcedRoll(valeur);
+    banc.getState().jetForceSuccess('attack');
+    banc.getState().jetSetForcedRoll('attack', valeur);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.critical, 'aucun double : pas de Coup Critique au jet').toBe(false);
@@ -128,8 +128,8 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
 
   it('cible sous Mort subite, double forcé : aucun choix (LDB 18 l.44 ; AA 07 l.65 ; #1595 c.6219992594)', () => {
     attaqueRatee(20, 0, 0, false);
-    banc.getState().attackForceSuccess();
-    banc.getState().attackSetForcedRoll(11);
+    banc.getState().jetForceSuccess('attack');
+    banc.getState().jetSetForcedRoll('attack', 11);
     expect(banc.getState().pendingAttack!.result!.critical, 'précondition : le double fait le Coup Critique au jet').toBe(true);
     banc.getState().attackSetCritLocation('tete');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBeUndefined();

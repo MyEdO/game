@@ -1,21 +1,21 @@
 /**
  * DÉLÉGUÉ DE VERBE MANUSCRIT (#2903) : un appel direct du handler d'un verbe de flux de jet —
  * `FLOWS.<flux>.<verbe>(…)`, `FLOWS[…].<verbe>(…)`, `FLOW_HANDLERS.<flux>.<verbe>(…)`,
- * `FLOW_HANDLERS[…].<verbe>(…)` — hors du générateur des délégués (`buildRollFlowActions`,
- * `src/noyau/rollFlowSpecs.ts`). Le délégué `<prefix><Verbe>` d'un verbe de `FLOW_VERBS` se GÉNÈRE :
- * l'écrire à la main recopie le corps canonique, hors de la surface d'intentions dérivée
- * (`coopFlowIntents`) et de sa possession (`jetOwnedIntents`).
+ * `FLOW_HANDLERS[…].<verbe>(…)` — hors des verbes de jet du noyau (`creerVerbesDeJet`,
+ * `src/noyau/rollFlowSpecs.ts`). Un geste de jet passe par son verbe `jet<Verbe>(flux, …)` (#3311) : appeler le
+ * handler à la main contourne son refus de frontière, la surface d'intentions dérivée (`coopFlowIntents`) et sa
+ * possession (`netOwnership`, route de chaque verbe de jet).
  *
- * `verbes` : les verbes des délégués générés, lus par l'appelant dans `FLOW_VERBS`.
+ * `verbes` : les verbes de jet, lus par l'appelant dans `FLOW_VERBS`.
  *
  * FRONTIÈRE avec le verrou de compilation `horsDelegues` (`src/noyau/fabriquesDuNoyau.ts`), qui
- * refuse toute clé `<flux><Verbe>` (flux de `FLOW_VERBS` × verbe de jet) déclarée par une fabrique,
- * que la table la génère ou non (#2961) : ce scanner voit ce que le verrou ne peut pas voir — l'appel
- * direct d'un handler, sous un autre nom ou hors de toute fabrique (un écran qui contourne le
- * délégué, donc le routage coop, `src/ui/forcedDieRow.ts`).
+ * refuse toute clé `<flux><Verbe>` (flux de `FLOW_VERBS` × verbe de jet) ou `jet<Verbe>` déclarée par une
+ * fabrique (#2961) : ce scanner voit ce que le verrou ne peut pas voir — l'appel direct d'un handler, sous un
+ * autre nom ou hors de toute fabrique (un écran qui contourne le verbe, donc le routage coop,
+ * `src/ui/forcedDieRow.ts`).
  *
  * ANGLE MORT : un handler lu dans une liaison locale (`const flow = FLOWS.x; flow.cancel(…)`) puis
- * appelé n'est pas vu ; le générateur lui-même appelle ainsi un paramètre (`flow[v]`).
+ * appelé n'est pas vu ; `creerVerbesDeJet` appelle ainsi le handler qu'il reçoit en paramètre.
  */
 import { ast, typescript } from './dialecte.mjs';
 

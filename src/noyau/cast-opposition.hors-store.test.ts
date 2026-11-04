@@ -128,7 +128,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {} } }); // rangée ennemie TENUE (jet dû)
     frozenCast(H, E, 'parole-de-tzeentch', 4);
     banc.getState().castConfirm();
-    banc.getState().oppositionRoll(E.id);
+    banc.getState().jetRoll('opposition', E.id);
     const avant = banc.getState().pendingCastOpposition!;
     expect(avant.participants[0].result, 'la rangée a opposé son Test').toBeTruthy();
 
@@ -189,7 +189,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
   const tientRangee = (seat: number, id: string): boolean => {
     banc.setState({ net: { ...banc.getState().net, mySeat: seat } });
     const s = banc.getState();
-    return ownsLocal(s, id) && intentAllowedFor(s, seat, 'oppositionRoll', [id]);
+    return ownsLocal(s, id) && intentAllowedFor(s, seat, 'jetRoll', ['opposition', id]);
   };
 
   it('au moins un siège VOIT la fenêtre ET tient la rangée de la cible (sinon le Test disparaît)', async () => {
@@ -205,7 +205,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     banc.getState().oppositionConfirm();
     expect(banc.getState().pendingCastOpposition, 'l’opposition reste ouverte tant qu’un jet est dû').toBeTruthy();
     expect(banc.getState().pendingCast, 'le Sort ne s’applique pas').toBeTruthy();
-    banc.getState().oppositionRoll(T.id); // la cible oppose enfin son Test
+    banc.getState().jetRoll('opposition', T.id); // la cible oppose enfin son Test
     banc.getState().oppositionConfirm();
     expect(banc.getState().pendingCast).toBeNull(); // agrégé puis appliqué
   });
@@ -270,8 +270,8 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     expect(part.interactive, 'l’ennemi est conduit par le siège MJ → sa rangée se joue').toBe(true);
     expect(part.result, 'rien n’est roulé avant que le MJ ne le décide').toBeNull();
     const s = banc.getState();
-    expect(intentAllowedFor(s, 2, 'oppositionRoll', [E.id]), 'siège MJ').toBe(true);
-    expect(intentAllowedFor(s, 0, 'oppositionRoll', [E.id]), 'hôte non MJ').toBe(false);
-    expect(intentAllowedFor(s, 1, 'oppositionRoll', [E.id]), 'joueur').toBe(false);
+    expect(intentAllowedFor(s, 2, 'jetRoll', ['opposition', E.id]), 'siège MJ').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRoll', ['opposition', E.id]), 'hôte non MJ').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRoll', ['opposition', E.id]), 'joueur').toBe(false);
   });
 });

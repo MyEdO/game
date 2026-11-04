@@ -36,7 +36,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();
 const rangee = (id: string): TombantParticipant => g().pendingFall!.participants.find((x) => x.id === id)!;
-/** Pose le résultat du Test d'une rangée (le dé est testé par `fallRoll` ci-dessous). */
+/** Pose le résultat du Test d'une rangée (le dé est testé par `jetRoll('fall')` ci-dessous). */
 function poserResultat(id: string, result: NonNullable<TombantParticipant['result']>): void {
   const p = g().pendingFall!;
   banc.setState({ pendingFall: { ...p, participants: p.participants.map((x) => (x.id === id ? { ...x, result } : x)) } });
@@ -149,24 +149,24 @@ describe('fallAcross — exploration, un tombant', () => {
     expect(drainerChutes()).toEqual([[H, 2]]);
   });
 
-  it('fallRoll (verbe généré, rollFlowSpecs.fall) résout via resolveDeliberateFall : effectiveMetres = max(0, metres − max(0,dr))', () => {
+  it('jetRoll@fall résout via resolveDeliberateFall : effectiveMetres = max(0, metres − max(0,dr))', () => {
     g().seedRng(3);
     g().fallAcross(top, foot);
     g().fallChoose(H, true);
-    g().fallRoll(H);
+    g().jetRoll('fall', H);
     const r = rangee(H).result!;
     expect(r.effectiveMetres).toBe(Math.max(0, 4 - Math.max(0, r.dr)));
   });
 
-  it('fallRoll AVANT la déclaration (attempt=null) : le flux gate sur `attempt`, aucun jet', () => {
+  it('jetRoll@fall AVANT la déclaration (attempt=null) : le flux gate sur `attempt`, aucun jet', () => {
     g().fallAcross(top, foot);
-    g().fallRoll(H);
+    g().jetRoll('fall', H);
     expect(rangee(H).result).toBeNull();
   });
 
-  it('fallCancel : ferme la modale sans effet', () => {
+  it('jetCancel@fall : ferme la modale sans effet', () => {
     g().fallAcross(top, foot);
-    g().fallCancel();
+    g().jetCancel('fall');
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual(top);
   });
@@ -189,7 +189,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
     expect(g().pendingFall!.participants.map((x) => x.id)).toEqual([A, B]);
     g().fallChoose(A, true);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
-    g().fallRoll(A);
+    g().jetRoll('fall', A);
     expect(rangee(A).result, 'B n’a pas déclaré : aucun jet').toBeNull();
   });
 

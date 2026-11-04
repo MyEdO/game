@@ -23,7 +23,7 @@ interface Gestes { haine?: boolean; animosite?: boolean; personne?: string; calm
 
 /** L'incantation ouverte réussit à `dr` DR, puis la cascade se joue selon `gestes` ; rend ses étapes. */
 function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeStep[] {
-  if (!banc.getState().pendingCast!.result) banc.getState().castRoll();
+  if (!banc.getState().pendingCast!.result) banc.getState().jetRoll('cast');
   const pc = banc.getState().pendingCast!;
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
   banc.getState().castConfirm();

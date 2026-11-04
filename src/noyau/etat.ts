@@ -581,8 +581,7 @@ export interface EtatDeJeu {
   /** Système de Faveurs (LDB 23 l.139-151, #509) — contrepartie future acceptée en échange d'une
    *  aide immédiate ; persistée SOURCE UNIQUE, même patron que `bank`/`pendingOrders`. */
   favors: Favor[];
-  /** Jet d'Activité en attente (Revenus / lancer d'Artisanat — modale, fabrique rollFlow).
-   *  Délégués `activity*` : verbes générés depuis FLOW_VERBS (RollFlowActionsMap). */
+  /** Jet d'Activité en attente (Revenus / lancer d'Artisanat — modale, fabrique rollFlow). */
   pendingActivity: PendingActivity | null;
   /** Combat de masse / Puissance de Bataille (ADE II 08) : état de la bataille abstraite en cours
    *  (Puissance des deux armées, Round, Scènes) — null hors bataille. */

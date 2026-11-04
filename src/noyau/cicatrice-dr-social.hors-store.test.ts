@@ -1,7 +1,7 @@
 /**
  * Cicatrices sociales post-guérison — LDB 18 l.61 (Blessure spectaculaire) et l.72 (Nez cassé).
  * Sonde sur le chemin RÉEL : la valeur du Test vient de `testValue`, le jet du flux `test` du noyau
- * (`testRoll`, RNG de combat seedé), et le DR de l'op `skillDRBonus` du collecteur (engine/ops).
+ * (`jetRoll('test')`, RNG de combat seedé), et le DR de l'op `skillDRBonus` du collecteur (engine/ops).
  * Deux mesures : un jet AU-DESSUS de la valeur reste un échec (aucun DR n'entre) ; un jet réussi
  * gagne exactement +1 DR par rapport au MÊME jet sans la cicatrice.
  */
@@ -42,7 +42,7 @@ function rollIntimidation(c: Combatant, seed: number) {
     } as never,
   });
   seedBattleRng(seed);
-  banc.getState().testRoll();
+  banc.getState().jetRoll('test');
   return banc.getState().pendingTest!;
 }
 

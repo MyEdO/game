@@ -65,7 +65,7 @@ describe('#997 — Tir rapide de l’IA : chaque tir ouvre la fenêtre du défen
     expect(de('e1').loseNextAction, 'le prix se paie avant le tir').toBe(true);
     expect(de('e2').loseNextAction, 'E2 attend la fermeture de la 1ʳᵉ fenêtre').toBeFalsy();
     expect(g().battle!.turn).toBe(-1);
-    g().defenseRoll();
+    g().jetRoll('defense');
     g().defenseConfirm();
     // La boucle REPREND : 2ᵉ fenêtre, E2 sur H2 — le Round attend toujours.
     expect(g().pendingDefense?.attackerId).toBe('e2');
@@ -73,7 +73,7 @@ describe('#997 — Tir rapide de l’IA : chaque tir ouvre la fenêtre du défen
     expect(g().battle!.turn).toBe(-1);
     const c = g().pendingCascade;
     expect(c?.participants[c.cursor]?.jet, 'la fenêtre de E2 est l’étape courante').toBe('defense');
-    g().defenseRoll();
+    g().jetRoll('defense');
     g().defenseConfirm();
     // Boucle finie : le Round s'ouvre sur H1, aucune défense orpheline.
     expect(g().pendingDefense).toBeNull();
@@ -94,11 +94,11 @@ describe('#997 — Tir rapide du héros (`pa.interrupt`) : le défenseur surfac�
     g().battleEndTurn();
     g().preemptRangedShot('h1', 'e1');
     expect(g().pendingAttack?.interrupt).toBe(true);
-    g().attackRoll();
+    g().jetRoll('attack');
     g().attackConfirm();
     expect(g().pendingDefense?.defenderId, 'la fenêtre de E1 s’interpose').toBe('e1');
     expect(g().pendingDefense?.suite.mode).toBe('pilotee');
-    g().defenseRoll();
+    g().jetRoll('defense');
     g().defenseConfirm();
     expect(g().pendingDefense).toBeNull();
     expect(g().pendingAttack).toBeNull();
@@ -120,8 +120,8 @@ describe('#997 — Tir rapide d’un tireur à gratuite de créature : la suite 
     expect(g().pendingDefense?.attackerId).toBe('e1');
     expect(g().pendingDefense?.weapon.uid, 'la fenêtre est celle du tir').toBe('arc');
     expect(g().pendingDefense?.atk.success, 'le tir de E1 réussit').toBe(true);
-    g().defenseRoll();
-    g().defenseSetForcedRoll(96); // la défense échoue sans Maladresse : le tir touche, E1 garde son Avantage
+    g().jetRoll('defense');
+    g().jetSetForcedRoll('defense', 96); // la défense échoue sans Maladresse : le tir touche, E1 garde son Avantage
     g().defenseConfirm();
     expect(de('e1').advantage, 'E1 peut payer la Morsure').toBeGreaterThanOrEqual(1);
     expect(g().pendingDefense, 'aucune Morsure de E1 ne suit son tir d’interruption').toBeNull();
@@ -139,8 +139,8 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
     g().battleEndTurn();
     g().confirmRoundStart();
     expect(g().pendingDefense?.attackerId).toBe('e1');
-    g().defenseRoll();
-    g().defenseSetForcedRoll(99); // LDB 14 l.13
+    g().jetRoll('defense');
+    g().jetSetForcedRoll('defense', 99); // LDB 14 l.13
     g().defenseConfirm();
     expect(etape()?.kind, 'la Maladresse tient la main').toBe('fumbleJet');
     expect(g().pendingDefense, 'E2 n’a pas encore sa fenêtre').toBeNull();
@@ -150,7 +150,7 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
     g().fumbleConfirm();
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur E2').toBe('e2');
     expect(tirsDe('e2'), 'E2 tire UNE fois').toBe(1);
-    g().defenseRoll();
+    g().jetRoll('defense');
     g().defenseConfirm();
     draineCascade(g, 10, poseSurDeNonTombe(1));
     expect(tirsDe('e2'), 'aucune reprise de plus').toBe(1);
@@ -177,8 +177,8 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     g().confirmRoundStart();
     expect(g().pendingDefense?.attackerId).toBe('h1');
     expect(g().pendingDefense?.defenderId).toBe('e1');
-    g().defenseRoll();
-    g().defenseSetForcedRoll(99); // LDB 14 l.13
+    g().jetRoll('defense');
+    g().jetSetForcedRoll('defense', 99); // LDB 14 l.13
     g().defenseConfirm();
     expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('fumbleJet');
     g().fumbleRoll();
@@ -194,8 +194,8 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     expect(de('e1').weapons.some((w) => w.uid === 'lame'), 'la Lame Bâclée se brise (1 < Solide)').toBe(false);
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur H2').toBe('h2');
     expect(tirsDe('h2'), 'H2 tire UNE fois').toBe(1);
-    g().defenseRoll();
-    g().defenseSetForcedRoll(96); // la défense échoue sans Maladresse
+    g().jetRoll('defense');
+    g().jetSetForcedRoll('defense', 96); // la défense échoue sans Maladresse
     g().defenseConfirm();
     draineCascade(g, 10, poseSurDeNonTombe(1));
     expect(tirsDe('h2'), 'aucune reprise de plus').toBe(1);

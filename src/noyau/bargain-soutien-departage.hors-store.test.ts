@@ -250,7 +250,7 @@ function marchanderEgalite(): void {
   setupAmbulant([leader, helper]);
   get().startBargain('buy');
   imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
-  get().bargainRoll();
+  get().jetRoll('bargain');
 }
 
 describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {

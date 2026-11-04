@@ -6,6 +6,7 @@ import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
@@ -17,13 +18,13 @@ export function ShipBatteryModal() {
   const p = useGame((s) => s.pendingShipBattery);
   const battle = useGame((s) => s.battle);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
-  const roll = useGame((s) => s.shipBatteryRoll);
-  const reroll = useGame((s) => s.shipBatteryReroll);
-  const bonus = useGame((s) => s.shipBatteryBonusSL);
-  const darkPact = useGame((s) => s.shipBatteryDarkPact);
-  const force = useGame((s) => s.shipBatteryForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'shipBattery');
+  const reroll = useGesteDeJet('jetReroll', 'shipBattery');
+  const bonus = useGesteDeJet('jetBonusSL', 'shipBattery');
+  const darkPact = useGesteDeJet('jetDarkPact', 'shipBattery');
+  const force = useGesteDeJet('jetForceSuccess', 'shipBattery');
   const confirm = useGame((s) => s.shipBatteryConfirm);
-  const cancel = useGame((s) => s.shipBatteryCancel);
+  const cancel = useGesteDeJet('jetCancel', 'shipBattery');
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
   const target = battle.combatants.find((c) => c.id === p.targetId);

@@ -977,14 +977,14 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   };
 
   /**
-   * Joue le Test de la bande — le geste de la RANGÉE (`cascadeBatchRoll`, celui du kit de fenêtre) —
+   * Joue le Test de la bande — le geste de la RANGÉE (`jetRoll('cascadeBatch')`, celui du kit de fenêtre) —
    * puis valide l'étape. L'Athlétisme est COMPLEXE (−20) sur une Agilité 36 : la cible est 16, et le
    * rng SEEDÉ le rate. L'échec est ASSERTÉ, jamais supposé : c'est la prémisse du contrat.
    */
   const raterLeTest = (): void => {
     const p = banc.getState().pendingCascade!;
     const bande = p.participants[p.cursor];
-    for (const r of bande.participants ?? []) banc.getState().cascadeBatchRoll(r.id);
+    for (const r of bande.participants ?? []) banc.getState().jetRoll('cascadeBatch', r.id);
     const jouee = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
     for (const r of jouee.participants ?? []) {
       expect(r.result, `la rangée ${r.id} a bien lancé`).not.toBeNull();

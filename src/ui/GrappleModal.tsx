@@ -12,6 +12,7 @@ import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale « Empoignade » (LDB 14 l.161) — Test OPPOSÉ de FORCE sur `RollShell` (opposé = 2 rangées) :
@@ -24,15 +25,15 @@ import { t } from '../i18n';
 export function GrappleModal() {
   const pd = useGame((s) => s.pendingGrapple);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.grappleRoll);
-  const reroll = useGame((s) => s.grappleReroll);
-  const bonusSL = useGame((s) => s.grappleBonusSL);
-  const darkPact = useGame((s) => s.grappleDarkPact);
-  const force = useGame((s) => s.grappleForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'grapple');
+  const reroll = useGesteDeJet('jetReroll', 'grapple');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'grapple');
+  const darkPact = useGesteDeJet('jetDarkPact', 'grapple');
+  const force = useGesteDeJet('jetForceSuccess', 'grapple');
   const breakGrapple = useGame((s) => s.grappleBreak);
   const confirm = useGame((s) => s.grappleConfirm);
   const choose = useGame((s) => s.grappleChoose);
-  const cancel = useGame((s) => s.grappleCancel);
+  const cancel = useGesteDeJet('jetCancel', 'grapple');
   if (!pd || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pd.actorId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);

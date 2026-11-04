@@ -72,7 +72,7 @@ const heros = (banc: Banc, heroId: string): Combatant => banc.getState().party.f
 
 /** Lance le jet ouvert, le pose (`success`, `sl`), puis le confirme. */
 function confirmer(banc: Banc, success: boolean, sl: number): void {
-  banc.actions.activityRoll();
+  banc.actions.jetRoll('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: success ? 10 : 95, success, sl } }));
   banc.actions.activityConfirm();
 }

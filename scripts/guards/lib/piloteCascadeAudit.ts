@@ -109,8 +109,12 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
  *  cascade (`MODULE_DU_KIT`), qui EST le pilote partagé. */
 const estMesure = (rel: string): boolean => (estSuiteVitest(rel) || estKitDeTest(rel)) && !MODULE_DU_KIT.test(rel);
 
-/** Un verbe de la cascade du store (`cascadeNext`, `cascadeRoll`, `cascadeTableRoll`…). */
+/** Un verbe de la cascade du store (`cascadeNext`, `cascadeTableRoll`…). */
 const VERBE = /^cascade[A-Z]/;
+/** Un verbe de jet du noyau (`jetRoll`…), qui joue sur la cascade quand son flux, en premier argument, en est un
+ *  (`'cascade'`, `'cascadeBatch'`). */
+const VERBE_DE_JET = /^jet[A-Z]/;
+const FLUX_DE_CASCADE = /^cascade(Batch)?$/;
 
 /** Les méthodes dont un callback ITÈRE (`Array.from({ length }, f)` compris). */
 const ITERATEURS = new Set(['forEach', 'map', 'flatMap', 'filter', 'some', 'every', 'find', 'findIndex', 'reduce', 'from']);
@@ -131,7 +135,7 @@ const RAISON_GESTE_TESTE = 'la boucle porte sur des GRAINES ; le verbe joué est
 export const EXEMPTIONS: readonly ExemptionPilote[] = [
   { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeNext\`)` },
   { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeResolveAll\`)` },
-  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeRoll\`)` },
+  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetRoll('cascade')\`)` },
 ];
 
 /** Une itération-site repérée : son fichier, sa ligne (1-based), son contexte nommé, l'exemption qui la couvre. */
@@ -282,11 +286,14 @@ const appelleLeKit = (ts: typeof TS, call: TS.CallExpression, duKit: ReadonlySet
   return !!receveur && ts.isIdentifier(receveur) && duKit.has(receveur.text);
 };
 
-/** Un appel de verbe `cascade*` du STORE : un appel au kit (`cascadeDeTest`…) n'en est jamais un. */
+/** Un appel de verbe de la cascade du STORE (`cascade*`, ou verbe de jet sur un flux de cascade) : un appel au kit (`cascadeDeTest`…) n'en est jamais un. */
 const appelleVerbe = (ts: typeof TS, n: TS.Node, duKit: ReadonlySet<string>): boolean => {
   if (!ts.isCallExpression(n) || appelleLeKit(ts, n, duKit)) return false;
   const nom = nomAppele(ts, n);
-  return !!nom && VERBE.test(nom);
+  if (!nom) return false;
+  if (VERBE.test(nom)) return true;
+  const [flux] = n.arguments;
+  return VERBE_DE_JET.test(nom) && !!flux && ts.isStringLiteral(flux) && FLUX_DE_CASCADE.test(flux.text);
 };
 
 /** Les noms locaux qui désignent `cascade.testkit` ou l'un de ses exports : liens nommés, défaut, espace de noms. */

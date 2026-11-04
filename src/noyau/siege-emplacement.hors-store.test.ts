@@ -183,7 +183,7 @@ describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (batt
     seedBattleRng(1); // CT 80 → réussite, DR ≥ 1 → 2 + DR ≥ 3 → rechargée
     const { item } = setup();
     banc.getState().battleShipReload('emplacement', item.uid);
-    banc.getState().reloadRoll();
+    banc.getState().jetRoll('reload');
     banc.getState().reloadConfirm();
     const st = banc.getState();
     const poste = st.battle!.combatants.find((c) => c.id === 'emplacement')!.postes![0];

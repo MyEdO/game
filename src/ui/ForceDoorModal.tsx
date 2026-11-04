@@ -11,6 +11,7 @@ import { armeDEnfoncement, armesDEnfoncement, bilanDuRound, ligneDEnfoncement } 
 import { attackTestLabel } from '../engine/combat';
 import { OptionChooser } from './OptionChooser';
 import { cibleMesuree } from '../engine/tests';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale « Enfoncer une porte à PLUSIEURS » (EDO 11 l.89-95) — flux MULTI PARALLÈLE : chaque héros
@@ -22,13 +23,13 @@ export function ForceDoorModal() {
   const party = useGame((s) => s.party);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const p = useGame((s) => s.pendingForceDoor);
-  const roll = useGame((s) => s.forceDoorRoll);
-  const reroll = useGame((s) => s.forceDoorReroll);
-  const bonusSL = useGame((s) => s.forceDoorBonusSL);
-  const darkPact = useGame((s) => s.forceDoorDarkPact);
-  const force = useGame((s) => s.forceDoorForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'forceDoor');
+  const reroll = useGesteDeJet('jetReroll', 'forceDoor');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'forceDoor');
+  const darkPact = useGesteDeJet('jetDarkPact', 'forceDoor');
+  const force = useGesteDeJet('jetForceSuccess', 'forceDoor');
   const confirm = useGame((s) => s.forceDoorConfirm);
-  const cancel = useGame((s) => s.forceDoorCancel);
+  const cancel = useGesteDeJet('jetCancel', 'forceDoor');
   const choisirArme = useGame((s) => s.forceDoorChoisirArme);
   if (!p) return null;
   const pool = battle?.combatants ?? party;

@@ -11,6 +11,7 @@ import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 import { dureeDeChanson, ligneDeChanson } from '../noyau/shipCrew';
 import { cibleMesuree } from '../engine/tests';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de CHANSON DE MARIN (MDG 09 l.32-40) : le pré-jet est un MENU (OptionChooser) des chansons
@@ -20,13 +21,13 @@ import { cibleMesuree } from '../engine/tests';
 export function ShantyModal() {
   const p = useGame((s) => s.pendingShanty);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.shantyRoll);
-  const reroll = useGame((s) => s.shantyReroll);
-  const bonus = useGame((s) => s.shantyBonusSL);
-  const darkPact = useGame((s) => s.shantyDarkPact);
-  const force = useGame((s) => s.shantyForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'shanty');
+  const reroll = useGesteDeJet('jetReroll', 'shanty');
+  const bonus = useGesteDeJet('jetBonusSL', 'shanty');
+  const darkPact = useGesteDeJet('jetDarkPact', 'shanty');
+  const force = useGesteDeJet('jetForceSuccess', 'shanty');
   const confirm = useGame((s) => s.shantyConfirm);
-  const cancel = useGame((s) => s.shantyCancel);
+  const cancel = useGesteDeJet('jetCancel', 'shanty');
   const setSong = useGame((s) => s.shantySetSong);
   if (!p || !battle) return null;
   const singer = battle.combatants.find((c) => c.id === p.singerId);

@@ -75,10 +75,10 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     expect(s.pendingCascade?.participants[0].jet).toBe('attack');
   });
 
-  it('handGateRoll pose un jet (délégué influençable généré) puis RÉUSSITE → l\'attaque s\'ouvre', () => {
+  it('jetRoll@handGate pose un jet (délégué influençable généré) puis RÉUSSITE → l\'attaque s\'ouvre', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
     openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
-    (banc.getState() as unknown as { handGateRoll: () => void }).handGateRoll();
+    banc.getState().jetRoll('handGate');
     expect(banc.getState().pendingHandGate!.roll).not.toBeNull();
     // Force une RÉUSSITE pour tester l'ouverture de l'attaque (le jet lui-même est aléatoire).
     const pg = banc.getState().pendingHandGate!;
@@ -105,10 +105,10 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     expect(s.battle!.log.some((l) => /lâche/i.test(l.text))).toBe(true);
   });
 
-  it('handGateCancel referme sans coût (avant le jet)', () => {
+  it('jetCancel@handGate referme sans coût (avant le jet)', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
     openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
-    banc.getState().handGateCancel();
+    banc.getState().jetCancel('handGate');
     expect(banc.getState().pendingHandGate).toBeNull();
     expect(banc.getState().pendingAttack).toBeNull();
   });

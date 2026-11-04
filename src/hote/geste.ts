@@ -6,7 +6,7 @@
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.
  */
 import {
-  ACTIONS, DESIGNATIONS, actionGate, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, offreDesignee, porteurParId,
+  ACTIONS, DESIGNATIONS, actionGate, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, offreDesignee, porteurParId,
   quiTientLaMain, runAction, siegeDe,
   type ActionRunCtx, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
@@ -83,7 +83,7 @@ export function gesteDuVerbe(etat: Jeu, v: { type: unknown; args?: unknown; sieg
     const voisins = Object.keys(VERBES).filter((x) => x.toLowerCase().includes(m) || m.includes(x.toLowerCase())).slice(0, VOISINS_AU_PLUS);
     const fenetre = fenetreDuJeu(etat);
     const dits = [
-      ...(fenetre?.verbes.length ? [`verbes de la fenêtre ${fenetre.cle} : ${fenetre.verbes.join(', ')}`] : []),
+      ...(fenetre?.gestes.length ? [`gestes de la fenêtre ${fenetre.cle} : ${fenetre.gestes.map(cleDuGeste).join(', ')}`] : []),
       ...(voisins.length ? [`voisins : ${voisins.join(', ')}`] : []),
     ];
     throw new ErreurDeGeste('validation', `verbe inconnu : ${verbe}${dits.length ? ` ; ${dits.join(' ; ')}` : ''}${pistes.verbe(verbe)}`);

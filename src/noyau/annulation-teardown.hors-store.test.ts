@@ -15,14 +15,14 @@ const cascade = { purpose: 'combat', cursor: 0, participants: [] } as unknown as
 describe('cancel par défaut : la cascade se ferme avec le flux qu’elle héberge, jamais avec un autre', () => {
   it('flux NON hébergé (Rechargement) : son pending se ferme, la cascade ouverte à côté reste', () => {
     banc.setState({ pendingReload: { actorId: 'h1' } as unknown as Jeu['pendingReload'], pendingCascade: cascade });
-    banc.getState().reloadCancel();
+    banc.getState().jetCancel('reload');
     expect(banc.getState().pendingReload).toBeNull();
     expect(banc.getState().pendingCascade).toBe(cascade);
   });
 
   it('flux hébergé (Test) : son pending et sa cascade-hôte se ferment ensemble', () => {
     banc.setState({ pendingTest: { actorId: 'h1', cancellable: true } as unknown as Jeu['pendingTest'], pendingCascade: cascade });
-    banc.getState().testCancel();
+    banc.getState().jetCancel('test');
     expect(banc.getState().pendingTest).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
   });

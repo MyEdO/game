@@ -29,14 +29,14 @@ describe('Désengagement : Esquive du cavalier', () => {
   }
   const cible = () => banc.getState().pendingDisengage!.def!.target;
 
-  it('disengageRoll : le cavalier esquive à −20 de son homologue à pied', () => {
-    ouvrir(false); banc.getState().disengageRoll(); const pied = cible();
-    ouvrir(true); banc.getState().disengageRoll(); const monte = cible();
+  it('jetRoll@disengage : le cavalier esquive à −20 de son homologue à pied', () => {
+    ouvrir(false); banc.getState().jetRoll('disengage'); const pied = cible();
+    ouvrir(true); banc.getState().jetRoll('disengage'); const monte = cible();
     expect(monte).toBe(pied - 20);
   });
 
   it('relance par Chance (spec disengage) : même −20', () => {
-    ouvrir(true); banc.getState().disengageRoll(); const premier = cible();
+    ouvrir(true); banc.getState().jetRoll('disengage'); const premier = cible();
     const mover = banc.getState().battle!.combatants.find((c) => c.id === banc.getState().pendingDisengage!.moverId)!;
     mover.fortune = 1;
     FLOWS.disengage.reroll(banc.getState, banc.setState);

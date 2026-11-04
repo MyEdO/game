@@ -35,11 +35,11 @@ beforeEach(() => {
 });
 
 describe('Incantation — Résilience AVANT le jet (LDB 17 l.68)', () => {
-  it('aucun jet posé : `castForceSuccess` pose la réussite choisie (dé par défaut) et dépense le Point', () => {
+  it('aucun jet posé : `jetForceSuccess@cast` pose la réussite choisie (dé par défaut) et dépense le Point', () => {
     const w = sorcier();
     openCast(w);
     expect(banc.getState().pendingCast!.result, 'la fenêtre s’ouvre AVANT le jet').toBeNull();
-    banc.getState().castForceSuccess();
+    banc.getState().jetForceSuccess('cast');
     const res = banc.getState().pendingCast!.result!;
     expect(res.cast, 'le sort PART (DR ≥ NI, plancher de la réussite achetée)').toBe(true);
     expect(res.roll, '« vous choisissez le résultat » → le dé par défaut est LE MEILLEUR').toBe(bestForcedRoll(res.target));
@@ -49,13 +49,13 @@ describe('Incantation — Résilience AVANT le jet (LDB 17 l.68)', () => {
   it('la cible du jet FORCÉ pré-jet est celle du jet NATUREL (même Compétence, même ward, même Difficulté)', () => {
     const w = sorcier();
     openCast(w);
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     const naturel = banc.getState().pendingCast!.result!.target;
 
     const w2 = sorcier();
     banc.setState({ pendingCast: null });
     openCast(w2);
-    banc.getState().castForceSuccess();
+    banc.getState().jetForceSuccess('cast');
     expect(banc.getState().pendingCast!.result!.target).toBe(naturel);
   });
 });

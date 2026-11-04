@@ -343,7 +343,7 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
     const cur = pc.participants[pc.cursor];
     expect(cur.target).not.toBeNull();
     // On force la réussite (forceSuccess) AVANT de rouler : l'API de cascade l'accepte (mécanisme partagé).
-    get().cascadeForceSuccess(cur.id);
+    get().jetForceSuccess('cascade', cur.id);
     const after = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(after.result?.success).toBe(true);
   });

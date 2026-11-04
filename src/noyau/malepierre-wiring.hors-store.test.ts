@@ -1,7 +1,7 @@
 /**
  * Malepierre (`LDB 46 l.173`) — CÂBLAGE PROD : le doublement de DR (RÈGLE INCONDITIONNELLE du Livre de
  * base, `engine/magic.ts` `malepierreDR`) et le décrément de la réserve FINIE (`VDM 02 l.165`,
- * `consumeMalepierre`) sur le VRAI chemin de résolution (`oocCastSpell`→`castRoll`→`castConfirm`) —
+ * `consumeMalepierre`) sur le VRAI chemin de résolution (`oocCastSpell`→`jetRoll('cast')`→`castConfirm`) —
  * pas la fonction pure isolée (`vdm-incantation-deltas.test.ts` couvre déjà `malepierreDR`/
  * `malepierreCharge`/`malepierreReserveOf` en isolation).
  */
@@ -37,13 +37,13 @@ beforeEach(() => {
   banc.getState().seedRng(11);
 });
 
-describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`castConfirm`)', () => {
+describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cast`/`castConfirm`)', () => {
   const spellId = 'armure-aethyrique';
 
   function rollWithMalepierre(w: Combatant) {
     banc.setState({ party: [w] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     return banc.getState().pendingCast!.result!;
   }
 
@@ -66,7 +66,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     w.items = [carried];
     banc.setState({ party: [w] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     const pc = banc.getState().pendingCast!;
     const consumed = pc.result!.malepierreConsumed;
     expect(consumed).toBeGreaterThan(0);
@@ -86,7 +86,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     w.items = [carried];
     banc.setState({ party: [w] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     const consumedBefore = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedBefore).toBeGreaterThan(0);
     FLOWS.cast.bonusSL(banc.getState, banc.setState); // Chance « +1 DR » (LDB 17 l.24)
@@ -136,12 +136,12 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     w.items = [itemFromTrappingById('malepierre-brute')!];
     banc.setState({ party: [w], journal: [] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
-    banc.getState().castRoll();
+    banc.getState().jetRoll('cast');
     banc.getState().castConfirm();
     expect(banc.getState().journal.some((l) => l.includes('Exposition moderee'))).toBe(true); // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure)
   });
 
-  it('dé CHOISI (Résilience `castSetForcedRoll`) : le doublement porte sur le NOUVEAU DR, une seule consommation (pas le montant du jet d’origine, périmé)', () => {
+  it('dé CHOISI (Résilience `jetSetForcedRoll@cast`) : le doublement porte sur le NOUVEAU DR, une seule consommation (pas le montant du jet d’origine, périmé)', () => {
     setRule(RULE, true);
     const w = sorcier();
     w.resilience = 1; // requis pour ouvrir la Résilience (LDB 17 l.68)
@@ -149,10 +149,10 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     w.items = [carried];
     banc.setState({ party: [w] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
-    banc.getState().castForceSuccess(); // au lieu du jet, ouvre `forced` (LDB 17 l.68) — requis avant `castSetForcedRoll`
+    banc.getState().jetForceSuccess('cast'); // au lieu du jet, ouvre `forced` (LDB 17 l.68) — requis avant `jetSetForcedRoll('cast')`
     const before = banc.getState().pendingCast!.result!;
     expect(before.malepierreConsumed).toBeGreaterThan(0);
-    banc.getState().castSetForcedRoll(1);
+    banc.getState().jetSetForcedRoll('cast', 1);
     const after = banc.getState().pendingCast!.result!;
     const tr0 = evaluateTest(1, before.target);
     // Attendu calculé par la SOURCE UNIQUE des modificateurs (`castTestDRMods`), jamais par une copie

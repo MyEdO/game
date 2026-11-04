@@ -9,6 +9,7 @@ import { OptionChooser, type RollOption } from './OptionChooser';
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Virages proposés (MDG 13 — angle abstrait, choix d'UX) : crans d'octant signés (±1 = 45°, ±2 = 90°). */
 const TURN_OPTIONS: { key: string; label: string; steps: number }[] = [
@@ -30,13 +31,13 @@ export function ShipManeuverModal() {
   const battle = useGame((s) => s.battle);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const setTurn = useGame((s) => s.shipManeuverSetTurn);
-  const roll = useGame((s) => s.shipManeuverRoll);
-  const reroll = useGame((s) => s.shipManeuverReroll);
-  const bonus = useGame((s) => s.shipManeuverBonusSL);
-  const darkPact = useGame((s) => s.shipManeuverDarkPact);
-  const force = useGame((s) => s.shipManeuverForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'shipManeuver');
+  const reroll = useGesteDeJet('jetReroll', 'shipManeuver');
+  const bonus = useGesteDeJet('jetBonusSL', 'shipManeuver');
+  const darkPact = useGesteDeJet('jetDarkPact', 'shipManeuver');
+  const force = useGesteDeJet('jetForceSuccess', 'shipManeuver');
   const confirm = useGame((s) => s.shipManeuverConfirm);
-  const cancel = useGame((s) => s.shipManeuverCancel);
+  const cancel = useGesteDeJet('jetCancel', 'shipManeuver');
   const milieu = useGame((s) => milieuDuVoyage(s.travelPlan));
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);

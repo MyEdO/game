@@ -52,7 +52,7 @@ function revenusDeB(deA: number, carriereB: string, deB = DE.sansEffet): number 
   const { banc, b } = tirage(deA, carriereB, deB);
   banc.actions.seedRng(42);
   banc.actions.interludeActivity(b, 'revenus');
-  banc.actions.activityRoll();
+  banc.actions.jetRoll('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 1 } }));
   banc.actions.activityConfirm();
   return banc.getState().interlude!.perHero[b].revenueBrass;

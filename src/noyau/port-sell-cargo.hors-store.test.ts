@@ -30,7 +30,7 @@ async function drain(): Promise<void> {
     const p = get().pendingCascade;
     if (p) {
       const cur = p.participants[p.cursor];
-      if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+      if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
       get().cascadeNext();
     }
     await tick();

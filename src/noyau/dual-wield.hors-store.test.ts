@@ -312,7 +312,7 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     const pd = banc.getState().pendingDefense;
     expect(pd?.defenderId, 'la fenêtre de f2 s’interpose').toBe('f2');
     expect(pd?.suite.mode === 'pilotee' && pd.suite.pa.dualSecond, 'la 2ᵉ frappe voyage sur la fenêtre').toBe(true);
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     banc.getState().defenseConfirm();
     expect(banc.getState().pendingDefense).toBeNull();
     expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe est appliquée').toBeNull();
@@ -334,7 +334,7 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     expect(banc.getState().pendingAttack?.result?.attackerDetail?.roll, 'la 2ᵉ frappe prend le jet tranché').toBe(56);
     banc.getState().attackConfirm();
     expect((banc.getState().pendingDefense as any)?.atk?.roll, 'le jet figé voyage sur la fenêtre').toBe(56);
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     expect(banc.getState().pendingDefense?.result?.attackerDetail?.roll, 'l’opposition garde le jet de l’attaquant').toBe(56);
   });
 
@@ -350,8 +350,8 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     banc.setState({ pendingDualStrike: { ...banc.getState().pendingDualStrike!, jet: reverseRoll(34) } });
     banc.getState().dualStrikeAttack('f2');
     banc.getState().attackConfirm();
-    banc.getState().defenseRoll();
-    banc.getState().defenseSetForcedRoll(deDefense);
+    banc.getState().jetRoll('defense');
+    banc.getState().jetSetForcedRoll('defense', deDefense);
     expect(banc.getState().pendingDefense?.result?.netSL).toBe(inline.netSL);
   });
 });

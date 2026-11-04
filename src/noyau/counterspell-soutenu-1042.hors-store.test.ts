@@ -99,14 +99,14 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     openWindow([h1.id, h2.id]);
     expect(counterspellDeclarePhase(banc.getState().pendingCounterspell)).toBe(true);
     declare(h1.id, 'solo');
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result, 'le jet attend que TOUTE la fenêtre ait déclaré').toBeNull();
     expect(live(h1.id).dispelledThisRound, 'le verrou ne brûle rien').toBeFalsy();
     banc.getState().counterspellRollAll();
     expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'le drive ne force pas la phase').toBe(true);
     declare(h2.id, 'pass'); // dernière déclaration → phase 2
     expect(counterspellDeclarePhase(banc.getState().pendingCounterspell)).toBe(false);
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result, 'phase 2 : le déclaré solo lance').toBeTruthy();
   });
 
@@ -118,9 +118,9 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     declare(h1.id, 'solo');
     declare(h2.id, 'pass');
     expect(live(h2.id).dispelledThisRound).toBeFalsy();
-    banc.getState().counterspellRoll(h2.id); // une rangée qui passe ne lance jamais
+    banc.getState().jetRoll('counterspell', h2.id); // une rangée qui passe ne lance jamais
     expect(row(h2.id).result).toBeNull();
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(live(h1.id).dispelledThisRound, 'le lanceur, lui, consomme son essai').toBe(true);
     expect(live(h2.id).dispelledThisRound, 'celui qui passe garde le sien').toBeFalsy();
   });
@@ -135,9 +135,9 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     declare(h1.id, 'solo');
     declare(h2.id, 'pass');
     seedBattleRng(11);
-    banc.getState().counterspellRoll(h3.id);
+    banc.getState().jetRoll('counterspell', h3.id);
     expect(row(h3.id).result!.dispelled, 'préparation : son Contre-sort échoue').toBe(false);
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result, 'un échec ne ferme pas la lice aux autres DÉCLARÉS').toBeTruthy();
     expect(banc.getState().pendingCounterspell!.participants.filter((p) => p.result).length).toBe(2);
     for (const h of [h1, h3]) expect(live(h.id).dispelledThisRound, `${h.label} a tenté`).toBe(true);
@@ -193,10 +193,10 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     expect(grp.bonus, '+10 par soutien éligible').toBe(10);
     expect(counterspellSoutienFor(s, s.pendingCounterspell, h2.id), 'le Soutien ne s’ajoute qu’au meneur').toBe(0);
     const attendu = castingValue(live(h1.id), 'langue', 'magick') + 10;
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result!.counter.target, 'la cible du jet PORTE le Soutien').toBe(attendu);
     expect(row(h2.id).result, 'le groupe n’a qu’un jet (LDB 12 l.189)').toBeNull();
-    banc.getState().counterspellRoll(h2.id);
+    banc.getState().jetRoll('counterspell', h2.id);
     expect(row(h2.id).result, 'un soutien ne peut pas lancer le sien en plus').toBeNull();
   });
 
@@ -206,11 +206,11 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     freezeCast(E, h1);
     openWindow([h1.id, h2.id]);
     // (1) EFFET : en phase 1, un siège ne referme pas la fenêtre des autres — décliner s'y dit `pass`.
-    banc.getState().counterspellCancel();
+    banc.getState().jetCancel('counterspell');
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste ouverte').toBeTruthy();
     // (2) ROUTE : la MÊME frontière côté réseau (l'intent n'atteint jamais l'effet).
     const s = banc.getState();
-    expect(intentAllowedFor(s, 0, 'counterspellCancel'), 'aucun siège ne ferme pendant la phase').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetCancel', ['counterspell']), 'aucun siège ne ferme pendant la phase').toBe(false);
     // (3) TOUT-PASS : la dernière déclaration ferme la fenêtre par le résolveur canonique, sans jet.
     declare(h1.id, 'pass');
     declare(h2.id, 'pass');
@@ -230,10 +230,10 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     const attendu = castingValue(live(h1.id), 'langue', 'magick') + 10;
     // (1) RÉSILIENCE PRÉ-JET (LDB 17 l.68) : le résolveur forcé lit la valeur SOUTENUE, pas la valeur nue.
     live(h1.id).resilience = 1;
-    banc.getState().counterspellForceSuccess(h1.id);
+    banc.getState().jetForceSuccess('counterspell', h1.id);
     expect(row(h1.id).result!.counter.target, 'la Résilience du meneur porte le Soutien').toBe(attendu);
     // (2) DÉ FIXÉ posé ensuite : la cible reste celle du jet SOUTENU (aucun recalcul nu en chemin).
-    banc.getState().counterspellSetForcedRoll(h1.id, 7);
+    banc.getState().jetSetForcedRoll('counterspell', 7, h1.id);
     expect(row(h1.id).result!.counter.roll, 'le dé saisi est bien appliqué').toBe(7);
     expect(row(h1.id).result!.counter.target, 'le dé fixé du meneur garde le Soutien').toBe(attendu);
   });
@@ -262,7 +262,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     expect(live(h1.id).dispelledThisRound, 'déclarer n’est pas chanter').toBeFalsy();
     expect(live(h2.id).dispelledThisRound).toBeFalsy();
     declare(h3.id, 'pass');
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(live(h1.id).dispelledThisRound, 'le meneur a tenté').toBe(true);
     expect(live(h2.id).dispelledThisRound, 's’unir EST tenter').toBe(true);
     expect(live(h3.id).dispelledThisRound, 'passer ne coûte rien').toBeFalsy();
@@ -278,9 +278,9 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     declare(h2.id, 'soutenu');
     declare(h3.id, 'solo');
     seedBattleRng(11);
-    banc.getState().counterspellRoll(h3.id);
+    banc.getState().jetRoll('counterspell', h3.id);
     expect(row(h3.id).result!.dispelled, 'préparation : le séparé échoue').toBe(false);
-    banc.getState().counterspellRoll(h1.id);
+    banc.getState().jetRoll('counterspell', h1.id);
     expect(row(h1.id).result, 'le groupe chante aussi').toBeTruthy();
     expect(row(h2.id).result, 'le soutien n’a pas de jet propre').toBeNull();
     // Deux participants ROULÉS entrent dans l'agrégation (le groupe compte pour un).

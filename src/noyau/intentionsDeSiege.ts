@@ -12,21 +12,19 @@
  * marchand/éditeur, persistance) est refusé par l'hôte.
  *
  * TOUTE action du store a sa classe coop (#2724) :
- *  - les délégués `<prefix><Verbe>` des flux de jet à surface DÉRIVÉE (tout mono, tout multi
- *    `coop: true`) ET leurs actions de `resolution` : classe dérivée de `FLOW_VERBS`
- *    (`coopFlowIntents`) — un flux mono ajouté à la table n'a AUCUNE ligne à écrire ici ;
+ *  - les verbes de jet (`jet<Verbe>`, le flux en argument) ET les actions de `resolution` de chaque flux : classe
+ *    dérivée de `FLOW_VERBS` (`coopFlowIntents`) — un flux ajouté à la table n'a AUCUNE ligne à écrire ici ;
  *  - toute autre action : une entrée de `CLASSE_DES_ACTIONS_DU_NOYAU` (actions de `Jeu`) ou de la
  *    table de l'adaptateur (`state/intents.ts`, ses actions d'interface), tables TOTALES sur
  *    `ActionManuscrite` — une action ajoutée sans classe ne compile pas. Une action `<prefix><Maj>…` d'un flux de
- *    jet y est `invité` par le type (#1017, #1050), hors ouvreur `parHote`, élection locale, délégué
- *    et `resolution` d'un flux multi sans `coop` (`flowVerbs.FlowVerbs.coop`).
+ *    jet y est `invité` par le type (#1017, #1050), hors ouvreur `parHote` et élection locale.
  * `invité` = l'invité la DEMANDE à l'hôte (`netFlow` l'enrobe) ; `hôte` = écran ou décision pilotés
  * par l'hôte ; `local` = état d'écran du client, jamais un intent ; `interne` = machinerie qu'aucun
  * écran (`src/ui`, `src/gameIso`) n'émet (garde `intents.test.ts`, #1050). Chez l'invité, une action
  * hors allowlist s'exécute dans son store (`netFlow` n'enrobe que l'allowlist) ; chez l'hôte, toute
  * intention d'un siège passe par `appliquerLIntentionDUnSiege`.
  */
-import { coopFlowIntents, type FLOW_VERBS } from './flowVerbs';
+import { coopFlowIntents, type FLOW_VERBS, type NomDeVerbeDeJet } from './flowVerbs';
 import type { HORS_MODAL } from './modalArbiter';
 import type { Jeu } from './etat';
 import type { LOCALES_AU_CLIENT } from './coop';
@@ -37,15 +35,9 @@ import { t } from '../i18n';
 export type ClasseCoop = 'invité' | 'hôte' | 'local' | 'interne';
 
 type Table = typeof FLOW_VERBS;
-type VerbeDe<W> = W extends { verbs: readonly (infer V extends string)[] } ? V : never;
 type ResolutionDe<W> = W extends { resolution: readonly (infer R)[] } ? R : never;
-/** Flux de `T` à surface DÉRIVÉE (`coopFlowIntents`) : tout mono, tout multi `coop: true`. */
-type FluxDerive<T> = { [K in keyof T]: T[K] extends { kind: 'mono' } | { coop: true } ? K : never }[keyof T] & string;
-/** Délégués `<prefix><Verbe>` et actions de `resolution` des flux `F` de `T`. */
-type ActionDeFlux<T, F extends keyof T & string> = { [K in F]: `${K}${Capitalize<VerbeDe<T[K]>>}` | ResolutionDe<T[K]> }[F];
-type ActionDerivee<T> = ActionDeFlux<T, FluxDerive<T>>;
-/** Délégués et `resolution` d'un flux multi SANS `coop` : surface non dérivée, classe libre. */
-type ActionNonCoop<T> = ActionDeFlux<T, Exclude<keyof T & string, FluxDerive<T>>>;
+/** Surface DÉRIVÉE (`coopFlowIntents`) : les verbes de jet et les actions de `resolution` des flux de `T`. */
+type ActionDerivee<T> = NomDeVerbeDeJet | { [K in keyof T]: ResolutionDe<T[K]> }[keyof T];
 
 /** Actions d'un état de store `S` dont la classe coop s'ÉCRIT (hors surface dérivée des flux de `T`). */
 export type ActionManuscrite<S = Jeu, T = Table> = Exclude<
@@ -68,7 +60,6 @@ const ELECTIONS_LOCALES = { dispelSelectCarrier: 'dispelCarrierId' } as const sa
 /** Classe qu'une action manuscrite de `T` peut prendre. */
 type ClasseAdmise<A, T> = A extends OuvreurParHote ? 'hôte'
   : A extends keyof typeof ELECTIONS_LOCALES ? 'local'
-  : A extends ActionNonCoop<T> ? ClasseCoop
   : A extends `${keyof T & string}${Majuscule}${string}` ? 'invité'
   : ClasseCoop;
 
@@ -180,8 +171,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Fuite de vapeur (MDG 12 l.326-328) : résolution de la sauvegarde d'Initiative.
   steamSaveConfirm: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie + fermeture — l'hôte valide.
-  // Chirurgie : openSurgeryPass POSE la passe, les verbes surgery* dérivés l'influencent,
-  // surgeryNext applique, surgeryCancel (dérivé) annule la passe, medicAbandonSurgery l'opération — une
+  // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
+  // surgeryNext applique, `jetCancel('surgery')` annule la passe, medicAbandonSurgery l'opération — une
   // passe n'a AUCUN verbe de résolution inline.
   medicSelectPatient: 'invité', medicAct: 'invité', medicSetWound: 'invité', closeMedic: 'invité',
   openSurgeryPass: 'invité', surgeryNext: 'invité', medicAbandonSurgery: 'invité',
@@ -329,7 +320,7 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
  * sont une surface MORTE.
  *  - `parInvite` : ouvreurs qu'un invité doit pouvoir demander (classe `invité`) ;
  *  - `parHote` : ouvreurs d'un ÉCRAN piloté par l'hôte (classe `hôte`) — le jet, une fois ouvert, est
- *    joué ENTIER par le siège de son porteur (verbes ET `resolution`, routes `jetOwnedIntents`) ;
+ *    joué ENTIER par le siège de son porteur (verbes de jet ET `resolution`, routes de `netOwnership`) ;
  *  - `interne` : aucune action de store n'ouvre ce flux — la valeur NOMME le site qui le pose.
  * Ses ouvreurs `parHote` fixent leur classe dans `TableDesClasses` : la table n'est donc vérifiée
  * qu'après sa déclaration (`_ouvertureTotale`).

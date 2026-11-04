@@ -10,7 +10,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * Annuler une CHARGE (retour playtest) : dans un jeu vidéo, on annule un déplacement et une attaque —
  * on doit pouvoir annuler une charge (manœuvre combinée déplacement + attaque) tant qu'aucun dé n'est
- * lancé (misclic). `attackCancel` restaure alors positions, Mouvement, Avantage (+1 de charge rendu) et
+ * lancé (misclic). `jetCancel('attack')` restaure alors positions, Mouvement, Avantage (+1 de charge rendu) et
  * `chargedThisTurn`. Une fois le dé lancé (`result` posé), la charge est ENGAGÉE (RAW LDB 15) → pas d'undo.
  */
 const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -37,11 +37,11 @@ function setup(): void {
 const chargeUndo = { pos: { h: { x: 2, y: 5 }, e: { x: 7, y: 5 } }, facing: {}, movedPreAction: false, movementUsed: 0, advGained: 1, gainedAdvBefore: false, chargedBefore: false, avecAvantageBefore: false };
 const h = () => banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
 
-describe('attackCancel — annuler une charge (déplacement + attaque)', () => {
+describe('jetCancel@attack — annuler une charge (déplacement + attaque)', () => {
   it('AVANT le jet : restaure position, Mouvement, Avantage (+1 rendu) et chargedThisTurn', () => {
     setup();
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'e', location: null, result: null, fromCharge: true, chargeUndo } as never });
-    banc.getState().attackCancel();
+    banc.getState().jetCancel('attack');
     const s = banc.getState();
     expect(h().pos).toEqual({ x: 2, y: 5 }); // position d'avant la charge
     expect(s.battle!.movementUsed).toBe(0);   // Mouvement rendu
@@ -55,7 +55,7 @@ describe('attackCancel — annuler une charge (déplacement + attaque)', () => {
     setup();
     const pa = { attackerId: 'h', targetId: 'e', location: null, result: { hit: false } as never, fromCharge: true, chargeUndo } as never;
     banc.setState({ pendingAttack: pa });
-    banc.getState().attackCancel();
+    banc.getState().jetCancel('attack');
     expect(banc.getState().pendingAttack).toBe(pa); // inchangé — engagé
     expect(h().pos).toEqual({ x: 6, y: 5 });           // reste au contact
   });

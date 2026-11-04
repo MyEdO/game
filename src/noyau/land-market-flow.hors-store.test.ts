@@ -26,13 +26,13 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Draine une cascade influençable (héros piloté-humain → modale, #274) — même patron que les autres
- *  suites (`cascadeRoll`+`cascadeNext`, ex. `river-voyage-flow.hors-store.test.ts`). */
+ *  suites (`jetRoll('cascade')`+`cascadeNext`, ex. `river-voyage-flow.hors-store.test.ts`). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
     else get().cascadeNext();
   }
 }
@@ -107,7 +107,7 @@ function sellAtB(board: TradeRumour[]): number {
   let g = 0;
   while (get().pendingCascade && g++ < 5) {
     const p = get().pendingCascade!;
-    get().cascadeRoll(p.participants[p.cursor].id);
+    get().jetRoll('cascade', p.participants[p.cursor].id);
     get().cascadeNext();
     banc.reprendreLesEnAttente();
   }

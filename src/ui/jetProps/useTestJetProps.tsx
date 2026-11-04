@@ -13,6 +13,7 @@ import { rule } from '../../engine/policy';
 import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
@@ -28,16 +29,16 @@ import { t } from '../../i18n';
 export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const pt = useGame((s) => s.pendingTest);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.testRoll);
-  const reroll = useGame((s) => s.testReroll);
-  const bonusSL = useGame((s) => s.testBonusSL);
-  const darkPact = useGame((s) => s.testDarkPact);
-  const determination = useGame((s) => s.testDetermine);
-  const forceSuccess = useGame((s) => s.testForceSuccess);
-  const reverseVerb = useGame((s) => s.testReverse);
+  const roll = useGesteDeJet('jetRoll', 'test');
+  const reroll = useGesteDeJet('jetReroll', 'test');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'test');
+  const darkPact = useGesteDeJet('jetDarkPact', 'test');
+  const determination = useGesteDeJet('jetDetermine', 'test');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
+  const reverseVerb = useGesteDeJet('jetReverse', 'test');
   const setActor = useGame((s) => s.testSetActor);
   const resolve = useGame((s) => s.resolveTest);
-  const cancel = useGame((s) => s.testCancel);
+  const cancel = useGesteDeJet('jetCancel', 'test');
   if (!pt) return null;
   const rolled = pt.roll != null;
   const actor = party.find((c) => c.id === pt.actorId);

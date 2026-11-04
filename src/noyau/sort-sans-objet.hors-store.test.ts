@@ -28,11 +28,11 @@ function benir(banc: Banc, pretreId: string, cibleId: string): string[] {
   const avant = banc.getState().journal.length;
   banc.getState().oocCastSpell(pretreId, 'benediction-de-tenacite', cibleId);
   expect(banc.getState().pendingCast?.targetId, 'témoin : le lancer s’ouvre sur la cible').toBe(cibleId);
-  banc.getState().castRoll();
+  banc.getState().jetRoll('cast');
   if (!banc.getState().pendingCast!.result!.cast) {
     const p = banc.getState().party.find((c) => c.id === pretreId)!;
     p.resilience = (p.resilience ?? 0) + 1;
-    banc.getState().castForceSuccess();
+    banc.getState().jetForceSuccess('cast');
   }
   expect(banc.getState().pendingCast!.result!.cast, 'témoin : la Bénédiction réussit').toBe(true);
   banc.getState().castConfirm();

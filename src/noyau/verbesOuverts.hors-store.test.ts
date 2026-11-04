@@ -85,84 +85,93 @@ const enEtape = (jet: HostJet, pending: Partial<Jeu>): Partial<Jeu> => ({ pendin
 describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce que les ops de son flux laissent passer', () => {
   it('attaque : avant le jet, lancer, annuler ou choisir le dé par Résilience ; après, la clôture et les influences que le jet réussi admet', () => {
     const avant = verbes(enEtape('attack', { pendingAttack: attaque() }));
-    expect(avant.ouverts).toEqual(['attackCancel', 'attackForceSuccess', 'attackRoll']);
-    expect(avant.fermes).toMatchObject({ attackConfirm: 'jetNonLance', attackReroll: 'jetNonLance', attackSetForcedRoll: 'jetNonLance' });
+    expect(avant.ouverts).toEqual(['jetCancel@attack', 'jetForceSuccess@attack', 'jetRoll@attack']);
+    expect(avant.fermes).toMatchObject({ attackConfirm: 'jetNonLance', 'jetReroll@attack': 'jetNonLance', 'jetSetForcedRoll@attack': 'jetNonLance' });
     const apres = verbes(enEtape('attack', { pendingAttack: attaque(COUP) }));
-    expect(apres.ouverts).toEqual(['attackBonusSL', 'attackConfirm', 'attackDarkPact', 'attackSetForcedRoll']);
-    expect(apres.fermes).toMatchObject({ attackRoll: 'jetLance', attackCancel: 'jetLance', attackReroll: 'jetReussi', attackForceSuccess: 'jetReussi', attackReverse: 'sansVoieDInversion' });
+    expect(apres.ouverts).toEqual(['attackConfirm', 'jetBonusSL@attack', 'jetDarkPact@attack', 'jetSetForcedRoll@attack']);
+    expect(apres.fermes).toMatchObject({ 'jetRoll@attack': 'jetLance', 'jetCancel@attack': 'jetLance', 'jetReroll@attack': 'jetReussi', 'jetForceSuccess@attack': 'jetReussi', 'jetReverse@attack': 'sansVoieDInversion' });
   });
 
   it('attaque : la 2ᵉ frappe du Maniement de deux armes a son jet imposé (LDB 10 l.767-773)', () => {
     const { fermes } = verbes(enEtape('attack', { pendingAttack: { ...attaque(COUP), dualSecond: true } as PendingAttack }));
-    expect(fermes).toMatchObject({ attackReroll: 'jetImpose', attackDarkPact: 'jetImpose', attackReverse: 'jetImpose', attackCancel: 'jetLance' });
+    expect(fermes).toMatchObject({ 'jetReroll@attack': 'jetImpose', 'jetDarkPact@attack': 'jetImpose', 'jetReverse@attack': 'jetImpose', 'jetCancel@attack': 'jetLance' });
     const avant = verbes(enEtape('attack', { pendingAttack: { ...attaque(), dualSecond: true } as PendingAttack }));
-    expect(avant.fermes.attackCancel, 'avant le jet, l’Annuler se montre refusé (`refusDAnnulerLAttaque`)').toBe('actionEngagee');
+    expect(avant.fermes['jetCancel@attack'], 'avant le jet, l’Annuler se montre refusé (`refusDAnnulerLAttaque`)').toBe('actionEngagee');
   });
 
   it('défense : avant le jet, le jet ou la Résilience ; après, la clôture et toute l’influence d’un jet raté', () => {
     const avant = verbes(enEtape('defense', { pendingDefense: defense(false) }));
-    expect(avant.ouverts).toEqual(['defenseForceSuccess', 'defenseRoll']);
-    expect(avant.fermes).toMatchObject({ defenseConfirm: 'jetNonLance', defenseReroll: 'jetNonLance', defenseSetForcedRoll: 'jetNonLance' });
+    expect(avant.ouverts).toEqual(['jetForceSuccess@defense', 'jetRoll@defense']);
+    expect(avant.fermes).toMatchObject({ defenseConfirm: 'jetNonLance', 'jetReroll@defense': 'jetNonLance', 'jetSetForcedRoll@defense': 'jetNonLance' });
     const apres = verbes(enEtape('defense', { pendingDefense: defense(true) }));
-    expect(apres.ouverts).toEqual(['defenseBonusSL', 'defenseConfirm', 'defenseDarkPact', 'defenseForceSuccess', 'defenseReroll', 'defenseSetForcedRoll']);
-    expect(apres.fermes).toMatchObject({ defenseRoll: 'jetLance' });
+    expect(apres.ouverts).toEqual(['defenseConfirm', 'jetBonusSL@defense', 'jetDarkPact@defense', 'jetForceSuccess@defense', 'jetReroll@defense', 'jetSetForcedRoll@defense']);
+    expect(apres.fermes).toMatchObject({ 'jetRoll@defense': 'jetLance' });
   });
 
   it('Test : avant le jet, lancer, annuler ou la Résilience, la Détermination sans malus psychologique fermée ; après, la clôture', () => {
     const avant = verbes(enEtape('test', { pendingTest: test(false) }));
-    expect(avant.ouverts).toEqual(['testCancel', 'testForceSuccess', 'testRoll']);
-    expect(avant.fermes).toMatchObject({ resolveTest: 'jetNonLance', testDetermine: 'sansMalusPsy', testSetForcedRoll: 'jetNonLance' });
+    expect(avant.ouverts).toEqual(['jetCancel@test', 'jetForceSuccess@test', 'jetRoll@test']);
+    expect(avant.fermes).toMatchObject({ resolveTest: 'jetNonLance', 'jetDetermine@test': 'sansMalusPsy', 'jetSetForcedRoll@test': 'jetNonLance' });
     const apres = verbes(enEtape('test', { pendingTest: test(true) }));
-    expect(apres.ouverts).toEqual(['resolveTest', 'testBonusSL', 'testDarkPact', 'testSetForcedRoll']);
-    expect(apres.fermes).toMatchObject({ testRoll: 'jetLance', testCancel: 'jetLance', testReroll: 'jetReussi', testForceSuccess: 'jetReussi' });
-    expect(verbes(enEtape('test', { pendingTest: test(false, false) })).fermes.testCancel, 'un Test de scène ne s’annule pas').toBe('nonOffert');
+    expect(apres.ouverts).toEqual(['jetBonusSL@test', 'jetDarkPact@test', 'jetSetForcedRoll@test', 'resolveTest']);
+    expect(apres.fermes).toMatchObject({ 'jetRoll@test': 'jetLance', 'jetCancel@test': 'jetLance', 'jetReroll@test': 'jetReussi', 'jetForceSuccess@test': 'jetReussi' });
+    expect(verbes(enEtape('test', { pendingTest: test(false, false) })).fermes['jetCancel@test'], 'un Test de scène ne s’annule pas').toBe('nonOffert');
   });
 
   it('incantation : avant le jet, le jet ou la Résilience ; après, la clôture et les influences d’un jet réussi', () => {
     const avant = verbes(enEtape('cast', { pendingCast: incantation(false) }));
-    expect(avant.ouverts).toEqual(['castCancel', 'castForceSuccess', 'castRoll']);
-    expect(avant.fermes).toMatchObject({ castConfirm: 'jetNonLance', castReroll: 'jetNonLance', castSetForcedRoll: 'jetNonLance' });
+    expect(avant.ouverts).toEqual(['jetCancel@cast', 'jetForceSuccess@cast', 'jetRoll@cast']);
+    expect(avant.fermes).toMatchObject({ castConfirm: 'jetNonLance', 'jetReroll@cast': 'jetNonLance', 'jetSetForcedRoll@cast': 'jetNonLance' });
     const apres = verbes(enEtape('cast', { pendingCast: incantation(true) }));
-    expect(apres.ouverts).toEqual(['castBonusSL', 'castConfirm', 'castDarkPact', 'castSetForcedRoll']);
-    expect(apres.fermes).toMatchObject({ castRoll: 'jetLance', castReroll: 'jetReussi', castForceSuccess: 'jetReussi' });
+    expect(apres.ouverts).toEqual(['castConfirm', 'jetBonusSL@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
+    expect(apres.fermes).toMatchObject({ 'jetRoll@cast': 'jetLance', 'jetReroll@cast': 'jetReussi', 'jetForceSuccess@cast': 'jetReussi' });
   });
 
   it('sans l’option « Dés fixés », aucun dé ne se fixe après le jet', () => {
     setDesFixes(false);
     try {
-      expect(verbes(enEtape('attack', { pendingAttack: attaque(COUP) })).fermes.attackSetForcedRoll).toBe('desFixesInactifs');
+      expect(verbes(enEtape('attack', { pendingAttack: attaque(COUP) })).fermes['jetSetForcedRoll@attack']).toBe('desFixesInactifs');
     } finally {
       setDesFixes(ENTREES.desFixes);
     }
   });
 
   it('Résilience : sans point, ni avant ni après le jet', () => {
-    expect(verbes({ ...enEtape('attack', { pendingAttack: attaque() }), ...resilienceA(0) }).fermes.attackForceSuccess).toBe('sansResilience');
-    expect(verbes({ ...enEtape('defense', { pendingDefense: defense(true) }), ...resilienceA(0) }).fermes.defenseForceSuccess).toBe('sansResilience');
+    expect(verbes({ ...enEtape('attack', { pendingAttack: attaque() }), ...resilienceA(0) }).fermes['jetForceSuccess@attack']).toBe('sansResilience');
+    expect(verbes({ ...enEtape('defense', { pendingDefense: defense(true) }), ...resilienceA(0) }).fermes['jetForceSuccess@defense']).toBe('sansResilience');
   });
 
   it('Résilience : un jet propre réussi dont l’issue est perdue la laisse ouverte (LDB 17 l.68)', () => {
     const touche = verbes(enEtape('defense', { pendingDefense: defense(true, tr(30, 40)) }));
-    expect(touche.ouverts).toContain('defenseForceSuccess');
-    expect(touche.fermes.defenseReroll, 'la Chance, elle, suit le jet propre').toBe('jetReussi');
+    expect(touche.ouverts).toContain('jetForceSuccess@defense');
+    expect(touche.fermes['jetReroll@defense'], 'la Chance, elle, suit le jet propre').toBe('jetReussi');
   });
 
   it('Résilience : une incantation au d100 réussi mais au NI non atteint la laisse ouverte (LDB 17 l.68, l.75)', () => {
     const rate = verbes(enEtape('cast', { pendingCast: { ...incantation(true), result: { ...incantation(true).result!, cast: false } } }));
-    expect(rate.ouverts).toContain('castForceSuccess');
-    expect(rate.fermes.castCancel).toBe('jetLance');
+    expect(rate.ouverts).toContain('jetForceSuccess@cast');
+    expect(rate.fermes['jetCancel@cast']).toBe('jetLance');
   });
 
   it('Détermination : un malus psychologique l’ouvre avant le jet, tant que la réserve n’est pas vide (LDB 17 l.59)', () => {
     const psy = (resolve: number) => verbes({ ...enEtape('test', { pendingTest: { ...test(false), psychMod: -20 } }), ...reserves({ resolve }) });
-    expect(psy(2).ouverts).toContain('testDetermine');
-    expect(psy(0).fermes.testDetermine).toBe('sansDetermination');
+    expect(psy(2).ouverts).toContain('jetDetermine@test');
+    expect(psy(0).fermes['jetDetermine@test']).toBe('sansDetermination');
   });
 
   it('incantation Critique d’un Sort : la clôture attend le choix de l’effet (LDB 46 l.28-32)', () => {
     expect(verbes(enEtape('cast', { pendingCast: incantation(true, true) })).fermes.castConfirm).toBe('choixCritiqueDu');
     const choisi = verbes(enEtape('cast', { pendingCast: { ...incantation(true, true), critChoice: 'puissance' } }));
     expect(choisi.ouverts).toContain('castConfirm');
+  });
+});
+
+describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)', () => {
+  it('l’incantation jetée et son Contre-sort à jeter : le même verbe, fermé sur l’un, ouvert sur l’autre', () => {
+    const contre = { participants: [{ id: E.id, interactive: true, declared: 'solo', result: null }] } as unknown as Jeu['pendingCounterspell'];
+    const { ouverts, fermes } = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre }));
+    expect(fermes['jetRoll@cast'], 'le jet d’incantation est tombé').toBe('jetLance');
+    expect(ouverts, 'la rangée du Contre-sort, elle, reste à jeter').toContain('jetRoll@counterspell');
   });
 });
 

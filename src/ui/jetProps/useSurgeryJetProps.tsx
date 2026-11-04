@@ -8,12 +8,13 @@ import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * Jet d'UNE passe de Chirurgie (Test ÉTENDU influençable), données de la coquille — calque `useHealJetProps` :
  * « Lancer » → Chance (relance / +1 DR) → Résilience → « Appliquer la passe » (surgeryNext). Le chirurgien
  * peut être un héros (Chance/Résilience) ; PNJ payant → ressources à 0. « Annuler » et Échap (avant le jet)
- * annulent la PASSE posée (surgeryCancel) : l'opération armée, son cumul et le patient restent, et le
+ * annulent la PASSE posée (jetCancel('surgery')) : l'opération armée, son cumul et le patient restent, et le
  * pied de l'infirmerie reprend « Arrêter l'opération » (`MedicModal`).
  */
 export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
@@ -21,13 +22,13 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   const kind = useGame((s) => s.medic?.surgery?.kind);
   const stake = useGame((s) => s.medic?.surgery?.stake); // posé à l'armement — opérer ≠ rééduquer
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.surgeryRoll);
-  const reroll = useGame((s) => s.surgeryReroll);
-  const bonusSL = useGame((s) => s.surgeryBonusSL);
-  const darkPact = useGame((s) => s.surgeryDarkPact);
-  const force = useGame((s) => s.surgeryForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'surgery');
+  const reroll = useGesteDeJet('jetReroll', 'surgery');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'surgery');
+  const darkPact = useGesteDeJet('jetDarkPact', 'surgery');
+  const force = useGesteDeJet('jetForceSuccess', 'surgery');
   const next = useGame((s) => s.surgeryNext);
-  const cancel = useGame((s) => s.surgeryCancel);
+  const cancel = useGesteDeJet('jetCancel', 'surgery');
   if (!ps) return null;
   const surgeon = party.find((c) => c.id === ps.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
   const fortune = surgeon?.fortune ?? 0;

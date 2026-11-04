@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
-import { FLOW_VERBS } from './flowVerbs';
+import { FLOW_VERBS, type FlowKey, type NomDeVerbeDeJet } from './flowVerbs';
 import type { Combatant } from '../engine/types';
 import { FIXTURES, FLUX, FOE, HERO, PERDANT } from './inventaireDuDeFixe.testkit';
 
@@ -21,8 +21,9 @@ import { FIXTURES, FLUX, FOE, HERO, PERDANT } from './inventaireDuDeFixe.testkit
  * « dé fixé » que la rangée offre se joue en `src/state/fixed-die-inventaire.test.ts`.
  */
 let banc: Banc;
-type Verbes = Record<string, (...a: unknown[]) => void>;
-const verbes = (): Verbes => banc.actions as unknown as Verbes;
+/** Le verbe de jet `nom` sur le flux `k`, ses `args` puis la rangée `pid` d'un flux multi (`VerbesDeJet`). */
+const jet = (nom: NomDeVerbeDeJet, k: FlowKey, pid: string | undefined, ...args: unknown[]): void =>
+  (banc.actions[nom] as (flux: FlowKey, ...reste: unknown[]) => void)(k, ...args, ...(pid ? [pid] : []));
 
 const ouvrir = (desFixes: boolean): void => {
   banc = ouvrirLeBanc({ desFixes });
@@ -50,8 +51,7 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
     it(`${k} — un dé fixé PERDANT échoue, et la valeur appliquée est la valeur saisie`, () => {
       const f = FIXTURES[k]!;
       banc.setState(f.state as never);
-      const verb = verbes()[`${k}SetForcedRoll`];
-      if (f.pid) verb(f.pid, PERDANT); else verb(PERDANT);
+      jet('jetSetForcedRoll', k, f.pid, PERDANT);
       const got = f.read(banc.getState());
       expect(got.roll, `${k} : la valeur appliquée n'est pas la valeur saisie`).toBe(PERDANT);
       expect(got.success, `${k} : un dé PERDANT est devenu une réussite (réussite gratuite)`).toBe(false);
@@ -88,15 +88,13 @@ describe('socle du dé choisi (Résilience) — même chemin, politique en param
         battle: { combatants: [hero, foe], log: [], order: ['H', 'E'], turn: 0, round: 1 } as never,
       });
       banc.setState(f.state as never);
-      const verbs = verbes();
-      const call = (v: string, ...args: unknown[]) => (f.pid ? verbs[v](f.pid, ...args) : verbs[v](...args));
-      call(`${k}ForceSuccess`);
+      jet('jetForceSuccess', k, f.pid);
       const apres = banc.getState().battle!.combatants.find((c) => c.id === 'H')!.resilience;
       expect(apres, `${k} : la Résilience n'a pas été dépensée (le forçage n'a pas pris)`).toBe(2);
       const forced = f.read(banc.getState());
       expect(forced.success, `${k} : « Je ne faillirai pas ! » n'a pas produit de réussite`).toBe(true);
 
-      call(`${k}SetForcedRoll`, CHOISI);
+      jet('jetSetForcedRoll', k, f.pid, CHOISI);
       const got = f.read(banc.getState());
       expect(got.roll, `${k} : le dé CHOISI n'est pas celui appliqué (jet relancé ou saisie ignorée)`).toBe(CHOISI);
       expect(got.success, `${k} : la réussite PAYÉE par le point de Résilience a été perdue`).toBe(true);

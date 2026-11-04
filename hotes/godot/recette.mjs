@@ -70,11 +70,11 @@ const marquer = () => evaluate(session, '(globalThis.wfrpEcran && (wfrpEcran.vu 
 const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs })
 const actif = (v) => v.projection.combat?.actif
 const nomDe = (v, id) => v.projection.combat.voisins.liste.find((c) => c.id === id)?.nom
-/** Les verbes des gestes que la fenêtre dessine (`ouvert`), et ceux qu'elle tait. */
-const ouverts = (v) => v.fenetre.gestes.filter((g) => g.ouvert).map((g) => g.verbe)
-const fermes = (v) => v.fenetre.gestes.filter((g) => !g.ouvert).map((g) => g.verbe)
-/** Le verbe du geste que la fenêtre attend. */
-const verbeAttendu = (v) => v.fenetre.gestes.find((g) => g.attendu).verbe
+/** Les gestes que la fenêtre dessine (`ouvert`), et ceux qu'elle tait, par leur identité (`cle`). */
+const ouverts = (v) => v.fenetre.gestes.filter((g) => g.ouvert).map((g) => g.cle)
+const fermes = (v) => v.fenetre.gestes.filter((g) => !g.ouvert).map((g) => g.cle)
+/** L'identité du geste que la fenêtre attend. */
+const cleAttendue = (v) => v.fenetre.gestes.find((g) => g.attendu).cle
 /** Le libellé du geste que la fenêtre attend. */
 const attendu = (v) => {
   const gestes = v.fenetre?.gestes.filter((g) => g.attendu) ?? []
@@ -144,13 +144,13 @@ async function parcoursCombat() {
   assert.equal(v.attaque.localisation.choisie, lieu.valeur, 'la Localisation cliquée est retenue')
   noter(`Localisation « ${lieu.libelle} » ; ${v.fenetre.corps.find((l) => l.includes('à atteindre'))}`)
   await capturer('2928-6c-2-attaque-apercu')
-  const [jetDAttaque, viser] = [verbeAttendu(v), v.attaque.localisation.verbe]
+  const [jetDAttaque, viser] = [cleAttendue(v), v.attaque.localisation.verbe]
   noter(`gestes dessinés avant le jet : ${ouverts(v).join(', ')}`)
   await cliquerBouton(attendu(v))
   v = await vue()
   assert.equal(v.attaque.jete, true, 'le jet tombe')
   assert.ok(fermes(v).includes(jetDAttaque) && fermes(v).includes(viser), 'le jet tombé, ni le jet ni la Localisation ne se redessinent (#2936)')
-  assert.ok(ouverts(v).includes(verbeAttendu(v)), 'le jet tombé, sa clôture se dessine')
+  assert.ok(ouverts(v).includes(cleAttendue(v)), 'le jet tombé, sa clôture se dessine')
   noter(`gestes dessinés après le jet : ${ouverts(v).join(', ')}`)
   assert.ok(v.attaque.issue, 'le jet tombé dit son issue')
   noter(`jet : ${v.attaque.issue.ligne}`)
@@ -187,7 +187,7 @@ async function parcoursCombat() {
   assert.deepEqual(v.fenetre.proprietaire, { genre: 'porteur', nom: nomDe(v, v.defense.defenseurId) }, 'la Défense est au héros visé')
   noter(`Défense ouverte par les minuteurs : ${v.fenetre.corps.join(' / ')} ; à ${v.fenetre.proprietaire.nom}`)
   await capturer('2928-6c-5-defense')
-  const [jetDeDefense, reagir] = [verbeAttendu(v), v.defense.reaction.verbe]
+  const [jetDeDefense, reagir] = [cleAttendue(v), v.defense.reaction.verbe]
   noter(`gestes dessinés avant la Défense : ${ouverts(v).join(', ')}`)
   await cliquerBouton(attendu(v))
   v = await vue()

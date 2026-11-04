@@ -28,6 +28,7 @@ import { resultLine, freeCons } from '../noyau/rollSeam';
 import { QtyStepper } from './QtyStepper';
 import { Row, Stack, grow } from './Layout';
 import { libelleDeTest, libelleDIncantation, libelleDOppositionDeSort } from '../noyau/jetsEnVue';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Marque du pluriel FR, accordée sur la VALEUR (patron `plural(n)` des modales de navire) : le
  *  raccourci « (s) » du code laissait l'écran écrire « 1 pas … RESTANT(S) ». */
@@ -48,10 +49,10 @@ export function CastModal() {
   const pc = useGame((s) => s.pendingCast);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.castRoll);
-  const reroll = useGame((s) => s.castReroll);
-  const bonusSL = useGame((s) => s.castBonusSL);
-  const darkPact = useGame((s) => s.castDarkPact);
+  const roll = useGesteDeJet('jetRoll', 'cast');
+  const reroll = useGesteDeJet('jetReroll', 'cast');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'cast');
+  const darkPact = useGesteDeJet('jetDarkPact', 'cast');
   const setCritChoice = useGame((s) => s.castSetCritChoice);
   const setConjureForm = useGame((s) => s.castSetConjureForm);
   const setDiscreet = useGame((s) => s.castSetDiscreet);
@@ -60,31 +61,31 @@ export function CastModal() {
   const toggleExtraTarget = useGame((s) => s.castToggleExtraTarget);
   const pickTargets = useGame((s) => s.castPickTargets);
   const placeZone = useGame((s) => s.castPlaceZone);
-  const forceSuccess = useGame((s) => s.castForceSuccess);
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'cast');
   const confirm = useGame((s) => s.castConfirm);
-  const cancel = useGame((s) => s.castCancel);
+  const cancel = useGesteDeJet('jetCancel', 'cast');
   // Opposition de la cible (multijet DANS cette modale) : chaque cible oppose son Test (FM/Int/Bagarre).
   const pcs = useGame((s) => s.pendingCastOpposition);
-  const oppRoll = useGame((s) => s.oppositionRoll);
-  const oppReroll = useGame((s) => s.oppositionReroll);
-  const oppBonusSL = useGame((s) => s.oppositionBonusSL);
-  const oppDarkPact = useGame((s) => s.oppositionDarkPact);
-  const oppForce = useGame((s) => s.oppositionForceSuccess);
-  const oppResist = useGame((s) => s.oppositionResist); // Résistance (Menace : Magie) — auto-succès du talent (LDB 10)
+  const oppRoll = useGesteDeJet('jetRoll', 'opposition');
+  const oppReroll = useGesteDeJet('jetReroll', 'opposition');
+  const oppBonusSL = useGesteDeJet('jetBonusSL', 'opposition');
+  const oppDarkPact = useGesteDeJet('jetDarkPact', 'opposition');
+  const oppForce = useGesteDeJet('jetForceSuccess', 'opposition');
+  const oppResist = useGesteDeJet('jetResist', 'opposition'); // Résistance (Menace : Magie) — auto-succès du talent (LDB 10)
   const oppConfirm = useGame((s) => s.oppositionConfirm);
   // Contre-sort (Dissipation) : RÉACTION au Sort figé dans `pendingCast` — plus de modale
   // séparée (« le contre-sort, c'est le lancement d'un sort qui peut être opposé »). Chaque
   // contre-lanceur a SA rangée (`RollRow`), DANS cette modale d'incantation, exactement comme
   // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `counterspellConfirm`.
   const csp = useGame((s) => s.pendingCounterspell);
-  const cspRoll = useGame((s) => s.counterspellRoll);
-  const cspReroll = useGame((s) => s.counterspellReroll);
-  const cspBonusSL = useGame((s) => s.counterspellBonusSL);
-  const cspDarkPact = useGame((s) => s.counterspellDarkPact);
-  const cspForce = useGame((s) => s.counterspellForceSuccess);
+  const cspRoll = useGesteDeJet('jetRoll', 'counterspell');
+  const cspReroll = useGesteDeJet('jetReroll', 'counterspell');
+  const cspBonusSL = useGesteDeJet('jetBonusSL', 'counterspell');
+  const cspDarkPact = useGesteDeJet('jetDarkPact', 'counterspell');
+  const cspForce = useGesteDeJet('jetForceSuccess', 'counterspell');
   const cspDeclare = useGame((s) => s.counterspellDeclare);
   const cspConfirm = useGame((s) => s.counterspellConfirm);
-  const cspCancel = useGame((s) => s.counterspellCancel);
+  const cspCancel = useGesteDeJet('jetCancel', 'counterspell');
   if (!pc) return null;
   const pool = battle?.combatants ?? party; // même modale en combat (file) et hors combat (groupe)
   const caster = pool.find((c) => c.id === pc.casterId);
@@ -154,7 +155,7 @@ export function CastModal() {
   const winds = battle?.windsOfMagic ?? null;
   // CONTEXTE du jet dans l'aperçu (#1064) : le pré-jet annonce la cible RÉELLE — protection de la
   // victime (LDB 42), attribut et environnement de Domaine y sont des chips nommés, plus un écart
-  // muet entre la cible annoncée et celle que `castRoll` applique. Zone non posée = pas de cible.
+  // muet entre la cible annoncée et celle que `jetRoll('cast')` applique. Zone non posée = pas de cible.
   const castCtx = { s: useGame.getState(), target, skipWard: !!pc.zone && !pc.zone.center };
   const preview = previewCast(caster, spell, { missile: pc.missile, focused: pc.focused, winds: winds?.revealed ? winds : null, ctx: castCtx });
   // POST-jet : les Vents sont révélés par le jet lui-même (LDB 46 l.179-190) — même aperçu, winds inclus.

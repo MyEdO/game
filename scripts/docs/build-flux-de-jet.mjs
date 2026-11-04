@@ -4,8 +4,8 @@
  *
  * Part FACTUELLE, DÉRIVÉE à chaque génération :
  *  - le CYCLE : les membres de `VERBES_DE_JET`, d'où `RollVerb` se dérive (`src/noyau/flowVerbs.ts`) ;
- *  - le REGISTRE : chaque entrée de `FLOW_VERBS` (kind, verbes, porteur du jet ou `pidIsActor`/
- *    `coop`, actions de résolution), confrontée à `FLOWS` (`src/noyau/rollFlowSpecs.ts`) et au
+ *  - le REGISTRE : chaque entrée de `FLOW_VERBS` (kind, verbes, porteur du jet ou `pidIsActor`,
+ *    actions de résolution), confrontée à `FLOWS` (`src/noyau/rollFlowSpecs.ts`) et au
  *    registre des modales (`src/noyau/modalArbiter.ts`) ;
  *  - les FABRIQUES et LENTILLES partagées à réutiliser, avec leur site réel ;
  *  - les ATOMES obligatoires, lus dans la garde anti-dérive elle-même ;
@@ -106,7 +106,6 @@ function rendu() {
         return pend && champ ? `\`${pend}.${champ}\`` : null
       })(),
       pidIsActor: lire(/pidIsActor:\s*(\w+)/),
-      coop: /coop:\s*true/.test(src),
       resolution: liste('resolution'),
       l: ligne(V_SF, p.getStart(V_SF)),
     }
@@ -168,9 +167,7 @@ function rendu() {
     ['flatRollLens', SPECS, S_SRC, S_SF],
     ['resultRollLens', SPECS, S_SRC, S_SF],
     ['opposedBinaryFlow', SPECS, S_SRC, S_SF],
-    ['rollFlowActions', SPECS, S_SRC, S_SF],
-    ['rollFlowActionsMulti', SPECS, S_SRC, S_SF],
-    ['buildRollFlowActions', SPECS, S_SRC, S_SF],
+    ['creerVerbesDeJet', SPECS, S_SRC, S_SF],
   ]
     .map(([nom, chemin, text, sf]) => site(chemin, text, sf, nom))
     .filter(Boolean)
@@ -248,8 +245,11 @@ la plomberie.
 ## 1. Le registre des flux — \`FLOW_VERBS\`
 
 \`FLOW_VERBS\` (\`${VERBS}\`) est la **SOURCE UNIQUE** du câblage : elle porte, par flux, son type et
-le sous-ensemble de verbes exposés. Le type \`RollFlowActionsMap\` en est DÉRIVÉ et \`ActionsDuNoyau\`
-(\`src/noyau/actionsDuNoyau.ts\`) l'étend — ajouter ou retirer un verbe ici est **bidirectionnel** : l'oublier ailleurs casse \`tsc\`.
+le sous-ensemble de verbes qu'il accepte. Un geste de jet est UN verbe du noyau par verbe du cycle,
+\`jet<Verbe>(flux, …)\` (\`NOM_DU_VERBE_DE_JET\`, type \`VerbesDeJet\`, qu'\`ActionsDuNoyau\` étend) : le type
+de son premier argument se DÉRIVE de la table (\`FluxDuVerbe\`) — ajouter ou retirer un verbe d'un flux est
+**bidirectionnel** : un appel qui l'oublie casse \`tsc\`, une frontière (JSON d'un hôte, intention d'un siège) se
+le voit refuser, et le dit (\`creerVerbesDeJet\`).
 \`FLOW_HANDLERS\` (\`${SPECS}\`) y associe le handler, avec exhaustivité garantie
 (${CLES_FLOWS.size} entrées dans \`FLOWS\`, ${CLES_HANDLERS.size} dans \`FLOW_HANDLERS\`).
 
@@ -262,11 +262,11 @@ ${table(MONO, ['Flux', 'Déclaré', 'Porteur du jet', 'Verbes', 'Modale (`auto`)
 
 ### Flux MULTI (${MULTI.length})
 
-Un flux multi déclare \`pidIsActor\` (à qui appartient le 1ᵉʳ argument des délégués), son ouverture
-\`coop\` éventuelle, et ses actions de \`resolution\` (les actions manuscrites qui closent la fenêtre —
-elles sont DÉRIVÉES dans la surface invité, jamais recopiées).
+Un flux multi déclare \`pidIsActor\` (à qui appartient la rangée \`pid\` que vise un geste de jet) et ses
+actions de \`resolution\` (les actions manuscrites qui closent la fenêtre — elles sont DÉRIVÉES dans la surface
+invité, jamais recopiées).
 
-${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Coop', 'Résolution', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.coop ? 'oui' : '—'} | ${f.resolution.length ? f.resolution.map((r) => `\`${r}\``).join(', ') : '—'} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
+${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Résolution', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.resolution.length ? f.resolution.map((r) => `\`${r}\``).join(', ') : '—'} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
 
 ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MODALE.map((k) => `\`${k}\``).join(', ')} — normal quand le flux est une ÉTAPE d'une cascade (l'entrée de cascade porte déjà la fenêtre), fautif sinon.` : 'Tous les flux ont une entrée dans `MODAL_DEFS`.'}
 
@@ -279,10 +279,10 @@ ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MO
 3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes, et le porteur (\`jetOwner\`) ou
    \`pidIsActor\`/\`resolution\`. Puis l'entrée jumelle dans \`FLOW_HANDLERS\` — l'exhaustivité est
    forcée à la compilation.
-4. **\`<flux>Confirm\` / \`<flux>Cancel\` écrits à la main** dans la tranche de store du domaine : lire le
-   résultat, appliquer les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des
-   dégâts), nuller le pending, et faire avancer la cascade hôte si le jet en est une étape — jamais
-   une 2ᵉ fenêtre séparée. QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
+4. **\`<flux>Confirm\` écrit à la main** dans la tranche de store du domaine : lire le résultat, appliquer
+   les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des dégâts), nuller le pending, et
+   faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
+   le verbe de jet \`jetCancel(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
    \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : une clôture ou une annulation manuscrite passe
    par \`siOuvert\`, et
    \`RollFlowHandlers.fermetures\` en tire ce que la coquille et les hôtes ouvrent.
@@ -298,7 +298,7 @@ ${table(PARTAGES, ['Primitive', 'Site', 'Rôle (JSDoc)'], (p) => `| \`${p.nom}\`
 Le résolveur d'un flux est **UN SEUL** \`resolve\` pour tous les cas : jet normal (RNG), réussite
 forcée par défaut, dé CHOISI par le joueur, et DR imposé par la Résistance. Un flux qui n'expose pas
 la capacité correspondante n'offre simplement pas l'influence — les branches sont alors inertes.
-La Résilience avant le jet (« au lieu de lancer les dés », LDB 17 l.68) est UN geste du délégué de store
+La Résilience avant le jet (« au lieu de lancer les dés », LDB 17 l.68) est UN geste du verbe de jet \`jetForceSuccess\`
 (\`auJetDu\`, encadré par \`withPreRollFixedDie\`) : le résolveur forcé se passe du dé quand il le sait, sinon le
 jet du flux tombe d'abord puis il est forcé ; aucune modale ne compose ce geste. Un Test opposé déclare
 \`perdu\` : sa Résilience reste ouverte sur un jet propre réussi dont l'opposition est perdue.

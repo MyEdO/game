@@ -66,7 +66,7 @@ function freshState() {
 /** Déroule la journée maritime jusqu'à une SUSPENSION (halte, Activités en mer) — la journée est
  *  désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO
  *  (Forcer le rythme/Prière) soit À PARTICIPANTS (batch, Tests d'équipage MDG
- *  ch.14 — `cascadeBatchRoll` par contributeur). Garde-fou 40 pas (crises/événements possibles).
+ *  ch.14 — `jetRoll('cascadeBatch')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
  *  `await tick()` reprend le jeton de reprise (`programmer`, 0 ms) d'un applier surfacé isolément
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = async (): Promise<void> => { banc.avancer(0); };
@@ -94,7 +94,7 @@ async function runSeaActivities() {
     // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
-      if (!cur.result) get().extendedTestRoll(cur.id);
+      if (!cur.result) get().jetRoll('extendedTest', cur.id);
       get().extendedTestNext();
       await tick();
       continue;

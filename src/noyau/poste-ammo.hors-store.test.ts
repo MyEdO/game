@@ -97,7 +97,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     });
     banc.getState().battleShipBattery('ship', 'target');
     const p = banc.getState().pendingShipBattery!;
-    for (const part of p.participants) banc.getState().shipBatteryRoll(part.id);
+    for (const part of p.participants) banc.getState().jetRoll('shipBattery', part.id);
     banc.getState().shipBatteryConfirm();
     expect(poste.ammo![0].qty).toBe(1); // 2 → 1 : un boulet parti avec la bordée
   });

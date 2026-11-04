@@ -62,7 +62,7 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   H.advantage = 3;
   banc.getState().battleSelectAttack('souffle');
   banc.getState().battleClickEntity(E.id);
-  banc.getState().maneuverRoll();
+  banc.getState().jetRoll('maneuver');
   banc.getState().maneuverConfirm();
 }
 

@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * chaque jet est une ÉTAPE lancée puis influençable à la Chance (LDB 17 l.21-25) AVANT de se
  * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `restSleep` days=1) :
  *  1. le jet apparaît en étape de cascade (jamais pré-résolu dans le journal) ;
- *  2. la Chance est proposable sur la RANGÉE ratée (`cascadeBatchReroll` dépense 1 Point de Chance) ;
+ *  2. la Chance est proposable sur la RANGÉE ratée (`jetReroll('cascadeBatch')` dépense 1 Point de Chance) ;
  *  3. la conséquence n'est appliquée qu'UNE fois (à la validation, pas aussi en eager).
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
@@ -74,7 +74,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     // 2. Chance proposable sur l'échec : la relance dépense 1 Point de Chance.
     forceFail(faim!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().cascadeBatchReroll('A');
+    banc.getState().jetReroll('cascadeBatch', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // 3. Conséquence appliquée 1× à la validation (applyFaimTest) — un seul Test compté, pas de double.
@@ -106,7 +106,7 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     // Chance proposable sur l'échec.
     forceFail(cont!.id, 'B');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'B')!.fortune;
-    banc.getState().cascadeBatchReroll('B');
+    banc.getState().jetReroll('cascadeBatch', 'B');
     expect(banc.getState().party.find((h) => h.id === 'B')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // Contraction appliquée 1× (pas de double entrée de maladie) sur un échec verrouillé.
@@ -139,7 +139,7 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
     // 2. Chance proposable sur l'échec.
     forceFail(faim!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().cascadeBatchReroll('A');
+    banc.getState().jetReroll('cascadeBatch', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // 3. Conséquence appliquée 1× à la validation — un seul Test compté, pas de double-résolution.
@@ -165,7 +165,7 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
 
     forceFail(step!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().cascadeBatchReroll('A');
+    banc.getState().jetReroll('cascadeBatch', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
     // Dessoûlage appliqué 1× à la validation (`soberUpDissipate` lève l'état, quelle que soit l'issue du DR).
@@ -208,7 +208,7 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
 
     forceFail(expo!.id, 'A');
     const fortuneBefore = banc.getState().party.find((h) => h.id === 'A')!.fortune;
-    banc.getState().cascadeBatchReroll('A');
+    banc.getState().jetReroll('cascadeBatch', 'A');
     expect(banc.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
   });
 });

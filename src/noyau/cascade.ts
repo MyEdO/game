@@ -774,7 +774,7 @@ function poserLaCourante(get: Get, set: Set, etape: CascadeStep): void {
 }
 
 /** Pose le choix du joueur sur l'étape « choix » COURANTE (`etapeServie`, `key ∈ options`). Analogue de
- *  `cascadeRoll` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
+ *  `jetRoll('cascade')` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
 export function setCascadeChoice(get: Get, set: Set, stepId: string, key: string): void {
   const cur = etapeServie(get, set, stepId, 'choix');
   if (!cur) return;
@@ -795,7 +795,7 @@ export function setCascadeAmount(get: Get, set: Set, stepId: string, n: number):
 }
 
 /** Tire la TABLE de l'étape COURANTE (interaction `'table'`) — SEAM d'état, analogue de
- *  `setCascadeChoice`/`cascadeRoll` : pose `table.result` via le résolveur UNIQUE (`rollTableStep`,
+ *  `setCascadeChoice`/`jetRoll('cascade')` : pose `table.result` via le résolveur UNIQUE (`rollTableStep`,
  *  RNG de bataille) ; la VALIDATION (conséquence) reste à `advanceCascade`. Refusé si l'étape n'est pas
  *  celle visée ou n'attend pas son tirage, déjà tombé compris (un dé ne se relance pas en douce). */
 export function rollCascadeTable(get: Get, set: Set, stepId: string): void {

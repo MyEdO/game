@@ -15,6 +15,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeCorruption } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
@@ -31,13 +32,13 @@ export function CorruptionModal() {
   const pc = useGame((s) => s.pendingCorruption);
   const party = useGame((s) => s.party);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.corruptionRoll);
+  const roll = useGesteDeJet('jetRoll', 'corruption');
   const setNature = useGame((s) => s.corruptionSetNature);
-  const reroll = useGame((s) => s.corruptionReroll);
-  const bonusSL = useGame((s) => s.corruptionBonusSL);
-  const darkPact = useGame((s) => s.corruptionDarkPact);
-  const resistAct = useGame((s) => s.corruptionResist); // Résistance (Menace) : auto-succès du talent (LDB 10)
-  const forceSuccess = useGame((s) => s.corruptionForceSuccess); // Résilience (LDB 17 l.68)
+  const reroll = useGesteDeJet('jetReroll', 'corruption');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'corruption');
+  const darkPact = useGesteDeJet('jetDarkPact', 'corruption');
+  const resistAct = useGesteDeJet('jetResist', 'corruption'); // Résistance (Menace) : auto-succès du talent (LDB 10)
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'corruption'); // Résilience (LDB 17 l.68)
   const resolve = useGame((s) => s.resolveCorruption);
   if (!pc) return null;
   const pool = battle?.combatants ?? party;

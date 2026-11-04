@@ -59,7 +59,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     return { H: actorIn(banc.getState(), H.id)!, E };
   }
 
-  /** Pose le dé de la rangée du héros (champ que `cascadeBatchRoll` écrit). */
+  /** Pose le dé de la rangée du héros (champ que `jetRoll('cascadeBatch')` écrit). */
   function jet(id: string, sl: number, success: boolean) {
     const pc = banc.getState().pendingCascade!;
     const participants = band().participants!.map((p) => (p.id === id ? { ...p, result: { roll: success ? 1 : 99, target: p.target, sl, success } } : p));
