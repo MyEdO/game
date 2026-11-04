@@ -1,5 +1,6 @@
-// LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur` et les clips de marche,
-// validée contre la donnée, lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
+// LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, les clips de marche et les
+// surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
+// lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
 import { readFileSync } from 'node:fs'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
 

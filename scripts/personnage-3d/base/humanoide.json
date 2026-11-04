@@ -1,5 +1,10 @@
 {
   "base": "humanoide",
   "porteur": { "race": "humain", "gabarit": "moyen", "taille": "moyenne", "echelleDArt": 1 },
-  "clipsDeMarche": ["Walk_Loop"]
+  "clipsDeMarche": ["Walk_Loop"],
+  "surfaces": [
+    { "nom": "MI_Superhero_Male", "palette": "peau" },
+    { "nom": "MI_Hair_1", "palette": "cheveux" },
+    { "nom": "MI_Eyes", "palette": "yeux" }
+  ]
 }

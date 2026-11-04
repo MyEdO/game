@@ -112,10 +112,11 @@ const NOMMES = [
   'flag|param|mode',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|ranged|zone|allFoes|allAround|self',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
   'physique|mentale',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
-  'prop|roof|relief|objet',
+  'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
@@ -277,7 +278,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'party|hero',
   'party|hero|caster|target',
   'pas|trot|galop',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent',
   'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',

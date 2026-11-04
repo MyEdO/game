@@ -13,7 +13,7 @@ import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
-import { SLOTS } from '../../palette.types';
+import type { Slot } from '../../../lib/palette';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -672,9 +672,18 @@ export const sizeCategorySchema = enumNomme({
  *  chaque surcharge de palette (#1903). */
 export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
 
-/** SURCHARGE de palette persistée : clés dans `SLOTS`, valeurs `couleurHexSchema` (#1903) — `colors`
- *  d'apparence et d'espèce, palette des matières d'objet. */
-export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
+/** Le libellé de chaque emplacement de palette (`SLOTS`, `src/lib/palette.ts`). */
+const LIBELLES_DES_SLOTS = {
+  peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Vêtement principal', vet2: 'Vêtement secondaire', cuir: 'Cuir', metal: 'Métal',
+  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume',
+} as const satisfies Readonly<Record<Slot, string>>;
+
+/** Un emplacement de palette. */
+export const slotSchema = enumNomme(LIBELLES_DES_SLOTS);
+
+/** Palette de couleurs persistée : clés dans `SLOTS`, valeurs `couleurHexSchema` (#1903) — palette des teintes d'objet
+ *  de `materials.json`. */
+export const surchargePaletteSchema = z.partialRecord(slotSchema, couleurHexSchema);
 
 /** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
  *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de

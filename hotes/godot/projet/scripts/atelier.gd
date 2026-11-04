@@ -1,7 +1,7 @@
 ## L'atelier 3D (#3086) : les modèles que le serveur de l'export liste (`GET modeles/`), indexés par le pont
 ## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
 ## choisit un corps, compose un personnage depuis un preset ou ses axes (`composer`, `catalogues`, `presetDeComposition`,
-## `hotes/godot/pont/composition.ts`), monte un élément par point d'accroche ou par ligne de pièce (`hotes/godot/asset/evaluateur/evaluer.ts`
+## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce (`hotes/godot/asset/evaluateur/evaluer.ts`
 ## `monter`, `MontageDEquipement.attacher`, #3086 D3 et D4), joue les clips de la base
 ## image par image, fait marcher la base au clavier (`MarcheDeLAtelier`), montre les aides (os, emplacements, prises) et
 ## recharge les GLB réexportés sans relancer l'atelier.
@@ -9,6 +9,8 @@
 extends Node3D
 
 const VIDE := "vide"
+## Le texte du choix « vide » d'une liste : aucun élément, aucun emblème, aucune valeur d'axe.
+const AUCUN := "Aucun"
 const AIDE_DU_GENRE := {emplacement = "emplacements", prise = "prises"}
 const COULEUR_DES_AIDES := {os = Color(0.95, 0.85, 0.2), emplacements = Color(0.3, 0.8, 1.0), prises = Color(1.0, 0.4, 0.35)}
 const ORIGINE := [0.0, 0.0, 0.0]
@@ -22,12 +24,24 @@ const DELAI_DE_REQUETE_S := 10.0
 const BLOC_DE_TELECHARGEMENT := 16777216
 ## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
 const LARGEUR_D_EMBLEME := 512.0
-## Le choix d'un axe à liste qui retire son champ de la composition.
-const AUCUN := "aucun"
 ## Le bouton d'un axe `plage` qui retire son champ de la composition, sa valeur au `neutre` de l'axe.
 const NEUTRE := "neutre"
 ## Le pas de la glissière d'un axe `plage`.
 const PAS_DE_PLAGE := 0.05
+## La largeur minimale du libellé d'une rangée du panneau, qui aligne les listes.
+const LARGEUR_DU_LIBELLE := 150.0
+## Les sections de l'onglet Équipement, dans leur ordre : leur titre, et ce qu'elles rangent.
+const SECTIONS := [
+	{id = "tete", titre = "Tête et coiffure"},
+	{id = "piece", titre = "Vêtements et armures"},
+	{id = "emplacement", titre = "Accessoires"},
+	{id = "prise", titre = "Objets tenus"},
+]
+const COULEUR_D_ERREUR := Color(1.0, 0.55, 0.5)
+## Le texte du choix d'une couleur absente de la composition : la matière du modèle.
+const PAR_DEFAUT := "Par défaut"
+## Le côté, en pixels, de la pastille d'une couleur du nuancier.
+const COTE_DE_LA_PASTILLE := 16
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 @onready var _support_du_modele: Node3D = $Modele
@@ -35,12 +49,12 @@ const PAS_DE_PLAGE := 0.05
 @onready var _marche: MarcheDeLAtelier = $Marche
 @onready var _etat: Label = %Etat
 @onready var _corps: HFlowContainer = %Corps
-@onready var _points: VBoxContainer = %Points
-@onready var _lignes_de_piece: VBoxContainer = %Lignes
-@onready var _clips: VBoxContainer = %ListeDesClips
+@onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
+@onready var _clips: OptionButton = %Clips
 @onready var _instant: Label = %Instant
 @onready var _cases_des_aides := {os = %AideOs, emplacements = %AideEmplacements, prises = %AidePrises}
-@onready var _onglets := {montage = %Defilement, composition = %DefilementDeComposition}
+@onready var _onglets := {personnage = %DefilementPersonnage, equipement = %DefilementEquipement, couleurs = %DefilementCouleurs, animation = %DefilementAnimation, outils = %DefilementOutils}
+@onready var _boutons_des_onglets := {personnage = %OngletPersonnage, equipement = %OngletEquipement, couleurs = %OngletCouleurs, animation = %OngletAnimation, outils = %OngletOutils}
 
 var _modeles: Dictionary = {}
 var _base: Dictionary = {}
@@ -57,7 +71,8 @@ var _vitesse := 1.0
 ## Le clip que « Recharger » rejoue, à son instant, en lecture ou en pause.
 var _reprise: Dictionary = {}
 ## Par id d'emplacement de montage, l'emplacement : un point (son id) ou une ligne de pièce (`ligne/<ligne>`), sa clé
-## publiée, `montes` ou `lignes` qui la publie, sa rangée au panneau, les éléments qu'il offre et ses bascules par élément.
+## publiée, `montes` ou `lignes` qui la publie, son bloc au panneau, les éléments qu'il offre et son contrôle : la liste de
+## ses choix, ou la case d'une pièce.
 var _emplacements: Dictionary = {}
 ## Par id d'emplacement, l'élément monté.
 var _montes: Dictionary = {}
@@ -73,11 +88,18 @@ var _pieces: Dictionary = {}
 var _noeuds: Dictionary = {}
 ## Par id d'emplacement, la rangée de ses emblèmes, s'il en offre.
 var _lignes_des_emblemes: Dictionary = {}
+## Par id de section de l'onglet Équipement, la colonne de ses rangées.
+var _sections: Dictionary = {}
 ## Par id d'emplacement, la demande de montage retenue : le montage en vol d'une autre demande est jeté.
 var _demandes: Dictionary = {}
 var _boutons_des_bases: Dictionary = {}
-var _boutons_des_clips: Dictionary = {}
 var _boutons_des_emblemes: Dictionary = {}
+## Par emplacement de palette (`couleurs` de `catalogues`), sa liste au panneau Couleurs.
+var _listes_des_couleurs: Dictionary = {}
+## Par emblème, sa texture rastérisée (`_texture_de_l_embleme`), d'un chargement des modèles au suivant.
+var _textures_des_emblemes: Dictionary = {}
+## Les meshes de la base posée, relevés avant tout montage.
+var _pieces_de_la_base: Array[MeshInstance3D] = []
 var _aides := {os = false, emplacements = false, prises = false}
 var _reperes := {os = [], emplacements = [], prises = []}
 ## Les erreurs du chargement, du montage et de la page.
@@ -105,7 +127,7 @@ var _axes: Array = []
 var _selecteurs_d_axe: Dictionary = {}
 ## Le modificateur du squelette de la base qui pose le gabarit de la composition composée.
 var _gabarit: GabaritDuSquelette = null
-var _onglet := "montage"
+var _onglet := "personnage"
 
 
 func _ready() -> void:
@@ -121,9 +143,13 @@ func _ready() -> void:
 		_cases_des_aides[aide].toggled.connect(_montrer_l_aide.bind(aide))
 	for onglet in _onglets:
 		_onglets[onglet].get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
-	%OngletMontage.pressed.connect(_montrer_l_onglet.bind("montage"))
-	%OngletComposition.pressed.connect(_montrer_l_onglet.bind("composition"))
+		_boutons_des_onglets[onglet].pressed.connect(_montrer_l_onglet.bind(onglet))
 	%Copier.pressed.connect(_copier)
+	%AProduire.toggled.connect(func(montre: bool) -> void:
+		%ListeAProduire.visible = montre
+		_publier())
+	_clips.set_meta("cle", "clip")
+	_clips.item_selected.connect(func(rang: int) -> void: _jouer_le_clip(_clips.get_item_metadata(rang)))
 	_marche.marche_commencee.connect(_jouer_le_clip)
 	_marche.marche_arretee.connect(_publier)
 	if await _pont.rejoindre(_signaler, _signaler):
@@ -153,6 +179,7 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 		_montrer_l_etat()
 		return
 	_modeles = reponse
+	_textures_des_emblemes.clear()
 	for refus in reponse.refus:
 		_erreurs.append(str(refus))
 	%Rapport.text = "\n".join(PackedStringArray(reponse.rapport))
@@ -212,17 +239,19 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_marquer(_boutons_des_bases, _base.get("id"))
 	if scene != null:
 		_poser_le_modele(scene)
+		_habiller_la_base()
 	if _squelette != null:
 		for os in _squelette.get_bone_count():
 			var declaration := {os = _squelette.get_bone_name(os), position = ORIGINE, rotation = ORIGINE}
 			var support := MontageDEquipement.attacher(_squelette, declaration, "Os_%d" % os)
 			support.add_child(_repere(COULEUR_DES_AIDES.os, RAYON_DU_REPERE_D_OS))
 			_reperes.os.append(support)
+	for ligne in _base.get("lignes", []):
+		_emplacement_de_la_ligne(ligne)
 	for point in _base.get("points", []):
 		_emplacement_du_point(point)
 		_poser_l_aide_du_point(point)
-	for ligne in _base.get("lignes", []):
-		_emplacement_de_la_ligne(ligne)
+	_montrer_ce_qu_il_reste_a_produire()
 	for id in _emplacements:
 		if montes.get(id) in _emplacements[id].elements:
 			_choisir(_emplacements[id], montes[id], emblemes.get(id, VIDE))
@@ -242,14 +271,15 @@ func _remettre_a_zero() -> void:
 		_support_du_modele.remove_child(_modele)
 		_modele.queue_free()
 	_modele = null
+	_pieces_de_la_base.clear()
 	_squelette = null
 	_pose_des_os = {}
 	_lecteur = null
 	_gabarit = null
 	_pas = 0.0
-	Controles.vider(_points)
-	Controles.vider(_lignes_de_piece)
-	Controles.vider(_clips)
+	Controles.vider(_panneau_des_emplacements)
+	_clips.clear()
+	_sections.clear()
 	_reperes = {os = [], emplacements = [], prises = []}
 	_emplacements.clear()
 	_pieces.clear()
@@ -260,12 +290,12 @@ func _remettre_a_zero() -> void:
 	_demandes.clear()
 	_lignes_des_emblemes.clear()
 	_boutons_des_emblemes = {}
-	_boutons_des_clips = {}
 
 
 func _poser_le_modele(scene: Node3D) -> void:
 	_modele = scene
 	_support_du_modele.add_child(scene)
+	_pieces_de_la_base.assign(scene.find_children("*", "MeshInstance3D", true, false))
 	_squelette = MontageDEquipement.squelette_de(scene)
 	if _squelette != null:
 		_squelette.skeleton_updated.connect(_memoriser_la_pose)
@@ -280,99 +310,181 @@ func _poser_le_modele(scene: Node3D) -> void:
 	_squelette.add_child(_gabarit)
 
 
-## L'emplacement de montage `id`, de clé publiée `cle` dans `publie` (`montes` ou `lignes`), qui offre `elements` : sa
-## rangée posée dans `parent`, sans bouton encore.
-func _emplacement(id: String, cle: String, publie: String, parent: Node, elements: Array) -> Dictionary:
-	var rangee := HFlowContainer.new()
-	parent.add_child(rangee)
-	var emplacement := {id = id, cle = cle, publie = publie, rangee = rangee, elements = elements, boutons = {}}
+## L'emplacement de montage `id`, de clé publiée `cle` dans `publie` (`montes` ou `lignes`), qui offre `elements` : son
+## bloc posé dans la section `section` de l'onglet Équipement, sans contrôle encore.
+func _emplacement(id: String, cle: String, publie: String, section: String, elements: Array) -> Dictionary:
+	var bloc := VBoxContainer.new()
+	_section(section).add_child(bloc)
+	var emplacement := {id = id, cle = cle, publie = publie, bloc = bloc, elements = elements, controle = null}
 	_emplacements[id] = emplacement
 	return emplacement
 
 
-## L'emplacement d'un point : son id, puis ses éléments en liste (`_liste`) ; « aucun élément » s'il n'en a pas.
+## La colonne de la section `id` de l'onglet Équipement, posée à sa place sous son titre à la première rangée (`SECTIONS`).
+func _section(id: String) -> VBoxContainer:
+	if _sections.has(id):
+		return _sections[id]
+	var colonne := VBoxContainer.new()
+	for rang in SECTIONS.size():
+		if SECTIONS[rang].id == id:
+			colonne.set_meta("rang", rang)
+			var titre := Label.new()
+			titre.text = SECTIONS[rang].titre
+			titre.theme_type_variation = &"HeaderSmall"
+			colonne.add_child(titre)
+	var suivante: Node = null
+	for autre in _sections.values():
+		if autre.get_meta("rang") > colonne.get_meta("rang") and (suivante == null or autre.get_meta("rang") < suivante.get_meta("rang")):
+			suivante = autre
+	_panneau_des_emplacements.add_child(colonne)
+	if suivante != null:
+		_panneau_des_emplacements.move_child(colonne, suivante.get_index())
+	_sections[id] = colonne
+	return colonne
+
+
+## L'emplacement d'un point qui offre au moins un élément : son libellé, puis la liste de ses éléments (`_liste`), rangé
+## aux accessoires (emplacement) ou aux objets tenus (prise). Un point sans élément n'a pas de rangée.
 func _emplacement_du_point(point: Dictionary) -> void:
-	_liste(_emplacement(point.id, point.id, "montes", _points, point.elements), point.id, "aucun élément")
+	if point.elements.is_empty():
+		return
+	var section := "prise" if point.genre == "prise" else "emplacement"
+	var emplacement := _emplacement(point.id, point.id, "montes", section, point.elements)
+	_liste(emplacement, point.label, _choix_des_elements(point.elements))
 
 
-## L'emplacement d'une ligne de pièce (#3086, D3), d'id `ligne/<ligne>`, sa clé publiée `<ligne>` valant la `sorte` d'un
-## sélecteur, `<sorte>/<id>` sinon : le sélecteur d'un axe (`tete`, `coiffure`), la bascule d'une `piece`, la liste d'un
-## `emplacement`. Un choix sans élément dit « manquant », sans bouton.
+## L'emplacement d'une ligne de pièce (#3086, D3) qui offre au moins un élément, d'id `ligne/<ligne>`, sa clé publiée
+## `<ligne>` valant la `sorte` d'un sélecteur, `<sorte>/<id>` sinon : le sélecteur d'un axe (`tete`, `coiffure`), la
+## case d'une `piece`, la liste d'un `emplacement`. Ce qui n'a aucun élément va à la liste « À produire ».
 func _emplacement_de_la_ligne(ligne: Dictionary) -> void:
 	match ligne.sorte:
 		"piece":
-			_bascule_de_piece(ligne)
+			if not ligne.elements.is_empty():
+				_case_de_piece(ligne)
 		"emplacement":
-			var cle := "emplacement/%s" % ligne.id
-			_liste(_emplacement("ligne/%s" % cle, cle, "lignes", _lignes_de_piece, ligne.elements), ligne.label, "manquant")
+			if not ligne.elements.is_empty():
+				var cle := "emplacement/%s" % ligne.id
+				_liste(_emplacement("ligne/%s" % cle, cle, "lignes", "emplacement", ligne.elements), ligne.label, _choix_des_elements(ligne.elements))
 		_:
 			_selecteur(ligne)
 
 
-## Dans la rangée d'`emplacement`, `titre`, puis « vide » et un bouton par élément offert (son id), bascules d'un même
-## groupe, de clé `<emplacement>/<élément>` ; `absent` s'il n'en offre aucun.
-func _liste(emplacement: Dictionary, titre: String, absent: String) -> void:
-	_etiquette(titre, emplacement.rangee)
-	if emplacement.elements.is_empty():
-		_etiquette(absent, emplacement.rangee)
-		return
-	var groupe := ButtonGroup.new()
-	var choix := [VIDE]
-	choix.append_array(emplacement.elements)
-	for element in choix:
-		_bouton_de_choix(emplacement, element, element, element, groupe)
-	_marquer(emplacement.boutons, VIDE)
+## Les choix d'une liste d'éléments : chacun son id, au libellé de la chose qu'il porte (`libelles` de `modeles`).
+func _choix_des_elements(elements: Array) -> Array:
+	var choix := []
+	for element in elements:
+		choix.append({id = element, texte = _modeles.libelles[element]})
+	return choix
 
 
-## Le sélecteur d'un axe : sa `sorte`, puis « vide » et un bouton par choix pourvu (son `label`, de clé
-## `ligne/<sorte>/<id>`), bascules d'un même groupe, qui monte l'élément du choix, unique par (base, clé) ; sous sa
-## rangée, chaque choix sans élément dit « <label> : manquant », un par ligne. Sans aucun choix pourvu, ni « vide » ni
-## bouton.
+## Dans le bloc d'`emplacement`, la rangée `titre` puis la liste déroulante de clé `<emplacement>` : « Aucun » (vide), puis
+## `choix`, chacun monté à son choix.
+func _liste(emplacement: Dictionary, titre: String, choix: Array) -> void:
+	var rangee := _rangee(titre, emplacement.bloc)
+	var tous := [{id = VIDE, texte = AUCUN}]
+	tous.append_array(choix)
+	var liste := _liste_deroulante(emplacement.id, tous, func(element: String) -> void: _choisir_manuellement(emplacement, element))
+	rangee.add_child(liste)
+	emplacement.controle = liste
+
+
+## Le sélecteur d'un axe (`tete`, `coiffure`) : son `label`, puis la liste de ses choix pourvus (leur `label`), qui monte
+## l'élément du choix, unique par (base, clé). Sans aucun choix pourvu, aucune rangée.
 func _selecteur(ligne: Dictionary) -> void:
 	var elements := []
-	for choix in ligne.choix:
-		elements.append_array(choix.elements)
-	var emplacement := _emplacement("ligne/%s" % ligne.sorte, ligne.sorte, "lignes", _lignes_de_piece, elements)
-	_etiquette(ligne.sorte, emplacement.rangee)
-	var groupe := ButtonGroup.new()
-	if not elements.is_empty():
-		_bouton_de_choix(emplacement, VIDE, VIDE, VIDE, groupe)
-	for choix in ligne.choix:
-		if choix.elements.is_empty():
-			_etiquette("%s : manquant" % choix.label, _lignes_de_piece)
-		else:
-			_bouton_de_choix(emplacement, choix.elements[0], choix.label, choix.id, groupe)
-	_marquer(emplacement.boutons, VIDE)
-
-
-## La bascule d'une pièce : son `label`, de clé `ligne/piece/<id>`, qui monte l'élément de la pièce, unique par (base,
-## clé), ou le démonte s'il l'est ; « <label> : manquant » sans élément.
-func _bascule_de_piece(ligne: Dictionary) -> void:
-	var cle := "piece/%s" % ligne.id
-	var emplacement := _emplacement("ligne/%s" % cle, cle, "lignes", _lignes_de_piece, ligne.elements)
-	if ligne.elements.is_empty():
-		_etiquette("%s : manquant" % ligne.label, emplacement.rangee)
+	var choix := []
+	for offert in ligne.choix:
+		if not offert.elements.is_empty():
+			elements.append(offert.elements[0])
+			choix.append({id = offert.elements[0], texte = offert.label})
+	if elements.is_empty():
 		return
+	_liste(_emplacement("ligne/%s" % ligne.sorte, ligne.sorte, "lignes", "tete", elements), ligne.label, choix)
+
+
+## La case d'une pièce : son `label`, de clé `ligne/piece/<id>`, qui monte l'élément de la pièce, unique par (base, clé),
+## ou le démonte s'il l'est.
+func _case_de_piece(ligne: Dictionary) -> void:
+	var cle := "piece/%s" % ligne.id
+	var emplacement := _emplacement("ligne/%s" % cle, cle, "lignes", "piece", ligne.elements)
 	var element: String = ligne.elements[0]
-	var bascule := func() -> void: _choisir_manuellement(emplacement, VIDE if _montes.get(emplacement.id) == element else element)
-	var bouton := _bascule(ligne.label, null, emplacement.rangee, bascule)
-	bouton.set_meta("cle", emplacement.id)
-	emplacement.boutons[element] = bouton
-	_marquer(emplacement.boutons, VIDE)
+	var case := CheckButton.new()
+	case.text = ligne.label
+	case.set_meta("cle", emplacement.id)
+	case.pressed.connect(func() -> void: _choisir_manuellement(emplacement, VIDE if _montes.get(emplacement.id) == element else element))
+	emplacement.bloc.add_child(case)
+	emplacement.controle = case
 
 
-## Le bouton qui monte `element` à `emplacement`, de texte `texte` et de clé `<emplacement>/<suffixe>`, bascule du groupe
-## `groupe`.
-func _bouton_de_choix(emplacement: Dictionary, element: String, texte: String, suffixe: String, groupe: ButtonGroup) -> void:
-	var bouton := _bascule(texte, groupe, emplacement.rangee, _choisir_manuellement.bind(emplacement, element))
-	bouton.set_meta("cle", "%s/%s" % [emplacement.id, suffixe])
-	emplacement.boutons[element] = bouton
+## « À produire (N) » : ce que la garde-robe nomme et qu'aucun élément de la base ne porte, une ligne chacun (le choix d'un
+## sélecteur, une pièce, un emplacement d'accessoire), sous le bouton qui la replie.
+func _montrer_ce_qu_il_reste_a_produire() -> void:
+	var manquants: Array[String] = []
+	for ligne in _base.get("lignes", []):
+		if ligne.has("choix"):
+			for offert in ligne.choix:
+				if offert.elements.is_empty():
+					manquants.append("%s : %s" % [ligne.label, offert.label])
+		elif ligne.elements.is_empty():
+			manquants.append(ligne.label)
+	%AProduire.text = "À produire (%d)" % manquants.size()
+	%AProduire.visible = not manquants.is_empty()
+	%ListeAProduire.text = "\n".join(PackedStringArray(manquants))
 
 
-func _etiquette(texte: String, parent: Node) -> void:
+## Une rangée posée dans `parent` : `titre` en tête, à largeur fixe, puis ce qu'on y ajoute.
+func _rangee(titre: String, parent: Node) -> HBoxContainer:
+	var rangee := HBoxContainer.new()
 	var etiquette := Label.new()
-	etiquette.text = texte
-	parent.add_child(etiquette)
+	etiquette.text = titre
+	etiquette.custom_minimum_size.x = LARGEUR_DU_LIBELLE
+	etiquette.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rangee.add_child(etiquette)
+	parent.add_child(rangee)
+	return rangee
+
+
+## Une liste déroulante de clé `cle` : un article par choix (`{ id, texte, icone? }`), son id en métadonnée, qui joue
+## `geste` sur l'id choisi.
+func _liste_deroulante(cle: String, choix: Array, geste: Callable) -> OptionButton:
+	var liste := OptionButton.new()
+	liste.set_meta("cle", cle)
+	liste.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	liste.fit_to_longest_item = false
+	liste.clip_text = true
+	for offert in choix:
+		var rang := liste.item_count
+		if offert.has("icone"):
+			liste.add_icon_item(offert.icone, offert.texte)
+		else:
+			liste.add_item(offert.texte)
+		liste.set_item_metadata(rang, offert.id)
+	liste.item_selected.connect(func(rang: int) -> void: geste.call(liste.get_item_metadata(rang)))
+	return liste
+
+
+## L'article d'id `id` choisi dans `liste`, sans signal ; aucun si elle ne l'offre pas.
+func _selectionner(liste: OptionButton, id: Variant) -> void:
+	for rang in liste.item_count:
+		if liste.get_item_metadata(rang) == id:
+			liste.select(rang)
+			return
+	liste.select(-1)
+
+
+## Le contrôle d'`emplacement` montre `element` monté (`VIDE` : rien).
+func _montrer_le_monte(emplacement: Dictionary, element: String) -> void:
+	var controle: Control = emplacement.controle
+	if controle is OptionButton:
+		_selectionner(controle, element)
+	else:
+		(controle as BaseButton).set_pressed_no_signal(element != VIDE)
+
+
+## Chaque bascule de `boutons` pressée si sa clé est `retenu`, relâchée sinon : l'écran presse ce qui est.
+func _marquer(boutons: Dictionary, retenu: Variant) -> void:
+	for cle in boutons:
+		boutons[cle].set_pressed_no_signal(cle == retenu)
 
 
 ## Une bascule du groupe `groupe` posée dans `parent`, qui joue `geste`.
@@ -384,12 +496,6 @@ func _bascule(texte: String, groupe: ButtonGroup, parent: Node, geste: Callable)
 	bouton.pressed.connect(geste)
 	parent.add_child(bouton)
 	return bouton
-
-
-## Chaque bascule de `boutons` pressée si sa clé est `retenu`, relâchée sinon : l'écran presse ce qui est.
-func _marquer(boutons: Dictionary, retenu: Variant) -> void:
-	for cle in boutons:
-		boutons[cle].set_pressed_no_signal(cle == retenu)
 
 
 ## Le choix manuel d'un élément à l'emplacement, son défaut d'emblème résolu après retrait de sa surcharge.
@@ -419,7 +525,7 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 		rangee.queue_free()
 		_lignes_des_emblemes.erase(id)
 		_boutons_des_emblemes.erase(id)
-	_marquer(emplacement.boutons, VIDE)
+	_montrer_le_monte(emplacement, VIDE)
 	if element != VIDE:
 		await _monter(emplacement, element, embleme, demande, recueil)
 	_publier()
@@ -429,8 +535,8 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 ## (#3086, D4) : chaque mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même nom de la base
 ## (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; chaque mesh skinné sous le squelette de la base, son skin lié
 ## par nom d'os (`_scene_du_glb`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses meshes nomment manque
-## à la base : chacun va à `recueil`. Monté, il offre ses emblèmes s'il porte une surface `blason`, `embleme`
-## posé.
+## à la base : chacun va à `recueil`. Monté, il offre ses emblèmes s'il porte une surface `blason`, et s'habille de la
+## palette de la composition et de l'emblème `embleme` (`_choisir_l_embleme`).
 func _monter(emplacement: Dictionary, element: String, embleme: String, demande: RefCounted, recueil: Array[String]) -> void:
 	var id: String = emplacement.id
 	var squelette := _squelette
@@ -472,9 +578,10 @@ func _monter(emplacement: Dictionary, element: String, embleme: String, demande:
 	_pieces[id] = pieces
 	_noeuds[id] = noeuds
 	_montes[id] = element
-	_marquer(emplacement.boutons, element)
+	_montrer_le_monte(emplacement, element)
 	_poser_les_morphes()
-	_ligne_des_emblemes(emplacement, element, embleme)
+	_ligne_des_emblemes(emplacement, element)
+	_choisir_l_embleme(id, embleme)
 
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
@@ -505,26 +612,25 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], squelette: Skel
 	return piece
 
 
-## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`blasons` de la réponse de
-## `modeles`) : « vide » et un bouton par emblème, bascules d'un même groupe, `embleme` posé s'il est offert.
-func _ligne_des_emblemes(emplacement: Dictionary, element: String, embleme: String) -> void:
-	if _modeles.blasons.get(element, []).is_empty():
+## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`surfaces` de la réponse de
+## `modeles`) : la rangée « Emblème », la liste de clé `<emplacement>/embleme` (« Aucun », puis chaque emblème).
+func _ligne_des_emblemes(emplacement: Dictionary, element: String) -> void:
+	if not _porte_un_blason(element):
 		return
 	var id: String = emplacement.id
-	var ligne := HFlowContainer.new()
-	_etiquette("emblème", ligne)
-	emplacement.rangee.add_sibling(ligne)
-	_lignes_des_emblemes[id] = ligne
-	var groupe := ButtonGroup.new()
-	var boutons := {}
-	var choix: Array = [{id = VIDE, label = VIDE}]
-	choix.append_array(_modeles.emblemes)
-	for offert in choix:
-		var bouton := _bascule(offert.label, groupe, ligne, _surcharger_l_embleme.bind(id, offert.id))
-		bouton.set_meta("cle", "%s/embleme/%s" % [id, offert.id])
-		boutons[offert.id] = bouton
-	_boutons_des_emblemes[id] = boutons
-	_choisir_l_embleme(id, embleme if boutons.has(embleme) else VIDE)
+	var choix: Array = [{id = VIDE, texte = AUCUN}]
+	for offert in _modeles.emblemes:
+		choix.append({id = offert.id, texte = offert.label})
+	var rangee := _rangee("Emblème", emplacement.bloc)
+	var liste := _liste_deroulante("%s/embleme" % id, choix, func(choisi: String) -> void: _surcharger_l_embleme(id, choisi))
+	rangee.add_child(liste)
+	_lignes_des_emblemes[id] = rangee
+	_boutons_des_emblemes[id] = liste
+
+
+## `element` porte-t-il une surface `blason` ?
+func _porte_un_blason(element: String) -> bool:
+	return _modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
 ## L'emblème de l'emplacement : sa surcharge explicite, sinon le défaut de la composition.
@@ -539,44 +645,88 @@ func _surcharger_l_embleme(id: String, embleme: String) -> void:
 	_choisir_l_embleme(id, embleme)
 
 
-## L'emblème `embleme` posé sur l'élément monté à l'emplacement `id`, rigide ou skinné : sur chaque surface d'un mesh
-## monté dont le matériau porte un nom de ses `blasons`, un matériau propre (`MontageDEquipement.materiau_local`) dont la
-## couche de détail, en UV1 et en mélange, est l'emblème ; « vide » rend à chaque surface le matériau du GLB. Aucune
-## surface posée, l'emblème ne l'est pas.
+## L'emblème `embleme` demandé à l'emplacement `id`, qu'un élément monte : « vide » sur un élément sans surface `blason`
+## ou pour un emblème que `modeles` n'offre pas ; puis l'élément habillé (`_habiller`). Aucune surface posée, l'emblème ne
+## l'est pas.
 func _choisir_l_embleme(id: String, embleme: String) -> void:
-	_emblemes_demandes[id] = embleme
 	var element: String = _montes[id]
-	var noms: Array = _modeles.blasons[element]
-	var texture: ImageTexture = _texture_de_l_embleme(embleme) if embleme != VIDE else null
-	var posees: Array[int] = []
-	for piece: MeshInstance3D in _pieces[id]:
-		for surface in piece.mesh.get_surface_count():
-			piece.set_surface_override_material(surface, null)
-			var materiau := piece.get_active_material(surface)
-			if texture == null or materiau == null or not (materiau.resource_name in noms):
-				continue
-			var local := MontageDEquipement.materiau_local(piece, surface)
-			if local == null:
-				continue
-			local.detail_enabled = true
-			local.detail_albedo = texture
-			local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
-			local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
-			posees.append(surface)
-	if texture != null and posees.is_empty():
-		_erreurs.append("blason-sans-surface : %s" % element)
-	var pose := VIDE if posees.is_empty() else embleme
+	var offert: bool = _modeles.emblemes.any(func(offre: Dictionary) -> bool: return offre.id == embleme)
+	_emblemes_demandes[id] = embleme if offert and _porte_un_blason(element) else VIDE
+	var pose: String = VIDE if _habiller(id) == 0 else _emblemes_demandes[id]
 	if pose == VIDE:
 		_emblemes.erase(id)
 	else:
 		_emblemes[id] = pose
-	_marquer(_boutons_des_emblemes[id], pose)
+	if _boutons_des_emblemes.has(id):
+		_selectionner(_boutons_des_emblemes[id], pose)
 	_montrer_l_etat()
 
 
+## L'élément monté à l'emplacement `id` habillé de la palette de la composition et de l'emblème demandé (`_peindre`) ;
+## rend le nombre de surfaces où l'emblème est posé, et un emblème demandé qu'aucune ne reçoit donne
+## `blason-sans-surface`.
+func _habiller(id: String) -> int:
+	var element: String = _montes[id]
+	var embleme: String = _emblemes_demandes.get(id, VIDE)
+	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
+	var posees := _peindre(_pieces[id], _modeles.surfaces[element], texture)
+	if texture != null and posees == 0:
+		_erreurs.append("blason-sans-surface : %s" % element)
+	return posees
+
+
+## Les meshes de la base posée habillés de la palette de la composition (`_peindre`, `surfaces` de la base).
+func _habiller_la_base() -> void:
+	if not _base.is_empty():
+		_peindre(_pieces_de_la_base, _modeles.surfaces[_base.id], null)
+
+
+## Chaque surface de `pieces` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
+## (`MontageDEquipement.materiau_local`) si la `palette` de la composition composée colore son emplacement de palette,
+## ou si elle est `blason` et `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour
+## que la tête et le corps d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en
+## mélange. Toute autre surface garde le matériau du GLB. Rend le nombre de surfaces où `texture` est posée.
+func _peindre(pieces: Array, surfaces: Array, texture: ImageTexture) -> int:
+	var palette: Dictionary = _composee.get("palette", {})
+	var par_nom := {}
+	for surface in surfaces:
+		par_nom[surface.nom] = surface
+	var posees := 0
+	for piece: MeshInstance3D in pieces:
+		for rang in piece.mesh.get_surface_count():
+			piece.set_surface_override_material(rang, null)
+			var materiau := piece.get_active_material(rang)
+			var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
+			if surface.is_empty():
+				continue
+			var couleur: Variant = palette.get(surface.palette)
+			var blason: bool = texture != null and surface.get("blason", false)
+			if couleur == null and not blason:
+				continue
+			var local := MontageDEquipement.materiau_local(piece, rang)
+			if local == null:
+				continue
+			if couleur != null:
+				local.albedo_texture = null
+				local.albedo_color = Color(couleur)
+			if blason:
+				local.detail_enabled = true
+				local.detail_albedo = texture
+				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
+				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+				posees += 1
+	return posees
+
+
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
-## large, ses mipmaps générées ; `null` (et une erreur) s'il ne se lit pas.
+## large, ses mipmaps générées, une fois par chargement des modèles ; `null` (et une erreur) s'il ne se lit pas.
 func _texture_de_l_embleme(id: String) -> ImageTexture:
+	if not _textures_des_emblemes.has(id):
+		_textures_des_emblemes[id] = _rasteriser_l_embleme(id)
+	return _textures_des_emblemes[id]
+
+
+func _rasteriser_l_embleme(id: String) -> ImageTexture:
 	var svg: String = _modeles.emblemes.filter(func(offert: Dictionary) -> bool: return offert.id == id)[0].svg
 	var image := Image.new()
 	var code := image.load_svg_from_string(svg)
@@ -634,12 +784,12 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 func _poser_les_clips() -> void:
 	if _lecteur == null:
 		return
-	var groupe := ButtonGroup.new()
 	for nom in _lecteur.get_animation_list():
 		_lecteur.get_animation(nom).loop_mode = Animation.LOOP_LINEAR
-		_boutons_des_clips[nom] = _bascule(nom, groupe, _clips, _jouer_le_clip.bind(nom))
+		_clips.add_item(nom)
+		_clips.set_item_metadata(_clips.item_count - 1, nom)
 	_lecteur.speed_scale = _vitesse
-	_marquer(_boutons_des_clips, null)
+	_clips.select(-1)
 	if not _lecteur.has_animation(_reprise.get("clip", "")):
 		return
 	_jouer_le_clip(_reprise.clip)
@@ -654,7 +804,7 @@ func _jouer_le_clip(nom: String) -> void:
 	_pas = 0.0
 	for piste in animation.get_track_count():
 		_pas = MiseEnPage.pas_d_image(_pas, animation.length, animation.track_get_key_count(piste))
-	_marquer(_boutons_des_clips, nom)
+	_selectionner(_clips, nom)
 	_publier()
 
 
@@ -751,16 +901,22 @@ func _toutes_les_erreurs() -> Array[String]:
 	return toutes
 
 
+## Le pied du panneau : la base posée et son empreinte, puis chaque erreur, le pied en rouge s'il y en a.
 func _montrer_l_etat() -> void:
 	var lignes: Array[String] = []
 	if not _base.is_empty():
 		lignes.append("%s · %s" % [_base.id, str(_base.empreinte).left(DEBUT_D_EMPREINTE)])
-	lignes.append_array(_toutes_les_erreurs())
+	var erreurs := _toutes_les_erreurs()
+	lignes.append_array(erreurs)
 	_etat.text = "\n".join(PackedStringArray(lignes))
+	if erreurs.is_empty():
+		_etat.remove_theme_color_override("font_color")
+	else:
+		_etat.add_theme_color_override("font_color", COULEUR_D_ERREUR)
 	_publier()
 
 
-## L'onglet `onglet` du panneau montré, l'autre caché : chacun son défilement, aucun imbriqué.
+## L'onglet `onglet` du panneau montré, les autres cachés : chacun son défilement, aucun imbriqué.
 func _montrer_l_onglet(onglet: String) -> void:
 	_onglet = onglet
 	for autre in _onglets:
@@ -784,27 +940,52 @@ func _poser_les_catalogues() -> void:
 		bouton.pressed.connect(_appliquer_le_preset.bind(preset))
 		%Presets.add_child(bouton)
 	for axe in _axes:
-		var rangee := HBoxContainer.new()
-		_etiquette(axe.label, rangee)
+		var rangee := _rangee(axe.label, %Axes)
 		var selecteur: Control = _glissiere(axe, rangee) if axe.forme == "plage" else _liste_d_axe(axe, rangee)
 		selecteur.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		%Axes.add_child(rangee)
 		_selecteurs_d_axe[axe.champ] = selecteur
+	_poser_les_couleurs()
 	_montrer_la_composition()
+
+
+## Le panneau Couleurs : par emplacement de palette (`couleurs` de `catalogues`), son libellé en tête puis la liste de clé
+## `couleur/<emplacement>` : « Par défaut », la matière du modèle, puis chaque couleur du `nuancier`, sa pastille en
+## icône.
+func _poser_les_couleurs() -> void:
+	var choix: Array = [{id = VIDE, texte = PAR_DEFAUT}]
+	for couleur in _catalogues.nuancier:
+		var image := Image.create(COTE_DE_LA_PASTILLE, COTE_DE_LA_PASTILLE, false, Image.FORMAT_RGB8)
+		image.fill(Color(couleur.couleur))
+		choix.append({id = couleur.id, texte = couleur.label, icone = ImageTexture.create_from_image(image)})
+	for emplacement in _catalogues.couleurs:
+		var slot: String = emplacement.id
+		var liste := _liste_deroulante("couleur/%s" % slot, choix, func(id: String) -> void: _changer_la_couleur(slot, id))
+		_rangee(emplacement.label, %Couleurs).add_child(liste)
+		_listes_des_couleurs[slot] = liste
+
+
+## La couleur `id` du nuancier posée à l'emplacement de palette `slot` de la composition courante (« vide » l'en retire,
+## et un champ `couleurs` vide se retire), puis la composition recomposée.
+func _changer_la_couleur(slot: String, id: String) -> void:
+	var couleurs: Dictionary = _composition.get("couleurs", {})
+	if id == VIDE:
+		couleurs.erase(slot)
+	else:
+		couleurs[slot] = {id = id}
+	if couleurs.is_empty():
+		_composition.erase("couleurs")
+	else:
+		_composition.couleurs = couleurs
+	_composer()
 
 
 ## La liste de l'axe `axe` posée dans `rangee`, de clé `axe/<champ>` : « aucun », puis chaque choix de sa liste de
 ## `catalogues`.
 func _liste_d_axe(axe: Dictionary, rangee: HBoxContainer) -> OptionButton:
-	var selecteur := OptionButton.new()
-	selecteur.set_meta("cle", "axe/%s" % axe.champ)
-	selecteur.add_item(AUCUN)
-	selecteur.set_item_metadata(0, null)
-	for choix in _catalogues[axe.liste]:
-		var rang := selecteur.item_count
-		selecteur.add_item(choix.label)
-		selecteur.set_item_metadata(rang, choix.id)
-	selecteur.item_selected.connect(func(rang: int) -> void: _changer_l_axe(axe, selecteur.get_item_metadata(rang)))
+	var choix: Array = [{id = null, texte = AUCUN}]
+	for offert in _catalogues[axe.liste]:
+		choix.append({id = offert.id, texte = offert.label})
+	var selecteur := _liste_deroulante("axe/%s" % axe.champ, choix, func(id: Variant) -> void: _changer_l_axe(axe, id))
 	rangee.add_child(selecteur)
 	return selecteur
 
@@ -866,8 +1047,8 @@ func _composer() -> void:
 
 ## La composition courante composée par `composer` sur la base posée, avec les surcharges d'emblème : chaque emplacement
 ## monte l'élément que `montes` lui donne et démonte les autres. Un emplacement dont l'élément change perd sa surcharge et
-## monte sous le défaut de la composition (`_embleme_de_l_emplacement`) ; un emplacement inchangé reçoit l'emblème de son
-## entrée de `montes` s'il n'est pas celui qu'il a déjà demandé. Puis le gabarit et les morphes de la réponse se posent,
+## monte sous le défaut de la composition (`_embleme_de_l_emplacement`) ; un élément monté inchangé se rhabille de la
+## palette de la réponse et de l'emblème de son entrée de `montes`, et la base de cette palette. Puis le gabarit et les morphes de la réponse se posent,
 ## les morphes de la précédente remis à 0. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est
 ## démonté, ni gabarit ni morphe, et le texte du refus est gardé. Le texte de « Copier » est effacé.
 func _composer_la_courante() -> void:
@@ -895,8 +1076,9 @@ func _composer_la_courante() -> void:
 		if _montes.get(id, VIDE) != cible:
 			_surcharges_des_emblemes.erase(id)
 			_choisir(_emplacements[id], cible, _embleme_de_l_emplacement(id))
-		elif _emblemes_demandes.get(id, VIDE) != embleme:
+		elif _montes.has(id):
 			_choisir_l_embleme(id, embleme)
+	_habiller_la_base()
 	_poser_le_gabarit()
 	_poser_des_morphes(anciens.keys(), 0.0)
 	_poser_les_morphes()
@@ -951,8 +1133,8 @@ func _poser_des_morphes(noms: Array, poids: float) -> void:
 				mesh.set_blend_shape_value(rang, poids)
 
 
-## Les sélecteurs d'axe sur la composition courante (la glissière d'un axe `plage` sans valeur à son `neutre`), les
-## manquants de la composition composée (leur libellé, et celui de ce qui les apporte, `par.label`) et son rapport, ou le
+## Les sélecteurs d'axe et les listes de couleurs sur la composition courante (la glissière d'un axe `plage` sans valeur à
+## son `neutre`, une couleur absente à « Par défaut »), les manquants de la composition composée (leur libellé, et celui de ce qui les apporte, `par.label`) et son rapport, ou le
 ## refus de la composition courante.
 func _montrer_la_composition() -> void:
 	for axe in _axes:
@@ -960,16 +1142,15 @@ func _montrer_la_composition() -> void:
 		if axe.forme == "plage":
 			(_selecteurs_d_axe[axe.champ] as HSlider).set_value_no_signal(float(axe.neutre) if valeur == null else float(valeur))
 			continue
-		var id: Variant = valeur.id if valeur is Dictionary else valeur
-		var selecteur: OptionButton = _selecteurs_d_axe[axe.champ]
-		for rang in selecteur.item_count:
-			if selecteur.get_item_metadata(rang) == id:
-				selecteur.select(rang)
+		_selectionner(_selecteurs_d_axe[axe.champ], valeur.id if valeur is Dictionary else valeur)
+	var couleurs: Dictionary = _composition.get("couleurs", {})
+	for slot in _listes_des_couleurs:
+		_selectionner(_listes_des_couleurs[slot], couleurs.get(slot, {}).get("id", VIDE))
 	var lignes: Array[String] = []
 	if not _refus_de_composition.is_empty():
 		lignes.append(_refus_de_composition)
 	if not _composee.is_empty():
-		lignes.append("manquants : aucun" if _composee.manquants.is_empty() else "manquants :")
+		lignes.append("Rien ne manque à ce personnage." if _composee.manquants.is_empty() else "À produire pour ce personnage :")
 		for manquant in _composee.manquants:
 			var apport: Variant = manquant.get("par")
 			lignes.append("· %s" % manquant.label if apport == null else "· %s (%s)" % [manquant.label, apport.label])
@@ -1056,6 +1237,7 @@ func _publier_l_ecran() -> void:
 				montes = _composee.get("montes", []),
 				manquants = _composee.get("manquants", []),
 				morphes = _composee.get("morphes", {}),
+				palette = _composee.get("palette", {}),
 				refus = null if _refus_de_composition.is_empty() else _refus_de_composition,
 				copie = %Entree.text,
 			},
@@ -1064,8 +1246,25 @@ func _publier_l_ecran() -> void:
 			os = _positions_des_os(),
 			peaux = _peaux(),
 			morphes = _morphes_des_meshes(),
+			couleurs = _couleurs_posees(),
 		},
 	})
+
+
+## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
+## du matériau du GLB.
+func _couleurs_posees() -> Dictionary:
+	var couleurs := {}
+	for id in _pieces:
+		var posees := {}
+		for piece: MeshInstance3D in _pieces[id]:
+			for rang in piece.mesh.get_surface_count():
+				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
+				if local != null:
+					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+		if not posees.is_empty():
+			couleurs[id] = posees
+	return couleurs
 
 
 ## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated.
