@@ -47,7 +47,7 @@ import { RuleDivider, OrnateFrame } from './Ornaments';
 import { GameDate } from './GameDate';
 import { Icon } from './Icon';
 import { NumberField } from './NumberField';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 import { type PendingRoll } from './RollLine';
 import { testPending } from './breakdown';
 import { cibleMesuree } from '../engine/tests';

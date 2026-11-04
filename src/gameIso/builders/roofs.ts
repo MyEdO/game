@@ -28,12 +28,12 @@
  * `domain:'structure'`). C'est pourquoi ce module tient aussi l'indexation des murs et des façades
  * authorées (`edgeKey`/`facadeEdges`/`edgeAppearance`/`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { heightAt, sceneMetresPerTile, type ArchitectureBody, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { aretesA } from '../../noyau/monde/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../noyau/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
-import { buildingsMeta } from '../../noyau/monde/buildings';
+import { buildingsMeta, massFootprintCells } from '../../noyau/monde/buildings';
 import { facadeStructureAppearance, facadeWallFeatureAppearance } from '../catalog/facades';
 import { wallApp } from '../catalog/structures';
 import type { StructureAppearanceDef } from '../../data/structureAppearance.types';
@@ -88,21 +88,6 @@ export interface RoofShapeSpec {
 
 type VXY = { x: number; y: number };
 const vk = (x: number, y: number) => `${x},${y}`;
-
-/** Cellules d'un rectangle d'emprise (répété pour chaque MASSE de `footprint`). */
-function rectCells(foot: ArchitectureRect): { x: number; y: number }[] {
-  const cells: { x: number; y: number }[] = [];
-  for (let y = foot.y; y < foot.y + foot.h; y++)
-    for (let x = foot.x; x < foot.x + foot.w; x++) cells.push({ x, y });
-  return cells;
-}
-
-/** Union des rectangles d'une masse en un ensemble de cellules (clés « x,y »). */
-export function massFootprintCells(footprint: readonly ArchitectureRect[]): Set<string> {
-  const out = new Set<string>();
-  for (const rect of footprint) for (const c of rectCells(rect)) out.add(vk(c.x, c.y));
-  return out;
-}
 
 /** Axe de faîtage RÉSOLU : celui authoré, sinon le LONG axe de l'emprise réelle (jamais sa boîte
  *  englobante seule — mais bbox et emprise coïncident sur l'axe qui compte ici). Une masse carrée sans

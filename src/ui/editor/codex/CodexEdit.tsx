@@ -67,7 +67,7 @@ import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
-import { parseSkillRef, parseTalentRef } from '../refFormatLivre';
+import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
 import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';

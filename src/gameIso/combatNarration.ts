@@ -9,7 +9,7 @@
  *  - l'IMPORTANCE (les événements importants remontent dans le bandeau haut ; le reste reste au journal).
  */
 import { conditionMeta } from './effectIcons';
-import type { IconId } from '../ui/icons';
+import type { IconId } from '../data/icons';
 import type { RecapLine } from '../noyau/recapLine';
 import type { RefusIHM } from '../noyau/refusVisible';
 import {
@@ -25,7 +25,7 @@ export interface NarratedSegment {
 
 export interface NarratedLine {
   raw: string;
-  /** Id d'icône du registre `src/ui/icons/` — rendu par `<Icon>` (HTML) ou `<IconG>` (SVG). */
+  /** Id d'icône du registre `src/data/icons/` — rendu par `<Icon>` (HTML) ou `<IconG>` (SVG). */
   icon: IconId;
   important: boolean;
   tone: CombatTone;

@@ -31,7 +31,7 @@ export function setEncounters(scene: Scene, list: AuthoredEncounter[]): void {
 }
 
 /** Sections du menu des scénarios de test : clé (portée par la donnée) → libellé + icône
- *  (id du registre src/ui/icons), dans l'ordre d'affichage. */
+ *  (id du registre src/data/icons), dans l'ordre d'affichage. */
 export const SCENARIO_SECTIONS = [
   { key: 'combat', label: 'Combat', icon: 'action/attack' },
   { key: 'magie', label: 'Magie', icon: 'action/cast' },
@@ -52,7 +52,7 @@ export interface TestScenario {
   id: string;
   order: number; // tri d'affichage dans la section
   category: ScenarioCategory; // section du menu
-  icon: IconIdGenerated; // icône de carte (registre src/ui/icons, famille scenario/*)
+  icon: IconIdGenerated; // icône de carte (registre src/data/icons, famille scenario/*)
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »

@@ -5,7 +5,7 @@
  *
  * Trois volets, chacun sur le chemin RÉEL de son cas :
  *  - la porte par FICHIER (`validateDataset`) — le refus que le Compendium rend au save ;
- *  - la porte de la modale « Avancé » de l'éditeur (`lireBlocsAvances`, `src/ui/editor/Editor.tsx`), qui
+ *  - la porte de la modale « Avancé » de l'éditeur (`lireBlocsAvances`, `src/data/schemas/blocsAvances.ts`), qui
  *    ne passe PAS par le registre de documents ;
  *  - la GARDE DE CLASSE : tout fichier de PRODUCTION de `src/**` qui importe zod en VALEUR atteint la
  *    locale transitivement. Sans elle, un schéma futur bâti hors de la grammaire parlerait anglais
@@ -21,7 +21,7 @@ import { clotureDImports, sourceALExecution, type Arc } from '../../../scripts/g
 import { estFichierVitest, estKitDeTest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
 import { validateDataset } from './validate';
-import { lireBlocsAvances } from '../../ui/editor/Editor';
+import { lireBlocsAvances } from './blocsAvances';
 import weatherJson from '../weather.json';
 
 /** Les mots que zod prononce en ANGLAIS, toutes familles d'issue confondues (sa locale `en`). */
@@ -81,7 +81,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
     // Plancher anti-faux-vert : un porteur TÉMOIN dans `schemas/**` et un hors, que le périmètre doit voir.
     expect(porteurs, 'périmètre sans ses témoins = faux vert : la garde ne mesurerait rien')
-      .toEqual(expect.arrayContaining(['src/data/schemas/defs/props.ts', 'src/ui/editor/Editor.tsx']));
+      .toEqual(expect.arrayContaining(['src/data/schemas/defs/props.ts', 'src/noyau/persistance/bibliotheque.ts']));
 
     // Cache PARTAGÉ : toutes les marches sont du MÊME régime (`typesEffaces`), et se recouvrent presque
     // toutes — sans partage, chaque module de la grammaire est relu et re-résolu à chaque porteur.

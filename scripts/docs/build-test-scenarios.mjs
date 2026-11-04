@@ -238,7 +238,7 @@ function rendu() {
     "`category` est une clé SANS emoji (`'combat' | 'magie' | 'creatures' | 'survie' | 'marche' |",
     "'scenarios' | 'naval' | 'rendu'`, `SCENARIO_SECTIONS` dans `_shared.ts`) — le libellé/icône de",
     'section sont portés par la donnée, pas par le scénario. `icon` est un `IconId` du registre SVG',
-    '(`src/ui/icons`, famille `scenario/*`), jamais un emoji.',
+    '(`src/data/icons`, famille `scenario/*`), jamais un emoji.',
     '',
     '`index.ts` le ramasse via le **registre généré** (`scripts/gen-registry.mjs` → `_registry.generated.ts`,',
     'auto en dev ; après ajout/suppression d\'un fichier, lance `npm run gen`). Les scénarios sont triés par',

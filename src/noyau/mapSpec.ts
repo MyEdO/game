@@ -40,7 +40,6 @@ import type {
   WallClimb,
   WallSecret,
   ArchitectureBody,
-  ArchitectureRect,
   CellSide,
   WallOverlay,
   WallSeg,
@@ -69,6 +68,7 @@ import { parseAsciiRows, parseWalledAscii, scanMarkers, walledRowsOf } from './m
 import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
+import { massFootprintCells } from './monde/buildings';
 import {
   type Pt,
   canonEdge,
@@ -396,15 +396,6 @@ function applyStairs(s: Scene, spec: MapSpec, cellCells: { char: string; x: numb
   return out;
 }
 
-/** Cellules `"x,y"` d'une couverture de rectangles. */
-function archRectCells(footprint: readonly ArchitectureRect[]): Set<string> {
-  const out = new Set<string>();
-  for (const rect of footprint)
-    for (let y = rect.y; y < rect.y + rect.h; y++)
-      for (let x = rect.x; x < rect.x + rect.w; x++) out.add(`${x},${y}`);
-  return out;
-}
-
 /** Un corps NON BORNÉ (aucun `storeys[].parts[].foot` — `bodyFootCells` vide) dérive sur TOUT le
  *  plancher que les autres n'ont pas pris : c'est le RÉSIDUEL de la scène, et il n'en tient qu'un. À
  *  DEUX, la dérivation (`deriveArchitectureMasses`) les départage sur le seul ORDRE du tableau
@@ -428,7 +419,7 @@ export function validateArchitectureResiduals(scene: Scene): void {
     for (const key of bodyFootCells(body)) spokenFor.add(key);
     for (const mass of body.masses) {
       if (mass.derived) continue;
-      for (const key of archRectCells(mass.footprint)) spokenFor.add(key);
+      for (const key of massFootprintCells(mass.footprint)) spokenFor.add(key);
     }
     for (const cells of roofExclusionsByZ(body).values()) for (const key of cells) spokenFor.add(key);
   }
@@ -447,7 +438,7 @@ export function validateArchitectureResiduals(scene: Scene): void {
       || body.facades.length > 0
       || (body.roofExclusions ?? []).length > 0;
     if (declare) continue;
-    if (body.masses.some((mass) => archRectCells(mass.footprint).size)) continue;
+    if (body.masses.some((mass) => massFootprintCells(mass.footprint).size)) continue;
     throw new Error(`corps « ${body.id} » : ne déclare RIEN (aucun volume, zone de pièce, façade, masse ni exclusion) et ne porte aucune masse dérivée — donnée MORTE, retire-le de \`architecture\``);
   }
 }
@@ -465,13 +456,6 @@ export function validateArchitectureResiduals(scene: Scene): void {
  *  SCÈNE (toute case de plancher réel relève d'un corps — masse ou exclusion à ciel ouvert). */
 function validateBuildingMasses(scene: Scene): void {
   validateArchitectureResiduals(scene); // à qui revient le plancher non déclaré : à UN seul corps
-  const massCells = (footprint: readonly ArchitectureRect[]): Set<string> => {
-    const out = new Set<string>();
-    for (const rect of footprint)
-      for (let y = rect.y; y < rect.y + rect.h; y++)
-        for (let x = rect.x; x < rect.x + rect.w; x++) out.add(`${x},${y}`);
-    return out;
-  };
   const isContiguous = (cells: ReadonlySet<string>): boolean => {
     if (cells.size <= 1) return true;
     const start = [...cells][0];
@@ -508,7 +492,7 @@ function validateBuildingMasses(scene: Scene): void {
         throw new Error(`masse « ${mass.id} » (corps « ${body.id} ») : \`levels\` invalide (${mass.levels}) — entier ≥ 1 attendu`);
       if (!Number.isFinite(mass.pitchDeg) || mass.pitchDeg < PENTE_TOIT_DEG.min || mass.pitchDeg > PENTE_TOIT_DEG.max)
         throw new Error(`masse « ${mass.id} » (corps « ${body.id} ») : pente ${mass.pitchDeg}° hors plage sensée [${PENTE_TOIT_DEG.min}°, ${PENTE_TOIT_DEG.max}°] — corrige \`pitchDeg\``);
-      const cells = massCells(mass.footprint);
+      const cells = massFootprintCells(mass.footprint);
       if (!cells.size)
         throw new Error(`masse « ${mass.id} » (corps « ${body.id} ») : emprise vide — \`footprint\` doit contenir au moins un rectangle`);
       if (!isContiguous(cells))
@@ -544,7 +528,7 @@ function validateBuildingMasses(scene: Scene): void {
     // toujours une erreur, à N'IMPORTE quel niveau de la plage.
     const coverage = new Map<number, Map<string, string>>(); // z → (cellKey → massId propriétaire)
     for (const mass of body.masses) {
-      const cells = massCells(mass.footprint);
+      const cells = massFootprintCells(mass.footprint);
       const floorTop = floorAt(mass.z);
       const adoptable = adoptableOpeningsAt(scene, mass.z);
       const bearing = (key: string): boolean => {

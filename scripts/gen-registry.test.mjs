@@ -53,10 +53,10 @@ test("champsLitteraux : en « un », un seul littéral est lu ; zéro ou deux l�
   )
 })
 
-// `src/ui/icons/defs` : le registre `idUnion` le plus large (plusieurs ids par def), lu sans écrire.
+// `src/data/icons/defs` : le registre `idUnion` le plus large (plusieurs ids par def), lu sans écrire.
 test("unionDesIds : l'union des ids d'un dossier de defs commité est triée et dédupliquée", async () => {
   const { champsLitteraux, unionDesIds } = await import(MODULE)
-  const dir = join(RACINE, 'src/ui/icons/defs')
+  const dir = join(RACINE, 'src/data/icons/defs')
   const defs = readdirSync(dir).filter((f) => /\.tsx?$/.test(f))
   const ids = defs.flatMap((f) => champsLitteraux(readFileSync(join(dir, f), 'utf8'), 'id', f, 'auMoinsUn'))
   const union = unionDesIds(dir, [...defs].reverse().concat(defs), 'id')

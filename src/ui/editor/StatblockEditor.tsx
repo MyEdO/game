@@ -17,7 +17,7 @@ import { SpellsField } from './OptionalTraitsPicker';
 import { TraitListField } from './codex/StructFields';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
-import { parseSkillRef, parseTalentRef } from './refFormatLivre';
+import { parseSkillRef, parseTalentRef } from '../../data/refFormatLivre';
 import { ListeDIds } from '../compendium/refField/RefField';
 import { customStatblockSchema } from '../../data/schemas/defs-scenes/communs';
 

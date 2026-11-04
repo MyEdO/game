@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { t } from '../i18n';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 
 /**
  * PONT D'EXPLORATION — le pendant ALLÉGÉ de `CombatConsole` hors combat (spec

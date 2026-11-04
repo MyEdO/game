@@ -5,7 +5,7 @@ import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';
 import { MenuToggle } from './MenuCard';
 import { Icon } from './Icon';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { Stack, Row, Grid } from './Layout';
 import { t } from '../i18n';
 

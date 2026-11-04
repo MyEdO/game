@@ -14,7 +14,7 @@ import { endState, type EndState } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
 import { footprintN, sizeFootprint } from '../../noyau/monde/footprint';
 import { entitySize } from '../../noyau/monde/spawn';
-import type { IconId } from '../../ui/icons';
+import type { IconId } from '../../data/icons';
 import { combatantFlags, summarizeEffects } from '../effectIcons';
 import { relationColor } from '../teamColors';
 import { combatantTokenScale, entityTokenScale } from '../sizeScale';

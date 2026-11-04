@@ -6,13 +6,13 @@
  * `<select>` de référence brut de l'ancien fichier monolithique y sont migrés.
  */
 import { Icon } from '../Icon';
-import { ICON_DEFS } from '../icons';
+import { ICON_DEFS } from '../../data/icons';
 import { BACKDROPS } from '../backdrops';
 import { SceneBackdrop } from '../SceneBackdrop';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
 import { SearchFilterField, useFilteredList } from '../SearchFilterField';
 
-/** Options du picker d'icône (#361) : catalogue COMPLET `src/ui/icons` — un id du registre, jamais
+/** Options du picker d'icône (#361) : catalogue COMPLET `src/data/icons` — un id du registre, jamais
  *  un emoji libre. Composition MediaSelect + Icon (patron `ItemIcon`/`MediaSelect`). */
 const ICON_OPTIONS: MediaOption[] = [
   { key: '', media: <Icon id="map-tool/pin" size="sm" />, label: 'Épingle par défaut' },

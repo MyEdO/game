@@ -4,7 +4,7 @@
  * `src/noyau/forme-vivante.hors-store.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
-import { lireBlocsAvances } from '../ui/editor/Editor';
+import { lireBlocsAvances } from '../data/schemas/blocsAvances';
 import type { DescRef } from '../data/schemas/grammaire/valeurs';
 
 const DESC_REF = {

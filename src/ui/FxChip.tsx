@@ -1,5 +1,5 @@
 import { Icon } from './Icon';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 
 /**
  * Mini-chip d'une conséquence mécanique NON-État (LOT 5) : « −1 Activité », « Revenus +20 % »…

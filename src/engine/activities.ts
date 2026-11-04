@@ -319,7 +319,7 @@ export interface ActivityDef extends TestSpec {
   /** id STABLE (slug). */
   id: string;
   label: string;
-  /** Icône du registre (`src/ui/icons`, id `famille/nom`) — affichée par les volets/boutons
+  /** Icône du registre (`src/data/icons`, id `famille/nom`) — affichée par les volets/boutons
    *  d'Activité. REQUIS ; icône ∈ registre validé par `data-wellformed.test.ts`. */
   icon: string;
   contexts: ActivityContext[];

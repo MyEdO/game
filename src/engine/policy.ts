@@ -69,7 +69,7 @@ export interface RuleAction {
   when: RuleValue;
   label: string;
   /**
-   * Id du registre d'icônes (`src/ui/icons/`) et nom de l'action du store à déclencher. Tous deux
+   * Id du registre d'icônes (`src/data/icons/`) et nom de l'action du store à déclencher. Tous deux
    * restent des `string` ICI : le moteur est une couche FEUILLE, il ne peut pas importer le type
    * `IconId` (ui) ni les clés du store (state) sans inverser la dépendance. La liaison est donc
    * vérifiée par la garde `src/ui/rule-action-wiring.test.ts` (chaque `icon` existe au registre,

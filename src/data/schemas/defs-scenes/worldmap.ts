@@ -168,7 +168,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
   /** Scène liée (id du registre de scènes du projet). */
   scene: z.string(),
   entry: z.string().optional(),
-  /** Icône du médaillon (id du registre `src/ui/icons`), défaut `nav/entry-point`. */
+  /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
   icon: z.string().optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),

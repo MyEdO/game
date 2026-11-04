@@ -983,7 +983,7 @@ export function estDansLeCorpus(rel) {
  *  NIVEAU qui porte le site, `declarationQuiPorte`) → justification. Une clé désigne UN site : si
  *  plusieurs sites d'un fichier la portent, aucun n'est couture. N'y entrent que la couture
  *  de chargement et de saisie de `src/data/index.ts` (#909) et le parseur de saisie « format livre » de
- *  l'éditeur (`refFormatLivre.ts`) ; chacune a son test de légitimité (`label-logic-guard.test.ts`,
+ *  l'éditeur (`src/data/refFormatLivre.ts`) ; chacune a son test de légitimité (`label-logic-guard.test.ts`,
  *  « coutures légitimes »), qui juge le SITE par la déclaration qui le porte. Une DETTE n'y entre
  *  jamais : elle va au stock `DETTES_DE_LIBELLE`, avec son ticket. */
 export const RATCHET_EXCEPTIONS = {
@@ -993,19 +993,19 @@ export const RATCHET_EXCEPTIONS = {
   'data/index.ts#specIdByLabel#face-donnee-string':
     "(c) `specIdByLabel` rend un ID, pas un texte : couture libellé→id de SAISIE de l'argument d'un Trait à " +
     'registre (invariant 1, « aider à la saisie »), recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
-  'ui/editor/refFormatLivre.ts#saisieAuChoix#face-affichage-identite':
+  'data/refFormatLivre.ts#saisieAuChoix#face-affichage-identite':
     '(b) Parseur de SAISIE « format livre » (invariant 1, « aider à la saisie »), même régime que `specIdOf` : la ' +
     'saisie « (Au choix) » se reconnaît au mot que l’affichage compose (`ref.motAuChoix`) ; elle rend `choix`.',
-  'ui/editor/refFormatLivre.ts#specIdOf#face-affichage-identite':
+  'data/refFormatLivre.ts#specIdOf#face-affichage-identite':
     '(b) Parseur de SAISIE « format livre » de l’éditeur (invariant 1, « aider à la saisie ») : le texte ' +
     'saisi retrouve l’id de spécialisation dont le libellé affiché est ce texte ; il rend un id.',
-  'ui/editor/refFormatLivre.ts#parseSkillRef#label-entity-resolver-call':
+  'data/refFormatLivre.ts#parseSkillRef#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Compétence saisi retrouve son id (`findSkill`, #909).',
-  'ui/editor/refFormatLivre.ts#parseTalentRef#label-entity-resolver-call':
+  'data/refFormatLivre.ts#parseTalentRef#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
-  'ui/editor/refFormatLivre.ts#idDeTraitSaisi#label-entity-resolver-call':
+  'data/refFormatLivre.ts#idDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Trait saisi retrouve son id (`traitIdByLabel`, #909).',
-  'ui/editor/refFormatLivre.ts#argDeTraitSaisi#label-entity-resolver-call':
+  'data/refFormatLivre.ts#argDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : l’argument saisi d’un Trait à registre retrouve son id (`specIdByLabel`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
   // `collectLabelEntityResolvers`, donc chacun de ses appels hors couture est une dette au stock.

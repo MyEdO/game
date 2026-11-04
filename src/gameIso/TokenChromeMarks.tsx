@@ -12,7 +12,7 @@ import type { JSX } from 'react';
 import { hpColor } from './teamColors';
 import { CHROME_SLOTS } from './builders/tokenChrome';
 import { IconG } from '../ui/Icon';
-import type { IconId } from '../ui/icons';
+import type { IconId } from '../data/icons';
 import type { EndState } from '../engine/conditions';
 import { END_STATE_VISUAL } from '../ui/endStateVisual';
 
@@ -30,7 +30,7 @@ const slotX = (i: number) => -(CHROME_SLOTS * SLOT_W) / 2 + SLOT_W / 2 + i * SLO
 export interface TokenChromeMarksProps {
   /** Barre de PV au-dessus de la tête ; absente = aucune jauge (engin inerte, décor). */
   hp?: { current: number; max: number } | null;
-  /** Icônes d'états/buffs (ids du registre `src/ui/icons`, déjà tronquées). */
+  /** Icônes d'états/buffs (ids du registre `src/data/icons`, déjà tronquées). */
   icons?: readonly IconId[];
   /** Surplus d'icônes non affichées (« +N »). */
   iconsMore?: number;

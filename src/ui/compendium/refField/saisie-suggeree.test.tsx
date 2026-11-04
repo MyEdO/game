@@ -17,7 +17,7 @@ import { GameOpEditor, newOp } from '../../editor/GameOpEditor';
 import type { GameOp } from '../../../engine/ops';
 import { TraitListField, OptionalsListField } from '../../editor/codex/StructFields';
 import { resetData, setDataset } from '../../../data/overrides';
-import { parseTraitInstance, relireTrait, relireTraits } from '../../editor/refFormatLivre';
+import { parseTraitInstance, relireTrait, relireTraits } from '../../../data/refFormatLivre';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 

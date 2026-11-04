@@ -7,7 +7,7 @@ import { spellMoney } from '../engine/money';
 import { t } from '../i18n';
 import { Coins } from './Coins';
 import { Icon } from './Icon';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { SpeakerBanner } from './SpeakerBanner';
 import { Prose } from './Prose';
 import { SpectatorChip } from './SpectatorChip';

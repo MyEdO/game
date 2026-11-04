@@ -32,7 +32,7 @@ function resolveTraitArg(def: TraitData | undefined, arg: string): string {
 /** Traits dont la valeur est un BONUS de Dégâts signé (« Morsure +9 », « À distance +8 ») — affichés
  *  « +N » et, pour les attaques typées, « Nom +N (Type) » (l'ordre du livre). Les autres traits à
  *  Indice gardent « Nom (Spec) N » (« Immunité (Poison) »), les sauvegardes « Nom N+ » (« Démoniaque 8+ »). */
-/** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance`, `ui/editor/refFormatLivre.ts`)
+/** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance`, `data/refFormatLivre.ts`)
  *  — inspecteur / Codex / éditeur / libellé d'attaque. Restitue le signe « + » des Dégâts (attaques),
  *  le « + » de seuil des sauvegardes, sinon l'Indice nu ; un Indice relatif entre parenthèses (« Arme (BF
  *  +4) », Middenheim 04 l.29), une autre formule omise. La NATURE est lue en DONNÉE (jamais une liste en

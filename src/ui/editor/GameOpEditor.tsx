@@ -37,7 +37,7 @@ import { ciblePsy, estCibleType, refDeCible, type RefDeCible } from '../../engin
 import { opPsy } from '../../engine/psych/opsPsy';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
-import { relireTraits } from './refFormatLivre';
+import { relireTraits } from '../../data/refFormatLivre';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
@@ -45,7 +45,7 @@ import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import type { IconIdInput } from '../icons';
+import type { IconIdInput } from '../../data/icons';
 import { NATURES_D_INFLUENCE, TERMES_DE_JET, admetLePeche, estSansTirage, formuleSansTirageSchema, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { OPTIONAL_RULES } from '../../engine/policy';
