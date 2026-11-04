@@ -48,7 +48,7 @@ export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDeDefense, type FenetreDeDefense } from './fenetreDeDefense';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
-export { libelleDuGeste, libelleDuVerbe, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
+export { libelleDuGeste, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 export { verbeDeJetDe, viseUneRangee } from './flowVerbs';
