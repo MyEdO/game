@@ -6,7 +6,9 @@
 ## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
 ## `masque` se cache quand la zone n'a rien à montrer.
 ##
-## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`), que le routeur lui donne (`racines`).
+## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
+## que les éléments de ces ids, dans l'ordre de la source ; une zone sans `ids` montre ceux qu'aucune autre zone de sa
+## source ne nomme (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
 class_name Zone
 extends Node
 
@@ -16,6 +18,8 @@ signal geste(jeu: Dictionary)
 @export var source: String
 @export var ajout := false
 @export var masque: Control = null
+## Sans initialiseur : l'export Web de Godot 4.7 perd la valeur posée d'un `PackedStringArray` initialisé par `[]`.
+@export var ids: PackedStringArray
 
 const META := &"element"
 
@@ -52,6 +56,25 @@ func montrer(elements: Array) -> void:
 		_montrer_le_pied(dernier)
 
 
+## Chaque zone de `zones` montre les éléments de sa source dans `sources` qui lui reviennent (`ids`).
+static func montrer_toutes(zones: Array[Zone], sources: Dictionary) -> void:
+	for zone in zones:
+		zone.montrer(Zone.elements_de(zones, zone, sources))
+
+
+## Les éléments de la source de `zone` dans `sources` qui lui reviennent parmi `zones` : ceux de ses `ids`, ou, sans
+## `ids`, ceux qu'aucune zone de sa source ne nomme.
+static func elements_de(zones: Array[Zone], zone: Zone, sources: Dictionary) -> Array:
+	var elements: Array = sources.get(zone.source, [])
+	if not zone.ids.is_empty():
+		return elements.filter(func(e: Dictionary) -> bool: return zone.ids.has(e.id))
+	var nommes := PackedStringArray()
+	for autre in zones:
+		if autre.source == zone.source:
+			nommes.append_array(autre.ids)
+	return elements.filter(func(e: Dictionary) -> bool: return not nommes.has(e.id))
+
+
 ## `element` posé sur le composant `racine` et ses descendants, hors des composants d'une zone imbriquée.
 static func poser(racine: Node, element: Dictionary, zone: Zone) -> void:
 	for enfant in racine.get_children():
@@ -69,13 +92,23 @@ static func poser(racine: Node, element: Dictionary, zone: Zone) -> void:
 			Zone.poser(enfant, element, zone)
 
 
-## Les zones de l'écran sous `ecran` : celles que la scène pose, avant qu'aucun composant n'y soit dessiné.
+## Les zones de l'écran sous `ecran` : celles que ses scènes posent, hors des zones imbriquées d'un composant dessiné.
 static func racines(ecran: Node) -> Array[Zone]:
 	var zones: Array[Zone] = []
 	for n in ecran.find_children("*", "", true, false):
-		if n is Zone:
+		if n is Zone and not Zone._dans_un_composant(n, ecran):
 			zones.append(n)
 	return zones
+
+
+## Si `noeud` est sous un composant dessiné, sous `ecran`.
+static func _dans_un_composant(noeud: Node, ecran: Node) -> bool:
+	var parent := noeud.get_parent()
+	while parent != ecran:
+		if parent.has_meta(META):
+			return true
+		parent = parent.get_parent()
+	return false
 
 
 ## `noeud` montré par le défilement qui le contient, une image plus tard : le défilement a pris sa taille.

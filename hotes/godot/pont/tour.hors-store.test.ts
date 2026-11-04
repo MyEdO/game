@@ -80,6 +80,7 @@ describe('un tour complet par le pont', () => {
     const nomDeLaCible = nomDe(cible);
     ({ suite } = jouer({ type: suite.vue.champ!.combattant, args: [cible] }));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
+    expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
     expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, resultat: 'à lancer', verdict: null });
     expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');

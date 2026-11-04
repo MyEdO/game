@@ -69,8 +69,10 @@ export interface GesteDeLaFenetre {
   raison: string | null;
 }
 
-/** La fenêtre qui tient la main, prête à dessiner : son titre, son étape de séquence, qui tient la main, ses gestes. */
+/** La fenêtre qui tient la main, prête à dessiner : sa disposition (la clé de la fenêtre, `<clé>/<jet>` pour l'étape
+ *  d'un jet), son titre, son étape de séquence, qui tient la main, ses gestes. */
 export interface FenetreADessiner {
+  disposition: string;
   titre: string;
   etape: string | null;
   proprietaire: ProprietaireDeLaFenetre;
@@ -183,5 +185,6 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
-  return { titre: pc?.title ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
+  const disposition = fenetre.etape?.jet ? `${fenetre.cle}/${fenetre.etape.jet}` : fenetre.cle;
+  return { disposition, titre: pc?.title ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
 }

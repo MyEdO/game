@@ -1,9 +1,11 @@
 ## LA RECETTE DE L'ÉCRAN (#3328) : chaque vue que la sonde fige (`hotes/godot/recettes/ecran.ts`, écrite sous
-## `VUES` dans la copie qu'elle importe) montrée par la scène `Ecran` comme le routeur `combat.gd` la montre. Chaque zone
-## de la scène lit une source de la vue et chaque source a sa zone ; chaque élément a son composant, dans l'ordre de sa
-## zone, et chaque texte qu'il dit (`DITS`) se lit à l'écran ; chaque geste pressé joue l'intention que l'élément porte,
+## `VUES` dans la copie qu'elle importe) montrée par la scène `Ecran` comme le routeur `combat.gd` la montre, dans la
+## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone ; chaque
+## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
+## (`DITS`) se lit à l'écran ; chaque geste pressé joue l'intention que l'élément porte,
 ## un formulaire celle que la vue attend ; le geste en focus le prend. Remontrée, une vue garde ses nœuds ; vidée, une
-## zone les quitte et la fenêtre se cache, le journal garde ses lignes.
+## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
+## montrée par une vue.
 extends SceneTree
 
 const RECETTE_AUTONOME := true
@@ -12,10 +14,12 @@ const FOCUS := {bouton = "Presser", liste = "Valeurs", formulaire = "Jouer"}
 const VUES := "res://recettes/vues/ecran.json"
 ## Les champs d'un élément que l'écran dit en texte.
 const DITS := ["texte", "libelle", "qui", "base", "difficulte", "cible", "resultat", "dr", "verdict", "refus"]
+const ECRANS := "res://ecrans"
 
 var _fautes: Array[String] = []
 var _joues: Array = []
 var _presses: Array[String] = []
+var _posees := {}
 
 
 func _initialize() -> void:
@@ -30,13 +34,13 @@ func _recetter() -> void:
 		return
 	var ecran: Node = load("res://scenes/Ecran.tscn").instantiate()
 	root.add_child(ecran)
-	var zones := Zone.racines(ecran)
-	for zone in zones:
-		zone.geste.connect(func(jeu: Dictionary) -> void: _joues.append(jeu))
 	for vue in vues:
-		await _recetter_la_vue(ecran, zones, vue)
-	_montrer(zones, {})
-	_verifier(not (ecran.get_node("Fenetre/Cadre") as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
+		await _recetter_la_vue(_disposer(ecran, vue.disposition), vue)
+	var zones := _disposer(ecran, null)
+	Zone.montrer_toutes(zones, {})
+	_verifier(not (ecran.get_node("Fenetre").find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
+	for scene in _dedicaces(ECRANS):
+		_verifier(_posees.has(scene), "%s : aucune vue ne la montre" % scene)
 	for zone in zones:
 		var restants := _dessines(zone).size()
 		_verifier(zone.ajout or restants == 0, "%s vidée : %d éléments restent" % [zone.source, restants])
@@ -47,19 +51,46 @@ func _recetter() -> void:
 	quit(1 if not _fautes.is_empty() else 0)
 
 
-func _recetter_la_vue(ecran: Node, zones: Array[Zone], vue: Dictionary) -> void:
+## Les zones de l'écran, la disposition de `disposition` posée (`Disposition.disposer`) : chacune rend son geste joué.
+func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
+	var posee := ecran.get_node("Fenetre/Disposition") as Disposition
+	posee.disposer(disposition)
+	_posees[posee.scene] = true
+	var zones := Zone.racines(ecran)
+	for zone in zones:
+		if zone.geste.get_connections().is_empty():
+			zone.geste.connect(func(jeu: Dictionary) -> void: _joues.append(jeu))
+	return zones
+
+
+## Les scènes de disposition dédiées sous `dossier`, hors de la générique.
+func _dedicaces(dossier: String) -> Array:
+	var scenes := []
+	for fichier in DirAccess.get_files_at(dossier):
+		var chemin := "%s/%s" % [dossier, fichier.trim_suffix(".remap")]
+		if chemin.ends_with(".tscn") and chemin != Disposition.GENERIQUE:
+			scenes.append(chemin)
+	for sous in DirAccess.get_directories_at(dossier):
+		scenes.append_array(_dedicaces("%s/%s" % [dossier, sous]))
+	return scenes
+
+
+func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 	for source in vue.zones:
 		_verifier(_zone_de(zones, source) != null, "%s : la source %s n'a pas de zone" % [vue.nom, source])
-	_montrer(zones, vue.zones)
+	Zone.montrer_toutes(zones, vue.zones)
 	var noeuds := {}
 	for zone in zones:
 		_verifier(vue.zones.has(zone.source), "%s : la zone %s ne lit aucune source de la vue" % [vue.nom, zone.source])
-		var elements: Array = vue.zones.get(zone.source, [])
+		var elements := Zone.elements_de(zones, zone, vue.zones)
 		var dessines := _dessines(zone)
 		var cles := elements.map(func(e: Dictionary) -> String: return "%s/%s" % [e.type, e.id])
 		_verifier(dessines.map(func(n: Node) -> String: return n.get_meta(Zone.META)) == cles, "%s, %s : composants %s, éléments %s" % [vue.nom, zone.source, dessines.map(func(n: Node) -> String: return n.get_meta(Zone.META)), cles])
 		for n in dessines:
 			noeuds[n.get_meta(Zone.META)] = n
+	for source in vue.zones:
+		for e in vue.zones[source]:
+			_verifier(noeuds.has("%s/%s" % [e.type, e.id]), "%s, %s : %s/%s n'a aucune zone" % [vue.nom, source, e.type, e.id])
 	for zone in zones:
 		for e in vue.zones.get(zone.source, []):
 			var noeud: Node = noeuds.get("%s/%s" % [e.type, e.id])
@@ -76,16 +107,10 @@ func _recetter_la_vue(ecran: Node, zones: Array[Zone], vue: Dictionary) -> void:
 			var noeud: Node = noeuds.get("%s/%s" % [e.type, e.id])
 			var attendu: Node = noeud.get_node(FOCUS[e.type])
 			_verifier(focus == attendu, "%s : le geste en focus %s n'a pas le focus (%s)" % [vue.nom, e.id, focus])
-	_montrer(zones, vue.zones)
+	Zone.montrer_toutes(zones, vue.zones)
 	for zone in zones:
 		for n in _dessines(zone):
 			_verifier(noeuds.get(n.get_meta(Zone.META)) == n, "%s : %s redessiné au lieu d'être gardé" % [vue.nom, n.get_meta(Zone.META)])
-
-
-## Chaque zone montre les éléments de sa source dans `sources`.
-func _montrer(zones: Array[Zone], sources: Dictionary) -> void:
-	for zone in zones:
-		zone.montrer(sources.get(zone.source, []))
 
 
 func _zone_de(zones: Array[Zone], source: String) -> Zone:

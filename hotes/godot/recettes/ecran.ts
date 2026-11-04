@@ -12,9 +12,10 @@ import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
-/** Une vue de l'écran figée : son nom, ses zones, et l'intention de chaque formulaire par son id. */
+/** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
 export interface VueFigee {
   nom: string;
+  disposition: string | null;
   zones: ZonesDeLEcran & ZonesDeLaSuite;
   attendus: Record<string, Jeu>;
 }
@@ -60,7 +61,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
     return s;
   };
   const vues: VueFigee[] = [];
-  const figer = (nom: string, s: Suite) => vues.push({ nom, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] }, attendus: {} });
+  const figer = (nom: string, s: Suite) => vues.push({ nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] }, attendus: {} });
   const enFocus = (s: Suite): Jeu => {
     const b = s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus);
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((g) => g.id))}`);
@@ -85,6 +86,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   };
   vues.push({
     nom: 'formulaire de chaque saisie',
+    disposition: null,
     zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.gestes': elementsDesGestes([FORMULAIRE, REFUSE]), 'journal.lignes': [...lignes] },
     attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE } },
   });
