@@ -34,19 +34,8 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   books: 'index d’app des livres eux-mêmes — un livre ne se cite pas lui-même',
   'progression-schemas.derived':
     'artefact GÉNÉRÉ par scripts/data/gen-progression-schemas.py — la provenance est PORTÉE PAR CHAQUE BANDE (book, page = folio imprimé, page PDF, ordonnée), relevée sur la page ; une source racine recopierait à la main ce que le générateur mesure',
-};
-
-/**
- * Part de CONTENU de `SANS_LIVRE` (classes (2) et (3) de #1467 L1b V-Src, hors index d’app des livres et artefacts
- * générés) : son sourçage reste dû, lot L1d #1469. La fabrique l’exempte, la mesure d’enveloppe en compte l’absence
- * (`provenanceMesuree`). Une clé ne sort d’ici que par le commit qui source son document, ou par une décision
- * utilisateur datée au ticket qui la déclare définitivement sans livre.
- */
-export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
-  // ── #1467 L1b V-Src (2026-08-27) — jugé le 2026-08-26. Chaque raison est MESURÉE au geste sur la
-  // donnée réelle ; aucune n'est close par « … ». Deux classes, distinctes par ce qui MANQUE.
-
-  // (2) INDEX & CATALOGUES D'APPLICATION — l'objet décrit est le dépôt ou son contenu, pas une règle.
+  // Catalogues d'application : l'objet décrit est le dépôt ou son contenu, pas une règle. Décision
+  // utilisateur du 2026-11-04 consignée à #1469.
   groups:
     'index d’app des groupes cibles ({id,label}) — tags de regroupement/rencontre, pas une notion RAW nommée ; les espèces sourcées vivent dans species.json',
   names:
@@ -55,13 +44,24 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
     'race d’apparence par défaut de l’authoring — câblage d’application, pas une donnée RAW',
   pregens: 'pré-tirés d’app (compositions maison de fiches jouables) — contenu app-inventé, pas une règle RAW',
   merchants:
-    'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`), et les valeurs maison porteront leur champ `maison` par entrée',
+    'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`) ; `resaleRate` reprend la revente de LDB 59 l.54, `bargainSkill` est chiffré par entrée sans `maison` (LDB 59 l.54 laisse le Marchandage au MJ), inventaire #1463',
   merchantFamilies:
     'catalogue d’app — familles de PRÉSENTATION du stock marchand (onglets/colonnes de `ui/MerchantPanel.tsx`), mise en page, aucune valeur mécanique',
   'lieux-services':
     'catalogue d’app — id/label/icône de routage d’écran (hub de lieu) ; port et marché portent leur propre schéma sourcé',
   calendarPhases:
     'découpage horaire d’app (7 phases Aube→Nuit : minute de départ + icône, moteur de lumière/vision) — le Calendrier Impérial RAW vit dans calendarMonths/calendarWeekdays (EDO Annexe 3, folio 149-150, 12/12 et 8/8 sourcés) ; aucune table de phases n’y est imprimée',
+};
+
+/**
+ * Part de CONTENU de `SANS_LIVRE` (classe (3) de #1467 L1b V-Src, hors index d’app des livres et artefacts
+ * générés) : son sourçage reste dû, lot L1d #1469. La fabrique l’exempte, la mesure d’enveloppe en compte l’absence
+ * (`provenanceMesuree`). Une clé ne sort d’ici que par le commit qui source son document, ou par une décision
+ * utilisateur datée au ticket qui la déclare définitivement sans livre.
+ */
+export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
+  // ── #1467 L1b V-Src (2026-08-27) — jugé le 2026-08-26. Chaque raison est MESURÉE au geste sur la
+  // donnée réelle ; aucune n'est close par « … ».
 
   // (3) MIXTES — plusieurs provenances PAR CLÉ (et par colonne d'espèce pour `details`), aucune racine unique.
   sizes:
