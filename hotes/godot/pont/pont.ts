@@ -31,12 +31,14 @@ interface ErreurGlobale {
   source: string | null;
 }
 
-/** La vue : la projection commune (`projeter`), chaque zone de l'écran et ses éléments (`zonesDeLEcran`), les cases
+/** La vue : la projection commune (`projeter`), la disposition de la fenêtre qui tient la main
+ *  (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses éléments (`zonesDeLEcran`), les cases
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
  *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` ; `null` : la barre de l'actif n'est pas ouverte), et l'id du
  *  combattant que chaque case porte, par `"x,y"`. */
 export interface VueDuPont extends CouvertureDesModeles {
   projection: Projection;
+  disposition: string | null;
   zones: ZonesDeLEcran;
   cases: CaseAtteignable[];
   plateau: ReturnType<typeof plateauDeLaScene> | null;
@@ -103,10 +105,12 @@ export function creerPont() {
     const etat = o.partie.etat();
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     const combat = projection.combat;
+    const fenetre = fenetreADessiner(etat);
     return {
       projection,
       ...modelesDesCombattants(combat?.voisins.liste ?? []),
-      zones: zonesDeLEcran(etat, projection, fenetreADessiner(etat)),
+      disposition: fenetre?.disposition ?? null,
+      zones: zonesDeLEcran(etat, projection, fenetre),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
       champ: combat?.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null,

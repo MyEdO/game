@@ -1,0 +1,82 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+[ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="2_titre"]
+
+[node name="Cadre" type="PanelContainer"]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -340.0
+offset_top = 40.0
+offset_right = 340.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Fenetre"
+
+[node name="Colonne" type="VBoxContainer" parent="."]
+
+[node name="Titre" type="VBoxContainer" parent="Colonne"]
+theme = ExtResource("2_titre")
+
+[node name="Zone" type="Node" parent="Colonne/Titre" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.titre"
+masque = NodePath("../../..")
+
+[node name="Etape" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Etape"]
+script = ExtResource("1_zone")
+source = "fenetre.etape"
+
+[node name="Entete" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Entete"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("sousTitre", "cible", "enTete")
+
+[node name="Separation" type="HSeparator" parent="Colonne"]
+
+[node name="Duel" type="HBoxContainer" parent="Colonne"]
+theme_override_constants/separation = 12
+
+[node name="Attaquant" type="VBoxContainer" parent="Colonne/Duel"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Colonne/Duel/Attaquant"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("jet")
+
+[node name="Contre" type="VSeparator" parent="Colonne/Duel"]
+
+[node name="Defenseur" type="VBoxContainer" parent="Colonne/Duel"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Colonne/Duel/Defenseur"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("defense")
+
+[node name="Issue" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Issue"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+
+[node name="Pied" type="HSeparator" parent="Colonne"]
+
+[node name="Defilement" type="ScrollContainer" parent="Colonne"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Gestes" type="VBoxContainer" parent="Colonne/Defilement"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Colonne/Defilement/Gestes"]
+script = ExtResource("1_zone")
+source = "fenetre.gestes"

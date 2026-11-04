@@ -1,7 +1,8 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`) et applique chaque suite. La vue va au plateau, et chaque zone de
-## l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source (`vue.zones`, et ce que la
-## suite ajoute, `zones` : les lignes du journal) ; le journal va au plateau ; chaque jeton programmé est armé
+## l'adresse de la page (`?scenario=<id>&graine=<n>`) et applique chaque suite. La vue va au plateau ; la fenêtre prend
+## la disposition que la vue nomme (`vue.disposition`, `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène
+## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
+## que la suite ajoute, `zones` : les lignes du journal) ; le journal va au plateau ; chaque jeton programmé est armé
 ## en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
 ## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
@@ -11,6 +12,7 @@ extends Node
 
 @onready var _plateau: Plateau = $Plateau
 @onready var _ecran: Node = $Ecran
+@onready var _disposition: Disposition = $Ecran/Fenetre/Disposition
 @onready var _refus: Label = $Ecran/Interface/Avis/Refus
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
@@ -20,9 +22,6 @@ var _zones: Array[Zone] = []
 
 
 func _ready() -> void:
-	_zones = Zone.racines(_ecran)
-	for zone in _zones:
-		zone.geste.connect(_jouer)
 	_plateau.case_cliquee.connect(_cliquer)
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
@@ -48,17 +47,20 @@ func _suivre(reponse: Dictionary) -> void:
 	_vue = reponse.vue
 	_refus.text = ""
 	_plateau.montrer(_vue, reponse.journal)
-	_montrer(reponse.zones)
+	if _disposition.disposer(_vue.disposition):
+		_relier()
+	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()
 
 
-## Chaque zone de l'écran montre les éléments de sa source dans la vue, ou dans ce que la suite ajoute (`ajouts`).
-func _montrer(ajouts: Dictionary) -> void:
-	var sources: Dictionary = _vue.zones.merged(ajouts)
+## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu.
+func _relier() -> void:
+	_zones = Zone.racines(_ecran)
 	for zone in _zones:
-		zone.montrer(sources.get(zone.source, []))
+		if not zone.geste.is_connected(_jouer):
+			zone.geste.connect(_jouer)
 
 
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`) et le point de
