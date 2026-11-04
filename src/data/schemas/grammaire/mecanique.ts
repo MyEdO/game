@@ -1222,8 +1222,8 @@ function construire(regimes: Regimes) {
     optional: z.boolean().optional(),
   }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 
-  /** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
-   *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
+  /** Entrée d100 d'une table de voyage (`TravelTableEntry`, `src/engine/travelTables.ts`), partagée par
+   *  `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
   const travelTableEntry = marquerProduit(nommerChamps(z.strictObject({
     min: z.number(),
     max: z.number(),

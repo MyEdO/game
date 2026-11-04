@@ -7,7 +7,7 @@ export const file = 'montures.json';
 export const famille = 'config';
 
 /** Une monture ou bête de trait : Mouvement, Endurance, trot et capacité de charge en voyage. */
-const montureSchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Réfs `CreatureData.id` du bestiaire (SOCLE POSSESSIONS #617/#618) — peut être vide (« Cheval de
@@ -40,7 +40,7 @@ const doc = document(
     codex: { keys: ['montures'] },
     edit: { niche: { categories: { montures: 'entries' } } },
   },
-  { rangee: montureSchema },
+  { rangee },
 );
 
 export const schema = doc.schema;

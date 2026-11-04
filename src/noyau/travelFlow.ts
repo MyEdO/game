@@ -44,7 +44,7 @@ import {
   type ForcedPaceAnimal, type ForcedPaceAnimalOutcome,
 } from '../engine/vehicle';
 import { bonus } from '../engine/characteristics';
-import { rollVehicleProblem, mountIncidentEffects } from '../engine/travelTables';
+import { rollVehicleProblem, mountIncidentEffects, VEHICLE_PROBLEM_DIE } from '../engine/travelTables';
 import { applyOps } from '../engine/ops';
 import { ouvrirChute, jouerFlowEntier, applyEffectsLoot } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
@@ -60,7 +60,7 @@ import { provisioningManifest } from '../engine/provisions';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { evalCondition } from '../engine/flowCore';
-import { d100 } from '../engine/dice';
+import { rollDice } from '../engine/dice';
 import { rule } from '../engine/policy';
 import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
 import { seasonOfMonth, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
@@ -1143,7 +1143,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
 function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDayResult, 'lines' | 'entries'>): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false }; // garde : coque toujours créée en allure forcée
-  const roll = d100(battleRng());
+  const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
   let entry = rollVehicleProblem(roll);
   if (entry.id === 'incontrolable') {
     // EDOC 07 l.284, l.286 ; LDB 09 l.30.
@@ -1496,7 +1496,7 @@ export const TABLES = {
         finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false });
         return { consequences: freeCons(j) };
       }
-      const roll = d100(battleRng());
+      const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
       let entry = rollVehicleProblem(roll);
       if (entry.id === 'incontrolable') {
         j.push(t('tf.vehicleProblem', { label: entry.label }));
