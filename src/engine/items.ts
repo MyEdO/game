@@ -1020,6 +1020,26 @@ export function paNette(it: ItemInstance): number {
   return Math.max(0, (it.pa ?? 0) - (it.damageTaken ?? 0));
 }
 
+/** Un emplacement de la fiche : la pièce qui l'occupe, et celles qui peuvent l'occuper. */
+export interface EmplacementPorte {
+  porte?: ItemInstance;
+  candidats: ItemInstance[];
+}
+
+const emplacementDe = (pieces: ItemInstance[]): EmplacementPorte =>
+  ({ porte: pieces.find((i) => i.equipped), candidats: pieces.filter((i) => !i.equipped) });
+
+/** L'emplacement d'armure de la couche `couche` sur les localisations `locs` : les armures de `items`
+ *  qui couvrent l'une d'elles dans cette couche. LDB 63 l.93, l.105-106 */
+export function emplacementDArmure(items: ItemInstance[], locs: readonly HitLocation[], couche: ArmourLayer): EmplacementPorte {
+  return emplacementDe(items.filter((i) => i.kind === 'armor' && (i.locs ?? []).some((l) => locs.includes(l)) && armourLayer(i) === couche));
+}
+
+/** L'emplacement Cape : une seule cape portée à la fois (`isCapeItem`). */
+export function emplacementDeCape(items: ItemInstance[]): EmplacementPorte {
+  return emplacementDe(items.filter(isCapeItem));
+}
+
 /**
  * PA portés par localisation, dérivés des pièces équipées. Une seule pièce compte par localisation
  * (la meilleure), SAUF Flexible (LDB 63) : « peut être portée sous une couche d'armure non

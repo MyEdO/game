@@ -19,15 +19,14 @@ import {
 import { defenseDodgeMods } from './mount';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
-import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique } from '../engine/combat';
+import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique, penaliteDeMainSecondaire } from '../engine/combat';
 import { rule } from '../engine/policy';
 import { isUnarmed } from '../engine/items';
 import { isInanimate } from '../engine/structures';
 import { peutEtreEmpoigne } from '../engine/grapple';
 import { itemCapability } from '../engine/capabilities';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
-import { attackModesFor, offHandPenalty } from '../engine/combatFeatures/dispatch';
-import { modDeRegle } from '../engine/reglesChiffrees';
+import { attackModesFor } from '../engine/combatFeatures/dispatch';
 import { testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { difficultyText } from './difficultyText';
@@ -142,7 +141,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const tir = arme.type === 'ranged';
   const auxArmes = armeTenue ? attaquant.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
   // LDB 14 l.78
-  const penaliteSecondaire = offHandPenalty(attaquant, modDeRegle('main-secondaire', 'main-secondaire'));
+  const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
   const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
   const heros = attaquant.kind === 'hero';

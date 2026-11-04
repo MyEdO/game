@@ -1400,6 +1400,7 @@ export const fr = {
   // Recette navigateur (DEV, __wfrp) — messages de couture, hors narration de partie.
   'dev.creatorNotMounted': "✗ créateur non monté — ouvrir l'écran de création de personnage (__wfrp.screen('creator') ou équivalent)",
   'if.drawPending': '{name} ne peut rien entreprendre tant que les Événements de la période ne sont pas tirés.',
+  'if.closeDrawPending': 'L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.',
   'if.noActivityLeft': '{name} n’a plus d’Activité d’interlude.',
   'if.entrainementUnknown': '{name} : rien à entraîner ici — Compétence/Caractéristique de carrière, ou inconnue.',
   'if.tuteurMinKo': '{name} : la bourse ne couvre même pas le tuteur le moins cher ({cost}).',
