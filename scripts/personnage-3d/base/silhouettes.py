@@ -328,7 +328,10 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
 
     def masque(pile):
         mesures = hors(corriges(pile)[0])
-        return numpy.stack([mesures[nom] for nom in noms], axis=1)
+        marques = numpy.stack([mesures[nom] for nom in noms], axis=1)
+        print('SILHOUETTES rabot : arêtes en défaut', {nom: int(marques[:, k].sum()) for k, nom in enumerate(noms)},
+              flush=True)
+        return marques
 
     pile, passes = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, masque,
                            PASSES_DE_RABOT)
