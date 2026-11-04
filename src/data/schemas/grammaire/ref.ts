@@ -324,12 +324,14 @@ const REPERE_OP: unique symbol = Symbol('repère de nœud d’op');
 /** Un `mesureDuParse` est-il en cours ? Le temps SYNCHRONE de l'appel, qui seul l'écrit, et jamais ailleurs : aucun export n'expose l'état. */
 let parseDeMesure = false;
 
-/** Ce qu'une feuille `idDe` déclare : le type référencé, sa sous-liste, et `ouverte` (un id absent de
- *  l'espace est admis sans être une référence du type). */
+/** Ce qu'une feuille `idDe` déclare : le type référencé, sa sous-liste, `ouverte` (un id absent de
+ *  l'espace est admis sans être une référence du type), et `repereDuPorteur` (la feuille n'émet pas son
+ *  repère au parse de mesure : son porteur l'émet, `recordDIds`). */
 export interface FeuilleDId {
   readonly type: TypeEntite;
   readonly sousListe?: SousListe;
   readonly ouverte: boolean;
+  readonly repereDuPorteur?: true;
 }
 
 /** Les feuilles construites par `idDe`, avec leur déclaration — ce que la garde du masquage
@@ -386,7 +388,13 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
 export function idDe<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, options: { readonly ouverte?: boolean; readonly nue: true }): z.ZodType<string, string>;
 export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string>;
 export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean; readonly nue?: true }): z.ZodType<Id<T>, string> {
-  const ouverte = options?.ouverte === true;
+  return feuilleDId(type, sousListe, options?.ouverte === true, true);
+}
+
+/** Le corps de `idDe`. `avecRepere` : la feuille émet son repère au parse de mesure ; sans repère, le
+ *  porteur l'émet lui-même (`recordDIds`, dont la clé ne doit porter aucune issue pour que zod en parse
+ *  la valeur). */
+function feuilleDId<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, ouverte: boolean, avecRepere: boolean): z.ZodType<Id<T>, string> {
   const site =
     (sousListe === undefined
       ? `idDe('${type}'`
@@ -399,13 +407,14 @@ export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, optio
       if (ouverte && !idsDesignes(espaceDe(type), site).has(v)) return;
       const refus = refusDe(type, sousListe, site, v);
       if (refus === null) {
-        if (parseDeMesure) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
+        if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
         return;
       }
       ctx.addIssue({ code: 'custom', message: refus });
     })
     .transform((v) => v as Id<T>);
-  FEUILLES_D_ID.set(feuille, sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte });
+  const declaration: FeuilleDId = sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte };
+  FEUILLES_D_ID.set(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
   else {
     DESIGNATIONS.add(espaceDe(type));
@@ -547,9 +556,19 @@ export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousL
 }
 
 /** Record keyé par les ids de `type` : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
- *  catalogue, jamais la « clé invalide » générique de zod. */
-export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V) {
-  return z.record(idDe(type), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message });
+ *  catalogue, jamais la « clé invalide » générique de zod. `sousListe` restreint chaque clé comme `idDe`.
+ *  Au parse de mesure, la clé n'émet pas son repère (zod ne parserait plus la valeur) : le record le pose
+ *  sur chaque clé, en `invalid_key`, après le parse de la valeur. */
+export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V, sousListe?: SousListe) {
+  return z
+    .record(feuilleDId(type, sousListe, false, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
+    .superRefine((v, ctx) => {
+      if (!parseDeMesure) return;
+      for (const cle of Object.keys(v)) {
+        const repere: z.core.$ZodIssueCustom = { code: 'custom', path: [], message: `repère de recordDIds('${type}')`, params: { [REPERE]: type } };
+        ctx.addIssue({ code: 'invalid_key', origin: 'record', path: [cle], input: cle, issues: [repere], continue: true });
+      }
+    });
 }
 
 /** Méta du champ `id` de toute référence construite ici. */

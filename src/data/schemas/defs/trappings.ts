@@ -12,7 +12,7 @@ import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema,
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
-import { idDe, ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
@@ -159,6 +159,8 @@ const doc = document(
     /** #3086 D6(c), #3116 */
     rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
     requiresMastery: z.boolean().optional(),
+    /** AA 08 l.188 ; AA 08 l.190 */
+    usagesAPied: recordDIds('weaponGroup', z.array(qualityRefSchema), 'melee').optional(),
     /** LDB 73 l.19/23 */
     prosthesisTraining: z
       .array(nommerChamps(z.strictObject({ px: z.number(), label: z.string(), reduces: z.number().optional(), grants: z.enum(['movement', 'all']).optional() }), {
@@ -247,6 +249,10 @@ const doc = document(
     requiresMastery: {
       label: 'Maîtrise requise',
       hint: 'Arme inhabituelle : sans maîtrise acquise, le Test se fait sur la Caractéristique brute',
+    },
+    usagesAPied: {
+      label: 'Maniements à pied',
+      hint: 'Par Groupe de Corps à corps qui manie aussi l’arme à pied : les Atouts et Défauts qui y remplacent les siens',
     },
     prosthesisTraining: {
       label: 'Paliers d’entraînement (prothèse)',

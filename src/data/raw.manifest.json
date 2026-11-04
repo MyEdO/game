@@ -78,7 +78,7 @@
     "type": "raw.manifest",
     "label": "[AA 01] Tableau des Armes à Deux Mains",
     "ticket": "#1661",
-    "bloque": "Indice de Taillade du sabre selon la Compétence employée (AA 08 l.190) : aucune Condition ne lit la Compétence de l'attaque"
+    "bloque": "Épée bâtarde maniée à une main avec Corps à Corps (Base), qui acquiert alors Épuisante et Lente (AA 08 l.343). Armes d’escrime maniées comme des armes de base (AA 08 l.194)."
   },
   {
     "id": "4e/deplacement#option-attraper-froid",

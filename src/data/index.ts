@@ -1252,6 +1252,10 @@ export interface TrappingData {
    *  maîtrise (`Combatant.masteredWeapons`) pour être maniée avec la Compétence du Groupe. Flag
    *  d'AUTEUR (artefacts uniques : « le couteau de lancer de Harald L'Infâme ») — éditable au Codex. */
   requiresMastery?: boolean;
+  /** Par Groupe de Corps à corps (`WeaponGroupData.id`) qui manie AUSSI l'arme quand son porteur n'est pas
+   *  monté, en plus de `subType` : les qualités qui y remplacent celles de même id (`[]` : aucune). Choix
+   *  du Groupe : `usageAPiedRetenu` (`engine/combat.ts`). AA 08 l.188 ; AA 08 l.190 */
+  usagesAPied?: Record<string, QualityRef[]>;
   /** PROTHÈSE (LDB 73) : ses PALIERS d'entraînement, achetés dans l'ordre déclaré. `cost` = PX ;
    *  `label` = libellé JOUEUR du palier (éditable — aucun texte de palier en dur à l'écran) ;
    *  `reduces` = points de pénalité rachetés par ce palier (`ItemInstance.prosthesisReduced`, cumulés) ;
