@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useGame } from '../../state/store';
-import { lancerScenario } from '../../state/scenarioFlow';
-import { testScenarios } from './index';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { lancerLeScenario } from '../lancementDeScenario';
+import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
+import { testScenarios } from '../../scenes/test-scenarios/index';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { checkBattleOver } from '../../noyau/combatFlow';
 import { resolveShipUnits } from '../../noyau/shipCrew';
@@ -20,17 +21,19 @@ import type { TestResult } from '../../engine/tests';
 import { makeRNG } from '../../engine/dice';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const COGUE = 'enemy-enc-naval-0';
 
-/** Lance le scénario par le lanceur du menu (`lancerScenario`, combat direct), timers gelés pour que la
- *  boucle d'IA (setTimeout) ne se déclenche pas : on PILOTE le combat pas à pas (jets déterministes). */
+/** Lance le scénario par le lanceur du menu (`lancerLeScenario`, combat direct) ; les échéances de l'IA restent en
+ *  attente sur le banc, qui ne les reprend pas : on PILOTE le combat pas à pas (jets déterministes). */
 function launch(seed = 7): BattleState {
-  vi.useFakeTimers(); // fige la chorégraphie d'IA (setTimeout) — restaurée par le afterEach global (test-setup)
   seedBattleRng(seed);
-  lancerScenario(useGame.getState, useGame.setState, scen);
-  if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
-  return useGame.getState().battle!;
+  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen));
+  if (banc.getState().pendingRoundStart) banc.getState().confirmRoundStart();
+  return banc.getState().battle!;
 }
 
 const byId = (b: BattleState, id: string) => b.combatants.find((c) => c.id === id)!;
@@ -79,14 +82,12 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
 
 /** Résout une éventuelle cascade de fin de combat (maladie/Corruption) pour atteindre l'écran de victoire. */
 function settle(): void {
-  checkBattleOver(() => useGame.getState(), useGame.setState);
-  if (useGame.getState().pendingCascade?.combatEndBoundary) {
-    useGame.getState().cascadeResolveAll();
-    useGame.getState().cascadeFinish();
+  checkBattleOver(() => banc.getState(), banc.setState);
+  if (banc.getState().pendingCascade?.combatEndBoundary) {
+    banc.getState().cascadeResolveAll();
+    banc.getState().cascadeFinish();
   }
 }
-
-beforeEach(() => vi.useRealTimers());
 
 /**
  * Test PUR de la résolution NAVIRE-UNITÉ (abordage & naufrage) — les deux issues, indépendamment du scénario.
@@ -135,14 +136,14 @@ describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)',
 describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
   it('le Tueur traverse jusqu\'aux pirates, les abat, et la cogue crewless est prise → victoire', () => {
     const battle = launch(11);
-    const scene = useGame.getState().scene!;
+    const scene = banc.getState().scene!;
     const tueur = byId(battle, 'pregen-202'); // boarder de mêlée (le Tueur du groupe d'arène)
     const cogue = byId(battle, COGUE);
     const crewIds = [...cogue.crewIds!];
 
     // au départ, personne n'a gagné, et la cogue compte comme un ennemi vivant
     expect(battle.over).toBeFalsy();
-    expect(checkBattleOver(() => useGame.getState(), useGame.setState)).toBe(false);
+    expect(checkBattleOver(() => banc.getState(), banc.setState)).toBe(false);
 
     for (const id of crewIds) {
       const pirate = byId(battle, id);
@@ -155,7 +156,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
 
     // équipage vaincu → la cogue (invulnérable en mêlée) est PRISE, plus aucun ennemi debout → VICTOIRE
     settle();
-    const b2 = useGame.getState().battle!;
+    const b2 = banc.getState().battle!;
     expect(isOutOfAction(byId(b2, COGUE))).toBe(true); // prise à l'abordage
     expect(b2.over).toBe('victory');
   });
@@ -168,19 +169,19 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
  * trois verdicts distincts : à portée dans l'arc → `ok` ; au-delà de la bande Extrême → `range` ; hors arc → `arc`.
  */
 describe('Affordance de tir de pièce servie — ok / range / arc (chemin joueur)', () => {
-  const arm = (): { get: () => ReturnType<typeof useGame.getState>; gunner: Combatant; cogue: Combatant; barge: Combatant } => {
+  const arm = (): { get: () => ReturnType<typeof banc.getState>; gunner: Combatant; cogue: Combatant; barge: Combatant } => {
     launch(7);
-    const get = () => useGame.getState();
+    const get = () => banc.getState();
     const battle = get().battle!;
     const gunner = battle.combatants.find((c) => c.kind === 'hero' && c.mannedPoste)!;
     const cogue = byId(battle, COGUE);
     const barge = byId(battle, 'enemy-enc-naval-4');
     expect(get().facing[barge.id]).toBe('N'); // cap authoré appliqué (arc tribord = plein Est)
     gunner.pos = { x: 3, y: 6 }; // à bord de la barge (arc mesuré depuis la coque/le cap, pas depuis le canonnier)
-    useGame.setState({ battle: { ...battle, action: null, acted: false, selectedAttack: 'poste' } });
+    banc.setState({ battle: { ...battle, action: null, acted: false, selectedAttack: 'poste' } });
     return { get, gunner, cogue, barge };
   };
-  const affordanceKind = (get: () => ReturnType<typeof useGame.getState>, gunner: Combatant, cogue: Combatant) =>
+  const affordanceKind = (get: () => ReturnType<typeof banc.getState>, gunner: Combatant, cogue: Combatant) =>
     currentTargetingMode(get).affordance!(get, gunner, cogue);
 
   it('cible à portée dans l’arc tribord → ok', () => {
@@ -194,7 +195,7 @@ describe('Affordance de tir de pièce servie — ok / range / arc (chemin joueur
     // La portée Extrême du pierrier (90 m = 45 cases à 2 m) dépasse la scène d'abordage (18 cases). On élargit
     // le champ NAVIGABLE (mer ouverte) : les cases hors du calque original se résolvent en 'sol' (non opaque,
     // cf. tileAt) → LdV dégagée jusqu'à la cible ; sans cela un bord de carte ('mur') masquerait le refus de PORTÉE.
-    useGame.setState({ scene: { ...get().scene!, dimensions: { ...get().scene!.dimensions, w: 80 } } });
+    banc.setState({ scene: { ...get().scene!, dimensions: { ...get().scene!.dimensions, w: 80 } } });
     cogue.pos = { x: 60, y: 6 }; // plein Est, 57 cases ≈ 114 m > 90 m
     const aff = affordanceKind(get, gunner, cogue);
     expect(aff.kind).toBe('invalid');
@@ -235,12 +236,12 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     expect(isOutOfAction(cogue)).toBe(false);
     expect(critiquesDuCoup(cogue, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(cogue, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
     settle();
-    expect(useGame.getState().battle!.over).toBeFalsy();
+    expect(banc.getState().battle!.over).toBeFalsy();
     // MDG 13 l.674 : l'Indice d'Inondation égal à l'Endurance la coule (chaîne Voie d'eau → naufrage : naval-damage.test).
-    addCondition(byId(useGame.getState().battle!, COGUE), 'naufrage');
+    addCondition(byId(banc.getState().battle!, COGUE), 'naufrage');
 
     settle();
-    const b2 = useGame.getState().battle!;
+    const b2 = banc.getState().battle!;
     // équipage passé par-dessus bord (outOfRencontre) → plus aucun ennemi debout → VICTOIRE
     for (const id of cogue.crewIds!) expect(isOutOfAction(byId(b2, id))).toBe(true);
     expect(b2.over).toBe('victory');

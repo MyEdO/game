@@ -1,14 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useGame } from '../../state/store';
-import { lancerScenario } from '../../state/scenarioFlow';
-import { testScenarios } from './index';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { lancerLeScenario } from '../lancementDeScenario';
+import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
+import { testScenarios } from '../../scenes/test-scenarios/index';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { toBrass } from '../../engine/money';
 import { distributeCredit, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { primaryCargoCarrier } from '../../noyau/carriers';
-import { avanceEtapeCascade, draineCascadeDifferee } from '../../noyau/cascade.testkit';
+import { avanceEtapeCascade, draineCascade, draineCascadeDifferee } from '../../noyau/cascade.testkit';
 import { carrierFreeEnc } from '../../engine/cargo';
-import { REIK_INDEX } from './_reik-index';
+import { REIK_INDEX } from '../../scenes/test-scenarios/_reik-index';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * « Commerce fluvial (le Reik) » — le commerce de cargaison MSRC 13 rendu JOUABLE. Vérifie (1) que la
@@ -18,30 +22,23 @@ import { REIK_INDEX } from './_reik-index';
  */
 const scen = testScenarios.find((s) => s.id === 'commerce-fluvial')!;
 const scenConstruit = scen.construire();
-const get = () => useGame.getState();
+const get = () => banc.getState();
 
-/** Lance le scénario par le lanceur du menu (`lancerScenario`). */
+/** Lance le scénario par le lanceur du menu (`lancerLeScenario`). */
 function launch() {
-  lancerScenario(get, useGame.setState, scen);
+  lancerLeScenario(get, banc.setState, lancementDuScenario(scen));
 }
 
 /** Descend le fleuve par une route de barge jusqu'à l'arrivée (travelPlan retombé à null). Route directe
  *  ≤ 48 km → une seule journée, pas de halte ; on gère quand même une éventuelle nuit de relais, et on force un barrage rencontré (MSRC 7 l.128). */
 function drainCascade(): void {
-  let g = 0;
-  while (get().pendingCascade && g++ < 200) {
-    const p = get().pendingCascade!;
-    const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
-    else if (cur?.options && cur.chosen == null) { get().cascadeChoose(cur.id, 'forcer'); get().cascadeNext(); }
-    else get().cascadeNext();
-  }
+  draineCascade(get, 200, undefined, () => 'forcer');
 }
 function bargeTo(routeId: string, destSceneId: string, maxSteps = 60): void {
   get().startTravel(routeId, 'barge');
   for (let i = 0; i < maxSteps; i++) {
     if (!get().travelPlan && get().scene?.id === destSceneId) return;
-    // Les jets du JOUR fluvial (et l'exposition) sont désormais une cascade influençable : la drainer.
+    // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
     if (get().pendingCascade) { drainCascade(); continue; }
     if (get().pendingRest) { get().restSleep(); drainCascade(); continue; }
     if (!get().travelPlan) return;
@@ -72,7 +69,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
 
   it('Gunnar (Voile 40) mène la Navigation de la barge ; Otto, sans Voile, ne la tente pas (LDB 09 l.30)', () => {
     // Otto devient le plus agile du groupe : sans la porte `peutTenter`, sa Voile non augmentée l'élirait.
-    useGame.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
+    banc.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
     get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
@@ -94,7 +91,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 
   it('achète une cargaison à Grünburg, descend le Reik en barge (convoi persistant) et la revend plus cher à Altdorf', () => {
     // Bourse large pour garantir l'achat du LOT PLEIN (pas de surcoût de lot partiel, l.131).
-    distributeCredit(get, useGame.setState, { gold: 200000, silver: 0, brass: 0 });
+    distributeCredit(get, banc.setState, { gold: 200000, silver: 0, brass: 0 });
     expect(get().scene?.id).toBe('quai-grunburg');
 
     // ── ACHAT à Grünburg (R 2) ──
@@ -130,10 +127,8 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     const purseBeforeSell = toBrass(partyMoneyTotal(get));
     // Le dé d'acheteur est un dé de MONDE : le joueur le LANCE dans sa fenêtre (#1426), et la vente
     // s'enchaîne sur ses maillons différés (mise à prix, Marchandage).
-    vi.useFakeTimers();
     get().landSellCargo(carrierId, 0);
-    draineCascadeDifferee(get, () => vi.runAllTimers());
-    vi.useRealTimers();
+    draineCascadeDifferee(get, () => banc.reprendreTout());
     const earned = toBrass(partyMoneyTotal(get)) - purseBeforeSell;
     expect(earned).toBeGreaterThan(0);
     // La cargaison a rapporté PLUS qu'elle n'a coûté à l'achat → profit prouvé (boucle MSRC 13 l.11-13).
@@ -174,7 +169,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
   /** Le barrage de la descente (MSRC 7 l.128) POSÉ : sa chance d'auteur sur la route, donnée éditable, passe à 100 %. */
   function barragePose(): void {
     const wm = get().worldMap!;
-    useGame.setState({ worldMap: { ...wm, routes: wm.routes.map((r) => (r.id !== 'r-grunburg-altdorf' ? r
+    banc.setState({ worldMap: { ...wm, routes: wm.routes.map((r) => (r.id !== 'r-grunburg-altdorf' ? r
       : { ...r, riverPerils: (r.riverPerils ?? []).map((pe) => (pe.perilId === 'barrage' ? { ...pe, chancePct: 100 } : pe)) })) } });
   }
 
@@ -184,12 +179,12 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
     const journal: string[] = [];
     const puits = get().log;
-    useGame.setState({ log: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
+    banc.setState({ log: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
     const decisions: string[] = [];
     try {
       expect(descendre(undefined, decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
     } finally {
-      useGame.setState({ log: puits });
+      banc.setState({ log: puits });
     }
     expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
     expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));

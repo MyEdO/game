@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { evalCondition, flowHasTest, flowEffects } from '../../engine/flowCore';
 import { validateScene } from '../../noyau/validateScene';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runFlow, assignGearAt } from '../../noyau/combatEffects';
 import { layerTiles } from '../../noyau/monde/scene';
-import { scenario } from './piege-caveau';
+import { scenario } from '../../scenes/test-scenarios/piege-caveau';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
 /**
- * « Le Caveau piégé » est du CONTENU pur (données éditeur), désormais produit par `buildScene(MapSpec)`
+ * « Le Caveau piégé » est du CONTENU pur (données éditeur), produit par `buildScene(MapSpec)`
  * (grille ASCII z0 pour les murs 'mur', entités/triggers déclaratifs). Ce gate prouve que la Scene PRODUITE
  * garde la géométrie attendue (périmètre + cloison + trouée de herse) et que la VITRINE Flow+Condition est
  * cohérente sur le vrai moteur : la condition composée de la herse (clé OU levier, ET NON alarme) évalue
@@ -54,23 +57,23 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
   it('le levier pose son flag (runtime) ; la clé donne « Clé en fer » lu par la herse (hasItem)', () => {
     const levier = scene.entities.find((e) => e.id === 'levier')!;
     const cle = scene.entities.find((e) => e.id === 'cle')!;
-    useGame.setState({ battle: null, flags: {}, party: scenario.construire().party, scene });
-    runFlow(useGame.getState, useGame.setState, levier.usable!.actions![0].flow);
-    expect(useGame.getState().flags.levier_tire).toBe(true);
+    banc.setState({ battle: null, flags: {}, party: scenario.construire().party, scene });
+    runFlow(banc.getState, banc.setState, levier.usable!.actions![0].flow);
+    expect(banc.getState().flags.levier_tire).toBe(true);
     // la fouille de la clé donne l'objet « Clé en fer » — c'est lui que la condition hasItem de la herse lit.
     expect(flowEffects(cle.usable!.actions![0].flow).some((e) => e.type === 'giveTrapping' && e.custom === 'Clé en fer')).toBe(true);
   });
 
   it('le coffre donne une ARME de catalogue (LDB 62 l.125-127), Précise et non identifiée, tenable en main', () => {
     const tresor = scene.entities.find((e) => e.id === 'tresor')!;
-    useGame.setState({ battle: null, flags: {}, party: scenario.construire().party, scene, pendingLoot: null });
-    runFlow(useGame.getState, useGame.setState, tresor.usable!.actions![0].flow);
-    const gear = useGame.getState().pendingLoot!.gear;
+    banc.setState({ battle: null, flags: {}, party: scenario.construire().party, scene, pendingLoot: null });
+    runFlow(banc.getState, banc.setState, tresor.usable!.actions![0].flow);
+    const gear = banc.getState().pendingLoot!.gear;
     expect(gear.length).toBe(1);
-    const heroId = useGame.getState().party[0].id;
-    const avant = new Set((useGame.getState().party[0].items ?? []).map((i) => i.uid)); // le héros porte déjà l'équipement de sa carrière
-    assignGearAt(useGame.getState, useGame.setState, 'pendingLoot', 0, heroId);
-    const hero = useGame.getState().party.find((h) => h.id === heroId)!;
+    const heroId = banc.getState().party[0].id;
+    const avant = new Set((banc.getState().party[0].items ?? []).map((i) => i.uid)); // le héros porte déjà l'équipement de sa carrière
+    assignGearAt(banc.getState, banc.setState, 'pendingLoot', 0, heroId);
+    const hero = banc.getState().party.find((h) => h.id === heroId)!;
     const lame = hero.items!.find((i) => !avant.has(i.uid));
     expect(lame).toBeDefined();
     expect(lame!.trappingId).toBe('arme-simple');
@@ -79,12 +82,12 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
     expect(lame!.qualities.map((q) => q.id)).toContain('precise');
     expect(lame!.identified).toBe(false);
     // tenue en main (loadout actif) → elle devient une arme JOUABLE, qualité Précise comprise
-    useGame.getState().setLoadoutSlot(heroId, hero.activeLoadoutId!, 'main', lame!.uid);
-    const armed = useGame.getState().party.find((h) => h.id === heroId)!;
+    banc.getState().setLoadoutSlot(heroId, hero.activeLoadoutId!, 'main', lame!.uid);
+    const armed = banc.getState().party.find((h) => h.id === heroId)!;
     const w = armed.weapons.find((x) => x.uid === lame!.uid);
     expect(w).toBeDefined();
     expect(w!.qualities.map((q) => q.id)).toContain('precise');
   });
 
-  beforeEach(() => useGame.setState({ battle: null, flags: {}, pendingTest: null }));
+  beforeEach(() => banc.setState({ battle: null, flags: {}, pendingTest: null }));
 });

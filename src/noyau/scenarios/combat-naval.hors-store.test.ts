@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { useGame } from '../../state/store';
+import { describe, it, beforeEach, expect } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { draineCascade } from '../../noyau/cascade.testkit';
-import { lancerScenario } from '../../state/scenarioFlow';
-import { testScenarios } from './index';
+import { lancerLeScenario } from '../lancementDeScenario';
+import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
+import { testScenarios } from '../../scenes/test-scenarios/index';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';
 import { applyCriticalToTarget, firedAttackBlock } from '../../noyau/combatFlow';
 import { applyShipPostes } from '../../noyau/monde/shipPostes';
@@ -12,7 +13,13 @@ import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { PREGEN } from '../../data/pregens';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
-import { presetPnjById } from '../../state/campaignData';
+import { presetDuNarratif } from '../monde/resolveursDuNarratif';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+/** Le résolveur de preset du narratif chargé sur le banc. */
+const presetPnjById = (id: string) => presetDuNarratif(banc.getState().campaignNarratif)(id);
 
 /** Ids de PARTY pregen des 2 canonniers (Soldat + Chasseur) — chefs de pièce des pierriers de la barge amie.
  *  Couplage runtime `applyShipPostes` : ces ids ne changent PAS (ils réfèrent le groupe, pas la rencontre). */
@@ -169,22 +176,21 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
  */
 describe('combat-naval — bordée de la barge sur un pirate, par la porte du joueur', () => {
   it('Test des Artilleurs puis Feu ! : chaque pierrier tire sur le pirate, rien ne lève, aucun État naval', () => {
-    vi.useFakeTimers();
     seedBattleRng(7);
-    lancerScenario(useGame.getState, useGame.setState, scen);
-    if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
+    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen));
+    if (banc.getState().pendingRoundStart) banc.getState().confirmRoundStart();
     const BARGE = 'enemy-enc-naval-4';
     const PIRATE = 'enemy-enc-naval-1';
-    const pirate = () => useGame.getState().battle!.combatants.find((c) => c.id === PIRATE)!;
+    const pirate = () => banc.getState().battle!.combatants.find((c) => c.id === PIRATE)!;
     const avant = pirate().wounds.current;
-    const logAvant = useGame.getState().battle!.log.length;
-    useGame.getState().battleShipBattery(BARGE, PIRATE);
-    const p = useGame.getState().pendingShipBattery;
-    expect(p, `bordée refusée : ${useGame.getState().refus?.texte}`).not.toBeNull();
-    for (const x of p!.participants) if (!x.result) useGame.getState().shipBatteryRoll(x.id);
-    expect(() => useGame.getState().shipBatteryConfirm()).not.toThrow();
-    draineCascade(useGame.getState);
-    const coups = useGame.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));
+    const logAvant = banc.getState().battle!.log.length;
+    banc.getState().battleShipBattery(BARGE, PIRATE);
+    const p = banc.getState().pendingShipBattery;
+    expect(p, `bordée refusée : ${banc.getState().refus?.texte}`).not.toBeNull();
+    for (const x of p!.participants) if (!x.result) banc.getState().shipBatteryRoll(x.id);
+    expect(() => banc.getState().shipBatteryConfirm()).not.toThrow();
+    draineCascade(banc.getState);
+    const coups = banc.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));
     expect(new Set(coups.map((e) => e.actorId)), 'un coup par pierrier servi, touché ou raté').toEqual(new Set(GUNNER_IDS));
     expect(pirate().wounds.current).toBeLessThanOrEqual(avant);
     expect(pirate().conditions.filter((c) => /navire|voie-d-eau|gréement/.test(c.id))).toEqual([]);

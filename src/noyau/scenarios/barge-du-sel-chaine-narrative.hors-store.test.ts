@@ -4,53 +4,56 @@
  * chapitre. Aucune donnée de fixture — la campagne committée est le sujet.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import type { ConditionCtx } from '../../engine/flowCore';
-import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../campaign';
+import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const barge = paquetDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!);
 const CAP = 'sel-cap-donne';
 const ACCOSTE = 'sel-ilot-accoste';
 
-const get = () => useGame.getState();
+const get = () => banc.getState();
 /** Contexte de Condition tel que la carte le voit en jeu (drapeaux courants + horloge). */
 const ctx = (): ConditionCtx => ({ flags: get().flags, gameTime: get().gameTime });
 
 beforeEach(() => {
-  expect(lancerCampagne(useGame.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!), barge.scenes[0].id)).toBeNull();
+  expect(lancerCampagne(banc.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!), barge.scenes[0].id)).toBeNull();
 });
 
 describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, sur la donnée committée', () => {
   it('l’ouverture cérémonielle s’arme au chargement du paquet et pose la borne du chapitre', () => {
     expect(get().pendingOuverture?.titre).toBe(barge.narratif.ouverture!.titre);
     expect(get().chapitreDepuis).toBeNull();
-    useGame.getState().acquitterOuverture();
+    banc.getState().acquitterOuverture();
     expect(get().pendingOuverture).toBeNull();
     expect(get().chapitreDepuis).not.toBeNull();
   });
 
   it('le cap se prend SUR LES PLANCHES : au premier pas la traversée est encore fermée, au rang 5 elle s’ouvre', () => {
-    useGame.getState().acquitterOuverture();
+    banc.getState().acquitterOuverture();
     const carte = get().worldMap!;
 
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 4 }); // un pas dans le sable : le départ s'énonce, pas le cap
+    poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 4 }); // un pas dans le sable : le départ s'énonce, pas le cap
     expect(get().flags[CAP]).toBeFalsy();
     expect(visiblePlaces(carte, ctx()).map((p) => p.id)).toEqual(['quai-du-sel']);
     expect(routesFrom(carte, 'quai-du-sel', ctx())).toEqual([]);
 
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 5 }); // les planches d'embarquement
+    poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 5 }); // les planches d'embarquement
     expect(get().flags[CAP]).toBe(true);
     expect(visiblePlaces(carte, ctx()).map((p) => p.id)).toEqual(['quai-du-sel', 'ilot-du-sel']);
     expect(routesFrom(carte, 'quai-du-sel', ctx()).map((r) => r.id)).toEqual(['route-quai-ilot']);
   });
 
   it('ARRIVER ne suffit pas : le drapeau d’accostage se pose au premier PAS sur l’îlot, et le récap s’arme là', () => {
-    useGame.getState().acquitterOuverture();
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 5 });
+    banc.getState().acquitterOuverture();
+    poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 5 });
 
-    useGame.getState().transitionTo('barge-du-sel-ilot');
+    banc.getState().transitionTo('barge-du-sel-ilot');
 
     // NON-VACUITÉ D'ABORD : le groupe accosté se tient bel et bien DANS le rect du trigger d'arrivée.
     // Sans cette borne, un rect qui rétrécirait hors du point d'arrivée rendrait le « pas encore
@@ -67,7 +70,7 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
     expect(get().flags[ACCOSTE]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();
 
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 3, y: 2 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 3, y: 2 });
     expect(get().flags[ACCOSTE]).toBe(true);
 
     const recap = get().pendingChapterRecap!;
