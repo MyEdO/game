@@ -60,3 +60,17 @@ describe('trappings.json — `shape` et `formChoices` sont des racines du catalo
     expect(refus(doc)).toContain('heaume : une armure porte sa forme (`shape`, racine de apparences.json)');
   });
 });
+
+/** AA 08 l.188 ; AA 08 l.190 */
+describe('trappings.json — un maniement à pied se fait dans un Groupe de Corps à corps', () => {
+  const sabre = (doc: Entree[]) => doc.find((t) => t.id === 'sabre')!;
+
+  it.each([
+    ['inventé', 'sabre-de-fantaisie', /« sabre-de-fantaisie » est hors de la sous-liste « melee »/],
+    ['de Projectiles', 'arc', /« arc » est hors de la sous-liste « melee »/],
+  ])('un Groupe %s est refusé, nommément', (_cas, groupe, motif) => {
+    const doc = clone();
+    sabre(doc).usagesAPied = { [groupe]: [] };
+    expect(refus(doc).join(' ')).toMatch(motif);
+  });
+});

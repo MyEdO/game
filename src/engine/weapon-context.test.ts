@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveWeapon, effectiveWeaponDamage } from './weaponDamage';
-import { resolveMelee, hasWeaponGroupSkill, combatValue } from './combat';
+import { resolveMelee, hasWeaponGroupSkill, combatValue, attackTestOf, usageAPiedRetenu } from './combat';
 import { weaponHands, recomputeLoadout, itemFromTrappingById, weaponFromItem } from './items';
 import { dangerousNine, hasQuality } from './qualities/dispatch';
 import { makeRNG } from './dice';
-import type { Weapon, Combatant } from './types';
+import type { Weapon, Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Règles d'arme CONTEXTUELLES de Groupe (Issue #43.1, LDB 62) :
@@ -155,5 +155,72 @@ describe('43.1a — Cavalerie (2M) à pied → Deux Mains (LDB 62 l.142-143)', (
     const mounted = combatant({ mountId: 'horse', items: [{ ...marteau, equipped: true }] });
     recomputeLoadout(mounted);
     expect(mounted.weapons.find((w) => w.label.includes('bec-de-corbin'))?.hands).toBe(1);
+  });
+});
+
+/** AA 08 l.188 ; AA 08 l.190 */
+describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts du maniement', () => {
+  const sabre = (): Weapon => weaponFromItem(itemFromTrappingById('sabre')!);
+  const marteau = (): Weapon => weaponFromItem(itemFromTrappingById('marteau-a-bec-de-corbin')!);
+  const cac = (spec: string, advances: number): SkillInstance => ({ id: 'corps-a-corps', characteristic: 'capacite-de-combat', spec, advances });
+  const taillade = (c: Combatant, w: Weapon) =>
+    effectiveWeapon(w, { usageAPied: usageAPiedRetenu(c, w) }).qualities.find((q) => q.id === 'taillade')?.value;
+
+  it('sabre à pied avec Corps à Corps (Base) : Test de Base, Taillade (2A)', () => {
+    const c = combatant({ skills: [cac('base', 10)] });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(2);
+  });
+
+  it('sabre à pied avec Corps à Corps (Escrime) : Test d’Escrime, Taillade (1A)', () => {
+    const c = combatant({ skills: [cac('escrime', 10)] });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'escrime' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(1);
+  });
+
+  it('sabre monté : Test de Cavalerie, Taillade (1A), aucun maniement à pied', () => {
+    const c = combatant({ mountId: 'cheval', skills: [cac('cavalerie', 10), cac('base', 20)] });
+    expect(usageAPiedRetenu(c, sabre())).toBeUndefined();
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(1);
+  });
+
+  it('à pied avec la seule Spé de Cavalerie : Test de Cavalerie, Taillade (1A)', () => {
+    const c = combatant({ skills: [cac('cavalerie', 10)] });
+    expect(usageAPiedRetenu(c, sabre())).toBeUndefined();
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(1);
+  });
+
+  it('à pied sans aucune de ces Spés : Caractéristique brute', () => {
+    const c = combatant({ skills: [cac('armes-d-hast', 10)] });
+    expect(combatValue(c, 'melee', sabre())).toBe(55);
+    expect(hasWeaponGroupSkill(c, sabre(), 'melee')).toBe(false);
+  });
+
+  it.each([
+    ['Base plus haute', [cac('base', 20), cac('escrime', 10), cac('cavalerie', 5)], 'base', 2],
+    ['Escrime plus haute', [cac('base', 10), cac('escrime', 20)], 'escrime', 1],
+    ['Cavalerie plus haute', [cac('base', 10), cac('cavalerie', 20)], undefined, 1],
+    ['Base et Escrime à égalité : le maniement qui garde Taillade (1A)', [cac('base', 10), cac('escrime', 10)], 'escrime', 1],
+    ['Base et Cavalerie à égalité : le Groupe de l’arme', [cac('base', 10), cac('cavalerie', 10)], undefined, 1],
+  ])('plusieurs Spés à pied, %s', (_cas, skills, groupe, indice) => {
+    const c = combatant({ skills });
+    expect(usageAPiedRetenu(c, sabre())?.groupe).toBe(groupe);
+    expect(taillade(c, sabre())).toBe(indice);
+  });
+
+  it('marteau à bec-de-corbin : Corps à Corps (Deux mains) à pied, Cavalerie monté', () => {
+    const skills = [cac('deux-mains', 10), cac('cavalerie', 5)];
+    const aPied = combatant({ skills });
+    expect(attackTestOf(aPied, marteau(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+    expect(combatValue(aPied, 'melee', marteau())).toBe(65);
+    const monte = combatant({ mountId: 'cheval', skills });
+    expect(attackTestOf(monte, marteau(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(combatValue(monte, 'melee', marteau())).toBe(60);
   });
 });

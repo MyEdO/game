@@ -740,6 +740,9 @@
     },
     "rangement": {
       "id": "dos"
+    },
+    "usagesAPied": {
+      "deux-mains": []
     }
   },
   {
@@ -9125,7 +9128,16 @@
     "rangement": {
       "id": "ceinture_g"
     },
-    "bladed": true
+    "bladed": true,
+    "usagesAPied": {
+      "base": [
+        {
+          "id": "taillade",
+          "value": 2
+        }
+      ],
+      "escrime": []
+    }
   },
   {
     "id": "epee-de-cour",
