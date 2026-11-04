@@ -4,14 +4,14 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
  */
-import { CLICS_DU_CHAMP, cataloguesDeComposition, fenetreDAttaque, fenetreDeDefense, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type FenetreDAttaque, type LectureAuSchema, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, cataloguesDeComposition, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
 import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
-import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
-import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
+import { fenetreADessiner } from '../../../src/hote/gestes';
+import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
 import { modelesDeLAtelier, type ModelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
@@ -31,28 +31,26 @@ interface ErreurGlobale {
   source: string | null;
 }
 
-/** La vue : la projection commune (`projeter`), la fenêtre qui tient la main prête à dessiner (`fenetreADessiner` : son
- *  titre, chacun de ses verbes et de ses arguments), la fenêtre d'attaque et celle de la Défense en données
- *  (`fenetreDAttaque`, `fenetreDeDefense`), le panneau du combat en mots du joueur (`panneauDuCombat` : le tour, la
- *  fiche de l'actif, l'aperçu, le libellé de chaque offre), les cases atteignables au tour de l'actif
- *  (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), et les clics du champ par ce qu'ils désignent
- *  (`CLICS_DU_CHAMP`). */
+/** La vue : la projection commune (`projeter`), chaque zone de l'écran et ses éléments (`zonesDeLEcran`), les cases
+ *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
+ *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` ; `null` : la barre de l'actif n'est pas ouverte), et l'id du
+ *  combattant que chaque case porte, par `"x,y"`. */
 export interface VueDuPont extends CouvertureDesModeles {
   projection: Projection;
-  fenetre: FenetreADessiner | null;
-  attaque: FenetreDAttaque | null;
-  defense: FenetreDeDefense | null;
-  panneau: PanneauDuCombat | null;
+  zones: ZonesDeLEcran;
   cases: CaseAtteignable[];
   plateau: ReturnType<typeof plateauDeLaScene> | null;
-  champ: typeof CLICS_DU_CHAMP;
+  champ: typeof CLICS_DU_CHAMP | null;
+  occupants: Record<string, string>;
 }
 
-/** Ce qu'un appel qui touche la partie rend : la vue d'après, les jetons qu'il a programmés, ses lignes de journal. */
+/** Ce qu'un appel qui touche la partie rend : la vue d'après, les jetons qu'il a programmés, ses lignes de journal
+ *  (`journal`, que le plateau anime) et ce qu'il ajoute à l'écran (`zones` : les lignes du journal, `lignesDuJournal`). */
 export interface Suite {
   vue: VueDuPont;
   programmes: Programme[];
   journal: LigneDuJournal[];
+  zones: ZonesDeLaSuite;
 }
 
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
@@ -104,23 +102,23 @@ export function creerPont() {
   const vueDe = (o: NonNullable<typeof ouverte>): VueDuPont => {
     const etat = o.partie.etat();
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
+    const combat = projection.combat;
     return {
       projection,
-      ...modelesDesCombattants(projection.combat?.voisins.liste ?? []),
-      fenetre: fenetreADessiner(etat),
-      attaque: fenetreDAttaque(etat),
-      defense: fenetreDeDefense(etat),
-      panneau: panneauDuCombat(projection),
+      ...modelesDesCombattants(combat?.voisins.liste ?? []),
+      zones: zonesDeLEcran(etat, projection, fenetreADessiner(etat)),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
-      champ: CLICS_DU_CHAMP,
+      champ: combat?.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null,
+      occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]}`, c.id]] : []))),
     };
   };
 
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
     const programmes = o.jetons.programmes(resultat);
+    const zones = { 'journal.lignes': lignesDuJournal(o.lignes, resultat.journal) };
     o.lignes += resultat.journal.length;
-    return { vue: vueDe(o), programmes, journal: resultat.journal };
+    return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
   };
 
   const methodes: Record<string, (json?: string | null) => object> = {

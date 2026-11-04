@@ -8,8 +8,8 @@
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
-//   partie, et chaque bouton se trouve par le texte que la vue lui donne. Le jet tombé, la fenêtre ne redessine ni
-//   son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
+//   partie, et chaque bouton se trouve par l'élément de la vue qu'il dessine (`vue.zones`). Le jet tombé, la fenêtre
+//   ne redessine ni son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément offert par la liste des seuls points dont l'os porte sa lame (`osDesRigides`
@@ -71,30 +71,37 @@ const attendreLaVue = (condition, timeoutMs = 30000) =>
 const marquer = () => evaluate(session, '(globalThis.wfrpEcran && (wfrpEcran.vu = true), true)')
 const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs })
 const actif = (v) => v.projection.combat?.actif
-const nomDe = (v, id) => v.projection.combat.voisins.liste.find((c) => c.id === id)?.nom
-/** Les gestes que la fenêtre dessine (`ouvert`), et ceux qu'elle tait, par leur identité (`cle`). */
-const ouverts = (v) => v.fenetre.gestes.filter((g) => g.ouvert).map((g) => g.cle)
-const fermes = (v) => v.fenetre.gestes.filter((g) => !g.ouvert).map((g) => g.cle)
-/** L'identité du geste que la fenêtre attend. */
-const cleAttendue = (v) => v.fenetre.gestes.find((g) => g.attendu).cle
-/** Le libellé du geste que la fenêtre attend. */
-const attendu = (v) => {
-  const gestes = v.fenetre?.gestes.filter((g) => g.attendu) ?? []
-  assert.equal(gestes.length, 1, `un geste attendu dans ${JSON.stringify(v.fenetre?.gestes.map((g) => g.libelle))}`)
-  return gestes[0].libelle
+/** Les éléments que la vue montre dans la zone `zone` (`vue.zones`, `CONTRAT.md`). */
+const zone = (v, z) => v.zones[z]
+/** L'élément d'id `id` de la zone `z`. */
+const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
+/** Les gestes que la fenêtre dessine, par leur identité. */
+const ouverts = (v) => zone(v, 'fenetre.gestes').map((g) => g.id)
+/** Le geste en focus : celui que la fenêtre joue à l'Entrée. */
+const enFocus = (v) => {
+  const gestes = zone(v, 'fenetre.gestes').filter((g) => g.focus)
+  assert.equal(gestes.length, 1, `un geste en focus dans ${JSON.stringify(ouverts(v))}`)
+  return gestes[0]
 }
+/** Le texte de chaque élément du corps de la fenêtre. */
+const corps = (v) => zone(v, 'fenetre.corps').map((e) => e.texte ?? [e.qui, e.libelle, e.resultat, e.verdict].filter(Boolean).join(' ')).join(' / ')
+/** L'étape de cascade que la fenêtre tient. */
+const etape = (v) => v.projection.fenetre?.etape?.genre
 
 async function cliquerPoint(x, y) {
   await marquer()
   await geste(session, { surface: 'canvas', x, y }, { qui: `clic (${Math.round(x)}, ${Math.round(y)})` }, clic())
   await nouvelEcran()
 }
-/** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }`, dont la clé vaut `cle` ; `undefined` hors de l'écran. */
-const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : x.cle === quoi.cle))
+/** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }` ou `{ element }`, dont la clé ou l'élément dessiné
+ *  vaut celui-ci ; `undefined` hors de l'écran. */
+const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : x.cle === quoi.cle))
+/** Le bouton publié qui dessine le bouton `b` de la vue. */
+const bouton = (b) => ({ element: `bouton/${b.id}` })
 async function cliquerBouton(quoi) {
   const { boutons } = await ecran()
   const b = trouver(boutons, quoi)
-  if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.cle ?? x.texte).join(' | ')}`)
+  if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.element ?? x.cle ?? x.texte).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
 }
 async function cliquerCase({ x, y }) {
@@ -106,9 +113,9 @@ async function capturer(nom) {
   noter(`capture ${await shot(session, nom, o.captures)}`)
 }
 async function finirLeTour() {
-  await cliquerBouton((await vue()).panneau.offres['end-turn'])
+  await cliquerBouton({ element: 'bouton/end-turn' })
   const v = await vue()
-  if (v.projection.combat.finDeTourArmee) await cliquerBouton(v.panneau.offres['end-turn'])
+  if (v.projection.combat.finDeTourArmee) await cliquerBouton({ element: 'bouton/end-turn' })
 }
 
 async function parcoursCombat() {
@@ -116,7 +123,7 @@ async function parcoursCombat() {
   noter('menu : bouton « Combat » cliqué')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
-  assert.ok(v.fenetre, 'la fenêtre du round tient la main')
+  assert.ok(v.projection.fenetre, 'la fenêtre du round tient la main')
   assert.equal(v.projection.combat.round, 1)
   await capturer('2928-6c-1-round')
   await marquer()
@@ -124,43 +131,50 @@ async function parcoursCombat() {
   await nouvelEcran()
   v = await vue()
   const heros = actif(v)
-  assert.equal(v.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
+  assert.equal(v.projection.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
+  assert.deepEqual(zone(v, 'fenetre.titre'), [], 'sans fenêtre, la zone du titre est vide')
   assert.equal(heros?.camp, 'hero', 'un héros est actif')
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
+  assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
-  await cliquerBouton(v.panneau.offres.charge)
+  const charge = element(v, 'combat.offres', 'charge')
+  await cliquerBouton(bouton(charge))
   v = await vue()
   assert.equal(v.projection.combat.intention, 'charge', 'l’offre arme son intention')
+  assert.equal(element(v, 'combat.offres', 'charge').presse, true, 'l’offre armée est pressée')
   const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
   assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
-  noter(`offre ${v.panneau.offres.charge} : intention charge, ${v.cases.length} cases peintes`)
+  noter(`offre ${charge.libelle} : intention charge, ${v.cases.length} cases peintes`)
   await cliquerCase({ x: proche.pos[0], y: proche.pos[1] })
-  await attendreLaVue('v.attaque && v.fenetre')
+  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'attackJet'")
   v = await vue()
-  assert.deepEqual([v.attaque.attaquantId, v.attaque.cibleId, v.attaque.jete], [heros.id, proche.id, false], 'la charge ouvre l’attaque du héros sur sa cible')
-  noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${v.fenetre.titre} » ouverte ; ${v.fenetre.corps.join(' / ')}`)
-  const localiser = v.fenetre.gestes.find((g) => g.verbe === v.attaque.localisation.verbe)
-  const lieu = localiser.arguments.find((a) => a.saisie === 'choix').valeurs.find((x) => x.valeur !== null)
-  await cliquerBouton(lieu.libelle)
+  assert.equal(element(v, 'fenetre.corps', 'jet')?.qui, heros.nom, 'la charge ouvre l’attaque du héros')
+  assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
+  assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
+  noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
+  const localiser = element(v, 'fenetre.gestes', 'attackSetLocation')
+  const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
+  await cliquerBouton(bouton(lieu))
   v = await vue()
-  assert.equal(v.attaque.localisation.choisie, lieu.valeur, 'la Localisation cliquée est retenue')
-  noter(`Localisation « ${lieu.libelle} » ; ${v.fenetre.corps.find((l) => l.includes('à atteindre'))}`)
+  assert.equal(element(v, 'fenetre.gestes', localiser.id).valeurs.find((x) => x.presse)?.id, lieu.id, 'la Localisation cliquée est retenue')
+  noter(`Localisation « ${lieu.libelle} » ; ${element(v, 'fenetre.corps', 'jet').cible}`)
   await capturer('2928-6c-2-attaque-apercu')
-  const [jetDAttaque, viser] = [cleAttendue(v), v.attaque.localisation.verbe]
+  const jetDAttaque = enFocus(v).id
   noter(`gestes dessinés avant le jet : ${ouverts(v).join(', ')}`)
-  await cliquerBouton(attendu(v))
+  await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.equal(v.attaque.jete, true, 'le jet tombe')
-  assert.ok(fermes(v).includes(jetDAttaque) && fermes(v).includes(viser), 'le jet tombé, ni le jet ni la Localisation ne se redessinent (#2936)')
-  assert.ok(ouverts(v).includes(cleAttendue(v)), 'le jet tombé, sa clôture se dessine')
+  assert.ok(element(v, 'fenetre.corps', 'jet').verdict, 'le jet tombe')
+  assert.ok(!ouverts(v).includes(jetDAttaque) && !ouverts(v).includes(localiser.id), 'le jet tombé, ni le jet ni la Localisation ne se redessinent (#2936)')
+  assert.ok(ouverts(v).includes(enFocus(v).id), 'le jet tombé, sa clôture se dessine')
   noter(`gestes dessinés après le jet : ${ouverts(v).join(', ')}`)
-  assert.ok(v.attaque.issue, 'le jet tombé dit son issue')
-  noter(`jet : ${v.attaque.issue.ligne}`)
+  const issue = element(v, 'fenetre.corps', 'issue')
+  assert.ok(issue, 'le jet tombé dit son issue')
+  noter(`jet : ${issue.texte}`)
   await capturer('2928-6c-3-attaque-jet')
   const pbAvant = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
-  await cliquerBouton(attendu(v))
+  await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.equal(v.attaque, null, 'confirmée, la fenêtre d’attaque se ferme')
+  assert.notEqual(etape(v), 'attackJet', 'confirmée, la fenêtre d’attaque se ferme')
   const pbApres = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
   noter(`confirmée : fenêtre fermée ; ${proche.nom} ${pbAvant} → ${pbApres} Blessures`)
   await finirLeTour()
@@ -173,34 +187,38 @@ async function parcoursCombat() {
   await cliquerCase(vers)
   v = await vue()
   assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
-  assert.ok(v.panneau.apercu, 'le panneau dit ce que l’aperçu coûte')
-  noter(`premier clic sur (${vers.x}, ${vers.y}) : ${v.panneau.apercu}`)
+  const apercu = element(v, 'combat.avis', 'apercu')
+  assert.ok(apercu, 'le panneau dit ce que l’aperçu coûte')
+  noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
   await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
   v = await vue()
   assert.deepEqual(actif(v).pos, [vers.x, vers.y], 'le second clic déplace le héros')
   noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
-  await attendreLaVue('v.defense && v.fenetre', 60000)
+  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'defenseJet'", 60000)
   v = await vue()
   const adversaire = actif(v)
   assert.equal(adversaire.camp, 'enemy', 'les jetons repris, le noyau joue l’adversaire')
-  assert.equal(v.defense.attaquantId, adversaire.id, 'la Défense répond à l’adversaire actif')
-  assert.deepEqual(v.fenetre.proprietaire, { genre: 'porteur', nom: nomDe(v, v.defense.defenseurId) }, 'la Défense est au héros visé')
-  noter(`Défense ouverte par les minuteurs : ${v.fenetre.corps.join(' / ')} ; à ${v.fenetre.proprietaire.nom}`)
+  assert.ok(element(v, 'fenetre.corps', 'defense/qui')?.texte.includes(adversaire.nom), 'la Défense répond à l’adversaire actif')
+  const defenseur = v.projection.fenetre.proprietaire
+  assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
+  assert.ok(zone(v, 'fenetre.etape')[0]?.texte.includes(defenseur.nom), 'l’étape nomme le héros qui se défend')
+  noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
-  const [jetDeDefense, reagir] = [cleAttendue(v), v.defense.reaction.verbe]
+  const [jetDeDefense, reagir] = [enFocus(v).id, 'defenseSetMode']
+  assert.ok(ouverts(v).includes(reagir), 'avant le jet, la réaction se dessine')
   noter(`gestes dessinés avant la Défense : ${ouverts(v).join(', ')}`)
-  await cliquerBouton(attendu(v))
+  await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.equal(v.defense.jete, true, 'le jet de Défense tombe')
-  assert.ok(fermes(v).includes(jetDeDefense) && fermes(v).includes(reagir), 'le jet de Défense tombé, ni le jet ni la réaction ne se redessinent (#2936)')
+  assert.ok(zone(v, 'fenetre.corps').some((e) => e.type === 'jet' && e.verdict), 'le jet de Défense tombe')
+  assert.ok([jetDeDefense, reagir].every((id) => !ouverts(v).includes(id)), 'le jet de Défense tombé, ni le jet ni la réaction ne se redessinent (#2936)')
   noter(`gestes dessinés après la Défense : ${ouverts(v).join(', ')}`)
   await capturer('2928-6c-5b-defense-jet')
-  await cliquerBouton(attendu(v))
-  await attendreLaVue('!v.defense && v.projection.combat.round === 2', 60000)
+  await cliquerBouton(bouton(enFocus(v)))
+  await attendreLaVue("v.projection.fenetre?.etape?.genre !== 'defenseJet' && v.projection.combat.round === 2", 60000)
   v = await vue()
-  noter(`Défense confirmée : fenêtre « ${v.fenetre?.titre ?? 'aucune'} », round ${v.projection.combat.round}`)
+  noter(`Défense confirmée : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte ?? 'aucune'} », round ${v.projection.combat.round}`)
   await capturer('2928-6c-6-apres-defense')
 }
 

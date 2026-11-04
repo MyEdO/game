@@ -1,6 +1,6 @@
 /**
- * LES GESTES DE LA FENÊTRE QUI TIENT LA MAIN (#2928), communs aux hôtes qui la dessinent : son titre, son étape, son
- * corps (`corpsDeLaFenetre`), et chacun de ses gestes (`fenetreDuJeu`) avec son libellé (`libelleDuGeste`) et chacun
+ * LES GESTES DE LA FENÊTRE QUI TIENT LA MAIN (#2928), communs aux hôtes qui la dessinent : son titre, son étape, et
+ * chacun de ses gestes (`fenetreDuJeu`) avec son libellé (`libelleDuGeste`) et chacun
  * de ses arguments (`VERBES`) prêt à saisir. Le flux d'un geste de jet et l'id que la fenêtre désigne (`pid`) sont posés
  * d'office (`argumentsPosesDuGeste`) ; un autre argument est saisi d'après le réglage que le
  * noyau nomme pour son verbe et ce paramètre, ou pour le premier argument libre (`reglages.ts` : la valeur courante, les
@@ -16,7 +16,6 @@ import {
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
-import { corpsDeLaFenetre } from './ecran';
 import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
 import type { Forme, ParametreDeVerbe } from './formes';
 import { VERBES } from './verbes.generated';
@@ -70,13 +69,11 @@ export interface GesteDeLaFenetre {
   raison: string | null;
 }
 
-/** La fenêtre qui tient la main, prête à dessiner : son titre, son étape de séquence, qui tient la main, son corps en
- *  lignes (`corpsDeLaFenetre`), ses gestes. */
+/** La fenêtre qui tient la main, prête à dessiner : son titre, son étape de séquence, qui tient la main, ses gestes. */
 export interface FenetreADessiner {
   titre: string;
   etape: string | null;
   proprietaire: ProprietaireDeLaFenetre;
-  corps: string[];
   gestes: GesteDeLaFenetre[];
 }
 
@@ -186,5 +183,5 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
-  return { titre: pc?.title ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), corps: corpsDeLaFenetre(etat), gestes };
+  return { titre: pc?.title ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
 }

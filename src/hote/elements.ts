@@ -1,0 +1,130 @@
+/**
+ * LES ÉLÉMENTS DE LA VUE (#3328), communs aux hôtes qui dessinent la partie : ce qu'un écran montre, en éléments typés
+ * d'une union fermée, nommés par forme de donnée et jamais par fenêtre. Chaque élément porte un `id` stable dans sa
+ * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
+ * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
+ */
+import type { ValeurDuReglage } from '../noyau/index';
+import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
+
+/** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
+export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
+
+/** Une ligne de texte. */
+export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string }
+
+/** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). */
+export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null }
+
+/** Une jauge : sa valeur courante sur son maximum, et ce qu'elle dit. */
+export interface Jauge { type: 'jauge'; id: string; ton: Ton; libelle: string; courant: number; max: number; texte: string }
+
+/** Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet) ; le ton dit
+ *  le verdict. */
+export interface Jet {
+  type: 'jet';
+  id: string;
+  ton: Ton;
+  qui: string | null;
+  libelle: string;
+  base: string | null;
+  difficulte: string | null;
+  cible: string | null;
+  resultat: string | null;
+  dr: string | null;
+  verdict: string | null;
+  modificateurs: Puce[];
+}
+
+/** Une entité de jeu et ce qui la décrit. */
+export interface Entite { type: 'entite'; id: string; ton: Ton; nom: string; elements: Element[] }
+
+/** L'intention qu'un geste joue : un verbe de la partie et ses arguments, ou une offre de l'actif. */
+export type Jeu = { type: string; args: unknown[] } | { offre: string };
+
+/** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
+ *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
+export interface Bouton { type: 'bouton'; id: string; libelle: string; jeu: Jeu; presse: boolean; focus: boolean; refus: string | null }
+
+/** Un choix parmi des valeurs, chacune un bouton ; `liste` quand elles sont trop nombreuses pour une rangée. `focus` :
+ *  la liste que la fenêtre attend maintenant (une rangée de choix ne le prend jamais) ; `refus` : pourquoi le choix ne
+ *  se joue pas, chacune de ses valeurs refusée avec lui. */
+export interface Choix { type: 'choix' | 'liste'; id: string; ton: Ton; libelle: string; focus: boolean; refus: string | null; valeurs: Bouton[] }
+
+/** Une valeur d'une saisie à choix : ce qu'elle dit, ce qu'elle vaut, si elle est la valeur courante, pourquoi elle
+ *  est refusée. */
+export interface Valeur { libelle: string; valeur: unknown; presse: boolean; refus: string | null }
+
+/** Une saisie d'un formulaire : sa position parmi les arguments du verbe (`nom`), et son contrôle. `fixe` : posée par
+ *  la fenêtre, jamais saisie. */
+export type Saisie =
+  | { type: 'fixe'; id: string; nom: string; optionnel: boolean; valeur: unknown }
+  | { type: 'saisieChoix'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeurs: Valeur[] }
+  | { type: 'saisieNombre'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: number; min: number; max: number; pas: number }
+  | { type: 'saisieTexte' | 'saisieJson'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: string }
+  | { type: 'saisieObjet'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; champs: Saisie[] };
+
+/** Un formulaire : ses saisies dans l'ordre des arguments du verbe, puis son bouton ; `refus` : pourquoi il ne se joue
+ *  pas. */
+export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
+
+/** Un élément de la vue. */
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Bouton | Choix | Formulaire | Saisie;
+
+/** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
+ *  exactement (le pas se cale sur l'écart à la borne, en réels). */
+const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
+
+/** Une ligne. */
+export const ligne = (id: string, texte: string, ton: Ton = 'neutre'): Ligne => ({ type: 'ligne', id, ton, texte });
+
+/** Les arguments du geste `g`, l'argument `nom` valant `valeur` : chaque argument posé par la fenêtre, puis la valeur
+ *  courante de chaque argument requis ; un argument optionnel sans valeur clôt la liste. */
+function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unknown[] {
+  const args: unknown[] = [];
+  for (const a of g.arguments) {
+    if (a.nom === nom) args.push(valeur);
+    else if (a.saisie === 'fixe' || !a.optionnel) args.push(a.valeur);
+    else break;
+  }
+  return args;
+}
+
+/** Les valeurs de l'argument à choisir `a` du geste `g`, chacune un bouton qui joue le geste avec elle, refusée avec
+ *  le geste. */
+const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
+  (a.valeurs ?? []).map((v: ValeurDuReglage, i): Bouton => ({
+    type: 'bouton', id: `${g.cle}/${i}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
+    presse: v.valeur === a.valeur, focus: false, refus: v.refus ?? g.raison,
+  }));
+
+/** La saisie de l'argument `a`, sous l'id `id`. */
+function saisie(id: string, a: ArgumentDuGeste): Saisie {
+  const base = { id, nom: a.nom, optionnel: a.optionnel };
+  const dite = { ...base, ton: 'neutre' as const, libelle: a.libelle ?? a.nom };
+  switch (a.saisie) {
+    case 'fixe': return { ...base, type: 'fixe', valeur: a.valeur };
+    case 'choix': return { ...dite, type: 'saisieChoix', valeurs: (a.valeurs ?? []).map((v) => ({ libelle: v.libelle, valeur: v.valeur, presse: v.valeur === a.valeur, refus: v.refus })) };
+    case 'nombre': return { ...dite, type: 'saisieNombre', valeur: typeof a.valeur === 'number' ? a.valeur : 0, ...(a.bornes ? { min: a.bornes.min, max: a.bornes.max, pas: a.bornes.pas ?? 1 } : SANS_BORNE) };
+    case 'objet': return { ...dite, type: 'saisieObjet', champs: (a.champs ?? []).map((c) => saisie(`${id}/${c.nom}`, c)) };
+    case 'texte': return { ...dite, type: 'saisieTexte', valeur: a.valeur == null ? '' : String(a.valeur) };
+    case 'json': return { ...dite, type: 'saisieJson', valeur: a.valeur == null ? '' : JSON.stringify(a.valeur) };
+  }
+}
+
+/** Les gestes ouverts de la fenêtre, chacun en élément d'après son rendu, refusé avec sa raison. Le geste que la
+ *  politique de la fenêtre joue maintenant prend le focus quand il en prend un (une rangée de choix n'en prend pas), à
+ *  défaut le premier bouton. */
+export function elementsDesGestes(gestes: readonly GesteDeLaFenetre[]): (Bouton | Choix | Formulaire)[] {
+  const ouverts = gestes.filter((g) => g.ouvert);
+  const focus = ouverts.find((g) => g.attendu && g.rendu !== 'choix') ?? ouverts.find((g) => g.rendu === 'bouton');
+  return ouverts.map((g) => {
+    const enFocus = g === focus;
+    switch (g.rendu) {
+      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, '', null) }, presse: false, focus: enFocus, refus: g.raison };
+      case 'choix':
+      case 'liste': return { type: g.rendu, id: g.cle, ton: 'neutre', libelle: g.libelle, focus: enFocus, refus: g.raison, valeurs: valeursDuChoix(g, g.arguments.find((a) => a.nom === g.aChoisir)!) };
+      case 'formulaire': return { type: 'formulaire', id: g.cle, libelle: g.libelle, verbe: g.verbe, focus: enFocus, refus: g.raison, champs: g.arguments.map((a) => saisie(`${g.cle}/${a.nom}`, a)) };
+    }
+  });
+}

@@ -72,8 +72,9 @@ func publier_l_ecran(ecran: Dictionary) -> void:
 
 
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
-## son centre, et sa méta `cle` s'il la porte ; une liste déroulante, aussi le texte de chaque article (`choix`) et le rang
-## de l'article choisi (`retenu`, -1 sans choix).
+## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
+## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`) et le rang de
+## l'article choisi (`retenu`, -1 sans choix).
 static func boutons_a_l_ecran(racines: Array) -> Array:
 	var boutons := []
 	for racine in racines:
@@ -83,6 +84,8 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
+				if bouton.owner != null and bouton.owner.has_meta(Zone.META):
+					publie.element = bouton.owner.get_meta(Zone.META)
 				if bouton is OptionButton:
 					var liste := bouton as OptionButton
 					publie.choix = range(liste.item_count).map(func(rang: int) -> String: return liste.get_item_text(rang))

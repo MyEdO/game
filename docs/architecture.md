@@ -565,8 +565,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `formes.ts` (la forme JSON d'un paramètre de verbe), `verbes.generated.ts` (les
                             paramètres des verbes, `scripts/gen-verbes.mjs`), `gestes.ts` (`fenetreADessiner` : la
                             fenêtre qui tient la main, chacun de ses verbes en geste prêt à saisir et à rendre),
-                            `ecran.ts` (`panneauDuCombat`, `corpsDeLaFenetre` : les textes d'un hôte qui dessine la
-                            partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
+                            `elements.ts` (l'union fermée des éléments de la vue, nommés par forme de
+                            donnée, et les gestes de la fenêtre en éléments), `ecran.ts` (`zonesDeLEcran` : chaque zone
+                            de l'écran d'un hôte qui dessine la partie et ses éléments, leurs textes tirés du catalogue
+                            et des lecteurs du noyau), `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
                             retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même

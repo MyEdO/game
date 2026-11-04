@@ -8,8 +8,9 @@
 // sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
-// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/` ; la CI
-// la joue (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
+// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
+// de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`) écrites dans la copie ; la CI la joue
+// (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`), que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
@@ -30,7 +31,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 
-const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme } = await chargerAssets()
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme, figerVuesDeLEcran } = await chargerAssets(["export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';"])
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
@@ -289,9 +290,12 @@ function surUneCopie(binaire, faire) {
   }
 }
 
-/** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé. */
+/** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé, les vues de
+ *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, que lit sa recette. */
 function sonder(binaire) {
   return surUneCopie(binaire, (copie) => {
+    mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
+    writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)
