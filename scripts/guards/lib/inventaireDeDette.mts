@@ -154,7 +154,7 @@ export const INVENTAIRE: readonly CollectionDInventaire[] = [
     mesure: ({ scan }) => scan.enveloppe.filter((e) => !(e.role === 'source' && e.motif === 'clé absente')).map((e) => ({
       site: `${e.role} | ${e.cle} | ${e.motif}${e.motif === 'type divergent' ? ` (${e.detail})` : ''} | ${e.document} › ${e.chemin}`,
       cible: `Porter le rôle \`${e.role}\` sous sa clé cible \`${e.cle}\`, de son type, sur chaque entrée (\`ROLES_ENVELOPPE\`, \`mesurerEnveloppe\`).`,
-      lot: e.role === 'source' ? 'L1d #1469' : 'L1b #1467',
+      lot: e.role === 'source' ? 'L1d #1463' : 'L1b #1467',
       occurrences: e.entrees,
     })),
   },

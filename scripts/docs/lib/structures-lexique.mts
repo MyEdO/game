@@ -89,7 +89,7 @@ export const CIBLE_COMPETENCE = 'skills.json';
  */
 export const lotDeForme = (concept: string, signature: string, cibles: readonly string[] = []): string =>
   concept === 'source'
-    ? 'L1d #1469'
+    ? 'L1d #1463'
     : concept === 'reference' || concept === 'refs'
       ? cibles.includes(CIBLE_COMPETENCE) || /skill/i.test(signature)
         ? 'L2 #1463'
@@ -106,14 +106,14 @@ export const LOT_CLE_RESERVEE: Readonly<Record<string, string>> = {
   price: 'L4 #1463',
   cost: 'L4 #1463',
   count: 'L4 #1463',
-  source: 'L1d #1469',
+  source: 'L1d #1463',
 };
 
 /** Les 9 lots d'extinction du chantier — un `lot` de stock ou d'inventaire hors de cette liste est une dérive.
  *  `L2 #1548` porte les graphies de RÉFÉRENCE du lot L2 (« une graphie par concept référencé ») ;
  *  `#1553` porte la CURATION des orphelines (contenu qui ne résout vers rien), qui n'est pas une
  *  forme d'enveloppe. */
-export const LOTS_CONNUS = ['L1a #1466', 'L1b #1467', 'L1c #1468', 'L1d #1469', 'L2 #1463', 'L2 #1548', 'L3 #1463', 'L4 #1463', '#1553'] as const;
+export const LOTS_CONNUS = ['L1a #1466', 'L1b #1467', 'L1c #1468', 'L1d #1463', 'L2 #1463', 'L2 #1548', 'L3 #1463', 'L4 #1463', '#1553'] as const;
 
 /**
  * ANGLES MORTS de la mesure — SOURCE UNIQUE, consommée par la garde

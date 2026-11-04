@@ -25,7 +25,7 @@
 //
 // Les LOTS reprennent ceux du dénominateur L0 (`structuresStock.mjs`, `STRUCTURES_REDECLARATIONS`)
 // quand le site y correspond : concept Compétence → `L2 #1463`, Talent/Objet/Créature/Véhicule →
-// `L3 #1463`, valeurs (dé, monnaie, cellule) → `L4 #1463`, source → `L1d #1469`.
+// `L3 #1463`, valeurs (dé, monnaie, cellule) → `L4 #1463`, source → `L1d #1463`.
 
 /** Graphie historique de référence à une COMPÉTENCE (`skill`/`skillId` + `spec`) — meurt quand le
  *  site adopte `specRef('skill')`. */
@@ -37,7 +37,7 @@ const L3 = 'L3 #1463';
  *  schéma de `grammaire/valeurs.ts`. */
 const L4 = 'L4 #1463';
 /** Concept SOURCE (`{book, page}` et ses dérivés) — chantier des réfs de source. */
-const L1d = 'L1d #1469';
+const L1d = 'L1d #1463';
 const DATE = '2026-08-25';
 
 /** @param {string} raison @param {string} lot */

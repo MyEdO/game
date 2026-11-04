@@ -54,7 +54,7 @@ const GARDE = {
     'B — l’INVENTAIRE de ce qui reste à migrer (`scripts/guards/lib/inventaireDeDette.mts`), site par site, avec ses ' +
     'occurrences, hors de la porte des comptes (#3021). ' +
     'C — chaque site porte le LOT qui l’éteint, déduit du concept (L1a #1466 FK · L1b #1467 enveloppe · L1c #1468 ops · ' +
-    'L1d #1469 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et sort avec sa migration.',
+    'L1d #1463 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et sort avec sa migration.',
   primitive:
     '`scannerDonnees` / `scannerRedeclarations` (`scripts/docs/lib/structures-scan.mts`). Ce scan lit la DONNÉE JSON ' +
     'des deux racines (`src/data`, `src/scenes`) et l’AST des `src/data/schemas/defs/*.ts` — il ne passe donc PAS par ' +
@@ -299,7 +299,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const mesure = enveloppe.mesure({ scan: { ...scan, enveloppe: [...temoins, divergence('source', 'source', 'clé absente')] }, defs: DEFS, declares: DECLARES });
     expect(mesure.map((l) => [l.site, l.lot, l.occurrences])).toEqual([
       ['identité | key | clé divergente | x.json › (entrées)', 'L1b #1467', 2],
-      ['source | source | type divergent (chaîne) | x.json › (entrées)', 'L1d #1469', 2],
+      ['source | source | type divergent (chaîne) | x.json › (entrées)', 'L1d #1463', 2],
       ['type | type | cible partielle | x.json › (entrées)', 'L1b #1467', 2],
       ['identité | id | clé absente | x.json › (entrées)', 'L1b #1467', 2],
       ['libellé | label | clé absente | x.json › (entrées)', 'L1b #1467', 2],
