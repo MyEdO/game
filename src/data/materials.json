@@ -283,5 +283,299 @@
       "cuir": "#2b1b3d",
       "accent": "#d6acff"
     }
+  },
+  {
+    "id": "peau-pale",
+    "type": "materials",
+    "label": "Peau pâle",
+    "domain": "couleur",
+    "color": "#e8c4a8"
+  },
+  {
+    "id": "peau-claire",
+    "type": "materials",
+    "label": "Peau claire",
+    "domain": "couleur",
+    "color": "#d9a98a"
+  },
+  {
+    "id": "peau-mate",
+    "type": "materials",
+    "label": "Peau mate",
+    "domain": "couleur",
+    "color": "#c08a64"
+  },
+  {
+    "id": "peau-halee",
+    "type": "materials",
+    "label": "Peau hâlée",
+    "domain": "couleur",
+    "color": "#a8704e"
+  },
+  {
+    "id": "peau-brune",
+    "type": "materials",
+    "label": "Peau brune",
+    "domain": "couleur",
+    "color": "#7d4e34"
+  },
+  {
+    "id": "peau-ebene",
+    "type": "materials",
+    "label": "Peau ébène",
+    "domain": "couleur",
+    "color": "#4a2e20"
+  },
+  {
+    "id": "cheveux-blonds",
+    "type": "materials",
+    "label": "Cheveux blonds",
+    "domain": "couleur",
+    "color": "#c9a45c"
+  },
+  {
+    "id": "cheveux-chatains",
+    "type": "materials",
+    "label": "Cheveux châtains",
+    "domain": "couleur",
+    "color": "#6b4a30"
+  },
+  {
+    "id": "cheveux-roux",
+    "type": "materials",
+    "label": "Cheveux roux",
+    "domain": "couleur",
+    "color": "#9a4a24"
+  },
+  {
+    "id": "cheveux-bruns",
+    "type": "materials",
+    "label": "Cheveux bruns",
+    "domain": "couleur",
+    "color": "#3e2a1e"
+  },
+  {
+    "id": "cheveux-noirs",
+    "type": "materials",
+    "label": "Cheveux noirs",
+    "domain": "couleur",
+    "color": "#1e1a18"
+  },
+  {
+    "id": "cheveux-gris",
+    "type": "materials",
+    "label": "Cheveux gris",
+    "domain": "couleur",
+    "color": "#8a8580"
+  },
+  {
+    "id": "cheveux-blancs",
+    "type": "materials",
+    "label": "Cheveux blancs",
+    "domain": "couleur",
+    "color": "#d8d4cc"
+  },
+  {
+    "id": "yeux-bleus",
+    "type": "materials",
+    "label": "Yeux bleus",
+    "domain": "couleur",
+    "color": "#4a6e9a"
+  },
+  {
+    "id": "yeux-verts",
+    "type": "materials",
+    "label": "Yeux verts",
+    "domain": "couleur",
+    "color": "#4e7a4a"
+  },
+  {
+    "id": "yeux-gris",
+    "type": "materials",
+    "label": "Yeux gris",
+    "domain": "couleur",
+    "color": "#7a8088"
+  },
+  {
+    "id": "yeux-marron",
+    "type": "materials",
+    "label": "Yeux marron",
+    "domain": "couleur",
+    "color": "#5a3a24"
+  },
+  {
+    "id": "tissu-ecru",
+    "type": "materials",
+    "label": "Tissu écru",
+    "domain": "couleur",
+    "color": "#d8cdb4"
+  },
+  {
+    "id": "tissu-ocre",
+    "type": "materials",
+    "label": "Tissu ocre",
+    "domain": "couleur",
+    "color": "#9c7a40"
+  },
+  {
+    "id": "tissu-jaune",
+    "type": "materials",
+    "label": "Tissu jaune",
+    "domain": "couleur",
+    "color": "#c9a434"
+  },
+  {
+    "id": "tissu-rouge",
+    "type": "materials",
+    "label": "Tissu rouge",
+    "domain": "couleur",
+    "color": "#8e2a24"
+  },
+  {
+    "id": "tissu-bleu",
+    "type": "materials",
+    "label": "Tissu bleu",
+    "domain": "couleur",
+    "color": "#2e4a7a"
+  },
+  {
+    "id": "tissu-vert",
+    "type": "materials",
+    "label": "Tissu vert",
+    "domain": "couleur",
+    "color": "#3e5a34"
+  },
+  {
+    "id": "tissu-brun",
+    "type": "materials",
+    "label": "Tissu brun",
+    "domain": "couleur",
+    "color": "#5e4630"
+  },
+  {
+    "id": "tissu-gris",
+    "type": "materials",
+    "label": "Tissu gris",
+    "domain": "couleur",
+    "color": "#6e6a64"
+  },
+  {
+    "id": "tissu-noir",
+    "type": "materials",
+    "label": "Tissu noir",
+    "domain": "couleur",
+    "color": "#26231f"
+  },
+  {
+    "id": "cuir-fauve",
+    "type": "materials",
+    "label": "Cuir fauve",
+    "domain": "couleur",
+    "color": "#a07040"
+  },
+  {
+    "id": "cuir-brun",
+    "type": "materials",
+    "label": "Cuir brun",
+    "domain": "couleur",
+    "color": "#6b4a2e"
+  },
+  {
+    "id": "cuir-noir",
+    "type": "materials",
+    "label": "Cuir noir",
+    "domain": "couleur",
+    "color": "#2a221c"
+  },
+  {
+    "id": "acier",
+    "type": "materials",
+    "label": "Acier",
+    "domain": "couleur",
+    "color": "#9aa0a6"
+  },
+  {
+    "id": "fer-sombre",
+    "type": "materials",
+    "label": "Fer sombre",
+    "domain": "couleur",
+    "color": "#4a4c50"
+  },
+  {
+    "id": "bronze-terni",
+    "type": "materials",
+    "label": "Bronze terni",
+    "domain": "couleur",
+    "color": "#8c7444"
+  },
+  {
+    "id": "laiton",
+    "type": "materials",
+    "label": "Laiton",
+    "domain": "couleur",
+    "color": "#b0903c"
+  },
+  {
+    "id": "argent",
+    "type": "materials",
+    "label": "Argent",
+    "domain": "couleur",
+    "color": "#c0c4c8"
+  },
+  {
+    "id": "bois-clair",
+    "type": "materials",
+    "label": "Bois clair",
+    "domain": "couleur",
+    "color": "#a8845a"
+  },
+  {
+    "id": "bois-brun",
+    "type": "materials",
+    "label": "Bois brun",
+    "domain": "couleur",
+    "color": "#6e5034"
+  },
+  {
+    "id": "ivoire",
+    "type": "materials",
+    "label": "Ivoire",
+    "domain": "couleur",
+    "color": "#ddd0ae"
+  },
+  {
+    "id": "fourrure-fauve",
+    "type": "materials",
+    "label": "Fourrure fauve",
+    "domain": "couleur",
+    "color": "#8a6d44"
+  },
+  {
+    "id": "fourrure-grise",
+    "type": "materials",
+    "label": "Fourrure grise",
+    "domain": "couleur",
+    "color": "#7a7670"
+  },
+  {
+    "id": "plume-rousse",
+    "type": "materials",
+    "label": "Plume rousse",
+    "domain": "couleur",
+    "color": "#b5532a"
+  },
+  {
+    "id": "plume-blanche",
+    "type": "materials",
+    "label": "Plume blanche",
+    "domain": "couleur",
+    "color": "#e0dcd0"
+  },
+  {
+    "id": "plume-noire",
+    "type": "materials",
+    "label": "Plume noire",
+    "domain": "couleur",
+    "color": "#24221f"
   }
 ]

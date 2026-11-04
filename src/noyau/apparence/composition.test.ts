@@ -135,6 +135,6 @@ describe('presetDeComposition', () => {
   });
 
   it('un preset inconnu est refusé, avec les ids des presets', () => {
-    expect(presetDeComposition(composition, 'inconnu')).toEqual({ ok: false, presets: ['soldat'] });
+    expect(presetDeComposition(composition, 'inconnu')).toEqual({ ok: false, presets: ['soldat', 'gladiateur'] });
   });
 });

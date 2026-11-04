@@ -61,7 +61,7 @@ les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un 
 absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence déclarée (ligne
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-clips de marche), la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
+clips de marche, et `surfaces`, les matériaux du corps et leur emplacement de palette, sans `blason`), la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
@@ -83,20 +83,24 @@ L'élément se valide et s'évalue ensuite contre `/atelier/modeles/humanoide.ma
 
 Lire la table exécutable des catégories avant d'écrire le manifeste :
 
-| Catégorie | Champs exacts de clé | Résolution à l'import | Liaison | Couleur |
-|---|---|---|---|---|
-| corps | partie, forme | non résolu à l'import | squelette | palette |
-| tete | tete | tête de `src/data/garde-robe.json` | squelette | palette |
-| pilosite | coiffure | coiffure de `src/data/garde-robe.json` | squelette | palette |
-| vetement | piece | pièce `vetement` de `src/data/garde-robe.json` | squelette | palette |
-| armure | piece | pièce `armure` de `src/data/garde-robe.json` | squelette | teinte |
-| accessoire | piece | pièce `accessoire` de `src/data/garde-robe.json` | rigide ou surface | teinte |
-| rigide | apparence | `src/data/apparences.json` | rigide | teinte |
-| trait | trait | non résolu à l'import | squelette | palette |
-| decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide | teinte |
-| vehicule | definition | non résolu à l'import | rigide | teinte |
+| Catégorie | Champs exacts de clé | Résolution à l'import | Liaison |
+|---|---|---|---|
+| corps | partie, forme | non résolu à l'import | squelette |
+| tete | tete | tête de `src/data/garde-robe.json` | squelette |
+| pilosite | coiffure | coiffure de `src/data/garde-robe.json` | squelette |
+| vetement | piece | pièce `vetement` de `src/data/garde-robe.json` | squelette |
+| armure | piece | pièce `armure` de `src/data/garde-robe.json` | squelette |
+| accessoire | piece | pièce `accessoire` de `src/data/garde-robe.json` | rigide ou surface |
+| rigide | apparence | `src/data/apparences.json` | rigide |
+| trait | trait | non résolu à l'import | squelette |
+| decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide |
+| vehicule | definition | non résolu à l'import | rigide |
 
-Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
+Chaque surface, quelle que soit la catégorie, nomme le matériau du GLB et l'emplacement de palette
+dont il prend la couleur (`{ "nom", "palette" }`, `SLOTS` de `src/lib/palette.ts`, `hotes/godot/asset/surfaces.ts`) ;
+la palette d'une composition donne à chaque emplacement une couleur du nuancier.
+
+Un champ de clé qui a sa ligne dans `CHAMPS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
 d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "tete": "humain" }` (tete),
 `{ "coiffure": "crane-rase" }` (pilosite), `{ "piece": "pourpoint" }`
@@ -151,7 +155,7 @@ Le modèle se compare à l'illustration directrice. Un grand revers et un foular
 coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
 
 Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
-neutre (écu uni, lame nue, insigne vierge), dont la couleur reste palette ou teinte, et le manifeste
+neutre (écu uni, lame nue, insigne vierge), dont la couleur reste celle de son emplacement de palette, et le manifeste
 déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface `blason` ; l'emblème
 vient de la donnée du porteur, `embleme` de son apparence ou de sa composition (#3155), et se pose
 au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
@@ -262,7 +266,7 @@ Lire au besoin la référence diagnostics du skill.
 Exporter en interpolation LINEAR et garder les pistes cuites de la base. Graines déterministes
 tirées des codes de caractères de l'identité, jamais du hash Python variable entre processus.
 Reconstruire un échantillon et comparer les octets ; une signature égale ne remplace pas cette preuve.
-Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite ni
+Couleur de base en niveaux de gris ; chaque surface reliée à son emplacement de palette, sans couleur cuite ni
 illustration en texture ; aucun emblème n'est cuit, il se pose au montage sur une surface `blason`
 (section 2). La cuisson de géométrie vers texture peut utiliser le kit.
 
@@ -295,7 +299,7 @@ réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
   "categorie": "rigide",
   "cle": { "apparence": "epee" },
   "liaison": { "mode": "rigide" },
-  "surfaces": [{ "nom": "metal", "teinte": true }, { "nom": "plat", "teinte": true, "blason": true }],
+  "surfaces": [{ "nom": "metal", "palette": "metal" }, { "nom": "plat", "palette": "metal", "blason": true }],
   "glb": { "sha256": "REMPLACER_PAR_64_CARACTERES_HEXADECIMAUX", "octets": 1 }
 }
 ```

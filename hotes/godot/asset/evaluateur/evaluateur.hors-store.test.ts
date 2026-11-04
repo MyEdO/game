@@ -925,6 +925,12 @@ describe('validerManifesteDeBase', () => {
     return verdict.ok ? [] : verdict.ecarts.map((e) => e.code);
   };
 
+  it('accepte des surfaces qui nomment un matériau du GLB et son emplacement de palette ; sans `surfaces`, aucune', () => {
+    const m = { ...valide(), surfaces: [{ nom: 'peau', palette: 'peau' }] };
+    expect(validerManifesteDeBase(m, octets)).toEqual({ ok: true, manifeste: m });
+    expect(validerManifesteDeBase(valide(), octets)).toEqual({ ok: true, manifeste: valide() });
+  });
+
   it('accepte une enveloppe avec un demi-domaine neutre', () => {
     const m = valide();
     const bornes = { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } };
@@ -1043,6 +1049,9 @@ describe('validerManifesteDeBase', () => {
     ['prise-absente', (m) => ({ ...m, prises: { main: m.prises.main } })],
     ['silhouette-absente', (m) => ({ ...m, silhouettes: ['masculin'] })],
     ['glb-different', (m) => ({ ...m, glb: { ...m.glb, octets: m.glb.octets + 1 } })],
+    ['palette-inconnue', (m) => ({ ...m, surfaces: [{ nom: 'peau', palette: 'or' }] })],
+    ['surface-absente', (m) => ({ ...m, surfaces: [{ nom: 'cuir', palette: 'cuir' }] })],
+    ['forme', (m) => ({ ...m, surfaces: [{ nom: 'peau', palette: 'peau', blason: true }] })],
   ])('refuse par le code %s', (code, alterer) => {
     expect(codes(alterer(valide()))).toEqual([code]);
   });

@@ -60,7 +60,7 @@ import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
 import structureAppearanceJson from './structureAppearance.json';
 import materialsJson from './materials.json';
-import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet } from './materials.types';
+import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet, CouleurNommee } from './materials.types';
 import terrainsJson from './terrains.json';
 import type { TerrainDef } from './terrains.types';
 import buildingsJson from './buildings.json';
@@ -2571,7 +2571,7 @@ export const buildings = buildingsJson as unknown as BuildingDef[];
  * entrées d'avant l'édition. Coût mesuré du balayage de 16 entrées au cardinal réel du rendu
  * (18 026 lookups, 65 scènes) : +4,1 ms contre un index `Map` (#1686 lot 3a-1).
  * Apparences servies : `prop` (recettes volumiques de décor), `roof` (couvertures + plan vu du
- * dessus), `relief` (falaises/rampes/tabliers/piliers/POV).
+ * dessus), `relief` (falaises/rampes/tabliers/piliers/POV), `couleur` (nuancier de la palette des personnages).
  */
 export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] =>
   materials.filter((m): m is MatiereDe<D> => m.domain === domain);
@@ -2868,6 +2868,8 @@ export const refEstVolumique = (ref: string | undefined): boolean => ref !== und
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
 /** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
 export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);
+/** Couleur nommée du nuancier, par id — lecture VIVANTE du document (`matieresDe`). */
+export const findCouleurById = (id: string): CouleurNommee | undefined => matieresDe('couleur').find((m) => m.id === id);
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
  *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId`, cf.
  *  `findDomainById`). */

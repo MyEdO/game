@@ -27,7 +27,7 @@ Après deux échecs du même défaut, changer de méthode avant une troisième r
 
 Interdits : générateur image → 3D, retopologie automatique, illustration projetée en texture,
 coque moulée pour un vêtement de silhouette, couleur cuite, emblème modelé ou peint, mouvement des
-chaînes recalculé par l'hôte. Une couleur appartient à la palette ou à la teinte, jamais à une
+chaînes recalculé par l'hôte. Une couleur appartient à la palette, jamais à une
 variante de géométrie ; un emblème se pose au montage sur une surface `blason`, neutre, déclarée
 `blason: true` au manifeste et dépliée sur le carré UV (#3111).
 

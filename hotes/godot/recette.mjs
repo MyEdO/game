@@ -11,20 +11,22 @@
 //   partie, et chaque bouton se trouve par le texte que la vue lui donne. Le jet tombé, la fenêtre ne redessine ni
 //   son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
-//   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
-//   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
-//   l'élément monté puis démonté (« vide ») ; si une surface de `--element` porte `blason: true` (#3111), deux emblèmes
-//   posés tour à tour à la prise `main`, chacun sans erreur publiée, puis « vide » et le premier reposé, ces quatre choix
-//   sans requête du GLB de l'élément (`performance`, page) ni appel `composer` de Godot (`wfrpPont.appeler` enveloppé,
-//   témoins : le GLB requis au montage, `modeles` appelé au premier « Recharger ») ; puis « vide » : l'emblème effacé
-//   au démontage, l'élément remonté sans emblème (le défaut de la composition), le premier reposé avant « Recharger » (sans
-//   surface `blason`, une ligne du journal dit la preuve non jouée) ; un
-//   clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée), sa vitesse réglée ; puis
-//   `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la référence revalidé contre
-//   elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste
-//   réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est gardé.
-// - `composition` : Soldat, manquants et copie validée côté Node ; pièce skinnée montée et démontée, courtaud,
-//   corpulence aux bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
+//   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
+//   « Recharger les modèles » : l'élément offert par la liste des seuls points dont l'os porte sa lame (`osDesRigides`
+//   du listage) ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
+//   `blason: true` (#3111), deux emblèmes posés tour à tour à la prise `main`, chacun sans erreur publiée, puis
+//   « Aucun » et le premier reposé, ces quatre choix sans requête du GLB de l'élément (`performance`, page) ni appel
+//   `composer` de Godot (`wfrpPont.appeler` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
+//   rechargement) ; puis « Aucun » : l'emblème effacé au démontage, l'élément remonté sans emblème (le défaut de la
+//   composition), le premier reposé avant le rechargement (sans surface `blason`, une ligne du journal dit la preuve non
+//   jouée) ; à l'onglet Animation, un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée),
+//   sa vitesse réglée ; puis `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la
+//   référence revalidé contre elle et laissé en place, « Recharger les modèles » sans relancer la page : l'empreinte
+//   publiée devient celle du manifeste réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est
+//   gardé.
+// - `composition` : Soldat, manquants et copie validée côté Node ; une couleur changée à l'onglet Couleurs, posée dans
+//   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
+//   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -206,6 +208,12 @@ const IMPORTER = fileURLToPath(new URL('./importer.mjs', import.meta.url))
 /** Le point du panneau de l'atelier où tourne la molette : sur les lignes des points. */
 const PANNEAU = { x: 60, y: 400 }
 const CRANS = 150
+/** Les textes du panneau de l'atelier (`projet/scripts/atelier.gd`, `projet/scenes/Atelier.tscn`) : le choix vide d'une
+ *  liste d'emplacement, d'axe ou d'emblème, celui d'une liste de couleur, et deux boutons. */
+const AUCUN = 'Aucun'
+const PAR_DEFAUT = 'Par défaut'
+const RECHARGER = 'Recharger les modèles'
+const COPIER = 'Copier la composition'
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
 const atelier = async () => (await ecran()).atelier
 /** Attend que l'atelier publié vérifie `condition` (une expression sur `a`, et `b`, les boutons publiés). */
@@ -258,20 +266,32 @@ async function tournerJusquAuBout(sens, relever = () => {}) {
   }
   throw new Error(`panneau encore en mouvement après ${CRANS} crans de molette`)
 }
-/** Les clés des boutons d'emplacement par point, relevées du haut au bas du panneau, triées ; le panneau revient en haut.
- *  Un point sans clé dit « aucun élément ». */
-async function clesDuPanneau() {
+/** Les articles de chaque liste déroulante de l'onglet courant, par clé, relevés du haut au bas du panneau ; le
+ *  panneau revient en haut. */
+async function listesDuPanneau() {
   await tournerJusquAuBout(-1)
-  const cles = new Set()
-  await tournerJusquAuBout(1, (boutons) => boutons.forEach((b) => b.cle && cles.add(b.cle)))
+  const listes = {}
+  await tournerJusquAuBout(1, (boutons) => boutons.forEach((b) => b.cle && b.choix && (listes[b.cle] = b.choix)))
   await tournerJusquAuBout(-1)
-  const parPoint = {}
-  for (const cle of [...cles].sort()) (parPoint[cle.split('/')[0]] ??= []).push(cle)
-  return parPoint
+  return listes
 }
 async function cliquerAmene(quoi, sens, ou) {
   await amener(quoi, sens, ou)
   await cliquerBouton(quoi)
+}
+/** L'article `texte` choisi dans la liste déroulante de clé `cle`, amenée à l'écran dans le sens `sens` : la liste
+ *  ouverte au clic, puis l'article atteint au clavier, chaque flèche descendant d'un article depuis le haut, et retenu
+ *  à l'Entrée. */
+async function choisirDansLaListe(cle, texte, sens = 1) {
+  const liste = await amener({ cle }, sens)
+  const rang = liste.choix.indexOf(texte)
+  assert.ok(rang >= 0, `« ${texte} » offert par la liste ${cle} : ${liste.choix.join(', ')}`)
+  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: `liste ${cle}` }, clic())
+  await sleep(400)
+  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
 }
 
 /** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appeler` enveloppé, que
@@ -291,37 +311,38 @@ const requetesDuGlb = (id) =>
 /** Les requêtes du GLB de `elementId` et les appels `composer` relevés. */
 const releve = async (elementId) => ({ glb: await requetesDuGlb(elementId), composer: await appels('composer') })
 
-/** L'emblème `id` choisi au clic à la prise `main` (« vide » pour aucun), l'état publié qui le porte, ou une erreur,
- *  attendu ; aucune erreur publiée. */
-async function choisirLEmbleme(id) {
-  await cliquerAmene({ cle: `main/embleme/${id}` }, 1)
-  await attendreLAtelier(`a.erreurs.length > 0 || ${id === 'vide' ? '!("main" in a.emblemes)' : `a.emblemes.main === ${JSON.stringify(id)}`}`)
-  assert.deepEqual((await atelier()).erreurs, [], `l’emblème « ${id} » posé sans erreur`)
+/** L'emblème de libellé `texte` choisi dans la liste de la prise `main` (« Aucun » pour aucun), l'état publié qui le
+ *  porte, ou une erreur, attendu ; aucune erreur publiée. L'id de l'emblème posé, `undefined` sous « Aucun ». */
+async function choisirLEmbleme(texte) {
+  await choisirDansLaListe('main/embleme', texte)
+  await attendreLAtelier(`a.erreurs.length > 0 || ${texte === AUCUN ? '!("main" in a.emblemes)' : '"main" in a.emblemes'}`)
+  const { erreurs, emblemes } = await atelier()
+  assert.deepEqual(erreurs, [], `l’emblème « ${texte} » posé sans erreur`)
+  return emblemes.main
 }
-/** À la prise `main`, où l'élément `elementId` monté porte une surface `blason` : la rangée des emblèmes relevée, le
- *  premier puis le second posés et capturés, puis « vide » ; le premier reposé, ces quatre choix sans requête du GLB ni
- *  appel `composer`. Les ids des emblèmes offerts, triés. */
+/** À la prise `main`, où l'élément `elementId` monté porte une surface `blason` : la liste des emblèmes relevée, le
+ *  premier puis le second posés et capturés, puis « Aucun » ; le premier reposé, ces quatre choix sans requête du GLB
+ *  ni appel `composer`. Les libellés des emblèmes offerts. */
 async function poserLesEmblemes(elementId) {
-  const prefixe = 'main/embleme/'
-  await attendreLAtelier(`b.some((x) => x.cle === ${JSON.stringify(`${prefixe}vide`)})`)
+  await attendreLAtelier('b.some((x) => x.cle === "main/embleme")')
   assert.deepEqual((await atelier()).emblemes, {}, 'monté sans emblème')
-  const offerts = (await clesDuPanneau()).main.filter((c) => c.startsWith(prefixe) && c !== `${prefixe}vide`).map((c) => c.slice(prefixe.length))
+  const offerts = (await listesDuPanneau())['main/embleme'].filter((texte) => texte !== AUCUN)
   assert.ok(offerts.length >= 2, `deux emblèmes offerts au moins : ${offerts.join(', ')}`)
   const [a, b] = offerts
   const avant = await releve(elementId)
   await choisirLEmbleme(a)
   noter(`emblème « ${a} » posé à la prise « main »`)
   await capturer('3111-1-embleme-a')
-  await choisirLEmbleme(b)
-  assert.deepEqual((await atelier()).emblemes, { main: b }, 'le second emblème remplace le premier')
+  const idB = await choisirLEmbleme(b)
+  assert.deepEqual((await atelier()).emblemes, { main: idB }, 'le second emblème remplace le premier')
   noter(`emblème « ${b} » posé à sa place`)
   await capturer('3111-2-embleme-b')
-  await choisirLEmbleme('vide')
-  noter('emblème « vide » : la surface rendue à son matériau')
+  await choisirLEmbleme(AUCUN)
+  noter('emblème « Aucun » : la surface rendue à son matériau')
   await choisirLEmbleme(a)
   const apres = await releve(elementId)
   const delta = { glb: apres.glb - avant.glb, composer: apres.composer - avant.composer }
-  noter(`emblèmes « ${a} », « ${b} », « vide », « ${a} » : GLB de « ${elementId} » requis ${avant.glb} → ${apres.glb}, \`composer\` appelé ${avant.composer} → ${apres.composer}`)
+  noter(`emblèmes « ${a} », « ${b} », « Aucun », « ${a} » : GLB de « ${elementId} » requis ${avant.glb} → ${apres.glb}, \`composer\` appelé ${avant.composer} → ${apres.composer}`)
   assert.deepEqual(delta, { glb: 0, composer: 0 }, 'un changement d’emblème seul ne recharge pas le GLB et ne compose pas')
   return offerts
 }
@@ -335,32 +356,39 @@ async function parcoursAtelier() {
   await cliquerBouton('Atelier')
   noter('menu : bouton « Atelier » cliqué')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
+  await cliquerBouton('Outils')
   await cliquerAmene(base, 1)
   let a = await atelier()
   assert.deepEqual([a.base, a.empreinte, a.erreurs], [base, p0.model_sha256, []], 'la base choisie, à l’empreinte de son import, sans erreur')
-  assert.deepEqual((await ecran()).boutons.filter((b) => b.cle), [], 'sans élément indexé, aucun point n’offre de choix')
-  noter(`base « ${base} » choisie, empreinte ${a.empreinte.slice(0, 12)} ; ses points disent « aucun élément »`)
+  await cliquerBouton('Équipement')
+  assert.deepEqual((await ecran()).boutons.filter((b) => b.cle), [], 'sans élément indexé, aucun emplacement n’a de liste')
+  noter(`base « ${base} » choisie, empreinte ${a.empreinte.slice(0, 12)} ; aucun emplacement à l’onglet Équipement`)
   await capturer('3086-a1-1-base-sans-element')
 
   importer(o.element, elementId)
   await evaluate(session, SONDER_LA_PAGE)
-  await cliquerAmene('Recharger', 1)
-  await attendreLAtelier(`b.some((x) => x.cle?.endsWith(${JSON.stringify(`/${elementId}`)}))`)
+  await cliquerBouton('Outils')
+  await cliquerAmene(RECHARGER, 1)
+  await cliquerBouton('Équipement')
+  await attendreLAtelier('b.some((x) => x.cle === "main")')
   const { osDesRigides } = await (await fetch(`${srv.url}modeles/`)).json()
   const porteurs = Object.entries({ ...p0.manifeste.emplacements, ...p0.manifeste.prises }).filter(([, attache]) => osDesRigides[elementId].includes(attache.os)).map(([point]) => point)
   const listages = await appels('modeles')
   assert.ok(listages > 0, 'témoin : l’appel `modeles` de Godot au pont relevé par l’enveloppe')
   assert.ok(porteurs.includes('main'), `l’os de la prise « main » porte la lame (${osDesRigides[elementId].join(', ')})`)
-  const choix = await clesDuPanneau()
-  assert.deepEqual(choix, tableTotale(porteurs, (p) => [`${p}/${elementId}`, `${p}/vide`].sort()), `« ${elementId} » listé aux seuls points de l’os qui porte la lame`)
-  noter(`« Recharger » : « ${elementId} » listé aux points ${porteurs.join(', ')} (os ${osDesRigides[elementId].join(', ')}) ; les autres disent « aucun élément »`)
+  const listes = await listesDuPanneau()
+  const libelle = listes.main[1]
+  const desPoints = Object.fromEntries(Object.entries(listes).filter(([cle]) => !cle.includes('/')))
+  assert.deepEqual(desPoints, tableTotale(porteurs, () => [AUCUN, libelle]), `« ${elementId} » offert aux seuls points de l’os qui porte la lame`)
+  noter(`« ${RECHARGER} » : « ${elementId} » (« ${libelle} ») offert aux points ${porteurs.join(', ')} (os ${osDesRigides[elementId].join(', ')}) ; les autres n’ont pas de rangée`)
+  await cliquerBouton('Outils')
   for (const aide of ['Os', 'Prises']) await cliquerAmene(aide, 1)
   a = await atelier()
   assert.deepEqual(a.aides, { os: true, emplacements: false, prises: true }, 'les aides cochées sont montrées')
 
-  const monter = { cle: `main/${elementId}` }
+  await cliquerBouton('Équipement')
   const avantLeMontage = await requetesDuGlb(elementId)
-  await cliquerAmene(monter, 1)
+  await choisirDansLaListe('main', libelle)
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   const auMontage = await requetesDuGlb(elementId)
   assert.ok(auMontage > avantLeMontage, `témoin : le GLB de « ${elementId} » requis au montage relevé par la page (${avantLeMontage} → ${auMontage})`)
@@ -369,22 +397,22 @@ async function parcoursAtelier() {
   const blason = element.manifeste.surfaces.some((s) => s.blason === true)
   if (!blason) noter(`« ${elementId} » sans surface \`blason\` : preuve des emblèmes non jouée`)
   const emblemes = blason ? await poserLesEmblemes(elementId) : []
-  await cliquerAmene({ cle: 'main/vide' }, -1)
+  await choisirDansLaListe('main', AUCUN, -1)
   await attendreLAtelier('!("main" in a.montes)')
   assert.deepEqual((await atelier()).emblemes, {}, 'démonter efface l’emblème')
-  noter('« vide » : la prise « main » démontée, sans emblème')
-  await cliquerBouton(monter)
+  noter('« Aucun » : la prise « main » démontée, sans emblème')
+  await choisirDansLaListe('main', libelle, -1)
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   if (emblemes.length) {
-    await attendreLAtelier('b.some((x) => x.cle === "main/embleme/vide")')
+    await attendreLAtelier('b.some((x) => x.cle === "main/embleme")')
     assert.deepEqual((await atelier()).emblemes, {}, 'remonté sans emblème')
     noter(`« ${elementId} » remonté sans emblème`)
     await choisirLEmbleme(emblemes[0])
-    noter(`« ${emblemes[0]} » reposé avant « Recharger »`)
+    noter(`« ${emblemes[0]} » reposé avant « ${RECHARGER} »`)
   }
 
-  const premier = await amener('A_TPose', 1)
-  await cliquerAmene(o.clip, 1, { x: premier.x, y: premier.y })
+  await cliquerBouton('Animation')
+  await choisirDansLaListe('clip', o.clip)
   await attendreLAtelier(`a.clip === ${JSON.stringify(o.clip)} && a.lecture`)
   await cliquerAmene('Pause', 1)
   await attendreLAtelier('a.lecture === false')
@@ -422,14 +450,15 @@ async function parcoursAtelier() {
   importer(o.reexport, base, ['--remplacer'])
   noter(`« ${base} » remplacée par sa réexportation (--remplacer) : « ${elementId} », qui la référence, revalidé contre elle et laissé en place`)
   await evaluate(session, '(globalThis.recetteSansRelance = true)')
-  await cliquerAmene('Recharger', -1)
+  await cliquerBouton('Outils')
+  await cliquerAmene(RECHARGER, -1)
   await attendreLAtelier(`a.empreinte === ${JSON.stringify(p1.model_sha256)} && a.montes.main === ${JSON.stringify(elementId)} && a.clip !== null`, 120000)
   const apres = await atelier()
   assert.equal(await evaluate(session, 'globalThis.recetteSansRelance === true'), true, 'la page n’a pas été relancée')
   assert.ok(Math.abs(apres.instant - avant.instant) < 1e-6, `l’instant gardé : ${avant.instant} → ${apres.instant}`)
   const etat = ({ base: b, clip, lecture, vitesse, montes, emblemes: e, aides, erreurs }) => ({ b, clip, lecture, vitesse, montes, e, aides, erreurs })
   assert.deepEqual(etat(apres), etat(avant), 'clip, pause, vitesse, montés, emblèmes, aides gardés')
-  noter(`« Recharger » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, emblèmes ${JSON.stringify(apres.emblemes)}, aides ${JSON.stringify(apres.aides)}`)
+  noter(`« ${RECHARGER} » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, emblèmes ${JSON.stringify(apres.emblemes)}, aides ${JSON.stringify(apres.aides)}`)
   await capturer('3086-a1-4-reexport-recharge')
 }
 
@@ -439,17 +468,32 @@ const horizontal = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2])
 async function choisirAxe(catalogues, champ, id) {
   const axe = catalogues.axes.find((x) => x.champ === champ)
   assert.ok(axe && axe.forme !== 'plage', `sélecteur ${champ} publié`)
-  const rang = id === null ? 0 : catalogues[axe.liste].findIndex((x) => x.id === id) + 1
-  assert.ok(id === null || rang > 0, `${id} offert sur ${champ}`)
-  const b = await amener({ cle: `axe/${champ}` }, -1)
-  await geste(session, { surface: 'canvas', x: b.x, y: b.y }, { qui: `liste ${champ}` }, clic())
-  await sleep(400)
-  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
-  await marquer()
-  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-  await nouvelEcran()
+  const offert = id === null ? undefined : catalogues[axe.liste].find((x) => x.id === id)
+  assert.ok(id === null || offert, `${id} offert sur ${champ}`)
+  await choisirDansLaListe(`axe/${champ}`, offert?.label ?? AUCUN, -1)
   const courante = (await atelier()).composition.courante[champ]
   assert.equal(courante?.id ?? courante ?? null, id, `axe ${champ} choisi au clavier`)
+}
+
+/** À l'onglet Couleurs, l'emplacement de palette de la première surface de la pièce `piece` montée à la ligne `ligne`
+ *  coloré de la dernière couleur du nuancier : la composition courante le porte et le matériau de cette surface la prend
+ *  (`couleurs` de l'atelier publié) ; puis « Par défaut » l'en retire et rend à la surface le matériau du GLB. */
+async function colorerLaPiece(catalogues, ligne, piece) {
+  const { nom, palette } = piece.manifeste.surfaces[0]
+  const couleur = catalogues.nuancier.at(-1)
+  const emplacement = `ligne/${ligne}`
+  await cliquerBouton('Couleurs')
+  await choisirDansLaListe(`couleur/${palette}`, couleur.label)
+  await attendreLAtelier(`a.couleurs[${JSON.stringify(emplacement)}]?.[${JSON.stringify(nom)}] === ${JSON.stringify(couleur.couleur)}`)
+  let a = await atelier()
+  assert.deepEqual([a.composition.courante.couleurs[palette], a.composition.palette[palette], a.erreurs], [{ id: couleur.id }, couleur.couleur, []], `couleur « ${couleur.label} » posée à « ${palette} »`)
+  noter(`« ${couleur.label} » à « ${palette} » : la surface « ${nom} » de « ${ligne} » en ${couleur.couleur}`)
+  await capturer('3086-r1-1c-couleur')
+  await choisirDansLaListe(`couleur/${palette}`, PAR_DEFAUT, -1)
+  await attendreLAtelier(`a.couleurs[${JSON.stringify(emplacement)}]?.[${JSON.stringify(nom)}] === undefined`)
+  a = await atelier()
+  assert.ok(!(palette in (a.composition.courante.couleurs ?? {})), `« ${PAR_DEFAUT} » retire « ${palette} » de la composition`)
+  noter(`« ${PAR_DEFAUT} » à « ${palette} » : la surface « ${nom} » rendue au matériau du GLB`)
 }
 
 const OS_DU_TORSE = ['spine_01', 'spine_02', 'spine_03', 'clavicle_l', 'clavicle_r']
@@ -579,18 +623,19 @@ async function parcoursComposition() {
   importer(o.base, base)
   await cliquerBouton('Atelier')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
+  await cliquerBouton('Outils')
   await cliquerBouton(base)
   const reposDeLaBase = await atelier()
   assert.deepEqual([reposDeLaBase.empreinte, reposDeLaBase.erreurs], [p.model_sha256, []])
   assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [null, false], 'référence native de la base sans clip engagé')
   assert.deepEqual(Object.keys(reposDeLaBase.os).sort(), [...p.manifeste.os].sort(), 'tous les os natifs de la base sont présents dans la référence')
-  await cliquerBouton('Composition')
+  await cliquerBouton('Personnage')
   const catalogues = JSON.parse(await evaluate(session, "wfrpPont.appeler('catalogues')"))
   assert.equal((await atelier()).composition.copie, '', 'avant Copier : aucune entrée copiée')
   const plageInitiale = catalogues.axes.find((x) => x.forme === 'plage')
   await cliquerAmene({ cle: `axe/${plageInitiale.champ}/neutre` }, 1)
   await attendreLAtelier('a.composition.refus !== null')
-  await cliquerAmene('Copier', 1)
+  await cliquerAmene(COPIER, 1)
   await attendreLAtelier('a.erreurs.some((x) => x.includes("presetDeComposition"))')
   assert.equal((await atelier()).composition.copie, '', 'Copier refusé : aucune entrée copiée')
   noter('Copier avant toute copie et après refus : entrée vide')
@@ -608,9 +653,9 @@ async function parcoursComposition() {
     assert.ok((await atelier()).plages[axe.champ], `plage ${axe.champ} publiée`)
   }
   noter(`Soldat : ${JSON.stringify(a.composition)}`)
-  await amener('Copier', 1)
+  await amener(COPIER, 1)
   await capturer('3086-r1-1-soldat-manquants')
-  await cliquerAmene('Copier', 1)
+  await cliquerAmene(COPIER, 1)
   await attendreLAtelier('a.composition.copie !== ""')
   const copie = (await atelier()).composition.copie
   noter(`Copier publié : ${copie}`)
@@ -625,17 +670,19 @@ async function parcoursComposition() {
   assert.deepEqual(entree, soldat, 'Copier restitue exactement l’entrée Soldat app-owned')
 
   importer(o.piece, pieceId)
-  await cliquerBouton('Montage')
-  await cliquerAmene('Recharger', -1)
+  await cliquerBouton('Outils')
+  await cliquerAmene(RECHARGER, -1)
+  await cliquerBouton('Équipement')
   const cle = { cle: `ligne/${ligne}` }
   await cliquerAmene(cle, 1)
   await attendreLAtelier(`a.lignes[${JSON.stringify(ligne)}] === ${JSON.stringify(pieceId)}`, 120000)
   await cliquerAmene(cle, 1)
   await attendreLAtelier(`!(${JSON.stringify(ligne)} in a.lignes)`)
-  assert.ok(!(`ligne/${ligne}` in (await atelier()).peaux), 'vide : peau démontée')
+  assert.ok(!(`ligne/${ligne}` in (await atelier()).peaux), 'démontée : sa peau retirée')
   await cliquerBouton(cle)
   await attendreLAtelier(`a.lignes[${JSON.stringify(ligne)}] === ${JSON.stringify(pieceId)}`)
-  await cliquerBouton('Composition')
+  await colorerLaPiece(catalogues, ligne, piece)
+  await cliquerBouton('Personnage')
   await choisirAxe(catalogues, 'gabarit', 'courtaud')
   await attendreLAtelier('!!a.gabarit.image')
   a = await atelier()
@@ -660,12 +707,12 @@ async function parcoursComposition() {
     await realKeyUp(session, touche)
   }
   await attendreLAtelier('!a.lecture && a.instant === 0')
-  await cliquerBouton('Montage')
-  await cliquerAmene('A_TPose', 1)
+  await cliquerBouton('Animation')
+  await choisirDansLaListe('clip', 'A_TPose')
   await attendreLAtelier('a.clip === "A_TPose" && a.lecture')
   await cliquerAmene('Pause', 1)
   await attendreLAtelier('a.lecture === false')
-  await cliquerBouton('Composition')
+  await cliquerBouton('Personnage')
   const corpulence = catalogues.axes.find((x) => x.champ === 'build' && x.forme === 'plage')
   assert.ok(corpulence, 'axe de corpulence borné')
   for (const [bord, valeur] of [['gauche', corpulence.min], ['droite', corpulence.max]]) {
@@ -689,7 +736,7 @@ async function parcoursComposition() {
   await choisirAxe(catalogues, 'gabarit', null)
   await cliquerAmene({ cle: 'axe/build/neutre' }, 1)
   await choisirAxe(catalogues, 'sex', 'M')
-  await cliquerBouton('Montage')
+  await cliquerBouton('Animation')
   await cliquerAmene('×2', 1)
   proche((await atelier()).vitesse, 2, 1e-4, 'marche au cran ×2')
   // #3104 — vérification du couplage limitée au corps neutre.

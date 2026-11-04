@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
-import { cataloguesDeComposition, lireComposition } from '../../../src/noyau/index';
+import { cataloguesDeComposition, findCouleurById, lireComposition, SLOTS } from '../../../src/noyau/index';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import presets from '../../../src/data/presets-de-personnage.json';
 import { modelesDeLAtelier } from './atelier';
@@ -85,13 +85,25 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     expect(appeler('composer', { base: 'humanoide', composition: soldat }).erreur.message).toMatch(/modeles d’abord/);
     appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
     expect(appeler('composer', { base: 'autre', composition: soldat }).erreur.categorie).toBe('validation');
-    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'montes', 'morphes', 'ok', 'rapport']);
+    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'montes', 'morphes', 'ok', 'palette', 'rapport']);
+  });
+
+  it('composer publie la palette de la composition, chaque couleur du nuancier résolue en `#rrggbb` ; sans `couleurs`, aucune', () => {
+    appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
+    const { couleurs: _, ...sansCouleurs } = soldat;
+    expect(appeler('composer', { base: 'humanoide', composition: sansCouleurs }).palette).toEqual({});
+    const couleurs = { peau: { id: 'peau-halee' }, plume: { id: 'plume-rousse' } };
+    expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs } }).palette).toEqual({ peau: findCouleurById('peau-halee')!.color, plume: findCouleurById('plume-rousse')!.color });
+    expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs: { peau: { id: 'acier-bleu' } } } }).erreur.categorie).toBe('validation');
+    expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs: { or: { id: 'acier' } } } }).erreur.categorie).toBe('validation');
   });
 
   it('catalogues publie chaque champ en `{ id, label }` et ses axes, et presetDeComposition le Soldat sous son preset', () => {
     const catalogues = appeler('catalogues');
-    expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual([{ id: 'soldat', label: 'Soldat' }]);
+    expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual([{ id: 'soldat', label: 'Soldat' }, { id: 'gladiateur', label: 'Gladiateur' }]);
     expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'off']);
+    expect(catalogues.couleurs.map((c: { id: string }) => c.id)).toEqual([...SLOTS]);
+    expect(catalogues.nuancier).toEqual(cataloguesDeComposition().nuancier);
     expect(catalogues.axes).toEqual(cataloguesDeComposition().axes);
     const { entree, verdict } = appeler('presetDeComposition', { composition: soldat, preset: 'soldat' });
     expect(verdict).toEqual([]);
@@ -101,7 +113,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     expect(sansPreset.verdict.map((f: { chemin: unknown[] }) => f.chemin)).toEqual([['id'], ['label'], ['source']]);
     expect(appeler('presetDeComposition', { composition: soldat, preset: 'inconnu' }).erreur).toEqual({
       categorie: 'validation',
-      message: 'presetDeComposition : preset, l’id d’un preset de catalogues (soldat)',
+      message: 'presetDeComposition : preset, l’id d’un preset de catalogues (soldat, gladiateur)',
     });
   });
 

@@ -3,7 +3,7 @@
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
 //   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
 //   `osAPositionAnimee` ;
-// - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, et les clips de marche ;
+// - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, les clips de marche et `surfaces` ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
 // - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
@@ -50,7 +50,7 @@ async function main() {
   }
   const sources = tableTotale(packs, (p) => values[p])
   const licences = tableTotale(packs, (p) => values[`licence-${p}`])
-  const { base, porteur, clipsDeMarche } = await lireDeclaration(cheminDeclaration)
+  const { base, porteur, clipsDeMarche, surfaces } = await lireDeclaration(cheminDeclaration)
   const { dossier } = verifierProduction({ glb: cheminGlb, sources, licences })
   if (values.verifier) {
     console.log(`PRODUCTION ${dossier} : déclaration, sortie et textes de licence des packs acceptés`)
@@ -63,6 +63,7 @@ async function main() {
   const manifeste = (vitessesAuSol) => ({
     schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
     porteur,
+    ...(surfaces === undefined ? {} : { surfaces }),
     appuis: { ...construit.appuis, vitessesAuSol },
     glb: empreinte(octets),
   })

@@ -1,13 +1,14 @@
 /**
  * LE MANIFESTE D'UNE BASE HUMANOÏDE (#2972, schéma 4) : son squelette, ses chaînes d'appendice, ses zones, ses
  * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, ses appuis et ses os à
- * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`).
+ * position animée, et ses surfaces (`surfaces.ts`), validés contre le GLB livré (`lireGlb`, `glb.ts`).
  */
 import { estObjet } from '../../../src/hote/formes.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
+import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 4;
 
@@ -67,6 +68,8 @@ export interface ManifesteDeBase {
   readonly appuis: Appuis;
   /** Les os, hors racine, dont un clip anime la position (`gardePistesDEchelle`). */
   readonly osAPositionAnimee: readonly string[];
+  /** Absentes, la base garde les couleurs de son GLB. */
+  readonly surfaces?: readonly Surface[];
   readonly glb: { readonly sha256: string; readonly octets: number };
 }
 
@@ -80,6 +83,7 @@ export type CodeDEcartDeBase =
   | 'prise-absente'
   | 'silhouette-absente'
   | 'clip-absent'
+  | CodeDEcartDeSurface
   | 'glb-different';
 
 export interface EcartDeBase {
@@ -211,10 +215,12 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   };
   if (estObjet(brut.appuis) && estListeDeChaines(a.pieds) && !appuis.pieds.length) forme('appuis.pieds', 'au moins un pied attendu');
   const osAPositionAnimee = liste(brut.osAPositionAnimee, 'osAPositionAnimee');
+  const lues = brut.surfaces === undefined ? undefined : lireSurfaces(brut.surfaces, false);
+  ecarts.push(...(lues?.ecarts ?? []));
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };
   if (ecarts.length || !prises.main || !prises.off) return { ecarts };
-  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, appuis, osAPositionAnimee, glb: empreinte } };
+  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
 }
 
 /** Le manifeste `brut` réduit au schéma 4 et validé contre le GLB de la base `octets`. */
@@ -242,6 +248,7 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   for (const [i, c] of m.appuis.plusBas.entries()) for (const nom of Object.keys(c.deltas)) {
     if (!contenu.formes.has(nom) || (!m.silhouettes.includes(nom) && !nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT))) refus('forme', `appuis.plusBas.${i}.deltas.${nom}`, 'clé absente ou hors silhouettes et gabarit');
   }
+  for (const e of ecartsAuGlb(m.surfaces ?? [], contenu)) refus(e.code, e.ou, e.detail);
   const somme = sha256(octets);
   if (m.glb.sha256 !== somme || m.glb.octets !== octets.byteLength) refus('glb-different', 'glb', `GLB de ${octets.byteLength} octets, SHA-256 ${somme} ; déclaré ${m.glb.octets} octets, ${m.glb.sha256}`);
   return ecarts.length ? { ok: false, ecarts } : { ok: true, manifeste: m };

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { materials, matieresDe, findTeinteById, structureAppearances } from '../../data/index';
+import { materials, matieresDe, findTeinteById, findCouleurById, structureAppearances } from '../../data/index';
 import { DOMAINES_MATIERE, type MaterialEntry } from '../../data/materials.types';
 import { propMaterial } from './propMaterials';
 import { roofMaterial } from './roofs';
@@ -30,6 +30,7 @@ const VUES: { domaine: string; entrees: readonly MaterialEntry[]; resout: (id: s
   { domaine: 'roof', entrees: matieresDe('roof'), resout: roofMaterial },
   { domaine: 'relief', entrees: matieresDe('relief'), resout: reliefMaterial },
   { domaine: 'objet', entrees: matieresDe('objet'), resout: (id) => findTeinteById(id)! },
+  { domaine: 'couleur', entrees: matieresDe('couleur'), resout: (id) => findCouleurById(id)! },
 ];
 
 describe('identité des matières du monde — (domaine, id), id unique sur tout le document', () => {
@@ -106,7 +107,7 @@ describe('collisions d’id sur les CINQ domaines — cliquet décroissant', () 
     const declares = [...union![1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]).sort();
     expect(declares).toEqual(Object.keys(DOMAINES).sort());
     // Les domaines de surface du catalogue appartiennent au pivot de rendu.
-    expect(declares).toEqual(expect.arrayContaining(DOMAINES_MATIERE.filter((d) => d !== 'objet')));
+    expect(declares).toEqual(expect.arrayContaining(DOMAINES_MATIERE.filter((d) => d !== 'objet' && d !== 'couleur')));
   });
 
   it('le stock nominatif des collisions vivantes est EXACT — une de plus est rouge, une résolue le fait baisser', () => {

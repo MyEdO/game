@@ -104,7 +104,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     monte('materials', m.id);
     const select = champ('Domaine')?.querySelector('select');
     expect(select, 'le champ discriminant n’est pas un choix borné').toBeTruthy();
-    expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief', 'Objet']);
+    expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief', 'Objet', 'Couleur']);
     expect(select!.value).toBe('roof');
   });
 
