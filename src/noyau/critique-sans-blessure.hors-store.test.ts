@@ -108,7 +108,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
     expect(applyAttackResult(banc.getState, banc.setState, E, H, gourdin, res)).toBe(OPS_DIFFEREES);
     const etape = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!;
     expect(etape.table).toBeDefined();
-    banc.getState().cascadeTableRoll(etape.id);
+    banc.getState().jetRoll('cascadeTirage', etape.id);
     draineCascade(banc.getState);
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.criticalWounds).toBe(1);
   });

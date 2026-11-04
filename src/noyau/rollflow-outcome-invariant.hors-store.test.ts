@@ -190,6 +190,8 @@ const FIXTURES: Record<string, Fix> = {
 /** Flux NON couverts par une fixture minimale — justifiés (leur `outcome` est trivial + partagé). */
 const SKIP: Record<string, string> = {
   etalLot: 'Lot de dés d’étal (#1426) — le flux n’a NI Chance NI Résilience (`verbs: [setForcedRoll]`) : il n’y a pas d’issue à gater. Un dé d’étal ne réussit ni n’échoue, il tombe ; son `outcome` est scellé neutre sur sa valeur, et `failed` n’a aucun consommateur.',
+  cascadeTirage: 'Dé d’étape de cascade (table, dé nu) — le flux n’a NI Chance NI Résilience (`verbs: [roll, setForcedRoll]`) : un dé de table tombe sans réussir ni échouer, son `outcome` est scellé neutre sur sa valeur.',
+  fumble: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
   shipManeuver: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
   shipBattery: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
   crewTest: 'idem shipManeuver (MÊME crewRoleFlowSpec)',

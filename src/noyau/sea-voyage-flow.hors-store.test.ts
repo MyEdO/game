@@ -1158,7 +1158,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     runSeaDay(get, set);
     const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
     expect(etape.table!.mod ?? 0, 'Humeur de Manann neutre : le dé posé est le dé effectif').toBe(0);
-    get().cascadeTableSetForcedRoll(etape.id, 60);
+    get().jetSetForcedRoll('cascadeTirage', 60, etape.id);
     const tiree = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!.table!.result!;
     expect(tiree.id).toBe('navigation-ordinaire');
     expect(seaBoardEventById(tiree.id)!.kind).toBe('rien');

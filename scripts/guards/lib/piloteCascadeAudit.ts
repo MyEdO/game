@@ -109,12 +109,12 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
  *  cascade (`MODULE_DU_KIT`), qui EST le pilote partagé. */
 const estMesure = (rel: string): boolean => (estSuiteVitest(rel) || estKitDeTest(rel)) && !MODULE_DU_KIT.test(rel);
 
-/** Un verbe de la cascade du store (`cascadeNext`, `cascadeTableRoll`…). */
+/** Un verbe de la cascade du store (`cascadeNext`, `cascadeChoose`…). */
 const VERBE = /^cascade[A-Z]/;
 /** Un verbe de jet du noyau (`jetRoll`…), qui joue sur la cascade quand son flux, en premier argument, en est un
- *  (`'cascade'`, `'cascadeBatch'`). */
+ *  (`'cascade'`, `'cascadeBatch'`, `'cascadeTirage'`, `'fumble'`). */
 const VERBE_DE_JET = /^jet[A-Z]/;
-const FLUX_DE_CASCADE = /^cascade(Batch)?$/;
+const FLUX_DE_CASCADE = /^(cascade(Batch|Tirage)?|fumble)$/;
 
 /** Les méthodes dont un callback ITÈRE (`Array.from({ length }, f)` compris). */
 const ITERATEURS = new Set(['forEach', 'map', 'flatMap', 'filter', 'some', 'every', 'find', 'findIndex', 'reduce', 'from']);

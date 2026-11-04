@@ -65,8 +65,7 @@ function deroule(main: boolean, pilote = main): Issue {
     }
     if (pilote && s.pendingCascade && s.pendingCascade.participants[s.pendingCascade.cursor]?.jet !== 'defense') {
       const c = s.pendingCascade; const cur = c.participants[c.cursor];
-      if (cur?.jet === 'fumble') { g().fumbleRoll(); g().fumbleConfirm(); }
-      else if (cur?.jet !== 'attack') avanceEtapeCascade(g);
+      if (cur?.jet !== 'attack') avanceEtapeCascade(g);
       banc.avancer(50);
       if (g().pendingCascade !== c) continue;
     }

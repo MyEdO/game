@@ -141,10 +141,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const next = useGame((s) => s.cascadeNext);
   const choose = useGame((s) => s.cascadeChoose); // étape « choix » : pose l'option retenue
   const setAmount = useGame((s) => s.cascadeAmount); // étape « quantité » : pose le nombre saisi
-  const tableRoll = useGame((s) => s.cascadeTableRoll); // étape « table » : tire le dé sur le tableau déclaré
-  const tableSetForcedRoll = useGame((s) => s.cascadeTableSetForcedRoll); // mode table : POSE le dé (champ ou ligne)
-  const dieRoll = useGame((s) => s.cascadeDieRoll); // étape « de » (#1508) : tire le dé NU
-  const dieSetForcedRoll = useGame((s) => s.cascadeDieSetForcedRoll); // étape « de » : POSE le dé NU
+  const tirerLeDe = useGesteDeJet('jetRoll', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
+  const poserLeDe = useGesteDeJet('jetSetForcedRoll', 'cascadeTirage'); // POSE le dé (champ, ou ligne de table)
   const resolveAll = useGame((s) => s.cascadeResolveAll); // « Tout lancer » → bilan
   const finish = useGame((s) => s.cascadeFinish); // « Terminer » du bilan
   const attackProps = useAttackJetProps(); // étape-jet d'attaque : rendue dans CETTE coquille (une fenêtre)
@@ -470,7 +468,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const affordancesDuDe = (s: CascadeStep): { rows: BuiltRollRow[]; lines: ReactNode } => {
     // UN SEUL sélecteur pour les DEUX porteurs de dé (#1508) : la couture (`stepForcedDie`) lit
     // `step.de ?? step.table`, seul le délégué d'écriture diffère.
-    const die = stepForcedDie(useGame.getState(), s, (r) => (s.de ? dieSetForcedRoll(s.id, r) : tableSetForcedRoll(s.id, r)));
+    const die = stepForcedDie(useGame.getState(), s, (r) => poserLeDe(r, s.id));
     if (!die.forcedRoll) return { rows: [], lines: null };
     // Rangée porteuse du SEUL sélecteur — constructeur `tableRow` (ni cible ni DR à pré-afficher,
     // aucun `onRoll` : ni bouton de rangée, ni « Lancer » hissé, ni cycle d'influence).
@@ -500,7 +498,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         ...(nat == null ? { refusId: `${s.id}-unreachable` } : {}),
         title: nat == null ? undefined
           : `Poser le dé à ${nat}${mod !== 0 ? ` (dé effectif ${nat + mod})` : ''}`,
-        onSelect: nat == null ? undefined : () => tableSetForcedRoll(s.id, nat),
+        onSelect: nat == null ? undefined : () => poserLeDe(nat, s.id),
       };
     });
     const unreachable = options.filter((o) => o.disabled).length;
@@ -529,7 +527,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   if (interaction === 'table') {
     const aff = affordancesDuDe(cur);
     const tableActions: RollAction[] = [
-      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tableRoll(cur.id) },
+      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
       ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
@@ -557,7 +555,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // PORTEUR en Z1. La fenêtre annonce le seuil et le porteur AVANT le lancer : la donnée est sur
     // l'étape dès sa déclaration (`rollSeam.dieStep`).
     const dieActions: RollAction[] = [
-      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => dieRoll(cur.id) },
+      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
       ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (

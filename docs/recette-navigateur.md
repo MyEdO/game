@@ -1056,7 +1056,7 @@ __wfrp.prefs('des-fixes', true)            // pour POSER les dés
 __wfrp.shipCrit('greement')                // 1. Critique sur la coque des HÉROS (défaut)
 // 2. valider l'étape « Critique de navire » (cascadeNext), puis LANCER chaque rangée d'Athlétisme :
 //    la bande est une étape à RANGÉES — le geste est jetRoll('cascadeBatch', idDuTesteur), pas jetRoll('cascade', …).
-// 3. les étapes de dé de la chute suivent : cascadeDieRoll(id) puis cascadeDieSetForcedRoll(id, v)
+// 3. les étapes de dé de la chute suivent : jetRoll('cascadeTirage', id) puis jetSetForcedRoll('cascadeTirage', v, id)
 ```
 
 Mesuré au rejeu (2026-09-06) : Athlétisme `gabier:60 RATE`, `vigie:86 RATE` → étapes

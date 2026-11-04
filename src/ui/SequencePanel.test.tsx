@@ -351,12 +351,12 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     expect(boutons(), 'fenêtre d’ouverture : offert').toContain('Abandonner');
     expect(boutonAbandon()!.getAttribute('aria-disabled'), 'ouvert').not.toBe('true');
     act(() => { get().cascadeChoose(cur().id, '7'); get().cascadeNext(); });
-    act(() => { get().cascadeTableSetForcedRoll(cur().id, 17); });
+    act(() => { get().jetSetForcedRoll('cascadeTirage', 17, cur().id); });
     expect(cur().table?.result, 'le dé est posé, l’étape n’est pas validée').toBeTruthy();
     render();
     ferme('dé posé', 'Abandon possible entre deux manches.');
     act(() => { get().cascadeNext(); });
-    act(() => { get().cascadeTableSetForcedRoll(cur().id, 4); get().cascadeNext(); });
+    act(() => { get().jetSetForcedRoll('cascadeTirage', 4, cur().id); get().cascadeNext(); });
     expect(cur().kind, 'le 4 appende le choix « remettre ou abandonner »').toBe('tavern-pot-fold');
     render();
     ferme('pli dû', 'Abandon possible entre deux manches.');
@@ -415,8 +415,8 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
   const joueEtape = () => act(() => {
     const st = cur();
     if (st.target != null && !st.result) get().jetRoll('cascade', st.id);
-    else if (st.table && !st.table.result) get().cascadeTableRoll(st.id);
-    else if (st.de && !st.de.result) get().cascadeDieRoll(st.id);
+    else if (st.table && !st.table.result) get().jetRoll('cascadeTirage', st.id);
+    else if (st.de && !st.de.result) get().jetRoll('cascadeTirage', st.id);
     get().cascadeNext();
   });
 

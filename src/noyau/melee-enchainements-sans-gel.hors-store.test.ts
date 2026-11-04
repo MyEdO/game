@@ -79,7 +79,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
       continue;
     }
     if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetRoll('attack'); else g().jetConfirm('attack'); continue; }
-    if (cur?.jet === 'fumble') { g().fumbleRoll(); g().fumbleConfirm(); continue; }
+    if (cur?.jet === 'fumble') { avanceEtapeCascade(g); continue; }
     if (c && !cur?.jet) { avanceEtapeCascade(g); banc.avancer(50); continue; }
     if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
       const t = !s.battle.acted && s.battle.combatants.find((x) => x.kind !== actif.kind && vivant(x) && adj(actif, x));

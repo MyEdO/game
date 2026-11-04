@@ -426,7 +426,7 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * - `advanceCombatJet` (`jetConfirm('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
- * - `cascadeNext()` qui clôt l'étape COURANTE (`fumbleConfirm`, la Maladresse) : l'après-coup qui tient
+ * - `cascadeNext()` qui clôt l'étape COURANTE (`jetConfirm('fumble')`, la Maladresse) : l'après-coup qui tient
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :

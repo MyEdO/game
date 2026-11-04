@@ -10,7 +10,6 @@ import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKe
 import { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
-import type { CascadeStep } from './pendings';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
  *  plusieurs jets se juge en fenêtre. */
@@ -18,22 +17,12 @@ export function fermeturesDuFlux(s: Jeu, flux: FlowKey, pid?: string): Fermeture
   return FLOW_HANDLERS[flux].fermetures(() => s, pid);
 }
 
-/** La Maladresse d'une étape (`jet:'fumble'`, LDB 14) : un tirage sur le Tableau des Oups !, sans cible ni influence,
- *  donc hors des flux de jet. Son tirage s'ouvre tant qu'il n'est pas tiré, son application une fois tiré ; lu par
- *  `fumbleRoll`/`fumbleConfirm` et par la fenêtre. */
-export function fermeturesDeLaMaladresse(etape: CascadeStep): { fumbleRoll: FermetureDuJet | null; fumbleConfirm: FermetureDuJet | null } {
-  if (!etape.fumble) return { fumbleRoll: 'sansJet', fumbleConfirm: 'sansJet' };
-  const tire = !!etape.fumble.result;
-  return { fumbleRoll: tire ? 'jetLance' : null, fumbleConfirm: tire ? null : 'jetNonLance' };
-}
-
-/** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux` : un verbe de jet sur ce flux, le jet de
- *  chaque rangée (`<flux>RollAll`), la validation de l'étape de cascade (`cascadeNext`). `enFenetre` : le geste agit
+/** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux` : un verbe de jet sur ce flux, la
+ *  validation de l'étape de cascade (`cascadeNext`). `enFenetre` : le geste agit
  *  sur la fenêtre entière, jamais sur une rangée. `null` : le flux ne joue pas ce geste. */
 function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetre: boolean } | null {
   const deJet = verbeDeJetDe(g.verbe);
   if (deJet) return g.flux === flux ? { verbe: deJet, enFenetre: estVerbeDeFenetre(deJet) } : null;
-  if (g.verbe === `${flux}RollAll`) return { verbe: 'roll', enFenetre: true };
   return flux === 'cascade' && g.verbe === 'cascadeNext' ? { verbe: 'confirm', enFenetre: true } : null;
 }
 
@@ -71,9 +60,6 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
       out.set(cleDuGeste(g), juger(flux, pid)[cycle.verbe]);
       break;
     }
-  }
-  if (fenetre.etape?.jet === 'fumble') {
-    for (const [nom, f] of Object.entries(fermeturesDeLaMaladresse(fenetre.etape))) if (fenetre.gestes.some((g) => g.verbe === nom)) out.set(nom, f);
   }
   return out;
 }

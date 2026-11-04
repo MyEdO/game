@@ -45,7 +45,7 @@
 {"offre":"end-turn"}
 {"type":"jetRoll","args":["defense"]}
 {"type":"jetConfirm","args":["defense"]}
-{"type":"cascadeTableRoll","args":["cons-deviation-protegee-corps-1"]}
+{"type":"jetRoll","args":["cascadeTirage","cons-deviation-protegee-corps-1"]}
 {"type":"cascadeChoose","args":["cons-deviation-protegee-corps-1","subir"]}
 {"type":"cascadeNext","args":[]}
 {"type":"cascadeNext","args":[]}
@@ -66,11 +66,11 @@
 {"type":"confirmRoundStart","args":[]}
 {"offre":"end-turn"}
 {"offre":"end-turn"}
-{"type":"cascadeTableRoll","args":["cons-deviation-sorciere-jambeD-0"]}
+{"type":"jetRoll","args":["cascadeTirage","cons-deviation-sorciere-jambeD-0"]}
 {"type":"cascadeNext","args":[]}
 {"type":"cascadeNext","args":[]}
 {"type":"jetRoll","args":["defense"]}
 {"type":"jetConfirm","args":["defense"]}
-{"type":"cascadeTableRoll","args":["cons-deviation-sorciere-brasD-1"]}
+{"type":"jetRoll","args":["cascadeTirage","cons-deviation-sorciere-brasD-1"]}
 {"type":"cascadeNext","args":[]}
 {"type":"cascadeNext","args":[]}

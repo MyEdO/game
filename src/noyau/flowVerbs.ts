@@ -116,6 +116,11 @@ export const FLOW_VERBS = {
   // (`pidIsActor:true`), jamais sur la fenêtre partagée ; `determine` (LDB 17 l.59) de même, la
   // Psychologie ne se testant qu'en bandes (déclaration sur l'ÉTAPE, immunité sur la RANGÉE).
   cascadeBatch: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'resist', 'determine', 'reverse'] },
+  // Dé d'une étape de cascade, sur une table ou nu (#942, #1508) : un tirage, pas un Test — ni influence ni clôture
+  // propre, la cascade avance. `pid` = id d'ÉTAPE.
+  cascadeTirage: { kind: 'multi', pidIsActor: false, verbs: ['roll', 'setForcedRoll'] },
+  // Maladresse (LDB 14) : le tirage sur le Tableau des Oups ! de l'étape, puis son application. `pid` = id d'ÉTAPE.
+  fumble:       { kind: 'multi', pidIsActor: false, verbs: ['roll', 'confirm'] },
 } as const satisfies Record<string, FlowVerbs>;
 
 export type FlowKey = keyof typeof FLOW_VERBS;
@@ -145,6 +150,10 @@ export const estVerbeDeFenetre = (verbe: RollVerb): boolean => verbe === 'cancel
 /** Le geste de jet `verbe` sur `flux` vise-t-il une rangée (`pid`) ? Sur un flux à plusieurs jets, toujours, sauf un
  *  verbe de fenêtre (`estVerbeDeFenetre`) ; sur un flux à un jet, jamais. */
 export const viseUneRangee = (flux: FlowKey, verbe: RollVerb): boolean => FLOW_VERBS[flux].kind === 'multi' && !estVerbeDeFenetre(verbe);
+
+/** Le geste de jet `verbe` sur `flux` se joue-t-il aussi sans rangée ? Le jet d'un flux à plusieurs jets : sans `pid`,
+ *  chaque rangée que le siège qui le joue doit lancer (« Tout lancer »). */
+export const rangeeFacultative = (flux: FlowKey, verbe: RollVerb): boolean => FLOW_VERBS[flux].kind === 'multi' && verbe === 'roll';
 
 /**
  * Surface d'intents invité DÉRIVÉE de la table — aucun flux n'a de ligne à écrire dans

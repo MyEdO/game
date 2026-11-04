@@ -34,7 +34,7 @@ function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
 
 describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur', () => {
   it('le relevé couvre les verbes des fenêtres', () => {
-    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres').toBeGreaterThan(90);
+    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres').toBeGreaterThan(80);
     expect([...VERBES_DES_FENETRES].filter((v) => !(v in VERBES)), 'verbe de fenêtre hors de VERBES').toEqual([]);
   });
 

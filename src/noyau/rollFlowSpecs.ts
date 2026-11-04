@@ -17,12 +17,13 @@ import type { Combatant, ReverseQuery, Weapon, CharKey } from '../engine/types';
 import { evalCondition, type Condition } from '../engine/flowCore';
 import { HEAL_SKILL, IDS_DU_TEST_DE_SOIN, type TestDeSoin } from '../engine/healing';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
-import { fluxAccepte, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
+import { FLOW_VERBS, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
 import { deDuJet, FERMETURES_DITES, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
+import { rollOups } from '../engine/oups';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -43,7 +44,7 @@ import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -227,6 +228,16 @@ function currentStepFreeze(s: Jeu) {
   return p ? stepOpposedFreeze(p.participants[p.cursor]) : undefined;
 }
 
+/** L'étape COURANTE de la cascade quand `sert` la retient : la seule rangée d'un flux qui joue l'étape en cours. */
+const etapeCouranteSi = (sert: (st: CascadeStep) => boolean) => (p: PendingCascade): CascadeStep[] => {
+  const st = p.participants[p.cursor];
+  return st && sert(st) ? [st] : [];
+};
+
+/** La cascade `p` où chaque étape de `etapes` remplace celle de même id. */
+const remplacerLEtape = (p: PendingCascade, etapes: CascadeStep[]): PendingCascade =>
+  ({ ...p, participants: p.participants.map((x) => etapes.find((e) => e.id === x.id) ?? x) });
+
 /** Lecture du dé `tr` d'une étape-Test MONO contre sa cible : seuil, ré-opposition au jet figé, sinon
  *  le Test naturel — SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
 function evaluerEtape(st: CascadeStep, target: number, tr: TestResult): CascadeRoll {
@@ -277,11 +288,12 @@ function auJetDu(h: RollFlowHandlers, flux: FlowKey, get: Get, set: Set, pid?: s
 }
 
 /** Ce qui refuse le geste de jet `verbe` venu d'une frontière (JSON d'un hôte, intention d'un siège) : un flux qui
- *  ne l'accepte pas, une rangée absente sur un flux à plusieurs jets, ou posée sur un flux à un jet ; `null` : il se
- *  joue. */
+ *  ne l'accepte pas, une rangée absente sur un flux à plusieurs jets (hors `rangeeFacultative`), ou posée sur un flux à
+ *  un jet ; `null` : il se joue. */
 function refusDuGesteDeJet(verbe: RollVerb, flux: unknown, pid: unknown): string | null {
   if (!fluxAccepte(flux, verbe)) return t('jet.refus.gesteAbsent');
-  return viseUneRangee(flux, verbe) === (typeof pid === 'string') ? null : t('jet.refus.rangee');
+  if (typeof pid === 'string') return viseUneRangee(flux, verbe) ? null : t('jet.refus.rangee');
+  return !viseUneRangee(flux, verbe) || rangeeFacultative(flux, verbe) ? null : t('jet.refus.rangee');
 }
 
 /** Les verbes de jet du noyau sur `get`/`set` : chacun refuse, et le dit, le geste que son flux n'accepte pas
@@ -293,10 +305,13 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
     if (refus) { refuserGeste(get, set, refus); return; }
     geste(FLOW_HANDLERS[flux as FlowKey], flux as FlowKey, pid as string | undefined);
   };
-  const simple = (verbe: Exclude<RollVerb, 'setForcedRoll' | 'forceSuccess' | 'cancel' | 'confirm'>) =>
+  const simple = (verbe: Exclude<RollVerb, 'roll' | 'setForcedRoll' | 'forceSuccess' | 'cancel' | 'confirm'>) =>
     (flux: FlowKey, pid?: string) => jouer(verbe, flux, pid, (h, _f, rangee) => h[verbe](get, set, rangee));
   return {
-    jetRoll: simple('roll'),
+    jetRoll: (flux, pid) => jouer('roll', flux, pid, (h, f, rangee) => {
+      if (rangee !== undefined || !rangeeFacultative(f, 'roll')) h.roll(get, set, rangee);
+      else for (const id of h.rangeesALancer(get, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor)) h.roll(get, set, id);
+    }),
     jetReroll: simple('reroll'),
     jetBonusSL: simple('bonusSL'),
     jetDarkPact: simple('darkPact'),
@@ -1318,6 +1333,38 @@ export const FLOWS = paresseux({
     // Un dé de lot ne REUSSIT ni n’ECHOUE : il tombe. L’issue est scellée neutre sur sa valeur —
     // le socle exige une issue, le domaine n’en a pas à donner.
     outcome: (r) => sealOutcome(true, 0, r.value, r.max),
+  }),
+
+  /**
+   * DÉ D'ÉTAPE de cascade, sur une table ou nu (#942, #1508) : la seule étape COURANTE qui porte un dé (`deDEtape`). Un
+   * tirage, pas un Test : ni influence (le flux n'en déclare aucune), ni issue (scellée neutre sur le dé), ni clôture —
+   * la cascade valide l'étape (`cascadeNext`). Le dé se tire (`tirerLeDeDEtape`) ou se POSE (`poserLeDeDEtape`), et se
+   * re-pose tant que l'étape est courante.
+   */
+  cascadeTirage: () => makeRollFlow<PendingCascade, CascadeStep>({
+    key: 'pendingCascade',
+    multi: { slots: etapeCouranteSi((st) => !!deDEtape(st)), idOf: (st) => st.id, replace: remplacerLEtape, refusDuSlot: refusDuDeDEtape },
+    rolled: (st) => deDEtape(st)?.roll != null,
+    actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
+    die: {
+      read: (st) => { const de = deDEtape(st); return de ? { roll: de.roll ?? 0, target: de.max, critable: false, max: de.max } : null; },
+      write: (s, st, _a, get, tr) => poserLeDeDEtape(s, get, st, tr.roll),
+    },
+    resolve: (s, st, _a, get) => tirerLeDeDEtape(s, get, st),
+    caps: { forced: true },
+    outcome: (st) => { const de = deDEtape(st); return sealOutcome(true, 0, de?.roll ?? 0, de?.max ?? 0); },
+  }),
+
+  /** MALADRESSE (LDB 14) de l'étape COURANTE (`jet:'fumble'`) : le tirage sur le Tableau des Oups !, sans cible ni
+   *  influence ; sa clôture applique les Oups ! (`jetConfirm('fumble')`). */
+  fumble: () => makeRollFlow<PendingCascade, CascadeStep>({
+    key: 'pendingCascade',
+    multi: { slots: (p) => { const m = maladresseCourante(p); return m ? [m] : []; }, idOf: (st) => st.id, replace: remplacerLEtape, refusDuSlot: refusHorsDeLEtapeCourante },
+    cloture: (p) => (maladresseCourante(p) ? null : 'sansJet'),
+    rolled: (st) => !!st.fumble?.result,
+    actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
+    resolve: (_s, st) => (st.fumble ? { fumble: { ...st.fumble, result: rollOups(st.fumble.weapon, battleRng()) } } : null),
+    outcome: (st) => sealOutcome(true, 0, st.fumble?.result?.roll ?? 0, 100),
   }),
 
   /**
@@ -2361,7 +2408,7 @@ export const FLOW_HANDLERS = paresseux({
   activity: () => FLOWS.activity, bargain: () => FLOWS.bargain, appraise: () => FLOWS.appraise, shanty: () => FLOWS.shanty,
   counterspell: () => FLOWS.counterspell, cascade: () => FLOWS.cascade, opposition: () => FLOWS.castOpposition, extendedTest: () => FLOWS.extendedTest,
   forceDoor: () => FLOWS.forceDoor, shipManeuver: () => FLOWS.shipManeuver, shipBattery: () => FLOWS.battery, crewTest: () => FLOWS.crewTest,
-  cascadeBatch: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot,
+  cascadeBatch: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot, cascadeTirage: () => FLOWS.cascadeTirage, fumble: () => FLOWS.fumble,
 } satisfies Record<FlowKey, () => RollFlowHandlers>);
 
 /** Les rangées INTERACTIVES d'une opposition au Sort encore sans jet : la clôture les attend (`jetConfirm('opposition')`). */

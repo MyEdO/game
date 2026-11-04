@@ -426,7 +426,7 @@ describe('Mode table — plancher ≠ 1 : l’écran affiche le dé du RÉSOLVEU
       steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
     });
     render();
-    act(() => { useGame.getState().cascadeTableRoll('tm'); });
+    act(() => { useGame.getState().jetRoll('cascadeTirage', 'tm'); });
     render();
     expect(result(), 'le résolveur ne borne pas au plancher de la table').toMatchObject({ roll: 15, die: 11, id: 'basse' });
     const champ = host.querySelector('.rm-die-pick .hint')?.textContent ?? '';
@@ -601,7 +601,7 @@ describe('BILAN — un tirage joué se VOIT, même sans conséquence écrite (#1
     // table que le socle a tirée pour un porteur qu'aucun siège ne tient n'aurait JAMAIS été vue.
     // L'applier-espion `uiTableSpy` ne rend aucune conséquence : l'étape n'a donc pas d'`outcome`.
     openTable();
-    act(() => { useGame.getState().cascadeTableRoll('tm'); });
+    act(() => { useGame.getState().jetRoll('cascadeTirage', 'tm'); });
     const tire = result()!;
     act(() => { useGame.getState().cascadeResolveAll(); }); // COMMIT sans fermer → curseur en fin = BILAN
     const casc = useGame.getState().pendingCascade!;
@@ -670,7 +670,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   it('APRÈS le dé, MÊME fenêtre : la ligne de tirage en TÊTE, le Critique, puis les voies Dévier/Subir', () => {
     openCritique();
     const id = useGame.getState().pendingCascade!.participants[0].id;
-    act(() => { useGame.getState().cascadeTableRoll(id); });
+    act(() => { useGame.getState().jetRoll('cascadeTirage', id); });
     const apres = useGame.getState().pendingCascade!.participants[0];
     expect(apres.deviation?.crit, 'prémisse : le PLI post-dé a posé le Critique').toBeTruthy();
     render();
@@ -703,7 +703,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   it('les voies sont rendues SANS branche par clé : « Dévier » est active, et une voie à `refus` porte sa cause', () => {
     openCritique();
     const id = useGame.getState().pendingCascade!.participants[0].id;
-    act(() => { useGame.getState().cascadeTableRoll(id); });
+    act(() => { useGame.getState().jetRoll('cascadeTirage', id); });
     render();
     const devier = boutonTexte('Dévier')!;
     expect(devier.getAttribute('aria-disabled'), '« Dévier » est rendue refusée alors que l’étape l’OFFRE.').not.toBe('true');
@@ -738,7 +738,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
     setDesFixes(true);
     openCritique();
     const id = useGame.getState().pendingCascade!.participants[0].id;
-    act(() => { useGame.getState().cascadeTableSetForcedRoll(id, 76); });
+    act(() => { useGame.getState().jetSetForcedRoll('cascadeTirage', 76, id); });
     const etape = () => useGame.getState().pendingCascade!.participants[0];
     expect(etape().options?.length, 'prémisse : l’étape porte bien ses voies').toBeGreaterThan(0);
     render();

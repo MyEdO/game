@@ -64,15 +64,15 @@ describe('la projection lit les lecteurs du jeu', () => {
 });
 
 describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque étape de cascade', () => {
-  it('l’étape de déviation sur table (`cascade-dome.jsonl`) : cascadeTableRoll, cascadeTableSetForcedRoll, le pid de l’étape', { timeout: 120_000 }, () => {
+  it('l’étape de déviation sur table (`cascade-dome.jsonl`) : les verbes de jet du flux `cascadeTirage`, le pid de l’étape', { timeout: 120_000 }, () => {
     aLaFixture('cascade-dome.jsonl', (r) => {
       const f = projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!;
       expect(f.etape?.interaction, 'témoin : l’étape courante est un tirage sur table').toBe('table');
       expect(f.pid).toBe(f.etape!.id);
-      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['cascadeTableRoll', 'cascadeTableSetForcedRoll', 'cascadeNext']));
+      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeTirage', 'jetSetForcedRoll@cascadeTirage', 'cascadeNext']));
       // La vue replie une ligne trop large en continuations indentées de deux espaces (`BORNES.largeur`).
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll(pid: id d’étape de cascade) · cascadeTableSetForcedRoll(pid: id d’étape de cascade, roll: nombre)`);
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascade : \S+ .+ à tirer$/m);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetRoll(flux: "cascadeTirage", pid?: chaine) · jetSetForcedRoll(flux: "cascadeTirage", roll: nombre, pid?: chaine)`);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascadeTirage : \S+ .+ à tirer$/m);
     });
   });
   it('l’étape-jet d’un Test déclenché (`test-declenche-dome.jsonl`) : la vue rend TOUS ses verbes par leur signature, repliés à la largeur', { timeout: 240_000 }, () => {

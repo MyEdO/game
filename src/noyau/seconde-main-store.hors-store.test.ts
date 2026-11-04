@@ -134,7 +134,7 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
     premiereFrappe({ roll: 33, cible: { traits: [{ id: 'demoniaque', value: 8 }] } as never });
     const st = etapeCourante();
     expect(st?.kind).toBe('sauvegarde');
-    banc.getState().cascadeDieSetForcedRoll(st!.id, 8);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st!.id);
     banc.getState().cascadeNext();
     expect(vivant('cible').wounds.current, 'le coup est ignoré').toBe(30);
     expect(jet()).toBe(D100_AU_BESOIN_APRES_SAUVEGARDE);

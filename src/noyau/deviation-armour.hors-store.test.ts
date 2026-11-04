@@ -138,7 +138,7 @@ function tireLaSeverite() {
   const avant = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
   expect(avant, 'une seule étape porte le tirage ET la décision').toHaveLength(1);
   expect(stepInteraction(avant[0])).toBe('table');
-  banc.getState().cascadeTableRoll(avant[0].id);
+  banc.getState().jetRoll('cascadeTirage', avant[0].id);
   const apres = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!;
   expect(stepInteraction(apres), 'le dé tombé, la MÊME étape offre ses voies').toBe('choix');
   expect(apres.deviation?.crit, 'le pli post-dé n’a pas posé le Critique').toBeTruthy();

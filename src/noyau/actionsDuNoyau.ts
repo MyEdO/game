@@ -377,9 +377,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Sort de ZONE (flux « jet puis pose », LDB 47 l.15/28) : bascule la POSE sur la carte
    *  (la modale s'efface, le gabarit final suit le curseur, clic-case = dépose). */
   castPlaceZone: (on: boolean) => void;
-  /** Fait chanter d'un coup toutes les rangées jouables au siège local (verbe NULLAIRE du drive
-   *  d'auto-cadence, #1030 — cf. `STEP_WINDOW_AUTO` dans `combatAuto.ts`). */
-  counterspellRollAll: () => void;
   /** PHASE 1 — déclare la rangée `pid` : contrer seul / s'unir au Test Soutenu (LDB 46 l.162,
    *  transposé à la fenêtre réactive) / passer. Refusé hors éligibilité de Domaine (`soutenu`) et
    *  dès que la composition est FIGÉE (toutes les rangées ont déclaré). */
@@ -403,20 +400,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** « Quantité » d'une étape de séquence (jumeau de `cascadeChoose`) : pose le nombre saisi, ramené
    *  à la plage déclarée par l'étape. */
   cascadeAmount: (pid: IdDEtapeDeCascade, n: number) => void;
-  /** TIRAGE SUR TABLE d'une étape (analogue de `jetRoll('cascade')` côté Test) : pose `table.result` via le
-   *  résolveur unique `rollTableStep`. */
-  cascadeTableRoll: (pid: IdDEtapeDeCascade) => void;
-  /** MODE TABLE (#942 L3) : POSE le dé NATUREL d'une étape à table — le champ « Fixer le dé » et le
-   *  clic sur une ligne (dé qui atteint la ligne, `mod` compris) écrivent tous deux ICI, puis l'étape
-   *  est tirée (re-posable tant que l'étape est courante). Délégué NU : l'affordance est armée côté
-   *  CLIENT par `canFixDie` (`ui/forcedDieRow.ts`), l'hôte ne re-juge pas le geste d'un invité. */
-  cascadeTableSetForcedRoll: (pid: IdDEtapeDeCascade, roll: number) => void;
-  /** TIRAGE d'un DÉ NU d'étape (#1508) — JUMEAU de `cascadeTableRoll` : même geste, même goulot
-   *  (`cascade.poseSurCourante`), lecture nue au lieu d'une lecture en table. */
-  cascadeDieRoll: (pid: IdDEtapeDeCascade) => void;
-  /** POSE du dé NATUREL d'une étape à DÉ NU (#1508) — JUMEAU de `cascadeTableSetForcedRoll`, mêmes
-   *  règles (délégué NU, affordance armée côté client par `canFixDie`, re-posable). */
-  cascadeDieSetForcedRoll: (pid: IdDEtapeDeCascade, roll: number) => void;
   /** « Étape suivante » : valide l'étape courante (conséquence + insertions), avance ; à la fin,
    *  finalise selon `purpose` (reprise de voyage…). */
   cascadeNext: () => void;
@@ -425,9 +408,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   cascadeResolveAll: () => void;
   /** « Terminer » du bilan : ferme la cascade et enchaîne la suite (reprise de voyage…). */
   cascadeFinish: () => void;
-  /** Fait jeter d'un coup toutes les rangées jouables au siège local (verbe NULLAIRE du drive
-   *  d'auto-cadence, #1030 — cf. `STEP_WINDOW_AUTO` dans `combatAuto.ts`). */
-  oppositionRollAll: () => void;
   /** Incantation HORS COMBAT (couture D) : un héros lanceur cible self/allié ; sorts non-offensifs. */
   oocCastSpell: (casterId: IdDeCombattant, spellId: string, targetId: IdDeCombattant, fromGrimoire?: boolean) => void;
   battleFocusSpell: (spellId: string) => void;
@@ -580,9 +560,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
    *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
   battleGainAdvantage: (skillId: string) => void;
-  /** Maladresse (modale héros, LDB 14) : lancer sur le Tableau des Oups !, puis appliquer l'effet. */
-  fumbleRoll: () => void;
-  fumbleConfirm: () => void;
   /** Flux de défense réactive (héros attaqué par l'IA) : choisir Parade/Esquive, défendre,
    *  dépenser une Chance, appliquer. PAS de « Subir » : le RAW n'offre aucune non-défense volontaire
    *  (mêlée = Test opposé, LDB 13 l.123) ; la résolution non opposée est réservée aux cas imposés. */

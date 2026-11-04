@@ -45,12 +45,9 @@ function setup() {
 const vif = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 const etapes = () => banc.getState().pendingCascade?.participants.map((p) => p.kind) ?? [];
 const etapeCourante = () => { const pc = banc.getState().pendingCascade; return pc ? pc.participants[pc.cursor] : undefined; };
-/** Mène la séquence ouverte jusqu'à sa fermeture ; la Maladresse par ses actions (`fumbleRoll`/`fumbleConfirm`). */
+/** Mène la séquence ouverte jusqu'à sa fermeture (`avanceEtapeCascade`). */
 function fermerLaSequence(): void {
-  for (let i = 0; i < 12 && banc.getState().pendingCascade; i++) {
-    if (etapeCourante()?.kind === 'fumbleJet') { banc.getState().fumbleRoll(); banc.getState().fumbleConfirm(); }
-    else avanceEtapeCascade(banc.getState);
-  }
+  for (let i = 0; i < 12 && banc.getState().pendingCascade; i++) avanceEtapeCascade(banc.getState);
 }
 /** Attaques gratuites imputées à `id` par source (`key`), hors marque « 1 par chargeur » (`<key>:<chargeur>`). */
 const imputees = (id: string, tiersId: string) => Object.entries(vif(id).freeAttacksThisTurn ?? {}).filter(([k]) => !k.endsWith(`:${tiersId}`)).reduce((a, [, n]) => a + (n ?? 0), 0);

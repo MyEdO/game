@@ -119,8 +119,7 @@ function jouer(): string[] {
     if (!pc || !st) break;
     if (st.jet === 'fumble') {
       trace.push(`fumbleJet:${st.actorId}(${st.fumble!.weapon.label})`);
-      if (!st.fumble!.result) g().fumbleRoll();
-      g().fumbleConfirm();
+      avanceEtapeCascade(g);
       continue;
     }
     avanceEtapeCascade(g, poseSurDeNonTombe(1), () => 'subir');
@@ -234,8 +233,8 @@ describe('Maladresse de l’ATTAQUANT : une écriture, au temps `oupsAttaquant` 
     expect(g().battle!.acted, 'la suite attend la Maladresse').toBe(true);
     const pc = g().pendingCascade!;
     expect(pc.participants[pc.cursor].jet, 'le curseur est sur la Maladresse').toBe('fumble');
-    g().fumbleRoll();
-    g().fumbleConfirm();
+    g().jetRoll('fumble');
+    g().jetConfirm('fumble');
     expect(g().battle!.acted, 'la suite (Action de la manœuvre gratuite rendue) joue après la Maladresse').toBe(false);
     const log = g().battle!.log.map((l) => l.text);
     expect(log.filter((l) => l.startsWith('h — Maladresse !')), log.join(' | ')).toHaveLength(1);
@@ -413,8 +412,7 @@ describe('deux Maladresses du même porteur dans une séquence', () => {
     for (const attendu of maladresses().map((s) => s.id)) {
       const pc = g().pendingCascade!;
       expect(pc.participants[pc.cursor].id, 'la fenêtre courante est CETTE Maladresse').toBe(attendu);
-      g().fumbleRoll();
-      g().fumbleConfirm();
+      avanceEtapeCascade(g);
       expect(g().pendingCascade?.participants.find((s) => s.id === attendu)?.committed ?? true, `${attendu} résolue`).toBe(true);
     }
     expect(g().battle!.log.filter((l) => l.text.startsWith('e — Maladresse !'))).toHaveLength(2);

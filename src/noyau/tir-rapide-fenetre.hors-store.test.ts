@@ -146,8 +146,8 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
     expect(g().pendingDefense, 'E2 n’a pas encore sa fenêtre').toBeNull();
     expect(de('e2').loseNextAction, 'E2 n’a pas tiré').toBeFalsy();
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
-    g().fumbleRoll();
-    g().fumbleConfirm();
+    g().jetRoll('fumble');
+    g().jetConfirm('fumble');
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur E2').toBe('e2');
     expect(tirsDe('e2'), 'E2 tire UNE fois').toBe(1);
     g().jetRoll('defense');
@@ -181,15 +181,15 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     g().jetSetForcedRoll('defense', 99); // LDB 14 l.13
     g().jetConfirm('defense');
     expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('fumbleJet');
-    g().fumbleRoll();
-    g().fumbleConfirm();
+    g().jetRoll('fumble');
+    g().jetConfirm('fumble');
     const solide = etape();
     expect(solide?.kind, 'le dé de Sauvegarde Solide tient la main').toBe('casseDArme');
     expect(g().pendingDefense, 'H2 n’a pas encore sa fenêtre').toBeNull();
     expect(de('h2').loseNextAction, 'H2 n’a pas tiré').toBeFalsy();
     expect(tirsDe('h2')).toBe(0);
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
-    g().cascadeDieSetForcedRoll(solide!.id, 1);
+    g().jetSetForcedRoll('cascadeTirage', 1, solide!.id);
     g().cascadeNext();
     expect(de('e1').weapons.some((w) => w.uid === 'lame'), 'la Lame Bâclée se brise (1 < Solide)').toBe(false);
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur H2').toBe('h2');
