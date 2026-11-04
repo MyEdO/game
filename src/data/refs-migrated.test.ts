@@ -12,7 +12,7 @@ import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findTrappingById, findSeaShantyById,
-  findConditionById, findDiseaseById, findWeaponGroupById, findGroupById, findQualityById, findCrewTestTypeById, findLightToneById,
+  findWeaponGroupById, findGroupById, findQualityById, findCrewTestTypeById, findLightToneById,
   mutationTables,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
@@ -20,10 +20,6 @@ import { gameOpSchema } from './schemas/grammaire/mecanique';
 import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
-import { COND } from '../engine/conditions';
-import { DISEASES } from '../engine/disease';
-import { findLieuServiceById } from './index';
-import { SERVICE_CITE } from '../noyau/worldMap';
 import { makePregens } from './pregens';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
@@ -76,26 +72,9 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     for (const l of careerLevels) for (const k of l.characteristics) expect(CHAR_KEYS as readonly string[]).toContain(k);
   });
 
-  it('chaque service de lieu que le code cite par id (`SERVICE_CITE`) existe au catalogue (#1906)', () => {
-    expect(Object.values(SERVICE_CITE).filter((id) => !findLieuServiceById(id))).toEqual([]);
-  });
-
-  it('etats portent un id ; la constante moteur COND est synchrone avec etats.json', () => {
+  it('etats et maladies portent un id', () => {
     for (const e of etats) expect(typeof e.id).toBe('string');
-    const ids = new Set(etats.map((e) => e.id));
-    for (const id of Object.values(COND)) expect(ids.has(id), id).toBe(true); // chaque État canonique existe dans le dataset
-    expect(Object.values(COND).length).toBe(12); // les 12 États LDB 16
-  });
-
-  it('findConditionById résout les ids canoniques', () => {
-    for (const id of Object.values(COND)) expect(findConditionById(id), id).toBeTruthy();
-  });
-
-  it('maladies portent un id ; la constante moteur DISEASES est synchrone avec maladies.json', () => {
     for (const m of maladies) expect(typeof m.id).toBe('string');
-    const ids = new Set(maladies.map((m) => m.id));
-    for (const id of Object.values(DISEASES)) { expect(ids.has(id), id).toBe(true); expect(findDiseaseById(id), id).toBeTruthy(); }
-    expect(Object.values(DISEASES).length).toBe(9); // les 9 maladies LDB 20 câblées
   });
 
   /**

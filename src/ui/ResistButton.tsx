@@ -1,5 +1,6 @@
 import { Icon } from './Icon';
 import { refLabel } from '../data';
+import type { MenaceId } from '../engine/menace';
 
 /**
  * Bouton « Résistance (Menace) » (LDB 10 l.1016-1020) : auto-succès du premier Test pour résister à
@@ -9,7 +10,7 @@ import { refLabel } from '../data';
  * consommée) ET que l'issue n'est pas déjà favorable (`show`). Le libellé affiché vient du CATALOGUE
  * (`refLabel` sur la spec du talent) — `menace` est un id stable, jamais un texte d'écran.
  */
-export function ResistButton({ menace, show, onResist }: { menace: string; show: boolean; onResist: () => void }) {
+export function ResistButton({ menace, show, onResist }: { menace: MenaceId; show: boolean; onResist: () => void }) {
   if (!show) return null;
   const nom = refLabel('talents', { id: 'resistance', spec: menace });
   return (

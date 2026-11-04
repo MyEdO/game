@@ -65,14 +65,6 @@ export function isTradeHubColumn(produits: readonly string[] | undefined, resolv
   return (produits ?? []).some((id) => isTradeHubEntry(resolve(id)));
 }
 
-/** Ids d'une colonne Production/Produits qui NE RÉSOLVENT PAS dans leur catalogue (clé étrangère
- *  morte). Le silence est le danger : un id non résolu ne lève rien à la lecture — il perd juste,
- *  sans bruit, ce que son entrée déclarait (`tradeHub`, `echangeable`, `label`). Rendu vide = colonne
- *  saine. PUR — consommé par la garde d'intégrité `src/data/cargo-columns-fk.test.ts`. */
-export function unresolvedCargoIds(ids: readonly string[] | undefined, resolve: (id: string) => CargoEntry | undefined): string[] {
-  return (ids ?? []).filter((id) => resolve(id) === undefined);
-}
-
 /** Cargaison ALÉATOIRE de la saison : d100 dans la colonne saisonnière du tableau fourni (MSRC 13 l.71-78,
  *  MDG 15 l.402-418). PUR. La couverture EXACTE de la colonne (1 à 100, sans trou ni chevauchement) est un
  *  invariant de la DONNÉE, gardé au parse par le refine de `src/data/schemas/defs/sea-cargo.ts` et

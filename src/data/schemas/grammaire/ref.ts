@@ -10,7 +10,7 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
 import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, type SousListeMarquee } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
@@ -735,6 +735,22 @@ export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
   return z.string().min(1).superRefine((spec, ctx) => {
     const refus = refusDeSpec(type, id, spec);
     if (refus) ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, id, spec, refus, false) });
+  });
+}
+
+/** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
+ *  (`cleDesSpecs`) de l'INDEX DES IDS. */
+export type SpecId<T extends TypeEntite, I extends string> = IdsParEspace[`${(typeof TYPES)[T]['espace']}#[${I}].specs` & keyof IdsParEspace];
+
+/**
+ * Spécialisation NUE d'une entrée FERMÉE, que le porteur fixe par sa règle : `specDe`, plus le refus
+ * d'une entrée OUVERTE, dont la spécialisation n'est pas une union close. La sortie est typée par
+ * l'union générée de son catalogue (`SpecId`) : un littéral de code hors catalogue ne compile pas.
+ */
+export function specFermeeDe<T extends TypeEntite, const I extends string>(type: T, id: I): z.ZodType<SpecId<T, I>>;
+export function specFermeeDe(type: TypeEntite, id: string): z.ZodType<string> {
+  return specDe(type, id).superRefine((_spec, ctx) => {
+    if (entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
   });
 }
 

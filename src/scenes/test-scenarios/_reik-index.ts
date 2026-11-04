@@ -1,4 +1,5 @@
 import type { LandMarketProfile } from '../../engine/landCargo';
+import type { IdsParEspace } from '../../data/schemas/_ids.generated';
 
 /**
  * INDEX GÉOGRAPHIQUE DE LA GRANDE PRINCIPAUTÉ DU REIKLAND (2512 CI) — transcription VERBATIM du Compagnon
@@ -19,9 +20,10 @@ import type { LandMarketProfile } from '../../engine/landCargo';
  * `wineBonusEchelons` n'est posé que là où le livre le CITE explicitement (Kemperbad, +2 échelons, l.95).
  */
 
-/** Colonne « Produits » du livre → id de cargaison (`land-cargo.json`). `commerce`/`subsistance` sont des
- *  MARQUEURS (pas des biens) portés tels quels ; « Briques » relève des Produits de luxe (l.117). */
-export type Produit = 'vivres' | 'armement' | 'produits-de-luxe' | 'metal' | 'bois' | 'vin' | 'laine' | 'commerce' | 'subsistance';
+/** Colonne « Produits » du livre → id de cargaison, l'espace `land-cargo.json#cargoes` de
+ *  `IdsParEspace`. `commerce`/`subsistance` sont des MARQUEURS (pas des biens) portés tels quels ;
+ *  « Briques » relève des Produits de luxe (l.117). */
+export type Produit = IdsParEspace['land-cargo.json#cargoes'];
 
 /** Une ligne de l'Index géographique (verbatim). `r` = colonne Richesse (`null` = Misérable « - »). */
 export interface ReikEntry {

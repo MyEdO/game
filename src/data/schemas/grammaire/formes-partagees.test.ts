@@ -224,10 +224,9 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
 });
 
 /**
- * `flowTestSchema.menace` (#1346) — CLÉ ÉTRANGÈRE vers un id de spec du talent « Résistance (Menace) »
- * (LDB 10 l.1016-1020). La liste est OUVERTE côté RAW : elle n'est donc PAS figée dans le code, elle
- * est résolue au catalogue (`talents.json`) à la VALIDATION. Un tag hors catalogue est refusé au
- * chargement DEV (`dev-validate`), au contrat CI (`schema-contract.test.ts`) et à la sauvegarde Codex.
+ * `flowTestSchema.menace` (#1346, #1473) — CLÉ ÉTRANGÈRE vers un id de spec du talent « Résistance
+ * (Menace) » (LDB 10 l.1016-1020), jugée par `menaceSchema` (`specFermeeDe('talent', 'resistance')`) :
+ * résolue au catalogue (`talents.json`) à la VALIDATION.
  */
 describe('flowTestSchema.menace — FK vers les specs du talent Résistance', () => {
   const parse = (menace?: string) => flowTestSchema.safeParse({ skill: { id: 'resistance' }, ...(menace != null ? { menace } : {}) });
@@ -241,16 +240,13 @@ describe('flowTestSchema.menace — FK vers les specs du talent Résistance', ()
   it('REFUSE le libellé capitalisé (« Poison ») — un id n’est pas un label', () => {
     const r = parse('Poison');
     expect(r.success).toBe(false);
-    expect(r.error!.issues.map((i) => i.message).join('\n')).toContain('menace « Poison »');
+    expect(r.error!.issues.map((i) => i.message).join('\n')).toContain('« Poison » est absente des spécialisations de « resistance » au catalogue des talents (talents.json).');
   });
 
-  it('REFUSE un id hors catalogue, et le message DIT la valeur ET les valeurs admises', () => {
+  it('REFUSE un id hors catalogue, et le message DIT la valeur, l’entrée et son catalogue', () => {
     const r = parse('exposition');
     expect(r.success).toBe(false);
-    const msg = r.error!.issues.map((i) => i.message).join('\n');
-    expect(msg).toContain('menace « exposition »');
-    expect(msg).toContain('resistance');
-    for (const id of menaceIds()) expect(msg).toContain(id);
+    expect(r.error!.issues.map((i) => i.message).join('\n')).toContain('« exposition » est absente des spécialisations de « resistance » au catalogue des talents (talents.json).');
   });
 });
 
