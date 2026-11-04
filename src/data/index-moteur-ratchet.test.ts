@@ -17,7 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { allEngineExports, ENGINE_ROOT } from '../../scripts/docs/lib/engineExports.mjs';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /** `docs/index-moteur.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
 const INDEX_MOTEUR = await rendreCible('docs/index-moteur.md');

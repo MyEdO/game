@@ -48,9 +48,11 @@ import mutationsJson from './mutations.json';
 import mutationTablesJson from './mutationTables.json';
 import { critiqueEntries } from './criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
-import structureCriticalsRawJson from './structure-criticals.json';
-import artilleryMisfireRawJson from './artillery-misfire.json';
+import { STRUCTURE_CRITICALS } from './structureCriticals';
+import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
+import { rangeesDe } from './rangees';
+import type * as imparfaites from './schemas/defs/miscast';
 import { trappings, findTrappingById } from './apparencesObjets';
 export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
 import vehiclesJson from './vehicles.json';
@@ -94,7 +96,6 @@ import calendarIntercalaryJson from './calendarIntercalary.json';
 import calendarWeekdaysJson from './calendarWeekdays.json';
 import calendarPhasesJson from './calendarPhases.json';
 import weatherJson from './weather.json';
-import ventsTourbillonnantsJson from './vents-tourbillonnants.json';
 import symptomsJson from './symptoms.json';
 import detailsJson from './details.json';
 import semencesDeSceneJson from './semences-de-scene.json';
@@ -130,7 +131,6 @@ import combatStakesJson from './combat-stakes.json';
 import activitiesStakeJson from './activities.json';
 import actionsJson from './actions.json';
 import axesJson from './axes.json';
-import navalProgressionJson from './naval-progression.json';
 import seaNavigationJson from './sea-navigation.json';
 import seaPerilsJson from './sea-perils.json';
 import seaWeatherJson from './sea-weather.json';
@@ -151,7 +151,6 @@ import type { CharacteristicsData } from './schemas/defs/characteristics';
 import type { AxesData } from './schemas/defs/axes';
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type { Relatif } from './schemas/defs/groups';
-import type { NavalProgressionData } from './schemas/defs/naval-progression';
 import type { SeaNavigationData } from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
@@ -476,20 +475,20 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   aaCriticalsBras: (id) => critiqueEntries('criticals-aa-bras').some((r) => r.id === id),
   aaCriticalsCorps: (id) => critiqueEntries('criticals-aa-corps').some((r) => r.id === id),
   aaCriticalsJambe: (id) => critiqueEntries('criticals-aa-jambe').some((r) => r.id === id),
-  structureCriticals: (id) => structureCriticalRows.some((r) => r.id === id),
+  structureCriticals: (id) => STRUCTURE_CRITICALS.some((r) => r.id === id),
   // Critiques de COQUE : une catégorie Codex par jeu × Localisation (`registry.ts`, clusters
   // « Critiques de navire » / « Critiques fluviaux »). Dérivées des jeux CHARGÉS, jamais recopiées :
   // une Localisation de plus dans un `.json` entre ici sans une ligne de code.
   ...shipCritPools(SHIP_CRIT_SET, 'shipCriticals'),
   ...shipCritPools(RIVER_CRIT_SET, 'riverCriticals'),
-  miscastMinor: (id) => miscastMinorRows.some((r) => r.id === id),
-  miscastMajor: (id) => miscastMajorRows.some((r) => r.id === id),
-  miscastWrath: (id) => miscastWrathRows.some((r) => r.id === id),
+  miscastMinor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure').some((r) => r.id === id),
+  miscastMajor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure').some((r) => r.id === id),
+  miscastWrath: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere').some((r) => r.id === id),
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   interludeEvents: (id) => interludeEvents.some((e) => e.id === id),
   // Incidents de Tir par Salve (AA 10 l.270-277) : la LIGNE tirée est l'entrée jouée, comme un Critique.
-  artilleryMisfire: (id) => artilleryMisfireRows.some((e) => e.id === id),
+  artilleryMisfire: (id) => ARTILLERY_MISFIRE.some((e) => e.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
   tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
@@ -509,11 +508,6 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   skills: (id) => !!byId('skill', id),
 };
 
-/** Rangées BRUTES des tables tirées par une étape, réduites à leur id — le résolveur d'enjeu n'a
- *  besoin que du pool d'ids, et les lit sur le MÊME JSON que le Codex édite. */
-const structureCriticalRows = (structureCriticalsRawJson as { entries: { id: string }[] }).entries;
-const artilleryMisfireRows = (artilleryMisfireRawJson as { entries: { id: string }[] }).entries;
-
 /** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation — les clés sont celles des
  *  catégories Codex (`shipCriticalsGreement`…), et la MEME dérivation (préfixe + segment capitalisé)
  *  que `shipCritEntryCodexCategory` (`engine/shipCritical.ts`) côté producteur. */
@@ -523,17 +517,6 @@ function shipCritPools(set: ShipCritSet, prefixe: string): Record<string, (id: s
     (id: string) => (rows ?? []).some((r) => r.id === id),
   ]));
 }
-const miscastDocs = miscastRawJson as unknown as { id: string; entries: { id: string }[] }[];
-/** Rangées d'UN tableau d'Incantation Imparfaite, par id de DOCUMENT (`miscast.json`) — FAIL-FAST :
- *  un id absent rendrait le résolveur d'enjeu silencieusement aveugle. */
-function miscastRowsOf(tableId: string): { id: string }[] {
-  const doc = miscastDocs.find((d) => d.id === tableId);
-  if (!doc) throw new Error(`miscastRowsOf : tableau « ${tableId} » absent de miscast.json (ids : ${miscastDocs.map((d) => d.id).join(', ')}).`);
-  return doc.entries;
-}
-const miscastMinorRows = miscastRowsOf('miscast-mineure');
-const miscastMajorRows = miscastRowsOf('miscast-majeure');
-const miscastWrathRows = miscastRowsOf('miscast-colere');
 
 /** CATALOGUE d'ENTRÉES d'un `kind` : où vit la fiche de l'entrée JOUÉE, quand la clé en nomme une.
  *  Déclaratif — ajouter une famille à entrées (tables régionales de Lustrie, périls…) = une ligne ICI,
@@ -2714,12 +2697,10 @@ export function findNavalPortById(id: string): NavalPortData | undefined {
   return portNavalParId(id);
 }
 
-/** LOT 1 #422 : 5 datasets NAVAUX de contenu (tables MDG 12/13/15) exposés au Codex — mêmes garanties
- *  de référence LIVE (singleton ESM, même fichier physique relu par `engine/shipNavigation.ts`,
- *  `engine/seaNavigation.ts`, `engine/seaPerils.ts`, `engine/seaWeather.ts`, `engine/shipBuild.ts`) que
- *  `WATER_EXPOSURE` ci-dessus. Types réutilisés DEPUIS le schéma zod (`schemas/defs/*`, patron
+/** LOT 1 #422 : 4 datasets NAVAUX de contenu (tables MDG 12/13/15) exposés au Codex — mêmes garanties
+ *  de référence LIVE (singleton ESM, même fichier physique relu par `engine/seaNavigation.ts`,
+ *  `engine/seaPerils.ts`, `engine/seaWeather.ts`, `engine/shipBuild.ts`) que `WATER_EXPOSURE` ci-dessus. Types réutilisés DEPUIS le schéma zod (`schemas/defs/*`, patron
  *  `CharacteristicsData`/`AxesData`) — pas de redéclaration divergente. */
-export const navalProgression = navalProgressionJson as NavalProgressionData;
 export const seaNavigation = seaNavigationJson as SeaNavigationData;
 export const seaPerils = seaPerilsJson as SeaPerilsData;
 export const seaWeather = seaWeatherJson as SeaWeatherData;
@@ -2883,7 +2864,7 @@ const decorVolumique = porteLeMarqueur('prop', 'volume');
 export const refEstVolumique = (ref: string | undefined): boolean => ref !== undefined && decorVolumique(ref);
 /** Matière de rendu d'une recette volumique de décor, par id — lecture VIVANTE du document (`matieresDe`),
  *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
- *  `data/materials-identite.test.ts` (#1686). */
+ *  `gameIso/catalog/materials-identite.test.ts` (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
 /** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
 export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);
@@ -2954,10 +2935,6 @@ export function libelleOuAbsence(e: { label: string } | undefined, nature: Natur
 export const weatherConditions = weatherData.conditions;
 /** Caractéristiques réputées « physiques » (liste MAISON, EDOC 8 l.82 non chiffrée). */
 export const weatherPhysicalTestChars = weatherData.physicalTestChars;
-/** Tableau des Vents Tourbillonnants (LDB 46 l.183-190, option `vents-tourbillonnants`) — tirage 1d10
- *  (`engine/windsOfMagic.ts`, lecture JSON directe comme `drunkenness.ts`) ; réexporté ICI pour le
- *  Codex (`ventsTourbillonnants`, `ui/compendium/registry.ts`). */
-export const windsOfMagicTable = (ventsTourbillonnantsJson as { entries: { id: string; min: number; max: number; mod: number; label: string }[] }).entries;
 export const details = detailsJson as DetailsData;
 /** Semences d'une scène NEUVE (#1716) — lues par `emptyScene` (`noyau/monde/scene.ts`), éditables au Codex. */
 export const semencesDeScene = semencesDeSceneJson as SemencesDeSceneData;

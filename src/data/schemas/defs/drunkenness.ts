@@ -18,7 +18,7 @@ export const file = 'drunkenness.json';
 export const famille = 'config';
 
 /** Un palier du 1d10 : `outcome` = id de l'ISSUE tirée, `ops` = la mécanique exécutable. */
-const drunkEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -43,7 +43,7 @@ const doc = document(
     codex: { keys: ['drunkenness'] },
     edit: { niche: { categories: { drunkenness: 'entries' } } },
   },
-  { rangee: drunkEntrySchema },
+  { rangee },
 );
 
 export const schema = doc.schema;

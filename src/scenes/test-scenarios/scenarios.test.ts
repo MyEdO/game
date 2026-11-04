@@ -3,7 +3,10 @@ import { testScenarios } from './index';
 import { validateScene } from '../../noyau/validateScene';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';
 import { refs } from '../../data/schemas/grammaire/ref';
-import { presetPnjById } from '../../state/campaignData';
+import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
+
+/** Aucun narratif chargé : aucun preset ne se résout. */
+const presetPnjById = presetDuNarratif(null);
 
 
 describe('Batterie de scénarios de test', () => {

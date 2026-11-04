@@ -78,7 +78,7 @@ const jsonNestedTestSchema = nommerChamps(z.strictObject({
 });
 
 /** `JsonRow` (`engine/miscast.ts`) — entrée de table d100 (`min`/`max` inclusifs). */
-const jsonRowSchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   /** Identité STABLE (#422, exposition Codex) — slug préfixé par table (`mineure-`/`majeure-`/`colere-`)
    *  pour éviter toute collision inter-tables ; consommée par le Codex, jamais par `engine/miscast.ts`. */
@@ -117,7 +117,7 @@ const doc = document(
     codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastWrath'] },
     edit: { niche: { categories: { miscastMinor: '[miscast-mineure].entries', miscastMajor: '[miscast-majeure].entries', miscastWrath: '[miscast-colere].entries' } } },
   },
-  { rangee: jsonRowSchema },
+  { rangee },
 );
 
 export const schema = doc.schema;

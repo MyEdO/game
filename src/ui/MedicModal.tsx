@@ -51,7 +51,7 @@ export function MedicModal() {
   const act = useGame((s) => s.medicAct);
   const setWound = useGame((s) => s.medicSetWound);
   const openPass = useGame((s) => s.openSurgeryPass);
-  const cancelSurgery = useGame((s) => s.surgeryCancel);
+  const cancelSurgery = useGame((s) => s.medicAbandonSurgery);
   const close = useGame((s) => s.closeMedic);
   const soin = useHealJetProps({ embedded: true });
   const passe = useSurgeryJetProps();

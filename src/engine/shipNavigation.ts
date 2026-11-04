@@ -6,18 +6,18 @@
  * livre (Savoir (Océans) « premier chiffre » en mer ; Savoir (Voies fluviales) +1 DR en eau douce) sont
  * passés par l'appelant via `extraDR`, jamais codés ici.
  */
-import navalProgressionJson from '../data/naval-progression.json';
-import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
+import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
+import navalProgressionJson from '../data/naval-progression.json';
+import { rangeesDe } from '../data/rangees';
+import type * as progressionDeNavire from '../data/schemas/defs/naval-progression';
 
-type ProgressionMode = 'plus2' | 'plus1' | 'normal' | 'minus1' | 'half';
-interface ProgressionEntry extends BandeOuverte {
-  mode: ProgressionMode;
-  desc: string;
-}
+/** La table de Progression VIVANTE — la collection que le Codex édite (`navalProgression`,
+ *  `data/overrides.ts`). */
+export const NAVAL_PROGRESSION = rangeesDe<typeof progressionDeNavire>(navalProgressionJson);
 /** La table telle que `findTableEntry` la lit (`tableOuverte`) : « 4 ou plus » et « –5 ou moins »
  *  (MDG 13 l.71, l.75) sont ouvertes. Mémoïsée sur le dataset, que le Codex édite. */
-const progression = memoParVersion('navalProgression', () => tableOuverte((navalProgressionJson as { entries: ProgressionEntry[] }).entries));
+const progression = memoParVersion('navalProgression', () => tableOuverte(NAVAL_PROGRESSION));
 
 /** Déplacement effectif d'un navire de Mouvement `baseM` selon le DR du Test de Navigation (MDG 13
  *  l.68-75). PUR. */

@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { codeSeul as sansCommentaires } from '../../../scripts/guards/lib/commentPoison.mjs';
 import { materials, semencesDeScene, terrains } from '../../data';
-import { detenteur } from '../../detenteur.testkit';
+import { detenteur } from '../../lib/detenteur.testkit';
 
 /**
  * GARDE DÉRIVÉE (#1691, élargie #1715, #1716, #1789) — aucune couche ÉMETTRICE du monde ne NOMME une

@@ -1,6 +1,6 @@
 /**
  * Schéma de `apparences.json` — LE catalogue des apparences d'objet (#2948), collection à
- * discriminant (patron `miscastRoot`/`miscastEntries`, `src/data/overrides.ts` ; doctrine
+ * discriminant (patron des documents de `miscast.json`, `rangeesDe`, `src/data/rangees.ts` ; doctrine
  * `user-direction-fusion-json-par-type`).
  *
  * Une entrée SANS `forme` est une RACINE : une forme, et sa propre apparence par défaut — « une seule

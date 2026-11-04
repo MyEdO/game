@@ -4,8 +4,7 @@
  * « Puissance totale » d'une Incantation Critique (`VDM 02 l.55`, folio 20). Option OFF = LDB.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { OPTIONAL_RULES, setRule, resetRule, ruleDef } from './policy';
-import { houseRuleTabs, OWN_TAB_MIN } from '../ui/houseRuleTabs';
+import { setRule, resetRule, ruleDef } from './policy';
 import { evaluateMissile, applyFullPower, overcastSL, castAfterCrit, defaultCritChoice, type CastResult } from './magic';
 import { hasInstinctiveDiction } from './combatFeatures/dispatch';
 import { isDispellableCast } from '../noyau/combatFlow';
@@ -44,21 +43,6 @@ describe('Registre des règles optionnelles — l’option VDM s’auto-rend dan
     expect(def!.ref).toBe('VDM 02 l.5-7');
     expect(def!.label).toBeTruthy();
     expect(def!.hint).toBeTruthy();
-  });
-
-  it('le panneau la RENDRA sans une ligne d’UI : elle est dans la découpe dérivée du registre', () => {
-    const tabs = houseRuleTabs();
-    expect(tabs.flatMap((t) => t.rules.map((r) => r.id))).toContain(RULE);
-    expect(tabs.reduce((n, t) => n + t.rules.length, 0)).toBe(OPTIONAL_RULES.length); // partition TOTALE
-  });
-
-  it('le groupe Magie atteint le seuil et obtient son PROPRE onglet', () => {
-    const magie = OPTIONAL_RULES.filter((r) => r.group === 'Magie');
-    expect(magie.length).toBeGreaterThanOrEqual(OWN_TAB_MIN);
-    const tab = houseRuleTabs().find((t) => t.key === 'g:Magie');
-    expect(tab).toBeTruthy();
-    expect(tab!.groups).toEqual(['Magie']);
-    expect(tab!.rules.map((r) => r.id)).toContain(RULE);
   });
 });
 

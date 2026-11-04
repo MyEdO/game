@@ -6,19 +6,19 @@
  * Ce test prouve la CHAÎNE RÉELLE, pas un contexte forgé : il part de la donnée committée
  * (`spells.json`), passe par le point de lecture unique (`findSpellById`, `src/data/index.ts`), et
  * assène le résultat sur les consommateurs RÉELS — `castLandProbability` (`engine/magic.ts`, NI),
- * `spellFlowFor` (`engine/flowCore.ts`, le Flow que `combatFlow` exécute), `learnableSpells`
- * (`engine/grimoire.ts`, énumération du catalogue) et le registre Codex (`ui/compendium/registry.ts`).
+ * `spellFlowFor` (`engine/flowCore.ts`, le Flow que `combatFlow` exécute) et `learnableSpells`
+ * (`engine/grimoire.ts`, énumération du catalogue) ; le registre Codex (`ui/compendium/registry.ts`) :
+ * `src/ui/compendium/codex-vdm-spells-variantes.test.ts`.
  * Débrancher `effectiveEntry` de l'un de ces sites rend le volet correspondant.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from '../engine/policy';
 import { activeVariant } from '../engine/variants';
-import { findSpellById, spells, traits, type SpellData } from './index';
+import { findSpellById, spells, traits } from './index';
 import { schema as spellsSchema, VARIANT_RESOLVED_FIELDS } from './schemas/defs/spells';
 import { castLandProbability } from '../engine/magic';
 import { spellFlowFor } from '../engine/flowCore';
 import { learnableSpells } from '../engine/grimoire';
-import { CODEX } from '../ui/compendium/registry';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -159,29 +159,6 @@ describe('Flow — Lumière de guérison : Résistance Difficile (−20) → Tr�
     expect(difficulte()).toBe('difficile');
     setRule(RULE, true);
     expect(difficulte()).toBe('tresDifficile');
-  });
-});
-
-describe('affichage — la fiche Codex RÉELLE (ui/compendium/registry) suit la règle', () => {
-  const fiche = (id: string) => {
-    return CODEX.find((c) => c.key === 'spells')!.items.find((i) => i.id === id)!;
-  };
-  const meta = (id: string, label: string) => fiche(id).meta?.find((f) => f.label === label)?.value;
-
-  it('Caresse de Laniph : desc, source et « NI » affichés sont ceux du livre actif', () => {
-    const base = spells.find((s) => s.id === 'caresse-de-laniph') as SpellData;
-    expect(fiche('caresse-de-laniph').desc).toBe(base.desc);
-    expect(meta('caresse-de-laniph', 'NI')).toBe('7');
-    setRule(RULE, true);
-    const eff = findSpellById('caresse-de-laniph')!;
-    expect(fiche('caresse-de-laniph').desc).toBe(eff.desc);
-    expect(meta('caresse-de-laniph', 'NI')).toBe('4');
-  });
-
-  it('Forme bestiale : la « Durée » affichée bascule avec la variante', () => {
-    const ldb = meta('forme-bestiale', 'Durée');
-    setRule(RULE, true);
-    expect(meta('forme-bestiale', 'Durée')).not.toBe(ldb);
   });
 });
 

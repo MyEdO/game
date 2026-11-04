@@ -496,6 +496,13 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
       expect(raisonDe(html, key), key).toBe('Vétéran ne peut rien entreprendre tant que les Événements de la période ne sont pas tirés.');
     }
   });
+
+  it('pendant le tirage : « Clore » est fermé par le verdict du noyau, sa raison dite', () => {
+    const seam = buildSeam();
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: { ...seam.interlude, phase: 'tirage' }, phase: 'activities' }} />);
+    expect(html.match(/<button[^>]*aria-describedby="interlude-close-reason"[^>]*>/)?.[0], 'la clôture est fermée').toContain('aria-disabled="true"');
+    expect(raisonDId(html, 'interlude-close-reason')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
+  });
 });
 
 describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et volet lisent `refusDeRevenus` (#3059 S3)', () => {

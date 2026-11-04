@@ -85,5 +85,5 @@ valide ; un bloc mal formé fait échouer `parseProject`.
 
 Renvois : `docs/campagne-effects.md` (Effects de scène, `npm run docs:effects`) · `docs/map-authoring.md`
 · `docs/test-scenarios.md` · gardes `src/scenes/arene/lib-validators.test.ts` (id-only) et
-`src/scenes/arene/arene-flow.test.ts` (Trigger→Effect→transition). Campagne publiée à adapter : skill
+`src/noyau/scenarios/arene-flow.hors-store.test.ts` (Trigger→Effect→transition). Campagne publiée à adapter : skill
 `adapter-une-campagne`.

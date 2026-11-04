@@ -32,8 +32,8 @@ export function EtalLotModal() {
   const actions: RollAction[] = [
     // Les DEUX gestes mènent au même dénouement : un étal existe de toute façon. « Laisser le hasard »
     // ne l'annule pas, il le prend tel qu'il est tombé — d'où un libellé qui ne promet pas l'inverse.
-    { key: 'cancel', label: 'Laisser le hasard', onClick: cancel, when: 'always' },
-    { key: 'confirm', label: 'Ouvrir l’étal', onClick: confirm, when: 'always' },
+    { key: 'cancel', label: 'Laisser le hasard', onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'apply' },
   ];
 
   return (

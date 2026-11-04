@@ -1131,7 +1131,7 @@ allumée et le siège tenu, l'étape « Sauvegarde » offre son champ « Fixer l
 côté de « Lancer » ; la ligne de journal porte alors « (dé fixé) ». A11y de l'étape : Tab atteint
 « Lancer », Entrée lance.
 
-Rejeu MOTEUR (headless) de ces trois gestes : `src/scenes/test-scenarios/22-dome.test.ts` — l'aura est
+Rejeu MOTEUR (headless) de ces trois gestes : `src/noyau/scenarios/22-dome.hors-store.test.ts` — l'aura est
 posée par le VRAI lancer (`applyCast`), le tireur TIRE dès son premier tour, le TIR ouvre son étape de
 sauvegarde (suspension AVANT toute Blessure), la MÊLÉE n'en ouvre aucune. Les contrats du socle sont
 ailleurs : la porte qui suspend et rend la main (`src/noyau/combat/sauvegarde-a-la-porte.hors-store.test.ts`,

@@ -918,6 +918,12 @@ function hasMeleeSpec(c: Combatant, spec: string): boolean {
   return (c.skills ?? []).some((s) => byId('skill', s.id)?.specsSource === 'weaponGroupsMelee' && (s.spec ?? '') === spec);
 }
 
+/** Pénalité de main secondaire aux attaques de `c`, Ambidextre comprise : celle que l'attaque applique et
+ *  que la fiche affiche. LDB 14 l.78 ; LDB 10 */
+export function penaliteDeMainSecondaire(c: Combatant): number {
+  return offHandPenalty(c, modDeRegle('main-secondaire', 'main-secondaire'));
+}
+
 /** Pénalité à la PARADE avec l'arme `weapon` (LDB 62 l.151), depuis la pénalité de main secondaire `base` :
  *  0 en main principale ; 0 si arme à 1 main + Défensive + le défenseur a Corps à corps (Parade) ; sinon
  *  `base` transformée par Ambidextre. */

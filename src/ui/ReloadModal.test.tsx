@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { useGame } from '../state/store';
 import type { PendingReload } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { emptyArmour } from '../engine/items';
@@ -22,10 +23,16 @@ const actorWith = (weaponName: string, uid = 'w-arb'): Combatant =>
     weapons: [{ uid, label: weaponName, type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [] }],
   } as unknown as Combatant);
 
+/** La vue de `p`, que la coquille juge sur le Rechargement en attente (`fermeturesDuFlux`). */
 function render(p: PendingReload & { _name?: string }, fortune = 1, weaponName = 'Arbalète') {
-  return renderToStaticMarkup(
-    <ReloadModalView pr={p} actor={actorWith(weaponName, p.weaponUid)} fortune={fortune} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
-  );
+  useGame.setState({ pendingReload: p });
+  try {
+    return renderToStaticMarkup(
+      <ReloadModalView pr={p} actor={actorWith(weaponName, p.weaponUid)} fortune={fortune} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+    );
+  } finally {
+    useGame.setState({ pendingReload: null });
+  }
 }
 
 describe('ReloadModalView — « si y’a un jet, y’a la modale »', () => {

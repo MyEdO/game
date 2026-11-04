@@ -553,8 +553,8 @@ export function isOffHandEligible(it: ItemInstance): boolean {
 }
 
 /** Couche de PORT d'une pièce d'armure (LDB 63) : le « Cuir souple » « peut être porté sans pénalité
- *  sous n'importe quelle autre Armure » (l.93) ; une armure Flexible « peut être portée sous une
- *  couche d'armure non Flexible » (l.105-106) ; le reste forme la couche extérieure rigide.
+ *  sous n'importe quelle autre Armure » (l.60) ; une armure Flexible « peut être portée sous une
+ *  couche d'armure non Flexible » (l.74) ; le reste forme la couche extérieure rigide.
  *  Une seule pièce par couche et par localisation. */
 export type ArmourLayer = 'souple' | 'flexible' | 'rigide';
 export function armourLayer(it: ItemInstance): ArmourLayer {
@@ -1019,6 +1019,26 @@ export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
 /** PA d'une pièce d'armure, nette des dégâts subis. LDB 63 l.19 */
 export function paNette(it: ItemInstance): number {
   return Math.max(0, (it.pa ?? 0) - (it.damageTaken ?? 0));
+}
+
+/** Un emplacement de la fiche : la pièce qui l'occupe, et celles qui peuvent l'occuper. */
+export interface EmplacementPorte {
+  porte?: ItemInstance;
+  candidats: ItemInstance[];
+}
+
+const emplacementDe = (pieces: ItemInstance[]): EmplacementPorte =>
+  ({ porte: pieces.find((i) => i.equipped), candidats: pieces.filter((i) => !i.equipped) });
+
+/** L'emplacement d'armure de la couche `couche` sur les localisations `locs` : les armures de `items`
+ *  qui couvrent l'une d'elles dans cette couche. LDB 63 l.60, l.74 */
+export function emplacementDArmure(items: ItemInstance[], locs: readonly HitLocation[], couche: ArmourLayer): EmplacementPorte {
+  return emplacementDe(items.filter((i) => i.kind === 'armor' && (i.locs ?? []).some((l) => locs.includes(l)) && armourLayer(i) === couche));
+}
+
+/** L'emplacement Cape : une seule cape portée à la fois (`isCapeItem`). */
+export function emplacementDeCape(items: ItemInstance[]): EmplacementPorte {
+  return emplacementDe(items.filter(isCapeItem));
 }
 
 /**

@@ -31,7 +31,8 @@ function rendu() {
   const REGISTRY = 'src/ui/compendium/registry.ts'
   const DESCRIBE = 'src/ui/compendium/describe.ts'
   const HUMANIZE = 'src/ui/compendium/humanize.ts'
-  const CONTRATS = 'src/data/schemas/exposition-contrats.test.ts'
+  const CONTRATS = ['src/data/schemas/exposition-contrats.test.ts', 'src/ui/compendium/codex-exposition-contrats.test.ts']
+  const CONTRATS_CITES = CONTRATS.map((c) => `\`${c}\``).join(' et ')
 
   function abandon(msg) {
     console.error(`${OUTIL} — ${msg}`)
@@ -204,17 +205,22 @@ function rendu() {
   const HELPERS_DESCRIBE = helpersDe(DESCRIBE)
   const HELPERS_HUMANIZE = helpersDe(HUMANIZE)
 
-  /** Contrats VÉRIFIÉS par la garde d'exposition : ses cas, tels qu'elle les NOMME. */
+  /** Contrats VÉRIFIÉS par les gardes d'exposition : leurs cas, tels qu'elles les NOMMENT, un même
+   *  `describe` des deux gardes réuni sous son titre. */
   const CONTRATS_CAS = (() => {
-    const src = lire(CONTRATS)
-    const blocs = [...src.matchAll(/describe\('([^']+)'/g)]
-    if (!blocs.length) abandon(`aucun \`describe\` lu dans ${CONTRATS} — le motif a dérivé`)
-    return blocs.map((b, i) => {
-      const fin = i + 1 < blocs.length ? blocs[i + 1].index : src.length
-      const cas = [...src.slice(b.index, fin).matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
-      if (!cas.length) abandon(`\`describe('${b[1]}')\` de ${CONTRATS} ne porte aucun cas`)
-      return { titre: b[1], cas }
-    })
+    const parTitre = new Map()
+    for (const chemin of CONTRATS) {
+      const src = lire(chemin)
+      const blocs = [...src.matchAll(/describe\('([^']+)'/g)]
+      if (!blocs.length) abandon(`aucun \`describe\` lu dans ${chemin} — le motif a dérivé`)
+      blocs.forEach((b, i) => {
+        const fin = i + 1 < blocs.length ? blocs[i + 1].index : src.length
+        const cas = [...src.slice(b.index, fin).matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
+        if (!cas.length) abandon(`\`describe('${b[1]}')\` de ${chemin} ne porte aucun cas`)
+        parTitre.set(b[1], [...(parTitre.get(b[1]) ?? []), ...cas])
+      })
+    }
+    return [...parTitre].map(([titre, cas]) => ({ titre, cas }))
   })()
 
   /** Exergues de Carrière : compte et périmètre de SOURCE, dumpés par le code lui-même (le plugin
@@ -232,7 +238,7 @@ function rendu() {
     'src/ui/compendium/relations.test.ts',
     'src/ui/compendium/registry.test.ts',
     'src/ui/compendium/humanize.test.ts',
-    'src/data/schemas/exposition-contrats.test.ts',
+    ...CONTRATS,
     'src/data/serialize.test.ts',
   ].map((t) => {
     if (!existsSync(t)) abandon(`garde « ${t} » introuvable (renommée/supprimée ?)`)
@@ -288,7 +294,7 @@ function rendu() {
 \`fichier:ligne\`), l'API publique du même module (AST + 1re phrase de JSDoc), le littéral
 \`CODEX_SPECS\` de \`${REGISTRY}\` (${SPECS.length} catégories, leurs groupes et sous-groupes
 \`cluster\`), et l'\`exposition\` DÉCLARÉE par les ${NB_DEFS} defs de \`src/data/schemas/defs/\`
-(dumpée par \`scripts/docs/lib/dump-exposition.mts\`), les cas NOMMÉS par \`${CONTRATS}\`, les fonctions
+(dumpée par \`scripts/docs/lib/dump-exposition.mts\`), les cas NOMMÉS par ${CONTRATS_CITES}, les fonctions
 exportées de \`${DESCRIBE}\` et \`${HUMANIZE}\`, et le compte d'épigraphes de Carrière dumpé par
 \`scripts/docs/lib/dump-epigraphes.mts\` (le plugin \`exergues\` de \`<Prose>\` monté sur les \`careers\`
 réelles — aucune re-implémentation de la détection ici). **Angles morts** : la catégorie RÉFÉRANTE
@@ -331,7 +337,7 @@ Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
 \`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/ui/editor/codex/CodexEdit.tsx\` les consomme
 telles quelles — plus aucune table à la main. La source lue à l'EXÉCUTION pour l'INDEX du Codex
 reste \`CODEX_SPECS\` (\`${REGISTRY}\`, dont \`CODEX\` est la projection). Les deux sont tenus égaux
-par \`${CONTRATS}\`, dont voici les cas, tels que la garde les nomme :
+par ${CONTRATS_CITES}, dont voici les cas, tels que les gardes les nomment :
 
 ${lignesContrats}
 

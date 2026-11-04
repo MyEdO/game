@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../../state/store';
-import { resolvePresetCreature } from '../../noyau/monde/resolveursDuNarratif';
-import { presetPnjById } from '../../state/campaignData';
+import { describe, it, expect } from 'vitest';
+import { presetDuNarratif, resolvePresetCreature } from '../../noyau/monde/resolveursDuNarratif';
 import { creatureToCombatant } from '../../noyau/monde/spawn';
 import { testValue } from '../../engine/skills';
 import { savoirVoiesFluvialesBonus } from '../../engine/riverNavigation';
 import { scenario } from './96-presets-edo';
 import type { Combatant } from '../../engine/types';
 const scenarioConstruit = scenario.construire();
+/** Le résolveur de preset du narratif du scénario. */
+const presetPnjById = presetDuNarratif(scenarioConstruit.narratif ?? null);
 
 /** Preset authoré → `CreatureData` résolue → `Combatant`, par la chaîne RÉELLE du spawn. */
 function spawnPreset(presetId: string): Combatant {
@@ -17,10 +17,6 @@ function spawnPreset(presetId: string): Combatant {
 }
 
 describe('Presets EDO — specs de Compétence keyées par ID (MSRC 7 l.13)', () => {
-  beforeEach(() => {
-    useGame.setState({ campaignNarratif: scenarioConstruit.narratif ?? null });
-  });
-
   it('Josef Quartjin : Savoir (Voies fluviales) est INTERROGEABLE par son id', () => {
     const josef = spawnPreset('edo-josef-quartjin');
     expect(testValue(josef, 'savoir', undefined, 'voies-fluviales'))

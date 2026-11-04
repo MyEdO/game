@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, etatInitialDeLAdaptateur, useGame, type EtatDeLAdaptateur } from './store';
-import { stockageDesSauvegardes } from './saves';
-import { AUTO_SLOT, lireLaSauvegarde } from '../hote/sauvegardes';
+import { saveDuStockage } from './saves.testkit';
 import { snapshotSave } from '../noyau/persistance/save';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { tableTotale } from '../lib/tableTotale';
@@ -54,7 +53,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
     salir();
     g().transitionTo('entree-b');
     for (const k of CLES) expect(g()[k], `${k}`).toEqual((CAMERA as readonly string[]).includes(k) ? INIT[k] : sale(k));
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT)?.data.campaignSceneId, 'le point de reprise est la scène d’arrivée').toBe('entree-b');
+    expect(saveDuStockage('auto')?.data.campaignSceneId, 'le point de reprise est la scène d’arrivée').toBe('entree-b');
   });
 
   it('chez l’invité, le changement de scène ne sauvegarde rien : la sauvegarde vit chez l’hôte', () => {
@@ -62,7 +61,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
     useGame.setState({ net: { ...g().net, mode: 'guest', mySeat: 1 } });
     g().transitionTo('entree-b');
     expect(g().campaignSceneId, 'témoin : la scène a changé').toBe('entree-b');
-    expect(lireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT)).toBeNull();
+    expect(saveDuStockage('auto')).toBeNull();
     useGame.setState({ net: useGame.getInitialState().net });
   });
 });

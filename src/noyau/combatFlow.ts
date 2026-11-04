@@ -13,6 +13,7 @@ import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
+import { discreetPrayerDifficulty } from '../engine/prayer';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './monde/tempo';
 import { beatHold, approachMs } from './combatDirector';
@@ -80,6 +81,7 @@ import {
   type MissileResult,
   type CounterspellOutcome,
   type SpellLike,
+  resolveMagicMissile, resolveCasting,
 } from '../engine/magic';
 import { type OvercastAxis, type OvercastSource, type OvercastSpell, overcastSourceOf, overcastDurationParts, overcastAxesFor, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
@@ -113,7 +115,7 @@ import { STRUCTURE_CRITICALS_DIE, STRUCTURE_CRITICALS_LABEL } from '../data/stru
 import { actorIn, inBattleId } from './monde/combatants';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
-import { touchActors } from './combatOrParty';
+import { touchActors, windsMagicModOf, seaMagicContext } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
@@ -243,7 +245,7 @@ import {
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel, psychologyLabel } from '../data';
-import { zoneEnPose, type ZoneEnPose } from './targetingHolder';
+import { coupFerme, zoneEnPose, type ZoneEnPose } from './targetingHolder';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
@@ -4728,6 +4730,119 @@ export function castRefused(get: Get, set: SetFn, actor: Combatant, msg: string)
   journaliser(get, set, [msg], 'cast', { actorId: actor.id });
 }
 
+/** Avance l'étape-jet d'attaque de la cascade combat à la FIN de la chaîne (plus de
+ *  `pendingAttack` NI d'enchaînement balayage/dual) → conséquences inline (Coup Critique
+ *  foldé) ou reprise. La cascade reste ouverte pendant la chaîne ; on n'avance qu'au bout. Partagé par
+ *  attackConfirm / cleaveEnd / dualStrikeSkip (zéro duplication).
+ *  L'étape 'defense' est admise pour l'INTERPOSITION de défense surfacée (#989) : le curseur y passe à
+ *  l'ouverture de la fenêtre, et l'application de l'attaque (reprise d'`attackConfirm`) l'enchaîne au bout.
+ *  Un enchaînement en cours ne retient pas le curseur quand le coup est SUSPENDU (`coupFerme`) : il passe
+ *  sur l'étape que la suspension a poussée, et la chaîne attend qu'elle soit jouée. */
+export function advanceCombatJet(get: () => Jeu): void {
+  const seq = get().pendingCascade;
+  const jet = seq?.purpose === 'combat' ? seq.participants[seq.cursor]?.jet : undefined;
+  if ((jet === 'attack' || jet === 'defense')
+    && !get().pendingAttack && !get().pendingDefense
+    && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().cascadeNext();
+}
+
+/** Jet d'attaque (verbe `roll` du flux `attack`, `FLOWS.attack.onRoll`). */
+export function lancerLAttaque(get: Get, set: SetFn): void {
+  const { battle, pendingAttack: pa } = get();
+  if (!battle || !pa) return;
+  const attacker = inBattleId(battle, pa.attackerId);
+  const target = inBattleId(battle, pa.targetId);
+  if (!attacker || !target) return;
+  applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
+  // L'arme du JET est celle de l'APPLICATION (`attackWeaponOf`, #1026) : arme naturelle synthétisée
+  // d'une gratuite de créature comprise.
+  const weapon = attackWeaponOf(battle, attacker, target, pa);
+  const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
+  if (!r) {
+    get().log(weapon.type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
+    set({ pendingAttack: null });
+    advanceCombatJet(get); // défense en profondeur : ne JAMAIS laisser la cascade d'attaque orpheline (sinon soft-lock de fin de tour)
+    return;
+  }
+  // Contexte du jet FIGÉ sur le pending (#1153) : l'OBJET arme réellement tiré, la distance et la
+  // pénalité d'esquive. Toutes les influences de la ligne résolue (Chance, Relancer, dé choisi,
+  // Résilience) re-dérivent AVEC eux, sans repasser par le choix d'arme (`pickAttackWeaponList`),
+  // qui reprend la mêlée dès qu'elle est à portée. `weaponUid` n'est JAMAIS réécrit : il porte le
+  // choix du JOUEUR, et son absence discrimine l'attaque naturelle (`attackWeaponOf`, #1026).
+  set({ pendingAttack: { ...pa, result: r.res, victimId: r.victim?.id, weapon: r.weapon,
+    distanceTiles: combatDistance(attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
+}
+
+/** Test d'Incantation (verbe `roll` du flux `cast`, `FLOWS.cast.onRoll`). */
+export function lancerLIncantation(get: Get, set: SetFn): void {
+  const { pendingCast: pc } = get();
+  if (!pc) return;
+  const caster = actorIn(get(), pc.casterId);
+  const target = actorIn(get(), pc.targetId);
+  const spell = effectiveSpellOf(pc); // NI ×2 si lecture au grimoire (LDB 47 l.21)
+  if (!caster || !target || !spell) return;
+  // ZONE non posée (flux « jet puis pose ») : pas de cible désignée au jet — pas de ward
+  // individuel (« N'écoutez point » protège une CIBLE), pas de résolution Projectile (les
+  // Dégâts par cible sont dérivés du même jet À LA POSE, evaluateMissile).
+  const unplacedZone = !!pc.zone && !pc.zone.center;
+  // Contexte du jet (Sorcière + Domaine + Environnement) : MÊME source que la relance
+  // (`FLOWS.cast.reresolve`) et que l'aperçu (`previewCast`) — un seul calcul, trois lectures.
+  const ctx = castContextMods(get(), caster, target, spell, { skipWard: unplacedZone });
+  const sigmar = ctx.ward; // « N'écoutez point la Sorcière »
+  const aqshy = ctx.domain; // attribut d'Aqshy : +10/En flammes proche
+  const winds = windsMagicModOf(get().battle); // Vents Tourbillonnants (LDB 46 l.179-190, option)
+  const ward = ctx.total + winds;
+  // « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `prayer-conviction`) : une Prière murmurée
+  // (`pc.discreet`) subit une Difficulté d'un cran plus dure. Ne concerne QUE les Prières.
+  const discreet = !!pc.discreet && castInfoIsPrayer(spell) && !!rule('prayer-conviction');
+  const difficulty = discreetPrayerDifficulty('intermediaire', discreet);
+  const res = pc.missile && !unplacedZone
+    ? resolveMagicMissile(caster, target, spell, battleRng(), pc.focused, ward, seaMagicContext(get()))
+    : resolveCasting(caster, spell, battleRng(), difficulty, pc.focused, ward, seaMagicContext(get()));
+  if (sigmar) get().log(tr('cs.sigmarWard', { name: caster.label }));
+  if (aqshy) get().log(tr('cs.aqshyBonus', { name: caster.label, n: aqshy }));
+  // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
+  // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
+  const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
+    ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
+    : {};
+  // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
+  // Incantation Critique — sa politique (`defaultCritChoice`) est son CHOIX, et elle s'ÉCRIT ici
+  // (LDB 46 l.28-32 : « vous pouvez aussi choisir »). Plus aucun défaut lu en douce par les gardes.
+  const critIA = aiDriven(get(), caster) && res.isCritical
+    ? { critChoice: defaultCritChoice(res, !!pc.missile) }
+    : {};
+  set({ pendingCast: { ...pc, result: res, ...auto, ...critIA } });
+  // Dissipation (LDB 46 l.156) : le Contre-sort s'aiguille ICI, AU JET, pour TOUT lanceur (héros,
+  // ennemi IA, ennemi du siège MJ) — l'objet du Test opposé est le Test d'Incantation, et le DR
+  // opposé module les DR (donc le budget de Surincantation) AVANT la pose. Gate + ancre de zone
+  // vivent dans l'aiguilleur UNIQUE (`routeCounterspell`).
+  routeCounterspell(get, set);
+}
+
+/** Renoncer à l'incantation (verbe `cancel` du flux `cast`, `FLOWS.cast.onCancel`). */
+export function renoncerALIncantation(get: Get, set: SetFn): void {
+  const pc = get().pendingCast;
+  if (!pc) return;
+  const caster = actorIn(get(), pc.casterId);
+  // Le jet lancé refuse le geste avant ce point (`FLOWS.cast.refusDAnnuler`). Aucune fenêtre de Contre-sort
+  // n'est encore ouverte (elle naît AU jet) : on la purge tout de même, l'incantation qu'elle oppose disparaît ici.
+  set({ pendingCast: null, pendingCascade: null, pendingCounterspell: null }); // TERMINAL : ferme data + cascade-hôte
+  // Modale d'un lanceur ENNEMI fermée sans appliquer : reprendre le tour suspendu (anti soft-lock).
+  if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
+}
+
+/** « Laisser passer » le Contre-sort (verbe `cancel` du flux `counterspell`, `FLOWS.counterspell.onCancel`). */
+export function laisserPasserLeContreSort(get: Get, set: SetFn): void {
+  const pcs = get().pendingCounterspell;
+  if (!pcs) return;
+  // « Laisser passer » DÉCLINE la fenêtre ENTIÈRE, fermée dès qu'une rangée a chanté ou doit encore
+  // déclarer (#1042/#1059) : `FLOWS.counterspell.annulation` et la garde de `cancel` de la fabrique.
+  set({ pendingCounterspell: null });
+  applyCounterspellFallback(get, set, pcs); // aucun surfacé n'a tenté → l'IA chante à leur place
+  resumeAfterCounterspell(get, set); // la chaîne reprend (agnostique IA/zone)
+}
+
 /** Incante un sort/prière sur une cible (résolution via src/engine/magic). */
 /** Ouvre la modale d'incantation (jet différé, façon attaque) : pose `pendingCast` sans lancer. */
 export function castSpell(
@@ -4808,14 +4923,6 @@ export function isDispellableCast(pc: PendingCast, spell: SpellLike): boolean {
  *  sélection — chant inline (aucun surfacé) et repli IA quand les surfacés déclinent. */
 export function bestCounterspeller(candidates: readonly Combatant[]): Combatant | undefined {
   return [...candidates].sort((a, b) => castingValue(b, 'langue', 'magick') - castingValue(a, 'langue', 'magick'))[0];
-}
-
-/** Une rangée de la fenêtre a-t-elle CHANTÉ ? Plusieurs contre-lanceurs peuvent tenter contre la
- *  MÊME incantation (#1040, cf. `counterspellConfirm` dans `src/noyau/combatSlice.ts`) — ce prédicat
- *  ne désigne donc personne : il dit que la fenêtre porte déjà une issue à appliquer, ce que
- *  « Laisser passer » jetterait. PUR (lu aussi par la modale). */
-export function counterspellChanted(pcs: PendingCounterspell | null | undefined): boolean {
-  return !!pcs?.participants.some((p) => !!p.result);
 }
 
 /** Combattants d'une fenêtre de Contre-sort (rangées → acteurs vivants de l'état). PUR. */

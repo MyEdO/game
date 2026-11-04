@@ -22,17 +22,19 @@
  * dont le `creatureId` figure dans `montures.json`. L'état d'incident persiste sur la Possession (`mountInjury`).
  * L'Exténué des bêtes est journalier (la halte de nuit vaut repos — LDB 16, l'Exténué part au repos).
  */
-import monturesJson from '../data/montures.json';
 import type { Combatant } from './types';
 import type { Possession } from './possession';
 import { possessionLabel, possessionCombatRideable } from './possession';
-import { d100, type RNG } from './dice';
+import { rollDice, type RNG } from './dice';
 import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
-import { rollMountIncident, mountIncidentEffects, type TravelTableEntry } from './travelTables';
+import { rollMountIncident, mountIncidentEffects, MOUNT_INCIDENT_DIE, type TravelTableEntry } from './travelTables';
 import { t, type MsgKey } from '../i18n';
 import { refLabel, dataLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
+import monturesJson from '../data/montures.json';
+import { rangeesDe, type RangeeDe } from '../data/rangees';
+import type * as montures from '../data/schemas/defs/montures';
 
 export type Allure = 'pas' | 'trot' | 'galop';
 export const ALLURES: readonly Allure[] = ['pas', 'trot', 'galop'];
@@ -45,23 +47,9 @@ export const ALLURE_KMH_PER_M: Record<Allure, number> = { pas: 1.5, trot: 2.5, g
 
 /** Une ligne de la table EDOC (M + Endurance + « trotte ou pas ») liée aux créatures possédables (Possession
  *  `nature: 'bete'`, SOCLE POSSESSIONS #617/#618). */
-export interface MountProfile {
-  id: string;
-  label: string;
-  /** Créatures du bestiaire (`creatures.json`) auxquelles ce profil s'applique. */
-  creatureIds: string[];
-  /** Mouvement (EDOC 07 l.121-130). */
-  m: number;
-  /** Endurance du profil (EDOC 07 l.13-93) — le Bonus en dérive. */
-  e: number;
-  /** La bête trotte-t-elle ? (colonne Trot « - » pour chien/poney/trait/bœuf, l.121-130). */
-  trot: boolean;
-  /** Charge portée en Points d'Enc (colonne « Capacité d'encombrement », EDOC 07 l.97-108) — capacité de bât
-   *  du porteur (`CargoCarrier`, engine/cargo.ts). */
-  encPortee: number;
-}
+export type MountProfile = RangeeDe<typeof montures>;
 
-export const MOUNT_PROFILES: MountProfile[] = (monturesJson as { entries: MountProfile[] }).entries;
+export const MOUNT_PROFILES = rangeesDe<typeof montures>(monturesJson);
 const montureParId = indexParId('montures', MOUNT_PROFILES);
 const montureParCreature = memoParVersion('montures', () =>
   new Map(MOUNT_PROFILES.flatMap((p) => p.creatureIds.map((c) => [c, p] as const))),
@@ -276,7 +264,7 @@ export function resolveMountedDay(mounts: PartyMount[], hours: number, allure: A
       o.tests.push(testDetail(t('mt.testOf', { skill: refLabel('skills', { id: 'resistance' }), mount: possessionLabel(mount.possession) }), base, tst));
       if (!tst.success) {
         o.extenue += 1; // « l'animal prend un nouvel État Exténué » (l.146)
-        const inc = resolveMountIncident(rollMountIncident(d100(rng)), mount, rng);
+        const inc = resolveMountIncident(rollMountIncident(rollDice(MOUNT_INCIDENT_DIE, rng)), mount, rng);
         o.incidents.push(inc);
         o.lines.push(...inc.lines);
         // Bête qui ne peut plus être montée : la journée de selle s'arrête là pour elle.

@@ -20,6 +20,7 @@ import type { ChoixNomme } from './reglages';
 import { fenetreDuJeu } from './combatAuto';
 import { libelleDuParametre } from './libelles';
 import { garanti } from '../lib/garanti';
+import { siOuvert } from './rollFlowSpecs';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { battleRng } from './battleRng';
 import { d10 } from '../engine/dice';
@@ -295,10 +296,14 @@ export function openSurgeryPass(get: Get, set: Set): void {
  *    durée d'horloge PARTAGÉE de 1d10 jours (charMod −10 / `moveScale` jambe) ; pas de Test d'infection.
  *  Sinon (les deux) → cumule sur `medic.surgery` et RÉOUVRE la passe suivante. */
 export function surgeryNext(get: Get, set: Set): void {
+  siOuvert('surgery', 'apply', get, () => appliquerLaPasse(get, set));
+}
+
+function appliquerLaPasse(get: Get, set: Set): void {
   const ps = get().pendingSurgery;
   const m = get().medic;
   const sg = m?.surgery;
-  if (!ps || ps.roll == null || !m || !sg) return;
+  if (!ps || !m || !sg) return;
   const patient = get().party.find((h) => h.id === m.patientId);
   if (!patient) { set({ pendingSurgery: null, medic: { ...m, surgery: undefined } }); return; }
   const { total: cum } = extendedTestStep(sg.cumDR, { success: ps.success, sl: ps.sl }, sg.targetDR); // Test étendu mutualisé (LDB 12)
@@ -339,23 +344,15 @@ export function surgeryNext(get: Get, set: Set): void {
     return;
   }
   // Passe intermédiaire : cumule (medic.surgery), journalise, et RÉOUVRE la passe suivante (FLOWS.surgery).
-  set({ medic: { ...m, surgery: { ...sg, cumDR: cum, last: { roll: ps.roll, sl: ps.sl } } }, pendingSurgery: null, ...touchActors(get()) });
+  set({ medic: { ...m, surgery: { ...sg, cumDR: cum, last: { roll: garanti(ps.roll, ps.healerId, 'jet de la passe'), sl: ps.sl } } }, pendingSurgery: null, ...touchActors(get()) });
   get().log(log[0]);
   openSurgeryPass(get, set);
-}
-
-/** Annule la PASSE posée, avant son jet : l'opération armée (`medic.surgery`), son cumul et l'acte payé
- *  restent ; `openSurgeryPass` la repose. */
-export function surgeryPassCancel(get: Get, set: Set): void {
-  const ps = get().pendingSurgery;
-  if (!ps || ps.roll != null) return;
-  set({ pendingSurgery: null });
 }
 
 /** Annule la Chirurgie : le cumul du Test étendu (LDB 12 l.170-174) est perdu. Jamais commencée
  *  (aucune passe appliquée) → l'acte PNJ est remboursé, comme `healCancel`. Ferme la passe en cours
  *  (`pendingSurgery`) ET l'opération armée (`medic.surgery`). */
-export function surgeryCancel(get: Get, set: Set): void {
+export function medicAbandonSurgery(get: Get, set: Set): void {
   const m = get().medic;
   const sg = m?.surgery;
   if (!m || !sg) { set({ pendingSurgery: null }); return; }
@@ -372,8 +369,7 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
     medicSetWound: (idx) => medicSetWound(get, set, idx),
     openSurgeryPass: () => openSurgeryPass(get, set),
     surgeryNext: () => surgeryNext(get, set),
-    surgeryPassCancel: () => surgeryPassCancel(get, set),
-    surgeryCancel: () => surgeryCancel(get, set),
+    medicAbandonSurgery: () => medicAbandonSurgery(get, set),
     closeMedic: () => closeMedic(get, set),
   } satisfies Partial<ActionsDuNoyau>;
 }
