@@ -3,15 +3,15 @@
  *
  * CONTRAT : après une édition au Codex (`setDataset`, la porte de `CodexEdit.save`), chaque accesseur
  * sert l'entrée ÉDITÉE et voit une entrée NEUVE — aucun lecteur ne peut tenir un index figé à l'import.
- * Ces cas ne sont pas théoriques : `traits`, `trappings`, `characteristics` et `props` sont tous édités par l'atelier
+ * Ces cas ne sont pas théoriques : `traits`, `trappings` et `characteristics` sont tous édités par l'atelier
  * (`exposition.edit` de leur def).
  *
  * Restauration `afterEach` par le seam lui-même : aucun test ne touche un dataset autrement.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import {
-  traits, trappings, characteristics, props, etats, weather, vehicles,
-  findTraitById, findTrappingById, findPropById, charAbr,
+  traits, trappings, characteristics, etats, weather, vehicles,
+  findTraitById, findTrappingById, charAbr,
 } from './index';
 import { parseTraitInstance } from '../ui/editor/refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
@@ -38,20 +38,16 @@ import {
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
-import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
 import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
-import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
-import { worldBakeDeps } from '../gameIso/backends/webgl/sceneMeshes';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
 const POSSESSIONS_LIVREES = [...trappings];
 const CARACS_LIVREES = [...characteristics];
-const DECORS_LIVRES = [...props];
 const ETATS_LIVRES = [...etats];
 const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
@@ -79,7 +75,6 @@ afterEach(() => {
   setDataset('traits', TRAITS_LIVRES);
   setDataset('trappings', POSSESSIONS_LIVREES);
   setDataset('characteristics', CARACS_LIVREES);
-  setDataset('props', DECORS_LIVRES);
   setDataset('etats', ETATS_LIVRES);
 });
 
@@ -107,45 +102,6 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     expect(charAbr('capacite-de-combat')).toBe('CC');
     setDataset('characteristics', characteristics.map((c) => (c.id === 'capacite-de-combat' ? { ...c, abr: 'ZZ' } : c)));
     expect(charAbr('capacite-de-combat')).toBe('ZZ');
-  });
-
-  it('un décor ÉDITÉ : `findPropById` rend la NOUVELLE entrée ET le READ-SET du bake porte une dep NEUVE', () => {
-    // La scène pose un décor VOLUMIQUE : `worldBakeDeps` y lit sa RECETTE (`propRecipeDeps`), donc la
-    // fraîcheur se MESURE sur la dep elle-même — pas seulement sur l'identité rendue par l'accesseur.
-    // L'édition porte donc sur ce qui CUIT (la recette) : un libellé seul ne recuit rien, par dessein.
-    const scene = emptyScene('scene-test', 6, 6);
-    scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
-    const mpt = sceneMetresPerTile(scene);
-    const depsAvant = worldBakeDeps(scene, mpt);
-    const avant = findPropById('tonneau')!;
-    expect(depsAvant).toContain(avant.volume); // la recette du tonneau EST une dep du bake
-
-    setDataset('props', props.map((p) => (p.id === 'tonneau' ? { ...p, label: 'Tonneau ébréché', volume: { ...p.volume! } } : p)));
-    const apres = findPropById('tonneau')!;
-    expect(apres.label).toBe('Tonneau ébréché');
-    expect(apres).not.toBe(avant);
-
-    const depsApres = worldBakeDeps(scene, mpt);
-    expect(depsApres.length).toBe(depsAvant.length);
-    expect(depsApres.some((d, i) => d !== depsAvant[i]), 'aucune dep du bake n’a bougé : le monde resterait cuit sur l’ancien décor').toBe(true);
-    expect(depsApres).toContain(apres.volume);
-  });
-
-  it('ISOLANT : un décor édité HORS de sa recette ne fait bouger AUCUNE dep du bake', () => {
-    // Contrepartie du cas précédent : il assère qu'une dep CHANGE, ce qui ne vaut que si toute
-    // édition ne les fait pas toutes changer. Ici l'édition ne touche QUE le libellé — la recette
-    // (`volume`) garde son identité —, et le read-set doit être identique élément par élément.
-    const scene = emptyScene('scene-test', 6, 6);
-    scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
-    const mpt = sceneMetresPerTile(scene);
-    const depsAvant = worldBakeDeps(scene, mpt);
-
-    setDataset('props', props.map((p) => (p.id === 'tonneau' ? { ...p, label: 'Tonneau signé' } : p)));
-    expect(findPropById('tonneau')!.label).toBe('Tonneau signé');
-
-    const depsApres = worldBakeDeps(scene, mpt);
-    expect(depsApres.length).toBe(depsAvant.length);
-    expect(depsApres.filter((d, i) => d !== depsAvant[i]), 'le bake se déclencherait sur une édition qui ne cuit rien').toEqual([]);
   });
 
   it('un État RENOMMÉ : le journal reconnaît le NOUVEAU libellé, et son importance suit l’id', () => {
@@ -360,7 +316,6 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(dawnMinute()).toBe(360);
     expect(duskMinute()).toBe(1140);
     expect(isTravelDaylight(330)).toBe(false);
-    expect(sunJeuHalfArcMin()).toBe(12 * 60 - 360);
   });
 
   it('un jour intercalaire AJOUTÉ : `daysPerYear` le compte', () => {

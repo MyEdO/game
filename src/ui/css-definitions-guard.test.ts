@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /**
  * Garde STRUCTURELLE — ce qu'une feuille CONSOMME doit être DÉFINI quelque part dans l'arbre.

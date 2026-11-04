@@ -12,7 +12,7 @@ import {
   programmeDuPerimetre,
 } from '../../../scripts/guards/lib/sceneFieldEditability.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
-import { detenteur } from '../../detenteur.testkit';
+import { detenteur } from '../../lib/detenteur.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive

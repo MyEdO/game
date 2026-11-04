@@ -6,7 +6,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { reglesCss, FEUILLES_PARTAGEES } from '../../scripts/guards/lib/cssCouches.mjs';
 import { OWNERS } from '../../scripts/guards/lib/marqueursPossedes.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 const RACINE_REPO = fileURLToPath(new URL('../../', import.meta.url));
 

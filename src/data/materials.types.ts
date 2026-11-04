@@ -2,7 +2,7 @@
  * MATIÈRES DU MONDE (#1686 lot 2) — vue TS de `materials.json`, dataset UNIQUE des matières de rendu.
  *
  * L'identité d'une matière est le couple (`domain`, `id`) ; l'id reste unique sur tout le périmètre
- * (`src/data/materials-identite.test.ts`), si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
+ * (`src/gameIso/catalog/materials-identite.test.ts`), si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
  * `toit-ardoise`) plutôt que de compter sur son domaine pour être séparable.
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/materials.ts` : toutes les clés de charge

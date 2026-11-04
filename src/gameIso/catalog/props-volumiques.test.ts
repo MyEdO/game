@@ -16,7 +16,7 @@ import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { validateScene } from '../../noyau/validateScene';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../../detenteur.testkit';
+import { detenteur } from '../../lib/detenteur.testkit';
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette, et dont le SVG

@@ -23,7 +23,7 @@ import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { join, sep } from 'node:path';
 import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 const SRC = join(process.cwd(), 'src');
 const NOYAU = join(SRC, 'noyau');

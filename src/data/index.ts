@@ -2879,7 +2879,7 @@ const decorVolumique = porteLeMarqueur('prop', 'volume');
 export const refEstVolumique = (ref: string | undefined): boolean => ref !== undefined && decorVolumique(ref);
 /** Matière de rendu d'une recette volumique de décor, par id — lecture VIVANTE du document (`matieresDe`),
  *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
- *  `data/materials-identite.test.ts` (#1686). */
+ *  `gameIso/catalog/materials-identite.test.ts` (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
 /** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
 export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);

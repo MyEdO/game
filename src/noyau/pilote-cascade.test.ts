@@ -11,7 +11,7 @@ import { EXEMPTIONS, bouclesPilotes, corpusMesure, regenerations, sitesDeBoucles
 import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import type { CascadeStep } from './pendings';
 import type { GameState } from '../state/store';
