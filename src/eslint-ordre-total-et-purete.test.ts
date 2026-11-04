@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { blocsDeRegle, creerBancLint, lintFixtures, selectionnerMessages, configPourFichier } from '../scripts/guards/lib/lint.testkit.mjs';
 import { correspondGlob } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
-import { estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeAuxInstruments, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
 
@@ -47,6 +47,10 @@ const REEX = 'murs/reexportation';
 const INSTR = 'murs/tests-survivants';
 const ZONES = Object.keys(COUCHES).filter((z) => z !== 'racine');
 
+/** L'objet de Vitest que les fixtures appellent pour mocker : le banc ne mocke rien, il écrit le code qu'il lint
+ *  (`src/vi-mock-isolate-guard.test.ts` lit le texte des suites). */
+const MOQUEUR = 'vi';
+
 /** Les formes d'import vers `p` ; `type` : la forme s'efface à la compilation ; `reexporte` : elle réexporte. */
 const FORMES: { nom: string; code: (p: string) => string; type: boolean; reexporte?: boolean }[] = [
   { nom: 'statique nommé', code: (p) => `import { X } from '${p}';\nexport const a = X;\n`, type: false },
@@ -65,8 +69,8 @@ const FORMES: { nom: string; code: (p: string) => string; type: boolean; reexpor
   { nom: 'export … from', code: (p) => `export { X } from '${p}';\n`, type: false, reexporte: true },
   { nom: '`export *`', code: (p) => `export * from '${p}';\n`, type: false, reexporte: true },
   { nom: '`import x = require()`', code: (p) => `import x = require('${p}');\nexport const a = x;\n`, type: false },
-  { nom: '`vi.mock`', code: (p) => `vi.mock('${p}');\n`, type: false },
-  { nom: '`vi.doMock`', code: (p) => `vi.doMock('${p}');\n`, type: false },
+  { nom: '`vi.mock`', code: (p) => `${MOQUEUR}.mock('${p}');\n`, type: false },
+  { nom: '`vi.doMock`', code: (p) => `${MOQUEUR}.doMock('${p}');\n`, type: false },
   { nom: '`vi.importActual`', code: (p) => `export const f = () => vi.importActual('${p}');\n`, type: false },
   { nom: '`vi.importMock`', code: (p) => `export const f = () => vi.importMock('${p}');\n`, type: false },
   { nom: 'import.meta.glob', code: (p) => `export const g = import.meta.glob('${p}.ts');\n`, type: false },
@@ -115,6 +119,32 @@ const specifieurs = (rel: string, vers: string): string[] => {
 const arcsVers = (rel: string, vers: string): { p: string; cible: string; avecMotif: boolean }[] => [
   ...specifieurs(rel, vers).map((p) => ({ p, cible: `${dossierDe(vers)}/x`, avecMotif: true })),
   { p: relatif(rel, dossierDe(vers)), cible: dossierDe(vers), avecMotif: false },
+];
+
+/** Les chargeurs qu'une suite emploie hors de la lecture des arcs (#3058, `surCalcule` de `visiteurDArcs`). */
+const CHARGEURS_DETOURNES: [forme: string, code: string][] = [
+  ['`import { vi as v }`', "import { vi as v } from 'vitest';\nexport const f = () => v.importActual('./zz-a');\n"],
+  ['`const v = vi`', "import { vi } from 'vitest';\nconst v = vi;\nexport const f = () => v.importActual('./zz-a');\n"],
+  ['`vi[…]`', "import { vi } from 'vitest';\nexport const f = () => vi['importActual']('./zz-a');\n"],
+  ['`vi.importActual.call`', "import { vi } from 'vitest';\nexport const f = () => vi.importActual.call(vi, './zz-a');\n"],
+  ['`const { importActual } = vi`', "import { vi } from 'vitest';\nconst { importActual } = vi;\nexport const f = () => importActual('./zz-a');\n"],
+  ['`createRequire as cr`', "import { createRequire as cr } from 'node:module';\nexport const s = cr(import.meta.url)('./zz-a');\n"],
+  ['`createRequire` déstructuré', "import nm from 'node:module';\nconst { createRequire: cr } = nm;\nexport const s = cr(import.meta.url)('./zz-a');\n"],
+  ['requireur réaffecté', "import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nconst r2 = r;\nexport const s = r2('./zz-a');\n"],
+  ['`createRequire(…)` dans un objet', "import { createRequire } from 'node:module';\nconst m = { require: createRequire(import.meta.url) };\nexport const s = m['require']('./zz-a');\n"],
+  ['`module[…]`', "export const s = module['require']('./zz-a');\n"],
+  ['`require` passé', 'export const s = [require].map((r) => r(\'./zz-a\'));\n'],
+  ['motif de glob calculé', "const p = './*.ts';\nexport const g = import.meta.glob(p);\n"],
+];
+
+/** Les emplois de chargeur que la lecture des arcs suit, ou qui ne chargent rien. */
+const CHARGEURS_LISIBLES: [forme: string, code: string][] = [
+  ['`vi.fn`, `vi.spyOn`', "import { vi } from 'vitest';\nexport const f = vi.fn();\nexport const g = (o: { a(): void }) => vi.spyOn(o, 'a');\n"],
+  ['`createRequire(…).resolve`', "import { createRequire } from 'node:module';\nexport const p = createRequire(import.meta.url).resolve('tsx');\n"],
+  ['liaison `createRequire(…)` appelée', "import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nexport const s = r('./zz-a');\n"],
+  ['`module` local', "export const f = async () => { const module = await import('./zz-a'); return Object.keys(module); };\n"],
+  ['`vitest` local', "const [vitest] = [1];\nexport const v = [vitest];\n"],
+  ['type `typeof vi`', "import { vi } from 'vitest';\nexport type V = typeof vi;\n"],
 ];
 
 /** Le chemin d'une fixture posée à côté du fichier réel `rel`. */
@@ -261,7 +291,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(horsReexportation.filter((rel) => regles(rel).includes(REEX))).toEqual([]);
   });
 
-  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…` ; depuis une suite, celui de `fermeAuxInstruments`', { timeout: 600_000 }, () => {
+  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…` ; depuis une suite, celui de `fermeAuxInstruments`', { timeout: 460_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
     for (const de of ZONES) {
       for (const rel of sondes(de)) {
@@ -278,19 +308,27 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
           }
         }
       }
-      // INSTRUMENTS (#3058) : une suite de la zone, par paire, sous chaque forme en relatif et sous chaque arc en import nommé.
+    }
+    // INSTRUMENTS (#3058) : une suite de chaque zone vers chaque autre, en import nommé relatif (le câblage de
+    // `fermeAuxInstruments`) ; sur la première paire fermée, chaque forme sous chaque arc (le jugeur, `jugeurDArcs`, est
+    // celui de la pureté de couche).
+    const [ferme] = ZONES.flatMap((de) => ZONES.filter((vers) => fermeAuxInstruments(de, vers)).map((vers) => [de, vers]));
+    expect(ferme, 'aucune paire fermée aux instruments : le banc ne mesure rien').toBeDefined();
+    const instruments: { cle: string; attendu: string; fixture: { filePath: string; code: string }; forme: string }[] = [];
+    for (const de of ZONES) {
       const [rel] = sondes(de);
-      for (const vers of ZONES) {
-        if (vers === de) continue;
-        const [relatifVers, ...autres] = arcsVers(rel, vers);
-        const variantes = [...FORMES.map((f) => ({ f, arc: relatifVers })), ...autres.map((arc) => ({ f: FORMES[0], arc }))];
-        for (const { f, arc: { p } } of variantes.filter(({ f, arc }) => arc.avecMotif || f.nom !== 'import.meta.glob')) {
-          const filePath = suite(voisin(rel, cas.length));
-          cas.push({ cle: `${filePath} → ${p} (${f.nom})`, attendu: fermeAuxInstruments(de, vers) ? INSTR : 'passe', fixture: { filePath, code: f.code(p) } });
+      for (const vers of ZONES.filter((v) => v !== de)) {
+        const tout = de === ferme[0] && vers === ferme[1];
+        const variantes = tout ? arcsVers(rel, vers).flatMap((arc) => FORMES.filter((f) => arc.avecMotif || f.nom !== 'import.meta.glob').map((f) => ({ f, arc })))
+          : [{ f: FORMES[0], arc: arcsVers(rel, vers)[0] }];
+        for (const { f, arc: { p } } of variantes) {
+          const filePath = suite(voisin(rel, cas.length + instruments.length));
+          instruments.push({ cle: `${filePath} → ${p} (${f.nom})`, attendu: fermeAuxInstruments(de, vers) ? INSTR : 'passe', fixture: { filePath, code: f.code(p) }, forme: f.nom });
         }
       }
     }
-    expect(cas.filter((c) => c.attendu === INSTR).length, 'aucune paire fermée aux instruments : le banc ne mesure rien').toBeGreaterThan(0);
+    expect(FORMES.filter((f) => !instruments.some((c) => c.forme === f.nom && c.attendu === INSTR)).map((f) => f.nom), 'forme sans cas rouge d’instrument').toEqual([]);
+    cas.push(...instruments);
     const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX, INSTR]);
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
@@ -337,11 +375,28 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(obtenus).toEqual([INSTR, 'passe', 'passe', REGLE, 'passe', REGLE, 'passe']);
   });
 
+  it('PARTAGE : un fichier d’une zone est sous la pureté de couche ou sous le mur des instruments, selon `estFichierVitest`, jamais sous les deux ni sous aucun', () => {
+    const vers = (rel: string) => `import { X } from '${relatif(rel, 'src/state/x')}';\nexport const a = X;\n`;
+    const cas: [filePath: string, attendu: string][] = [
+      ['src/noyau/zz-partage-0.test.ts', INSTR],
+      ['src/noyau/zz-partage-1.bench.ts', INSTR],
+      ['src/noyau/zz-partage-2.hors-store.test.ts', INSTR],
+      ['src/noyau/zz-partage-3.test.aide.ts', REGLE],
+      ['src/noyau/zz-partage-4.testkit.ts', REGLE],
+      ['src/engine/zz-partage-5.bench.kit.ts', REGLE],
+      ['src/noyau/zz-partage-6.ts', REGLE],
+      ['hotes/zz-partage-7.hors-store.test.ts', INSTR],
+    ];
+    expect(cas.map(([f]) => estFichierVitest(f))).toEqual(cas.map(([, v]) => v === INSTR));
+    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: vers(filePath) })), [REGLE, INSTR]);
+    expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([f, v]) => [f, v])));
+  });
+
   it('INSTRUMENTS : une suite ou un banc d’une zone qui survit refuse le banc, le paquet de l’hôte web, le JSX et le spécificateur calculé ; `state→ui`, `noyau→scenes`, un module hors des zones, l’`import()` d’un `vi.mock` et la production passent', () => {
     const [noyau] = sondes('noyau');
     const [engine] = sondes('engine');
     const [state] = sondes('state');
-    const calcule = ['import(p)', 'require(p)', 'vi.mock(p)', 'vi.doMock(p)', 'vi.importActual(p)', 'vi.importMock(p)', 'createRequire(import.meta.url)(p)', 'module.require(p)', 'require(...[p])'];
+    const calcule = ['import(p)', 'require(p)', `${MOQUEUR}.mock(p)`, `${MOQUEUR}.doMock(p)`, 'vi.importActual(p)', 'vi.importMock(p)', 'createRequire(import.meta.url)(p)', 'module.require(p)', 'require(...[p])'];
     const cas: [cle: string, filePath: string, code: string, attendu: string][] = [
       ['banc engine → ui (type)', voisin(engine, 0).replace(/\.ts$/, '.bench.ts'), `import type { X } from '${specifieurs(engine, 'ui')[0]}';\nexport type A = X;\n`, INSTR],
       ['state → ui', suite(voisin(state, 1)), `import { X } from '${specifieurs(state, 'ui')[0]}';\nexport const a = X;\n`, 'passe'],
@@ -350,10 +405,13 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['noyau → react', suite(voisin(noyau, 4)), "import { useState } from 'react';\nexport const a = useState;\n", INSTR],
       ['state → react', suite(voisin(state, 5)), "import { useState } from 'react';\nexport const a = useState;\n", 'passe'],
       ['noyau : JSX', suite(voisin(noyau, 6)).replace(/\.ts$/, '.tsx'), 'export const A = () => <div />;\n', INSTR],
-      ['noyau : `vi.mock(import(…))`', suite(voisin(noyau, 7)), "vi.mock(import('./zz-a'));\n", 'passe'],
+      ['noyau : mock d’un `import(…)`', suite(voisin(noyau, 7)), `${MOQUEUR}.mock(import('./zz-a'));\n`, 'passe'],
       ...calcule.map((appel, i): [string, string, string, string] => [`noyau : ${appel}`, suite(voisin(noyau, 8 + i)), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, INSTR]),
       ...calcule.map((appel, i): [string, string, string, string] => [`production noyau : ${appel}`, voisin(noyau, 20 + i), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, 'passe']),
       ['state : import(p)', suite(voisin(state, 40)), "const p = './zz-' + 'a';\nexport const f = () => import(p);\n", 'passe'],
+      ...CHARGEURS_DETOURNES.map(([forme, code], i): [string, string, string, string] => [`noyau : ${forme}`, suite(voisin(noyau, 50 + i)), code, INSTR]),
+      ...CHARGEURS_DETOURNES.map(([forme, code], i): [string, string, string, string] => [`state : ${forme}`, suite(voisin(state, 80 + i)), code, 'passe']),
+      ...CHARGEURS_LISIBLES.map(([forme, code], i): [string, string, string, string] => [`noyau, lisible : ${forme}`, suite(voisin(noyau, 110 + i)), code, 'passe']),
     ];
     const obtenus = verdicts(cas.map(([, filePath, code]) => ({ filePath, code })), [INSTR]);
     expect(Object.fromEntries(cas.map(([cle], i) => [cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([cle, , , v]) => [cle, v])));

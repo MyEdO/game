@@ -8,6 +8,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { analyserTexte, analyserCorpus, typescript } from './dialecte.mjs';
 import { correspondGlob } from './lister.mjs';
+import { METHODES_VITEST, OBJETS_VITEST } from './arcsDImport.mjs';
 import { createRequire } from 'node:module';
 import { URL as NodeURL, fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
@@ -37,13 +38,23 @@ export function* analyserEnLots(entrees, tailleLot = LOT_D_ANALYSE) {
   }
 }
 
-/** `require('…')`, `module.require('…')` ou `createRequire(…)('…')` : l'appelé d'une acquisition
- *  CommonJS. */
+/** `createRequire(…)` ou `module.createRequire(…)`. */
+const estCreateRequire = (ts, n) => !!n && ts.isCallExpression(n) &&
+  ((ts.isIdentifier(n.expression) && n.expression.text === 'createRequire') ||
+    (ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'createRequire'));
+
+/** `require('…')`, `module.require('…')`, `createRequire(…)('…')` ou `module.createRequire(…)('…')` : l'appelé
+ *  d'une acquisition CommonJS. */
 const estRequire = (ts, appele) =>
   (ts.isIdentifier(appele) && appele.text === 'require') ||
   (ts.isPropertyAccessExpression(appele) && ts.isIdentifier(appele.expression) &&
     appele.expression.text === 'module' && appele.name.text === 'require') ||
-  (ts.isCallExpression(appele) && ts.isIdentifier(appele.expression) && appele.expression.text === 'createRequire');
+  estCreateRequire(ts, appele);
+
+/** `vi.importActual('…')`, `vi.mock('…')`… (`OBJETS_VITEST`, `METHODES_VITEST`, `arcsDImport.mjs`) : l'appelé d'une
+ *  acquisition de Vitest. */
+const estChargeurVitest = (ts, appele) => ts.isPropertyAccessExpression(appele) && ts.isIdentifier(appele.expression) &&
+  OBJETS_VITEST.has(appele.expression.text) && METHODES_VITEST.has(appele.name.text);
 
 /**
  * Sites de module, liaisons et rôles lus dans un seul parcours AST. Le source texte est parsé par
@@ -82,6 +93,9 @@ export function sitesDeModule(fichier, source, diagnostics) {
   const liaison = (forme, typeSeul, local, importe, exporte) => ({ forme, typeSeul: !!typeSeul, local, importe, exporte });
   const tetes = new Set(arbre.statements);
   const vus = [];
+  /** Les liaisons `createRequire(…)` du fichier, et les appels d'un identifiant qui en est peut-être une. */
+  const requireurs = new Set();
+  const appelsDIdentifiant = [];
   const ajouter = (noeud, genre, nature, acquisition, spec, clause = false, liaisons = []) => {
     const p = position(noeud);
     vus.push({ genre, nature, acquisition, spec, clause, niveauModule: tetes.has(noeud), ...p, texte: texte.slice(p.debut, p.fin), liaisons });
@@ -121,15 +135,35 @@ export function sitesDeModule(fichier, source, diagnostics) {
       const spec = ts.isLiteralTypeNode(n.argument) ? litteral(n.argument.literal) : null;
       ajouter(n, 'importType', 'type', true, spec);
     } else if (ts.isCallExpression(n)) {
-      const spec = litteral(n.arguments[0]);
+      const [premier] = n.arguments;
+      const spec = litteral(premier);
       if (n.expression.kind === ts.SyntaxKind.ImportKeyword) ajouter(n, 'appel', 'dynamique', true, spec);
       else if (estRequire(ts, n.expression)) ajouter(n, 'appel', 'require', true, spec);
+      else if (estChargeurVitest(ts, n.expression) && premier && !(ts.isCallExpression(premier) && premier.expression.kind === ts.SyntaxKind.ImportKeyword))
+        ajouter(n, 'appel', 'dynamique', true, spec);
+      else if (ts.isIdentifier(n.expression) && premier) appelsDIdentifiant.push({ n, nom: n.expression.text, spec });
     } else if (ts.isIdentifier(n) && n.text === 'createRequire') ajouter(n, 'fournisseur', 'require', false, null);
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && estCreateRequire(ts, n.initializer)) requireurs.add(n.name.text);
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) && estCreateRequire(ts, n.right)) requireurs.add(n.left.text);
     n.forEachChild(visiter);
   };
   visiter(arbre);
-  return vus;
+  const lies = appelsDIdentifiant.filter(({ nom }) => requireurs.has(nom));
+  if (!lies.length) return vus;
+  for (const { n, spec } of lies) ajouter(n, 'appel', 'require', true, spec);
+  return vus.sort((a, b) => a.debut - b.debut);
 }
+
+/** `import.meta.glob(…)`. */
+const estGlob = (ts, n) => ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'glob' &&
+  ts.isMetaProperty(n.expression.expression) && n.expression.expression.keywordToken === ts.SyntaxKind.ImportKeyword;
+
+/** Les motifs d'un appel `import.meta.glob(…)` (`estGlob`) : une chaîne ou un tableau de chaînes, `null` sinon. */
+const motifsDe = (ts, n) => {
+  const [premier] = n.arguments;
+  const elements = premier && ts.isArrayLiteralExpression(premier) ? [...premier.elements] : premier ? [premier] : [];
+  return elements.length && elements.every((e) => ts.isStringLiteralLikeNode(e)) ? elements.map((e) => e.text) : null;
+};
 
 export const liaisonsDe = (fichier, source, diagnostics) => sitesDeModule(fichier, source, diagnostics)
   .flatMap(({ liaisons, ...site }) => liaisons.map((liaison) => ({ ...site, ...liaison })));
@@ -137,9 +171,12 @@ export const liaisonsDe = (fichier, source, diagnostics) => sitesDeModule(fichie
 export const chargementsDe = (fichier, source, diagnostics) => sitesDeModule(fichier, source, diagnostics)
   .filter(({ acquisition, genre }) => acquisition || genre === 'fournisseur');
 
-export const specificateursDe = (fichier, source, diagnostics) => sitesDeModule(fichier, source, diagnostics)
+/** Les acquisitions à spécificateur littéral de `sites` (`sitesDeModule`). */
+const litterauxDe = (sites) => sites
   .filter(({ acquisition, spec }) => acquisition && spec !== null)
   .map(({ spec, nature, ligne, debut, fin, texte }) => ({ spec, nature, ligne, debut, fin, texte }));
+
+export const specificateursDe = (fichier, source, diagnostics) => litterauxDe(sitesDeModule(fichier, source, diagnostics));
 
 /**
  * Les motifs LITTÉRAUX des appels `import.meta.glob(…)` d'un arbre (Vite, « Glob Import ») : une chaîne
@@ -152,13 +189,8 @@ export function globsDe(arbre) {
   const ts = typescript();
   const vus = [];
   const visiter = (n) => {
-    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'glob' &&
-      ts.isMetaProperty(n.expression.expression) && n.expression.expression.keywordToken === ts.SyntaxKind.ImportKeyword) {
-      const [premier] = n.arguments;
-      const elements = premier && ts.isArrayLiteralExpression(premier) ? [...premier.elements] : premier ? [premier] : [];
-      if (elements.length && elements.every((e) => ts.isStringLiteralLikeNode(e)))
-        vus.push({ motifs: elements.map((e) => e.text), ligne: arbre.getLineAndCharacterOfPosition(n.getStart(arbre)).line + 1 });
-    }
+    const motifs = ts.isCallExpression(n) && estGlob(ts, n) ? motifsDe(ts, n) : null;
+    if (motifs) vus.push({ motifs, ligne: arbre.getLineAndCharacterOfPosition(n.getStart(arbre)).line + 1 });
     n.forEachChild(visiter);
   };
   visiter(arbre);
@@ -221,16 +253,18 @@ const fichierExiste = (chemin) => {
  * spécificateur portant DÉJÀ son extension (`./x.mjs`, `./data.json` — la forme des 109 imports de
  * `src/**` vers les libs de garde) ou, absent, sa source TypeScript (`EXTS_TS_DE`), sinon extension
  * déduite d'`EXTS`, sinon repli `index.*`. Un spécificateur qui commence par un ALIAS (`alias`, `@/…`)
- * se résout sous sa cible ; un paquet npm rend `null` (hors périmètre).
+ * se résout sous sa cible ; sous `racine`, un spécificateur `/…` part de la racine (Vite, comme `cibleLexicale` de
+ * `interneLint.mjs`) ; un paquet npm rend `null` (hors périmètre).
  * `existe` (chemin absolu POSIX → présent ?) et `alias` disent quel ARBRE fait foi : le disque du
  * répertoire courant par défaut, la liste de fichiers et le `tsconfig.json` d'une ref pour qui juge un
  * autre arbre que l'arbre de travail (#1806).
  * @param {string} fromFile @param {string} spec @param {(abs: string) => boolean} [existe]
- * @param {readonly { prefixe: string, vers: string }[]} [alias]
+ * @param {readonly { prefixe: string, vers: string }[]} [alias] @param {Arc['nature']} [nature] @param {string} [racine]
  * @returns {string|null}
  */
-export function resolveImport(fromFile, spec, existe = fichierExiste, alias = aliasDuDepot(), nature = 'statique') {
-  const a = spec.startsWith('.') ? null : alias.find(({ prefixe }) => spec.startsWith(prefixe));
+export function resolveImport(fromFile, spec, existe = fichierExiste, alias = aliasDuDepot(), nature = 'statique', racine) {
+  const depuisLaRacine = racine !== undefined && spec.startsWith('/');
+  const a = spec.startsWith('.') ? null : depuisLaRacine ? { prefixe: '/', vers: `${resolve(racine).split(sep).join('/')}/` } : alias.find(({ prefixe }) => spec.startsWith(prefixe));
   if (!spec.startsWith('.') && !a) return null;
   const base = (nature === 'require'
     ? a ? `${a.vers}${spec.slice(a.prefixe.length)}` : resolve(dirname(fromFile), spec)
@@ -298,13 +332,15 @@ const arbreDesCaches = new WeakMap();
  * `specificateurs` mémoïse les spécificateurs NON RÉSOLUS d'un texte brut, sous le régime de la marche (`lire(abs, texte)` → sites
  * ou `undefined`, `ecrire(abs, texte, sites)`) : la résolution, elle, dépend de l'ensemble et se refait.
  * `analyser(entrees, tailleLot)` analyse les modules à lire (`analyserEnLots` par défaut).
+ * `surSites(abs, sites)` reçoit les sites de chaque module analysé (`sitesDeModule`), ceux que la marche ne suit
+ * pas compris (paquet, spécificateur calculé) ; un module mémoïsé (`specificateurs`) ne le rappelle pas.
  * @param {string[]} roots
- * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean,
+ * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean, surSites?: (abs: string, sites: ReturnType<typeof sitesDeModule>) => void,
  *   arbre?: { existe: (abs: string) => boolean, lire: (abss: string[]) => Map<string, string | null>, fichiers?: readonly string[] },
  *   tailleLot?: number, analyser?: typeof analyserEnLots, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à `racine`
  */
-export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots } = {}) {
+export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, surSites } = {}) {
   if (!Number.isSafeInteger(tailleLot) || tailleLot <= 0) throw new Error(`clotureDImports : tailleLot positive entière attendue : ${tailleLot}`);
   const base = resolve(racine);
   const config = resolve(base, CHEMIN_TSCONFIG).split(sep).join('/');
@@ -326,7 +362,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
   const existeResolu = arbre === ARBRE_DU_DISQUE ? fichierExiste : arbre.existe;
   const resoudre = (abs, sites) => sites.flatMap((site) => site.nature === 'glob'
     ? arcsDeGlob(abs, site, arbre.fichiers, base)
-    : [resolveImport(abs, site.spec, existeResolu, alias, site.nature)].filter(Boolean).map((cible) => ({ ...site, cible })));
+    : [resolveImport(abs, site.spec, existeResolu, alias, site.nature, base)].filter(Boolean).map((cible) => ({ ...site, cible })));
   const seen = new Set();
   let frontiere = roots.map(r => ({ abs: resolve(base, r).split(sep).join('/') }));
   while (frontiere.length) {
@@ -351,7 +387,9 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
       aAnalyser.push({ rel: abs, text: typesEffaces ? sourceALExecution(abs, brut, { racine: base }) : brut, brut });
     }
     for (const { fichier, sourceFile, diagnostics } of analyser(aAnalyser, tailleLot)) {
-      const sites = [...specificateursDe(fichier.rel, sourceFile, diagnostics),
+      const tous = sitesDeModule(fichier.rel, sourceFile, diagnostics);
+      surSites?.(fichier.rel, tous);
+      const sites = [...litterauxDe(tous),
         ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];
       specificateurs?.ecrire(fichier.rel, fichier.brut, sites);
       cache.set(fichier.rel, resoudre(fichier.rel, sites));
@@ -373,13 +411,16 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
 
 /** @typedef {Omit<Arc, 'cible' | 'nature'> & { nature: Arc['nature'] | 'glob', motifs?: string[] }} SiteNonResolu */
 
+/** Les textes de `abss` (chemins absolus) sur le disque, `null` pour un illisible. */
+const lireDuDisque = (abss) => new Map(abss.map((abs) => {
+  try { return [abs, readFileSync(abs, 'utf8')]; } catch { return [abs, null]; }
+}));
+
 /** Le DISQUE comme ensemble de fichiers : le défaut de `clotureDImports`. */
-const ARBRE_DU_DISQUE = Object.freeze({
-  existe: existsSync,
-  lire: (abss) => new Map(abss.map((abs) => {
-    try { return [abs, readFileSync(abs, 'utf8')]; } catch { return [abs, null]; }
-  })),
-});
+const ARBRE_DU_DISQUE = Object.freeze({ existe: existsSync, lire: lireDuDisque });
+
+/** Le DISQUE, borné aux `fichiers` (chemins absolus POSIX) : un motif d'`import.meta.glob` y fait ses arcs. */
+export const arbreDuDisque = (fichiers) => Object.freeze({ existe: fichierExiste, lire: lireDuDisque, fichiers: Object.freeze([...fichiers]) });
 
 /** Les arcs `glob` d'un module `abs` : chaque membre de `fichiers` que visent ses `motifs` (relatifs au
  *  module, ou à `base` sous `/`), moins ceux d'un motif `!`. Sans `fichiers`, aucun. */
@@ -449,7 +490,7 @@ export function importsDirectsDesSites(fromFile, sites, { racine = '.', existe =
   const found = new Set();
   for (const site of sites) {
     if (site.nature === 'glob') continue;
-    const cible = resolveImport(abs, site.spec, existe, alias, site.nature);
+    const cible = resolveImport(abs, site.spec, existe, alias, site.nature, root);
     if (cible && cible.startsWith(`${root}/`) && cible.includes('/src/')) found.add(cible.slice(root.length + 1));
   }
   return [...found];

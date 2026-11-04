@@ -210,7 +210,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   const alias = aliasDuDepot(racine)
   const cibleDe = (f, spec) => {
     const arc = (cache.get(abs(f)) ?? []).find((a) => a.spec === spec)
-    const cible = arc?.cible ?? resolveImport(abs(f), spec, (a) => ensemble.has(rel(a)), alias)
+    const cible = arc?.cible ?? resolveImport(abs(f), spec, (a) => ensemble.has(rel(a)), alias, undefined, racine)
     return cible ? rel(cible) : null
   }
   /** Les modules LECTEURS : ceux qui appellent une lecture, puis, au point fixe, les importeurs qui

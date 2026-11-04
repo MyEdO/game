@@ -10,13 +10,16 @@
 //    `racine`, un motif de glob dont le dossier de zone est un joker est refusé (`dossierJoker`). Une zone qui survit
 //    n'écrit aucun JSX et ne lit aucun module de CODE hors des zones (`scripts/`, `server/`… ; `estCode` : une donnée
 //    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
-//    `horsZoneOuvert`). Les suites et bancs n'y sont pas.
+//    `horsZoneOuvert`). Elle juge tout fichier d'une zone qui n'est ni suite ni banc (`estFichierVitest`).
 //  - `murs/tests-survivants` (#3058) : une suite ou un banc (`estFichierVitest`) d'une zone qui survit n'a aucun arc,
 //    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeAuxInstruments`), ne charge aucun
-//    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`) et
-//    n'importe par aucun spécificateur calculé (`surCalcule`). Une cible hors des zones s'ouvre : sa clôture est
-//    le mur `scripts/corpus/guards/clotureDesInstruments.test.mjs`. `purete-imports` et ce mur partagent un seul
-//    jugeur d'arcs (`jugeurDArcs`).
+//    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`), et ne
+//    charge rien que la lecture des arcs ne suive (`surCalcule` de `visiteurDArcs`) : spécificateur ou motif calculé,
+//    chargeur renommé, lié comme valeur ou lu par un accès calculé. Une cible hors des zones s'ouvre : sa clôture est
+//    le mur `scripts/corpus/guards/clotureDesInstruments.test.mjs`, qui ne suit pas l'acquisition calculée d'un module
+//    hors des zones (`scripts/docs/build-all.mjs:216`, `scripts/guards/lib/structuresLocales.mts:249` ; reste de
+//    #3058). `purete-imports` et ce mur se partagent les
+//    fichiers des zones, sans trou ni recouvrement, et un seul jugeur d'arcs (`jugeurDArcs`).
 //  - `murs/reexportation` (#2817 D2) : le fichier ne réexporte rien — ni `export … from` sous aucune forme
 //    d'arc, ni `export { … }` d'une liaison importée ; la config le borne.
 //  - `murs/suite-jouee` (#2928) : une suite (`estSuiteVitest`) est jouée par la suite principale ou par celle du
@@ -61,7 +64,7 @@ function dossierJoker(cibleRel) {
 const estCode = (cibleRel) => { const ext = extname(cibleRel); return ext === '' || [...EXTENSIONS_DE_SCRIPT].includes(ext); };
 
 /** Le nom de paquet d'un spécificateur nu (`@scope/nom/x` → `@scope/nom`), `null` pour un module de Node. */
-function paquetDe(spec) {
+export function paquetDe(spec) {
   if (spec.startsWith('node:')) return null;
   const segments = spec.split('/');
   return spec.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0];
@@ -108,7 +111,7 @@ function jugeurDArcs(context, de, { surPaquet, surCible, surJoker, surJsx, surCa
     else juger(node, motif, false);
   };
   return {
-    ...visiteurDArcs({ surArc: (node, spec, { typeSeul }) => juger(node, spec.replace(/\?.*$/s, ''), typeSeul), surMotif: jugerMotif, surCalcule }),
+    ...visiteurDArcs({ surArc: (node, spec, { typeSeul }) => juger(node, spec.replace(/\?.*$/s, ''), typeSeul), surMotif: jugerMotif, surCalcule, portee: context.sourceCode }),
     ...(COUCHES[de].survit === true ? { JSXElement: surJsx, JSXFragment: surJsx } : {}),
   };
 }
@@ -118,7 +121,7 @@ const purete = {
   create(context) {
     const racine = context.cwd;
     const de = zoneDe(relative(racine, context.filename));
-    if (!estZone(de)) return {};
+    if (!estZone(de) || estFichierVitest(posix(relative(racine, context.filename)))) return {};
     const { libres, enType } = ouvertes(de);
     const ouvert = `${nommer(de)} importe ${libres.length ? libres.join(', ') : 'aucune zone'}${enType.length ? ` ; en type seul : ${enType.join(', ')}` : ''}`;
     const importeurRel = posix(relative(racine, context.filename));

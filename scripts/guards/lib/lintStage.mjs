@@ -14,11 +14,14 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { INDEX, lireEnLot } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
+
+/** La racine de CET arbre, dont `fermetureDeConfig` charge la config. */
+const CET_ARBRE = resolve(fileURLToPath(new URL('../../../', import.meta.url)))
 
 export const BUDGET_DE_LIGNE = 16000
 export function lotsDeLigne(fichiers, budget = BUDGET_DE_LIGNE) {
@@ -97,15 +100,16 @@ export const CONFIG_LINT = 'oxlint.config.mjs'
 
 /**
  * La FERMETURE de `oxlint.config.mjs` sous `racine`, en chemins POSIX relatifs : la config, ses
- * `jsPlugins` locaux lus sur l'objet CHARGÉ, leurs imports relatifs transitifs (`clotureDImports`), et les
- * fichiers que la config lit au chargement (`LECTURES_DE_CONFIG`).
- * Config absente du disque : elle seule.
+ * `jsPlugins` locaux lus sur l'objet CHARGÉ (la config de CET arbre, que `lancerLint` joue), leurs imports relatifs
+ * transitifs (`clotureDImports`), et les fichiers que la config lit au chargement (`LECTURES_DE_CONFIG`).
+ * Config absente du disque de `racine` : elle seule.
  * @param {string} racine @returns {Promise<string[]>}
  */
 export async function fermetureDeConfig(racine) {
   const abs = join(racine, CONFIG_LINT)
   if (texteDuDisque(abs) === null) return [CONFIG_LINT]
-  const { default: config, LECTURES_DE_CONFIG = [] } = await import(pathToFileURL(abs).href)
+  if (resolve(racine) !== CET_ARBRE) throw new Error(`fermetureDeConfig : ${racine} n'est pas cet arbre (${CET_ARBRE}), dont la config est chargée`)
+  const { default: config, LECTURES_DE_CONFIG = [] } = await import('../../../oxlint.config.mjs')
   const plugins = (config.jsPlugins ?? [])
     .map((p) => (typeof p === 'string' ? p : p.specifier))
     .filter((spec) => spec.startsWith('.') || isAbsolute(spec))
