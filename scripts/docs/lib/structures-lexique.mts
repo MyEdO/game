@@ -880,7 +880,7 @@ export const GRAPHIE_REFERENCE: ReadonlySet<string> = new Set(
 /**
  * Clés de SPÉCIALISATION d'une référence (`RefASpecialisation`, `src/data/schemas/grammaire/ref.ts`) :
  * membres de `GRAPHIE_REFERENCE` qui QUALIFIENT la référence posée à `id` sans en porter une. Le scan
- * ne les inscrit jamais comme CASE d'une occurrence (`inscrireReference`, #1473) : une valeur qui y
+ * ne les inscrit jamais comme CASE d'une occurrence (`inscrireReference`) : une valeur qui y
  * résout vers l'index par homonymie ne rend pas l'occurrence inatteignable.
  */
 export const CLES_DE_SPECIALISATION: ReadonlySet<string> = new Set(['spec', 'choix']);

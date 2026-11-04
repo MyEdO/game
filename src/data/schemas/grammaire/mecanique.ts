@@ -309,7 +309,7 @@ const DECLARATIONS_D_OPS = {
   /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). `testType` : id de
    *  `crew-test-types.json`, document `config` dont les ids vivent sous `types[]` — hors de l'INDEX
    *  DES IDS (`IDS_PAR_ESPACE`, `scripts/gen-espaces.mts`) ; clé étrangère tenue par
-   *  `scripts/guards/lib/gameOpRefFk.mjs` pour les sous-listes à ids des documents `config` (#1473). */
+   *  `scripts/guards/lib/gameOpRefFk.mjs` pour les sous-listes à ids des documents `config`. */
   skillDRBonus: z.union([
     nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), skill: refOuSpec('skill'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, skill: { label: "Compétence" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
     nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: z.string(), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
@@ -593,7 +593,7 @@ export function refuserEtatsInconnus(v: Readonly<Record<string, unknown>>, champ
  * — `condition` : `carried` + tout `CHAMPS_EXCLUS_DE_CARRIED`, refusé NOMINATIVEMENT (#1695).
  * — `condition`, `removeCondition` : un id d'État hors de `etatConnu` (#1463 LD.1, #2995).
  * — `condition`, `wounds` : un `onlyGroups` qui n'est pas une liste, ou dont un id est hors de
- *   `refs('groupe', { sousListe: CIBLE_D_APPARTENANCE })` (#1473).
+ *   `refs('groupe', { sousListe: CIBLE_D_APPARTENANCE })`.
  */
 function refusLoose(v: Record<string, unknown>, ctx: z.RefinementCtx): void {
   if ((v.op === 'condition' || v.op === 'wounds') && v.onlyGroups !== undefined) {

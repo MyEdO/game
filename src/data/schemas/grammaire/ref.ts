@@ -4,13 +4,14 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
  *
  * `ref(type)` construit ET ENREGISTRE le nœud FINAL : l'id est refiné AU PARSE contre l'INDEX DES
  * IDS `IDS_PAR_ESPACE` (`npm run gen`), si bien qu'une référence morte casse au chargement, en
- * test et à la sauvegarde du Compendium — sans qu'aucune garde nominative n'ait à l'énumérer
- * (clause B absorbée de #1473). La fabrique n'expose aucun nœud extensible : zod 4.4.3 perd le
- * registre et la `.meta()` au `.extend`, la composition se fait donc ICI via `extra`.
+ * test et à la sauvegarde du Compendium — sans qu'aucune garde nominative n'ait à l'énumérer. La
+ * fabrique n'expose aucun nœud extensible : zod 4.4.3 perd le registre et la `.meta()` au `.extend`,
+ * la composition se fait donc ICI via `extra`.
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
+import type { CategorieCodexDuFichier } from '../_cles-de-dataset.generated';
 import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, type SousListeMarquee } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
@@ -61,7 +62,7 @@ export const TYPES = {
   lightLevel: { espace: 'lightLevels.json', catalogue: 'paliers d’éclairage' },
   prop: { espace: 'props.json', catalogue: 'décors' },
   building: { espace: 'buildings.json', catalogue: 'bâtiments' },
-  // AXE de forces/faiblesses (#409) : `activeAxes` d'un projet de scène résout AU PARSE (#1473 R1).
+  // AXE de forces/faiblesses (#409) : `activeAxes` d'un projet de scène résout AU PARSE.
   axe: { espace: 'axes.json', catalogue: 'axes' },
   weaponGroup: { espace: 'weaponGroups.json', catalogue: 'groupes d’armes' },
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
@@ -97,6 +98,7 @@ export const TYPES = {
   lightTone: { espace: 'lightTones.json', catalogue: 'tons de lumière' },
   seaCargo: { espace: 'sea-cargo.json#cargoes', catalogue: 'cargaisons maritimes' },
   landCargo: { espace: 'land-cargo.json#cargoes', catalogue: 'cargaisons terrestres' },
+  merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -741,6 +743,16 @@ export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
 /** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
  *  (`cleDesSpecs`) de l'INDEX DES IDS. */
 export type SpecId<T extends TypeEntite, I extends string> = IdsParEspace[`${(typeof TYPES)[T]['espace']}#[${I}].specs` & keyof IdsParEspace];
+
+/** Fichier dont la catégorie Codex a un espace d'ids à l'INDEX DES IDS. */
+type FichierAEspace = keyof CategorieCodexDuFichier & keyof IdsParEspace;
+
+/** RENVOI Codex écrit en littéral de code : pour chaque fichier de `CATEGORIE_CODEX_DU_FICHIER` qui a un
+ *  espace, sa catégorie et un id de l'union générée de cet espace — un id hors catalogue ne compile pas. */
+export type RenvoiCodex = { [F in FichierAEspace]: { readonly category: CategorieCodexDuFichier[F]; readonly id: IdsParEspace[F] } }[FichierAEspace];
+
+/** Renvoi vers une catégorie Codex SANS espace d'ids : son id n'est pas une union générée. */
+export type RenvoiCodexSansEspace = { readonly category: Exclude<CategorieCodexDuFichier[keyof CategorieCodexDuFichier], RenvoiCodex['category']>; readonly id: string };
 
 /**
  * Spécialisation NUE d'une entrée FERMÉE, que le porteur fixe par sa règle : `specDe`, plus le refus

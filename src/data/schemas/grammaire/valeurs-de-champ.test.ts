@@ -162,7 +162,7 @@ const NOMMES = [
   'self|victim|engaged|grappled',
   // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
   'sl|st|legs|arms|head',
-  // Payloads d'`OP_DEFS` (#1473) : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
+  // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
   // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json` ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
   'melee|ranged|all',

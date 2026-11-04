@@ -602,7 +602,7 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
   });
 });
 
-// ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847, #1473). Le PÉRIMÈTRE (quels champs d'op portent
+// ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847). Le PÉRIMÈTRE (quels champs d'op portent
 // une chaîne) est DÉRIVÉ de l'union `GameOp` par le TypeChecker ; chaque champ est un CHAMP D'OP À SLOT
 // d'`OP_DEFS` (`champsDOpASlot`), jugé au parse par sa feuille `idDe`, ou il porte sa classification
 // dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `coveredBy` | `nonRef`). Les registres des
@@ -644,7 +644,7 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     }
   });
 
-  // COUVERTURE (#1473) : un champ d'op à slot est jugé par sa feuille `idDe` là où le parse ATTEINT son
+  // COUVERTURE : un champ d'op à slot est jugé par sa feuille `idDe` là où le parse ATTEINT son
   // nœud. Ce test prouve la JOINTURE : tout nœud `GameOp` du corpus est ATTEINT par le parse de mesure
   // (`opsDuParse`, par IDENTITÉ d'objet). Un nœud non atteint pend sous un conteneur que le parse ne
   // descend pas : son conteneur se type.

@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
-import { maisonSchema } from '../grammaire/valeurs';
+import { deckCoverSchema, maisonSchema } from '../grammaire/valeurs';
 
 export const file = 'naval-traits.json';
 export const famille = 'entite';
@@ -39,7 +39,7 @@ const doc = document(
     /** MDG 12 l.221 */
     ram: nommerChamps(z.strictObject({ ic: z.number(), ap: z.number() }), { ic: { label: 'Indice de Critique' }, ap: { label: 'Points d’Armure' } }).optional(),
     /** Couvert de pont GRADUÉ (`DeckCoverClass`) : `totale` (Sabord/Murs blindés) ou `moyenne` (Plat-bord). */
-    deckCover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
+    deckCover: deckCoverSchema.optional(),
     /** MSRC 12 l.66 */
     navTestMod: z.number().optional(),
   },

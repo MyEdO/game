@@ -3,7 +3,7 @@
  * enfants (`enfantsDe`, par les champs de `CHAMPS_D_ENFANTS`), du parcours de son arbre (`descendre`)
  * et de la CO-DESCENTE d'une donnée avec son schéma (`ouverts`, `pasDeDonnee`, `coDescendre`, #1463).
  *
- * Invariant (#1473 R1) : `enfantsDe` rend chaque enfant que le parse EXÉCUTE, et un `z.lazy` y descend
+ * Invariant : `enfantsDe` rend chaque enfant que le parse EXÉCUTE, et un `z.lazy` y descend
  * par l'instance que le parse exécute (`_zod.innerType`, `node_modules/zod/v4/core/schemas.js:2194-2206`).
  * Hors de ce module, un `_zod.def` ou un champ de `CHAMPS_D_ENFANTS` ne se lit pas à la main : garde
  * `scripts/guards/lib/lectureDefZod.mjs`.

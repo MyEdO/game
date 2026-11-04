@@ -1,5 +1,5 @@
 /**
- * Migration #1473 (train 2a du lot « ops à référence typées ») — la référence de Talent prend UNE graphie :
+ * Migration (train 2a du lot « ops à référence typées ») — la référence de Talent prend UNE graphie :
  *  - les ops `grantTalent` / `grantCareerTalent` passent de `{ op, talentId, spec? }` à
  *    `{ op, talent: { id, spec? } }` (`src/data/schemas/grammaire/mecanique.ts`, champ à choix `talent`),
  *    par la primitive `graphieOpsDeTalentDeep` (`src/data/graphieOpsDeTalent.ts`) ;
