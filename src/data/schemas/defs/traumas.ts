@@ -3,6 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
+import { idDe } from '../grammaire/ref';
 
 /** LDB 18 l.247/251/273/277/281 */
 const cumulSchema = nommerChamps(z.strictObject({
@@ -34,7 +35,7 @@ const doc = document(
     prosthesis: z
       .array(
         nommerChamps(z.strictObject({
-          trappingId: z.string(),
+          trappingId: idDe('trapping'),
           cancels: z.enum(['all', 'movement']),
         }), { trappingId: { label: 'Objet' }, cancels: { label: 'Annulations' } }),
       )

@@ -992,7 +992,7 @@ export interface SkillData {
   specsSource?: SpecsSource;
   /** Le domaine accepte-t-il un TEXTE LIBRE hors `specs[]` (Métier, Savoir-région) ? `true` = OUVERT —
    *  `specs[]` n'est qu'un historique/suggestions, pas une liste fermée. Absent/`false` = FERMÉ — la
-   *  valeur `spec` d'une instance DOIT être un id de `specs[]` (garde-fou `refs-migrated.test.ts`). */
+   *  valeur `spec` d'une instance DOIT être un id de `specs[]` (`refusDeSpec`, `schemas/grammaire/ref.ts`). */
   specsOpen?: boolean;
   /** Posséder une Spécialisation rend les autres de Base (`possesses`). LDB 09 l.571. */
   specsSoeursDeBase?: boolean;
@@ -1008,7 +1008,7 @@ export interface SkillData {
   senses?: PairedSense[];
   /** Caractéristique ALTERNATIVE de cette Compétence sous RÈGLE OPTIONNELLE (Métier comme Savoir → Int,
    *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = id d'`OptionalRule`
-   *  (FK anti-fantôme `data/variants-integrity.test.ts`), `from` = Caractéristique de base à laquelle la
+   *  (`idDe('regleOptionnelle')`, `schemas/defs/skills.ts`), `from` = Caractéristique de base à laquelle la
    *  substitution s'applique (absente = toutes), `chars` = Caractéristique à utiliser PAR VALEUR de la
    *  règle (clé = valeur rendue par `rule()` convertie en chaîne — `"true"` pour un interrupteur ; une
    *  LISTE = la MEILLEURE des Caractéristiques citées chez le porteur). Lu par `altCharKey`

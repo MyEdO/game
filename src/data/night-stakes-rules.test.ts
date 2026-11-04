@@ -11,11 +11,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { NIGHT_STAKES, regles, books } from './index';
+import { NIGHT_STAKES, regles } from './index';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 const RULE_BY_ID = new Map(regles.map((r) => [r.id, r]));
-const BOOK_IDS = new Set(books.map((b) => b.id));
 /** Fiches de `regles.json` référencées par la nuit — les foyers d'un AUTRE type (amendement A,
  *  2026-08-06 : l'entité qui PORTE la règle d'abord) ont leur propre garde de source et sortent de ce
  *  périmètre. */
@@ -73,10 +72,6 @@ describe('night-stakes.json — chaque enjeu porte sa règle (#1117 L0a)', () =>
     const defauts: string[] = [];
     for (const id of NIGHT_RULE_IDS) {
       const r = RULE_BY_ID.get(id)!;
-      if (!BOOK_IDS.has(r.source.book)) {
-        defauts.push(`${id} : livre inconnu ${r.source.book}`);
-        continue;
-      }
       const note = r.source.note ?? '';
       // Prose ADRESSÉE : le texte et son folio sont prouvés par la résolution de l'adresse
       // (`book-source-integrity.test.ts`, volet 3) ; reste l'ancrage au CHAPITRE de la note.

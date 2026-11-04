@@ -1,7 +1,7 @@
 /**
- * Garde des VARIANTES réglées (#563/#564 Lot 3) : `when.rule` DOIT être un id de `OPTIONAL_RULES`
- * (item 1, gate fantôme sinon), et la règle stricte 5 (verbatim + folio) s'applique PAR VARIANTE
- * comme pour l'ancre (item 2 — `folioIntegrity.mjs:citedEntriesOf` la découvre déjà, aucune
+ * Garde des VARIANTES réglées (#563/#564 Lot 3). Que `when.rule` soit un id de `OPTIONAL_RULES` (item 1)
+ * se refuse au PARSE (`variantWhenSchema`, `idDe('regleOptionnelle')`, `grammaire/valeurs.ts`) ; reste ici
+ * la règle stricte 5 (verbatim + folio), qui s'applique PAR VARIANTE comme pour l'ancre (item 2 — `folioIntegrity.mjs:citedEntriesOf` la découvre déjà, aucune
  * extension nécessaire : une variante est structurellement `{desc, source}` comme une entrée).
  *
  * `talents.json` et `spells.json` portent des variantes en donnée — la garde EXHAUSTIVE ci-dessous
@@ -15,8 +15,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
-import { OPTIONAL_RULES } from '../engine/policy';
-import { unknownVariantRules, variantRulesOf } from '../../scripts/guards/lib/variantRule.mjs';
 import { citedEntriesOf, auditFolio } from '../../scripts/guards/lib/folioIntegrity.mjs';
 import * as talentsDef from './schemas/defs/talents';
 import * as traitsDef from './schemas/defs/traits';
@@ -24,9 +22,8 @@ import * as spellsDef from './schemas/defs/spells';
 import { characteristics, skills, traits } from './index';
 
 const DIR = __dirname;
-/** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les quatre sites qui le lisent. */
+/** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les sites qui le lisent. */
 const DATASETS = listerDossier(DIR).filter((f) => f.endsWith('.json'));
-const KNOWN_RULE_IDS = new Set(OPTIONAL_RULES.map((r) => r.id));
 /** Clés du schéma d'ENTRÉE de chaque dataset à variantes — lues du def, jamais recopiées. Un def
  *  ADOPTÉ par `document()` rend un nœud SCELLÉ, sans `.element.shape` : il publie ses clés relevées
  *  AVANT le sceau (`DocumentHandle.cles`, réexportées `cles`). Les TROIS defs à variantes sont
@@ -45,92 +42,11 @@ function bonusCharId(printed: string): string | undefined {
   return m ? CHAR_ID_BY_LABEL.get(m[1].trim().toLocaleLowerCase('fr')) : undefined;
 }
 
-describe('variantRulesOf — walk de `variants[].when.rule`', () => {
-  it('collecte chaque variante avec la clé de son porteur', () => {
-    const data = [{ id: 'exemple', variants: [{ when: { rule: 'combat-aa-avantage-groupe' } }] }];
-    expect(variantRulesOf(data)).toEqual([{ key: 'exemple.variants[0]', rule: 'combat-aa-avantage-groupe' }]);
-  });
-});
-
-describe('garde-fou « when.rule ∈ OPTIONAL_RULES » (#564 Lot 3 item 1)', () => {
-  it('0 variante réelle sur src/data/*.json ne référence un id de règle inconnu (aucune migration au Lot 0/3)', () => {
-    const violations = unknownVariantRules(DIR, KNOWN_RULE_IDS);
-    expect(violations).toEqual([]);
-  });
-
-  it('MORSURE — `when.rule` fantôme (`regle-inventee`) → rouge', () => {
-    const data = [{ id: 'fixture', variants: [{ when: { rule: 'regle-inventee' } }] }];
-    const violations = variantRulesOf(data).filter((e) => !KNOWN_RULE_IDS.has(e.rule));
-    expect(violations).toEqual([{ key: 'fixture.variants[0]', rule: 'regle-inventee' }]);
-  });
-
-  it('un id RÉEL du registre passe (vert)', () => {
-    const known = OPTIONAL_RULES[0].id;
-    const data = [{ id: 'fixture', variants: [{ when: { rule: known } }] }];
-    expect(variantRulesOf(data).filter((e) => !KNOWN_RULE_IDS.has(e.rule))).toEqual([]);
-  });
-
+describe('variantes en donnée — seuls les datasets à liste blanche (#564 Lot 3)', () => {
   it('EXHAUSTIF : seuls les datasets à liste blanche déclarée référencent `variants` en donnée (contrôle croisé texte brut)', () => {
     // La liste autorisée est DÉRIVÉE des defs (`RESOLVED_BY_FILE`), jamais une liste de fichiers à la main.
     const offenders = DATASETS.filter((f) => !RESOLVED_BY_FILE.has(f) && readFileSync(join(DIR, f), 'utf8').includes('"variants"'));
     expect(offenders).toEqual([]);
-  });
-});
-
-// ── FK d'une règle optionnelle portée par une ENTRÉE : `gatedByRule` (#1318 E4/C2) ────────────────
-/**
- * MÊME gate fantôme que `variants[].when.rule`, par une autre porte : un nœud de donnée peut subordonner
- * à une règle optionnelle sa DISPONIBILITÉ (`SpeciesData.gatedByRule`, lu par `speciesAllowed`) ou son
- * COMPORTEMENT (`SkillData.altChar.gatedByRule`, lu par `altCharKey`) — le walk est GÉNÉRIQUE, à toute
- * profondeur et quel que soit le porteur.
- * `rule(id)` d'un id INCONNU lève (`engine/policy.ts`, #1463 LD.1) — une coquille ne romprait qu'au premier
- * accès joueur à l'entrée. La FK se valide donc ici, sur la donnée réelle.
- */
-const GATE_FIELD = 'gatedByRule';
-
-/** Chaque nœud portant `gatedByRule`, à toute profondeur — même walk générique que `variantConflicts`. */
-function gateRuleRefs(node: unknown, path = ''): { key: string; rule: string }[] {
-  const out: { key: string; rule: string }[] = [];
-  if (Array.isArray(node)) {
-    node.forEach((v, i) => out.push(...gateRuleRefs(v, `${path}[${i}]`)));
-    return out;
-  }
-  if (!node || typeof node !== 'object') return out;
-  const rec = node as Record<string, unknown>;
-  const key = typeof rec.id === 'string' ? rec.id : path;
-  if (typeof rec[GATE_FIELD] === 'string') out.push({ key, rule: rec[GATE_FIELD] as string });
-  for (const [k, v] of Object.entries(rec)) if (k !== GATE_FIELD) out.push(...gateRuleRefs(v, path ? `${path}.${k}` : k));
-  return out;
-}
-
-describe('garde-fou « gatedByRule ∈ OPTIONAL_RULES » (#1318 E4/C2)', () => {
-  const filesWithGate = () =>
-    DATASETS.filter((f) => readFileSync(join(DIR, f), 'utf8').includes(`"${GATE_FIELD}"`));
-
-  it('0 entrée réelle de src/data/*.json ne subordonne sa disponibilité à un id de règle inconnu', () => {
-    const offenders = filesWithGate().flatMap((f) =>
-      gateRuleRefs(JSON.parse(readFileSync(join(DIR, f), 'utf8')))
-        .filter((e) => !KNOWN_RULE_IDS.has(e.rule))
-        .map((e) => ({ file: f, ...e })),
-    );
-    expect(offenders).toEqual([]);
-  });
-
-  it('le champ est bien PORTÉ par la donnée réelle (sinon la garde ci-dessus est vide et verte pour rien)', () => {
-    const refs = filesWithGate().flatMap((f) => gateRuleRefs(JSON.parse(readFileSync(join(DIR, f), 'utf8'))));
-    expect(refs.length).toBeGreaterThan(0);
-  });
-
-  it('MORSURE — `gatedByRule` fantôme (`regle-inventee`) → rouge', () => {
-    const data = [{ id: 'fixture', gatedByRule: 'regle-inventee' }];
-    expect(gateRuleRefs(data).filter((e) => !KNOWN_RULE_IDS.has(e.rule))).toEqual([
-      { key: 'fixture', rule: 'regle-inventee' },
-    ]);
-  });
-
-  it('un id RÉEL du registre passe (vert)', () => {
-    const data = [{ id: 'fixture', gatedByRule: OPTIONAL_RULES[0].id }];
-    expect(gateRuleRefs(data).filter((e) => !KNOWN_RULE_IDS.has(e.rule))).toEqual([]);
   });
 });
 
@@ -149,9 +65,7 @@ describe('règle 5 PAR VARIANTE — `variants[i].desc` verbatim dans `variants[i
     };
     const entries = citedEntriesOf(data);
     // `citedEntriesOf` (`folioIntegrity.mjs`) chemine par PATH JSON, pas par id du porteur remonté :
-    // même comportement que sur les 16 entrées anonymes réelles du dépôt (note l.252-253) — la clé
-    // porteur (`porteur.variants[0]`) est celle de `variantRulesOf` (`variantRule.mjs`), un vocabulaire
-    // DIFFÉRENT (guard #564 item 1, pas règle 5 item 2).
+    // même comportement que sur les 16 entrées anonymes réelles du dépôt (note l.252-253).
     expect(entries).toEqual([{ id: 'variants[0]', book: 'zoo-imperial', page: 23, desc: VERBATIM }]);
     expect(auditFolio(entries[0]).verdict).toBe('folio-ok');
   });

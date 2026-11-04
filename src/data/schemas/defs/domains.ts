@@ -67,7 +67,7 @@ const doc = document(
     /** Ops appliquées AU LANCEUR après une incantation réussie. */
     casterOps: executeesDe().optional(),
 
-    castBonus: nommerChamps(z.strictObject({ perCondition: z.string(), radiusStat: charKeySchema, bonus: z.number() }), {
+    castBonus: nommerChamps(z.strictObject({ perCondition: idDe('etat'), radiusStat: charKeySchema, bonus: z.number() }), {
       perCondition: { label: 'par État' },
       radiusStat: { label: 'caractéristique du rayon' },
       bonus: { label: 'bonus' },

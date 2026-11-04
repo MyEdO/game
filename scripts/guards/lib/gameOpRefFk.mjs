@@ -21,12 +21,11 @@ import { TypeFlags } from 'typescript/unstable/sync';
 // stock nominatif dont chaque chaîne de champ à slot est une case validée par `idDe` au parse de son
 // document (`slotsDOpNonJuges`, même fichier).
 // Cette table garde le RESTE, et chaque reste a son lot de mort :
-//   - les champs des ops de `OPS_NON_TYPEES` (`src/data/schemas/grammaire/mecanique.ts`) meurent au
-//     typage de leur op dans `OP_DEFS`, lot L1c #1468 ;
-//   - les champs d'une op typée dont le type a son entrée à `TYPES` (`src/data/schemas/grammaire/ref.ts` :
-//     Qualité, Groupe d'arme) meurent au typage de leur champ par une feuille `idDe` ;
-//   - les champs dont le type n'a pas d'entrée à `TYPES` (Séquelle, type de Test d'équipage, table de
-//     Mutation, ton de lumière) meurent à l'entrée de leur type, lot R2 de #1473 ;
+//   - `registry` : un champ d'op que le parse ne juge pas — op de `OPS_NON_TYPEES`
+//     (`src/data/schemas/grammaire/mecanique.ts`) ou champ à plat d'une op typée ; il meurt au typage de
+//     son op par une référence EMBOÎTÉE, lot L1c #1468 ;
+//   - `coveredBy` : un champ d'op loose jugé au parse par un refus nommé (`refusLoose`, même fichier) ;
+//     il meurt au typage de son op, lot L1c #1468 ;
 //   - les `nonRef` ne visent aucun registre : ils restent, justifiés.
 //
 // POURQUOI PARTIR DU CHAMP, PAS DU LITTÉRAL. `scripts/guards/lib/registryIdBranch.mjs` a mesuré
@@ -39,8 +38,8 @@ import { TypeFlags } from 'typescript/unstable/sync';
 //     `addTraits`, `activeIf`…) : seules les feuilles `string`/`string[]` DIRECTES d'un membre de
 //     l'union sont énumérées. Les `GameOp[]` imbriqués (`perRound.ops`, `delayed.ops`, `zone.onCross`)
 //     sont en revanche bien visités par le SCAN, qui descend dans tout le document ;
-//   - les refs portées par le vocabulaire VOISIN, qui ne sont pas des `GameOp` : `FlowTest.skill` est gardé
-//     par `src/data/refs-migrated.test.ts` ; la `value` de la Condition `has` est typée au parse (feuille
+//   - les refs portées par le vocabulaire VOISIN, qui ne sont pas des `GameOp` : `FlowTest.skill` est typé
+//     au parse (`refOuSpec`) ; la `value` de la Condition `has` est typée au parse (feuille
 //     `idDe`), la Condition `skill` aussi (`refOuSpec`) ; `TriggeredEffect.trigger` est une énumération
 //     fermée du schéma ; l'`id` des Conditions `career`, `species` et `capability` n'est résolu par aucune
 //     garde de donnée (#3067) ;
@@ -68,32 +67,23 @@ const OPS_TYPE = 'GameOp';
  * hors `registry`/`nonRef`/`coveredBy`, et toute valeur non résolue est un offenseur.
  */
 export const GAMEOP_FIELD_TARGETS = {
-  // ── États (etats.json) ──
-  'condition.id': { registry: 'etats' },
-  'condition.onlyIfCondition': { registry: 'etats' },
-  'condition.unlessCondition': { registry: 'etats' },
-  'removeCondition.id': { registry: 'etats' },
-  // ── Groupes (groups.json) — `groupMatch` (src/engine/groups.ts) compare par id ──
-  'wounds.onlyGroups': { registry: 'groups' },
-  'condition.onlyGroups': { registry: 'groups' },
-  // ── Psychologie (psychology.json) ──
-  'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
-  // ── Traits / Talents / Compétences ──
+  // ── États (etats.json) et Groupes (groups.json) des ops loose ──
+  'condition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
+  'condition.onlyIfCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose`' },
+  'condition.unlessCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` ; dialecte miscast : feuille `idDe(\'etat\')`' },
+  'removeCondition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
+  'wounds.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
+  'condition.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
+  // ── Champs que le parse ne juge pas (lot L1c #1468) ──
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
-
-  // ── Séquelles (traumas.json) — `permanentAmputations` (src/engine/trauma.ts) instancie CHAQUE id ──
-  'amputer.sequels': { registry: 'traumas' },
-  // ── Possessions / qualités / groupes d'arme ──
-  'augmentWeapon.addQualities': { registry: 'qualities' },
-  'augmentWeapon.removeQualities': { registry: 'qualities' },
-  'grantWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
-  // ── Tables ──
   'rollMutation.table': { registry: 'mutationTables' },
-  // ── Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu
+  // Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu
   // (`gameIso/stage/stagePointLights.ts::resolveTone`). Absent = `flamme`.
   'light.tone': { registry: 'lightTones' },
+  // ── Psychologie (psychology.json) ──
+  'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Champs qui ne visent AUCUN registre ──
   'narrative.text': { nonRef: 'prose d\'arbitrage, journalisée verbatim (src/engine/ops.ts › applyOps, `case \'narrative\'`)' },
   'grantWeapon.label': { nonRef: 'nom affiché de l\'arme invoquée (l\'arme n\'a pas d\'entrée de catalogue)' },

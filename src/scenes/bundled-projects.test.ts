@@ -10,7 +10,7 @@ import { parseProject, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { validateScene } from '../noyau/validateScene';
 import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
-import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById, merchantArchetypeById } from '../data';
+import { books, buildings, findCrewRoleById, findVehicleById, merchantArchetypeById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import { flowFromEffects } from '../noyau/monde/flow';
@@ -131,19 +131,17 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
 
   /**
    * ARMEMENT ET ÉQUIPAGE D'UNE COQUE — les contrats que le moteur naval lit sur l'authoring, relus
-   * PAR GLOB : une amélioration d'instance (`upgrades`) est un trait du catalogue (`findNavalTrait`),
-   * un poste servable porte un coffre à munitions dont chaque pièce est une munition en quantité, sa
-   * sélection persistante (`ammoUid`) désigne une pièce RÉELLEMENT en soute (sinon `selectedAmmo` ne
-   * la retrouve pas), et un équipage exposé (`crewIds`) nomme des entités de SA scène.
+   * PAR GLOB (l'id d'une amélioration d'instance, `upgrades`, se juge au parse) : un poste servable
+   * porte un coffre à munitions dont chaque pièce est une munition en quantité, sa sélection
+   * persistante (`ammoUid`) désigne une pièce RÉELLEMENT en soute (sinon `selectedAmmo` ne la retrouve
+   * pas), et un équipage exposé (`crewIds`) nomme des entités de SA scène.
    */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : coques — upgrades du catalogue, coffres à munitions cohérents, équipage exposé résoluble', (file) => {
+  it.each(bundledFiles.map((f) => [f] as const))('%s : coques — coffres à munitions cohérents, équipage exposé résoluble', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
       const ids = new Set(sc.entities.map((e) => e.id));
       for (const e of sc.entities) {
-        for (const u of e.upgrades ?? [])
-          if (!findNavalTrait(u.id)) fautifs.push(`${sc.id}:${e.id} amélioration navale « ${u.id} » absente du catalogue`);
         for (const id of e.crewIds ?? [])
           if (!ids.has(id)) fautifs.push(`${sc.id}:${e.id} équipage exposé « ${id} » : aucune entité de cette scène`);
         for (const p of e.postes ?? []) {

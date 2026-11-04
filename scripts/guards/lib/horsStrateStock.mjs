@@ -379,7 +379,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#vehicles', ref: '[].purchase', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].ship', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].ship.sail', occurrence: 1 },
-  { fichier: 'src/data#vehicles', ref: '[].ship.traits[]', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].travel', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].travel.classes[]', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].travel.draft', occurrence: 1 },

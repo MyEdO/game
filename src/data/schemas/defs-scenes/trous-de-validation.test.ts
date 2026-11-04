@@ -44,7 +44,7 @@ const GARDE = {
     fichier: 'trous-de-validation.ts',
     decroissant: true,
     raison:
-      'Les 4 entrées sont le dénominateur des trous de `defs-scenes/` : chacune meurt par le commit qui ÉCRIT ' +
+      'Les entrées sont le dénominateur des trous de `defs-scenes/` : chacune meurt par le commit qui ÉCRIT ' +
       'le schéma de sa forme, dans le lot nommé par son champ `lot` (`L2 #1463` / `L3 #1463`, soldables par ' +
       'grep du lot). Une entrée neuve est une dérive, jamais une exception à inscrire.',
   },

@@ -23,7 +23,7 @@ import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
 import { amateurSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
-import { refIndiceSchema } from '../grammaire/reference';
+import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
@@ -50,9 +50,6 @@ export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean
 
 /** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. */
 export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
-/** `NavalTraitRef` (`engine/types.ts`) — Amélioration d'INSTANCE d'un navire (MDG 12). C'est la
- *  référence INDICÉE de la grammaire (`refIndiceSchema`), pas une seconde graphie de sa signature. */
-export const navalTraitRefSchema = refIndiceSchema;
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
@@ -134,10 +131,10 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   appearance: entityAppearanceSchema.optional(),
   anim: roleAmbiantSchema.optional(),
   /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
-  weapon: z.string().optional(),
+  weapon: idDe('trapping').optional(),
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
-  light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: z.string().optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
+  light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
   /** Marchand : archétype + surcharges de prix et des 3 règles maison Marché (LDB 59/60). */
   merchant: nommerChamps(z
     .strictObject({

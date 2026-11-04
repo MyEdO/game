@@ -16,7 +16,7 @@ describe('sizeFromTraits + dérivation de Taille au spawn (LDB 85)', () => {
   // d'édition, `engine/traits/dispatch.ts`) ne normalise QUE la clé du trait, jamais son `arg` (verbatim).
   // Ce test EXPOSE que `sizeFromTraits` n'en résout pas moins correctement : `parseSizeLabel` est un
   // parseur de texte tolérant (accents/casse), PAS le registre `SPEC_SOURCES.sizes` strict (par id
-  // exact) qu'utilise la garde `trait-args-derived.test.ts` — un `arg` en libellé ne retombe donc PAS
+  // exact) que le parse oppose à l'`arg` (`refusDArgHorsRegistre`, `grammaire/reference.ts`) — un `arg` en libellé ne retombe donc PAS
   // silencieusement sur Moyenne (aucun bug de Taille en jeu), mais reste un LIBELLÉ pris pour un id à
   // migrer (dette de forme, corrigée dans `arene-projet.json`).
   it('#146 : un arg en LIBELLÉ capitalisé (« Petite »/« Monstrueuse », comme dans arene-projet.json avant migration) résout quand même — pas de repli silencieux sur Moyenne', () => {

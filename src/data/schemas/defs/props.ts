@@ -105,7 +105,7 @@ const doc = document(
     cover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
     // `tone` (#1245, L4) = APPARENCE seule (`lightTones.json` : couleur/intensité/vacillement),
     // résolue au bord du rendu ; le RAYON reste la seule chose que le moteur lise d'une source.
-    light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: z.string().optional() }), { radiusM: { label: 'Rayon en mètres' }, tone: { label: 'Ton' } }).optional(),
+    light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: 'Rayon en mètres' }, tone: { label: 'Ton' } }).optional(),
     foot: nommerChamps(z.strictObject({ w: z.number().int().positive(), h: z.number().int().positive() }), { w: { label: 'Largeur' }, h: { label: 'Hauteur' } }).optional(),
     volume: propVolumeRecipeSchema.optional(),
     seatSlots: z.array(propSeatSlotSchema).optional(),

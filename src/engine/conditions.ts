@@ -67,8 +67,8 @@ const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
 
 /** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
  *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
- *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, garde FK
- *  `refs-migrated.test`), la sévérité (`conditionSeverity`) et l'icone
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, refus d'État au
+ *  parse `refuserEtatsInconnus` de `data/schemas/grammaire/mecanique.ts`), la sévérité (`conditionSeverity`) et l'icone
  *  (`gameIso/effectIcons.conditionMeta`) le composent. */
 export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
   return findConditionById(id) ?? marqueurParId(id);

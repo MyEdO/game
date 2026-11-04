@@ -290,7 +290,7 @@ describe('`qualityRefSchema` — `{id, value?}` : la MAGNITUDE est une valeur, j
   });
 
   it('les formes LÉGITIMES passent — id seul, id + Indice', () => {
-    expect(qualityRefSchema.safeParse({ id: 'tranchante' }).success, 'une qualité sans Indice doit passer.').toBe(true);
+    expect(qualityRefSchema.safeParse({ id: 'assommante' }).success, 'une qualité sans Indice doit passer.').toBe(true);
     expect(qualityRefSchema.safeParse({ id: 'taillade', value: 2 }).success, 'la forme PLEINE `{id, value}` doit passer.').toBe(true);
   });
 
