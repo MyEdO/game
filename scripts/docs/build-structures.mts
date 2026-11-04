@@ -244,10 +244,10 @@ function rendu() {
     );
     const sourceAbsente = scan.enveloppe.filter((e) => e.role === 'source' && e.motif === 'clé absente');
     out += `Documents dont AUCUNE ENTRÉE DE RACINE ne porte \`source\` ni \`maison\`, hors des types dont la fabrique n’exige pas la provenance\n`;
-    out += `(\`exigeSource\`, \`src/data/schemas/grammaire/sans-livre.ts\`) : **${sourceAbsente.length}** (lot \`L1d #1469\`) —\n`;
+    out += `(\`exigeSource\`, \`src/data/schemas/grammaire/sans-livre.ts\`) : **${sourceAbsente.length}** (lot \`L1d #1463\`) —\n`;
     out += `${sourceAbsente.map((e) => `\`${e.document}\`(${e.entrees})`).join(' ') || '—'}\n\n`;
     out += `Documents de racine ne portant AUCUNE clé \`source\` à quelque profondeur que ce soit : **${scan.documentsSansSource.length}**\n`;
-    out += `(lot \`L1d #1469\`) — ${scan.documentsSansSource.map((d) => `\`${d}\``).join(' ')}\n\n`;
+    out += `(lot \`L1d #1463\`) — ${scan.documentsSansSource.map((d) => `\`${d}\``).join(' ')}\n\n`;
     out += 'Documents EMBARQUÉS mesurés, par chemin :\n\n';
     out += tableau(
       ['Document', 'Chemin', 'Objets', 'Clés'],

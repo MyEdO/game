@@ -100,12 +100,3 @@ export const SANS_PROVENANCE_EXIGEE: Readonly<Record<string, string>> = { ...SAN
 export function exigeSource(type: string): boolean {
   return !(type in SANS_PROVENANCE_EXIGEE);
 }
-
-/** Part de CONTENU de `SANS_LIVRE`, vide : le détecteur de la BASE de `comptes:plage` l'importe encore depuis le `src/`
- *  de la tête (`scripts/guards/lib/corpusDesComptes.mts:5-11`). */
-export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {};
-
-/** Même lecture que `CONTENU_A_SOURCER` par le détecteur de la base (`scripts/docs/lib/structures-lexique.mts`). */
-export function provenanceMesuree(type: string): boolean {
-  return exigeSource(type) || type in CONTENU_A_SOURCER;
-}
