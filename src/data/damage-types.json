@@ -2,33 +2,63 @@
   {
     "id": "poison",
     "type": "damage-types",
-    "label": "Poison"
+    "label": "Poison",
+    "source": {
+      "book": "livre-de-base",
+      "page": 339,
+      "note": "LDB 85 l.174"
+    }
   },
   {
     "id": "feu",
     "type": "damage-types",
-    "label": "Feu"
+    "label": "Feu",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 75,
+      "note": "ZI 08 l.28"
+    }
   },
   {
     "id": "electrique",
     "type": "damage-types",
-    "label": "Électrique"
+    "label": "Électrique",
+    "source": {
+      "book": "livre-de-base",
+      "page": 339,
+      "note": "LDB 85 l.174"
+    }
   },
   {
     "id": "magique",
     "type": "damage-types",
-    "label": "Magique"
+    "label": "Magique",
+    "source": {
+      "book": "livre-de-base",
+      "page": 339,
+      "note": "LDB 85 l.174"
+    }
   },
   {
     "id": "magie-flamboyante",
     "type": "damage-types",
     "label": "Magie flamboyante",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 75,
+      "note": "ZI 08 l.28"
+    },
     "domaine": "feu"
   },
   {
     "id": "shyish",
     "type": "damage-types",
     "label": "Shyish",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 175,
+      "note": "VDM 13 l.61"
+    },
     "domaine": "mort"
   }
 ]
