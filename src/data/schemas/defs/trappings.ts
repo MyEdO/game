@@ -10,13 +10,9 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-/** Les Atouts d'un objet passent par la vue COMMUNE `qualityRefSchema` : `quality` n'est PAS un type
- *  de `TYPES` (`grammaire/ref.ts`) — aucune fabrique FK ne le vise, et son ouverture est ancrée
- *  #1615/#1621. La population (438 références, dont 5 à Indice `{id:'taillade', value:1|2}`) est
- *  mesurée par `grammaire/formes-partagees.test.ts` à défaut d'être refinée au parse. */
 import { qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
-import { ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { idDe, ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
@@ -33,7 +29,7 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
 
 /** Une armure porte son TYPE d'armure : `subType` = id de la sous-liste `armour` des Groupes
  *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
- *  (`armourMaterialOf`, `src/engine/armourBypass.ts`) lisent. Jugé par le refus de la sous-liste
+ *  (`matiereDuGroupe`, `src/data/index.ts`) lisent. Jugé par le refus de la sous-liste
  *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
  *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
 const refusDuTypeDArmure = (subType: string | null): string | null =>
@@ -93,8 +89,8 @@ const weaponSchema = nommerChamps(z.strictObject({
   reach: z.union([reachSchema, z.null()]).optional(),
   range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
   qualities: z.array(qualityRefSchema),
-  subType: z.string().optional(),
-  weaponGroup: z.string().optional(),
+  subType: idDe('weaponGroup').optional(),
+  weaponGroup: idDe('weaponGroup').optional(),
   soloSimple: z.boolean().optional(),
   indirect: z.boolean().optional(),
   /** LDB 62 l.278 */
@@ -136,8 +132,8 @@ const doc = document(
      *  `'melee' | 'ranged'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
      *  (`src/engine/items.ts`), une TRADUCTION. `vehicle` n'a aucun porteur et n'est plus admis. */
     categorie: trappingCategorieSchema,
-    subType: z.union([z.string(), z.null()]),
-    weaponGroup: z.string().optional(),
+    subType: idDe('weaponGroup').nullable(),
+    weaponGroup: idDe('weaponGroup').optional(),
     soloSimple: z.boolean().optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),

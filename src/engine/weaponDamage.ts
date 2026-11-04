@@ -12,20 +12,21 @@ import { longerThanShort } from './engagement';
 
 /** Dégâts d'arme encaissés EFFECTIFS (pour la pénalité) : l'Atout Solide(N) absorbe les N premiers
  *  Points de Dégâts sans pénalité (LDB 60 l.30). */
-function effectiveDamageTaken(w: Weapon): number {
+function effectiveDamageTaken(w: Pick<Weapon, 'damageTaken' | 'qualities'>): number {
   return Math.max(0, (w.damageTaken ?? 0) - (qualityIndice(w, 'solide') ?? 0));
 }
 
 /** Dégâts d'arme effectifs après réduction par `damageTaken` (la composante fixe positive est
  *  réduite, plancher 0 → BF+0 improvisée ; une composante négative — mains nues — est préservée).
  *  Lit la donnée STRUCTURÉE (`WeaponDamageSpec`) — zéro parsing de chaîne ; « Spécial » (literal) → 0. */
-export function effectiveWeaponDamage(w: Weapon, strengthBonus: number): number {
+export function effectiveWeaponDamage(w: Weapon, force: { bf: number; passif: number }): number {
   const d = w.damage;
   const usesBF = 'plusBF' in d && d.plusBF;
+  const passif = 'bfInclus' in d && d.bfInclus ? force.passif : 0; // LDB 85 l.35 ; LDB 21 l.33
   const flat = 'flat' in d ? d.flat : 0;
   const dt = effectiveDamageTaken(w); // Solide(N) absorbe les N premiers points (LDB 60 l.30)
   const reduced = flat >= 0 ? Math.max(0, flat - dt) : flat;
-  return Math.max(0, (usesBF ? strengthBonus : 0) + reduced);
+  return Math.max(0, (usesBF ? force.bf : 0) + passif + reduced);
 }
 
 /** Portée d'arme EFFECTIVE en mètres (MIROIR de `effectiveWeaponDamage` pour les Dégâts) : résout une
@@ -101,10 +102,11 @@ export function applyEnchants(w: Weapon, enchants: WeaponEnchant[]): Weapon {
 }
 
 /** L'arme est-elle réduite à l'état improvisé (bonus de Dégâts à +0 par usure) ? */
-export function isImprovised(w: Weapon): boolean {
+export function isImprovised(w: Pick<Weapon, 'damage' | 'damageTaken' | 'qualities'>): boolean {
   if (!('flat' in w.damage)) return false; // « Spécial » (literal) : jamais improvisé
   const flat = w.damage.flat;
-  return flat >= 0 && flat - effectiveDamageTaken(w) <= 0;
+  const dt = effectiveDamageTaken(w);
+  return dt > 0 && flat >= 0 && flat - dt <= 0; // LDB 62 l.135 : réduits PAR les Dégâts reçus
 }
 
 /** Résolveur d'une Possession par id STABLE — même signature que `TrappingResolver` (engine/items). */

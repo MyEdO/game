@@ -9,7 +9,7 @@
  * FEUILLE : n'importe d'exécution que des feuilles (`cle-d-espace.ts`, `sousListes.ts`).
  */
 import type { SpecsSource } from '../../index.ts';
-import { cleFiltree } from './cle-d-espace.ts';
+import { cleFiltree, lireCleDEspace, vocabulaireDuFichier } from './cle-d-espace.ts';
 import { CIBLE_D_APPARTENANCE } from './sousListes.ts';
 import type { NomDeVocabulaire } from './vocabulaires.ts';
 
@@ -54,3 +54,10 @@ export const SOURCES_DE_SPECS = {
   exposureLevels: { univers: 'vocabulaire:expositions', libelle: { vocabulaire: 'expositions' } },
   difficulties: { univers: 'vocabulaire:difficultes', libelle: { vocabulaire: 'difficultes' } },
 } as const satisfies Record<SpecsSource, SourceDeSpecs>;
+
+/** L'univers de la source `src` est-il la collection de RACINE d'un document (ni niche, ni vocabulaire), où
+ *  une valeur se résout en ENTRÉE (`SPEC_SOURCES[src].entree`, `src/data/index.ts`) ? */
+export function resoutEnEntree(src: SpecsSource): boolean {
+  const { fichier, niche } = lireCleDEspace(SOURCES_DE_SPECS[src].univers);
+  return niche === undefined && vocabulaireDuFichier(fichier) === undefined;
+}

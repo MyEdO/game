@@ -104,6 +104,16 @@
     "label": "Ulricain"
   },
   {
+    "id": "manannite",
+    "type": "groups",
+    "label": "Manannite"
+  },
+  {
+    "id": "stromfelsien",
+    "type": "groups",
+    "label": "Suivant de Stromfels"
+  },
+  {
     "id": "tileen",
     "type": "groups",
     "label": "Tiléen"
@@ -116,7 +126,13 @@
   {
     "id": "teutogen",
     "type": "groups",
-    "label": "Teutogen"
+    "label": "Teutogen",
+    "source": {
+      "book": "middenheim",
+      "page": 159,
+      "note": "Middenheim 10 l.97"
+    },
+    "maison": "Porté par les Humains de Middenheim et du Middenland, d'ascendance teutogène (#3045). Lecture révisable."
   },
   {
     "id": "bailli",
@@ -152,12 +168,23 @@
   {
     "id": "religion",
     "type": "groups",
-    "label": "Religion"
+    "label": "Religion",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 65
+    },
+    "maison": "Porté par les gens d'Église : carrières religieuses (Q14 A), cultes qui accordent des Bénédictions, Trait Béni (#3045). Lecture révisable."
   },
   {
     "id": "predateur",
     "type": "groups",
-    "label": "Prédateur"
+    "label": "Prédateur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 322,
+      "note": "LDB 79 l.160"
+    },
+    "maison": "Porté par les bêtes carnivores du bestiaire et leurs genres (#3045). Lecture révisable."
   },
   {
     "id": "serpent",
@@ -177,7 +204,13 @@
   {
     "id": "demonologue",
     "type": "groups",
-    "label": "Démonologue"
+    "label": "Démonologue",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 84,
+      "note": "EDOC 13 l.606"
+    },
+    "maison": "Porté par qui pratique la Démonologie : Magie des Arcanes ou Lanceur de Sorts qui nomme ce Domaine (EDOC 13 l.198, LDB 50 l.9 ; #3045). Lecture révisable."
   },
   {
     "id": "khorne",
@@ -282,7 +315,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par ce qui brûle : un combattant En flammes, l'Élémentaire incarné du Feu, un lieu qui le déclare (Q3 A, #3045). Lecture révisable."
   },
   {
     "id": "figures-symboles-de-guerre",
@@ -291,7 +325,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les carrières militaires (Q14 A, #3045). Lecture révisable."
   },
   {
     "id": "figures-symboles-d-autorite",
@@ -300,7 +335,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les carrières de l'ordre et du pouvoir (Q14 A, #3045). Lecture révisable."
   },
   {
     "id": "figures-symboles-religieux",
@@ -309,7 +345,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les carrières religieuses (Q14 A, #3045). Lecture révisable."
   },
   {
     "id": "monstres",
@@ -333,10 +370,18 @@
     "id": "animaux-sauvages",
     "type": "groups",
     "label": "Animaux sauvages",
+    "inclut": [
+      "bete"
+    ],
+    "exceptGroups": [
+      "animaux-domestiques",
+      "monstres"
+    ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Groupe composite (#3045) : il vise les bêtes, hormis les animaux domestiques et les monstres. LDB 78 l.5 sépare animaux sauvages et domestiqués ; LDB 79 l.5 range les monstres à part. Lecture révisable."
   },
   {
     "id": "animaux-domestiques",
@@ -345,7 +390,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les animaux de LDB 70 et du tableau du coût de l'animal (EDOC 07 l.95), et par tout Trait Dressé (Q7 A, #3045). Lecture révisable."
   },
   {
     "id": "magie",
@@ -354,7 +400,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par qui lance des sorts : Talents Magie des Arcanes, Magie mineure, Sorcier !, Magie du Chaos, Bénédiction de Tzeentch, Trait Lanceur de Sorts, et Triton, lanceur de sorts sans l'un ni l'autre (Q1 A, #3045). Lecture révisable."
   },
   {
     "id": "maladie",
@@ -363,7 +410,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par le porteur d'une maladie déclarée, sortie d'incubation, symptômes suspendus compris (Q2 A, #3045). Lecture révisable."
   },
   {
     "id": "eau",
@@ -397,7 +445,6 @@
     "type": "groups",
     "label": "Animaux",
     "inclut": [
-      "animaux-sauvages",
       "animaux-domestiques",
       "bete"
     ],
@@ -406,7 +453,7 @@
       "page": 110,
       "note": "LDB 08 l.3514"
     },
-    "maison": "Groupe composite (Q13 A, #3045) : il vise les animaux sauvages, les animaux domestiques et les bêtes. Lecture révisable."
+    "maison": "Groupe composite (Q13 A, #3045) : il vise les bêtes, animaux sauvages compris, et les animaux domestiques. Lecture révisable."
   },
   {
     "id": "hors-la-loi",
@@ -422,11 +469,15 @@
     "id": "heretiques",
     "type": "groups",
     "label": "Hérétiques",
+    "inclut": [
+      "cultiste"
+    ],
     "source": {
       "book": "livre-de-base",
       "page": 80,
       "note": "LDB 08 l.1732"
-    }
+    },
+    "maison": "Groupe composite (#3045) : l'Hérétique que hait le Flagellant est l'adorateur des Puissances de la Ruine, il vise donc les cultistes. Lecture révisable."
   },
   {
     "id": "intrus",
@@ -515,7 +566,8 @@
       "book": "livre-de-base",
       "page": 83,
       "note": "LDB 08 l.1907"
-    }
+    },
+    "maison": "Porté par les lanceurs de sorts sans licence : Sorcier dissident, Sorcier de village (#3045). Lecture révisable."
   },
   {
     "id": "vampires",

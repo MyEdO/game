@@ -5,6 +5,7 @@ import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
 import { trappings } from '../data';
+import { makeRNG } from './dice';
 import { Combatant, ItemInstance, Weapon } from './types';
 import type { Mutation } from './corruption';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -424,7 +425,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory n’équipe qu’UNE pièce par couche × localisation (meilleure PA)', () => {
-    const items = buildInventory(['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'].map((id) => ({ id })));
+    const items = buildInventory(['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'].map((id) => ({ id })), makeRNG(1));
     const worn = items.filter((i) => i.equipped).map((i) => i.trappingId);
     // Justaucorps et Veste sont tous deux Cuir souple sur le Corps → une seule des deux portée.
     expect(worn).toContain('chemise-de-mailles');
@@ -433,7 +434,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
-    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide' }] }]);
+    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide' }] }], makeRNG(1));
     const ids = item.qualities.map((q) => q.id);
     expect(ids).toContain('solide'); // Atout ATTACHÉ (joker de qualité résolu)
     expect(ids).toContain('devastatrice'); // qualité de BASE du catalogue, conservée
@@ -441,8 +442,20 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory préserve la `value` (Indice) d\'un Atout ATTACHÉ — « Solide 3 » (correctif juge Lot 1)', () => {
-    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide', value: 3 }] }]);
+    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide', value: 3 }] }], makeRNG(1));
     expect(item.qualities.find((q) => q.id === 'solide')).toEqual({ id: 'solide', value: 3 });
+  });
+});
+
+describe('buildInventory — quantité d’une dotation (LDB 74 l.41 ; `merchantFlow`)', () => {
+  it('« 1d10 Bandages » : autant d’objets que le dé tiré sur le RNG injecté (makeRNG(5) → 7), sans `qty`', () => {
+    const items = buildInventory([{ id: 'bandages', count: { roll: { n: 1, sides: 10 } } }], makeRNG(5));
+    expect(items.map((i) => [i.trappingId, i.qty])).toEqual(Array.from({ length: 7 }, () => ['bandages', undefined]));
+    expect(new Set(items.map((i) => i.uid)).size).toBe(7);
+  });
+  it('une munition garde sa quantité en un seul paquet', () => {
+    const items = buildInventory([{ id: 'fleche', count: { fixed: 12 } }], makeRNG(5));
+    expect(items.map((i) => i.qty)).toEqual([12]);
   });
 });
 
@@ -747,8 +760,15 @@ describe('endommagerLEquipementPorte — toutes les Armures et Armes portées su
     expect(endommagerLEquipementPorte(c).armes).toBe(0);
     expect(c.items![0].damageTaken).toBeUndefined();
   });
-  it('arme à Dégâts +0 (improvisée) : détruite, Mains nues en main', () => {
-    const c = porteur([arme('baton', { damage: { plusBF: true, flat: 0 } })], 'baton');
+  it('arme réduite à +0 par ses Dégâts (improvisée, LDB 62 l.135) : détruite, Mains nues en main', () => {
+    const c = porteur([arme('baton', { damage: { plusBF: true, flat: 1 }, damageTaken: 1 })], 'baton');
+    expect(endommagerLEquipementPorte(c).armes).toBe(1);
+    expect(c.items![0].destroyed).toBe(true);
+    expect(tientUneArme(c.weapons)).toBe(false);
+  });
+  it('Arme improvisée du catalogue : inutile dès son premier Dégât (LDB 62 l.135)', () => {
+    const it0 = { ...itemFromTrappingById('arme-improvisee')!, uid: 'chaise', equipped: true };
+    const c = porteur([it0], 'chaise');
     expect(endommagerLEquipementPorte(c).armes).toBe(1);
     expect(c.items![0].destroyed).toBe(true);
     expect(tientUneArme(c.weapons)).toBe(false);

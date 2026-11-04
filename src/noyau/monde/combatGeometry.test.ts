@@ -3,7 +3,7 @@ import { combatantsWithinRadius, occupied, findFreeTile } from './combatGeometry
 import { emptyScene } from './scene';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { BattleState } from '../etat';
-import { mk, battle } from '../../state/pionsEtages.testkit';
+import { mk, battle } from '../pionsEtages.testkit';
 
 /**
  * Fixes z-blind #798 (combatantsWithinRadius) / #799 (occupied — bloqueurs + barrières) / #802

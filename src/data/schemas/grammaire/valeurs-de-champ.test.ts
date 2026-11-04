@@ -144,6 +144,9 @@ const NOMMES = [
   'plus2|plus1|normal|minus1|half',
   'premier|courant|extreme',
   'proue|tribord|poupe|babord',
+  'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
+  // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
+  'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
   'success|failure|fumble',
   'test|combat|threat|hold|rally',
@@ -159,12 +162,14 @@ const NOMMES = [
   'self|victim|engaged|grappled',
   // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
   'sl|st|legs|arms|head',
-  // Payloads d'`OP_DEFS` (#1473) : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
+  // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
   // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json` ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
   'melee|ranged|all',
   'action|movement',
-  'all|metal|leather|nonMagic|nonMetal',
+  'all|metal|nonMagic|nonMetal',
+  // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
+  'metal|leather|chaos|peau',
   'd10|d100',
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
@@ -256,7 +261,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'le-plus-lent|aucun',
   'localisation|porteur',
   'majeure|mineure-x2',
-  'metal|leather|chaos',
   'mineure|arcane|invocation|beni|chaos',
   'mineur|majeur',
   'minutes|hours|days',
@@ -290,7 +294,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
   'success|failure',
   'success|stupefying',
-  'suppressExposure|gatherInfo|noSurprise|mapMade|rerollToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
+  'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',
   'terrestre|fluvial|maritime',
   'tete|brasG|brasD|corps|jambeG|jambeD',

@@ -54,7 +54,10 @@
       "species": "humain",
       "tenue": "villageois"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "nain",
@@ -120,7 +123,10 @@
     },
     "appearance": {
       "species": "nain"
-    }
+    },
+    "grantGroups": [
+      "nain"
+    ]
   },
   {
     "id": "halfling",
@@ -175,7 +181,10 @@
     },
     "appearance": {
       "species": "halfling"
-    }
+    },
+    "grantGroups": [
+      "halfling"
+    ]
   },
   {
     "id": "elfe-haut-et-sylvain",
@@ -250,7 +259,10 @@
     },
     "appearance": {
       "species": "haut-elfe"
-    }
+    },
+    "grantGroups": [
+      "elfe"
+    ]
   },
   {
     "id": "ogre",
@@ -283,7 +295,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 1
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "prejuge"
@@ -320,9 +333,11 @@
       "page": 312
     },
     "appearance": {
-      "species": "ogre",
-      "tenue": "ogre"
-    }
+      "species": "ogre"
+    },
+    "grantGroups": [
+      "ogre"
+    ]
   },
   {
     "id": "bella-la-noire",
@@ -369,7 +384,8 @@
       {
         "id": "armure",
         "arg": "Légère",
-        "value": 2
+        "value": 2,
+        "matiere": "leather"
       },
       {
         "id": "brutal"
@@ -401,7 +417,11 @@
       "tenue": "hors-la-loi",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "hors-la-loi",
+      "humain"
+    ]
   },
   {
     "id": "pol-dankels",
@@ -461,7 +481,10 @@
       "species": "humain",
       "tenue": "sorcier"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "eusapia-balacanon",
@@ -621,14 +644,17 @@
     ],
     "desc": "La grâce et la sophistication de l'aristocratie estalienne associées à la présence et la stature de la noblesse de l'Empire font de Balacañon un membre respecté de la haute société. Et le fait qu'elle soit un sorcier la fait craindre à juste titre. Véritable machine de guerre, Balacañon combine son éducation avec les énergies primitives de Ghur pour se démarquer.",
     "source": {
-      "book": "mort-sur-le-reik",
+      "book": "mort-sur-le-reik-compagnon",
       "page": 48
     },
     "appearance": {
       "species": "humain",
       "tenue": "sorcier"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "araignee-geante",
@@ -749,7 +775,8 @@
       "species": "araignee-geante"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "predateur"
     ]
   },
   {
@@ -827,7 +854,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -937,7 +965,8 @@
       "species": "chien"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -1034,7 +1063,8 @@
       "species": "loup"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "predateur"
     ]
   },
   {
@@ -1065,7 +1095,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 1
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "bestial"
@@ -1128,7 +1159,8 @@
       "species": "ours"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "predateur"
     ]
   },
   {
@@ -1196,7 +1228,8 @@
       "species": "pigeon"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -1289,7 +1322,8 @@
       "species": "rat-geant"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "rats"
     ]
   },
   {
@@ -1320,7 +1354,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 1
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "bestial"
@@ -1484,7 +1519,8 @@
     },
     "grantGroups": [
       "bete",
-      "serpent"
+      "serpent",
+      "predateur"
     ]
   },
   {
@@ -1748,7 +1784,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -1791,7 +1828,13 @@
       {
         "id": "souffle",
         "value": 15,
-        "arg": "divers"
+        "arg": "feu",
+        "source": {
+          "book": "livre-de-base",
+          "page": 319,
+          "note": "LDB 79 l.51"
+        },
+        "maison": "Le statbloc imprime « Souffle +15 (divers) » sans nommer de Type ; le Type retenu est Feu (lecture recommandée, révisable, #3038)."
       },
       {
         "id": "taille",
@@ -1992,7 +2035,7 @@
       },
       {
         "id": "souffle",
-        "arg": "Vomi d’ivrogne"
+        "arg": "vomi-d-ivrogne"
       },
       {
         "id": "stupide"
@@ -2108,7 +2151,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2288,7 +2332,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2471,7 +2516,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -2678,7 +2724,11 @@
       },
       {
         "id": "souffle",
-        "arg": "acide ou gaz"
+        "arg": "corrosif"
+      },
+      {
+        "id": "souffle",
+        "arg": "poison"
       },
       {
         "id": "taille",
@@ -2922,7 +2972,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "predateur"
     ]
   },
   {
@@ -3715,8 +3766,7 @@
       "page": 329
     },
     "appearance": {
-      "species": "squelette",
-      "tenue": "squelette"
+      "species": "squelette"
     },
     "grantGroups": [
       "mort-vivant"
@@ -3830,8 +3880,7 @@
       "page": 330
     },
     "appearance": {
-      "species": "vampire",
-      "tenue": "vampire"
+      "species": "vampire"
     },
     "grantGroups": [
       "mort-vivant"
@@ -3999,8 +4048,7 @@
       "page": 331
     },
     "appearance": {
-      "species": "chamane-brey",
-      "tenue": "chamane-bray"
+      "species": "chamane-brey"
     },
     "grantGroups": [
       "homme-bete"
@@ -4317,7 +4365,6 @@
     },
     "appearance": {
       "species": "humain",
-      "tenue": "cultiste",
       "armurePortee": true
     },
     "followsCharacterRules": true,
@@ -4458,7 +4505,6 @@
     },
     "appearance": {
       "species": "guerrier-du-chaos",
-      "tenue": "guerrier-du-chaos",
       "armurePortee": true
     },
     "followsCharacterRules": true,
@@ -4540,8 +4586,7 @@
       "page": 335
     },
     "appearance": {
-      "species": "demon",
-      "tenue": "sanguinaire"
+      "species": "demon"
     },
     "grantGroups": [
       "demon",
@@ -4613,8 +4658,7 @@
       "page": 335
     },
     "appearance": {
-      "species": "demonette-de-slaanesh",
-      "tenue": "demonette"
+      "species": "demonette-de-slaanesh"
     },
     "grantGroups": [
       "demon",
@@ -5179,7 +5223,6 @@
     },
     "appearance": {
       "species": "skaven",
-      "tenue": "skaven",
       "armurePortee": true
     },
     "grantGroups": [
@@ -5281,8 +5324,7 @@
       "page": 337
     },
     "appearance": {
-      "species": "rat-ogre",
-      "tenue": "rat-ogre"
+      "species": "rat-ogre"
     },
     "grantGroups": [
       "skaven"
@@ -5351,7 +5393,6 @@
     },
     "appearance": {
       "species": "vermine-de-choc",
-      "tenue": "vermine-de-choc",
       "armurePortee": true
     },
     "grantGroups": [
@@ -5626,7 +5667,10 @@
     },
     "appearance": {
       "species": "grand-cerf"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "l-ombre-du-fleuve",
@@ -5721,6 +5765,9 @@
       "rarity": "Unique",
       "danger": "Menaçante",
       "uses": "Aurait un goût unique conféré par Taal"
+    },
+    "genre": {
+      "id": "grand-cerf"
     }
   },
   {
@@ -5805,7 +5852,12 @@
       "rarity": "Limitée",
       "danger": "Menaçante",
       "uses": "Les filières peuvent être broyées pour former une colle particulièrement résistante"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur",
+      "monstres"
+    ]
   },
   {
     "id": "mangeuse-d-hommes-de-la-drakwald-araignee-geante",
@@ -6321,7 +6373,11 @@
       "rarity": "Limitée",
       "danger": "Inquiétante",
       "uses": "Son estomac peut être durci pour contenir n'importe quel liquide"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "le-vieux-dos-de-pus",
@@ -6406,6 +6462,9 @@
       "rarity": "Unique",
       "danger": "Menaçante",
       "uses": "Le sang d'un grand razorgor provoque un état de Frénésie"
+    },
+    "genre": {
+      "id": "razorgor"
     }
   },
   {
@@ -6473,7 +6532,7 @@
       {
         "id": "souffle",
         "value": 5,
-        "arg": "Bave gluante"
+        "arg": "bave-gluante"
       }
     ],
     "optionals": [
@@ -6513,7 +6572,12 @@
       "rarity": "Exotique",
       "danger": "Menaçante",
       "uses": "Les dents, les défenses et les cornes sont sublimes une fois polies"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur",
+      "monstres"
+    ]
   },
   {
     "id": "rhinox",
@@ -6607,7 +6671,11 @@
       "rarity": "Limitée",
       "danger": "Inquiétante",
       "uses": "La queue d'un rhinox éloigne les mouches"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "grandes-betes"
+    ]
   },
   {
     "id": "brise-krag",
@@ -6682,6 +6750,9 @@
       "rarity": "Unique",
       "danger": "Mortelle",
       "uses": "La corne broyée d'un grand rhinox guérit tous les maux"
+    },
+    "genre": {
+      "id": "rhinox"
     }
   },
   {
@@ -6743,6 +6814,9 @@
       "rarity": "Limitée",
       "danger": "Inoffensive",
       "uses": "Les crottes de squig sont un excellent engrais"
+    },
+    "genre": {
+      "id": "squig-des-cavernes"
     }
   },
   {
@@ -6903,7 +6977,7 @@
       {
         "id": "souffle",
         "value": 10,
-        "arg": "Soporifique"
+        "arg": "soporifique"
       }
     ],
     "optionals": [
@@ -7334,7 +7408,11 @@
     },
     "appearance": {
       "species": "brochet-du-stir"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
   },
   {
     "id": "brochet-du-stir-fluvial",
@@ -7429,6 +7507,9 @@
     },
     "appearance": {
       "species": "brochet-du-stir"
+    },
+    "genre": {
+      "id": "brochet-du-stir"
     }
   },
   {
@@ -7616,7 +7697,10 @@
     },
     "appearance": {
       "species": "skaven"
-    }
+    },
+    "grantGroups": [
+      "skaven"
+    ]
   },
   {
     "id": "rat-ogre-briseur-d-os",
@@ -7714,6 +7798,9 @@
       "rarity": "Exotique",
       "danger": "Menaçante",
       "uses": "Il est possible de prélever de la malepierre à partir de sa chair et de son sang"
+    },
+    "genre": {
+      "id": "rat-ogre"
     }
   },
   {
@@ -7808,7 +7895,11 @@
     },
     "appearance": {
       "species": "rat-loup"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "skaven"
+    ]
   },
   {
     "id": "experience-unique-du-clan-moulder",
@@ -7958,7 +8049,11 @@
     },
     "appearance": {
       "species": "rat-ogre"
-    }
+    },
+    "grantGroups": [
+      "skaven",
+      "monstres"
+    ]
   },
   {
     "id": "amibe",
@@ -8068,7 +8163,8 @@
         "id": "amphibie"
       },
       {
-        "id": "effraye"
+        "id": "effraye",
+        "arg": "feu"
       },
       {
         "id": "furtif"
@@ -8159,6 +8255,9 @@
     "source": {
       "book": "zoo-imperial",
       "page": 45
+    },
+    "genre": {
+      "id": "amibe"
     }
   },
   {
@@ -8254,6 +8353,9 @@
       "rarity": "Exotique",
       "danger": "Inoffensive",
       "uses": "On peut mélanger le venin des deux têtes pour guérir de n'importe quel poison"
+    },
+    "genre": {
+      "id": "serpent"
     }
   },
   {
@@ -8550,6 +8652,9 @@
       "rarity": "Limitée",
       "danger": "Inoffensive",
       "uses": "Permet de créer une potion pour prendre l'apparence de quelqu'un d'autre"
+    },
+    "genre": {
+      "id": "sangsue-geante"
     }
   },
   {
@@ -8644,6 +8749,9 @@
     },
     "appearance": {
       "species": "le-dechiqueteur-de-cadavres"
+    },
+    "genre": {
+      "id": "hydre"
     }
   },
   {
@@ -8814,7 +8922,11 @@
     },
     "appearance": {
       "species": "volee-de-noctecorbes"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "preyton",
@@ -8906,7 +9018,11 @@
     },
     "appearance": {
       "species": "preyton"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "grand-aigle",
@@ -8990,7 +9106,10 @@
     },
     "appearance": {
       "species": "grand-aigle"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "faucon-des-montagnes-grises",
@@ -9075,7 +9194,10 @@
     },
     "appearance": {
       "species": "faucon-des-montagnes-grises"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "heomreth-hibou-geant",
@@ -9175,7 +9297,10 @@
     },
     "appearance": {
       "species": "heomreth-hibou-geant"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "cockatrice",
@@ -9280,7 +9405,11 @@
     },
     "appearance": {
       "species": "cockatrice"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "chimere",
@@ -9409,7 +9538,12 @@
     },
     "appearance": {
       "species": "chimere"
-    }
+    },
+    "grantGroups": [
+      "predateur",
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "la-bete-de-l-oblast",
@@ -9526,6 +9660,9 @@
       "rarity": "Unique",
       "danger": "Mortelle",
       "uses": "Vaincre une grande chimère est un excellent moyen de se faire connaître, en bien comme en mal"
+    },
+    "genre": {
+      "id": "chimere"
     }
   },
   {
@@ -9674,10 +9811,13 @@
     },
     "appearance": {
       "species": "humain",
-      "tenue": "cultiste",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "cultiste",
+      "humain"
+    ]
   },
   {
     "id": "peau-de-loup",
@@ -9773,7 +9913,10 @@
     },
     "appearance": {
       "species": "peau-de-loup"
-    }
+    },
+    "grantGroups": [
+      "cultiste"
+    ]
   },
   {
     "id": "grand-taurus",
@@ -9805,6 +9948,10 @@
       {
         "id": "immunite",
         "arg": "feu"
+      },
+      {
+        "id": "immunite",
+        "arg": "magie-flamboyante"
       },
       {
         "id": "infravision"
@@ -9866,7 +10013,12 @@
       "rarity": "Rare",
       "danger": "Menaçante",
       "uses": "La corne de taurus immunise contre le feu"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres",
+      "feu"
+    ]
   },
   {
     "id": "tregara",
@@ -9947,7 +10099,10 @@
     },
     "appearance": {
       "species": "tregara"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "macareux-a-bec-tranchant",
@@ -10025,7 +10180,10 @@
     },
     "appearance": {
       "species": "macareux-a-bec-tranchant"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "ver-des-marais",
@@ -10120,6 +10278,9 @@
       "rarity": "Rare",
       "danger": "Inquiétante",
       "uses": "Sa peau permet de confectionner des vêtements raffinés"
+    },
+    "genre": {
+      "id": "serpent"
     }
   },
   {
@@ -10227,7 +10388,11 @@
     },
     "appearance": {
       "species": "stegadon"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "cornu",
@@ -10324,7 +10489,11 @@
     },
     "appearance": {
       "species": "cornu"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "carnosaure",
@@ -10429,7 +10598,12 @@
     },
     "appearance": {
       "species": "carnosaure"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur",
+      "monstres"
+    ]
   },
   {
     "id": "chat-sauvage",
@@ -10527,7 +10701,11 @@
     },
     "appearance": {
       "species": "chat-sauvage"
-    }
+    },
+    "grantGroups": [
+      "predateur",
+      "bete"
+    ]
   },
   {
     "id": "lion-de-guerre-de-chrace",
@@ -10628,7 +10806,11 @@
     },
     "appearance": {
       "species": "lion-de-guerre-de-chrace"
-    }
+    },
+    "grantGroups": [
+      "predateur",
+      "bete"
+    ]
   },
   {
     "id": "griffon-zoo-imperial",
@@ -10949,7 +11131,11 @@
     },
     "appearance": {
       "species": "leviathan"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "il-potente-granchio",
@@ -11032,6 +11218,9 @@
     },
     "appearance": {
       "species": "il-potente-granchio"
+    },
+    "genre": {
+      "id": "leviathan"
     }
   },
   {
@@ -11114,7 +11303,10 @@
     },
     "appearance": {
       "species": "sirene"
-    }
+    },
+    "grantGroups": [
+      "monstres"
+    ]
   },
   {
     "id": "wyrm-des-mers",
@@ -11219,7 +11411,11 @@
       "rarity": "Exotique",
       "danger": "Menaçante",
       "uses": "Toucher un wyrm des mers permet de dissiper toute illusion"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "dragon-barbele",
@@ -11384,7 +11580,7 @@
       {
         "id": "souffle",
         "value": 12,
-        "arg": "Cauchemars"
+        "arg": "cauchemars"
       }
     ],
     "optionals": [],
@@ -11586,7 +11782,10 @@
     },
     "appearance": {
       "species": "skaven"
-    }
+    },
+    "grantGroups": [
+      "skaven"
+    ]
   },
   {
     "id": "prototype-du-clan-skryre",
@@ -11658,6 +11857,9 @@
     },
     "appearance": {
       "species": "rat-ogre"
+    },
+    "genre": {
+      "id": "rat-ogre"
     }
   },
   {
@@ -11777,7 +11979,9 @@
       },
       {
         "id": "armure",
-        "value": 2
+        "arg": "Peau",
+        "value": 2,
+        "matiere": "peau"
       },
       {
         "id": "morsure",
@@ -11851,7 +12055,10 @@
       "species": "humain",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "enfant-d-ulric-humain",
@@ -11891,7 +12098,10 @@
     "appearance": {
       "species": "humain"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "spectre-middenheim",
@@ -11978,7 +12188,9 @@
       },
       {
         "id": "armure",
-        "value": 1
+        "arg": "Peau",
+        "value": 1,
+        "matiere": "peau"
       },
       {
         "id": "foulee"
@@ -12069,7 +12281,8 @@
       },
       {
         "id": "armure",
-        "value": 2
+        "value": 2,
+        "matiere": "metal"
       }
     ],
     "optionals": [],
@@ -12200,9 +12413,11 @@
     },
     "appearance": {
       "species": "ogre",
-      "tenue": "ogre",
       "armurePortee": true
-    }
+    },
+    "grantGroups": [
+      "ogre"
+    ]
   },
   {
     "id": "ugrik-legaree",
@@ -12385,9 +12600,12 @@
     },
     "appearance": {
       "species": "ogre",
-      "tenue": "ogre",
       "armurePortee": true
-    }
+    },
+    "grantGroups": [
+      "hors-la-loi",
+      "ogre"
+    ]
   },
   {
     "id": "nazzaalta-affabule",
@@ -12519,9 +12737,11 @@
       "page": 26
     },
     "appearance": {
-      "species": "ogre",
-      "tenue": "ogre"
-    }
+      "species": "ogre"
+    },
+    "grantGroups": [
+      "ogre"
+    ]
   },
   {
     "id": "artur-piedmarteau",
@@ -12677,9 +12897,11 @@
       "page": 26
     },
     "appearance": {
-      "species": "ogre",
-      "tenue": "ogre"
-    }
+      "species": "ogre"
+    },
+    "grantGroups": [
+      "ogre"
+    ]
   },
   {
     "id": "babrakkos",
@@ -13065,7 +13287,10 @@
     "appearance": {
       "species": "skaven",
       "armurePortee": true
-    }
+    },
+    "grantGroups": [
+      "skaven"
+    ]
   },
   {
     "id": "kanker-flett",
@@ -13175,7 +13400,11 @@
     },
     "appearance": {
       "species": "skaven"
-    }
+    },
+    "grantGroups": [
+      "skaven",
+      "nurgle"
+    ]
   },
   {
     "id": "maitre-moulder-skree",
@@ -13207,7 +13436,8 @@
       {
         "id": "armure",
         "arg": "Peau",
-        "value": 2
+        "value": 2,
+        "matiere": "peau"
       },
       {
         "id": "increvable"
@@ -13293,7 +13523,10 @@
     },
     "appearance": {
       "species": "skaven"
-    }
+    },
+    "grantGroups": [
+      "skaven"
+    ]
   },
   {
     "id": "wolfgard-hohmann",
@@ -13336,7 +13569,8 @@
           "corps": 2,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "metal"
       }
     ],
     "optionals": [],
@@ -13402,7 +13636,10 @@
       "tenue": "garde",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "wereburga-krotpreffer",
@@ -13449,7 +13686,8 @@
           "corps": 2,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "metal"
       },
       {
         "id": "prejuge"
@@ -13523,7 +13761,10 @@
       "tenue": "garde",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "moritz-valgeir",
@@ -13571,7 +13812,8 @@
           "corps": 3,
           "jambeG": 3,
           "jambeD": 3
-        }
+        },
+        "matiere": "metal"
       }
     ],
     "optionals": [],
@@ -13711,7 +13953,10 @@
       "tenue": "chevalier",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "stefan-hochen",
@@ -13832,7 +14077,10 @@
       "species": "humain",
       "tenue": "medecin"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "marta-gerbenshreiber",
@@ -13870,7 +14118,8 @@
           "corps": 1,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "leather"
       },
       {
         "id": "prejuge"
@@ -13960,7 +14209,10 @@
       "species": "humain",
       "tenue": "bailli"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "wulfric-tore",
@@ -14037,7 +14289,10 @@
       "species": "humain",
       "tenue": "marchand"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "waldtraud-blass",
@@ -14146,7 +14401,10 @@
       "species": "humain",
       "tenue": "apothicaire"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "ritta",
@@ -14250,7 +14508,10 @@
       "species": "humain",
       "tenue": "charlatan"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "wulfrum-viert",
@@ -14381,7 +14642,10 @@
       "species": "humain",
       "tenue": "intendant"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "emmille-munzstatter",
@@ -14463,7 +14727,10 @@
       "species": "humain",
       "tenue": "artisan"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "yanni-weber",
@@ -14593,7 +14860,10 @@
       "species": "humain",
       "tenue": "sorcier"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "johen",
@@ -14697,7 +14967,12 @@
       "species": "humain",
       "tenue": "sorcier-dissident"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "sorcieres",
+      "sorciers-dissidents",
+      "humain"
+    ]
   },
   {
     "id": "frere-bengt",
@@ -14796,7 +15071,10 @@
       "species": "humain",
       "tenue": "pretre"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "grand-vizir-bhar",
@@ -15018,7 +15296,11 @@
       "species": "humain",
       "tenue": "sorcier"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "cultiste",
+      "humain"
+    ]
   },
   {
     "id": "hugo-vallonvert",
@@ -15140,7 +15422,10 @@
     "appearance": {
       "species": "halfling",
       "tenue": "artisan"
-    }
+    },
+    "grantGroups": [
+      "halfling"
+    ]
   },
   {
     "id": "alfric-demi-nez-brisenclume",
@@ -15269,7 +15554,10 @@
     "appearance": {
       "species": "nain",
       "tenue": "receleur"
-    }
+    },
+    "grantGroups": [
+      "nain"
+    ]
   },
   {
     "id": "agna-lottrisdottir",
@@ -15311,7 +15599,8 @@
           "corps": 1,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "leather"
       },
       {
         "id": "haine",
@@ -15391,7 +15680,10 @@
     "appearance": {
       "species": "nain",
       "tenue": "emissaire"
-    }
+    },
+    "grantGroups": [
+      "nain"
+    ]
   },
   {
     "id": "helmut-beckenbauer",
@@ -15434,7 +15726,8 @@
           "corps": 2,
           "jambeG": 0,
           "jambeD": 0
-        }
+        },
+        "matiere": "metal"
       },
       {
         "id": "prejuge"
@@ -15526,7 +15819,10 @@
       "tenue": "ranconneur",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "walpurga-wurklich",
@@ -15603,7 +15899,10 @@
       "species": "humain",
       "tenue": "agitateur"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "andrea-bruhn",
@@ -15731,7 +16030,10 @@
       "species": "humain",
       "tenue": "conseiller"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "jacopo-schmidt",
@@ -15850,7 +16152,10 @@
       "species": "humain",
       "tenue": "entremetteur"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "traudl-bauer",
@@ -15955,7 +16260,12 @@
       "species": "humain",
       "tenue": "flagellant"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "religion",
+      "figures-symboles-religieux",
+      "humain"
+    ]
   },
   {
     "id": "beate-moser",
@@ -16109,7 +16419,10 @@
       "species": "humain",
       "tenue": "pretre"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "le-vieil-otto",
@@ -16247,7 +16560,10 @@
       "species": "humain",
       "tenue": "artisan"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "brigitte-schleigel",
@@ -16277,6 +16593,10 @@
       {
         "id": "prejuge",
         "arg": "noble"
+      },
+      {
+        "id": "prejuge",
+        "arg": "miliciens"
       },
       {
         "id": "prejuge"
@@ -16356,7 +16676,10 @@
       "species": "humain",
       "tenue": "agitateur"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "brute",
@@ -16383,7 +16706,8 @@
       {
         "id": "armure",
         "arg": "Cuir",
-        "value": 2
+        "value": 2,
+        "matiere": "leather"
       }
     ],
     "optionals": [],
@@ -16415,7 +16739,10 @@
       "tenue": "milicien",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "athlete",
@@ -16442,7 +16769,8 @@
       {
         "id": "armure",
         "arg": "Cuir",
-        "value": 2
+        "value": 2,
+        "matiere": "leather"
       }
     ],
     "optionals": [],
@@ -16474,7 +16802,10 @@
       "tenue": "spadassin",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "gerdon-salzwed",
@@ -16593,7 +16924,11 @@
       "species": "humain",
       "tenue": "receleur"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain",
+      "teutogen"
+    ]
   },
   {
     "id": "hasso-schroeter",
@@ -16716,7 +17051,11 @@
       "species": "humain",
       "tenue": "saltimbanque"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain",
+      "teutogen"
+    ]
   },
   {
     "id": "kat-sperber",
@@ -16836,7 +17175,11 @@
       "species": "humain",
       "tenue": "colporteur"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain",
+      "teutogen"
+    ]
   },
   {
     "id": "theresia-kleist",
@@ -16959,7 +17302,10 @@
       "species": "humain",
       "tenue": "marin"
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "baudroye",
@@ -17044,7 +17390,11 @@
     },
     "appearance": {
       "species": "brochet-du-stir"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "crabe-boxeur",
@@ -17120,7 +17470,11 @@
     },
     "appearance": {
       "species": "il-potente-granchio"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "anguille-macheprise",
@@ -17192,7 +17546,11 @@
     },
     "appearance": {
       "species": "serpent"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "stylet",
@@ -17263,7 +17621,10 @@
     },
     "appearance": {
       "species": "brochet-du-stir"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "elementaire-de-mer",
@@ -17417,7 +17778,12 @@
     },
     "appearance": {
       "species": "serpent"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres",
+      "serpent"
+    ]
   },
   {
     "id": "kharibde",
@@ -17514,7 +17880,11 @@
     },
     "appearance": {
       "species": "amibe"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "syrene-bleue",
@@ -17670,7 +18040,11 @@
     },
     "appearance": {
       "species": "hydre"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "sangsue-des-abysses",
@@ -17756,7 +18130,11 @@
     },
     "appearance": {
       "species": "sangsue-geante"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
   },
   {
     "id": "leviathan-phare",
@@ -17824,7 +18202,12 @@
     },
     "appearance": {
       "species": "brochet-du-stir"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur",
+      "monstres"
+    ]
   },
   {
     "id": "leviathan-noir",
@@ -17897,7 +18280,12 @@
     },
     "appearance": {
       "species": "brochet-du-stir"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur",
+      "monstres"
+    ]
   },
   {
     "id": "triton",
@@ -18178,7 +18566,10 @@
       "species": "humain",
       "sex": "M",
       "tenue": "nu"
-    }
+    },
+    "grantGroups": [
+      "magie"
+    ]
   },
   {
     "id": "jaego-roth",
@@ -18360,7 +18751,7 @@
       },
       {
         "id": "haine",
-        "spec": "morts-vivants"
+        "spec": "mort-vivant"
       },
       {
         "id": "imperturbable"
@@ -18472,7 +18863,10 @@
       "tenue": "marin",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "long-drong-silver",
@@ -18784,7 +19178,10 @@
     "appearance": {
       "species": "nain",
       "tenue": "marin"
-    }
+    },
+    "grantGroups": [
+      "nain"
+    ]
   },
   {
     "id": "wulfrik",
@@ -18820,7 +19217,8 @@
       },
       {
         "id": "armure",
-        "value": 4
+        "value": 4,
+        "matiere": "metal"
       },
       {
         "id": "champion"
@@ -19084,10 +19482,13 @@
     ],
     "appearance": {
       "species": "humain",
-      "tenue": "guerrier-du-chaos",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain",
+      "cultiste"
+    ]
   },
   {
     "id": "vrisk-gratte-le-fer",
@@ -19389,9 +19790,11 @@
     },
     "appearance": {
       "species": "skaven",
-      "tenue": "vermine-de-choc",
       "armurePortee": true
-    }
+    },
+    "grantGroups": [
+      "skaven"
+    ]
   },
   {
     "id": "olg-blodsalt",
@@ -19612,7 +20015,10 @@
       "tenue": "marin",
       "armurePortee": true
     },
-    "followsCharacterRules": true
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
   },
   {
     "id": "anguille-du-reik",
@@ -19688,7 +20094,10 @@
     },
     "appearance": {
       "species": "serpent"
-    }
+    },
+    "grantGroups": [
+      "bete"
+    ]
   },
   {
     "id": "sangsue-geante",
@@ -19786,7 +20195,11 @@
     },
     "appearance": {
       "species": "sangsue-geante"
-    }
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
   },
   {
     "id": "sangsue-des-arbres",
@@ -19887,6 +20300,9 @@
     },
     "appearance": {
       "species": "sangsue-geante"
+    },
+    "genre": {
+      "id": "sangsue-geante"
     }
   },
   {
@@ -20012,7 +20428,8 @@
       "species": "chien"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20081,7 +20498,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20154,7 +20572,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20286,7 +20705,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20374,7 +20794,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20440,7 +20861,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20568,7 +20990,8 @@
       "species": "cheval"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20674,7 +21097,8 @@
       "availability": "Commune"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20703,7 +21127,8 @@
       "availability": "Commune"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "animaux-domestiques"
     ]
   },
   {
@@ -20730,7 +21155,11 @@
     },
     "appearance": {
       "species": "poulet"
-    }
+    },
+    "grantGroups": [
+      "animaux-domestiques",
+      "bete"
+    ]
   },
   {
     "id": "singe",
@@ -20756,7 +21185,11 @@
     },
     "appearance": {
       "species": "singe"
-    }
+    },
+    "grantGroups": [
+      "animaux-domestiques",
+      "bete"
+    ]
   },
   {
     "id": "vers",
@@ -20817,6 +21250,14 @@
         "id": "foulee"
       },
       {
+        "id": "immunite",
+        "arg": "feu"
+      },
+      {
+        "id": "immunite",
+        "arg": "magie-flamboyante"
+      },
+      {
         "id": "instable"
       },
       {
@@ -20857,7 +21298,10 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 174
-    }
+    },
+    "grantGroups": [
+      "feu"
+    ]
   },
   {
     "id": "elementaire-incarne-de-la-mort",
@@ -20893,6 +21337,10 @@
       },
       {
         "id": "foulee"
+      },
+      {
+        "id": "immunite",
+        "arg": "shyish"
       },
       {
         "id": "instable"
@@ -21082,7 +21530,8 @@
       },
       {
         "id": "armure",
-        "value": 2
+        "value": 2,
+        "matiere": "metal"
       },
       {
         "id": "magique"

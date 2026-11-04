@@ -20,10 +20,11 @@ import { Combatant, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
-import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL } from '../engine/combat';
+import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL, baseTestModLines, weaponSkillId, GRAPPLE_TEST_CTX } from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
-import { effectiveChar, bonus } from '../engine/characteristics';
+import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';
+import { testValue, skillBaseValue } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
@@ -32,7 +33,7 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/defs/maneuvers';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
+import { freeCons, rollLine, type RollLineParts } from './rollSeam';
 import { defenseSurfaced } from './netOwnership';
 import { inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
@@ -319,7 +320,7 @@ export function selectedAttackOption(active: Combatant, battle: BattleState): At
 // ---------------------------------------------------------------------------
 
 /** Jet d'attaquant d'une manœuvre (LDB 85) : CC (mêlée) ou CT (distance/zone). `difficulty` porte le
- *  bonus d'attaquant propre à la manœuvre (Vomissement : Facile +40 à courte distance, LDB 85 l.376) ;
+ *  bonus d'attaquant propre à la manœuvre (Vomissement : Facile +40 à courte distance, LDB 85 l.445) ;
  *  Intermédiaire par défaut. Hurlement n'a PAS de jet d'attaquant (chaque cible teste sa Résistance)
  *  → `stat` absent : `rollManeuverAttacker` n'est jamais appelé pour lui. */
 export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = 'intermediaire'): TestResult {
@@ -327,8 +328,14 @@ export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-com
   return { ...rollTest(combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
 }
 
+/** Ligne du jet d'attaquant d'une manœuvre (`rollLine`, canal de combat, même valeur que
+ *  `rollManeuverAttacker`) — lue par les fenêtres de Manœuvre et de Battement. LDB 85 l.445. */
+export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = 'intermediaire'): RollLineParts {
+  return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'ranged' }, difficulty });
+}
+
 /** Difficulté du jet d'ATTAQUANT propre à une manœuvre (seul le Vomissement dévie du +0 : Facile +40
- *  à courte distance, LDB 85 l.376). Le store/IA passe ce résultat à `rollManeuverAttacker`. */
+ *  à courte distance, LDB 85 l.445). Le store/IA passe ce résultat à `rollManeuverAttacker`. */
 export function maneuverAttackerDifficulty(kind: AttackKind): Difficulty {
   return kind === 'vomi' ? 'facile' : 'intermediaire';
 }
@@ -342,7 +349,7 @@ export function maneuverAttackerDifficulty(kind: AttackKind): Difficulty {
  *  Dégâts/États restent data (`GameOp`). Vide ou ≤ 0 → null. Zéro regex (donnée déjà structurée). */
 function measureMeters(spec: ManeuverMeasure | undefined, ref: Combatant): number | null {
   if (!spec) return null;
-  const m = (spec.bonusOf ? bonus(effectiveChar(ref, spec.bonusOf)) : 0) + (spec.plus ?? 0);
+  const m = (spec.bonusOf ? bonusDe(ref, spec.bonusOf) : 0) + (spec.plus ?? 0);
   return m > 0 ? m : null;
 }
 /** Mètres → CASES (grille 2 m/case), min 1 ; null conservé. */
@@ -479,7 +486,7 @@ export function resolveManeuver(
     if (drow) {
       const opp = resolveOpposed(atk ?? drow, drow);
       if (!opp.attackerWins) { lines.push(t('manv.resists', { name: tgt.label })); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
-      // Marge = DR net du vainqueur (+Avantage dépensé pour les manœuvres à Avantage VARIABLE, Regard l.238).
+      // Marge = DR net du vainqueur (+Avantage dépensé pour les manœuvres à Avantage VARIABLE, LDB 85 l.290).
       margin = opp.netSL + (def.advantageMode === 'variable' ? spent : 0);
     }
     lines.push(...applyManeuverEffects(get, set, attacker, def, tgt, indice, margin, rng));
@@ -648,14 +655,46 @@ export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestR
   return t('manv.distraire', { name: attacker.label, foe: foe.label });
 }
 
-/** Niveaux de Compétence NUS du Distraire (`LDB 09 l.17`) : Athlétisme sur AGILITÉ pour l'attaquant,
- *  Calme sur FORCE MENTALE pour le défenseur — Caractéristique effective + Augmentations, sans aucun
- *  modificateur. SOURCE des jets de `resolveDistraire`, et grandeurs de son départage. Pur. */
+/** Valeurs du Test opposé d'Athlétisme/Calme du Distraire (LDB 10 l.364) — SOURCE des jets de
+ *  `resolveDistraire`. Pur. */
 export function distraireAttackValue(c: Combatant): number {
-  return effectiveChar(c, 'agilite') + (c.skills.find((s) => s.id === 'athletisme')?.advances ?? 0);
+  return testValue(c, 'athletisme');
 }
 export function distraireDefenseValue(c: Combatant): number {
-  return effectiveChar(c, 'force-mentale') + (c.skills.find((s) => s.id === 'calme')?.advances ?? 0);
+  return testValue(c, 'calme');
+}
+/** Niveaux de Compétence NUS du départage du Distraire — LDB 12 l.160, LDB 09 l.17. Pur. */
+export function distraireAttackBase(c: Combatant): number {
+  return skillBaseValue(c, 'athletisme');
+}
+export function distraireDefenseBase(c: Combatant): number {
+  return skillBaseValue(c, 'calme');
+}
+
+/** Lignes du Test opposé de Distraire (`rollLine`, mêmes valeurs que le jet) — LDB 10 l.364. */
+export function ligneDeDistraire(mover: Combatant): RollLineParts {
+  return rollLine({ actor: mover, test: { skill: 'athletisme' }, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
+}
+export function ligneDuCalmeDistrait(foe: Combatant): RollLineParts {
+  return rollLine({ actor: foe, test: { skill: 'calme' }, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
+}
+
+/** Ligne du Corps à corps « brut » (`rollLine`, mêmes valeur et modificateurs que `rollDisengageAttack`)
+ *  — LDB 15 l.49, LDB 62 l.176. */
+export function ligneDeCorpsACorpsBrut(c: Combatant): RollLineParts {
+  return rollLine({
+    actor: c, combat: { kind: 'melee', weapon: c.weapons[0] }, difficulty: 'intermediaire',
+    surLaCible: baseTestModLines(c, 'capacite-de-combat', { skill: weaponSkillId('melee') }),
+  });
+}
+
+/** Ligne du Test de Force d'Empoignade (`rollLine`, mêmes valeur et modificateurs que `rollGrappleForce`)
+ *  — LDB 14 l.161. */
+export function ligneDeForceDEmpoignade(c: Combatant): RollLineParts {
+  return rollLine({
+    actor: c, test: { char: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
+    surLaCible: baseTestModLines(c, 'force', GRAPPLE_TEST_CTX),
+  });
 }
 
 /** Adversaires ÉLIGIBLES au Battement de `attacker` (LDB 10 l.103) — SOURCE UNIQUE : gate de la hotbar,
@@ -680,8 +719,7 @@ export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: 
  *  Athlétisme vs Calme. Le jet de Calme du foe est tiré et FIGÉ d'avance (pattern Désengagement/
  *  Au Contact) ; seul l'Athlétisme du mover se (re)joue dans la modale. */
 export function startDistraire(_get: Get, set: SetFn, mover: Combatant, foe: Combatant): void {
-  const defValue = distraireDefenseValue(foe); // valeur NUE (carac effective + avances, LDB 09 l.17)
-  const defRoll = { ...rollTest(defValue, 'intermediaire', battleRng()), base: defValue }; // Calme du foe, figé (jamais relancé)
+  const defRoll = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) }; // Calme du foe, figé (jamais relancé)
   set({ pendingDistraire: { moverId: mover.id, foeId: foe.id, atk: null, defRoll, result: null } });
 }
 

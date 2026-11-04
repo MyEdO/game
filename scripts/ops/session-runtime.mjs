@@ -14,12 +14,13 @@ import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS, FENETRE_RESERVATION_MS, PLAFOND_VERROU_REGISTRE_MS } from './session-rejeu.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, ANNEXES_CODEX } from './session-codex.mjs'
+import { lireTransitions, ANNEXES_CLAUDE } from './session-transitions.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
 const erreur = (categorie, message, options) => new Error(`${prefixeDeRefus(categorie)} ${message}`, options)
-const ANNEXES = Object.freeze({ stop: 'stop', bootstrap: 'bootstrap', ...ANNEXES_SESSION_START, contexte: 'hook-context', terminal: 'terminal-close', journalHote: 'jobhost.log', journal: 'stderr', rapport: 'rapport', ...ANNEXES_CODEX })
+const ANNEXES = Object.freeze({ stop: 'stop', bootstrap: 'bootstrap', ...ANNEXES_SESSION_START, contexte: 'hook-context', terminal: 'terminal-close', journalHote: 'jobhost.log', journal: 'stderr', rapport: 'rapport', ...ANNEXES_CODEX, ...ANNEXES_CLAUDE })
 export const annexeDe = (dossier, id, cle) => join(dossier, `${id}.${ANNEXES[cle]}`)
 const EXTENSION_CARTE = '.json'
 /** Le nom de fichier de la carte `id` dans le registre. PURE. */
@@ -448,11 +449,14 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     async attendre(cible, { timeoutMs = 60_000, depuis = 0, processusSeulement = false } = {}) {
       const vue = reconcilier()
       const choisie = choisir(cible, { vue }), id = choisie.sessionId, debut = horloge()
-      if (!processusSeulement && choisie.producteur === PRODUCTEUR && choisie.agent === 'codex' && !terminaux.has(choisie.etat)) return veiller({ dossier, sessionId: id, depuis, timeoutMs })
+      const veillee = !processusSeulement && choisie.producteur === PRODUCTEUR && !terminaux.has(choisie.etat)
+      if (veillee && choisie.agent === 'codex') return veiller({ dossier, sessionId: id, depuis, timeoutMs })
       do {
         const c = lire(id)
         if (terminaux.has(c.etat) && c.etat !== 'fermee') return { etat: c.etat, carte: muter(id, (carte) => { carte.consommeLe = maintenant() }) }
         if (estSortieObservee(c)) return { etat: 'sortie', carte: muter(id, (carte) => { carte.consommeLe = maintenant() }) }
+        const transition = veillee && lireTransitions(annexe(id, 'journalClaude'), id).find((t) => t.seq > depuis)
+        if (transition) return transition
         if (horloge() - debut >= timeoutMs) return { etat: 'indeterminee', raison: 'ATTENTE TIMEOUT', carte: c }
         await dormir(Math.min(250, timeoutMs - (horloge() - debut)))
         reconcilier()

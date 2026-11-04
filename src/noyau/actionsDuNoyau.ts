@@ -10,7 +10,7 @@ import type { OvercastAxis } from '../engine/overcast';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { IndiceAffiché } from './monde/clues';
-import type { HealMode } from '../engine/healing';
+import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
 import type { RollFlowActionsMap } from './rollFlowSpecs';
 import type { PossessionInput } from '../engine/possession';
@@ -315,6 +315,10 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   battleWater: (targetId?: IdDeCombattant) => void;
   /** Pré-jet : bascule le mode de soin (Blessures ⇄ Hémorragie) dans la modale ouverte. */
   healSetMode: (mode: HealMode) => void;
+  /** Pré-jet : le Test du soin (Guérison ⇄ Dextérité). */
+  healSetTest: (test: TestDeSoin) => void;
+  /** Pré-jet : engage les Bandages du héros `porteurId`, ou les retire (`null`). */
+  healSetBandages: (porteurId: IdDeHeros | null) => void;
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie), PNJ payant via l'effet `medicalAid`. */
   openMedic: (opts?: { patientId?: IdDeHeros; npc?: MedicNpc }) => void;
@@ -436,7 +440,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
   counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  startExtendedTest: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
+  startExtendedTest: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; char?: CharKey; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
   // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
   extendedTestNext: () => void;
@@ -447,6 +451,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
   forceDoorConfirm: () => void;
   forceDoorCancel: () => void;
+  /** Avant son jet, le héros frappe avec une arme de `armesDEnfoncement` (`armeUid`) ou à mains nues (absent). EDO 11 l.93. */
+  forceDoorChoisirArme: (heroId: IdDeHeros, armeUid?: string) => void;
   /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
    *  à désigner, la suite se joue sans suspension. */
   designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;

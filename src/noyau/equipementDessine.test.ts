@@ -125,11 +125,11 @@ describe('armesDEntite — Indice formulé lu sur le profil du statbloc (Middenh
   const traits: TraitPose[] = [{ id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] }, arg: 'Épée' }];
 
   it('le statbloc d’éditeur porte la Force qui résout « BF +4 »', () => {
-    expect(armesDEntite(findTrappingById, undefined, { traits, char: { force: 40 } })[0].damage).toEqual({ plusBF: false, flat: 8 });
+    expect(armesDEntite(findTrappingById, undefined, { traits, char: { force: 40 } })[0].damage).toEqual({ plusBF: false, flat: 8, bfInclus: true }); // LDB 85 l.35
   });
 
   it('sans profil, le statbloc d’éditeur lit une Force nulle', () => {
-    expect(armesDEntite(findTrappingById, undefined, { traits })[0].damage).toEqual({ plusBF: false, flat: 4 });
+    expect(armesDEntite(findTrappingById, undefined, { traits })[0].damage).toEqual({ plusBF: false, flat: 4, bfInclus: true });
   });
 });
 
@@ -247,8 +247,8 @@ describe('equipementDessine — matière par id (#2948)', () => {
     const orc = spawnEnemy({ presetCreature: findCreatureById('orc')!, presetId: 'orc' }, 'orc-3', { x: 0, y: 0 });
     expect(equipementDEntite(findTrappingById, 'orc').armour).toEqual(equipementDessine(orc).armour);
     expect(equipementDEntite(findTrappingById, 'orc', { armurePortee: false }).armour).toEqual([]);
-    expect(equipementDEntite(findTrappingById, undefined, { armour: 2 }).armour).toEqual([]);
-    expect(equipementDEntite(findTrappingById, undefined, { armour: 2, armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture']);
+    expect(equipementDEntite(findTrappingById, undefined, { traits: [{ id: 'armure', value: 2 }] }).armour).toEqual([]);
+    expect(equipementDEntite(findTrappingById, undefined, { traits: [{ id: 'armure', value: 2 }], armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture']);
   });
 });
 

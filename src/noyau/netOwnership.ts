@@ -437,12 +437,13 @@ const routeRollAll = (rows: (s: Jeu) => readonly { id: string; interactive?: boo
 });
 
 /**
- * Résistance (Menace) sur une étape de CASCADE : `pid` est l'id de l'ÉTAPE, pas un combattant — mais
- * le verbe DÉPENSE le Talent de l'acteur de cette étape, donc la possession le suit (même prédicat que
- * l'affordance affichée, `seatInfluences`). Le repli aurait rendu le owner de la MODALE, qui vaut
- * `'*'` sur une étape de GROUPE : n'importe quel siège aurait brûlé la Résistance d'autrui (#1005).
+ * Résistance (Menace) et inversion sur une étape de CASCADE : `pid` est l'id de l'ÉTAPE, pas un
+ * combattant — mais ces verbes DÉPENSENT la ressource de l'acteur de cette étape (Talent, jeton
+ * d'inversion), donc la possession le suit (même prédicat que l'affordance affichée, `seatInfluences`).
+ * Le repli aurait rendu le owner de la MODALE, qui vaut `'*'` sur une étape de GROUPE : n'importe quel
+ * siège aurait brûlé la ressource d'autrui (#1005).
  */
-const CASCADE_RESIST: Route = {
+const CASCADE_ACTEUR_D_ETAPE: Route = {
   rule: (s, seat, args) => {
     const pid = idArg(args[0]);
     const step = s.pendingCascade?.participants.find((p) => p.id === pid);
@@ -556,6 +557,11 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
     // siège de SON héros, patron `counterspellDeclare`.
     ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
+    // Choix de l'arme d'enfoncement (EDO 11 l.93) : la rangée appartient au siège de SON héros.
+    ['forceDoorChoisirArme', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
+    // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
+    // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
+    ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
     // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
     // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet, `counterspellCancel`
     // dans `combatSlice`) ; phase close → `null`, le repli universel décide comme avant. Prédicat
@@ -564,8 +570,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],
-    // Résistance (Menace) d'une étape de cascade : routée sur l'acteur de l'étape (cf. ci-dessus).
-    ['cascadeResist', CASCADE_RESIST],
+    // Résistance (Menace) et inversion d'une étape de cascade : routées sur l'acteur de l'étape (cf. ci-dessus).
+    ['cascadeResist', CASCADE_ACTEUR_D_ETAPE],
+    ['cascadeReverse', CASCADE_ACTEUR_D_ETAPE],
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).

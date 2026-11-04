@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
-import { immuneToSpellDomain, spellDomainImmunityOf } from '../engine/traits/dispatch';
+import { immuneToSpellDomain, domainesImmunises } from '../engine/traits/dispatch';
 import { hasCondition } from '../engine/conditions';
 import { effectiveChar } from '../engine/characteristics';
 import type { CastResult } from '../engine/magic';
@@ -55,9 +55,9 @@ const spell = (domainId: string) =>
 const ok: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lancé' };
 
 describe('Manifestation de Ghur — immunité aux Sorts du Domaine de la Bête (#18)', () => {
-  it('capability lue PAR ID : spellDomainImmunityOf → "bete" ; immuneToSpellDomain gate par Domaine', () => {
+  it('capability lue PAR ID : domainesImmunises → ["bete"] ; immuneToSpellDomain gate par Domaine', () => {
     const ghur = [{ id: 'manifestation-de-ghur' }];
-    expect(spellDomainImmunityOf(ghur)).toBe('bete');
+    expect(domainesImmunises(ghur)).toEqual(['bete']);
     expect(immuneToSpellDomain(ghur, 'bete')).toBe(true);
     expect(immuneToSpellDomain(ghur, 'feu')).toBe(false);
     expect(immuneToSpellDomain(ghur, null)).toBe(false);

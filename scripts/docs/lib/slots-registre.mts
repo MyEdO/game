@@ -3,7 +3,7 @@
 // `scripts/docs/build-structures.mts`, l'inventaire de dette (`scripts/guards/lib/inventaireDeDette.mts`) et les gardes
 // de `src/data/` (`slots-contrat`, `refs-migrated`…).
 //
-// Le DÉCLARÉ est ce que le PARSE valide (#1473 R1) : chaque document est parsé par son schéma réel
+// Le DÉCLARÉ est ce que le PARSE valide : chaque document est parsé par son schéma réel
 // au PARSE DE MESURE (`reperesDuParse`, `src/data/schemas/grammaire/ref.ts`), et chaque case
 // `(porteur, clé)` dont la valeur est validée par `idDe` est un SLOT, avec son type.
 //
@@ -263,7 +263,7 @@ export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot
 /**
  * COUVERTURE : les couples porteurs de références OBSERVÉES (strate `Référence` du scan) dont une
  * occurrence au moins n'est pas ATTEINTE (une de ses cases n'est pas un slot). C'est la dette d'ADOPTION du registre — elle se
- * solde concept par concept en L2/L3 (#1473), jamais en retirant une ligne seule. La collection d'inventaire
+ * solde concept par concept en L2/L3, jamais en retirant une ligne seule. La collection d'inventaire
  * `CASES_DE_REFERENCE` (`scripts/guards/lib/inventaireDeDette.mts`) en lit la facette « déclaration » sur la même
  * mesure (`occurrencesNonAtteintes`) ; ce que la mesure ne voit pas est dit à `ANGLES_MORTS_SLOTS`.
  */

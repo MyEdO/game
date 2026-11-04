@@ -4,13 +4,14 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
  *
  * `ref(type)` construit ET ENREGISTRE le nœud FINAL : l'id est refiné AU PARSE contre l'INDEX DES
  * IDS `IDS_PAR_ESPACE` (`npm run gen`), si bien qu'une référence morte casse au chargement, en
- * test et à la sauvegarde du Compendium — sans qu'aucune garde nominative n'ait à l'énumérer
- * (clause B absorbée de #1473). La fabrique n'expose aucun nœud extensible : zod 4.4.3 perd le
- * registre et la `.meta()` au `.extend`, la composition se fait donc ICI via `extra`.
+ * test et à la sauvegarde du Compendium — sans qu'aucune garde nominative n'ait à l'énumérer. La
+ * fabrique n'expose aucun nœud extensible : zod 4.4.3 perd le registre et la `.meta()` au `.extend`,
+ * la composition se fait donc ICI via `extra`.
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
+import type { CategorieCodexDuFichier } from '../_cles-de-dataset.generated';
 import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, type SousListeMarquee } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
@@ -61,7 +62,7 @@ export const TYPES = {
   lightLevel: { espace: 'lightLevels.json', catalogue: 'paliers d’éclairage' },
   prop: { espace: 'props.json', catalogue: 'décors' },
   building: { espace: 'buildings.json', catalogue: 'bâtiments' },
-  // AXE de forces/faiblesses (#409) : `activeAxes` d'un projet de scène résout AU PARSE (#1473 R1).
+  // AXE de forces/faiblesses (#409) : `activeAxes` d'un projet de scène résout AU PARSE.
   axe: { espace: 'axes.json', catalogue: 'axes' },
   weaponGroup: { espace: 'weaponGroups.json', catalogue: 'groupes d’armes' },
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
@@ -90,6 +91,14 @@ export const TYPES = {
   breathType: { espace: 'breath-types.json', catalogue: 'types de Souffle' },
   // LDB 85 l.174
   damageType: { espace: 'damage-types.json', catalogue: 'types de Dégâts' },
+  // VDM 13 l.61 ; ZI 08 l.28
+  domain: { espace: 'domains.json', catalogue: 'domaines' },
+  book: { espace: 'books.json', catalogue: 'livres' },
+  trauma: { espace: 'traumas.json', catalogue: 'séquelles' },
+  lightTone: { espace: 'lightTones.json', catalogue: 'tons de lumière' },
+  seaCargo: { espace: 'sea-cargo.json#cargoes', catalogue: 'cargaisons maritimes' },
+  landCargo: { espace: 'land-cargo.json#cargoes', catalogue: 'cargaisons terrestres' },
+  merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -192,6 +201,12 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
     : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
+}
+
+/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un payload LOOSE que nulle
+ *  feuille ne porte (`refusLoose`, `grammaire/mecanique.ts`). */
+export function refusDeLId(type: TypeEntite, id: string, sousListe?: SousListe): string | null {
+  return refusDe(type, sousListe, `refusDeLId('${type}')`, id);
 }
 
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
@@ -364,8 +379,13 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * `giveTrapping` : objets de la campagne, `noyau/monde/resolveursDuNarratif.ts`, sinon objet `custom`) ; un id
  * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
  * du type.
+ *
+ * `nue` : la sortie reste un `string` sans marque — la réf que le moteur et ses appelants construisent
+ * nue partout (`SourceRef.book`, `grammaire/valeurs.ts`). Le jugement au parse est le même.
  */
-export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string> {
+export function idDe<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, options: { readonly ouverte?: boolean; readonly nue: true }): z.ZodType<string, string>;
+export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string>;
+export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean; readonly nue?: true }): z.ZodType<Id<T>, string> {
   const ouverte = options?.ouverte === true;
   const site =
     (sousListe === undefined
@@ -524,6 +544,12 @@ export function reperesDuParse(schema: z.ZodType, donnee: unknown): readonly Rep
 export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>> {
   const liste = z.array(idDe(type, opts?.sousListe));
   return opts?.min === undefined ? liste : liste.min(opts.min);
+}
+
+/** Record keyé par les ids de `type` : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
+ *  catalogue, jamais la « clé invalide » générique de zod. */
+export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V) {
+  return z.record(idDe(type), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message });
 }
 
 /** Méta du champ `id` de toute référence construite ici. */
@@ -714,6 +740,32 @@ export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
   });
 }
 
+/** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
+ *  (`cleDesSpecs`) de l'INDEX DES IDS. */
+export type SpecId<T extends TypeEntite, I extends string> = IdsParEspace[`${(typeof TYPES)[T]['espace']}#[${I}].specs` & keyof IdsParEspace];
+
+/** Fichier dont la catégorie Codex a un espace d'ids à l'INDEX DES IDS. */
+type FichierAEspace = keyof CategorieCodexDuFichier & keyof IdsParEspace;
+
+/** RENVOI Codex écrit en littéral de code : pour chaque fichier de `CATEGORIE_CODEX_DU_FICHIER` qui a un
+ *  espace, sa catégorie et un id de l'union générée de cet espace — un id hors catalogue ne compile pas. */
+export type RenvoiCodex = { [F in FichierAEspace]: { readonly category: CategorieCodexDuFichier[F]; readonly id: IdsParEspace[F] } }[FichierAEspace];
+
+/** Renvoi vers une catégorie Codex SANS espace d'ids : son id n'est pas une union générée. */
+export type RenvoiCodexSansEspace = { readonly category: Exclude<CategorieCodexDuFichier[keyof CategorieCodexDuFichier], RenvoiCodex['category']>; readonly id: string };
+
+/**
+ * Spécialisation NUE d'une entrée FERMÉE, que le porteur fixe par sa règle : `specDe`, plus le refus
+ * d'une entrée OUVERTE, dont la spécialisation n'est pas une union close. La sortie est typée par
+ * l'union générée de son catalogue (`SpecId`) : un littéral de code hors catalogue ne compile pas.
+ */
+export function specFermeeDe<T extends TypeEntite, const I extends string>(type: T, id: I): z.ZodType<SpecId<T, I>>;
+export function specFermeeDe(type: TypeEntite, id: string): z.ZodType<string> {
+  return specDe(type, id).superRefine((_spec, ctx) => {
+    if (entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
+  });
+}
+
 /**
  * RÉGIME d'une référence à spécialisation — ce que le PORTEUR admet :
  *  - `specOuChoix` : exactement un de `spec` / `choix` (`specRef`, option d'un `pick`) ;
@@ -835,6 +887,24 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
   return noeudASpecialisation(type, extra, regime);
 }
 
+/** Une issue de FORME : la valeur n'a pas la silhouette de la branche (type ou clé). */
+const estDeForme = (issue: { readonly code: string }): boolean => issue.code === 'invalid_type' || issue.code === 'unrecognized_keys';
+
+/**
+ * UNION DE FORMES — union dont les branches se distinguent par leur silhouette (`{ id }`, `{ id, spec }`,
+ * `{ pick, of }`…). Une valeur refusée par toutes l'est par le message de la PREMIÈRE branche dont elle a
+ * la forme (aucune issue de type ni de clé) — celui d'`idDe` nomme l'id et son catalogue —, jamais par
+ * l'« Entrée invalide » générique d'une union.
+ */
+export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
+  return z.union(branches, {
+    error: (iss) => {
+      const parBranche = (iss as { errors?: readonly (readonly { code: string; message: string }[])[] }).errors ?? [];
+      return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
+    },
+  });
+}
+
 /**
  * Choix « n parmi » : `{ pick, of: [...] }` (liste énumérée) ou `{ pick, table }` (tirage sur une
  * table d100). Remplace les graphies `choice[]` et `random` des lots L2/L3.
@@ -849,7 +919,7 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
+  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
   const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }

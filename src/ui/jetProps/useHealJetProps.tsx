@@ -1,12 +1,12 @@
 import { cibleMesuree } from '../../engine/tests';
 import { useGame } from '../../state/store';
 import { flowStakeRef } from '../../data';
-import { HEAL_STAKE } from '../../noyau/medicFlow';
+import { enjeuDuSoin, fenetreDuSoin, parametresDuSoin } from '../../noyau/soin';
 import type { ComponentProps } from 'react';
 import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
 import { OptionChooser } from '../OptionChooser';
-import { testValueSplit, testBreakdown, testPending } from '../breakdown';
+import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../noyau/flowOutcomes';
@@ -39,7 +39,10 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const confirm = useGame((s) => s.healConfirm);
   const cancel = useGame((s) => s.healCancel);
   const setMode = useGame((s) => s.healSetMode);
+  const setTest = useGame((s) => s.healSetTest);
+  const setBandages = useGame((s) => s.healSetBandages);
   if (!ph) return null;
+  const fenetre = fenetreDuSoin(useGame.getState());
   const pool = battle?.combatants ?? party; // même flux en combat (file) et hors combat (groupe)
   const healer = pool.find((c) => c.id === ph.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
   const fortune = healer?.fortune ?? 0;
@@ -54,22 +57,19 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   // soins s'appliquent à lui (Blessures ET Hémorragie), on choisit ICI, avant le jet. L'infirmerie
   // (embedded) garde son propre choix d'acte → pas de seg.
   const combatModes = !embedded && !rolled && target
-    ? combatHealModes(target)
+    ? combatHealModes(target, healer ?? null, parametresDuSoin(ph))
     : [];
   const bleed = target ? stacks(target, 'hemorragique') : 0;
   const lodged = target ? lodgedAmmoCount(target) : 0;
 
-  // Soutien des assistants de soin (LDB 12) et composantes de la valeur de Test (États, séquelles,
-  // passifs, effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu
-  // (LDB 09 l.17). Soigneur PNJ tarifé (aucune fiche dans le pool) : la garde de reconstruction de la
-  // primitive laisse l'affichage inchangé.
-  const { base, mods: supMods } = testValueSplit(healer, ph.skillValue, { support: ph.support, skill: 'guerison' });
+  // Ligne montée à l'ouverture (`ph.ligne`, Soutien LDB 12 compris).
+  const { base, mods: supMods } = ph.ligne;
   const actorRow: BuiltRollRow = buildRollRow({
     actor: healer,
     row: {
       combatant: healer,
-      d: rolled ? testBreakdown(libelleDeTest('guerison'), base, { roll: ph.roll!, ...cibleMesuree(ph), sl: ph.sl, success: ph.success }, ph.difficulty, supMods) : undefined,
-      pending: testPending(libelleDeTest('guerison'), base, cibleMesuree(ph), ph.difficulty, supMods),
+      d: rolled ? testBreakdown(libelleDeTest(ph.test), base, { roll: ph.roll!, ...cibleMesuree(ph), sl: ph.sl, success: ph.success }, ph.difficulty, supMods) : undefined,
+      pending: testPending(libelleDeTest(ph.test), base, cibleMesuree(ph), ph.difficulty, supMods),
     },
     rerolled: !!ph.rerolled,
     onRoll: roll,
@@ -89,7 +89,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
 
   return {
     flowKey: 'heal',
-    stake: flowStakeRef(HEAL_STAKE[ph.mode]),
+    stake: flowStakeRef(enjeuDuSoin(ph)),
     title: wounds ? <><Icon id="journal/heal" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/tear" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="item/ammo" size="sm" /> Retirer une munition</> : <><Icon id="condition/bleeding" size="sm" /> Arrêter l’Hémorragie</>,
     /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de l'acte —
        plus AUCUNE phrase « A soigne B » en sous-titre. Le patient est en `full` : ses pastilles
@@ -101,25 +101,50 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     extra: embedded ? undefined : healer
       ? <VsHeader actor={healer} target={target} label={acte.label} verb={acte.icon} targetVariant="full" />
       : <p className="rm-note">{acte.label} — {ph.targetName}</p>,
-    setup: combatModes.length > 1 ? (
-      <OptionChooser
-        layout="seg"
-        groupLabel="Soin"
-        options={combatModes.map((m) => ({
-          key: m,
-          label: m === 'wounds'
-            ? <><Icon id="journal/heal" size="sm" /> Blessures</>
-            : m === 'ammo'
-              ? <><Icon id="item/ammo" size="sm" /> Munition ×{lodged}</>
-              : <><Icon id="condition/bleeding" size="sm" /> Hémorragie ×{bleed}</>,
-          selected: ph.mode === m,
-          onSelect: () => setMode(m),
-        }))}
-      />
-    ) : undefined,
+    // Fenêtre du soin (`fenetreDuSoin`) : le Test et les Bandages engagés, chaque option fermée avec sa raison.
+    setup: rolled ? undefined : (
+      <>
+        {combatModes.length > 1 && (
+          <OptionChooser
+            layout="seg"
+            groupLabel="Soin"
+            options={combatModes.map((m) => ({
+              key: m,
+              label: m === 'wounds'
+                ? <><Icon id="journal/heal" size="sm" /> Blessures</>
+                : m === 'ammo'
+                  ? <><Icon id="item/ammo" size="sm" /> Munition ×{lodged}</>
+                  : <><Icon id="condition/bleeding" size="sm" /> Hémorragie ×{bleed}</>,
+              selected: ph.mode === m,
+              onSelect: () => setMode(m),
+            }))}
+          />
+        )}
+        {fenetre && healer && (
+          <OptionChooser
+            layout="seg"
+            groupLabel={fenetre.test.libelle}
+            options={fenetre.test.options.map((o) => ({
+              key: o.valeur ?? 'aucun', label: o.libelle, selected: fenetre.test.choisie === o.valeur,
+              ...(o.refus ? { refus: o.refus } : {}), onSelect: () => o.valeur && setTest(o.valeur),
+            }))}
+          />
+        )}
+        {fenetre?.bandages && (
+          <OptionChooser
+            layout="seg"
+            groupLabel={fenetre.bandages.libelle}
+            options={fenetre.bandages.options.map((o) => ({
+              key: o.valeur ?? 'aucun', label: o.libelle, selected: fenetre.bandages!.choisie === o.valeur,
+              ...(o.refus ? { refus: o.refus } : {}), onSelect: () => setBandages(o.valeur),
+            }))}
+          />
+        )}
+      </>
+    ),
     rows: [actorRow],
     rolled,
-    outcome: rolled ? [recapLineOfEvent(ev('heal', describeHeal(ph, target), ph.healerId, ph.targetId), pool)] : undefined,
+    outcome: rolled && target ? [recapLineOfEvent(ev('heal', describeHeal(ph, target), ph.healerId, ph.targetId), pool)] : undefined,
     actions,
     onCancel: rolled ? undefined : cancel,
   };

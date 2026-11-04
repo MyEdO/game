@@ -295,6 +295,24 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     expect(hLive.pos!.x).toBeLessThan(14); // « il est entraîné vers la créature » (Taille inférieure)
   });
 
+  // LDB 85 l.213
+  it('Langue préhensile : touche ENTIÈREMENT absorbée (BE + PA ≥ Indice, 0 Blessure perdue) → Empêtré quand même', () => {
+    banc.getState().seedRng(2);
+    const { H, E } = setup();
+    // 1 Av : celui de la Langue, aucun pour un Piétinement (LDB 85 l.387) sur la proie entraînée
+    E.traits = [{ id: 'langue-prehensile', value: 9 }]; E.advantage = 1; E.characteristics['capacite-de-tir'] = 95;
+    E.pos = { x: 10, y: 10 }; E.size = 'grande';
+    H.pos = { x: 14, y: 10 }; H.size = 'moyenne';
+    H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');
+    H.characteristics.endurance = 99; H.armour = { ...H.armour, corps: 5 }; // BE 9 + 5 PA ≥ Indice 9
+    H.wounds = blessuresDeBase(50, 50, H);
+    const before = H.wounds.current;
+    aiCreatureFreeAttacks(banc.getState, banc.setState, E);
+    const hLive = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(hLive.wounds.current, 'aucune Blessure perdue').toBe(before);
+    expect(hLive.conditions.some((c) => c.id === 'empetre')).toBe(true);
+  });
+
   it('Empoignade tenue par un Tentacule : résolue en Attaque GRATUITE (Test opposé de Force), Action NON consommée', () => {
     banc.getState().seedRng(2);
     const { H, E } = setup();

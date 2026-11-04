@@ -517,6 +517,9 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 - **Portée** : le personnage est une entité de la MÊME scène, `validateScene` refuse un id qu'aucune ne porte.
   Le Trait posé du catalogue `src/data` et la péripétie de route (`worldMap.routes[].perils`) refusent `@id`.
 - **Affichage** : le nom de l'individu, à défaut « une personne de la scène », jamais son id.
+- **Groupes du lieu** : `Scene.groups` (ids de `groups.json` qu'un porteur déclare, champ « Groupes du lieu » du
+  pli Scène de l'Inspector) fait de la scène la source de ces Groupes pour tout Trait psy qui les vise, en combat
+  comme hors combat (`etiquetteDeScene`, `src/noyau/monde/porteurs.ts`).
 
 ## 11. Règles d'or
 

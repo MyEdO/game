@@ -8,7 +8,7 @@
  *  - un échec laisse le porteur sujet (la source RESTE détectée par fearSourceFor).
  */
 import { describe, it, expect } from 'vitest';
-import { pasDePeur, fearSourceFor, sansPeurVs, psychBranchOps, sousPeur, issueDePeur, sansPeurLabel, psychTest } from './psychology';
+import { pasDePeur, fearSourceFor, sansPeurVs, psychBranchOps, sousPeur, issueDePeur, sansPeurLabel, psychTest, sourceCombattant } from './psychology';
 import { refLabel, talents } from '../data';
 import { applyOps } from './ops';
 import type { Combatant } from './types';
@@ -81,13 +81,13 @@ describe('Sans Peur (Ennemi) — Test de Calme Accessible (+20), un seul Test (L
   it('fearSourceFor ne supprime PLUS la source pour un porteur de Sans Peur (plus d’immunité auto)', () => {
     const ogre = mk({ id: 'o', causesPeur: 2, groups: ['ogre'] });
     const brave = mk({ talents: [{ talentId: 'sans-peur', spec: 'ogre', times: 1 }] });
-    expect(sansPeurVs(brave, ogre)).toBe(true);
-    expect(fearSourceFor(brave, ogre)?.kind).toBe('peur'); // détectée → le porteur la TESTE (+20)
+    expect(sansPeurVs(brave, sourceCombattant(ogre))).toBe(true);
+    expect(fearSourceFor(brave, sourceCombattant(ogre))?.kind).toBe('peur'); // détectée → le porteur la TESTE (+20)
   });
 
   it('la spécialisation nomme un Groupe : une spécialisation `@id` ne vise pas le combattant de cet id (#3045)', () => {
     const ogre = mk({ id: 'o', causesPeur: 2, groups: ['ogre'] });
     const brave = mk({ talents: [{ talentId: 'sans-peur', spec: '@o', times: 1 }] });
-    expect(sansPeurVs(brave, ogre)).toBe(false);
+    expect(sansPeurVs(brave, sourceCombattant(ogre))).toBe(false);
   });
 });

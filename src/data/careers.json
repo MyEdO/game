@@ -153,6 +153,10 @@
     "label": "Milicien",
     "labelF": "Milicienne",
     "class": "citadins",
+    "grantGroups": [
+      "miliciens",
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 11,
       "halfling": 22,
@@ -226,6 +230,9 @@
     "label": "Conseiller",
     "labelF": "Conseillère",
     "class": "courtisans",
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 15,
       "halfling": 28,
@@ -273,6 +280,9 @@
     "type": "careers",
     "label": "Émissaire",
     "class": "courtisans",
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 17,
       "halfling": 29,
@@ -321,6 +331,9 @@
     "label": "Intendant",
     "labelF": "Intendante",
     "class": "courtisans",
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 19,
       "halfling": 32,
@@ -345,7 +358,8 @@
     "label": "Noble",
     "class": "courtisans",
     "grantGroups": [
-      "noble"
+      "noble",
+      "figures-symboles-d-autorite"
     ],
     "rand": {
       "humain": 20,
@@ -397,6 +411,9 @@
     "label": "Cavalier",
     "labelF": "Cavalière",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 25,
       "halfling": null,
@@ -423,7 +440,8 @@
     "labelF": "Chevalière",
     "class": "guerriers",
     "grantGroups": [
-      "chevalier"
+      "chevalier",
+      "figures-symboles-de-guerre"
     ],
     "rand": {
       "humain": 26,
@@ -449,7 +467,8 @@
     "label": "Garde",
     "class": "guerriers",
     "grantGroups": [
-      "garde"
+      "garde",
+      "figures-symboles-d-autorite"
     ],
     "rand": {
       "humain": 28,
@@ -524,6 +543,10 @@
     "label": "Prêtre guerrier",
     "labelF": "Prêtresse guerrière",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": 30,
       "halfling": null,
@@ -549,7 +572,8 @@
     "labelF": "Soldate",
     "class": "guerriers",
     "grantGroups": [
-      "soldat"
+      "soldat",
+      "figures-symboles-de-guerre"
     ],
     "rand": {
       "humain": 34,
@@ -746,6 +770,10 @@
     "label": "Flagellant",
     "labelF": "Flagellante",
     "class": "itinerants",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": 40,
       "halfling": null,
@@ -843,6 +871,10 @@
     "label": "Patrouilleur routier",
     "labelF": "Patrouilleuse routière",
     "class": "itinerants",
+    "grantGroups": [
+      "patrouilleurs-routiers",
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 42,
       "halfling": 52,
@@ -890,6 +922,9 @@
     "label": "Répurgateur",
     "labelF": "Répurgatrice",
     "class": "itinerants",
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 43,
       "halfling": null,
@@ -1034,7 +1069,8 @@
     "label": "Juriste",
     "class": "lettres",
     "grantGroups": [
-      "juriste"
+      "juriste",
+      "figures-symboles-d-autorite"
     ],
     "rand": {
       "humain": 50,
@@ -1082,6 +1118,10 @@
     "type": "careers",
     "label": "Nonne",
     "class": "lettres",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": 53,
       "halfling": null,
@@ -1107,6 +1147,10 @@
     "label": "Prêtre",
     "labelF": "Prêtresse",
     "class": "lettres",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": 58,
       "halfling": null,
@@ -1273,6 +1317,9 @@
     "label": "Naufrageur",
     "labelF": "Naufrageuse",
     "class": "riverains",
+    "grantGroups": [
+      "naufrageurs"
+    ],
     "rand": {
       "humain": 70,
       "halfling": null,
@@ -1321,6 +1368,10 @@
     "label": "Patrouilleur fluvial",
     "labelF": "Patrouilleuse fluviale",
     "class": "riverains",
+    "grantGroups": [
+      "patrouilleurs-fluviaux",
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 73,
       "halfling": 77,
@@ -1393,6 +1444,9 @@
     "type": "careers",
     "label": "Hors-la-loi",
     "class": "roublards",
+    "grantGroups": [
+      "hors-la-loi"
+    ],
     "rand": {
       "humain": 80,
       "halfling": 82,
@@ -1490,6 +1544,10 @@
     "label": "Sorcier dissident",
     "labelF": "Sorcière dissidente",
     "class": "roublards",
+    "grantGroups": [
+      "sorcieres",
+      "sorciers-dissidents"
+    ],
     "rand": {
       "humain": 84,
       "halfling": null,
@@ -1540,7 +1598,8 @@
     "label": "Bailli",
     "class": "ruraux",
     "grantGroups": [
-      "bailli"
+      "bailli",
+      "figures-symboles-d-autorite"
     ],
     "rand": {
       "humain": 88,
@@ -1712,6 +1771,9 @@
     "label": "Sorcier de village",
     "labelF": "Sorcière de village",
     "class": "ruraux",
+    "grantGroups": [
+      "sorcieres"
+    ],
     "rand": {
       "humain": 95,
       "halfling": null,
@@ -1761,6 +1823,9 @@
     "label": "Cavalier Léger",
     "labelF": "Cavalière Légère",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 25,
       "halfling": null,
@@ -1785,6 +1850,9 @@
     "label": "Chevalier Errant",
     "labelF": "Chevalière Errante",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 26,
       "halfling": null,
@@ -1809,6 +1877,9 @@
     "label": "Chevalier du Soleil flamboyant",
     "labelF": "Chevalière du Soleil flamboyant",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 26,
       "halfling": null,
@@ -1833,6 +1904,9 @@
     "label": "Chevalier du Loup Blanc",
     "labelF": "Chevalière du Loup Blanc",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 26,
       "halfling": null,
@@ -1857,6 +1931,9 @@
     "label": "Chevalier Panthère",
     "labelF": "Chevalière Panthère",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 26,
       "halfling": null,
@@ -1881,6 +1958,11 @@
     "label": "Prêtre de Myrmidia",
     "labelF": "Prêtresse de Myrmidia",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre",
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": 30,
       "halfling": null,
@@ -1905,6 +1987,9 @@
     "label": "Archer",
     "labelF": "Archère",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 34,
       "halfling": 44,
@@ -1929,6 +2014,9 @@
     "label": "Hallebardier",
     "labelF": "Hallebardière",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 34,
       "halfling": 44,
@@ -1953,6 +2041,9 @@
     "label": "Arquebusier",
     "labelF": "Arquebusière",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 34,
       "halfling": 44,
@@ -1977,6 +2068,9 @@
     "label": "Joueur d'épée",
     "labelF": "Joueuse d'épée",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 34,
       "halfling": null,
@@ -2001,6 +2095,9 @@
     "label": "Piquier",
     "labelF": "Piquière",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 34,
       "halfling": null,
@@ -2024,6 +2121,9 @@
     "type": "careers",
     "label": "Spécialiste de Siège",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 34,
       "halfling": 44,
@@ -2095,6 +2195,9 @@
     "label": "Artilleur",
     "labelF": "Artilleuse",
     "class": "lettres",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 49,
       "halfling": 59,
@@ -2119,6 +2222,9 @@
     "label": "Artilleur de navire",
     "labelF": "Artilleuse de navire",
     "class": "cotiers",
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
     "rand": {
       "humain": 61,
       "halfling": 65,
@@ -2191,6 +2297,9 @@
     "label": "Naufrageur (Côtier)",
     "labelF": "Naufrageuse (Côtier)",
     "class": "cotiers",
+    "grantGroups": [
+      "naufrageurs"
+    ],
     "rand": {
       "humain": 67,
       "halfling": null,
@@ -2241,6 +2350,10 @@
     "label": "Officier",
     "labelF": "Officière",
     "class": "cotiers",
+    "grantGroups": [
+      "figures-symboles-de-guerre",
+      "figures-symboles-d-autorite"
+    ],
     "rand": {
       "humain": 70,
       "halfling": null,
@@ -2265,6 +2378,10 @@
     "label": "Prêtre marin de Manann",
     "labelF": "Prêtresse marine de Manann",
     "class": "cotiers",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": 71,
       "halfling": null,
@@ -2314,6 +2431,10 @@
     "label": "Prêtre de Stromfels",
     "labelF": "Prêtresse de Stromfels",
     "class": "cotiers",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {
       "humain": null,
       "halfling": null,
@@ -2351,6 +2472,10 @@
     "label": "Bedeau",
     "labelF": "Bedelle",
     "class": "guerriers",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {},
     "desc": "*Vous êtes un garde spécialisé, contrebalançant surveillance et bras armé par la dignité qu'attend l'institution que vous protégez.*\n\nLes professeurs de l'Université d'Altdorf et les sorciers des Collèges de Magie ont tendance à se plonger dans l'étude de leur discipline. Ils préfèrent faire des recherches dans de vieux volumes sur des faits obscurs et des théories, ou bien mener des expériences et faire passer la science avant la gestion quotidienne de l'organisation dont ils font partie.\n\nC'est pourquoi ces dernières ont besoin de personnel plus pragmatique : les bedeaux. Ils protègent les salles, les bibliothèques et les laboratoires des établissements contre les voleurs ou les espions, et avant tout contre les étudiants qui se comportent mal.\n\n*« Si vous avez besoin d'en savoir plus, demandez à notre bedeau. Par Sigmar, il en sait plus sur cette université que la plupart d'entre nous. »*\n\n– Professeur Pfaff, Université d'Altdorf\n\n*« Par contre, faites attention à notre bedeau. On dirait que cette crapule est partout et que sa principale mission est de faire en sorte que les étudiants ne puissent pas s'amuser. Cette vieille bête bedonnante est… attendez, pourquoi vous regardez pardessus mon épaule comme ça…? »*\n\n– Rickhardt Kettenhemd de la Ligue de Karl-Franz",
     "source": {
@@ -2405,6 +2530,10 @@
     "label": "Druide",
     "labelF": "Druidesse",
     "class": "lettres",
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
     "rand": {},
     "desc": "Vous puisez dans la vitalité et le pouvoir de la nature pour façonner le monde naturel grâce à votre magie.\n\nLes Sorciers de Jade sont plus appréciés dans les villages de l'Empire que n'importe quel autre sorcier impérial. Chacun sait qu'ils peuvent contrôler les plantes et que les terres prospèrent en leur présence. Tout village qui accueille un druide s'attend à une récolte abondante l'année suivante.\n\n*« La spirale est le symbole de la vie. Elle représente un secret lové en chacun de nous : tout ce que nous pouvons être y est écrit, comme un code. Et il ne peut être trouvé que grâce à la compréhension de Ghyran. »*\n\n– Friedrich Miescher, Sorcier de Jade\n\n*« J'ai reçu l'une de ces Druidesses l'autre jour. Je ne suis pas bien sûr de ce qu'elle trafiquait, mais quand j'ai fait le lit le lendemain, il était plein de feuilles. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
@@ -2470,6 +2599,9 @@
     "type": "careers",
     "label": "Magister Vigilant",
     "class": "lettres",
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
     "rand": {},
     "desc": "*Vous protégez la réputation des Collèges en chassant et en éliminant les sorciers renégats.*\n\nBien que les Patriarches des Collèges refusent de confirmer leur existence, même le dernier des apprentis sorciers a entendu parler des Magisters Vigilants : ces sorciers qui débusquent et détruisent tous les parjures et traîtres à leur ordre. Chaque Collège finance un petit effectif de Magisters Vigilants, mais on raconte que le Collège Gris commandite plusieurs de leurs membres pour endosser ce rôle au cours de leurs carrières.\n\n*« Un Magister Vigilant ? Désolé, nous n'avons personne qui occupe pareil poste au sein de ce Collège. »*\n\n– Egrimm van Horstmann, ancien Patriarche du Collège Lumineux\n\n*« Chut ! Attention à ce que tu dis ! Un Magister Vigilant pourrait t'entendre ! »*\n\n– Le Crâne de Katam, en conversation",
     "source": {

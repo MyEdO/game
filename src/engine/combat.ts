@@ -8,8 +8,8 @@
  */
 import { RNG } from './dice';
 import { t } from '../i18n';
-import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason } from './tests';
-import { bonus, effectiveChar, baseWithTraits } from './characteristics';
+import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, reverseRoll } from './tests';
+import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
@@ -23,13 +23,13 @@ import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
 import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
-import { traumaDodgePenaltyParts, damageSBBonus, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
+import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
-import { isPsychImmune, psychImmuneToFrom, sousPeur, vise } from './psychology';
+import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
@@ -41,16 +41,6 @@ import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
 import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
-
-/** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
-export function reverseRoll(r: number): number {
-  const n = r % 100; // 100 → 0
-  const t = Math.floor(n / 10);
-  const o = n % 10;
-  let rev = o * 10 + t;
-  if (rev === 0) rev = 100;
-  return rev;
-}
 
 /** Jet de la seconde frappe du Maniement de deux armes. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
 export function lancerDeLaSecondeMain(
@@ -762,7 +752,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
   // Peur ANNULÉE si une affliction active immunise l'attaquant à ce CANAL (Haine vs son groupe l.41,
   // Amour l.75 dont l’`active` porte déjà « tant que vous défendez ») — siège UNIQUE `psychImmuneToFrom`,
   // partagé avec `fearSourceFor` et la porte hors combat : un seul verdict, aucun roster requis ici.
-  const fearCancelled = psychImmuneToFrom(attacker, target, 'peur');
+  const fearCancelled = psychImmuneToFrom(attacker, sourceCombattant(target), 'peur');
   // Chaque état psy porte sa contribution `attackDR` (±1) + son ciblage `vs` en DONNÉES — plus de ±1 ni de
   // type (`peur`/`haine`/…) codé par-nom : un nouvel état psy (Phobie…) déclare son DR dans le JSON.
   let dr = 0;
@@ -772,7 +762,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
     const applies = adr.vs === 'source'
       ? p.sourceId === target.id && sousPeur(p)
       : adr.vs === 'group'
-        ? !!p.active && !!p.cible && vise(p.cible, { genre: 'combattant', c: target }, 'appartenance', attacker) // LDB 21 l.41 ; #3045
+        ? !!p.active && !!p.cible && vise(p.cible, sourceCombattant(target), 'appartenance', attacker) // LDB 21 l.41 ; #3045
         : !!p.active; // 'any' : Amour/Camaraderie (défense), dès lors qu'actif
     if (!applies || (adr.amount < 0 && fearCancelled)) continue; // malus de Peur effacé par Haine/Amour
     dr += adr.amount;
@@ -1045,8 +1035,7 @@ export function attackWeapon(weapons: Weapon[], targetAdjacent: boolean): Weapon
 }
 
 /** `attackWeapon` pour un ATTAQUANT en train d'agir (attaque/tir choisi ou évalué) : un tel combattant
- *  a TOUJOURS au moins une arme — mains nues en dernier recours pour un héros (`recomputeLoadout`,
- *  `items.ts` l.512) ou une arme générique pour une créature (`weaponsFromTraits`, `items.ts` l.114-118).
+ *  a TOUJOURS au moins une arme — `unarmedWeapon` en dernier recours (LDB 62 l.28).
  *  Échoue fort (jamais un cast de complaisance) si l'invariant est violé — ce combattant ne devrait
  *  jamais atteindre ce point sans arme. */
 export function assertAttackWeapon(weapons: Weapon[], targetAdjacent: boolean): Weapon {
@@ -1117,9 +1106,9 @@ export function backstabWeapon(foe: Combatant): Weapon {
 /** Arme de MÊLÉE de la main principale de `c`, la plus forte non Défensive ; Mains nues si cette main est
  *  vide. LDB 10 l.500 ; LDB 14 l.139 ; LDB 85 l.33-35, l.47 ; #1595 c.6237601266 (feuilles 2b, 2c). */
 export function armeDeMainPrincipale(c: Combatant): Weapon {
-  const sb = bonus(effectiveChar(c, 'force'));
+  const force = forceDuPorteur(c);
   const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'off' && !hasQuality(w, 'defensive'));
-  return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, sb) >= effectiveWeaponDamage(w, sb) ? m : w), undefined) ?? unarmedWeapon();
+  return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, force) >= effectiveWeaponDamage(w, force) ? m : w), undefined) ?? unarmedWeapon();
 }
 
 /** Arme d'une attaque gratuite, construite depuis sa manœuvre : libellé (`def.label`), NOM unique de la
@@ -1131,7 +1120,7 @@ export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
   const { def } = gratuite;
   const w = buildWeapon({
     label: def.label, attackKind: def.kind, natural: true, ...(def.subType ? { subType: def.subType.id } : {}),
-    damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus },
+    damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus, ...(gratuite.bfInclus ? { bfInclus: true as const } : {}) },
   });
   return gratuite.confere?.length ? { ...w, traitsConferes: gratuite.confere } : w; // ZI 03 l.77
 }
@@ -1599,10 +1588,22 @@ export function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number
   return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
 }
 
+/** Le coup touche AVEC PRISE (`sansPrise` absent) : seul un tel coup porte ses Blessures et son Critique.
+ *  LDB 85 l.98, l.278 ; LDB 14 l.159 ; #1595 c.6221792068 Q2. */
+export function toucheAvecPrise(res: Pick<AttackResult, 'hit' | 'sansPrise'>): boolean {
+  return res.hit && !res.sansPrise;
+}
+
+/** Le coup touche et n'est pas IGNORÉ (sauvegarde, projectile détruit) : il porte ses effets de touche,
+ *  même sans prise. LDB 85 l.98, l.278 ; LDB 47 l.358 ; LDB 85 l.75, l.417 ; LDB 14 l.159. */
+export function toucheNonIgnoree(res: Pick<AttackResult, 'hit' | 'sansPrise'>): boolean {
+  return res.hit && res.sansPrise !== 'sauvegarde' && res.sansPrise !== 'bouclier-anti-fleches';
+}
+
 /** La Localisation relancée du coup, verdict de sa naissance (`critLocation`), SEUL lecteur ; celui d'un coup sans
  *  prise n'est pas lu. LDB 18 l.53, l.55 ; AA 07 l.25 ; LDB 85 l.98 ; LDB 14 l.159. */
 export function localisationRelanceeDe(res: Pick<AttackResult, 'hit' | 'sansPrise' | 'critLocation'>): HitLocation | undefined {
-  return res.hit && !res.sansPrise ? res.critLocation : undefined;
+  return toucheAvecPrise(res) ? res.critLocation : undefined;
 }
 
 /** Le compte d'un coup après ses Déviations. `coupCritique` : avant tout filtre, LDB 60 l.50.
@@ -1613,7 +1614,7 @@ export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; c
  *  LDB 18 l.44, l.53, l.55 ; LDB 63 l.19, l.21, l.30, l.32, l.78 ; LDB 60 l.50 ; AA 07 l.65 ;
  *  #1595 c.6221792068 Q3, c.6228496170 Q1. */
 export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
-  const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
+  const coup = { coupCritique: causeDuCoupCritique(res), prise: toucheAvecPrise(res), current: cible.wounds.current };
   const relancee = localisationRelanceeDe(res);
   const relance = relancee !== undefined;
   const lieu: HitLocation = relancee ?? res.location ?? 'corps';
@@ -1748,7 +1749,7 @@ function applyHit(
     };
   }
   // Charge montée (LDB 14 l.183) : DÉGÂTS calculés avec la Force (Bonus) et la Taille de la MONTURE.
-  let sb = (dmgProxy ? dmgProxy.sb : bonus(effectiveChar(attacker, 'force'))) + damageSBBonus(attacker); // +1 BF en Frénésie via `sbBonus` (psychology.json, LDB 21 l.33)
+  let sb = dmgProxy ? dmgProxy.sb : bonusDeForce(attacker);
   // Tueur (LDB 10) : « utilisez le Bonus d'Endurance de votre adversaire comme votre Bonus de Force
   // s'il est plus élevé ; déterminez toujours ce point avant toute autre règle ».
   if (isSlayer(attacker)) sb = Math.max(sb, bonus(effectiveChar(defender, 'endurance')));
@@ -1757,7 +1758,7 @@ function applyHit(
   // par le TABLEAU DE COMPARAISON DES TAILLES (l.618-637), qui « remplace les modificateurs normaux » de
   // Taille (l.616) → `noSize` ; plancher 0 Blessure (un coup trop faible ricoche, comme la bordée).
   const hullAdj = hullHitAdjust(dmgSize, weapon, defender);
-  const weaponDmg = effectiveWeaponDamage(weapon, sb); // Dégâts réduits par l'usure de l'arme (LDB 62 l.135)
+  const weaponDmg = effectiveWeaponDamage(weapon, { bf: sb, passif: bonusPassifDeForce(attacker) }); // Dégâts réduits par l'usure de l'arme (LDB 62 l.135)
   const units = atkBd.roll % 10; // dé des unités (LDB 62 l.244/266) ; « 00 » → 0
   // Dévastatrice (max(DR, unités)) / Percutante (+unités), annulés par Inoffensive ; Atouts conférés
   // par la Taille (attaquant plus grand, LDB 85 l.360) fusionnés via `extra` (qualityDamageStep).

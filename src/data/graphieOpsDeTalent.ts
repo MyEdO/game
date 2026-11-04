@@ -1,5 +1,5 @@
 /**
- * GRAPHIE des ops de Talent (#1473, train 2a) : `{ op, talentId, spec? }` devient `{ op, talent: { id, spec? } }`
+ * GRAPHIE des ops de Talent (train 2a) : `{ op, talentId, spec? }` devient `{ op, talent: { id, spec? } }`
  * sur `grantTalent` et `grantCareerTalent`, à toute profondeur, la clé `talent` à la POSITION de `talentId`.
  * Une op qui porte déjà `talent` traverse intacte ; tout le reste du document aussi. Une op qui porte À LA
  * FOIS `talentId` et `talent` LÈVE : aucune des deux graphies ne se choisit à l'aveugle.

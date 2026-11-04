@@ -1,7 +1,7 @@
 /**
- * UN TOUR D'IA DÉCIDÉ PART AU PLUS UNE FOIS (#3058, #1852) : pour une clé de tour, l'IA décide une fois et chaque
- * geste décidé (frappe, avancer, sort, zone, déplacer) part au plus une fois ; un tour suspendu après sa décision
- * se reprend par SA suite, jamais par un rejeu ni par un second armement.
+ * UN TOUR EN COURS PART AU PLUS UNE FOIS (#3058, #1852, #3059) : pour une clé de tour, l'IA décide une fois et chaque
+ * geste différé — décidé par l'IA (frappe, avancer, sort, zone, déplacer) ou frappe pilotée du joueur — part au plus
+ * une fois ; un tour suspendu se reprend par SA suite, jamais par un rejeu ni par un second armement.
  *
  * Cas canonique : un héros en Auto-combat charge un porteur de Frappe réactive (LDB 10 l.498), dont la riposte
  * ouvre sa fenêtre sur le chargeur pendant le télégraphe de la charge. Chaque test épingle sa
@@ -10,15 +10,19 @@
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState, GesteDeSuite } from './etat';
-import { advanceTurn, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn } from './combatFlow';
+import { advanceTurn, aiTurnLog, clearAiTurnLog, finalizeHeroDeath, maybeRunEnemyTurn } from './combatFlow';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
+import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { seedBattleRng } from './battleRng';
 import { startCascade } from './cascade';
 import { avanceEtapeCascade } from './cascade.testkit';
+import { fenetreDAttaque } from './fenetreDAttaque';
 import { cleDeFixture } from './noyau.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { bus, EVT } from './bus';
 import { spawnEnemy } from './monde/spawn';
 import { setCadence } from '../engine/cadence';
+import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import { pregen, PREGEN } from '../data/pregens';
 import { testScene } from '../scenes/test-fixture';
@@ -62,8 +66,8 @@ const g = () => banc.getState();
 const b = () => g().battle!;
 const attaques = (de: string, sur?: string) => b().log.filter((l) => l.kind === 'attack' && l.actorId === de && (!sur || l.targetId === sur)).length;
 const decisions = (id: string, round = 1) => aiTurnLog().filter((r) => r.id === id && r.round === round).length;
-const suite = (): GesteDeSuite['kind'] | undefined => b().tourIA?.suite?.geste.kind;
-const parquee = () => !!b().tourIA?.parquee;
+const suite = (): GesteDeSuite['kind'] | undefined => b().tourEnCours?.suite?.geste.kind;
+const parquee = () => !!b().tourEnCours?.parquee;
 
 /** Reprend les échéances une à une tant que `encore` tient (borne : un pilote qui ne progresse pas ÉCHOUE). */
 function tantQue(encore: () => boolean, borne = 300): void {
@@ -233,7 +237,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     g().attackRoll();
     g().attackConfirm();
     jouerLaSequence();
-    expect([suite(), parquee(), attaques('h', 'e'), b().acted], 'chemin : la suite attend, l’Action est dépensée à la main').toEqual(['frappe', false, 1, true]);
+    expect([suite(), parquee(), attaques('h', 'e'), b().acted], 'chemin : la frappe du joueur a devancé la suite, qui attend parquée ; l’Action est dépensée à la main').toEqual(['frappe', true, 1, true]);
     remettreLAutoCombat();
     tantQue(auPremierTour);
     expect(attaques('h', 'e'), 'aucune frappe de plus').toBe(1);
@@ -248,17 +252,17 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     tantQue(() => !g().pendingDefense);
     tantQue(() => !!g().pendingDefense);
     passerEnManuel();
-    g().battleClickEntity('e', { confirm: true });
-    g().attackRoll();
-    g().attackConfirm();
-    jouerLaSequence();
+    setRule('combat-defensive-stance', true);
+    try {
+      g().battleDefendTotal(); // une Action hors attaque : aucune frappe pilotée ne devance la suite (LDB 13 l.118)
+    } finally { resetRule('combat-defensive-stance'); }
     remettreLAutoCombat();
     ouvrirUneFenetreNeutre('h');
     banc.reprendreTout();
     expect([suite(), parquee(), b().acted, b().turn], 'chemin : la suite échue sur la fenêtre est parquée, l’Action dépensée').toEqual(['frappe', true, true, 0]);
     g().cascadeFinish();
     tantQue(auPremierTour);
-    expect(attaques('h', 'e'), 'aucune frappe de plus').toBe(1);
+    expect(attaques('h', 'e'), 'aucune frappe').toBe(0);
     expect(b().turn, 'le tour a avancé une fois').toBe(1);
   });
 });
@@ -350,7 +354,7 @@ function incantations(id: string): () => number {
 
 describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parqué, puis exécuté UNE fois', () => {
   /** Laisse l'IA décider (le minuteur de tour échoit) et rend le geste qu'elle a différé. */
-  const decider = (): GesteDeSuite['kind'] | undefined => { maybeRunEnemyTurn(g, banc.setState); tantQue(() => !b().tourIA); return suite(); };
+  const decider = (): GesteDeSuite['kind'] | undefined => { maybeRunEnemyTurn(g, banc.setState); tantQue(() => !b().tourEnCours); return suite(); };
   /** La fenêtre neutre tient la main à l'échéance, puis se clôt. */
   const tenirPuisClore = (acteurId: string) => {
     ouvrirUneFenetreNeutre(acteurId);
@@ -390,10 +394,10 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
     clearAiTurnLog();
     poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'hero', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA recharge, puis finit son tour').toBe('avancer');
-    const premier = b().tourIA?.suite?.n ?? 0;
+    const premier = b().tourEnCours?.suite?.n ?? 0;
     ouvrirUneFenetreNeutre('e');
     g().cascadeFinish(); // la clôture réarme l'« avancer » du tour
-    expect(b().tourIA?.suite?.n, 'chemin : la suite est réarmée').toBe(premier + 1);
+    expect(b().tourEnCours?.suite?.n, 'chemin : la suite est réarmée').toBe(premier + 1);
     banc.jusquALaProchaine(); // le minuteur du premier armement
     expect(b().turn, 'le minuteur remplacé n’avance pas le tour').toBe(0);
     banc.jusquALaProchaine();
@@ -457,7 +461,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     b().combatants[1].kind = 'enemy';
     const n = incantations('h');
     maybeRunEnemyTurn(g, banc.setState);
-    tantQue(() => !b().tourIA);
+    tantQue(() => !b().tourEnCours);
     expect(suite(), 'chemin : l’IA du héros décide un sort').toBe('sort');
     ouvrirUneFenetreNeutre('h');
     passerEnManuel();
@@ -486,7 +490,7 @@ describe('#3058 — un déplacement décidé par l’IA ne part pas par-dessus u
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'h') glisses++; });
     try {
       maybeRunEnemyTurn(g, banc.setState);
-      tantQue(() => !b().tourIA);
+      tantQue(() => !b().tourEnCours);
       expect(suite(), 'chemin : l’IA du héros décide un déplacement').toBe('deplacer');
       ouvrirUneFenetreNeutre('h');
       passerEnManuel();
@@ -511,15 +515,15 @@ describe('#3058 — un geste périmé ne touche pas au tour suivant', () => {
     clearAiTurnLog();
     poser(banc, 1, [mk('e', 'enemy', { x: 1, y: 0 }), mk('e2', 'enemy', { x: 0, y: 1 }), mk('h', 'hero', { x: 0, y: 0 })]);
     maybeRunEnemyTurn(g, banc.setState);
-    tantQue(() => !b().tourIA);
-    expect([b().tourIA?.cle, suite()], 'chemin : `e` a armé sa frappe').toEqual(['1:0:e', 'frappe']);
+    tantQue(() => !b().tourEnCours);
+    expect([b().tourEnCours?.cle, suite()], 'chemin : `e` a armé sa frappe').toEqual(['1:0:e', 'frappe']);
     advanceTurn(g, banc.setState); // le tour passe avant l'échéance
-    tantQue(() => b().tourIA?.cle !== '1:1:e2');
-    const sienne = b().tourIA?.suite;
+    tantQue(() => b().tourEnCours?.cle !== '1:1:e2');
+    const sienne = b().tourEnCours?.suite;
     expect([sienne?.geste.kind, g().actorAim?.fromId], 'chemin : `e2` a armé SA frappe, réticule posé').toEqual(['frappe', 'e2']);
     banc.jusquALaProchaine(); // l'échéance périmée de `e` (850 ms après son armement, avant celle de `e2`)
     expect([attaques('e'), attaques('e2')], 'la frappe périmée de `e` ne part pas, celle de `e2` attend').toEqual([0, 0]);
-    expect(b().tourIA?.suite, 'la suite de `e2` tient').toBe(sienne);
+    expect(b().tourEnCours?.suite, 'la suite de `e2` tient').toBe(sienne);
     expect(g().actorAim?.fromId, 'le réticule de `e2` tient').toBe('e2');
   });
 });
@@ -540,4 +544,194 @@ describe('#3058 — saut de tour sans talent (une séquence de conséquences ouv
       for (const r of [1, 2]) for (const id of ['h', 'e']) expect(decisions(id, r), `${id}, Round ${r}`).toBe(1);
     });
   }
+});
+
+/** Le héros MANUEL `h`, hors contact, charge `e` (porteur de Frappe réactive au Test d'Initiative quasi-garanti, sauf
+ *  `reactive: false`). */
+function chargeManuelle(seed: number, o: { reactive?: boolean; autres?: Combatant[]; pvDuChargeur?: number; depart?: { x: number; y: number } } = {}): void {
+  banc = ouvrirLeBanc({ cadence: 'manuel' });
+  clearAiTurnLog();
+  charge(banc, seed, o.autres ?? [], o.pvDuChargeur ?? 40);
+  if (o.reactive === false) qui('e').talents = [];
+  if (o.depart) qui('h').pos = { ...o.depart };
+}
+const qui = (id: string): Combatant => b().combatants.find((c) => c.id === id)!;
+const cliquerLaCharge = () => g().battleClickEntity('e', { confirm: true, approche: true });
+const frappeOuverte = () => (g().pendingAttack ? { de: g().pendingAttack!.attackerId, fromCharge: !!g().pendingAttack!.fromCharge, annulable: !!g().pendingAttack!.chargeUndo } : null);
+/** Le joueur lance et applique la frappe ouverte, puis joue la séquence jusqu'à sa clôture. */
+function frapper(): void {
+  g().attackRoll();
+  g().attackConfirm();
+  jouerLaSequence();
+}
+
+describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa frappe différée ne se perd pas', () => {
+  it('A (graine 4) : la cible réagit AVANT toute frappe du héros ; après sa défense, la frappe du héros s’ouvre une fois, le tour reste le sien', () => {
+    chargeManuelle(4);
+    cliquerLaCharge();
+    expect([g().pendingDefense?.defenderId, attaques('h'), frappeOuverte()], 'la riposte ouvre la défense du chargeur avant toute frappe de sa part').toEqual(['h', 0, null]);
+    banc.reprendreTout();
+    expect([suite(), parquee(), frappeOuverte()], 'la frappe échue pendant la défense tenue est parquée, pas perdue').toEqual(['frappePilotee', true, null]);
+    jouerLaSequence();
+    expect(attaques('e', 'h'), 'la riposte a frappé').toBe(1);
+    banc.reprendreTout();
+    expect(frappeOuverte(), 'la frappe de la Charge s’ouvre, sans Annuler : la cible a répondu').toEqual({ de: 'h', fromCharge: true, annulable: false });
+    frapper();
+    banc.reprendreTout();
+    expect([attaques('h', 'e'), frappeOuverte(), b().turn], 'une frappe, rien ne se rouvre, le tour du joueur reste le sien').toEqual([1, null, 0]);
+  });
+
+  it('A′ (graine 4) : une cible pilotée par un humain choisit sa réaction (une étape de choix) avant le jet d’attaque du chargeur', () => {
+    chargeManuelle(4);
+    banc.setState({ net: { ...g().net, gmSeat: 0 } } as never);
+    cliquerLaCharge();
+    const etapes = () => g().pendingCascade?.participants.map((p) => p.kind) ?? [];
+    expect([etapes(), frappeOuverte(), attaques('h')], 'la réaction s’offre au pilote de la cible, avant toute frappe').toEqual([['triggeredChoice'], null, 0]);
+    jouerLaSequence();
+    banc.reprendreTout();
+    expect(frappeOuverte()?.de, 'la frappe du chargeur s’ouvre ensuite').toBe('h');
+  });
+
+  it('B (graine 4) : coop — l’invité charge par intent : chez l’hôte, la cible réagit avant, la frappe de l’invité s’ouvre après', () => {
+    chargeManuelle(4);
+    banc.setState({ net: { ...g().net, mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h: 1 }, slots: [1, 1, 0, 0] } } as never);
+    expect(appliquerLIntentionDUnSiege(g, 1, 'battleClickEntity', ['e', { confirm: true, approche: true }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
+    expect([g().pendingDefense?.defenderId, attaques('h'), frappeOuverte()], 'la riposte ouvre la défense du chargeur avant toute frappe').toEqual(['h', 0, null]);
+    for (let i = 0; i < 40; i++) {
+      if (g().pendingDefense) { appliquerLIntentionDUnSiege(g, 1, 'defenseRoll', []); appliquerLIntentionDUnSiege(g, 1, 'defenseConfirm', []); continue; }
+      if (avanceEtapeCascade(g) === undefined) break;
+    }
+    banc.reprendreTout();
+    expect([frappeOuverte()?.de, b().turn], 'la frappe de l’invité s’ouvre chez l’hôte, son tour tient').toEqual(['h', 0]);
+  });
+
+  it('C (graine 4) : une Charge SANS Avantage (course trop courte, LDB 15 l.37) fait aussi « être Chargé »', () => {
+    chargeManuelle(4, { depart: { x: 2, y: 0 } });
+    qui('h').movement = 8;
+    cliquerLaCharge();
+    expect([qui('h').advantage, qui('h').chargedThisTurn, g().pendingDefense?.defenderId], 'aucun Avantage, chargé, la cible réagit').toEqual([0, true, 'h']);
+  });
+
+  it('D (graine 4) : sans réaction de la cible, l’Annuler d’avant le jet défait la Charge', () => {
+    chargeManuelle(4, { reactive: false });
+    cliquerLaCharge();
+    banc.reprendreTout();
+    expect(frappeOuverte(), 'aucune réaction : la frappe s’ouvre annulable').toEqual({ de: 'h', fromCharge: true, annulable: true });
+    expect(fenetreDAttaque(g())?.annulation, 'la fenêtre offre l’Annuler').toBeNull();
+    g().attackCancel();
+    expect([qui('h').pos, qui('h').chargedThisTurn, frappeOuverte(), g().pendingCascade], 'Annuler rend la case de départ et ferme la séquence').toEqual([{ x: 4, y: 0 }, false, null, null]);
+    cliquerLaCharge();
+    banc.reprendreTout();
+    expect(frappeOuverte(), 'une nouvelle Charge rouvre la frappe').toEqual({ de: 'h', fromCharge: true, annulable: true });
+  });
+
+  it('D′ (graine 4) : une cible qui a répondu engage la Charge — l’Annuler est refusé', () => {
+    chargeManuelle(4);
+    cliquerLaCharge();
+    jouerLaSequence();
+    banc.reprendreTout();
+    const depuis = { ...qui('h').pos! };
+    expect(fenetreDAttaque(g())?.annulation, 'la fenêtre ferme l’Annuler avec le texte du geste').toBe('La Charge est engagée : la cible a répondu, le Test de Corps à corps est dû.');
+    g().attackCancel();
+    expect([frappeOuverte()?.annulable, qui('h').pos, qui('h').chargedThisTurn], 'la cible a répondu : Annuler est refusé, la Charge reste').toEqual([false, depuis, true]);
+  });
+
+  it('S3 : un second clic pendant le glissé — une seule frappe, rien ne se rouvre après l’Action', () => {
+    chargeManuelle(4, { reactive: false });
+    cliquerLaCharge();
+    g().battleClickEntity('e', { confirm: true });
+    expect(frappeOuverte(), 'le second clic ouvre la frappe de la Charge, engagée').toEqual({ de: 'h', fromCharge: true, annulable: false });
+    frapper();
+    banc.reprendreTout();
+    expect([attaques('h', 'e'), frappeOuverte(), g().pendingCascade], 'une frappe, l’échéance du premier clic ne rouvre rien').toEqual([1, null, null]);
+  });
+
+  it('S5 : l’Auto-combat remis après une frappe pilotée — le combat avance', () => {
+    chargeManuelle(4, { reactive: false });
+    cliquerLaCharge();
+    banc.reprendreTout();
+    frapper();
+    expect([attaques('h', 'e'), b().tourEnCours?.cle], 'chemin : le joueur a frappé, son tour porte un enregistrement').toEqual([1, '1:0:h']);
+    remettreLAutoCombat();
+    tantQue(auPremierTour);
+    expect([attaques('h', 'e'), b().turn], 'aucune frappe de plus, le tour a avancé').toEqual([1, 1]);
+    setCadence('manuel');
+  });
+
+  it('E manuel (graine 1) : la riposte met le chargeur hors de combat — aucune frappe, le tour ne passe pas seul', () => {
+    chargeManuelle(1, { autres: [mk('h2', 'hero', { x: 9, y: 9 })], pvDuChargeur: 1 });
+    cliquerLaCharge();
+    jouerLaSequence();
+    banc.reprendreTout();
+    expect(isOutOfAction(qui('h')), 'chemin : la riposte a mis le chargeur hors de combat').toBe(true);
+    expect([attaques('h'), frappeOuverte(), b().turn], 'aucune frappe, le tour reste au joueur').toEqual([0, null, 0]);
+  });
+
+  it('C9 (graine 4) : le Destin dépensé pendant la Charge reprend la frappe du joueur, sans finir son tour', () => {
+    chargeManuelle(4);
+    qui('h').fate = 1;
+    cliquerLaCharge();
+    jouerLaSequence();
+    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    expect(!!g().pendingFateSave, 'chemin : le Destin est offert').toBe(true);
+    g().fateNegate();
+    banc.reprendreTout();
+    expect([frappeOuverte()?.de, b().turn], 'la frappe du joueur s’ouvre, son tour tient').toEqual(['h', 0]);
+  });
+
+  it('P1 (graine 4) : Sur la Défensive pendant le glissé prend l’Action — la frappe pilotée s’abandonne, le tour reste au joueur', () => {
+    chargeManuelle(4, { reactive: false });
+    setRule('combat-defensive-stance', true);
+    try {
+      cliquerLaCharge();
+      g().battleDefendTotal();
+      banc.reprendreTout();
+    } finally { resetRule('combat-defensive-stance'); }
+    expect([frappeOuverte(), attaques('h'), b().acted, b().turn], 'aucune frappe, l’Action est prise, le tour tient').toEqual([null, 0, true, 0]);
+  });
+
+  it('P7 (graine 1) : chargeur K.O. par la riposte, puis Auto-combat — le combat avance', () => {
+    chargeManuelle(1, { autres: [mk('h2', 'hero', { x: 9, y: 9 })], pvDuChargeur: 1 });
+    cliquerLaCharge();
+    jouerLaSequence();
+    banc.reprendreTout();
+    expect(isOutOfAction(qui('h')), 'chemin : le chargeur est hors de combat').toBe(true);
+    remettreLAutoCombat();
+    tantQue(auPremierTour);
+    expect(b().turn, 'le tour a avancé').toBe(1);
+    setCadence('manuel');
+  });
+
+  it('P8 (graine 4) : le Destin dépensé sur le tour d’un héros manuel sans geste en attente ne finit pas son tour', () => {
+    chargeManuelle(4, { reactive: false });
+    qui('h').fate = 1;
+    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    g().fateNegate();
+    banc.reprendreTout();
+    expect(b().turn, 'le tour reste au joueur').toBe(0);
+  });
+
+  it('P8b (graine 4) : idem après la frappe pilotée consommée', () => {
+    chargeManuelle(4, { reactive: false });
+    qui('h').fate = 1;
+    cliquerLaCharge();
+    banc.reprendreTout();
+    frapper();
+    expect([attaques('h', 'e'), b().acted], 'chemin : l’Action est prise par la frappe').toEqual([1, true]);
+    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    g().fateNegate();
+    banc.reprendreTout();
+    expect(b().turn, 'le tour reste au joueur').toBe(0);
+  });
+
+  it('quarantaine : `subirLaCharge` n’a que `declarerLaCharge` et la recette pour appelants', () => {
+    const appels: string[] = [];
+    for (const { rel, text } of readCorpus(['src'])) {
+      for (const m of text.matchAll(/(?<!function )\bsubirLaCharge\(/g)) {
+        const fonction = [...text.slice(0, m.index).matchAll(/function (\w+)\(/g)].pop()?.[1];
+        appels.push(rel === 'src/state/devtools.ts' ? rel : `${rel}:${fonction}`);
+      }
+    }
+    expect(appels.sort()).toEqual(['src/noyau/combatFlow.ts:declarerLaCharge', 'src/state/devtools.ts']);
+  });
 });

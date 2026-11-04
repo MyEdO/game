@@ -131,6 +131,9 @@ export interface DiseaseDef {
   reExposition?: { prolonge: DiseaseTime };
 }
 
+/** La maladie est-elle DÉCLARÉE : sortie d'incubation, ses symptômes actifs ? LDB 20 l.12-13 */
+export const maladieDeclaree = (d: Pick<Disease, 'phase'>): boolean => d.phase === 'active';
+
 /** Instance de maladie portée par un personnage. */
 export interface Disease {
   /** id de la maladie (`maladies.json`) — ≠ libellé (résolu à l'affichage via `diseaseLabel`). #598 */
@@ -172,13 +175,6 @@ export interface Disease {
 export const diseaseDefs = memoParVersion('maladies', (): Record<string, DiseaseDef> => Object.fromEntries(
   (maladies as DiseaseDef[]).map((m) => [m.id, m]),
 ));
-/** ids des maladies CANONIQUES (LDB 20) référencées par le moteur (cascade persistant, contagions). Pas de
- *  chaîne magique. Garde-fou de synchro `DISEASES`⇄`maladies.json` : `refs-migrated.test`. */
-export const DISEASES = {
-  infectionMineure: 'infection-mineure', blessurePurulente: 'blessure-purulente', infectionDuSang: 'infection-du-sang',
-  couranteGalopante: 'courante-galopante', fievreDuRongeur: 'fievre-du-rongeur', fluxSanglant: 'flux-sanglant',
-  pesteNoire: 'peste-noire', veroleDuTanneur: 'verole-du-tanneur', veroleUrticante: 'verole-urticante',
-} as const;
 
 /** Construit une instance de maladie (tire incubation/durée → MINUTES). `opts.incubation`/`opts.duration`
  *  figent les jets EN JOURS (tests, ou contraction « instantanée » depuis un autre symptôme — l.32 :
@@ -297,7 +293,7 @@ function snapshotInfectionResidual(c: Combatant, dz: Disease): void {
  *  et des `effects` DÉCLENCHÉS des symptômes (source du dispatcher, `noyau/triggeredEffects`). */
 export function activeSymptoms(c: Combatant): DiseaseSymptom[] {
   return (c.diseases ?? [])
-    .filter((d) => d.phase === 'active')
+    .filter(maladieDeclaree)
     .flatMap((d) => d.symptoms.filter((s) => !symptomSuppressed(c, s.symptomId)));
 }
 /** Passifs de TOUTES les maladies ACTIVES (collecte unifiée, reprise telle quelle par `passiveMods`).
@@ -307,7 +303,7 @@ export function activeSymptoms(c: Combatant): DiseaseSymptom[] {
  *  nomme la pénalité à l'écran (« −20 Crampes abdominales »), jamais un « Maladie » générique. */
 export function diseasePassiveOps(c: Combatant): PassiveMod[] {
   const out: PassiveMod[] = [];
-  for (const dz of (c.diseases ?? []).filter((d) => d.phase === 'active')) {
+  for (const dz of (c.diseases ?? []).filter(maladieDeclaree)) {
     for (const inst of dz.symptoms) {
       if (symptomSuppressed(c, inst.symptomId)) continue;
       const src = { category: 'symptoms', id: inst.symptomId };
@@ -507,7 +503,7 @@ export function diseaseHasCapability(dz: Disease, cap: keyof SymptomCapabilities
 }
 /** Le combattant a-t-il une maladie ACTIVE portant la capacité `cap` ? (Nausée, Contagion…) */
 export function hasActiveCapability(c: Combatant, cap: keyof SymptomCapabilities): boolean {
-  return (c.diseases ?? []).some((d) => d.phase === 'active' && diseaseHasCapability(d, cap));
+  return (c.diseases ?? []).some((d) => maladieDeclaree(d) && diseaseHasCapability(d, cap));
 }
 
 /**
@@ -554,12 +550,12 @@ export function rollContraction(
 
 /** Nombre de maladies actives bloquant la guérison d'1 PB (capacité `blocksHealing` — Blessé + Gangrène). */
 export function diseaseBlesseCount(c: Combatant): number {
-  return (c.diseases ?? []).filter((d) => d.phase === 'active' && diseaseHasCapability(d, 'blocksHealing')).length;
+  return (c.diseases ?? []).filter((d) => maladieDeclaree(d) && diseaseHasCapability(d, 'blocksHealing')).length;
 }
 
 /** Maladies ACTIVES contagieuses (capacité `contagious` — Toux & éternuements, l.206) — contagion au repos. */
 export function contagiousDiseases(c: Combatant): Disease[] {
-  return (c.diseases ?? []).filter((d) => d.phase === 'active' && diseaseHasCapability(d, 'contagious'));
+  return (c.diseases ?? []).filter((d) => maladieDeclaree(d) && diseaseHasCapability(d, 'contagious'));
 }
 
 /** Exposition d'un personnage à une maladie. Mute `c.diseases` directement (appelé HORS itération —
@@ -610,14 +606,14 @@ export function prolongDisease(c: Combatant, name: string, days: number): boolea
   if (!dz || days <= 0) return false;
   const extra = days * MINUTES_PER_DAY;
   dz.durationMinutes += extra;
-  if (dz.phase === 'active') dz.minutesLeft += extra;
+  if (maladieDeclaree(dz)) dz.minutesLeft += extra;
   return true;
 }
 
 /** Conséquence d'un Test de Gangrène DIFFÉRÉ (l.135+) : échec → +1 échec ; au-delà du BE → Localisation perdue. */
 export function applyDiseaseGangrene(c: Combatant, diseaseName: string, success: boolean, be: number): string[] {
   if (success) return [];
-  const dz = (c.diseases ?? []).find((d) => d.id === diseaseName && d.phase === 'active');
+  const dz = (c.diseases ?? []).find((d) => d.id === diseaseName && maladieDeclaree(d));
   if (!dz) return [];
   dz.gangreneFails = (dz.gangreneFails ?? 0) + 1;
   if (dz.gangreneFails > be) {

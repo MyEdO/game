@@ -4,13 +4,12 @@ import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
-import { skills, talents, careerLevels, species, stars, specCatalogOf, specLabel, specPoolOf, specEntryId } from './index';
+import { skills, talents, careerLevels, species, stars, specPoolOf, specEntryId } from './index';
 import tablesJson from './tables.json';
 import activitiesJson from './activities.json';
 import tavernGamesJson from './tavernGames.json';
 import crewRolesJson from './crew-roles.json';
 import { estSpecialisable, refOuSpec, specAuCatalogue } from './schemas/grammaire/ref';
-import { norm } from '../lib/normalize';
 import { nommerNoeud } from './schemas/grammaire/meta';
 
 /**
@@ -23,7 +22,9 @@ import { nommerNoeud } from './schemas/grammaire/meta';
  * du chapitre et ne portent pas de `source`. Ce qui EST gardé ici rend le pool correct :
  *  1. une entrée hors pool est attestée ailleurs → elle porte une `source` ;
  *  2. toute spec demandée par une PORTE JOUEUR résout, et résout DANS le pool — sinon l'écran qui
- *     l'affiche ne peut pas l'offrir ;
+ *     l'affiche ne peut pas l'offrir. Sur une entrée OUVERTE, le parse admet le texte libre : ce
+ *     contrat l'y refuse. Le libellé et la sentinelle « au choix », eux, sont refusés AU PARSE
+ *     (`ref.ts#refusDeSpec`) ;
  *  3. un EMPLACEMENT (`choix: true`, joker « au choix ») ne vise jamais une entrée à pool vide
  *     (`LDB 09 l.40`) — garde `#1897` en fin de fichier (`choixSansPoolJoueur`). Pour un TALENT, des
  *     `specs` inline ne font pas un domaine groupé (`LDB 10 l.17` ; `attirant`, `EDOC 12 l.84`) ; une
@@ -91,18 +92,13 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
     const horsPool: string[] = [];
     const detteVue = new Set<string>();
     const detteNeuve: string[] = [];
-    /** Sentinelles portées par une réf de COMPÉTENCE : ce stock est ÉTEINT (L2 #1548 commit 4bis — la
-     *  donnée écrit `choix`), et le rester est le contrat. */
-    const sentinellesDeCompetence: string[] = [];
     for (const { where, defId, spec } of refsDePorte()) {
-      if (SENTINELLE_CHOIX.test(spec)) {
-        // Une sentinelle de TALENT survit : `talentRefSchema` (`schemas/grammaire/reference.ts`) n'a
-        // pas de régime `choix`, et l'ouvrir bute sur son pool FERMÉ — concept loté L3 (#1463).
-        if (EST_COMPETENCE.has(defId)) sentinellesDeCompetence.push(`${where}|${defId}|${spec}`);
-        continue;
-      }
+      // La sentinelle n'est pas une spéc : sur une Compétence le parse la refuse (`ref.ts#SENTINELLE_DE_SPEC`) ;
+      // sur un Talent elle survit, `talentRefSchema` (`schemas/grammaire/reference.ts`) n'ayant pas de
+      // régime `choix` — concept loté L3 (#1463).
+      if (SENTINELLE_CHOIX.test(spec)) continue;
       const def = DEF_BY_ID.get(defId);
-      if (!def) continue; // le defId n'est pas une Compétence/Talent (garde d'existence : refs-migrated)
+      if (!def) continue; // le defId n'est pas une Compétence/Talent (son existence se juge au parse)
       const cle = `${where}|${defId}|${spec}`;
       if (!auCatalogue(def, spec)) {
         if (REFS_EN_LIBELLE.includes(cle)) detteVue.add(cle);
@@ -111,10 +107,6 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
       }
       if (!specPoolOf(def).includes(spec)) horsPool.push(`${cle} : hors pool (l'écran ne peut pas l'offrir)`);
     }
-    expect(
-      sentinellesDeCompetence,
-      `sentinelle « au choix » sur une réf de Compétence — poser \`choix: true\` (ou \`choix: [ids]\`) :\n${sentinellesDeCompetence.join('\n')}`,
-    ).toEqual([]);
     expect(detteNeuve, detteNeuve.join('\n')).toEqual([]);
     expect(horsPool, horsPool.join('\n')).toEqual([]);
     const perimees = REFS_EN_LIBELLE.filter((k) => !detteVue.has(k));
@@ -132,138 +124,14 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
   });
 });
 
-/**
- * EXTENSION 2026-08-30 (L2 #1548, commit 3b) — MÊME contrat, périmètre ÉLARGI et axe RESSERRÉ.
- *
- * PÉRIMÈTRE MESURÉ : TOUS les `src/data/**.json` (walk récursif du dossier, 121 fichiers au relevé),
- * pas seulement les 8 `PORTES_JOUEUR` ci-dessus. L'AXE, lui, est plus étroit que celui des portes :
- * on n'exige pas ici que la spéc résolve (188 valeurs distinctes sont du TEXTE LIBRE authoré, légitime
- * sur les domaines ouverts : Langue, Métier, Savoir…), on exige qu'elle ne soit JAMAIS le LIBELLÉ FR
- * d'une entrée du catalogue de sa propre def.
- *
- * MESURE QUI L'EXIGE : `testValue` apparie la spéc possédée par ÉGALITÉ STRICTE
- * (`s.spec === spec`, `src/engine/skills.ts:76`) et les Compétences possédées portent l'ID. Une spéc
- * écrite « Ingénieur » au lieu de `ingenieur` n'apparie donc AUCUNE instance : le Test retombe sur la
- * Caractéristique de repli et les avances sont PERDUES (héros Métier (Ingénieur) +40, Int 30 : 30
- * mesuré au lieu de 70). Stock avant correctif : 4 (`steam-breakdown.json`, chemin réel
- * `seaVoyageFlow.ts:2020`), ramenés à l'id par `scripts/migrations/2026-08-30-spec-en-id-de-catalogue.mjs`.
- *
- * ANGLES MORTS ÉNONCÉS :
- *  - la clé de def n'est lue que sur `skillId` / `skill` de chaîne / `id` du nœud porteur : une réf
- *    de Compétence désignée par un champ d'un AUTRE nom échappe à la mesure ;
- *  - les défs de COMPÉTENCE et de TALENT sont confrontées (#1646, L-ref-3 du 2026-09-01 : les 5 spécs
- *    en libellé de `sens-aiguise` — 4 dans `mutations.json`, 1 dans `spells.json`, résolues par
- *    `PairedSense` et non par `testValue` — portent leur id) ; le volet SENTINELLE, lui, reste borné
- *    aux Compétences : `talentRefSchema` n'a pas de régime `choix`, et les 4 « Au choix » de
- *    `maitre-artisan` de `creatures.json` survivent à #1457 — leur extinction demande le régime `choix`
- *    des réfs de Talent de statbloc (#1621) ;
- *  - une spéc qui n'apparie AUCUNE entrée du catalogue de sa def n'est pas mesurée (texte libre d'un
- *    domaine ouvert) ;
- *  - un libellé AMBIGU (deux entrées du même catalogue au même libellé normalisé) n'est pas départagé.
- */
+/** Les DEUX racines de donnée authorée : `src/data` et les projets de scène, qui composent la MÊME
+ *  grammaire (`defs-scenes/communs.ts#competenceChiffreeSchema` = `refOuSpec('skill', { value })`). */
 const DOSSIER_DATA = __dirname;
-/** DEUXIÈME racine de donnée authorée : les projets de scène composent la MÊME grammaire
- *  (`defs-scenes/communs.ts#competenceChiffreeSchema` = `refOuSpec('skill', { value })`), donc le même
- *  invariant s'y mesure. Un scan borné à `src/data` laissait cette racine hors garde. */
 const DOSSIER_SCENES = fileURLToPath(new URL('../scenes/', import.meta.url));
 const RACINES: [string, string][] = [['data/', DOSSIER_DATA], ['scenes/', DOSSIER_SCENES]];
 
-/** Normalisation de COMPARAISON seulement (NFD + casse) : jamais une conversion de donnée. */
-
-/**
- * DETTE NOMINATIVE DATÉE — spécs de Compétence encore écrites en LIBELLÉ FR de leur propre catalogue.
- * Liste FERMÉE et DÉCROISSANTE : une clé de plus = rouge (régression), une clé périmée = rouge aussi.
- * VIDE depuis 2026-08-30 (L2 #1548, commit 3b) : les 4 `metier|Ingénieur` de `steam-breakdown.json`
- * ont été migrées.
- */
-const SPECS_EN_LIBELLE: { cle: string; date: string; lot: string }[] = [];
-
 const fichiersDeDonnees = (dir: string): string[] =>
   listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') }).map((rel) => join(dir, rel));
-
-describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBELLÉ (`src/data` ET `src/scenes`)', () => {
-  /** Par id de Compétence : « cet id résout-il ? » et l'index LIBELLÉ normalisé → id attendu. */
-  const CATALOGUE = new Map(skills.map((s) => [
-    s.id,
-    { def: s, parLabel: new Map(specCatalogOf(s).map((id) => [norm(specLabel('skills', s.id, id)), id])) },
-  ]));
-  /** Même index pour les TALENTS — même doctrine id/label, autre porte de résolution. */
-  const CATALOGUE_TALENT = new Map(talents.map((t) => [
-    t.id,
-    { def: t, parLabel: new Map(specCatalogOf(t).map((id) => [norm(specLabel('talents', t.id, id)), id])) },
-  ]));
-
-  const fichiers = RACINES.flatMap(([racine, dir]) =>
-    fichiersDeDonnees(dir).map((abs) => ({ abs, ou: `${racine}${relative(dir, abs).replace(/\\/g, '/')}` })),
-  );
-
-  it('le walk couvre bien TOUS les datasets JSON (périmètre non vide, non réduit à un fichier)', () => {
-    expect(fichiers.length).toBeGreaterThan(100);
-  });
-
-  it('la racine `src/scenes` est bien SCANNÉE (les projets de scène composent la même grammaire)', () => {
-    expect(fichiers.filter((f) => f.ou.startsWith('scenes/')).length).toBeGreaterThan(0);
-  });
-
-  it('toute `spec` adjacente à un id de Compétence ou de Talent est un ID du catalogue ou du TEXTE LIBRE — jamais un libellé, jamais la sentinelle', () => {
-    const regressions: string[] = [];
-    /** CONTRAT POSITIF (L2 #1548, commit 4bis) : le littéral « au choix » ne désigne RIEN au catalogue
-     *  — un emplacement non désigné s'écrit `choix` (`refOuSpec`). Stock ÉTEINT sur les Compétences,
-     *  sur les DEUX racines authorées (`src/data` : les 53 du bestiaire + les 2 ops
-     *  `grantCareerSkill` ; `src/scenes` : les projets). Ce scan DOUBLE le verrou de schéma
-     *  `ref.ts#SENTINELLE_DE_SPEC` : il nomme le site en donnée, le schéma refuse au parse. */
-    const sentinelles: string[] = [];
-    const vues = new Set<string>();
-    const walk = (node: unknown, ou: string): void => {
-      if (Array.isArray(node)) { node.forEach((x) => walk(x, ou)); return; }
-      if (!node || typeof node !== 'object') return;
-      const n = node as Record<string, unknown>;
-      const defId = (typeof n.skillId === 'string' && n.skillId)
-        || (typeof n.skill === 'string' && n.skill)
-        || (typeof n.id === 'string' && n.id) || null;
-      const spec = n.spec;
-      if (defId && typeof spec === 'string' && CATALOGUE.has(defId)) {
-        if (SENTINELLE_CHOIX.test(spec)) sentinelles.push(`${ou}|${defId}|${spec}`);
-        const cat = CATALOGUE.get(defId)!;
-        const attendu = cat.parLabel.get(norm(spec));
-        if (attendu && !auCatalogue(cat.def, spec)) {
-          const cle = `${ou}|${defId}|${spec}`;
-          if (SPECS_EN_LIBELLE.some((d) => d.cle === cle)) vues.add(cle);
-          else regressions.push(`${cle} — LIBELLÉ FR du catalogue (id attendu « ${attendu} ») : \`testValue\` n'appariera aucune spéc possédée`);
-        }
-      }
-      const talentDefId = (typeof n.talentId === 'string' && n.talentId)
-        || (typeof n.talent === 'string' && n.talent)
-        || (typeof n.id === 'string' && n.id) || null;
-      if (talentDefId && typeof spec === 'string' && CATALOGUE_TALENT.has(talentDefId)) {
-        const cat = CATALOGUE_TALENT.get(talentDefId)!;
-        const attendu = cat.parLabel.get(norm(spec));
-        if (attendu && !auCatalogue(cat.def, spec)) {
-          const cle = `${ou}|${talentDefId}|${spec}`;
-          if (SPECS_EN_LIBELLE.some((d) => d.cle === cle)) vues.add(cle);
-          else regressions.push(`${cle} — LIBELLÉ FR du catalogue de Talent (id attendu « ${attendu} ») : une spéc authorée est un ID`);
-        }
-      }
-      for (const v of Object.values(n)) walk(v, ou);
-    };
-    for (const { abs, ou } of fichiers) {
-      let data: unknown;
-      try { data = JSON.parse(readFileSync(abs, 'utf8')); } catch { continue; }
-      walk(data, ou);
-    }
-    expect(
-      sentinelles,
-      `sentinelle « au choix » restée en \`spec\` de Compétence — la forme est \`choix: true\` / \`choix: [ids]\` :\n${sentinelles.join('\n')}`,
-    ).toEqual([]);
-    expect(regressions, regressions.join('\n')).toEqual([]);
-    const perimees = SPECS_EN_LIBELLE.filter((d) => !vues.has(d.cle)).map((d) => d.cle);
-    expect(perimees, `clé(s) de dette PÉRIMÉE(s) — migrée(s), retirer la ligne :\n${perimees.join('\n')}`).toEqual([]);
-  });
-
-  it('chaque ligne de dette porte sa DATE et son LOT', () => {
-    expect(SPECS_EN_LIBELLE.filter((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d.date) || !d.lot?.trim()).map((d) => d.cle)).toEqual([]);
-  });
-});
 
 /**
  * VERROU PAR CONSTRUCTION de la sentinelle — le schéma REFUSE, il ne se contente pas d'être scanné.

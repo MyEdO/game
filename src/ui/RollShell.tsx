@@ -10,7 +10,7 @@ import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { avecSigne } from '../engine/types';
-import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
+import { refusDeRangee, rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
 import { RecapLineRow } from './RecapLine';
 import type { RecapLine } from '../noyau/recapLine';
@@ -190,7 +190,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
     stake,
     extra,
     setup,
-    rows,
+    rows: rangees,
     rolled,
     winnerIndex,
     netSL,
@@ -210,6 +210,11 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
   useGame((s) => s.net);
   const uid = useId();
   const state = useGame.getState();
+  // Refus du slot lu par la poignée du flux (`refusDeRangee`) : il ferme le CTA de la rangée, hissé compris.
+  const rows = rangees.map((r) => {
+    const refus = r.rollBlocked ?? refusDeRangee(state, r.flowKey ?? flowKey, r.pid ?? (r.key != null ? String(r.key) : undefined));
+    return refus ? { ...r, rollBlocked: refus } : r;
+  });
   // Z3b′ AU SOCLE (recette #1117) : le RENVOI vers la règle est accolé au TITRE par la COQUILLE, plus
   // par discipline au site — une modale qui pose son `stake` l'obtient sans rien faire. La cible est
   // DÉRIVÉE de la même entrée d'enjeu que la phrase (`resolveStake().rule`), le nom accessible du

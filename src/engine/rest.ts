@@ -31,7 +31,7 @@ import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
 import { testValue } from './skills';
 import { removeCondition, reprendreConnaissance, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
-import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, type Disease } from './disease';
+import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, maladieDeclaree, type Disease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
 import { applyHealWounds } from './healing';
@@ -72,7 +72,7 @@ export function dailyDiseaseUpkeep(c: Combatant, rng: RNG, defer: UpkeepDeferTes
   if (caredFor) {
     for (const dz of c.diseases ?? []) {
       // −1 JOUR supplémentaire par maladie active, minimum 1 jour restant (LDB 09-Compétences).
-      if (dz.phase === 'active' && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
+      if (maladieDeclaree(dz) && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
     }
   }
   log.push(...syncDerivedConditions(c));
@@ -103,7 +103,7 @@ export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: bool
 export function cureDiseases(c: Combatant, n: number): string[] {
   if (!c.diseases?.length || n <= 0) return [];
   const log: string[] = [];
-  const order = [...c.diseases].sort((a, b) => (a.phase === 'active' ? 0 : 1) - (b.phase === 'active' ? 0 : 1));
+  const order = [...c.diseases].sort((a, b) => (maladieDeclaree(a) ? 0 : 1) - (maladieDeclaree(b) ? 0 : 1));
   const removed = new Set(order.slice(0, n));
   c.diseases = c.diseases.filter((d) => !removed.has(d));
   for (const d of removed) {
@@ -119,7 +119,7 @@ export interface OptionsDeBenediction { disease?: string; once?: boolean }
 
 /** La maladie ACTIVE que raccourcirait `blessDiseaseDuration`, ou `undefined`. */
 export function maladieABenir(c: Combatant, opts: OptionsDeBenediction = {}): Disease | undefined {
-  return (c.diseases ?? []).find((d) => d.phase === 'active'
+  return (c.diseases ?? []).find((d) => maladieDeclaree(d)
     && (!opts.disease || d.id === opts.disease)
     && (!opts.once || !d.convalescenceBlessed));
 }
@@ -195,9 +195,9 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   // rencontre » (Guérison seulement) ni réveil ici — le réveil du repos (+ À Terre) reste géré
   // ci-dessous (`applyHealWounds` ne couvre pas À Terre).
   if (soin && recoveryRoll?.success && c.wounds.current < c.wounds.max)
-    applyHealWounds(c, Math.max(0, recoveryRoll.sl) + be, { skillCheck: false, wake: false, log: () => [] });
+    applyHealWounds(c, Math.max(0, recoveryRoll.sl) + be, { wake: false, log: () => [] });
   // volet b : +BE INCONDITIONNEL.
-  if (soin && c.wounds.current < c.wounds.max) applyHealWounds(c, be, { skillCheck: false, wake: false, log: () => [] });
+  if (soin && c.wounds.current < c.wounds.max) applyHealWounds(c, be, { wake: false, log: () => [] });
   // Symptôme « blessé » : la plaie reste ouverte.
   if (blesse > 0) c.wounds.current = Math.max(dayStartPB, c.wounds.current - blesse);
   // Réveil : > 0 PB lève l'Inconscient et relève l'À Terre (l.28). PAS applyHealWounds (soin de rencontre).

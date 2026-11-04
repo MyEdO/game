@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
+import { idDe, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'etats.json';
 export const famille = 'entite';
@@ -77,6 +79,10 @@ const doc = document(
     resolveHeals: z.number().int().min(1).optional(),
     /** LDB 16 l.56/70/84/92/107/117 ; LDB 62 l.250. */
     persistsAfterCombat: z.boolean().optional(),
+    /** EDOC 12 l.170-197 ; #3045 */
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
+    /** LDB 85 l.174 ; VDM 10 l.153 */
+    typeDeDegats: idDe('damageType').optional(),
   },
   {
     passive: { label: 'Effets passifs', hint: 'Effets mécaniques appliqués en continu tant que l’État est actif' },
@@ -102,6 +108,8 @@ const doc = document(
       hint: 'Blessures regagnées quand un point de Détermination retire cet État (À Terre : 1)',
     },
     persistsAfterCombat: { label: 'Persiste hors combat' },
+    grantGroups: { label: 'Groupes accordés', hint: 'Groupes du porteur tant qu’il porte l’État' },
+    typeDeDegats: { label: 'Type de Dégâts', hint: 'Les effets déclenchés de l’État sont des Dégâts de ce Type : une Immunité à ce Type les annule' },
   },
   {
     codex: { keys: ['etats'] },

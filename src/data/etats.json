@@ -477,6 +477,10 @@
       "page": 168
     },
     "persistsAfterCombat": true,
+    "grantGroups": [
+      "feu"
+    ],
+    "typeDeDegats": "feu",
     "effects": [
       {
         "trigger": "onRoundEnd",

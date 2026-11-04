@@ -175,7 +175,7 @@ test('le prédicat vit en UN exemplaire : aucune copie locale du motif dans src/
     fautes,
     [],
     'Copie locale du prédicat d’instrument Vitest — consomme `scripts/guards/lib/fichierVitest.mjs` :' +
-      '\n  périmètre de PRODUCTION → `!estFichierVitest(rel)`' +
+      '\n  périmètre de PRODUCTION → `!estFichierVitest(rel) && !estKitDeTest(rel)`' +
       '\n  KIT de test             → `estKitDeTest(rel)`' +
       '\n  sélection des TESTS     → `estSuiteVitest(rel)`' +
       `\nSites :\n  ${fautes.join('\n  ')}`,

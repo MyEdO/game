@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screenToTileAtZ, tileCenter, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../noyau/monde/scene';
-import { piece } from '../../state/pieces.fixture';
+import { piece } from '../../noyau/pieces.fixture';
 import { metricToLift } from '../../noyau/monde/relief';
 import { walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';
@@ -1137,10 +1137,9 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
 
   /**
    * SONDE G2 de la revue (#1443, round 3) : le SURVOL et le CLIC lisent la MÊME source
-   * (`exploreMovePlan`) — le module le dit en toutes lettres. Table PLEINE et sans fouille : le survol
-   * traçait un chemin vers une case adjacente que le clic n'honorait pas (il journalisait
-   * `seating.noReachableSeat` sur place). Le clic PARCOURT le plan promis ; le refus ne se dit qu'À
-   * PORTÉE, quand il n'y a plus rien à marcher.
+   * (`exploreMovePlan`) — le module le dit en toutes lettres. Table PLEINE et sans fouille : le clic
+   * PARCOURT le plan que le survol trace ; le refus ne se dit qu'À PORTÉE, quand il n'y a plus rien à
+   * marcher.
    */
   it('table PLEINE sans fouille : le clic PARCOURT le chemin que le survol trace, et ne refuse qu’à portée', () => {
     vi.useFakeTimers();
@@ -1491,5 +1490,100 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
       'la phase 4 de #1343 (mort du chemin billboard des props) fera tomber ce filet EXPRÈS : ces fixtures '
       + 'devront alors être reformulées — il n’y aura plus de décor billboard à témoin.',
     ).toBeGreaterThanOrEqual(2);
+  });
+});
+
+/**
+ * L'HÔTE du clic d'exploration (#3059) : `performClick` joue au store les verbes que nomme l'intention du noyau
+ * (`noyau/interactionsDExploration.ts:intentionDuClicDExploration`). Les actions du store sont des espions : la suite
+ * d'appels de chaque branche est celle que le clic émet, en solo comme en coop (aucune route propre au stage).
+ */
+/** Les suites d'appels du clic d'exploration, relevées sur le pointeur d'avant #3059 (la décision au stage) : la
+ *  descente au noyau les rend à l'identique. */
+const SUITES = {
+  interagir: [['setPendingInteract', null], ['interactEntity', 'table-1']],
+  rejoindrePlace: [['setPendingInteract', { id: 'table-1', at: { x: 2, y: 4 } }], ['moveParty', { x: 5, y: 6 }]],
+  jouer: [['setPendingInteract', null], ['jouerAction', 'coffre-1', 'fouiller']],
+  rejoindreOffre: [['setPendingInteract', { id: 'coffre-1', actionId: 'fouiller', at: { x: 3, y: 3 } }], ['moveParty', { x: 5, y: 5 }]],
+  direFigurant: [['setPendingInteract', null], ['log', 'Le badaud n’a rien à vous dire.']],
+  direDecor: [['setPendingInteract', null], ['log', 'Un tonneau : rien à en tirer.']],
+  marcher: [['setPendingInteract', null], ['moveParty', { x: 2, y: 2 }]],
+  annuler: [['setPendingInteract', null]],
+};
+
+describe('useStagePointer — le clic d’exploration joue l’intention du noyau', () => {
+  const vierge = useGame.getInitialState();
+  afterEach(() => {
+    setSpritePicker(null);
+    useGame.setState({ setPendingInteract: vierge.setPendingInteract, interactEntity: vierge.interactEntity, jouerAction: vierge.jouerAction, log: vierge.log });
+    vi.useRealTimers();
+  });
+
+  const FOUILLE = { id: 'fouiller', flow: { kind: 'seq' as const, steps: [] }, unique: true };
+  const sceneAvec = (entities: Scene['entities']) => {
+    const scene = emptyScene('scene-test', 8, 8);
+    scene.entities = entities;
+    return scene;
+  };
+
+  /** Clique `(x,y)` — sur l'entité `entiteId` (rayon) ou sur le sol — groupe en `partyPos` ; rend la suite d'appels. */
+  function cliquer(scene: Scene, partyPos: Pt, x: number, y: number, entiteId: string | null): unknown[][] {
+    vi.useFakeTimers();
+    const appels: unknown[][] = [];
+    const espion = (nom: string) => (...args: unknown[]) => { appels.push([nom, ...args]); };
+    useGame.setState({
+      scene, mode: 'exploration', partyPos, party: [heroSauteur()], dialogue: null, battle: null, pendingInteract: null, journal: [], flags: {},
+      setPendingInteract: espion('setPendingInteract'), interactEntity: espion('interactEntity'), jouerAction: espion('jouerAction'),
+      log: espion('log'), moveParty: espion('moveParty'),
+    });
+    setSpritePicker(entiteId ? () => ({ kind: 'entity', id: entiteId }) : null);
+    let pointer: StagePointer | undefined;
+    const Probe = () => {
+      const svgRef = useRef(stageEl());
+      const camRef = useRef({ x: 0, y: 0 });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+      return null;
+    };
+    renderToStaticMarkup(<Probe />);
+    const c = tileCenter(x, y, dims);
+    const ev = pointerEvent(c.cx, c.cy);
+    pointer!.handlers.onPointerDown(ev);
+    pointer!.handlers.onPointerUp(ev);
+    vi.runAllTimers();
+    return appels;
+  }
+
+  const table = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } } as Scene['entities'][number];
+  const coffre = (actions: typeof FOUILLE[]) => ({ id: 'coffre-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: REF_BILLBOARD, facing: 'S', usable: { actions } }) as Scene['entities'][number];
+
+  it('interagir : abandon du pending puis interactEntity', () => {
+    const abord = seatSlotsOf(sceneAvec([table]), 'table-1')[0].approach;
+    expect(cliquer(sceneAvec([table]), { x: abord.x, y: abord.y }, 2, 3, 'table-1')).toEqual(SUITES.interagir);
+  });
+  it('rejoindre une place : pending armé puis la marche', () => {
+    expect(cliquer(sceneAvec([table]), { x: 6, y: 6 }, 2, 3, 'table-1')).toEqual(SUITES.rejoindrePlace);
+  });
+  it('jouer : abandon du pending puis jouerAction', () => {
+    expect(cliquer(sceneAvec([coffre([FOUILLE])]), { x: 2, y: 2 }, 2, 3, 'coffre-1')).toEqual(SUITES.jouer);
+  });
+  it('N offres à portée : aucun appel', () => {
+    expect(cliquer(sceneAvec([coffre([FOUILLE, { ...FOUILLE, id: 'forcer' }])]), { x: 2, y: 2 }, 2, 3, 'coffre-1')).toEqual([]);
+  });
+  it('rejoindre une offre : pending armé avec l’offre puis la marche', () => {
+    expect(cliquer(sceneAvec([coffre([FOUILLE])]), { x: 6, y: 6 }, 2, 3, 'coffre-1')).toEqual(SUITES.rejoindreOffre);
+  });
+  it('dire (figurant) : abandon du pending puis la ligne de journal', () => {
+    const badaud = { id: 'pnj-1', kind: 'personnage', ref: 'humain', label: 'Le badaud', pos: { x: 2, y: 3 } } as Scene['entities'][number];
+    expect(cliquer(sceneAvec([badaud]), { x: 2, y: 2 }, 2, 3, 'pnj-1')).toEqual(SUITES.direFigurant);
+  });
+  it('dire (décor) : abandon du pending puis la ligne de journal', () => {
+    const tonneau = { id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'tonneau', label: 'Un tonneau' } as Scene['entities'][number];
+    expect(cliquer(sceneAvec([tonneau]), { x: 2, y: 2 }, 2, 3, 'tonneau-1')).toEqual(SUITES.direDecor);
+  });
+  it('marcher (sol) : abandon du pending puis la marche', () => {
+    expect(cliquer(sceneAvec([]), { x: 2, y: 1 }, 2, 3, null)).toEqual(SUITES.marcher);
+  });
+  it('annuler (sol sans chemin) : abandon du pending seul', () => {
+    expect(cliquer(sceneAvec([]), { x: 2, y: 3 }, 2, 3, null)).toEqual(SUITES.annuler);
   });
 });

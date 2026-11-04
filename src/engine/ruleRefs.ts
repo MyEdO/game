@@ -3,13 +3,15 @@
  *
  * La référence est une propriété de la RÈGLE, pas du site qui pousse la `ModLine` : deux
  * producteurs de la même règle (« Main secondaire » en attaque et en Parade) consomment la MÊME
- * entrée. Module FEUILLE du moteur : aucun import (pas de couplage UI — l'affichage résout
- * `{category, id}` au Codex, cf. `ui/RollLine.tsx`).
+ * entrée. Module FEUILLE du moteur : aucun couplage UI — l'affichage résout `{category, id}` au
+ * Codex, cf. `ui/RollLine.tsx`.
  *
  * Stock DÉNOMBRABLE : la garde `src/engine/rule-refs.test.ts` recense les producteurs de `ModLine`
  * SANS `ref` — toute règle nouvellement liée retire une ligne du cliquet.
  */
 import { gelerLaConstante } from '../lib/gelerProfond';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
+import type { RenvoiCodex, RenvoiCodexSansEspace } from '../data/schemas/grammaire/ref';
 
 /** Cible Codex en ids STABLES : `category` = clé de catégorie du registre, `id` = id de l'entrée. */
 export interface CodexTarget {
@@ -119,7 +121,7 @@ export const RANGEES_DE_REGLE = {
   'equipe-incomplete-machine-de-guerre': ['equipe-incomplete'],
   avantage: ['par-point'],
   'allure-forcee-attelage': ['par-km'],
-} as const satisfies Partial<Record<RuleId, readonly string[]>>;
+} as const satisfies Partial<Record<RuleId & IdsParEspace['regles.json'], readonly string[]>>;
 
 export type RegleChiffree = keyof typeof RANGEES_DE_REGLE;
 export type RangeeDe<R extends RegleChiffree> = (typeof RANGEES_DE_REGLE)[R][number];
@@ -140,14 +142,15 @@ export const TESTS_DE_REGLE = {
   'interruption-de-focalisation': ['maintenir'],
   'influences-corruptrices': ['physique', 'spirituelle'],
   corrompu: ['contenir'],
-} as const satisfies Record<string, readonly string[]>;
+} as const satisfies Partial<Record<IdsParEspace['regles.json'], readonly string[]>>;
 
 export type RegleATest = keyof typeof TESTS_DE_REGLE;
 export type TestDe<R extends RegleATest> = (typeof TESTS_DE_REGLE)[R][number];
 
 /** La fiche Codex de chaque règle NON chiffrée, en ids STABLES. Les producteurs de `ModLine` la
  *  consomment (`RULE_REF.charger`), l'affichage la résout en chip cliquable — jamais un
- *  `{category, id}` recopié au site de push. Garde d'intégrité : `src/engine/rule-refs.test.ts`. */
+ *  `{category, id}` recopié au site de push. Chaque renvoi est typé par l'espace de sa catégorie
+ *  (`RenvoiCodex`) : un id hors catalogue ne compile pas. */
 export const RULE_REF: Record<Exclude<RuleId, RegleChiffree>, CodexTarget> = gelerLaConstante({
   'combat-deux-armes': { category: 'regles', id: 'combat-deux-armes' },
   charger: { category: 'regles', id: 'charger' },
@@ -177,4 +180,4 @@ export const RULE_REF: Record<Exclude<RuleId, RegleChiffree>, CodexTarget> = gel
   'meteo-maritime': { category: 'seaWeather', id: 'seaWeather' },
   'echouer-en-mer': { category: 'seaPerils', id: 'seaPerils' },
   'navigation-echouage': { category: 'regles', id: 'navigation-echouage' },
-}); // #2097
+} satisfies Record<Exclude<RuleId, RegleChiffree>, RenvoiCodex | RenvoiCodexSansEspace>); // #2097

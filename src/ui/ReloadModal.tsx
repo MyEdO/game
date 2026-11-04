@@ -5,11 +5,11 @@ import { flowStakeRef } from '../data';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import { testBreakdown, testPending, supportSplit } from './breakdown';
-import { combatValueModParts } from '../engine/combat';
+import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeReload } from '../noyau/flowOutcomes';
+import { progresDeRecharge } from '../noyau/progresEtendu';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 
@@ -37,17 +37,11 @@ export function ReloadModalView({
   onCancel: () => void;
 }) {
   const rolled = pr.roll != null;
-  const after = Math.max(0, pr.progressBefore + pr.sl);
+  const after = progresDeRecharge(pr, actor).total;
   const weapon = actor?.weapons.find((w) => w.uid === pr.weaponUid);
   const weaponName = weapon?.label ?? 'arme'; // uid → NOM (affichage)
-  // Soutien des servants (Arme d'équipe, MDG 12 l.462) : ligne de mod comme tout bonus, base SANS le Soutien.
-  // Le Rechargement roule une valeur de COMBAT (`combatValue`) : ses modificateurs fondus se nomment
-  // par le décomposeur de CETTE valeur (`combatValueModParts`), et la base retombe sur la valeur NUE
-  // (#1178). `base + Σ mods` reste exactement la valeur jetée.
-  const { base: supBase, mods: supMods } = supportSplit(pr.skillValue, pr.soutien);
-  const valueParts = actor ? combatValueModParts(actor, 'ranged', weapon) : [];
-  const base = supBase - valueParts.reduce((s, p) => s + p.value, 0);
-  const mods = [...supMods, ...valueParts];
+  // Ligne montée à l'ouverture (`pr.ligne`, Soutien MDG 12 l.462 compris).
+  const { base, mods } = pr.ligne;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor,

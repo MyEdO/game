@@ -73,6 +73,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   cureDisease: 'Guérir des maladies',
   reduceDiseaseDays: 'Raccourcir une maladie',
   preventInfection: 'Empêcher l’infection',
+  aideMedicale: 'Aide Médicale',
   cureCriticalWound: 'Guérir une Blessure critique',
   amputer: 'Amputer (plaie + séquelles permanentes)',
   diseaseTestMod: 'Modif. aux Tests d’une maladie',

@@ -137,11 +137,10 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().activityRoll(); // exerce `resolveFocus` réel (branche `p.ritualSpell`, rollFlowSpecs.ts)
     const pa = banc.getState().pendingActivity!;
     expect(pa.success).toBe(false);
-    // Signature que seule `resolveFocus` produit : `FocusResult.dr` est CLAMPÉ ≥ 0 (`engine/magic.ts`) —
-    // sur ce MÊME jet, `evaluateTest` (Test simple générique, sans `p.ritualSpell`) rend un DR négatif.
-    expect(pa.sl).toBe(0);
+    // Un Round raté d'un Test étendu cumule son DR NÉGATIF (LDB 12 l.174) : le Rituel l'emporte au cumul.
     const generic = evaluateTest(pa.roll!, effTarget);
     expect(generic.sl).toBeLessThan(0);
+    expect(pa.sl).toBe(generic.sl);
     // Round partiel : force 10 DR (déterminisme du cumul testé côté moteur, comme l'Artisanat ci-dessus).
     // ⚠ 10 puis 20 DR forcés ci-dessous EXERCENT le cumul (`extendedTestStep`) — ce ne sont PAS des DR
     // représentatifs d'un Round réel (`resolveFocus` mesure ~1,39 DR de moyenne) : cette trajectoire de
@@ -478,7 +477,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
     const basePending: PendingActivity = {
       kind: 'catalog', heroId: h.id, activityId: 'alchimie-ordinaire', label: 'Alchimie ordinaire',
-      skillLabel: 'Métier (Alchimiste)', skillValue: 40, difficulty: 'intermediaire',
+      skillLabel: 'Métier (Alchimiste)', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' },
       roll: 99, target: 40, success: false, sl: 0,
     };
     const setupHero = () => {

@@ -77,6 +77,20 @@ test('une DÉCLARATION `.d.ts` est hors corpus, `tests` et `exts` quels qu’ils
   }
 })
 
+test('un KIT de test est hors corpus sans `tests`, dans le corpus sous `tests`', () => {
+  viderCorpus()
+  const racine = mkdtempSync(join(tmpdir(), 'corpus-kit-'))
+  try {
+    writeFileSync(join(racine, 'prod.ts'), 'prod')
+    writeFileSync(join(racine, 'outil.testkit.ts'), 'kit')
+    assert.deepEqual(readCorpus([racine]).map((f) => f.text), ['prod'])
+    assert.deepEqual(readCorpus([racine], { tests: true }).map((f) => f.text), ['kit', 'prod'])
+  } finally {
+    viderCorpus()
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 /** Chaque test part d'un mémo VIDE : le mémo vit aussi longtemps que le module. */
 function frais() {
   viderCorpus()
@@ -183,7 +197,7 @@ test('la clé est NORMALISÉE : absolu ≡ relatif ≡ séparateur final', () =>
 /**
  * ORACLE de périmètre : la marche la plus bête qui puisse répondre à la même question — descente
  * récursive de `readdirSync`, filtre d'extension sur le nom, motif d'INSTRUMENT Vitest (suite OU
- * banc) RÉÉCRIT à la main — le témoin n'IMPORTE pas `estFichierVitest` : partager le prédicat
+ * banc) et de KIT de test RÉÉCRIT à la main — le témoin n'IMPORTE ni `estFichierVitest` ni `estKitDeTest` : partager le prédicat
  * rendrait l'oracle circulaire, il ne pourrait plus contredire le corpus. Écrite ICI et nulle part
  * ailleurs : c'est le témoin indépendant de `listerArbre` + `readCorpus`. Aucun cardinal n'est
  * attendu — l'oracle est la MARCHE, jamais un nombre, qui périmerait au fichier suivant.
@@ -197,7 +211,7 @@ function marcheNaive(dir, exts, tests) {
       const p = join(d, nom.name)
       if (nom.isDirectory()) { descendre(p); continue }
       if (!exts.some((e) => nom.name.endsWith(e))) continue
-      if (!tests && /\.(test|bench)\.[cm]?[jt]sx?$/.test(nom.name)) continue
+      if (!tests && /\.(test|bench|testkit)\.[cm]?[jt]sx?$/.test(nom.name)) continue
       if (/\.d\.ts$/.test(nom.name)) continue
       out.push(relative(ROOT, p).split('\\').join('/'))
     }
@@ -232,6 +246,10 @@ test('PÉRIMÈTRE sur l’arbre RÉEL : `readCorpus([\'src\'])` rend EXACTEMENT 
   assert.ok(
     avecTests.some((r) => /\.bench\.tsx?$/.test(r)) && horsTests.every((r) => !/\.bench\./.test(r)),
     '`tests: true` INCLUT exactement ce que le filtre exclut : les BANCS aussi, pas les seules suites',
+  )
+  assert.ok(
+    avecTests.some((r) => /\.testkit\.tsx?$/.test(r)) && horsTests.every((r) => !/\.testkit\./.test(r)),
+    'un KIT de test n’est pas de la production : hors corpus par défaut, inclus sous `tests: true`',
   )
 })
 

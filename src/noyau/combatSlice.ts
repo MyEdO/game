@@ -4,6 +4,7 @@
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import type { Get, Set } from './flowTypes';
+import type { RollFlowHandlers } from './rollFlowFactory';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import { ACTION_GATES, actionGate, type ActionRunCtx, type BattleActionMode } from './actionRegistry';
@@ -18,7 +19,7 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -34,7 +35,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre, coupFerme } from './targetingHolder';
 import { refusDeCourse } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative, defenseDodgeMods } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
@@ -54,10 +55,10 @@ import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
+import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, castInfoIsPrayer, focusCriticalDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
-import { resolveOpposed, extendedTestStep, ligneSansJet, cibleMesuree } from '../engine/tests';
+import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
@@ -65,18 +66,19 @@ import { weaponLoaded, reloadProgressOf, aRecharger } from '../engine/weaponLoad
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
-import { talentFearIndice, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
+import { talentFearIndice, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { HEAL_SKILL, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode, type TestDeSoin } from '../engine/healing';
+import { jetDuSoigneur, parametresDuSoin, refusDesBandages, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
-import { testValue, actorHasSkill, soutienDetail, possesses } from '../engine/skills';
+import { testValue, actorHasSkill, soutienDetail } from '../engine/skills';
 import { rollOups } from '../engine/oups';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -101,13 +103,14 @@ import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
 import { estNavire } from '../engine/coque';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
-import { crewedFireWeapon, crewedReloadStep } from '../engine/crewedWeapon';
+import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { exposedCrew } from '../engine/shipCritical';
 import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { progresDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint, decidingSeat } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
@@ -360,14 +363,17 @@ function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode
  * SOCLE des verbes NULLAIRES du drive d'auto-cadence (#1030 — `STEP_WINDOW_AUTO`, `combatAuto.ts`, qui
  * n'enchaîne que des verbes sans argument alors que ces fenêtres sont par-`pid`). Une SEULE table de
  * possession (`influencesLocally`, #1005 : celle qui décide déjà de l'affordance de la rangée dans
- * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation.
+ * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation. Une rangée que son flux
+ * refuse (`refusDuSlot`) ne se tente pas : tout lancer n'est pas un geste sur elle.
  */
 function rollAllOwnedRows(
-  s: Jeu,
+  get: Get,
+  flow: RollFlowHandlers,
   rows: readonly { id: string; interactive?: boolean; result: unknown }[] | undefined,
   roll: (id: string) => void,
 ): void {
-  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id)) roll(p.id);
+  const s = get();
+  for (const p of rows ?? []) if (!p.result && p.interactive && influencesLocally(s, p.id) && !flow.refusDuSlot(get, p.id)) roll(p.id);
 }
 
 /** Ce qu'un clic-sol REFUSÉ dit au joueur, par raison du résolveur (`resolveMovement`). Les raisons
@@ -403,7 +409,7 @@ function retireEtatParDetermination(c: Combatant, conditionName: string, now: nu
   if (raisonRefusDetermination(c, conditionName)) return { retire: false, soigne: 0 };
   const avant = stacks(c, conditionName);
   const soigne = soinDeDetermination(c, conditionName);
-  if (soigne > 0) applyHealWounds(c, soigne, { skillCheck: false, wake: false, log: () => [] });
+  if (soigne > 0) applyHealWounds(c, soigne, { wake: false, log: () => [] });
   const src = c.conditions.find((x) => x.id === conditionName)?.derivedFrom?.src;
   const fenetre = src ? fenetreDetermination(c, conditionName, now, battleRng()) : undefined;
   if (src && fenetre) {
@@ -1909,6 +1915,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const present = servingCrewPresent(active, battle.combatants);
       const w = present != null ? crewedFireWeapon(w0, present) : w0;
       const skillValue = combatValue(active, 'ranged', w); // CT + avances Projectiles (Spé du groupe d'arme)
+      const ligne = rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } });
       set({
         pendingReload: {
           actorId: active.id,
@@ -1919,7 +1926,8 @@ export function createCombatSlice(get: Get, set: Set) {
           skillValue,
           difficulty: 'intermediaire',
           roll: null,
-          ...cibleMesuree(rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } })),
+          ligne,
+          ...cibleMesuree(ligne),
           sl: 0,
           success: false,
         },
@@ -1953,15 +1961,16 @@ export function createCombatSlice(get: Get, set: Set) {
       const sout = soutienDetail(servants, chef, 'projectiles', undefined, 'Poudre noire',
         chef.pos ? (c) => !!c.pos && combatDistance(chef, c) <= 1 : undefined);
       const skillValue = combatValue(chef, 'ranged', w) + sout.bonus;
+      const ligne = rollLine({
+        actor: chef, difficulty: 'intermediaire', valeur: skillValue,
+        soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
+      });
       set({
         pendingReload: {
           actorId: chef.id, actorName: chef.label, weaponUid: w.uid!,
           reload: reloadDRTarget(w), progressBefore: poste.reloadProgress ?? 0,
           skillValue, difficulty: 'intermediaire', roll: null,
-          ...cibleMesuree(rollLine({
-            actor: chef, difficulty: 'intermediaire', valeur: skillValue,
-            soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
-          })), sl: 0, success: false,
+          ligne, ...cibleMesuree(ligne), sl: 0, success: false,
           posteUid, shipId, soutien: sout.bonus ? sout : undefined,
         },
       });
@@ -1978,14 +1987,13 @@ export function createCombatSlice(get: Get, set: Set) {
         set({ pendingReload: null });
         if (!ship || !chef || !poste) return;
         const w = chef.weapons.find((x) => x.uid === pr.weaponUid);
-        const reloadTalent = pr.success ? reloadDRBonus(chef, w) : 0; // Rechargement rapide / Artilleur (LDB 10)
-        const step = crewedReloadStep(w ?? ({ reload: pr.reload, qualities: [] } as never), pr.progressBefore, pr.sl + reloadTalent);
+        const step = progresDeRecharge(pr, chef);
         if (step.done) loadWeapon(chef, w, poste); // couture UNIQUE : la PIÈCE porte son état de charge et sa munition capturée
-        else setReloadProgress(chef, w, step.progress, poste);
+        else setReloadProgress(chef, w, step.total, poste);
         if (pr.success && reloadGrantsAssessAdvantage(chef)) campGain(get, chef, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
         // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : le pending est FOURNI (il
         // vient d'être fermé), le `ctx` porte le DR réalisé et le nom résolu de la pièce.
-        const crewIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: step.progress, weapon: w?.label ?? 'pièce' } });
+        const crewIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: step.total, weapon: w?.label ?? 'pièce' } });
         set({ battle: { ...battle, action: null,
           crewActed: withCrewActed(battle.crewActed, ship.id, poste.crewIds ?? []), // chef + servants OCCUPÉS ce Round
           log: [...battle.log, ...evLines(crewIssue, 'reload', chef.id)] } });
@@ -2000,11 +2008,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
       // munition »).
       const rw = garanti(a.weapons.find((x) => x.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée');
-      // Rechargement rapide / Artilleur (LDB 10) : +niveau DR au Test de rechargement (sur un jet réussi).
-      const reloadTalent = pr.success ? reloadDRBonus(a, rw) : 0;
-      // Cumul LDB 12 mutualisé (`extendedTestStep`, #273 Étape 1) : même arithmétique que le Test étendu
-      // générique (plancher 0) — la cadence reste un-jet-par-Action (progressBefore persiste sur l'arme).
-      const { total: progress, done } = extendedTestStep(pr.progressBefore, { success: pr.success, sl: pr.sl + reloadTalent }, pr.reload);
+      const { total: progress, done } = progresDeRecharge(pr, a);
       if (done) {
         loadWeapon(a, rw); // couture UNIQUE : état de charge + munition capturée, sur CETTE arme
       } else {
@@ -2142,13 +2146,17 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Détermination (LDB 17 l.59-61) : même règle que `battleSpendResolve`, mais pour N'IMPORTE QUEL
      *  COMBATTANT porteur de Détermination, par id, sans toucher au mode d'action — un héros en défense
      *  (il n'est pas l'actif) comme un acteur AUTO-PILOTÉ Brisé (l'IA s'en sert pour se ressaisir : retirer
-     *  un pion d'un État verrouillant sans coûter l'Action, hôte-autoritaire). Un ennemi sans Détermination
-     *  (`resolve` 0/absent) → no-op : la garde `kind` héros est levée, seul le pool de Détermination compte. */
+     *  un pion d'un État verrouillant sans coûter l'Action, hôte-autoritaire). Verdict `refusDeDetermination`,
+     *  dit au siège qui pilote le porteur (`controlsCombatant`), muet pour un acteur de l'IA. */
     spendResolveCondition: (combatantId: string, conditionName: string) => {
       const s = get();
       const hero = actorIn(s, combatantId);
-      if (!hero || (hero.resolve ?? 0) <= 0) return;
-      if (!hero.conditions.some((c) => c.id === conditionName)) return;
+      if (!hero) return;
+      const refus = refusDeDetermination(hero, conditionName);
+      if (refus) {
+        if (controlsCombatant(s, hero)) refuserGesteDuSiege(get, set, refus);
+        return;
+      }
       const { retire, soigne } = retireEtatParDetermination(hero, conditionName, s.gameTime);
       if (!retire) return; // rien à lever : le point n'est pas débité
       hero.resolve = (hero.resolve ?? 0) - 1;
@@ -2889,19 +2897,21 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle) return;
       const healer = activeCombatant(battle);
       if (!healer || !controlsCombatant(get(), healer) || refuseParSonEntree(get, set, 'heal', healer, battle)) return;
-      if (battle.action !== 'heal' || !possesses(healer, HEAL_SKILL)) return; // le commit du mode armé (`HEAL_MODE`)
+      if (battle.action !== 'heal') return; // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
       if (!target) return;
-      const raison = raisonDeModeDeSoinEnCombat(target, mode);
-      if (raison) return void refuserGesteDuSiege(get, set, raison);
-      const skillValue = testValue(healer, 'guerison');
-      const difficulty = healDifficulty(mode);
+      const ouverture = soinDOuverture(healer, mode);
+      const raison = raisonDeModeDeSoinEnCombat(target, mode) ?? (ouverture ? null : refusDuTestDeSoin(healer, mode, { test: 'guerison', bandages: false }));
+      if (raison || !ouverture) return void refuserGesteDuSiege(get, set, garanti(raison, mode, 'refus du soin'));
+      const { skillValue, difficulty, ligne } = jetDuSoigneur(healer, ouverture.test, mode);
       set({
         pendingHeal: {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
+          // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (`healSetBandages`).
+          test: ouverture.test, bandagesDe: ouverture.bandages ? healer.id : null,
           skillValue, difficulty, roll: null, success: false, sl: 0,
-          ...cibleMesuree(rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue })),
+          ligne, ...cibleMesuree(ligne),
         },
         battle: { ...battle, action: null },
       });
@@ -2915,15 +2925,39 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!ph || ph.roll != null) return;
       const target = actorIn(get(), ph.targetId);
       if (!target) return;
-      // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
-      const raison = get().battle ? raisonDeModeDeSoinEnCombat(target, mode) : t('heal.modeFixeALInfirmerie');
-      if (raison) return void refuserGesteDuSiege(get, set, raison);
-      const difficulty = healDifficulty(mode);
       const soigneur = actorIn(get(), ph.healerId);
-      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ...cibleMesuree(rollLine({
-        actor: soigneur, ...(soigneur ? { test: { skill: 'guerison' } } : {}),
-        difficulty, valeur: ph.skillValue, soutien: ph.support,
-      })) } });
+      // Hors combat, l'acte se choisit à l'infirmerie (`medicAct`, verdict `refusDActeDeSoin`).
+      const raison = get().battle
+        ? raisonDeModeDeSoinEnCombat(target, mode) ?? refusDuTestDeSoin(soigneur ?? null, mode, parametresDuSoin(ph))
+        : t('heal.modeFixeALInfirmerie');
+      if (raison) return void refuserGesteDuSiege(get, set, raison);
+      const bandagesDe = actePanse(mode) ? ph.bandagesDe : null;
+      const difficulty = difficulteDuSoin(ph.test, mode);
+      const ligne = rollLine({
+        actor: soigneur, ...(soigneur ? { test: IDS_DU_TEST_DE_SOIN[ph.test] } : {}),
+        difficulty, valeur: ph.skillValue, soutien: ph.test === 'guerison' ? ph.support : undefined,
+      });
+      set({ pendingHeal: { ...ph, mode, bandagesDe, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+    },
+
+    /** Pré-jet : le Test du soin (Guérison ⇄ Dextérité, LDB 74 l.41), jugé par `refusDuTestDuSoin` ; valeur, Difficulté
+     *  et ligne re-dérivées du soigneur combattant (un PNJ soigneur ne jette que sa Guérison). */
+    healSetTest: (test: TestDeSoin) => {
+      const ph = get().pendingHeal;
+      if (!ph) return;
+      if (refuseSi(get, set, () => refusDuTestDuSoin(get(), test))) return;
+      const soigneur = garanti(actorIn(get(), ph.healerId), ph.healerId, 'soigneur combattant');
+      const { skillValue, difficulty, ligne } = jetDuSoigneur(soigneur, test, ph.mode, ph.support);
+      set({ pendingHeal: { ...ph, test, skillValue, difficulty, clamped: undefined, ligne, ...cibleMesuree(ligne) } });
+    },
+
+    /** Pré-jet : engage les Bandages du héros `porteurId` (`null` : les retire), jugé par `refusDesBandages` ; la route
+     *  coop n'admet que le siège du porteur (`netOwnership`). */
+    healSetBandages: (porteurId: string | null) => {
+      const ph = get().pendingHeal;
+      if (!ph) return;
+      if (refuseSi(get, set, () => refusDesBandages(get(), porteurId))) return;
+      set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
     },
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
@@ -2941,22 +2975,25 @@ export function createCombatSlice(get: Get, set: Set) {
       const st = get();
       const target = actorIn(st, ph.targetId);
       if (!target) return;
-      let log: string[];
+      const log: string[] = [];
+      // Bandages engagés : une unité s'use réussite ou échec (décision de l'orchestrateur, 2026-11-03, #3059, maison).
+      const porteur = ph.bandagesDe ? actorIn(st, ph.bandagesDe) : undefined;
+      const panse = !!porteur && retirerUnBandage(porteur);
+      if (panse && porteur) log.push(t('heal.bandageUtilise', { name: porteur.label }));
+      const params = { test: ph.test, bandages: panse };
       if (ph.mode === 'wounds') {
-        const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng());
-        log = r.log;
+        const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
+        log.push(...r.log);
         if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: `+${r.healed}`, kind: 'heal' }); // flottant de soin (R8)
       } else if (ph.mode === 'bleed') {
-        log = resolveBleedHeal(target, ph.sl, ph.success);
+        log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
       } else if (ph.mode === 'ammo') {
-        log = resolveExtractLodgedAmmo(target, ph.success); // LDB 62 l.250 — Test de Guérison Intermédiaire
+        log.push(...resolveExtractLodgedAmmo(target, ph.success)); // LDB 62 l.250 — Test de Guérison Intermédiaire
       } else {
-        log = treatTrauma(target, ph.sl, ph.success); // mode 'trauma' — l'échec consomme aussi le jet (LDB 18 l.222)
+        log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'trauma' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
-      // Compétence Guérison RÉUSSIE = Aide Médicale (LDB 18 l.308) : lève l'escalade en attente (« Main
-      // ouverte » : plus de doigt perdu par Round) ET les verrous d'État « par Aide Médicale » (LDB 18 :
-      // Sonné/Inconscient/Aveuglé). Un échec ne soigne pas → n'est pas de l'Aide Médicale.
-      if (ph.success) log = [...log, ...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid')];
+      // Aide Médicale (LDB 18 l.308-311) : le soin réussi, ou le bandage appliqué, réussi ou non.
+      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid'));
       finishPlayerAction(get, set, log, 'heal'); // sortie commune combat / hors combat
     },
 
@@ -3269,7 +3306,7 @@ export function createCombatSlice(get: Get, set: Set) {
      *  la fenêtre est multi-participants (#1040) — un `counterspellRoll(pid)` par rangée.
      *  Table de possession UNIQUE (`influencesLocally`, #1005) : la même qui décide de l'affordance de
      *  la rangée dans `CastModal`. Idempotent (une rangée déjà roulée ne rejoue pas, garde `opRoll`). */
-    counterspellRollAll: () => rollAllOwnedRows(get(), get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
+    counterspellRollAll: () => rollAllOwnedRows(get, FLOWS.counterspell, get().pendingCounterspell?.participants, (id) => get().counterspellRoll(id)),
     /**
      * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
      * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `counterspellConfirm` ci-dessous) ou
@@ -3383,7 +3420,7 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Homologue d'opposition de `counterspellRollAll` : toute rangée jouable ICI et sans jet oppose
      *  son Test (mêmes conditions, même socle `rollAllOwnedRows`). Les rangées TÉMOIN sont déjà roulées
      *  à l'ouverture (`openCastOpposition`) — après ce verbe, plus rien n'est dû à `oppositionConfirm`. */
-    oppositionRollAll: () => rollAllOwnedRows(get(), get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
+    oppositionRollAll: () => rollAllOwnedRows(get, FLOWS.castOpposition, get().pendingCastOpposition?.participants, (id) => get().oppositionRoll(id)),
     oppositionConfirm: () => {
       const pco = get().pendingCastOpposition;
       const pc = get().pendingCast;
@@ -3444,8 +3481,8 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingFocus: null });
       if (!caster || !spell) return;
       const res = pf.result;
-      const prev = caster.focus?.spell === pf.spellId ? caster.focus.dr : 0;
-      caster.focus = { spell: pf.spellId, dr: prev + res.dr };
+      const ni = spell.cn ?? 0;
+      caster.focus = { spell: pf.spellId, dr: garanti(progresDeFocalisation(pf, caster, ni).step, pf.spellId, 'jet de Focalisation').total };
       // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur
       // `res.malepierreConsumed`, `engine/magic.ts`) décrémente ICI la réserve — seul point
       // d'ÉCRITURE (`consumeMalepierre`).
@@ -3456,7 +3493,6 @@ export function createCombatSlice(get: Get, set: Set) {
       // (`TrappingData.consumable`) — MÊME chemin d'exécution qu'un consommable bu (`runConsumable`),
       // jamais un second chemin ad hoc.
       if (malepierreItem) runConsumable(get, set, caster, malepierreItem);
-      const ni = spell.cn ?? 0;
       const logLines = [res.log];
       // Composant d'incantation (LDB 46 l.107-113) : la Focalisation est une incantation en cours —
       // un composant adapté au Sort est consumé (si un contrecoup survient) et dégrade l'Imparfaite.
@@ -3535,12 +3571,8 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingDispel: null });
       if (!caster) return;
       const res = pd.result;
-      // Cumul LDB 12 mutualisé (`extendedTestStep`) : un Round réussi ajoute son DR, un raté le retire (planché à 0).
-      const prev = caster.dispel?.spellId === pd.spellId && caster.dispel.spellCasterId === pd.spellCasterId ? caster.dispel.total : 0;
-      // Bonus « propre Sort » (`VDM 02 l.186`) versé sur le DR du jet, PAS sur la cible du Test
-      // (`skillDRBonus` vs `skillMod`, `ops.ts:180-184`) — un DR vaut une dizaine (`tests.ts:98`).
-      const ownSl = res.sl + dispelOwnSpellDR(pd.spellCasterId === pd.casterId);
-      const { total, done } = extendedTestStep(prev, { success: res.success, sl: ownSl }, pd.ni, !!rule('test-extended-min-sl'));
+      const { sl: ownSl, step } = progresDeDissipation(pd, caster);
+      const { total, done } = garanti(step, pd.spellId, 'jet de Dissipation');
       const logLines = [t('cs.dispelRoll', { name: caster.label, spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];
       if (done) {
         // Réussite (DR cumulé ≥ NI, LDB 46 l.160) : retire les effets du sort de tous ses porteurs.

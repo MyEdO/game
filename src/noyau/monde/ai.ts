@@ -50,9 +50,9 @@ import { isEngaged, meleeReachTiles } from '../../engine/engagement';
 import { isFlankOrRear } from './combatGeometry';
 import { facingToward, type Dir8 } from '../../geometry/dir8';
 import { groupMatch, groupesDe } from '../../engine/groups';
-import { isBestial, isTerritorial, isMindless, isStupid } from '../../engine/traits/dispatch';
+import { isBestial, isTerritorial, isMindless, isStupid, degatsDeLEtatIgnores } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
-import { ciblesAPulsion, isFrenzied, vise } from '../../engine/psychology';
+import { ciblesAPulsion, isFrenzied, sourceCombattant, vise } from '../../engine/psychology';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -538,8 +538,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   if (input.heroes.length === 0) return forced({ kind: 'end' }); // plus AUCUN adversaire (combat fini) → passe la main
   if (!canTakeAction(enemy) && effectiveMovement(enemy) === 0) return forced({ kind: 'end' }); // ni Action ni Mouvement (Surpris LDB 16 l.135…) → passe la main (gating data-driven, plus de nom en dur)
   // En flammes (LDB 16 l.84) : un ennemi NON frénétique se roule au sol pour éteindre le feu (1d10/Round
-  // est mortel). Un frénétique ignore le danger et continue d'attaquer (Frénésie, LDB 21 l.33).
-  if (hasCondition(enemy, 'en-flammes') && !isFrenzied(enemy)) return forced({ kind: 'recover', state: 'en-flammes' });
+  // est mortel). Un frénétique ignore le danger et continue d'attaquer (Frénésie, LDB 21 l.33) ; un
+  // immunisé à ses Dégâts n'a rien à éteindre (LDB 85 l.174).
+  if (hasCondition(enemy, 'en-flammes') && !isFrenzied(enemy) && !degatsDeLEtatIgnores(enemy.traits, 'en-flammes')) return forced({ kind: 'recover', state: 'en-flammes' });
   const pos = enemy.pos!;
   // Ligne de Vue de CE tour : toutes les questions `from → to` de la décision passent par le mémo (le
   // positionnement en pose des dizaines de milliers, cf. `makeLosMemo`). Verdicts IDENTIQUES à l'appel direct.
@@ -730,7 +731,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // s'en prend en priorité au groupe haï présent dans le vivier considéré (sinon vivier brut).
   const hatedCibles = ciblesAPulsion(enemy);
   const hatedOf = (pool: Combatant[]) =>
-    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, { genre: 'combattant', c: h }, 'appartenance', enemy))) : []; // #3045
+    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, sourceCombattant(h), 'appartenance', enemy))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
   /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier

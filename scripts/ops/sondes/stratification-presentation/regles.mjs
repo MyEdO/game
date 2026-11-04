@@ -33,19 +33,13 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(\.testkit|\.fixture|\.bench|TestKit)\.tsx?$|^src/gameIso/stage/banc-volumique(\.test)?\.ts$`),
     categorie: 'outillage',
     raison: 'Soutien de test PARTAGÉ (kits, fixtures, bancs de mesure, harnais de banc) : servi à plusieurs sujets de plusieurs zones, outillage de développement ; les tests eux-mêmes suivent leur sujet.',
-    preuve: 'src/state/pieces.fixture.ts (importé par 8 tests de src/gameIso/stage) ; src/state/sceneEdit.testkit.ts (tests de state, gameIso/builders, ui/editor) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
+    preuve: 'src/gameIso/stage/arete-dans-la-chaine.fixture.ts (tests et banc de src/gameIso/stage, src/state/devtools-ecran.test.tsx) ; src/state/combatDeTest.testkit.ts (tests de noyau, state, ui) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(devtools|devtoolsTimers|scenarioFlow|editorAutosave|editeurBridge|projectLibrary|mapQC|planDefects|validateScene)(\.|-)`),
     categorie: 'outillage',
     raison: 'devtools/__wfrp, lancement de scénario de test, outils d\'éditeur (autosave, pont clavier, bibliothèque de projets), QC de carte, validation de scène pour l\'éditeur',
     preuve: 'src/state/scenarioFlow.ts:1-4 ; src/state/editorAutosave.ts:1-5 ; src/noyau/planDefects.ts:1-6 ; src/noyau/mapQC.ts:2 (« Harnais QC de cartes »)',
-  },
-  {
-    motif: new RegExp(String.raw`^src/state/(documentDeProjet|parseProject-porte)\.test\.`),
-    categorie: 'outillage',
-    raison: 'Tests de la porte de projet de l\'éditeur.',
-    preuve: 'noms ; src/noyau/persistance/bibliotheque.ts (parseProject)',
   },
   {
     motif: new RegExp(String.raw`^src/gameIso/stage/(DebugOverlay|pickProbe)\.`),

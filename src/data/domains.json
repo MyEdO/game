@@ -983,6 +983,9 @@
     "label": "Démonologie",
     "arcane": "froid",
     "dark": true,
+    "grantGroups": [
+      "demonologue"
+    ],
     "desc": "Le Domaine de Démonologie, dont l'usage est proscrit, s'intéresse à l'invocation, au lien et au contrôle des démons, et ce dans le but de rendre plus puissant le lanceur du Sort. Son utilisation est extrêmement dangereuse, entraînant le plus souvent la soumission de l'âme du démonologue aux Puissances de la Ruine, donnant ainsi naissance à un nouveau Sorcier du Chaos.",
     "source": {
       "book": "livre-de-base",

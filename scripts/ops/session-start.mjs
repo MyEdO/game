@@ -41,9 +41,20 @@ export async function preflightSessionStart(worktree, agent) {
 
 export const contexteRecu = (carte, dossier, nonce) => Contexte.parse({ sessionId: carte.sessionId, nonce, worktree: canoniserWorktree(carte.worktree), surface: carte.agent, empreinteCanon: carte.hooks.empreinteCanon, ...(carte.hooks.empreinteCredo ? { empreinteCredo: carte.hooks.empreinteCredo } : {}), debut: carte.date, chemin: join(dossier, `${carte.sessionId}.${ANNEXES_SESSION_START.recu}`) })
 
+/** Le contexte de la session inscrite que porte `env`, `null` hors session inscrite ; un contexte invalide lève. */
+export const contexteDeSession = (env = process.env) => env.WFRP_SESSION_START ? Contexte.parse(JSON.parse(Buffer.from(env.WFRP_SESSION_START, 'base64').toString('utf8'))) : null
+
+/** `true` si le reçu SessionStart de `contexte` existe, est valide et porte sa session, son nonce et `nativeSessionId`. */
+export function recuConcordant(contexte, nativeSessionId) {
+  let brut
+  try { brut = JSON.parse(fs.readFileSync(contexte.chemin, 'utf8')) } catch (e) { if (e.code === 'ENOENT' || e instanceof SyntaxError) return false; throw e }
+  const vu = Recu.safeParse(brut)
+  return vu.success && vu.data.sessionId === contexte.sessionId && vu.data.nonce === contexte.nonce && vu.data.nativeSessionId === nativeSessionId
+}
+
 export function produireRecuSessionStart({ surface, entree, env = process.env, worktree = process.cwd(), credo }) {
-  if (!env.WFRP_SESSION_START) return null
-  const attendu = Contexte.parse(JSON.parse(Buffer.from(env.WFRP_SESSION_START, 'base64').toString('utf8')))
+  const attendu = contexteDeSession(env)
+  if (!attendu) return null
   const native = JSON.parse(entree)
   if (!native || typeof native !== 'object' || Array.isArray(native) || native.hook_event_name !== 'SessionStart' || (native.session_id !== undefined && (typeof native.session_id !== 'string' || !native.session_id.trim()))) throw new Error('REÇU : ENTRÉE NATIVE SESSIONSTART INVALIDE')
   if (attendu.surface !== surface || attendu.worktree !== canoniserWorktree(worktree)) throw new Error('REÇU : PRODUCTEUR ÉTRANGER')

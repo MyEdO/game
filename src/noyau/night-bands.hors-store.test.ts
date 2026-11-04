@@ -38,6 +38,7 @@ import { cascadeDeTest } from './cascade.testkit';
 import type { GenreDEtape } from './tablesPosees';
 import { deFixe } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import type { MenaceId } from '../engine/menace';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -56,7 +57,7 @@ function h(id: string, over: Partial<Combatant> = {}): Combatant {
  *  ligne est posée telle quelle (`montee`) — chaque cas fixe ses propres valeurs de jet. */
 function nuit(spec: {
   id: string; kind: GenreDEtape; hero?: string; label?: string; rollLabel?: string;
-  base?: number; target?: number; difficulty?: Difficulty; menace?: string; meta?: CascadeStepMeta;
+  base?: number; target?: number; difficulty?: Difficulty; menace?: MenaceId; meta?: CascadeStepMeta;
 }): BuiltCascadeStep {
   const step = monoStep({
     id: spec.id, kind: spec.kind, actor: h(spec.hero ?? 'h1'), label: fixtureText(spec.label ?? ''),

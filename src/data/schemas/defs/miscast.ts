@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, refOuSpec } from '../grammaire/ref';
+import { refuserEtatsInconnus } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
 export const famille = 'entite';
@@ -22,8 +23,8 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   /** LDB 40 l.75 ; LDB 16 l.117. */
   perRound: z.literal(true).optional(),
   /** Gate d'État de l'op `condition`, recopiée littéralement par `expandOp` (`engine/miscast.ts`) :
-   *  une RÉFÉRENCE à `etats.json`, donc posée par la fabrique. (`id` reste `z.string()` : polymorphe
-   *  dans ce dialecte plat — État, Compétence ou table selon l'`op` de la ligne.) */
+   *  une RÉFÉRENCE à `etats.json`, donc posée par la fabrique. `id` est polymorphe dans ce dialecte
+   *  plat : il est jugé selon l'`op` de la ligne (`superRefine` ci-dessous). */
   unlessCondition: idDe('etat').optional(),
   amount: formulaSinSchema.optional(),
   /** LDB 46. */
@@ -38,6 +39,8 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   minutes: formulaSinSchema.optional(),
   days: formulaSinSchema.optional(),
   escapeStrength: formulaSchema.optional(),
+}).superRefine((v, ctx) => {
+  if (v.op === 'condition' || v.op === 'removeCondition') refuserEtatsInconnus(v, ['id'], ctx);
 }), {
   op: { label: 'opération' },
   id: { label: 'identifiant' },

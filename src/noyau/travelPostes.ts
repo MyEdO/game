@@ -27,7 +27,7 @@ import { rollEncounter, ENCOUNTER_DIE, type EncounterCategory } from '../engine/
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
-import { extendedTestStep, type EchecSansJet } from '../engine/tests';
+import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
 import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -187,7 +187,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
         // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur. Poste
         // qu'il ne peut pas tenter (`spec.refus`) : la ligne naît `ECHEC_SANS_JET` (LDB 09 l.30 ; #2588 Q1).
         ...rollStep({ actor: hero, test: ids, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
-        ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget } : {}),
+        ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget, extendedDrPartage: true } : {}),
       });
     }
   }
@@ -382,14 +382,13 @@ export const TABLES = {
         j.push(t('tp.campCare', { name: h.label, n: take }));
       }
 
-      // Établir des cartes (Test ÉTENDU inter-Étapes) : cumul via le helper UNIQUE + persistance sur le plan.
-      const mapDR = agg.stacks.mapMade ?? 0;
-      if (mapDR > 0) {
-        const drTarget = results.find((r) => r.activityId === 'etablir-cartes')?.drTarget ?? 2 * Number(step.meta?.stages ?? 1);
-        const { total, done } = extendedTestStep(plan.extendedProgress ?? 0, { success: true, sl: mapDR }, drTarget, !!rule('test-extended-min-sl'));
-        // ACHEVÉ : on FIGE la progression À LA CIBLE (jamais un reset à `undefined` qui RECOMMENCERAIT le Test
-        // étendu le lendemain — LDB 12 : il se termine à la cible) → `buildStageSteps` voit `>= drTarget` et
-        // n'ouvre plus de jet (F1). En cours : le cumul réel `total` (borné à la cible pour l'affichage).
+      // Établir des cartes : Test ÉTENDU inter-Étapes, jets cumulés dans l'ordre des rangées, comme leurs
+      // barres (`cumulEtenduDeRangee`). EDOC 8 l.161 ; LDB 12 l.170-185
+      const jetsDeCarte = agg.etendus.mapMade ?? [];
+      if (jetsDeCarte.length) {
+        const drTarget = results.find((r) => r.drTarget != null)?.drTarget ?? 2 * Number(step.meta?.stages ?? 1);
+        const { total, done } = extendedTestSteps(plan.extendedProgress ?? 0, jetsDeCarte, drTarget);
+        // ACHEVÉ : progression FIGÉE à la cible, `buildStageSteps` n'ouvre plus de jet (F1).
         set({ travelPlan: { ...get().travelPlan!, extendedProgress: done ? drTarget : total } });
         j.push(done ? t('tp.mapDone', { dr: drTarget }) : t('tp.mapProgress', { total, target: drTarget }));
       }
@@ -404,7 +403,7 @@ export const TABLES = {
         if (enc.stageOutcome === 'fullRecovery') {
           for (const h of party.filter((x) => !x.dead)) {
             // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
-            if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { skillCheck: false, wake: false, log: () => [] });
+            if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { wake: false, log: () => [] });
             const ex = stacks(h, 'extenue');
             if (ex > 0) removeCondition(h, 'extenue', ex);
           }

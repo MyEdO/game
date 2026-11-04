@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { estFichierVitest, estSuiteVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { specificateursDe } from '../../../scripts/guards/lib/importGraph.mjs';
 import { analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
 import type { SourceFile } from 'typescript/unstable/ast';
@@ -72,7 +72,7 @@ const texte = (rel: string): string => sources(SRC).find((f) => f.rel === rel)!.
  *  pas en suite). La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans
  *  qu'on y revienne. Le prédicat vit en UN exemplaire, `scripts/guards/lib/fichierVitest.mjs`
  *  (#1788) : toute garde dont le périmètre est « la production » le consomme. */
-const production = (dir: string) => sources(dir).filter(({ rel }) => !estFichierVitest(rel) && rel !== HARNAIS);
+const production = (dir: string) => sources(dir).filter(({ rel }) => !estFichierVitest(rel) && !estKitDeTest(rel) && rel !== HARNAIS);
 
 /** `fichier:ligne` de chaque import dont le spécifieur contient `motif`. */
 export function importeurs(source: string, label: string, motif: RegExp, sourceFile?: SourceFile, diagnostics?: readonly Diagnostic[]): string[] {

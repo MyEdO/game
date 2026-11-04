@@ -33,6 +33,7 @@ import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/
 import type { PassiveMod } from './ops';
 import { passiveMods, sommeAttrMods } from './trauma';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import type { TraitInstance } from './statEntry';
 
 /**
  * Valeur « base + bonus permanents de talents » pour une CharKey, SANS les modificateurs
@@ -251,8 +252,18 @@ export function effectiveTalents(c: Combatant): TalentInstance[] {
   return [...own, ...granted.map((g) => ({ talentId: g.id, spec: g.spec, times: 1 }))];
 }
 
-/** Modificateurs PASSIFS continus des talents POSSÉDÉS (`TalentData.passive` : Coup puissant, Dur à cuire…,
- *  ou Frénésie → `grantFreeAttack`) en `OpPassive[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`).
+/** Traits de créature que confèrent les Talents possédés de `c` (`TalentData.confereTrait`), la
+ *  spécialisation de l'instance en argument : dérivés à la lecture, jamais posés. LDB 10 l.506, l.548 */
+export function traitsConferes(c: Combatant): TraitInstance[] {
+  return effectiveTalents(c).flatMap((t) => {
+    const id = findTalentById(t.talentId)?.confereTrait?.id;
+    if (!id) return [];
+    return [t.spec ? { id, arg: t.spec } : { id }];
+  });
+}
+
+/** Modificateurs PASSIFS continus des talents POSSÉDÉS (`TalentData.passive` : Coup puissant, Dur à cuire…)
+ *  en `OpPassive[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`).
  *  Lus par le collecteur `passiveMods` (trauma) EXACTEMENT comme `traitPassiveMods` pour les traits — le
  *  talent (instance = id seul) est résolu par `findTalentById`. Disjoint des traits → zéro double-comptage. */
 export function talentPassiveMods(c: Combatant): PassiveMod[] {

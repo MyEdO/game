@@ -8,6 +8,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { idDe } from '../grammaire/ref';
 
 export const file = 'lieux-services.json';
 export const famille = 'entite';
@@ -24,7 +25,7 @@ const doc = document(
     /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, ex. `armurier` pour
      *  le forgeron) — routage vers le système marchand EXISTANT via `openPlaceMerchant`, aucune donnée
      *  de commerce dupliquée ici (#369). */
-    merchantArchetype: z.string().optional(),
+    merchantArchetype: idDe('merchant').optional(),
     /** Écran plein-champ EXISTANT vers lequel ce service PORTE (routage app-interne, #369) : `port` =
      *  l'écran de port, dont l'onglet Chantier est le défaut. Le service exige alors un navire de
      *  campagne, comme « Entrer au port ». Absent = service sans écran dédié. */

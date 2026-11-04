@@ -16,6 +16,7 @@
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
 import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
@@ -281,6 +282,7 @@ export function humanizeCondition(c: Condition, neg = false): string {
     case 'hiddenFromFoes': return `la cible ${neg ? "n'est pas cachée" : 'est cachée'} de l'ennemi`;
     case 'engaged': return `la cible ${neg ? "n'est pas engagée" : 'est engagée'} avec un ennemi`;
     case 'crewTest': return neg ? "ce n'est pas un Test d'équipage" : "il s'agit d'un Test d'équipage";
+    case 'roundDeCombat': return neg ? 'hors des Rounds de combat' : 'pendant un Round de combat';
     case 'nearestFoe': return `l'ennemi le plus proche ${opWord(c.op, neg)} ${c.value} cases`;
     case 'capability': return `${who(c.who)} ${neg ? "n'a pas" : 'a'} la capacité « ${c.id} »${c.value != null ? ` (${c.op ?? '>='} ${c.value})` : ''}`;
     case 'relation': return `${who(c.who)} ${neg ? "n'est pas" : 'est'} ${REL_PLAYER[c.is]}`;
@@ -434,7 +436,7 @@ export function humanizeOp(o: GameOp): string {
         : `gagne ${valeur} sou(s) de cuivre dans sa bourse${note}`;
     }
     case 'statusMod': return `${typeof o.amount === 'number' && o.amount < 0 ? 'perd' : 'gagne'} ${humanizeFormula(o.amount)} Standing pour la prochaine aventure`;
-    case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
+    case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : o.char ? `un Test ${deElide(CHAR_LABELS[o.char])}` : 'un Test concernant sa cible'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''} ${o.illimite ? 'à chaque Test' : 'une fois'} pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${traitLisible(o.trait)}`;
     case 'grantPsychTrait': return `gagne l'état psychologique ${libelleDuTraitOctroye(o)}${pendant(o)}${o.resistanceSiAmis ? ', résistible si la cible et la personne sont amies' : ''}`;
@@ -446,6 +448,7 @@ export function humanizeOp(o: GameOp): string {
     case 'cureDisease': return `guérit ${o.count ?? 1} maladie(s)`;
     case 'reduceDiseaseDays': return `raccourcit ${o.disease ? diseaseLabel(o.disease) : 'une maladie'} de ${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)`;
     case 'preventInfection': return `voit ses Blessures protégées de l'infection`;
+    case 'aideMedicale': return `reçoit une Aide Médicale`;
     case 'exposeDisease': return `est exposé à la maladie ${diseaseLabel(o.disease)}`;
     case 'contractDisease': return `contracte la maladie ${diseaseLabel(o.disease)}`;
     case 'kill': return `meurt (sauf point de Destin dépensé)`;
@@ -509,7 +512,7 @@ export function humanizeOp(o: GameOp): string {
     case 'incomingSpellDRMod': return typeof o.amount === 'number' && o.amount < 0
       ? `réduit de ${-o.amount} par point le DR des Sorts qui l'affectent`
       : `modifie ${deFormule(o.amount)} par point le DR des Sorts qui l'affectent`;
-    case 'sbBonus': return `gagne +${o.amount} au Bonus de Force pour ses Dégâts`;
+    case 'sbBonus': return `gagne +${o.amount} au Bonus de Force`;
     case 'attackKeyword': return `voit ses attaques comptées comme magiques`;
     case 'mitigateIncoming': return `annule les Dégâts qu'il subit${o.unlessKeyword === 'magic' ? ' (sauf attaques magiques)' : ''}`;
     case 'moveScale': return `voit son Mouvement ${o.num === 1 && o.den === 2 ? 'réduit de moitié' : `multiplié par ${o.num}/${o.den}`}${pendant(o)}`;

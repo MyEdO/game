@@ -46,7 +46,14 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoid
 ```
 
 Les chemins `/atelier/…` des exemples désignent les fichiers locaux de production à choisir ;
-ils ne sont pas fournis par le dépôt. Vérifier unités, axes, échelle et pose de liaison de la base,
+ils ne sont pas fournis par le dépôt. Les packs de la base publiée vivent dans la Release `sources-3d`, une archive par
+somme SHA-256 : `scripts/personnage-3d/base/sources.mjs` les tire dans `~/.cache/wfrp-sources-3d`, vérifie chaque
+archive par sa somme et chaque source par l'empreinte de `packs_sources` de `humanoide.provenance.json`, refuse au
+moindre écart, puis écrit les options `--<pack>` et `--licence-<pack>` :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py $(node scripts/personnage-3d/base/sources.mjs) --sortie /atelier/base/humanoide.glb
+``` Vérifier unités, axes, échelle et pose de liaison de la base,
 sans les modifier dans l'élément. La construction exige `node` dans le `PATH` : avant Blender,
 `scripts/personnage-3d/base/manifeste.mjs --verifier` refuse une sortie dans un arbre du dépôt (liens
 et jonctions résolus), un dossier de sortie qui porte un autre fichier que le GLB, `manifest.json` et
@@ -423,7 +430,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais).
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier` et remet le GLB à l'utilisateur pour le versement.
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier

@@ -173,7 +173,7 @@ export function SurcoucheIso({
         <EnemyAimTelegraph targeting={targeting} anchor={reticleAnchor} />
         <Flies scene={scene} dims={dims} />
         <FxLayer dims={dims} floats={floats} projs={projs} auras={auras} aoes={aoes} />
-        {battle && hover && <ZdeTemplate battle={battle} hover={hover} pendingCast={pendingCast} pendingSiegeAim={pendingSiegeAim} activeC={activeC} dims={dims} />}
+        {battle && hover && <ZdeTemplate battle={battle} hover={hover} pendingCast={pendingCast} pendingSiegeAim={pendingSiegeAim} dims={dims} />}
         {mode === 'battle' && <EnemyAoeTelegraph actorAoe={actorAoe} dims={dims} />}
         {/* JETONS (P3-0f, P3-5c) : ils se peignent APRÈS les affordances de SOL (portes, télégraphes,
             gabarits) — l'état d'un combattant se lit par-dessus ce qui est peint sur le sol, jamais

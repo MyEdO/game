@@ -17,7 +17,7 @@
  * normalement par le Bonus d'Endurance et les PA (p.238).
  */
 import type { RNG } from './dice';
-import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult } from './tests';
+import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult, reverseRoll } from './tests';
 import { getTestPolicy } from './testPolicy';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
@@ -25,7 +25,7 @@ import { traitCapability } from './traits/dispatch';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
-import { reverseRoll, hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
+import { hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import { valeurSansTirage } from './formule';
 import type { SpellRange, SpellTarget } from './spellRange';
@@ -39,10 +39,13 @@ import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './m
 import type { MagicEnvironment } from './magicEnvironment';
 import { effectiveCastingNumber } from './castingNumber';
 import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
-import { armourMaterialOf } from './armourBypass';
+import { sourceDuTraitA } from './armourBypass';
+import { wornArmourPoints } from './items';
+import { LOCALISATIONS_DE_COUP } from './localisations';
+import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs';
 import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
 import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, type ItemInstance } from './types';
-import { findTraitById, findTalentById, findDomainById, findGodById, type TestMatch } from '../data';
+import { findTraitById, findTalentById, findDomainById, findGodById, matiereDuGroupe, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
 import { ritualReduction, type RitualReduced } from './grimoire';
@@ -241,27 +244,24 @@ export function castingValue(c: Combatant, skillName: string, spec?: string): nu
  * Magie du Chaos, `castingKindOf(...) === 'chaos'`) ignore les armures du Chaos.
  */
 export function armourCastDRPenalty(c: Combatant): number {
-  // Domaine d'Arcane par ID STABLE (`arcaneDomainIdOf`) + matériau de l'armure par CAPACITÉ TYPÉE du
-  // Groupe (`armourMaterialOf`) — plus AUCUNE devinette par regex (ni sur le nom de l'armure, ni sur le
-  // libellé du Domaine). Métal ignore le métal, Bête le cuir (LDB 46 l.150-152, inconditionnel).
-  // Sorcier du Chaos ignore le Chaos (VDM 02 l.169) — GATÉ par `magic-vdm-incantation` (VDM 02 l.5) :
-  // prédicat = PRÉSENCE du Talent Magie du Chaos (`castingKindOf === 'chaos'`), pas sa spécialisation
-  // (`chaosDomainOf` renverrait undefined pour un porteur non spécialisé).
+  // Domaine d'Arcane par ID STABLE (`arcaneDomainIdOf`) + matière TYPÉE de la source (Groupe de la pièce,
+  // `matiere` du Trait) — aucune devinette par regex. Métal ignore le métal, Bête le cuir (LDB 46 l.150-152,
+  // inconditionnel). Sorcier du Chaos ignore le Chaos (VDM 02 l.169) — GATÉ par `magic-vdm-incantation`
+  // (VDM 02 l.5) : prédicat = PRÉSENCE du Talent Magie du Chaos (`castingKindOf === 'chaos'`), pas sa
+  // spécialisation (`chaosDomainOf` renverrait undefined pour un porteur non spécialisé).
   const domId = arcaneDomainIdOf(c);
-  const ignoreMetal = domId === 'metal';
-  const ignoreLeather = domId === 'bete';
-  const ignoreChaos = rule('magic-vdm-incantation') === true
-    && (c.talents ?? []).some((t) => castingKindOf(t.talentId) === 'chaos');
-  let maxPA = 0;
-  for (const it of c.items ?? []) {
-    if (!it.equipped || it.kind !== 'armor' || !it.pa) continue;
-    const mat = armourMaterialOf(it);
-    if (mat === 'metal' && ignoreMetal) continue;
-    if (mat === 'leather' && ignoreLeather) continue;
-    if (mat === 'chaos' && ignoreChaos) continue;
-    maxPA = Math.max(maxPA, Math.max(0, it.pa - (it.damageTaken ?? 0)));
-  }
-  return maxPA;
+  const ignorees = new Set<MatiereDArmure>([
+    ...(domId === 'metal' ? ['metal' as const] : []),
+    ...(domId === 'bete' ? ['leather' as const] : []),
+    ...(rule('magic-vdm-incantation') === true && (c.talents ?? []).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
+  ]);
+  const exemptee = (m: MatiereDArmure | undefined): boolean => m !== undefined && ignorees.has(m);
+  const pieces = wornArmourPoints(c.items ?? [], (i) => exemptee(matiereDuGroupe(i.subType)));
+  // LDB 46 l.150 ; VDM 02 l.169 ; #1463
+  return Math.max(0, ...LOCALISATIONS_DE_COUP.map((loc) => {
+    const trait = sourceDuTraitA(c, loc);
+    return pieces[loc] + (trait?.portee && !exemptee(trait.matiere) ? trait.pa : 0);
+  }));
 }
 
 /** Spécialisation de Focalisation requise par un sort : l'id de son Domaine (`domainId`, ex. « bete »),
@@ -1099,6 +1099,8 @@ export function rederiveCastSL(
 export interface FocusResult {
   /** DR gagné lors de ce Round (0 si échec). */
   dr: number;
+  /** Le Test de Focalisation est-il réussi ? Un échec cumule `sl`, une réussite `dr` (LDB 12 l.174). */
+  success: boolean;
   isCritical: boolean;
   isFumble: boolean;
   roll: number;
@@ -1138,7 +1140,7 @@ export function resolveFocus(
     // AFFICHAGE : Focalisation est spécialisée par VENT → montre le Vent du Domaine (id bete → « Ghur »).
     const wind = focusWindLabel(spell);
     return {
-      dr: 0, isCritical: false, isFumble: false, roll: 0,
+      dr: 0, success: false, isCritical: false, isFumble: false, roll: 0,
       log: `${caster.label} ne maîtrise pas Focalisation${wind ? ` (${wind})` : ''}.`,
     };
   }
@@ -1160,7 +1162,7 @@ export function resolveFocus(
   const log = t.success
     ? `${caster.label} focalise ${spell.label} (+${dr} DR).`
     : `${caster.label} échoue à focaliser ${spell.label}.`;
-  return { dr, isCritical, isFumble, roll: t.roll, target: t.target, sl: t.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
+  return { dr, success: t.success, isCritical, isFumble, roll: t.roll, target: t.target, sl: t.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
 }
 
 /** DR accumulé après une Focalisation Critique — LDB 46 l.136 : le Sort devient lançable

@@ -6,7 +6,7 @@ import { edgeWallState } from '../ui/editor/editorState';
 import { sceneZoneTiles } from './monde/zones';
 import { scenario as zonesPieces } from '../scenes/test-scenarios/zones-pieces';
 import { buildVitrineScene, vitrineSpec } from '../scenes/vitrine-batiments';
-import { perimeterEdges } from '../state/sceneEdit.testkit';
+import { perimeterEdges } from './sceneEdit.testkit';
 import { PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { builtTerrains, groundTerrains } from './planDefects';
 import { tousLesTerrains } from './monde/terrain';
@@ -550,7 +550,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     bind: {
       '@': 'heroStart',
       k: { emplacement: 'canon-petit', crew: 'crew-0' },
-      A: { kind: 'personnage', ref: 'brute', weapon: 'Arc' },
+      A: { kind: 'personnage', ref: 'brute', weapon: 'arc' },
     },
   });
   it('interprète départ, emplacement+équipage et entité-modèle aux positions des marqueurs', () => {
@@ -560,7 +560,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     expect(empl?.postes![0].crewIds).toEqual(['crew-0']);
     const garde = s.entities.find((e) => e.ref === 'brute');
     expect(garde?.pos).toEqual({ x: 4, y: 0 });
-    expect(garde?.weapon).toBe('Arc');
+    expect(garde?.weapon).toBe('arc');
     // les marqueurs ne laissent pas de terrain parasite (nettoyés → base 'herbe')
     expect(layerTiles(s, 0)[0]).toBe('herbe');
   });

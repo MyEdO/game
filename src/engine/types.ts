@@ -344,12 +344,13 @@ export type { ArmourBypass };
 
 /** Spécification STRUCTURÉE des Dégâts d'arme (LDB 62). La présence du token `BF` (Bonus de Force) est
  *  PORTEUSE de sens — exprimée explicitement par `plusBF`, jamais par accident de chaîne. `flat` DÉJÀ
- *  résolu (négatif autorisé : Indice −2). `bare` : « +BF » NU (Tentacule/Piétinement) ≠ « +BF+0 ».
+ *  résolu (négatif autorisé : Indice −2). `bare` : « +BF » NU (Tentacule/Piétinement) ≠ « +BF+0 ». `bfInclus` : `flat` est un Indice qui
+ *  inclut déjà le BF du porteur (`TraitData.bfInclus`), sa part passive s'y ajoute (`effectiveWeaponDamage`).
  *  `literal` = escape hatch pour les Dégâts non chiffrables (« Spécial »). Affichage dérivé par
  *  `damageString` ; remplace la chaîne « +BF+4 » re-parsée par regex au runtime. */
 export type WeaponDamageSpec =
   | { literal: string }
-  | { plusBF: boolean; flat: number; bare?: true };
+  | { plusBF: boolean; flat: number; bare?: true; bfInclus?: true };
 
 /** Portée d'arme à distance (LDB 62) : `number` = mètres FIXES (arc/arbalète/arme à feu) ; `{ bf }` =
  *  Bonus de Force × `bf` mètres (armes de JET — javelot/couteau de lancer/bombe…). Résolue À L'USAGE
@@ -841,8 +842,9 @@ export interface ActiveEffect {
    *  LDB 23 l.209 « Entraînement au Combat »/l.218 « Observer une cible ») : une UTILISATION, retirée à
    *  la consommation (`consumeReverseToken`) — sinon expire à l'interlude suivant comme `statusMod`
    *  (MÊME canal `duration:{scale:'adventure'}`, `purgeAdventureEffects`). `skill` absent = tout Test
-   *  (scope « concernant votre cible », l.218 — le lot données/UI arbitre le filtrage par cible). */
-  reverseToken?: { skill?: string; spec?: string };
+   *  (scope « concernant votre cible », l.218 — le lot données/UI arbitre le filtrage par cible). `contexte`
+   *  présent : le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33). */
+  reverseToken?: JetonDInversion;
   /** Ce PA (apAll/apAt) ne peut pas servir à la Déviation Critique (op ap avec noDeviation — LDB 63 l.30 + EDO App.2 l.196). Le PA de sort (couche magique) n'entre de toute façon pas dans le PA déviatable. */
   noDeviation?: boolean;
   /** Trait de créature ACCORDÉ par cet effet (op `grantTrait` — Envol, Effrayant…) : le
@@ -1165,11 +1167,6 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   sizeFor?: import('./size').SizeCategory;
   equipped: boolean;
   desc?: string;
-  /** Effet d'un CONSOMMABLE (potion/drogue/bandage) en **Flow** (noyau `engine/flowCore`, feuilles
-   *  EffectOp) — copié du trapping (`TrappingData.consumable`). Un Test « au boire » (Brise-cœur,
-   *  Belladone…) est un nœud `{kind:'test'}` du Flow, résolu cadence-aware par le runner state
-   *  (`runConsumable`) — jamais un jet silencieux. `isConsumable` = Flow non vide. */
-  consumable?: import('./flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — copiée du trapping,
    *  résolue AU BOIRE (`consumableUntilTime`) → `ctx.defaultUntilTime` des ops appliquées. */
   consumableDuration?: import('./consumables').ConsumableDuration;
@@ -1696,10 +1693,9 @@ export interface Combatant {
    *  sert les escalades conditionnées à l'occurrence (« Si vous tombez une seconde fois sur cette blessure… »,
    *  Blessure majeure à l'oreille, LDB 18 l.71) — lu par `resolveCritique` (`escalation.onRepeat`). */
   critEntriesSuffered?: string[];
-  /** La blessure a été PANSÉE (matériel stérile / pansement) DANS le combat courant — un soin de Guérison
-   *  réussi ou un bandage suffit : « aucune Infection ne se développera suite à la blessure »
-   *  (LDB 09 l.260 ; cataplasme de guérison LDB 72 l.20). Empêche la contraction d'Infection Mineure
-   *  en fin de combat. Transitoire (par rencontre). */
+  /** La blessure a été PANSÉE DANS le combat courant — soin de Blessures réussi sous Bandages
+   *  (`resolveWoundsHeal`), ou op `preventInfection` (cataplasme de guérison, Cautériser) : LDB 09 l.260,
+   *  LDB 72 l.20. Empêche la contraction d'Infection Mineure en fin de combat. Transitoire (par rencontre). */
   woundDressed?: boolean;
   /** Traumatismes subis (LDB 18) — persistants ; effets en-combat lus par effectiveChar/effectiveMovement. */
   traumas?: Trauma[];
@@ -1948,6 +1944,22 @@ export function isNightTestKind(k: string): k is NightTestKind {
  *  RUNTIME posé ICI (module FEUILLE que `src/data` importe déjà) : les 6 schémas zod d'enjeu le
  *  consomment tel quel (`stakeFormSchema`, `src/data/schemas/grammaire/valeurs.ts`) et les déclarations TS
  *  référencent `StakeForm` — un palier de plus ne peut plus atterrir d'un seul côté. */
+/** Contrepartie d'un Test de Sociabilité qu'une fiche de PNJ déclare (ACE 12 l.60-62). */
+export type Amateur = 'amateurDArt' | 'amateurDeTheatre';
+
+/** CONTEXTE de Test que vise une source d'inversion (LDB 12 l.42) : `psych` ADE II 09 l.33, LDB 21 l.9 ;
+ *  `perilDesEaux` LDB 10 l.966 ; `bandages` LDB 10 l.899 ; amateurs ACE 12 l.60-62. */
+export type ContexteDeTest = 'psych' | 'perilDesEaux' | 'bandages' | Amateur;
+
+/** Le Test qu'une inversion vise : Compétence (`skill` absent = Test de Caractéristique `char`, ou jeton
+ *  « tout Test »), Caractéristique et contexte. `horsAventure` : Test joué entre deux aventures, où aucun
+ *  jeton « pour votre prochaine aventure » ne vaut (LDB 23 l.209/218). */
+export interface ReverseQuery { skill?: string; spec?: string; char?: CharKey; contexte?: ContexteDeTest; horsAventure?: true }
+
+/** Jeton d'inversion : le Test qu'il couvre (`char` : tout Test de cette Caractéristique) ; `illimite` :
+ *  jamais consommé (ACE 12 l.60 « tout Test »). */
+export interface JetonDInversion { skill?: string; spec?: string; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
+
 export const STAKE_FORMS = ['verbatim', 'descripteur'] as const;
 /** Forme déclarée d'un enjeu — union FERMÉE dérivée de `STAKE_FORMS`. */
 export type StakeForm = (typeof STAKE_FORMS)[number];

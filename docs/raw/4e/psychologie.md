@@ -37,6 +37,7 @@
   - [Effrayant](#effrayant)
   - [Frénésie (talent)](#frénésie-talent)
   - [Haine (Groupe) (talent)](#haine-groupe-talent)
+  - [Vice (Cible) (talent et trait)](#vice-cible-talent-et-trait)
   - [Sans Peur (Ennemi)](#sans-peur-ennemi)
 - [État Brisé — lien avec la Psychologie](#état-brisé--lien-avec-la-psychologie)
 - [Détermination contre la Psychologie](#détermination-contre-la-psychologie)
@@ -49,6 +50,12 @@
 Les instincts et émotions influencent fortement la façon dont les personnages réagissent en situation. Les règles de Psychologie constituent un système de Traits qui se déclenchent à la rencontre de certains groupes ou créatures, et dont les effets sont résistés ou surmontés par un Test de **Calme** (compétence = FM + avances Calme).
 
 > « Nos instincts et nos émotions ont une très forte influence sur la façon dont nous réagissons en fonction des circonstances. » — `LDB 21 l.5`
+
+- Lieu, lecture recommandée, révisable (#3045) : une scène porte des Groupes (`Scene.groups`) et en est la source, en vue partout dans la scène, en combat comme hors combat (`etiquetteDeScene`) ; elle n'a ni Taille, ni Indice de statbloc, ni hostilité, ni menace, et ni un Groupe joker ni un Groupe relatif ne la visent. Lecture contraire : seuls les personnes et les créatures sont des sources.
+- Emprises plus fines, lectures révisables sans porteur (#3045) : la magie d'une zone de sort (Q1), le feu des zones de sort (Q3), l'eau d'un terrain (Q8) et l'élément qui a presque tué le porteur d'une Animosité acquise (Q16, `ADE II 09 l.15`) n'ont aucun porteur ; le lieu porte l'étiquette par `Scene.groups`.
+- Porteurs de catalogue, lecture recommandée, révisable (#3045) : les carrières de guerre, d'autorité et religieuses portent les Figures/Symboles du même nom (Q14 A) ; les carrières religieuses, chaque culte qui accorde des Bénédictions (par le Talent Béni), le Trait Béni et Traudl Bauer portent `religion` ; Sorcier dissident, Sorcier de village et Johen portent `sorcieres` (`LDB 08 l.1865`) ; les Humains de Middenheim et du Middenland portent `teutogen` ; les Traits Dressé, les animaux de `LDB 70 l.13-26` (chevaux, chiens, mule, poney, poulet, singe, pigeon) et le mouton et le cochon du coût de l'animal (`EDOC 07 l.100-101`) portent `animaux-domestiques` (Q7 A) ; une liste fermée de bêtes (loup, ours, araignée géante, serpent, griffon, demigriffon, vouivre, manticore, hydre, chimère, chat sauvage, lion de guerre de Chrace), avec les créatures de leur genre, porte `predateur` (`LDB 79 l.160`). La prose `maison` de chaque entrée de `groups.json` nomme ses porteurs. Lecture contraire : seule une donnée d'auteur (statbloc de scène) range un combattant dans ces Groupes.
+- Porteurs du bestiaire, lecture recommandée, révisable (#3045) : chaque créature porte le Groupe de nature que son livre lui donne, sur son entrée ou par son `genre` ; hors des bêtes monstrueuses de `LDB 79`, `monstres` va à une liste fermée : arachnarok, razorgor, gueule d'effroi, preyton, cockatrice, chimère, grand taurus, léviathan, sirène, wyrm des mers, volée de noctecorbes, expérience unique du clan Moulder, et les créatures fantastiques des Terres du Sud (stégadon, cornu, carnosaure, `ZI 10 l.34`) au Zoo impérial ; baudroye, crabe boxeur, anguille mâcheprise, gargantuan, kharibde, sangsue des abysses, léviathan-phare, léviathan noir (`MDG 16 l.5`) et l'hydre d'os, bête elle aussi (`MDG 16 l.215`), en Mer des Griffes. Hors de cette liste : le stylet, poisson comestible (`MDG 16 l.75`), la syrène bleue, morte-vivante, et le brochet du Stir, le rat-loup et le rat ogre briseur d'os, que leur texte dit monstres en passant (`ZI 04 l.59`, `l.158`, `l.194`). Une nuée porte les Groupes de ses membres ; un PNJ au profil humain sans espèce écrite porte `humain` ; le rat géant porte `rats`, le rhinox `grandes-betes` (`ADE II 02 l.943`). Sans Groupe de nature : l'amibe (`ZI 05 l.11`), le Triton, les esprits de la nature, les élémentaires, ce qui est fabriqué par magie et les familiers, dont l'auteur pose le Groupe de leur forme sur le statbloc (`CustomStatblock.groups`). Lecture contraire : `monstres` réservé aux bêtes monstrueuses de `LDB 79`.
+- Porteurs de fiche, lecture recommandée, révisable (#3045) : qui lance des sorts porte `magie` (Talents Magie des Arcanes, Magie mineure, Sorcier !, Magie du Chaos, Bénédiction de Tzeentch (`EDOC 13 l.85`), Trait Lanceur de Sorts, et Triton (`MDG 16 l.309`) ; Q1 A) ; la Magie du Chaos porte aussi le Groupe des suivants de son Dieu (Khorne, Nurgle, Slaanesh, Tzeentch) ; le porteur d'une maladie déclarée porte `maladie`, symptômes suspendus compris (Q2 A) ; un combattant *En flammes* et l'Élémentaire incarné du Feu portent `feu` (Q3 A) ; qui pratique la Démonologie, Magie des Arcanes ou Lanceur de Sorts qui nomme ce Domaine (`EDOC 13 l.198`, `LDB 79 l.67`, `LDB 50 l.9`), porte `demonologue` (`EDOC 13 l.606`) ; le Trait Béni porte les Groupes de son culte, comme le Talent. Un État ou une maladie porte son Groupe tant qu'il dure (`groupesDe`). Coupé : le Démoniste (`LDB 08 l.3341`), qui n'octroie pas le Domaine. Un sorcier qui se cache reste perçu `magie` (`groupesPercus` ne retire que les Groupes des Traits dissimulés). Lecture contraire : seuls les Traits de créature portent ces Groupes.
 
 **Sources RAW** :
 - `LDB 21 l.5-11` — introduction générale
@@ -537,7 +544,7 @@ Un personnage avec ce Talent peut activer un Indice de Peur de 1+ (selon les niv
 
 > « Vous pouvez entrer en *Frénésie* comme décrit à la page 190. » — `LDB 10 l.506`
 
-Confère la capacité d'entrer en Frénésie (idem trait de créature Frénésie, mêmes règles).
+Confère le Trait de créature *Frénésie* (`confereTrait`, `talents.json`), lu par le même chemin que le Trait posé (`traitsConferes`, `isFrenzyCapable`).
 
 **Sources RAW** : `LDB 10 l.506`
 
@@ -555,7 +562,25 @@ Confère la capacité d'entrer en Frénésie (idem trait de créature Frénésie
 
 Exemples de groupes : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmarites, morts-vivants, Sorciers dissidents.
 
+Confère le Trait *Haine* (`confereTrait`, `talents.json`), sa spécialisation pour Cible : un Groupe de `groups.json` (`specsSource: ciblesPsy`), dérivé à la lecture par le même chemin que le Trait posé (`traitsConferes`, `parsePsychTraits`), pour un héros comme pour un PNJ. Sous un effet de suppression des Traits psy (Baume pour un esprit blessé, `LDB 43 l.70`), un Trait conféré n'est plus effectif.
+
+- Pluriel ramené au Groupe : Morts-vivants → `mort-vivant` (`MDG 16 l.360`), Cultistes → `cultiste` (`EDOC 10 l.130`), Suivants du Chaos → `chaos` (`MDG 11 l.127`).
+- Groupes de culte, portés par le culte (`gods.json`, `grantGroups`) : Manannites → `manannite` (`MDG 11 l.127`), Suivants de Stromfels → `stromfelsien` (`MDG 09 l.700`).
+- Hérétiques (`LDB 08 l.1718`), lecture recommandée, révisable (#3045) : le Groupe `heretiques` inclut les cultistes, adorateurs des Puissances de la Ruine. Lecture contraire : les seuls porteurs déclarés du Groupe.
+
 **Sources RAW** : `LDB 10 l.548` ; effets à la page 190 = `LDB 21 l.37-39`
+
+**Implémente :** [État calculé](../implemente.generated.md#4epsychologiehaine-groupe-talent)
+
+---
+
+### Vice (Cible) (talent et trait)
+
+Talent qui confère le Trait psychologique *Vice* ; sa Cible est un vice (alcool, nourriture, stupéfiants, plaisir), pas un Groupe : Test de Psychologie à la confrontation, abandon au Vice jusqu'à la perte de connaissance, État *Exténué*.
+
+**Sources RAW** : `ADE II 02 l.258-265` (Talent) ; `ADE II 02 l.267-269` (Trait)
+
+**Implémente :** [État calculé](../implemente.generated.md#4epsychologievice-cible-talent-et-trait)
 
 ---
 
@@ -576,7 +601,7 @@ Exemples de groupes : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmar
 **L'Ennemi est un Groupe**, lecture recommandée, révisable (Q13 A, #3045) : la spécialisation de Sans Peur est un id de `groups.json` hors des Groupes relatifs (source `groupesDAppartenance`, la sous-liste `CIBLE_D_APPARTENANCE`), lue par `sansPeurVs` comme une Cible de Groupe.
 - Pluriel ramené au Groupe existant : Criminels → `criminel`, Gardes → `garde`, Hommes-bêtes → `homme-bete`, Morts-vivants → `mort-vivant`, Peaux-vertes → `peau-verte`.
 - Groupes de spécialisation : Animaux (`LDB 08 l.3514`), Hors-la-loi (`LDB 08 l.1852`, `LDB 10 l.1051`), Hérétiques (`LDB 08 l.1732`), Intrus (`LDB 08 l.1203`), Miliciens (`LDB 08 l.490`), Naufrageurs (`LDB 08 l.2928`), Patrouilleurs fluviaux (`LDB 08 l.2582`), Patrouilleurs routiers (`LDB 08 l.3125`), Primes (`LDB 08 l.1559`), Rats (`LDB 08 l.596`), Sorciers dissidents et Vampires (`LDB 10 l.1051`), Sorcières (`LDB 08 l.1907`), Chaos (`AA 03 l.420`), Cavalerie (`AA 04 l.204`), Grandes bêtes (`ADE II 02 l.927`).
-- Composites (`inclut`) : Animaux = animaux sauvages, animaux domestiques et bêtes ; Chaos = démons, cultistes et mutants. Lecture contraire : les hommes-bêtes dans Chaos (« les véritables enfants du Chaos », `LDB 83 l.11`).
+- Composites (`inclut`) : Animaux = bêtes et animaux domestiques ; Animaux sauvages = bêtes, hormis les animaux domestiques et les monstres (`LDB 78 l.5`, `LDB 79 l.5`), donc hormis toute bête Dressée ; Chaos = démons, cultistes et mutants. Tout Groupe-cible, joker ou composite, retranche les porteurs de ses Groupes exclus (`exceptGroups`). Lecture contraire : les hommes-bêtes dans Chaos (« les véritables enfants du Chaos », `LDB 83 l.11`).
 - Cavalerie : tout combattant monté (`mountId`), dérivée comme Mutants. Lecture contraire : un Groupe déclaré par les seules troupes montées du bestiaire.
 - Choix du joueur, lecture révisable (#3045) : le pool propose toute cette sous-liste, étiquettes du Tableau des Obsessions comprises (feu, eau, pauvreté, bonheur, richesse, objets inanimés, `EDOC 12 l.170`), qui ne sont pas des ennemis au sens de « l'ennemi spécifié quand vous le rencontrez » (`LDB 10 l.1051`). Lecture contraire : un pool restreint aux Groupes de personnes et de créatures.
 

@@ -296,9 +296,12 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `export type CleDeDataset = (typeof CLES_DE_DATASET)[number];\n\n` +
     `/** CATÉGORIE CODEX de chaque fichier qui en déclare exactement une (\`exposition.codex.keys\` de son def) :\n` +
     ` *  celle où s'ouvre la fiche d'une de ses entrées (\`cibleCodex\`, \`src/data/index.ts\`). */\n` +
-    `export const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {\n` +
+    `const CATEGORIES = {\n` +
     categories.map(([f, c]) => `  ${litteralJs(f)}: ${litteralJs(c)},\n`).join('') +
-    `};\n\n` +
+    `} as const;\n\n` +
+    `export const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\n\n` +
+    `/** Table LITTÉRALE fichier → catégorie, dont \`RenvoiCodex\` (\`grammaire/ref.ts\`) dérive ses renvois typés. */\n` +
+    `export type CategorieCodexDuFichier = typeof CATEGORIES;\n\n` +
     `/** DATASET de chaque catégorie Codex dont la collection est une liste d'entrées { id, label } : sa clé (index\n` +
     ` *  vivant, \`indexParId\`), son fichier (\`RACINES_VIVANTES\`) et le chemin de sa collection dans sa racine\n` +
     ` *  (\`suivreLeChemin\`) — la porte \`entreeDeCategorie\` (\`src/data/index.ts\`). */\n` +
@@ -348,7 +351,7 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
  *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
  *  la phase 2 n'en rende un de plus), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
-  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {};\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_LA_RACINE: Readonly<Record<string, CleDeDataset>> = {};\n'],
+  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_LA_RACINE: Readonly<Record<string, CleDeDataset>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
 ]);
 

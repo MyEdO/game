@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import type { PlayerText } from '../i18n/playerText';
-import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourIA } from './etat';
+import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, RevealEntry } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
@@ -20,59 +20,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import {
-  resolveMelee,
-  resolveRanged,
-  bestRangedDefense,
-  rangedDefenseModes,
-  rollRangedAttacker,
-  combatValue,
-  hasWeaponGroupSkill,
-  weaponGroupSkillMode,
-  attackModifiers,
-  rollMeleeAttacker,
-  rollDisengageAttack,
-  rollGrappleForce,
-  assertAttackWeapon,
-  hitLocationByShape,
-  locationLabel,
-  reverseRoll,
-  lancerDeLaSecondeMain,
-  woundsFromHit,
-  compteDuCoup,
-  apresDeviations,
-  localisationRelanceeDe,
-  sansLeCoupCritiqueIgnore,
-  type CompteDuCoup,
-  toucheAuJetPose,
-  rangeBandModifier,
-  rangeBandName,
-  belowMinRangeBand,
-  resolveStrayRangedHit,
-  resolveMeleePassive,
-  toucheDuTestDeDefense,
-  armeDeMainPrincipale,
-  coupAApplique,
-  finishMelee,
-  rollMeleeDefender,
-  AttackResult,
-  ModLine,
-  outnumberMod,
-  crowdMod,
-  defenseTargetMods,
-  composeAttack,
-  frozenDifficulty,
-  type DifficultyShown,
-  defenseValue,
-  DEFENSE_LABEL,
-  attackHandGate,
-  conditionModLines,
-  canFireWhileEngaged,
-  ligneDuCoup,
-  freeAttackWeapon,
-  defaultParryWeapon,
-  advantageModLine,
-} from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -91,7 +39,7 @@ import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReac
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain, isColdBlooded,
+  isSkittishMount, immuneToSpellDomain,
 } from '../engine/traits/dispatch';
 import {
   isMagicMissile,
@@ -152,9 +100,9 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete } from '../engine/tests';
-import { effectiveChar, bonus } from '../engine/characteristics';
-import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
+import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
+import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
@@ -212,9 +160,9 @@ import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollaps
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
-import { sourcesEnVue } from './monde/porteurs';
+import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
@@ -223,7 +171,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, coldBloodedAdjust, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -275,10 +223,11 @@ import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './c
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue } from './combatManeuvers';
+import { bestDefenseMode, hasFreeWeaponAttack, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
+import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, type TableStepDef, type CascadeApplier } from './cascade';
+import { inversionDeTalent } from '../engine/reverseToken';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -968,7 +917,7 @@ export function previewAttack(
     : combatDistance(attacker, target);
   // Estimation de dégâts (R4) : dégâts d'arme (Force incluse) et encaissé de la cible. Le `soak` est dérivé
   // de `woundsFromHit` (oracle) avec un dégât large → capture exactement PA + réduction d'armure (Perforante…).
-  const dmg = effectiveWeaponDamage(weapon, bonus(effectiveChar(attacker, 'force')));
+  const dmg = effectiveWeaponDamage(weapon, forceDuPorteur(attacker));
   const base = combatValue(attacker, kind, weapon);
   const loc = location ?? 'corps';
   const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
@@ -1007,15 +956,6 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
   return { difficulty: p.difficulty, ...(p.difficultyCombined != null ? { difficultyCombined: p.difficultyCombined } : {}) };
 }
 
-/** Lignes d'ESQUIVE que le contexte impose au défenseur — SOURCE UNIQUE du jet résolu (`attackAt`
- *  → `resolveMelee({ dodgeMods })`), de la défense réactive et du pré-jet (`previewDefense`) : météo de
- *  la scène (neige épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`), chacune sa ligne. Un
- *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
-export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
-  const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
-  const weather: ModLine[] = sc?.esquive ? [sc.esquive] : [];
-  return [...weather, ...mountedDodgeMods(defender)];
-}
 /** Ligne ADVERSE du panneau de jet pré-rempli (modale d'attaque) : ce que le joueur est en droit
  *  de savoir de la défense à venir — la compétence probable (« Parade » / « Esquive ») et ses
  *  bonus/malus visibles (Avantage, États, Sur la défensive…), SANS la valeur de compétence ni
@@ -2763,8 +2703,8 @@ function appliquerLaTouche(
   // résolution : la CIBLE (touche, Critique létal, 0 PB) ET l'ATTAQUANT (Critique défensif opposé qui le
   // tue PENDANT sa charge). Émis une fois (garde `slainNotified`).
   for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c));
-  // Taille (arme) : sur une touche réussie, endommage de 1 PA l'armure frappée (LDB 62 l.307).
-  if (res.hit && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
+  // LDB 62 l.307.
+  if (toucheAvecPrise(res) && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
   const firedAmmo = weapon.type === 'ranged' && attacker.kind === 'hero' ? loadedAmmo(attacker, weapon) : undefined;
   // Tir avec une arme à Recharge → DÉCHARGÉE après le coup (LDB 62 l.335) : un Test étendu de Projectiles est
@@ -2843,8 +2783,8 @@ function appliquerLaTouche(
   // Effets DÉCLENCHÉS « à la touche » authorés (donnée éditable) : Traits de l'attaquant (Toile, Venin…),
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
   // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
-  // sur PB) alimentent les Conditions Flow de gating.
-  if (res.hit) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  // sur PB) alimentent les Conditions Flow de gating. LDB 85 l.98, l.278 ; LDB 14 l.159
+  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
   // (−1/touche) ; no-op hors bataille de masse. Réduction PUIS résolue à la victoire (massBattleResumeCombat).
   if (res.hit) massBattleTrackHit(get, set, attacker, target);
@@ -3253,7 +3193,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   // L'arme BRISÉE disparaît des mains du porteur : le journal le dit UNE fois, par la PREMIÈRE cause
   // (Bâclé ici, sinon la ligne de l'Incident), sans quoi elle s'évapore en silence.
   if (casse === 'brisee' && hasQuality(weapon, 'bacle')) log.push(tr('store.toolBroken', { tool: weapon.label, name: c.label }));
-  const sb = bonus(effectiveChar(c, 'force'));
+  const force = forceDuPorteur(c);
   const units = r.roll % 10;
   switch (r.kind) {
     case 'selfWound':
@@ -3285,7 +3225,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (allies.length) {
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
-        const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1 (l.165)
+        const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1 (l.165)
         ally.wounds.current = Math.max(0, ally.wounds.current - lost);
         if (ally.wounds.current <= 0) applyZeroWounds(ally);
         log.push(tr('cf.fumbleHitAlly', { name: ally.label, loc: locationLabel(loc, ally.bodyShape), lost }));
@@ -3296,7 +3236,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
     case 'misfire': {
-      const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1
+      const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1
       c.wounds.current = Math.max(0, c.wounds.current - lost);
       if (c.wounds.current <= 0) applyZeroWounds(c);
       log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.fumbleMisfireDetruite' : 'cf.fumbleMisfire', { lost }));
@@ -3309,7 +3249,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           .map((id) => inBattleId(battle, id))
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
-          const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size);
+          const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
           s.wounds.current = Math.max(0, s.wounds.current - sLost);
           if (s.wounds.current <= 0) applyZeroWounds(s);
           log.push(tr('cf.fumbleMisfireCrew', { name: s.label, lost: sLost }));
@@ -3335,7 +3275,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         for (let i = 0; i < salve.hits; i++) {
           for (const s of salveCrew) {
             const loc: HitLocation = salve.entry.location === 'brasPrincipal' ? 'brasD' : hitLocationByShape(reverseRoll(battleRng().int(1, 100)), s.bodyShape);
-            const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, sb) + battleRng().int(0, 9), 0, 1, c.size);
+            const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, force) + battleRng().int(0, 9), 0, 1, c.size);
             s.wounds.current = Math.max(0, s.wounds.current - sLost);
             if (s.wounds.current <= 0) applyZeroWounds(s);
             log.push(tr('cf.artillerySalveHit', { name: s.label, lost: sLost, loc: locationLabel(loc, s.bodyShape) }));
@@ -3984,7 +3924,9 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
   // Gratuites `onHit` du coup principal (LDB 10 l.72), sur la touche RÉELLE : après la restitution, sauf chaîne
   // ouverte (`portee`), qui la garde jusqu'à sa fermeture.
-  return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
+  if (!suite?.gratuitesALaTouche || !touche.hit) return false;
+  resolveFreeAttacks(get, set, attacker, 'onHit', target, { weapon, attackType: weapon.type });
+  return defenseEnCours(get());
 }
 
 // ---------------------------------------------------------------------------
@@ -4091,28 +4033,30 @@ export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant,
  *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choice`/`test`
  *  cadence-aware, `do`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
  *  (`ciblesDeLEffet`). `ctx` = le contexte de l'événement (arme de la touche, type d'attaque). Vaut héros
- *  ET IA. LDB 10 l.500. */
+ *  ET IA. Rend le nombre de Flows joués ; la file s'arrête à la première défense ouverte. LDB 10 l.500. */
 export function resolveFreeAttacks(
   get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger, victim: Combatant | undefined,
   ctx: Pick<TriggerCtx, 'weapon' | 'attackType' | 'conditionName' | 'origine'> = {},
-): boolean {
-  if (!victim) return false;
+): number {
+  if (!victim) return 0;
+  let joues = 0;
   for (const src of freeAttackSourcesOf(actor, ctx.weapon)) {
     for (const eff of src.effects) {
       if (!flowHasFreeAttack(eff.flow)) continue;
       for (const t of ciblesDeLEffet(get, actor, eff, trigger, { ...ctx, victim })) {
-        if (defenseEnCours(get())) return true; // #1858
+        if (defenseEnCours(get())) return joues; // #1858
         // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
         // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
         runCombatFlow(
           { get, set, target: t, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
           flowOffert(eff),
         );
-        if (defenseEnCours(get())) return true; // #1858
+        joues++;
+        if (defenseEnCours(get())) return joues; // #1858
       }
     }
   }
-  return false;
+  return joues;
 }
 
 // ---------------------------------------------------------------------------
@@ -4128,17 +4072,15 @@ export function creatureAttackKind(weapon: { attackKind?: string }): string | un
   return weapon.attackKind;
 }
 
-/** Effets RAW post-touche d'une attaque gratuite (sur PB infligés) : Attaque caudale → cible de Taille
- *  INFÉRIEURE → À Terre (LDB 85 l.47). Le Venin est un `effects` du trait (dispatché par le
- *  `fireTriggers('onHit')` d'`applyAttackResult`, atteint aussi par les attaques gratuites). */
+/** Effets onHit AUTHORÉS (`maneuver.effects`) de la manœuvre `kind` d'une attaque gratuite de mêlée, sur
+ *  une touche non ignorée (`toucheNonIgnoree`) : la condition que pose le livre est une Condition de l'effet
+ *  (`woundsDealt` ← `res.woundsLost`), jamais une sortie de cette fonction. LDB 85 l.47 ; LDB 85 l.405 ;
+ *  LDB 85 l.98 */
 export function applyFreeAttackEffects(get: Get, attacker: Combatant, target: Combatant, kind: string, res: AttackResult): void {
-  if (!res.hit) return; // les effets se déclenchent sur une touche réussie
-  // (Constricteur = `effects` onHit du trait → Empêtré sur toute touche, appliqué par le
-  //  `fireTriggers('onHit')` d'`applyAttackResult` — atteint aussi les attaques gratuites.)
-  if (!res.woundsLost) return; // les effets suivants exigent des Points de Blessure perdus
-  // Effets onHit AUTHORÉS de la manœuvre (donnée éditable `maneuver.effects` : Attaque caudale → À Terre
-  // si la cible est plus petite ; Tentacules → Empêtré) — appliqués SCOPED à cette manœuvre (≠ l'onHit
-  // générique des traits/atouts), via le MÊME exécuteur de Flow.
+  if (!toucheNonIgnoree(res)) return;
+  // (Constricteur = `effects` onHit du trait, appliqué par le `fireTriggers('onHit')` d'`applyAttackResult`
+  //  — atteint aussi les attaques gratuites.)
+  // SCOPED à cette manœuvre (≠ l'onHit générique des traits/atouts), via le MÊME exécuteur de Flow.
   const mEffects = maneuverEffectsOf(attacker, kind);
   if (mEffects.length) applyTriggeredEffects(get, attacker, mEffects, 'onHit', { victim: target, woundsDealt: res.woundsLost, attackKind: kind, rng: battleRng() }).forEach((l) => get().log(l));
   // (Vampirique = `effects` onHit du trait `vampirique`, gaté par la Condition Flow `attackKind: 'morsure'` →
@@ -4306,11 +4248,9 @@ function aiBattement(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
 function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): boolean {
   const battle = get().battle;
   if (!battle) return false;
-  // Athlétisme du mover / Calme du foe : ces valeurs SONT nues (carac effective + avances, LDB 09 l.17)
-  // — elles se posent telles quelles en grandeur de départage (LDB 12 l.160).
-  const atkValue = distraireAttackValue(enemy), defValue = distraireDefenseValue(foe);
-  const atk = { ...rollSansPilote(get, enemy, atkValue, 'intermediaire', battleRng()), base: atkValue };
-  const def = { ...rollTest(defValue, 'intermediaire', battleRng()), base: defValue };
+  // LDB 10 l.364 ; départage LDB 12 l.160.
+  const atk = { ...rollSansPilote(get, enemy, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
+  const def = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
   const line = resolveDistraire(enemy, foe, atk, def);
   set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -5068,13 +5008,14 @@ export function shareCastStep(get: Get, set: SetFn, playedIds: string[], casterI
 export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, targets: Combatant[]): boolean {
   const spell = effectiveSpellOf(pc);
   const opposed = spell?.opposed;
-  if (!opposed) return false;
+  if (!spell || !opposed) return false;
+  const test = testDOppositionDeSort(spell.id, opposed);
   const participants = targets
     .filter((t) => !isOutOfAction(t))
-    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), result: null }));
+    .map((t) => ({ id: t.id, interactive: jetSurfaced(get(), t), ligne: rollLine({ actor: t, test: idsDuTest(test), difficulty: 'intermediaire' }), result: null }));
   if (!participants.length) return false;
   // `menace: 'magie'` : le Test opposé « résiste au Sort » → Résistance (Menace : Magie) offerte (LDB 10).
-  set({ pendingCastOpposition: { participants, kind: opposed.kind, skill: opposed.skill?.id, char: opposed.char, menace: 'magie' } });
+  set({ pendingCastOpposition: { participants, test, menace: 'magie' } });
   // Une rangée d'opposition INTERACTIVE tenue par un autre acteur joué que le lanceur → l'étape `cast`
   // devient de GROUPE (calque `disengage`/`forceDoor`) : sans cela l'owner de l'étape reste le lanceur,
   // la cible ne voit JAMAIS la fenêtre où se tient son Test et le sort s'appliquerait sans opposition.
@@ -5082,6 +5023,13 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
   // Cibles IA (témoin) : jet auto-roulé immédiatement (révélé dans la modale, jamais caché).
   for (const p of participants) if (!p.interactive) get().oppositionRoll(p.id);
   return true;
+}
+
+/** Le Test que la cible oppose au Sort (`SpellData.opposed`) : `contact` → Corps à corps (Bagarre), `resist` → la
+ *  Compétence déclarée, sinon la Caractéristique. */
+function testDOppositionDeSort(spellId: string, opposed: NonNullable<SpellData['opposed']>): TestDesigne {
+  if (opposed.kind === 'contact') return { skill: { id: 'corps-a-corps', spec: 'bagarre' } };
+  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.char, spellId, 'opposition de sort') };
 }
 
 /** Cibles SUPPLÉMENTAIRES d'une incantation figée (Surincantation, LDB 47 l.28-31) ; ZdE : toutes les
@@ -5242,11 +5190,28 @@ export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | '
 
 /** La case `pt` est-elle une POSE valide pour la zone en cours ? Portée depuis l'ancre + Ligne
  *  de Vue vers le point (LDB 46 l.121) — partagé par le gabarit (couleur) et le clic. */
-export function placedZoneValidAt(get: Get, pz: PlacingZone, pt: Pt): boolean {
+export function placedZoneValidAt(get: Get, pz: Pick<PlacingZone, 'casterId' | 'rangeTiles'>, pt: Pt): boolean {
   const caster = inBattleId(get().battle, pz.casterId);
   if (!caster?.pos) return false;
   if (pz.rangeTiles != null && chebyshev(caster.pos, pt) > pz.rangeTiles) return false;
   return !castSightBlocked(get, caster.pos, pt);
+}
+
+/** Le gabarit de zone sous le curseur `hover` : la zone EN POSE (`placingZoneOf`), sinon l'aperçu au rayon initial du
+ *  sort de ZdE que le héros actif a sélectionné sans modale ouverte ; son rayon en cases et la validité de la pose
+ *  (`placedZoneValidAt`, la règle du clic). `null` sans gabarit, ou sans lanceur posé sur le plateau. */
+export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide: boolean } | null {
+  const s = get();
+  const { battle } = s;
+  if (!battle) return null;
+  const pz = placingZoneOf(s);
+  if (pz) return inBattleId(battle, pz.casterId)?.pos ? { radius: pz.radius, valide: placedZoneValidAt(get, pz, hover) } : null;
+  const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
+  if (battle.action !== 'cast' || !battle.selectedSpellId || active?.kind !== 'hero' || s.pendingCast || !active.pos) return null;
+  const spell = findSpellById(battle.selectedSpellId);
+  const radius = spell ? zdeRadiusTiles(spell.target, active) : null;
+  if (!spell || radius == null) return null;
+  return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active) }, hover) };
 }
 
 /** Dépose la zone en cours sur `pt` — dispatch par source (chaque consommateur garde ses gates). */
@@ -5807,7 +5772,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   }
   // LDB 18 l.53 ; LDB 63 l.32.
   const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
-  if (!mres.hit || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
+  if (!toucheAvecPrise(coup) || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const currentBefore = cible.wounds.current;
   const twice = critRollTwiceFor(caster);
   const touche: ToucheDeProjectile = { ...ch, mres };
@@ -5879,8 +5844,8 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   const caster = actorIn(get(), touche.casterId);
   if (!caster) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: touche.spell.label })] };
   const spell = touche.spell;
-  // Manifestation de Ghur (Middenheim, #18) : un Projectile du Domaine de la Bête n'affecte PAS le
-  // porteur — ses Dégâts ET ses effets (effets négatifs du Sort de la Bête) sont sautés sur cette cible.
+  // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28) :
+  // ses Dégâts ET ses effets sont sautés sur cette cible.
   if (immuneToSpellDomain(cible.traits, spell.domainId)) return clore(get, touche, [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
   const lignes: string[] = [];
   let mres = touche.mres;
@@ -6144,8 +6109,7 @@ export function applyCast(
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
         if (opp?.resisted) { logLines.push(tr('cf.spellResisted', { name: t.label, spell: spell.label })); continue; }
-        // Manifestation de Ghur (Middenheim, #18) : un Sort du Domaine de la Bête n'applique aucun de ses
-        // effets au porteur (immunité par lore — `spellDomainImmunity`, lue par id depuis ses Traits).
+        // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28).
         if (immuneToSpellDomain(t.traits, spell.domainId)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
         // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
         // cible — magnitude et durée échelonnées sur `ctx.sl` suivent ; sous le NI, le Sort ne l'affecte plus.
@@ -6252,6 +6216,8 @@ export function applyCast(
     for (const t of [target, ...extraTargets]) {
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
       if (extras?.opposedOutcome?.[t.id]?.resisted) continue;
+      // Immunité de Domaine (`domainesImmunises`) : le rider est un effet du Sort. VDM 13 l.24, l.61 ; ZI 08 l.28
+      if (immuneToSpellDomain(t.traits, spell.domainId)) continue;
       // Riders « à la touche » du Domaine = DONNÉE (`domains.json`), dispatchés comme les autres onHit ;
       // le gating « cible adverse / vivante / résiste par Talent » vit dans les Conditions Flow.
       logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }));
@@ -6415,7 +6381,7 @@ function domainBreathType(caster: Combatant): string | undefined {
 export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: string | null }): number {
   const cb = findDomainById(spell.domainId)?.castBonus;
   if (!cb || !caster.pos) return 0;
-  const radius = Math.max(1, Math.ceil(bonus(effectiveChar(caster, cb.radiusStat)) / 2));
+  const radius = Math.max(1, Math.ceil(bonusDe(caster, cb.radiusStat) / 2));
   let pions = 0;
   for (const c of s.battle?.combatants ?? []) {
     if (!c.pos || isOutOfAction(c)) continue;
@@ -7157,11 +7123,12 @@ function effacerLesTelegraphes(get: Get, set: SetFn, auteurId: string): void {
 
 /** Reprend le tour de l'IA suspendu par une fenêtre (défense, incantation, Destin…) : il FINIT (« avancer »), sauf
  *  si un geste de ce tour attend encore — alors `maybeRunEnemyTurn`, seul point de reprise, le réarme s'il est
- *  parqué. No-op si le combat est terminé. */
+ *  parqué. Le tour d'un acteur que l'IA ne pilote pas ne finit jamais ici : il reste au joueur. No-op si le combat
+ *  est terminé. */
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
   if (combatAdvanceBlocked(get())) return;
   const active = activeCombatant(get().battle!);
-  if (!active || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
+  if (!active || !aiDriven(get(), active) || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
@@ -7173,7 +7140,7 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   if (combatAdvanceBlocked(s, { cast: false })) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
-  if (!active || !aiDriven(s, active)) return;
+  if (!active || reprendreLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;
   // L'acteur IA actif est MORT pendant la conséquence suspendue (ex. critique défensif du héros — un
   // démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé : AVANCER au
   // combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
@@ -7402,26 +7369,49 @@ export function enterRoundStartPause(get: Get, set: SetFn): void {
 }
 
 /** IA : si le combattant actif est PILOTÉ par l'IA (ennemi, ou héros en Auto-combat possédé localement),
- *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour d'IA (#1852, #3058) : rappelé par
- *  tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il ne décide qu'un
- *  tour non décidé, et ne réarme d'un tour décidé que sa suite PARQUÉE. */
+ *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour en cours (#1852, #3058, #3059) :
+ *  rappelé par tout ce qui relance le combat (`resumeCadence`, clôture d'une fenêtre, scrutation de recette), il
+ *  réarme la frappe pilotée PARQUÉE du joueur, ne décide qu'un tour que l'IA n'a pas décidé, et ne réarme d'un tour
+ *  décidé que sa suite PARQUÉE. */
 export function maybeRunEnemyTurn(get: Get, set: SetFn) {
+  // Seul l'hôte rejoue le tour (suite ou décision d'IA) ; l'invité n'applique que l'instantané.
+  if (get().net.mode === 'guest') return;
   if (combatAdvanceBlocked(get(), { roundStart: true })) return;
   const battle = get().battle!;
   const active = activeCombatant(battle);
-  if (!active || !aiDriven(get(), active) || isOutOfAction(active)) return;
-  const tour = battle.tourIA;
-  if (tour?.cle === cleDeTour(battle, active.id)) {
+  if (!active) return;
+  if (reprendreLaFrappePilotee(get, set, battle, active)) return;
+  if (!aiDriven(get(), active)) return;
+  // L'acteur que l'IA pilote est hors de combat : son tour est fini (comme `resumeSuspendedAI`).
+  if (isOutOfAction(active)) { advanceTurn(get, set); return; }
+  const tour = tourEnCoursDe(battle, active.id);
+  if (tour?.decide) {
     if (tour.parquee && tour.suite) reprendreLaSuite(get, set, active, tour);
     return;
   }
   programmer(() => runEnemyAI(get, set, active.id), beatHold(get, 'turnHandoff'));
 }
 
+/** Le tour en cours de `id` s'il est celui du tour courant, sinon `undefined` (enregistrement périmé ou absent). */
+function tourEnCoursDe(battle: BattleState, id: string): TourEnCours | undefined {
+  const tour = battle.tourEnCours;
+  return tour?.cle === cleDeTour(battle, id) ? tour : undefined;
+}
+
+/** Réarme la frappe pilotée PARQUÉE du tour de `acteur`, s'il en a une (`true`). Testé avant tout prédicat de
+ *  pilotage : la frappe du joueur n'est pas un geste de l'IA (hôte seul : `maybeRunEnemyTurn`). */
+function reprendreLaFrappePilotee(get: Get, set: SetFn, battle: BattleState, acteur: Combatant): boolean {
+  const tour = tourEnCoursDe(battle, acteur.id);
+  if (!tour?.parquee || tour.suite?.geste.kind !== 'frappePilotee') return false;
+  reprendreLaSuite(get, set, acteur, tour);
+  return true;
+}
+
 /** Chaque genre de geste différé : `tenue` de sa reprise parquée ; `decideParLIA` — un geste que l'IA a décidé, qui ne
  *  part que si elle tient toujours le siège ; `consomme` — le budget du tour qu'il dépense, caduc si ce budget a été
  *  dépensé depuis la décision (« avancer » à la place, `budgetCaduc`). */
 const GENRES_DE_GESTE: Record<GesteDeSuite['kind'], { tenue: keyof typeof TEMPO; decideParLIA: boolean; consomme?: 'action' | 'mouvement' }> = {
+  frappePilotee: { tenue: 'preAttack', decideParLIA: false },
   frappe: { tenue: 'preAttack', decideParLIA: true, consomme: 'action' },
   sort: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
   zone: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
@@ -7439,28 +7429,31 @@ function budgetCaduc(battle: BattleState, acteur: Combatant, geste: GesteDeSuite
   }
 }
 
-/** Réarme la suite parquée de `tour` ; un geste dont le budget est déjà dépensé devient « avancer ». */
-function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourIA): void {
+/** Réarme la suite parquée de `tour` ; un geste de l'IA dont le budget est déjà dépensé devient « avancer ». */
+function reprendreLaSuite(get: Get, set: SetFn, acteur: Combatant, tour: TourEnCours): void {
   let geste = tour.suite!.geste;
-  if (budgetCaduc(get().battle!, acteur, geste)) {
+  if (GENRES_DE_GESTE[geste.kind].decideParLIA && budgetCaduc(get().battle!, acteur, geste)) {
     tour.suite = undefined;
     geste = { kind: 'avancer' };
   }
   armerLaSuite(get, set, acteur, geste, beatHold(get, GENRES_DE_GESTE[geste.kind].tenue));
 }
 
-/** SEUL armeur d'un geste différé d'un tour d'IA (#3058) : écrit la suite sous la clé du tour courant, numérotée par
- *  son armement, pose le réticule d'une frappe, et la joue après `delai` (sur-le-champ à 0). Un « avancer » n'écrase
- *  jamais un autre geste en attente : il est refusé (`false`), sans rien écrire ni programmer. Le geste de l'IA d'un
- *  acteur hors de combat devient « avancer ». */
-function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
+/** SEUL armeur d'un geste différé du tour en cours (#3058, #3059), de l'IA ou du joueur : écrit la suite sous la clé
+ *  du tour courant, numérotée par son armement, pose le réticule d'une frappe d'IA, et la joue après `delai`
+ *  (sur-le-champ à 0). Seule autre écriture de la suite, sans minuteur : la `reprise` qu'une frappe pilotée remet
+ *  PARQUÉE dans `jouerLaSuite`, que `maybeRunEnemyTurn` réarme par ici. Un « avancer » n'écrase jamais un autre geste en attente : il est refusé (`false`), sans rien
+ *  écrire ni programmer. Le geste de l'IA d'un acteur hors de combat devient « avancer ». */
+export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSuite, delai: number): boolean {
   const battle = get().battle;
   if (!battle) return false;
   // L'acteur hors de combat ne joue plus le geste de l'IA : son tour finit, sans télégraphe.
   if (GENRES_DE_GESTE[geste.kind].decideParLIA && isOutOfAction(acteur)) geste = { kind: 'avancer' };
   const cle = cleDeTour(battle, acteur.id);
-  const tour = battle.tourIA?.cle === cle ? battle.tourIA : (battle.tourIA = { cle, armements: 0 });
+  const tour = tourEnCoursDe(battle, acteur.id) ?? (battle.tourEnCours = { cle, armements: 0 });
   if (geste.kind === 'avancer' && tour.suite && tour.suite.geste.kind !== 'avancer') return false;
+  // La frappe du joueur devance un geste de l'IA en attente : il reprend derrière elle (`jouerLaSuite`).
+  if (geste.kind === 'frappePilotee' && tour.suite && tour.suite.geste.kind !== 'frappePilotee') geste = { ...geste, reprise: tour.suite.geste };
   const n = ++tour.armements;
   tour.suite = { geste, n };
   delete tour.parquee;
@@ -7477,13 +7470,16 @@ function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: GesteDeSui
   return true;
 }
 
-/** SEULE garde d'un geste différé (#3058) : il ne part que s'il est l'armement `n` de la suite du tour `cle`, tour
- *  courant ; une main tenue à l'échéance, ou un geste de l'IA dont elle n'a plus le siège, est PARQUÉ, et
+/** SEULE garde d'un geste différé (#3058, #3059) : il ne part que s'il est l'armement `n` de la suite du tour `cle`,
+ *  tour courant ; une main tenue à l'échéance, ou un geste de l'IA dont elle n'a plus le siège, est PARQUÉ, et
  *  `maybeRunEnemyTurn` le réarmera. Consommé AVANT d'être exécuté : un geste part au plus une fois. Un geste de l'IA
- *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour. */
+ *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour ; une frappe
+ *  pilotée caduque (acteur hors de combat, cible morte ou absente, Action prise sans attaque gratuite qui reste)
+ *  s'abandonne, et le tour du joueur reste le sien. Une frappe pilotée qui devançait un geste de l'IA le remet en
+ *  suite PARQUÉE, numérotée, sans minuteur (`reprise`). */
 function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: number): void {
   const battle = get().battle;
-  const tour = battle?.tourIA;
+  const tour = battle?.tourEnCours;
   const acteur = battle ? inBattleId(battle, acteurId) : undefined;
   if (!battle || battle.over || !acteur || !tour || tour.cle !== cle || cle !== cleDeTour(battle, acteurId) || tour.suite?.n !== n) {
     // Périmé : ses télégraphes s'effacent, sauf si l'acteur a une suite plus récente qui les porte.
@@ -7503,6 +7499,16 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
     return;
   }
   switch (geste.kind) {
+    case 'frappePilotee': {
+      if (geste.reprise) {
+        tour.suite = { geste: geste.reprise, n: ++tour.armements };
+        tour.parquee = true;
+      }
+      const cible = inBattleId(battle, geste.pa.targetId);
+      if (isOutOfAction(acteur) || !cible || cible.dead || (battle.acted && !geste.pa.freeKind && !hasFreeWeaponAttack(acteur))) return; // LDB 21 l.33
+      openAttackCascade(get, set, geste.pa, 'Attaque', 'action/attack');
+      return;
+    }
     case 'avancer':
       advanceTurn(get, set);
       return;
@@ -7600,30 +7606,37 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
-  // LDB 15 l.35-37 ; LDB 16 l.35
-  if (mv.charge) {
-    const adv = chargeAdvantage(effectiveMovement(geom), mv.distAvant);
-    if (adv) {
-      campGain(get, enemy, adv);
-      enemy.gainedAdvThisRound = true;
-      enemy.chargeAvecAvantage = true; // LDB 85 l.83
-    }
-    enemy.chargedThisTurn = true; // LDB 15 l.35
-    subirLaCharge(get, set, tgt, enemy);
-  }
+  if (mv.charge) declarerLaCharge(get, set, enemy, tgt, chargeAdvantage(effectiveMovement(geom), mv.distAvant)); // LDB 16 l.35
   armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: tgt.id }, Math.max(TEMPO.preAttack, approachMs(get, path)));
 }
 
-/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
- *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500). */
-export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): void {
-  const lignes: string[] = [];
-  emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
-  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
-  resolveFreeAttacks(get, set, charge, 'onCharged', chargeur);
+/** `chargeur` Charge `cible`, `adv` = l'Avantage de sa course (`chargeAdvantage`) : SOURCE UNIQUE de la déclaration
+ *  d'une Charge, de l'IA comme du joueur, après le placement et avant la frappe. Rend `true` si la cible a répondu
+ *  (`subirLaCharge`). LDB 15 l.35-37 ; LDB 85 l.83 ; LDB 62 l.319 */
+export function declarerLaCharge(get: Get, set: SetFn, chargeur: Combatant, cible: Combatant, adv: number): boolean {
+  if (adv) {
+    campGain(get, chargeur, adv);
+    chargeur.gainedAdvThisRound = true;
+    chargeur.chargeAvecAvantage = true;
+  }
+  chargeur.chargedThisTurn = true;
+  const b = get().battle!;
+  const ligne = tr('cs.charge', { name: chargeur.label, target: cible.label, adv: adv ? tr('cs.fragChargeAdv', { adv }) : '' });
+  set({ battle: { ...b, log: [...b.log, ev('charge', ligne, chargeur.id, cible.id)] } });
+  return subirLaCharge(get, set, cible, chargeur);
 }
 
-/** CLÉ d'un tour d'IA : CE combattant, à CE tour de CE Round — l'unité que `battle.tourIA` décide une fois. */
+/** `charge` est Chargé par `chargeur` (LDB 15 l.35) : l'événement `onCharged` part UNE fois — le bus
+ *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500).
+ *  Rend `true` si au moins un effet ou une attaque gratuite a été exercé. */
+export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): boolean {
+  const lignes: string[] = [];
+  const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
+  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
+  return effets + resolveFreeAttacks(get, set, charge, 'onCharged', chargeur) > 0;
+}
+
+/** CLÉ d'un tour : CE combattant, à CE tour de CE Round — l'unité de `battle.tourEnCours`, que l'IA décide une fois. */
 function cleDeTour(battle: BattleState, id: string): string {
   return `${battle.round}:${battle.turn}:${id}`;
 }
@@ -7724,11 +7737,12 @@ export function markActed(get: Get, set: SetFn): BattleState {
   return { ...garanti(get().battle, 'battle', 'markActed'), acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
 }
 
-/** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue). */
-type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
+/** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
+ *  (`sansPeurFace`) face à une source neuve. */
+type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
 
-/** Une source de Peur ou de Terreur en vue absente de la `psychState` du porteur. */
-type SourceNeuve = { foe: Combatant; kind: 'peur' | 'terreur'; indice: number };
+/** Une source de Peur ou de Terreur en vue, neuve pour le porteur (`sourceDejaAffrontee` faux). */
+type SourceNeuve = { source: SourceEnVue; id: string; label: string; kind: 'peur' | 'terreur'; indice: number };
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
@@ -7739,34 +7753,41 @@ function avantageDesEngages(battle: BattleState, c: Combatant): number | undefin
   return adv.length ? Math.max(...adv) : undefined;
 }
 
-/** Ce qu'une passe de Psychologie de combat lit de `c` : ses sources en Ligne de Vue et ses sources
- *  neuves ; `null` s'il est immunisé (Belliqueux compris). Pur de lecture. */
-function lecturePsy(get: Get, c: Combatant): { battle: BattleState; visible: Combatant[]; neuves: SourceNeuve[] } | null {
+/** Ce qu'une passe de Psychologie de combat lit de `c` : ses sources en vue (combattants en Ligne de Vue,
+ *  étiquette de la scène) et ses sources neuves ; `null` s'il est immunisé (Belliqueux compris). Pur de lecture. */
+function lecturePsy(get: Get, c: Combatant): { battle: BattleState; sources: SourceEnVue[]; neuves: SourceNeuve[] } | null {
   const battle = get().battle;
   const scene = get().scene;
   if (!battle || !scene || !c.pos || isPsychImmune(c, avantageDesEngages(battle, c))) return null;
-  const visible = [...sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))]; // LDB 85 l.264-266
-  const state = c.psychState ?? [];
-  const neuves = visible.flatMap((foe): SourceNeuve[] => {
-    const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // AA 13 l.25
-    return src && !state.some((p) => p.sourceId === foe.id) ? [{ foe, ...src }] : [];
+  const sources = sourcesPsyEnVue(battle, scene, c, (v) => !isOutOfAction(v)); // LDB 85 l.264-266
+  const neuves = sources.flatMap((source): SourceNeuve[] => {
+    const src = fearSourceFor(c, source, riderFearSize(battle, c)); // AA 13 l.25
+    const id = idDeSource(source);
+    return src && !sourceDejaAffrontee(c, id) ? [{ source, id, label: libelleDeSource(source), ...src }] : [];
   });
-  return { battle, visible, neuves };
+  return { battle, sources, neuves };
 }
 
-function dueDeSource(n: SourceNeuve): PsychDue {
-  return { kind: n.kind, sourceId: n.foe.id, sourceName: n.foe.label, indice: n.indice, prevDR: 0 };
+function dueDeSource(c: Combatant, n: SourceNeuve): PsychDue {
+  return { kind: n.kind, sourceId: n.id, sourceName: n.label, indice: n.indice, prevDR: 0, sansPeur: sansPeurFace(c, n.kind, n.source) }; // LDB 10 l.1051
+}
+
+/** Le porteur du libellé de la source `id` d'une Peur portée : parmi les sources de la passe, sinon au roster
+ *  (combattant hors de vue). */
+function porteurDeLaSource(l: { battle: BattleState; sources: readonly SourceEnVue[] }, id: string): { label: string } | undefined {
+  const s = l.sources.find((v) => idDeSource(v) === id);
+  return s ? { label: libelleDeSource(s) } : inBattleId(l.battle, id);
 }
 
 /** Re-tests des afflictions ciblées actives de `c` dus au `moment` du Round `round`, tant qu'un membre de
  *  leur Cible est en vue. LDB 21 l.19, l.39, l.48 */
-function retestsCibles(c: Combatant, visible: Combatant[], round: number, moment: 'roundStart' | 'roundEnd'): PsychDue[] {
+function retestsCibles(c: Combatant, sources: readonly SourceEnVue[], round: number, moment: 'roundStart' | 'roundEnd'): PsychDue[] {
   return (c.psychState ?? []).flatMap((p): PsychDue[] => {
     const cible = p.cible;
     if (!p.active || !cible || !estCibleType(p.type) || p.lastTestRound === round) return [];
     if ((findPsychologyById(p.type)?.retestAt ?? 'roundStart') !== moment) return [];
-    if (!visible.some((v) => vise(cible, { genre: 'combattant', c: v }, 'percu', c))) return [];
-    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible }];
+    if (!sources.some((v) => vise(cible, v, 'percu', c))) return [];
+    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible, sansPeur: false }];
   });
 }
 
@@ -7777,9 +7798,9 @@ export function collectRoundStartPsych(get: Get, c: Combatant, round: number): P
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.foe)).map(dueDeSource),
-    ...retestsCibles(c, l.visible, round, 'roundStart'),
-    ...targetedTriggers(c, l.visible).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible })),
+    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
+    ...retestsCibles(c, l.sources, round, 'roundStart'),
+    ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
   ];
 }
 
@@ -7790,21 +7811,21 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'peur').map(dueDeSource),
+    ...l.neuves.filter((n) => n.kind === 'peur').map((n) => dueDeSource(c, n)),
     ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
-      kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(inBattleId(l.battle, p.sourceId), 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0,
+      kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(porteurDeLaSource(l, p.sourceId!), 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
     })),
-    ...retestsCibles(c, l.visible, round, 'roundEnd'),
+    ...retestsCibles(c, l.sources, round, 'roundEnd'),
   ];
 }
 
 /** Pose sans Test les Peurs neuves de `c` (Sans Peur excepté, testé par `collectRoundStartPsych`) et rend
  *  les lignes de journal. LDB 21 l.25 ; #3045 */
 function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
-  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.foe));
+  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.source));
   if (!neuves.length) return [];
-  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.foe.id, indice: n.indice, calmeDR: 0 }))];
-  return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.foe.label })), ...supersededLines(c, c.label)];
+  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
+  return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.label })), ...supersededLines(c, c.label)];
 }
 
 /** Verse les lignes de Psychologie de `c` au journal de combat. */
@@ -7823,7 +7844,7 @@ interface CombatPsychRowMeta { prevDR: number; sansPeur: boolean }
 
 /** Charge utile d'une RANGÉE, avec ses défauts neutres (aucun cumul, aucun allègement). */
 function psychRowMeta(part: BatchParticipant): CombatPsychRowMeta {
-  return { prevDR: Number(part.meta?.prevDR ?? 0), sansPeur: !!part.meta?.sansPeur };
+  return { prevDR: part.extendedDrDone ?? 0, sansPeur: !!part.meta?.sansPeur };
 }
 
 /** Un Test de Psychologie de combat DÛ par un héros, avant regroupement : la déclaration de règle qui
@@ -7835,7 +7856,7 @@ interface CombatPsychDue { decl: CombatPsychDecl; row: BatchParticipant; icon: s
 function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): CombatPsychDue {
   const isCible = estCibleType(t.kind);
   const cl = isCible ? cibleLabel(t.kind) : null;
-  const sansPeur = sansPeurFace(c, t.kind, inBattleId(get().battle, t.sourceId)); // LDB 10 l.1051
+  const { sansPeur } = t;
   const { skill, difficulty } = psychTest(t.kind, sansPeur);
   const skillLabel = refLabel('skills', skill);
   // Peur de combat = Test ÉTENDU (LDB 21 l.25) : le cumul `prevDR`→`indice` voyage SUR LA RANGÉE
@@ -7856,7 +7877,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       // La calculer à la main ici l'oubliait : un héros Brisé ×2 testait sa Peur à pleine valeur.
       ...rollStep({ actor: c, test: { skill: skill.id, spec: skill.spec }, combat: { kind: 'test' }, difficulty }),
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
-      meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
+      ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
     label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),
@@ -7880,6 +7901,7 @@ const combatPsychBands = makeBandFactory<CombatPsychDue>({
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'combatPsych', icon, label,
     combatPsych: d,
+    contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     // L'enjeu descend à l'AFFLICTION affrontée : ses conséquences lui sont propres (`psychResolution`
     // lit `failCondition`/`failAmount`/`becomes` de SON entrée), donc son texte vit sur SON entrée.
     stake: combatStakeRef('combatPsych', { entryId: d.kind, values: { indice: d.indice } }),
@@ -7912,11 +7934,16 @@ function passeDePsy(get: Get, set: SetFn, collect: (get: Get, c: Combatant, roun
   return surfacees;
 }
 
-/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes.
- *  À sang-froid ne vaut que sur ce jet sans pilote : LDB 85 l.13 ; #3045 */
+/** Résout sur-le-champ la rangée jetée d'un porteur que personne ne tient, par la résolution des bandes :
+ *  la voie Talent de l'inversion (À sang-froid compris) s'y prend d'office, celle qu'une rangée pilotée
+ *  offre au clic. LDB 85 l.13 ; #3045 */
 function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDecl, row: BatchParticipant): void {
   const jet = garanti(row.result, c.id, 'rangée de Psychologie jetée');
-  const r = estJete(jet) ? coldBloodedAdjust(jet, isColdBlooded(c.traits)) : jet;
+  const inv = estJete(jet)
+    ? inversionDeTalent(c, { skill: row.skillId, spec: row.spec, contexte: 'psych' }, jet.roll, jet.target,
+      (tr) => evaluerRangeeBatch(row, hydrateTR({ ...tr, target: row.target, base: row.base })))
+    : null;
+  const r = inv ? { ...jet, ...inv } : jet;
   journaliserPsy(get, set, c, resultLines(resolveCombatPsychRow(get, set, c, decl, psychRowMeta(row), r, false)).map((l) => l.text));
 }
 
@@ -8165,9 +8192,10 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Le refus est SILENCIEUX : c'est un appel qui arrive trop tard (ou deux fois).
   if (activeCombatant(battle)?.id !== enemyId) return;
   if (combatAdvanceBlocked(get())) return;
-  const cleTour = cleDeTour(battle, enemyId);
-  if (battle.tourIA?.cle === cleTour) return;
-  battle.tourIA = { cle: cleTour, armements: 0 };
+  const tour = tourEnCoursDe(battle, enemyId);
+  if (tour?.decide) return;
+  if (tour) tour.decide = true;
+  else battle.tourEnCours = { cle: cleDeTour(battle, enemyId), decide: true, armements: 0 };
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);
@@ -8365,7 +8393,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       else setReloadProgress(enemy, rw, progress);
       // ISSUE dérivée par le MÊME goulot que le flux joueur (`FLOWS.reload.apply`, canal COMBAT) : la voie
       // IA n'ouvre aucune fenêtre, elle FOURNIT son pending — même déclaration, même ligne.
-      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', roll: test.roll, target: test.target, sl: test.sl, success: test.success };
+      const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', ligne: rollLine({ actor: enemy, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: rw } }), roll: test.roll, target: test.target, sl: test.sl, success: test.success };
       const aiReloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
       set({ battle: { ...markActed(get, set), log: [...get().battle!.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);

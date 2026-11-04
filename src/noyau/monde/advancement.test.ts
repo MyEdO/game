@@ -140,7 +140,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix) » (LDB 10 l.17-18, l.548 ; LDB 07 l.105)', () => {
   // Patrouilleur routier Niveau 3 : « Haine (Au choix) » ; FM 30 → Maxi 3.
   const haineAuChoix = (times: number) =>
-    buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times }] }))
+    buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peau-verte', times }] }))
       .talents.find((r) => r.options?.some((o) => specialiseDe(o.refKey, 'haine')))!;
   it('Peaux-vertes au Maxi : la ligne et chaque groupe neuf sont au Maxi', () => {
     const row = haineAuChoix(3);
@@ -150,7 +150,7 @@ describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix)
   it('sous le Maxi : les groupes neufs sont achetables, au coût de la 3e acquisition', () => {
     const row = haineAuChoix(2);
     expect(row.maxReached).toBe(false);
-    const neuf = row.options!.find((o) => o.refKey === refKey('haine', 'morts-vivants'))!;
+    const neuf = row.options!.find((o) => o.refKey === refKey('haine', 'mort-vivant'))!;
     expect(neuf.maxReached).toBe(false);
     expect(neuf.nextCost).toBe(300);
   });

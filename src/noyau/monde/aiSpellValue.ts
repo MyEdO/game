@@ -13,7 +13,7 @@
  */
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
-import { bonus, effectiveChar, blessuresPosees } from '../../engine/characteristics';
+import { bonus, effectiveChar, blessuresPosees, forceDuPorteur } from '../../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
@@ -59,8 +59,8 @@ export function hitProbability(attacker: Combatant, target: Combatant, weapon: W
 export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, kind: 'melee' | 'ranged', distanceTiles?: number, env?: ModLine[], metresPerTile = 2): number {
   const p = hitProbability(attacker, target, weapon, kind, distanceTiles, env, metresPerTile);
   if (!Number.isFinite(p)) return NaN;
-  const bf = bonus(effectiveChar(attacker, 'force'));
-  const totalDamage = finite(effectiveWeaponDamage(weapon, Number.isFinite(bf) ? bf : 0) + AVG_DR, NaN);
+  const { bf, passif } = forceDuPorteur(attacker);
+  const totalDamage = finite(effectiveWeaponDamage(weapon, { bf: Number.isFinite(bf) ? bf : 0, passif }) + AVG_DR, NaN);
   if (!Number.isFinite(totalDamage)) return NaN;
   return p * safeWounds(weapon, target, totalDamage, attacker.size);
 }
@@ -215,7 +215,7 @@ function summonValue(op: Extract<GameOp, { op: 'summon' }>, caster: Combatant, c
 function opIsBeneficial(op: GameOp): boolean {
   switch (op.op) {
     case 'heal': case 'healCaster': case 'cureCriticalWound': case 'cureDisease':
-    case 'reduceDiseaseDays': case 'diseaseTestMod': case 'suppressSymptom': case 'preventInfection': case 'removeCondition': case 'endPsych':
+    case 'reduceDiseaseDays': case 'diseaseTestMod': case 'suppressSymptom': case 'preventInfection': case 'aideMedicale': case 'removeCondition': case 'endPsych':
     case 'grantTalent': case 'grantTrait': case 'augmentWeapon': case 'grantWeapon':
     case 'grantNaturalWeapon': case 'ap': case 'gainResource': case 'gainAdvantage': case 'topUpAdvantage':
     case 'freeReroll': case 'critTwice': case 'ignoreStatePenalties': case 'suppressPsych':

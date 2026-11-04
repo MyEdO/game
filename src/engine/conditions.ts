@@ -17,6 +17,7 @@ import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './tr
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { rollTest, isDoubleRoll, DIFFICULTY_LADDER, type TestResult } from './tests';
 import { dropExpiredGrantedPsych, dropExpiredGrantedTraits } from './grantedTraits';
 import { dropExpiredGrantedResources } from './grantedResources';
@@ -35,12 +36,13 @@ import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical�
 /** Les 12 États CANONIQUES (LDB 16) à comportement moteur, par `id` STABLE (slug d'etats.json). Le
  *  moteur (pénalités, fin de Round, récupération) les référence via ces constantes — JAMAIS de chaîne
  *  magique. `ConditionInstance.name` reste OUVERT (string) : le Codex peut créer d'AUTRES États (posés/
- *  affichés ; leur mécanique RAW serait à câbler). Garde-fou de synchro `COND`⇄etats.json : `conditions.test`. */
+ *  affichés ; leur mécanique RAW serait à câbler). Chaque valeur est typée par l'espace `etats.json` de
+ *  `IdsParEspace` : un id hors catalogue ne compile pas. */
 export const COND = {
   assourdi: 'assourdi', aTerre: 'a-terre', aveugle: 'aveugle', brise: 'brise',
   empetre: 'empetre', empoisonne: 'empoisonne', enFlammes: 'en-flammes', extenue: 'extenue',
   hemorragique: 'hemorragique', inconscient: 'inconscient', sonne: 'sonne', surpris: 'surpris',
-} as const;
+} as const satisfies Record<string, IdsParEspace['etats.json']>;
 
 /** Nombre de pions (cumul) d'un État donné. */
 export const stacks = (c: Combatant, name: string) => { etatExige(name); return c.conditions.find((x) => x.id === name)?.value ?? 0; };
@@ -67,8 +69,8 @@ const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
 
 /** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
  *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
- *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, garde FK
- *  `refs-migrated.test`), la sévérité (`conditionSeverity`) et l'icone
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, refus d'État au
+ *  parse `refuserEtatsInconnus` de `data/schemas/grammaire/mecanique.ts`), la sévérité (`conditionSeverity`) et l'icone
  *  (`gameIso/effectIcons.conditionMeta`) le composent. */
 export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
   return findConditionById(id) ?? marqueurParId(id);
@@ -293,6 +295,11 @@ function actLifts(unlockBy: import('./types').ConditionUnlock, act: import('./ty
   return unlockBy === act || (act === 'magic' && unlockBy === 'medicalAid');
 }
 
+/** `c` porte-t-il un État dont l'acte `act` lève le verrou (`releaseConditionLocks` en retirerait un) ? */
+export function aUnVerrouLevePar(c: Combatant, act: import('./types').ConditionUnlock): boolean {
+  return c.conditions.some((inst) => inst.unlockBy != null && actLifts(inst.unlockBy, act));
+}
+
 /** Applique un acte de soin `act` : RETIRE tout État dont le verrou `unlockBy` est levé par cet acte (LDB 18 :
  *  « ne peut être retiré QUE par [acte] » ⇒ l'acte est ce qui le soigne). SOURCE UNIQUE appelée à chaque point
  *  de soin (`receiveMedicalAid`/soin magique → medicalAid/magic ; fin de Chirurgie → surgery). Pur ; renvoie le journal. */
@@ -408,6 +415,23 @@ export function raisonRefusDetermination(c: Combatant, conditionId: string): str
   const src = inst?.derivedFrom?.src;
   if (!src || opPorteuseDEtat(c, conditionId)?.resolveWindow !== 'none') return undefined;
   return t('cond.refusDeterminationVerrou', { cond: conditionLabel(conditionId), src: refLabel(src.category, { id: src.id }) });
+}
+
+/** Verdict de RÉSERVE d'une dépense de Détermination (LDB 17 l.57) — `undefined` = au moins un point. */
+export function refusDeReserveDeDetermination(resolve: number): string | undefined {
+  return resolve > 0 ? undefined : t('agate.noResolve');
+}
+
+/**
+ * Verdict UNIQUE d'une dépense de Détermination (LDB 17 l.59-61) — `undefined` = ouverte. Lu par le gate
+ * `determination-en-reserve`, par le geste `spendResolveCondition` et par `DeterminationButton`.
+ * `conditionId` absent (LDB 17 l.59-60) : seule la réserve compte.
+ */
+export function refusDeDetermination(c: Combatant, conditionId?: string): string | undefined {
+  const reserve = refusDeReserveDeDetermination(c.resolve ?? 0);
+  if (reserve || !conditionId) return reserve;
+  if (!c.conditions.some((x) => x.id === conditionId)) return t('agate.stateNotCarried');
+  return raisonRefusDetermination(c, conditionId);
 }
 
 /** RE-ENTRANCE : la pose d'un État déclenche `onGainCondition` (store), qui peut appliquer des ops — dont

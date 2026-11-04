@@ -21,7 +21,8 @@ import { castInfoIsPrayer } from '../engine/magic';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { formatDice } from '../engine/dice';
 import { formatWardSave } from '../engine/traits/dispatch';
-import { findCrewRoleById, findSpellById, refLabel } from '../data';
+import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../data';
+import { idsDuTest } from '../engine/skills';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
@@ -101,7 +102,7 @@ export const libelleDEvaluation = (pa: { skillLabel?: string; mode?: keyof typeo
   pa.skillLabel ?? refLabel('skills', { id: APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill });
 
 /** Le libellé de ligne d'une opposition de cible à une incantation. */
-export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'skill' | 'char'>): string => pcs.char ?? pcs.skill ?? 'Opposition';
+export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'test'>): string => testSkillLabel(idsDuTest(pcs.test));
 
 /** Le libellé de ligne d'une rangée de Test d'équipage : le rôle tenu, étoilé s'il est essentiel. */
 export function libelleDeRole(part: { roleId: string; essential?: boolean }): string {
@@ -214,7 +215,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   opposition: (s) => {
     const pcs = s.pendingCastOpposition;
     if (!pcs) return null;
-    return vue('opposition', rangees(pcs.participants, (p) => ligne(p.id, libelleDOppositionDeSort(pcs), p.result?.oppose)));
+    return vue('opposition', rangees(pcs.participants, (p) => ligne(p.id, libelleDOppositionDeSort(pcs), p.result?.oppose, p.ligne.target)));
   },
   extendedTest: (s) => {
     const p = s.pendingExtendedTest;
@@ -310,7 +311,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   ward: (s) => s.pendingWard && vue('ward', [ligne(s.pendingWard.attackerId, libelleDeTest('force-mentale'), s.pendingWard.result)]),
   heal: (s) => {
     const p = s.pendingHeal;
-    return p && vue('heal', [ligne(p.healerId, libelleDeTest('guerison'), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('heal', [ligne(p.healerId, libelleDeTest(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
   },
   surgery: (s) => {
     const p = s.pendingSurgery;

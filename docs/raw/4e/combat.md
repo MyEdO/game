@@ -2827,7 +2827,7 @@ Liste complète des Traits du Livre de base, avec leur effet exact. (Indice) = v
 | **Souffle (Indice) (Type)** | Attaque gratuite **(coût 2 Avantages)** : cible visible à **BE + 20** mètres ; tous à **bonus de F de la cible** mètres + tous entre les deux sont touchés. Test opposé **CT/Esquive** par cible ; échec → Indice Dégâts d'Arme. Types : **Froid** (Sonné par 5 Blessures), **Corrosif** (Armes/Armures −1), **Feu** (ignore PA + Enflammé), **Électricité** (ignore PA + Sonné), **Poison** (ignore PA + Empoisonné), **Fumée** (bloque la LdV pendant BE Rounds). Immunisée à son propre Souffle ; Attaque magique. |
 | **Stupide** | (≠ Bestial.) Sans allié non-Stupide à ses côtés : Test **Intelligence Facile (+40)** au début de chaque Round ; échec → perd Mouvement **et** Action. |
 | **Taille (Divers)** | 7 catégories (Minuscule → Monstrueuse) ; modifie profil, Dégâts, Peur/Terreur, Blessures (cf. §6). |
-| **# Tentacules (Indice)** | **1 Attaque gratuite par tentacule** : Indice Dégâts (bonus de F inclus). Touche → État **Empêtré** + Empoignade par ce tentacule. |
+| **# Tentacules (Indice)** | **1 Attaque gratuite par tentacule** : Indice Dégâts (bonus de F inclus). Touche qui cause des Dégâts → État **Empêtré** + Empoignade par ce tentacule. |
 | **Terreur (Indice)** | Suscite **Terreur** = Indice (Psychologie). |
 | **Territorial** | Combat jusqu'à la mort pour défendre sa zone ; ne poursuit pas les fuyards hors zone. |
 | **Toile (Indice)** | Tout coup réussi → État **Empêtré** de Force Indice. |
@@ -3016,7 +3016,7 @@ Le **Trait Arme (Indice)** est l'attaque de mêlée par défaut (dents, griffes,
 | **Morsure (Indice)** | Attaque gratuite, pendant son tour | **1 Avantage** | CC opposé | Indice (BF inclus) | aucun (mais voir Vampirique / Venin) |
 | **Cornes (Aspect)(Indice)** | Attaque gratuite **en Chargeant** | **0** (gagnée avec l'Avantage de Charge) | CC opposé | Indice (BF inclus) | aucun ; Aspect noté entre parenthèses |
 | **Attaque Caudale (Indice)** | Attaque gratuite, pendant son tour | **1 Avantage** | CC opposé | Indice (BF inclus) | cible de **Taille inférieure** qui perd des PB → État **À Terre** |
-| **Langue Préhensile (Indice)(Portée)** | Attaque gratuite, pendant son tour | **1 Avantage** | CT / **Esquive** (à distance) | Indice (BF inclus) | sur touche : 1 **Empêtré** ; Taille inférieure → entraînée vers la créature ; puis relâcher / Attaque gratuite d'Arme / **Empoignade** |
+| **Langue Préhensile (Indice)(Portée)** | Attaque gratuite, pendant son tour | **1 Avantage** | CT / **Esquive** (à distance) | Indice (LDB 85 l.213 : BF non inclus) | sur touche : 1 **Empêtré** ; Taille inférieure → entraînée vers la créature ; puis relâcher / Attaque gratuite d'Arme / **Empoignade** |
 | **Tentacules # (Indice)** | **1 Attaque gratuite PAR tentacule** | **0** | CC opposé (par tentacule) | Indice (BF inclus) | sur Dégâts : peut infliger **Empêtré** → **Empoignade** avec ce tentacule |
 | **Constricteur** | sur toute touche d'une attaque | — | (attache l'attaque) | — | toute touche réussie → **Empêtré** ; puis **Empoignade** |
 | **Toile (Indice)** | sur toute touche | — | (attache l'attaque) | — | sur touche → 1 **Empêtré** de **Force = Indice** |
@@ -3051,15 +3051,17 @@ Si les Cornes ont un Aspect différent (Impact, Tranchant…), il est noté entr
 
 Le **#** en tête du Trait est le **nombre de tentacules** (ex. « 8 Tentacules +9 » = 8 attaques gratuites de +9, coût 0 chacune). Chaque tentacule peut entamer **sa propre** Empoignade, et une Action d'Attaque gratuite peut servir à résoudre une Empoignade d'un tentacule.
 
+« Si elle cause des Dégâts » se lit : la cible **perd au moins 1 Point de Blessure** (Condition `woundsDealt > 0` de l'effet, `src/data/maneuvers.json`) — lecture recommandée, révisable (#3075). À distinguer de la Langue Préhensile (« Si l'Attaque touche », Empêtré même sans Blessure perdue) et de l'Attaque Caudale (« qui perdent des Points de Blessure »).
+
 **Constricteur** — `LDB 85 l.73-75`
 > « Tout lancer réussi pour toucher donne à son adversaire l'État _Empêtré_ . Elle peut ensuite entamer une Empoignade (voir page 163). »
 
-**Toile (Indice)** — `LDB 85 l.417`
+**Toile (Indice)** — `LDB 85 l.415-417`
 > « La créature peut créer une toile pour attraper les ennemis imprudents. Chaque fois qu'elle réussit à toucher, son adversaire gagne 1 État _Empêtré_ , avec une Force de _Indice_ . Voir page 168. »
 
 La **Force de l'empêtrement = Indice** : c'est la valeur opposée lors du Test pour se libérer (voir État Empêtré ci-dessous).
 
-**Vampirique** — `LDB 85 l.421`
+**Vampirique** — `LDB 85 l.419-421`
 > « Chaque fois qu'elle réussit une Attaque de Morsure contre un adversaire approprié, elle récupère autant de Points de Blessure que son adversaire en perd. Boire du sang de cette façon est la seule manière pour elle de se soigner. »
 
 Le Vol de vie ne s'applique qu'à la **Morsure** (pas aux autres attaques), et c'est **l'unique** moyen de soin de la créature.
@@ -3144,6 +3146,18 @@ La créature est **immunisée à son propre Souffle**. **Il s'agit d'une Attaque
 
 — `LDB 85 l.323-330`
 
+#### Types imprimés hors de la liste
+
+Seuls les six Types ci-dessus ajoutent une règle : « si le trait indique l'un des *Types* suivants entre parenthèses, appliquez également les règles correspondantes » (`LDB 85 l.322`). Un statbloc peut imprimer un autre Type, qui se lit ainsi (lecture recommandée, révisable (#3038)) :
+
+| Statbloc | Type imprimé | Lecture |
+|---|---|---|
+| Dragon (`LDB 79 l.51`) | « Souffle +15 (divers) » | le livre laisse le Type ouvert (« Les effets de leur célèbre souffle sont aussi variés que leur apparence », `ZI 03 l.7`) : **Feu** |
+| Géant (`LDB 79 l.82`) | « Souffle (Vomi d'ivrogne) » | Type sans règle propre (aucune dans les livres) : le Souffle seul, par `LDB 85 l.322` |
+| Squig des cavernes (`LDB 79 l.207-209`) | « Souffle (acide ou gaz) » | deux Traits facultatifs au choix : **Corrosif** (« acidité corrosive », `LDB 85 l.447`) ou **Poison** (gaz toxique) |
+
+Les trois Types du *Zoo impérial* qui impriment leur propre règle (Bave gluante, Soporifique, Cauchemars) ont leur topic : [Règles propres des Types de Souffle du Zoo impérial](#règles-propres-des-types-de-souffle-du-zoo-impérial).
+
 ### Étreinte Glaciale
 
 Le toucher de la créature glace l'âme de l'ennemi. **Au prix de 2 Avantages ET de son Action**, elle tente un **Test opposé de CC/Corps à corps ou Esquive**. Sur un **succès**, l'adversaire **perd automatiquement 1d10 + DR Blessures qui ignorent le Bonus d'Endurance ET les PA**. **Il s'agit d'une Attaque magique.**
@@ -3210,6 +3224,20 @@ La créature vomit un flot de corruption corrosive. **Pendant son tour, au prix 
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecombatsynthese-comparative-cout-action-defense-magie)
 
+### Règles propres des Types de Souffle du Zoo impérial
+
+Trois statblocs du *Zoo impérial* impriment un Type de Souffle absent de la liste de `LDB 85 l.323-330`, avec sa règle propre :
+
+| Type | Règle | Créature |
+|---|---|---|
+| **Bave gluante** | « les Blessures infligées ignorent les Points d'Armure. Pendant un nombre de Rounds égal au Bonus d'Endurance de la gueule d'effroi, les créatures touchées par cette substance doivent effectuer un Test d'**Agilité Accessible (+20)** chaque fois qu'elles veulent agir. En cas d'échec, elles glissent à cause de la substance et gagnent immédiatement l'État *À Terre*. » — `ZI 02 l.56` | Gueule d'effroi (`ZI 02 l.54`) |
+| **Soporifique** | « le Souffle soporifique ignore les Points d'Armure. Toute cible blessée par cette attaque doit effectuer un Test de **Force Mentale Difficile (-20)**. En cas d'échec, elle gagne le Trait Stupide pendant un nombre de Rounds égal au Bonus d'Endurance du dragon. » — `ZI 03 l.27` | Dragon de la forêt (`ZI 03 l.25`) |
+| **Cauchemars** | « toute Blessure infligée par le Souffle du fantasma ignore les Points d'Armure. Les cibles blessées doivent immédiatement faire un Test contre l'effet du Trait Terreur 2 basé sur la Résistance plutôt que sur le Calme. Remarque : même les cibles immunisées contre la *Peur* ou la *Terreur* doivent effectuer ce Test, car il ne s'agit pas d'un effet psychologique, mais de l'effet distordu d'un poison. » — `ZI 13 l.128` | Le Fantasma (`ZI 13 l.126`) |
+
+L'app applique l'ignorance des PA des trois Types. Le reste de chaque règle (Test à chaque Action puis *À Terre* ; Test de Force Mentale puis Trait Stupide sur une cible blessée ; Test de Terreur 2 sur la Résistance, immunités comprises) est une dette ouverte : #3272.
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecombatregles-propres-des-types-de-souffle-du-zoo-imperial)
+
 ---
 
 ## Traits de défense et de résilience des créatures
@@ -3230,7 +3258,15 @@ Ces Traits de créature (LDB chap. 85, *Traits de créature*) régissent **comme
 Lecture du livre (arbitrage du 2026-10-27, #1463) : la parenthèse restreint l'Armure aux Localisations qu'elle désigne, sinon l'Indice vaut à toutes ses Localisations (`LDB 85 l.39`).
 - Localisations nommées ou Indice par zone : tels qu'imprimés ; « Poitrine » est le Corps ; les pattes sont les Localisations du quadrupède (`AA 09 l.94-104`).
 - Pièces de la table, une ou plusieurs : l'union de leurs Emplacements, « la Localisation que l'Armure protège » (`LDB 63 l.13`), lus à la table (`LDB 63 l.39-58`) ; « Casque » est un Heaume.
-- Aspect à toutes les Localisations : une catégorie des règles rapides, Légère ou Moyenne, dont les Emplacements sont Tous (`LDB 63 l.97-103`) ; une nature du corps (peau, écailles, fourrure, chitine) ; un ensemble ou une matière hors table (Cuir, Demi-plate, Plate complète, Divers) (`LDB 85 l.39`).
+- Aspect à toutes les Localisations : une catégorie des règles rapides, Légère, Moyenne ou Lourde, dont les Emplacements sont Tous (`LDB 63 l.97-103`) ; une nature du corps (peau, écailles, fourrure, chitine) ; un ensemble ou une matière hors table (Cuir, Demi-plate, Plate complète, Divers) (`LDB 85 l.39`).
+
+Matière de l'Armure du Trait, lue par Perforante (« Les PA ne provenant pas de métal sont ignorés » — `LDB 62 l.270`), les Domaines des Cieux et du Métal (`LDB 48 l.106`, `l.399`) et la Magie des Arcanes (`LDB 46 l.150-152`) :
+- Pièces de la table : la matière de leur Groupe, cuir souple ou cuir bouilli, mailles ou plate (`LDB 63 l.41-58`) ; « Casque » est un Heaume, de plate — lecture recommandée, révisable (#1463).
+- Pièces de deux matières sous un seul Indice (« Armure (Veste de cuir et cotte de mailles) 2 » — `EDOC 10 l.130`) : de métal quand les PA des pièces de métal atteignent l'Indice à chaque Localisation protégée, sinon inconnue ; une matière par Localisation n'est lue d'aucun profil de la donnée — lecture recommandée, révisable (#1463).
+- Règles rapides : Légère en cuir, Moyenne en mailles, Lourde en plate (« Les Légères sont principalement en cuir, les Moyennes en maille et les Lourdes en plate » — `LDB 63 l.97`) ; Cuir en cuir ; Plate (Demi-plate, Plate complète) en métal — lecture recommandée, révisable (#1463).
+- Nature du corps (peau, écailles, fourrure, chitine) : ni métal ni cuir, ignorée par Perforante — lecture recommandée, révisable (#1463).
+- Ni pièce ni Aspect de matière (Indice seul, Divers, zones seules) : matière inconnue, qu'aucune règle ne contourne, sauf quand le profil la dit ailleurs, lue par les règles des pièces et des Aspects ci-dessus : une armure nommée (« Un familier de combat commence avec une armure de plates complète » — `VDM 13 l.497`) ; un Aspect des règles rapides en Possessions (armure lourde, `MDG 16 l.464`, en plate selon `LDB 63 l.97`) ; des pièces de métal dont les PA atteignent l'Indice à chaque Localisation (« pansière, cotte de mailles et chausses, coiffe de mailles » — `ADE II 01 l.229`). Des Possessions qui laissent une Localisation sous l'Indice en métal, mêlent les matières ou nomment une armure hors table laissent la matière inconnue — lecture recommandée, révisable (#1463).
+- « Tout Lanceur de Sorts portant une armure » (`LDB 46 l.150`) : le Trait Armure de métal ou de cuir est une armure portée et compte ; celui de matière Chaos aussi, que seuls les Sorciers du Chaos portent sans pénalité (`VDM 02 l.169`) ; la peau et la matière inconnue ne comptent pas — lecture recommandée, révisable (#1463).
 
 **Protection (Indice).** « Parce qu'elles sont magiques, bénéficient d'un talisman particulier ou sont simplement chanceuses, certaines créatures semblent éviter les coups. Lancer **1d10 après chaque coup reçu**. En cas de résultat **supérieur ou égal à *Indice***, le coup est ignoré **même s'il s'agit d'un Critique**. » C'est une **sauvegarde** (ward save) post-touche : un seul jet par coup ; sur réussite, l'intégralité du coup (Dégâts ET Critique) est annulée. Le seuil s'écrit « N+ » (ex. *Protection 7+* = réussit sur 7, 8, 9, 10). — `LDB 85 l.277-278`
 
@@ -3240,7 +3276,14 @@ La sauvegarde agit sur le coup reçu, pas sur le jet de l'attaquant, et le texte
 
 **Éthéré.** « La créature est immatérielle, ce qui lui permet de **passer à travers les objets solides**. Elle ne peut être blessée que par les **Attaques magiques**. » — `LDB 85 l.134`. Une attaque non magique ne la blesse pas ; seules les Attaques magiques (sorts, arme magique, créature *Magique*/*Démoniaque*) la blessent. Le texte dit *blessée*, pas *touchée* : un double réussi d'une arme non magique reste un Critique obtenu au jet de l'attaquant (`LDB 13 l.183`), que la cible ne subit pas ; la seconde frappe du *Maniement de deux armes* garde « le lancer du tableau des Critiques » (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
 
-**Immunité (Type).** « La créature est totalement immunisée à un certain *Type* de Dégâts, comme ceux du poison, magiques ou électriques. **Tous les Dégâts de ce *Type*, y compris les Dégâts Critiques, sont ignorés.** » Annulation totale (Dégâts + Critiques) du type indiqué entre parenthèses (ex. *Immunité (Poison)*, *Immunité (Feu)*). — `LDB 85 l.172-173`
+**Immunité (Type).** « La créature est totalement immunisée à un certain *Type* de Dégâts, comme ceux du poison, magiques ou électriques. **Tous les Dégâts de ce *Type*, y compris les Dégâts Critiques, sont ignorés.** » Annulation totale (Dégâts + Critiques) du type indiqué entre parenthèses (ex. *Immunité (Poison)*, *Immunité (Feu)*). — `LDB 85 l.172-174`
+
+- Souffle d'un Type de Dégâts (`LDB 85 l.326-328`) : l'Immunité à ce Type annule ses Dégâts et la règle du Type (Souffle (Poison) : ni Dégâts ni *Empoisonné*) — lecture recommandée, révisable (#3074).
+- *Immunité (Feu)* couvre le Souffle (Feu) et l'État *En flammes* (« Dégâts de feu, y compris pour l'État *En flammes* et les attaques de Souffle » — `VDM 10 l.153`), pas les Sorts du Domaine du Feu, que « Immunité (Feu, Magie flamboyante) » nomme à part (`ZI 08 l.28`) — lecture recommandée, révisable (#3074).
+- *Immunité (Magie flamboyante)*, *Immunité (Shyish)*, « Immunité (tous les feux) » (= Feu + Magie flamboyante) : immunité aux effets des Sorts du Domaine nommé, comme *Manifestation de Ghur* (`ZI 08 l.28` ; `VDM 13 l.24`, `l.61`) — lecture recommandée, révisable (#3074).
+- Souffle (Corrosion et Poison) (`EDOC 13 l.237`) : *Immunité (Poison)* annule la règle Poison, pas les Dégâts ni la corrosion — lecture recommandée, révisable (#3074).
+- *Immunité (Magique)* : aucun porteur en donnée, rien n'est typé « magique » — lecture recommandée, révisable (#3074).
+- La perte de fin de Round d'*Empoisonné* (`LDB 16 l.72`) n'est pas typée : sans objet, *Immunité (Poison)* bloque la pose de l'État — lecture recommandée, révisable (#3074).
 
 **Résistance à la Magie (Indice).** « La Magie n'affecte pas la créature autant que les autres. Le **DR de tous les Sorts** l'affectant est **réduit du nombre indiqué**. Ainsi, *Résistance à la Magie 2* réduit le DR de 2. » Ce n'est pas une annulation : on **soustrait l'Indice au nombre de Degrés de Réussite** du lanceur sur cette cible (réduisant la puissance/durée/dégâts par-DR du sort). — `LDB 85 l.302`
 
@@ -3296,7 +3339,7 @@ Les Dégâts dus au **Feu** sont notés à part et **jamais** régénérés. —
 - `LDB 85 l.277-278` — **Protection (Indice)** : 1d10 après chaque coup, ≥ Indice → coup ignoré même Critique (ward save).
 - `LDB 85 l.95-98` — **Démoniaque (Indice)** : attaques Magiques + sauvegarde 1d10 ≥ Indice (Critique inclus) + à 0 PB banni vers les Royaumes du Chaos ; sans besoin d'eau/nourriture/air.
 - `LDB 85 l.132-134` — **Éthéré** : immatériel, traverse les solides, blessé uniquement par Attaques magiques.
-- `LDB 85 l.172-173` — **Immunité (Type)** : Dégâts du Type (Critiques inclus) totalement ignorés.
+- `LDB 85 l.172-174` — **Immunité (Type)** : Dégâts du Type (Critiques inclus) totalement ignorés.
 - `LDB 85 l.302` — **Résistance à la Magie (Indice)** : DR de tous les Sorts l'affectant réduit de l'Indice (ex. 2 → −2 DR).
 - `LDB 85 l.195-195` — **Insensible à la Douleur** : pénalités de Critiques non-amputants ignorées ; États subis normalement.
 - `LDB 85 l.293-302` — **Régénération** : début de Round, >0 PB → +1d10 PB ; à 0 PB → 8+ régénère 1 PB ; 10 régénère aussi 1 Critique ; Feu jamais régénéré (noté à part).

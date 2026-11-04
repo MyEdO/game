@@ -14,7 +14,7 @@
  * IMPURES `delayed` (Bonnet de fou/Délice de Ranald/Belladone) sont PROGRAMMÉES (`scheduleDelayedOps`).
  */
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
-import { isConsumable, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
+import { isConsumable, consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { evalCondition, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
 import { condCtx } from './bourseFlow';
@@ -126,7 +126,8 @@ function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
  *  jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE de `usePartyItem` et
  *  de `battleUseItem`, avant toute consommation. */
 export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | null {
-  const ops = item.consumable ? opsDeReussiteDuFlow(item.consumable) : null;
+  const flow = consommableDe(item);
+  const ops = flow ? opsDeReussiteDuFlow(flow) : null;
   const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
   const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
   return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;
@@ -134,10 +135,11 @@ export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | 
 
 /** Exécute le Flow d'un consommable sur son buveur (durée résolue + bake, puis la voie du contexte). */
 export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemInstance): void {
-  if (!item.consumable) return;
+  const flow = consommableDe(item);
+  if (!flow) return;
   const now = get().gameTime;
   const untilTime = consumableUntilTime(item, now, hero, battleRng());
-  const baked = bakeConsumableFlow(item.consumable, hero.id, untilTime, item.label);
+  const baked = bakeConsumableFlow(flow, hero.id, untilTime, item.label);
   const inBattle = !!get().battle && get().battle!.combatants.some((c) => c.id === hero.id);
   // ENTITÉ PORTEUSE du Flow : la POSSESSION bue (id de catalogue). Un objet CUSTOM (hors catalogue)
   // n'en a pas — il n'a pas de fiche où renvoyer, la dérivation d'enjeu se tait alors (#1262 V2 L6d).

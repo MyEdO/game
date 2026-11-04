@@ -1,8 +1,8 @@
 /**
  * Schéma de `groups.json` — registre des Groupes d'APPARTENANCE (LDB 21, Traits psy ciblés), miroir de
- * `GroupData` (`src/data/index.ts`). Une entrée porte `id`+`label` ; un Groupe JOKER (`tout`, `vivant`)
- * porte le couple `matchesAll`/`exceptGroups` ; un Groupe RELATIF, son `relatif` ; un Groupe COMPOSITE, son
- * `inclut` ; une Race, son marqueur `race` (ADE II 09 l.15).
+ * `GroupData` (`src/data/index.ts`). Une entrée porte `id`+`label` ; un Groupe JOKER (`tout`, `vivant`), son
+ * `matchesAll` ; un Groupe RELATIF, son `relatif` ; un Groupe COMPOSITE, son `inclut` ; un Groupe-cible, les
+ * Groupes qu'il retranche (`exceptGroups`) ; une Race, son marqueur `race` (ADE II 09 l.15).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -30,7 +30,8 @@ const doc = document(
     /** Groupe-CIBLE JOKER : il vise n'importe quel combattant (`groupMatch`), hormis les porteurs
      *  d'un `exceptGroups`. Absent = appartenance STRICTE par id. */
     matchesAll: z.literal(true).optional(),
-    /** Ids de `groups.json` RETRANCHÉS du joker — un combattant qui en porte un n'est pas visé. */
+    /** Ids de `groups.json` RETRANCHÉS du Groupe visé, joker ou composite — un combattant qui en porte un
+     *  n'est pas visé (`groupMatch`). */
     exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
     /** Groupe-CIBLE RELATIF : ses membres se lisent par rapport au PORTEUR du Trait psy qui le vise
      *  (`vise`, `engine/psychology.ts`) ; personne ne le déclare. #3045 */
@@ -43,7 +44,7 @@ const doc = document(
   },
   {
     matchesAll: { label: 'Groupe joker', hint: 'Vise tout combattant, hormis les porteurs d’un Groupe exclu' },
-    exceptGroups: { label: 'Groupes exclus', hint: 'Groupes qui retranchent leur porteur du joker' },
+    exceptGroups: { label: 'Groupes exclus', hint: 'Groupes qui retranchent leur porteur du Groupe visé' },
     relatif: { label: 'Groupe relatif', hint: 'Ses membres se lisent par rapport au porteur du Trait psy qui le vise' },
     race: { label: 'Race', hint: 'Ce Groupe est une Race' },
     inclut: { label: 'Groupes inclus', hint: 'Le Groupe vise tout membre de l’un de ces Groupes' },

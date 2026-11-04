@@ -18,7 +18,7 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { emptyArmour, buildWeapon, deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
+import { deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -374,7 +374,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     advantage: 0,
     conditions: [],
     weapons: [],
-    armour: emptyArmour(sb.armour ?? 0),
+    armour: armourFromTraits(traits),
     size,
     bodyShape: swarm ? 'humanoide' : bodyShapeForSpecies(appearance?.species), // Tableau de Localisation (LDB 76 l.15-29) — espèce AUTHORÉE (id, jamais sb.label), Nuée force 'humanoide' (#814 : divergence possible avec `bodyShapeOf` sur un preset de campagne fusionnant Nuée hors registre global)
     ...(sb.inert ? { inert: true } : {}), // affût inerte servi (AA/MDG 12) : ciblable, sans réaction de combat ni tour
@@ -393,9 +393,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   const horsNuee = traits.filter((t) => !isSwarm([t]));
   const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees({ ...sansBlessures, traits: horsNuee, liveTraits: horsNuee }, livre) };
   const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
-  // Armes : depuis les Traits si fournis (« Arme (Épée) +7 », « À distance (Arbalète) +9 (60) »),
-  // sinon une arme générique au dégât indiqué.
-  attacherMutationsDeSpawn(combattant, traits, (t) => (t.length ? weaponsFromTraits(t) : [buildWeapon({ label: 'Arme', damage: { literal: sb.weaponDamage ?? '+BF' } })])); // uid universel
+  attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
 }

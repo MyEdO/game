@@ -29,7 +29,7 @@ function holdPending(over: Partial<PendingActivity> = {}): PendingActivity {
   useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3, enemyName: ARMEE });
   return {
     heroId: hero.id, kind: 'catalog', activityId: 'tenez-votre-position', battle: 'round',
-    label: 'Tenez votre position', skillLabel: 'Corps à corps', skillValue: 42, difficulty: 'intermediaire',
+    label: 'Tenez votre position', skillLabel: 'Corps à corps', skillValue: 42, difficulty: 'intermediaire', ligne: { base: 42, mods: [], target: 42, difficulty: 'intermediaire' },
     roll: 31, target: 42, sl: 1, success: true,
     enemyValue: 75, enemyRoll: 34, enemyBase: 55, skillBase: 42, enemySL: 0,
     ...over,

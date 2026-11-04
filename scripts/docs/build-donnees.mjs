@@ -169,8 +169,8 @@ function rendu() {
   ].join("\n")
   out += `- **\`source.book\`** = l'\`id\` STABLE d'un livre de \`src/data/books.json\` (slug neutre, ex.\n`
   out += `  \`livre-de-base\`, \`archives-de-l-empire-2\`, \`mer-des-griffes\`) — **jamais** l'abréviation d'affichage ni\n`
-  out += `  le libellé. Relation **id-pure** (i18n-safe) : \`books.json\` est la source de vérité, **enforced** par\n`
-  out += `  \`src/data/book-source-integrity.test.ts\` (tout \`source.book\` ∈ ids de livres). L'affichage résout\n`
+  out += `  le libellé. Relation **id-pure** (i18n-safe) : \`books.json\` est la source de vérité : un id hors\n`
+  out += `  d'elle est refusé au parse (\`idDe('book')\`, \`src/data/schemas/grammaire/valeurs.ts\`). L'affichage résout\n`
   out += `  id→\`abr\` via \`bookAbr\` (choke-point \`registry.ts\` \`src()\`). Pour un ajout : copier l'\`id\` d'une entrée\n`
   out += `  voisine du même livre (\`grep '"book"' <fichier>\`), ou le lire dans \`books.json\`.\n`
   out += `- **\`source.page\`** = la **page IMPRIMÉE du livre** (le folio), comme la donnée existante (ex. LDB « À\n`
@@ -231,9 +231,9 @@ function rendu() {
   out += '  ```\n'
   out += `  (Lot 2, #563 : 15 entrées migrées — republications identiques et scissions prose/ligne-de-stats.)\n`
   out += `- **\`variants?: Variant[]\`** (#563/#564) — variante RÉGLÉE d'une entrée sous une **règle optionnelle**\n`
-  out += `  du registre \`OPTIONAL_RULES\` (\`src/engine/policy.ts\`, lue par \`rule(id)\`) : \`when.rule\` DOIT être\n`
-  out += `  un id du registre (jamais un label, gate fantôme sinon — **enforced** par\n`
-  out += `  \`src/data/variants-integrity.test.ts\`), \`when.equals\` défaut \`true\` ; \`desc\`/\`source\` PROPRES\n`
+  out += `  du registre \`OPTIONAL_RULES\` (\`src/engine/policy.ts\`, lue par \`rule(id)\`) : \`when.rule\` est\n`
+  out += `  un id du registre, refusé au parse hors de ses ids (\`idDe('regleOptionnelle')\`,\n`
+  out += `  \`src/data/schemas/grammaire/valeurs.ts\`), \`when.equals\` défaut \`true\` ; \`desc\`/\`source\` PROPRES\n`
   out += `  portent la règle 5 **par variante** (le walk \`citedEntriesOf\` de \`folioIntegrity.mjs\` la découvre\n`
   out += `  déjà, structurellement identique à une entrée) ; \`combat\` réutilise \`CombatFeature\` tel quel.\n`
   out += `  Résolution : \`effectiveEntry(entry)\` (\`src/engine/variants.ts\`) — PRIMITIVE UNIQUE, applique la\n`

@@ -3,14 +3,15 @@
  * Un combattant possède plusieurs IDS de Groupe STABLES (jamais traduits, cf. `src/data/groups.json`).
  * DEUX parts : les Groupes DÉCLARÉS, posés une fois sur `Combatant.groups` (espèce, entrée du bestiaire et
  * son genre, statbloc, extras d'éditeur) et les Groupes que l'état VIVANT du porteur confère (Traits portés,
- * carrière et classe, culte du Talent de Prière, mutations), lus en direct par `groupesDe`, SEUL accesseur
+ * carrière et classe, Talents et leur spécialisation, États, maladie déclarée, mutations, monture), lus en direct par `groupesDe`, SEUL accesseur
  * des Groupes effectifs. Les Cibles des traits psy (Animosité (Elfes), Haine (Skavens)…) sont
  * normalisées en id de Groupe (cf. `psych/registry.ts`) et mises en correspondance avec ces ids. Pur.
  * Cf. spec : docs/superpowers/specs/2026-06-07-psychologie-design.md (§3).
  */
-import { norm } from '../lib/normalize';
 import type { TraitInstance } from './statEntry';
-import { findCareerById, findClassById, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, groups, type CreatureData } from '../data';
+import type { ConditionInstance } from './types';
+import { maladieDeclaree, type Disease } from './disease';
+import { findCareerById, findClassById, findConditionById, findCreatureById, findGroupById, findSpeciesById, findTalentById, findTraitById, groups, SPEC_SOURCES, type CreatureData, type SpecsSource } from '../data';
 
 /** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.56, l.181. */
 const GROUPE_DES_MUTANTS = 'mutants';
@@ -18,8 +19,11 @@ const GROUPE_DES_MUTANTS = 'mutants';
 /** Groupe de tout combattant monté (`Combatant.mountId`, `groups.json`). AA 04 l.204 ; Q13 A, #3045 */
 const GROUPE_DE_LA_CAVALERIE = 'cavalerie';
 
+/** Groupe de tout porteur d'une maladie déclarée (`groups.json`). EDOC 12 l.170-197 ; Q2 A, #3045 */
+const GROUPE_DES_MALADES = 'maladie';
+
 /** Groupes DÉCLARÉS, posés une fois sur `Combatant.groups` : espèce (`SpeciesData.grantGroups`) ∪ entrée du
- *  bestiaire (`CreatureData.grantGroups`, sa catégorie, puis ceux de son `genre`, de genre en genre) ∪ extras
+ *  bestiaire (`CreatureData.grantGroups`, puis ceux de son `genre`, de genre en genre) ∪ extras
  *  (déjà des ids — `groups` d'un statbloc, saisie d'éditeur). Dédupliqué par id EXACT, ordre stable. */
 export function groupsFor(src: { speciesId?: string; creature?: Pick<CreatureData, 'grantGroups' | 'genre'>; extras?: readonly string[] }): string[] {
   const out: string[] = [];
@@ -34,36 +38,55 @@ export function groupsFor(src: { speciesId?: string; creature?: Pick<CreatureDat
 }
 
 /** Ce que `groupesDe` lit d'un porteur : ses Groupes déclarés, ses Traits par leur désignation, sa carrière,
- *  la VUE de ses Talents (`talentId` + `spec` suffisent au culte), ses mutations et sa monture. */
+ *  la VUE de ses Talents (`talentId` + `spec`), ses États, ses maladies, ses mutations et sa monture. */
 export interface PorteurDeGroupes {
   groups?: readonly string[];
-  traits?: readonly Pick<TraitInstance, 'id' | 'hidden'>[];
+  traits?: readonly Pick<TraitInstance, 'id' | 'arg' | 'hidden'>[];
   career?: string;
   talents?: readonly { talentId: string; spec?: string }[];
+  conditions?: readonly Pick<ConditionInstance, 'id'>[];
+  diseases?: readonly Pick<Disease, 'phase'>[];
   mutations?: readonly unknown[];
   mountId?: string;
 }
 
-/** Groupes EFFECTIFS d'un porteur, lus en direct : Groupes DÉCLARÉS (`Combatant.groups`) ∪ Traits portés,
- *  octroyés compris (`TraitData.capabilities.grantGroups`) ∪ carrière et classe (`grantGroups`) ∪ culte du
- *  Talent de Prière (`GodData.grantGroups`, via `TalentData.grantSpecGroups`) ∪ Mutants pour le porteur d'au
- *  moins une mutation ∪ Cavalerie pour le combattant monté. Dédupliqué par id EXACT, ordre stable. */
+/** Groupes de l'entrée que nomme la `valeur` (`spec` d'un Talent, `arg` d'un Trait) dans le registre de sa
+ *  définition (`SPEC_SOURCES[specsSource].entree`), si la définition porte `grantSpecGroups`. */
+function groupesDeLaValeur(def: { specsSource?: SpecsSource; grantSpecGroups?: true } | undefined, valeur: string | undefined): readonly string[] | undefined {
+  if (!valeur || !def?.grantSpecGroups || !def.specsSource) return undefined;
+  return SPEC_SOURCES[def.specsSource].entree(valeur)?.grantGroups as readonly string[] | undefined;
+}
+
+/** Groupes qu'accorde un Trait porté : ceux de sa définition (`capabilities.grantGroups`) et ceux de son `arg`. */
+function groupesDuTrait(t: Pick<TraitInstance, 'id' | 'arg'>): string[] {
+  const def = findTraitById(t.id);
+  return [...(def?.capabilities?.grantGroups ?? []), ...(groupesDeLaValeur(def, t.arg) ?? [])];
+}
+
+/** Groupes EFFECTIFS d'un porteur, lus en direct : Groupes DÉCLARÉS (`Combatant.groups`) ∪ Traits portés
+ *  (`groupesDuTrait`) ∪ carrière et classe (`grantGroups`) ∪ Talents (`TalentData.grantGroups`, et ceux de leur
+ *  `spec`) ∪ États portés (`EtatData.grantGroups`) ∪ Maladie pour le porteur d'une maladie déclarée ∪ Mutants
+ *  pour le porteur d'au moins une mutation ∪ Cavalerie pour le combattant monté. Dédupliqué par id EXACT,
+ *  ordre stable. */
 export function groupesDe(c: PorteurDeGroupes): string[] {
   const out: string[] = [];
   const pushAll = (gs?: readonly string[]) => {
     for (const g of gs ?? []) if (!out.includes(g)) out.push(g);
   };
   pushAll(c.groups);
-  for (const t of c.traits ?? []) pushAll(findTraitById(t.id)?.capabilities?.grantGroups);
+  for (const t of c.traits ?? []) pushAll(groupesDuTrait(t));
   if (c.career) {
     const career = findCareerById(c.career);
     pushAll(career?.grantGroups);
     pushAll(findClassById(career?.class)?.grantGroups);
   }
   for (const t of c.talents ?? []) {
-    if (!t.spec || !findTalentById(t.talentId)?.grantSpecGroups) continue;
-    pushAll(findGodById(norm(t.spec))?.grantGroups);
+    const def = findTalentById(t.talentId);
+    pushAll(def?.grantGroups);
+    pushAll(groupesDeLaValeur(def, t.spec));
   }
+  for (const e of c.conditions ?? []) pushAll(findConditionById(e.id)?.grantGroups);
+  if (c.diseases?.some(maladieDeclaree)) pushAll([GROUPE_DES_MALADES]);
   if (c.mutations?.length) pushAll([GROUPE_DES_MUTANTS]);
   if (c.mountId) pushAll([GROUPE_DE_LA_CAVALERIE]);
   return out;
@@ -76,14 +99,14 @@ export function groupesPercus(c: PorteurDeGroupes): string[] {
   return groupesDe(c).filter((g) => !caches.includes(g));
 }
 
-/** Ids de Groupe accordés par `capabilities.grantGroups` d'un Trait porté DISSIMULÉ (`TraitInstance.hidden`,
- *  arbitrage `maison` MDG 07 l.250), lus en direct sur `c.traits` : `groupesPercus` les retire des Groupes
+/** Ids de Groupe accordés par un Trait porté DISSIMULÉ (`TraitInstance.hidden`, arbitrage `maison`
+ *  MDG 07 l.250 ; `groupesDuTrait`), lus en direct sur `c.traits` : `groupesPercus` les retire des Groupes
  *  effectifs. */
 export function hiddenGroupsOf(c: Pick<PorteurDeGroupes, 'traits'>): string[] {
   const out: string[] = [];
   for (const t of c.traits ?? []) {
     if (!t.hidden) continue;
-    for (const g of findTraitById(t.id)?.capabilities?.grantGroups ?? []) if (!out.includes(g)) out.push(g);
+    for (const g of groupesDuTrait(t)) if (!out.includes(g)) out.push(g);
   }
   return out;
 }
@@ -100,10 +123,11 @@ export function racesDe(groupIds: readonly string[]): string[] {
  *  `groups` (ids) du combattant ? Appartenance STRICTE par id — plus de tolérance de pluriel/casse. Un
  *  sous-type sans Groupe dédié dans `groups.json` (ex. « Menteurs, trompeurs, sophistes ») reste INERTE
  *  plutôt que de dériver un sous-groupe inventé (YAGNI). Un Groupe-cible JOKER (`GroupData.matchesAll`,
- *  `groups.json` : `tout` = n'importe qui — Animosité « toutes les créatures !!! » ; `vivant` =
- *  `matchesAll` moins ses `exceptGroups`) et un Groupe-cible COMPOSITE (`GroupData.inclut`, Q13 A, #3045 :
- *  tout membre de l'un des Groupes inclus) sont résolus ICI, sur la donnée du Groupe visé ; un Groupe déjà
- *  traversé sur le chemin (cycle d'`inclut` ou d'`exceptGroups`) ne correspond pas. */
+ *  `groups.json` : `tout` = n'importe qui — Animosité « toutes les créatures !!! ») et un Groupe-cible
+ *  COMPOSITE (`GroupData.inclut`, Q13 A, #3045 : tout membre de l'un des Groupes inclus) sont résolus ICI,
+ *  sur la donnée du Groupe visé ; tout Groupe-cible retranche ensuite les porteurs de ses `exceptGroups`
+ *  (`vivant` = tout sauf Mort-vivant et Démon ; `animaux-sauvages` = Bête sauf Animaux domestiques et
+ *  Monstres). Un Groupe déjà traversé sur le chemin (cycle d'`inclut` ou d'`exceptGroups`) ne correspond pas. */
 export function groupMatch(cibleId: string, groupIds: readonly string[]): boolean {
   return correspond(cibleId, groupIds, []);
 }
@@ -112,7 +136,6 @@ function correspond(cibleId: string, groupIds: readonly string[], chemin: readon
   if (chemin.includes(cibleId)) return false;
   const suite = [...chemin, cibleId];
   const cible = findGroupById(cibleId);
-  if (cible?.matchesAll) return !(cible.exceptGroups ?? []).some((g) => correspond(g, groupIds, suite));
-  if (cible?.inclut) return cible.inclut.some((g) => correspond(g, groupIds, suite));
-  return groupIds.includes(cibleId);
+  const membre = cible?.matchesAll || (cible?.inclut ? cible.inclut.some((g) => correspond(g, groupIds, suite)) : groupIds.includes(cibleId));
+  return membre && !(cible?.exceptGroups ?? []).some((g) => correspond(g, groupIds, suite));
 }

@@ -23,7 +23,7 @@ import { ast } from './dialecte.mjs';
 // `scanRegistryIdBranch`.
 import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
-import { estFichierVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { estTableTotale } from './canonUnique.mjs';
 
 /** Liaison LOCALE du compilateur : sous le transformeur SSR de Vitest, chaque `ts.x` d'un import est
@@ -51,14 +51,14 @@ export function arbreDe(relPath, contenu) {
 
 /**
  * Fichiers HORS périmètre, par FORME et non par nom d'offenseur :
- *  - les TESTS (`*.test.ts(x)`) : y comparer un id est la manière normale d'assérer sur une entrée
+ *  - les TESTS (`*.test.ts(x)`) et leurs kits (`*.testkit.*`) : y comparer un id est la manière normale d'assérer sur une entrée
  *    précise — un test EST spécifique par nature ;
  *  - les MIGRATIONS (`*migration*`) : une migration ponctuelle de données nomme forcément les
  *    entrées de l'état ancien à convertir ; elle est datée, pas un code générique pérenne.
  * @param {string} rel chemin relatif à la racine, séparateurs `/` @returns {boolean}
  */
 export function isRegistryIdBranchExcluded(rel) {
-  return estFichierVitest(rel) || /migration/i.test(rel);
+  return estFichierVitest(rel) || estKitDeTest(rel) || /migration/i.test(rel);
 }
 
 /** Nom d'IDENTITÉ : `id`/`ref` exactement, ou un nom suffixé `Id`/`Ref` (`entityId`, `ruleId`,

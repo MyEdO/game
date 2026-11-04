@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 
@@ -217,7 +217,7 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
   });
 
   it('aucune source suivie hors instruments ne porte une lecture d’hôte (tolérance ZÉRO)', { timeout: 60_000 }, () => {
-    const suivies: string[] = sourcesSuivies().filter((rel: string) => !estFichierVitest(rel));
+    const suivies: string[] = sourcesSuivies().filter((rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel));
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
     const fichiers: { rel: string; text: string }[] = [];

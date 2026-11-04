@@ -2,8 +2,8 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * RULE_REF (#1078 LOT B3a) — deux gardes.
  *
- * 1. INTÉGRITÉ : chaque entrée pointe une fiche Codex qui EXISTE, par id stable. Re-pointer une
- *    entrée ailleurs (ou renommer l'entrée de donnée) échoue ici.
+ * 1. INTÉGRITÉ des renvois que le type ne juge pas : ceux d'une catégorie Codex SANS espace d'ids
+ *    (`RenvoiCodexSansEspace`, `grammaire/ref.ts`) et les refs PRODUITES par le moteur.
  * 2. CLIQUET NOMINATIF : le stock des producteurs de `ModLine` SANS `ref` est ÉNUMÉRÉ,
  *    `fichier:label` par `fichier:label`. Lier une règle de plus retire sa ligne du stock (la liste
  *    DÉCROÎT) ; en pousser une nouvelle SANS `ref` échoue immédiatement.
@@ -26,21 +26,21 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { RULE_REF, RANGEES_DE_REGLE, type RuleId, type RegleChiffree } from './ruleRefs';
-import { refDeRegle } from './reglesChiffrees';
+import { RULE_REF } from './ruleRefs';
+import { CATEGORIE_CODEX_DU_FICHIER } from '../data/schemas/_cles-de-dataset.generated';
+import { IDS_PAR_ESPACE } from '../data/schemas/_ids.generated';
 import { weatherRef } from './travelStages';
 import { weatherIdSchema } from '../data/schemas/defs/weather';
 import { windsModLine, windsModFromRoll } from './windsOfMagic';
 import { codexLookupById } from '../ui/compendium/registry';
 
 describe('RULE_REF — la référence pointe une fiche Codex réelle', () => {
-  it('chaque règle référencée existe au catalogue, par id STABLE', () => {
-    for (const [rule, ref] of Object.entries(RULE_REF) as [RuleId, { category: string; id: string }][]) {
+  it('chaque règle référencée dans une catégorie SANS espace d\'ids existe au catalogue, par id STABLE', () => {
+    const categoriesAEspace = new Set(Object.entries(CATEGORIE_CODEX_DU_FICHIER).filter(([fichier]) => fichier in IDS_PAR_ESPACE).map(([, c]) => c));
+    const sansEspace = Object.entries(RULE_REF).filter(([, ref]) => !categoriesAEspace.has(ref.category));
+    expect(sansEspace.length, 'aucun renvoi hors espace : cette assertion est morte, la supprimer').toBeGreaterThan(0);
+    for (const [rule, ref] of sansEspace) {
       expect(codexLookupById(ref.category, ref.id), `RULE_REF['${rule}'] → ${ref.category}/${ref.id} introuvable au Codex`).toBeTruthy();
-    }
-    for (const rule of Object.keys(RANGEES_DE_REGLE) as RegleChiffree[]) {
-      const ref = refDeRegle(rule);
-      expect(codexLookupById(ref.category, ref.id), `règle chiffrée '${rule}' → ${ref.category}/${ref.id} introuvable au Codex`).toBeTruthy();
     }
   });
 

@@ -11,7 +11,7 @@
 import { traitLisible } from './traits/dispatch';
 import { findTraitById, findManeuverById, findBreathTypeById, findConditionById, maneuvers, type BreathTypeData, type ManeuverDef } from '../data';
 import { t } from '../i18n';
-import { reecrireLesOps, spellEffectOps } from './flowCore';
+import { isEffectOp, reecrireFlow, spellEffectOps, type Condition, type EffectOp, type Flow } from './flowCore';
 import type { TraitInstance, TraitList } from './statEntry';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from './types';
 import type { GameOp } from './ops';
@@ -31,6 +31,8 @@ export interface CreatureAttack {
   label: string;
   /** Indice de Dégâts (« +N », BF inclus) si présent, sinon 0 — lu de l'INSTANCE du trait. */
   bonus: number;
+  /** L'Indice `bonus` inclut déjà le BF du porteur (`TraitData.bfInclus`), lu par `freeAttackWeapon`. */
+  bfInclus?: true;
   /** Alias explicite de `bonus` pour la résolution de Dégâts (`{indiceOf}`) — l'Indice de la manœuvre. */
   indice: number;
   /** Comment l'attaque se déclenche (dérivé de `def.activation`). */
@@ -86,15 +88,43 @@ function regleDuType(regles: BreathTypeData[], difficulte: Difficulty | undefine
     + (suites.length ? t('souffle.enjeu.puis', { suites: suites.join(t('souffle.enjeu.et')) }) : '');
 }
 
-/** Le Souffle `base` composé avec les règles de son Type ; un Type hors registre garde le Souffle seul. Les
+/** La cible n'a pas Immunité au Type de Dégâts `typeDeDegats`. LDB 85 l.174 */
+const sansImmunite = (typeDeDegats: string): Condition => ({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: typeDeDegats } });
+
+/** Une tranche de la feuille des Dégâts : ses ops, et le Type de Dégâts auquel une Immunité les annule. */
+interface Tranche { ops: GameOp[]; typeDeDegats?: string }
+
+/** La feuille `feuille` des Dégâts suivie des règles du Type : chaque tranche sous la porte d'Immunité de son
+ *  Type de Dégâts, les tranches voisines d'un même Type dans une seule feuille, dans l'ordre (les règles
+ *  lisent les Blessures subies, `woundsDealt`). Les Dégâts d'un Type composé n'ont pas de Type. LDB 85 l.174,
+ *  l.326-328 ; EDOC 13 l.237 ; VDM 10 l.153 */
+function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches: Tranche[]): Flow {
+  const fusion = tranches.filter((tr) => tr.ops.length).reduce<Tranche[]>((acc, tr) => {
+    const der = acc[acc.length - 1];
+    if (der && der.typeDeDegats === tr.typeDeDegats) der.ops.push(...tr.ops);
+    else acc.push({ ops: [...tr.ops], typeDeDegats: tr.typeDeDegats });
+    return acc;
+  }, []);
+  const noeuds = fusion.map(({ ops, typeDeDegats }): Flow => {
+    const f: Flow = { ...feuille, effect: { ...feuille.effect, ops } };
+    return typeDeDegats ? { kind: 'if', cond: sansImmunite(typeDeDegats), then: f } : f;
+  });
+  return noeuds.length === 1 ? noeuds[0] : { kind: 'seq', steps: noeuds };
+}
+
+/** Le Souffle `base` composé avec les règles de son Type ; sans Type, le Souffle seul. Les
  *  règles suivent les Dégâts dans leur liste d'ops : elles lisent les Blessures subies (`woundsDealt`).
  *  LDB 85 l.320-329 ; EDOC 13 l.237 */
 export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManeuverDef {
   const type = findBreathTypeById(typeId);
   const regles = type ? typesAppliques(type) : [];
   const ignoreAP = regles.some((r) => r.ignoreAP);
-  const ops = regles.flatMap((r) => opsDeLaRegle(r, difficulte));
-  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireLesOps(e.flow, (o) => (o.op === 'wounds' ? [ignoreAP ? { ...o, ignoreAP: true } : o, ...ops] : o)) }));
+  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'do' && isEffectOp(n.effect) && n.effect.ops.some((o) => o.op === 'wounds')
+    ? feuilleTypee({ ...n, effect: n.effect }, [
+      { ops: n.effect.ops.map((o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)), typeDeDegats: type?.typeDeDegats },
+      ...regles.map((r) => ({ ops: opsDeLaRegle(r, difficulte), typeDeDegats: r.typeDeDegats })),
+    ])
+    : n)) }));
   return {
     ...base,
     label: type ? `${base.label} (${type.label})` : base.label,
@@ -121,16 +151,16 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
     for (const g of findTraitById(inst.id)?.grantsManeuvers ?? []) {
       const def = manoeuvreDeLInstance(g.id, inst);
       if (!def || def.ecartDeTailleMin != null || def.targeting === 'self') continue;
-      const type = inst.arg && !/divers|au choix/i.test(inst.arg) ? inst.arg : undefined;
       const indice = inst.value ?? 0;
       out.push({
-        cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type, def,
+        cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
         trigger: def.activation, avantage: def.advantageCost,
         ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),
         ...(def.targeting === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
         ...(def.kind === 'tentacules' ? { perTentacle: true } : {}),
         ...(inst.confere?.length ? { confere: inst.confere } : {}),
+        ...(inst.value != null && findTraitById(inst.id)?.bfInclus ? { bfInclus: true as const } : {}),
       });
     }
   }

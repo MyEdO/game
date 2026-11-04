@@ -70,12 +70,6 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
 const RAW_KNOWN: Record<string, number> = {
   'scripts/qc/opera-furniture-check.mts': 1,
   'src/engine/activities.ts': 1,
-  // SAIN (#1612) : `bourseInstanceOf` RETROUVE l'instance de la Bourse dans l'inventaire par l'id
-  // STABLE de son trapping (`BOURSE_TRAPPING_ID`, `trappings.json`) — un LOOKUP par référence, pas un
-  // branchement de comportement : aucune conduite ne diffère selon l'id. Même patron que le jumeau
-  // `careerSlots` ('focalisation') ci-dessous ; la constante de module est
-  // résolue par le scan brut (L2 #1548), donc la factorisation ne l'assainit pas et ne le prétend pas.
-  'src/engine/bourse.ts': 1,
   'src/engine/careerSlots.ts': 1, // reste `s.id === 'focalisation'` (lookup par id stable)
   'src/engine/corruption.ts': 2,
   'src/engine/crewedWeapon.ts': 1,
@@ -85,7 +79,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/magic.ts': 2,
   'src/engine/menace.ts': 1,
   'src/engine/provisions.ts': 1,
-  'src/engine/psychology.ts': 2,
+  'src/engine/psychology.ts': 1,
   // 3 → 2 (L2 #1548, commit 3b) : le Test d'équipage d'un Critique fluvial désigne une CARACTÉRISTIQUE
   // (`crewTest.char === 'initiative'`), plus un id de registre de Compétence.
   'src/engine/riverNavigation.ts': 1,
@@ -104,7 +98,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/combatEffects.ts': 3,
   'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
-  'src/noyau/combatManeuvers.ts': 3,
+  'src/noyau/combatManeuvers.ts': 1,
   'src/noyau/combatSlice.ts': 1,
   'src/noyau/gesteDArete.ts': 1, // `talentId === 'grimpeur'` (LDB 15 l.57)
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`
@@ -115,7 +109,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/mount.ts': 1,
   'src/noyau/seaVoyageFlow.ts': 3,
   'src/noyau/travelFlow.ts': 6,
-  'src/noyau/travelPostes.ts': 2,
+  'src/noyau/travelPostes.ts': 1,
   'src/noyau/verdictsDInterlude.ts': 1,
   'src/noyau/monde/vision.ts': 1,
   // Le site de `ui/ownership.ts` est la comparaison au sentinel `'*'` de l'arbitre de modales (owner =

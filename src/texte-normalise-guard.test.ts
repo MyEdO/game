@@ -14,14 +14,14 @@ import {
   comparaisonDAppel, constructionsReserveesDuCorpus, scanConstructionsReservees,
 } from '../scripts/guards/lib/canonUnique.mjs';
 import { corpusDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 const FOYER = 'src/data/source/decoupe.ts';
 
 const COMPARAISON_DE_TEXTE = [{
   ...comparaisonDAppel({ nom: 'comparaison de texte normalisé', fonctions: { [FOYER]: ['normText', 'joinNorm'] } }),
   foyer: FOYER,
-  domaine: (rel: string) => !estFichierVitest(rel),
+  domaine: (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel),
 }];
 
 const IMPORTE = "import { joinNorm, normText } from '../../src/data/source/decoupe.ts';\n";

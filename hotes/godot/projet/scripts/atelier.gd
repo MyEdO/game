@@ -1017,10 +1017,10 @@ func _publier() -> void:
 
 ## Ce que l'écran porte, une fois mis en page : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
 ## (`montes`) et à chaque ligne de pièce (`lignes`) sous sa clé publiée, les erreurs (`_toutes_les_erreurs`), l'onglet
-## montré, le cadre de la glissière de chaque axe `plage` à l'écran (`plages`, avec sa valeur), la composition courante
-## avec ce que `composer` en a monté, ce qui y manque, le texte de son refus et celui de « Copier », les mesures du
-## gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite (`cadre`), la position des os de la base
-## (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`).
+## montré et le défilement de son panneau (`defilement`), le cadre de la glissière de chaque axe `plage` à l'écran
+## (`plages`, avec sa valeur), la composition courante avec ce que `composer` en a monté, ce qui y manque, le texte de
+## son refus et celui de « Copier », les mesures du gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite
+## (`cadre`), la position des os de la base (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
 	var clip: Variant = _lecteur.assigned_animation if _a_un_clip() else null
@@ -1051,6 +1051,7 @@ func _publier_l_ecran() -> void:
 			aides = _aides,
 			erreurs = _toutes_les_erreurs(),
 			onglet = _onglet,
+			defilement = _onglets[_onglet].scroll_vertical,
 			plages = plages,
 			composition = {
 				courante = _composition,

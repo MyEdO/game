@@ -8,7 +8,7 @@ import { byId, psychologies, refLabel, testSkillLabel } from '../data';
 import { t, deElide } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
-import { effectiveChar, bonus } from './characteristics';
+import { effectiveChar, bonusDe } from './characteristics';
 import { assistBonus } from './tests';
 import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
 import { agilityTestPenalty } from './encumbrance';
@@ -363,7 +363,7 @@ export function bestSkilledOption<T extends { skills?: RefDesignee[] }>(
 /** DÉTAIL d'un Soutien (LDB 12 l.187-200) tel qu'il s'AFFICHE : combien de membres soutiennent et le
  *  bonus total qu'ils octroient. FORME UNIQUE, partagée par le moteur (`partyAssisted`/
  *  `bestAssistedOption`), les pendings qui la portent (`noyau/pendings.ts`) et la primitive de
- *  breakdown qui la rend en ligne de mod (`ui/breakdown.ts` — `soutienMod`/`supportSplit`). */
+ *  breakdown qui la rend en ligne de mod (`ui/breakdown.ts` — `soutienMod`). */
 export interface SupportDetail {
   count: number;
   bonus: number;
@@ -495,7 +495,7 @@ export function soutienDetail(
     && (skill ? hasSkillAdvance(c, skill, spec) : true) // LDB 12 l.195
     && (eligible ? eligible(c) : true));
   const ck = effectiveSkillCharKey(leader, skill, { explicit: characteristic, spec });
-  const b = assistBonus(elig.length, bonus(effectiveChar(leader, ck)));
+  const b = assistBonus(elig.length, bonusDe(leader, ck));
   return { count: b / 10, bonus: b, ids: elig.slice(0, b / 10).map((c) => c.id) };
 }
 

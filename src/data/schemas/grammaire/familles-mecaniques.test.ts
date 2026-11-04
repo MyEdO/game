@@ -1,6 +1,6 @@
 /**
  * FAMILLES MÉCANIQUES (`mecaniqueDe`, `grammaire/mecanique.ts`) — le régime d'un champ à choix est un
- * paramètre de la grammaire, et sa PORTÉE est la racine du porteur (#1473, train 2a ; #1897, verdict
+ * paramètre de la grammaire, et sa PORTÉE est la racine du porteur (train 2a ; #1897, verdict
  * 2e-f1 : « `choix` s'ouvre sur opt-in, en une ligne, aux seuls porteurs d'EMPLACEMENT »).
  */
 import { describe, expect, it } from 'vitest';

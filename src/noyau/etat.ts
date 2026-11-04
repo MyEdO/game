@@ -47,18 +47,21 @@ export interface ShootingStance {
 }
 /** Champ de posture armable — l'id porté par le registre des actions (`ActionDef.stance`). */
 export type ShootingStanceKey = keyof ShootingStance;
-/** Un geste qu'un tour d'IA décidé a différé (#3058). */
+/** Un geste différé du tour en cours (#3058, #3059) : décidé par l'IA, ou la frappe du joueur après son approche
+ *  (`frappePilotee`), qui porte en `reprise` le geste de l'IA qu'elle a devancé dans un tour décidé. */
 export type GesteDeSuite =
+  | { kind: 'frappePilotee'; pa: PendingAttack; reprise?: GesteDeSuite }
   | { kind: 'frappe'; cibleId: string }
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
   | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; couru: boolean; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
 
-/** Le tour d'IA d'une clé : `armements` compte ses armements, `suite.n` nomme celui qui est en attente, `parquee` dit
- *  qu'il a échu sur une main tenue. */
-export interface TourIA {
+/** Le tour en cours d'une clé : `decide` dit que l'IA l'a décidé (`runEnemyAI` seul le pose), `armements` compte ses
+ *  armements, `suite.n` nomme celui qui est en attente, `parquee` dit qu'il a échu sur une main tenue. */
+export interface TourEnCours {
   cle: string;
+  decide?: true;
   armements: number;
   suite?: { geste: GesteDeSuite; n: number };
   parquee?: true;
@@ -82,7 +85,7 @@ export interface BattleState {
    *  `battleFocusSpell`→`pendingFocus`, `battleUseItem`, `battlePickup`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
    *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
-   *  parité gardée par `src/state/action-atteignabilite.test.ts`. */
+   *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
   selectedSpellId: string | null;
@@ -100,11 +103,12 @@ export interface BattleState {
    *  Mouvement (pas de « Mouvement → Action → Mouvement », règle maison). Cf. `canMove`. */
   movedPreAction: boolean;
   acted: boolean;
-  /** Le TOUR D'IA de la clé `round:turn:id` (#1852, #3058) : sa décision prise (`runEnemyAI`) et le geste qu'elle
-   *  a différé. Une clé différente de celle du tour courant = un enregistrement périmé. `runEnemyAI` le pose à la
-   *  décision, `armerLaSuite` est le seul armeur de sa suite, `jouerLaSuite` sa seule garde, `maybeRunEnemyTurn` son
-   *  seul point de reprise (`combatFlow.ts`). Porté par `battle` : il naît et meurt avec le combat. */
-  tourIA?: TourIA;
+  /** Le TOUR EN COURS de la clé `round:turn:id` (#1852, #3058, #3059) : la décision de l'IA s'il l'a décidé
+   *  (`decide`, posé par `runEnemyAI` seul) et le geste différé de ce tour, de l'IA ou du joueur. Une clé différente de
+   *  celle du tour courant = un enregistrement périmé. `armerLaSuite` est le seul armeur de sa suite, `jouerLaSuite`
+   *  sa seule garde, `maybeRunEnemyTurn` son seul point de reprise (`combatFlow.ts`). Porté par `battle` : il naît
+   *  et meurt avec le combat. */
+  tourEnCours?: TourEnCours;
   /** Le set d'armes a-t-il déjà été changé ce Tour ? Plafond MAISON 1×/tour (dégainer = Action gratuite,
    *  cadence laissée au MJ, LDB 13 l.106). Reset au tour. */
   loadoutSwapped?: boolean;

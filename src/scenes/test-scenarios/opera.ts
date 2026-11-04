@@ -10,7 +10,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // Profil des deux étudiants saboteurs : de jeunes civils paniqués, vifs mais fragiles (pas de combattants).
 const ETUDIANT: CustomStatblock = { type: 'statblock',
   label: 'Étudiant', char: { M: 4, 'capacite-de-combat': 32, 'capacite-de-tir': 38, force: 30, endurance: 30, initiative: 35, agilite: 38, dexterite: 35, intelligence: 42, 'force-mentale': 28, sociabilite: 35, B: 11 },
-  weaponDamage: '+BF+2', armour: 0,
+  traits: [{ id: 'arme', value: 5 }],
 };
 
 /**

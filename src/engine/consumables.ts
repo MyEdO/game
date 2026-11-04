@@ -1,6 +1,6 @@
 /**
  * Objets consommables — drogues (LDB 71), herbes et potions (LDB 72), outils (LDB 67). L'effet est un
- * **Flow** (`ItemInstance.consumable`, copié du catalogue `TrappingData.consumable`) : MÊME structure
+ * **Flow** (`TrappingData.consumable`, lu au catalogue par `consommableDe`) : MÊME structure
  * authorée que les sorts/triggers — feuilles `do` d'EffectOp, branches `if`, et nœuds `test` pour les
  * Tests « au boire » (Brise-cœur « Combattu avec un Test de Résistance Complexe (-10) », Belladone…),
  * résolus CADENCE-AWARE par le runner state (`noyau/consumableFlow.runConsumable`) — jamais un jet
@@ -10,6 +10,7 @@ import { Combatant, ItemInstance } from './types';
 import { type Flow, type EffectOp, walkFlow } from './flowCore';
 import { resolveFormula, type Formula, type GameOp } from './ops';
 import { RNG } from './dice';
+import { findTrappingById } from '../data';
 
 /** Durée d'HORLOGE des effets durables d'un consommable (LDB 71/72 « Durée : … ») — UNE durée par objet
  *  (une drogue a UNE durée, pas une par op). Résolue AU BOIRE (`consumableUntilTime`), avec dés
@@ -20,10 +21,16 @@ export interface ConsumableDuration {
   days?: Formula;
 }
 
+/** Le Flow consommable de l'objet, lu au CATALOGUE par son `trappingId` (une seule source : une donnée éditée vaut
+ *  pour les objets déjà portés) ; `undefined` pour un objet hors catalogue ou non consommable. */
+export function consommableDe(item: ItemInstance): Flow | undefined {
+  return item.trappingId ? findTrappingById(item.trappingId)?.consumable : undefined;
+}
+
 /** L'objet est-il un consommable utilisable ? Flow présent et NON VIDE (un `seq` sans étape = rien à
  *  boire). Sert l'icône et tout filtre « utilisable » sans Combatant sous la main. */
 export function isConsumable(item: ItemInstance): boolean {
-  const f = item.consumable;
+  const f = consommableDe(item);
   return !!f && !(f.kind === 'seq' && f.steps.length === 0);
 }
 

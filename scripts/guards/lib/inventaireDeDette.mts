@@ -1,5 +1,5 @@
 /**
- * INVENTAIRE DE LA DETTE QUE LA DONNÉE RÉVÈLE (#3021, #2995) : les cases de référence en forme non cible ou sans slot
+ * INVENTAIRE DE LA DETTE QUE LA DONNÉE RÉVÈLE (#2995) : les cases de référence en forme non cible ou sans slot
  * (une ligne par case), les formes de valeur historiques ou divergentes, les orphelines, les homonymes, les divergences
  * d'enveloppe hors `source` absente (celle-ci est le volet `DETTE_ENVELOPPE`) et les clés déclarées jamais portées,
  * mesurés sur la donnée des deux racines (`scanDuCorpus`, `scripts/docs/lib/structures-scan.mts`). HORS DE LA PORTE :

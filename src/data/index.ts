@@ -6,7 +6,7 @@
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
@@ -15,7 +15,7 @@ import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
-import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
+import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from './merchants.types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
@@ -992,7 +992,7 @@ export interface SkillData {
   specsSource?: SpecsSource;
   /** Le domaine accepte-t-il un TEXTE LIBRE hors `specs[]` (Métier, Savoir-région) ? `true` = OUVERT —
    *  `specs[]` n'est qu'un historique/suggestions, pas une liste fermée. Absent/`false` = FERMÉ — la
-   *  valeur `spec` d'une instance DOIT être un id de `specs[]` (garde-fou `refs-migrated.test.ts`). */
+   *  valeur `spec` d'une instance DOIT être un id de `specs[]` (`refusDeSpec`, `schemas/grammaire/ref.ts`). */
   specsOpen?: boolean;
   /** Posséder une Spécialisation rend les autres de Base (`possesses`). LDB 09 l.571. */
   specsSoeursDeBase?: boolean;
@@ -1008,7 +1008,7 @@ export interface SkillData {
   senses?: PairedSense[];
   /** Caractéristique ALTERNATIVE de cette Compétence sous RÈGLE OPTIONNELLE (Métier comme Savoir → Int,
    *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = id d'`OptionalRule`
-   *  (FK anti-fantôme `data/variants-integrity.test.ts`), `from` = Caractéristique de base à laquelle la
+   *  (`idDe('regleOptionnelle')`, `schemas/defs/skills.ts`), `from` = Caractéristique de base à laquelle la
    *  substitution s'applique (absente = toutes), `chars` = Caractéristique à utiliser PAR VALEUR de la
    *  règle (clé = valeur rendue par `rule()` convertie en chaîne — `"true"` pour un interrupteur ; une
    *  LISTE = la MEILLEURE des Caractéristiques citées chez le porteur). Lu par `altCharKey`
@@ -1085,8 +1085,11 @@ export interface TalentData {
    *  `cultChaos` (Béni / Invocation / Magie du Chaos → `gods.id` filtrés, AFFICHE le nom du dieu) ou
    *  `seaShanties` (Chanson de marin). Quand présent, `specs[]` est ABSENT (le pool dérive). */
   specsSource?: SpecsSource;
-  /** Le `spec` de ce Talent nomme un CULTE (`GodData.id`) dont les `grantGroups` sont accordés au
-   *  porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent = aucun Groupe. */
+  /** Ids de `groups.json` accordés au porteur du Talent (`groupesDe`). Absent = aucun Groupe. */
+  grantGroups?: string[];
+  /** Le `spec` de ce Talent nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
+   *  `grantGroups` sont accordés au porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent =
+   *  aucun Groupe. */
   grantSpecGroups?: true;
   /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que le porteur PRATIQUE — il
    *  compte donc dans les Domaines TENUS et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
@@ -1097,6 +1100,8 @@ export interface TalentData {
   /** Le domaine de ce Talent accepte-t-il un TEXTE LIBRE hors `specs[]` ? Même sémantique que
    *  `SkillData.specsOpen` (absent/`false` = FERMÉ, `spec` DOIT être un id de `specs[]`). */
   specsOpen?: boolean;
+  /** Trait de créature conféré, la spécialisation de l'instance en argument (`traitsConferes`). LDB 10 l.506, l.548 */
+  confereTrait?: { id: string };
   /** Borne haute de plage d100 sur le Tableau des Talents aléatoires (null = hors table). */
   rand?: number | null;
   source: SourceRef;
@@ -1290,7 +1295,7 @@ export interface TrappingData {
    *  feuilles `do` d'ops (MÊME vocabulaire que sorts/passifs), branches `if` (Fleur de lune par race),
    *  nœuds `test` pour les Tests « au boire » (Brise-cœur/Belladone/Nécessaire antipoison), résolus
    *  cadence-aware par le runner state (`runConsumable`). Édité au Codex via `FlowEditor` (comme les
-   *  effets d'un sort). Copié sur `ItemInstance.consumable` à la construction. */
+   *  effets d'un sort). Lu au catalogue par `consommableDe` (`engine/consumables.ts`). */
   consumable?: import('../engine/flowCore').Flow;
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — résolue AU BOIRE
    *  (dés tirés une fois), les ops durables du Flow expirent à l'échéance (`purgeClockEffects`). */
@@ -1372,7 +1377,7 @@ export interface GroupeDArmure extends GroupeDObjet {
   kind: 'armour';
   /** Matériau — source TYPÉE des exemptions de Magie des Arcanes (LDB 46 l.150-152 ; `chaos` = armure du
    *  Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169). */
-  material: 'metal' | 'leather' | 'chaos';
+  material: MatiereDArmure;
   /** Rang de couche affichée, unique parmi les Groupes d'armure. */
   couche: number;
   /** PA à partir desquels une armure de statbloc portée se dessine dans cette matière, unique ; `null` :
@@ -1392,8 +1397,8 @@ export interface GroupData {
   /** Groupe-CIBLE JOKER : il vise n'importe quel combattant (`groupMatch`, `engine/groups`), hormis
    *  les porteurs d'un `exceptGroups`. Absent = appartenance STRICTE par id. */
   matchesAll?: true;
-  /** Ids de `groups.json` RETRANCHÉS du joker — un combattant qui en porte un n'est pas visé
-   *  (« vivant » = tout sauf Mort-vivant/Démon). */
+  /** Ids de `groups.json` RETRANCHÉS du Groupe visé, joker ou composite — un combattant qui en porte un
+   *  n'est pas visé (« vivant » = tout sauf Mort-vivant/Démon). */
   exceptGroups?: string[];
   /** Groupe-CIBLE RELATIF au porteur du Trait psy qui le vise (`vise`, `engine/psychology`). #3045 */
   relatif?: Relatif;
@@ -1505,6 +1510,10 @@ export interface StatusData {
 }
 
 export interface EtatData extends StatusData {
+  /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
+  grantGroups?: string[];
+  /** Type de Dégâts (`damage-types.json`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
+  typeDeDegats?: string;
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -1883,19 +1892,26 @@ export interface TraitData {
    *  devant/autour du nombre. Absent = le trait ne porte pas de valeur numérique. */
   indice?: { label: string };
   /** L'Indice est un nombre de PA, qu'une instance peut poser Localisation par Localisation
-   *  (`TraitPose.parLocalisation`) — lu par `armourFromTraits`, la saisie et la migration. LDB 85 l.37-39. */
+   *  (`TraitPose.parLocalisation`), sa matière avec (`TraitPose.matiere`) — lus par `armureDuTrait`, la saisie
+   *  et les migrations. LDB 85 l.37-39. */
   parLocalisation?: boolean;
   /** L'instance porte-t-elle un champ `range` (portée en mètres/cases : Souffle, Aura…) ? Absent/`false` = non. */
   range?: boolean;
   /** Trait d'ATTAQUE : son Indice est celui des Dégâts (« +N ») et une instance peut conférer des Traits à
    *  ses touches (`TraitPose.confere`). LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
   attaque?: boolean;
+  /** L'Indice de Dégâts du Trait inclut déjà le Bonus de Force (`WeaponDamageSpec.bfInclus`). LDB 85 l.35,
+   *  l.47, l.83, l.237, l.405 */
+  bfInclus?: true;
   /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
    *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
   difficulte?: boolean;
   /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `ciblesPsy`/`diseases`/`sizes`/
    *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
   specsSource?: SpecsSource;
+  /** L'`arg` de ce Trait nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
+   *  `grantGroups` sont accordés au porteur (`groupesDe`). Absent = l'`arg` n'ouvre aucun Groupe. */
+  grantSpecGroups?: true;
   /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
    *  = FERMÉ (l'`arg` DOIT être un id du pool `specsSource`). */
   specsOpen?: boolean;
@@ -2102,6 +2118,9 @@ export interface DomainData {
   arcane?: string;
   /** `VDM 02 l.192` (`careerSlots.arcaneDomainGate`) — Nécromancie, Démonologie (LDB 50). */
   dark?: boolean;
+  /** Ids de `groups.json` accordés au porteur d'un Talent ou d'un Trait dont la spécialisation nomme ce
+   *  Domaine (`grantSpecGroups`, `groupesDe`). Absent = aucun Groupe. */
+  grantGroups?: string[];
   /** Tables d'effets (`tables.json`) DÉCLARÉES par le Domaine, par CLÉ de rôle — résolues par l'op
    *  `rollDomainTable` (`engine/ops.ts`). Clé `arcaneMark` : Marques Arcaniques du Vent
    *  (`VDM 02 l.238`). Le lien Domaine→table vit ici, jamais dans le code. */
@@ -2507,9 +2526,9 @@ export const siegeEngines = memoParVersion('trappings', () => trappings.filter((
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
 export const trappingsInstanciables = memoParVersion('trappings', () => trappings.filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
-/** Emplacements d'une pièce d'armure nommée, lus au catalogue des armures : la parenthèse d'une Armure
- *  qui nomme des pièces (`classerParenthese`). LDB 63 l.13 ; #1463. */
-export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings));
+/** Pièce d'armure nommée, lue au catalogue des armures, sa matière au Groupe : la parenthèse d'une Armure
+ *  qui nomme des pièces (`classerParenthese`, `lireMatiere`). LDB 63 l.13 ; #1463. */
+export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings, matiereDuGroupe));
 /** Véhicules / embarcations à coque — FOYER UNIQUE app-owned (data-driven). Trois facettes par
  *  enregistrement (achat / voyage / coque) ; cf. `VehicleData`. La facette `travel` est lue par
  *  `engine/travel` ; les facettes `purchase`/`hull` par le marché et les incidents/combat. */
@@ -2995,8 +3014,8 @@ export interface GodData {
   id: string;
   type: 'gods';
   label: string;
-  /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent qui porte
-   *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
+  /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent ou un Trait qui porte
+   *  `grantSpecGroups` et dont la spécialisation nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
   title?: string;
   blessings: string[];
@@ -3298,6 +3317,11 @@ const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
   return groupeObjetParId(id);
 }
+/** Matière du Groupe d'armure `id` (`material`), `undefined` hors d'un Groupe d'armure. LDB 63 l.41-58 */
+export function matiereDuGroupe(id: string | null | undefined): MatiereDArmure | undefined {
+  const groupe = findWeaponGroupById(id);
+  return groupe?.kind === 'armour' ? groupe.material : undefined;
+}
 /** Groupes d'armure du registre (`kind:'armour'`). */
 export const groupesDArmure = (): GroupeDArmure[] => weaponGroups.filter((g): g is GroupeDArmure => g.kind === 'armour');
 /** Groupe d'armure d'un id typé ; un id absent du registre vivant (Groupe retiré à l'atelier) lève. */
@@ -3336,6 +3360,7 @@ export interface BreathTypeData {
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
+  typeDeDegats?: string;
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
@@ -3350,7 +3375,7 @@ export function breathTypeLabel(id: string | null | undefined): PlayerText {
 /** Type de Dégâts ignoré par le Trait Immunité (LDB 85 : « poison, magiques ou électriques ») — argument du
  *  Trait Immunité (multi-valeurs) ET valeur de la Condition `has … what:'immunity'` (Venin (Poison)…). Registre SSOT
  *  (`damage-types.json`, éditable). */
-export interface DamageTypeData { id: string; type: 'damage-types'; label: string; }
+export interface DamageTypeData { id: string; type: 'damage-types'; label: string; domaine?: string; }
 export const damageTypes = damageTypesJson as DamageTypeData[];
 const typeDegatsParId = indexParId('damageTypes', damageTypes);
 /** Résout un Type de Dégâts par son `id` STABLE. */
@@ -3411,7 +3436,7 @@ export const qualityIdByLabel = (label: string): string | undefined => {
   if (!q) return undefined;
   // Doublon de LIBELLÉ imprimé du catalogue (« Immobilisante », `qualities.json:230` et `:271`) :
   // l'authoring par libellé atteint l'entrée CANONIQUE — celle dont l'`id` EST le slug du libellé ;
-  // l'homonyme ne s'authore que par son `id` (`immobilisante-fixe`, `state/zi-filets.test.ts`).
+  // l'homonyme ne s'authore que par son `id` (`immobilisante-fixe`, `noyau/zi-filets.hors-store.test.ts`).
   const canonique = slugId(q.label);
   return qualiteParId(canonique) ? canonique : q.id;
 };
@@ -3551,31 +3576,34 @@ export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type'
   return (RACINES_VIVANTES[espaceDe(type)] as readonly { id: string; label: string }[]).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
- *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers ; sinon l'id. */
-function libelleDeSource(decl: SourceDeSpecs): (id: string) => string {
+ *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */
+function libelleDeSource(decl: SourceDeSpecs, entree: (id: string) => Readonly<Record<string, unknown>> | undefined): (id: string) => string {
   const libelle = decl.libelle;
   if ('vocabulaire' in libelle) {
     const table: Readonly<Record<string, string>> = VOCABULAIRES[libelle.vocabulaire];
     return (id) => table[id] ?? id;
   }
-  const { fichier } = lireCleDEspace(decl.univers);
   return (id) => {
-    const entree = entreeDeRacine(fichier, id);
-    return (entree && libelleDeLElement(entree, libelle.champs)) ?? id;
+    const e = entree(id);
+    return (e && libelleDeLElement(e, libelle.champs)) ?? id;
   };
 }
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
- *  joueur ; `label()` = affichage. `admetEntree()` juge une entrée résolue par le filtre déclaré de
- *  l'univers, campagne comprise. Le pool borne le CHOIX joueur ; l'univers (⊇ pool) est le catalogue de
- *  l'entrée qui la déclare (`catalogueSpecs`, `grammaire/ref.ts`), le Triton compris (MDG 16 l.283). */
+ *  joueur ; `label()` = affichage ; `entree()` = l'entrée de l'univers qu'un id nomme, lue sur la racine
+ *  vivante de son document (`entreeDeRacine`) ; aucune hors d'une source `resoutEnEntree` (vocabulaire, niche). `admetEntree()` juge
+ *  une entrée résolue par le filtre déclaré de l'univers, campagne comprise. Le pool borne le CHOIX joueur ;
+ *  l'univers (⊇ pool) est le catalogue de l'entrée qui la déclare (`catalogueSpecs`, `grammaire/ref.ts`), le
+ *  Triton compris (MDG 16 l.283). */
 export const SPEC_SOURCES = tableTotale(
   Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
-  (src): { pool(): string[]; label(id: string): string; admetEntree(entree: { readonly id: string }): boolean } => {
+  (src): { pool(): string[]; label(id: string): string; entree(id: string): Readonly<Record<string, unknown>> | undefined; admetEntree(entree: { readonly id: string }): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
-    const { filtre } = lireCleDEspace(decl.univers);
+    const { fichier, filtre } = lireCleDEspace(decl.univers);
+    const entree = resoutEnEntree(src) ? (id: string) => entreeDeRacine(fichier, id) : () => undefined;
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
-      label: libelleDeSource(decl),
+      label: libelleDeSource(decl, entree),
+      entree,
       admetEntree: (entree) => filtre ? retenuParFiltre(filtre, entree as Readonly<Record<string, unknown>>) : (lireLEspace(decl.univers)?.has(entree.id) ?? false),
     };
   },

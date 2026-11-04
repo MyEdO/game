@@ -1,4 +1,4 @@
-import { nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `vehicles.json` — véhicules/embarcations à coque (chariots, barges, navires), 3 facettes
  * indépendantes (achat/voyage/coque+navire+pont). Dérivé de l'interface `VehicleData` EXISTANTE
@@ -7,9 +7,9 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  * 22/25, `ship` 20/25, `travel` 3/25, `deck` 1/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
-import { availabilitySchema, cell2Schema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
+import { availabilitySchema, cell2Schema, deckCoverSchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { ref } from '../grammaire/ref';
+import { navalTraitRefSchema } from '../grammaire/reference';
 
 export const file = 'vehicles.json';
 export const famille = 'entite';
@@ -21,16 +21,10 @@ export const rigSchema = enumNomme({ avirons: 'Avirons', voile: 'Voile', mixte: 
 /** BORD du pont où siège un poste d'équipage (MDG 12) — affiché par la fiche de navire. */
 export const posteSideSchema = enumNomme({ proue: 'Proue', tribord: 'Tribord', poupe: 'Poupe', babord: 'Bâbord' });
 
-/** `NavalTraitRef` (`src/data/index.ts`) — Trait INTÉGRÉ à la construction du type de navire
- *  (MDG 12), + Indice éventuel. Le foyer des ids est `naval-traits.json`, JAMAIS `traits.json` :
- *  les 19 références de `ship.traits` y résolvent toutes, aucune n'existe au bestiaire (mesuré
- *  2026-09-01) — composer `traitInstanceSchema` ouvrirait les Traits de créature aux navires. */
-const navalTraitRefSchema = ref('navalTrait', { value: nommerNoeud(z.number().optional(), { nom: 'valeur' }) });
-
 const deckPosteSlotSchema = nommerChamps(z.strictObject({
   pos: cell2Schema,
   side: posteSideSchema,
-  cover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
+  cover: deckCoverSchema.optional(),
 }), { pos: { label: "position" }, side: { label: "côté" }, cover: { label: "couvert" } });
 
 const shipDeckSchema = nommerChamps(z.strictObject({

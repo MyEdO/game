@@ -101,8 +101,8 @@ import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved 
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
 import type { ShipCritKey } from '../data/shipCriticals';
-import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '../engine/disease';
-import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef } from '../engine/types';
+import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
+import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
 import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel, Jeu } from './etat';
@@ -580,7 +580,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
  *  cf. `sea-ouragan-affaler`) pour ne jamais retomber dans la routine auto-résolue (`KINDS_SOUS_ORDRES`
  *  est indexée par `kind`, pas `testTypeId`). */
 
-function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; icon?: string } = {}): BuiltCascadeStep | undefined {
+function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; icon?: string; contexte?: ContexteDeTest } = {}): BuiltCascadeStep | undefined {
   const plan = get().travelPlan;
   const ship = plan?.vehicle;
   if (!ship) return undefined;
@@ -653,6 +653,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
     id: idDansLaSequence(get, kind), kind, label: dataLabel(testType?.label, testTypeId), icon: opts.icon ?? 'travel/anchor', // id = ADRESSE : le `kind` seul collisionne dès qu'un jour en pousse deux (#1852)
     aggregate: 'summed-dr',
     ...(stake ? { stake } : {}),
+    ...(opts.contexte ? { contexte: opts.contexte } : {}),
     meta: {
       aggregateSuccessRule: CREW_TEST_SUCCESS_RULE,
       ...(flatDR ? { aggregateFlatDR: flatDR } : {}),
@@ -862,7 +863,11 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de Man sur le Test de
     // Manœuvre tant que non dégagé.
     const entangleDR = findCrewTestTypeById(testTypeId)?.steering ? (sea.entangled?.manDR ?? 0) : 0;
-    const st = buildVoyageCrewStep(get, testTypeId, kind, entangleDR ? { extraDR: entangleDR } : {});
+    // Le Test d'Évasion d'un Tourbillon (MDG 13 l.514-537) traverse des eaux dangereuses (LDB 10 l.966).
+    const st = buildVoyageCrewStep(get, testTypeId, kind, {
+      ...(entangleDR ? { extraDR: entangleDR } : {}),
+      ...(kind === 'tourbillon' ? { contexte: 'perilDesEaux' as const } : {}),
+    });
     if (st) out.push(st);
     else resolveSeaCrisisRound(get, set, capToSuccesMinime(UNDERCREW_DR));
   }
@@ -1399,7 +1404,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
   } else {
     for (const h of get().party) {
       if (h.dead) continue;
-      const dz = (h.diseases ?? []).find((d) => d.phase === 'active' && diseaseDefs()[d.id]?.contaminatesWaterBarrel);
+      const dz = (h.diseases ?? []).find((d) => maladieDeclaree(d) && diseaseDefs()[d.id]?.contaminatesWaterBarrel);
       if (!dz) continue;
       pousseSi(out, monoStep({
         id: `sea-tonneau-contamine-${h.id}`, kind: 'sea-tonneau-contamine', actor: h,
@@ -2930,7 +2935,7 @@ export const TABLES = {
       if (!sea?.infestation) return;
       const inf = sea.infestation;
       const rng = battleRng();
-      const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need, !!rule('test-extended-min-sl'));
+      const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need);
       get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
       let j: string[];
       if (done) {
@@ -2965,7 +2970,7 @@ export const TABLES = {
       const sea = get().travelPlan?.sea;
       if (!sea?.entangled) return;
       const ent = sea.entangled;
-      const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need, !!rule('test-extended-min-sl'));
+      const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need);
       let j: string[];
       if (done) {
         patchSea(get, set, { entangled: undefined });

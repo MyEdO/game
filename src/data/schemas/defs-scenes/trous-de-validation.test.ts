@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
-import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { TROUS_DE_VALIDATION } from './trous-de-validation';
@@ -44,7 +44,7 @@ const GARDE = {
     fichier: 'trous-de-validation.ts',
     decroissant: true,
     raison:
-      'Les 4 entrées sont le dénominateur des trous de `defs-scenes/` : chacune meurt par le commit qui ÉCRIT ' +
+      'Les entrées sont le dénominateur des trous de `defs-scenes/` : chacune meurt par le commit qui ÉCRIT ' +
       'le schéma de sa forme, dans le lot nommé par son champ `lot` (`L2 #1463` / `L3 #1463`, soldables par ' +
       'grep du lot). Une entrée neuve est une dérive, jamais une exception à inscrire.',
   },
@@ -58,7 +58,7 @@ const DEFS_SCENES = __dirname;
  *  l'ordre du scan. `dir` est paramétré : le cliquet se joue aussi sur un répertoire-jouet (câblage). */
 function sitesZCustom(dir: string): string[] {
   const out: string[] = [];
-  for (const f of listerDossier(dir).filter((n) => n.endsWith('.ts') && !estFichierVitest(n))) {
+  for (const f of listerDossier(dir).filter((n) => n.endsWith('.ts') && !estFichierVitest(n) && !estKitDeTest(n))) {
     readFileSync(join(dir, f), 'utf8')
       .split(/\r?\n/)
       .forEach((ligne) => {

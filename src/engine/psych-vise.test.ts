@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   vise, sousPeur, indiceDePeur, isAfflictionActive, targetedTrigger, targetCausedSourcesFor, psychImmuneToFrom,
-  refreshDefendedPsych, sansPeurVs, type PsychAffliction, type PsychType,
+  refreshDefendedPsych, sansPeurVs, sourceCombattant, type PsychAffliction, type PsychType,
 } from './psychology';
 import { psychDRAdjust } from './combat';
 import { ciblePsy } from './psych/ciblage';
@@ -38,10 +38,10 @@ describe('vise — un prédicat, deux lectures (#3045)', () => {
   });
 
   it('un Groupe CACHÉ appartient au porteur sans être perçu', () => {
-    const cache = { genre: 'combattant', c: porteur('p', true) } as const;
+    const cache = sourceCombattant(porteur('p', true));
     expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'appartenance', OBS)).toBe(true);
     expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'percu', OBS)).toBe(false);
-    const visible = { genre: 'combattant', c: porteur('p', false) } as const;
+    const visible = sourceCombattant(porteur('p', false));
     expect(vise(ciblePsy.groupe(groupeDuTrait), visible, 'percu', OBS)).toBe(true);
   });
 
@@ -56,7 +56,35 @@ describe('vise — un prédicat, deux lectures (#3045)', () => {
     const joker = groups.find((g) => g.matchesAll && !g.exceptGroups?.length);
     expect(joker).toBeDefined();
     expect(vise(ciblePsy.groupe(joker!.id), { genre: 'interlocuteur', groups: [] }, 'percu', OBS)).toBe(true);
-    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'combattant', c: mk('x') }, 'appartenance', OBS)).toBe(true);
+    expect(vise(ciblePsy.groupe(joker!.id), sourceCombattant(mk('x')), 'appartenance', OBS)).toBe(true);
+  });
+});
+
+describe('vise — l’étiquette d’un lieu (`Scene.groups`), source sans personne (#3045)', () => {
+  const ordinaire = groups.find((g) => !g.matchesAll && !g.relatif && !g.inclut);
+  const composite = groups.find((g) => g.inclut?.length);
+  const etiquette = (porte: readonly string[]) => ({ genre: 'etiquette', id: 'lieu', label: 'Lieu', groups: porte }) as const;
+
+  it('précondition : la donnée porte un Groupe ordinaire, un composite, un joker et un relatif', () => {
+    expect([ordinaire, composite, groups.find((g) => g.matchesAll), groups.find((g) => g.relatif)].every(Boolean)).toBe(true);
+  });
+
+  it('visée par le Groupe qu’elle porte, et par un composite qui l’inclut, quelle que soit la lecture', () => {
+    for (const lecture of ['appartenance', 'percu'] as const) {
+      expect(vise(ciblePsy.groupe(ordinaire!.id), etiquette([ordinaire!.id]), lecture, OBS)).toBe(true);
+      expect(vise(ciblePsy.groupe(composite!.id), etiquette([composite!.inclut![0]]), lecture, OBS)).toBe(true);
+      expect(vise(ciblePsy.groupe(ordinaire!.id), etiquette([]), lecture, OBS)).toBe(false);
+    }
+  });
+
+  it('refusée par chaque joker et chaque Groupe relatif', () => {
+    for (const g of groups.filter((x) => x.matchesAll || x.relatif))
+      for (const lecture of ['appartenance', 'percu'] as const)
+        expect(vise(ciblePsy.groupe(g.id), etiquette([ordinaire!.id]), lecture, OBS), `${g.id} (${lecture})`).toBe(false);
+  });
+
+  it('jamais visée par un individu, fût-ce par son id', () => {
+    expect(vise(ciblePsy.individu('lieu'), etiquette([ordinaire!.id]), 'percu', OBS)).toBe(false);
   });
 });
 
@@ -65,16 +93,16 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
     const d = entree((p) => !!p.cibles && !p.targetCauses && p.triggerOn !== 'threatened');
     expect(d).toBeDefined();
     const obs = mk('o', { psychTraits: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait) }] });
-    expect(targetedTrigger(obs, [porteur('p', true)])).toBeNull();
-    expect(targetedTrigger(obs, [porteur('p', false)])?.sourceId).toBe('p');
+    expect(targetedTrigger(obs, [sourceCombattant(porteur('p', true))])).toBeNull();
+    expect(targetedTrigger(obs, [sourceCombattant(porteur('p', false))])?.sourceId).toBe('p');
   });
 
   it('objet d’une Phobie en combat (LDB 21 l.87) : seul ce que l’on voit est une source de Peur', () => {
     const d = entree((p) => !!p.targetCauses);
     expect(d).toBeDefined();
     const obs = mk('o', { psychTraits: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait), indice: 1 }] });
-    expect(targetCausedSourcesFor(obs, porteur('p', true))).toEqual([]);
-    expect(targetCausedSourcesFor(obs, porteur('p', false))).not.toEqual([]);
+    expect(targetCausedSourcesFor(obs, sourceCombattant(porteur('p', true)))).toEqual([]);
+    expect(targetCausedSourcesFor(obs, sourceCombattant(porteur('p', false)))).not.toEqual([]);
   });
 
   it('+DR contre le groupe (LDB 21 l.41) : par appartenance, même caché', () => {
@@ -90,8 +118,8 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
     expect(d).toBeDefined();
     const canal = d!.immuneToFromTarget![0];
     const self = mk('s', { psychState: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
-    expect(psychImmuneToFrom(self, porteur('p', true), canal)).toBe(true);
-    expect(psychImmuneToFrom(self, mk('q'), canal)).toBe(false);
+    expect(psychImmuneToFrom(self, sourceCombattant(porteur('p', true)), canal)).toBe(true);
+    expect(psychImmuneToFrom(self, sourceCombattant(mk('q')), canal)).toBe(false);
   });
 
   it('défendre les êtres aimés (LDB 21 l.75) : un aimé caché reste à défendre', () => {
@@ -107,9 +135,9 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
     const talent = talents.find((t) => t.combat?.fearImmune);
     expect(talent).toBeDefined();
     const brave = mk('b', { talents: [{ talentId: talent!.id, spec: groupeDuTrait, times: 1 }] });
-    expect(sansPeurVs(brave, porteur('p', false))).toBe(true);
-    expect(sansPeurVs(brave, porteur('p', true))).toBe(false);
-    expect(sansPeurVs(brave, mk('q'))).toBe(false);
+    expect(sansPeurVs(brave, sourceCombattant(porteur('p', false)))).toBe(true);
+    expect(sansPeurVs(brave, sourceCombattant(porteur('p', true)))).toBe(false);
+    expect(sansPeurVs(brave, sourceCombattant(mk('q')))).toBe(false);
   });
 
   it('malus social « contenu » (LDB 21 l.19, l.48) : contre les Groupes que le Test décrit', () => {

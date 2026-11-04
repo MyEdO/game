@@ -15,7 +15,7 @@ import type { DiseaseSymptom } from '../../../engine/disease';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
-import { dispoSaisonniereSchema, harvestRaritySchema } from '../../../data/schemas/grammaire/valeurs';
+import { dispoSaisonniereSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
@@ -24,7 +24,7 @@ import type { z } from 'zod';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
-import type { TraitPose } from '../../../data/schemas/grammaire/reference';
+import { traitAdmet, type TraitPose } from '../../../data/schemas/grammaire/reference';
 import { formatTrait, optionalLabel, traitLisible } from '../../../engine/traits/dispatch';
 import { relireTrait } from '../refFormatLivre';
 import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
@@ -707,7 +707,7 @@ export function DomainEffectsField(
  *    L'auteur complète l'Indice/la Cible dans la chaîne (« Arme (Épée) +7 », « Peur 3 »),
  *    et sous le repli de la rangée ce que la chaîne ne dit pas : les drapeaux de la pose
  *    et sa provenance (`source`/`alsoIn`/`maison`), et borne à borne, Localisation par
- *    Localisation, la fourchette et l'Indice par Localisation que la chaîne pose.
+ *    Localisation, la fourchette et l'Indice par Localisation que la chaîne pose, et la matière de l'Armure.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /** Une rangée de Trait POSÉ : la chaîne, son retrait, et sous un repli les clés que `formatTrait` ne
@@ -746,6 +746,14 @@ function RangeeDeTraitPose(
                 <label key={loc} className="dr">{HIT_LOCATION_LABELS[loc]}<NumberField variant="nu" label={`Indice — ${HIT_LOCATION_LABELS[loc]}`} commit="geste" min={0} value={parLocalisation[loc]} onChange={(n) => onChange({ ...t, parLocalisation: { ...parLocalisation, [loc]: n } })} /></label>
               ))}
             </div>
+          )}
+          {traitAdmet(t.id, 'matiere') && (
+            <label className="dr">Matière de l’armure
+              <select value={t.matiere ?? ''} onChange={(e) => onChange({ ...t, matiere: (e.target.value || undefined) as MatiereDArmure | undefined })}>
+                <option value="">— inconnue —</option>
+                {optionsDuNoeud(matiereDArmureSchema).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </label>
           )}
           <label className="dr">
             <input type="checkbox" checked={!!t.natural} onChange={(e) => onChange({ ...t, natural: e.target.checked || undefined })} />

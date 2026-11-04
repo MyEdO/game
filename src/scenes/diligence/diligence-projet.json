@@ -388,7 +388,8 @@
       {
        "id": "armure",
        "value": 1,
-       "arg": "Cuir"
+       "arg": "Cuir",
+       "matiere": "leather"
       }
      ],
      "optionals": [],
@@ -656,7 +657,8 @@
       {
        "id": "armure",
        "value": 1,
-       "arg": "Cuir"
+       "arg": "Cuir",
+       "matiere": "leather"
       }
      ],
      "optionals": [],
@@ -1658,7 +1660,8 @@
         "corps": 2,
         "jambeG": 0,
         "jambeD": 0
-       }
+       },
+       "matiere": "metal"
       },
       {
        "id": "prejuge",
@@ -1793,7 +1796,8 @@
         "corps": 1,
         "jambeG": 0,
         "jambeD": 0
-       }
+       },
+       "matiere": "leather"
       },
       {
        "id": "prejuge",
@@ -2024,7 +2028,8 @@
         "corps": 1,
         "jambeG": 0,
         "jambeD": 0
-       }
+       },
+       "matiere": "leather"
       }
      ],
      "optionals": [],
@@ -2156,7 +2161,8 @@
         "corps": 1,
         "jambeG": 0,
         "jambeD": 0
-       }
+       },
+       "matiere": "leather"
       },
       {
        "id": "arme",
@@ -2325,7 +2331,8 @@
         "corps": 2,
         "jambeG": 0,
         "jambeD": 0
-       }
+       },
+       "matiere": "metal"
       }
      ],
      "optionals": [],
@@ -2524,7 +2531,8 @@
         "corps": 2,
         "jambeG": 0,
         "jambeD": 0
-       }
+       },
+       "matiere": "metal"
       }
      ],
      "optionals": [],
@@ -2612,7 +2620,7 @@
       },
       {
        "id": "haine",
-       "spec": "cultistes"
+       "spec": "cultiste"
       },
       {
        "id": "imperturbable"

@@ -8,7 +8,8 @@
       "page": 341
     },
     "ignoreAP": true,
-    "etat": "en-flammes"
+    "etat": "en-flammes",
+    "typeDeDegats": "feu"
   },
   {
     "id": "froid",
@@ -40,7 +41,8 @@
       "page": 341
     },
     "ignoreAP": true,
-    "etat": "sonne"
+    "etat": "sonne",
+    "typeDeDegats": "electrique"
   },
   {
     "id": "poison",
@@ -51,7 +53,8 @@
       "page": 341
     },
     "ignoreAP": true,
-    "etat": "empoisonne"
+    "etat": "empoisonne",
+    "typeDeDegats": "poison"
   },
   {
     "id": "fumee",
@@ -79,5 +82,47 @@
         "id": "poison"
       }
     ]
+  },
+  {
+    "id": "vomi-d-ivrogne",
+    "type": "breath-types",
+    "label": "Vomi d’ivrogne",
+    "source": {
+      "book": "livre-de-base",
+      "page": 320
+    }
+  },
+  {
+    "id": "bave-gluante",
+    "type": "breath-types",
+    "label": "Bave gluante",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 23,
+      "note": "ZI 02 l.56"
+    },
+    "ignoreAP": true
+  },
+  {
+    "id": "soporifique",
+    "type": "breath-types",
+    "label": "Soporifique",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 30,
+      "note": "ZI 03 l.27"
+    },
+    "ignoreAP": true
+  },
+  {
+    "id": "cauchemars",
+    "type": "breath-types",
+    "label": "Cauchemars",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 91,
+      "note": "ZI 13 l.128"
+    },
+    "ignoreAP": true
   }
 ]

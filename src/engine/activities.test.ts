@@ -242,7 +242,7 @@ describe('postes d’Étape : agrégation des issues (EDOC 8 l.131)', () => {
     }
   });
 
-  it('agrégation : porte (1 succès suffit) / cumul (Σ DR) / individuel (par héros)', () => {
+  it('agrégation : porte (1 succès suffit) / cumul (Σ DR) / Test étendu (jets ordonnés) / individuel (par héros)', () => {
     const mkRes = (o: Partial<TravelActivityResult>): TravelActivityResult =>
       ({ activityId: 'x', actorId: 'h', sl: 0, success: true, ops: [], extenue: false, ...o });
     const agg = aggregateActivityOutcomes([
@@ -252,9 +252,12 @@ describe('postes d’Étape : agrégation des issues (EDOC 8 l.131)', () => {
       mkRes({ actorId: 'd', success: true, stageOutcome: 'countsAsRest' }),
       mkRes({ actorId: 'e', success: true, sl: 3, stageOutcome: 'campCare' }),
       mkRes({ actorId: 'f', success: true, sl: 2, stageOutcome: 'campCare' }),
+      mkRes({ actorId: 'g', roll: 90, success: false, sl: -1, stageOutcome: 'mapMade' }),
+      mkRes({ actorId: 'i', roll: 10, success: true, sl: 2, stageOutcome: 'mapMade' }),
     ]);
     expect(agg.gates).toEqual(['suppressExposure']); // une seule porte, malgré l'échec de b
     expect(agg.stacks).toEqual({ campCare: 5 });       // 3 + 2 cumulés
+    expect(agg.etendus).toEqual({ mapMade: [{ success: false, sl: -1 }, { success: true, sl: 2 }] }); // Test étendu : chaque jet, dans l'ordre (LDB 12 l.174)
     expect(agg.selfByHero).toEqual({ c: ['countsAsRest'], d: ['countsAsRest'] }); // individuel par héros
   });
 });
@@ -300,13 +303,16 @@ describe('rôle de marche persistant (travelRole) — « les mêmes au même pos
 });
 
 describe('Convalescence — Activité d’interlude (ADE II Annexe I « Les choses s’arrangent »)', () => {
-  it("existe en contexte interlude, Test de Calme Très Difficile, onSuccess = removePsychTrait", () => {
+  it("existe en contexte interlude, Test de Calme Très Difficile ; réussite : removePsychTrait, échec : jeton d'inversion psych", () => {
     const conv = activityById('convalescence');
     expect(conv).toBeTruthy();
     expect(conv!.contexts).toContain('interlude');
     expect(conv!.skills).toEqual([{ id: 'calme' }]);
-    expect(conv!.difficulty).toBe('tresDifficile'); // « Calme Très Difficile (–30) »
-    expect(conv!.onSuccess).toEqual([{ op: 'removePsychTrait' }]); // « éliminer un Trait Psychologique de votre choix »
+    expect(conv!.difficulty).toBe('tresDifficile'); // ADE II 09 l.33
+    expect(conv!.outcomes).toEqual([ // ADE II 09 l.33
+      { on: 'success', ops: [{ op: 'removePsychTrait' }] },
+      { on: 'failure', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
+    ]);
     expect(conv!.source.book).toBe('archives-de-l-empire-2');
   });
   it("apparaît dans le catalogue des Activités d'interlude", () => {

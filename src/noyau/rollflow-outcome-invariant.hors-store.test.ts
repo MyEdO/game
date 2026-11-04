@@ -134,7 +134,7 @@ const FIXTURES: Record<string, Fix> = {
   // ── Tests numériques « jet propre » (soin/rechargement/évaluation/corruption/activité/test) ──
   reload: { make: (win) => ({ battle: arena(), pendingReload: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   handGate: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', actorName: 'A', hand: 'main', skillValue: 40, difficulty: 'accessible', roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attack' } }) },
-  heal: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  heal: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   surgery: { make: (win) => ({ battle: arena(), pendingSurgery: { healerId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   appraise: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   corruption: { make: (win) => ({ battle: arena(), pendingCorruption: { heroId: 'A', nature: 'spirituelle', test: testDeRegle('influences-corruptrices', 'spirituelle'),  roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
@@ -159,7 +159,7 @@ const FIXTURES: Record<string, Fix> = {
   opposition: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingCast: { casterId: 'B', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: true, roll: 20, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
-    pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
+    pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
   }) },
   cascade: { pid: 'st1', make: (win) => ({
     battle: arena(),

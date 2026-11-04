@@ -13,12 +13,12 @@
  *     (attaque) ; Dressage « au lieu de Corps à corps » après avoir instillé la peur à l'animal. Gate
  *     `fear` : l'ADVERSAIRE est sous une Peur SOURCÉE par ce personnage (`sourceId` = son id, non surmontée).
  *
- * PUR : lit la donnée (`byId('skill', …)`) + `effectiveChar` ; ne mute rien. La couche combat/UI consomme
+ * PUR : lit la donnée (`byId('skill', …)`) + `bonusDe` ; ne mute rien. La couche combat/UI consomme
  * ces primitives (surface d'attaque/défense) — cette FEUILLE ne connaît ni le store ni le rendu.
  */
 import type { Combatant } from './types';
 import { byId } from '../data';
-import { effectiveChar, bonus } from './characteristics';
+import { bonusDe } from './characteristics';
 import { skillBaseValue, possesses } from './skills';
 import { sousPeur } from './psychology';
 
@@ -36,7 +36,7 @@ function skillValue(c: Combatant, skillId: string, spec?: string): number {
 export function skillAdvantageCap(c: Combatant, skillId: string): number {
   const sd = byId('skill', skillId);
   if (!sd?.combatAdvantage || !possesses(c, skillId)) return 0;
-  return Math.max(0, bonus(effectiveChar(c, sd.combatAdvantage.cap)));
+  return Math.max(0, bonusDe(c, sd.combatAdvantage.cap));
 }
 
 /** Compétences dont `c` peut se servir en combat pour cumuler l'Avantage, avec leur plafond. */

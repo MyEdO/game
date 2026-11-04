@@ -51,7 +51,6 @@ describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', 
    */
   const LEFT_INERT_ORIGINAL_TARGETS = [
     { creature: 'ogre', trait: 'prejuge', cible: 'Maigrichons', raison: 'insulte propre aux Ogres (gabarit), aucun Groupe' },
-    { creature: 'jetsam-la-gelee-intelligente', trait: 'effraye', cible: 'Feu', raison: 'phobie élémentaire (créature-gelée), pas un Groupe de combattants' },
     { creature: 'volee-de-noctecorbes', trait: 'effraye', cible: 'Lumière', raison: 'phobie élémentaire (corvidé nocturne), pas un Groupe' },
     { creature: 'wereburga-krotpreffer', trait: 'prejuge', cible: 'Étrangers', raison: 'relatif (étranger à qui ?), aucun Groupe fixe' },
     { creature: 'marta-gerbenshreiber', trait: 'prejuge', cible: 'Ceux qu’elle considère faibles', raison: 'critère subjectif personnel, aucun Groupe' },
@@ -64,7 +63,7 @@ describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', 
     { creature: 'andrea-bruhn', trait: 'prejuge', cible: 'Les artistes qui ne sont pas aussi doués qu’ils le pensent', raison: 'critère qualitatif subjectif, aucun Groupe' },
     { creature: 'traudl-bauer', trait: 'prejuge', cible: 'Ulricains pas assez zélés', raison: 'sous-ensemble QUALIFIÉ des Ulricains (PAS tous) — distinct du simple `ulricain`, reste inerte' },
     { creature: 'brigitte-schleigel', trait: 'effraye', cible: 'créanciers', raison: 'phobie non-combattante (dette), aucun Groupe' },
-    { creature: 'brigitte-schleigel', trait: 'prejuge', cible: 'réactionnaires, miliciens, utilisateurs de mystracine', raison: 'reste du segment comma après extraction de `noble` (aristocrates/nantis) — aucun Groupe milice/politique/drogue existant' },
+    { creature: 'brigitte-schleigel', trait: 'prejuge', cible: 'réactionnaires, utilisateurs de mystracine', raison: 'reste du segment après extraction de `noble` et `miliciens`, aucun Groupe' },
     { creature: 'sangsue-geante', trait: 'effraye', cible: 'Sel', raison: 'phobie élémentaire (sangsue), aucun Groupe' },
     { creature: 'sangsue-des-arbres', trait: 'effraye', cible: 'Sel', raison: 'phobie élémentaire (sangsue), aucun Groupe' },
   ] as const;

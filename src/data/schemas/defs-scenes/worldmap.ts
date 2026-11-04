@@ -13,7 +13,7 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme, maisonSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refuserSansProvenance } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { idDe, recordDIds, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
@@ -41,10 +41,10 @@ export const portProfileSchema = nommerChamps(z
      *  (`MDG 15 l.378-383`), dont la première bande commence à 1. */
     richesse: z.number().int().min(1).max(5).optional(),
     /** Colonne Production : ids de cargaison, `'commerce'`/`'minimum-vital'` compris. */
-    production: z.array(z.string()).optional(),
+    production: refs('seaCargo').optional(),
     /** Colonne Surplus : id de cargaison → indice. */
-    surplus: z.record(z.string(), z.number()).optional(),
-    demande: z.record(z.string(), z.number()).optional(),
+    surplus: recordDIds('seaCargo', z.number()).optional(),
+    demande: recordDIds('seaCargo', z.number()).optional(),
     /** Grand port cosmopolite (`MDG 15 l.343-349`). */
     cosmopolite: z.boolean().optional(),
     lighthouse: z.boolean().optional(),
@@ -71,8 +71,8 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
    *  tableau de la Mise à prix (`MSRC 13 l.150-156`), qui donne une ligne par indice de 1 à 5. */
   richesse: z.number().int().min(1).max(5),
   /** Colonne Produits : ids d'entrées de `land-cargo.json` (marchandises ET marqueurs). */
-  produits: z.array(z.string()),
-  demande: z.array(z.string()).optional(),
+  produits: refs('landCargo'),
+  demande: refs('landCargo').optional(),
   /** Le Lieu tire sa Richesse du COMMERCE (`MSRC 13 l.40-42`) — d100 de quantité inversé. */
   commerceRichesse: z.boolean().optional(),
   /** Régions à Vin/Eau-de-vie supérieurs (`MSRC 13 l.95`). */

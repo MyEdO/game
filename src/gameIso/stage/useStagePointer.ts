@@ -21,16 +21,10 @@
  */
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
-import { entityBlockedAt } from '../../noyau/monde/sceneRules';
-import { ficheDEntite, sceneNpc } from '../../noyau/monde/sceneNpc';
+import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import type { Pt } from '../../noyau/monde/path';
 import { marcheOuverte, pasDeLaMarche, porteActionnable } from '../../noyau/marcheDuGroupe';
-import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
-import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
-import { meneurDuMonde } from '../../noyau/monde/combatants';
-// `t` est déjà le nom local de la TUILE survolée dans ce module : la traduction s'y importe sous son
-// rôle, sans rebaptiser trente sites de pointeur.
-import { t as message } from '../../i18n';
+import { exploreMovePlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
@@ -47,12 +41,11 @@ import { poseFromDims } from './projection';
 import { targetUnderPointer } from './spritePicker';
 import { pointStageSousPixel, pointViewBoxSousPixel, resoudrePixel, tireLeRayon, type Verdict } from './pickResolve';
 import { armeParSurvol, entiteDuGeste, jouerArete, type VerbesArete } from './geste';
-import { actionsDe, estUtilisable } from '../../noyau/monde/usable';
-import { porteDOffre } from '../../noyau/interactionsDExploration';
+import { estUtilisable } from '../../noyau/monde/usable';
+import { intentionDuClicDExploration } from '../../noyau/interactionsDExploration';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import type { AreteUtilisable } from '../../noyau/aretes';
 import type { AreteProjetee } from './aretesProjetees';
-import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
 
 const PAN_THRESHOLD = 6; // px de glissement avant de passer en panoramique (sinon = clic)
@@ -338,102 +331,19 @@ export function useStagePointer({
       else if (intention) st.battleClickTile(intention.pt, { confirm: hoverClickCommits() });
       return;
     }
-    const ent = entiteDuGeste(sc, v, t);
-    // Case d'arrivée partagée avec l'aperçu de survol (explorePath) — JAMAIS recalculée à part (cf.
-    // exploreMoveDest) : escalier (autre bout), case adjacente d'un objet/PNJ interactif, ou déplacement simple.
-    const plan = exploreMovePlan(sc, st.partyPos, t, pathOpts());
-    // MEUBLE À PLACES : le MÊME `pendingInteract` que la fouille, mais la marche va jusqu'à l'ABORD
-    // de la place (`exploreSeatPlan` via `exploreMovePlan`), jamais à la case d'ancrage du meuble.
-    // Aucun second pending, aucune route `sit`/`seat` : le geste reste `interactEntity`. Cette branche
-    // n'INTERCEPTE rien : sans place servable elle repasse la main à la chaîne fouille/marchand/dialogue.
-    if (ent && ent.kind === 'prop' && placesJouables(sc, ent.id).length) {
-      const meneur = meneurDuMonde(st)?.id;
-      const assisIci = !!meneur && seatPoseOf(sc, { kind: 'party', rang: RANG_MENEUR })?.propId === ent.id;
-      // UNE SEULE source de « place LIBRE » : le plan d'assise (`exploreSeatPlan`, qui filtre les
-      // places prises et rend un chemin d'un seul point quand on est DÉJÀ sur l'abord d'une libre).
-      // Le lire deux fois — ici « suis-je sur un abord ? », là « où marcher ? » — les faisait diverger :
-      // debout sur l'abord d'une place PRISE, trois places libres ailleurs, le clic servait
-      // « Vous devez rejoindre la place » et personne ne marchait.
-      const place = exploreSeatPlan(sc, st.partyPos, ent.id, pathOpts());
-      if (assisIci || (place && place.path.length < 2)) {
-        // Sur place : le store arbitre entre se relever, servir la fouille/le marchand, et s'asseoir.
-        setHover(null);
-        st.setPendingInteract(null);
-        st.interactEntity(ent.id);
-        return;
-      }
-      // Une place SERVABLE au loin : on marche jusqu'à son ABORD (jamais la case d'ancrage), et le
-      // MÊME `pendingInteract` que la fouille se consomme à l'arrivée.
-      if (plan && place) {
-        setHover(null);
-        st.setPendingInteract({ id: ent.id, at: plan.dest });
-        moveAlong(sc.id, plan);
-        return;
-      }
-      // REPLI — aucune place servable (toutes prises, ou aucun abord atteignable) : les places
-      // AJOUTENT une affordance, elles n'en retirent AUCUNE. La chaîne fouille/marchand/dialogue
-      // ci-dessous reprend la main. Un meuble qui n'a QUE des places, lui, se rejoint quand même : le
-      // clic PARCOURT le plan que le survol trace déjà (`exploreMovePlan`, source unique des deux) —
-      // sinon le tracé promettait une marche que le clic n'honorait pas — et ne dit pourquoi il ne
-      // sert pas qu'une fois À PORTÉE, plus rien à marcher (parité exacte avec le décor sans affordance).
-      if (!estUtilisable(sc, ent, st.flags)) {
-        setHover(null);
-        st.setPendingInteract(null);
-        if (plan) moveAlong(sc.id, plan);
-        else st.log(message('seating.noReachableSeat'));
-        return;
-      }
-    }
-    if (ent && estUtilisable(sc, ent, st.flags)) {
-      // CE QUE L'ENTITÉ OFFRE, dit par le dériveur unique — aucun champ n'est interrogé ici. UNE offre :
-      // le clic la JOUE (adjacent) ou la vise à travers la marche (loin). N offres : le joueur choisit,
-      // et c'est le PANNEAU borné de la pastille qui les sert — le clic ne devine pas à sa place.
-      // Les offres OUVERTES, au même verdict que la pastille (`porteDOffre`) : une offre refusée
-      // (toutes les places prises) se lit au survol, elle ne se joue pas — et ne compte donc pas
-      // dans « une seule offre ».
-      const offres = actionsDe(sc, ent, st.flags).filter((o) => porteDOffre(sc, ent, o.origine).ok);
-      const seule = offres.length === 1 ? offres[0] : null;
-      if (aPorteeDe(st.partyPos, ent)) {
-        if (!seule) return; // la pastille de l'entité, montée dès qu'elle est à portée, porte les N gestes
-        setHover(null);
-        st.setPendingInteract(null);
-        st.jouerAction(ent.id, seule.id);
-      } else if (plan) {
-        // Déplacement-puis-geste (P5) : marche vers la case adjacente libre, puis le geste à l'arrivée.
-        setHover(null);
-        st.setPendingInteract({ id: ent.id, ...(seule ? { actionId: seule.id } : null), at: plan.dest });
-        moveAlong(sc.id, plan);
-      }
-      return;
-    }
-    if (ent && ent.kind === 'personnage') {
-      // FIGURANT (PNJ sans dialogue/boutique/fouille) : on ne lui marche pas DESSUS — on s'approche
-      // d'une case adjacente, ou on le dit s'il est déjà à côté.
-      setHover(null);
-      st.setPendingInteract(null);
-      if (aPorteeDe(st.partyPos, ent)) st.log(`${ficheDEntite(ent, presetPnjById).label} n’a rien à vous dire.`);
-      else if (plan) moveAlong(sc.id, plan);
-      return;
-    }
-    if (ent && ent.kind === 'prop' && entityBlockedAt(sc, ent.pos.x, ent.pos.y, ent.z ?? 0)) {
-      // DÉCOR SANS AFFORDANCE qui OCCUPE sa case (règle unique `sceneRules.entityBlockedAt`, celle
-      // d'`isWalkable`) : on ne monte pas dessus, mais on ne reste pas non plus sans effet — le sol nu,
-      // lui, fait MARCHER. Loin : on s'en approche (`exploreMoveDest` rend la case adjacente). À
-      // portée : il n'y a rien à en tirer, et on le DIT plutôt que d'avaler le geste. Un décor
-      // PASSABLE (mare de sang, tas de foin) n'entre pas ici : sa case se foule, elle se clique comme
-      // le sol, et c'est la marche générique ci-dessous qui la sert.
-      setHover(null);
-      st.setPendingInteract(null);
-      if (plan) moveAlong(sc.id, plan);
-      else st.log(message('store.propInerte', { what: nomDEntite(ent, presetPnjById) ?? message('store.propInerteFallback') }));
-      return;
-    }
-    // Clic ailleurs : annule un déplacement-puis-fouille en attente. `dest` couvre l'ESCALIER (geste
-    // explicite pour changer d'étage) et le déplacement simple ; moveAlong filtre les cases non marchables.
-    st.setPendingInteract(null);
-    if (plan) {
-      setHover(null);
-      moveAlong(sc.id, plan);
+    // Ce que joue la case hors combat : `intentionDuClicDExploration`, sur l'entité que le geste désigne ; le stage
+    // n'en garde que l'effacement du survol et la marche pas à pas.
+    const intention = intentionDuClicDExploration(st, t, entiteDuGeste(sc, v, t)?.id ?? null);
+    if (!intention) return;
+    setHover(null);
+    switch (intention.kind) {
+      case 'interagir': st.setPendingInteract(null); st.interactEntity(intention.id); return;
+      case 'jouer': st.setPendingInteract(null); st.jouerAction(intention.id, intention.actionId); return;
+      case 'rejoindre': st.setPendingInteract(intention.pending); moveAlong(sc.id, intention.plan); return;
+      case 'marcher': st.setPendingInteract(null); moveAlong(sc.id, intention.plan); return;
+      case 'dire': st.setPendingInteract(null); st.log(intention.message); return;
+      case 'annuler': st.setPendingInteract(null); return;
+      default: return intention satisfies never;
     }
   };
 

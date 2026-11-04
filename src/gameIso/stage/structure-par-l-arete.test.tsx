@@ -12,7 +12,7 @@ import type { Combatant } from '../../engine/types';
 import { structureCombatant } from '../../engine/structures';
 import { findStructureById } from '../../data';
 import { makePregens } from '../../data/pregens';
-import { cloisons, piece } from '../../state/pieces.fixture';
+import { cloisons, piece } from '../../noyau/pieces.fixture';
 import type { Pt } from '../../noyau/monde/path';
 import { poseFromDims } from './projection';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
@@ -37,7 +37,7 @@ import { AreteOverlay } from './AreteOverlay';
  */
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
+Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: vi.fn() });
 // `matches: true` = pointeur FIN (souris), défaut de ce banc. `restoreMocks: true` (vite.config.ts)
 // rend le `vi.fn()` nu entre deux tests.
 beforeEach(() => {

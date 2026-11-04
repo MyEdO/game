@@ -15,7 +15,7 @@ const diseaseTimeSchema = nommerChamps(z.strictObject({
 }), { dice: { label: 'dés' }, unit: { label: 'unité' } });
 
 const diseaseSymptomSchema = nommerChamps(z.strictObject({
-  symptomId: z.string(),
+  symptomId: idDe('symptome'),
   severity: symptomSeveritySchema.optional(),
   difficulty: z.string().optional(),
   spec: z.string().optional(),
@@ -41,7 +41,7 @@ const doc = document(
     /** MDG 14 l.209. */
     contaminatesWaterBarrel: z.boolean().optional(),
     /** EDOC 08 l.104-108. */
-    dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: z.string() }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
+    dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
     /** EDOC 08 l.122. */
     mutation: nommerChamps(z.strictObject({ afterDays: z.number(), into: idDe('maladie') }), { afterDays: { label: 'délai en jours' }, into: { label: 'maladie résultante' } }).optional(),
     /** EDOC 08 l.122. */

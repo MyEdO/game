@@ -39,10 +39,6 @@ import steamBreakdown from '../../steam-breakdown.json';
 import advancementCosts from '../../advancementCosts.json';
 import reglesOptionnelles from '../../reglesOptionnelles.json';
 import vehicles from '../../vehicles.json';
-import trappings from '../../trappings.json';
-import structures from '../../structures.json';
-import navalTraits from '../../naval-traits.json';
-import qualities from '../../qualities.json';
 import traits from '../../traits.json';
 import { corruptionExposureSchema } from '../defs-scenes/effets';
 import { menaceIds } from '../../../engine/menace';
@@ -59,8 +55,8 @@ const pathsRefuses = (fichier: string, valeur: unknown): string[] =>
 
 describe('trappingRefSchema — branches de TrappingRef', () => {
   it('accepte {id} de catalogue (+ count optionnel)', () => {
-    expect(trappingRefSchema.safeParse({ id: 'epee-courte' }).success).toBe(true);
-    expect(trappingRefSchema.safeParse({ id: 'epee-courte', count: { fixed: 2 } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour' }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', count: { fixed: 2 } }).success).toBe(true);
   });
 
   it('accepte {text} narratif hors catalogue', () => {
@@ -77,7 +73,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
   });
 
   it('refuse un mélange de branches (strictObject)', () => {
-    expect(trappingRefSchema.safeParse({ id: 'epee-courte', vehicleId: 'chariot-leger' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', vehicleId: 'chariot-leger' }).success).toBe(false);
     expect(trappingRefSchema.safeParse({ creatureId: 'mule', vehicleId: 'chariot-leger' }).success).toBe(false);
   });
 
@@ -228,10 +224,9 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
 });
 
 /**
- * `flowTestSchema.menace` (#1346) — CLÉ ÉTRANGÈRE vers un id de spec du talent « Résistance (Menace) »
- * (LDB 10 l.1016-1020). La liste est OUVERTE côté RAW : elle n'est donc PAS figée dans le code, elle
- * est résolue au catalogue (`talents.json`) à la VALIDATION. Un tag hors catalogue est refusé au
- * chargement DEV (`dev-validate`), au contrat CI (`schema-contract.test.ts`) et à la sauvegarde Codex.
+ * `flowTestSchema.menace` (#1346) — CLÉ ÉTRANGÈRE vers un id de spec du talent « Résistance
+ * (Menace) » (LDB 10 l.1016-1020), jugée par `menaceSchema` (`specFermeeDe('talent', 'resistance')`) :
+ * résolue au catalogue (`talents.json`) à la VALIDATION.
  */
 describe('flowTestSchema.menace — FK vers les specs du talent Résistance', () => {
   const parse = (menace?: string) => flowTestSchema.safeParse({ skill: { id: 'resistance' }, ...(menace != null ? { menace } : {}) });
@@ -245,16 +240,13 @@ describe('flowTestSchema.menace — FK vers les specs du talent Résistance', ()
   it('REFUSE le libellé capitalisé (« Poison ») — un id n’est pas un label', () => {
     const r = parse('Poison');
     expect(r.success).toBe(false);
-    expect(r.error!.issues.map((i) => i.message).join('\n')).toContain('menace « Poison »');
+    expect(r.error!.issues.map((i) => i.message).join('\n')).toContain('« Poison » est absente des spécialisations de « resistance » au catalogue des talents (talents.json).');
   });
 
-  it('REFUSE un id hors catalogue, et le message DIT la valeur ET les valeurs admises', () => {
+  it('REFUSE un id hors catalogue, et le message DIT la valeur, l’entrée et son catalogue', () => {
     const r = parse('exposition');
     expect(r.success).toBe(false);
-    const msg = r.error!.issues.map((i) => i.message).join('\n');
-    expect(msg).toContain('menace « exposition »');
-    expect(msg).toContain('resistance');
-    for (const id of menaceIds()) expect(msg).toContain(id);
+    expect(r.error!.issues.map((i) => i.message).join('\n')).toContain('« exposition » est absente des spécialisations de « resistance » au catalogue des talents (talents.json).');
   });
 });
 
@@ -393,43 +385,19 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
 });
 
 /**
- * POPULATIONS DE RÉFÉRENCE entrées en garde au lot L-gram-2 (#1463) — sonde A du design jugé,
- * promue en contrat. Les quatre populations résolvent à 100 % contre leur catalogue, et chacune est
- * mesurée AVEC son cardinal : une population qui se viderait rendrait la garde vacueuse, une valeur
- * qui cesserait de résoudre est une FK morte. `ref(type)` refuse déjà l'id inconnu AU PARSE
- * (`grammaire/ref.ts`) — sauf pour les Atouts d'objet, qui passent par `qualityRefSchema` (sans FK,
- * #1615/#1621) : c'est LÀ que cette mesure est la seule garde.
+ * FOYERS DISJOINTS (#1463 L-gram-2) : un Trait de navire résout dans `naval-traits.json` (`ref('navalTrait')`
+ * le juge au parse) et n'existe pas au bestiaire — sinon composer `traitInstanceSchema` redeviendrait tentant.
  */
-describe('références migrées — les 3 populations résolvent contre leur catalogue (#1463 L-gram-2)', () => {
-  const ids = (liste: ReadonlyArray<{ id: string }>) => new Set(liste.map((e) => e.id));
-  const CATALOGUES = {
-    navals: ids(navalTraits as ReadonlyArray<{ id: string }>),
-    qualities: ids(qualities as ReadonlyArray<{ id: string }>),
-    traits: ids(traits as ReadonlyArray<{ id: string }>),
-  };
-
-  // 19 → 20 : la barge fluviale gagne le Trait `cale` (#1657 B3-2b-a — MSRC 07 l.94 gate le Critique
-  // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
-  it('vehicles.json › ship.traits — 20 Traits navals résolus, et AUCUN au bestiaire', () => {
+describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L-gram-2)', () => {
+  // 19 → 20 : la barge fluviale gagne le Trait `cale` (#1657 B3-2b-a — MSRC 07 l.94, MSRC 10 l.90).
+  it('20 Traits navals, AUCUN au bestiaire', () => {
+    const bestiaire = new Set((traits as ReadonlyArray<{ id: string }>).map((e) => e.id));
     const vus = (vehicles as ReadonlyArray<{ ship?: { traits?: ReadonlyArray<{ id: string }> } }>).flatMap((v) => v.ship?.traits ?? []);
     expect(vus.length, 'la population des Traits de navire a disparu.').toBe(20);
-    expect(vus.filter((t) => !CATALOGUES.navals.has(t.id)), 'Trait de navire hors de naval-traits.json').toEqual([]);
     expect(
-      vus.filter((t) => CATALOGUES.traits.has(t.id)),
+      vus.filter((t) => bestiaire.has(t.id)),
       'un Trait de navire existe AUSSI au bestiaire : le foyer des deux catalogues cesse d’être disjoint, et composer `traitInstanceSchema` redeviendrait tentant.',
     ).toEqual([]);
-  });
-
-  it('trappings.json › qualities — 438 Atouts résolus (la seule garde de cette population)', () => {
-    const vus = (trappings as ReadonlyArray<{ qualities?: ReadonlyArray<{ id: string }> }>).flatMap((t) => t.qualities ?? []);
-    expect(vus.length, 'la population des Atouts d’objet a disparu.').toBe(438);
-    expect(vus.filter((q) => !CATALOGUES.qualities.has(q.id)), 'Atout hors de qualities.json').toEqual([]);
-  });
-
-  it('structures.json › traits — 5 Traits de structure résolus', () => {
-    const vus = (structures as ReadonlyArray<{ traits?: ReadonlyArray<{ id: string }> }>).flatMap((s) => s.traits ?? []);
-    expect(vus.length, 'la population des Traits de structure a disparu.').toBe(5);
-    expect(vus.filter((t) => !CATALOGUES.traits.has(t.id)), 'Trait de structure hors de traits.json').toEqual([]);
   });
 });
 

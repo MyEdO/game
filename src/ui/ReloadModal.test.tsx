@@ -11,7 +11,7 @@ const pr = (o: Partial<PendingReload> & { weaponName?: string }): PendingReload 
   const { weaponName: _wn, ...rest } = o;
   return {
     actorId: 'h1', actorName: 'Archère', weaponUid: 'w-arb', reload: 1, progressBefore: 0,
-    skillValue: 45, difficulty: 'intermediaire', roll: null, target: 45, sl: 0, success: false, ...rest,
+    skillValue: 45, difficulty: 'intermediaire', ligne: { base: 45, mods: [], target: 45, difficulty: 'intermediaire' }, roll: null, target: 45, sl: 0, success: false, ...rest,
   };
 };
 
@@ -54,5 +54,14 @@ describe('ReloadModalView — « si y’a un jet, y’a la modale »', () => {
   it('progrès partiel cumulé (1 déjà + DR 0) reste 1/2 DR', () => {
     const html = render(pr({ reload: 2, progressBefore: 1, roll: 44, target: 45, sl: 0, success: true }));
     expect(html).toContain('1/2 DR');
+  });
+
+  it('Rechargement rapide (LDB 10) : Recharge 2, réussite DR 1 → la fenêtre annonce 2/2 DR et l’arme rechargée', () => {
+    const tireur = { ...actorWith('Arbalète'), talents: [{ talentId: 'rechargement-rapide', times: 1 }] } as unknown as Combatant;
+    const html = renderToStaticMarkup(
+      <ReloadModalView pr={pr({ reload: 2, progressBefore: 0, roll: 30, target: 45, sl: 1, success: true })} actor={tireur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+    );
+    expect(html).toContain('2 / 2 DR');
+    expect(html).toContain('rechargé');
   });
 });

@@ -78,7 +78,7 @@ function ouvreOpposition() {
       casterId: 'e1', targetId: 'h2', spellId: 'fauche-demon', missile: false, focused: false,
       result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
     } as never,
-    pendingCastOpposition: { participants: [{ id: 'h2', interactive: true, result: null }], kind: 'resist', char: 'force-mentale', menace: 'magie' } as never,
+    pendingCastOpposition: { participants: [{ id: 'h2', interactive: true, result: null }], test: { char: 'force-mentale' }, menace: 'magie' } as never,
   });
 }
 

@@ -10,9 +10,10 @@ import { cibleDeRef, libelleDePsy } from '../../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../../engine/psych/opsPsy';
 import { findFallTable } from '../../../data/shipCriticals';
 import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, contexteDeTestSchema, deDeTableSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
 import { zoneShapeSchema } from '../../../data/schemas/grammaire/mecanique';
 import { CHAR_LABELS } from '../../../engine/types';
+import { deElide } from '../../../i18n';
 import { giveTrappingLabel } from '../../../engine/items';
 import { formatWardSave, traitLisible } from '../../../engine/traits/dispatch';
 import { traumaLabelOf } from '../../../engine/trauma';
@@ -63,7 +64,7 @@ export function opSummary(o: GameOp): string {
     case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
     case 'endPsych': return 'instance' in o ? 'cet état' : psychologyLabel(o.type.id);
     case 'beginPsych': return `${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
-    case 'sbBonus': return `+${o.amount} BF aux Dégâts`;
+    case 'sbBonus': return `+${o.amount} au Bonus de Force`;
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
     case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char]}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
@@ -87,7 +88,7 @@ export function opSummary(o: GameOp): string {
     case 'castPenalty': return `${o.blocked ? 'magie interdite' : o.maxZeroDR ? 'Prière plafonnée' : `${o.mod ?? 0} ${o.skill ? refOuChoix('skills', o.skill, 'compétence de magie') : 'toute magie'}`}`;
     case 'money': return `bourse ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
     case 'statusMod': return `Standing ${formulaSummary(o.amount)} (prochaine aventure)`;
-    case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : 'un Test (cible)'}`;
+    case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.char ? `un Test ${deElide(CHAR_LABELS[o.char])}` : 'un Test (cible)'}${o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : ''}${o.illimite ? ' (illimité)' : ''}`;
     case 'castWard': return `${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} Langue, rayon ${formulaSummary(o.radius)} m`;
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
     case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.trait.id }, o.trait.value === undefined ? '?' : formulaSummary(o.trait.value))} (ZdE du sort)`;
@@ -118,6 +119,7 @@ export function opSummary(o: GameOp): string {
     case 'actGate': return `Test de ${CHAR_LABELS[o.char]} chaque Round pour agir`;
     case 'delayed': return `${o.ops.length} op(s) différée(s)${o.afterDuration ? ' (à la dissipation)' : ''}`;
     case 'preventInfection': return 'pas d’infection';
+    case 'aideMedicale': return 'Aide Médicale';
     case 'cureCriticalWound': return `${o.count ?? 1} critique(s)`;
     case 'amputer': return `${o.sequels.map((id) => traumaLabelOf(id)).join(' + ') || 'aucune séquelle'}${o.unitesPerSL ? ' (+1 par DR)' : ''}`;
     case 'suppressPsych': return 'Traits psy. apaisés';

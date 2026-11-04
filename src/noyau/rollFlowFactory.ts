@@ -21,9 +21,9 @@
  */
 import type { Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
-import type { Combatant, Difficulty } from '../engine/types';
+import type { Combatant, Difficulty, ReverseQuery } from '../engine/types';
 import { canReroll } from '../engine/fortune';
-import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves } from '../engine/menace';
+import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves, type MenaceId } from '../engine/menace';
 import { hasActiveFlag, consumeActiveFlag, freeRerollOf } from '../engine/activeFlags';
 import { touchActors } from './combatOrParty';
 import { surfaceOf } from './rollSeam';
@@ -31,7 +31,7 @@ import { gainCorruption } from './corruptionFlow';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
-import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview } from '../engine/reverseToken';
+import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview, type EvaluationDeRangee, type IssueDuDe } from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
 import { t } from '../i18n';
@@ -112,7 +112,7 @@ export interface PendingBase {
   /** MENACE à laquelle ce Test RÉSISTE (« Résistance (Menace) », LDB 10 l.1016-1020 : `maladie` /
    *  `corruption` / `mutation` / `magie` / `poison`…) — posé par le SITE qui ouvre le pending/l'étape.
    *  Présent + talent disponible ⇒ le verbe `resist` offre l'auto-succès (1× par spec et par séance). */
-  menace?: string;
+  menace?: MenaceId;
   /** DÉ FIXÉ à la main (option de confort « Dés fixés », `engine/fixedDie.ts`) — PROVENANCE, pas une
    *  règle : distingue le dé saisi par le joueur (aucun coût, jet évalué au naturel) du dé CHOISI de la
    *  Résilience (`forced`, réussite garantie). Lu par l'UI (mention « dé fixé » sur la rangée). */
@@ -268,13 +268,15 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * appartiennent au joueur). Absent → le flux n'offre pas l'inversion.
    */
   reverse?: {
-    /** Compétence de CE jet (`{skill, spec}`), matchée STRUCTURÉE contre Talent/jeton. `null` → non concerné. */
-    skillOf: (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) => { skill?: string; spec?: string } | null;
+    /** Test de CE jet (Compétence `{skill, spec}` et contexte), matché STRUCTURÉ contre Talent/jeton.
+     *  `null` → non concerné. */
+    skillOf: (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) => ReverseQuery | null;
     /** Dé/cible ACTEUR courants (post-jet, avant inversion). `null` → rien à inverser. */
-    current: (slot: Slot) => { roll: number; target: number } | null;
-    /** Re-dérive le patch du slot depuis le nouveau `{roll, sl, success}` inversé — `success` REFLÈTE
-     *  le jet réel (jeton, libre, n'est PAS forcé réussi ; seule la voie Talent le garantit par sa gate). */
-    applyRoll: (s: Jeu, slot: Slot, actor: Combatant, get: Get, tr: { roll: number; sl: number; success: boolean }, p: P) => Partial<Slot> | null;
+    current: (slot: Slot, p: P) => { roll: number; target: number } | null;
+    /** ÉVALUATION de la rangée pour le Test naturel `tr` (dé contre la cible de `current`) : le patch du
+     *  slot et l'issue qu'il porte. SOURCE UNIQUE de l'offre du Talent (« si cela entraîne un succès »),
+     *  de l'aperçu et de l'application — `success` REFLÈTE le jet réel, jamais forcé. */
+    evaluate: (s: Jeu, slot: Slot, actor: Combatant, get: Get, tr: IssueDuDe, p: P) => { patch: Partial<Slot>; issue: IssueDuDe } | null;
   };
   /** Lentille de dérivation des verbes d'influence (cf. `RollFlowLens`). PRÉSENTE ⇒ la fabrique compose
    *  bonusSL/forceSuccess/setForcedRoll/resist depuis elle (le `bonus` et la branche `if(forced)` de
@@ -376,6 +378,9 @@ export interface RollFlowHandlers {
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
+  /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
+   *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
+  refusDuSlot: (get: Get, pid?: string) => string | null;
   /** ACTEUR du slot visé — celui que les verbes d'influence DÉBITENT (`spec.actor`, l'entrée de
    *  `opReroll`/`opBonusSL`/`opForceSuccess`/`opDarkPact`). Accesseur PUR en LECTURE SEULE, même
    *  patron que `slotOf` ci-dessus (extraction de `locate` sans son `commit`). Il ouvre le PORTEUR
@@ -415,7 +420,7 @@ export interface RollFlowHandlers {
   /** Prévisualisation PURE de l'issue de l'inversion (dé renversé, DR, succès) — rend le choix LISIBLE
    *  avant le clic. `null` sans `spec.reverse`, jet non lancé, ou aucune voie applicable (miroir de
    *  `reverseAvailable`, jamais appelé sans elle en pratique). */
-  reversePreview: (get: Get, pid?: string) => { roll: number; sl: number; success: boolean } | null;
+  reversePreview: (get: Get, pid?: string) => IssueDuDe | null;
 }
 
 /**
@@ -596,6 +601,16 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // renversement entier. C'est la POSSESSION qui tranche, pas la seule présence du dé.
   const passive = (slot: Slot, s: Jeu, get: Get, p: P) =>
     !!spec.multi && spec.rolled(slot) && !surfaceOf(get, spec.actor(s, slot, p)?.id);
+  // Inversion (`spec.reverse`) : l'acteur, le dé courant, le Test visé et l'ÉVALUATION de la rangée — la
+  // MÊME pour l'offre, l'aperçu et l'application. `null` : rien à inverser.
+  const inversionDuSlot = (s: Jeu, slot: Slot, p: P, get: Get): { actor: Combatant; cur: { roll: number; target: number }; q: ReverseQuery; evaluer: EvaluationDeRangee } | null => {
+    const rev = spec.reverse;
+    if (!rev || !spec.rolled(slot)) return null;
+    const actor = spec.actor(s, slot, p); if (!actor) return null;
+    const cur = rev.current(slot, p); if (!cur) return null;
+    const q = rev.skillOf(s, slot, actor, get, p); if (!q) return null;
+    return { actor, cur, q, evaluer: (tr) => rev.evaluate(s, slot, actor, get, tr, p)?.issue ?? null };
+  };
   const reresolveOf = (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) =>
     spec.reresolve ? spec.reresolve(s, slot, actor, get, p) : spec.resolve(s, slot, actor, get, undefined, p);
   const L = spec.lens; // lentille de dérivation des verbes d'influence (Chance/Résilience/Résistance)
@@ -641,6 +656,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const slots = spec.multi.slots(p);
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
     },
+    refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
     // GOULOT d'acquittement des flux à fenêtre : l'issue est DÉRIVÉE de la déclaration du flux
     // (`spec.issue`), jamais composée au site. La LIGNE DE DÉ n'y est pas ré-émise : la fenêtre l'a
     // montrée (les jets SANS fenêtre reçoivent la leur du dériveur, au goulot des cascades).
@@ -796,36 +812,25 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       opDarkPact(actor, spec.rolled(loc.slot), () => reresolveOf(s, loc.slot, actor!, get, p), get, set, loc.commit);
     },
     reverse(get, set, pid) {
-      if (!spec.reverse) return;
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc || passive(loc.slot, s, get, p)) return;
-      if (!spec.rolled(loc.slot)) return;
-      const actor = spec.actor(s, loc.slot, p); if (!actor) return;
-      const cur = spec.reverse.current(loc.slot); if (!cur) return;
-      const q = spec.reverse.skillOf(s, loc.slot, actor, get, p); if (!q) return;
-      const applied = applyReverse(actor, q, cur.roll, cur.target); if (!applied) return;
-      const patch = spec.reverse.applyRoll(s, loc.slot, actor, get, applied, p); if (!patch) return;
-      loc.commit(patch, { touch: true });
+      const inv = inversionDuSlot(s, loc.slot, p, get); if (!inv) return;
+      if (!engineReversePreview(inv.actor, inv.q, inv.cur.roll, inv.cur.target, inv.evaluer)) return;
+      const tr = applyReverse(inv.actor, inv.q, inv.cur.roll, inv.cur.target, inv.evaluer); if (!tr) return;
+      const ev = spec.reverse!.evaluate(s, loc.slot, inv.actor, get, tr, p); if (!ev) return;
+      loc.commit(ev.patch, { touch: true });
     },
     reverseAvailable(get, pid) {
-      if (!spec.reverse) return false;
       const s = get(); const p = pendingOf(s); if (!p) return false;
       const slot = slotLu(get, p, pid); if (!slot || passive(slot, s, get, p)) return false;
-      if (!spec.rolled(slot)) return false;
-      const actor = spec.actor(s, slot, p); if (!actor) return false;
-      const cur = spec.reverse.current(slot); if (!cur) return false;
-      const q = spec.reverse.skillOf(s, slot, actor, get, p); if (!q) return false;
-      return engineReverseAvailable(actor, q, cur.roll, cur.target);
+      const inv = inversionDuSlot(s, slot, p, get); if (!inv) return false;
+      return engineReverseAvailable(inv.actor, inv.q, inv.cur.roll, inv.cur.target, inv.evaluer);
     },
     reversePreview(get, pid) {
-      if (!spec.reverse) return null;
       const s = get(); const p = pendingOf(s); if (!p) return null;
       const slot = slotLu(get, p, pid); if (!slot || passive(slot, s, get, p)) return null;
-      if (!spec.rolled(slot)) return null;
-      const actor = spec.actor(s, slot, p); if (!actor) return null;
-      const cur = spec.reverse.current(slot); if (!cur) return null;
-      const q = spec.reverse.skillOf(s, slot, actor, get, p); if (!q) return null;
-      return engineReversePreview(actor, q, cur.roll, cur.target);
+      const inv = inversionDuSlot(s, slot, p, get); if (!inv) return null;
+      return engineReversePreview(inv.actor, inv.q, inv.cur.roll, inv.cur.target, inv.evaluer);
     },
   };
   return handlers;

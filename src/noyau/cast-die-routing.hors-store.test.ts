@@ -9,7 +9,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * ROUTAGE du dé choisi dans un flux MULTI d'incantation — Contre-sort et Opposition, DEUX participants.
  *
- * Deux propriétés qu'une fixture MONO (`fixed-die-inventaire.test.ts`) ne peut pas voir, faute de second
+ * Deux propriétés qu'une fixture MONO (`fixed-die-inventaire.hors-store.test.ts`) ne peut pas voir, faute de second
  * slot à croiser :
  *  1. le dé saisi va au participant `pid` VISÉ, et le témoin ne bouge pas (aucun croisement de pid) ;
  *  2. le plancher de DR d'un Test OPPOSÉ (LDB 17 l.68 : « S'il s'agit d'un Test opposé, vous l'emportez
@@ -70,7 +70,7 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
   it('opposition : idem sur l’autre participant (le dé ne fuit pas vers le témoin)', () => {
     banc.setState({
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [
+      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [
         { id: 'A', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
         { id: 'B', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
       ] },

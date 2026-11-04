@@ -34,7 +34,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { Combatant, CharKey, Difficulty, Weapon } from '../engine/types';
+import type { Combatant, CharKey, Difficulty, Weapon, ContexteDeTest } from '../engine/types';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import type { PairedSense, GameOp } from '../engine/ops';
 import type {
@@ -67,6 +67,7 @@ import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
 import { sansPeurLabel } from '../engine/psychology';
+import type { MenaceId } from '../engine/menace';
 
 /** Agrégation d'un jet multi (porte/contresort/équipage) — SEULE variation de la famille multi.
  *  Canonique dans `pendings.ts` (`CascadeAggregate`, ré-exportée ici pour compat des call-sites du
@@ -94,7 +95,7 @@ export interface RollRequest {
    *  un call-site ne peut plus injecter de texte en position de compétence. */
   /** `noSupport` : Test de résistance (maladie/poison/peur/danger…) — coupe le Soutien du côté
    *  `partyBest` (LDB 12 l.197), pour éviter qu'un futur appelant câble un Soutien interdit. */
-  test: { skill?: string; char?: CharKey; spec?: string; sense?: PairedSense; menace?: string; noSupport?: boolean };
+  test: { skill?: string; char?: CharKey; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean };
   difficulty: Difficulty;
   /** Requis pour un côté `participants` ; défaut `summed-dr` (Test d'équipage, MDG 14). */
   aggregate?: RollAggregate;
@@ -449,7 +450,7 @@ export interface BandSpec {
   /** Défaut `'none'` : les rangées d'une bande sont des jets INDÉPENDANTS (#351). */
   aggregate?: RollAggregate;
   stake?: StakeRef;
-  menace?: string;
+  menace?: MenaceId;
   /** CHARGES d'applier — l'entrée de règle affrontée (type, source, cible, Indice) dont chaque rangée
    *  joue le Test : « Psychologie de combat » (`combatFlow`) et « Psychologie de rencontre »
    *  (`encounterPsychFlow`). Recopiées telles quelles — une charge n'est pas une forme : elle ne rend
@@ -457,6 +458,8 @@ export interface BandSpec {
    *  résolue. */
   combatPsych?: CascadeStep['combatPsych'];
   encounterPsych?: CascadeStep['encounterPsych'];
+  /** Contexte du Test des rangées (`CascadeStepCore.contexte`). */
+  contexte?: ContexteDeTest;
   meta?: CascadeStepMeta;
 }
 
@@ -492,6 +495,7 @@ export function bandStep(spec: BandSpec, rows: readonly BatchParticipant[]): Bui
     ...(spec.menace ? { menace: spec.menace } : {}),
     ...(spec.combatPsych ? { combatPsych: spec.combatPsych } : {}),
     ...(spec.encounterPsych ? { encounterPsych: spec.encounterPsych } : {}),
+    ...(spec.contexte ? { contexte: spec.contexte } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `bandStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
@@ -554,7 +558,7 @@ export function bandCommonMeta(metas: readonly (CascadeStepMeta | undefined)[]):
  *  les porte. Les champs de JEU DÉJÀ POSÉ (influences, issue) descendent aussi : vides sur une étape
  *  fraîchement construite, peuplés sur une étape venue d'une sauvegarde. */
 const ROW_DEPUIS_ETAPE = [
-  'base', 'target', 'mods', 'clamped', 'difficulty', 'menace',
+  'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skillId', 'spec',
   'rerolled', 'forced', 'fixed', 'outcome',
 ] as const;
 
@@ -917,6 +921,11 @@ export function rollStep(spec: RollLineSpec): LigneMontee {
   };
 }
 
+/** La Compétence lancée d'un Test de ligne, telle que l'étape la porte (`CascadeStepCore.skillId`). */
+function competenceDuTest(test: { skill?: string; spec?: string } | undefined): { skillId?: string; spec?: string } {
+  return { ...(test?.skill ? { skillId: test.skill } : {}), ...(test?.skill && test.spec ? { spec: test.spec } : {}) };
+}
+
 /** Résout un test skill/char SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
@@ -938,6 +947,7 @@ function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: Cas
     // Compétence DÉRIVÉE du catalogue (`testSkillLabel`) — jamais `req.actionLabel` sauf repli (Test
     // SANS compétence/carac déclarée, ex. Désertion : rien à nommer en position de compétence).
     rollLabel: testSkillLabel(req.test) ?? req.actionLabel,
+    ...competenceDuTest(req.test),
     base: line.base,
     ...(line.mods.length ? { mods: line.mods } : {}),
     target: line.target,
@@ -1014,7 +1024,7 @@ function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): Cas
  */
 export function openPartyTest(
   get: Get, set: Set,
-  spec: { skill: string; char?: CharKey; assisted?: boolean; spec?: string; sense?: PairedSense; menace?: string; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
+  spec: { skill: string; char?: CharKey; assisted?: boolean; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
   kind: GenreDEtape,
   meta?: CascadeStepMeta,
 ): void {
@@ -1108,7 +1118,7 @@ export interface BandPorteur {
   /** Libellé de rangée. Absent : la Compétence DÉRIVÉE du catalogue (`testSkillLabel`). */
   label?: string;
   /** Tag de DONNÉE `menace` — la rangée offre l'auto-succès du talent Résistance (Menace), LDB 10. */
-  menace?: string;
+  menace?: MenaceId;
   /** Contribue DOUBLE à l'agrégat sommé (MDG 14 l.19). */
   essential?: boolean;
   /** +DR ajouté au DR d'un jet réussi (Talent baké à la construction). */
@@ -1377,7 +1387,9 @@ interface MonoBase {
   /** Libellé de la COMPÉTENCE lancée. Absent : dérivé du catalogue (`testSkillLabel`), à défaut `label`. */
   rollLabel?: string;
   /** Tag de DONNÉE `menace` (auto-succès du talent Résistance (Menace), LDB 10). */
-  menace?: string;
+  menace?: MenaceId;
+  /** Contexte du Test (`CascadeStepCore.contexte`). */
+  contexte?: ContexteDeTest;
   /** ENJEU du jet (#1117) — DÉCLARATION REQUISE (#1262 V2 L6d) : le champ n'est plus optionnel, une
    *  étape mono ne peut PLUS se déclarer sans parler de son enjeu. La valeur peut être `undefined`
    *  (résiduel : un porteur non résoluble, cf. `monoStep`, qui le REFUSE bruyamment) — ce que le type
@@ -1465,9 +1477,11 @@ export function monoStep(spec: MonoSpec): BuiltCascadeStep | undefined {
     ...(actor ? { actorId: actor.id } : { worldOwner: true }),
     difficulty: spec.difficulty,
     rollLabel: spec.rollLabel ?? testSkillLabel(spec.ligne?.test ?? {}) ?? spec.label,
+    ...competenceDuTest(spec.ligne?.test),
     ...parts,
     result: parts.result ?? null,
     ...(spec.menace ? { menace: spec.menace } : {}),
+    ...(spec.contexte ? { contexte: spec.contexte } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.second ? { second: spec.second } : {}),
     ...(spec.reveal ? { reveal: spec.reveal } : {}),

@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { recordDIds, refs } from '../grammaire/ref';
 
 export const file = 'naval-ports.json';
 export const famille = 'entite';
@@ -18,9 +19,9 @@ const doc = document(
     region: z.string(),
     taille: z.number(),
     richesse: z.number(),
-    production: z.array(z.string()).optional(),
-    surplus: z.record(z.string(), z.number()).optional(),
-    demande: z.record(z.string(), z.number()).optional(),
+    production: refs('seaCargo').optional(),
+    surplus: recordDIds('seaCargo', z.number()).optional(),
+    demande: recordDIds('seaCargo', z.number()).optional(),
     /** Grand port cosmopolite (Marienburg/Lothern, MDG 15 l.343-349). */
     cosmopolite: z.boolean().optional(),
     /** Colonne Dirigeant, verbatim. */

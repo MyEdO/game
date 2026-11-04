@@ -78,6 +78,7 @@ const KIND_OPTIONS: [Condition['kind'], string][] = [
   ['hiddenFromFoes', 'Caché de l’ennemi (hors de vue)'],
   ['engaged', 'Engagé avec un ennemi'],
   ['crewTest', 'Au sein d’un Test d’équipage (à bord)'],
+  ['roundDeCombat', 'Pendant un Round de combat'],
   ['nearestFoe', 'Distance à l’ennemi le plus proche'],
   ['capability', 'Capacité de combat'],
   ['visiblePassive', 'Atteinte VISIBLE (apparence)'],
@@ -127,6 +128,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'hiddenFromFoes': return { kind: 'hiddenFromFoes' };
     case 'engaged': return { kind: 'engaged' };
     case 'crewTest': return { kind: 'crewTest' };
+    case 'roundDeCombat': return { kind: 'roundDeCombat' };
     case 'nearestFoe': return cond.kind === 'nearestFoe' ? cond : { kind: 'nearestFoe', op: '<=', value: 3 };
     case 'capability': return cond.kind === 'capability' ? cond : { kind: 'capability', who: 'target', id: 'braveheart', op: '>=', value: 1 };
     case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: 'target', is: 'opponent' };

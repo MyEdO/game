@@ -20,21 +20,20 @@
 import type { Combatant } from './types';
 import { bonus, effectiveChar } from './characteristics';
 import { findTalentById } from '../data';
+import type { SpecId } from '../data/schemas/grammaire/ref';
+
+/** Id de spec de l'entrée `resistance` de `talents.json` : le tag `menace` d'un Test, lu en donnée par
+ *  `menaceSchema` (`data/schemas/grammaire/mecanique.ts`). Un littéral de code hors catalogue ne compile pas. */
+export type MenaceId = SpecId<'talent', 'resistance'>;
 
 /**
  * Les Menaces AUTHORÉES : les ids de SPEC de l'entrée `resistance` de `talents.json`, lus À
- * L'EXÉCUTION — SOURCE UNIQUE. La liste est OUVERTE (LDB 10 l.1016-1020) : une spec ajoutée au
- * Compendium devient utilisable sans toucher au code. Le tag `menace` est une CLÉ ÉTRANGÈRE vers
- * cette liste : validée en donnée par `flowTestSchema` (`data/schemas/grammaire/mecanique.ts`) et au code par la
- * garde `menace-fk.test.ts`, qui NOMME le site fautif.
+ * L'EXÉCUTION — SOURCE UNIQUE. LDB 10 l.1016-1020. Le tag `menace` est une CLÉ ÉTRANGÈRE vers cette
+ * liste : jugé en donnée par `menaceSchema` (`data/schemas/grammaire/mecanique.ts`), au code par son
+ * type `MenaceId`.
  */
 export function menaceIds(): string[] {
   return (findTalentById('resistance')?.specs ?? []).map((s) => s.id);
-}
-
-/** Le tag `menace` référence-t-il une spec EXISTANTE du talent Résistance ? (FK par id.) */
-export function isMenaceId(v: string): boolean {
-  return menaceIds().includes(v);
 }
 
 /** La spec du talent Résistance de `c` couvrant `menaceId` et NON consommée cette séance — sinon null.

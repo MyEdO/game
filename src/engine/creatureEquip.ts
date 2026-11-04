@@ -6,7 +6,8 @@
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem, type TrappingResolver } from './items';
+import { buildWeapon, emptyArmour, itemFromTrappingById, unarmedWeapon, weaponFromItem, type TrappingResolver } from './items';
+import { armureDuTrait } from './armourBypass';
 import type { ItemInstance, WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
@@ -76,7 +77,9 @@ export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResol
 function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapon | null {
   // Indice de créature = SB déjà inclus → PAS de token BF (« +N », « -N » négatif) ; à défaut d'Indice,
   // arme générique « +BF » nu (SB-relatif). Le constructeur d'arme UNIQUE porte les deux conventions.
-  const dmg: WeaponDamageSpec = t.value != null ? { plusBF: false, flat: t.value } : { plusBF: true, flat: 0, bare: true };
+  const dmg: WeaponDamageSpec = t.value != null
+    ? { plusBF: false, flat: t.value, ...(findTraitById(t.id)?.bfInclus ? { bfInclus: true as const } : {}) }
+    : { plusBF: true, flat: 0, bare: true };
   // Quel(s) Trait(s) ARMENT une créature est DÉCLARÉ par l'entrée du registre : `specsSource` nomme LE
   // catalogue où se résout son `arg` (`weaponsMelee`/`weaponsRanged`, cf. `SPEC_SOURCES`). Un troisième
   // trait porteur d'arme coûte cette ligne de `traits.json` — et la source passée à `catalogItem` EST
@@ -114,7 +117,7 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
 
 /** Armes EXPLICITES d'une créature (traits « Arme »/« À distance »/naturelles), SANS arme générique de
  *  repli. Pour le RENDU : une créature sans trait d'arme reste mains libres (un villageois ne tient rien) —
- *  le repli « Arme +BF » générique de `weaponsFromTraits` n'y entre pas. */
+ *  les Mains nues de repli de `weaponsFromTraits` n'y entrent pas. */
 export function renderWeaponsFromTraits(traits: TraitList, resolveTrapping: TrappingResolver = findTrappingById): Weapon[] {
   const weapons: Weapon[] = [];
   for (const t of traits) {
@@ -124,16 +127,15 @@ export function renderWeaponsFromTraits(traits: TraitList, resolveTrapping: Trap
   return weapons;
 }
 
-/** Armes JOUABLES (combat) : comme `renderWeaponsFromTraits`, mais garantit AU MOINS une arme (« Arme »
- *  générique = poings) pour qu'un combattant puisse toujours frapper, même sans trait d'arme. */
+/** Armes JOUABLES (combat) : comme `renderWeaponsFromTraits` ; sans trait d'arme, `unarmedWeapon`.
+ *  LDB 85 l.31, LDB 14 l.155, LDB 62 l.28. */
 export function weaponsFromTraits(traits: TraitList): Weapon[] {
   const weapons = renderWeaponsFromTraits(traits);
-  if (weapons.length === 0) weapons.push(buildWeapon({ label: 'Arme', damage: { literal: '+BF' } })); // uid universel
-  return weapons;
+  return weapons.length ? weapons : [unarmedWeapon()];
 }
 
-/** PA du Trait dont la def déclare l'Indice par Localisation (`parLocalisation`). LDB 85 l.37-39 ; #1463. */
+/** PA du Trait Armure (`armureDuTrait`). LDB 85 l.37-39 ; #1463. */
 export function armourFromTraits(traits: TraitList): ArmourPoints {
-  const armure = traits.find((t) => findTraitById(t.id)?.parLocalisation);
+  const armure = armureDuTrait(traits);
   return armure?.parLocalisation ? { ...armure.parLocalisation } : emptyArmour(armure?.value ?? 0);
 }

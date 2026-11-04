@@ -14,8 +14,9 @@
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
-import { bonus, effectiveChar, blessuresReconciliees } from './characteristics';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
+import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
+import { LOCALISATIONS_DE_COUP } from './localisations';
+import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
@@ -26,7 +27,8 @@ import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
+import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
@@ -48,7 +50,7 @@ import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
-import { suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
+import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
@@ -57,7 +59,6 @@ import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import type { Duration } from './duration';
 import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
-import { rule } from './policy'; // module FEUILLE (registre des règles optionnelles) : terme `{rule}` d'une Formula
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
 // dispatché par `noyau/triggeredEffects` (pas ici).
@@ -78,12 +79,13 @@ import {
   type Trauma,
   type ReachValue,
   type ConditionEmit,
+  type ContexteDeTest,
 } from './types';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
-import { t, pluriel, type MsgKey } from '../i18n';
+import { t, pluriel, deElide, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 
 // ---------------------------------------------------------------------------
@@ -241,18 +243,15 @@ export interface PerSL {
  *  relationnels (Indice/stacks/écart d'Avantage/PB infligés) absents au planning → 0. `{minimum}` borne
  *  l'espérance de `of` — approximation : E[max(n,X)] ≥ max(n,E[X]). PUR, sans RNG. */
 export function formulaExpectation(f: Formula, ref: Combatant): number {
-  if (typeof f === 'number') return f;
-  if (typeof f !== 'object' || f === null) return 0; // formule malformée (donnée invalide) → 0, jamais un crash en plein combat
-  if ('bonusOf' in f) return bonus(effectiveChar(ref, f.bonusOf));
-  if ('charOf' in f) return effectiveChar(ref, f.charOf);
-  if ('dice' in f) return f.dice.n * (f.dice.sides + 1) / 2 + (f.dice.plus ?? 0);
-  if ('rolled' in f) return 5.5; // référence neutre (dé moyen d'un d10) — jamais tiré
-  if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
-  if ('minimum' in f) return Math.max(f.minimum, formulaExpectation(f.of, ref));
-  if ('parTranche' in f) return Math.floor(formulaExpectation(f.of, ref) / f.parTranche);
-  if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + formulaExpectation(term, ref), 0);
-  if ('times' in f) return formulaExpectation(f.times.of, ref) * formulaExpectation(f.times.factor, ref);
-  return 0; // indiceOf / stacks / engagedAdvantageGap / woundsDealt / sl : hors contexte au planning
+  return evaluer<TermeDeJet>(f, caracDuCombattant(ref), jetEspere);
+}
+
+/** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}` et tout objet
+ *  inconnu (formule malformée) 0. */
+function jetEspere(t: TermeDeJet): number {
+  if ('dice' in t) return t.dice.n * (t.dice.sides + 1) / 2 + (t.dice.plus ?? 0);
+  if ('rolled' in t) return 5.5;
+  return 0;
 }
 
 /** Somme des bonus de DR à une Compétence (`skillId`) conférés au porteur — op `skillDRBonus` PASSIVE
@@ -602,8 +601,10 @@ export type GameOp =
   | { op: 'statusMod'; amount: Formula }
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée
    *  `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). `skill` absent = tout
-   *  Test (« concernant votre cible », l.218). */
-  | { op: 'grantReverseToken'; skill?: RefDesignee }
+   *  Test (« concernant votre cible », l.218) ; `char` : tout Test de cette Caractéristique ; `contexte` :
+   *  le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais consommé
+   *  (ACE 12 l.60). */
+  | { op: 'grantReverseToken'; skill?: RefDesignee; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
    *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `trait` : le Trait OCTROYÉ, résolu
@@ -698,8 +699,10 @@ export type GameOp =
    *  `daysPerSL` : échelle « +N jours par +M DR » du Test AYANT PRÉCÉDÉ l'op (Gesundheit : « un jour par
    *  DR obtenu » au Test de Résistance Accessible, MSRC 04 l.184-186) — alimentée par `ctx.sl`. */
   | { op: 'reduceDiseaseDays'; days?: number; dice?: DiceSpec; disease?: string; oncePerDisease?: boolean; daysPerSL?: PerSL }
-  /** Les Blessures ne s'infecteront pas (Cautériser, LDB 47 → flag `woundDressed`, LDB 18 l.298). */
+  /** Les Blessures ne s'infecteront pas (`woundDressed`) : LDB 09 l.260. */
   | { op: 'preventInfection' }
+  /** Aide Médicale : lève l'escalade en attente et les verrous d'État « par Aide Médicale » (LDB 18 l.308-311). */
+  | { op: 'aideMedicale' }
   /** EXPOSE la cible à une Maladie (`disease` = id de `maladies.json`) → Test de Contraction au bilan de
    *  fin de combat (LDB 20 l.25/51). Op GÉNÉRIQUE : Infecté → 'blessure-purulente', trait Maladie →
    *  l'`arg` (ex. 'fievre-du-rongeur' pour les rats/skavens). Cumule sans doublon dans `diseaseExposure`
@@ -1028,9 +1031,8 @@ export type GameOp =
    *  `traitSpellDRMod`/`talentSpellDRMod` (engine/magic) au calcul du DR du Sort CONTRE cette cible
    *  (Dégâts du Projectile, `ctx.sl` des Flows, zone, NI par cible). Inerte dans `applyOps`. */
   | { op: 'incomingSpellDRMod'; amount: FormuleSansTirage }
-  /** +N au Bonus de Force employé aux DÉGÂTS (Frénésie : +1 « grâce à votre férocité », LDB 21 l.33). PASSIF,
-   *  sommé par `damageSBBonus` et injecté dans `sb` au calcul des dégâts (combat.ts) — AVANT le `max` du Tueur
-   *  et `effectiveWeaponDamage` (une arme à dégâts FIXES n'en profite donc pas). Inerte dans `applyOps`. */
+  /** +N au Bonus de Force (LDB 21 l.33). PASSIF, sommé par `bonusPassifDeForce` (engine/characteristics), lu par
+   *  tout lecteur du BF. Inerte dans `applyOps`. */
   | { op: 'sbBonus'; amount: number }
   /** L'attaque du porteur porte un MOT-CLÉ (Magique/Démoniaque/Fabriqué → 'magic', LDB 85). PASSIF, lu par
    *  `attackHasKeyword` — sert la mitigation (Éthéré : seules les attaques 'magic' blessent). Inerte dans applyOps. */
@@ -1783,6 +1785,8 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
       const raccourcit = dz.minutesLeft > MINUTES_PER_DAY && (!!o.dice || comptePositif(o.days ?? 1, o.daysPerSL, ctx));
       return o.oncePerDisease || raccourcit ? null : t('rest.diseaseUnchanged', { name: c.label, disease: diseaseLabel(dz.id) });
     }
+    case 'aideMedicale':
+      return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, 'medicalAid') ? null : t('op.sansAideMedicaleAttendue', { name: c.label });
     default: return null;
   }
 }
@@ -1871,10 +1875,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Défaut : ignore BE+PA. `ignoreTB:false` → déduit le Bonus d'Endurance ; `ignoreAP:false` → déduit les PA.
         const tb = o.ignoreTB === false ? bonus(effectiveChar(target, 'endurance')) : 0;
         // `apFrom:'least'` → PA de la Localisation la moins protégée (En Flammes) ; sinon le Corps.
-        const totalAP = o.apFrom === 'least'
-          ? Math.max(0, Math.min(...Object.values(target.armour)))
-          : Math.max(0, target.armour.corps ?? 0);
-        const bypass = o.bypassArmour ? bypassedAP(target, 'corps', o.bypassArmour, totalAP) : 0; // attribut de Domaine : perce le métal/non-magique
+        const locDesPA = o.apFrom === 'least'
+          ? LOCALISATIONS_DE_COUP.reduce((m, l) => (effectiveArmourAt(target, l) < effectiveArmourAt(target, m) ? l : m))
+          : 'corps';
+        const totalAP = effectiveArmourAt(target, locDesPA);
+        const bypass = o.bypassArmour ? bypassedAP(target, locDesPA, o.bypassArmour, totalAP) : 0; // attribut de Domaine : perce le métal/non-magique
         // PA de la Localisation (si non ignorés) + PA situationnels du coup (`extraAP` : poupe/Bélier de collision…).
         const ap = (o.ignoreAP === false ? Math.max(0, totalAP - bypass) : 0) + (o.extraAP ?? 0);
         const n = Math.max(o.min ?? 0, raw - tb - ap);
@@ -1890,7 +1895,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // SOURCE UNIQUE `applyHealWounds` (`healing.ts`) : plafonné par munition Empaleuse logée (LDB
         // 62 l.250) comme le reste ; ni verrou « soin de rencontre » (Guérison seulement) ni réveil
         // ici — sort/potion inconscient géré par `receiveMedicalAid`/`releaseConditionLocks` ci-dessous.
-        lines.push(...applyHealWounds(target, n, { skillCheck: false, wake: false, log: (healed) => [t('op.heal', { name: target.label, n: healed })] }));
+        lines.push(...applyHealWounds(target, n, { wake: false, log: (healed) => [t('op.heal', { name: target.label, n: healed })] }));
         lines.push(...receiveMedicalAid(target)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
         lines.push(...releaseConditionLocks(target, ctx.sourceSpellId != null ? 'magic' : 'medicalAid')); // verrous d'État (LDB 18) : soin d'un sort = magie (⊇ Aide Médicale) ; potion/objet = Aide Médicale
         break;
@@ -1898,7 +1903,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'healCaster': {
         const who = ctx.caster ?? target;
         const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
-        lines.push(...applyHealWounds(who, n, { skillCheck: false, wake: false, log: (healed) => [t('op.heal', { name: who.label, n: healed })] }));
+        lines.push(...applyHealWounds(who, n, { wake: false, log: (healed) => [t('op.heal', { name: who.label, n: healed })] }));
         lines.push(...receiveMedicalAid(who)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
         lines.push(...releaseConditionLocks(who, 'magic')); // healCaster = soin d'un sort → magie (lève aussi les verrous Aide Médicale, LDB 18)
         break;
@@ -2234,8 +2239,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec } });
-        lines.push(t('op.grantReverseToken', { name: target.label, skill: o.skill ? refLabel('skills', o.skill) : t('op.reverseAnyTest') }));
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.char ? { char: o.char } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
+        lines.push(t('op.grantReverseToken', {
+          name: target.label,
+          skill: o.skill ? refLabel('skills', o.skill) : o.char ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.char]) }) : t('op.reverseAnyTest'),
+          contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
+          fois: t(o.illimite ? 'op.reverseIllimite' : 'op.reverseUneFois'),
+        }));
         break;
       }
       case 'grantTrait': {
@@ -2329,10 +2339,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'preventInfection': {
-        target.woundDressed = true; // pas d'Infection post-critique (LDB 18 l.298)
+        target.woundDressed = true; // LDB 09 l.260
         lines.push(t('op.preventInfection', { name: target.label, src: nomDeSource(ctx) }));
-        lines.push(...receiveMedicalAid(target)); // bandage/cataplasme = Aide Médicale (LDB 18 l.310)
-        lines.push(...releaseConditionLocks(target, 'medicalAid')); // verrous d'État « par Aide Médicale » (LDB 18)
+        break;
+      }
+      case 'aideMedicale': {
+        lines.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid')); // LDB 18 l.308-311
         break;
       }
       case 'exposeDisease': {
@@ -2477,8 +2489,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'suppressPsych': {
-        const suppressed = suppressPsychTraits(target);
-        if (!suppressed) {
+        if (!target.psychTraits?.length && !effectivePsychTraits(target).length && !isFrenzyCapable(target)) {
           lines.push(t('op.noPsychToSuppress', { name: target.label }));
           break;
         }
@@ -2486,7 +2497,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
-          suppressedPsych: suppressed,
+          suppressedPsych: suppressPsychTraits(target),
         });
         lines.push(t('op.suppressPsych', { name: target.label, src: nomDeSource(ctx) }));
         break;
@@ -2872,7 +2883,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (healed > 0) {
           // SOURCE UNIQUE `applyHealWounds` — même plafond de munition logée (LDB 62 l.250) que le
           // reste ; le message ne sort que si le drain rend RÉELLEMENT des PB (post-plafond).
-          lines.push(...applyHealWounds(who, healed, { skillCheck: false, wake: false, log: (h) => (h > 0 ? [t('op.lifeSteal', { name: who.label, n: h })] : []) }));
+          lines.push(...applyHealWounds(who, healed, { wake: false, log: (h) => (h > 0 ? [t('op.lifeSteal', { name: who.label, n: h })] : []) }));
         }
         break;
       }

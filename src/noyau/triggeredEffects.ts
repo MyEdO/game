@@ -19,6 +19,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHas
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
+import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
 import type { CombatFeature } from '../engine/combatFeatures/types';
 import { isOutOfAction, combatTestPenalty } from '../engine/conditions';
 import { surfaceOf } from './rollSeam';
@@ -38,7 +39,7 @@ import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
 import { cibleEnVue, isAfflictionActive, type CibleEnVue, type PsychAffliction } from '../engine/psychology';
 import { estCibleType } from '../engine/psych/ciblage';
-import { sourcesEnVue } from './monde/porteurs';
+import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { routeTriggeredTest } from './combat/triggeredTest';
@@ -128,7 +129,7 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
   for (const m of actor.mutations ?? []) { const d = findMutationById(m.id); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'mutation', id: m.id }), cap: 1, key: `mutation:${m.id}`, label: d.label ?? m.id }); }
   for (const cond of actor.conditions ?? []) {
     const d = findConditionById(cond.id);
-    if (!d?.effects?.length) continue;
+    if (!d?.effects?.length || degatsDeLEtatIgnores(actor.traits, cond.id)) continue;
     const reduce = d.stacksReducedBy ? featureLevel(actor, d.stacksReducedBy as keyof CombatFeature) : 0; // Hémorragique − Endurci…
     // Part DÉRIVÉE du pion (`derivedFrom.stacks`, socle #1599) : un fait passif vivant la porte, donc
     // elle n'est ni récupérable ni dissipable (`retireEtat` y est déjà inerte). Un pion ENTIÈREMENT
@@ -277,6 +278,9 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
    *  câblé via le hook du store). Absent → pas de routage (les flows non-`test` passent par
    *  `runPureFlowLines`, qui rend le `string[]` tissé inline par l'appelant). */
   set?: SetFn;
+  /** Compte des effets EXERCÉS (passés par l'enveloppe `ciblesDeLEffet`), tenu par l'émetteur qui le fournit
+   *  (`emitCombatEvent`). */
+  exercices?: { n: number };
   /** Pose le drapeau `deferInteractiveTest` sur la résolution d'un Test routé : un porteur SURFACÉ
    *  (`surfaceOf` — un siège humain QUELCONQUE le tient, cadence manuelle) ne pousse PAS son étape ICI
    *  (la cascade n'est pas ouverte au moment où le hook `end-of-round` diffuse) — elle est COLLECTÉE par
@@ -390,12 +394,12 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   return { hiddenFromFoes, engaged: isEngaged(actor), nearestFoeDist };
 }
 
-/** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les combattants en vue ; `undefined` hors
- *  combat, sans instance ou sans Cible. */
+/** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
+ *  de Vue, étiquette de la scène) ; `undefined` hors combat, sans instance ou sans Cible. */
 function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAffliction | undefined): CibleEnVue | undefined {
   const { battle, scene } = get();
   if (!battle || !scene || affliction?.cible === undefined) return undefined;
-  return cibleEnVue(actor, affliction, [...sourcesEnVue(battle, scene, actor, (s) => !s.dead)]);
+  return cibleEnVue(actor, affliction, sourcesPsyEnVue(battle, scene, actor, (s) => !s.dead));
 }
 
 /** ENVELOPPE d'un effet déclenché : les combattants où `eff` s'exerce pour `trigger` dans `ctx` — vide
@@ -463,6 +467,7 @@ export function applyTriggeredEffects(
   for (const eff of effects) {
     if (flowHasFreeAttack(eff.flow)) continue;
     for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
+      if (ctx.exercices) ctx.exercices.n++;
       // Flow PORTANT un nœud `test` (à n'importe quelle profondeur — top-level Mâchoires, ou enfoui sous
       // `if`/`seq` : Venin/Hurlement/2 enchants) routé vers la voie cadence-aware (héros manuel → cascade
       // influençable ; ennemi/auto → inline) plutôt qu'avalé silencieusement — seulement si l'appelant

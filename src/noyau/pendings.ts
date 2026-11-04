@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
+import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -19,18 +19,20 @@ import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
 import type { ManeuverDef, StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
-import type { HealMode } from '../engine/healing';
+import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { PsychType, TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
+import type { RollLineParts } from './rollSeam';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
-import type { SupportDetail } from '../engine/skills';
+import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
+import type { MenaceId } from '../engine/menace';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -140,6 +142,9 @@ export interface PendingTest {
   psychMod?: number;
   /** Libellé lisible du malus psy social (« Animosité −20 envers Elfe ») pour la modale de Test. */
   psychDetail?: string;
+  /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
+   *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
+  contexte?: ContexteDeTest;
   /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
@@ -159,7 +164,7 @@ export interface PendingTest {
    *  informatif : la modale NOMME « plafond 99 : −N » au lieu de le déduire de la valeur de la cible. */
   clamped?: number;
   /** SOUTIEN (LDB 12 l.187-200) du candidat COURANT, déjà FONDU dans `skillValue`/`target` — porté
-   *  pour l'AFFICHAGE (ligne de mod nommée, `ui/breakdown.supportSplit`), comme `PendingActivity.support`.
+   *  pour l'AFFICHAGE (ligne de mod nommée, `engine/skills.supportSplit`), comme `PendingActivity.support`.
    *  Change avec le lanceur choisi (`testSetActor` recopie celui du candidat). */
   support?: SupportDetail;
   /** La Difficulté a été ALLÉGÉE (`FlowTest.easierIf`) : libellé de la compétence/du talent qui l'a
@@ -172,7 +177,7 @@ export interface PendingTest {
   /** Réussite forcée par Résilience AVANT le jet (LDB 17 l.68) : affichage « garanti », sans dé. */
   forced?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`) — jamais posé sur ce flux :
-   *  sans cible dérivable, la saisie y est refusée (garde `fixed-die-inventaire.test.ts`). */
+   *  sans cible dérivable, la saisie y est refusée (garde `fixed-die-inventaire.hors-store.test.ts`). */
   fixed?: boolean;
   /** Relance par Chance déjà effectuée (LDB 12 l.40 : 1 relance max par Test). */
   rerolled?: boolean;
@@ -244,6 +249,8 @@ export interface PendingReload {
   progressBefore: number; // DR déjà cumulés (Test étendu)
   skillValue: number; // combatValue(active, 'ranged')
   difficulty: Difficulty; // 'intermediaire' (le canon ne spécifie pas → défaut)
+  /** Ligne du jet montée à l'ouverture (`rollLine`, arme bakée et Soutien compris) — lue par la fenêtre. */
+  ligne: RollLineParts;
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
   roll: number | null;
   target: number; // cible effective après difficulté
@@ -829,7 +836,7 @@ export interface PendingCorruption {
   /** Menace du talent « Résistance (Menace) » (LDB 10) couverte par CE Test : `corruption` (exposition,
    *  l.23-75 — résister au GAIN de Points) ou `mutation` (seuil, l.70 — l'échec fait MUTER). Posé à
    *  l'ouverture ; offre l'auto-succès via `corruptionResist`. */
-  menace?: string;
+  menace?: MenaceId;
 }
 /** Contexte d'un Critique (qui l'inflige + l'arme/sort en libellé) — modale enrichie + B. de Sauvagerie.
  *  Forme identique au `ctx` d'`applyCriticalToTarget` : source UNIQUE du type. */
@@ -1468,6 +1475,8 @@ export interface OppositionOutcome {
 }
 /** Une cible qui OPPOSE son Test à l'incantation : participant du flux MULTI (son jet + influence). */
 export interface OppositionParticipant extends RollParticipant {
+  /** Ligne du Test de la cible montée à l'ouverture (`rollLine` du `test` de la fenêtre), lue par la fenêtre. */
+  ligne: RollLineParts;
   result: OppositionOutcome | null;
 }
 /** Le Sort déclare une OPPOSITION (`spec.opposed`) : chaque cible oppose son Test (FM/Int/Bagarre) à
@@ -1476,9 +1485,8 @@ export interface OppositionParticipant extends RollParticipant {
  *  (cible résistante → aucune op ; sinon ops à la marge). « Réaction type défense » : cible IA = rangée
  *  témoin (jet auto + révélée dans la modale) ; cible héros = rangée interactive. */
 export interface PendingCastOpposition extends MultiPending<OppositionParticipant> {
-  kind: 'resist' | 'contact';
-  skill?: string;
-  char?: CharKey;
+  /** Le Test que chaque cible oppose (`testDOppositionDeSort`). */
+  test: TestDesigne;
 }
 
 /** Un Round d'un Test Étendu : le jet de CE Round (slot du flux multi SÉQUENTIEL). */
@@ -1487,7 +1495,9 @@ export interface ExtendedTestRound extends RollParticipant {
 }
 /** Un héros qui frappe la porte : participant du flux MULTI PARALLÈLE (son propre jet + dégâts). */
 export interface ForceDoorParticipant extends RollParticipant {
-  /** Jet de Corps à corps (Bagarre) de CE héros + dégâts infligés à la porte, ou null = pas lancé. */
+  /** Arme choisie avant le jet (`forceDoorChoisirArme`, `armesDEnfoncement`) ; absente = mains nues. */
+  armeUid?: string;
+  /** Jet de Corps à corps de CE héros + dégâts infligés à la porte (`degatsDEnfoncement`), ou null = pas lancé. */
   result: { roll: number; target: number; sl: number; damage: number } | null;
 }
 /** Enfoncer une porte À PLUSIEURS (EDO Appendice 2, « Portes ») — flux multi PARALLÈLE : la porte est
@@ -1548,6 +1558,10 @@ export interface PendingExtendedTest extends PendingBase {
   actorId: string; // qui effectue le Test (solo)
   label: string; // « Enfoncer la porte »
   skillLabel: string; // « Force » / « Athlétisme » (affichage)
+  /** Test lancé en STRUCTURE (Compétence + Spécialisation), lu par l'inversion (Talent, jeton) ; absent :
+   *  Test de la Caractéristique `char`. LDB 12 l.42 */
+  skill?: RefDesignee;
+  char?: CharKey;
   target: number; // cible effective d'UN Round (difficulté déjà appliquée)
   targetDR: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
   total: number; // DR cumulé courant (dépend des Rounds précédents → c'est ce qui rend le flux SÉQUENTIEL)
@@ -1798,9 +1812,6 @@ export interface CascadeStepMeta {
    *  sérialisable, jumeau de `casterId`, résolu par l'applier (`coqueParId` : file de combat OU véhicule
    *  du trajet). Absent ⇒ la bande n'est pas née d'une coque, et une op qui l'exige le NOMME. */
   hullId?: string;
-  /** Test ÉTENDU de Peur (LDB 21 l.25) : DR déjà cumulé AVANT ce jet, porté PAR LA RANGÉE d'une bande
-   *  de Psychologie de combat (`BatchParticipant.meta`) — l'applier y ajoute le DR du jet. */
-  prevDR?: number;
   /** « Sans Peur (Ennemi) » (LDB 10 l.1051) sur CETTE rangée : son Test est allégé (Accessible +20) et
    *  une réussite ignore la Peur d'emblée. Divergence PAR HÉROS d'une bande, jamais de l'étape. */
   sansPeur?: boolean;
@@ -1900,6 +1911,9 @@ export interface BatchParticipant extends RollParticipant {
    *  RÉELLE reste au pas d'agrégation (`stageAggregate`), ceci n'est que l'affichage. */
   extendedDrDone?: number;
   extendedDrTarget?: number;
+  /** Le cumul est COMMUN aux rangées de la bande qui le déclarent (cartographie de groupe, EDOC 8 l.161) :
+   *  leurs jets s'enchaînent dans l'ordre des rangées. Absent : le cumul est propre à la rangée (Peur). */
+  extendedDrPartage?: boolean;
   /** Conséquence appliquée à CETTE rangée (dérivée des ops, #295 ; ligne STRUCTURÉE #349) — rendue
    *  comme note de la rangée (le portrait porte l'attribution), PERSISTE dans les rangées-témoins/bilan. */
   outcome?: RecapLine[];
@@ -2114,6 +2128,14 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
   rollLabel?: string;
+  /** COMPÉTENCE réellement lancée (id + Spécialisation), posée par le mint depuis le Test de la ligne —
+   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skillId`. Absente : Test de
+   *  Caractéristique, ou étape sans jet. */
+  skillId?: string;
+  spec?: string;
+  /** CONTEXTE du Test de l'étape (LDB 12 l.42), déclaré par son producteur (Psychologie, péril des eaux)
+   *  — lu par l'inversion, qui n'offre une source qu'au Test que son passage vise. */
+  contexte?: ContexteDeTest;
   /** ENJEU de l'étape (#331/#1117) : ce que le jet met en jeu — une RÉFÉRENCE de donnée (`StakeRef` :
    *  clé de dataset + valeurs calculées), JAMAIS un texte. Le résolveur UNIQUE (`resolveStake`) rend
    *  le texte ET la fiche de règle au moment de l'affichage : un producteur ne peut ni écrire l'enjeu
@@ -2223,7 +2245,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
-   *  `lastTestRound`). Moments : LDB 21 l.9, l.19, l.25, l.39, l.48. Le DR déjà cumulé (`meta.prevDR`)
+   *  `lastTestRound`). Moments : LDB 21 l.9, l.19, l.25, l.39, l.48. Le DR déjà cumulé (`extendedDrDone`)
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`encounterPsych` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
@@ -2402,10 +2424,16 @@ export interface PendingHeal {
   targetName: string;
   mode: HealMode; // 'wounds' | 'bleed' | 'trauma' | 'ammo' (jamais 'surgery'/'recovery' — cf. medicFlow)
   intBonus: number; // Bonus d'Intelligence du soigneur
-  skillValue: number; // testValue(soigneur, 'Guérison') — Soutien FONDU
+  /** Test déclaré (`refusDuTestDeSoin`, `healSetTest`). */
+  test: TestDeSoin;
+  /** Héros dont les Bandages sont engagés (`healSetBandages`, `refusDesBandages`) ; `null` : aucun. */
+  bandagesDe: string | null;
+  skillValue: number; // valeur du Test déclaré — Soutien FONDU (Guérison)
   /** SOUTIEN (LDB 12) des assistants de soin, déjà fondu dans `skillValue` — porté pour l'affichage. */
   support?: SupportDetail;
   difficulty: Difficulty; // 'intermediaire' (+0, LDB 09 l.243)
+  /** Ligne du jet montée à l'ouverture (`rollLine`) — lue par la fenêtre. */
+  ligne: RollLineParts;
   target: number; // cible effective (affichage)
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
   clamped?: number;

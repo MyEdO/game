@@ -1,7 +1,8 @@
 import { useGame } from '../state/store';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import type { PendingAuContact } from '../noyau/pendings';
-import { baseTestModLines, combatValue, weaponSkillId } from '../engine/combat';
+import { ligneDeCorpsACorpsBrut } from '../noyau/combatManeuvers';
+import { cibleBrute } from '../engine/tests';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
@@ -50,11 +51,11 @@ export function AuContactModal() {
 
   // Test OPPOSÉ de Corps à corps : la Difficulté est DÉCLARÉE UNE fois pour l'opposition entière
   // (LDB 12 l.166 ; jet de combat, LDB 13 l.118).
-  // Les modificateurs du jet (Avantage, États, météo) sont NOMMÉS sur la ligne — même source que celle
-  // que roule `rollDisengageAttack` (`baseTestMods`) : aucun +N anonyme dans la cible.
+  // Lignes : `ligneDeCorpsACorpsBrut`, celle de `rollDisengageAttack`.
+  const [foeL, moverL] = [ligneDeCorpsACorpsBrut(foe), ligneDeCorpsACorpsBrut(mover)];
   const [foeLine, moverLine] = opposedLines([
-    { label: libelleDeTest('corps-a-corps'), base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
-    { label: libelleDeTest('corps-a-corps'), base: combatValue(mover, 'melee'), r: pd.def, mods: baseTestModLines(mover, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: libelleDeTest('corps-a-corps'), base: foeL.base, target: cibleBrute(foeL), r: pd.atk, mods: foeL.mods },
+    { label: libelleDeTest('corps-a-corps'), base: moverL.base, target: cibleBrute(moverL), r: pd.def, mods: moverL.mods },
   ]);
   // Rangée TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) — MASQUÉ
   // tant que le mover n'a pas répondu (#990 : `pd.def` est SA réponse).

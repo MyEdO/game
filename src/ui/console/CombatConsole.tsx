@@ -269,7 +269,7 @@ const ACTION_DISSIPER = 'dispel';
 /** Entrée de registre du RECHARGEMENT : la case qui déclare (champ `panneau`) faire naître le panneau
  *  des armes à recharger, et qui déclare la liste d'armes à distance (`candidates`) lue par l'en-tête.
  *  Les sites `cellFor` gardent l'id LITÉRAL : c'est lui que lit la garde d'atteignabilité du registre
- *  (`action-atteignabilite.test.ts:66`). */
+ *  (`action-atteignabilite.test.ts:61`). */
 const ACTION_RECHARGER = 'reload';
 
 /** Bandeau partagé de phase ; `data-phase` en porte l'adresse, `.skin-bois` la matière. */

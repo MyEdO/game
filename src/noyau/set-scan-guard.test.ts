@@ -182,7 +182,7 @@ const BASELINE = { totalCalls: 786, totalAdHocResets: 329 }; // +1 (#1117 L3 : `
 //   la conséquence de « Je te renie ! » (LDB 17 l.67) par `combatLog.journaliser` au lieu de réécrire
 //   à la main le couple `if (battle) set({ battle: {…log} }) else get().log(…)` — un `set` littéral de
 //   moins, et le routage a seulement UNE définition. BASELINE = la mesure (748/300), sans mou.
-// #1473 lecture A1 — 747 → 748, MESURÉ (run CI 36335240417 : 748) : le lanceur unique des scénarios de
+// Lecture A1 — 747 → 748, MESURÉ (run CI 36335240417 : 748) : le lanceur unique des scénarios de
 // test (`scenarioFlow.demarrerScenario`) pose le navire construit par `set({ vessel })`, ÉCRITURE UNIQUE des
 // deux appelants (menu, `__wfrp.scenario`), qui l'écrivaient chacun par `useGame.setState`, non compté.
 // #1765 — 749/299 → 706/295, MESURÉ (`runSetScan` sur l'arbre du lot) : la baseline se RESSERRE

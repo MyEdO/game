@@ -31,7 +31,7 @@ import { entreePartielle as creaturePartielle } from '../defs/creatures';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
-import { noeudObjet } from '../validate';
+import { noeudObjet, validateDataset } from '../validate';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
 const UNE_COMPETENCE = skillsJson[0] as { id: string };
@@ -287,17 +287,17 @@ describe('document() — variantes réglées composées par la fabrique', () => 
 
   it('accepte un patch PARTIEL des champs déclarés, sous sa garde `when`', () => {
     expect(jouet.variantes).toEqual(['desc', 'source', 'max']);
-    expect(jouet.entree.safeParse({ ...BASE, variants: [{ when: { rule: 'aa-group-advantage' }, max: 4 }] }).success).toBe(true);
+    expect(jouet.entree.safeParse({ ...BASE, variants: [{ when: { rule: 'combat-aa-avantage-groupe' }, max: 4 }] }).success).toBe(true);
   });
 
   it('REFUSE un champ hors liste, et une variante sans `when`', () => {
-    expect(jouet.entree.safeParse({ ...BASE, variants: [{ when: { rule: 'r' }, tests: 'Ténacité' }] }).success).toBe(false);
+    expect(jouet.entree.safeParse({ ...BASE, variants: [{ when: { rule: 'combat-aa-avantage-groupe' }, tests: 'Ténacité' }] }).success).toBe(false);
     expect(jouet.entree.safeParse({ ...BASE, variants: [{ max: 4 }] }).success).toBe(false);
   });
 
   it('REFUSE tout `variants` à un document qui n’en déclare aucun, et un champ republiable inconnu', () => {
     const sansVariante = document('talent', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION);
-    expect(sansVariante.entree.safeParse({ ...BASE, variants: [{ when: { rule: 'r' }, max: 4 }] }).success).toBe(false);
+    expect(sansVariante.entree.safeParse({ ...BASE, variants: [{ when: { rule: 'combat-aa-avantage-groupe' }, max: 4 }] }).success).toBe(false);
     expect(() =>
       document('talent', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION, { variantes: ['inexistant'] }),
     ).toThrow(/« inexistant » est déclaré republiable/);
@@ -1335,6 +1335,18 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
     // @ts-expect-error — la marque de type ferme l'affectation croisée entre deux types d'entité.
     const idTalent: Id<'talent'> = idCompetence;
     expect(idTalent).toBe(UNE_COMPETENCE.id);
+  });
+
+  it('une réf inventée est refusée AU CHARGEMENT par sa feuille, qui nomme le catalogue — `nue` ne change que le type de sortie (#1473)', () => {
+    const talents = structuredClone(talentsJson) as { source: { book: string } }[];
+    talents[0].source.book = 'livre-invente';
+    expect(validateDataset('talents.json', talents)).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
+    expectTypeOf(idDe('book', undefined, { nue: true }).parse(talentsJson[0].source.book)).toEqualTypeOf<string>();
+  });
+
+  it('une réf inventée sous une UNION DE FORMES (`pick` dans un emplacement d’avancement) garde le message de sa feuille (#1473)', () => {
+    const r = avancement('talent').safeParse({ pick: 1, of: [{ id: 'talent-invente' }, { id: 'resistance' }] });
+    expect(r.success ? [] : r.error.issues.map((i) => i.message)).toEqual(['« talent-invente » est absent du catalogue des talents (talents.json).']);
   });
 
   it("`ref(type)` sans `extra` sort `{ id: Id<type> }`, ni index ouvert ni `id` perdu", () => {

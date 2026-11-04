@@ -7,10 +7,10 @@
 import type { Jeu } from './etat';
 import { battleRng } from './battleRng';
 import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
-import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
+import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
+import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
 import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
@@ -18,6 +18,8 @@ import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, r
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
+import { garanti } from '../lib/garanti';
+import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
@@ -307,6 +309,8 @@ export interface PendingActivityFields extends PendingBase {
   skillLabel: string;
   skillValue: number;
   difficulty: Difficulty;
+  /** Ligne du Test montée à l'ouverture (`rollLine` : pré-jet d'Activité, Test de bataille) — lue par la fenêtre. */
+  ligne: RollLineParts;
   roll: number | null;
   target: number;
   sl: number;
@@ -365,8 +369,9 @@ export interface PendingActivityFields extends PendingBase {
   /** Coût en sous de cuivre engagé par CETTE Activité (Réputation, LDB 23 l.228-234 : « le maximum de
    *  vos revenus standards », dépensé MÊME sur échec — calculé à l'ouverture, débité à la résolution). */
   costBrass?: number;
-  /** Compétence du Test retenue par le pré-jet (`preJetDActivite`) : l'Entraînement au Combat
-   *  (LDB 23 l.205-209) en SCOPE son jeton d'inversion, la modale en décompose la valeur. */
+  /** Compétence du Test retenue par le pré-jet (`preJetDActivite`) ou par l'ouverture d'un Test de
+   *  bataille : l'Entraînement au Combat (LDB 23 l.205-209) en SCOPE son jeton d'inversion, l'inversion
+   *  (LDB 12 l.42) la lit, la modale en décompose la valeur. */
   chosenSkill?: string;
   chosenSkillSpec?: string;
 }
@@ -525,7 +530,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   set({
     pendingActivity: {
       heroId, kind: 'catalog', activityId, label: def.label,
-      skillLabel: testSkillLabel(ids), skillValue: preJet.value,
+      skillLabel: testSkillLabel(ids), skillValue: preJet.value, ligne: preJet.ligne,
       roll: null, target: 0, sl: 0, success: false,
       ...ligneDeMod,
       ...competence,
@@ -596,7 +601,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Atouts/Défauts choisis. Le travail inachevé est conservé (l.102) via `h.craft` (Combatant —
       // survit à la clôture de l'interlude, #897).
       if (!h.craft) return { lines: [] };
-      const { total: drDone, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, h.craft.drTarget);
+      const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible d’Artisanat');
       if (done) {
         const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
@@ -621,16 +626,14 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       };
     }
     case 'ritualFocus': {
-      // Rituel (Activité « Accomplir un Rituel », `VDM 02 l.777`) : Round de Focalisation cumulé —
-      // `extendedTestStep` (Test étendu,
-      // LDB 12 l.174) partagé avec l'Artisanat ci-dessus. `pa.sl` porte déjà `FocusResult.dr` (CLAMPÉ
-      // ≥ 0 par `resolveFocus`, branché dans `FLOWS.activity`), jamais le SL brut d'un Test de
-      // Compétence ordinaire. Composants/Conditions/Sacrifices/Conséquences restent en PROSE non
-      // structurée (`SpellData['ritual']`) — non consommés/appliqués ici. `h.ritual` (Combatant) —
-      // survit à la clôture de l'interlude, #897.
+      // Rituel (Activité « Accomplir un Rituel », `VDM 02 l.777`) : Round de Focalisation cumulé par
+      // `progresDActivite` (LDB 12 l.174). `pa.sl` porte le DR du Round (`FocusResult` via
+      // `FLOWS.activity`) : `dr` sur une réussite, le DR brut sur un échec. Composants/Conditions/
+      // Sacrifices/Conséquences restent en PROSE non structurée (`SpellData['ritual']`), non appliqués
+      // ici. `h.ritual` (Combatant) survit à la clôture de l'interlude, #897.
       if (!h.ritual) return { lines: [] };
       if (pa.malepierreConsumed) consumeMalepierre(h, pa.malepierreConsumed);
-      const { total: drDone, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, h.ritual.drTarget);
+      const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible de Rituel');
       const label = findSpellById(h.ritual.spellId)?.label ?? h.ritual.spellId;
       if (done) {
         h.ritual = undefined;

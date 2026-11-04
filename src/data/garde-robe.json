@@ -428,6 +428,12 @@
     "kind": "coiffure"
   },
   {
+    "id": "barbe-courte",
+    "type": "garde-robe",
+    "label": "Barbe courte et moustache tombante",
+    "kind": "coiffure"
+  },
+  {
     "id": "taureau-rouge",
     "type": "garde-robe",
     "label": "Tête de taureau rouge",

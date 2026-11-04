@@ -85,7 +85,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   grantTrait: 'mechanic/invoke', removeTrait: 'magic/gust', grantPsychTrait: 'mechanic/mind', removePsychTrait: 'mechanic/mind',
   grantTalent: 'mechanic/invoke', grantCareerSkill: 'mechanic/invoke', grantCareerTalent: 'mechanic/invoke',
   augmentWeapon: 'item/weapon', cureDisease: 'medical/infection', reduceDiseaseDays: 'medical/infection',
-  preventInfection: 'medical/infection', cureCriticalWound: 'medical/crutch', amputer: 'medical/crutch', diseaseTestMod: 'medical/infection',
+  preventInfection: 'medical/infection', aideMedicale: 'medical/crutch', cureCriticalWound: 'medical/crutch', amputer: 'medical/crutch', diseaseTestMod: 'medical/infection',
   suppressSymptom: 'medical/infection', aggravateSymptom: 'medical/infection', attenuateSymptom: 'medical/infection', grantSymptom: 'medical/infection',
   actGate: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
   suffocate: 'mechanic/ward', noBreath: 'mechanic/ward', noHunger: 'mechanic/ward', ignoreAnimosity: 'mechanic/ward', weatherWard: 'mechanic/ward',
@@ -111,7 +111,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Invocation & armes', ['summon', 'polymorph', 'transform', 'endTransform', 'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'grantTrait', 'removeTrait', 'grantPsychTrait', 'removePsychTrait', 'beginPsych', 'grantTalent', 'augmentWeapon']],
   ['Zones', ['zone']],
   ['Projection & téléportation', ['push', 'teleport', 'chain']],
-  ['Soin avancé', ['cureDisease', 'reduceDiseaseDays', 'preventInfection', 'cureCriticalWound', 'diseaseTestMod', 'suppressSymptom', 'aggravateSymptom', 'attenuateSymptom', 'grantSymptom']],
+  ['Soin avancé', ['cureDisease', 'reduceDiseaseDays', 'preventInfection', 'aideMedicale', 'cureCriticalWound', 'diseaseTestMod', 'suppressSymptom', 'aggravateSymptom', 'attenuateSymptom', 'grantSymptom']],
   ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'actGate', 'removeShipPoste', 'light']],
   ['Séquelles & mobilité', ['amputer', 'skillMod', 'moveScale', 'moveMod', 'offTerrainMod', 'maxWeaponHands', 'disarm', 'handGate', 'senseLoss']],
   ['Atouts/Défauts d’arme (passifs)', ['weaponRollMod', 'weaponDamageMod', 'armourPierce', 'critOnRoll']],
@@ -500,6 +500,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'actGate': return { op: 'actGate', char: 'force-mentale' };
     case 'delayed': return { op: 'delayed', afterHours: 1, ops: [] };
     case 'preventInfection': return { op: 'preventInfection' };
+    case 'aideMedicale': return { op: 'aideMedicale' };
     case 'cureCriticalWound': return { op: 'cureCriticalWound', count: 1 };
     case 'amputer': return { op: 'amputer', sequels: [] };
     case 'suppressPsych': return { op: 'suppressPsych' };

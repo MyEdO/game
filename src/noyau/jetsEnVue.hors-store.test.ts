@@ -73,7 +73,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   shipBattery: { patch: { pendingShipBattery: { shipId: 'nef', targetId: 'autre', side: 'babord', moraleScore: 0, participants: [{ id: H.id, roleId: 'capitaine', essential: false, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['shipBattery'] },
   crewTest: { patch: { pendingCrewTest: { shipId: 'nef', testTypeId: 'x', moraleScore: 0, participants: [{ id: H.id, roleId: 'capitaine', essential: false, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['crewTest'] },
   shanty: { patch: { pendingShanty: { shipId: 'nef', singerId: H.id, shantyId: 'x', result: jet(40, 45) } }, flux: ['shanty'] },
-  focus: { patch: { pendingFocus: { casterId: H.id, spellId: 'x', result: { dr: 2, isCritical: false, isFumble: false, roll: 21, target: 45, sl: 2, log: '' } } }, flux: ['focus'] },
+  focus: { patch: { pendingFocus: { casterId: H.id, spellId: 'x', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 21, target: 45, sl: 2, log: '' } } }, flux: ['focus'] },
   dispel: { patch: { pendingDispel: { casterId: H.id, spellId: 'x', spellCasterId: E.id, label: 'Sort', ni: 4, value: 45, result: jet(21, 45) } }, flux: ['dispel'] },
   medic: {
     patch: {
@@ -82,8 +82,8 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
     },
     flux: ['surgery'],
   },
-  heal: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'wounds', intBonus: 3, skillValue: 40, difficulty: 'intermediaire', target: 40, roll: 33, success: true, sl: 0 } }, flux: ['heal'] },
-  reload: { patch: { pendingReload: { actorId: H.id, actorName: H.label, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', roll: 12, target: 40, sl: 2, success: true } }, flux: ['reload'] },
+  heal: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['heal'] },
+  reload: { patch: { pendingReload: { actorId: H.id, actorName: H.label, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['reload'] },
   handGate: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', skillValue: 40, difficulty: 'accessible', roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'x' } }, flux: ['handGate'] },
   stateRecovery: {
     patch: {
@@ -99,7 +99,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   activity: {
     patch: {
       pendingActivity: {
-        heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', skillValue: 40, difficulty: 'intermediaire', roll: 30, target: 40, sl: 1, success: true,
+        heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 30, target: 40, sl: 1, success: true,
         enemyValue: 45, enemyRoll: 60, enemySL: -2,
       },
       massBattle: { enemy: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
@@ -144,7 +144,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
       pendingCascade: cascade(etapeHote('cast')),
       pendingCast: { casterId: E.id, targetId: H.id, spellId: 'alerte', missile: false, focused: false, result: { cast: true, roll: 21, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
       pendingCounterspell: { participants: [{ id: H.id, result: { dispelled: true, counter: tr(10, 50), casterNetSL: 0, log: '' } }] },
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [{ id: H.id, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
+      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
     },
     flux: ['cast', 'counterspell', 'opposition'],
     oppose: true,

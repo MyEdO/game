@@ -13,7 +13,7 @@
  *  - le RAYON d'une source de lumière → `rayonEnCases` (`noyau/monde/vision.ts`).
  * La LISTE COMPLÈTE des sites qui traduisent entre mètres et cases — décor compris, et jusqu'aux
  * portées de règle et aux cadences de rendu — est tenue NOMINATIVEMENT par
- * `state/echelle-de-scene.test.ts` : un site de plus s'y déclare, ou il sort rouge.
+ * `noyau/monde/echelle-de-scene.test.ts` : un site de plus s'y déclare, ou il sort rouge.
  *
  * Repère LOCAL d'une recette : origine à l'ANCRE du décor, `xM`/`yM` en mètres dans le plan, `hM` en
  * mètres depuis le pied de l'ancrage. L'ancre est le point MONDE que le builder déclare (`AncrageDecor`,
@@ -466,7 +466,7 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
         y0 = Math.min(y0, ry); y1 = Math.max(y1, ry);
       }
   }
-  // LE site de conversion mètres → cases de ce module (#1507, déclaré par `state/echelle-de-scene.test.ts`).
+  // LE site de conversion mètres → cases de ce module (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
   const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));
   const val = Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : propFootOf(prop);
   parCap.set(cle, val);
@@ -532,7 +532,7 @@ export function placesLocalesDuProp(prop: PropData | undefined, facing: Dir8 | u
   const cap = facing ?? CAP_IDENTITE_PROP;
   const centre = offsetAncre(empreinteDuProp(prop, cap, mpt));
   return slots.map((slot) => {
-    // LE site de conversion mètres → cases des places (#1507, déclaré par `state/echelle-de-scene.test.ts`).
+    // LE site de conversion mètres → cases des places (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
     const [ax, ay] = rotatePropLocal(slot.anchor.xM / mpt, slot.anchor.yM / mpt, cap);
     const ancre = { x: centre.x + ax, y: centre.y + ay };
     const siege = caseDe(ancre.x, ancre.y);

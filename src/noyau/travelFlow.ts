@@ -1384,7 +1384,7 @@ export const TABLES = {
           if (h.wounds.current < h.wounds.max) {
             // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
             j.push(...applyHealWounds(h, h.wounds.max - h.wounds.current, {
-              skillCheck: false, wake: false,
+              wake: false,
               log: () => [h.wounds.current >= h.wounds.max ? t('tf.healAll', { name: h.label }) : t('tf.healPartial', { name: h.label })],
             }));
           }

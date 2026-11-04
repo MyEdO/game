@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { SLOTS } from '../../palette.types';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
@@ -65,6 +65,21 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
   site.exclude = refuse('exclude');
   return noeud;
 }
+
+/** Contexte de Test d'une source d'inversion (`ContexteDeTest`, LDB 12 l.42). */
+export const contexteDeTestSchema = enumNomme({
+  psych: 'pour résister à un Trait Psychologique',
+  perilDesEaux: 'pour traverser des eaux dangereuses',
+  bandages: 'avec des Bandages',
+  amateurDArt: 'face à un amateur d’art',
+  amateurDeTheatre: 'face à un amateur de théâtre',
+} satisfies Record<ContexteDeTest, string>);
+
+/** Contrepartie d'un Test de Sociabilité déclarée par une fiche de PNJ (`Amateur`, ACE 12 l.60-62). */
+export const amateurSchema = enumNomme({
+  amateurDArt: 'amateur d’art',
+  amateurDeTheatre: 'amateur de théâtre',
+} satisfies Record<Amateur, string>);
 
 /**
  * Nature d'une Mutation (`Mutation.kind`, `src/engine/corruption.ts`) — UNE déclaration pour les trois
@@ -230,7 +245,7 @@ export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
  * `scripts/guards/lib/folioIntegrity.mjs`, qui recoupe la `desc` verbatim et les `data-folio`).
  */
 export const sourceRefSchema = nommerChamps(z.strictObject({
-  book: z.string(),
+  book: idDe('book', undefined, { nue: true }),
   page: z.number(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
    *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
@@ -477,7 +492,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     focusNoMiscastOnDouble: z.boolean().optional(),
     castNoMiscastOnDouble: z.boolean().optional(),
     causesFear: z.boolean().optional(),
-    reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" } }).optional(),
+    reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional(), contexte: contexteDeTestSchema.optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" }, contexte: { label: "contexte du Test" } }).optional(),
     bargainBonus: z.boolean().optional(),
     encumbranceBonus: z.boolean().optional(),
     corruptionThreshold: z.boolean().optional(),
@@ -490,16 +505,15 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
 );
 
 /**
- * `RuleValue` (`src/engine/policy.ts:44`) — valeur effective d'une règle optionnelle du registre
- * `OPTIONAL_RULES` (`policy.ts:43`, lue par `rule(id)`). Union fermée retapée, même raison que
+ * `RuleValue` (`src/engine/policy.ts`) — valeur effective d'une règle optionnelle du registre
+ * `OPTIONAL_RULES` (`src/engine/policy.ts`, lue par `rule(id)`). Union fermée retapée, même raison que
  * `combatFeatureSchema` ci-dessus : le type n'a pas de contrepartie runtime à dériver.
  */
 export const ruleValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 
-/** Garde d'une variante RÉGLÉE : la règle optionnelle visée et la valeur attendue. `rule` DOIT être
- *  un id du registre `OPTIONAL_RULES` (`src/engine/policy.ts:43`), jamais un label ni un flag
- *  parallèle (gardes `src/data/variants-integrity.test.ts`) ; `equals` défaut `true`. */
-export const variantWhenSchema = nommerChamps(z.strictObject({ rule: z.string(), equals: ruleValueSchema.optional() }), { rule: { label: "règle" }, equals: { label: "égalité" } });
+/** Garde d'une variante RÉGLÉE : la règle optionnelle visée (`OPTIONAL_RULES`, `src/engine/policy.ts`)
+ *  et la valeur attendue ; `equals` défaut `true`. */
+export const variantWhenSchema = nommerChamps(z.strictObject({ rule: idDe('regleOptionnelle'), equals: ruleValueSchema.optional() }), { rule: { label: "règle" }, equals: { label: "égalité" } });
 
 /**
  * Fabrique de VARIANTE d'un dataset (#563/#564 — ex. « Aux Armes, Annexe I : Avantage de groupe »).
@@ -608,6 +622,10 @@ export const difficultySchema = enumNomme(DIFFICULTY_LABELS);
  */
 export const couvertDifficultySchema = enumNomme(tableTotale(COUVERT_DIFFICULTES, (d) => DIFFICULTY_LABELS[d]));
 
+/** `DeckCoverClass` (`src/engine/types.ts`) — couvert gradué d'un poste de pont ou d'un décor : porte UNIQUE
+ *  des defs qui le portent (`vehicles`, `naval-traits`, `props`). */
+export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
+
 /**
  * `CharKey` (`src/engine/types.ts`) — les 10 Caractéristiques. Réf récurrente (Conditions `compare`,
  * `Formula.bonusOf`/`charOf`, `FlowTest.characteristic`, `AdvancementRef`…) — porte UNIQUE des defs qui
@@ -667,10 +685,11 @@ export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS
  *  Lu par les armes du catalogue (`trappings`) et les manœuvres qui portent leurs Dégâts (`maneuvers`). ZI */
 export const weaponDamageSpecSchema = z.union([
   nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
-  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }), {
+  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional(), bfInclus: z.literal(true).optional() }), {
     plusBF: { label: 'Ajouter le Bonus de Force' },
     flat: { label: 'Valeur fixe' },
     bare: { label: 'Mains nues' },
+    bfInclus: { label: 'Indice BF inclus' },
   }),
 ]);
 
@@ -855,7 +874,7 @@ export function fauteDEspece(id: string): string | null {
 }
 
 /** Tenue d'apparence qui se FERME sur la donnée : carrière, classe de carrière, ou `nu`. #3116 */
-export const tenueFermeeSchema = z.union([idDe('career'), idDe('classe'), z.literal('nu')], {
+export const tenueFermeeSchema: z.ZodType<string, string> = z.union([idDe('career'), idDe('classe'), z.literal('nu')], {
   error: (iss) => messageDeTenueInconnue(String(iss.input)),
 });
 
@@ -871,8 +890,7 @@ export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
   sex: sexeSchema.optional(),
   species: especeDApparenceSchema.optional(),
-  /** #3116 */
-  tenue: z.string().optional(),
+  tenue: tenueFermeeSchema.optional(),
   /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée (#774) — défaut
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
@@ -884,6 +902,11 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
  *  ne porte de valeur hors de ces 6 (vérifié au parse). */
 export const hitLocationSchema = z.enum(LOCALISATIONS_DE_COUP);
+
+/** Matière d'une armure : celle du Groupe d'une pièce (`weaponGroups.material`) et celle du Trait Armure posé
+ *  (`TraitPose.matiere`). LDB 63 l.41-58 ; LDB 63 l.97 ; LDB 85 l.39 ; VDM 02 l.169 ; #1463. */
+export const matiereDArmureSchema = enumNomme({ metal: 'métal', leather: 'cuir', chaos: 'armure du Chaos', peau: 'peau' });
+export type MatiereDArmure = z.infer<typeof matiereDArmureSchema>;
 
 /** Indice par Localisation : les six Localisations, chacune son Indice. AA 09 l.184 ; MCLB 02 l.101. */
 export const parLocalisationSchema = nommerChamps(
@@ -1170,7 +1193,7 @@ type EntreeMarqueur = { id: string; echangeable: false };
  *
  * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
  * Ce champ DISCRIMINE l'élément : une rangée est l'une ou l'autre variante, jamais les deux.
- * Le catalogue est une collection à clé `id` (`grammaire/collection-cle.ts`).
+ * Le catalogue est une collection à clé `id` et un ESPACE d'ids (`grammaire/collection-cle.ts`).
  *
  * @param marchand schéma d'une cargaison échangeable (doit porter `label`, `avail` et `echangeable?: true`)
  * @param marqueur schéma d'un marqueur de colonne Production/Produits (`echangeable: false`)
@@ -1198,7 +1221,7 @@ export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeM
       }
     }
   });
-  return marquerCollection(catalogue, marqueDeListe<EntreeMarchande | EntreeMarqueur>('id'));
+  return marquerCollection(catalogue, marqueDeListe<EntreeMarchande | EntreeMarqueur>('id', {}));
 }
 
 /**

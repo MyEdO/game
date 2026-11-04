@@ -201,6 +201,26 @@ describe('applyOps — opérations unitaires', () => {
     expect(b.wounds.current).toBe(12 - 4); // 2 PB de moins perdus — la mitigation reste DANS l'op
   });
 
+  it('wounds ignoreAP:false : les PA déduits sont les PA effectifs, effets actifs compris (LDB 47 Armure Aethyrique)', () => {
+    // E 45 → BE 4 ; corps 3 PA + 1 PA d'effet : 10 − 4 − 4 = 2.
+    const c = hero({ wounds: blessuresDeBase(12), armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, activeEffects: [{ label: 'Armure Aethyrique', bonus: 0, duration: { rounds: 3 }, apAll: 1 }] as never });
+    applyOps(c, [{ op: 'wounds', amount: 10, ignoreTB: false, ignoreAP: false }], { rng: desDuTest });
+    expect(c.wounds.current).toBe(12 - 2);
+  });
+
+  it('wounds apFrom:least : la matière se contourne à la Localisation dont les PA sont lus (LDB 16 l.84 ; LDB 48 l.106)', () => {
+    // Tête : 1 PA de cuir (calotte) ; ailleurs 2 PA de métal du Trait. La moins protégée est la Tête, sans métal :
+    // rien n'est ignoré, 10 − 4 − 1 = 5.
+    const calotte = { uid: 'c1', name: 'Calotte de cuir', subType: 'cuir-souple', kind: 'armor', pa: 1, locs: ['tete'], equipped: true, qualities: [] } as never;
+    const c = hero({
+      wounds: blessuresDeBase(12), items: [calotte],
+      traits: [{ id: 'armure', parLocalisation: { tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 }, matiere: 'metal' }],
+      armour: { tete: 1, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },
+    });
+    applyOps(c, [{ op: 'wounds', amount: 10, ignoreTB: false, ignoreAP: false, apFrom: 'least', bypassArmour: 'metal' }], { rng: desDuTest });
+    expect(c.wounds.current).toBe(12 - 5);
+  });
+
   it('heal : plafonné au max de Blessures', () => {
     const c = hero({ wounds: blessuresDeBase(12, 10) });
     applyOps(c, [{ op: 'heal', amount: 5 }], { rng: desDuTest });

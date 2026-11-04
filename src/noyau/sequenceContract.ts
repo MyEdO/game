@@ -136,7 +136,7 @@ export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<Sequ
  * `dataLabel` pour un libellé authoré). Un gabarit FR écrit au flux NE COMPILE PLUS. Le murage
  * S'ARRÊTE AU CONTRAT : `PlayerText` reste assignable vers `string`, donc l'UI, `PendingCascade.title`
  * et la réhydratation des saves ne changent ni de type ni de cast. Garde de parité octet de la
- * migration : `state/sequence-parite-catalogue.test.ts`.
+ * migration : `noyau/sequence-parite-catalogue.hors-store.test.ts`.
  *
  * `log` (ici et au verdict) reste `string[]` — ce N'EST PAS une position d'affichage du contrat, mais
  * l'entrée d'un TUYAU : ses lignes vont à `Jeu.log(msg: string)` (`actionsDuNoyau.ts`), et sa

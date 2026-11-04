@@ -8,7 +8,7 @@ import { Combatant, type Difficulty, type EffectSource, type TerreurSubie } from
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG } from './dice';
-import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from './tests';
+import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
@@ -25,6 +25,8 @@ import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
 import { diseasePsychTraits } from './disease';
+import { traitsConferes } from './talentEffects';
+import { parsePsychTraits } from './psych/registry';
 import { applyActiveEffect, type GameOp } from './ops';
 import type { Flow } from './flowCore';
 
@@ -84,19 +86,37 @@ export const cibleLabel = (type: string): { icon: string; label: string } | unde
   return p?.cibles ? { icon: p.icon ?? '', label: p.label } : undefined;
 };
 
-/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, ou l'interlocuteur d'un Test social
- *  décrit par ses Groupes (`FlowTest.vsGroups`). */
+/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, l'interlocuteur d'un Test social
+ *  décrit par ses Groupes (`FlowTest.vsGroups`), ou l'étiquette d'un lieu (`Scene.groups`). #3045 */
 export type SourcePsy =
   | { genre: 'combattant'; c: Combatant }
-  | { genre: 'interlocuteur'; groups: readonly string[] };
+  | { genre: 'interlocuteur'; groups: readonly string[] }
+  | { genre: 'etiquette'; id: string; label: string; groups: readonly string[] };
+
+/** Une source présente à la rencontre, identifiée par son id : un combattant, ou une étiquette. #3045 */
+export type SourceEnVue = Extract<SourcePsy, { genre: 'combattant' | 'etiquette' }>;
+
+/** Le combattant `c` en source. */
+export const sourceCombattant = (c: Combatant): SourceEnVue => ({ genre: 'combattant', c });
+
+/** L'id de la source, que portent `PsychAffliction.sourceId` et les déclenchements. */
+export const idDeSource = (s: SourceEnVue): string => (s.genre === 'combattant' ? s.c.id : s.id);
+
+/** Le libellé de donnée de la source. */
+export const libelleDeSource = (s: SourceEnVue): string => (s.genre === 'combattant' ? s.c.label : s.label);
+
+/** `self` a-t-il déjà affronté la source `id` : une affliction de régime Peur ou Terreur la porte, Peur héritée
+ *  d'une Terreur comprise ? Une affliction ciblée née de la même source n'en dit rien. LDB 21 l.25, l.54 ; #3045 */
+export const sourceDejaAffrontee = (self: Combatant, id: string): boolean =>
+  (self.psychState ?? []).some((p) => (p.type === 'peur' || p.type === 'terreur') && p.sourceId === id);
 
 /** Ce qu'un lecteur regarde de la source : ce qu'elle EST (`groupesDe`), ou ce que l'observateur en
  *  PERÇOIT (`groupesPercus`). #3045 */
 type Lecture = 'appartenance' | 'percu';
 
-/** Les Groupes de la source selon la `lecture` ; un interlocuteur n'a que ceux que le Test lui décrit. */
+/** Les Groupes de la source selon la `lecture` ; un interlocuteur ou une étiquette n'a que ceux qu'il déclare. */
 const groupesLus = (s: SourcePsy, lecture: Lecture): readonly string[] =>
-  s.genre === 'interlocuteur' ? s.groups : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c);
+  s.genre !== 'combattant' ? s.groups : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c);
 
 /** La source est-elle le porteur lui-même ? */
 const estLePorteur = (s: SourcePsy, porteur: Combatant): boolean => s.genre === 'combattant' && s.c.id === porteur.id;
@@ -113,7 +133,7 @@ const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lect
   // Q15 A, #3045
   etrangersAuPorteur: (s, porteur, lecture) =>
     !lieAuPorteur(s, porteur, lecture) &&
-    (s.genre === 'interlocuteur' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
+    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
   // LDB 19 l.152 ; EDOC 12 l.219 ; #3045
   autresRacesQueLePorteur: (s, porteur, lecture) => {
     const siennes = racesDe(groupesDe(porteur));
@@ -125,8 +145,10 @@ const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lect
 function viseSelon(cible: CiblePsy, s: SourcePsy, lecture: Lecture, porteur: Combatant, relatifs: boolean): boolean {
   return selonCible(cible, {
     groupe: (id) => {
-      const relatif = findGroupById(id)?.relatif;
-      return relatif ? relatifs && RELATIFS[relatif](s, porteur, lecture) : groupMatch(id, groupesLus(s, lecture));
+      const g = findGroupById(id);
+      // Une étiquette n'est visée ni par un Groupe relatif ni par un joker. #3045
+      if (s.genre === 'etiquette' && (g?.relatif || g?.matchesAll)) return false;
+      return g?.relatif ? relatifs && RELATIFS[g.relatif](s, porteur, lecture) : groupMatch(id, groupesLus(s, lecture));
     },
     individu: (id) => s.genre === 'combattant' && s.c.id === id,
   });
@@ -170,31 +192,35 @@ export function agressifEnvers(
     || !!source.attackedThisRound?.includes(cible.id);
 }
 
-/** Source de Peur/Terreur que `foe` représente pour `self` — TROIS portes distinctes : la Taille (LDB 85
+/** Source de Peur/Terreur que la source `s` représente pour `self` — TROIS portes distinctes : la Taille (LDB 85
  *  l.381-383), l'Indice inspiré au statbloc (`causesPeur`/`causesTerreur`, Trait « Peur (Indice) » LDB 85
  *  l.264-266 : « engendre de la Peur surnaturelle chez les autres créatures »), et le Trait psy CIBLÉ de
  *  `self` déclaré `targetCauses` (Phobie, LDB 21 l.87). Elles DIFFÈRENT : le Trait de statbloc ne connaît ni
  *  camp ni condition, la Taille passe par `agressifEnvers`, la Phobie vit sur l'OBSERVATEUR et matche le
- *  Groupe de `foe`. Terreur prime ; sinon le plus haut Indice. Pur.
+ *  Groupe de `s`. Terreur prime ; sinon le plus haut Indice. Pur.
  *  NB : « Sans Peur (Ennemi) » (LDB 10 l.1051) ne supprime PLUS la source ici (ce n'était pas RAW : le
  *  talent n'accorde pas l'immunité automatique mais « un seul Test de Calme Accessible (+20) » pour
  *  l'ignorer) — la source est donc détectée, et le porteur la teste à +20 (cf. `sansPeurVs`). */
-export function fearSourceFor(self: Combatant, foe: Combatant, selfSizeForSize?: SizeCategory): { kind: 'peur' | 'terreur'; indice: number } | null {
+export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: SizeCategory): { kind: 'peur' | 'terreur'; indice: number } | null {
   const cands: { kind: 'peur' | 'terreur'; indice: number }[] = [];
-  // Cavalier émérite (AA 13 l.25) : la Taille prise en compte pour la Peur/Terreur causée UNIQUEMENT par la
-  // Taille de l'adversaire est celle de la MONTURE (`selfSizeForSize`, fourni par l'appelant qui connaît la
-  // bataille) — les Indices `causesPeur`/`causesTerreur` du statbloc (démon/mort-vivant) restent inchangés.
-  const size = agressifEnvers(foe, self) ? peurTerreurFromSize(foe.size, selfSizeForSize ?? self.size) : null;
-  if (size) cands.push(size);
-  if (foe.causesTerreur) cands.push({ kind: 'terreur', indice: foe.causesTerreur });
-  if (foe.causesPeur) cands.push({ kind: 'peur', indice: foe.causesPeur });
+  // Taille et statbloc n'existent que pour une personne. #3045
+  if (s.genre === 'combattant') {
+    const foe = s.c;
+    // Cavalier émérite (AA 13 l.25) : la Taille prise en compte pour la Peur/Terreur causée UNIQUEMENT par la
+    // Taille de l'adversaire est celle de la MONTURE (`selfSizeForSize`, fourni par l'appelant qui connaît la
+    // bataille) — les Indices `causesPeur`/`causesTerreur` du statbloc (démon/mort-vivant) restent inchangés.
+    const size = agressifEnvers(foe, self) ? peurTerreurFromSize(foe.size, selfSizeForSize ?? self.size) : null;
+    if (size) cands.push(size);
+    if (foe.causesTerreur) cands.push({ kind: 'terreur', indice: foe.causesTerreur });
+    if (foe.causesPeur) cands.push({ kind: 'peur', indice: foe.causesPeur });
+  }
   // Phobie (LDB 21 l.87) : la TROISIÈME porte, portée par l'OBSERVATEUR — l'objet du Trait est traité comme
   // causant la Peur de son Indice, donc tout le régime de la Peur (Test étendu, −1 DR, approche) s'applique.
-  cands.push(...targetCausedSourcesFor(self, foe));
+  cands.push(...targetCausedSourcesFor(self, s));
   if (!cands.length) return null;
   const terr = cands.filter((c) => c.kind === 'terreur');
   const best = (terr.length ? terr : cands).reduce((a, b) => (b.indice > a.indice ? b : a));
-  if (best.kind === 'peur' && psychImmuneToFrom(self, foe, 'peur')) return null; // LDB 21 l.41/l.75
+  if (best.kind === 'peur' && psychImmuneToFrom(self, s, 'peur')) return null; // LDB 21 l.41/l.75
   return best;
 }
 
@@ -233,12 +259,12 @@ export function isPsychAfflictionActive(p: PsychAffliction): boolean {
  *  requis ICI — les 3 résolutions d'attaque (`combineOpposed`/`resolveMeleePassive`/`resolveRanged`)
  *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`encounterPsych`.
  *  Data-driven : aucune entité nommée, aucun canal codé. */
-export function psychImmuneToFrom(self: Combatant, foe: Combatant, channel: string): boolean {
+export function psychImmuneToFrom(self: Combatant, s: SourcePsy, channel: string): boolean {
   for (const p of self.psychState ?? []) {
     if (p.active !== true) continue;
     const d = findPsychologyById(p.type);
     if (d?.immuneWhileActive?.includes(channel)) return true;
-    if (d?.immuneToFromTarget?.includes(channel) && p.cible && vise(p.cible, { genre: 'combattant', c: foe }, 'appartenance', self)) return true;
+    if (d?.immuneToFromTarget?.includes(channel) && p.cible && vise(p.cible, s, 'appartenance', self)) return true;
   }
   return false;
 }
@@ -255,7 +281,7 @@ export function refreshDefendedPsych(c: Combatant, present: Combatant[]): boolea
   let changed = false;
   for (const p of c.psychState ?? []) {
     if (p.active !== true || !p.cible || !findPsychologyById(p.type)?.immuneWhileActive) continue;
-    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && vise(p.cible!, { genre: 'combattant', c: v }, 'appartenance', c));
+    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && vise(p.cible!, sourceCombattant(v), 'appartenance', c));
     if (!defendable) { p.active = false; changed = true; }
   }
   return changed;
@@ -272,7 +298,7 @@ export function ciblesAPulsion(porteur: Pick<Combatant, 'psychState'>): CiblePsy
 export function ciblesDePulsion(porteur: Combatant, combattants: readonly Combatant[]): Combatant[] {
   const cibles = ciblesAPulsion(porteur);
   if (!cibles.length) return [];
-  return combattants.filter((c) => c.id !== porteur.id && !c.dead && !isOutOfAction(c) && cibles.some((cb) => vise(cb, { genre: 'combattant', c }, 'appartenance', porteur)));
+  return combattants.filter((c) => c.id !== porteur.id && !c.dead && !isOutOfAction(c) && cibles.some((cb) => vise(cb, sourceCombattant(c), 'appartenance', porteur)));
 }
 
 /** `refreshDefendedPsych` pour TOUT un roster (chacun mesuré contre l'ensemble) — forme appelée par les
@@ -313,11 +339,11 @@ function targetCausesEntries(self: Combatant): { cible: CiblePsy; kind: 'peur' |
   return out;
 }
 
-/** Les sources de Peur/Terreur que `foe` représente pour `self` du seul fait de ses Traits `targetCauses`
+/** Les sources de Peur/Terreur que la source `s` représente pour `self` du seul fait de ses Traits `targetCauses`
  *  (LDB 21 l.87). Consommé par `fearSourceFor` (combat). Data-driven, pur. */
-export function targetCausedSourcesFor(self: Combatant, foe: Combatant): { kind: 'peur' | 'terreur'; indice: number }[] {
+export function targetCausedSourcesFor(self: Combatant, s: SourcePsy): { kind: 'peur' | 'terreur'; indice: number }[] {
   return targetCausesEntries(self)
-    .filter((e) => vise(e.cible, { genre: 'combattant', c: foe }, 'percu', self))
+    .filter((e) => vise(e.cible, s, 'percu', self))
     .map((e) => ({ kind: e.kind, indice: e.indice }));
 }
 
@@ -326,16 +352,16 @@ export function targetCausedSourcesFor(self: Combatant, foe: Combatant): { kind:
  *  la Phobie ouvre la bande du régime qu'il CAUSE (Peur), pas un Test propre. Une source déjà affrontée
  *  (affliction portant son `sourceId`) ne se re-déclenche pas, et les immunités du canal s'appliquent
  *  ICI aussi — MÊME verdict que `fearSourceFor` sur la même situation (l.41/l.75). Pur. */
-export function targetCausedTrigger(self: Combatant, visible: Combatant[]): { kind: 'peur' | 'terreur'; indice: number; sourceId: string; cible: CiblePsy } | null {
+export function targetCausedTrigger(self: Combatant, visible: readonly SourceEnVue[]): { kind: 'peur' | 'terreur'; indice: number; sourceId: string; cible: CiblePsy } | null {
   for (const e of targetCausesEntries(self)) {
     const m = visible.find(
       (v) =>
-        v.id !== self.id &&
-        !(self.psychState ?? []).some((p) => p.type === e.kind && p.sourceId === v.id) &&
+        !estLePorteur(v, self) &&
+        !sourceDejaAffrontee(self, idDeSource(v)) &&
         (e.kind !== 'peur' || !psychImmuneToFrom(self, v, 'peur')) &&
-        vise(e.cible, { genre: 'combattant', c: v }, 'percu', self),
+        vise(e.cible, v, 'percu', self),
     );
-    if (m) return { kind: e.kind, indice: e.indice, sourceId: m.id, cible: e.cible };
+    if (m) return { kind: e.kind, indice: e.indice, sourceId: idDeSource(m), cible: e.cible };
   }
   return null;
 }
@@ -361,22 +387,22 @@ export function supersededLines(c: Combatant, name: string): string[] {
   return suppressSupersededPsych(c).map((tp) => t('turn.psychSuperseded', { name, psych: psychologyLabel(tp) }));
 }
 
-/** `self` porte-t-il « Sans Peur » (possédé, ou accordé sans spécialisation) contre l'ennemi `foe` qu'il
+/** `self` porte-t-il « Sans Peur » (possédé, ou accordé sans spécialisation) contre la source `s` qu'il
  *  RENCONTRE ? Éligibilité au Test allégé, jamais une immunité. LDB 10 l.1051 ; #3045 */
-export function sansPeurVs(self: Combatant, foe: Combatant): boolean {
+export function sansPeurVs(self: Combatant, s: SourcePsy): boolean {
   return featuresOf(self).some(({ def, ctx }) => {
     if (!def.fearImmune) return false;
     if (ctx.spec == null) return true;
     const cible = ciblePsyLue(ctx.spec);
-    return cible !== undefined && varianteDe(cible) === 'groupe' && vise(cible, { genre: 'combattant', c: foe }, 'percu', self);
+    return cible !== undefined && varianteDe(cible) === 'groupe' && vise(cible, s, 'percu', self);
   });
 }
 
 /** `sansPeurVs` face à une source NOUVELLE de Peur/Terreur (`kind` non ciblé, aucune Peur déjà posée par
- *  `foe`) : le Test allégé de la rencontre, pour les deux portes héros (combat, rencontre). LDB 10 l.1051 */
-export function sansPeurFace(self: Combatant, kind: PsychType, foe: Combatant | undefined): boolean {
-  if (!foe || estCibleType(kind)) return false;
-  return !(self.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === foe.id) && sansPeurVs(self, foe);
+ *  `s`) : le Test allégé de la rencontre, pour les deux portes héros (combat, rencontre). LDB 10 l.1051 */
+export function sansPeurFace(self: Combatant, kind: PsychType, s: SourceEnVue): boolean {
+  if (estCibleType(kind)) return false;
+  return !sourceDejaAffrontee(self, idDeSource(s)) && sansPeurVs(self, s);
 }
 
 /** Psychologie DATA-DRIVEN (Peur/Terreur/Immunité + ciblés Animosité/Haine/Préjugé/Amour/Camaraderie/
@@ -385,13 +411,10 @@ export function sansPeurFace(self: Combatant, kind: PsychType, foe: Combatant | 
  *  Codex) ; plus aucun fichier de code par trait. */
 export { parsePsychTraits } from './psych/registry';
 
-/** Baume pour un esprit blessé (LDB 43 l.70) : « Tous les Traits Psychologiques sont retirés pour la
- *  durée du Miracle » — les Traits psy de `c` sont DÉPLACÉS hors de la fiche (à porter par
- *  l'ActiveEffect `suppressedPsych`) ; les afflictions actives (`psychState`), dérivées des
- *  Traits, sont apaisées avec eux. Retourne les Traits suspendus, ou null s'il n'y en a aucun. */
-export function suppressPsychTraits(c: Combatant): PsychTrait[] | null {
+/** Retire les Traits psy de la fiche de `c` et apaise ses afflictions (`psychState`) ; rend les Traits retirés, que
+ *  porte l'effet de suppression. LDB 43 l.70 */
+export function suppressPsychTraits(c: Combatant): PsychTrait[] {
   const traits = c.psychTraits ?? [];
-  if (!traits.length) return null;
   c.psychTraits = [];
   c.psychState = [];
   return traits;
@@ -436,18 +459,6 @@ export function isPsychImmune(c: Combatant, foesMaxAdvantage?: number): boolean 
     || (c.psychState ?? []).some((p) => findPsychologyById(p.type)?.psychImmune);
 }
 
-/** À sang-froid (LDB 85 l.13) : « Elle peut inverser tous ses Tests de Force Mentale échoués » —
- *  un jet RATÉ est relu avec ses chiffres inversés (91 → 19) si cela le rend réussi. Pur. */
-export function coldBloodedAdjust(
-  t: { roll: number; target: number; success: boolean; sl: number },
-  coldBlooded: boolean,
-): { roll: number; target: number; success: boolean; sl: number } {
-  if (!coldBlooded || t.success) return t;
-  const rev = t.roll === 100 ? 100 : (t.roll % 10) * 10 + Math.floor(t.roll / 10) || 100; // 30 → 3 ; « 00 » inchangé
-  const e = evaluateTest(rev, t.target);
-  return e.success ? { roll: e.roll, target: e.target, success: e.success, sl: e.sl } : t;
-}
-
 const EFFET_IMMUNITE_PSY = 'determination-psych';
 
 /** Détermination (LDB 17 l.59) : immunité à la Psychologie jusqu'à la fin du prochain Round. Portée par un
@@ -478,26 +489,25 @@ export function clearPsychOf(all: Combatant[], deadId: string): void {
  *  la Condition `cibleEnVue`. LDB 21 l.19, l.39, l.48 ; #3045 */
 export interface CibleEnVue { present: boolean; hostile: boolean }
 
-/** Hors d'action, sauf Inconscient resté dans la rencontre. LDB 21 l.39, l.48 ; #3045 */
-const disparu = (s: Combatant): boolean => isOutOfAction(s) && (s.dead === true || s.outOfRencontre === true || !hasCondition(s, COND.inconscient));
+/** Combattant hors d'action, sauf Inconscient resté dans la rencontre ; une étiquette ne disparaît pas. LDB 21 l.39, l.48 ; #3045 */
+const disparu = (s: SourcePsy): boolean => s.genre === 'combattant' && isOutOfAction(s.c) && (s.c.dead === true || s.c.outOfRencontre === true || !hasCondition(s.c, COND.inconscient));
 
-/** En action, pas Brisé, agressif envers le porteur. LDB 21 l.19 ; Q11 A, #3045 */
-const hostile = (s: Combatant, porteur: Combatant): boolean => !isOutOfAction(s) && !hasCondition(s, COND.brise) && agressifEnvers(s, porteur);
+/** Combattant en action, pas Brisé, agressif envers le porteur ; une étiquette n'est jamais hostile. LDB 21 l.19 ; Q11 A, #3045 */
+const hostile = (s: SourcePsy, porteur: Combatant): boolean => s.genre === 'combattant' && !isOutOfAction(s.c) && !hasCondition(s.c, COND.brise) && agressifEnvers(s.c, porteur);
 
 /** Le verdict `cibleEnVue` de l'instance `affliction` de `porteur`, parmi les `sources` en Ligne de Vue, lui
  *  exclu. Pur. LDB 21 l.19, l.39, l.48 ; #3045 */
-export function cibleEnVue(porteur: Combatant, affliction: PsychAffliction, sources: readonly Combatant[]): CibleEnVue {
+export function cibleEnVue(porteur: Combatant, affliction: PsychAffliction, sources: readonly SourcePsy[]): CibleEnVue {
   const cible = affliction.cible;
-  const membres = cible === undefined ? [] : sources.filter((s) => !disparu(s) && vise(cible, { genre: 'combattant', c: s }, 'percu', porteur));
+  const membres = cible === undefined ? [] : sources.filter((s) => !disparu(s) && vise(cible, s, 'percu', porteur));
   return { present: membres.length > 0, hostile: membres.some((s) => hostile(s, porteur)) };
 }
 
-/** Le combattant peut-il entrer en Frénésie (LDB 21 l.31) ? Trait de créature, Talent « Frénésie »,
- *  OU Trait psy 'frenesie' OCTROYÉ (mutation / maladie active — ex. Rage meurtrière), lu via
- *  `effectivePsychTraits` (seul point de lecture des psychTraits, dérivés-maladie compris). */
+/** Le combattant peut-il entrer en Frénésie : Trait posé ou conféré par un Talent, ou Trait psy effectif ; jamais
+ *  sous un effet de suppression des Traits psy. LDB 21 l.31 ; LDB 10 l.506 ; LDB 43 l.70 */
 export function isFrenzyCapable(c: Combatant): boolean {
-  return traitCapability(c.traits, 'frenzyCapable')
-    || (c.talents ?? []).some((t) => t.talentId === 'frenesie')
+  if (psySuspendue(c)) return false;
+  return traitCapability([...(c.traits ?? []), ...traitsConferes(c)], 'frenzyCapable')
     || effectivePsychTraits(c).some((p) => p.type === 'frenesie');
 }
 
@@ -527,7 +537,7 @@ export function pasDePeur(
   sansPeur = false,
 ): { calmeDR: number; surmontee: boolean } {
   if (sansPeur && r.success) return { calmeDR: Math.max(prevDR, indice), surmontee: true };
-  const step = extendedTestStep(prevDR, r, indice, !!rule('test-extended-min-sl'));
+  const step = extendedTestStep(prevDR, r, indice);
   return { calmeDR: step.total, surmontee: step.done };
 }
 
@@ -550,28 +560,26 @@ function peurHeriteeSurmontee(r: { success: boolean; sansPeur?: boolean }): bool
   return !!r.sansPeur && r.success;
 }
 
-/** Traits psychologiques EFFECTIFS de `c` : ceux STOCKÉS (`c.psychTraits` — natifs, mutations, sorts
- *  accordés) PLUS ceux DÉRIVÉS des maladies ACTIVES (symptômes manifestés portant `grantPsychTrait` — Rage
- *  meurtrière → Haine + Frénésie). POINT DE LECTURE UNIQUE des Traits psy possédés : un symptôme actif rend
- *  son porteur sujet au Trait tant que la maladie dure et le perd à la guérison, SANS attache/détache (re-
- *  dérivé à chaque lecture, comme les pénalités continues `diseasePassiveOps`). Lu par les déclencheurs
- *  (`targetedTrigger`) et la pénalité sociale (`skills.containedSocialPenalty`). Les manipulations qui
- *  ÉCRIVENT la donnée persistée (acquisition `poserLeTraitAcquis`, suppression « Baume », sérialisation)
- *  restent sur `c.psychTraits` brut — un Trait transitoire de maladie ne s'acquiert ni ne se suspend.
- *
- *  « Vous êtes mon meilleur ami ! » (Ivresse 3-4, LDB 09 l.480) : « Ignorez tous vos Préjugés et
- *  toutes vos Animosités existants » — un porteur d'`ActiveEffect.ignoreAnimosity` (op générique
- *  `ignoreAnimosity`, kind-agnostique) ne possède plus les Traits `animosite`/`prejuge` tant que
- *  l'effet dure : ni nouveau déclenchement (`targetedTrigger`), ni malus social contenu
- *  (`skills.containedSocialPenalty`/`socialPsychMod`). */
+/** Un effet de suppression des Traits psy (`suppressedPsych`, même vide) est-il actif sur `c` ? LDB 43 l.70 */
+const psySuspendue = (c: Combatant): boolean => (c.activeEffects ?? []).some((e) => e.suppressedPsych !== undefined);
+
+/** Traits psy EFFECTIFS de `c`, seul point de lecture : ceux de sa fiche (`c.psychTraits`), plus ceux DÉRIVÉS à
+ *  la lecture des maladies actives (`diseasePsychTraits`) et des Talents (`traitsConferes`), que masque un effet
+ *  de suppression actif ; sans Animosité ni Préjugé sous `ignoreAnimosity`. LDB 43 l.70 ; LDB 09 l.480 ;
+ *  LDB 10 l.548 */
 export function effectivePsychTraits(c: Combatant): PsychTrait[] {
-  const derived = diseasePsychTraits(c);
+  const derived = psySuspendue(c) ? [] : [...diseasePsychTraits(c), ...(parsePsychTraits(traitsConferes(c)).psychTraits ?? [])];
   const all = derived.length ? [...(c.psychTraits ?? []), ...derived] : (c.psychTraits ?? []);
   if ((c.activeEffects ?? []).some((e) => e.ignoreAnimosity)) {
     return all.filter((p) => p.type !== 'animosite' && p.type !== 'prejuge');
   }
   return all;
 }
+
+/** Un combattant `v` qu'un TIERS de `visible` (ni `self`, ni une étiquette) menace ; une étiquette n'est jamais
+ *  menacée. LDB 21 l.75, l.81 ; #3045 */
+const menacee = (v: SourceEnVue, visible: readonly SourceEnVue[], self: Combatant): boolean =>
+  v.genre === 'combattant' && visible.some((a) => a.genre === 'combattant' && a.c.id !== self.id && agressifEnvers(a.c, v.c));
 
 /** Traits psy CIBLÉS de `self` déclenchés ce Round, un par Trait : un membre du groupe `cible` est VISIBLE dans la
  *  SITUATION que l'entrée déclare (`triggerOn`, `psychology.json`) et le trait n'est pas déjà en affliction
@@ -582,11 +590,11 @@ export function effectivePsychTraits(c: Combatant): PsychTrait[] {
  *  jamais `self` : on ne se porte pas au secours contre soi-même. La menace se mesure par `agressifEnvers`,
  *  donc un membre NEUTRE de la Cible n'est « menacé » que par un comportement constaté (Engagement ou
  *  attaque du Round), là où un membre du camp joueur l'est déjà par la présence d'un hostile déclaré.
- *  `visible` = combattants en Ligne de Vue (filtrée par l'appelant, couche state). Une Cible indéfinie
+ *  `visible` = sources en vue (combattants en Ligne de Vue, étiquette de la scène), filtrées par l'appelant. Une Cible indéfinie
  *  (« un au choix ») est inerte. Pur.
  *  Un Trait déclaré `targetCauses` (Phobie, LDB 21 l.87) n'a PAS de Test propre : son objet est une source
  *  de Peur (`fearSourceFor`), et c'est le régime de la Peur qui l'ouvre — jamais une seconde bande. */
-export function targetedTriggers(self: Combatant, visible: Combatant[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number }[] {
+export function targetedTriggers(self: Combatant, visible: readonly SourceEnVue[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number }[] {
   const out: { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number }[] = [];
   for (const tr of effectivePsychTraits(self)) {
     if (!tr.cible) continue; // « un au choix » → inerte
@@ -597,17 +605,17 @@ export function targetedTriggers(self: Combatant, visible: Combatant[]): { type:
     const needsThreat = d?.triggerOn === 'threatened';
     const m = visible.find(
       (v) =>
-        v.id !== self.id &&
-        vise(tr.cible!, { genre: 'combattant', c: v }, 'percu', self) &&
-        (!needsThreat || visible.some((a) => a.id !== self.id && agressifEnvers(a, v))),
+        !estLePorteur(v, self) &&
+        vise(tr.cible!, v, 'percu', self) &&
+        (!needsThreat || menacee(v, visible, self)),
     );
-    if (m && !out.some((o) => identiteDeCiblage(o.type, o.cible) === identite)) out.push({ type: tr.type, cible: tr.cible, sourceId: m.id, indice: tr.indice });
+    if (m && !out.some((o) => identiteDeCiblage(o.type, o.cible) === identite)) out.push({ type: tr.type, cible: tr.cible, sourceId: idDeSource(m), indice: tr.indice });
   }
   return out;
 }
 
 /** Le premier de `targetedTriggers`, pour la porte hors combat (`encounterPsych`). */
-export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number } | null {
+export function targetedTrigger(self: Combatant, visible: readonly SourceEnVue[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number } | null {
   return targetedTriggers(self, visible)[0] ?? null;
 }
 

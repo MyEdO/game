@@ -10,7 +10,7 @@ import { effectiveMovement } from '../engine/encumbrance';
 import { sizeGap, type SizeCategory } from '../engine/size';
 import { fearSizeAsMount, runMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { ModLine, AttackOptions } from '../engine/combat';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonusDeForce } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
@@ -20,7 +20,8 @@ import { isSkittishMount } from '../engine/traits/dispatch';
 import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
 import { structureImmune } from '../engine/structures';
 import type { Pt } from './monde/path';
-import type { BattleState } from './etat';
+import type { BattleState, Jeu } from './etat';
+import { sceneCombatModifiers } from './monde/sceneRules';
 import { inBattleId } from './monde/combatants';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
@@ -57,7 +58,7 @@ export const mountOf = (battle: BattleState, rider: Combatant): Combatant | unde
  *  hors Charge ou sans monture. SOURCE UNIQUE du jet d'origine et de ses re-dérivations. */
 export const chargeDmgProxy = (combatants: Combatant[] | undefined, rider: Combatant, fromCharge: boolean | undefined): AttackOptions['dmgProxy'] => {
   const m = fromCharge && rider.mountId ? combatants?.find((c) => c.id === rider.mountId) : undefined;
-  return m && { sb: bonus(effectiveChar(m, 'force')), size: m.size };
+  return m && { sb: bonusDeForce(m), size: m.size };
 };
 
 /** Géométrie de COMBAT d'un combattant, à partir d'une liste brute de combattants (utilisable hors
@@ -316,6 +317,16 @@ export function mountedAttackMods(battle: BattleState, attacker: Combatant, targ
 /** Ligne d'Esquive d'un cavalier (LDB 14 l.184), sauf Talent Acrobaties équestres ; aucune à pied. */
 export function mountedDodgeMods(defender: Combatant): ModLine[] {
   return defender.mountId && !hasAcrobatiesEquestres(defender) ? [ligneDeRegle('combat-monte', 'esquive-a-cheval')] : [];
+}
+
+/** Lignes d'ESQUIVE que le contexte impose au défenseur — SOURCE UNIQUE du jet résolu (`attackAt`
+ *  → `resolveMelee({ dodgeMods })`), de la défense réactive et du pré-jet (`previewDefense`) : météo de
+ *  la scène (neige épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`), chacune sa ligne. Un
+ *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
+export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
+  const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
+  const weather: ModLine[] = sc?.esquive ? [sc.esquive] : [];
+  return [...weather, ...mountedDodgeMods(defender)];
 }
 
 /** Montures LIBRES que `rider` (à pied) peut enfourcher, de la plus proche à la plus lointaine :

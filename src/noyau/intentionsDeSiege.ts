@@ -157,7 +157,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   frenzyConfirm: 'invité', frenzyCancel: 'invité', reloadConfirm: 'invité', reloadCancel: 'invité',
   handGateConfirm: 'invité', handGateCancel: 'invité', recoverConfirm: 'invité',
   recoverCancel: 'invité',
-  healSetMode: 'invité', healConfirm: 'invité', healCancel: 'invité',
+  healSetMode: 'invité', healSetTest: 'invité', healSetBandages: 'invité', healConfirm: 'invité', healCancel: 'invité',
   // Corruption (LDB 19 l.29) : choix de la nature de l'Influence AVANT le jet (le jet et son influence sont dérivés).
   corruptionSetNature: 'invité',
   // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR + paramètre pré-jet + résolution ; le jet et
@@ -169,6 +169,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
   // du tombant, `netOwnership`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
   fallAcross: 'invité', fallChoose: 'invité',
+  // Enfoncer une porte : choix de l'arme d'une rangée, routé par le siège de son héros (`netOwnership`).
+  forceDoorChoisirArme: 'invité',
   // Approche d'une source de Peur (ouverte par `battleClickTile`/`battleClickEntity`) : résolution.
   approachConfirm: 'invité', approachCancel: 'invité',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse) + résolution du jet de dissipation.

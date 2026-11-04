@@ -15,7 +15,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { difficultyText } from '../noyau/difficultyText';
 import { refLabel } from '../data';
 import { t } from '../i18n';
-import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../engine/ficheDeTest.testkit';
 import { lignesDeJet } from './ligneDeJet.testkit';
 import { combattantDeModale } from './combattantDeModale.testkit';
 
@@ -174,7 +174,7 @@ describe('chute du groupe — « Tenter » déclaré, une autre rangée encore �
     const lancer = [...document.querySelectorAll('button')].filter((b) => (b.textContent ?? '').trim() === 'Lancer');
     expect(lancer.length, 'un CTA « Lancer »').toBeGreaterThan(0);
     for (const b of lancer) expect(b.getAttribute('aria-disabled') ?? (b.disabled ? 'true' : null), 'CTA fermé').toBe('true');
-    expect(document.body.textContent, 'sa raison est lisible').toContain(t('declaration.attenteFenetre'));
+    expect(document.body.textContent, 'sa raison est celle du geste').toContain('Saut en attente : chaque tombant déclare d’abord s’il tente le Test ; reste à déclarer : Kurt (K).');
     act(() => lancer.forEach((b) => b.click()));
     expect(useGame.getState().pendingFall!.participants[0].result).toBeNull();
   });

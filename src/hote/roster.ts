@@ -1,11 +1,14 @@
 /**
  * LA PROCÉDURE DU ROSTER d'un hôte (#3041), sur le `Stockage` qu'il fournit : charger, ajouter, retirer, mettre à
- * jour un héros. La forme et ses transformations sont celles du noyau (`noyau/persistance/roster.ts`). Tout
+ * jour, engager un héros. La forme et ses transformations sont celles du noyau (`noyau/persistance/roster.ts`). Tout
  * chargement qui retire ou élague le roster stocké écrit son TÉMOIN dans le même `Stockage` (#1463 LD.1), quel
  * que soit le geste qui charge ; `prendreLesTemoinsDuRoster` le consomme. Un stockage absent (`null`) ou qui
  * lève : le roster est vide, l'écriture ne se fait pas.
  */
-import { cumulerLesRetraits, ecrireLeRoster, lireLesRetraits, lireLeRoster, rosterAvecLeHeros, type Combatant, type RetraitsDElagage, type RosterEntry } from '../noyau/index';
+import {
+  cumulerLesRetraits, ecrireLeRoster, engagement, lireLesRetraits, lireLeRoster, refusDEngagement, rosterAvecLeHeros,
+  type Combatant, type CreatorDraft, type Jeu, type RetraitsDElagage, type RosterEntry,
+} from '../noyau/index';
 import { lireLeTexte, retirerLaCle, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, type FormeDeTemoin } from './temoin';
 
@@ -56,6 +59,19 @@ export function prendreLesTemoinsDuRoster(stockage: Stockage | null): TemoinsDuR
 /** Ajoute `entry` au roster de `stockage`, en remplaçant l'entrée du même héros. */
 export function ajouterAuRoster(stockage: Stockage | null, entry: RosterEntry): void {
   ecrire(stockage, [...chargerLeRoster(stockage).filter((e) => e.hero.id !== entry.hero.id), entry]);
+}
+
+/** ENGAGE le brouillon `d` dans le groupe de `jeu` (#3059) : refusé par `refusDEngagement`, rendu sans rien écrire ;
+ *  sinon son entrée (`engagement`) entre au roster de `stockage`, puis le héros au groupe, en place de `heroId`
+ *  (`partyReplaceHero`) ou ajouté avec sa Richesse (`partyAddHero`). `null` : engagé. */
+export function engagerLeHeros(stockage: Stockage | null, jeu: Jeu, d: CreatorDraft, heroId?: string): string | null {
+  const refus = refusDEngagement(jeu, d, heroId);
+  if (refus) return refus;
+  const entree = engagement(d, heroId);
+  ajouterAuRoster(stockage, entree);
+  if (heroId) jeu.partyReplaceHero(heroId, entree.hero);
+  else jeu.partyAddHero(entree.hero, entree.wealth);
+  return null;
 }
 
 /** Retire du roster de `stockage` l'entrée du héros `heroId`. */

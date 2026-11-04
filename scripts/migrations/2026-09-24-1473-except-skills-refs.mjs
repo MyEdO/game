@@ -1,5 +1,5 @@
 /**
- * Migration #1473 (train 1 du lot « ops à référence typées ») — `testMod.exceptSkills` passe de
+ * Migration (train 1 du lot « ops à référence typées ») — `testMod.exceptSkills` passe de
  * la liste d'ids NUS à la graphie d'op de la référence de Compétence, `{ id, spec? }`
  * (`refOuSpec('skill')`, `src/data/schemas/grammaire/mecanique.ts › OP_DEFS.testMod`). `{ id }`
  * sans `spec` = toute spécialisation de la Compétence.

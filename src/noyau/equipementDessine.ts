@@ -4,7 +4,7 @@
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
+import { apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';
@@ -171,12 +171,11 @@ export function equipementDessine(c: Combatant): EquipCtx {
 }
 
 /** Ce qu'une ENTITÉ de scène déclare de son équipement : apparence d'auteur (`armurePortee`), arme
- *  d'authoring (`SceneEntity.weapon`), statbloc d'éditeur (`traits`, `armour`), enrôlement. */
+ *  d'authoring (`SceneEntity.weapon`), statbloc d'éditeur (`traits`), enrôlement. */
 export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee' | 'apparencesObjets' | 'embleme'> {
   /** Arme d'authoring (`trappingId`). */
   weapon?: string;
   traits?: readonly TraitPose[];
-  armour?: number;
   /** Profil du statbloc d'éditeur : référent des Indices formulés de ses `traits`. */
   char?: Partial<Record<string, number | null>>;
   /** Id du porteur (l'entité de scène) : ses fourchettes de Trait se tirent comme à son spawn. */
@@ -188,7 +187,7 @@ export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee'
 /** Ce que déclare une entité de scène : son apparence d'auteur, son arme, son statbloc d'éditeur, son
  *  enrôlement. */
 export const equipementDAuteurDe = (ent: Pick<SceneEntity, 'id' | 'appearance' | 'weapon' | 'statblock'>, enrolled?: boolean): EntityAppearance & EquipementDAuteur => ({
-  ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, char: ent.statblock?.char, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
+  ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, char: ent.statblock?.char, enrolled, porteur: ent.id,
 });
 
 /** Traits du porteur d'auteur, statbloc d'éditeur sinon record, tirés pour lui comme à son spawn
@@ -214,6 +213,5 @@ export function armesDEntite(resolveTrapping: TrappingResolver, ref: string | un
 /** Équipement dessiné du porteur d’auteur (#2948). */
 export function equipementDEntite(resolveTrapping: TrappingResolver, ref: string | undefined, opts: EquipementDAuteur = {}): EquipCtx {
   const traits = traitsDeLEntite(ref, opts);
-  const armourPA: ArmourPoints = opts.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
-  return equipDe(armesDEntite(resolveTrapping, ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)), { embleme: emblemeDe(opts, ref) });
+  return equipDe(armesDEntite(resolveTrapping, ref, opts), synthArmour(armourFromTraits(traits), armurePorteeDe(opts, ref)), { embleme: emblemeDe(opts, ref) });
 }

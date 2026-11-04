@@ -7,7 +7,7 @@
  */
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { portalsForParty } from '../../noyau/monde/roomPortals';
-import { piece } from '../../state/pieces.fixture';
+import { piece } from '../../noyau/pieces.fixture';
 import { aretesUtilisables } from '../../noyau/aretes';
 import { type Dims } from '../../geometry/iso';
 import { poseFromDims } from './projection';

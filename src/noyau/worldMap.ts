@@ -11,6 +11,7 @@
  * marche forcée au niveau carte.
  */
 import type { Scene } from './monde/scene';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
@@ -381,9 +382,9 @@ function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
   return zone ? { auberge: true, maison: zone.places.maison, camp: zone.places.camp } : undefined;
 }
 
-/** Les services de lieu que le CODE cite par id (`placeServices`) — leur présence au catalogue
- *  `lieux-services.json` est prouvée par `data/refs-migrated.test.ts`. */
-export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge' } as const;
+/** Les services de lieu que le CODE cite par id (`placeServices`), typés par l'espace
+ *  `lieux-services.json` de `IdsParEspace`. */
+export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge' } as const satisfies Record<string, IdsParEspace['lieux-services.json']>;
 
 /**
  * API UNIQUE des SERVICES d'un lieu (#343) : compose en UNE liste le port (`place.port`), le marché

@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { cloisons, piece } from '../../state/pieces.fixture';
+import { cloisons, piece } from '../../noyau/pieces.fixture';
 import { aretesUtilisables } from '../../noyau/aretes';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { AreteOverlay } from './AreteOverlay';

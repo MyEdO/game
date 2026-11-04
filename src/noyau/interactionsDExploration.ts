@@ -1,6 +1,6 @@
 /** Interactions d'exploration : offres d'un décor ou d'un PNJ (`actionsDe`), leur exécuteur unique,
  *  l'assise et la fouille de pièce (#1687). */
-import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite } from './monde/usable';
+import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite, estUtilisable } from './monde/usable';
 import { type SceneEntity, Scene } from './monde/scene';
 import { ouvrirDialogue } from './dialogue';
 import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type SeatPose, assignSeat } from './monde/seating';
@@ -9,8 +9,9 @@ import { t } from '../i18n';
 import { bus, EVT } from './bus';
 import { cloturer, runFlow, flowRestant } from './combatEffects';
 import { removeEntity } from './combatPlacement';
-import { aPorteeDe } from './monde/exploreNav';
-import { nomDEntite } from './monde/sceneNpc';
+import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan } from './monde/exploreNav';
+import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
+import { entityBlockedAt } from './monde/sceneRules';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
@@ -22,9 +23,10 @@ import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 import type { ActionGate } from './actionRegistry';
-import type { Jeu } from './etat';
+import type { Jeu, PendingInteract } from './etat';
 import type { RefusGeste } from './gesteDArete';
 import type { RoomFocus } from './monde/rooms';
+import type { Pt } from './monde/path';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -87,6 +89,61 @@ export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos
     if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: nomDEntite(ent, presetDuNarratif(s.campaignNarratif)), offres });
   }
   return porteurs;
+}
+
+/**
+ * Ce que joue un clic d'EXPLORATION sur la case `tuile`, où l'hôte a résolu l'entité `entiteId` sous son pointeur
+ * (`stage/geste.ts:entiteDuGeste`) : l'homologue hors combat d'`intentionDuClicDeCase` (`combatOrParty.ts`). Chaque
+ * variante nomme les verbes que l'hôte joue : `interagir` → `interactEntity` ; `jouer` → `jouerAction` ; `rejoindre`
+ * → `setPendingInteract(pending)` puis la marche du `plan` ; `marcher` → la marche du `plan` ; `dire` → `log` ;
+ * `annuler` → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `setPendingInteract(null)`.
+ * `null` : rien ne se joue (hors exploration, dialogue ouvert, N offres à portée que la pastille sert, entité
+ * utilisable injoignable), le pending et le survol restent.
+ */
+export type IntentionDExploration =
+  | { kind: 'interagir'; id: string }
+  | { kind: 'jouer'; id: string; actionId: string }
+  | { kind: 'rejoindre'; plan: ExploreMovePlan; pending: PendingInteract }
+  | { kind: 'marcher'; plan: ExploreMovePlan }
+  | { kind: 'dire'; message: string }
+  | { kind: 'annuler' };
+
+export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string | null): IntentionDExploration | null {
+  const sc = s.scene;
+  if (!sc || s.mode !== 'exploration' || s.dialogue) return null;
+  const opts = optionsDeCheminDuGroupe(s.party);
+  const ent = entiteId === null ? undefined : sc.entities.find((e) => e.id === entiteId);
+  // Case d'arrivée partagée avec l'aperçu de survol (`exploreMovePlan`) : escalier, abord d'une place, case
+  // adjacente d'une entité, ou la case même.
+  const plan = exploreMovePlan(sc, s.partyPos, tuile, opts);
+  const marcherOu = (sinon: IntentionDExploration): IntentionDExploration => (plan ? { kind: 'marcher', plan } : sinon);
+  const presetDe = presetDuNarratif(s.campaignNarratif);
+  // MEUBLE À PLACES : il AJOUTE l'assise sans retirer d'affordance ; sans place servable, la chaîne des offres reprend
+  // (son offre d'assise, `actionsDe`, le garde utilisable).
+  if (ent?.kind === 'prop' && placesJouables(sc, ent.id).length) {
+    const assisIci = !!meneurDuMonde(s) && seatPoseOf(sc, { kind: 'party', rang: RANG_MENEUR })?.propId === ent.id;
+    // UNE source de « place LIBRE » : le plan d'assise, d'un seul point quand le groupe est déjà sur un abord libre.
+    const place = exploreSeatPlan(sc, s.partyPos, ent.id, opts);
+    if (assisIci || (place && place.path.length < 2)) return { kind: 'interagir', id: ent.id };
+    if (plan && place) return { kind: 'rejoindre', plan, pending: { id: ent.id, at: plan.dest } };
+  }
+  if (ent && estUtilisable(sc, ent, s.flags)) {
+    // Les offres OUVERTES, au verdict de la pastille (`porteDOffre`) : UNE se joue, N se servent à la pastille.
+    const offres = actionsDe(sc, ent, s.flags).filter((o) => porteDOffre(sc, ent, o.origine).ok);
+    const seule = offres.length === 1 ? offres[0] : null;
+    if (aPorteeDe(s.partyPos, ent)) return seule ? { kind: 'jouer', id: ent.id, actionId: seule.id } : null;
+    return plan ? { kind: 'rejoindre', plan, pending: { id: ent.id, ...(seule ? { actionId: seule.id } : null), at: plan.dest } } : null;
+  }
+  if (ent?.kind === 'personnage') {
+    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: ficheDEntite(ent, presetDe).label }) };
+    return marcherOu({ kind: 'annuler' });
+  }
+  // DÉCOR qui OCCUPE sa case (`entityBlockedAt`, la règle d'`isWalkable`) : on s'en approche, sinon on le dit. Un décor
+  // PASSABLE se clique comme le sol.
+  if (ent?.kind === 'prop' && entityBlockedAt(sc, ent.pos.x, ent.pos.y, ent.z ?? 0)) {
+    return marcherOu({ kind: 'dire', message: t('store.propInerte', { what: nomDEntite(ent, presetDe) ?? t('store.propInerteFallback') }) });
+  }
+  return marcherOu({ kind: 'annuler' });
 }
 
 /** Le meneur occupe-t-il CE meuble ? Alors il s'en relève, et le dit. Rend `true` s'il s'est levé —

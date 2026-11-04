@@ -26,6 +26,9 @@ import {
   rollSpecies,
   rollCareer,
   validatePointBuy,
+  POINT_BUY_MIN,
+  POINT_BUY_MAX,
+  POINT_BUY_TOTAL,
   rollInitialWealth,
   type TirageDeRichesse,
   rollAge,
@@ -334,6 +337,11 @@ export function careerXp(d: CreatorDraft): number {
   if (d.careerRolls.length === 3 && d.careerRolls.some((r) => r.ids.includes(d.careerId))) return XP_CAREER_TOP3;
   return 0;
 }
+/** PX qu'offre le prochain jet de carrière (LDB 05 l.210-212) : le 1ᵉʳ, les deux de plus, puis la relance libre. */
+export function careerXpDuProchainJet(d: CreatorDraft): number {
+  if (d.careerFreeRolls > 0 || d.careerRolls.length >= 3) return 0;
+  return d.careerRolls.length === 0 ? XP_CAREER_FIRST : XP_CAREER_TOP3;
+}
 export function withCareer(d: CreatorDraft, id: string): CreatorDraft {
   if (id === d.careerId) return d;
   return {
@@ -387,6 +395,10 @@ export function charsXp(d: CreatorDraft): number {
   if (!d.charsRolled || d.charRerolls > 0 || d.charMode === 'pointBuy') return 0;
   return d.charMode === 'rolled' ? XP_CHARS_KEPT : XP_CHARS_REASSIGNED;
 }
+/** PX de création qu'offre la méthode `mode` une fois les dix jets tirés (LDB 05 l.337-341). */
+export const charsXpDeLaMethode = (d: CreatorDraft, mode: CharMode): number => charsXp({ ...d, charMode: mode, charsRolled: true });
+/** Relance les dix 2d10 (LDB 05 l.341). */
+export const rerollDraftChars = (d: CreatorDraft): CreatorDraft => ({ ...d, charRerolls: d.charRerolls + 1 });
 
 /** PX du signe astral : +25 si le signe choisi reste celui qui a été TIRÉ (ADE II 3 l.36), sinon 0. */
 export const starXp = (d: CreatorDraft): number => (d.starRoll && d.star === d.starRoll ? XP_STAR_ROLLED : 0);
@@ -557,7 +569,8 @@ export function speciesSkillPick(d: CreatorDraft, ref: RefASpecialisation): RefD
   return [...d.speciesPlus5, ...d.speciesPlus3].find(occupe(d, ref));
 }
 
-/** Palier (+5/+3/0) d'une Compétence de race dans le brouillon (LDB 05 l.484). */
+/** Palier (+5/+3/0) d'une Compétence de race dans le brouillon (LDB 05 l.484), pour l'emplacement d'espèce ou la
+ *  Compétence désignée `ref`. */
 export function speciesSkillTier(d: CreatorDraft, ref: RefASpecialisation): 0 | 3 | 5 {
   const m = occupe(d, ref);
   return d.speciesPlus5.some(m) ? 5 : d.speciesPlus3.some(m) ? 3 : 0;
@@ -699,6 +712,13 @@ export function stepIds(): StepId[] {
   return ids;
 }
 
+/** L'étape de rang `i` de l'assistant ; au-delà de la dernière (la règle des signes astraux a retiré une étape), la
+ *  dernière. */
+export function etapeDeRang(i: number): StepId {
+  const ids = stepIds();
+  return ids[i] ?? garanti(ids[ids.length - 1], i, 'dernière étape de l’assistant');
+}
+
 // ── Validation par étape ──
 /** Contexte dérivé du brouillon, calculé UNE fois par validation et passé à l'étape. */
 interface StepCtx { d: CreatorDraft; sp: ReturnType<typeof draftSpecies>; level: ReturnType<typeof draftLevel> }
@@ -725,12 +745,11 @@ const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {
       const idx = CHAR_KEYS.map((k) => d.assignment[k]);
       if (new Set(idx).size !== 10) return t('crea.reassignationUnique');
     }
-    const careerChars = careerCharKeys(d).length;
-    const alloc = Object.values(d.charAdvancesAlloc).reduce((a, b) => a + (b ?? 0), 0);
-    if (careerChars && alloc !== CAREER_CHAR_ADVANCES)
-      return t('crea.augmentationsDeCaracteristiques', { n: CAREER_CHAR_ADVANCES, actuel: alloc });
-    const split = d.fateSplit.fate + d.fateSplit.resilience;
-    if (split !== sp.fate.extra) return t('crea.destinEtResilience', { n: sp.fate.extra, actuel: split });
+    const augmentations = repartition(d, 'augmentation');
+    if (augmentations.total !== augmentations.quota)
+      return t('crea.augmentationsDeCaracteristiques', { n: augmentations.quota, actuel: augmentations.total });
+    const destin = repartition(d, 'destin');
+    if (destin.total !== destin.quota) return t('crea.destinEtResilience', { n: destin.quota, actuel: destin.total });
     return null;
   },
   star: () => null,
@@ -806,6 +825,62 @@ export function careerAdvTotal(d: CreatorDraft): number {
   return careerSkillEntries(d).reduce((a, c) => a + (d.skillAdvances[c.cle] ?? 0), 0);
 }
 
+// ── Compteurs d'allocation (étapes 3 et 5) : valeur, bornes et écriture BORNÉE, lues par l'écran ET le geste ──
+/** Un compteur d'allocation : la Caractéristique `k` des 100 Points (LDB 05 l.341), ses Augmentations de carrière
+ *  (LDB 05 l.459), Destin ou Résilience (LDB 05 l.426), les Augmentations de la Compétence de carrière `cle`
+ *  (LDB 05 l.535). */
+export type Compteur =
+  | { genre: 'points'; k: CharKey }
+  | { genre: 'augmentation'; k: CharKey }
+  | { genre: 'destin'; k: 'fate' | 'resilience' }
+  | { genre: 'competence'; cle: string };
+export type Repartition = Compteur['genre'];
+
+/** Le total posé et le quota de la répartition `r` ; l'étape la valide quand ils sont égaux. */
+export function repartition(d: CreatorDraft, r: Repartition): { total: number; quota: number } {
+  switch (r) {
+    case 'points':
+      return { total: CHAR_KEYS.reduce((a, k) => a + d.pointBuy[k], 0), quota: POINT_BUY_TOTAL };
+    case 'augmentation':
+      return { total: Object.values(d.charAdvancesAlloc).reduce((a, b) => a + (b ?? 0), 0), quota: careerCharKeys(d).length ? CAREER_CHAR_ADVANCES : 0 };
+    case 'destin':
+      return { total: d.fateSplit.fate + d.fateSplit.resilience, quota: draftSpecies(d)?.fate.extra ?? 0 };
+    case 'competence':
+      return { total: careerAdvTotal(d), quota: CAREER_SKILL_ADVANCES };
+  }
+}
+
+export function valeurDuCompteur(d: CreatorDraft, c: Compteur): number {
+  switch (c.genre) {
+    case 'points': return d.pointBuy[c.k];
+    case 'augmentation': return d.charAdvancesAlloc[c.k] ?? 0;
+    case 'destin': return d.fateSplit[c.k];
+    case 'competence': return d.skillAdvances[c.cle] ?? 0;
+  }
+}
+
+/** Les bornes du compteur `c` : les 100 Points entre `POINT_BUY_MIN` et `POINT_BUY_MAX` ; une Augmentation, Destin ou
+ *  Résilience jusqu'à ce que reste de sa répartition, une Compétence de carrière au plus `MAX_ADV_PER_SKILL`. */
+export function bornesDuCompteur(d: CreatorDraft, c: Compteur): { min: number; max: number } {
+  if (c.genre === 'points') return { min: POINT_BUY_MIN, max: POINT_BUY_MAX };
+  const { total, quota } = repartition(d, c.genre);
+  const plafond = c.genre === 'competence' ? MAX_ADV_PER_SKILL : quota;
+  return { min: 0, max: Math.min(plafond, valeurDuCompteur(d, c) + quota - total) };
+}
+
+/** Pose `v` au compteur `c` dans ses bornes (`bornesDuCompteur`) ; une valeur hors bornes rend le brouillon INCHANGÉ,
+ *  sauf une baisse vers le plancher. */
+export function withCompteur(d: CreatorDraft, c: Compteur, v: number): CreatorDraft {
+  const { min, max } = bornesDuCompteur(d, c);
+  if (v < min || (v > max && v > valeurDuCompteur(d, c))) return d;
+  switch (c.genre) {
+    case 'points': return { ...d, pointBuy: { ...d.pointBuy, [c.k]: v } };
+    case 'augmentation': return { ...d, charAdvancesAlloc: { ...d.charAdvancesAlloc, [c.k]: v } };
+    case 'destin': return { ...d, fateSplit: { ...d.fateSplit, [c.k]: v } };
+    case 'competence': return { ...d, skillAdvances: { ...d.skillAdvances, [c.cle]: v } };
+  }
+}
+
 // ── Étape 5 « Compétences & Talents » — complétion PAR SOUS-ÉCRAN (5a/5b/5c, charte Atelier) : la
 // fiche vivante et les onglets de sous-étape en dérivent — SOURCE UNIQUE, jamais un `ahead('skills')`
 // tout-ou-rien pour ce qui se joue À L'INTÉRIEUR de l'étape.
@@ -832,8 +907,8 @@ function messageDesTalentsDeRace(d: CreatorDraft): string | null {
 function messageDesCompetencesDeCarriere(d: CreatorDraft): string | null {
   const prise = careerSkillEntries(d).find((c) => c.ref.choix != null && c.designee?.spec != null && !c.libre(c.designee.spec));
   if (prise?.designee) return t('crea.competencePrise', { nom: refLabel('skills', prise.designee), raison: t('slot.takenByOther') });
-  const total = careerAdvTotal(d);
-  if (total !== CAREER_SKILL_ADVANCES) return t('crea.augmentationsDeCarriere', { n: CAREER_SKILL_ADVANCES, actuel: total });
+  const { total, quota } = repartition(d, 'competence');
+  if (total !== quota) return t('crea.augmentationsDeCarriere', { n: quota, actuel: total });
   for (const c of careerSkillEntries(d)) {
     const adv = d.skillAdvances[c.cle] ?? 0;
     const nom = c.designee ? refLabel('skills', c.designee) : advancementLabel('skills', c.ref);
@@ -863,6 +938,10 @@ export function talentsDone(d: CreatorDraft): boolean {
 
 /** Trois sous-écrans de l'étape 5 (charte Atelier, dock d'onglets « a/b/c »). */
 export type SkillsSub = 'race' | 'career' | 'talents';
+
+const SOUS_ECRAN_SOLDE: Record<SkillsSub, (d: CreatorDraft) => boolean> = { race: speciesSkillsDone, career: careerSkillsDone, talents: talentsDone };
+/** Le sous-écran `sub` de l'étape 5 est-il soldé ? */
+export const skillsSubDone = (d: CreatorDraft, sub: SkillsSub): boolean => SOUS_ECRAN_SOLDE[sub](d);
 
 /** Bandeau de pied PAR SOUS-ONGLET (5a/5b/5c) — chaque volet reflète SA propre complétion au lieu
  *  du premier blocage toutes-branches de `validateStep('skills')` (agent-œil, LOT de clôture). */

@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { join, posix } from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { listerArbre } from './lister.mjs';
-import { estFichierVitest } from './fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 
 export const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -466,7 +466,7 @@ export function resolveursDentree() {
   const accesseurs = accesseursVivants();
   const out = new Set();
   for (const chemin of fichiersSources()) {
-    if (!chemin.startsWith('src/data/') || estFichierVitest(chemin)) continue;
+    if (!chemin.startsWith('src/data/') || estFichierVitest(chemin) || estKitDeTest(chemin)) continue;
     const src = sansCommentaires(readFileSync(join(RACINE, chemin), 'utf8'));
     for (const forme of FORMES_RESOLVEUR) {
       for (const m of src.matchAll(forme)) if (accesseurs.has(m[2])) out.add(m[1]);
@@ -666,7 +666,7 @@ export function fichiersSources() {
  *  fichier NON-test est le seam s'il DÉFINIT `bumperDataset` (le versionneur d'écriture) ou s'il
  *  l'IMPORTE (l'écrivain : muter en place et versionner est son métier). Ces deux-là PORTENT la
  *  mécanique que les gardes d'index et d'écriture cherchent chez les autres : les y chercher rendrait
- *  la garde fausse. Un INSTRUMENT Vitest — suite ou banc, `estFichierVitest` — n'est jamais le
+ *  la garde fausse. Un INSTRUMENT Vitest — suite ou banc, `estFichierVitest` — ou un kit (`estKitDeTest`) n'est jamais le
  *  seam : il en parle, il ne le porte pas. */
 let _seam = null;
 export function fichiersDuSeam() {
@@ -675,7 +675,7 @@ export function fichiersDuSeam() {
   const importe = /import\s*\{[^}]*\bbumperDataset\b[^}]*\}\s*from/;
   const out = new Set();
   for (const chemin of fichiersSources()) {
-    if (estFichierVitest(chemin)) continue;
+    if (estFichierVitest(chemin) || estKitDeTest(chemin)) continue;
     const src = sansCommentaires(readFileSync(join(RACINE, chemin), 'utf8'));
     if (definit.test(src) || importe.test(src)) out.add(chemin);
   }

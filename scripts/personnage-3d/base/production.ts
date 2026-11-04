@@ -47,7 +47,7 @@ const EST_DE_NATURE: Readonly<Record<Nature, (chemin: string) => boolean>> = { f
 
 /** L'empreinte SHA-256 de la source `chemin` du pack `source` : celle de ses octets pour un fichier ; pour un dossier,
  *  celle de la liste triée de ses fichiers, une ligne « chemin relatif POSIX, espace, SHA-256 » par fichier. */
-function empreinteDeSource(source: Source, chemin: string): string {
+export function empreinteDeSource(source: Source, chemin: string): string {
   if (NATURE_DE_SOURCE[source] === 'fichier') return sha256(readFileSync(chemin));
   const lignes = fichiersDe(chemin).map((f) => `${relative(chemin, f).split(sep).join('/')} ${sha256(readFileSync(f))}\n`).sort();
   return sha256(Buffer.from(lignes.join('')));

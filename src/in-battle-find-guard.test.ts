@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { scanInBattleFind } from '../scripts/guards/lib/inBattleFind.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « recherche de combattant EN COMBAT par id » (#279, F1 du programme structurel #276).
@@ -27,7 +27,7 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  */
 
 const SCAN_DIRS = ['src/state', 'src/noyau', 'src/ui', 'src/gameIso'];
-const EXCLUDED = (rel: string) => estFichierVitest(rel);
+const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
 
 /** Baseline gelée par fichier. src/state (recensement Lot 1, 2026-07-10 — 3 sites résiduels, tous
  *  prédicats COMPOSÉS non réductibles à `inBattleId` seul) ; src/ui + src/gameIso (recensement #410,
@@ -81,7 +81,6 @@ const BASELINES: Record<string, number> = {
   'src/gameIso/stage/highlightLayer.tsx': 3,
   'src/gameIso/stage/useHoverTargeting.ts': 5,
   'src/gameIso/stage/useStageCamera.ts': 8,
-  'src/gameIso/stage/ZdeTemplate.tsx': 1,
 };
 
 function countsByFile(): Record<string, number> {

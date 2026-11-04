@@ -162,7 +162,7 @@
     "fichier": "src/engine/tests.ts",
     "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
     "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
-    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
+    "verrou": "sea-voyage-flow.hors-store.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
   },
   {
     "id": "optionChooser",
@@ -285,7 +285,7 @@
     "fichier": "src/noyau/combatOrParty.ts",
     "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
-    "verrou": "couture-de-retour.test.ts"
+    "verrou": "couture-de-retour.hors-store.test.ts"
   },
   {
     "id": "depenserPx",
@@ -294,7 +294,7 @@
     "fichier": "src/noyau/partyFlow.ts",
     "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
     "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
-    "verrou": "couture-de-retour.test.ts"
+    "verrou": "couture-de-retour.hors-store.test.ts"
   },
   {
     "id": "meneurDuMonde",
@@ -308,9 +308,9 @@
   {
     "id": "sourcesEnVue",
     "type": "primitives.manifest",
-    "label": "sourcesEnVue",
+    "label": "sourcesEnVue/sourcesPsyEnVue/etiquetteDeScene",
     "fichier": "src/noyau/monde/porteurs.ts",
-    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent",
+    "concept": "les combattants en Ligne de Vue d'un porteur (zones de fumée opaques comprises), parcourus paresseusement : chaque lecteur dit par `retenu`, jugé avant la Ligne de Vue, ceux qui comptent ; `sourcesPsyEnVue` les enveloppe en sources psychologiques et y joint l'étiquette de la scène (`etiquetteDeScene`, ses `Scene.groups`, en vue partout dans la scène, #3045)",
     "perimetre": "toute collecte des combattants vus d'un porteur : Tests de Psychologie (Peur, Terreur, Traits ciblés, héros et IA), fin d'une affliction ciblée (`cibleEnVue`), Condition `foeInLoS`, cible imposée de Frénésie (`frenzyTarget`) ; la visée de tir, qui juge la case visée d'une structure, n'en est pas",
     "verrou": "src/noyau/monde/porteurs.test.ts"
   },
@@ -1895,7 +1895,7 @@
     "fichier": "src/noyau/modalArbiter.ts",
     "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
     "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
-    "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+    "verrou": "src/noyau/dialogue-surface-tient-la-main.hors-store.test.ts (un contrat par surface partagée, document partagé en coop compris) ; src/state/dialogue-surface-tient-la-main.test.ts (contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
   },
   {
     "id": "ordreTotal",
@@ -2080,9 +2080,9 @@
   {
     "id": "vise",
     "type": "primitives.manifest",
-    "label": "vise/SourcePsy/ciblesAPulsion/ciblesDePulsion",
+    "label": "vise/SourcePsy/sourceCombattant/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe (joker `matchesAll`, composite `inclut`), l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant, interlocuteur ou étiquette de lieu (`Scene.groups`, que ni joker ni Groupe relatif ni individu ne visent ; `sourceCombattant` enveloppe un combattant), et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe (joker `matchesAll`, composite `inclut`), l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
     "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },

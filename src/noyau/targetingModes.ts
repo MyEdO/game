@@ -20,15 +20,17 @@ import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
 import { refusActionDepensee, refusHorsDEtatDAgir } from './refusDuTour';
 import { isEngaged, reachTiles } from '../engine/engagement';
-import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
+import { avantageApresDepense, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { isFrenzied } from '../engine/psychology';
-import { healableTargets, combatHealModes, HEAL_MODES } from '../engine/healing';
+import { healableTargets, modesDOuverture, soinDOuverture, HEAL_MODES } from '../engine/healing';
+import { libelleDeTest } from './jetsEnVue';
+import { garanti } from '../lib/garanti';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
 import { findSpellById } from '../data';
 import { isStructure, structureImmune } from '../engine/structures';
@@ -45,7 +47,7 @@ import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } 
 import { pilotedByHuman } from './netOwnership';
 import { inBattleId } from './monde/combatants';
 import { detenteurDuCiblage } from './targetingHolder';
-import { afterApproach } from './combatDirector';
+import { approachMs } from './combatDirector';
 import { ev } from './combatLog';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { chargeArmee } from './localIntent';
@@ -55,7 +57,7 @@ import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 import { chebyshev } from '../engine/grid';
 import {
-  attackPlan, previewAttack, previewCast, firedAttackBlock, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackPlan,
+  attackPlan, previewAttack, previewCast, firedAttackBlock, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
 import { captureMoveSnapshot } from './monde/combatGeometry';
@@ -193,7 +195,7 @@ const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
   'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'augmentWeapon', 'giveTrapping', 'freeReroll',
   'gainResource', 'arrowWard', 'attackWardFM', 'castWard', 'domeWard', 'weatherWard', 'mitigateIncoming',
-  'ignoreStatePenalties', 'noBreath', 'noHunger', 'preventInfection', 'reduceDiseaseDays', 'diseaseTestMod', 'suppressSymptom', 'skillDRBonus',
+  'ignoreStatePenalties', 'noBreath', 'noHunger', 'preventInfection', 'aideMedicale', 'reduceDiseaseDays', 'diseaseTestMod', 'suppressSymptom', 'skillDRBonus',
   'martyr', 'endPsych', 'removePsychTrait', 'suppressPsych', 'gainAdvantage', 'topUpAdvantage', 'critTwice',
   'grantCareerSkill', 'grantCareerTalent',
 ]);
@@ -233,7 +235,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   // En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
   // un seuil écrit ici : la pièce la plus longue du bord donne la Portée moyenne, le socle fait le reste.
   const mpt = sceneMetresPerTile(get().scene);
-  const gbf = () => bonus(effectiveChar(ship, 'force')); // paresseux : la portée navale est fixe (number) → BF jamais évalué
+  const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
   if (maxRange && rangeBandModifier(combatDistance(ship, target), maxRange, mpt) == null)
     return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };
@@ -450,12 +452,15 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
 const soignablesAPortee = (get: Get, active: Combatant): Combatant[] =>
   healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
 
-/** Mode SOIN (Guérison, LDB 09) : réticule « Soigner » sur soi + alliés adjacents qu'un soin de combat
- *  atteint (`combatHealModes`) ; à portée sans soin de combat, la cible est refusée au clic. */
+/** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
+ *  adjacents qu'un soin de combat ouvert par `active` atteint (`modesDOuverture`) ; à portée sans soin de combat, la
+ *  cible est refusée au clic. */
 function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTargeting {
   if (!soignablesAPortee(get, active).some((c) => c.id === target.id)) return { kind: 'none' };
-  if (!combatHealModes(target).length) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
-  return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: 'Guérison', base: 0, mod: 0, dmg: null };
+  const mode = modesDOuverture(target, active)[0];
+  if (!mode) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
+  const test = garanti(soinDOuverture(active, mode), mode, 'soin ouvert').test;
+  return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
 }
 
 /** Sorts permanents dissipables PORTÉS par un combattant donné (regroupés par (sort, lanceur) —
@@ -602,7 +607,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     // Charge (LDB 15 l.35-37) : se ruer au contact (portée de Course) puis attaquer — manœuvre
     // PLEINE (consomme tout le Mouvement). Combat monté : empreinte/Course de la MONTURE.
     // Undo PRÉ-JET (retour playtest) : capture l'état d'AVANT la charge pour pouvoir Annuler un misclic
-    // tant qu'aucun dé n'est lancé (`attackCancel`) — positions, orientation, Mouvement, Avantage, chargé.
+    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`attackCancel`) — positions, orientation,
+    // Mouvement, Avantage, chargé.
     const chargeUndo = {
       pos: Object.fromEntries(battle.combatants.filter((c) => c.pos).map((c) => [c.id, { ...c.pos! }])),
       facing: { ...get().facing }, movedPreAction: battle.movedPreAction, movementUsed: battle.movementUsed ?? 0,
@@ -620,11 +626,9 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     if (geom !== active) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path: approachPath });
     applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11) : charger À TRAVERS coûte
     noteApproachMove(active, chargeFrom); // LDB 21 l.27 — événement EN ATTENTE : purgé si la charge est annulée avant le jet
-    campGain(get, active, plan.adv); // +1 si « fonçant » de ≥ M mètres (LDB 15 l.37, lecture stricte), AVANT le jet
-    if (plan.adv > 0) { active.gainedAdvThisRound = true; active.chargeAvecAvantage = true; } // LDB 85 l.83
-    active.chargedThisTurn = true; // Charge → Atouts de Dégâts d'une arme Épuisante actifs (LDB 62 l.319) ; consommé en fin de tour
-    set({ battle: { ...get().battle!, movementUsed: mountMovement(battle, active), action: null, preview: null, log: [...battle.log, ev('charge', t('cs.charge', { name: active.label, target: target.label, adv: plan.adv ? t('cs.fragChargeAdv', { adv: plan.adv }) : '' }), active.id, target.id)] } });
-    pa = { attackerId: active.id, targetId: target.id, location: null, result: null, fromCharge: true, chargeUndo, ...(option.freeKind ? { freeKind: option.freeKind } : {}), ...(option.weaponUid ? { weaponUid: option.weaponUid } : {}) };
+    set({ battle: { ...get().battle!, movementUsed: mountMovement(battle, active), action: null, preview: null } });
+    const repondu = declarerLaCharge(get, set, active, target, plan.adv); // LDB 10 l.500
+    pa = { attackerId: active.id, targetId: target.id, location: null, result: null, fromCharge: true, ...(repondu ? {} : { chargeUndo }), ...(option.freeKind ? { freeKind: option.freeKind } : {}), ...(option.weaponUid ? { weaponUid: option.weaponUid } : {}) };
   } else {
     if (plan.kind === 'moveAttack') {
       // Rejoindre la cible dans la Marche restante (pas une Charge → pas de bonus), puis attaquer.
@@ -670,15 +674,10 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // ce chemin (pendingAttack), donc ne voit jamais ce choix.
   if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forced: true };
   if (coutPaye) pa = { ...pa, coutPaye };
-  // (2) FRAPPE — après le glissé d'approche : ouvre la SÉQUENCE de combat (jet d'attaque = ÉTAPE 0,
-  // CascadeModal via useAttackJetProps ; ses conséquences s'empilent APRÈS dans la MÊME fenêtre). Garde
-  // dans le différé : encore le tour de l'acteur et aucune autre cascade ouverte (anti double-ouverture).
-  afterApproach(get, approachPath, () => {
-    const b = get().battle;
-    if (!b || b.over || b.order[b.turn] !== active.id || get().pendingCascade) return;
-    // Point PARTAGÉ : gate « Main ensanglantée » (AA 07 l.117) puis ouverture de la cascade d'attaque.
-    openAttackCascade(get, set, pa, 'Attaque', 'action/attack');
-  });
+  if (active.chargedThisTurn) pa = { ...pa, fromCharge: true }; // LDB 15 l.35
+  // (2) FRAPPE — après le glissé d'approche (sur-le-champ au contact) : la suite du tour du joueur, armée par l'armeur
+  // unique (`armerLaSuite`), ouvre la SÉQUENCE de combat (jet d'attaque = ÉTAPE 0).
+  armerLaSuite(get, set, active, { kind: 'frappePilotee', pa }, approachMs(get, approachPath));
 }
 
 /** CAST : un token n'est pas une cible de ZONE (la zone se pose après le jet) → modale ; sinon
@@ -797,12 +796,12 @@ const BATTERY_MODE: TargetingMode = {
 };
 const HEAL_MODE: TargetingMode = {
   id: 'heal', affordance: healAffordance, anneauCandidats: 'ami',
-  candidates: (get, active) => soignablesAPortee(get, active).filter((c) => combatHealModes(c).length > 0),
-  commitCombatant: (get, _set, _active, id) => {
+  candidates: (get, active) => soignablesAPortee(get, active).filter((c) => modesDOuverture(c, active).length > 0),
+  commitCombatant: (get, _set, active, id) => {
     const target = inBattleId(get().battle, id);
     if (!target) return;
     // Mode par défaut au ciblage-carte (la modale permet de basculer) ; sans soin de combat, `battleHeal` dit le refus.
-    get().battleHeal(id, combatHealModes(target)[0] ?? HEAL_MODES[0]);
+    get().battleHeal(id, modesDOuverture(target, active)[0] ?? HEAL_MODES[0]);
   },
 };
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la

@@ -7,8 +7,10 @@ import { addCondition, hasCondition, combatTestPenalty, testStatePenalty, endOfR
 import { resolveCritique } from './critical';
 import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
-import { desDuTest, desEnSuite } from './dice.testkit';
+import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
+import { contractDisease } from './disease';
+import { effectivePsychTraits, isFrenzyCapable, sourceCombattant, targetedTrigger } from './psychology';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
@@ -160,6 +162,32 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     const lines = applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
     expect(c.activeEffects?.some((e) => e.suppressedPsych) ?? false).toBe(false);
     expect(lines.join(' ')).toMatch(/aucun Trait/i);
+  });
+  it('Traits psy DÉRIVÉS (Talent, maladie) : l’effet se pose, même vide, et les masque', () => {
+    const dz = contractDisease('verole-cerebrale-a-taches-vertes', deFixe(1), { incubation: 0, duration: 1 })!;
+    const c = mk({ talents: [{ talentId: 'haine', spec: 'peau-verte', times: 1 }], diseases: [dz] });
+    const orque = sourceCombattant(mk({ id: 'orque', groups: ['peau-verte'] }));
+    expect(effectivePsychTraits(c)).toContainEqual({ type: 'haine', cible: ciblePsy.groupe('peau-verte') });
+    expect(effectivePsychTraits(c)).toContainEqual({ type: 'haine', cible: ciblePsy.groupe('vivant') });
+    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+    expect(c.activeEffects?.find((e) => e.suppressedPsych)?.suppressedPsych).toEqual([]);
+    expect(effectivePsychTraits(c)).toEqual([]);
+    expect(targetedTrigger(c, [orque])).toBeNull();
+  });
+  it('Frénésie, Talent ou Trait : plus de Frénésie possible sous l’effet', () => {
+    for (const over of [{ talents: [{ talentId: 'frenesie', times: 1 }] }, { traits: [{ id: 'frenesie' }] }]) {
+      const c = mk(over);
+      expect(isFrenzyCapable(c)).toBe(true);
+      applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+      expect(isFrenzyCapable(c)).toBe(false);
+    }
+  });
+  it('Animosité masquée par l’Ivresse (ignoreAnimosity) : l’effet se pose et la retire de la fiche', () => {
+    const c = mk({ psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('peau-verte') }] });
+    c.activeEffects = [{ label: 'Ivresse', bonus: 0, duration: { scale: 'rounds', left: 1 }, ignoreAnimosity: true }];
+    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+    expect(c.psychTraits).toEqual([]);
+    expect(c.activeEffects?.find((e) => e.suppressedPsych)?.suppressedPsych).toHaveLength(1);
   });
   it('effets curés : Baume porte l’op suppressPsych', () => {
     expect(opsOf('baume-pour-un-esprit-blesse').some((o) => o.op === 'suppressPsych')).toBe(true);

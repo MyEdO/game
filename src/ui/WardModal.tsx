@@ -1,6 +1,7 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { valeurDecomposee } from '../engine/skills';
+import { ligneDeProtection } from '../noyau/rollFlowSpecs';
+import { cibleMesuree } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -12,10 +13,8 @@ import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 
 /**
- * Modale de la Bénédiction de Protection (LDB 41 l.142) : « Les ennemis doivent effectuer un Test de
- * Force Mentale Accessible (+20) pour attaquer votre cible […]. Sur un échec, ils doivent choisir une
- * cible ou une Action différente. » Le Test du HÉROS attaquant DIFFÈRE la déclaration d'attaque sur une
- * cible bénie — succès → l'attaque est relancée ; échec → l'attaque n'a pas lieu (rien n'est consommé).
+ * Modale de la Bénédiction de Protection (LDB 41 l.142) : le Test du HÉROS attaquant DIFFÈRE la
+ * déclaration d'attaque sur une cible bénie. Ligne : `ligneDeProtection`.
  */
 export function WardModal() {
   const pw = useGame((s) => s.pendingWard);
@@ -31,14 +30,14 @@ export function WardModal() {
   if (!attacker) return null;
   const r = pw.result;
   const rolled = !!r;
-  const fm = valeurDecomposee(attacker, { char: 'force-mentale' });
+  const fm = ligneDeProtection(attacker);
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: attacker,
     row: {
       combatant: attacker,
-      d: r ? testBreakdown(libelleDeTest('force-mentale'), fm.base, r, 'accessible', fm.mods) : undefined,
-      pending: testPending(libelleDeTest('force-mentale'), fm.base, undefined, 'accessible', fm.mods),
+      d: r ? testBreakdown(libelleDeTest('force-mentale'), fm.base, r, fm.difficulty, fm.mods) : undefined,
+      pending: testPending(libelleDeTest('force-mentale'), fm.base, cibleMesuree(fm), fm.difficulty, fm.mods),
     },
     onRoll: roll,
     rerolled: !!pw.rerolled,

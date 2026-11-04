@@ -416,6 +416,22 @@
     }
   },
   {
+    "id": "heal-wounds-bandages",
+    "type": "flow-stakes",
+    "label": "Soin de Blessures sous Bandages",
+    "template": "Réussi : le patient regagne Bonus d’Intelligence + DR Points de Blessure, et aucune Infection ne se développera suite à la blessure ; il ne bénéficie que d’un jet de Guérison par rencontre. Réussi ou non : une unité de Bandages s’use, et le patient reçoit une Aide Médicale. Échec Stupéfiant : Infection Mineure.",
+    "form": "descripteur",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 123,
+      "note": "LDB 09 l.260 ; LDB 18 l.311"
+    }
+  },
+  {
     "id": "heal-bleed",
     "type": "flow-stakes",
     "label": "Arrêt d’Hémorragie",
@@ -429,6 +445,38 @@
       "book": "livre-de-base",
       "page": 123,
       "note": "LDB 09 l.243"
+    }
+  },
+  {
+    "id": "heal-bleed-bandages",
+    "type": "flow-stakes",
+    "label": "Arrêt d’Hémorragie sous Bandages",
+    "template": "Réussi : 1 État Hémorragique retiré, 1 de plus par DR, et 1 de plus pour les Bandages. Réussi ou non : une unité de Bandages s’use, et le patient reçoit une Aide Médicale.",
+    "form": "descripteur",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 123,
+      "note": "LDB 09 l.261 ; LDB 74 l.41 ; LDB 18 l.311"
+    }
+  },
+  {
+    "id": "heal-bleed-dexterite",
+    "type": "flow-stakes",
+    "label": "Arrêt d’Hémorragie à la Dextérité",
+    "template": "Réussi : 1 État Hémorragique retiré. Réussi ou non : une unité de Bandages s’use, et le patient reçoit une Aide Médicale.",
+    "form": "descripteur",
+    "rule": {
+      "id": "dexterite",
+      "type": "characteristic"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 308,
+      "note": "LDB 74 l.41 ; LDB 18 l.311"
     }
   },
   {

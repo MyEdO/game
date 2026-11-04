@@ -170,8 +170,8 @@ describe('chemins nommés par leur schéma', () => {
       expect(mesurerCheminsNommes([schema]).fautes).toEqual([]);
     }
     const base = { type: 'jouet', id: 'jouet', label: 'Jouet', maison: 'fixture', contenu: 'texte', autre: 1 };
-    expect(doc.entree.safeParse({ ...base, variants: [{ when: { rule: 'r' } }] }).success).toBe(true);
-    expect(doc.entree.safeParse({ ...base, variants: [{ when: { rule: 'r' }, autre: 2 }] }).success).toBe(false);
+    expect(doc.entree.safeParse({ ...base, variants: [{ when: { rule: 'combat-aa-avantage-groupe' } }] }).success).toBe(true);
+    expect(doc.entree.safeParse({ ...base, variants: [{ when: { rule: 'combat-aa-avantage-groupe' }, autre: 2 }] }).success).toBe(false);
     expect(doc.entree.safeParse({ ...base, variants: [{ contenu: 'texte' }] }).success).toBe(false);
   });
   it.each(['journal', 'réplique', 'stade'] as const)('refus canonique %s', cas => {

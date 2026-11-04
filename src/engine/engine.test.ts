@@ -2,25 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { addCondition, combatTestPenalty, meleeAttackerBonus, cannotDefend } from './conditions';
 import { parseQualityInstance } from './qualities/normalize';
-import { evaluateTest, resolveOpposed } from './tests';
+import { evaluateTest, resolveOpposed, reverseRoll } from './tests';
 import { bonus, maxWounds } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { effectiveWeaponDamage } from './weaponDamage';
-import {
-  reverseRoll,
-  hitLocation,
-  hitLocationByShape,
-  shipHitLocation,
-  locationLabel,
-  resolveMelee,
-  rangeBandModifier,
-  rollMeleeAttacker,
-  rollMeleeDefender,
-  finishMelee,
-  resolveMeleePassive,
-  rederivePassiveAttack,
-  woundsFromHit,
-} from './combat';
+import { hitLocation, hitLocationByShape, shipHitLocation, locationLabel, resolveMelee, rangeBandModifier, rollMeleeAttacker, rollMeleeDefender, finishMelee, resolveMeleePassive, rederivePassiveAttack, woundsFromHit } from './combat';
 
 describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1 case = 2 m)', () => {
   it('Bout portant +40, Courte +20, Moyenne +0, Longue −10, Extrême −30, au-delà = null', () => {
@@ -441,10 +427,10 @@ describe('Localisation par forme du corps (LDB « Point d’Impact des Créature
 
 describe('Dégâts d’arme (parsing via effectiveWeaponDamage)', () => {
   it('+BF+4 avec BF=3 → 7', () => {
-    expect(effectiveWeaponDamage({ label: 'x', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }, 3)).toBe(7);
+    expect(effectiveWeaponDamage({ label: 'x', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(7);
   });
   it('+9 (distance) ignore BF', () => {
-    expect(effectiveWeaponDamage({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [] }, 3)).toBe(9);
+    expect(effectiveWeaponDamage({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(9);
   });
 });
 

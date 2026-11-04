@@ -107,13 +107,6 @@
     "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué"
   },
   {
-    "id": "4e/corruption#tableau-des-obsessions",
-    "type": "raw.manifest",
-    "label": "Tableau des Obsessions",
-    "ticket": "#3045",
-    "bloque": "Rangées tirées sans porteur que le moteur reconnaisse (EDOC 12 l.170-197) : Animaux sauvages, Animaux domestiques, Objets inanimés, Pauvreté, Richesse, Bonheur et les trois Figures/Symboles — arbitrage utilisateur (#1463) : étiquettes posées par l'auteur : la scène, l'objet ou la créature porte le Groupe en donnée éditable (ex. « symboles religieux » sur un temple, Dressé = domestique). Elles déclenchent la Peur ou la Haine. ; Feu, Eau : phénomènes de scène, même classe ; Magie (`Combatant.spells`) et Maladie (`Combatant.diseases`) : aucune dérivation ; Monstres hors genre (`hydre-d-os`, MDG 16 l.215 ; monstres marins, MDG 16 l.5). Portés : espèces, Mutants (porteur d'au moins une mutation, EDOC 12 l.56, l.181, `groupesDe`), Monstres (genres de LDB 79, `CreatureData.genre`)"
-  },
-  {
     "id": "4e/maladies#maladie-type",
     "type": "raw.manifest",
     "label": "Maladie (Type)",
@@ -125,7 +118,7 @@
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:56`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:60`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   },
   {
     "id": "4e/activites#tableau-des-evenements-d100",
@@ -146,27 +139,27 @@
     "bloque": "Tir parfait de Fanmaris (AA 12 l.9), Défense de Leitdorf (AA 12 l.28-30) et Méthode Alcatani (AA 12 l.41-43) : leur bénéfice « pour la prochaine aventure » n'est pas appliqué — aucune manœuvre de combat déclarée une fois par aventure (Tir parfait, attaque opposée de Leitdorf) ni octroi temporaire de rangs de Coude-à-coude à d'autres Personnages ; l'Activité se joue et se consomme sans effet"
   },
   {
-    "id": "4e/activites#nouvelle-activite-convalescence-ade-ii-annexe-i",
-    "type": "raw.manifest",
-    "label": "Nouvelle Activité : Convalescence — ADE II Annexe I",
-    "bloque": "Échec de Convalescence (ADE II 09 l.33) : aucun effet appliqué — `FLOWS.cascade` et `FLOWS.cascadeBatch` ne déclarent pas `reverse`, et `reverse.skillOf` ne nomme que la Compétence ; un jeton d'inversion ne peut pas viser le Test de Calme qui résiste à un Trait psychologique (`CascadeStep.combatPsych`, `CascadeStep.encounterPsych`)"
-  },
-  {
     "id": "4e/activites#revenus",
     "type": "raw.manifest",
     "label": "Revenus",
     "bloque": "`careers.json` ne porte pas la Compétence en italique du Niveau 1 (LDB 07 l.82, LDB 08 l.110) : `incomeSkillOf` prend la première Compétence du Niveau 1 que le héros possède"
   },
   {
-    "id": "4e/combat#reperes-de-conversion-grille",
-    "type": "raw.manifest",
-    "label": "Repères de conversion (grille)",
-    "bloque": "LDB 15 l.35 ; LDB 10 l.500 — la Charge d'un héros manuel (`targetingModes.ts`) n'appelle pas `subirLaCharge` : aucune continuation du tour du héros après une riposte, et `chargeUndo` ; Frappe réactive et tout effet `onCharged` restent muets contre lui"
-  },
-  {
     "id": "4e/combat#autres-options",
     "type": "raw.manifest",
     "label": "Autres options",
     "bloque": "Rassemblement : l'aide d'un Personnage à Guérison (Test de Guérison Intermédiaire (+0) qui soigne des Blessures supplémentaires aux autres) et les potions de guérison ou autres possessions (ADE II 08 l.122) : aucun site ne les résout, seul le Test de Résistance du Personnage se joue (`openMassBattleRally`)"
+  },
+  {
+    "id": "4e/psychologie#vice-cible-talent-et-trait",
+    "type": "raw.manifest",
+    "label": "Vice (Cible) (talent et trait)",
+    "ticket": "#3257"
+  },
+  {
+    "id": "4e/combat#regles-propres-des-types-de-souffle-du-zoo-imperial",
+    "type": "raw.manifest",
+    "label": "Règles propres des Types de Souffle du Zoo impérial",
+    "ticket": "#3272"
   }
 ]

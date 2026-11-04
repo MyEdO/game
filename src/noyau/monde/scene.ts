@@ -100,6 +100,9 @@ export interface SceneEntity {
    *  s'ajoutent aux Traits du TYPE et modifient ce navire-ci (PA de coque, M, couvert…). Posées au spawn. */
   upgrades?: NavalTraitRef[];
   dialogueId?: string;
+  /** Contrepartie d'un Test de Sociabilité que ce PNJ déclare, lue par les jetons de Mécénat — arbitrage
+   *  MAISON (ACE 12 l.60-62). */
+  amateur?: import('../../engine/types').Amateur;
   /** Apparence d'auteur (`EntityAppearance`). */
   appearance?: EntityAppearance;
   anim?: RoleAmbiant;
@@ -365,6 +368,8 @@ export interface Scene {
   startMessage?: z.infer<typeof messageIntroductionSchema>;
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
+  /** Groupes que porte le lieu (ids de `groups.json`), source psychologique de la scène (`etiquetteDeScene`). #3045 */
+  groups?: string[];
 }
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;

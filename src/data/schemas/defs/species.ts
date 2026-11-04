@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, raceKeySchema, refCareerIdSchema } from '../grammaire/valeurs';
 import { traitInstanceSchema } from '../grammaire/reference';
-import { ref, refs } from '../grammaire/ref';
+import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { avancement } from '../grammaire/avancement';
 
@@ -55,7 +55,7 @@ const doc = document(
     /** VDM 02 l.190 ; LDB 46 l.177 */
     arcaneDomainsBonusOf: charKeySchema.optional(),
     /** NADJ 14 l.5 */
-    gatedByRule: z.string().optional(),
+    gatedByRule: idDe('regleOptionnelle').optional(),
   },
   {
     family: { label: 'Famille', hint: 'Race regroupant l’espèce, pour l’affichage' },

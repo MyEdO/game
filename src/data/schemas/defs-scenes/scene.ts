@@ -21,13 +21,13 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { amateurSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
-import { refIndiceSchema } from '../grammaire/reference';
+import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
-import { CIBLE_D_APPARTENANCE } from '../grammaire/sousListes';
+import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
 import { refEntiteResolue } from '../../index';
@@ -50,9 +50,6 @@ export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean
 
 /** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. */
 export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
-/** `NavalTraitRef` (`engine/types.ts`) — Amélioration d'INSTANCE d'un navire (MDG 12). C'est la
- *  référence INDICÉE de la grammaire (`refIndiceSchema`), pas une seconde graphie de sa signature. */
-export const navalTraitRefSchema = refIndiceSchema;
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
@@ -129,17 +126,19 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   postes: z.array(authoredShipPosteSchema).optional(),
   upgrades: z.array(navalTraitRefSchema).optional(),
   dialogueId: z.string().optional(),
+  /** Contrepartie d'un Test de Sociabilité qui lit les jetons de Mécénat — arbitrage MAISON (ACE 12 l.60-62). */
+  amateur: amateurSchema.optional(),
   appearance: entityAppearanceSchema.optional(),
   anim: roleAmbiantSchema.optional(),
   /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
-  weapon: z.string().optional(),
+  weapon: idDe('trapping').optional(),
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
-  light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: z.string().optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
+  light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
   /** Marchand : archétype + surcharges de prix et des 3 règles maison Marché (LDB 59/60). */
   merchant: nommerChamps(z
     .strictObject({
-      archetype: z.string(),
+      archetype: idDe('merchant'),
       settlement: z.enum(['village', 'ville', 'cite']).optional(),
       resaleRate: z.number().optional(),
       buyMarkup: z.number().optional(),
@@ -176,7 +175,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     }), { optionals: { label: "options" }, spells: { label: "sorts" , texte: { regime: "technique"} }, randomChars: { label: "caractéristiques aléatoires" }, skills: { label: "Compétences" }, hiddenUntilCombat: { label: "caché jusqu’au combat" } })
     .optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, weapon: { label: "arme" , texte: { regime: "technique"} }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, weapon: { label: "arme" , texte: { regime: "technique"} }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
  *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
@@ -856,6 +855,8 @@ export const sceneSchema = nommerChamps(z.strictObject({
   entryPoints: z.record(z.string(), nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } })).optional(),
   startMessage: messageIntroductionSchema.optional(),
   couvre: couvreSchema.optional(),
+  /** Groupes que porte le lieu, source psychologique de la scène (`etiquetteDeScene`). #3045 */
+  groups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
 }).superRefine((scene, ctx) => {
   // CARDINAL de la grille (#1789) : chaque tableau PARALLÈLE d'une couche porte EXACTEMENT `w×h`
   // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`
@@ -874,7 +875,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
       });
     }
   });
-}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });
 nommerNoeud(triggerSchema, { element: 'déclencheur' });

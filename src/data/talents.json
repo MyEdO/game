@@ -418,7 +418,10 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 75
     },
-    "codexOnly": true
+    "codexOnly": true,
+    "grantGroups": [
+      "magie"
+    ]
   },
   {
     "id": "beni",
@@ -743,7 +746,12 @@
           "skill": {
             "id": "guerison"
           },
-          "manual": true
+          "when": {
+            "kind": "not",
+            "of": {
+              "kind": "roundDeCombat"
+            }
+          }
         }
       ]
     },
@@ -2153,6 +2161,9 @@
     "test": null,
     "desc": "Vous pouvez entrer en Frénésie comme décrit à la page 190.",
     "specs": [],
+    "confereTrait": {
+      "id": "frenesie"
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2330,68 +2341,15 @@
       ]
     },
     "desc": "Vous êtes consumé par la Haine pour quelque chose dans le Vieux Monde, comme décrit à la page 190. Chaque fois que vous prenez ce Talent, vous développez une certaine haine envers un nouveau groupe. Voici quelques exemples de groupes que vous pouvez haïr : hommes-bêtes, peaux-vertes, monstres, hors-la-loi, sigmarites, morts-vivants, Sorciers dissidents.",
-    "specs": [
-      {
-        "id": "heretiques",
-        "label": "Hérétiques"
-      },
-      {
-        "id": "hommes-betes",
-        "label": "Hommes-bêtes"
-      },
-      {
-        "id": "hors-la-loi",
-        "label": "Hors-la-loi"
-      },
-      {
-        "id": "manannites",
-        "label": "Manannites"
-      },
-      {
-        "id": "monstres",
-        "label": "Monstres"
-      },
-      {
-        "id": "morts-vivants",
-        "label": "Morts-vivants"
-      },
-      {
-        "id": "peaux-vertes",
-        "label": "Peaux-vertes"
-      },
-      {
-        "id": "sigmarites",
-        "label": "Sigmarites"
-      },
-      {
-        "id": "sorciers-dissidents",
-        "label": "Sorciers dissidents"
-      },
-      {
-        "id": "suivants-de-stromfels",
-        "label": "Suivants de Stromfels"
-      },
-      {
-        "id": "suivants-du-chaos",
-        "label": "Suivants du Chaos"
-      },
-      {
-        "id": "cultistes",
-        "label": "Cultistes",
-        "source": {
-          "book": "ennemi-dans-l-ombre-compagnon",
-          "page": 42,
-          "note": "EDOC 10 l.130"
-        },
-        "pool": false
-      }
-    ],
+    "specsSource": "ciblesPsy",
+    "confereTrait": {
+      "id": "haine"
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 138
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "haine-sacree",
@@ -2878,6 +2836,10 @@
     "max": 1,
     "test": null,
     "specsSource": "arcaneDomains",
+    "grantGroups": [
+      "magie"
+    ],
+    "grantSpecGroups": true,
     "grantsArcaneDomain": true,
     "desc": "Vous connaissez l'un des huit Domaines de Magie – Bête, Cieux, Mort, Feu, Métal, Ombres, Lumière ou Vie –, ou pratiquez un Savoir moins connu, comme la Magie naturelle ou la Nécromancie. Vous pouvez à présent mémoriser des Sorts du Domaine choisi pour le prix en PX suivant.\n\n| Nbre de Sorts actuellement connus | Coût en PX pour un nouveau sort |\n| --- | --- |\n| Bonus d'Intelligence x 1 | 100 PX |\n| Bonus d'Intelligence x 2 | 200 PX |\n| Bonus d'Intelligence x 3 | 300 PX |\n| Bonus d'Intelligence x 4 | 400 PX |\n| ... et ainsi de suite. |  |\n\nDonc, si votre Bonus d'Intelligence est de 4, les 4 premiers Sorts vous coûteront 100 PX chacun, puis 200 PX pour les 4 suivants, et ainsi de suite. Les règles complètes sur l'apprentissage de nouveaux Sorts se trouvent dans le Chapitre 8 : Magie. Dans des conditions normales, vous ne pouvez pas apprendre plus d'un Talent Magie des Arcanes (Domaine). De plus, vous ne pouvez pas apprendre les Talents Béni ou Invocation quand vous possédez le Talent Magie des Arcanes. Vous pouvez désapprendre ce Talent pour 100 PX, mais si vous le faites, vous perdez immédiatement tous vos Sorts.",
     "rand": null,
@@ -2896,6 +2858,9 @@
     "max": 1,
     "test": null,
     "specsSource": "cultChaos",
+    "grantGroups": [
+      "magie"
+    ],
     "desc": "Par accident ou à dessein, vous avez cédé une partie de votre âme à l'un des Dieux Sombres, et pouvez à présent pratiquer les infâmes magies du Chaos. Votre chef de la Ruine vous confère immédiatement l'accès à un seul Sort du Domaine choisi (le plus souvent les Domaines de Nurgle, Slaanesh ou Tzeentch) et vous gagnez un Point de Corruption lorsque le Sort s'insinue dans votre esprit, pour ne plus jamais en sortir.\n\nLorsque vous prenez ce Talent, qui coûte à chaque fois 100 PX, vous apprenez un autre Sort du Domaine choisi et gagnez un Point de Corruption. Pour plus d'informations sur les Sorts disponibles, voir le Chapitre 8 : Magie. Dans des conditions normales, vous ne pouvez connaître qu'un seul Savoir de Magie chaotique.\n\nLes Personnages avec un Talent Magie du Chaos peuvent choisir n'importe quelle combinaison de Sorts d'Arcane, de Sorts du Chaos, et de Sorts de leur propre Domaine du Chaos. Un Personnage ayant Magie du Chaos (Tzeentch) peut sélectionner des Sorts dans la liste des Sorts d'Arcanes, la liste des Sorts d'Arcanes du Chaos et la liste des Sorts du Domaine de Tzeentch. Un Personnage avec le Talent Magie du Chaos (Indivisible) peut sélectionner des Sorts dans la liste des Arcanes et dans celle des Arcanes du Chaos.",
     "rand": null,
     "codexOnly": true,
@@ -2905,7 +2870,8 @@
     },
     "combat": {
       "castingKind": "chaos"
-    }
+    },
+    "grantSpecGroups": true
   },
   {
     "id": "magie-mineure",
@@ -2915,6 +2881,9 @@
     "test": null,
     "desc": "Vous portez en vous l'étincelle de la magie et maîtrisez les techniques pour la contrôler au niveau le plus élémentaire. Quand vous prenez ce Talent, vous pratiquez, et mémorisez de façon permanente, un nombre de Sorts égal à votre Bonus de Force Mentale. Vous pouvez apprendre des Sorts de Magie mineure supplémentaires pour le prix en PX suivant.\n\n| Nombre de Sorts connus actuels | Coût en PX pour un nouveau sort supplémentaire |\n| --- | --- |\n| Jusqu'à Bonus FM x 1 | 50 PX |\n| Jusqu'à Bonus FM x 2 | 100 PX |\n| Jusqu'à Bonus FM x 3 | 150 PX |\n| Jusqu'à Bonus FM x 4 | 200 PX |\n| ... et ainsi de suite. |  |\n\nDonc, si votre Bonus de Force Mentale est de 3 et que vous disposez déjà de 3 Sorts mineurs, il vous en coûtera 50 PX pour le premier, puis 100 PX pour les 3 suivants, et ainsi de suite. Les règles complètes pour l'apprentissage de nouveaux Sorts se trouvent au Chapitre 8 : Magie.",
     "specs": [],
+    "grantGroups": [
+      "magie"
+    ],
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -3661,7 +3630,16 @@
     },
     "test": {
       "raw": "Guérison pendant les Rounds de combat",
-      "matches": []
+      "matches": [
+        {
+          "skill": {
+            "id": "guerison"
+          },
+          "when": {
+            "kind": "roundDeCombat"
+          }
+        }
+      ]
     },
     "desc": "Vous êtes habitué à traiter rapidement les blessures. Si vous ratez un Test de Guérison quand vous utilisez des Bandages, vous pouvez inverser le résultat si cela entraîne un succès ; cependant, si vous le faites, vous ne pouvez pas obtenir plus de +1 DR, car vous vous concentrez sur la vitesse plutôt que sur la précision.",
     "specs": [],
@@ -3677,7 +3655,8 @@
             "id": "guerison"
           }
         ],
-        "capDR": 1
+        "capDR": 1,
+        "contexte": "bandages"
       }
     }
   },
@@ -3903,7 +3882,8 @@
             "id": "voile"
           }
         ],
-        "capDR": 1
+        "capDR": 1,
+        "contexte": "perilDesEaux"
       }
     }
   },
@@ -4856,6 +4836,9 @@
     "test": null,
     "desc": "Vous êtes un lanceur de Sorts autodidacte qui a compris peu à peu comment utiliser la magie, par tâtonnements. Ajoutez Langue (Magick) à n'importe quelle Carrière que vous entamez ; si elle est déjà comprise dans votre Carrière, vous pouvez, à la place, acheter la Compétence pour 5 PX de moins par Augmentation. De plus, vous pouvez dépenser un Point de Résilience pour lancer (et mémoriser) un Sort provenant de n'importe quel Domaine de Magie, pour 0 PX. Vous pouvez le faire un nombre de fois égal à votre Niveau dans ce Talent.",
     "specs": [],
+    "grantGroups": [
+      "magie"
+    ],
     "rand": null,
     "source": {
       "book": "livre-de-base",

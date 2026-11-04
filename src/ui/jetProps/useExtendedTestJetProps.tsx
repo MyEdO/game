@@ -5,6 +5,8 @@ import { buildRollRow } from '../rollRowBuild';
 import { testBreakdown, testPending } from '../breakdown';
 import { Icon } from '../Icon';
 import { resultLines, freeCons } from '../../noyau/rollSeam';
+import { issueDuRound } from '../../noyau/testsDeScene';
+import { FLOWS } from '../../noyau/rollFlowSpecs';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test ÉTENDU (LDB 12 l.170-186).
@@ -26,6 +28,7 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
   const bonusSL = useGame((s) => s.extendedTestBonusSL);
   const darkPact = useGame((s) => s.extendedTestDarkPact);
   const force = useGame((s) => s.extendedTestForceSuccess);
+  const reverse = useGame((s) => s.extendedTestReverse); // Inversion (LDB 12 l.42)
   const next = useGame((s) => s.extendedTestNext);
   const cancel = useGame((s) => s.extendedTestCancel);
   if (!p) return null;
@@ -35,10 +38,10 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
   const cur = p.rounds[p.rounds.length - 1];
   const res = cur.result;
   const rolled = !!res;
-  const projected = rolled ? p.total + res!.sl : p.total;
-  const cum = Math.max(0, projected);
-  const willSucceed = rolled && cum >= p.targetDR;
-  const willReset = rolled && projected < 0;
+  const issue = issueDuRound(p);
+  const cum = issue?.total ?? p.total;
+  const willSucceed = !!issue?.done;
+  const willReset = !!issue?.repart;
 
   return {
     flowKey: 'extendedTest',
@@ -62,6 +65,8 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
         fortune: actor.fortune ?? 0,
         resilience: actor.resilience ?? 0,
         extendedDr: { cum, target: p.targetDR },
+        // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.extendedTest`).
+        ...(FLOWS.extendedTest.reverseAvailable(useGame.getState, cur.id) ? { reverse: { onReverse: () => reverse(cur.id), preview: FLOWS.extendedTest.reversePreview(useGame.getState, cur.id) } } : {}),
       }),
     ],
     /* La PROGRESSION (DR du Round, cumul vers la cible) est rendue par les zones qui la possèdent :

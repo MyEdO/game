@@ -52,16 +52,26 @@
         "flow": {
           "kind": "if",
           "cond": {
-            "kind": "compare",
-            "subject": {
-              "who": "target",
-              "field": "size"
-            },
-            "op": "<",
-            "value": {
-              "who": "caster",
-              "field": "size"
-            }
+            "kind": "all",
+            "of": [
+              {
+                "kind": "woundsDealt",
+                "op": ">",
+                "value": 0
+              },
+              {
+                "kind": "compare",
+                "subject": {
+                  "who": "target",
+                  "field": "size"
+                },
+                "op": "<",
+                "value": {
+                  "who": "caster",
+                  "field": "size"
+                }
+              }
+            ]
           },
           "then": {
             "kind": "do",
@@ -84,7 +94,7 @@
       "book": "livre-de-base",
       "page": 338
     },
-    "stake": "La touche n’inflige que ses Dégâts, sauf à une cible PLUS PETITE que l’attaquant, qui gagne en plus l’État À Terre si elle ne l’a pas déjà.",
+    "stake": "La touche n’inflige que ses Dégâts, sauf à une cible PLUS PETITE que l’attaquant qui y perd des Points de Blessure : elle gagne en plus l’État À Terre si elle ne l’a pas déjà.",
     "stakeForm": "descripteur"
   },
   {
@@ -120,21 +130,29 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "condition",
-                "id": "empetre",
-                "grapple": true,
-                "escapeStrength": {
-                  "charOf": "force"
-                },
-                "unlessCondition": "empetre"
-              }
-            ]
+          "kind": "if",
+          "cond": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "then": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "condition",
+                  "id": "empetre",
+                  "grapple": true,
+                  "escapeStrength": {
+                    "charOf": "force"
+                  },
+                  "unlessCondition": "empetre"
+                }
+              ]
+            }
           }
         }
       }
@@ -143,7 +161,7 @@
       "book": "livre-de-base",
       "page": 343
     },
-    "stake": "La touche pose l’État Empêtré — une empoignade dont la Force d’évasion est la Force de l’attaquant — si la cible n’y est pas déjà.",
+    "stake": "Une touche qui fait perdre des Points de Blessure pose l’État Empêtré — une empoignade dont la Force d’évasion est la Force de l’attaquant — si la cible n’y est pas déjà.",
     "stakeForm": "descripteur"
   },
   {
@@ -764,7 +782,9 @@
                     "op": "grantTrait",
                     "trait": {
                       "id": "armure",
-                      "value": 2
+                      "arg": "Peau",
+                      "value": 2,
+                      "matiere": "peau"
                     }
                   },
                   {

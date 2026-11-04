@@ -3,25 +3,34 @@
  * (`PerSL`), que `resolveFormula` et `traitsOctroyes` (`engine/traitOctroye.ts`) partagent. Dans la
  * composante fortement connexe d'`ops.ts` par `characteristics.ts` : #3044.
  */
-import { bonus, effectiveChar } from './characteristics';
+import { bonus, bonusDe, effectiveChar } from './characteristics';
 import { rule } from './policy';
 import type { CharKey, Combatant } from './types';
 import type { FormuleDe, FormuleSansTirage, PerSL } from './ops';
 
-/** Le RÉFÉRENT d'une formule, lu par Caractéristique : un combattant (`caracDuCombattant`) ou le profil
- *  d'un porteur au statbloc (`traitsDuPorteur`). */
+/** Lecture d'une valeur par Caractéristique : le profil d'un porteur au statbloc (`traitsDuPorteur`). */
 export type LectureDeCarac = (k: CharKey) => number;
 
-/** Le référent d'un combattant : ses Caractéristiques effectives. */
-export const caracDuCombattant = (ref: Combatant): LectureDeCarac => (k) => effectiveChar(ref, k);
+/** Le RÉFÉRENT d'une formule : ses Caractéristiques (`charOf`) et leurs Bonus (`bonusOf`). */
+export interface Referent { carac: LectureDeCarac; bonusDe: LectureDeCarac }
+
+/** Le référent d'un combattant : ses Caractéristiques effectives, leurs Bonus par `bonusDe`. LDB 21 l.33 */
+export const caracDuCombattant = (ref: Combatant): Referent => ({ carac: (k) => effectiveChar(ref, k), bonusDe: (k) => bonusDe(ref, k) });
+
+/** Le référent d'un profil lu par `lire` : Bonus nus. */
+export const lectureDuProfil = (lire: LectureDeCarac): Referent => ({ carac: lire, bonusDe: (k) => bonus(lire(k)) });
+
+/** Le référent d'une entrée publique : un combattant, un profil, ou un référent déjà formé. */
+const referentDe = (ref: Combatant | LectureDeCarac | Referent): Referent =>
+  typeof ref === 'function' ? lectureDuProfil(ref) : 'bonusDe' in ref ? ref : caracDuCombattant(ref);
 
 /** Évaluation commune des deux grammaires : `jet` résout le terme de jet que `J` admet. */
-export function evaluer<J>(f: FormuleDe<J>, carac: LectureDeCarac, jet: (t: J) => number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number): number {
+export function evaluer<J>(f: FormuleDe<J>, ref: Referent, jet: (t: J) => number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number): number {
   if (typeof f === 'number') return f;
   if (typeof f !== 'object' || f === null) return 0; // formule malformée (donnée invalide) → 0, jamais un crash en plein combat
-  const sous = (g: FormuleDe<J>): number => evaluer(g, carac, jet, indice, stacks, gap, woundsDealt);
-  if ('bonusOf' in f) return bonus(carac(f.bonusOf));
-  if ('charOf' in f) return carac(f.charOf);
+  const sous = (g: FormuleDe<J>): number => evaluer(g, ref, jet, indice, stacks, gap, woundsDealt);
+  if ('bonusOf' in f) return ref.bonusDe(f.bonusOf);
+  if ('charOf' in f) return ref.carac(f.charOf);
   if ('indiceOf' in f) return indice ?? 0;
   if ('stacks' in f) return stacks ?? 0;
   if ('engagedAdvantageGap' in f) return gap ?? 0;
@@ -35,13 +44,14 @@ export function evaluer<J>(f: FormuleDe<J>, carac: LectureDeCarac, jet: (t: J) =
 }
 
 /** Valeur d'une quantité lue avant tout jet, contre son référent : aucun RNG, aucun terme de jet. */
-export function valeurSansTirage(f: FormuleSansTirage, ref: Combatant | LectureDeCarac): number {
-  return evaluer<never>(f, typeof ref === 'function' ? ref : caracDuCombattant(ref), (t) => t);
+export function valeurSansTirage(f: FormuleSansTirage, ref: Combatant | LectureDeCarac | Referent): number {
+  return evaluer<never>(f, referentDe(ref), (t) => t);
 }
 
 /** La lecture des Indices formulés d'un porteur de Traits (`PorteurDeTraits`, `engine/statEntry.ts`) sur
- *  son référent : profil au statbloc, ou combattant. */
-export const indiceSurLeProfil = (ref: Combatant | LectureDeCarac) => (f: FormuleSansTirage): number => valeurSansTirage(f, ref);
+ *  son profil (statbloc, ou Caractéristiques effectives d'un combattant), Bonus nus : l'Indice est figé. */
+export const indiceSurLeProfil = (ref: Combatant | LectureDeCarac) => (f: FormuleSansTirage): number =>
+  valeurSansTirage(f, lectureDuProfil(typeof ref === 'function' ? ref : (k) => effectiveChar(ref, k)));
 
 /** Bonus de l'échelle « par +N DR » au DR `sl` (`PerSL`). */
 export function slBonus(sl: number | undefined, p?: PerSL): number {

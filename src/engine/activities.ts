@@ -85,7 +85,7 @@ export interface BattleOutcome {
  *   - `gatherInfo` (Recueillir des informations, l.153) : DR questions au MJ (récit) ;
  *   - `noSurprise` (Rester aux aguets, l.157) : le groupe ne peut être surpris cette Étape ;
  *   - `mapMade` (Établir des cartes, l.161) : carte d'itinéraire → Orientation/Savoir Accessible ;
- *   - `rerollToken` (Pratiquer une Compétence, l.172) : un jeton de relance d'un Test futur ;
+ *   - `reverseToken` (Pratiquer une Compétence, l.172) : un jeton d'inversion d'un Test futur de la Compétence ;
  *   - `countsAsRest` (Récupérer, l.176) : l'Étape compte comme un repos (guérison) ;
  *   - `campCare` (Monter un camp, l.180) : chaque DR retire un Exténué OU guérit un Personnage.
  *  Rencontres (l.186-233) :
@@ -94,7 +94,7 @@ export interface BattleOutcome {
  *   - `fullRecovery` (Voyage tranquille) : guérir toutes les Blessures + retirer tous les Exténué ;
  *   - `worsenWeather` (Très mauvais temps) : +40 au prochain jet de Météo. */
 export type StageOutcome =
-  | 'suppressExposure' | 'gatherInfo' | 'noSurprise' | 'mapMade' | 'rerollToken' | 'countsAsRest' | 'campCare'
+  | 'suppressExposure' | 'gatherInfo' | 'noSurprise' | 'mapMade' | 'reverseToken' | 'countsAsRest' | 'campCare'
   | 'extraActivity' | 'skipStage' | 'fullRecovery' | 'worsenWeather';
 
 /**
@@ -665,9 +665,10 @@ export function applyTravelActivityResult(
 
 /** Agrégation d'une issue d'Activité quand 0..N héros tiennent le poste (EDOC 8 l.131) :
  *  - `gate` : un SEUL succès suffit à dispenser/protéger tout le groupe (Plein air, Aux aguets) ;
- *  - `stack` : les DR des succès s'ADDITIONNENT (Monter le camp ; carte en Test étendu) ;
- *  - `self` : l'effet revient à CHAQUE titulaire qui réussit (Récupérer, Pratiquer, Recueillir infos). */
-export type StageOutcomeAgg = 'gate' | 'stack' | 'self';
+ *  - `stack` : les DR des succès s'ADDITIONNENT (Monter le camp) ;
+ *  - `self` : l'effet revient à CHAQUE titulaire qui réussit (Récupérer, Pratiquer, Recueillir infos) ;
+ *  - `extended` : Test ÉTENDU, chaque jet compte, réussi ou non (Établir des cartes, EDOC 8 l.161 ; LDB 12 l.170-185). */
+export type StageOutcomeAgg = 'gate' | 'stack' | 'self' | 'extended';
 
 /** Classification (DONNÉE) des issues d'ACTIVITÉ par mode d'agrégation. Les issues de RENCONTRE
  *  (`extraActivity`/`skipStage`/`fullRecovery`/`worsenWeather`) sont de portée Étape (appliquées une
@@ -676,9 +677,9 @@ export const STAGE_OUTCOME_AGG: Partial<Record<StageOutcome, StageOutcomeAgg>> =
   suppressExposure: 'gate',
   noSurprise: 'gate',
   campCare: 'stack',
-  mapMade: 'stack',
+  mapMade: 'extended',
   countsAsRest: 'self',
-  rerollToken: 'self',
+  reverseToken: 'self',
   gatherInfo: 'self',
 };
 
@@ -690,27 +691,37 @@ export interface StagePosting { activityId: string; freeSkill?: RefDesignee }
 export interface StageAggregation {
   /** Portes OUVERTES (≥ 1 succès) — ex. `suppressExposure`, `noSurprise`. */
   gates: StageOutcome[];
-  /** Cumul des DR des succès par issue — ex. `campCare`, `mapMade`. */
+  /** Cumul des DR des succès par issue — ex. `campCare`. */
   stacks: Partial<Record<StageOutcome, number>>;
-  /** Issues INDIVIDUELLES par héros (succès) — ex. `countsAsRest`, `rerollToken`. */
+  /** Jets d'un Test ÉTENDU par issue, dans l'ordre, réussis ou non — ex. `mapMade` ; cumulés par
+   *  `extendedTestSteps` (LDB 12 l.170-185). */
+  etendus: Partial<Record<StageOutcome, { success: boolean; sl: number }[]>>;
+  /** Issues INDIVIDUELLES par héros (succès) — ex. `countsAsRest`, `reverseToken`. */
   selfByHero: Record<string, StageOutcome[]>;
 }
 
-/** Agrège les issues des Activités d'une Étape selon `STAGE_OUTCOME_AGG`. Un échec n'apporte pas
- *  l'issue (mais a déjà donné l'Exténué via `result.extenue`). PUR. */
+/** Agrège les issues des Activités d'une Étape selon `STAGE_OUTCOME_AGG`. Hors Test étendu, un échec
+ *  n'apporte pas l'issue (mais a déjà donné l'Exténué via `result.extenue`). PUR. */
 export function aggregateActivityOutcomes(results: TravelActivityResult[]): StageAggregation {
   const gates = new Set<StageOutcome>();
   const stacks: Partial<Record<StageOutcome, number>> = {};
   const selfByHero: Record<string, StageOutcome[]> = {};
+  const etendus: Partial<Record<StageOutcome, { success: boolean; sl: number }[]>> = {};
   for (const r of results) {
-    if (!r.success || !r.stageOutcome) continue;
-    switch (STAGE_OUTCOME_AGG[r.stageOutcome]) {
+    if (!r.stageOutcome) continue;
+    const mode = STAGE_OUTCOME_AGG[r.stageOutcome];
+    if (mode === 'extended') {
+      if (r.roll != null) (etendus[r.stageOutcome] ??= []).push({ success: r.success, sl: r.sl });
+      continue;
+    }
+    if (!r.success) continue;
+    switch (mode) {
       case 'gate': gates.add(r.stageOutcome); break;
       case 'stack': stacks[r.stageOutcome] = (stacks[r.stageOutcome] ?? 0) + Math.max(0, r.sl); break;
       case 'self': (selfByHero[r.actorId] ??= []).push(r.stageOutcome); break;
     }
   }
-  return { gates: [...gates], stacks, selfByHero };
+  return { gates: [...gates], stacks, etendus, selfByHero };
 }
 
 // ── Rôle de marche PERSISTANT : « les mêmes tiennent toujours le même poste » ────────────────────

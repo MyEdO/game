@@ -14,3 +14,4 @@ paths:
 - Un adversaire ou un participant est une ENTITÉ À FICHE (compétences, effets, bourse, États) ; une valeur nue n'est qu'une forme SUPPLÉMENTAIRE pour les figurants, jamais la seule. Une valeur nue trouvée à sa place se résorbe dans le chantier courant (#1318).
 - Portée, adjacence, empreinte et surbrillance d'un cavalier se mesurent sur la géométrie de sa MONTURE ; un résultat nul ferme la cascade d'attaque. `combatGeomOf` `attackGeomOf` `src/noyau/mount.ts:75`
 - Seule une monture chevauchée à Trait Nerveux perd son tour propre (`isControlledMount`). `src/noyau/mount.ts:37`, LDB 14 l.182
+- Un payload d'op typé (`DETTE_OPS`) porte ses références EMBOÎTÉES `{ id }`, jamais à plat : `comptes:plage` refuse la référence à plat. #1468

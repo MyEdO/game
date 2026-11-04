@@ -27,6 +27,8 @@ import type { Combatant, Weapon } from '../engine/types';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+/** Ligne de FM que `openCastOpposition` pose sur chaque cible (`rollLine`), au profil de ces fixtures. */
+const LIGNE_OPPOSITION = { base: 40, mods: [], target: 40, difficulty: 'intermediaire' as const };
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -123,8 +125,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
       party: [A],
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false,
         result: { cast: false, roll: 45, target: 50, sl: 0, isCritical: false, isFumble: false, log: '' } } as never,
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', menace: 'magie',
-        participants: [{ id: 'A', interactive: true, result: null }] } as never,
+      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+        participants: [{ id: 'A', interactive: true, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
 
     act(() => { root.render(<CastModal />); });
@@ -143,8 +145,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     useGame.setState({
       party: [A, B],
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST } as never,
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', menace: 'magie',
-        participants: [{ id: 'A', interactive: true, result: null }, { id: 'B', interactive: true, result: null }] } as never,
+      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+        participants: [{ id: 'A', interactive: true, ligne: LIGNE_OPPOSITION, result: null }, { id: 'B', interactive: true, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
 
     act(() => { root.render(<CastModal />); });
@@ -170,8 +172,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
       party: [A],
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false,
         result: { cast, roll: cast ? 20 : 45, target: 50, sl: cast ? 3 : 0, isCritical: false, isFumble: false, log: '' } } as never,
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', menace: 'magie',
-        participants: [{ id: 'A', interactive: true, result: null }] } as never,
+      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+        participants: [{ id: 'A', interactive: true, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
     act(() => { root.render(<CastModal />); });
     // Portée = la RANGÉE DU LANCEUR (`.prow` [0]) : la rangée du RÉPONDANT porte légitimement SON
@@ -196,8 +198,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
       party: [H],
       pendingCast: { casterId: 'H', targetId: 'T', spellId: 'drain', missile: false, focused: false,
         result: { cast: false, roll: 45, target: 50, sl: 0, isCritical: false, isFumble: false, log: '' } } as never,
-      pendingCastOpposition: { kind: 'resist', char: 'force-mentale', menace: 'magie',
-        participants: [{ id: 'T', interactive: false, result: null }] } as never,
+      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+        participants: [{ id: 'T', interactive: false, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
     act(() => { root.render(<CastModal />); });
     expect(dice()[0]).toBe(fmtD100(45));

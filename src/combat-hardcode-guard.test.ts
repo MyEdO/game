@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { scanHardcode } from '../scripts/guards/lib/hardcode.mjs';
-import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « tout migrer » — chantier d'unification des événements/réactions de combat.
@@ -35,7 +35,7 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
-const EXCLUDED = (rel: string) => estFichierVitest(rel);
+const EXCLUDED = (rel: string) => estFichierVitest(rel) || estKitDeTest(rel);
 
 /** Baseline gelée par fichier (recensement Lot 8, 2026-07-06 — total 12 sites sur 7 fichiers ;
  *  révision 2026-07-11, `TRAIT_TALENT_RX` étendue à `hasTalent(` — 4 sites de trait/talent codés
@@ -110,7 +110,6 @@ const BASELINES: Record<string, number> = {
   // #413 (2026-07-14) — stock révélé par la fermeture du loophole d'instrumentation, GELÉ
   'src/engine/conditions.ts': 2, // isOutOfAction coque — hasCondition(c, 'naufrage') (MDG 13 l.674) ; usesSuddenDeath — hasTalent(c, 'chanceux') (AA 07 l.67)
   'src/engine/exposure.ts': 1, // gate hypothermie — hasCondition(c, 'inconscient') derrière wounds<=0 (l.111)
-  'src/noyau/outOfCombatUpkeep.ts': 1, // gate de veille — hasCondition(c, …) derrière wounds<=0 (l.11)
   'src/noyau/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)
   'src/noyau/travelPostes.ts': 2, // instrumentation voyage — stacks(h, 'extenue') (l.278,308)
   // #3059 — stock révélé par le retrait du helper local `condStacks`, qui échappait au scan, GELÉ

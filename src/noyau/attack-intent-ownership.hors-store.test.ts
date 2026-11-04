@@ -30,7 +30,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const NET0 = initialNet();
 
-// Fixture mk()/setup() de `defense-surfacage.test.ts` (#989) — même arène, mêmes sièges.
+// Fixture mk()/setup() de `defense-surfacage.hors-store.test.ts` (#989) — même arène, mêmes sièges.
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
