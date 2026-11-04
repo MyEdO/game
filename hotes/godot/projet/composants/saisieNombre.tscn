@@ -1,0 +1,43 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/saisie.gd" id="2_saisie"]
+
+[node name="SaisieNombre" type="HBoxContainer"]
+
+[node name="Libelle" type="Label" parent="."]
+
+[node name="libelle" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="ton" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Nombre" type="SpinBox" parent="."]
+size_flags_horizontal = 3
+
+[node name="min" type="Node" parent="Nombre"]
+script = ExtResource("1_liaison")
+champ = "min"
+propriete = &"min_value"
+
+[node name="max" type="Node" parent="Nombre"]
+script = ExtResource("1_liaison")
+champ = "max"
+propriete = &"max_value"
+
+[node name="pas" type="Node" parent="Nombre"]
+script = ExtResource("1_liaison")
+champ = "pas"
+propriete = &"step"
+
+[node name="valeur" type="Node" parent="Nombre"]
+script = ExtResource("1_liaison")
+champ = "valeur"
+propriete = &"value"
+
+[node name="Saisie" type="Node" parent="Nombre"]
+script = ExtResource("2_saisie")

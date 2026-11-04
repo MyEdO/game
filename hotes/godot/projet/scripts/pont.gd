@@ -72,7 +72,8 @@ func publier_l_ecran(ecran: Dictionary) -> void:
 
 
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
-## son centre, et sa méta `cle` s'il la porte.
+## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
+## `<type>/<id>`) s'il en porte un.
 static func boutons_a_l_ecran(racines: Array) -> Array:
 	var boutons := []
 	for racine in racines:
@@ -82,6 +83,8 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
+				if bouton.owner != null and bouton.owner.has_meta(Zone.META):
+					publie.element = bouton.owner.get_meta(Zone.META)
 				boutons.append(publie)
 	return boutons
 

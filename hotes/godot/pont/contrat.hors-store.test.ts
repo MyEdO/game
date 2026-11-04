@@ -96,8 +96,8 @@ describe('le pont et sa partie', () => {
     expect(plateau.infranchissables, 'un mur posé en (4, 3) : infranchissable').toContainEqual({ x: 4, y: 3 });
     expect(plateau.infranchissables, 'l’herbe voisine en (5, 3) : franchissable').not.toContainEqual({ x: 5, y: 3 });
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
-    expect(v.champ).toEqual(CLICS_DU_CHAMP);
-    for (const verbe of Object.values(v.champ)) expect(VERBES[verbe], verbe).toBeDefined();
+    expect(v.champ, 'l’ouverture du round tient la main : le champ ne se clique pas').toBeNull();
+    for (const verbe of Object.values(CLICS_DU_CHAMP)) expect(VERBES[verbe], verbe).toBeDefined();
   });
 
   it('un jeton inconnu se refuse en `validation`', () => {

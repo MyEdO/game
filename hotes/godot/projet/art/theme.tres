@@ -1,4 +1,6 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" load_steps=4 format=3]
+
+[ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
 [sub_resource type="StyleBoxFlat" id="Piste_de_glissiere"]
 bg_color = Color(0.32, 0.31, 0.3, 1)
@@ -11,5 +13,27 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="Cadre_de_fenetre"]
+bg_color = Color(0.11, 0.1, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.47, 0.33, 1)
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+
 [resource]
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
+Panneau/base_type = &"PanelContainer"
+Panneau/styles/panel = ExtResource("1_fond")
+Fenetre/base_type = &"PanelContainer"
+Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
+reussite/base_type = &"Label"
+reussite/colors/font_color = Color(0.55, 0.82, 0.5, 1)
+echec/base_type = &"Label"
+echec/colors/font_color = Color(1, 0.45, 0.4, 1)
+alerte/base_type = &"Label"
+alerte/colors/font_color = Color(0.95, 0.75, 0.35, 1)

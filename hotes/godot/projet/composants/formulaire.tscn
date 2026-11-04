@@ -1,0 +1,36 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="2_liaison"]
+[ext_resource type="Script" path="res://scripts/geste.gd" id="3_geste"]
+
+[node name="Formulaire" type="VBoxContainer"]
+
+[node name="Champs" type="VBoxContainer" parent="."]
+
+[node name="Zone" type="Node" parent="Champs"]
+script = ExtResource("1_zone")
+source = "champs"
+
+[node name="Jouer" type="Button" parent="."]
+
+[node name="libelle" type="Node" parent="Jouer"]
+script = ExtResource("2_liaison")
+champ = "libelle"
+
+[node name="refus" type="Node" parent="Jouer"]
+script = ExtResource("2_liaison")
+champ = "refus"
+propriete = &"disabled"
+
+[node name="Geste" type="Node" parent="Jouer"]
+script = ExtResource("3_geste")
+
+[node name="Refus" type="Label" parent="."]
+theme_type_variation = &"alerte"
+autowrap_mode = 3
+
+[node name="refus" type="Node" parent="Refus"]
+script = ExtResource("2_liaison")
+champ = "refus"
+cacher_si_nul = true
