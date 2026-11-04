@@ -3444,6 +3444,7 @@ export const fr = {
   'crea.choisirRace': 'Choisissez votre race.',
   'crea.choisirCarriere': 'Choisissez votre carrière.',
   'crea.carriereSansNiveau1': 'Carrière sans Niveau 1 dans les données.',
+  'crea.carriereHorsEspece': 'Cette carrière n’est pas ouverte à votre race : choisissez-en une autre, ou levez les restrictions de race.',
   'crea.tirerCaracteristiques': 'Tirez vos Caractéristiques aux dés.',
   'crea.repartitionDesPoints': 'Répartition des 100 Points : {raison}.',
   'crea.reassignationUnique': 'Réassignation : chaque jet doit être utilisé une seule fois.',
