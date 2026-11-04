@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ItemInstance, Weapon } from '../engine/types';
+import type { ItemInstance, Weapon } from './types';
 import { weaponStatParts, rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from './weaponStats';
 
 const item = (o: Partial<ItemInstance>): ItemInstance =>

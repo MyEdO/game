@@ -31,9 +31,7 @@ import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { etatInitialDuJeu, type Ecran, type Jeu } from '../noyau/etat';
 import { seedBattleRng } from '../noyau/battleRng';
 import { tableTotale } from '../lib/tableTotale';
-
-/** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
-export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
+import type { SheetTab } from '../i18n/ongletsDeLaFiche';
 
 /** Charge une save : l'état de jeu que rend `chargerLaSave`, la session réseau COURANTE (l'hôte peut charger en
  *  ligne), l'interface remise comme pour une partie neuve (`remettreLAdaptateur`), les règles maison de la save. */

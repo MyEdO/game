@@ -2864,6 +2864,14 @@ export const fr = {
   'spellFmt.clock': '{n} {unit}',
   'spellFmt.untilDawn': "Jusqu'au lever du soleil",
 
+  // ── Stats d'AFFICHAGE d'une arme (`engine/weaponStats.ts`, `ws.*`).
+  'ws.degats': 'Dégâts {spec} ({total})',
+  'ws.portee': 'Portée {m} m',
+  'ws.allonge': 'Allonge {reach}',
+  'ws.belier': 'contre une porte uniquement — sinon Arme improvisée ({dmg})',
+  'ws.siege': '×{mult} contre une structure',
+  'ws.conditionnels': 'Dégâts conditionnels — voir Effets',
+
   // ── #1318 V8c₄ — MONTURES EN VOYAGE (`engine/mountTravel.ts`, `mt.*`, EDOC 07 l.142-174). Les
   // libellés de Test viennent de la DONNÉE (`refLabel('skills', …)`) : « Chevaucher »/« Résistance »
   // écrits au call-site étaient des jumeaux de `skills.json`.

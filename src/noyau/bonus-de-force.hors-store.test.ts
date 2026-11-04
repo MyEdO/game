@@ -15,7 +15,7 @@ import { formulaExpectation } from '../engine/ops';
 import { indiceSurLeProfil, valeurSansTirage } from '../engine/formule';
 import { findTavernGameById } from '../engine/tavernGame';
 import { findSpellById } from '../data';
-import { weaponStatParts } from '../ui/weaponStats';
+import { weaponStatParts } from '../engine/weaponStats';
 import { deFixe } from '../engine/dice.testkit';
 import { blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
