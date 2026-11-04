@@ -239,7 +239,7 @@ class Correction(unittest.TestCase):
 
 class LissageSousCorrection(unittest.TestCase):
     """Un cylindre aux bouts invariants et aux deux cercles suivants en fondu. Les tests de repère et de refus
-    utilisent la vraie correction ; le test de la mesure, un correcteur bouchon linéaire qui triple les champs."""
+    utilisent la vraie correction ; le test de la mesure, un correcteur bouchon qui annule la moitié basse."""
     BORNES = (0.5, 2.0)
 
     def setUp(self):
@@ -283,18 +283,20 @@ class LissageSousCorrection(unittest.TestCase):
         self.assertEqual(numpy.abs(fini[self.libre == 0]).max(), 0.0)
 
     def test_le_rabot_se_mesure_sur_le_champ_corrige(self):
-        def tripler(champs):
-            self.vus.append([d.copy() for d, _ in champs])
-            return [3.0 * d for d, _ in champs], {'bouchon': 'triple'}
+        """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
+        bas = self.x[:, 2] < HAUTEUR / 2
 
-        self.corriger = tripler
+        def projeter(champs):
+            self.vus.append([d.copy() for d, _ in champs])
+            return [numpy.where(bas[:, None], 0.0, d) for d, _ in champs], {'bouchon': 'projette'}
+
+        self.corriger = projeter
         brut = numpy.zeros_like(self.x)
-        brut[:, 1] = 0.08 * numpy.sin(15 * self.x[:, 2])
-        self.assertEqual(self.hors(brut * self.libre[:, None]), 0)
-        self.assertGreater(self.hors(3.0 * brut * self.libre[:, None]), 0)
+        brut[:, 1] = numpy.where(bas, 0.3 * numpy.sin(15 * self.x[:, 2]), 0.01)
+        self.assertGreater(self.hors(brut * self.libre[:, None]), 0)
         fini = self.finir({'k': (brut, None)})['k']
-        self.assertEqual(self.hors(fini), 0)
-        self.assertGreater(len(self.vus), 2)
+        self.assertTrue(numpy.array_equal(fini, numpy.where(bas[:, None], 0.0, brut * self.libre[:, None])))
+        self.assertEqual(len(self.vus), 1)
 
     def test_une_correction_infaisable_leve_au_bout_des_passes(self):
         """Une carrure de rapport 1,7 porte le cercle de l'anneau le plus épais à 1,7 fois son rayon, au-delà de 1,6."""
@@ -339,7 +341,7 @@ class Rabot(unittest.TestCase):
         mesure = hors or self.hors
         resultat, passes = raboter(champ[:, None], self.noeud, self.aretes,
                                    self.facteur if facteur is None else facteur,
-                                   lambda pile: mesure(pile[:, 0])[:, None], PASSES_MAX)
+                                   lambda pile: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
         return resultat[:, 0], passes
 
     def test_une_arete_hors_bornes_aux_deux_extremites_tenues_leve(self):

@@ -74,28 +74,31 @@ def region_locale(aretes, masque, anneaux, n):
     return dans
 
 
-def raboter(champ, noeud, aretes, facteur, hors, passes_max):
+def raboter(champ, noeud, aretes, facteur, mesurer, passes_max):
     """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), rabotés passe après
-    passe jusqu'à ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête : une
-    passe multiplie chaque clé marquée par `RABOT` sur les nœuds `noeud` de ses arêtes `aretes` marquées
-    (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne un anneau de voisins dès que la clé y
-    varie de moins de `STAGNATION_M` sur une passe. Tous les champs sont remesurés à chaque passe. Les sommets d'un même nœud reçoivent la
-    même valeur. Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont un `facteur`
-    nul, qu'aucune passe ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la construction."""
-    valeur = aux_noeuds(champ, noeud)
+    passe jusqu'à ce que `mesurer` (champs complets -> (champs mesurés, masque booléen (arêtes, clés))) ne marque plus
+    aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des silhouettes, s'y
+    applique avant le rabot suivant. Une passe multiplie chaque clé marquée par `RABOT` sur les nœuds `noeud` de ses
+    arêtes `aretes` marquées (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne un anneau de
+    voisins dès que la clé mesurée y varie de moins de `STAGNATION_M` sur une passe. Un sommet de `facteur` nul reste
+    nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs mesurés de la dernière passe et le nombre
+    de passes. Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucune passe ne change, ou une arête
+    marquée au-delà de `passes_max` passes, arrête la construction."""
+    libre = (facteur > 0)[:, None, None]
+    valeur = aux_noeuds(champ * facteur[:, None, None], noeud)
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
     for passe in range(passes_max + 1):
-        resultat = valeur[noeud] * facteur[:, None, None]
-        marquees = numpy.asarray(hors(resultat))
+        mesures, marquees = mesurer(valeur[noeud] * libre)
+        marquees = numpy.asarray(marquees)
         if not marquees.any():
-            return resultat, passe
+            return mesures, passe
         tenues = marquees & (facteur[aretes] == 0).all(axis=1)[:, None]
         if tenues.any():
             raise RuntimeError(f'{int(tenues.any(axis=1).sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '
                                'rabot ne les change')
         if passe == passes_max:
             raise RuntimeError(f'{int(marquees.any(axis=1).sum())} arête(s) hors bornes après {passes_max} passes de rabot')
-        valeur = valeur.copy()
+        valeur = aux_noeuds(mesures, noeud)
         for cle in numpy.flatnonzero(marquees.any(axis=0)):
             dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
             variation = (1 - RABOT) * numpy.linalg.norm(valeur[dans, cle], axis=-1).max()

@@ -322,25 +322,24 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     inverse = numpy.linalg.inv(vers_le_monde)
     noms = list(bruts)
 
-    def corriges(pile):
-        champs, sonde = corriger([(pile[:, k] @ vers_le_monde, bruts[nom][1]) for k, nom in enumerate(noms)])
-        return {nom: d @ inverse for nom, d in zip(noms, champs)}, sonde
+    sondes = []
 
-    def masque(pile):
-        courants = corriges(pile)[0]
+    def mesurer(pile):
+        champs, sonde = corriger([(pile[:, k] @ vers_le_monde, bruts[nom][1]) for k, nom in enumerate(noms)])
+        sondes.append(sonde)
+        courants = {nom: d @ inverse for nom, d in zip(noms, champs)}
         mesures = hors(courants)
         marques = numpy.stack([mesures[nom] for nom in noms], axis=1)
         print('SILHOUETTES rabot : arêtes en défaut, décalage corrigé le plus grand à leurs nœuds (m)',
               {nom: (int(marques[:, k].sum()),
                      round(float(numpy.linalg.norm(courants[nom][aretes[marques[:, k]].ravel()], axis=1).max(initial=0)), 5))
                for k, nom in enumerate(noms)}, flush=True)
-        return marques
+        return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
-    pile, passes = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, masque,
+    pile, passes = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
                            PASSES_DE_RABOT)
-    finis, sonde = corriges(pile)
-    print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sonde, flush=True)
-    return finis
+    print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sondes[-1], flush=True)
+    return {nom: pile[:, k] for k, nom in enumerate(noms)}
 
 
 def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None):
