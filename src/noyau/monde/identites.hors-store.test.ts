@@ -2,7 +2,7 @@
  * IDENTITÉ d'un état `heros` à l'affichage (EDO 02 l.112-127, #686) : le couple espèce × sexe du héros
  * se FIGE à sa désignation (EDO 02 l.114, `designerHerosChoisir`) ; `identitesResolues` y lit la ligne,
  * `nommer` substitue ses repères dans une prose de paquet. Chemin réel : Effet `designerHeros`, puis le
- * choix du héros au store.
+ * choix du héros au noyau.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createHero } from '../../engine/character';
@@ -10,8 +10,11 @@ import { emptyNarratif } from './campaignNarratif';
 import { identitesDe, identitesResolues, nommer } from './identites';
 import { narratifSchema, type NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { emptyScene } from './scene';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runFlow } from '../combatEffects';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const P27 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.114-125' } as const;
 const L127 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.127' } as const;
@@ -37,23 +40,21 @@ const narratif = (): NarratifBlock => ({
 const heros = (id: string, speciesId: string, sex?: 'M' | 'F') =>
   ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex } } : {}) }), id });
 
-const get = () => useGame.getState();
+const get = () => banc.getState();
 const enVigueur = () => identitesResolues(get());
 
 /** Charge le paquet, pose le groupe, puis désigne `heroId` par l'Effet `designerHeros`. */
 function designer(party: ReturnType<typeof heros>[], heroId?: string) {
   const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-  useGame.setState({ campaignNarratif: null, scene: null, etats: {}, identitesFigees: {}, pendingDesignationHeros: null, net: { ...get().net, mode: 'local' } });
+  banc.setState({ campaignNarratif: null, scene: null, etats: {}, identitesFigees: {}, pendingDesignationHeros: null, net: { ...get().net, mode: 'local' } });
   get().loadProject({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
-  useGame.setState({ party });
+  banc.setState({ party });
   if (heroId === undefined) return;
-  runFlow(get, useGame.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
+  runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
   get().designerHerosChoisir(heroId);
 }
 
 const LETTRE = '*Cher Herr Lieberung,*\n\nKastor Lieberung, dernier des Lieberung. Mon cher Herr Kuftsos.';
-
-beforeEach(() => { useGame.setState({ identitesFigees: {}, etats: {} }); });
 
 describe('identitesResolues + nommer — le paquet suit le héros désigné', () => {
   it('le narratif de ce test PARSE', () => {
@@ -91,7 +92,7 @@ describe('identitesResolues + nommer — le paquet suit le héros désigné', ()
 
   it('un sosie MORT garde son identité', () => {
     designer([heros('h2', 'nains', 'F')], 'h2');
-    useGame.setState({ party: get().party.map((h) => ({ ...h, dead: true })) });
+    banc.setState({ party: get().party.map((h) => ({ ...h, dead: true })) });
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 

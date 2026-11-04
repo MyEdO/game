@@ -493,7 +493,7 @@
     "fichier": "src/noyau/monde/identites.ts",
     "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
     "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
-    "verrou": "src/noyau/monde/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
+    "verrou": "src/noyau/monde/identites.hors-store.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "masterDetail",

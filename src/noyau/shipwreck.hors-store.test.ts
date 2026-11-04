@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame } from '../state/store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { registerScene } from './monde/registreDesScenes';
 import { makePregens } from '../data/pregens';
 import { beginShipwreck } from './shipwreck';
@@ -15,6 +15,10 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { draineCascade } from './cascade.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * NAUFRAGE (#244, cascade #269) — séquence de survie unique branchée aux deux sites de coulée (avarie de
@@ -24,8 +28,8 @@ import { resetCadence, setCadence } from '../engine/cadence';
  * humain se résout inline. Les rescapés s'échouent, les noyés meurent (LDB 18 l.344), le navire + la
  * cargaison sombrent (`vessel` → null, IMMÉDIAT). Tous noyés → défaite.
  */
-const get = useGame.getState.bind(useGame);
-const set = useGame.setState.bind(useGame);
+const get = () => banc.getState();
+const set: Banc['setState'] = (p) => banc.setState(p);
 
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
@@ -51,12 +55,7 @@ function knockedOut(h: Combatant): Combatant {
 /** Pilote la cascade de naufrage jusqu'à sa clôture (« Lancer » puis « Continuer » étape par étape) —
  *  sert à driver les scénarios PILOTÉS PAR UN HUMAIN (défaut des tests) jusqu'au dénouement. */
 function drainSwimCascade(): void {
-  for (let guard = 0; guard < 20 && get().pendingCascade; guard++) {
-    const casc = get().pendingCascade!;
-    const cur = casc.participants[casc.cursor];
-    if (cur && !cur.result) get().cascadeRoll(cur.id);
-    get().cascadeNext();
-  }
+  draineCascade(get, 20);
 }
 
 /** Étape de Natation dont le jet est POSÉ en RÉUSSITE : l'issue du Test ne dépend d'aucun dé ambiant
@@ -76,7 +75,7 @@ function freshState() {
   seedBattleRng(1);
   resetCadence();
   registerScene(portAScene() as never);
-  useGame.setState({
+  banc.setState({
     party: makePregens().slice(0, 3),
     scene: portAScene() as never,
     battle: null,
@@ -143,7 +142,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     const casc = get().pendingCascade!;
     expect(casc.participants).toHaveLength(1);
     const stepId = casc.participants[0].id;
-    // Force un ÉCHEC sur l'étape courante (comme `cascade.test.ts`) puis dépense la Chance : succès forcé.
+    // Force un ÉCHEC sur l'étape courante (comme `cascade.hors-store.test.ts`) puis dépense la Chance : succès forcé.
     set({ pendingCascade: { ...casc, participants: [{ ...casc.participants[0], result: { roll: 88, target: casc.participants[0].target!, sl: -5, success: false } }] } });
     get().cascadeReroll(stepId); // 1 Point de Chance dépensé (relance simple)
     expect(get().party[0].fortune).toBe(0);

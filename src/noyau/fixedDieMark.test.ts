@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { useGame } from '../state/store';
 import { fixedJetOpen } from './fixedDieMark';
+import { etatInitialDuJeu, type Jeu } from './etat';
 
 /** #973 — `fixedJetOpen` lit les slots `pending*` de l'état qu'il reçoit : tout slot de l'état initial
- *  du store qui porte un dé fixé ouvre la fenêtre de marquage, aucun sans. */
-describe('fixedJetOpen — sur l’état initial du store', () => {
-  const initial = useGame.getInitialState();
+ *  du jeu qui porte un dé fixé ouvre la fenêtre de marquage, aucun sans. */
+describe('fixedJetOpen — sur l’état initial du jeu', () => {
+  const initial = etatInitialDuJeu() as Jeu;
   const slots = Object.keys(initial).filter((k) => k.startsWith('pending'));
 
   it('aucun slot ouvert : faux', () => {

@@ -16,7 +16,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { specificateursDe } from '../../scripts/guards/lib/importGraph.mjs';
-import { useGame } from '../state/store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { monoStep } from './rollSeam';
@@ -24,6 +24,9 @@ import { startSequence, activeSequence, sequenceCumRound, sequenceScoreOf } from
 import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
 const FICHIERS = ['./sequenceContract.ts', './sequenceCore.ts'];
@@ -154,13 +157,13 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
 describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 manches déroulées)', () => {
   beforeEach(() => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
-    useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
-    useGame.getState().seedRng(9);
+    banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
+    banc.getState().seedRng(9);
   });
 
   it('deux manches s’enchaînent, l’état PERSISTE entre elles et la charge navale traverse intacte', () => {
     traceNavale.length = 0;
-    startSequence<SeaCrisisPayload>(useGame.getState, useGame.setState, {
+    startSequence<SeaCrisisPayload>(banc.getState, banc.setState, {
       def: NAVAL,
       params: { target: 6, score: { navire: 'max' }, maxRounds: 4 },
       payload: { crise: 'poursuite-navale', vessel: { hullWounds: 3 }, metres: 120, manches: [] },
@@ -174,7 +177,7 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
     expect(traceNavale[0].cum).toEqual({});
     expect(Object.keys(traceNavale[1].cum).sort()).toEqual(['navire', 'poursuivant']);
     // Issue atteinte : la séquence est retirée du slot (aucune fuite d'état entre deux crises).
-    expect(activeSequence(useGame.getState)).toBeNull();
+    expect(activeSequence(banc.getState)).toBeNull();
   });
 
   it('l’accumulateur PAR CAMP est celui de la structure (Record générique), jamais deux compteurs jumeaux', () => {
@@ -195,11 +198,11 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
   it('la BORNE anti-boucle est un invariant du CONTRAT, jamais un compteur par système', () => {
     expect(SEQUENCE_MAX_ROUNDS).toBe(50);
     manches = 0;
-    startSequence(useGame.getState, useGame.setState, { def: 'test-boucle-infinie', payload: { n: 0 } });
-    expect(activeSequence(useGame.getState), 'la séquence s’est arrêtée').toBeNull();
+    startSequence(banc.getState, banc.setState, { def: 'test-boucle-infinie', payload: { n: 0 } });
+    expect(activeSequence(banc.getState), 'la séquence s’est arrêtée').toBeNull();
     expect(manches).toBe(SEQUENCE_MAX_ROUNDS);
     // La borne se COMPTE en manches ouvertes par le socle ; elle se DIT en tours, parce que la
     // manche n'a pas le même prix partout (un lancer de dés autour d'une table en est une aussi).
-    expect(useGame.getState().journal.some((l) => l.includes('borne de 50 tours'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.includes('borne de 50 tours'))).toBe(true);
   });
 });

@@ -2,8 +2,6 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect, vi } from 'vitest';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import * as ts from 'typescript/unstable/ast';
-import { useGame } from '../state/store';
-import { jouerLesClotures } from './combatEffects';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1504,17 +1502,5 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     const parObjet = corpus().filter(({ rel, text }) => !estFichierVitest(rel) && !estKitDeTest(rel)
       && POINTS_DAPPLICATION.some((n) => new RegExp(`\\.${n}\\s*\\(`).test(text)));
     expect(parObjet.map((f) => f.rel), 'un appel par objet/namespace : le scan cesserait de mordre dessus').toEqual([]);
-  });
-});
-
-/**
- * Les CLÔTURES (#1508, #2689) : la suite d'une étape est une liste de `Cloture` — des VERBES
- * sérialisables (le `pendingCascade` est sauvegardé et voyage sur le réseau). La table `clotures` est
- * totale au type ; un verbe venu d'une donnée hors union lève.
- */
-describe('#1508 — un verbe de clôture inconnu lève', () => {
-  it('un verbe INCONNU lève au lieu de se perdre en silence', () => {
-    expect(() => jouerLesClotures(useGame.getState, useGame.setState, [{ verbe: 'verbeQuiNExistePas' } as never]))
-      .toThrow(/sans applier/);
   });
 });

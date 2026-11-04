@@ -25,7 +25,7 @@
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `test-setup-registre-des-scenes.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
- *      qui a besoin du registre sur PLUSIEURS tests l'(ré)enregistre en `beforeEach` (`shipwreck.test.ts`,
+ *      qui a besoin du registre sur PLUSIEURS tests l'(ré)enregistre en `beforeEach` (`src/noyau/shipwreck.hors-store.test.ts`,
  *      via `freshState`). Une scène laissée au registre changeait le comportement des fichiers suivants
  *      du worker : `transitionTo` est un NO-OP sur scène inconnue (`noyau/entreeEnScene.ts`) — la même clôture
  *      de séquence transitionnait ou non selon la partition, d'où des rouges CI verts en local (#1014).

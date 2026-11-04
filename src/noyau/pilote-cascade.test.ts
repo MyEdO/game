@@ -14,7 +14,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stoc
 import { detenteur } from '../detenteur.testkit';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import type { CascadeStep } from './pendings';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { cleDeFixture } from './noyau.testkit';
 
 const STOCK = 'scripts/guards/lib/piloteCascadeStock.mjs';
@@ -245,7 +245,7 @@ describe('le kit LÈVE sur une étape qui porte à la fois une table et un dé n
     const etape: CascadeStep = { id: 's0', kind: cleDeFixture('table'), table: { tableId: 't' }, de: {} };
     const rien = () => {};
     const etat = { pendingCascade: cascadeDeTest([etape]), cascadeTableRoll: rien, cascadeDieRoll: rien, cascadeNext: rien };
-    expect(() => avanceEtapeCascade(() => etat as unknown as GameState)).toThrow(/« s0 ».*`table`.*`de`/);
+    expect(() => avanceEtapeCascade(() => etat as unknown as Jeu)).toThrow(/« s0 ».*`table`.*`de`/);
   });
 });
 

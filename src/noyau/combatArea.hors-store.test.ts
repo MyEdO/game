@@ -1,14 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
-import { useGame } from '../state/store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
 /**
  * Résolveur d'aire UNIQUE (Tir de zone / Explosion) — tests déterministes (RNG seedé). On monte un `battle`
- * réel dans le store (le helper lit `get()` pour les triggers onHit) et on appelle `resolveWeaponArea`
+ * réel sur le banc du noyau (le helper lit `get()` pour les triggers onHit) et on appelle `resolveWeaponArea`
  * directement avec la stratégie de cibles voulue (terre = rayon métrique / mer = équipage exposé).
  */
 
@@ -30,16 +33,16 @@ const miniScene = (metresPerTile: number) =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, metresPerTile, ambiance: 'jour',
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 
-/** Monte un battle minimal dans le store et renvoie un `(get, set)` pointant dessus. */
+/** Monte un battle minimal sur le banc et renvoie un `(get, set)` pointant dessus. */
 function mountBattle(combatants: Combatant[], metresPerTile = 2) {
   seedBattleRng(7);
-  useGame.setState({
+  banc.setState({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never,
     scene: miniScene(metresPerTile) as never,
     party: [], facing: {}, pendingShipBattery: null,
   });
-  const get = () => useGame.getState();
-  const set: Parameters<typeof resolveWeaponArea>[1] = (p) => useGame.setState(p as never);
+  const get = () => banc.getState();
+  const set: Parameters<typeof resolveWeaponArea>[1] = (p) => banc.setState(p as never);
   return { get, set };
 }
 

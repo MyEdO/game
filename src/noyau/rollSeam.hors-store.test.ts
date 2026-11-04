@@ -1,17 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../state/store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { type CascadeApplier } from './cascade';
 import { spyApplier } from './cascade.testkit';
-import { setGmSeat } from '../state/netFlow';
 import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
 import { testSkillLabel } from '../data';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './sieges';
+import { poserLeSiegeMJ, seatOwns } from './sieges';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { tableTotale } from '../lib/tableTotale';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * SEAM DE JET UNIQUE — Ronde 0 (#275 substrat). Couvre les 3 surfaces (M/V/I) que `openRoll` DÉRIVE
@@ -21,12 +23,14 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
  * surface I (`runCascadeImmediate`, `cascade.ts:181`).
  */
 describe('rollSeam — openRoll (#275 Ronde 0)', () => {
+  /** Le rôle MJ au siège `seat` (`null` : IA), par la pose du noyau. */
+  const poserLeMJ = (seat: number | null) => banc.setState({ net: poserLeSiegeMJ(banc.getState().net, seat) });
   const applied: { kind: string; success: boolean; sl: number }[] = [];
 
   beforeEach(() => {
     applied.length = 0;
-    useGame.setState({ battle: null, party: [], pendingCascade: null, journal: [], travelPlan: null } as never);
-    setGmSeat(useGame.getState, useGame.setState, null);
+    banc.setState({ battle: null, party: [], pendingCascade: null, journal: [], travelPlan: null } as never);
+    poserLeMJ(null);
     const sonde = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 }),
       (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
     avecLesTables({ appliers: {
@@ -57,7 +61,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     });
 
   /** Un dé de MONDE (`monoStep`, porteur `monde`) ouvert par la porte des séquences. */
-  const ouvreDeMonde = () => openSequence(useGame.getState, useGame.setState, {
+  const ouvreDeMonde = () => openSequence(banc.getState, banc.setState, {
     title: 'Désertion', purpose: 'test',
     steps: [monoStep({
       id: 'seam-subi', kind: cleDeFixture('seam-subi'), monde: true, label: composeRollLabel(undefined, 'Désertion', {}), difficulty: 'intermediaire',
@@ -66,27 +70,27 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('héros tenu par son joueur, cadence MANUELLE → M (modale influençable)', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-hero'));
-    expect(useGame.getState().pendingCascade).toBeTruthy(); // surfacé, pas résolu d'office
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-hero'));
+    expect(banc.getState().pendingCascade).toBeTruthy(); // surfacé, pas résolu d'office
     expect(applied).toHaveLength(0);
   });
 
   it('porteur ENNEMI — personne ne le tient → I (inline-PV, résolu d’office ; surfacé dès qu’un MJ siège)', () => {
-    useGame.setState({ party: [enemy()] });
+    banc.setState({ party: [enemy()] });
     const req: RollRequest = { side: { actorId: 'E' }, actionLabel: 'Perception', test: { skill: 'perception', char: 'initiative' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-enemy'));
-    expect(useGame.getState().pendingCascade).toBeNull();
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-enemy'));
+    expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
     expect(applied[0].kind).toBe('seam-enemy');
     // La porte ne connaît pas le camp (#1426) : c'est le PORTEUR qui décide — un siège MJ tient les
     // ennemis, la même requête se surface alors.
     applied.length = 0;
-    useGame.setState({ pendingCascade: null });
-    setGmSeat(useGame.getState, useGame.setState, 0);
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-enemy'));
-    expect(useGame.getState().pendingCascade).toBeTruthy();
+    banc.setState({ pendingCascade: null });
+    poserLeMJ(0);
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-enemy'));
+    expect(banc.getState().pendingCascade).toBeTruthy();
     expect(applied).toHaveLength(0);
   });
 
@@ -97,64 +101,64 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
    * il s'ouvre pour le siège qui tient son porteur, et ne se résout d'office que quand PERSONNE ne le tient.
    */
   it('un Test SUBI par un héros que son joueur TIENT → M : il apparaît, comme tout autre jet', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-subi'));
-    expect(useGame.getState().pendingCascade, 'un jet que je dois faire APPARAÎT').toBeTruthy();
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-subi'));
+    expect(banc.getState().pendingCascade, 'un jet que je dois faire APPARAÎT').toBeTruthy();
     expect(applied, 'et rien ne s’applique tant qu’il n’est pas joué').toHaveLength(0);
   });
 
   it('le MÊME Test subi, porteur conduit par l’IA (personne ne le tient) → I, résolu d’office', () => {
-    useGame.setState({ party: [hero({ aiControlled: true } as Partial<Combatant>)] });
+    banc.setState({ party: [hero({ aiControlled: true } as Partial<Combatant>)] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-subi'));
-    expect(useGame.getState().pendingCascade).toBeNull();
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-subi'));
+    expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
     expect(applied[0].kind).toBe('seam-subi');
   });
 
   it('dé du MONDE sous siège MJ → V (le MJ voit/lance)', () => {
-    useGame.setState({ party: [] });
-    setGmSeat(useGame.getState, useGame.setState, 0);
+    banc.setState({ party: [] });
+    poserLeMJ(0);
     ouvreDeMonde();
-    expect(useGame.getState().pendingCascade).toBeTruthy();
+    expect(banc.getState().pendingCascade).toBeTruthy();
     expect(applied).toHaveLength(0);
   });
 
   it('porteur MONDE sans acteur, en COOP avec gmSeat ≠ hôte → l’étape est OWNÉE par le MJ (delta 1)', () => {
-    useGame.setState({ party: [] });
-    setGmSeat(useGame.getState, useGame.setState, 1); // gmSeat ≠ hôte (0)
+    banc.setState({ party: [] });
+    poserLeMJ(1); // gmSeat ≠ hôte (0)
     ouvreDeMonde();
-    const owner = modalOwnerOf(useGame.getState());
-    expect(seatOwns(useGame.getState(), 1, owner ?? undefined)).toBe(true); // le MJ possède l'étape
-    expect(seatOwns(useGame.getState(), 0, owner ?? undefined)).toBe(false); // l'hôte ne la possède plus
+    const owner = modalOwnerOf(banc.getState());
+    expect(seatOwns(banc.getState(), 1, owner ?? undefined)).toBe(true); // le MJ possède l'étape
+    expect(seatOwns(banc.getState(), 0, owner ?? undefined)).toBe(false); // l'hôte ne la possède plus
   });
 
   it('batch, voyage COMMANDÉE + kind de ROUTINE → I (immédiat, `runCascadeImmediate`)', () => {
     const crew: Combatant = combattantDeTest({ id: 'timonier1', label: 'Timonier', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] });
-    useGame.setState({ party: [crew], travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
+    banc.setState({ party: [crew], travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
     const req: RollRequest = {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
     // `progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
-    openRoll(useGame.getState, useGame.setState, req, 'progression');
+    openRoll(banc.getState, banc.setState, req, 'progression');
     // 'progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
     // (`cascade.rollBatchParticipants` auto-roule le contributeur, `aggregateBatchStep` agrège au commit).
-    expect(useGame.getState().pendingCascade).toBeNull();
+    expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
   });
 
   it('batch, cadence jour-par-jour, sans MJ → M (multi surfacé, étape À PARTICIPANTS non résolue — #275 Décision 4 cran 2)', () => {
     const crew: Combatant = combattantDeTest({ id: 'timonier1', label: 'Timonier', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] });
-    useGame.setState({ party: [crew] });
+    banc.setState({ party: [crew] });
     const req: RollRequest = {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-batch'));
-    expect(useGame.getState().pendingCascade).toBeTruthy();
-    const step = useGame.getState().pendingCascade!.participants[0];
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-batch'));
+    expect(banc.getState().pendingCascade).toBeTruthy();
+    const step = banc.getState().pendingCascade!.participants[0];
     expect(step.result).toBeFalsy(); // pas d'agrégat pré-résolu — UNE rangée par contributeur, à lancer
     expect(step.participants).toHaveLength(1);
     expect(step.participants![0].result).toBeNull(); // le contributeur n'a pas encore lancé (flux `cascadeBatch`)
@@ -162,18 +166,18 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('rollTitle : le NOM DE L\'ACTION seul — jamais recomposé avec acteur/compétence/difficulté (#352)', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    expect(rollTitle(useGame.getState, req)).toBe('Résistance');
+    expect(rollTitle(banc.getState, req)).toBe('Résistance');
   });
 
   it('mono : startCascade pose pending.title = rollTitle(...) = actionLabel — DISTINCT de step.label composé (#352, régression double-rendu)', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Recueillir des informations', test: { skill: 'ragot' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-hero'));
-    const p = useGame.getState().pendingCascade!;
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-hero'));
+    const p = banc.getState().pendingCascade!;
     expect(p.title).toBe('Recueillir des informations');
-    expect(p.title).toBe(rollTitle(useGame.getState, req));
+    expect(p.title).toBe(rollTitle(banc.getState, req));
     const step = p.participants[0];
     // step.label (sous-titre) porte le détail COMPOSÉ — ne duplique PAS le titre (#352 : la modale
     // montrait la MÊME ligne « Berta Kaufmann — Recueillir des informations (Ragot Intermédiaire) » deux fois).
@@ -185,10 +189,10 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('compétence de rangée : DÉRIVÉE du catalogue skills (id→label) — insurchargeable par la spec (#352 extension)', () => {
-    useGame.setState({ party: [hero()] });
+    banc.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Recueillir des informations', test: { skill: 'ragot' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-hero'));
-    const step = useGame.getState().pendingCascade!.participants[0];
+    openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-hero'));
+    const step = banc.getState().pendingCascade!.participants[0];
     // La compétence affichée en position de rangée est « Ragot » (catalogue), JAMAIS l'action
     // ("Recueillir des informations") — `testSkillLabel` est la SEULE source, dérivée du skillId.
     expect(step.rollLabel).toBe('Ragot');
@@ -203,14 +207,14 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('composeRollLabel : compose actor/action/skill — UN seul composeur, jamais réassemblé au call-site', () => {
-    useGame.setState({ party: [hero()] });
-    const h = useGame.getState().party[0];
+    banc.setState({ party: [hero()] });
+    const h = banc.getState().party[0];
     expect(composeRollLabel(h, 'Rumeur commerciale', { skill: 'ragot' })).toBe('Héros — Rumeur commerciale (Ragot)');
   });
 
   it('#1072 — le sous-titre NE PORTE PAS la Difficulté : elle vit sur la LIGNE du jet (`step.difficulty`)', () => {
-    useGame.setState({ party: [hero()] });
-    const h = useGame.getState().party[0];
+    banc.setState({ party: [hero()] });
+    const h = banc.getState().party[0];
     // La porter ICI ET sur la ligne serait le double rendu de classe #352.
     expect(composeRollLabel(h, 'Rumeur commerciale', { skill: 'ragot' })).not.toMatch(/Intermédiaire|\(\+0\)/);
   });
