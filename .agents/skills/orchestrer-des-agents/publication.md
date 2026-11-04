@@ -6,6 +6,8 @@ Annexe du skill `orchestrer-des-agents` (`.agents/skills/orchestrer-des-agents/S
 **7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement ; chaque
 tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
 Commits intermédiaires `refs #N`, seul le solde clôt.
+- **Un travail suspendu hors PR** se pousse sur `wip/<N>-<sujet>`, avec un commentaire au ticket qui dit
+  où il est, ce qui est prouvé et ce qui reste, dans l'ordre.
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
   lots dans un worktree (fiche `user-doctrine-chantier-outille-sans-reinventer`). Une sonde non suivie sort de l'arbre avant `ops:publier`.
 - **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
@@ -31,3 +33,11 @@ Le verdict d'une suite en fond se LIT puis se DÉCIDE, jamais `tail … && git p
 rejoue par `npm run gates -- --gates <noms>`. Un train `--detache` se suit par la commande `veille=`
 qu'il imprime (`Monitor`, ré-armée par `--depuis <dernier #seq>`), jamais par un filtre de son log.
 Migrations : le job `migrations` de `ci.yml` les joue sur la branche, aucun rejeu local.
+
+**Portes à rejouer avant un juge et avant un push.** Un juge accepté ne rejoue ni la porte du commit ni
+la CI : `cat <message> | npx tsx scripts/guards/comptes-plage.mts --index --base <base>` (code 0), puis
+`GIT_EDITOR=: node scripts/git-hooks/commit-msg.mjs <copie du message aux trailers remplis>` (code 0,
+aucun stock qui naît). Ces commandes vont dans le brief de tout codeur.
+- `git commit --amend` juge la plage depuis HEAD : refaire par `git reset --soft HEAD~1`, puis commit.
+- Le pre-push « références origin illisibles : preuve distante incomplète » est une lecture distante en
+  panne : `git ls-remote origin`, puis relancer le push tel quel.
