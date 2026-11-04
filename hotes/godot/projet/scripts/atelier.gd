@@ -320,27 +320,22 @@ func _emplacement(id: String, cle: String, publie: String, section: String, elem
 	return emplacement
 
 
-## La colonne de la section `id` de l'onglet Équipement, posée à sa place sous son titre à la première rangée (`SECTIONS`).
+## La colonne de la section `id` de l'onglet Équipement, montrée sous son titre. À la première rangée, chaque section
+## de `SECTIONS` est posée dans son ordre, cachée jusqu'à sa première rangée.
 func _section(id: String) -> VBoxContainer:
-	if _sections.has(id):
-		return _sections[id]
-	var colonne := VBoxContainer.new()
-	for rang in SECTIONS.size():
-		if SECTIONS[rang].id == id:
-			colonne.set_meta("rang", rang)
+	if _sections.is_empty():
+		for section in SECTIONS:
+			var colonne := VBoxContainer.new()
+			colonne.visible = false
 			var titre := Label.new()
-			titre.text = SECTIONS[rang].titre
+			titre.text = section.titre
 			titre.theme_type_variation = &"HeaderSmall"
 			colonne.add_child(titre)
-	var suivante: Node = null
-	for autre in _sections.values():
-		if autre.get_meta("rang") > colonne.get_meta("rang") and (suivante == null or autre.get_meta("rang") < suivante.get_meta("rang")):
-			suivante = autre
-	_panneau_des_emplacements.add_child(colonne)
-	if suivante != null:
-		_panneau_des_emplacements.move_child(colonne, suivante.get_index())
-	_sections[id] = colonne
-	return colonne
+			_panneau_des_emplacements.add_child(colonne)
+			_sections[section.id] = colonne
+	var montree: VBoxContainer = _sections[id]
+	montree.visible = true
+	return montree
 
 
 ## L'emplacement d'un point qui offre au moins un élément : son libellé, puis la liste de ses éléments (`_liste`), rangé
@@ -652,7 +647,7 @@ func _choisir_l_embleme(id: String, embleme: String) -> void:
 	var element: String = _montes[id]
 	var offert: bool = _modeles.emblemes.any(func(offre: Dictionary) -> bool: return offre.id == embleme)
 	_emblemes_demandes[id] = embleme if offert and _porte_un_blason(element) else VIDE
-	var pose: String = VIDE if _habiller(id) == 0 else _emblemes_demandes[id]
+	var pose: String = _emblemes_demandes[id] if _habiller(id) else VIDE
 	if pose == VIDE:
 		_emblemes.erase(id)
 	else:
@@ -663,16 +658,16 @@ func _choisir_l_embleme(id: String, embleme: String) -> void:
 
 
 ## L'élément monté à l'emplacement `id` habillé de la palette de la composition et de l'emblème demandé (`_peindre`) ;
-## rend le nombre de surfaces où l'emblème est posé, et un emblème demandé qu'aucune ne reçoit donne
+## rend si l'emblème est posé sur une surface au moins, et un emblème demandé qu'aucune ne reçoit donne
 ## `blason-sans-surface`.
-func _habiller(id: String) -> int:
+func _habiller(id: String) -> bool:
 	var element: String = _montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
 	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
-	var posees := _peindre(_pieces[id], _modeles.surfaces[element], texture)
-	if texture != null and posees == 0:
+	var posee := _peindre(_pieces[id], _modeles.surfaces[element], texture)
+	if texture != null and not posee:
 		_erreurs.append("blason-sans-surface : %s" % element)
-	return posees
+	return posee
 
 
 ## Les meshes de la base posée habillés de la palette de la composition (`_peindre`, `surfaces` de la base).
@@ -685,13 +680,13 @@ func _habiller_la_base() -> void:
 ## (`MontageDEquipement.materiau_local`) si la `palette` de la composition composée colore son emplacement de palette,
 ## ou si elle est `blason` et `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour
 ## que la tête et le corps d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en
-## mélange. Toute autre surface garde le matériau du GLB. Rend le nombre de surfaces où `texture` est posée.
-func _peindre(pieces: Array, surfaces: Array, texture: ImageTexture) -> int:
+## mélange. Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
+func _peindre(pieces: Array, surfaces: Array, texture: ImageTexture) -> bool:
 	var palette: Dictionary = _composee.get("palette", {})
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
-	var posees := 0
+	var posee := false
 	for piece: MeshInstance3D in pieces:
 		for rang in piece.mesh.get_surface_count():
 			piece.set_surface_override_material(rang, null)
@@ -714,8 +709,8 @@ func _peindre(pieces: Array, surfaces: Array, texture: ImageTexture) -> int:
 				local.detail_albedo = texture
 				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
 				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
-				posees += 1
-	return posees
+				posee = true
+	return posee
 
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
@@ -786,8 +781,9 @@ func _poser_les_clips() -> void:
 		return
 	for nom in _lecteur.get_animation_list():
 		_lecteur.get_animation(nom).loop_mode = Animation.LOOP_LINEAR
+		var rang := _clips.item_count
 		_clips.add_item(nom)
-		_clips.set_item_metadata(_clips.item_count - 1, nom)
+		_clips.set_item_metadata(rang, nom)
 	_lecteur.speed_scale = _vitesse
 	_clips.select(-1)
 	if not _lecteur.has_animation(_reprise.get("clip", "")):
