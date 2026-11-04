@@ -108,7 +108,7 @@ export const editionDeSessionPrincipale = (appel) => !appel?.agent_id && EDITION
 async function lireEntree() {
   let lire
   try {
-    ({ lireStdinBorne: lire } = await import(`../../${LECTEUR}`))
+    ({ lireStdinBorne: lire } = await import('../guards/lib/stdinBorne.mjs'))
   } catch {
     return LECTEUR_EN_PANNE
   }

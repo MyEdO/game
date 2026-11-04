@@ -495,12 +495,6 @@
     },
     {
       "famille": "paramètre non lié",
-      "fichier": "scripts/guards/lib/importGraph.mjs",
-      "ref": "readFileSync : paramètre abss",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
       "fichier": "src/data/generic-domain-import-guard.test.ts",
       "ref": "scanAllPrimitives : paramètre p",
       "occurrence": 1

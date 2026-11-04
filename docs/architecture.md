@@ -139,11 +139,24 @@ construction, sans dépendre de l'hôte web, et aucun module de la zone hors de 
 (`outillageAtteint`) ; une clé d'outillage finie par `/` vaut un dossier, sinon un fichier (`couvre`).
 Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
 (`RACINES_DES_ZONES`) : `murs/zone` refuse un fichier de `src/` dont le dossier n'est celui d'aucune zone (un
-sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, hors tests, un arc d'import
-qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`,
-un paquet de l'hôte web, du JSX ou un module de code hors des zones et hors de son `outillage` dans une zone qui
-survit, et un motif d'`import.meta.glob` dont le dossier de zone
-est un joker ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
+sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, à tout fichier d'une zone qui
+n'est ni suite ni banc (`estFichierVitest`), un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes
+les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, un paquet de l'hôte web, du JSX ou un module de code hors
+des zones et hors de son `outillage` dans une zone qui survit, et un motif d'`import.meta.glob` dont le dossier de
+zone est un joker ; `murs/tests-survivants` (#3058) refuse, à une suite ou un banc d'une zone qui survit, tout arc
+vers une zone qui n'y survit pas (`fermeAuxInstruments`), même pour un type, un paquet de l'hôte web, du JSX, un
+motif joker, et tout chargement que la lecture des arcs ne suit pas : spécificateur ou motif calculé, chargeur
+(`vi`, `require`, `createRequire`, `module`) renommé, lié comme valeur ou lu par un accès calculé. Les deux règles
+se partagent les fichiers des zones. Le mur de clôture `scripts/corpus/guards/clotureDesInstruments.test.mjs`
+marche la clôture d'imports de ces instruments (`clotureDImports` : les formes d'arc de `arcsDImport.mjs`, motifs
+d'`import.meta.glob` et spécificateurs `/…` compris) et refuse qu'un de ses membres, hors des zones compris, soit
+d'une zone qui n'y survit pas ou charge un paquet de l'hôte web que la zone ferme à l'instrument (`paquetFerme`). Il
+ne suit ni l'acquisition calculée d'un module hors des zones de la clôture (aujourd'hui `scripts/docs/build-all.mjs:216`
+et `scripts/guards/lib/structuresLocales.mts:249`), reste de #3058, ni un chargement par un appel qui n'est pas une
+forme d'import (`tsImport`, `new Worker(new URL(…))`). Ces murs lisent le
+code : `src/test-setup.ts`, environnement de la suite principale (`setupFiles`), charge le store pour toute la suite
+web sans être un arc d'un test ; un test posé sous `src/state/` ou à la racine de `src/` est, par sa zone, un test
+de la coque web, que la sonde `scripts/ops/sondes/classement-tests-state/` classe ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
 `murs/reexportation` refuse, en production de `src/state/` et `src/noyau/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
 du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
 (le batch générique de cascade et le domaine naval, #328). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le code des zones en dérivent :
@@ -431,8 +444,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
                             (`murs/reexportation`). Le noyau, les scénarios et les hôtes survivent à la
-                            bascule (`survit`, `COUCHES`) : ils n'atteignent aucune zone de l'hôte web ni
-                            aucun de ses paquets. Les tests
+                            bascule (`survit`, `COUCHES`) : aucun de leurs arcs, suites et bancs compris,
+                            ne vise une zone de l'hôte web ni aucun de ses paquets, et la clôture de
+                            leurs suites et bancs n'atteint aucune de ces zones (§ Couches). Les tests
                             `*.hors-store.test.ts` jouent dans la suite du noyau (`npm run test:noyau`,
                             `vitest.noyau.config.ts`), sans le store, que la suite principale exclut
                             (`MOTIF_HORS_STORE`, `scripts/guards/lib/racinesDeLaSuite.mjs`).

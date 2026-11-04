@@ -50,6 +50,7 @@ const GRAPHIES = [
   ['require nu', "const { geste } = require('./geste.mjs')\n"],
   ['createRequire chaîné', "const { geste } = createRequire(import.meta.url)('./geste.mjs')\n"],
   ['createRequire lié à `require`', "const require = createRequire(import.meta.url)\nconst m = require('./geste')\n"],
+  ['createRequire lié sous un autre nom', "const req = createRequire(import.meta.url)\nconst m = req('./geste.mjs')\n"],
   ['import x = require', "import geste = require('./geste.mjs')\n", 'ts'],
   ['module.require', "const { geste } = module.require('./geste.mjs')\n"],
 ]
@@ -70,13 +71,12 @@ for (const [graphie, code, extension] of GRAPHIES) if (extension === 'ts') {
   })
 }
 
-// Ce que la garde ne DOIT pas compter — et, pour les deux derniers, ce qu'aucune lecture statique ne
-// peut compter : le spécificateur n'est pas un littéral, ou le callee n'est plus un jeton connu.
+// Ce que la garde ne DOIT pas compter — et, pour le dernier, ce qu'aucune lecture statique ne
+// peut compter : le spécificateur n'est pas un littéral.
 const NEGATIFS = [
   ['un require d’un AUTRE module', "const { autre } = require('./autre.mjs')\n"],
   ['un require de PAQUET npm', "const ts = createRequire(import.meta.url)('typescript')\n"],
   ['un spécificateur passé par VARIABLE', "const m = require(chemin)\nconst d = await import(chemin)\n"],
-  ['un require lié sous un AUTRE nom', "const req = createRequire(import.meta.url)\nconst m = req('./geste.mjs')\n"],
 ]
 
 for (const [cas, code] of NEGATIFS) {

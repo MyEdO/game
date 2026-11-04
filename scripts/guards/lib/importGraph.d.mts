@@ -72,6 +72,8 @@ export function resolveImport(
   spec: string,
   existe?: (abs: string) => boolean,
   alias?: readonly Alias[],
+  nature?: Arc['nature'],
+  racine?: string,
 ): string | null;
 export function clotureDImports(
   roots: string[],
@@ -85,8 +87,11 @@ export function clotureDImports(
     specificateurs?: MemoDeSpecificateurs;
     tailleLot?: number;
     analyser?: typeof analyserEnLots;
+    surSites?: (abs: string, sites: SiteDeModule[]) => void;
   },
 ): Set<string>;
+/** Le disque, borné aux `fichiers` (chemins absolus POSIX) : un motif d'`import.meta.glob` y fait ses arcs. */
+export function arbreDuDisque(fichiers: readonly string[]): EnsembleDeFichiers;
 /** L'ensemble de fichiers contre lequel une marche résout et lit (chemins absolus POSIX). */
 export interface EnsembleDeFichiers {
   existe: (abs: string) => boolean;

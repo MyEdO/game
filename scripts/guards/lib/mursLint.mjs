@@ -19,6 +19,7 @@ export default {
       .map((nom) => [nom, builtinRules.get('no-restricted-globals')]),
     ['interne', interne],
     ['purete-imports', couches.purete],
+    ['tests-survivants', couches.testsSurvivants],
     ['zone', couches.zone],
     ['reexportation', couches.reexportation],
     ['suite-jouee', couches.suiteJouee],
