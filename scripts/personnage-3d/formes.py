@@ -1,5 +1,5 @@
-"""Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, lissage d'un champ de
-décalages jusqu'à ce qu'aucune arête ne soit hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
+"""Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, lissage ou rabot d'un
+champ de décalages jusqu'à ce qu'aucune arête ne soit hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
 et transfert des clés d'une source vers une cible par liaison de surface (modificateur Surface Deform), pour les peaux
 secondaires de la base comme pour les éléments posés sur elle.
 """
@@ -7,9 +7,10 @@ import bpy
 import numpy
 from mathutils.bvhtree import BVHTree
 
-STAGNATION_M = 1e-3
-"""Variation par passe sous laquelle la région de lissage d'une clé gagne un anneau (`lisser`) : valeur d'ingénierie
-#3104 (147 passes sur la base `humanoide` le 2026-11-03, contre 358 à 1e-4)."""
+RABOT = 0.9
+"""Facteur dont une passe `'rabot'` de `lisser` multiplie une clé aux nœuds de ses arêtes marquées : valeur
+d'ingénierie #3104 (capture r9 du 2026-11-04 : 53 passes, `feminin` garde 85 % de son amplitude et 5 cm au sein,
+contre 68 % et 3,4 cm à 0,7)."""
 
 
 def positions(mesh, cle=None):
@@ -81,18 +82,17 @@ def region_locale(aretes, masque, anneaux, n):
 
 
 def lisser(champ, noeud, aretes, facteur, hors, passes_max, region):
-    """Les champs de décalages `champ` (sommets, clés, 3) lissés
-    (`pas_laplacien` sur les nœuds `noeud` et leurs arêtes `aretes`) puis multipliés par `facteur` (sommets,), jusqu'à
-    ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête. Tous les
-    champs sont remesurés à chaque passe ; seules les clés marquées prennent le pas. `region` `'pleine'` : sur tous
-    les nœuds ; `'locale'` : sur les seuls nœuds de `region_locale` autour de leurs arêtes marquées, et la région d'une
-    clé gagne un anneau de voisins dès que le champ y varie de moins de `STAGNATION_M` sur une passe. Les sommets d'un même nœud reçoivent la même valeur.
-    Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucun
-    pas ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la construction."""
-    if region not in ('pleine', 'locale'):
-        raise ValueError(f"région {region!r} : 'pleine' ou 'locale'")
+    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), repris passe après passe
+    jusqu'à ce que `hors` (champs complets -> masque booléen (arêtes, clés)) ne marque plus aucune arête. Tous les
+    champs sont remesurés à chaque passe ; seules les clés marquées prennent le pas. `region` `'pleine'` : un
+    `pas_laplacien` sur les nœuds `noeud` et leurs arêtes `aretes`, sur tous les nœuds ; `'rabot'` : la clé multipliée
+    par `RABOT` sur les seuls nœuds de ses arêtes marquées, qui garde sa forme ailleurs. Les sommets d'un même nœud
+    reçoivent la même valeur. Rend les champs et le nombre de passes. Une arête marquée dont les deux extrémités ont
+    un `facteur` nul, qu'aucun pas ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la
+    construction."""
+    if region not in ('pleine', 'rabot'):
+        raise ValueError(f"région {region!r} : 'pleine' ou 'rabot'")
     valeur = aux_noeuds(champ, noeud)
-    anneaux = numpy.zeros(valeur.shape[1], dtype=int)
     for passe in range(passes_max + 1):
         resultat = valeur[noeud] * facteur[:, None, None]
         marquees = numpy.asarray(hors(resultat))
@@ -104,17 +104,13 @@ def lisser(champ, noeud, aretes, facteur, hors, passes_max, region):
                                'lissage ne les change')
         if passe == passes_max:
             raise RuntimeError(f'{int(marquees.any(axis=1).sum())} arête(s) hors bornes après {passes_max} passes de lissage')
-        lisse = pas_laplacien(valeur, aretes)
+        lisse = pas_laplacien(valeur, aretes) if region == 'pleine' else None
         valeur = valeur.copy()
         for cle in numpy.flatnonzero(marquees.any(axis=0)):
             if region == 'pleine':
                 valeur[:, cle] = lisse[:, cle]
-                continue
-            dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
-            variation = numpy.abs(lisse[dans, cle] - valeur[dans, cle]).max()
-            valeur[dans, cle] = lisse[dans, cle]
-            if variation < STAGNATION_M:
-                anneaux[cle] += 1
+            else:
+                valeur[region_locale(aretes, marquees[:, cle], 0, len(valeur)), cle] *= RABOT
 
 
 def voisins(rig, noms):

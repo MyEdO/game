@@ -1,6 +1,6 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
 erreurs nommées ; silhouettes.lisser_sous_correction, lissage mesuré sur les clés corrigées jusqu'aux bornes
-d'étirement, du repère du mesh au repère monde et retour ; formes.lisser, pas laplacien des clés marquées ; silhouettes.mesurer_domaine,
+d'étirement, du repère du mesh au repère monde et retour ; formes.lisser, pas laplacien ou rabot des clés marquées ; silhouettes.mesurer_domaine,
 mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud."""
 import contextlib
 import io
@@ -17,14 +17,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import STAGNATION_M, aux_noeuds, lisser, pas_laplacien, rapports, region_locale  # noqa: E402
+from formes import RABOT, aux_noeuds, lisser, rapports, region_locale  # noqa: E402
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
-from silhouettes import (ANNEAUX_AUX_PLIS, JEU_AUX_PLIS_M, MARGE_AUX_PLIS, AnneauIndetectable,  # noqa: E402
-                         ComposanteSansAppui, ContraintesLiees, correction, fondu, fondu_aux_plis, lisser_sous_correction,
-                         mesurer_domaine, plis_au_neutre, refuser_les_inertes)
+from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction, fondu,  # noqa: E402
+                         lisser_sous_correction, mesurer_domaine, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
@@ -271,7 +270,7 @@ class LissageSousCorrection(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             return lisser_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
                                           lambda champs: {nom: hors_de(rapports(repos, d, self.aretes), bornes)
-                                                          for nom, d in champs.items()}, 'locale')
+                                                          for nom, d in champs.items()}, 'rabot')
 
     def hors(self, champ, bornes=BORNES):
         return int(hors_de(rapports(self.x, champ, self.aretes), bornes).sum())
@@ -336,7 +335,7 @@ class Lissage(unittest.TestCase):
         self.vus.append(masque)
         return masque
 
-    def lisser(self, champ, facteur=None, hors=None, region='locale'):
+    def lisser(self, champ, facteur=None, hors=None, region='rabot'):
         mesure = hors or self.hors
         resultat, passes = lisser(champ[:, None], self.noeud, self.aretes,
                                   self.facteur if facteur is None else facteur,
@@ -353,7 +352,7 @@ class Lissage(unittest.TestCase):
             premiere.append(champ.copy())
             return self.hors(champ) if len(premiere) < 3 else numpy.zeros(len(self.aretes), dtype=bool)
 
-        for region, bouge in (('locale', False), ('pleine', True)):
+        for region, bouge in (('rabot', False), ('pleine', True)):
             premiere.clear()
             resultat, _ = self.lisser(self.bosse + large, hors=une_passe, region=region)
             self.assertEqual(not numpy.allclose(resultat[loin], (self.bosse + large)[loin] * self.facteur[loin]), bouge, region)
@@ -363,7 +362,7 @@ class Lissage(unittest.TestCase):
             self.lisser(self.bosse, region='voisine')
 
     def test_la_convergence_voit_une_arete_hors_des_noeuds_marques_au_depart(self):
-        lisse, _ = self.lisser(self.bosse)
+        lisse, _ = self.lisser(self.bosse, region='pleine')
         depart = numpy.zeros(len(self.x), dtype=bool)
         depart[self.aretes[self.vus[0]].ravel()] = True
         dehors = [m & ~depart[self.aretes].all(axis=1) for m in self.vus[1:]]
@@ -380,7 +379,7 @@ class Lissage(unittest.TestCase):
             self.lisser(self.bosse, facteur, lambda _: marque)
         self.assertRegex(str(leve.exception), r'^1 arête\(s\) hors bornes aux deux extrémités tenues')
 
-    def test_une_passe_ne_lisse_que_les_noeuds_des_aretes_marquees(self):
+    def test_une_passe_ne_rabote_que_les_noeuds_des_aretes_marquees(self):
         champ = 0.03 * numpy.random.default_rng(3101).standard_normal(self.x.shape)
         marque = numpy.zeros(len(self.aretes), dtype=bool)
         marque[0] = True
@@ -390,24 +389,18 @@ class Lissage(unittest.TestCase):
         valeur = aux_noeuds(champ, self.noeud)
         dans = region_locale(self.aretes, marque, 0, len(valeur))
         attendu = valeur.copy()
-        attendu[dans] = pas_laplacien(valeur, self.aretes)[dans]
+        attendu[dans] = RABOT * valeur[dans]
         self.assertTrue(numpy.array_equal(resultat, attendu[self.noeud]))
         self.assertGreater(int((~dans[self.noeud]).sum()), len(self.x) // 2)
 
-    def test_la_region_gagne_un_anneau_quand_le_champ_y_stagne(self):
-        marque = numpy.zeros(len(self.aretes), dtype=bool)
-        marque[0] = True
-        premier = region_locale(self.aretes, marque, 0, len(self.x))
-        second = region_locale(self.aretes, marque, 1, len(self.x)) & ~premier
-        loin = numpy.flatnonzero(region_locale(self.aretes, marque, 2, len(self.x)) & ~second & ~premier)[0]
-        champ = numpy.zeros_like(self.x)
-        champ[self.noeud == loin] = [0.0, 0.0, 10 * STAGNATION_M]
-        mesures = iter([marque, marque, numpy.zeros_like(marque)])
-        resultat, passes = self.lisser(champ, hors=lambda _: next(mesures))
-        self.assertEqual(passes, 2)
-        self.assertTrue(numpy.array_equal(resultat[self.noeud == loin], champ[self.noeud == loin]))
-        self.assertTrue(numpy.abs(resultat[numpy.isin(self.noeud, numpy.flatnonzero(second))]).max() > 0)
-        self.assertFalse(numpy.abs(resultat[numpy.isin(self.noeud, numpy.flatnonzero(premier))]).any())
+    def test_le_rabot_garde_la_direction_de_la_cle_et_rend_ses_bornes(self):
+        rabote, passes = self.lisser(self.bosse)
+        self.assertGreater(passes, 0)
+        self.assertFalse(hors_de(rapports(self.x, rabote, self.aretes), self.BORNES).any())
+        bosse = self.noeud == self.noeud[self.BOSSE]
+        depart = aux_noeuds(self.bosse, self.noeud)[self.noeud[self.BOSSE]]
+        self.assertTrue(numpy.allclose(rabote[bosse], RABOT ** passes * depart))
+        self.assertFalse(rabote[~bosse].any())
 
     def test_une_bosse_locale_laisse_intact_le_champ_loin_d_elle(self):
         z = self.x[:, 2]
@@ -481,7 +474,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         mesure = self.mesure()
         with contextlib.redirect_stdout(io.StringIO()):
             finis = lisser_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), mesure, 'locale')
+                                           libre, corriger, numpy.eye(3), mesure, 'rabot')
         self.assertFalse(any(m.any() for m in self.mesure()(finis).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
@@ -519,7 +512,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
 
         with contextlib.redirect_stdout(io.StringIO()):
             finis = lisser_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), hors, 'locale')
+                                           libre, corriger, numpy.eye(3), hors, 'rabot')
         numpy.testing.assert_allclose(finis['temoin'], temoin, rtol=0, atol=TOLERANCE)
         self.assertTrue(all(numpy.abs(finis[n] - champs[n]).max() > 0 for n in self.champs))
         self.assertFalse(any(m.any() for m in hors(finis).values()))
@@ -790,39 +783,6 @@ class Fondu(unittest.TestCase):
         libre = fondu(w, noms, {'pied'}, numpy.array([0, 0, 2]))
         self.assertTrue(numpy.allclose(libre, [0.0, 0.0, 0.5]))
 
-
-
-class Plis(unittest.TestCase):
-    """silhouettes.plis_au_neutre et silhouettes.fondu_aux_plis (#3104 issuecomment-6613477119)."""
-
-    def plis(self, facteur, longueur):
-        clip = numpy.eye(4)
-        clip[:3, :3] *= facteur
-        x, w, aretes, demandes, _, matrices, _ = arete_du_domaine(clip=clip)
-        x[1, :3] *= longueur / numpy.linalg.norm(x[1, :3])
-        return plis_au_neutre(w, x, aretes, [(demandes, matrices, (1,))])[0]
-
-    def test_un_pli_se_mesure_sans_cle_posee_en_marge_relative_ou_en_jeu_absolu(self):
-        etire = ETIREMENT_EN_CLIP[1] * numpy.exp(-MARGE_AUX_PLIS)
-        self.assertTrue(self.plis(etire * 1.01, 1.0))
-        self.assertFalse(self.plis(etire * 0.99, 1.0))
-        ecrase = ETIREMENT_EN_CLIP[0] * numpy.exp(MARGE_AUX_PLIS) * 1.5
-        longueur = JEU_AUX_PLIS_M / (ecrase - ETIREMENT_EN_CLIP[0])
-        self.assertFalse(self.plis(ecrase, longueur * 1.01))
-        self.assertTrue(self.plis(ecrase, longueur * 0.99))
-
-    def test_un_pli_tient_ses_noeuds_puis_rend_le_decalage_sur_ses_anneaux(self):
-        n = ANNEAUX_AUX_PLIS + 3
-        aretes = numpy.array([[k, k + 1] for k in range(n)])
-        plis = numpy.zeros(len(aretes), dtype=bool)
-        plis[0] = True
-        groupe = numpy.array([*range(n + 1), 2])
-        parts = fondu_aux_plis(aretes, plis, groupe)
-        self.assertTrue(numpy.all(parts[:2] == 0))
-        self.assertTrue(numpy.all(parts[ANNEAUX_AUX_PLIS + 2:n + 1] == 1))
-        self.assertTrue(numpy.all(numpy.diff(parts[:n + 1]) >= 0))
-        self.assertTrue(0 < parts[2] < 1)
-        self.assertEqual(parts[-1], parts[2])
 
 if __name__ == '__main__':
     unittest.main()
