@@ -126,9 +126,8 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
   });
 
   /**
-   * « Tout lancer » (`jetRoll('opposition')` sans rangée, #3327) roule les rangées que le siège ÉMETTEUR influence. Deux
-   * mesures dans un même geste : la ROUTE (posséder une rangée due suffit) et l'EFFET (l'hôte exécute au nom du siège
-   * émetteur, `influencesLocally`).
+   * « Tout lancer » (`jetRoll('opposition')` sans rangée, #3327) roule les seules rangées que le siège ÉMETTEUR influence :
+   * l'hôte exécute au nom de ce siège (`influencesLocally`), un siège sans rangée due ne lance rien.
    */
   it('« Tout lancer » : le siège émetteur roule SA rangée, jamais celle d’un autre siège', () => {
     setup();
@@ -137,7 +136,8 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
     banc.setState({ pendingCastOpposition: { ...pco, participants: [
       { id: 'h2', interactive: true, result: null }, { id: 'h3', interactive: true, result: null },
     ] } as never });
-    expect(applyIntent(3, 'jetRoll', ['opposition']), 'un siège sans rangée due').toBe('refusee');
+    expect(applyIntent(3, 'jetRoll', ['opposition'])).toBe('appliquee');
+    expect(banc.getState().pendingCastOpposition!.participants.every((p) => p.result === null), 'un siège sans rangée due lançait celle d’autrui').toBe(true);
     expect(applyIntent(1, 'jetRoll', ['opposition'])).toBe('appliquee');
     const parts = banc.getState().pendingCastOpposition!.participants;
     expect(parts.find((p) => p.id === 'h2')!.result, 'la rangée du siège émetteur').not.toBeNull();

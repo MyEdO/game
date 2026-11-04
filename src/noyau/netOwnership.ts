@@ -15,7 +15,6 @@ import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
 import { WORLD_STEP_OWNER } from './pendings';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
 
 /** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
  *  registre, jamais énumérés à la main. */
@@ -455,7 +454,8 @@ const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => 
  *  - flux MONO : le porteur du jet (`routeJet`) ;
  *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
  *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; le jet sans
- *    rangée (« Tout lancer », `rangeeFacultative`) : le siège qui a une rangée à lancer (`rangeesALancer`) ; un verbe de
+ *    rangée (« Tout lancer », `rangeeFacultative`) : tout siège, il ne lance que les rangées du siège qui agit
+ *    (`rangeesALancer`, `influencesLocally`) ; un verbe de
  *    fenêtre (`estVerbeDeFenetre` : l'annulation et la clôture, qui agissent pour TOUS), et les flux dont la rangée n'a
  *    pas d'acteur propre (Round, étape, dé) retombent sur le repli universel (le owner de LEUR modale).
  */
@@ -468,7 +468,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
     if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
     const rangee = rangeeDuGeste(verbe, args);
-    if (rangee === undefined && rangeeFacultative(flux, verbe)) return withActingSeat(seat, () => FLOW_HANDLERS[flux].rangeesALancer(() => s, true).length > 0);
+    if (rangee === undefined && rangeeFacultative(flux, verbe)) return true;
     return seatOwns(s, seat, rangee);
   },
 });
