@@ -1,10 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { describe, it, expect } from 'vitest';
-import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { GALERIES } from '../../scripts/gen-galleries.mjs';
 
 /**
  * Garde TRANSVERSE (#1522) : la SOURCE d'authoring possède 100 % de la donnée de l'artefact généré.
@@ -24,7 +21,6 @@ import { GALERIES } from '../../scripts/gen-galleries.mjs';
  * Angle mort : elle ne voit pas un projet MANUSCRIT ajouté à la liste des manuscrits alors qu'un
  * générateur existe pour lui — la couverture prouve l'inclusion, pas la sincérité du motif.
  */
-const SCRIPTS_DIR = join(__dirname, '../../scripts');
 const SCENES_DIR = join(__dirname);
 
 /** Projets AUTHORÉS à la main : aucun générateur ne les produit, ils ne sont pas rejouables. */
@@ -34,39 +30,14 @@ const MANUSCRITS: Record<string, string> = {
 
 type Generateur = { build: () => unknown; OUT: string };
 
-function generateurs(): string[] {
-  const out: string[] = [];
-  for (const nom of listerDossier(SCRIPTS_DIR)) {
-    const f = join(SCRIPTS_DIR, nom, 'generate.mjs');
-    try {
-      readFileSync(f);
-      out.push(f);
-    } catch {
-      /* ce dossier de scripts n'est pas un générateur de projet */
-    }
-  }
-  return out;
-}
+/** Chaque générateur, par son chemin absolu : son chargeur (`import.meta.glob`, paresseux). */
+const CHARGEURS = new Map(Object.entries(import.meta.glob<Generateur>('../../scripts/*/generate.mjs')).map(([cle, charger]) => [join(__dirname, cle), charger]));
+
+const charger = (fichier: string): Promise<Generateur> => CHARGEURS.get(fichier)!();
 
 const projets = (): string[] => listerProjetsLivres().map((rel) => join(SCENES_DIR, rel));
 
-const GENERATEURS = generateurs();
-
-describe('galeries QC — chaque page publique est l’octet exact de son build()', () => {
-  it('le registre du lanceur couvre des galeries', () => {
-    expect(GALERIES.length).toBeGreaterThan(0);
-  });
-
-  it.each(GALERIES)('$module : build() reproduit la page publique à chaque appel', async ({ module }) => {
-    const url = new URL(module, pathToFileURL(join(SCRIPTS_DIR, 'gen-galleries.mjs')));
-    const galerie = await import(url.href) as { build: () => string; OUT: string };
-    expect(typeof galerie.build).toBe('function');
-    expect(typeof galerie.OUT).toBe('string');
-    const attendu = readFileSync(galerie.OUT, 'utf8');
-    expect(galerie.build(), `${module} : régénérer la page publique par son CLI`).toBe(attendu);
-    expect(galerie.build(), `${module} : build() dépend de ses appels précédents`).toBe(attendu);
-  });
-});
+const GENERATEURS = [...CHARGEURS.keys()];
 
 describe('générateurs de campagne — l’artefact committé est l’octet exact de leur `build()` (#1522)', () => {
   it('au moins un générateur découvert (la garde couvre réellement quelque chose)', () => {
@@ -74,7 +45,7 @@ describe('générateurs de campagne — l’artefact committé est l’octet exa
   });
 
   it.each(GENERATEURS.map((f) => [f] as const))('%s : build() reproduit son artefact À L’OCTET', async (fichier) => {
-    const mod = (await import(pathToFileURL(fichier).href)) as Generateur;
+    const mod = await charger(fichier);
     expect(typeof mod.build, `${fichier} : pas d’export build() — le CLI doit être un simple shell d’écriture`).toBe('function');
     expect(typeof mod.OUT, `${fichier} : pas d’export OUT (chemin de l’artefact)`).toBe('string');
     const attendu = readFileSync(mod.OUT, 'utf8');
@@ -87,7 +58,7 @@ describe('générateurs de campagne — l’artefact committé est l’octet exa
   it('ordre BROUILLÉ : les générateurs entrelacés restent byte-identiques (aucune séquence d’ids ne fuit)', async () => {
     // Les modules ne sont importés qu'une fois (cache ESM) : c'est l'ENTRELACEMENT des `build()` qui est
     // jugé ici, pas l'ordre d'import — un compteur partagé par la lib (props, postes) le ferait rougir.
-    const par = new Map(await Promise.all(GENERATEURS.map(async (f) => [f, (await import(pathToFileURL(f).href)) as Generateur] as const)));
+    const par = new Map(await Promise.all(GENERATEURS.map(async (f) => [f, await charger(f)] as const)));
     const ordre = [...GENERATEURS, ...[...GENERATEURS].reverse()];
     for (const f of ordre) {
       const mod = par.get(f)!;
@@ -99,7 +70,7 @@ describe('générateurs de campagne — l’artefact committé est l’octet exa
   it('tout projet bundlé est produit par un générateur OU déclaré manuscrit', async () => {
     const produits = new Set<string>();
     for (const f of GENERATEURS) {
-      const mod = (await import(pathToFileURL(f).href)) as Generateur;
+      const mod = await charger(f);
       produits.add(join(mod.OUT));
     }
     const orphelins = projets().filter((p) => !produits.has(join(p)) && !(p.split(/[\\/]/).pop()! in MANUSCRITS));

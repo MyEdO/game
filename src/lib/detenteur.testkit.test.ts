@@ -7,8 +7,8 @@ import { VARIABLE_PARTIE } from '../../scripts/test/partition.mjs';
 import { spawnBorne } from '../../scripts/guards/lib/processusBorne.mjs';
 import { detenteur, enCollecte } from './detenteur.testkit';
 
-const PRECHARGE = './detenteur.testkit?precharge';
-const registre = { precharge: (await import(/* @vite-ignore */ PRECHARGE)) as typeof import('./detenteur.testkit') };
+const precharges = import.meta.glob<typeof import('./detenteur.testkit')>('./detenteur.testkit.ts', { query: '?precharge' });
+const registre = { precharge: await precharges['./detenteur.testkit.ts']!() };
 
 /* Portée MODULE. Sous `sequence.hooks: 'stack'` (défaut de vitest), les `afterAll` d'une même portée
  * s'exécutent dans l'ordre INVERSE de leur enregistrement : celui-ci, posé AVANT l'appel de

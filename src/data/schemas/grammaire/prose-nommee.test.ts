@@ -51,9 +51,12 @@ describe('prose nommée — déclaration et provenance locales', () => {
     const mesure = mesurer();
     const bornes: unknown[] = [];
     const corpusLocal = new Set(corpus().map(f => f.rel));
+    const modules = import.meta.glob<Record<string, unknown>>('/src/data/schemas/**/*.ts');
     for (const origine of mesure.importsSchemas) {
       expect(corpusLocal.has(origine.module)).toBe(false);
-      const module = await import(resolve('.', origine.module));
+      const charger = modules[`/${origine.module}`];
+      expect(charger, `${origine.module} : schéma importé hors de \`src/data/schemas\``).toBeDefined();
+      const module = await charger!();
       const valeur: unknown = module[origine.nom];
       if (defDe(valeur)) bornes.push(valeur);
     }
