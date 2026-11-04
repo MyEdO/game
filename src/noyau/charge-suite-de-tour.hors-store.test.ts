@@ -80,7 +80,7 @@ const auPremierTour = () => b().turn === 0 && b().round === 1 && !b().over;
  *  toute autre étape par le kit (`avanceEtapeCascade`). */
 function jouerLaSequence(borne = 40): void {
   for (let i = 0; i < borne; i++) {
-    if (g().pendingDefense) { g().jetRoll('defense'); g().defenseConfirm(); continue; }
+    if (g().pendingDefense) { g().jetRoll('defense'); g().jetConfirm('defense'); continue; }
     if (avanceEtapeCascade(g) === undefined) return;
   }
 }
@@ -196,7 +196,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     jouerLaSequence();
     g().battleClickEntity('e', { confirm: true });
     g().jetRoll('attack');
-    g().attackConfirm();
+    g().jetConfirm('attack');
     jouerLaSequence();
     expect([attaques('h', 'e'), b().acted], 'le joueur a frappé à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
@@ -235,7 +235,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     passerEnManuel();
     g().battleClickEntity('e', { confirm: true });
     g().jetRoll('attack');
-    g().attackConfirm();
+    g().jetConfirm('attack');
     jouerLaSequence();
     expect([suite(), parquee(), attaques('h', 'e'), b().acted], 'chemin : la frappe du joueur a devancé la suite, qui attend parquée ; l’Action est dépensée à la main').toEqual(['frappe', true, 1, true]);
     remettreLAutoCombat();
@@ -470,7 +470,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     g().cascadeFinish();
     g().battleSelectSpell('flechette');
     g().battleClickEntity('e', { confirm: true });
-    for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetRoll('cast'); else g().castConfirm(); }
+    for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetRoll('cast'); else g().jetConfirm('cast'); }
     jouerLaSequence();
     expect([n(), b().acted], 'le joueur a incanté à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
@@ -561,7 +561,7 @@ const frappeOuverte = () => (g().pendingAttack ? { de: g().pendingAttack!.attack
 /** Le joueur lance et applique la frappe ouverte, puis joue la séquence jusqu'à sa clôture. */
 function frapper(): void {
   g().jetRoll('attack');
-  g().attackConfirm();
+  g().jetConfirm('attack');
   jouerLaSequence();
 }
 
@@ -598,7 +598,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     expect(appliquerLIntentionDUnSiege(g, 1, 'battleClickEntity', ['e', { confirm: true, approche: true }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
     expect([g().pendingDefense?.defenderId, attaques('h'), frappeOuverte()], 'la riposte ouvre la défense du chargeur avant toute frappe').toEqual(['h', 0, null]);
     for (let i = 0; i < 40; i++) {
-      if (g().pendingDefense) { appliquerLIntentionDUnSiege(g, 1, 'jetRoll', ['defense']); appliquerLIntentionDUnSiege(g, 1, 'defenseConfirm', []); continue; }
+      if (g().pendingDefense) { appliquerLIntentionDUnSiege(g, 1, 'jetRoll', ['defense']); appliquerLIntentionDUnSiege(g, 1, 'jetConfirm', ['defense']); continue; }
       if (avanceEtapeCascade(g) === undefined) break;
     }
     banc.reprendreTout();

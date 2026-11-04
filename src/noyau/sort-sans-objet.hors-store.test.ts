@@ -35,7 +35,7 @@ function benir(banc: Banc, pretreId: string, cibleId: string): string[] {
     banc.getState().jetForceSuccess('cast');
   }
   expect(banc.getState().pendingCast!.result!.cast, 'témoin : la Bénédiction réussit').toBe(true);
-  banc.getState().castConfirm();
+  banc.getState().jetConfirm('cast');
   return banc.getState().journal.slice(avant);
 }
 

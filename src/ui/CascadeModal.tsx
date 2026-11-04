@@ -414,7 +414,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // ÉTAPE-JET : REGISTRE data-driven du rendu par TYPE de jet (ajouter un type = 1 entrée ici). Les
   // cinq jets RollShell (attaque/défense/Maladresse/Test/Test étendu) sont rendus via leur hook de
   // props dans la MÊME coquille restée montée → jet ET conséquences vivent dans UNE fenêtre jusqu'à
-  // « Terminer » (leur `xConfirm`/`xNext` enchaîne le curseur / ferme la cascade). Les hooks de props
+  // « Terminer » (leur `jetConfirm(flux)` enchaîne le curseur / ferme la cascade). Les hooks de props
   // sont appelés INCONDITIONNELLEMENT au top-level (le registre ne mappe que le RENDU). Trois cas
   // BESPOKE (non-RollShell) rendent leur propre modale : désengagement (menu 3 phases, choix d'abord),
   // enfoncement de porte (multi PARALLÈLE, rangées par participant), incantation (`CastModal` — s'efface
@@ -894,7 +894,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
     ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
-    { key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), verbe: 'apply', flux: 'cascade', pid: cur.id },
+    { key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), verbe: 'confirm', flux: 'cascade', pid: cur.id },
   ];
 
   return (

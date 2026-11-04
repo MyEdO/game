@@ -125,7 +125,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     // inline pose d'office pour l'IA ; les dés ne partent qu'ensuite (la différentielle porte sur eux).
     banc.getState().counterspellDeclare(E.id, 'solo');
     banc.getState().jetRoll('counterspell', E.id);
-    banc.getState().counterspellConfirm();
+    banc.getState().jetConfirm('counterspell');
     const windowed = banc.getState().pendingCast!.result;
     expect(windowed).toEqual(inline);
     // La modale du LANCEUR reste ouverte : l'issue revient là où le jet inline la déposait, le héros applique.

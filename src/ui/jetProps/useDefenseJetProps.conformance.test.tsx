@@ -66,7 +66,7 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
   g().jetRoll('attack');
   if (atkDie != null) g().jetSetForcedRoll('attack', atkDie);
-  g().attackConfirm();
+  g().jetConfirm('attack');
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);

@@ -133,12 +133,9 @@ export const rangeesDuesDeChute = (p: PendingFall): TombantParticipant[] =>
 export const tombantsNommes = (s: Jeu, rangees: readonly TombantParticipant[]): string =>
   rangees.map((x) => `${actorIn(s, x.id)?.label ?? x.id} (${x.id})`).join(', ');
 
-/** Le refus d'un geste qui résout la chute avant son heure : ce qui reste à déclarer (et s'il se suspend d'abord,
- *  quand la croisée l'offre) ou à jeter ; `null` quand rien n'est dû. */
-export function refusDesRangeesDues(s: Jeu, p: PendingFall): string | null {
-  const dues = rangeesDuesDeChute(p);
-  if (!dues.length) return null;
-  const tombants = tombantsNommes(s, dues);
-  if (phaseDeChute(p) === 'roll') return t('fall.refus.jetsDus', { tombants });
+/** Le refus d'un jet de chute en phase de choix : ce qui reste à déclarer (et s'il se suspend d'abord, quand la
+ *  croisée l'offre). */
+export function refusDesDeclarationsDues(s: Jeu, p: PendingFall): string {
+  const tombants = tombantsNommes(s, rangeesDuesDeChute(p));
   return t(p.suspendu === undefined ? 'fall.refus.declarationsDues' : 'fall.refus.declarationsDuesSuspendu', { tombants });
 }

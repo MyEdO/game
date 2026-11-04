@@ -21,8 +21,7 @@ import { useGesteDeJet } from './useGesteDeJet';
  */
 export function EtalLotModal() {
   const p = useGame((s) => s.pendingEtalLot);
-  const confirm = useGame((s) => s.etalLotConfirm);
-  const cancel = useGesteDeJet('jetCancel', 'etalLot');
+  const confirm = useGesteDeJet('jetConfirm', 'etalLot');
   if (!p) return null;
 
   const rows: BuiltRollRow[] = p.participants.map((r) => tableRow({
@@ -31,10 +30,7 @@ export function EtalLotModal() {
   }));
 
   const actions: RollAction[] = [
-    // Les DEUX gestes mènent au même dénouement : un étal existe de toute façon. « Laisser le hasard »
-    // ne l'annule pas, il le prend tel qu'il est tombé — d'où un libellé qui ne promet pas l'inverse.
-    { key: 'cancel', label: 'Laisser le hasard', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'confirm' },
   ];
 
   return (
@@ -46,7 +42,6 @@ export function EtalLotModal() {
       stake={flowStakeRef('etal-lot')}
       rolled
       actions={actions}
-      onCancel={cancel}
     />
   );
 }

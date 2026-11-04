@@ -37,7 +37,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const bonusSL = useGesteDeJet('jetBonusSL', 'heal');
   const darkPact = useGesteDeJet('jetDarkPact', 'heal');
   const force = useGesteDeJet('jetForceSuccess', 'heal');
-  const confirm = useGame((s) => s.healConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'heal');
   const cancel = useGesteDeJet('jetCancel', 'heal');
   const setMode = useGame((s) => s.healSetMode);
   const setTest = useGame((s) => s.healSetTest);
@@ -85,7 +85,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return {

@@ -13,7 +13,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test ÉTENDU (LDB 12 l.170-186).
  * La situation « Test étendu » est une cascade à une étape `jet:'extended'`, rendue par `CascadeModal`
  * via ce hook (une seule fenêtre, comme l'attaque). `pendingExtendedTest` reste le porteur de données
- * (les Rounds y vivent) ; « Round suivant » (`extendedTestNext`) CUMULE le DR et ouvre le Round
+ * (les Rounds y vivent) ; « Round suivant » (`jetConfirm('extendedTest')`) CUMULE le DR et ouvre le Round
  * suivant, ou ferme la cascade à la réussite (total ≥ cible). Total < 0 → recommence à 0.
  *
  * QUI lance → portrait dans la ligne de jet (`RollRow.row.combatant`) ; la progression = barre de DR de
@@ -30,7 +30,7 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
   const darkPact = useGesteDeJet('jetDarkPact', 'extendedTest');
   const force = useGesteDeJet('jetForceSuccess', 'extendedTest');
   const reverse = useGesteDeJet('jetReverse', 'extendedTest'); // Inversion (LDB 12 l.42)
-  const next = useGame((s) => s.extendedTestNext);
+  const next = useGesteDeJet('jetConfirm', 'extendedTest');
   const cancel = useGesteDeJet('jetCancel', 'extendedTest');
   if (!p) return null;
   const pool = battle?.combatants ?? party;
@@ -78,7 +78,7 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
        « Renoncer » ouvert aussi APRÈS le jet (`clotures.cancel` du flux `extendedTest`). */
     actions: [
       { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'apply' },
+      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'confirm' },
     ],
     onCancel: cancel,
   };

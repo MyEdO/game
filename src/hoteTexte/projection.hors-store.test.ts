@@ -91,7 +91,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
   });
   it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetSetForcedRoll` sur `attack`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
-      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@attack', 'attackConfirm', 'jetSetForcedRoll@attack']));
+      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@attack', 'jetConfirm@attack', 'jetSetForcedRoll@attack']));
     }, { offre: 'charge' }, { type: 'battleClickEntity', args: ['enemy-enc-dome-1'] });
   });
 });

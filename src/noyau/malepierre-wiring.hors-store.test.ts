@@ -1,7 +1,7 @@
 /**
  * Malepierre (`LDB 46 l.173`) — CÂBLAGE PROD : le doublement de DR (RÈGLE INCONDITIONNELLE du Livre de
  * base, `engine/magic.ts` `malepierreDR`) et le décrément de la réserve FINIE (`VDM 02 l.165`,
- * `consumeMalepierre`) sur le VRAI chemin de résolution (`oocCastSpell`→`jetRoll('cast')`→`castConfirm`) —
+ * `consumeMalepierre`) sur le VRAI chemin de résolution (`oocCastSpell`→`jetRoll('cast')`→`jetConfirm('cast')`) —
  * pas la fonction pure isolée (`vdm-incantation-deltas.test.ts` couvre déjà `malepierreDR`/
  * `malepierreCharge`/`malepierreReserveOf` en isolation).
  */
@@ -37,7 +37,7 @@ beforeEach(() => {
   banc.getState().seedRng(11);
 });
 
-describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cast`/`castConfirm`)', () => {
+describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cast`/`jetConfirm(\'cast\')`)', () => {
   const spellId = 'armure-aethyrique';
 
   function rollWithMalepierre(w: Combatant) {
@@ -53,13 +53,13 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     w.items = [carried];
     const res = rollWithMalepierre(w);
     expect(res.malepierreConsumed).toBeGreaterThan(0);
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const item = after.items!.find((i) => i.uid === carried.uid)!;
     expect(item.niReserve).toBeUndefined(); // jamais entamée sous le Livre de base seul
   });
 
-  it('ON : le DR est doublé (bonus > 0) ET la réserve DÉCRÉMENTÉE au vrai confirm (`castConfirm`)', () => {
+  it('ON : le DR est doublé (bonus > 0) ET la réserve DÉCRÉMENTÉE au vrai confirm (`jetConfirm(\'cast\')`)', () => {
     setRule(RULE, true);
     const w = sorcier();
     const carried = itemFromTrappingById('malepierre-brute')!;
@@ -72,7 +72,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     expect(consumed).toBeGreaterThan(0);
     // Réserve INTACTE avant confirm — l'écriture est déférée au site de résolution (`consumeMalepierre`).
     expect(w.items!.find((i) => i.uid === carried.uid)!.niReserve).toBeUndefined();
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const item = after.items!.find((i) => i.uid === carried.uid)!;
     expect(item.niReserve).toBe(20 - consumed!);
@@ -92,7 +92,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     FLOWS.cast.bonusSL(banc.getState, banc.setState); // Chance « +1 DR » (LDB 17 l.24)
     const consumedAfterBonus = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedAfterBonus).toBe(consumedBefore); // REPORTÉ (`rederiveCastSL`), jamais perdu ni redoublé
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const item = after.items!.find((i) => i.uid === carried.uid)!;
     expect(item.niReserve).toBe(20 - consumedBefore!); // décrémenté UNE seule fois, du montant D'ORIGINE
@@ -107,7 +107,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     w.items = [epuisee, intacte];
     const res = rollWithMalepierre(w);
     expect(res.malepierreConsumed).toBeGreaterThan(0); // la SECONDE pierre est trouvée, pas ignorée en bloc
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     expect(after.items!.find((i) => i.uid === epuisee.uid)!.niReserve).toBe(0); // inchangée
     expect(after.items!.find((i) => i.uid === intacte.uid)!.niReserve).toBeLessThan(20); // la SECONDE a été entamée
@@ -137,7 +137,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     banc.setState({ party: [w], journal: [] });
     banc.getState().oocCastSpell(w.id, spellId, w.id);
     banc.getState().jetRoll('cast');
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     expect(banc.getState().journal.some((l) => l.includes('Exposition moderee'))).toBe(true); // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure)
   });
 
@@ -160,7 +160,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`jetRoll@cas
     const sl0 = tr0.sl + castTestDRMods(w, 'incantation', { success: tr0.success, spell: findSpellById(spellId)! });
     expect(after.malepierreConsumed).toBe(sl0); // doublement PLEIN du dé CHOISI, pas le `before.malepierreConsumed` reporté
     expect(after.sl).toBe(sl0 * 2); // le DR final reflète le doublement du NOUVEAU jet
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const heroAfter = banc.getState().party.find((h) => h.id === w.id)!;
     const item = heroAfter.items!.find((i) => i.uid === carried.uid)!;
     expect(item.niReserve).toBe(20 - after.malepierreConsumed!); // UNE seule consommation, du bon montant

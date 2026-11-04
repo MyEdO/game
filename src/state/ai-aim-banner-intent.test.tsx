@@ -89,7 +89,7 @@ describe('#1143 — le bandeau annonce l’attaque EN COURS, jamais le beat pré
     expect(txt).not.toContain(STALE);
 
     // Défense jouée et APPLIQUÉE : l'issue est journalisée → elle prend le bandeau, le télégraphe s'efface.
-    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().defenseConfirm(); });
+    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetConfirm('defense'); });
     expect(useGame.getState().actorAim).toBeNull();
     const after = banner();
     expect(after).not.toContain('Rat géant attaque Gunnar');
@@ -110,7 +110,7 @@ describe('#1143 — le bandeau annonce l’attaque EN COURS, jamais le beat pré
   });
 
   // Chemin RÉEL du défaut d'écran : une créature enchaîne une attaque GRATUITE (Morsure) après son attaque
-  // principale. `defenseConfirm` sort alors par sa branche « une nouvelle fenêtre s'est ouverte » — aucune
+  // principale. `jetConfirm('defense')` sort alors par sa branche « une nouvelle fenêtre s'est ouverte » — aucune
   // reprise de tour ne passe. Le télégraphe doit tomber au SEAM de résolution (`applyAttackResult`), pas à
   // une sortie de geste énumérée : sinon le bandeau reste figé sur l'intention pendant que le journal
   // porte déjà l'issue de l'attaque principale.
@@ -127,7 +127,7 @@ describe('#1143 — le bandeau annonce l’attaque EN COURS, jamais le beat pré
     act(() => { vi.runOnlyPendingTimers(); });
     expect(useGame.getState().pendingDefense).not.toBeNull();
 
-    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().defenseConfirm(); });
+    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetConfirm('defense'); });
 
     // L'attaque principale est journalisée ; la Morsure a rouvert une fenêtre (tour toujours suspendu).
     const lines = useGame.getState().battle!.log.map((e) => e.text);

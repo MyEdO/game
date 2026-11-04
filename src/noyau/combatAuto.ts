@@ -9,7 +9,7 @@
  * cascade, pas une clé modale) :
  *  - `MODAL_DEFS.auto` (modalArbiter) pour les modales STANDALONE (frénésie, course, focalisation, Destin…) ;
  *  - `JET_AUTO` (ici) pour les étapes-JET de la `cascade` de COMBAT (attaque/défense/… bespoke) — leur
- *    résolution passe par leur propre flux (`xRoll`→`xConfirm`, qui fait avancer la cascade), PAS par le
+ *    résolution passe par leur propre flux (`jetRoll(flux)`→`jetConfirm(flux)`, qui fait avancer la cascade), PAS par le
  *    résolveur générique `cascadeResolveAll` (réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
  *
  * Module FEUILLE : n'importe RIEN de `combatFlow` ; tout passe par `get().xxx`. INERT tant que la chaîne
@@ -38,11 +38,11 @@ import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, reglageDeLaQuantite, reg
  * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
  */
 export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
-  attack: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'attack' }, { verbe: 'attackConfirm' }] },
-  defense: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'defense' }, { verbe: 'defenseConfirm' }] },
+  attack: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'attack' }, { verbe: 'jetConfirm', flux: 'attack' }] },
+  defense: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'defense' }, { verbe: 'jetConfirm', flux: 'defense' }] },
   fumble: { mode: 'self', drive: [{ verbe: 'fumbleRoll' }, { verbe: 'fumbleConfirm' }] },
-  test: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'test' }, { verbe: 'resolveTest' }] },
-  cast: { mode: 'choice', autoDrive: [{ verbe: 'jetRoll', flux: 'cast' }, { verbe: 'castConfirm' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
+  test: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'test' }, { verbe: 'jetConfirm', flux: 'test' }] },
+  cast: { mode: 'choice', autoDrive: [{ verbe: 'jetRoll', flux: 'cast' }, { verbe: 'jetConfirm', flux: 'cast' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
   disengage: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
   extended: { mode: 'choice' },   // multi-participant (rare en combat)
   forceDoor: { mode: 'choice' },  // multi groupOwner (rare en combat)
@@ -70,8 +70,8 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
-      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'counterspellDeclareAll' }, { verbe: 'counterspellRollAll' }, { verbe: 'counterspellConfirm' }] },
-      { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'oppositionRollAll' }, { verbe: 'oppositionConfirm' }] },
+      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'counterspellDeclareAll' }, { verbe: 'counterspellRollAll' }, { verbe: 'jetConfirm', flux: 'counterspell' }] },
+      { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'oppositionRollAll' }, { verbe: 'jetConfirm', flux: 'opposition' }] },
     ],
   },
   test: { flux: 'test', reglages: ['testSetActor'] },
@@ -91,12 +91,14 @@ const idDeLaRangeeDue = (rangees: readonly RangeeDeFenetre[] | undefined): strin
 /** Les gestes nommés par les seuls verbes `verbes` (aucun ne vise un flux de jet). */
 const nommes = (verbes: VerbesDeFenetre): GesteDuJeu[] => verbes.map((verbe) => ({ verbe }));
 
-/** Les gestes d'un flux de jet : chacun de ses verbes de jet sur lui (`NOM_DU_VERBE_DE_JET`), puis ses clôtures
- *  (`resolution`). */
+/** Les gestes d'un flux de jet : chacun de ses verbes de jet sur lui (`NOM_DU_VERBE_DE_JET`), clôture comprise. */
 const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   const flux: FlowVerbs = FLOW_VERBS[cle];
-  return [...flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle })), ...nommes((flux.resolution ?? []) as VerbesDeFenetre)];
+  return flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle }));
 };
+
+/** La navigation de la cascade, jugée sur sa clôture : valider l'étape, tout résoudre, terminer le bilan. */
+export const NAVIGATION_DE_CASCADE = ['cascadeNext', 'cascadeResolveAll', 'cascadeFinish'] as const satisfies VerbesDeFenetre;
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -165,7 +167,7 @@ export interface FenetreDuJeu {
  *  (`gestesDeLaFenetre`) et l'id de sa rangée due (`rangees`) ; pour la cascade, ceux de l'étape courante : l'étape-jet
  *  de combat, `gestesDuJet` et la rangée due de sa fenêtre réactive ou de son flux (`FENETRE_DU_JET`) ;
  *  toute autre étape et le bilan, les gestes de son interaction (`VERBES_D_INTERACTION`) puis les clôtures de la
- *  cascade (`FLOW_VERBS.cascade.resolution`) ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
+ *  cascade (`NAVIGATION_DE_CASCADE`) ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
  *  qui tient la main, avec ses gestes déclarés. L'étape de cascade courante est rendue avec la cascade.
  *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
@@ -183,7 +185,7 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
       return { cle, proprietaire, gestes: gestesDuJet(etape.jet, reactive), flux: [...(reactive ? [reactive.flux] : []), ...(flux ? [flux] : [])], ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? gestesDuDrive(JET_AUTO[etape.jet]), etape };
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
-    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...nommes(FLOW_VERBS.cascade.resolution)]), flux: parInteraction?.flux ? [parInteraction.flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
+    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...nommes(NAVIGATION_DE_CASCADE)]), flux: parInteraction?.flux ? [parInteraction.flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   return hors ? { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;
@@ -192,11 +194,11 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
 /**
  * FENÊTRES RÉACTIVES à drive ouvertes DANS l'étape `jet:'cast'` (Contre-sort #1028, opposition de cible #949,
  * `FENETRE_DU_JET.cast.reactives`) et leur drive d'auto-cadence (#1030). Le drive de l'ÉTAPE ne peut traverser ni l'une ni l'autre :
- * `castConfirm` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
- * `oppositionConfirm` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
+ * `jetConfirm('cast')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
+ * `jetConfirm('opposition')` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
  * re-tirait donc à vide (l'opposition allant jusqu'à se RÉOUVRIR à chaque passage, jets compris).
  * POLITIQUE du drive (pas une règle) : chaque rangée jouable ICI jette, puis « Appliquer » — les issues
- * restent tranchées par les agrégations canoniques (`counterspellConfirm` #1040, `oppositionConfirm`),
+ * restent tranchées par les agrégations canoniques (`jetConfirm('counterspell')` #1040, `jetConfirm('opposition')`),
  * et les rangées non surfacées par leurs chemins existants (`applyCounterspellFallback`, jets témoins
  * roulés à l'ouverture). ORDRE = celui de la chaîne réelle (`resolveCastChain`) : le Contre-sort
  * précède l'opposition (une incantation n'ouvre jamais la seconde tant que la première est posée).

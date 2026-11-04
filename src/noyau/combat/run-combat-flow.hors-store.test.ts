@@ -190,11 +190,11 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     expect(step.result).toBeFalsy();        // pas encore lancé → influençable
     expect(step.meta?.after).toBeTruthy();  // la continuation voyage dans le meta (sérialisable, coop)
 
-    // castConfirm (combatSlice:1771-1777) avance le curseur AU-DELÀ de l'étape `jet:'cast'` quand des
+    // jetConfirm('cast') (combatSlice:1771-1777) avance le curseur AU-DELÀ de l'étape `jet:'cast'` quand des
     // conséquences se sont appendues (`participants.length > castStepIdx + 1`) → la cascade JOUE l'étape
-    // `triggeredTest`. On reproduit ce seul pas d'orchestration (le test bypass `castConfirm`).
+    // `triggeredTest`. On reproduit ce seul pas d'orchestration (le test bypass `jetConfirm('cast')`).
     expect(enriched.cursor).toBe(0); // curseur encore sur l'étape `cast` (résolue par CastModal, hors test)
-    banc.setState({ pendingCascade: { ...enriched, cursor: 1 } }); // = castConfirm : cursor → castStepIdx + 1
+    banc.setState({ pendingCascade: { ...enriched, cursor: 1 } }); // = jetConfirm('cast') : cursor → castStepIdx + 1
 
     // Validation : la branche succès (−5) PUIS la continuation after (−7) s'appliquent.
     banc.getState().jetRoll('cascade', step.id);

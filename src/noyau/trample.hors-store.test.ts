@@ -97,7 +97,7 @@ describe('Piétinement en combat (store)', () => {
     const pa = banc.getState().pendingAttack!;
     expect(pa.weapon!.attackKind, 'l’arme du JET est celle du Piétinement').toBe('pietinement');
     expect(pa.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().battle!.acted, 'action GRATUITE : l’Action reste').toBe(false);
   });
 
@@ -128,7 +128,7 @@ describe('Piétinement en combat (store)', () => {
     const before = E.wounds.current;
     pietiner(E.id);
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(advDe(H.id)).toBe(0);
     expect(advDe(E.id)).toBe(1);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBe(before);
@@ -393,7 +393,7 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 3;
     pietiner(E.id);
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     h.advantage = 3;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
@@ -409,7 +409,7 @@ describe('Piétinement en combat (store)', () => {
     expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: banc.getState().battle!, gameTime: banc.getState().gameTime }).ok).toBe(true);
     pietiner(E.id);
     banc.getState().jetRoll('attack');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     banc.reprendreTout();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.id === H.id)!;

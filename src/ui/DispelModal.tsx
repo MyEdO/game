@@ -26,7 +26,7 @@ export function DispelModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'dispel');
   const darkPact = useGesteDeJet('jetDarkPact', 'dispel');
   const force = useGesteDeJet('jetForceSuccess', 'dispel');
-  const confirm = useGame((s) => s.dispelConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'dispel');
   const cancel = useGesteDeJet('jetCancel', 'dispel');
   if (!pd) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pd.casterId);
@@ -60,7 +60,7 @@ export function DispelModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

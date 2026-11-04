@@ -152,9 +152,9 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
   });
 });
 
-// (D) RECHARGE — Test étendu (`battleShipReload` → `reloadConfirm`) recharge la pièce AU SOL, kind-agnostique,
+// (D) RECHARGE — Test étendu (`battleShipReload` → `jetConfirm('reload')`) recharge la pièce AU SOL, kind-agnostique,
 //     sans coque ni merScale.
-describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (battleShipReload/reloadConfirm)', () => {
+describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (battleShipReload/jetConfirm@reload)', () => {
   const setup = () => {
     const item = itemFromTrappingById('baliste')!; // Recharge 3, Indice 2
     const poste: ShipPoste = { item, crewIds: ['chef', 's1'], loaded: false, reloadProgress: 2 };
@@ -184,7 +184,7 @@ describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (batt
     const { item } = setup();
     banc.getState().battleShipReload('emplacement', item.uid);
     banc.getState().jetRoll('reload');
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const st = banc.getState();
     const poste = st.battle!.combatants.find((c) => c.id === 'emplacement')!.postes![0];
     expect(poste.loaded).toBe(true);

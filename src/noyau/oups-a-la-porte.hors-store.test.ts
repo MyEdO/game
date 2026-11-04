@@ -397,7 +397,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   let net: ReturnType<typeof banc.getState>['net'];
   beforeEach(() => { net = banc.getState().net; banc.setState({ net: { ...net, gmSeat: 0 } }); });
 
-  /** Le chemin JOUEUR d'une fenêtre de défense #1858 mode `machine` : c'est `defenseConfirm` qui applique. */
+  /** Le chemin JOUEUR d'une fenêtre de défense #1858 mode `machine` : c'est `jetConfirm('defense')` qui applique. */
   function monteDefense(armeAttaquant: Weapon, coup: SuiteDeCoup): { hero: Combatant; brute: Combatant } {
     const hero = mk('hero', 'heros', { pos: { x: 0, y: 0 }, weapons: [EPEE_HERO()] });
     const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [armeAttaquant] });
@@ -421,14 +421,14 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
 
   it('témoin SANS Solide et cas AVEC Solide : la Maladresse du héros défenseur s’ouvre dans les DEUX', () => {
     monteDefense(bacle(false), { enchainement: { mode: 'aucun' } });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     maladresseDeLaBrute();
     const temoin = etapes();
     expect(temoin.some((s) => s.startsWith('fumbleJet:') && s.includes('heros')),
       `témoin : ${temoin.join(' | ')}`).toBe(true);
 
     monteDefense(bacle(true), { enchainement: { mode: 'aucun' } });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     maladresseDeLaBrute();
     expect(etapeCourante()!.kind, 'le dé de casse part à la porte AVANT la Maladresse du héros').toBe('casseDArme');
     expect(etapes().some((s) => s.startsWith('fumbleJet:') && s.includes('heros')), 'rien de la queue ne joue devant le dé').toBe(false);
@@ -440,7 +440,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
 
   it('la SUITE portée par la fenêtre (Action gratuite) est rendue par la reprise, une seule fois', () => {
     monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     maladresseDeLaBrute();
     expect(banc.getState().battle!.acted, 'l’Action du coup est consommée ; la suite n’a PAS joué').toBe(true);
     poser(9);
@@ -458,7 +458,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     banc.setState({ net });
     expect(banc.getState().net.gmSeat, 'aucun siège MJ ne tient la brute').toBeUndefined();
     monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     expect(etapeCourante(), 'les dés de la brute sont tirés d’office : le curseur est au héros').toMatchObject({ kind: 'fumbleJet', actorId: 'heros' });
     expect(etapes().filter((s) => s.startsWith('casseDArme:')), 'le dé de casse est né à la porte, une fois').toHaveLength(1);
     expect(lignesLues().some((l) => /^brute — Sauvegarde Solide — Épée bâclée : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
@@ -472,7 +472,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   it('le maillon de BALAYAGE porté par la fenêtre (#1858 `ChaineDeBalayage`) voyage jusqu’à la reprise', () => {
     const chaine = { mode: 'chaine' as const, hitIds: ['heros'], n: 1, bcc: 2, fm: true };
     monteDefense(bacle(true), { enchainement: chaine });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     maladresseDeLaBrute();
     const casse = etapeCourante()!;
     expect(casse.kind).toBe('casseDArme');

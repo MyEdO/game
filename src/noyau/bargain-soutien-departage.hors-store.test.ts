@@ -280,7 +280,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
 
   it('CONSÉQUENCE : le marchandage conclu est PERDU — la visite ne porte aucune remise', () => {
     marchanderEgalite();
-    get().bargainConfirm();
+    get().jetConfirm('bargain');
     expect(get().merchant!.bargainBuy!.won).toBe(false);
   });
 });

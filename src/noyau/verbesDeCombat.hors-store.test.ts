@@ -84,7 +84,7 @@ describe('Course (LDB 15 l.41) : « la distance couverte vient en plus de celle 
       expect(pr, 'la Course après la Marche est refusée').toBeTruthy();
       envoyer(partie, 'jetRoll', 'run');
       const bonus = partie.etat().pendingRun!.result!.bonusCases;
-      envoyer(partie, 'runConfirm');
+      envoyer(partie, 'jetConfirm', 'run');
       const b = partie.etat().battle!;
       expect(b.acted).toBe(true);
       expect(b.runBudget).toBe(mountMovement(b, H) + bonus);
@@ -148,7 +148,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
       if (!partie.etat().battle) envoyer(partie, 'startCombat', 'enc-entrainement');
       for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
         const e = partie.etat();
-        const verbes: [string, ...unknown[]][] = e.pendingDefense ? [['jetRoll', 'defense'], ['defenseConfirm']] : activeCombatant(e.battle!) ? [['battleEndTurn']] : [['confirmRoundStart']];
+        const verbes: [string, ...unknown[]][] = e.pendingDefense ? [['jetRoll', 'defense'], ['jetConfirm', 'defense']] : activeCombatant(e.battle!) ? [['battleEndTurn']] : [['confirmRoundStart']];
         for (const [v, ...args] of verbes) envoyer(partie, v, ...args);
       }
       const b = partie.etat().battle!;

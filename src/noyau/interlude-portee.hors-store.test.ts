@@ -54,7 +54,7 @@ function revenusDeB(deA: number, carriereB: string, deB = DE.sansEffet): number 
   banc.actions.interludeActivity(b, 'revenus');
   banc.actions.jetRoll('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 1 } }));
-  banc.actions.activityConfirm();
+  banc.actions.jetConfirm('activity');
   return banc.getState().interlude!.perHero[b].revenueBrass;
 }
 

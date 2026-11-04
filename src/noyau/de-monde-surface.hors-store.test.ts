@@ -588,7 +588,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     openLandMarket(get, set);
     expect(get().pendingEtalLot, 'la fenêtre suit la SURFACE du monde, pas l’option de confort').toBeTruthy();
     expect(canFixDie(get(), WORLD_STEP_OWNER), 'option OFF : la pose n’est pas offerte').toBe(false);
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     expect(get().landMarket, 'l’étal existe après validation').toBeTruthy();
   });
 
@@ -616,7 +616,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
       const lot = get().pendingEtalLot;
       expect(lot, 'la fenêtre de lot s’ouvre AVANT l’écran').toBeTruthy();
       expect(lot!.participants.length, 'un lot vide n’aurait rien à poser').toBeGreaterThan(0);
-      get().etalLotConfirm();
+      get().jetConfirm('etalLot');
       expect(get().pendingEtalLot, 'la validation referme la fenêtre').toBeNull();
       expect(etal(), `option ${option ? 'ON' : 'OFF'} : la fenêtre ne change RIEN par sa seule existence`).toEqual(sansFenetre);
     }
@@ -636,7 +636,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     const apres = get().pendingEtalLot!.participants.map((r) => r.value);
     expect(apres[apres.length - 1], 'la valeur saisie est la valeur posée').toBe(neuf);
     expect(apres.slice(0, -1), 'aucun autre dé n’a bougé').toEqual(avant.slice(0, -1));
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     expect(get().landMarket, 'l’étal est ouvert après validation').toBeTruthy();
   });
 
@@ -648,7 +648,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     // Il faut deux dés de valeurs DIFFÉRENTES pour que la permutation se voie.
     const paire = lot.participants.findIndex((r, i) => i > 0 && r.value !== lot.participants[i - 1].value);
     if (paire < 1) return; // graine dégénérée : rien à permuter, le cas ne dit rien
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     const direct = etal();
 
     halle();
@@ -659,7 +659,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     const b = l2.participants[paire];
     get().jetSetForcedRoll('etalLot', b.value, a.id);
     get().jetSetForcedRoll('etalLot', a.value, b.id);
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     expect(etal(), 'deux dés permutés ne peuvent pas rendre le même étal').not.toEqual(direct);
   });
 

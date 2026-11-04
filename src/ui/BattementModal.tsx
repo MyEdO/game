@@ -19,7 +19,7 @@ import { useGesteDeJet } from './useGesteDeJet';
 /**
  * Modale de Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant
  * de l'Avantage adverse. Même patron de jet MONO d'attaquant influençable que le Piétinement — la seule
- * différence métier est l'issue (`battementConfirm` → `resolveBattement`). Le picker de cible
+ * différence métier est l'issue (`jetConfirm('battement')` → `resolveBattement`). Le picker de cible
  * (`OptionChooser`) n'apparaît que si plusieurs adversaires sont éligibles (avant le jet).
  */
 export function BattementModal() {
@@ -32,7 +32,7 @@ export function BattementModal() {
   const force = useGesteDeJet('jetForceSuccess', 'battement');
   const reverse = useGesteDeJet('jetReverse', 'battement'); // Inversion (LDB 12 l.42)
   const setFoe = useGame((s) => s.battementSetFoe);
-  const confirm = useGame((s) => s.battementConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'battement');
   const cancel = useGesteDeJet('jetCancel', 'battement');
   if (!pb || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pb.attackerId);
@@ -63,7 +63,7 @@ export function BattementModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

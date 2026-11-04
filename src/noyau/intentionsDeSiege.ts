@@ -12,7 +12,7 @@
  * marchand/éditeur, persistance) est refusé par l'hôte.
  *
  * TOUTE action du store a sa classe coop (#2724) :
- *  - les verbes de jet (`jet<Verbe>`, le flux en argument) ET les actions de `resolution` de chaque flux : classe
+ *  - les verbes de jet (`jet<Verbe>`, le flux en argument, clôture `jetConfirm` comprise) : classe
  *    dérivée de `FLOW_VERBS` (`coopFlowIntents`) — un flux ajouté à la table n'a AUCUNE ligne à écrire ici ;
  *  - toute autre action : une entrée de `CLASSE_DES_ACTIONS_DU_NOYAU` (actions de `Jeu`) ou de la
  *    table de l'adaptateur (`state/intents.ts`, ses actions d'interface), tables TOTALES sur
@@ -25,7 +25,6 @@
  * intention d'un siège passe par `appliquerLIntentionDUnSiege`.
  */
 import { coopFlowIntents, type FLOW_VERBS, type NomDeVerbeDeJet } from './flowVerbs';
-import type { HORS_MODAL } from './modalArbiter';
 import type { Jeu } from './etat';
 import type { LOCALES_AU_CLIENT } from './coop';
 import type { Get } from './flowTypes';
@@ -35,14 +34,10 @@ import { t } from '../i18n';
 export type ClasseCoop = 'invité' | 'hôte' | 'local' | 'interne';
 
 type Table = typeof FLOW_VERBS;
-type ResolutionDe<W> = W extends { resolution: readonly (infer R)[] } ? R : never;
-/** Surface DÉRIVÉE (`coopFlowIntents`) : les verbes de jet et les actions de `resolution` des flux de `T`. */
-type ActionDerivee<T> = NomDeVerbeDeJet | { [K in keyof T]: ResolutionDe<T[K]> }[keyof T];
-
-/** Actions d'un état de store `S` dont la classe coop s'ÉCRIT (hors surface dérivée des flux de `T`). */
-export type ActionManuscrite<S = Jeu, T = Table> = Exclude<
+/** Actions d'un état de store `S` dont la classe coop s'ÉCRIT (hors surface dérivée `coopFlowIntents` : les verbes de jet). */
+export type ActionManuscrite<S = Jeu> = Exclude<
   { [K in keyof S]-?: NonNullable<S[K]> extends (...args: never[]) => unknown ? K : never }[keyof S],
-  ActionDerivee<T>
+  NomDeVerbeDeJet
 >;
 
 type Majuscule = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q'
@@ -64,7 +59,7 @@ type ClasseAdmise<A, T> = A extends OuvreurParHote ? 'hôte'
   : ClasseCoop;
 
 /** Table TOTALE des classes coop d'un état de store `S` (flux de jet `T`). */
-export type TableDesClasses<S = Jeu, T = Table> = { [A in ActionManuscrite<S, T>]: ClasseAdmise<A, T> };
+export type TableDesClasses<S = Jeu, T = Table> = { [A in ActionManuscrite<S>]: ClasseAdmise<A, T> };
 
 /** Classe coop de chaque action manuscrite du noyau. */
 export const CLASSE_DES_ACTIONS_DU_NOYAU = {
@@ -95,87 +90,78 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   climbAcross: 'invité',
   // Enjambement d'une croisée (capacité `fenetre`, #700) : même possession (l'actif), aucun jet.
   windowAcross: 'invité',
-  // attaque : paramètres de la modale différée + jet/appliquer propres au flux d'attaque
+  // attaque : paramètres de la modale différée
   attackSetLocation: 'invité', attackSetWeapon: 'invité', attackSetDualMode: 'invité',
   attackSetWithhold: 'invité', attackSetHarpoonRopeCut: 'invité', attackSetGrapple: 'invité',
-  attackSetCritLocation: 'invité', attackConfirm: 'invité',
-  // défense réactive : choix de mode/arme/réaction de bouclier + appliquer
+  attackSetCritLocation: 'invité',
+  // défense réactive : choix de mode/arme/réaction de bouclier
   defenseSetMode: 'invité', defenseSetParryWeapon: 'invité', defenseSetShieldReaction: 'invité',
-  defenseSetRiposte: 'invité', defenseConfirm: 'invité',
-  // incantation / prière : options d'incantation + jet/appliquer/annuler
+  defenseSetRiposte: 'invité',
+  // incantation / prière : options d'incantation
   castSetCritChoice: 'invité', castSetConjureForm: 'invité',
   castSetDiscreet: 'invité',
   castAllocOvercast: 'invité', castSetChosenTableRolls: 'invité', castToggleExtraTarget: 'invité',
   castPickTargets: 'invité',
-  castPlaceZone: 'invité', castConfirm: 'invité',
+  castPlaceZone: 'invité',
   // Contre-sort / opposition de cible : « tout lancer » des rangées de CE siège (verbe NULLAIRE du
-  // drive d'auto-cadence, `combatAuto.STEP_WINDOW_AUTO`). Les résolutions (`xConfirm`/`xCancel`) sont
-  // DÉRIVÉES de `FLOW_VERBS.resolution` (#1050), plus recopiées ici.
+  // drive d'auto-cadence, `combatAuto.STEP_WINDOW_AUTO`).
   counterspellRollAll: 'invité', oppositionRollAll: 'invité',
   // PHASE 1 du Contre-sort (#1042/#1059) : chaque candidat DÉCLARE depuis SA RANGÉE (contrer seul /
   // s'unir / passer) — contribution de table routée par la possession de son porteur (patron #1050) ;
   // `counterspellDeclareAll` est le verbe NULLAIRE du drive d'auto-cadence, comme `counterspellRollAll`.
   counterspellDeclare: 'invité', counterspellDeclareAll: 'invité',
   // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
-  // (#1279 Sf, jumeau du choix) / tirage sur table (avance et clôture = `resolution` du flux, dérivées).
+  // (#1279 Sf, jumeau du choix) / tirage sur table / navigation (valider l'étape, tout résoudre, terminer le bilan).
+  cascadeNext: 'invité', cascadeResolveAll: 'invité', cascadeFinish: 'invité',
   cascadeChoose: 'invité', cascadeAmount: 'invité', cascadeTableRoll: 'invité',
   // Mode table (#942 L3) : poser le dé d'une étape à table (champ ou clic sur une ligne) — autorisé par la
   // possession du siège ÉMETTEUR (`intentAllowedFor`) ; l'option « Dés fixés » est CLIENT-SIDE.
   cascadeTableSetForcedRoll: 'invité',
   // DÉ NU (#1508) : les deux mêmes verbes pour l'autre lecture du même dé — même routage de possession.
   cascadeDieRoll: 'invité', cascadeDieSetForcedRoll: 'invité',
-  // désengagement : ouverture, jet, appliquer/fuir
-  disengageConfirmA: 'invité', disengageConfirm: 'invité',
+  // désengagement : Sacrifier l'Avantage, fuir
+  disengageConfirmA: 'invité',
   disengageFlee: 'invité',
-  // « Au Contact » (LDB 62 l.176) : ouverture, jet, choix du vainqueur
-  battleAuContact: 'invité', auContactConfirm: 'invité',
+  // « Au Contact » (LDB 62 l.176) : ouverture, choix du vainqueur
+  battleAuContact: 'invité',
   auContactChoose: 'invité',
-  // Empoignade (LDB 14 l.161) : ouverture, « Briser », jet, choix du vainqueur
-  battleGrapple: 'invité', grappleBreak: 'invité', grappleConfirm: 'invité',
+  // Empoignade (LDB 14 l.161) : ouverture, « Briser », choix du vainqueur
+  battleGrapple: 'invité', grappleBreak: 'invité',
   grappleChoose: 'invité',
   // combat monté
   mountTargetSelect: 'invité', mountTargetCancel: 'invité',
-  // résolutions/annulations des flux de jet en combat (le verbe de jet est dérivé, pas l'appliquer)
-  maneuverConfirm: 'invité', maneuverSetAvantage: 'invité',
+  // manœuvre de créature : réglage pré-jet
+  maneuverSetAvantage: 'invité',
   // Tour de NAVIRE (couche Mer, MDG 13-14) : le contrôleur de la coque OUVRE ; CHAQUE participant
   // (héros à un rôle) roule SA rangée, routée par la possession de son id (cf. `intentAllowedFor`,
-  // primitive multi `RollParticipant`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
+  // primitive multi `RollParticipant`).
   battleShipManeuver: 'invité', shipManeuverSetTurn: 'invité',
   battleShipBattery: 'invité',
   battleCrewTest: 'invité',
-  runConfirm: 'invité', focusConfirm: 'invité',
-  wardConfirm: 'invité',
-  frenzyConfirm: 'invité', reloadConfirm: 'invité',
-  handGateConfirm: 'invité', recoverConfirm: 'invité',
-  healSetMode: 'invité', healSetTest: 'invité', healSetBandages: 'invité', healConfirm: 'invité',
+  healSetMode: 'invité', healSetTest: 'invité', healSetBandages: 'invité',
   // Corruption (LDB 19 l.29) : choix de la nature de l'Influence AVANT le jet (le jet et son influence sont dérivés).
   corruptionSetNature: 'invité',
-  // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR + paramètre pré-jet + résolution ; le jet et
+  // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR + paramètre pré-jet ; le jet et
   // ses verbes d'influence sont dérivés de `FLOW_VERBS` (mono → routés par le porteur).
-  battleBattement: 'invité', battementSetFoe: 'invité', battementConfirm: 'invité',
-  battleDistraire: 'invité', distraireSetFoe: 'invité', distraireConfirm: 'invité',
+  battleBattement: 'invité', battementSetFoe: 'invité',
+  battleDistraire: 'invité', distraireSetFoe: 'invité',
   // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
-  // du tombant, `netOwnership`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
+  // du tombant, `netOwnership`).
   fallAcross: 'invité', fallChoose: 'invité',
   // Enfoncer une porte : choix de l'arme d'une rangée, routé par le siège de son héros (`netOwnership`).
   forceDoorChoisirArme: 'invité',
-  // Approche d'une source de Peur (ouverte par `battleClickTile`/`battleClickEntity`) : résolution.
-  approachConfirm: 'invité',
-  // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse) + résolution du jet de dissipation.
-  battleDispelSpell: 'invité', dispelConfirm: 'invité',
-  // Chanson de marin (MDG 09) : OUVREUR + choix de la chanson + résolution.
-  battleSingShanty: 'invité', shantySetSong: 'invité', shantyConfirm: 'invité',
-  // Test de scène/compétence (`pendingTest`) : choix du LANCEUR parmi les candidats + application de
-  // la branche réussite/échec. L'ouverture reste interne (`openSkillTest`, jamais une action de store).
-  testSetActor: 'invité', resolveTest: 'invité',
-  // Fuite de vapeur (MDG 12 l.326-328) : résolution de la sauvegarde d'Initiative.
-  steamSaveConfirm: 'invité',
+  // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse).
+  battleDispelSpell: 'invité',
+  // Chanson de marin (MDG 09) : OUVREUR + choix de la chanson.
+  battleSingShanty: 'invité', shantySetSong: 'invité',
+  // Test de scène/compétence (`pendingTest`) : choix du LANCEUR parmi les candidats. L'ouverture reste
+  // interne (`openSkillTest`, jamais une action de store).
+  testSetActor: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie + fermeture — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
-  // surgeryNext applique, `jetCancel('surgery')` annule la passe, medicAbandonSurgery l'opération — une
-  // passe n'a AUCUN verbe de résolution inline.
+  // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, medicAbandonSurgery l'opération.
   medicSelectPatient: 'invité', medicAct: 'invité', medicSetWound: 'invité', closeMedic: 'invité',
-  openSurgeryPass: 'invité', surgeryNext: 'invité', medicAbandonSurgery: 'invité',
+  openSurgeryPass: 'invité', medicAbandonSurgery: 'invité',
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument) + ready-check.
   restSet: 'invité', restReady: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les intents `cascade*` dérivés.)
@@ -189,7 +175,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // profondeur). Les deux sont routés sur le TIREUR : pendant la pause il n'y a AUCUN combattant
   // actif (`turn: -1`), donc le repli universel les refusait à tout siège invité.
   armPreempt: 'invité', preemptRangedShot: 'invité',
-  resolveCorruption: 'invité',
   // Demande de pause au prochain Round : POSER et RETIRER passent par le même chemin (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
   victoryReady: 'invité', assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
@@ -206,9 +191,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Préparation de bataille : le héros MENEUR est le 2e argument ; l'affectation de l'armée
   // (`setMassBattleHero`), partagée, reste à l'hôte.
   massBattleActivity: 'invité',
-  // Jet d'Activité : verbes DÉRIVÉS (flux mono `activity`, « Annuler » compris) ; l'application est une
-  // action de store hors `FLOW_VERBS`.
-  activityConfirm: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
@@ -302,7 +284,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `startInterlude`/`interludeEnd` sont `hôte` (l'hôte seul ouvre et clôt la période). */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
   'interludeActivity', 'interludeCraftStart', 'interludeOrder', 'interludeBank', 'interludeWithdraw',
-  'interludeEntrainement', 'favorSettle', 'massBattleActivity', 'activityConfirm',
+  'interludeEntrainement', 'favorSettle', 'massBattleActivity',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */
@@ -320,7 +302,7 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
  * sont une surface MORTE.
  *  - `parInvite` : ouvreurs qu'un invité doit pouvoir demander (classe `invité`) ;
  *  - `parHote` : ouvreurs d'un ÉCRAN piloté par l'hôte (classe `hôte`) — le jet, une fois ouvert, est
- *    joué ENTIER par le siège de son porteur (verbes de jet ET `resolution`, routes de `netOwnership`) ;
+ *    joué ENTIER par le siège de son porteur (verbes de jet, clôture comprise, routes de `netOwnership`) ;
  *  - `interne` : aucune action de store n'ouvre ce flux — la valeur NOMME le site qui le pose.
  * Ses ouvreurs `parHote` fixent leur classe dans `TableDesClasses` : la table n'est donc vérifiée
  * qu'après sa déclaration (`_ouvertureTotale`).
@@ -361,17 +343,6 @@ type FluxOuverts = keyof typeof OUVERTURE_DES_FLUX;
 const _ouvertureTotale: Record<FluxMono, Ouverture> & Record<Exclude<FluxOuverts, FluxMono>, never> = OUVERTURE_DES_FLUX;
 void _ouvertureTotale;
 type OuvreurParHote = { [K in FluxOuverts]: (typeof OUVERTURE_DES_FLUX)[K] extends { parHote: readonly (infer A)[] } ? A : never }[FluxOuverts];
-
-/** Un flux mono dont le `pending` est `HORS_MODAL` n'a aucune modale du registre pour désigner son
- *  porteur (`modalOwnerOf`) : ses actions de clôture passent par sa `resolution`, routée sur lui. */
-type PendingHorsModal = (typeof HORS_MODAL)[number]['pendingKey'];
-type FluxHorsModalSansResolution = {
-  [K in FluxMono]: Table[K] extends { jetOwner: { pending: PendingHorsModal } }
-    ? (Table[K] extends { resolution: readonly [string, ...string[]] } ? never : K)
-    : never;
-}[FluxMono];
-const _fluxHorsModalClos: [FluxHorsModalSansResolution] extends [never] ? true : ['flux mono HORS_MODAL sans `resolution`', FluxHorsModalSansResolution] = true;
-void _fluxHorsModalClos;
 
 /** Sort d'une intention de siège : ignorée hors allowlist, refusée hors possession, sinon appliquée. */
 export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';

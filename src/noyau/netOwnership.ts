@@ -12,13 +12,9 @@ import { seatOwns, jetSurfaced } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, fluxAccepte, resolutionsDuPorteur, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
 import { WORLD_STEP_OWNER } from './pendings';
-
-/** Clôtures (`resolution`) des flux MONO, dont la possession suit le PORTEUR du jet (`s[pending][field]`) — DÉRIVÉES
- *  de `FLOW_VERBS`, jamais énumérées à la main. */
-const RESOLUTIONS_DU_PORTEUR: Readonly<Record<string, JetOwnerRef>> = resolutionsDuPorteur();
 
 /** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
  *  registre, jamais énumérés à la main. */
@@ -470,12 +466,9 @@ const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => 
  * personne.
  *  - flux MONO : le porteur du jet (`routeJet`) ;
  *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
- *  - « Laisser passer » le Contre-sort : refusé à TOUT siège tant qu'une rangée n'a pas déclaré (#1042/#1059, 2ᵉ bout
- *    de la garde d'effet, `FLOWS.counterspell.annulation`), puis le repli universel — prédicat STRUCTUREL (une rangée
- *    sans `declared`) : `netOwnership` reste une feuille, sans import de flux ;
- *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; l'annulation, qui
- *    ferme la fenêtre de TOUS, et les flux dont la rangée n'a pas d'acteur propre (Round, étape, dé) retombent sur le
- *    repli universel (le owner de LEUR modale).
+ *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; un verbe de
+ *    fenêtre (`estVerbeDeFenetre` : l'annulation et la clôture, qui agissent pour TOUS), et les flux dont la rangée n'a
+ *    pas d'acteur propre (Round, étape, dé) retombent sur le repli universel (le owner de LEUR modale).
  */
 const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
   rule: (s, seat, args) => {
@@ -484,8 +477,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     const w: FlowVerbs = FLOW_VERBS[flux];
     if (w.kind === 'mono') return routeJet(w.jetOwner).rule(s, seat, args);
     if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
-    if (flux === 'counterspell' && verbe === 'cancel') return (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared) ? false : null;
-    return w.pidIsActor && verbe !== 'cancel' ? seatOwns(s, seat, rangeeDuGeste(verbe, args)) : null;
+    return w.pidIsActor && !estVerbeDeFenetre(verbe) ? seatOwns(s, seat, rangeeDuGeste(verbe, args)) : null;
   },
 });
 
@@ -595,9 +587,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
       }] as readonly [string, Route],
     ),
   ],
-  // Les gestes de jet, routés par le flux qu'ils visent (`routeDuVerbeDeJet`), puis les clôtures des flux mono.
+  // Les gestes de jet, clôture comprise, routés par le flux qu'ils visent (`routeDuVerbeDeJet`).
   VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),
-  Object.entries(RESOLUTIONS_DU_PORTEUR).map(([a, jet]) => [a, routeJet(jet)] as const),
   Object.entries(HORS_MODAL_OWNED_INTENTS).map(([a, def]) => [a, routeHorsModal(def)] as const),
 );
 

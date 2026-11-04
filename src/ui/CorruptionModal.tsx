@@ -39,7 +39,7 @@ export function CorruptionModal() {
   const darkPact = useGesteDeJet('jetDarkPact', 'corruption');
   const resistAct = useGesteDeJet('jetResist', 'corruption'); // Résistance (Menace) : auto-succès du talent (LDB 10)
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'corruption'); // Résilience (LDB 17 l.68)
-  const resolve = useGame((s) => s.resolveCorruption);
+  const resolve = useGesteDeJet('jetConfirm', 'corruption');
   if (!pc) return null;
   const pool = battle?.combatants ?? party;
   const hero = pool.find((c) => c.id === pc.heroId);
@@ -72,7 +72,7 @@ export function CorruptionModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'apply' },
+    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'confirm' },
   ];
 
   return (

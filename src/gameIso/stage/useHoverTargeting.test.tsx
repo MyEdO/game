@@ -285,7 +285,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'off', damage: { plusBF: true, flat: 2 }, qualities: [] };
     active.weapons = [...active.weapons, off as never];
-    // L'interlude tel que `attackConfirm` le pose : l'étape `attack` au curseur, son slot vidé
+    // L'interlude tel que `jetConfirm('attack')` le pose : l'étape `attack` au curseur, son slot vidé
     // (`pendingAttack` null), le coup fermé ; la 2ᵉ frappe attend une cible SUR LA CARTE.
     useGame.setState({
       pendingAttack: null,

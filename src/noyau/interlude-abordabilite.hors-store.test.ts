@@ -62,7 +62,7 @@ function viderLaBourse(banc: Banc, heroId: string): void {
 function confirmerReussi(banc: Banc): void {
   banc.actions.jetRoll('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
-  banc.actions.activityConfirm();
+  banc.actions.jetConfirm('activity');
 }
 
 describe('Apprentissage particulier — PX et tuteur', () => {
@@ -166,7 +166,7 @@ describe('Apprentissage particulier — seul un Talent de la liste du volet s’
     const journal = banc.getState().journal.length;
     banc.actions.jetRoll('activity');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
-    banc.actions.activityConfirm();
+    banc.actions.jetConfirm('activity');
     expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran ne peut pas apprendre Chanceux par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).']);
     expect(horsDuJet(), 'bourse, PX ou Activité dépensés').toBe(avant);
   });
@@ -228,7 +228,7 @@ function apresUneReputation(success: boolean, sl: number): { banc: Banc; heroId:
   banc.actions.interludeActivity(h.id, 'reputation');
   banc.actions.jetRoll('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: success ? 10 : 99, success, sl } }));
-  banc.actions.activityConfirm();
+  banc.actions.jetConfirm('activity');
   expect(actorStatus(banc.getState().party[0]), 'témoin : Argent 1 pendant l’interlude').toEqual({ tier: 'argent', standing: 1 });
   return { banc, heroId: h.id };
 }

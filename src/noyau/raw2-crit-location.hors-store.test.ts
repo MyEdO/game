@@ -92,7 +92,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     banc.getState().attackSetCritLocation('jambeG');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.critLocation).toBe('jambeG');
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(res.location).toBe('jambeG');
   });
 
@@ -106,7 +106,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
       expect(res.location, 'le jet inversé, 23, est le Bras gauche').toBe('brasG');
       banc.getState().attackSetCritLocation('jambeG');
       expect(res.critLocation, 'aucun d100 de Localisation à choisir').toBeUndefined();
-      banc.getState().attackConfirm();
+      banc.getState().jetConfirm('attack');
       const critiques = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => t.startsWith('Blessure critique'));
       return { res, cible: E, critiques };
     };

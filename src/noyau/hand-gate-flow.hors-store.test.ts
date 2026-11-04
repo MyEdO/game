@@ -83,7 +83,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     // Force une RÉUSSITE pour tester l'ouverture de l'attaque (le jet lui-même est aléatoire).
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: pg.target, success: true, sl: 0 } });
-    banc.getState().handGateConfirm();
+    banc.getState().jetConfirm('handGate');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeTruthy();
@@ -96,7 +96,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
-    banc.getState().handGateConfirm();
+    banc.getState().jetConfirm('handGate');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeNull(); // l'attaque n'a pas lieu

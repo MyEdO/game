@@ -28,7 +28,7 @@ export function ForceDoorModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'forceDoor');
   const darkPact = useGesteDeJet('jetDarkPact', 'forceDoor');
   const force = useGesteDeJet('jetForceSuccess', 'forceDoor');
-  const confirm = useGame((s) => s.forceDoorConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'forceDoor');
   const cancel = useGesteDeJet('jetCancel', 'forceDoor');
   const choisirArme = useGame((s) => s.forceDoorChoisirArme);
   if (!p) return null;
@@ -71,7 +71,7 @@ export function ForceDoorModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: cede ? 'Enfoncer !' : 'Appliquer le Round', onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: cede ? 'Enfoncer !' : 'Appliquer le Round', onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

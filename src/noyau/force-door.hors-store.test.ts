@@ -33,7 +33,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
       const p = banc.getState().pendingForceDoor!;
       p.participants.forEach((part) => banc.getState().jetRoll('forceDoor', part.id)); // chacun SON jet
       expect(banc.getState().pendingForceDoor!.participants.every((x) => x.result)).toBe(true);
-      banc.getState().forceDoorConfirm(); // applique la somme du Round
+      banc.getState().jetConfirm('forceDoor'); // applique la somme du Round
     }
     expect(banc.getState().pendingForceDoor).toBeNull(); // la porte a cédé
     expect(banc.getState().flags.cave_ouverte).toBe(true); // ouverture en jeu (flag de scène)
@@ -65,7 +65,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     // Coups faibles (comme Gerhardt : DR −2 + BF 4 = 2 < BE 8 → 0).
     const p = banc.getState().pendingForceDoor!;
     banc.setState({ pendingForceDoor: { ...p, participants: p.participants.map((x) => ({ ...x, result: { roll: 63, target: 46, sl: -2, damage: 0 } })) } });
-    banc.getState().forceDoorConfirm();
+    banc.getState().jetConfirm('forceDoor');
     expect(banc.getState().pendingForceDoor!.doorB).toBe(5); // 0 dégât → Blessures inchangées, nouveau Round
   });
 

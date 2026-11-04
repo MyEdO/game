@@ -423,7 +423,7 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
  * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
- * - `advanceCombatJet` (`attackConfirm`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ * - `advanceCombatJet` (`jetConfirm('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
  * - `cascadeNext()` qui clôt l'étape COURANTE (`fumbleConfirm`, la Maladresse) : l'après-coup qui tient
@@ -796,7 +796,7 @@ export function openSkillTest(
     actorId?: string;
     noOwnTestFailed?: boolean;
     /** Action de combat « Cumuler l'Avantage » (LDB 09 l.305-308) : l'octroi porté par le pending et
-     *  appliqué par `resolveTest` — la couture reste la même, seule la conséquence est déclarée ici. */
+     *  appliqué par `jetConfirm('test')` — la couture reste la même, seule la conséquence est déclarée ici. */
     combatAdvantage?: { combatantId: string; cap: number };
     /** Test initié en COMBAT : annulable pré-jet (l'Action n'est pas encore dépensée). */
     cancellable?: boolean;
@@ -952,8 +952,8 @@ export function openSkillTest(
   });
   // « Une situation = une modale » : le Test EST une cascade à une étape `jet:'test'`, rendue par
   // `CascadeModal` (via `useTestJetProps`). `pendingTest` coexiste comme porteur de données (comme
-  // `pendingAttack` pour l'attaque) ; `resolveTest` ferme les deux. Pas d'applier : la conséquence
-  // (branche onSuccess/onFailure + continuation) est lancée par `resolveTest`.
+  // `pendingAttack` pour l'attaque) ; `jetConfirm('test')` ferme les deux. Pas d'applier : la conséquence
+  // (branche onSuccess/onFailure + continuation) est lancée par `jetConfirm('test')`.
   // ENJEU (#1117) : `FlowTest.stake` DESCEND sur l'étape qui lance — c'est elle que `CascadeModal` lit.
   // Second transporteur du champ, à parité avec les deux fabriques de `combat/triggeredTest.ts` : sans
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
@@ -976,7 +976,7 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * vide le lot et prend la pile restante comme suite, comme `test` ; `if` vide d'abord le lot
  * (la condition lit l'état VIVANT — flags/horloge — donc après les Effets émis) puis branche ; `test`
  * vide le lot, ouvre la modale et SUSPEND — la branche choisie + la continuation (reste de la pile)
- * sont reprises par `resolveTest`. Pas de boucle → terminaison garantie.
+ * sont reprises par `jetConfirm('test')`. Pas de boucle → terminaison garantie.
  *
  * Rend `OPS_DIFFEREES` (#1508) quand un lot a ouvert un dé à la porte : la pile RESTANTE lui a été
  * confiée, et l'appelant n'a plus rien à jouer. CHAQUE vidange du lot est un point d'application, donc
@@ -1047,7 +1047,7 @@ export interface EffectEnv {
   set: SetFn;
   log(line: string): void;
   pushReveal(entry: RevealEntry): void;
-  /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`resolveTest`/`pt.sl`, symétrique de
+  /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetConfirm('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `triggeredTest.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
   sl?: number;
   /** Cibles d'un effet `party`/`hero` (héros vivants concernés, bon ensemble) — `effectTargets`. */

@@ -25,7 +25,7 @@ export function HandGateModal() {
   const bonusSL = useGesteDeJet('jetBonusSL', 'handGate');
   const darkPact = useGesteDeJet('jetDarkPact', 'handGate');
   const force = useGesteDeJet('jetForceSuccess', 'handGate');
-  const confirm = useGame((s) => s.handGateConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'handGate');
   const cancel = useGesteDeJet('jetCancel', 'handGate');
   if (!pg || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pg.attackerId);
@@ -53,7 +53,7 @@ export function HandGateModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

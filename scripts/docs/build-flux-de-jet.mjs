@@ -106,7 +106,6 @@ function rendu() {
         return pend && champ ? `\`${pend}.${champ}\`` : null
       })(),
       pidIsActor: lire(/pidIsActor:\s*(\w+)/),
-      resolution: liste('resolution'),
       l: ligne(V_SF, p.getStart(V_SF)),
     }
   })
@@ -216,13 +215,13 @@ function rendu() {
 
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : les ${CYCLE.verbes.length} membres de
 \`VERBES_DE_JET\` (\`${VERBS}:${CYCLE.l}\`), les ${FLUX.length} entrées de \`FLOW_VERBS\` avec leur ligne,
-leur type, leurs verbes, leur porteur de jet et leurs actions de résolution, la confrontation au
+leur type, leurs verbes et leur porteur de jet, la confrontation au
 registre des modales (\`${ARBITER}\`, ${MODAL_KEYS.size} clés déclarées), les ${PARTAGES.length}
 fabriques/lentilles partagées et les ${ATOMES.length} atomes obligatoires (lus dans la garde
 anti-dérive, jamais recopiés), et les ${GARDES_MESUREES.length} gardes avec l'intitulé de leur
 \`describe(...)\`. **Angles morts** : ce doc dit COMMENT poser un flux, pas d'où partent les jets
 existants (\`docs/registre-jets.md\`) ni comment chaque consommateur remplit la coquille
-(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`xConfirm\` applique) n'est
+(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`jetConfirm(flux)\` applique) n'est
 dérivable d'aucun registre — c'est la règle du jeu ; les interdits et l'ordre des étapes sont de
 l'ÉDITORIAL fixé dans le script.
 
@@ -239,8 +238,8 @@ ${CYCLE.verbes.map((v) => `\`${v}\``).join(' · ')}
 ${CYCLE.note ? `> ${CYCLE.note}\n` : ''}
 Source unique de la plomberie : \`makeRollFlow\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site}\`).
 Elle centralise gardes, dépense de points et re-rendu ; le flux ne fournit que sa forme.
-**« Appliquer » (\`<flux>Confirm\`) reste écrit à la main** — ses effets sont la règle métier, pas de
-la plomberie.
+**Le corps de la clôture reste écrit à la main** — ses effets sont la règle métier, pas de la plomberie ;
+le geste, lui, est le verbe de jet \`jetConfirm(flux)\`, jugé sur la fenêtre comme les autres.
 
 ## 1. Le registre des flux — \`FLOW_VERBS\`
 
@@ -262,30 +261,29 @@ ${table(MONO, ['Flux', 'Déclaré', 'Porteur du jet', 'Verbes', 'Modale (`auto`)
 
 ### Flux MULTI (${MULTI.length})
 
-Un flux multi déclare \`pidIsActor\` (à qui appartient la rangée \`pid\` que vise un geste de jet) et ses
-actions de \`resolution\` (les actions manuscrites qui closent la fenêtre — elles sont DÉRIVÉES dans la surface
-invité, jamais recopiées).
+Un flux multi déclare \`pidIsActor\` (à qui appartient la rangée \`pid\` que vise un geste de jet).
 
-${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Résolution', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.resolution.length ? f.resolution.map((r) => `\`${r}\``).join(', ') : '—'} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
+${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Verbes', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.verbes.map((v) => `\`${v}\``).join(', ')} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
 
 ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MODALE.map((k) => `\`${k}\``).join(', ')} — normal quand le flux est une ÉTAPE d'une cascade (l'entrée de cascade porte déjà la fenêtre), fautif sinon.` : 'Tous les flux ont une entrée dans `MODAL_DEFS`.'}
 
-## 2. La recette — 1 spec + 1 confirm
+## 2. La recette — 1 spec + 1 corps de clôture
 
 1. **Type du pending** : \`Pending<X> extends PendingBase\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site.split(':')[0]}\` porte
    \`PendingBase\` et ses champs hérités). Déclarer le slot dans \`EtatDeJeu\` (\`src/noyau/etat.ts\`).
 2. **Entrée dans \`FLOWS\`** (\`${SPECS}\`) : \`makeRollFlow({ key, rolled, actor, resolve, outcome, … })\`.
    **Réutiliser les fabriques partagées** (§3) plutôt que réécrire les branches à la main.
-3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes, et le porteur (\`jetOwner\`) ou
-   \`pidIsActor\`/\`resolution\`. Puis l'entrée jumelle dans \`FLOW_HANDLERS\` — l'exhaustivité est
+3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes (\`confirm\` compris), et le porteur
+   (\`jetOwner\`) ou \`pidIsActor\`. Puis l'entrée jumelle dans \`FLOW_HANDLERS\` — l'exhaustivité est
    forcée à la compilation.
-4. **\`<flux>Confirm\` écrit à la main** dans la tranche de store du domaine : lire le résultat, appliquer
+4. **Le corps de la clôture écrit à la main**, entrée du flux dans la table \`cloturesDe…(get, set)\` de son module
+   (\`satisfies Partial<CloturesDuJet>\`), composée dans \`src/noyau/fabriquesDuNoyau.ts\` (\`satisfies CloturesDuJet\` :
+   un flux sans clôture ne compile pas) — \`jetConfirm(flux)\` en est le seul appelant : lire le résultat, appliquer
    les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des dégâts), nuller le pending, et
    faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
    le verbe de jet \`jetCancel(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
-   \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : une clôture ou une annulation manuscrite passe
-   par \`siOuvert\`, et
-   \`RollFlowHandlers.fermetures\` en tire ce que la coquille et les hôtes ouvrent.
+   \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : \`RollFlowHandlers.fermetures\` en tire ce que
+   la coquille, les hôtes et les verbes de jet ouvrent ; un réglage manuscrit (\`<flux>Set*\`) passe par \`siOuvert\`.
 5. **Ouvrir le pending** depuis le site d'origine ; si le jet est une étape de combat, l'ouvrir comme
    une étape de cascade, pas comme une fenêtre isolée.
 6. **Registre des modales** (\`${ARBITER}\`) — SEULEMENT si le flux n'est pas une étape d'une cascade

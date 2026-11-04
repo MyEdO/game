@@ -6,10 +6,10 @@
  */
 import type { Jeu } from './etat';
 import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
-import { FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs } from './flowVerbs';
+import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
-import type { FermetureDuJet, FermeturesDuJet, VerbeDuCycle } from './rollFlowFactory';
+import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
 import type { CascadeStep } from './pendings';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
@@ -28,17 +28,13 @@ export function fermeturesDeLaMaladresse(etape: CascadeStep): { fumbleRoll: Ferm
 }
 
 /** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux` : un verbe de jet sur ce flux, le jet de
- *  chaque rangée (`<flux>RollAll`), la clôture (la première `resolution` déclarée, `<flux>Confirm`, ou le dernier geste
- *  du drive pour le flux en tête). `enFenetre` : le geste agit sur la fenêtre entière, jamais sur une rangée. `null` :
- *  le flux ne joue pas ce geste. */
-function verbeDuCycle(fenetre: FenetreDuJeu, flux: FlowKey, g: GesteDuJeu): { verbe: VerbeDuCycle; enFenetre: boolean } | null {
+ *  chaque rangée (`<flux>RollAll`), la validation de l'étape de cascade (`cascadeNext`). `enFenetre` : le geste agit
+ *  sur la fenêtre entière, jamais sur une rangée. `null` : le flux ne joue pas ce geste. */
+function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetre: boolean } | null {
   const deJet = verbeDeJetDe(g.verbe);
-  if (deJet) return g.flux === flux ? { verbe: deJet, enFenetre: deJet === 'cancel' } : null;
+  if (deJet) return g.flux === flux ? { verbe: deJet, enFenetre: estVerbeDeFenetre(deJet) } : null;
   if (g.verbe === `${flux}RollAll`) return { verbe: 'roll', enFenetre: true };
-  const w: FlowVerbs = FLOW_VERBS[flux];
-  const dernier = fenetre.drive?.[fenetre.drive.length - 1];
-  const cloture = w.resolution?.[0] === g.verbe || g.verbe === `${flux}Confirm` || (flux === fenetre.flux[0] && !!dernier && cleDuGeste(dernier) === cleDuGeste(g));
-  return cloture ? { verbe: 'apply', enFenetre: true } : null;
+  return flux === 'cascade' && g.verbe === 'cascadeNext' ? { verbe: 'confirm', enFenetre: true } : null;
 }
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : le flux d'un geste de jet, et l'id qu'elle désigne
@@ -68,7 +64,7 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
   };
   for (const g of fenetre.gestes) {
     for (const flux of fenetre.flux) {
-      const cycle = verbeDuCycle(fenetre, flux, g);
+      const cycle = verbeDuCycle(flux, g);
       if (!cycle) continue;
       const w: FlowVerbs = FLOW_VERBS[flux];
       const pid = w.kind === 'multi' && (!cycle.enFenetre || !w.pidIsActor) ? fenetre.pid : undefined;

@@ -49,7 +49,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const darkPact = useGesteDeJet('jetDarkPact', 'defense');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'defense');
   const reverseVerb = useGesteDeJet('jetReverse', 'defense');
-  const confirm = useGame((s) => s.defenseConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'defense');
   const spendResolve = useGame((s) => s.spendResolveCondition);
   const vue = pd && battle ? fenetreDeDefense(useGame.getState()) : null;
   if (!pd || !battle || !vue) return null;
@@ -153,7 +153,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return {

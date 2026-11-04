@@ -23,7 +23,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
 import { draineCascade } from './cascade.testkit';
 import { modalOwnerOf } from './modalArbiter';
-import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, estVerbeDeFenetre, type RollVerb } from './flowVerbs';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { intentAllowedFor } from './netOwnership';
 import { refusDAjoutAuGroupe } from './partyFlow';
@@ -299,7 +299,7 @@ describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession
     expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('test', v))).toBe('appliquee');
   });
 
-  it.each(FLOW_VERBS.fall.verbs.filter((v) => v !== 'cancel').map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
+  it.each(FLOW_VERBS.fall.verbs.filter((v) => !estVerbeDeFenetre(v)).map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
     setup();
     const hote = mk('h1', 'hero', { x: 0, y: 1 });
     const pendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: 'h1', participants: [

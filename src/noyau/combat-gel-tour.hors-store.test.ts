@@ -77,7 +77,7 @@ function jouerLesFenetres(borne = 6): { etape: string | undefined; arme: string;
       doublons: ids.filter((id, k) => ids.indexOf(id) !== k),
     });
     g().jetRoll('defense');
-    g().defenseConfirm();
+    g().jetConfirm('defense');
   }
   return vues;
 }
@@ -105,7 +105,7 @@ describe('#1852 — une gratuite de créature après une défense : deux fenêtr
     setCadence('rapide');
     const { enemy, hero } = setup();
     maybeOpenDefense(g, banc.setState, enemy, hero, sword);
-    // Le drive de cadence est `jetRoll('defense')` → `defenseConfirm` (combatAuto.JET_AUTO.defense) : on le joue
+    // Le drive de cadence est `jetRoll('defense')` → `jetConfirm('defense')` (combatAuto.JET_AUTO.defense) : on le joue
     // ICI, sans son ordonnanceur, et on exige un PROGRÈS à chaque passage (repère = étape au curseur +
     // arme rendue). Un passage sans progrès = la boucle sans fin que la cadence subirait.
     const reperes = new Set<string>();
@@ -114,7 +114,7 @@ describe('#1852 — une gratuite de créature après une défense : deux fenêtr
       expect(reperes.has(repere), `passage sans progrès sur ${repere}`).toBe(false);
       reperes.add(repere);
       g().jetRoll('defense');
-      g().defenseConfirm();
+      g().jetConfirm('defense');
     }
     expect(g().pendingDefense).toBeNull();
     banc.reprendreTout();
@@ -187,13 +187,13 @@ function jouerJusquAuBout(borne = 40): { armes: string[]; reperes: string[]; dou
       armes.push(String(g().pendingDefense!.weapon.label));
       reperes.push(`${cur.id}|${g().pendingDefense!.weapon.label}`);
       g().jetRoll('defense');
-      g().defenseConfirm();
+      g().jetConfirm('defense');
       continue;
     }
     // Épreuve hôtée (Test de Résistance d'un État, d'un effet d'arme…) : Lancer → Appliquer.
     if (cur?.jet === 'test' && g().pendingTest) {
       if (g().pendingTest!.roll == null) g().jetRoll('test');
-      g().resolveTest();
+      g().jetConfirm('test');
       continue;
     }
     if (pc) {
@@ -227,7 +227,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
 
   // Coup principal À LA TAILLE (balayage LDB 85 l.362) suivi des gratuites de la créature (Morsure
   // l.237 puis Piétinement l.387) : le scénario même de #1852, passé par le 4ᵉ appelant (`autoCleave`
-  // depuis `defenseConfirm`). Ce qui est MESURÉ ici est l'INVARIANT DE FENÊTRAGE — chaque fenêtre a SON
+  // depuis `jetConfirm('defense')`). Ce qui est MESURÉ ici est l'INVARIANT DE FENÊTRAGE — chaque fenêtre a SON
   // étape, aucun id ne collisionne, la séquence se clôt, le tour avance. La SUITE EXACTE des coups (qui
   // enchaîne sur qui, combien de fois — Frappe Mortelle, ADE II 02 l.576 : « il ne peut pas attaquer la
   // même créature plus d'une fois ») est le périmètre de #1858, pas celui-ci.
@@ -270,7 +270,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
     for (let i = 0; i < 6 && !g().pendingDefense; i++) banc.jusquALaProchaine();
     expect(g().pendingDefense?.defenderId, 'chemin : le chargeur se défend de la riposte').toBe(hero.id);
     g().jetRoll('defense');
-    g().defenseConfirm();
+    g().jetConfirm('defense');
     jouerJusquAuBout();
     for (let i = 0; i < 300 && g().battle!.turn === 0; i++) if (!banc.jusquALaProchaine()) break;
     const frappes = g().battle!.log.filter((l) => l.kind === 'attack' && l.actorId === hero.id).length;
@@ -289,7 +289,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
       if (hoteOrphelin(s, st)) fautes.push(st!.id);
     });
     g().jetRoll('defense');
-    g().defenseConfirm();
+    g().jetConfirm('defense');
     unsub();
     expect(fautes, 'le slot se vide et l’étape se ferme dans le MÊME état').toEqual([]);
   });

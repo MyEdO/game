@@ -234,7 +234,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     g().interludeActivity(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
     g().jetRoll('activity');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
-    g().activityConfirm();
+    g().jetConfirm('activity');
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
   });
 

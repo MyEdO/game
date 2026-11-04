@@ -94,19 +94,19 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     // Le LANCEUR est surfacé (héros manuel) : sa modale d'incantation tient encore ses choix — la
     // chaîne ne repart pas toute seule (#1028, `resumeAfterCounterspell`), c'est « Appliquer » qui la relance.
     expect(banc.getState().pendingCastOpposition, 'la chaîne n’avance pas dans le dos du lanceur').toBeNull();
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     expect(banc.getState().pendingCastOpposition, 'l’opposition de cible s’ouvre une fois le Contre-sort réglé').toBeTruthy();
     expect(banc.getState().pendingCast, 'rien n’est appliqué tant que l’opposition est due').toBeTruthy();
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;
     expect(part.interactive).toBe(false); // cible IA = rangée témoin, jet roulé à l'ouverture
     expect(part.result!.resisted).toBe(false); // FM 20 vs incantation à +6 DR
-    banc.getState().oppositionConfirm();
+    banc.getState().jetConfirm('opposition');
     expect(banc.getState().pendingCastOpposition).toBeNull();
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dead).toBe(true);
   });
 
-  it('ZdE non posée : `resolveCastChain` et `castConfirm` laissent le MÊME état (la pose passe avant l’opposition)', () => {
+  it('ZdE non posée : `resolveCastChain` et `jetConfirm(\'cast\')` laissent le MÊME état (la pose passe avant l’opposition)', () => {
     /** Pose une ZdE NON posée sur l'incantation figée (center null = pose encore due). */
     const zdeNonPosee = () => {
       const pc = banc.getState().pendingCast!;
@@ -129,7 +129,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
       const { H, E } = setup();
       frozenCast(H, E);
       zdeNonPosee();
-      banc.getState().castConfirm();
+      banc.getState().jetConfirm('cast');
       return etat();
     })();
 

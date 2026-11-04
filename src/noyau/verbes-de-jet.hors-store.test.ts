@@ -2,7 +2,8 @@
  * LES VERBES DE JET DU NOYAU (#3311) : un geste de jet est `jet<Verbe>(flux, …)`, le flux en premier argument. À la
  * frontière (JSON d'un hôte, intention d'un siège), un flux qui n'accepte pas le verbe, ou une rangée absente ou en
  * trop, se refuse et se dit (`creerVerbesDeJet`) ; la Résilience avant le jet lance le dé de son flux, mono comme multi
- * (LDB 17 l.68) ; le pilote d'auto-cadence joue le drive d'une étape-jet par ses gestes, chacun sur son flux.
+ * (LDB 17 l.68) ; le pilote d'auto-cadence joue le drive d'une étape-jet par ses gestes, chacun sur son flux ; la
+ * clôture `jetConfirm(flux)` (#3324) se juge sur la fermeture que la fenêtre montre, et dit celle qui attend une décision.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -10,6 +11,8 @@ import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { openAttackCascade } from './combatFlow';
 import { tickCombatAuto } from './combatAuto';
 import { intentAllowedFor } from './netOwnership';
+import { fermeturesDuFlux } from './verbesOuverts';
+import { libelleDeLaFermeture } from './libelles';
 import { testScene } from '../scenes/test-fixture';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { t } from '../i18n';
@@ -69,6 +72,72 @@ describe('le pilote d’auto-cadence joue le drive d’une étape-jet, chaque ge
     expect(g().pendingAttack?.result, 'témoin : le jet d’attaque attend').toBeNull();
     tickCombatAuto(g, banc.setState);
     banc.jusquA((s) => !s.pendingAttack, 20);
-    expect(g().pendingAttack, 'le drive `jetRoll@attack` puis `attackConfirm` a clos l’attaque').toBeNull();
+    expect(g().pendingAttack, 'le drive `jetRoll@attack` puis `jetConfirm(\'attack\')` a clos l’attaque').toBeNull();
+  });
+});
+
+describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme les autres verbes de jet', () => {
+  beforeEach(() => { banc = ouvrirLeBanc(); });
+
+  it.each([
+    ['un flux inconnu', 'zz-inconnu'],
+    ['la cascade, qui se clôt par sa navigation', 'cascade'],
+  ] as const)('refuse et dit %s', (_cas, flux) => {
+    heroFaceAUnEnnemi(banc, testScene());
+    (g().jetConfirm as (flux: string) => void)(flux);
+    expect(g().refus?.texte).toBe(t('jet.refus.gesteAbsent'));
+  });
+
+  it('avant le jet, la clôture est fermée sans un mot : l’attaque reste en attente', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, testScene());
+    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: H.weapons[0].uid }, 'Attaque', 'action/attack');
+    const avant = g().pendingAttack;
+    g().jetConfirm('attack');
+    expect(g().pendingAttack).toBe(avant);
+    expect(g().refus).toBeFalsy();
+  });
+
+  it('une opposition au Sort qu’une cible n’a pas jetée : la clôture se dit refusée, comme la fenêtre la montre', () => {
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    banc.setState({ pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
+    const avant = g().pendingCastOpposition;
+    expect(fermeturesDuFlux(g(), 'opposition').confirm).toBe('oppositionsDues');
+    g().jetConfirm('opposition');
+    expect(g().refus?.texte).toBe(libelleDeLaFermeture('oppositionsDues'));
+    expect(g().pendingCastOpposition).toBe(avant);
+  });
+
+  it('une chute dont une rangée n’a pas déclaré : la fenêtre et le verbe disent la même fermeture', () => {
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    banc.setState({
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H.id, participants: [
+        { id: H.id, interactive: true, attempt: null, result: null },
+      ] },
+    } as unknown as Partial<Jeu>);
+    const avant = g().pendingFall;
+    expect(fermeturesDuFlux(g(), 'fall').confirm).toBe('declarationsDues');
+    g().jetConfirm('fall');
+    expect(g().refus?.texte).toBe(libelleDeLaFermeture('declarationsDues'));
+    expect(g().pendingFall).toBe(avant);
+  });
+
+  it('un Contre-sort en déclaration (LDB 46 l.156) : ni clôture ni annulation tant qu’un candidat n’a pas déclaré', () => {
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    banc.setState({ pendingCounterspell: { participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
+    const fermetures = fermeturesDuFlux(g(), 'counterspell');
+    expect([fermetures.confirm, fermetures.cancel]).toEqual(['declarationsDues', 'declarationsDues']);
+    const avant = g().pendingCounterspell;
+    g().jetConfirm('counterspell');
+    expect(g().refus?.texte).toBe(libelleDeLaFermeture('declarationsDues'));
+    expect(g().pendingCounterspell).toBe(avant);
+  });
+
+  it('un Contre-sort déclaré : la clôture attend le jet de chaque contre-lanceur qui lance (#3324)', () => {
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    const rangee = { id: H.id, interactive: true, base: 40, target: 40, declared: 'solo' as const };
+    banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: null }] } } as unknown as Partial<Jeu>);
+    expect(fermeturesDuFlux(g(), 'counterspell').confirm, 'le contre-lanceur déclaré n’a pas lancé').toBe('jetNonLance');
+    banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: { dispelled: false, counter: { roll: 90, target: 40, sl: -3, success: false, isDouble: false } } }] } } as unknown as Partial<Jeu>);
+    expect(fermeturesDuFlux(g(), 'counterspell').confirm, 'son jet est tombé').toBeNull();
   });
 });

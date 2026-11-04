@@ -1,6 +1,6 @@
 /**
  * Les Bandages dans le soin (#3059 I3) : le Test déclaré (Guérison / Dextérité), les Bandages engagés, et l'issue que
- * l'annonce dit = celle que `healConfirm` applique. LDB 74 l.41 ; LDB 09 l.260-261 ; LDB 16 l.107 ; LDB 18 l.308-311 ;
+ * l'annonce dit = celle que `jetConfirm('heal')` applique. LDB 74 l.41 ; LDB 09 l.260-261 ; LDB 16 l.107 ; LDB 18 l.308-311 ;
  * LDB 10 l.19, l.897-899 ; LDB 23 l.209. Valeurs de lacune (orchestrateur, 2026-11-03) : une unité s'use, la Dextérité
  * retire 1 État, Intermédiaire (+0).
  */
@@ -61,7 +61,7 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
       if (avec) banc.getState().healSetBandages('doc');
       jete(10, true, 1);
       expect(describeHeal(banc.getState().pendingHeal!, enCombat('al'))).toBe(annonce);
-      banc.getState().healConfirm();
+      banc.getState().jetConfirm('heal');
       expect(hemorragie('al')).toBe(reste);
       expect(enCombat('doc').items!.length).toBe(avec ? 0 : 1);
     }
@@ -80,7 +80,7 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
     const ph = banc.getState().pendingHeal!;
     expect([ph.test, ph.bandagesDe, ph.skillValue, ph.difficulty]).toEqual(['dexterite', 'doc', 35, 'intermediaire']);
     jete(10, true, 3);
-    banc.getState().healConfirm();
+    banc.getState().jetConfirm('heal');
     expect(hemorragie('al')).toBe(3);
   });
 
@@ -116,7 +116,7 @@ describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311
       banc.getState().battleHeal('al', 'wounds');
       if (avec) banc.getState().healSetBandages('doc');
       jete(10, true, 1);
-      banc.getState().healConfirm();
+      banc.getState().jetConfirm('heal');
       expect(!!enCombat('al').woundDressed).toBe(avec);
     }
   });
@@ -127,7 +127,7 @@ describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311
       banc.getState().battleHeal('al', 'wounds');
       if (avec) banc.getState().healSetBandages('doc');
       jete(90, false, -5);
-      banc.getState().healConfirm();
+      banc.getState().jetConfirm('heal');
       expect(enCombat('al').traumas![0].awaitingMedicalAid).toBe(!avec);
       expect(enCombat('doc').items!.length).toBe(avec ? 0 : 1);
     }

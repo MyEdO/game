@@ -63,7 +63,7 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   banc.getState().battleSelectAttack('souffle');
   banc.getState().battleClickEntity(E.id);
   banc.getState().jetRoll('maneuver');
-  banc.getState().maneuverConfirm();
+  banc.getState().jetConfirm('maneuver');
 }
 
 function finDeRound() {
