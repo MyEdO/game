@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from './index';
 import { t } from '../../i18n';
-import { TAB_LABELS } from '../../ui/CharacterSheet';
+import { TAB_LABELS } from '../../i18n/ongletsDeLaFiche';
 
 // Un texte de scénario qui NOMME un élément d'interface le nomme tel que l'écran l'affiche (#2198 K19).
 

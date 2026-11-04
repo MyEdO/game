@@ -1393,7 +1393,7 @@ export interface GroupData {
 /** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
  *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
  *  au `match` vide) ; `columns` = ids de colonnes de stats à afficher, résolus contre le registre de
- *  renderers `MERCHANT_COL_RENDERERS` (`ui/MerchantPanel.tsx`). */
+ *  renderers `MERCHANT_COL_RENDERERS` (`noyau/colonnesDuMarchand.ts`). */
 export interface MerchantFamilyData {
   id: string;
   type: 'merchantFamilies';

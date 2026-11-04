@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useGame, type SheetTab } from '../state/store';
+import { useGame } from '../state/store';
+import { TAB_LABELS, type SheetTab } from '../i18n/ongletsDeLaFiche';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { appraiseRefus } from '../noyau/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -22,7 +23,7 @@ import { refusEmplacementDeMain, refusAchatDeComposant, coutDuComposant } from '
 import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
 import { refusDInventaire, refusDuLanceurDeFiche } from '../noyau/verrousDeFiche';
-import { t, type MsgKey } from '../i18n';
+import { t } from '../i18n';
 import { actorHasSkill, skillBaseValue } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
@@ -96,17 +97,6 @@ function etatZoneBadges(hero: Combatant): ZoneBadgeSpec[] {
 function SheetActiveEffects({ hero }: { hero: Combatant }) {
   return <EffectChips conditions={hero.conditions} effects={hero.activeEffects} flags={combatantFlags(hero)} />;
 }
-
-/** Libellé d'un onglet de la fiche : sa clé de catalogue `sheet.tab.<onglet>` — un texte qui NOMME un
- *  onglet (scénario de test, aide) lit la même clé, et ne peut donc pas mentir sur son nom. */
-export const TAB_LABELS: Record<SheetTab, MsgKey> = {
-  etat: 'sheet.tab.etat',
-  possessions: 'sheet.tab.possessions',
-  competences: 'sheet.tab.competences',
-  magie: 'sheet.tab.magie',
-  avancement: 'sheet.tab.avancement',
-  histoire: 'sheet.tab.histoire',
-};
 
 export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: () => void }) {
   // EN COMBAT, lire la copie de bataille (qui porte les effets actifs vivants — buffs, métamorphose,

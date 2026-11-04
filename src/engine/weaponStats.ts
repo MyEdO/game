@@ -1,10 +1,11 @@
-import type { ItemInstance, Weapon, WeaponRangeSpec, AmmoRangeMod, WeaponDamageSpec, Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../engine/flowCore';
-import { damageString } from '../engine/items';
-import { effectiveWeaponDamage, effectiveRange } from '../engine/weaponDamage';
-import { improvisedProfile } from '../engine/weaponDamage';
-import { resolveQualities, type QualityCarrier } from '../engine/qualities/dispatch';
-import { siegeMultiplier } from '../engine/structures';
+import type { ItemInstance, Weapon, WeaponRangeSpec, AmmoRangeMod, WeaponDamageSpec, Combatant } from './types';
+import type { TriggeredEffect } from './flowCore';
+import { damageString } from './items';
+import { effectiveWeaponDamage, effectiveRange } from './weaponDamage';
+import { improvisedProfile } from './weaponDamage';
+import { resolveQualities, type QualityCarrier } from './qualities/dispatch';
+import { siegeMultiplier } from './structures';
+import { t } from '../i18n';
 
 /**
  * Parts d'affichage CANONIQUES des stats MÉCANIQUES d'une arme (hors qualités, gérées par l'appelant) :
@@ -18,10 +19,10 @@ import { siegeMultiplier } from '../engine/structures';
  */
 export function weaponStatParts(it: ItemInstance | Weapon, force: { bf: number; passif: number }): string[] {
   const parts: string[] = [];
-  if (it.damage) parts.push(`Dégâts ${damageString(it.damage)} (${effectiveWeaponDamage(it as Weapon, force)})`);
+  if (it.damage) parts.push(t('ws.degats', { spec: damageString(it.damage), total: effectiveWeaponDamage(it as Weapon, force) }));
   const rangeM = effectiveRange(it.range, force.bf); // SPEC → mètres (BF×N pour une arme de jet)
-  if (rangeM != null) parts.push(`Portée ${rangeM} m`);
-  else if (it.reach) parts.push(`Allonge ${it.reach}`);
+  if (rangeM != null) parts.push(t('ws.portee', { m: rangeM }));
+  else if (it.reach) parts.push(t('ws.allonge', { reach: it.reach }));
   const note = conditionalDamageNote(it as QualityCarrier & { damage?: WeaponDamageSpec | null; onHitEffects?: TriggeredEffect[] });
   if (note) parts.push(note);
   return parts;
@@ -50,11 +51,11 @@ const SIEGE_TARGET = { bodyShape: 'structure' } as Combatant;
  */
 export function conditionalDamageNote(w: QualityCarrier & { damage?: WeaponDamageSpec | null; onHitEffects?: TriggeredEffect[] }): string | null {
   const notes: string[] = [];
-  if (resolveQualities(w).some((r) => r.caps?.ram)) notes.push(`contre une porte uniquement — sinon Arme improvisée (${damageString(IMPROVISED_DAMAGE)})`);
+  if (resolveQualities(w).some((r) => r.caps?.ram)) notes.push(t('ws.belier', { dmg: damageString(IMPROVISED_DAMAGE) }));
   const siegeMult = siegeMultiplier({ qualities: w.qualities } as Weapon, SIEGE_TARGET);
-  if (siegeMult > 1) notes.push(`×${siegeMult} contre une structure`);
+  if (siegeMult > 1) notes.push(t('ws.siege', { mult: siegeMult }));
   if (notes.length) return notes.join(' · ');
-  if (!w.damage && w.onHitEffects?.length) return 'Dégâts conditionnels — voir Effets';
+  if (!w.damage && w.onHitEffects?.length) return t('ws.conditionnels');
   return null;
 }
 

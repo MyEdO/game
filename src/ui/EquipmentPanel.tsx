@@ -8,7 +8,7 @@ import { ItemIcon } from './ItemIcon';
 import { MediaSelect, type MediaOption } from './MediaSelect';
 import { forceDuPorteur } from '../engine/characteristics';
 import { qualityRefLabel } from '../data';
-import { weaponStatParts } from './weaponStats';
+import { weaponStatParts } from '../engine/weaponStats';
 import { Icon } from './Icon';
 import { Band } from './Band';
 import { Grid } from './Layout';

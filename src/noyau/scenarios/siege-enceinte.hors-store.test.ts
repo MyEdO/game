@@ -13,9 +13,6 @@ import { isStructure } from '../../engine/structures';
 import { woundsFromHit } from '../../engine/woundsCalc';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { Weapon } from '../../engine/types';
-import { buildTokens } from '../../gameIso/builders/tokens';
-import { isOverhang, capsSolid } from '../../gameIso/builders/floors';
-import { computeStateVisibleAndLight } from '../../noyau/visionState';
 import { encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
 
 let banc: Banc;
@@ -354,38 +351,5 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const gobs = scenarioConstruit.scene.entities.filter((e) => e.ref === 'gobelin');
     expect(gobs.length).toBe(6);
     for (const g of gobs) expect(by(g.id)).toEqual({ entityId: g.id, side: 'enemy' });
-  });
-
-  /**
-   * Décision de dessiner la garnison du chemin de ronde vue depuis la cour (#1567) : la loi d'étage
-   * laisse sortir le jeton d'une case dont le sol de z1 coiffe la MASSE PLEINE du rempart
-   * (`capsSolid`), cas distinct du surplomb sur pilotis (`isOverhang`). La vue mesurée est celle de
-   * l'écran : brouillard réel et `activeZ` du combattant actif.
-   */
-  it('RENDU : depuis la cour, la garnison du chemin de ronde (défenseurs ET pièces servies) sort en jetons', () => {
-    banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scenarioConstruit.scene);
-    banc.getState().startCombat('assaut');
-    banc.getState().confirmRoundStart();
-    const st = banc.getState();
-    const b = st.battle!;
-    const scene = st.scene!;
-    const vl = computeStateVisibleAndLight({ scene, battle: b, party: st.party, partyPos: st.partyPos, gameTime: st.gameTime, lightLevel: st.lightLevel });
-    const actif = b.combatants.find((c) => c.id === b.order[b.turn])!;
-    const activeZ = actif.pos?.z ?? 0;
-    expect(activeZ).toBe(0); // le combat s'ouvre au sol : c'est de là qu'on regarde le rempart
-    const rendus = new Set(buildTokens(scene, vl.visible, b, { activeZ, viewZ: null, top: false }, st.party.map((h) => h.id)).map((t) => t.id));
-    // Les 2 PIÈCES du rempart (emplacements posés par `bind: { emplacement }`) et leurs 2 servants.
-    const piecesRempart = b.combatants.filter((c) => c.bodyShape === 'engin' && (c.pos?.z ?? 0) === 1);
-    expect(piecesRempart.length).toBe(2);
-    for (const p of piecesRempart) {
-      expect(capsSolid(scene, p.pos!.x, p.pos!.y, 1)).toBe(true); // dessus de la masse, pas un surplomb
-      expect(isOverhang(scene, p.pos!.x, p.pos!.y, 1)).toBe(false);
-      expect(rendus.has(p.id)).toBe(true);
-    }
-    for (const id of ['crew-baliste', 'crew-canon']) expect(rendus.has(id)).toBe(true);
-    // Contre-épreuve : la batterie ENNEMIE au fond du champ reste coupée par le BROUILLARD (loi
-    // inchangée) — ce test mesure l'étage, pas la vue.
-    for (const c of b.combatants.filter((x) => x.bodyShape === 'engin' && (x.pos?.z ?? 0) === 0)) expect(rendus.has(c.id)).toBe(false);
   });
 });

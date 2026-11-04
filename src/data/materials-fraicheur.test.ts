@@ -2,17 +2,16 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { materials, matieresDe, matieresCouvrantes, matierePlan, findPropMaterialById } from './index';
 import { setDataset, resetData } from './overrides';
 import type { MaterialEntry } from './materials.types';
-import { propMaterial } from '../gameIso/catalog/propMaterials';
-import { roofMaterial } from '../gameIso/catalog/roofs';
-import { reliefMaterial } from '../gameIso/catalog/relief';
+import { editees } from './materials.testkit';
 import { validateScene } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 
 /**
  * FRAÎCHEUR DES MATIÈRES (#1686 lot 3a-1) — le document des matières se mute EN PLACE
  * (`overrides.setDataset`, seam de l'éditeur du Codex et des surcharges de campagne). Toute vue de ce
- * document — les vues par domaine, les trois façades de rendu, le sous-filtre des couvertures — doit
- * donc voir la valeur NEUVE au coup d'après, sans rechargement de page.
+ * document — les vues par domaine, la porte par id, le sous-filtre des couvertures ici, les trois façades de
+ * rendu dans `gameIso/catalog/materials-fraicheur.test.ts` — doit donc voir la valeur NEUVE au coup d'après,
+ * sans rechargement de page.
  *
  * Ce que la garde interdit, nommément : re-figer une vue au niveau MODULE (`const MAP = …`,
  * `const propMaterials = matieresDe('prop')`). Une telle vue rend VERT tout test qui lit la donnée
@@ -23,11 +22,6 @@ import { emptyScene, type Scene } from '../noyau/monde/scene';
  * (`exposition.edit`) n'est encore déclarée au def : le dataset ne se SAUVEGARDE pas, mais il se mute,
  * et c'est la mutation que les vues doivent suivre.
  */
-
-/** Le document, cloné puis retouché entrée par entrée — jamais une liste écrite à la main. */
-function editees(patch: (e: MaterialEntry) => MaterialEntry): MaterialEntry[] {
-  return materials.map((e) => patch(structuredClone(e)));
-}
 
 const COULEUR_NEUVE = '#0f0f0f';
 const PENTE_NEUVE = '#0e0e0e';
@@ -55,10 +49,6 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
     expect(matieresDe('prop').find((m) => m.id === prop.id)!.color).toBe(COULEUR_NEUVE);
     expect(matieresDe('roof').find((m) => m.id === roof.id)!.N).toBe(PENTE_NEUVE);
     expect(matieresDe('relief').find((m) => m.id === relief.id)!.face).toBe(FACE_NEUVE);
-    // … façades de RENDU (`catalogEntry` sur une résolution vivante) …
-    expect(propMaterial(prop.id).color).toBe(COULEUR_NEUVE);
-    expect(roofMaterial(roof.id).N).toBe(PENTE_NEUVE);
-    expect(reliefMaterial(relief.id).face).toBe(FACE_NEUVE);
     // … et la porte par id de la façade `src/data`.
     expect(findPropMaterialById(prop.id)!.color).toBe(COULEUR_NEUVE);
   });
@@ -71,7 +61,6 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
     expect(findPropMaterialById(neuve.id)).toBeUndefined();
     setDataset('materials', [...materials.map((e) => structuredClone(e)), neuve]);
     expect(findPropMaterialById(neuve.id)!.label).toBe(neuve.label);
-    expect(propMaterial(neuve.id).color).toBe(COULEUR_NEUVE);
   });
 
   it('le sous-filtre des COUVERTURES suit la donnée — et le validateur de scène avec lui', () => {

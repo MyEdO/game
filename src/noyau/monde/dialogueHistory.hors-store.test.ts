@@ -6,7 +6,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueHistory';
 import { speakerEntity, type Dialogue, type SceneEntity } from './scene';
-import { placeEntity } from '../../ui/editor/editorState';
+import { addEntity } from '../sceneEdit';
+import { nextEntityId } from '../../lib/entityId';
 import { creatureLabel } from '../../data';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { createHero } from '../../engine/character';
@@ -108,7 +109,8 @@ describe('chooseDialogue — archivage (#718)', () => {
 
   it('un locuteur POSÉ à l’éditeur, sans libellé, archive le nom de sa fiche (#1463 S3)', () => {
     const base = testScene();
-    const pose = placeEntity({ ...base, entities: [...base.entities] }, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
+    const id = nextEntityId('personnage', base.entities.map((e) => e.id));
+    const pose = { scene: addEntity(base, { id, kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 } }), id };
     expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
     banc.setState({
       party: [hero()],

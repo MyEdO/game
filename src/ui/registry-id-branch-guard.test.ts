@@ -95,6 +95,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/gameIso/stage/Ambiance.tsx': 1,
   'src/gameIso/stage/CrewTooltip.tsx': 1,
   'src/noyau/monde/aiSpellValue.ts': 2,
+  'src/noyau/colonnesDuMarchand.ts': 1,
   'src/noyau/combatEffects.ts': 3,
   'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
@@ -121,7 +122,6 @@ const RAW_KNOWN: Record<string, number> = {
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
   'src/ui/CarnetScreen.tsx': 2,
-  'src/ui/MerchantPanel.tsx': 1,
   'src/ui/PartyScreen.tsx': 2,
   'src/ui/creator/CharacterCreator.tsx': 6,
   'src/ui/editor/StatblockEditor.tsx': 1,
