@@ -4,18 +4,21 @@
  * Aucune donnée de fixture — la campagne committée est le sujet.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { routesEtat, routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import { reachableCells } from '../../noyau/mapQC';
 import { aPorteeDe } from '../../noyau/monde/exploreNav';
 import { startOf } from '../../noyau/monde/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
-import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
 /** Ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du geste se joue après. */
-const lireLesDocuments = (): void => { while (useGame.getState().document) useGame.getState().closeDocument(); };
+const lireLesDocuments = (): void => { while (banc.getState().document) banc.getState().closeDocument(); };
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;
@@ -84,7 +87,7 @@ describe('carte du ch.1 — sens unique : aucune route ne remonte vers l’amont
 });
 
 describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altdorf`, () => {
-  const get = () => useGame.getState();
+  const get = () => banc.getState();
 
   it('le `when` de la clôture est le drapeau du producteur', () => {
     expect(paquet.narratif?.cloture?.when).toEqual({ kind: 'flag', expr: CLOS });
@@ -92,37 +95,37 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
 
   it('du relais à la porte sud, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
     const objectifs = () => get().objectives.map((o) => o.id);
-    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-    useGame.getState().acquitterOuverture();
+    expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
+    banc.getState().acquitterOuverture();
     expect(get().scene?.id).toBe('la-diligence');
 
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 17, y: 3 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 17, y: 3 });
     expect(objectifs()).toEqual(['edo-ch1-place-a-bord']);
 
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 13, y: 31 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 13, y: 31 });
     expect(get().flags[DEPART], 'marcher près de la diligence ne fait pas monter à bord').toBeFalsy();
 
-    useGame.getState().jouerAction('diligence-remise-charrette', 'monter-a-bord');
+    banc.getState().jouerAction('diligence-remise-charrette', 'monter-a-bord');
     expect(get().flags[DEPART]).toBe(true);
     expect(get().worldMapOpen).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
     const drapeauxAvantVirage = { ...get().flags };
-    useGame.getState().transitionTo('route-principale-virage');
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 36, y: 3 });
+    banc.getState().transitionTo('route-principale-virage');
+    poserLeGroupe(banc.getState, banc.setState, { x: 36, y: 3 });
     expect(objectifs()).toEqual(['edo-ch1-route', 'edo-ch1-embuscade']);
     expect(get().flags, 'l’arrivée au virage ne pose que sa marque `once`')
       .toEqual({ ...drapeauxAvantVirage, '__trigger_edo-ch1-arrivee-virage': true });
-    useGame.getState().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+    banc.getState().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     lireLesDocuments();
     expect(get().flags[CORPS]).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
-    useGame.getState().transitionTo('altdorf-porte-sud');
+    banc.getState().transitionTo('altdorf-porte-sud');
     expect(get().flags[CLOS]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();
 
-    poserLeGroupe(useGame.getState, useGame.setState, { x: 7, y: 9 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 7, y: 9 });
     expect(get().flags[CLOS]).toBe(true);
     expect(get().pendingChapterRecap?.titre).toBe(paquet.narratif!.cloture!.titre);
     expect(get().pendingChapterRecap?.chronique.map((c) => c.text))
@@ -136,13 +139,13 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
  * (`aPorteeDe`, la portée de `jouerAction`), le rect d'un déclencheur se franchit d'un pas.
  */
 describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur des cases atteignables', () => {
-  const get = () => useGame.getState();
+  const get = () => banc.getState();
   beforeEach(() => {
-    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-    useGame.getState().acquitterOuverture();
+    expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
+    banc.getState().acquitterOuverture();
   });
   const entrer = (id: string) => {
-    if (get().scene?.id !== id) useGame.getState().transitionTo(id);
+    if (get().scene?.id !== id) banc.getState().transitionTo(id);
     const scene = get().scene!;
     expect(scene.id).toBe(id);
     return scene;
@@ -167,12 +170,12 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
       expect(abords.length, `aucun abord de « ${p.entite} » atteignable depuis l'arrivée`).toBeGreaterThan(0);
 
       expect(get().flags[p.flag]).toBeFalsy();
-      useGame.getState().jouerAction(p.entite, p.action);
+      banc.getState().jouerAction(p.entite, p.action);
       expect(get().flags[p.flag], 'le geste joué hors de portée ne pose rien').toBeFalsy();
       const [x, y] = abords[0];
-      poserLeGroupe(useGame.getState, useGame.setState, { x, y });
+      poserLeGroupe(banc.getState, banc.setState, { x, y });
       expect(get().flags[p.flag], 'le pas seul ne pose rien').toBeFalsy();
-      useGame.getState().jouerAction(p.entite, p.action);
+      banc.getState().jouerAction(p.entite, p.action);
       lireLesDocuments();
       expect(get().flags[p.flag]).toBe(true);
     });
@@ -198,7 +201,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
 
       expect(get().flags[p.flag]).toBeFalsy();
       const [x, y] = cases[0].split(',').map(Number);
-      poserLeGroupe(useGame.getState, useGame.setState, { x, y });
+      poserLeGroupe(banc.getState, banc.setState, { x, y });
       expect(get().flags[p.flag]).toBe(true);
     });
 });

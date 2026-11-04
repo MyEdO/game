@@ -4,11 +4,14 @@ import { validateScene } from '../../noyau/validateScene';
 import { isWalkable, layerTiles } from '../../noyau/monde/scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { pathTo } from '../../noyau/monde/path';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { applyEffects } from '../../noyau/combatEffects';
 import { createHero } from '../../engine/character';
-import { scenario } from './opera';
+import { scenario } from '../../scenes/test-scenarios/opera';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -128,11 +131,11 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
     return steps.find((s) => s.kind === 'test') as Extract<Flow, { kind: 'test' }>;
   };
 
-  beforeEach(() => useGame.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 20 * 60, partyPos: { x: 10, y: 14, z: 1 } }));
+  beforeEach(() => banc.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 20 * 60, partyPos: { x: 10, y: 14, z: 1 } }));
   function lonePartyAt(wounds: number) {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = blessuresDeBase(wounds, wounds, h);
-    useGame.setState({ party: [h] });
+    banc.setState({ party: [h] });
     return h;
   }
 
@@ -143,36 +146,36 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
 
   it('entrer dans l’auditorium baisse les lumières et programme la soirée (pétards + mèche)', () => {
     lonePartyAt(35);
-    applyEffects(useGame.getState, useGame.setState, flowEffects(arm.flow));
-    expect(useGame.getState().lightLevel).toBe(0.35); // les lumières baissent (mise en scène)
-    expect(useGame.getState().scheduledEffects).toHaveLength(3); // pétards (10), retour lumière (11), bombe (60)
+    applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
+    expect(banc.getState().lightLevel).toBe(0.35); // les lumières baissent (mise en scène)
+    expect(banc.getState().scheduledEffects).toHaveLength(3); // pétards (10), retour lumière (11), bombe (60)
   });
 
   it('retirer le détonateur empêche l’explosion finale', () => {
     const before = lonePartyAt(35).wounds.current;
-    applyEffects(useGame.getState, useGame.setState, flowEffects(arm.flow));
-    applyEffects(useGame.getState, useGame.setState, flowEffects(detect.success)); // désamorçage
-    useGame.getState().advanceTime(120);
-    expect(useGame.getState().party[0].wounds.current).toBe(before); // intacte (pétards à l'écart, bombe annulée)
+    applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
+    applyEffects(banc.getState, banc.setState, flowEffects(detect.success)); // désamorçage
+    banc.getState().advanceTime(120);
+    expect(banc.getState().party[0].wounds.current).toBe(before); // intacte (pétards à l'écart, bombe annulée)
   });
 
   it('les pétards (intrigue n°2) éclatent à 20h30 : flash puis pénombre rétablie', () => {
     lonePartyAt(35);
-    applyEffects(useGame.getState, useGame.setState, flowEffects(arm.flow));
-    useGame.getState().advanceTime(10); // 20h30 : la mèche éclaire, les pétards éclatent
-    expect(useGame.getState().lightLevel).toBe(0.8); // flash
-    useGame.getState().advanceTime(1); // la salle se rassoit
-    expect(useGame.getState().lightLevel).toBe(0.35);
+    applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
+    banc.getState().advanceTime(10); // 20h30 : la mèche éclaire, les pétards éclatent
+    expect(banc.getState().lightLevel).toBe(0.8); // flash
+    banc.getState().advanceTime(1); // la salle se rassoit
+    expect(banc.getState().lightLevel).toBe(0.35);
   });
 
   it('le spot-check Glimbrin (intrigue n°2) a ses deux issues (clés sauves / volées)', () => {
     const spot = spotNode();
     expect(spot.test.skill).toEqual({ id: 'perception' });
     lonePartyAt(35);
-    applyEffects(useGame.getState, useGame.setState, flowEffects(spot.fail));
-    expect(useGame.getState().flags.clesVolees).toBe(true);
-    applyEffects(useGame.getState, useGame.setState, flowEffects(spot.success));
-    expect(useGame.getState().flags.glimbrinDejoue).toBe(true);
+    applyEffects(banc.getState, banc.setState, flowEffects(spot.fail));
+    expect(banc.getState().flags.clesVolees).toBe(true);
+    applyEffects(banc.getState, banc.setState, flowEffects(spot.success));
+    expect(banc.getState().flags.glimbrinDejoue).toBe(true);
   });
 
   it('la Comtesse remercie si la bombe a été déjouée (branche gatée par flag)', () => {
@@ -201,8 +204,8 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
 
   it('sans désamorçage, l’explosion frappe l’antichambre au bout de la mèche', () => {
     const before = lonePartyAt(35).wounds.current;
-    applyEffects(useGame.getState, useGame.setState, flowEffects(arm.flow));
-    useGame.getState().advanceTime(60);
-    expect(useGame.getState().party[0].wounds.current).toBeLessThanOrEqual(before - 15);
+    applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
+    banc.getState().advanceTime(60);
+    expect(banc.getState().party[0].wounds.current).toBeLessThanOrEqual(before - 15);
   });
 });

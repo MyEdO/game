@@ -53,7 +53,5 @@ export const PILOTE_CASCADE_RATCHET = [
   { fichier: 'src/noyau/tavernFlow.test.ts', ref: 'it:la manche qui EMPORTE la partie n’inflige pas l’Exténué, même au rang du Bonus d’Endurance (l.34)', occurrence: 1 },
   { fichier: 'src/noyau/travel.hors-store.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/noyau/voyage-cadence.hors-store.test.ts', ref: 'it:chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', occurrence: 1 },
-  { fichier: 'src/scenes/test-scenarios/15-commerce-fluvial.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
-  { fichier: 'src/scenes/test-scenarios/duel-naval.test.ts', ref: 'fn:settleCascade', occurrence: 1 },
   { fichier: 'src/ui/SequencePanel.test.tsx', ref: 'it:Middenball : le tableau de marque porte le score PAR ÉQUIPE (buts) et la somme du tour', occurrence: 1 },
 ]

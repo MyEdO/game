@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../../state/store';
-import { lancerScenario } from '../../state/scenarioFlow';
-import { testScenarios } from './index';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { lancerLeScenario } from '../lancementDeScenario';
+import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
+import { testScenarios } from '../../scenes/test-scenarios/index';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { partyMoneyTotal } from '../../noyau/bourseFlow';
 import { findSpellById } from '../../data';
@@ -9,14 +10,17 @@ import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/m
 import { spellEffectOps } from '../../engine/flowCore';
 import { avanceEtapeCascade, draineCascade } from '../../noyau/cascade.testkit';
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
 const scen = testScenarios.find((s) => s.id === 'voyage-maritime')!;
 const scenConstruit = scen.construire();
-const get = () => useGame.getState();
+const get = () => banc.getState();
 
-/** Lance le scénario par le lanceur du menu (`lancerScenario`). */
+/** Lance le scénario par le lanceur du menu (`lancerLeScenario`). */
 function launch(seed = 1) {
   seedBattleRng(seed);
-  lancerScenario(get, useGame.setState, scen);
+  lancerLeScenario(get, banc.setState, lancementDuScenario(scen));
   // La carte d'ENTRÉE de zone est une étape d'AFFICHAGE de cascade (#942 L8) : comme toute fenêtre de
   // cascade, elle gèle les actions du bord (`startTravel` compris) tant qu'elle n'est pas acquittée.
   // Le scénario l'acquitte donc, comme un joueur, AVANT d'appareiller.

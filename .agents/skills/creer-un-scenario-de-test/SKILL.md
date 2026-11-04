@@ -17,4 +17,4 @@ adapté pour une recette navigateur — sinon en créer un, jamais bricoler un �
 - chaque héros du groupe fixe a un rôle OU est hors du chemin critique (des héros oisifs à re-cycler
   chaque Round = coût mort pour le joueur ET la recette) ;
 - verrouiller par un test Vitest « anti-grind » : le nombre exact d'actions nominales suffit
-  (modèle : `attackPlan` bloqué à N−1 poussées, disponible à N — `42-belier-porte.test.ts`).
+  (modèle : `attackPlan` bloqué à N−1 poussées, disponible à N — `src/noyau/scenarios/42-belier-porte.hors-store.test.ts`).

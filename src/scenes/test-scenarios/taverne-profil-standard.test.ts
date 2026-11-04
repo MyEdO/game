@@ -5,8 +5,10 @@ import { findTavernGameById } from '../../engine/tavernGame';
 import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import { tavernGameValue, tavernNpcOffers } from '../../noyau/tavernFlow';
 import { validateScene } from '../../noyau/validateScene';
-import { presetPnjById } from '../../state/campaignData';
+import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 const scenarioConstruit = scenario.construire();
+/** Aucun narratif chargé : aucun preset ne se résout. */
+const presetPnjById = presetDuNarratif(null);
 
 const PNJ = 'habitue-bras-de-fer';
 const ent = scenarioConstruit.scene.entities.find((e) => e.id === PNJ)!;

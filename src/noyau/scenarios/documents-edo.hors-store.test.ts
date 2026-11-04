@@ -5,13 +5,16 @@
  * révèlent au Carnet. La liasse s'ouvre par l'exécuteur unique des gestes (`jouerAction`), portée comprise.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame } from '../../state/store';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { documentDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { walkFlow } from '../../engine/flowCore';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
-import { scenario } from './documents-edo';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { scenario } from '../../scenes/test-scenarios/documents-edo';
 import type { Dialogue } from '../../noyau/monde/scene';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const paquet = paquetDuJeu(diligenceCampaign).narratif.documents;
 
@@ -36,17 +39,17 @@ const A_COTE = { x: 2, y: 2 };
 /** Scène et narratif construits, chargés par la chaîne réelle, à l'écran de jeu, carte d'entrée refermée. */
 function charger(): void {
   const { party, scene, narratif } = scenario.construire();
-  useGame.setState({ party, scene: null, dialogue: null, document: null, clues: {}, dialogueHistory: [] });
-  useGame.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
-  useGame.setState({ screen: 'campaign', pendingCascade: null });
+  banc.setState({ party, scene: null, dialogue: null, document: null, clues: {}, dialogueHistory: [] });
+  banc.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
+  banc.setState({ screen: 'campaign', pendingCascade: null });
 }
 
 /** Le groupe à côté de la liasse l'ouvre par son geste authoré. */
 function ouvrirLaLiasse(): Dialogue {
   charger();
-  useGame.setState({ partyPos: A_COTE });
-  useGame.getState().jouerAction('liasse-edo', 'lire');
-  const ouvert = useGame.getState().dialogue;
+  banc.setState({ partyPos: A_COTE });
+  banc.getState().jouerAction('liasse-edo', 'lire');
+  const ouvert = banc.getState().dialogue;
   expect(ouvert?.nodeId).toBe('liasse');
   return ouvert!.dialogue;
 }
@@ -70,7 +73,7 @@ function cheminsVersLesDocuments(dlg: Dialogue): Map<string, { chapitre: number;
 }
 
 beforeEach(() => {
-  useGame.setState({ campaignNarratif: null, scene: null, dialogue: null, document: null });
+  banc.setState({ campaignNarratif: null, scene: null, dialogue: null, document: null });
 });
 
 describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
@@ -82,11 +85,11 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
 
   it('portée : depuis le départ la liasse ne s’ouvre pas ; à côté, elle s’ouvre', () => {
     charger();
-    useGame.getState().jouerAction('liasse-edo', 'lire');
-    expect(useGame.getState().dialogue, 'hors de portée').toBeNull();
-    useGame.setState({ partyPos: A_COTE });
-    useGame.getState().jouerAction('liasse-edo', 'lire');
-    expect(useGame.getState().dialogue?.nodeId).toBe('liasse');
+    banc.getState().jouerAction('liasse-edo', 'lire');
+    expect(banc.getState().dialogue, 'hors de portée').toBeNull();
+    banc.setState({ partyPos: A_COTE });
+    banc.getState().jouerAction('liasse-edo', 'lire');
+    expect(banc.getState().dialogue?.nodeId).toBe('liasse');
   });
 
   it('chaque nœud tient aux touches 1..9', () => {
@@ -100,12 +103,12 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     const dlg = ouvrirLaLiasse();
     const chemin = cheminsVersLesDocuments(dlg).get(id);
     expect(chemin, `${id} offert par la liasse`).toBeDefined();
-    useGame.getState().chooseDialogue(chemin!.chapitre);
-    useGame.getState().chooseDialogue(chemin!.reponse);
-    const ouvert = useGame.getState().document;
+    banc.getState().chooseDialogue(chemin!.chapitre);
+    banc.getState().chooseDialogue(chemin!.reponse);
+    const ouvert = banc.getState().document;
     expect(ouvert?.title).toBe(doc!.titre);
     expect(ouvert?.text).toBe(doc!.prose);
-    expect(useGame.getState().dialogue?.nodeId).toBe('liasse');
+    expect(banc.getState().dialogue?.nodeId).toBe('liasse');
   });
 
   it('chaque réponse de lecture cite son titre entre UNE paire de guillemets, même un titre qui porte les siens', () => {
@@ -117,7 +120,7 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
 
   it('les stades croisés résolvent leur document et se révèlent au Carnet', () => {
     const dlg = ouvrirLaLiasse();
-    const narratif = useGame.getState().campaignNarratif;
+    const narratif = banc.getState().campaignNarratif;
     const indice = narratif!.indices.find((i) => i.id === 'ind-billets-de-teugen')!;
     expect(indice.stades.map((s) => documentDuNarratif(narratif)(s.documentId!))).toEqual([
       paquet.find((d) => d.id === 'edo-document-8-invitation-de-teugen'),
@@ -133,9 +136,9 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
         return revele;
       });
       expect(reponse, `réponse qui révèle ${stade.id}`).toBeGreaterThanOrEqual(0);
-      if (useGame.getState().dialogue?.nodeId !== 'ch8') useGame.getState().chooseDialogue(versCh8);
-      useGame.getState().chooseDialogue(reponse);
-      expect(useGame.getState().clues['ind-billets-de-teugen']?.stadeCourant).toBe(stade.id);
+      if (banc.getState().dialogue?.nodeId !== 'ch8') banc.getState().chooseDialogue(versCh8);
+      banc.getState().chooseDialogue(reponse);
+      expect(banc.getState().clues['ind-billets-de-teugen']?.stadeCourant).toBe(stade.id);
     }
   });
 });

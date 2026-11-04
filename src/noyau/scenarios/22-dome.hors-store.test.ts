@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from '../../state/store';
-import { scenario } from './22-dome';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { scenario } from '../../scenes/test-scenarios/22-dome';
 import { applyAttackResult, runEnemyAI, applyCast } from '../../noyau/combatFlow';
 import { findSpellById } from '../../data';
 import type { CastResult } from '../../engine/magic';
@@ -9,6 +9,9 @@ import { draineEtLit } from '../../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { OPS_DIFFEREES } from '../../noyau/combatEffects';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -27,12 +30,12 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }
 
 /** Ouvre le combat du scénario et POSE le Dôme par les ops du sort CURÉ (jamais une aura à la main). */
 function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combatant; orc: Combatant } {
-  useGame.setState({ battle: null, party: scenario.construire().party });
-  useGame.getState().startScene(scenarioConstruit.scene);
-  useGame.getState().startCombat('enc-dome');
-  useGame.getState().confirmRoundStart();
-  vi.clearAllTimers();
-  const b = useGame.getState().battle!;
+  banc.setState({ battle: null, party: scenario.construire().party });
+  banc.getState().startScene(scenarioConstruit.scene);
+  banc.getState().startCombat('enc-dome');
+  banc.getState().confirmRoundStart();
+  banc.abandonner();
+  const b = banc.getState().battle!;
   const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;
   const protegee = b.combatants.find((c) => c.id === 'protegee')!;
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -40,13 +43,12 @@ function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combat
   // « Cible » et la confie aux ops. Rien n'est recopié ici, ni zone ni Indice.
   const dome = findSpellById('dome')!;
   const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-  applyCast(useGame.getState, useGame.setState, sorciere, sorciere, dome as never, ok, false, false);
+  applyCast(banc.getState, banc.setState, sorciere, sorciere, dome as never, ok, false, false);
   return { sorciere, protegee, archer: enemies[0], orc: enemies[1] };
 }
 
 describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); seedBattleRng(1); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+  beforeEach(() => { seedBattleRng(1); });
 
   it('le sort pose une aura dont l’Indice vient de la DONNÉE, et sa ZdE est un DIAMÈTRE (LDB 47 l.28)', () => {
     const { sorciere } = startDome();
@@ -60,12 +62,12 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
   it('le TIREUR agit d’abord en TIRANT (sinon la condition « de l’extérieur » ne se produit jamais)', () => {
     const { archer } = startDome();
     expect(archer.weapons?.some((w) => w.type === 'ranged'), 'l’arc vient de la DONNÉE du scénario').toBe(true);
-    const b = useGame.getState().battle!;
+    const b = banc.getState().battle!;
     const avant = b.log.length;
-    useGame.setState({ battle: { ...b, turn: b.order.indexOf(archer.id), acted: false, action: null, movementUsed: 0 } });
-    runEnemyAI(useGame.getState, useGame.setState, archer.id);
-    vi.runOnlyPendingTimers();
-    const lignes = useGame.getState().battle!.log.slice(avant);
+    banc.setState({ battle: { ...b, turn: b.order.indexOf(archer.id), acted: false, action: null, movementUsed: 0 } });
+    runEnemyAI(banc.getState, banc.setState, archer.id);
+    banc.reprendreLesEnAttente();
+    const lignes = banc.getState().battle!.log.slice(avant);
     expect(lignes.some((l) => l.kind === 'shoot'), `premier acte du tireur : ${lignes.map((l) => l.text).join(' | ')}`).toBe(true);
   });
 
@@ -77,9 +79,9 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
     for (let i = 0; i < 40 && !sauve; i++) {
       protegee.wounds.current = avant;
       // Depuis #1508 le coup est SUSPENDU sur l'étape de dé : c'est la fenêtre qui jette le 1d10.
-      const suspendu = applyAttackResult(useGame.getState, useGame.setState, archer, protegee, arc, tir());
+      const suspendu = applyAttackResult(banc.getState, banc.setState, archer, protegee, arc, tir());
       expect(suspendu, 'le coup doit être suspendu sur sa sauvegarde, jamais résolu en silence').toBe(OPS_DIFFEREES);
-      sauve = draineEtLit(useGame.getState).some((x) => /sauvegarde 1d10 : \d+ ≥ Protection \(6\+\) du Dôme\./.test(x));
+      sauve = draineEtLit(banc.getState).some((x) => /sauvegarde 1d10 : \d+ ≥ Protection \(6\+\) du Dôme\./.test(x));
     }
     expect(sauve, 'aucune sauvegarde du Dôme en 40 tirs : elle ne s’ouvre pas').toBe(true);
   });
@@ -93,8 +95,8 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
     let vues = 0;
     for (let i = 0; i < 20; i++) {
       protegee.wounds.current = 30;
-      applyAttackResult(useGame.getState, useGame.setState, archer, protegee, arc, tir());
-      const lignes = draineEtLit(useGame.getState);
+      applyAttackResult(banc.getState, banc.setState, archer, protegee, arc, tir());
+      const lignes = draineEtLit(banc.getState);
       const total = lignes.filter((x) => /sauvegarde 1d10 : \d+ [≥<] Protection \(6\+\) du Dôme\./.test(x)).length;
       expect(
         total - vues,
@@ -109,12 +111,12 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
     const lues: string[] = [];
     for (let i = 0; i < 40; i++) {
       protegee.wounds.current = 20;
-      const suspendu = applyAttackResult(useGame.getState, useGame.setState, orc, protegee, epee, tir());
+      const suspendu = applyAttackResult(banc.getState, banc.setState, orc, protegee, epee, tir());
       expect(suspendu, 'aucune étape de sauvegarde ne s’ouvre en mêlée sous la voûte').toBeUndefined();
-      lues.push(...draineEtLit(useGame.getState));
+      lues.push(...draineEtLit(banc.getState));
     }
     expect(
-      [...useGame.getState().battle!.log.map((l) => l.text), ...lues].some((x) => x.includes('du Dôme')),
+      [...banc.getState().battle!.log.map((l) => l.text), ...lues].some((x) => x.includes('du Dôme')),
       'le dôme ne couvre pas le corps à corps',
     ).toBe(false);
   });

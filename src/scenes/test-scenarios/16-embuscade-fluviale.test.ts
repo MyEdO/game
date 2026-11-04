@@ -6,10 +6,12 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles } from '../../noyau/monde/scene';
 import { findVehicleById } from '../../data';
 import type { Combatant } from '../../engine/types';
-import { presetPnjById } from '../../state/campaignData';
+import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 const scen = testScenarios.find((s) => s.id === 'embuscade-fluviale')!;
 const scenConstruit = scen.construire();
+/** Aucun narratif chargé : aucun preset ne se résout. */
+const presetPnjById = presetDuNarratif(null);
 
 /** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-fluvial-<i>`) par la
  *  fiche que `combatSlice` spawne au démarrage (`ficheDEntite`). */
