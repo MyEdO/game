@@ -22,7 +22,7 @@ import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } f
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
-import { flowTestSchema } from '../../data/schemas/grammaire/mecanique';
+import { flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -196,7 +196,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           Menace
           <select
             value={test.menace ?? ''}
-            onChange={(e) => upd({ menace: e.target.value || undefined })}
+            onChange={(e) => { const lue = menaceSchema.safeParse(e.target.value); upd({ menace: lue.success ? lue.data : undefined }); }}
           >
             <option value="">aucune</option>
             {menaceIds().map((m) => (

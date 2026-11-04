@@ -35,6 +35,7 @@ import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { StakeRef } from '../data';
 import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
 import { gelerLaConstante } from '../lib/gelerProfond';
+import type { MenaceId } from './menace';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
  *  ouverte ; objet vide = toujours vrai. Aucune dépendance — type structurel pur. */
@@ -514,7 +515,7 @@ export interface FlowTest {
   /** MENACE à laquelle ce Test RÉSISTE (tag du talent « Résistance (Menace) », LDB 10 l.1016-1020 :
    *  `poison` pour Venin/lames empoisonnées…). Copié sur l'étape de cascade du héros → offre
    *  l'auto-succès du talent (verbe `resist`, cf. engine/menace). Absent = Test non couvert. */
-  menace?: string;
+  menace?: MenaceId;
   /** Difficulté DYNAMIQUE : la PREMIÈRE Condition vraie impose sa difficulté ; sinon `difficulty` (défaut
    *  Intermédiaire). Brisé (LDB 16 l.58) : caché → Accessible, ennemi à ≤3 → Très difficile, sinon Intermédiaire. */
   difficultyBy?: { cond: Condition; difficulty: Difficulty }[];

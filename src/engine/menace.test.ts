@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { availableResistance, markResistanceUsed, resistanceForcedSL, menaceIds, isMenaceId } from './menace';
+import { availableResistance, markResistanceUsed, resistanceForcedSL, menaceIds } from './menace';
 import { findTalentById } from '../data';
 import { restoreFortune } from './fortune';
 import type { Combatant } from './types';
@@ -63,8 +63,5 @@ describe('Résistance (Menace) — disponibilité de la spec (LDB 10 l.1016-1020
     const specs = (findTalentById('resistance')?.specs ?? []).map((s) => s.id);
     expect(menaceIds()).toEqual(specs);
     expect(specs.length).toBeGreaterThan(0); // le corpus mesuré n'est pas vide
-    expect(isMenaceId('maladie')).toBe(true);
-    expect(isMenaceId('Maladie')).toBe(false); // id STABLE : la casse du libellé n'est pas un id
-    expect(isMenaceId('exposition')).toBe(false); // hors catalogue
   });
 });

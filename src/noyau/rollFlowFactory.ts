@@ -23,7 +23,7 @@ import type { Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
 import type { Combatant, Difficulty, ReverseQuery } from '../engine/types';
 import { canReroll } from '../engine/fortune';
-import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves } from '../engine/menace';
+import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves, type MenaceId } from '../engine/menace';
 import { hasActiveFlag, consumeActiveFlag, freeRerollOf } from '../engine/activeFlags';
 import { touchActors } from './combatOrParty';
 import { surfaceOf } from './rollSeam';
@@ -112,7 +112,7 @@ export interface PendingBase {
   /** MENACE à laquelle ce Test RÉSISTE (« Résistance (Menace) », LDB 10 l.1016-1020 : `maladie` /
    *  `corruption` / `mutation` / `magie` / `poison`…) — posé par le SITE qui ouvre le pending/l'étape.
    *  Présent + talent disponible ⇒ le verbe `resist` offre l'auto-succès (1× par spec et par séance). */
-  menace?: string;
+  menace?: MenaceId;
   /** DÉ FIXÉ à la main (option de confort « Dés fixés », `engine/fixedDie.ts`) — PROVENANCE, pas une
    *  règle : distingue le dé saisi par le joueur (aucun coût, jet évalué au naturel) du dé CHOISI de la
    *  Résilience (`forced`, réussite garantie). Lu par l'UI (mention « dé fixé » sur la rangée). */

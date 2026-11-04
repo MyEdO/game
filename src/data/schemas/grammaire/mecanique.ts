@@ -10,7 +10,6 @@ import { validerApparenceDonnee } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
-import { isMenaceId, menaceIds } from '../../../engine/menace';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from '../../../engine/ops';
@@ -19,7 +18,7 @@ import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, contexteDeTestSchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
@@ -875,6 +874,10 @@ export const jetSchema = nommerChamps(z.strictObject({
   difficulty: difficultySchema.optional(),
 }), { skill: { label: 'Compétence' }, characteristic: { label: 'caractéristique' }, difficulty: { label: 'difficulté' } });
 
+/** Tag `menace` d'un Test : une spécialisation de l'entrée `resistance` de `talents.json`
+ *  (`MenaceId`, `engine/menace.ts`). */
+export const menaceSchema = specFermeeDe('talent', 'resistance');
+
 export const flowTestSchema = nommerChamps(z.strictObject({
   /** ENJEU du Test (#1117) — cf. `stakeRefSchema`. */
   stake: stakeRefSchema.optional(),
@@ -896,20 +899,8 @@ export const flowTestSchema = nommerChamps(z.strictObject({
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais
    *  soutenable ; `false` = soutenable malgré la voie (Test de soin d'un nécessaire). */
   noSupport: z.boolean().optional(),
-  /** Tag MENACE du talent « Résistance (Menace) » (LDB 10 l.1016-1020) — CLÉ ÉTRANGÈRE vers un id de
-   *  spec de l'entrée `resistance` de `talents.json`, résolue à la VALIDATION (liste OUVERTE : une
-   *  spec ajoutée au Compendium est utilisable sans toucher au code). Un id inconnu échoue au
-   *  chargement (`dev-validate`), au contrat CI (`schema-contract.test.ts`) et à la sauvegarde Codex. */
-  menace: z
-    .string()
-    .superRefine((v, ctx) => {
-      if (isMenaceId(v)) return;
-      ctx.addIssue({
-        code: 'custom',
-        message: `menace « ${v} » : aucune spec de ce nom sur le talent « resistance » (talents.json). Valeurs admises : ${menaceIds().join(', ')}`,
-      });
-    })
-    .optional(),
+  /** Tag MENACE du talent « Résistance (Menace) » (LDB 10 l.1016-1020). */
+  menace: menaceSchema.optional(),
   difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
   opposed: nommerChamps(z
     .strictObject({

@@ -32,6 +32,7 @@ import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
+import type { MenaceId } from '../engine/menace';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -835,7 +836,7 @@ export interface PendingCorruption {
   /** Menace du talent « Résistance (Menace) » (LDB 10) couverte par CE Test : `corruption` (exposition,
    *  l.23-75 — résister au GAIN de Points) ou `mutation` (seuil, l.70 — l'échec fait MUTER). Posé à
    *  l'ouverture ; offre l'auto-succès via `corruptionResist`. */
-  menace?: string;
+  menace?: MenaceId;
 }
 /** Contexte d'un Critique (qui l'inflige + l'arme/sort en libellé) — modale enrichie + B. de Sauvagerie.
  *  Forme identique au `ctx` d'`applyCriticalToTarget` : source UNIQUE du type. */

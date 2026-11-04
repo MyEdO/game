@@ -20,6 +20,7 @@ import { refusDeReserveDeDetermination } from '../engine/conditions';
 import type { FLOW_VERBS } from '../noyau/flowVerbs';
 import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
 import { t } from '../i18n';
+import type { MenaceId } from '../engine/menace';
 
 /** Libellé par défaut du bouton « Lancer » (rangée seule ET coquille `RollShell` hissée). */
 export const defaultRollLabel = (): ReactNode => <><Icon id="nav/dice" size="sm" /> {t('verbe.roll')}</>;
@@ -247,7 +248,7 @@ export interface RollRowProps {
   determination?: { resolve: number; onResolve: () => void };
   /** Résistance (Menace) (LDB 10) : auto-succès du talent — fourni quand disponible ET issue encore
    *  défavorable (le parent décide). Affiché AVANT le jet et après un échec. */
-  resist?: { menace: string; onResist: () => void };
+  resist?: { menace: MenaceId; onResist: () => void };
   /** Inversion de Test (LDB 23/LDB 10) : fourni SEULEMENT quand une voie (Talent/jeton) est OFFERTE
    *  (le parent décide via `FLOWS.<flux>.reverseAvailable`). `preview` (`FLOWS.<flux>.reversePreview`) —
    *  dé renversé + DR/succès — rend l'issue LISIBLE avant le clic. */

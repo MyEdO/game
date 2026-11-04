@@ -27,6 +27,7 @@
  */
 import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { RNG, roll, type DiceSpec, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
@@ -176,12 +177,12 @@ export const diseaseDefs = memoParVersion('maladies', (): Record<string, Disease
   (maladies as DiseaseDef[]).map((m) => [m.id, m]),
 ));
 /** ids des maladies CANONIQUES (LDB 20) référencées par le moteur (cascade persistant, contagions). Pas de
- *  chaîne magique. Garde-fou de synchro `DISEASES`⇄`maladies.json` : `refs-migrated.test`. */
+ *  chaîne magique : chaque valeur est typée par l'espace `maladies.json` de `IdsParEspace`. */
 export const DISEASES = {
   infectionMineure: 'infection-mineure', blessurePurulente: 'blessure-purulente', infectionDuSang: 'infection-du-sang',
   couranteGalopante: 'courante-galopante', fievreDuRongeur: 'fievre-du-rongeur', fluxSanglant: 'flux-sanglant',
   pesteNoire: 'peste-noire', veroleDuTanneur: 'verole-du-tanneur', veroleUrticante: 'verole-urticante',
-} as const;
+} as const satisfies Record<string, IdsParEspace['maladies.json']>;
 
 /** Construit une instance de maladie (tire incubation/durée → MINUTES). `opts.incubation`/`opts.duration`
  *  figent les jets EN JOURS (tests, ou contraction « instantanée » depuis un autre symptôme — l.32 :

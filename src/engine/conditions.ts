@@ -17,6 +17,7 @@ import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './tr
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { rollTest, isDoubleRoll, DIFFICULTY_LADDER, type TestResult } from './tests';
 import { dropExpiredGrantedPsych, dropExpiredGrantedTraits } from './grantedTraits';
 import { dropExpiredGrantedResources } from './grantedResources';
@@ -35,12 +36,13 @@ import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical�
 /** Les 12 États CANONIQUES (LDB 16) à comportement moteur, par `id` STABLE (slug d'etats.json). Le
  *  moteur (pénalités, fin de Round, récupération) les référence via ces constantes — JAMAIS de chaîne
  *  magique. `ConditionInstance.name` reste OUVERT (string) : le Codex peut créer d'AUTRES États (posés/
- *  affichés ; leur mécanique RAW serait à câbler). Garde-fou de synchro `COND`⇄etats.json : `conditions.test`. */
+ *  affichés ; leur mécanique RAW serait à câbler). Chaque valeur est typée par l'espace `etats.json` de
+ *  `IdsParEspace` : un id hors catalogue ne compile pas. */
 export const COND = {
   assourdi: 'assourdi', aTerre: 'a-terre', aveugle: 'aveugle', brise: 'brise',
   empetre: 'empetre', empoisonne: 'empoisonne', enFlammes: 'en-flammes', extenue: 'extenue',
   hemorragique: 'hemorragique', inconscient: 'inconscient', sonne: 'sonne', surpris: 'surpris',
-} as const;
+} as const satisfies Record<string, IdsParEspace['etats.json']>;
 
 /** Nombre de pions (cumul) d'un État donné. */
 export const stacks = (c: Combatant, name: string) => { etatExige(name); return c.conditions.find((x) => x.id === name)?.value ?? 0; };
