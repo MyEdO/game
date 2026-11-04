@@ -71,8 +71,7 @@ export function windsMagicLineOf(battle: Jeu['battle']): ModLine | null {
  * (téléportation) ne cible aucun combattant ; un mode à liste (soin/Surincantation/Frappe Mortelle/2ᵉ
  * frappe) consulte ses `candidates` ; un mode à réticule (attaque/cast/bordée) consulte l'affordance
  * (≠ 'none') ; une pose de zone (commit sans affordance) agit sur la case de tout combattant cliqué.
- * Condition UNIQUE partagée par le clic de case (`intentionDuClicDeCase` : carte et curseur), la frise
- * (`onStripPortrait`) et la frappe d'une structure (`useStagePointer`, `frapper`). L'autorisation COOP
+ * Condition UNIQUE du clic d'un combattant, jouée par `jouerLeClicDuCombattant`. L'autorisation COOP
  * (`controlsActive`) reste gardée par l'APPELANT.
  */
 export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): boolean {
@@ -103,13 +102,25 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
   return mode.candidates ? mode.candidates(get, active).some((c) => c.id === combatant.id) : true;
 }
 
-type IntentionDuClicDeCase = { kind: 'entity'; id: string } | { kind: 'tile'; pt: Pt };
+/**
+ * LE clic d'un combattant — jeton, portrait de frise, structure frappée, occupant d'une case : s'il passe
+ * `combatantClickActs`, joue `battleClickEntity` (`CLICS_DU_CHAMP.combattant`) et rend `true` ; sinon rien,
+ * `false`. Le verbe se lit dans l'état AU MOMENT du clic (chez l'invité coop, il porte l'enrobage
+ * d'intention, `state/netFlow.ts`). L'autorisation COOP (`controlsActive`) reste gardée par l'APPELANT.
+ */
+export function jouerLeClicDuCombattant(get: Get, id: string, confirm: boolean): boolean {
+  if (!combatantClickActs(get, { id })) return false;
+  get().battleClickEntity(id, { confirm });
+  return true;
+}
+
+/** Genres keyés comme `CLICS_DU_CHAMP` (`actionsDuNoyau.ts`) : ce qu'un clic de case désigne. */
+type IntentionDuClicDeCase = { kind: 'combattant'; id: string } | { kind: 'case'; pt: Pt };
 
 /**
- * Ce que joue un clic sur une CASE de combat, source unique du clic-sol (`useStagePointer.performClick`)
- * et du commit du curseur clavier/manette (`commitCursor`) : l'occupant d'une tuile de son empreinte, à
- * l'étage `z`, se joue s'il passe `combatantClickActs` ; un occupant qui ne la passe pas ne joue rien
- * (jamais de clic-case sous un combattant) ; une case libre se joue en déplacement. `null` hors combat.
+ * Ce que joue un clic sur une CASE de combat : l'occupant d'une tuile de son empreinte, à l'étage `z`, se
+ * joue s'il passe `combatantClickActs` ; un occupant qui ne la passe pas ne joue rien (jamais de clic-case
+ * sous un combattant) ; une case libre se joue en déplacement. `null` hors combat.
  */
 export function intentionDuClicDeCase(get: Get, tuile: Pt): IntentionDuClicDeCase | null {
   const battle = get().battle;
@@ -117,6 +128,20 @@ export function intentionDuClicDeCase(get: Get, tuile: Pt): IntentionDuClicDeCas
   const { x, y } = tuile;
   const z = tuile.z ?? 0;
   const occupant = combatantAtTile(battle.combatants, x, y, z);
-  if (occupant) return combatantClickActs(get, occupant) ? { kind: 'entity', id: occupant.id } : null;
-  return { kind: 'tile', pt: pointDeCase(x, y, z) };
+  if (occupant) return combatantClickActs(get, occupant) ? { kind: 'combattant', id: occupant.id } : null;
+  return { kind: 'case', pt: pointDeCase(x, y, z) };
+}
+
+/**
+ * LE clic d'une CASE de combat, source unique du clic-sol (`useStagePointer.performClick`) et du commit du
+ * curseur clavier/manette (`commitCursor`) : l'occupant se joue par `jouerLeClicDuCombattant`, une case libre
+ * par `battleClickTile` (`CLICS_DU_CHAMP.case`), lu dans l'état AU MOMENT du clic. `false` si la case ne joue
+ * rien (`intentionDuClicDeCase` nulle) : le refus éventuel appartient à l'appelant.
+ */
+export function jouerLeClicDeCase(get: Get, tuile: Pt, confirm: boolean): boolean {
+  const intention = intentionDuClicDeCase(get, tuile);
+  if (!intention) return false;
+  if (intention.kind === 'combattant') return jouerLeClicDuCombattant(get, intention.id, confirm);
+  get().battleClickTile(intention.pt, { confirm });
+  return true;
 }
