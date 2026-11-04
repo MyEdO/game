@@ -55,8 +55,8 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   });
   const recovery = kind === 'recovery';
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer la passe', onClick: next, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: 'Appliquer la passe', onClick: next, verbe: 'apply' },
   ];
   return {
     flowKey: 'surgery',

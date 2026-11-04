@@ -61,9 +61,9 @@ export function ShipManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, when: 'pre' as const }] : []),
-    { key: 'confirm', label: 'Manœuvrer', onClick: confirm, when: 'always', disabled: !allRolled },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
+    { key: 'confirm', label: 'Manœuvrer', onClick: confirm, verbe: 'apply' },
   ];
 
   return (

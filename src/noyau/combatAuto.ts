@@ -101,17 +101,19 @@ const idDEtape = (e: CascadeStep): string => e.id;
  *  sinon l'id de l'étape. */
 const pidDuFlux = (cle: 'cascade' | 'cascadeBatch') => (e: CascadeStep): string | undefined =>
   (FLOW_VERBS[cle].pidIsActor ? idDeLaRangeeDue(e.participants) : e.id);
+/** L'interaction d'étape que joue le flux de cascade `cle` : son flux, ses verbes et leur `pid`. */
+const joueePar = (cle: 'cascade' | 'cascadeBatch') => ({ flux: cle, verbes: verbesDuFlux(cle), pid: pidDuFlux(cle) });
 
 /** L'interaction d'étape que règle le seul verbe `verbe`, qui prend l'id d'étape puis l'argument que `lecture` règle. */
 const regleePar = (verbe: keyof ActionsDuNoyau, lecture: (v: keyof ActionsDuNoyau) => (e: CascadeStep) => Reglage) =>
   ({ verbes: [verbe], pid: idDEtape, reglage: lecture(verbe) });
 
 /** Les verbes d'une étape de cascade sans jet de COMBAT, par son interaction (`stepInteraction`), l'id qu'ils prennent
- *  en premier argument (`pid`) et le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une
- *  quantité). Record total : une interaction neuve nomme ses verbes. */
-export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { verbes: VerbesDeFenetre; pid: (e: CascadeStep) => string | undefined; reglage?: (e: CascadeStep) => Reglage }> = {
-  jet: { verbes: verbesDuFlux('cascade'), pid: pidDuFlux('cascade') },
-  batch: { verbes: verbesDuFlux('cascadeBatch'), pid: pidDuFlux('cascadeBatch') },
+ *  en premier argument (`pid`), le réglage de l'argument qui suit (`reglage` : les clés d'un choix, les bornes d'une
+ *  quantité) et le flux de jet qui la joue (`flux`). Record total : une interaction neuve nomme ses verbes. */
+export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { verbes: VerbesDeFenetre; pid: (e: CascadeStep) => string | undefined; reglage?: (e: CascadeStep) => Reglage; flux?: FlowKey }> = {
+  jet: joueePar('cascade'),
+  batch: joueePar('cascadeBatch'),
   table: { verbes: ['cascadeTableRoll', 'cascadeTableSetForcedRoll'], pid: idDEtape },
   de: { verbes: ['cascadeDieRoll', 'cascadeDieSetForcedRoll'], pid: idDEtape },
   quantite: regleePar('cascadeAmount', reglageDeLaQuantite),
@@ -138,14 +140,15 @@ export function verbesDuJet(jet: NonNullable<CascadeStep['jet']>, reactive?: Fen
 /** Les clés que `fenetreDuJeu` peut rendre : chaque modale (`MODAL_DEFS`), puis chaque situation hors modale (`HORS_MODAL`). */
 export const CLES_DE_FENETRE: readonly string[] = [...MODAL_DEFS.map((d) => d.key), ...HORS_MODAL.map((d) => d.key)];
 
-/** La fenêtre qui tient la main : sa clé, son propriétaire, ses verbes, l'id que ses verbes prennent en premier
- *  argument (`pid` : l'étape de cascade courante, ou la rangée due d'une fenêtre à plusieurs jets), les verbes que sa
- *  politique enchaîne pour la résoudre (`drive`, `AutoPolicy` : le jet, puis sa clôture), et l'étape de cascade courante
- *  quand la cascade tient la main. */
-interface FenetreDuJeu {
+/** La fenêtre qui tient la main : sa clé, son propriétaire, ses verbes, les flux de jet qui les jouent (`flux`, celui
+ *  que sa politique résout en tête), l'id que ses verbes prennent en premier argument (`pid` : l'étape de cascade
+ *  courante, ou la rangée due d'une fenêtre à plusieurs jets), les verbes que sa politique enchaîne pour la résoudre
+ *  (`drive`, `AutoPolicy` : le jet, puis sa clôture), et l'étape de cascade courante quand la cascade tient la main. */
+export interface FenetreDuJeu {
   cle: string;
   proprietaire: string | undefined;
   verbes: readonly string[];
+  flux: readonly FlowKey[];
   pid?: string;
   drive?: readonly string[];
   etape?: CascadeStep;
@@ -166,18 +169,18 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     const proprietaire = def.owner(s) ?? undefined;
     const pc = cle === 'cascade' ? s.pendingCascade : null;
     const avecPid = (pid: string | undefined) => (pid ? { pid } : {});
-    if (!pc) return { cle, proprietaire, verbes: verbesDeLaFenetre(def), ...avecPid(idDeLaRangeeDue(def.rangees?.(s))), drive: verbesDuDrive(def.auto) };
+    if (!pc) return { cle, proprietaire, verbes: verbesDeLaFenetre(def), flux: def.flux ?? [], ...avecPid(idDeLaRangeeDue(def.rangees?.(s))), drive: verbesDuDrive(def.auto) };
     const etape = pc.participants[pc.cursor];
     if (etape?.jet) {
-      const { rangees, reactives = [] } = FENETRE_DU_JET[etape.jet];
+      const { flux, rangees, reactives = [] } = FENETRE_DU_JET[etape.jet];
       const reactive = reactives.find((w) => w.rangees(s));
-      return { cle, proprietaire, verbes: verbesDuJet(etape.jet, reactive), ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? verbesDuDrive(JET_AUTO[etape.jet]), etape };
+      return { cle, proprietaire, verbes: verbesDuJet(etape.jet, reactive), flux: [...(reactive ? [reactive.flux] : []), ...(flux ? [flux] : [])], ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? verbesDuDrive(JET_AUTO[etape.jet]), etape };
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
-    return { cle, proprietaire, verbes: [...new Set([...(parInteraction?.verbes ?? []), ...FLOW_VERBS.cascade.resolution])], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
+    return { cle, proprietaire, verbes: [...new Set([...(parInteraction?.verbes ?? []), ...FLOW_VERBS.cascade.resolution])], flux: parInteraction?.flux ? [parInteraction.flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
-  return hors ? { cle: hors.key, proprietaire: hors.owner(s), verbes: verbesDeLaFenetre(hors) } : null;
+  return hors ? { cle: hors.key, proprietaire: hors.owner(s), verbes: verbesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;
 }
 
 /**

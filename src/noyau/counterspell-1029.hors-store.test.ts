@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
-import { castSpell, routeCounterspell, counterspellCandidates, counterspellChanted, isDispellableCast, withPreRollFixedDie } from './combatFlow';
+import { castSpell, routeCounterspell, counterspellCandidates, isDispellableCast, withPreRollFixedDie } from './combatFlow';
+import { FLOW_HANDLERS } from './rollFlowSpecs';
 import { effectivelyHostile } from '../engine/relations';
 import type { SpellLike } from '../engine/magic';
 import { createHero } from '../engine/character';
@@ -145,16 +146,17 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     const pcs = banc.getState().pendingCounterspell!;
     expect(pcs.participants.map((p) => p.id)).toEqual(expect.arrayContaining([h1.id, h2.id]));
     expect(pcs.participants.every((p) => !p.result), 'personne ne roule d’office').toBe(true);
-    expect(counterspellChanted(pcs), 'fenêtre vierge : « Laisser passer » est encore offert').toBe(false);
+    const laisserPasser = () => FLOW_HANDLERS.counterspell.fermetures(banc.getState).cancel;
+    expect(laisserPasser(), 'phase 1 : « Laisser passer » attend les déclarations').toBe('declarationsDues');
     const cur = () => banc.getState().battle!.combatants;
     // PHASE 1 (#1042/#1059) : la composition se règle AVANT les dés — un jet lancé ici ne part pas.
     banc.getState().counterspellRoll(h1.id);
-    expect(counterspellChanted(banc.getState().pendingCounterspell), 'aucun dé tant que la fenêtre n’a pas déclaré').toBe(false);
+    expect(banc.getState().pendingCounterspell!.participants.every((p) => !p.result), 'aucun dé tant que la fenêtre n’a pas déclaré').toBe(true);
     expect(cur().find((c) => c.id === h1.id)!.dispelledThisRound, 'le verrou de phase ne brûle rien').toBeFalsy();
     banc.getState().counterspellDeclare(h1.id, 'solo');
     banc.getState().counterspellDeclare(h2.id, 'pass');
     banc.getState().counterspellRoll(h1.id);
-    expect(counterspellChanted(banc.getState().pendingCounterspell), 'phase 2 : le déclaré chante').toBe(true);
+    expect(laisserPasser(), 'phase 2 : le déclaré chante, « Laisser passer » se ferme').toBe('jetLance');
     expect(cur().find((c) => c.id === h1.id)!.dispelledThisRound, 'l’essai du chanteur est consommé').toBe(true);
     expect(cur().find((c) => c.id === h2.id)!.dispelledThisRound, 'celui qui a passé garde le sien').toBeFalsy();
   });
@@ -257,9 +259,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     H.characteristics.intelligence = 99;
     H.resilience = 1;
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    withPreRollFixedDie(banc.getState, banc.setState,
-      () => banc.getState().castRoll(),
-      () => banc.getState().castForceSuccess());
+    banc.getState().castForceSuccess(); // avant le jet : le geste lance puis force (`auJetDu`)
     const pc = banc.getState().pendingCast!;
     expect(pc.forced, 'la réussite est achetée par la Résilience').toBe(true);
     // L'aiguillage a vu le résultat FINAL : soit il a routé (non-critique), soit il attend le choix
@@ -293,8 +293,7 @@ describe('#1031 — renoncer à une incantation LANCÉE est refusé (plus de Con
     banc.getState().castCancel();
     expect(banc.getState().pendingCast, 'l’incantation lancée reste en place').toBeTruthy();
     expect(banc.getState().pendingCounterspell, 'la fenêtre garde son incantation (jamais orpheline)').toBeTruthy();
-    expect(banc.getState().battle!.log.some((e) => e.text === t('cs.castCancelLocked', { name: H.label })),
-      'le refus est DIT au joueur, jamais silencieux').toBe(true);
+    expect(banc.getState().refus?.texte, 'le refus est DIT au joueur, jamais silencieux').toBe(t('cs.castCancelLocked', { name: H.label }));
   });
 
   it('PRÉ-JET : castCancel passe et purge toute fenêtre de Contre-sort liée', () => {
