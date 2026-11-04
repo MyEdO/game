@@ -170,8 +170,8 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     const rate = { dispelled: false, counter: { roll: 90, target: 40, sl: -3, success: false, isDouble: false }, casterNetSL: 8, log: 'raté' };
     const gagne = { dispelled: true, counter: { roll: 5, target: 40, sl: 4, success: true, isDouble: false }, casterNetSL: 1, log: 'DISSIPÉ' };
     banc.setState({ pendingCounterspell: { participants: [
-      { id: E.id, interactive: true, result: rate },
-      { id: E2.id, interactive: true, result: gagne },
+      { id: E.id, interactive: true, declared: 'solo', result: rate },
+      { id: E2.id, interactive: true, declared: 'solo', result: gagne },
     ] } } as unknown as Partial<Jeu>);
     banc.getState().jetConfirm('counterspell');
     const res = banc.getState().pendingCast!.result!;
@@ -184,7 +184,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     const [h1] = heroes;
     freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 5, isCritical: false, isFumble: false, log: 'x' });
     const gagne = { dispelled: true, counter: { roll: 5, target: 40, sl: 4, success: true, isDouble: false }, casterNetSL: 1, log: 'Contre-sort : le Sort est DISSIPÉ.' };
-    banc.setState({ pendingCounterspell: { participants: [{ id: E.id, interactive: true, result: gagne }] } } as unknown as Partial<Jeu>);
+    banc.setState({ pendingCounterspell: { participants: [{ id: E.id, interactive: true, declared: 'solo', result: gagne }] } } as unknown as Partial<Jeu>);
     banc.getState().jetCancel('counterspell'); // clic tardif : décliner n'existe plus, un chant a eu lieu
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste — l’issue chantée doit s’appliquer').toBeTruthy();
     banc.getState().jetConfirm('counterspell');

@@ -4,6 +4,7 @@ import type { Jeu } from './etat';
 import { counterspellJoinable, counterspellSoutenu, counterspellSoutienFor, counterspellDeclarePhase, autoDeclareWitnessRows } from './combatFlow';
 import { intentAllowedFor } from './netOwnership';
 import { seedBattleRng } from './battleRng';
+import { fermeturesDuFlux } from './verbesOuverts';
 import { castingValue } from '../engine/magic';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -208,9 +209,8 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     // (1) EFFET : en phase 1, un siège ne referme pas la fenêtre des autres — décliner s'y dit `pass`.
     banc.getState().jetCancel('counterspell');
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste ouverte').toBeTruthy();
-    // (2) ROUTE : la MÊME frontière côté réseau (l'intent n'atteint jamais l'effet).
-    const s = banc.getState();
-    expect(intentAllowedFor(s, 0, 'jetCancel', ['counterspell']), 'aucun siège ne ferme pendant la phase').toBe(false);
+    // (2) FENÊTRE : la fermeture que l'effet applique est celle que la fenêtre montre à chaque siège.
+    expect(fermeturesDuFlux(banc.getState(), 'counterspell').cancel, 'aucun siège ne ferme pendant la phase').toBe('declarationsDues');
     // (3) TOUT-PASS : la dernière déclaration ferme la fenêtre par le résolveur canonique, sans jet.
     declare(h1.id, 'pass');
     declare(h2.id, 'pass');

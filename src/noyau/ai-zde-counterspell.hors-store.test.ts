@@ -90,7 +90,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     // normalement ; ici on isole la ROUTE post-Contre-sort = le chemin PARTAGÉ jetConfirm('cast')).
     banc.setState({
       pendingCounterspell: {
-        participants: [{ id: h1.id, interactive: true, result: { dispelled: true, counter: { sl: 5 }, log: 'Dissipé !' } }],
+        participants: [{ id: h1.id, interactive: true, declared: 'solo', result: { dispelled: true, counter: { sl: 5 }, log: 'Dissipé !' } }],
       } as never,
     });
     const hpBefore = banc.getState().battle!.combatants.find((c) => c.id === h2.id)!.wounds.current;

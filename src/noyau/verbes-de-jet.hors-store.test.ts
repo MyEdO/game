@@ -137,7 +137,7 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
     const rangee = { id: H.id, interactive: true, base: 40, target: 40, declared: 'solo' as const };
     banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: null }] } } as unknown as Partial<Jeu>);
     expect(fermeturesDuFlux(g(), 'counterspell').confirm, 'le contre-lanceur déclaré n’a pas lancé').toBe('jetNonLance');
-    banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: { dispelled: false } }] } } as unknown as Partial<Jeu>);
+    banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: { dispelled: false, counter: { roll: 90, target: 40, sl: -3, success: false, isDouble: false } } }] } } as unknown as Partial<Jeu>);
     expect(fermeturesDuFlux(g(), 'counterspell').confirm, 'son jet est tombé').toBeNull();
   });
 });

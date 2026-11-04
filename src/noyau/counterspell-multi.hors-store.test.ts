@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
 import { castSpell } from './combatFlow';
+import { fermeturesDuFlux } from './verbesOuverts';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -70,7 +71,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   }
   /** Rangée au résultat POSÉ (aucun aléa : le sujet est l'agrégation). */
   const row = (id: string, dispelled: boolean, counterSL: number, casterNetSL: number, log: string) => ({
-    id, interactive: true,
+    id, interactive: true, declared: 'solo' as const,
     result: { dispelled, counter: { roll: 5, target: 40, sl: counterSL, success: dispelled, isDouble: false }, casterNetSL, log },
   });
   const cur = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -145,8 +146,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     expect(parts.find((p) => p.id === h2.id)!.result, 'aucun jet pour une rangée non déclarée').toBeNull();
     expect(cur(h2.id).resilience, 'le Point n’est PAS dépensé sur un geste refusé').toBe(1);
     expect(cur(h2.id).dispelledThisRound, 'son essai du Round reste INTACT').toBeFalsy();
-    banc.getState().jetConfirm('counterspell');
-    expect(banc.getState().pendingCast).toBeNull();
+    expect(fermeturesDuFlux(banc.getState(), 'counterspell').confirm, 'la fenêtre attend sa déclaration (LDB 46 l.156)').toBe('declarationsDues');
   });
 
   it('une rangée qui a DISSIPÉ ferme la lice : le suivant est refusé SANS brûler son essai du Round', () => {
@@ -168,14 +168,14 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     expect(cur(E2.id).dispelledThisRound).toBeFalsy();
   });
 
-  it('fenêtre DÉCLARÉE mais VIERGE : « Appliquer » et « Laisser passer » rendent la MÊME issue (repli IA unique)', () => {
-    /** Fenêtre à un surfacé qui a déclaré sans chanter + un contre-lanceur IA témoin, jet du lanceur figé. */
+  it('fenêtre DÉCLARÉE sans jet dû : « Appliquer » et « Laisser passer » rendent la MÊME issue (repli IA unique)', () => {
+    /** Fenêtre à un surfacé qui passe + un contre-lanceur IA témoin, jet du lanceur figé. */
     const openVierge = () => {
       banc.getState().seedRng(5);
       const { heroes, E } = setup();
       freezeCast(heroes[0], E, 3);
       banc.setState({ pendingCounterspell: { participants: [
-        { id: heroes[1].id, interactive: true, declared: 'solo', result: null },
+        { id: heroes[1].id, interactive: true, declared: 'pass', result: null },
         { id: E.id, interactive: false, declared: 'solo', result: null },
       ] } } as unknown as Partial<Jeu>);
       return E;

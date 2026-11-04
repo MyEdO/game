@@ -88,7 +88,7 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     expect(avant.ouverts).toEqual(['jetCancel@attack', 'jetForceSuccess@attack', 'jetRoll@attack']);
     expect(avant.fermes).toMatchObject({ 'jetConfirm@attack': 'jetNonLance', 'jetReroll@attack': 'jetNonLance', 'jetSetForcedRoll@attack': 'jetNonLance' });
     const apres = verbes(enEtape('attack', { pendingAttack: attaque(COUP) }));
-    expect(apres.ouverts).toEqual(['jetConfirm@attack', 'jetBonusSL@attack', 'jetDarkPact@attack', 'jetSetForcedRoll@attack']);
+    expect(apres.ouverts).toEqual(['jetBonusSL@attack', 'jetConfirm@attack', 'jetDarkPact@attack', 'jetSetForcedRoll@attack']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@attack': 'jetLance', 'jetCancel@attack': 'jetLance', 'jetReroll@attack': 'jetReussi', 'jetForceSuccess@attack': 'jetReussi', 'jetReverse@attack': 'sansVoieDInversion' });
   });
 
@@ -104,7 +104,7 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     expect(avant.ouverts).toEqual(['jetForceSuccess@defense', 'jetRoll@defense']);
     expect(avant.fermes).toMatchObject({ 'jetConfirm@defense': 'jetNonLance', 'jetReroll@defense': 'jetNonLance', 'jetSetForcedRoll@defense': 'jetNonLance' });
     const apres = verbes(enEtape('defense', { pendingDefense: defense(true) }));
-    expect(apres.ouverts).toEqual(['jetConfirm@defense', 'jetBonusSL@defense', 'jetDarkPact@defense', 'jetForceSuccess@defense', 'jetReroll@defense', 'jetSetForcedRoll@defense']);
+    expect(apres.ouverts).toEqual(['jetBonusSL@defense', 'jetConfirm@defense', 'jetDarkPact@defense', 'jetForceSuccess@defense', 'jetReroll@defense', 'jetSetForcedRoll@defense']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@defense': 'jetLance' });
   });
 
@@ -113,7 +113,7 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     expect(avant.ouverts).toEqual(['jetCancel@test', 'jetForceSuccess@test', 'jetRoll@test']);
     expect(avant.fermes).toMatchObject({ 'jetConfirm@test': 'jetNonLance', 'jetDetermine@test': 'sansMalusPsy', 'jetSetForcedRoll@test': 'jetNonLance' });
     const apres = verbes(enEtape('test', { pendingTest: test(true) }));
-    expect(apres.ouverts).toEqual(['jetBonusSL@test', 'jetDarkPact@test', 'jetSetForcedRoll@test', 'jetConfirm@test']);
+    expect(apres.ouverts).toEqual(['jetBonusSL@test', 'jetConfirm@test', 'jetDarkPact@test', 'jetSetForcedRoll@test']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@test': 'jetLance', 'jetCancel@test': 'jetLance', 'jetReroll@test': 'jetReussi', 'jetForceSuccess@test': 'jetReussi' });
     expect(verbes(enEtape('test', { pendingTest: test(false, false) })).fermes['jetCancel@test'], 'un Test de scène ne s’annule pas').toBe('nonOffert');
   });
@@ -123,7 +123,7 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     expect(avant.ouverts).toEqual(['jetCancel@cast', 'jetForceSuccess@cast', 'jetRoll@cast']);
     expect(avant.fermes).toMatchObject({ 'jetConfirm@cast': 'jetNonLance', 'jetReroll@cast': 'jetNonLance', 'jetSetForcedRoll@cast': 'jetNonLance' });
     const apres = verbes(enEtape('cast', { pendingCast: incantation(true) }));
-    expect(apres.ouverts).toEqual(['jetConfirm@cast', 'jetBonusSL@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
+    expect(apres.ouverts).toEqual(['jetBonusSL@cast', 'jetConfirm@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@cast': 'jetLance', 'jetReroll@cast': 'jetReussi', 'jetForceSuccess@cast': 'jetReussi' });
   });
 
