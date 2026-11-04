@@ -109,6 +109,7 @@ grille/murs/pions/chrome en surcouches SVG React. **Zustand** (store), **Vitest*
 
 ```bash
 npm install            # pose les hooks git et les pilotes de fusion
+echo '{}' | node scripts/hooks/bootstrap-conteneur.mjs  # fil de projet claude.ai (hooks absents) : avant le 1er commit
 timeout <N> npm run dev # port dérivé en worktree lié, imprimé au lancement
 npm test               # tests Vitest
 npm run typecheck      # tsc --noEmit
