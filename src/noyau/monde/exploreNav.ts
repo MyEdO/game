@@ -163,7 +163,7 @@ export function exploreMovePlan(
  *  grille) colle à ~0.89–1.0 ; les repêchages hors-axe (pas simple-axe de grille, quasi-perpendiculaires
  *  en vertical du fait du ratio 2:1 TW/TH) tombent à ~0.45 — c'est ce rabattement trompeur qui
  *  provoquait le zigzag/oscillation silencieux au clavier. 0.6 sépare les deux paliers mesurés
- *  (clusters 0.4472 et 0.8944 en losange iso par défaut, `exploreNav.test.ts`) sans jamais mordre sur
+ *  (clusters 0.4472 et 0.8944 en losange iso par défaut, `src/state/exploreNav-pas-clavier.test.ts`) sans jamais mordre sur
  *  la 8-connectivité en champ libre (le voisin idéal de chaque cardinal reste toujours ≥ 0.89).
  */
 const ALIGN_MIN = 0.6;

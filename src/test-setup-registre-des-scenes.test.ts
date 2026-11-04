@@ -10,7 +10,7 @@ import { emptyScene } from './noyau/monde/scene';
  * worker (`isolate: false`). La sentinelle le VIDE APRÈS CHAQUE TEST : aucune scène enregistrée par un test ne fuit vers un autre fichier — mais un enregistrement
  * fait EN TÊTE DE FICHIER (module, `beforeAll`) ne survit qu'au PREMIER test du fichier. Un fichier
  * qui a besoin du registre sur PLUSIEURS tests (ré)enregistre en `beforeEach` (patron :
- * `shipwreck.test.ts`, via `freshState`).
+ * `src/noyau/shipwreck.hors-store.test.ts`, via `freshState`).
  *
  * Les deux `it` ci-dessous sont ORDONNÉS : le second mesure l'effet du teardown du premier.
  */

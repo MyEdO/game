@@ -190,7 +190,7 @@ const HARMFUL_TARGET_OPS = new Set<string>([
  *  Les ops DUAL-SIGNE (`testMod`/`skillMod`/`attrMod`/`charDRBonus`/`sinMod`/`maxWeaponHands`… — la
  *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'any'
  *  est le comportement voulu, jamais 'ally' pour un malus déguisé (Malédiction de malchance, testMod
- *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.test.ts). */
+ *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.hors-store.test.ts). */
 const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
   'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'augmentWeapon', 'giveTrapping', 'freeReroll',
