@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
-import { lignesDuJournal } from './ecran';
-import type { LigneDuJournal } from '../noyau/index';
+import { lignesDuJournal, zonesDeLEcran } from './ecran';
+import { fenetreADessiner } from './gestes';
+import { projeter } from './projection';
+import type { Jeu, LigneDuJournal } from '../noyau/index';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -30,6 +32,26 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         { id: 'journal/9', ton: 'reussite', texte: 'Hors de combat.', detail: null },
       ]);
       expect(lignesDuJournal(etat, 0, [combat('detail', '↳ Seule')]), 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: '↳ Seule', detail: null }]);
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
+  it('ce qui emporte le héros et ses Points de Destin ; le coup ne s’évite que s’il porte', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const heros = partie.etat().battle!.combatants.find((c) => c.kind === 'hero')!;
+      const ecran = (source: NonNullable<Jeu['pendingFateSave']>['source']) => {
+        const etat = { ...partie.etat(), pendingFateSave: { heroId: heros.id, source } };
+        const fenetre = fenetreADessiner(etat);
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre);
+      };
+      const lent = ecran('slow');
+      expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
+      expect(lent['fenetre.gestes'].map((g) => g.id), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual(['fateSurvive', 'fateAccept']);
+      expect(ecran('hit')['fenetre.gestes'].map((g) => g.id), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual(['fateNegate', 'fateSurvive', 'fateAccept']);
     } finally {
       partie.fermer();
     }

@@ -15,7 +15,7 @@
  */
 import { scanDuCorpus, type FormeObservee } from '../../docs/lib/structures-scan.mjs';
 import { occurrencesNonAtteintes, slotsDuParse } from '../../docs/lib/slots-registre.mjs';
-import { LOTS_CONNUS, LOT_CLE_RESERVEE, ciblesDuSite, lotDeForme } from '../../docs/lib/structures-lexique.mjs';
+import { LOTS_CONNUS, LOT_CLE_RESERVEE, ciblesDesPoses, lotDeForme } from '../../docs/lib/structures-lexique.mjs';
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { parUnitesDeCode } from './lister.mjs';
 
@@ -69,8 +69,7 @@ const cleDeCase = (c: { dataset: string; champ: string }): string => `${c.datase
 
 /** Le remède d'un site de formes à migrer, sans point final. */
 const remedeDeForme = (formes: readonly FormeObservee[]): string => {
-  const { dataset, champ } = formes[0];
-  const cibles = [...new Set(formes.flatMap((f) => ciblesDuSite(f.concept, dataset, champ)))];
+  const cibles = [...new Set(formes.flatMap((f) => ciblesDesPoses(f.concept, new Set(f.poses))))];
   return cibles.length
     ? `Migrer ce site vers une forme CIBLE du lexique (${cibles.map((c) => `\`${c}\``).join(', ')} ; scripts/docs/lib/structures-lexique.mts)`
     : 'Aucune cible déclarée à ce site : décider la cible (lexique + `STRUCTURES_CIBLES`) ou bloquer le lot sur sa migration';
