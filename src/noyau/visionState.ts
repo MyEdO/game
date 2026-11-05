@@ -1,22 +1,21 @@
 /**
- * Brouillard de guerre — couche STORE : assemble les `Viewer`/sources de lumière depuis l'état (groupe
- * en exploration, alliés vivants en combat) et délègue au moteur PUR `vision.ts`. Accumule l'ensemble
- * EXPLORÉ par scène (`explored[sceneId]`, persistant). `visible` est DÉRIVÉ, jamais stocké : au rendu par
- * `computeStateVisibleAndLight` (memo de `gameIso/stage/MondeDeCampagne.tsx`), au noyau par
- * `computeStateVisible` — rien à invalider pendant la marche.
+ * Brouillard de guerre — couche NOYAU : assemble les `Viewer`/sources de lumière depuis l'état (groupe
+ * en exploration, alliés vivants en combat) et délègue au moteur PUR `vision.ts`. `visible` est DÉRIVÉ,
+ * jamais stocké : `computeStateVisibleAndLight`, mémoïsé sur ses entrées (`memoByRefDeps`), sert le
+ * rendu comme le noyau. L'EXPLORÉ par scène (`explored[sceneId]`, persistant) en est l'union, que la
+ * transition du jeu accumule (`transitionDuJeu.ts`, `exploreAvec`).
  */
 import { Scene, sceneMetresPerTile } from './monde/scene';
 import { Pt } from './monde/path';
 import { computeVisible, computeLightField, ambientScalar, baseSightTiles, darkSightTiles, mapLights, combatantLights, buildOpaque, type LightSource, type Occ } from './monde/vision';
-import { memoByRef } from './monde/sceneMemo';
+import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
 import { meneurDuMonde } from './monde/combatants';
 import { smokeOf } from './monde/combatGeometry';
 import { isOutOfAction } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import type { Get, Set as SetFn } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { EtatDeJeu } from './etat';
 
-/** Tranche d'état nécessaire au calcul de visibilité (passée par IsoStage → deps de memo explicites). */
+/** Tranche d'état nécessaire au calcul de visibilité : ses champs sont les dépendances du mémo `vueDeLaScene`. */
 export interface VisionInput {
   scene: Scene | null;
   battle: { combatants: Combatant[]; zones?: unknown } | null;
@@ -113,24 +112,27 @@ const allTiles = memoByRef((scene: Scene): Set<string> => {
 /** Ensemble des cases (`"x,y,z"`) actuellement visibles par le groupe : union des alliés vivants en
  *  combat, sinon depuis la position du groupe en exploration. PUR (dérivé de l'état). */
 export function computeStateVisible(s: VisionInput): Set<string> {
-  const scene = s.scene;
-  if (!scene) return new Set();
-  if (REVEAL_ALL) return allTiles(scene); // brouillard OFF (recette) : tout est visible, pas de lumière à calculer
-  const occ = buildOpaque(scene);
-  const { light, smoke } = sceneLightField(s, occ);
-  return visibleFrom(scene, s, light, smoke, occ);
+  return computeStateVisibleAndLight(s).visible;
 }
+
+type VueEtLumiere = { visible: Set<string>; light: StateLight; smoke: Pt[] };
+
+/** La vue d'une scène, mémoïsée sur les entrées de `VisionInput` et le drapeau `REVEAL_ALL` : la transition du
+ *  jeu et le rendu lisent le MÊME calcul. */
+const vueDeLaScene = memoByRefDeps<Scene, VueEtLumiere>();
 
 /** `computeStateVisible` + champ de LUMIÈRE en UN calcul : `sceneLightField` (potentiellement lourd) ne
  *  tourne qu'UNE fois par pas (l'iso a besoin des deux — vue ET voile d'éclairage des sols). REVEAL_ALL /
  *  `!scene` retournent un champ PLAT (plein jour) valide pour ne jamais casser le consommateur. */
-export function computeStateVisibleAndLight(s: VisionInput): { visible: Set<string>; light: StateLight; smoke: Pt[] } {
+export function computeStateVisibleAndLight(s: VisionInput): VueEtLumiere {
   const scene = s.scene;
   if (!scene) return { visible: new Set(), light: FLAT_LIGHT, smoke: [] };
-  if (REVEAL_ALL) return { visible: allTiles(scene), light: FLAT_LIGHT, smoke: [] };
-  const occ = buildOpaque(scene);
-  const { light, smoke } = sceneLightField(s, occ);
-  return { visible: visibleFrom(scene, s, light, smoke, occ), light, smoke };
+  return vueDeLaScene(scene, [s.battle, s.party, s.partyPos, s.gameTime, s.lightLevel, REVEAL_ALL], () => {
+    if (REVEAL_ALL) return { visible: allTiles(scene), light: FLAT_LIGHT, smoke: [] };
+    const occ = buildOpaque(scene);
+    const { light, smoke } = sceneLightField(s, occ);
+    return { visible: visibleFrom(scene, s, light, smoke, occ), light, smoke };
+  });
 }
 
 /** Cases qu'un combattant donné PERÇOIT (Ligne de Vue + lumière, vision nocturne incluse), avec le MÊME
@@ -148,21 +150,13 @@ export function perceivedTiles(s: VisionInput, viewer: Combatant): Set<string> {
   );
 }
 
-/** Fond les cases `keys` dans l'ensemble exploré de la scène courante (accumulation persistante, ne
- *  perd jamais l'ancien). No-op si rien de neuf (évite une boucle de rendu). */
-export function recordExplored(get: Get, set: SetFn, keys: string[]): void {
-  const { scene, explored } = get();
-  if (!scene) return;
+/** L'exploré de `s` où les cases `keys` sont fondues dans celui de la scène courante (union persistante, ne perd
+ *  jamais l'ancien) ; `null` sans scène ou sans case neuve. PUR. */
+export function exploreAvec(s: Pick<EtatDeJeu, 'scene' | 'explored'>, keys: Iterable<string>): EtatDeJeu['explored'] | null {
+  const { scene, explored } = s;
+  if (!scene) return null;
   const prev = explored[scene.id];
-  const merged = prev ? new Set(prev) : new Set<string>();
-  let changed = false;
-  for (const k of keys) if (!merged.has(k)) { merged.add(k); changed = true; }
-  if (!changed) return;
-  set({ explored: { ...explored, [scene.id]: [...merged] } });
-}
-
-export function creerActionsDeVision(get: Get, set: SetFn) {
-  return {
-    markExplored: (keys) => recordExplored(get, set, keys),
-  } satisfies Partial<ActionsDuNoyau>;
+  const merged = new Set(prev);
+  for (const k of keys) merged.add(k);
+  return merged.size === (prev?.length ?? 0) ? null : { ...explored, [scene.id]: [...merged] };
 }

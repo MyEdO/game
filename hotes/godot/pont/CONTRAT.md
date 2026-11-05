@@ -38,6 +38,8 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
 
 Les gestes d'une fenêtre sont des verbes de la partie, joués par `jouer` : ce sont les gestes de `projection.fenetre.gestes` (`fenetreDuJeu`), réglages et flux réactif compris (`FENETRE_DU_JET`, `src/noyau/combatAuto.ts`), chacun ouvert dessiné en élément de la zone `fenetre.gestes`. Un geste est un verbe, et pour un verbe de jet (`jetRoll`, `jetReroll`…) le flux qu'il vise, son premier argument, que la fenêtre pose ; son identité est sa clé (`cle`, `cleDuGeste` : `jetRoll@attack`, ou le nom du verbe). Chaque verbe de la partie et ses paramètres viennent du registre dérivé du noyau (`src/hote/verbes.generated.ts`, produit par `scripts/gen-verbes.mjs`) : ni le pont, ni ce contrat, ni le GDScript n'en nomment aucun.
 
+La mémoire de carte de la partie (`explored`, les cases explorées par scène) s'accumule dans le noyau : chaque écriture qui change une entrée de la vision du groupe y fond les cases vues (`exploreeVue`, `src/noyau/transitionDuJeu.ts`). Le pont et Godot n'appellent rien pour la tenir.
+
 ## Suite
 
 ```ts
