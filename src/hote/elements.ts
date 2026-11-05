@@ -41,8 +41,12 @@ export interface Jet {
 /** Une entité de jeu et ce qui la décrit. */
 export interface Entite { type: 'entite'; id: string; ton: Ton; nom: string; elements: Element[] }
 
-/** L'intention qu'un geste joue : un verbe de la partie et ses arguments, ou une offre de l'actif. */
-export type Jeu = { type: string; args: unknown[] } | { offre: string };
+/** Un verbe de la partie et ses arguments. */
+export interface Appel { type: string; args: unknown[] }
+
+/** L'intention qu'un geste joue : un verbe de la partie et ses arguments, une offre de l'actif, ou une suite de verbes
+ *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir). */
+export type Jeu = Appel | { offre: string } | { suite: Appel[] };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */

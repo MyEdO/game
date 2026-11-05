@@ -10,6 +10,8 @@
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
 //   partie, et chaque bouton se trouve par l'élément de la vue qu'il dessine (`vue.zones`). Le jet tombé, la fenêtre
 //   ne redessine ni son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
+// - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
+//   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément offert par la liste des seuls points dont l'os porte sa lame (`osDesRigides`
@@ -31,6 +33,7 @@
 // console rendent un code non nul.
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
+//   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -51,7 +54,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|exploration|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -191,8 +194,8 @@ async function parcoursCombat() {
   await cliquerCase(vers)
   v = await vue()
   assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
-  const apercu = element(v, 'combat.avis', 'apercu')
-  assert.ok(apercu, 'le panneau dit ce que l’aperçu coûte')
+  const apercu = element(v, 'combat.apercu', 'apercu')
+  assert.ok(apercu, 'l’aperçu dit ce qu’il coûte, près de sa case')
   noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
   await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
@@ -237,6 +240,35 @@ const PAR_DEFAUT = 'Par défaut'
 const RECHARGER = 'Recharger les modèles'
 const COPIER = 'Copier la composition'
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
+async function parcoursExploration() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  assert.equal(etape(v), 'sceneEntry', 'l’entrée de la scène tient la main')
+  assert.deepEqual(zone(v, 'exploration.gestes'), [], 'une fenêtre tient la main : aucun geste d’exploration')
+  await capturer('3328-e1-1-entree')
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const x = v.projection.exploration
+  assert.ok(x, 'hors combat, la vue est celle de l’exploration')
+  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => x.groupe), 'chaque héros se tient à la case du groupe')
+  noter(`Entrée : l’entrée de la scène poursuivie ; groupe en ${x.groupe}, gestes ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
+  await capturer('3328-e1-2-exploration')
+  const porte = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.type === 'actionnerLaPorte'))
+  assert.ok(porte, 'la porte fermée s’ouvre par un bouton')
+  await cliquerBouton(bouton(porte))
+  noter(`bouton « ${porte.libelle} » cliqué`)
+  const reduit = { x: 4, y: 1 }
+  await cliquerCase(reduit)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${reduit.x},${reduit.y}'`)
+  noter(`clic sur la case ${reduit.x},${reduit.y} : le groupe y marche`)
+  await capturer('3328-e1-3-reduit')
+}
+
 const atelier = async () => (await ecran()).atelier
 /** Attend que l'atelier publié vérifie `condition` (une expression sur `a`, et `b`, les boutons publiés). */
 const attendreLAtelier = (condition, timeoutMs = 60000) =>
@@ -813,7 +845,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, exploration: parcoursExploration, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

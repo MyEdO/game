@@ -204,7 +204,7 @@ export function rendreLaVue(p: Projection): string[] {
     lignes.push(...p.jets.flatMap(ligneDeJets));
     if (p.exploration) {
       const x = p.exploration;
-      lignes.push(`groupe ${pos(x.groupe)}${x.etage === null ? '' : ` étage ${x.etage}`}${x.cap ? ` · cap ${x.cap}` : ''} : ${x.heros.join(', ')}`);
+      lignes.push(`groupe ${pos(x.groupe)}${x.etage === null ? '' : ` étage ${x.etage}`}${x.cap ? ` · cap ${x.cap}` : ''} : ${x.heros.map((h) => h.nom).join(', ')}`);
       lignes.push(...(x.gestes.liste.length ? x.gestes.liste.flatMap(ligneDeGeste) : ['gestes : aucun depuis cette case']));
       lignes.push(...enPlus(x.gestes.enPlus, `gestes (${appelEcrit('lire', { quoi: 'offres' })})`));
     }

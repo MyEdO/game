@@ -5,11 +5,13 @@
 
 [node name="Cadre" type="PanelContainer"]
 visible = false
-anchors_preset = 9
+anchor_top = 1.0
 anchor_bottom = 1.0
-offset_top = 210.0
-offset_right = 440.0
-grow_vertical = 2
+offset_left = 8.0
+offset_top = -8.0
+offset_right = 448.0
+offset_bottom = -8.0
+grow_vertical = 0
 theme_type_variation = &"Fenetre"
 
 [node name="Colonne" type="VBoxContainer" parent="."]
@@ -30,16 +32,12 @@ source = "fenetre.etape"
 
 [node name="Separation" type="HSeparator" parent="Colonne"]
 
-[node name="Defilement" type="ScrollContainer" parent="Colonne"]
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
+[node name="Corps" type="VBoxContainer" parent="Colonne"]
 
-[node name="Corps" type="VBoxContainer" parent="Colonne/Defilement"]
-size_flags_horizontal = 3
-
-[node name="Zone" type="Node" parent="Colonne/Defilement/Corps"]
+[node name="Zone" type="Node" parent="Colonne/Corps" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
+masque = NodePath("../../Separation")
 
 [node name="Reglages" type="VBoxContainer" parent="Colonne"]
 
