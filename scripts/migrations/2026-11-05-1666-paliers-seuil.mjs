@@ -12,7 +12,8 @@
  * l'état final, rien ne s'écrit.
  * FAIL-FAST — sortie 1 avant toute écriture : fichier hors de son formatage, palier sans l'une ni
  * l'autre clé ou portant les deux, seuil non numérique, cardinal de paliers du RÉSULTAT différent
- * de celui attendu.
+ * de celui qu'IMPRIME le livre (table close, référence au refus). Les phases du jour, liste éditable,
+ * n'ont aucun cardinal gelé (#1812).
  * FORMATAGE : `serializeDataset` pour `src/data`, `JSON.stringify(…, null, 1)` + saut de ligne pour
  * un projet de campagne (`src/ui/editor/Editor.tsx`).
  */
@@ -24,17 +25,15 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const serialiserProjet = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 
-/** Fichier → clé d'avant, paliers du document, cardinal attendu, sérialiseur. */
+/** Fichier → clé d'avant, paliers du document, cardinal imprimé par le livre (table close), sérialiseur. */
 const CIBLES = [
-  // VDM 02 l.209-215
-  { rel: 'src/data/surincantation.json', avant: 'dr', paliers: (d) => d.entries, cardinal: 7, serialiser: serializeDataset },
-  { rel: 'src/data/calendarPhases.json', avant: 'start', paliers: (d) => d, cardinal: 7, serialiser: serializeDataset },
-  // EDO 01 l.142
+  { rel: 'src/data/surincantation.json', avant: 'dr', paliers: (d) => d.entries, cardinal: { n: 7, ref: 'VDM 02 l.209-215' }, serialiser: serializeDataset },
+  { rel: 'src/data/calendarPhases.json', avant: 'start', paliers: (d) => d, serialiser: serializeDataset },
   {
     rel: 'src/scenes/diligence/diligence-projet.json',
     avant: 'drMin',
     paliers: (d) => (d.worldMap?.routes ?? []).flatMap((r) => Object.values(r.billets ?? {}).flatMap((b) => b.marchandage?.paliers ?? [])),
-    cardinal: 2,
+    cardinal: { n: 2, ref: 'EDO 01 l.142' },
     serialiser: serialiserProjet,
   },
 ];
@@ -62,7 +61,7 @@ for (const { rel, avant, paliers, cardinal, serialiser } of CIBLES) {
     gestes++;
   }
   const apres = paliers(doc);
-  if (apres.length !== cardinal) fautes.push(`${rel} : ${apres.length} palier(s) au résultat, ${cardinal} attendus`);
+  if (cardinal && apres.length !== cardinal.n) fautes.push(`${rel} : ${apres.length} palier(s) au résultat, ${cardinal.n} attendus — table CLOSE, ${cardinal.ref}`);
   if (!apres.every((p) => typeof p.seuil === 'number' && !Object.hasOwn(p, avant))) fautes.push(`${rel} : palier hors forme au résultat`);
   const sortie = serialiser(doc);
   if (sortie !== texte) aEcrire.push([chemin, sortie]);
