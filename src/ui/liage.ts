@@ -2,7 +2,7 @@
  * LIAGE — le PÉRIMÈTRE du liage automatique, déclaré en un seul endroit (#1392 Lot E, train T0).
  *
  * Invariant (design v8 §1) : un lien automatique (appariement de libellé, `tokenizeLinks`) n'existe
- * que sur une prose de SOURCE ADRESSÉE — un champ d'une entrée, désigné par son `Porteur`. Une prose
+ * que sur une prose de SOURCE ADRESSÉE — un champ d'une entrée, désigné par son `Porteur` (`src/noyau/codex/porteur.ts`). Une prose
  * SYNTHÉTISÉE (fabriquée depuis des champs structurés) ne lie rien par libellé : ses références sont
  * des rangées `{ t:'ref' }` émises là où l'id est connu. Une prose RUNTIME ou une chaîne d'UI ne lie
  * rien. Question à laquelle l'invariant répond (verbatim utilisateur 2026-08-18) : « ne pas avoir le
@@ -17,29 +17,6 @@
 import { champsProseDeScene, type CheminProseDeScene } from '../data/schemas/grammaire/champs-prose-de-scene';
 import { adressesDesEntreesEmbarquees } from '../data/schemas/grammaire/document';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-
-/**
- * PORTEUR d'une prose rendue : le champ d'où sort le texte, VERBATIM.
- *
- * `type` = la clé de CATÉGORIE Codex de l'entrée quand elle en a une (celle que `CodexEntry` passait
- * déjà en `selfCategory` — elle tranche les homonymes, cf. `PRIORITY_CAT_ORDER`), sinon le `type` du
- * dataset (`lieux-services`…). `id` = l'id STABLE de l'entrée. `chemin` = chemin de clés jusqu'au
- * champ, en notation `scripts/source/adresses.mjs:66-76` (clés par `.`, index accolés : `rows[3].text`,
- * `details.texts.age.bySpecies.humain`).
- *
- * Un texte qui n'existe verbatim dans AUCUN champ (synthèse, gabarit substitué, chaîne d'UI) n'a pas
- * de porteur — et ne lie donc rien.
- *
- * `chemin` n'est lu par AUCUN renderer : `<Prose>` ne consulte que `type`/`id` (ils arment
- * `tokenizeLinks`). Ses lecteurs sont les GARDES (`liens-du-catalogue.test.tsx` confronte le chemin
- * émis à `CHEMINS_ADRESSES`) et le rapport d'adressage de T1. Il est donc l'ADRESSE du champ, à
- * garder juste même si l'écran ne change pas quand il ment.
- */
-export interface Porteur {
-  type: string;
-  id: string;
-  chemin: string;
-}
 
 /** D'où vient le texte d'un site qui rend du markdown. */
 export type OrigineProse =
