@@ -85,7 +85,7 @@ describe('le panneau du combat (`combat.avis`)', () => {
       const avis = (battle: typeof b) => {
         const etat: Jeu = { ...partie.etat(), pendingRoundStart: null, battle };
         expect(fenetreADessiner(etat), 'témoin : aucune fenêtre ne tient la main').toBeNull();
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null)['combat.avis'];
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null)['combat.avis'];
       };
       expect(avis(b).map((l) => l.id)).not.toContain('finDeTourArmee');
       expect(avis({ ...b, endTurnArmed: turnEconomyStamp(b) }), 'le second geste finit le tour : l’écran le dit').toContainEqual(expect.objectContaining({ id: 'finDeTourArmee', ton: 'alerte', texte: t('ecran.finDeTourArmee') }));
