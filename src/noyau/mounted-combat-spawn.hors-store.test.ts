@@ -33,7 +33,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
   it('un CHEVAL (LDB, non Belliqueux) avec-le-groupe est spawné en allié, appairé au héros', () => {
     const hero = makeHero();
     const cheval: Possession = {
-      uid: 'pos-cheval-1', ownerId: hero.id, nature: 'bete', ref: { creatureId: 'cheval' },
+      uid: 'pos-cheval-1', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' },
       location: { kind: 'avec-le-groupe' }, items: [],
     };
     startFixtureCombat(hero, [cheval]);
@@ -51,7 +51,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
   it('une MULE (Belliqueuse absente de ses traits, Dressé (Monture) inné) est spawnée en allié', () => {
     const hero = makeHero();
     const mule: Possession = {
-      uid: 'pos-mule-1', ownerId: hero.id, nature: 'bete', ref: { creatureId: 'mule' },
+      uid: 'pos-mule-1', ownerId: hero.id, nature: 'bete', ref: { id: 'mule' },
       location: { kind: 'avec-le-groupe' }, items: [],
     };
     startFixtureCombat(hero, [mule]);
@@ -68,7 +68,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
   it('un HYPPOGRIFFE Belliqueux SANS Dressé (Monture) n’est PAS spawné en combat (LDB 339)', () => {
     const hero = makeHero();
     const hippogriffe: Possession = {
-      uid: 'pos-hippo-1', ownerId: hero.id, nature: 'bete', ref: { creatureId: 'hyppogriffe' },
+      uid: 'pos-hippo-1', ownerId: hero.id, nature: 'bete', ref: { id: 'hyppogriffe' },
       location: { kind: 'avec-le-groupe' }, items: [],
     };
     startFixtureCombat(hero, [hippogriffe]);
@@ -82,7 +82,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
   it('cavalier SEUL hors d’action, monture encore vivante → DÉFAITE (une monture `mountable` ne compte pas comme héros vivant)', () => {
     const hero = makeHero();
     const cheval: Possession = {
-      uid: 'pos-cheval-defaite', ownerId: hero.id, nature: 'bete', ref: { creatureId: 'cheval' },
+      uid: 'pos-cheval-defaite', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' },
       location: { kind: 'avec-le-groupe' }, items: [],
     };
     startFixtureCombat(hero, [cheval]);
@@ -121,7 +121,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
   it('une bête AU LIEU (pas avec le groupe), même chevauchable, n’est PAS spawnée en combat', () => {
     const hero = makeHero();
     const chevalEnPension: Possession = {
-      uid: 'pos-cheval-2', ownerId: hero.id, nature: 'bete', ref: { creatureId: 'cheval' },
+      uid: 'pos-cheval-2', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' },
       location: { kind: 'au-lieu', placeId: 'ecurie-x' }, items: [],
     };
     startFixtureCombat(hero, [chevalEnPension]);

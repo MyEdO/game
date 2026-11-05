@@ -119,6 +119,8 @@ const NOMMES = [
   'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
+  // `typeDePossessionSchema` (#3012) : le `type` d'une dotation de POSSESSION, bête ou véhicule.
+  'creature|vehicle',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
   // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',

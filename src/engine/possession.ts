@@ -14,7 +14,6 @@ import type { MountInjury } from './mountTravel';
 import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
 import type { ManannMood } from './seaVoyage';
-import type { CustomStatblock } from './statblock';
 import { findVehicleById, findCreatureById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
 
@@ -24,9 +23,7 @@ export type PossessionLocation =
   | { kind: 'embarquee'; hostUid: string };
 
 /** Réf du VIVANT — la même dualité que le spawn (spawnEnemy ref|statblock, spawn.ts:347). */
-export type LivingRef =
-  | { creatureId: string } // bestiaire (édition Codex vivante)
-  | { custom: CustomStatblock }; // PNJ/bête custom de l'éditeur — le snapshot EST son identité
+export type LivingRef = import('zod').z.infer<typeof import('../data/schemas/defs-scenes/effets').livingRefSchema>;
 
 /** TRONC — toute possession : une identité possédée, localisée, qui PORTE. */
 interface PossessionCommon {
@@ -113,7 +110,7 @@ export type PossessionInput = Distribute<Possession>;
 export function possessionCapacity(p: Possession): number | undefined {
   switch (p.nature) {
     case 'bete':
-      return 'creatureId' in p.ref ? mountProfileForCreature(p.ref.creatureId)?.encPortee : undefined;
+      return 'id' in p.ref ? mountProfileForCreature(p.ref.id)?.encPortee : undefined;
     case 'serviteur':
       return undefined; // porte son sac (ItemInstance) comme un héros — pas de bât dédié (LDB 75)
     case 'vehicule':
@@ -137,7 +134,7 @@ export function possessionRideable(p: Possession): boolean {
 
 /** Traits (innés + appris) d'une bête-possession. */
 function beteTraitIds(p: Possession & { nature: 'bete' }): string[] {
-  const innate = 'creatureId' in p.ref ? (findCreatureById(p.ref.creatureId)?.traits ?? []) : (p.ref.custom.traits ?? []);
+  const innate = 'id' in p.ref ? (findCreatureById(p.ref.id)?.traits ?? []) : (p.ref.custom.traits ?? []);
   return [...innate.map((t) => t.id), ...(p.learnedTraits ?? [])];
 }
 
@@ -156,7 +153,7 @@ export function possessionLabel(p: Possession): string {
   switch (p.nature) {
     case 'bete':
     case 'serviteur':
-      return 'creatureId' in p.ref ? (findCreatureById(p.ref.creatureId)?.label ?? p.ref.creatureId) : p.ref.custom.label;
+      return 'id' in p.ref ? (findCreatureById(p.ref.id)?.label ?? p.ref.id) : p.ref.custom.label;
     case 'vehicule':
     case 'navire':
       return findVehicleById(p.vehicleId)?.label ?? p.vehicleId;
@@ -168,7 +165,7 @@ export function possessionLabel(p: Possession): string {
 /** Taille effective d'un VIVANT (bête/serviteur) — la Taille de son profil (`tailleDuProfil`, `size`
  *  explicite d'un statbloc custom compris, comme au spawn) ; défaut Moyenne (LDB 85, standard implicite des espèces sans Trait). */
 function livingSize(ref: LivingRef): SizeCategory {
-  return tailleDuProfil(('custom' in ref ? ref.custom : findCreatureById(ref.creatureId)) ?? {});
+  return tailleDuProfil(('custom' in ref ? ref.custom : findCreatureById(ref.id)) ?? {});
 }
 
 /** Poids PROPRE d'une possession (hors items/cargo/embarquées) — véhicule/navire : `enc` du catalogue

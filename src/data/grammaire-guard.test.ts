@@ -141,7 +141,7 @@ function signaturesDeLaGrammaire(
 
 /** GRAPHIES HISTORIQUES de référence (invariant #1466, corps du ticket) : une clé qui désigne une
  *  entité sous son ancien nom, là où la grammaire écrit `ref(type)`. */
-const ALIAS = ['skillId', 'talentId', 'trappingId', 'traitId', 'skill', 'ref', 'wildcard', 'specOptions'];
+const ALIAS = ['skillId', 'talentId', 'trappingId', 'traitId', 'creatureId', 'skill', 'ref', 'wildcard', 'specOptions'];
 
 describe('liaison lexicale des extensions de grammaire', () => {
   const regles = { signatures: [], alias: [] };

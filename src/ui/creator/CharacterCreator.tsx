@@ -36,6 +36,7 @@ import {
   advancementLabel,
   armesChoisissables,
   type TrappingRef,
+  estDotationDObjet,
   levelsForCareer,
   charAbr,
   stars as starsTable,
@@ -1920,7 +1921,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
 
   const chip = (ref: TrappingRef, key: number) => {
     const label = trappingRefLabel(ref);
-    return <EntityRef key={key} category="trappings" id={'id' in ref ? ref.id : undefined} label={splitLabel(label).name} show={label} />;
+    return <EntityRef key={key} category="trappings" id={estDotationDObjet(ref) ? ref.id : undefined} label={splitLabel(label).name} show={label} />;
   };
   const classItems = (klass?.trappings ?? []).filter((t) => !estEmplacementDeDotation(t));
   const careerItems = level.trappings.filter((t) => !estEmplacementDeDotation(t));

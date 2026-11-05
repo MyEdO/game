@@ -32,7 +32,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
   const mule = (uid: string): Possession => ({
     uid, nature: 'bete', ownerId: 'W', label: 'Marguerite',
     location: { kind: 'avec-le-groupe' }, items: [{ itemId: 'sac-a-dos', qty: 1 } as unknown as ItemInstance],
-    ref: { creatureId: 'mule' }, wounds: { current: 8, max: 8 },
+    ref: { id: 'mule' }, wounds: { current: 8, max: 8 },
   });
 
   it('bête possession BLESSÉE en combat → wounds persisté sur la Possession (clampé à son max)', () => {
