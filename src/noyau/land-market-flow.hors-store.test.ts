@@ -62,7 +62,7 @@ function trader(): Combatant {
 const convoi = (ownerId: string): Possession =>
   ({ uid: CARRIER_ID, ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] });
 
-const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce', 'vin'], ...extra });
+const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'], ...extra });
 
 function tradeMap(): WorldMap {
   return {
@@ -88,8 +88,8 @@ function launchAtA(): void {
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });
 }
 
-const lot: CargoLot = { cargoId: 'vin', enc: 40, basePriceGold: 10 };
-const rumourB: TradeRumour = { placeId: 'B', biens: ['vin'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
+const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
+const rumourB: TradeRumour = { placeId: 'B', biens: ['vin-eau-de-vie'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
 
 /** Vend le lot 0 à Altdorf (place B) avec le board donné et renvoie le gain en brass. */
 function sellAtB(board: TradeRumour[]): number {
@@ -125,11 +125,11 @@ describe('#99 — rumeur CROSS-LIEU appliquée à la vente au Lieu désigné (l.
   it('la rumeur N\'EST PAS consommée par la vente (« autant qu\'ils le souhaitent », l.180)', () => {
     sellAtB([rumourB]);
     expect(get().tradeRumours).toHaveLength(1);
-    expect(get().tradeRumours[0]).toMatchObject({ placeId: 'B', biens: ['vin'] });
+    expect(get().tradeRumours[0]).toMatchObject({ placeId: 'B', biens: ['vin-eau-de-vie'] });
   });
 
   it('une rumeur visant un AUTRE Lieu ne double PAS la vente ici', () => {
-    const other: TradeRumour = { placeId: 'C', biens: ['vin'], mult: 2, text: 'x', heardDay: 0 };
+    const other: TradeRumour = { placeId: 'C', biens: ['vin-eau-de-vie'], mult: 2, text: 'x', heardDay: 0 };
     expect(sellAtB([other])).toBe(sellAtB([]));
   });
 });

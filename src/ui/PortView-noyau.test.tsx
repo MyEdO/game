@@ -25,7 +25,7 @@ const get = useGame.getState.bind(useGame);
 
 const carte: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
-  places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['commerce', 'poisson-sale'] } as WorldMap['places'][number]['port'] }],
+  places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['commerce-mer', 'poisson-sale'] } as WorldMap['places'][number]['port'] }],
   routes: [],
 };
 const COGUE = findVehicleById('cogue')!;
@@ -37,7 +37,7 @@ function ouvrir(vessel: CampaignVessel): void {
   useGame.setState({
     party: makePregens().slice(0, 1).map((h) => ({ ...h, talents: [], items: (h.items ?? []).filter((i) => i.trappingId !== 'bourse') })),
     possessions: [], vessel, worldMap: carte, journal: [], battle: null, travelPlan: null,
-    port: { placeId: 'A', label: 'Salzenmund', port, offers: [{ cargoId: 'bois', label: 'Bois', enc: 5, basePrice: 10, surplus: false }] },
+    port: { placeId: 'A', label: 'Salzenmund', port, offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 5, basePrice: 10, surplus: false }] },
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     net: { ...get().net, mode: 'local' },
   } as never);
@@ -67,10 +67,10 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
   it('bourse vide : l’achat de 5 Enc à 10 CO est fermé sur le plancher de 40 CO (−20 points), le geste n’ouvre aucun Marchandage', () => {
     expect(hasBargainBonus(get().party[0]), 'fixture : le meneur n’est pas Négociateur').toBe(false);
     const texte = t('cargo.bourseSousPlancher', { plancher: 40 });
-    expect(geste('cargaison', 'port-buy-bois')).toEqual({ ferme: 'true', raison: texte });
+    expect(geste('cargaison', 'port-buy-bois-mer')).toEqual({ ferme: 'true', raison: texte });
     const fenetres = () => Object.entries(get()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
     const avant = fenetres();
-    get().portBuyCargo('bois', 5);
+    get().portBuyCargo('bois-mer', 5);
     expect(fenetres(), 'aucun Test de Marchandage ouvert').toEqual(avant);
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(get().journal.some((l) => l.includes(texte))).toBe(true);
@@ -78,7 +78,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
 
   it('cale à 3 Enc du plafond dur : la borne du champ d’Enc et la ligne de cale viennent du noyau', () => {
     const plafond = overloadMaxEnc(COGUE.ship!.capacity);
-    useGame.setState({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: plafond - 3, basePriceGold: 1 }] } });
+    useGame.setState({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: plafond - 3, basePriceGold: 1 }] } });
     const offre = get().port!.offers[0];
     const hote = document.createElement('div');
     const root = createRoot(hote);
@@ -91,7 +91,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
   });
 
   it('cale au plafond dur : l’achat est fermé, raison = le refus d’embarquer du noyau', () => {
-    const plein: CampaignVessel['cargo'] = [{ cargoId: 'bois', enc: overloadMaxEnc(COGUE.ship!.capacity), basePriceGold: 1 }];
+    const plein: CampaignVessel['cargo'] = [{ cargoId: 'bois-mer', enc: overloadMaxEnc(COGUE.ship!.capacity), basePriceGold: 1 }];
     useGame.setState({ vessel: { ...get().vessel!, cargo: plein } });
     const offre = get().port!.offers[0];
     expect(offre, 'escale sans offre').toBeTruthy();

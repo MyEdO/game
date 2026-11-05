@@ -16,7 +16,7 @@ import { detenteur } from '../../lib/detenteur.testkit';
  * matières, `NEUTRALISEURS_TERRAIN` pour les sols, chacun NOMMÉ, chacun tenu par un test de vie qui
  * le rend ROUGE dès qu'aucun site du périmètre ne l'exerce plus — au grain du CHAMP, une entrée par
  * champ (`neutraliseursDeChamp`), pour qu'un homonyme qui meurt rougisse SEUL. Un homonyme se
- * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `cargoId:`, `weather:`, `part:`, `scope:`), par le
+ * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `weather:`, `part:`, `scope:`), par le
  * VOCABULAIRE d'union déclaré dans le fichier ou par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
  * champ) — jamais par un nom de fichier, jamais par un site toléré.
  *
@@ -236,7 +236,7 @@ const vocabulaireDUnion = (src: string): Set<string> => {
  *    `vocabulaireDUnion`, et la ligne reste comptée ;
  *  - UNE entrée par CHAMP dont le vocabulaire n'est pas celui des sols (`neutraliseursDeChamp`, la
  *    même fabrique que le bras des matières) — `key` (clé de récap / d'IU), `kind` (type de
- *    SÉLECTION d'un éditeur, `route`), `cargoId` (cargaison, `bois`), `weather` (météo, `neige`) :
+ *    SÉLECTION d'un éditeur, `route`), `weather` (météo, `neige`) :
  *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt.
  */
 const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mots: Set<string>) => string }[] = [
@@ -253,7 +253,6 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mo
   ...neutraliseursDeChamp({
     key: 'clé de récap / d’IU',
     kind: 'type de sélection d’un éditeur',
-    cargoId: 'cargaison',
     weather: 'météo',
   }),
 ];
