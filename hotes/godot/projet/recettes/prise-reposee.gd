@@ -4,8 +4,8 @@ extends SceneTree
 ## « Atelier 3D ») : l'atelier (`scripts/atelier.gd`, `_poser_la_piece`) repose un mesh rigide pendu à l'os de sa prise
 ## d'origine. Sur un squelette à deux mains d'orientations différentes, le mesh garde, dans le repère de la prise retenue,
 ## la place qu'il avait dans celui de sa prise d'origine ; à sa propre prise, il garde sa place sous son os. Rangé à un
-## emplacement du bassin, sa prise a la tête vers le bas du personnage et les jointures sur la normale sortante, et sa
-## boîte est centrée sur l'emplacement, à 1 cm de la peau.
+## emplacement du bassin, sa prise a la tête vers le bas du personnage et les jointures sur la normale sortante, sa
+## poignée sur l'emplacement, et sa boîte à 1 cm de la peau.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
@@ -84,13 +84,12 @@ func _verifier(cible: String) -> void:
 		bas = (bas - sortante * bas.dot(sortante)).normalized()
 		var en_prise := _repere(MAIN.attache).affine_inverse() * local
 		var prise := obtenu * en_prise.affine_inverse()
-		var boite_en_prise := en_prise * piece.get_aabb()
-		var centre := prise * boite_en_prise.get_center()
-		var centre_attendu := os * (point + sortante * (DEGAGEMENT + boite_en_prise.size.z / 2.0))
-		juste = _proches(prise.basis.y, os.basis * bas) and _proches(prise.basis.z, os.basis * sortante) and _proches(centre, centre_attendu)
+		var arriere := (en_prise * piece.get_aabb()).position.z
+		var poignee_attendue := os * (point + sortante * (DEGAGEMENT - arriere))
+		juste = _proches(prise.basis.y, os.basis * bas) and _proches(prise.basis.z, os.basis * sortante) and _proches(prise.origin, poignee_attendue)
 		if not juste:
-			_fautes.append("%s : prise Y %s Z %s, centre %s ; attendus %s, %s, %s" % [cible, prise.basis.y, prise.basis.z, centre,
-				os.basis * bas, os.basis * sortante, centre_attendu])
+			_fautes.append("%s : prise Y %s Z %s, poignée %s ; attendus %s, %s, %s" % [cible, prise.basis.y, prise.basis.z, prise.origin,
+				os.basis * bas, os.basis * sortante, poignee_attendue])
 	else:
 		var os_cible := squelette.find_bone(MAIN.attache.os if cible == "main" else OFF.attache.os)
 		var attendu := squelette.global_transform * squelette.get_bone_global_pose(os_cible)

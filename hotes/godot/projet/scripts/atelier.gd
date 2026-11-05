@@ -638,8 +638,8 @@ func _point(id: String) -> Dictionary:
 ## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la boîte, dans ce
 ## repère de prise, est `boite` : +Y de la prise (de l'auriculaire vers l'index, vers la tête de l'objet) vers le bas du
 ## personnage, +Z (vers les jointures) sur la normale sortante de l'emplacement, sa composante hors de l'axe de l'os ;
-## la boîte centrée sur l'emplacement en X et Y, sa face arrière à `DEGAGEMENT_DE_RANGEMENT` de la peau. Sur l'axe de
-## l'os, la normale est l'avant du personnage.
+## la poignée sur l'emplacement, la face arrière de la boîte à `DEGAGEMENT_DE_RANGEMENT` de la peau. Sur l'axe de l'os,
+## la normale est l'avant du personnage.
 static func _repere_de_rangement(attache: Dictionary, boite: AABB) -> Transform3D:
 	var emplacement := MontageDEquipement.repere(attache)
 	var point := emplacement.origin
@@ -647,10 +647,7 @@ static func _repere_de_rangement(attache: Dictionary, boite: AABB) -> Transform3
 	sortante = sortante.normalized() if sortante.length() > 0.001 else emplacement.basis.z.normalized()
 	var bas := -emplacement.basis.y
 	bas = (bas - sortante * bas.dot(sortante)).normalized()
-	var axes := Basis(bas.cross(sortante), bas, sortante)
-	var centre := boite.get_center()
-	var origine := point + sortante * (DEGAGEMENT_DE_RANGEMENT - boite.position.z) - axes.x * centre.x - axes.y * centre.y
-	return Transform3D(axes, origine)
+	return Transform3D(Basis(bas.cross(sortante), bas, sortante), point + sortante * (DEGAGEMENT_DE_RANGEMENT - boite.position.z))
 
 
 ## La prise de la base posée dont l'os est `os`, `{}` si aucune.
