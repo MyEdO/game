@@ -47,10 +47,17 @@ static func attacher(squelette: Skeleton3D, declaration: Dictionary, nom: String
 	attache.bone_name = declaration.os
 	var support := Node3D.new()
 	support.name = "Portage"
-	support.position = Vector3(declaration.position[0], declaration.position[1], declaration.position[2])
-	support.rotation = Vector3(declaration.rotation[0], declaration.rotation[1], declaration.rotation[2])
+	support.transform = repere(declaration)
 	attache.add_child(support)
 	return support
+
+
+## Le repère d'une attache `{position, rotation}` dans son os : rotation en radians, ordre XYZ de three, R = Rx·Ry·Rz
+## (`hotes/godot/asset/attache.ts`, `scripts/personnage-3d/base/anatomie.py`).
+static func repere(declaration: Dictionary) -> Transform3D:
+	var rotation := Vector3(declaration.rotation[0], declaration.rotation[1], declaration.rotation[2])
+	return Transform3D(Basis.from_euler(rotation, EULER_ORDER_XYZ),
+		Vector3(declaration.position[0], declaration.position[1], declaration.position[2]))
 
 
 func masquer_armes(modele: Node, m: Dictionary) -> void:
