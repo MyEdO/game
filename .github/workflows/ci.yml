@@ -119,10 +119,6 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:ops
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:runner
       # Le cache des GLB épinglés (`CACHE_DES_MODELES`) précède `test:noyau`, dont « les modèles commités »
       # (`asset.hors-store.test.ts`) le lit, puis `godot:sonde`.
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
@@ -179,8 +175,6 @@ jobs:
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # `test:hooks` hors du chemin critique de `types` (#2178), sous garde des écritures d'arbre (#2489).
-  # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
-  # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   # `livraison:plage` (#2328, scripts/guards/livraison-plage.mjs) : la porte de PUBLICATION des
   # résolutions de fusion de `merge-base origin/main..HEAD` ; elle lit les soldes de `.claude/` dans
   # l'histoire, elle n'est jamais sautée.
@@ -200,15 +194,36 @@ jobs:
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:hooks
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run livraison:plage
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run comptes:plage
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # Les suites `node --test` des scripts hors `test:hooks`, hors du chemin critique de `types` et de
+  # `types-hooks` (#3412) : ces trois jobs se partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
+  # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
+  # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
+  corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        uses: ./.github/actions/prologue
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:corpus
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:corpus-isole
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run mods:check
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run livraison:plage
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run comptes:plage
+        run: npm run test:ops
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:runner
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
