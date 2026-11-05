@@ -2032,8 +2032,8 @@ fichier de données. Chemins vérifiés au registre (`src/ui/compendium/registry
 |---|---|
 | `weather` (table de tirage d100 par saison) | Tables › Voyage terrestre › **Météo de voyage** |
 | `weatherConditions` (effets par météo) | Tables › Voyage terrestre › **Conditions météo** |
-| `mutations` | Effets › **Mutations** (`registry.ts:1576`) — pas sous `Personnage` |
-| `talents` | Compétences › **Talents** (`registry.ts:1441`) — pas sous `Personnage` |
+| `mutations` | Effets › **Mutations** (`registry.ts:1504`) — pas sous `Personnage` |
+| `talents` | Compétences › **Talents** (`registry.ts:1375`) — pas sous `Personnage` |
 
 Les deux niches météo éditent le MÊME fichier (`src/data/weather.json`) sous deux catégories Codex : une
 recette qui vérifie l'édition d'une météo doit dire LAQUELLE des deux elle a ouverte.

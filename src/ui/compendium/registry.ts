@@ -101,8 +101,13 @@ import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/sch
 import { libelleDuChamp } from './editFields';
 // Ordre des arrêts d'une rampe de terrain : SOURCE UNIQUE partagée avec les émetteurs SVG — la fiche
 // Codex lit la rampe dans l'ordre où le rendu la peint, jamais dans l'ordre des clés du Record.
-import { terrainStopsOrdonnes } from '../../gameIso/catalog/terrain';
+import { terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { slugId } from '../../data/slug';
+import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
+
+/** Les états de campagne du Codex : aucun. Le Codex ne projette que `src/data`, jamais une couche de
+ *  campagne (#767) — ses conditions `etat` se disent par leur id. */
+const ETATS_DU_CODEX: readonly EtatDeclare[] = [];
 
 export type CodexGroup = 'Personnage' | 'Compétences' | 'Équipement' | 'Effets' | 'Magie' | 'Monde' | 'Tables';
 
@@ -583,7 +588,7 @@ const traitItem = (t0: (typeof traits)[number]): CodexItem => {
     ),
     sections: sections(
       chips('Manœuvres conférées', (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
-      passiveSection(t.passive), effectsSection(t.effects),
+      passiveSection(t.passive), effectsSection(t.effects, ETATS_DU_CODEX),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
     ),
   });
@@ -1377,7 +1382,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(
         careerGrantSection(e.passive), // Compétence/Talent ajouté à toute carrière (Maître artisan, Flagellant…)
         passiveSection(e.passive),
-        effectsSection(e.effects, 'Effets déclenchés'),
+        effectsSection(e.effects, ETATS_DU_CODEX, 'Effets déclenchés'),
         ...reverseSections('talents', e.id), // Races · Carrières (rang) · Créatures · Talents le conférant
       ),
       });
@@ -1446,7 +1451,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'qualities', label: 'Qualités', group: 'Équipement',
     build: () => qualities.map((q) => depuisEnveloppe(q, {
       sub: join(qualityTypeLabel(q.polarite), qualitySubtypeLabel(q.subType)),
-      sections: sections(passiveSection(q.passive), effectsSection(q.effects, 'Effets déclenchés'), ...reverseSections('qualities', q.id)),
+      sections: sections(passiveSection(q.passive), effectsSection(q.effects, ETATS_DU_CODEX, 'Effets déclenchés'), ...reverseSections('qualities', q.id)),
     })),
   },
   {
@@ -1563,7 +1568,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         fact('Bonus d’incantation', d.castBonus ? humanizeCastBonus(d.castBonus) : null),
         fact('Post-incantation', d.casterOps?.length ? `${d.casterOps.length} op(s) au lanceur` : null),
       ),
-      sections: sections(effectsSection(d.effects, 'Riders à la touche'), ...reverseSections('domains', d.id)),
+      sections: sections(effectsSection(d.effects, ETATS_DU_CODEX, 'Riders à la touche'), ...reverseSections('domains', d.id)),
     })),
   },
   {
@@ -1585,7 +1590,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
       sections: sections(
         ritualSection(s.ritual), // Anatomie d'un Rituel (`VDM 02 l.377-393`)
-        spellFlowSection(s.effects), // Effet mécanique (Flow) — #5 data-driven
+        spellFlowSection(s.effects, ETATS_DU_CODEX), // Effet mécanique (Flow) — #5 data-driven
         ...reverseSections('spells', s.id), // Cultes (Bénédictions/Miracles) · Créatures · Domaine
       ),
     })),
@@ -2016,7 +2021,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'psychologies', label: 'États psychologiques', group: 'Effets',
     build: () => psychologies.map((p) => depuisEnveloppe(p, {
-      sections: sections(passiveSection(p.passive), effectsSection(p.effects), ...reverseSections('psychologies', p.id)),
+      sections: sections(passiveSection(p.passive), effectsSection(p.effects, ETATS_DU_CODEX), ...reverseSections('psychologies', p.id)),
     })),
   },
   {
