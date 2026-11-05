@@ -1,58 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isDescriptiveZone, Scene } from '../../noyau/monde/scene';
-import { propFootTiles } from '../../noyau/monde/footprint';
-import { entityAt } from '../../noyau/sceneEdit';
-import { validateScene } from '../../noyau/validateScene';
-import { buildProps } from '../../gameIso/builders/props';
-import { estPropVolumique } from '../../gameIso/builders/types';
-import { findCreatureById, creatureLabel, siegeEngines } from '../../data';
-import {
-  eraseAt,
-  hitAt,
-  moveSel,
-  resizeSel,
-  deleteSel,
-  changePropRef,
-  paintTiles,
-  fillTerrainRect,
-  addLayer,
-  removeLayer,
-  paintHeight,
-  placeEntity,
-  placeEntry,
-  renameEntry,
-  addTrigger,
-  addRestZone,
-  addEffectZone,
-  EFFECT_ZONE_SEEDS,
-  effectZoneRect,
-  flowEffectCount,
-  addMember,
-  addEnemyMember,
-  removeMember,
-  placeEmplacement,
-  setPosteCrew,
-  setPosteSide,
-  setPosteEngine,
-  selRect,
-  sameSel,
-  DEFAULT_LAYERS,
-  addArchitectureBody,
-  addArchitectureStorey,
-  paintCrenellated,
-  patchWall,
-  addArchitecturePart,
-  addFacadeSection,
-  addBuildingMass,
-  pickArchitectureEdge,
-  paintEffectZone,
-  clearEffectZoneCarve,
-} from './editorState';
-import type { Sel } from './editorState';
-import { EMPTY_FLOW } from '../../engine/flowCore';
-import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import { sceneZoneTiles } from '../../noyau/monde/zones';
-import { nomDEntite } from '../../noyau/monde/sceneNpc';
+import { emptyScene, isDescriptiveZone, Scene } from './monde/scene';
+import { propFootTiles } from './monde/footprint';
+import { entityAt, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
+import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve } from './sceneEdit';
+import { TOUS_CALQUES } from './sceneEdit.testkit';
+import { validateScene } from './validateScene';
+import { findCreatureById, creatureLabel, siegeEngines } from '../data';
+import { EMPTY_FLOW } from '../engine/flowCore';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import { sceneZoneTiles } from './monde/zones';
+import { nomDEntite } from './monde/sceneNpc';
 
 function sceneWith(): Scene {
   const s = emptyScene('scene-test', 10, 10);
@@ -92,7 +49,7 @@ function architecturePart(scene: Scene, sel: Extract<Sel, { type: 'architectureP
     .find((storey) => storey.id === sel.storeyId)?.parts.find((part) => part.id === sel.id);
 }
 
-describe('editorState — architecture', () => {
+describe('édition de scène — architecture', () => {
   it('crée des volumes architecturaux avec ids stables', () => {
     const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     const part = addArchitecturePart(body.scene, body.id, 'z0', { x: 1, y: 1, w: 2, h: 2 });
@@ -127,18 +84,18 @@ describe('editorState — architecture', () => {
 
   it('sélectionne les volumes architecturaux de l’étage courant', () => {
     const scene = sceneWithArchitecture();
-    expect(hitAt(scene, { x: 1, y: 1 }, DEFAULT_LAYERS)).toEqual({ type: 'architecturePart', bodyId: 'corps', storeyId: 'z0', id: 'aile' });
-    expect(hitAt(scene, { x: 6, y: 6 }, DEFAULT_LAYERS)).toBeNull();
+    expect(hitAt(scene, { x: 1, y: 1 }, TOUS_CALQUES)).toEqual({ type: 'architecturePart', bodyId: 'corps', storeyId: 'z0', id: 'aile' });
+    expect(hitAt(scene, { x: 6, y: 6 }, TOUS_CALQUES)).toBeNull();
     scene.architecture!.push({
       id: 'etage', style: 'maison',
       storeys: [{ id: 'z1', z: 1, parts: [{ id: 'aile-haute', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: [] }],
       facades: [],
       masses: [{ id: 'toit-haut', z: 1, footprint: [{ x: 6, y: 6, w: 1, h: 2 }, { x: 7, y: 7, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' }],
     });
-    expect(hitAt(scene, { x: 1, y: 1 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'architecturePart', bodyId: 'etage', storeyId: 'z1', id: 'aile-haute' });
-    expect(hitAt(scene, { x: 6, y: 6 }, DEFAULT_LAYERS, 0)).toBeNull();
-    expect(hitAt(scene, { x: 6, y: 6 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'roofSection', bodyId: 'etage', id: 'toit-haut' });
-    expect(hitAt(scene, { x: 7, y: 7 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'roofSection', bodyId: 'etage', id: 'toit-haut' });
+    expect(hitAt(scene, { x: 1, y: 1 }, TOUS_CALQUES, 1)).toEqual({ type: 'architecturePart', bodyId: 'etage', storeyId: 'z1', id: 'aile-haute' });
+    expect(hitAt(scene, { x: 6, y: 6 }, TOUS_CALQUES, 0)).toBeNull();
+    expect(hitAt(scene, { x: 6, y: 6 }, TOUS_CALQUES, 1)).toEqual({ type: 'roofSection', bodyId: 'etage', id: 'toit-haut' });
+    expect(hitAt(scene, { x: 7, y: 7 }, TOUS_CALQUES, 1)).toEqual({ type: 'roofSection', bodyId: 'etage', id: 'toit-haut' });
   });
 
   it('trouve une façade par son arête canonique et son étage', () => {
@@ -160,7 +117,7 @@ describe('editorState — architecture', () => {
   });
 });
 
-describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimables au clic', () => {
+describe('édition de scène — #841 FU-C : corps/étage sélectionnables et supprimables au clic', () => {
   it('addArchitectureStorey ajoute un étage frais sans toucher le premier (z0)', () => {
     const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     const out = addArchitectureStorey(body.scene, body.id, 1);
@@ -179,15 +136,15 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   it('hitAt sélectionne le CORPS actif quand aucune feuille n’est sous le clic (aucun mode architecture ⇒ inchangé)', () => {
     const scene = sceneWithArchitecture(); // corps « corps », étage z0, une partie en (1,1)-(2,2)
     // Sans activeBodyId (comportement historique) : clic dans le vide = rien.
-    expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS)).toBeNull();
+    expect(hitAt(scene, { x: 5, y: 5 }, TOUS_CALQUES)).toBeNull();
     // Avec le corps ACTIF (mode Architecture) : le clic désigne l’étage courant du corps.
-    expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS, 0, 'corps')).toEqual({ type: 'architectureStorey', bodyId: 'corps', id: 'z0' });
+    expect(hitAt(scene, { x: 5, y: 5 }, TOUS_CALQUES, 0, 'corps')).toEqual({ type: 'architectureStorey', bodyId: 'corps', id: 'z0' });
     // Sur une couche SANS étage du corps actif : le corps lui-même.
-    expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS, 3, 'corps')).toEqual({ type: 'architectureBody', id: 'corps' });
+    expect(hitAt(scene, { x: 5, y: 5 }, TOUS_CALQUES, 3, 'corps')).toEqual({ type: 'architectureBody', id: 'corps' });
     // Une FEUILLE sous le clic garde priorité sur le conteneur.
-    expect(hitAt(scene, { x: 1, y: 1 }, DEFAULT_LAYERS, 0, 'corps')).toEqual({ type: 'architecturePart', bodyId: 'corps', storeyId: 'z0', id: 'aile' });
+    expect(hitAt(scene, { x: 1, y: 1 }, TOUS_CALQUES, 0, 'corps')).toEqual({ type: 'architecturePart', bodyId: 'corps', storeyId: 'z0', id: 'aile' });
     // Corps actif introuvable (id périmé) : aucune sélection fantôme.
-    expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS, 0, 'absent')).toBeNull();
+    expect(hitAt(scene, { x: 5, y: 5 }, TOUS_CALQUES, 0, 'absent')).toBeNull();
   });
 
   it('deleteSel(architectureBody) retire le corps entier (étages/parties/façades/masses)', () => {
@@ -210,14 +167,14 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
     const created = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     // Sélection au CANEVAS (clic dans le vide, corps actif = celui créé — comme le fait EditorCanvas) :
     // à l'étage z0 du corps flambant neuf, le clic désigne son unique étage.
-    const pickedStorey = hitAt(created.scene, { x: 4, y: 4 }, DEFAULT_LAYERS, 0, created.id);
+    const pickedStorey = hitAt(created.scene, { x: 4, y: 4 }, TOUS_CALQUES, 0, created.id);
     expect(pickedStorey).toEqual({ type: 'architectureStorey', bodyId: created.id, id: 'z0' });
     // Ajout d'un étage (le trou BLOQUANT de #841 FU-C).
     const withStorey = addArchitectureStorey(created.scene, created.id, 1);
     if (!withStorey) throw new Error('étage absent');
     expect(withStorey.scene.architecture?.[0]?.storeys).toHaveLength(2);
     // Sélection du CORPS lui-même au clic (couche sans étage du corps actif).
-    const pickedBody = hitAt(withStorey.scene, { x: 4, y: 4 }, DEFAULT_LAYERS, 5, created.id);
+    const pickedBody = hitAt(withStorey.scene, { x: 4, y: 4 }, TOUS_CALQUES, 5, created.id);
     expect(pickedBody).toEqual({ type: 'architectureBody', id: created.id });
     // Suppression du corps entier (étages/parties/façades/masses disparaissent avec lui).
     const deleted = deleteSel(withStorey.scene, pickedBody);
@@ -242,25 +199,25 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   });
 });
 
-describe('editorState — hitAt (priorité entité > entrée > trigger > repos > toiture)', () => {
+describe('édition de scène — hitAt (priorité entité > entrée > trigger > repos > toiture)', () => {
   const s = sceneWith();
   it('touche chaque type au bon endroit', () => {
-    expect(hitAt(s, { x: 1, y: 8 }, DEFAULT_LAYERS)).toEqual({ type: 'entity', id: 'enemy-0' }); // un ennemi EST une entité
-    expect(hitAt(s, { x: 2, y: 2 }, DEFAULT_LAYERS)).toEqual({ type: 'entity', id: 'perso-0' });
-    expect(hitAt(s, { x: 9, y: 0 }, DEFAULT_LAYERS)).toEqual({ type: 'entry', id: 'entree' });
-    expect(hitAt(s, { x: 5, y: 5 }, DEFAULT_LAYERS)).toEqual({ type: 'trigger', id: 'trig-0' });
-    expect(hitAt(s, { x: 0, y: 5 }, DEFAULT_LAYERS)).toEqual({ type: 'restZone', idx: 0 });
-    expect(hitAt(s, { x: 7, y: 7 }, DEFAULT_LAYERS)).toEqual({ type: 'roofSection', bodyId: 'corps-0', id: 'roof-0' });
-    expect(hitAt(s, { x: 3, y: 0 }, DEFAULT_LAYERS)).toBeNull();
+    expect(hitAt(s, { x: 1, y: 8 }, TOUS_CALQUES)).toEqual({ type: 'entity', id: 'enemy-0' }); // un ennemi EST une entité
+    expect(hitAt(s, { x: 2, y: 2 }, TOUS_CALQUES)).toEqual({ type: 'entity', id: 'perso-0' });
+    expect(hitAt(s, { x: 9, y: 0 }, TOUS_CALQUES)).toEqual({ type: 'entry', id: 'entree' });
+    expect(hitAt(s, { x: 5, y: 5 }, TOUS_CALQUES)).toEqual({ type: 'trigger', id: 'trig-0' });
+    expect(hitAt(s, { x: 0, y: 5 }, TOUS_CALQUES)).toEqual({ type: 'restZone', idx: 0 });
+    expect(hitAt(s, { x: 7, y: 7 }, TOUS_CALQUES)).toEqual({ type: 'roofSection', bodyId: 'corps-0', id: 'roof-0' });
+    expect(hitAt(s, { x: 3, y: 0 }, TOUS_CALQUES)).toBeNull();
   });
   it('un calque masqué laisse cliquer à travers (le calque Ennemis masque les embusqueurs)', () => {
-    expect(hitAt(s, { x: 5, y: 5 }, { ...DEFAULT_LAYERS, triggers: false })).toBeNull();
-    expect(hitAt(s, { x: 1, y: 8 }, { ...DEFAULT_LAYERS, spawns: false })).toBeNull(); // ennemi caché masqué
-    expect(hitAt(s, { x: 7, y: 7 }, { ...DEFAULT_LAYERS, roofs: false })).toBeNull(); // toit masqué → clic à travers
+    expect(hitAt(s, { x: 5, y: 5 }, { ...TOUS_CALQUES, triggers: false })).toBeNull();
+    expect(hitAt(s, { x: 1, y: 8 }, { ...TOUS_CALQUES, spawns: false })).toBeNull(); // ennemi caché masqué
+    expect(hitAt(s, { x: 7, y: 7 }, { ...TOUS_CALQUES, roofs: false })).toBeNull(); // toit masqué → clic à travers
   });
 });
 
-describe('editorState — moveSel (clampé)', () => {
+describe('édition de scène — moveSel (clampé)', () => {
   const s = sceneWith();
   it('déplace une entité et clampe dans la carte', () => {
     const out = moveSel(s, { type: 'entity', id: 'perso-0' }, { x: 99, y: -5 });
@@ -280,7 +237,7 @@ describe('editorState — moveSel (clampé)', () => {
   });
 });
 
-describe('editorState — resizeSel (coin NW fixe)', () => {
+describe('édition de scène — resizeSel (coin NW fixe)', () => {
   const s = sceneWith();
   it('redimensionne un trigger vers la case visée', () => {
     const out = resizeSel(s, { type: 'trigger', id: 'trig-0' }, { x: 7, y: 8 });
@@ -311,7 +268,7 @@ describe('editorState — resizeSel (coin NW fixe)', () => {
   });
 });
 
-describe('editorState — deleteSel', () => {
+describe('édition de scène — deleteSel', () => {
   const s = sceneWith();
   it('supprime chaque type', () => {
     expect(deleteSel(s, { type: 'entity', id: 'perso-0' }).entities.map((e) => e.id)).toEqual(['enemy-0']);
@@ -323,7 +280,7 @@ describe('editorState — deleteSel', () => {
   });
 });
 
-describe('editorState — peinture', () => {
+describe('édition de scène — peinture', () => {
   it('paintTiles peint un carré 3×3 clampé', () => {
     const out = paintTiles(emptyScene('scene-test', 10, 10), { x: 0, y: 0 }, 'eau', 3);
     expect(out.layers[0].tiles.filter((t) => t === 'eau')).toHaveLength(4); // coin : 2×2 visibles
@@ -340,7 +297,7 @@ describe('editorState — peinture', () => {
   });
 });
 
-describe('editorState — couches (multi-niveaux)', () => {
+describe('édition de scène — couches (multi-niveaux)', () => {
   it('addLayer ajoute une couche « vide », triée par z ; idempotent', () => {
     const s1 = addLayer(emptyScene('scene-test', 4, 4), 1);
     expect(s1.layers.map((l) => l.z)).toEqual([0, 1]);
@@ -358,7 +315,7 @@ describe('editorState — couches (multi-niveaux)', () => {
   });
 });
 
-describe('editorState — hauteur métrique (paintHeight)', () => {
+describe('édition de scène — hauteur métrique (paintHeight)', () => {
   it('écrit layer.height en MÈTRES (crée le tableau, 0 ailleurs)', () => {
     const s = paintHeight(emptyScene('scene-test', 4, 4), { x: 1, y: 1 }, 4, 1, 0);
     expect(s.layers[0].height).toBeDefined();
@@ -372,7 +329,7 @@ describe('editorState — hauteur métrique (paintHeight)', () => {
   });
 });
 
-describe('editorState — pose', () => {
+describe('édition de scène — pose', () => {
   it('placeEntity : pose DIRECTE d’un décor précis avec ses défauts de catalogue', () => {
     const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
@@ -440,7 +397,7 @@ describe('editorState — pose', () => {
   });
 });
 
-describe('editorState — emplacement de siège (postes authorés à l’éditeur)', () => {
+describe('édition de scène — emplacement de siège (postes authorés à l’éditeur)', () => {
   it('siegeEngines() sélectionne les engins posables du sous-type armes-de-siege (baliste présente)', () => {
     expect(siegeEngines().length).toBeGreaterThan(0);
     expect(siegeEngines().every((t) => t.subType === 'armes-de-siege')).toBe(true);
@@ -515,7 +472,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 });
 
-describe('editorState — points d’entrée (manque du POC comblé)', () => {
+describe('édition de scène — points d’entrée (manque du POC comblé)', () => {
   it('placeEntry pose entree-0 puis un nom libre suivant', () => {
     const a = placeEntry(emptyScene('scene-test', 10, 10), { x: 1, y: 1 });
     expect(a.id).toBe('entree-0');
@@ -533,8 +490,8 @@ describe('editorState — points d’entrée (manque du POC comblé)', () => {
   });
   it('hitAt/moveSel respectent l’étage d’un point d’entrée (#835 FU-5)', () => {
     const s = placeEntry(emptyScene('scene-test', 10, 10), { x: 3, y: 3 }, 1).scene;
-    expect(hitAt(s, { x: 3, y: 3 }, DEFAULT_LAYERS, 0)).toBeNull(); // couche 0 : rien à cette case
-    expect(hitAt(s, { x: 3, y: 3 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'entry', id: 'entree-0' });
+    expect(hitAt(s, { x: 3, y: 3 }, TOUS_CALQUES, 0)).toBeNull(); // couche 0 : rien à cette case
+    expect(hitAt(s, { x: 3, y: 3 }, TOUS_CALQUES, 1)).toEqual({ type: 'entry', id: 'entree-0' });
     const moved = moveSel(s, { type: 'entry', id: 'entree-0' }, { x: 5, y: 5 });
     expect(moved.entryPoints!['entree-0']).toEqual({ x: 5, y: 5, z: 1 }); // z préservé au déplacement
   });
@@ -546,7 +503,7 @@ describe('editorState — points d’entrée (manque du POC comblé)', () => {
   });
 });
 
-describe('editorState — selRect / sameSel', () => {
+describe('édition de scène — selRect / sameSel', () => {
   const s = sceneWith();
   it('selRect couvre trigger/restZone/toiture, null pour le ponctuel', () => {
     expect(selRect(s, { type: 'trigger', id: 'trig-0' })).toEqual({ x: 4, y: 4, w: 2, h: 2 });
@@ -575,7 +532,7 @@ describe('Zones d\'effet (pièges) — authoring éditeur', () => {
     expect(z.id).toBeTruthy();
     // hitAt trouve la zone sous une de ses cases, aux calques de défaut : un piège fraîchement posé
     // est cliquable sans avoir à allumer quoi que ce soit.
-    expect(hitAt(scene, { x: 4, y: 3 }, DEFAULT_LAYERS)).toEqual({ type: 'effectZone', idx });
+    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'effectZone', idx });
   });
 
   it('sans graine, la zone naît DESCRIPTIVE et libellée par son id — le créateur partagé n\'arme rien', () => {
@@ -584,7 +541,7 @@ describe('Zones d\'effet (pièges) — authoring éditeur', () => {
     expect(isDescriptiveZone(z)).toBe(true);
     expect(z.label).toBe(z.id);
     // Descriptive ou mécanique, une zone se pique au MÊME calque : c'est son encre qui diffère.
-    expect(hitAt(scene, { x: 4, y: 3 }, DEFAULT_LAYERS)).toEqual({ type: 'effectZone', idx });
+    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'effectZone', idx });
   });
 
   it('selRect/moveSel/resizeSel/deleteSel sur une zone d\'effet', () => {
@@ -718,20 +675,6 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
     return s;
   }
 
-  it('changer la ref vers un décor VOLUMIQUE fait retomber un cap refusé au cap d’identité : le geste ne crée pas de faute (C2)', () => {
-    const s = emptyScene('scene-test', 8, 8);
-    s.entities = [{ id: 'p3', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'brasero', facing: 'NE' }];
-    expect(validateScene([s]).filter((w) => w.refId === 'p3')).toEqual([]);
-    const apres = changePropRef(s, 'p3', 'tonneau');
-    expect(apres.entities[0]).toMatchObject({ ref: 'tonneau', facing: 'S' });
-    expect(validateScene([apres]).filter((w) => w.refId === 'p3')).toEqual([]);
-    const [el] = buildProps(apres).filter((e) => e.entId === 'p3');
-    expect(estPropVolumique(el), 'le tonneau se cuit en volume, au cap d’identité').toBe(true);
-    // Un cap ADMIS par le nouveau type n'est pas touché.
-    expect(changePropRef({ ...s, entities: [{ ...s.entities[0], facing: 'E' }] }, 'p3', 'tonneau').entities[0].facing).toBe('E');
-    expect(changePropRef(apres, 'p3', 'brasero').entities[0].facing).toBe('S');
-  });
-
   it('changer la ref ou supprimer le prop élague dans la même mutation', () => {
     expect(changePropRef(attablee(), 'table-1', 'tonneau').seatAssignments).toEqual({});
     expect(deleteSel(attablee(), { type: 'entity', id: 'table-1' }).seatAssignments).toEqual({});
@@ -794,7 +737,7 @@ describe('canevas — un décor de deux cases se désigne par chacune d’elles'
   it.each([['S', { x: 4, y: 3 }], ['E', { x: 3, y: 4 }]] as const)(
     'cap %s : la SECONDE case sélectionne le meuble et rend son ancre', (facing, seconde) => {
       const scene = salle(facing);
-      expect(hitAt(scene, seconde, DEFAULT_LAYERS)).toEqual({ type: 'entity', id: 'table' });
+      expect(hitAt(scene, seconde, TOUS_CALQUES)).toEqual({ type: 'entity', id: 'table' });
       expect(entityAt(scene, seconde)?.pos).toEqual({ x: 3, y: 3 });
       expect(eraseAt(scene, seconde).entities).toEqual([]);
     });
@@ -802,10 +745,20 @@ describe('canevas — un décor de deux cases se désigne par chacune d’elles'
   it('un CORPS posé sur une case d’empreinte se désigne lui-même : la pose exacte prime', () => {
     const scene = salle('S');
     scene.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 3 } });
-    expect(hitAt(scene, { x: 4, y: 3 }, DEFAULT_LAYERS)).toEqual({ type: 'entity', id: 'pnj' });
+    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'entity', id: 'pnj' });
   });
 
   it('une case HORS empreinte ne désigne rien : la règle ne répond pas partout', () => {
-    expect(hitAt(salle('S'), { x: 5, y: 3 }, DEFAULT_LAYERS)).toBeNull();
+    expect(hitAt(salle('S'), { x: 5, y: 3 }, TOUS_CALQUES)).toBeNull();
+  });
+});
+
+describe('pasteEntity — coller plafonne à la carte comme moveSel (#3059)', () => {
+  it('une case visée hors carte se pose au bord, à la case même où moveSel la déplacerait', () => {
+    const s = sceneWith();
+    const source = s.entities.find((e) => e.id === 'perso-0')!;
+    const { scene, id } = pasteEntity(s, source, { x: 15, y: -3 });
+    expect(scene.entities.find((e) => e.id === id)?.pos).toEqual({ x: 9, y: 0 });
+    expect(moveSel(s, { type: 'entity', id: 'perso-0' }, { x: 15, y: -3 }).entities.find((e) => e.id === 'perso-0')?.pos).toEqual({ x: 9, y: 0 });
   });
 });

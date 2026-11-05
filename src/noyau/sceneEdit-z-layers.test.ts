@@ -1,18 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, Scene } from '../../noyau/monde/scene';
-import {
-  hitAt,
-  resizeSel,
-  eraseAt,
-  addTrigger,
-  addRestZone,
-  addEffectZone,
-  EFFECT_ZONE_SEEDS,
-  addEnemyMember,
-  placeEntity,
-  pasteEntity,
-  DEFAULT_LAYERS,
-} from './editorState';
+import { emptyScene, Scene } from './monde/scene';
+import { hitAt, EFFECT_ZONE_SEEDS } from './sceneEditLecture';
+import { resizeSel, eraseAt, addTrigger, addRestZone, addEffectZone, addEnemyMember, placeEntity, pasteEntity } from './sceneEdit';
+import { TOUS_CALQUES } from './sceneEdit.testkit';
 
 /**
  * #835 FU-3 (destructif) + FU-1 (surcouches d'annotation) — la racine mesurée : l'éditeur ne lisait/
@@ -30,8 +20,8 @@ describe('#835 FU-3 — hitAt/eraseAt filtrent par couche (destructif avant corr
     const s = sceneAvecEntiteZ2();
     // Avant #835 : `hitAt` ignorait le z de l'entité — `scene.entities.find(pos.x===p.x && pos.y===p.y)`
     // l'aurait attrapée ici même en éditant la couche 0. Preuve que le filtre est RÉEL :
-    expect(hitAt(s, { x: 2, y: 2 }, DEFAULT_LAYERS, 2)).toEqual({ type: 'entity', id: 'perso-0' });
-    expect(hitAt(s, { x: 2, y: 2 }, DEFAULT_LAYERS, 0)).toBeNull();
+    expect(hitAt(s, { x: 2, y: 2 }, TOUS_CALQUES, 2)).toEqual({ type: 'entity', id: 'perso-0' });
+    expect(hitAt(s, { x: 2, y: 2 }, TOUS_CALQUES, 0)).toBeNull();
   });
 
   it('eraseAt en z0 ne supprime PLUS une entité posée en z2 (perte de donnée silencieuse close)', () => {
@@ -67,8 +57,8 @@ describe('#835 FU-1 — trigger/repos/zone d\'effet portent leur z (écrits, fil
   it('addTrigger : z posé en z1 est écrit sur rect.z, invisible/non-sélectionnable en z0', () => {
     const s = addTrigger(emptyScene('scene-test', 6, 6), { x: 1, y: 1, w: 2, h: 2 }, 1).scene;
     expect(s.triggers[0].rect.z).toBe(1);
-    expect(hitAt(s, { x: 1, y: 1 }, DEFAULT_LAYERS, 0)).toBeNull();
-    expect(hitAt(s, { x: 1, y: 1 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'trigger', id: s.triggers[0].id });
+    expect(hitAt(s, { x: 1, y: 1 }, TOUS_CALQUES, 0)).toBeNull();
+    expect(hitAt(s, { x: 1, y: 1 }, TOUS_CALQUES, 1)).toEqual({ type: 'trigger', id: s.triggers[0].id });
   });
 
   it('addTrigger : z=0 (défaut) omet le champ (convention canonique, comme WallSeg)', () => {
@@ -86,8 +76,8 @@ describe('#835 FU-1 — trigger/repos/zone d\'effet portent leur z (écrits, fil
   it('addRestZone : z posé en z1 est écrit, invisible/non-sélectionnable en z0, survit au resize', () => {
     const s0 = addRestZone(emptyScene('scene-test', 6, 6), { x: 1, y: 1, w: 2, h: 2 }, 1).scene;
     expect(s0.restZones![0].rect.z).toBe(1);
-    expect(hitAt(s0, { x: 1, y: 1 }, DEFAULT_LAYERS, 0)).toBeNull();
-    expect(hitAt(s0, { x: 1, y: 1 }, { ...DEFAULT_LAYERS }, 1)).toEqual({ type: 'restZone', idx: 0 });
+    expect(hitAt(s0, { x: 1, y: 1 }, TOUS_CALQUES, 0)).toBeNull();
+    expect(hitAt(s0, { x: 1, y: 1 }, { ...TOUS_CALQUES }, 1)).toEqual({ type: 'restZone', idx: 0 });
     const resized = resizeSel(s0, { type: 'restZone', idx: 0 }, { x: 4, y: 4 });
     expect(resized.restZones![0].rect).toMatchObject({ w: 4, h: 4, z: 1 });
   });
@@ -96,7 +86,7 @@ describe('#835 FU-1 — trigger/repos/zone d\'effet portent leur z (écrits, fil
     const s0 = addEffectZone(emptyScene('scene-test', 6, 6), { x: 1, y: 1, w: 2, h: 2 }, 1, EFFECT_ZONE_SEEDS.effect).scene;
     expect(s0.effectZones![0].z).toBe(1);
     expect(s0.effectZones![0].area).toEqual({ kind: 'rect', x: 1, y: 1, w: 2, h: 2 }); // z hors de `area`
-    expect(hitAt(s0, { x: 1, y: 1 }, DEFAULT_LAYERS, 0)).toBeNull();
-    expect(hitAt(s0, { x: 1, y: 1 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'effectZone', idx: 0 });
+    expect(hitAt(s0, { x: 1, y: 1 }, TOUS_CALQUES, 0)).toBeNull();
+    expect(hitAt(s0, { x: 1, y: 1 }, TOUS_CALQUES, 1)).toEqual({ type: 'effectZone', idx: 0 });
   });
 });

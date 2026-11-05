@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme } from '../../noyau/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme, type Pt, deleteSel, moveSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addArchitectureStorey, addArchitecturePart, addBuildingMass } from '../../noyau/sceneEdit';
 import { validateScene, type Warning } from '../../noyau/validateScene';
 import { idsDesPistesDeMusique } from '../../audio/music';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../noyau/planDefects';
@@ -34,11 +34,8 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { publierEditeur } from '../../state/editeurBridge';
-import {
-  Tool, Sel, Pt, deleteSel, moveSel, selPos, pasteEntity, addLayer, removeLayer,
-  addArchitectureBody, addArchitectureStorey, addArchitecturePart, addBuildingMass,
-  planStairFlight, applyStairFlight,
-} from './editorState';
+import { type Tool, type Sel, selPos } from '../../noyau/sceneEditLecture';
+import { planStairFlight, applyStairFlight } from '../../noyau/stairFlight';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Row } from '../Layout';

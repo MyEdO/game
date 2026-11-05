@@ -787,8 +787,8 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               pointer-events:none, hit-target large par tracé). AUCUNE logique de voyage dedans
                               (elle reste dans WorldMapView, premier consommateur ; le plan de ville #343-B sera
                               le second). Caméra pure = `worldMapViewport.ts` (clamp/fit/viewOn).
-  editor/                     Éditeur v2 : Editor.tsx (shell), editorState.ts (sélection unifiée +
-                              mutations PURES), EditorCanvas (pointeur/overlays/resize), Palette (rail
+  editor/                     Éditeur v2 : Editor.tsx (shell ; ses écrivains PURS dans `noyau/sceneEdit.ts`,
+                              outil/sélection/picking dans `noyau/sceneEditLecture.ts`), EditorCanvas (pointeur/overlays/resize), Palette (rail
                               d'outils + contenu contextuel), Inspector (DOCKÉ, folds ; scène si rien
                               de sélectionné), LogicDock (triggers/dialogues/rencontres/validation en
                               master-détail, édition live), EffectList (rangées repliées + picker),
