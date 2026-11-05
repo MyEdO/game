@@ -57,10 +57,11 @@ export function windsMagicModOf(battle: Jeu['battle']): number {
   return battle?.windsOfMagic?.mod ?? 0;
 }
 
-/** La LIGNE de jet des Vents COURANTS (`engine/windsOfMagic`) — lecture d'état des deux surfaces
- *  d'affichage (aperçu d'Incantation, Focalisation). `null` sans Vents actifs. */
-export function windsMagicLineOf(battle: Jeu['battle']): ModLine | null {
-  return windsModLine(battle?.windsOfMagic);
+/** La ligne des Vents COURANTS qu'annonce un jet d'Incantation ou de Focalisation : avant le dé, seulement révélés
+ *  (Seconde vue) ; une fois le dé tombé, toujours. `null` sans Vents actifs. LDB 46 l.179-190 */
+export function ventsAnnonces(battle: Jeu['battle'], jete: boolean): ModLine | null {
+  const vents = battle?.windsOfMagic;
+  return vents && (jete || vents.revealed) ? windsModLine(vents) : null;
 }
 
 /**
