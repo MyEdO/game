@@ -985,11 +985,11 @@ function kindDEmbranchement(flow: unknown): string | null {
 }
 
 /**
- * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:492`) — jet ALÉATOIRE interactif dont l'issue
+ * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:559`) — jet ALÉATOIRE interactif dont l'issue
  * choisit la branche `success` ou `fail`. Le nœud ne dépend PAS du type de la feuille `do` de ses
- * branches : seul le schéma de BRANCHE change (`flowSchema` mécanique / `sceneFlowSchema`,
- * `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré par sa branche —
- * `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
+ * branches : seul le schéma de BRANCHE change (`arbreDeFlow`, composé par `flowSchema` mécanique et
+ * `sceneFlowSchema`, `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré
+ * par sa branche — `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
   const test = options.difficulteRequise
@@ -1042,7 +1042,7 @@ export const effectOnSchema = enumNomme({
   grappled: 'la victime empoignée (absorbée)',
 });
 
-/** `EffectTargeting` (`engine/flowCore.ts:469`). */
+/** `EffectTargeting` (`engine/flowCore.ts:632`). */
 export const effectTargetingSchema = z.union([
   effectOnSchema,
   nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
@@ -1141,6 +1141,27 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
  *  non typées (`OPS_NON_TYPEES`), quelle que soit la famille qui l'atteint. */
 const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
+/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice), paramétré
+ *  par sa feuille `do`, sa `Condition` et le coût d'Avantage de son `choice`. */
+export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
+  const flow: z.ZodType<Flow<E>> = z.lazy(() =>
+    z.discriminatedUnion('kind', [
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if'),
+      noeudTest(flow),
+      proseNommee(nommerChamps(z.strictObject({
+        kind: z.literal('choice'),
+        advantageCost: coutDAvantage.optional(),
+        icon: z.string().optional(),
+        yes: flow,
+        no: flow.optional(),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
+    ]),
+  );
+  return flow;
+}
+
 function construire(regimes: Regimes) {
   const opDefs = payloadsDe(regimes);
   const condition = conditionDe(CONDITIONS_RESERVEES.filter((k) => regimes[`condition.${k}`] === 'admis'));
@@ -1172,7 +1193,7 @@ function construire(regimes: Regimes) {
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
-   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:45`), et l'un des membres de l'union `Effect` de
+   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 4 valeurs de
    *  l'interface TS : `'party'`/`'hero'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
    *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
@@ -1192,26 +1213,11 @@ function construire(regimes: Regimes) {
     label: z.string().optional(),
   }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} } }), 'construire', 'effectOp');
 
-  /** `Flow<EffectOp>` (`engine/flowCore.ts:492`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
-  const flow: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
-    z.discriminatedUnion('kind', [
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'construire', 'flow.seq'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'construire', 'flow.do'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'construire', 'flow.if'),
-      noeudTest(flow),
-      proseNommee(nommerChamps(z.strictObject({
-        kind: z.literal('choice'),
-        // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
-        // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-        advantageCost: ouReserve(z.number(), INDICE_TEMPLATE).optional(),
-        icon: z.string().optional(),
-        yes: flow,
-        no: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
-    ]),
-  );
+  // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
+  // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
+  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
 
-  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:472`). `optional` (Contrôle de la Frénésie…)
+  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:635`). `optional` (Contrôle de la Frénésie…)
    *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
   const triggeredEffect = marquerProduit(nommerChamps(z.strictObject({
     trigger: effectTriggerSchema,
