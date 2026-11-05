@@ -8,9 +8,10 @@ import type { Jeu } from './etat';
 import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction, stepReady } from './cascade';
 import type { PendingCascade } from './pendings';
+import { fateSaveOptions } from '../engine/fortune';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
-import { FLOW_HANDLERS, fermetureDuReglage } from './rollFlowSpecs';
+import { FLOW_HANDLERS, fermetureDuReglage, rangeesADeclarerIci } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
 import { declarationDuReglage, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
 
@@ -38,6 +39,18 @@ function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<'cascadeNe
   const due: FermetureDuJet | null = stepReady(etape, s) ? null : choix ? 'choixDu' : 'jetNonLance';
   return { cascadeNext: due, cascadeResolveAll: choix ? due : null };
 }
+
+/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : la navigation de la cascade, la
+ *  déclaration du Contre-sort quand ce siège n'a plus de rangée
+ *  à déclarer (`rangeesADeclarerIci`), l'annulation du coup
+ *  que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`). */
+const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
+  cascade: (s) => s.pendingCascade && {
+    ...fermeturesDeLaNavigation(s, s.pendingCascade),
+    counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
+  },
+  fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
+};
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une sortie, le flux d'un geste de jet,
  *  le flux et le réglage d'un réglage, et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise
@@ -68,12 +81,12 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
     parFlux.set(cle, f);
     return f;
   };
-  const navigation = fenetre.cle === 'cascade' && s.pendingCascade ? fermeturesDeLaNavigation(s, s.pendingCascade) : null;
+  const propres: Partial<Record<string, FermetureDuJet | null>> = FERMETURES_DES_VERBES[fenetre.cle]?.(s) ?? {};
   for (const g of fenetre.gestes) {
     const sortie = sortieDeLaFenetre(g.fenetre);
     if (sortie) { out.set(cleDuGeste(g), sortie.fermee(s)); continue; }
-    if (navigation && g.verbe in navigation) {
-      out.set(cleDuGeste(g), navigation[g.verbe as keyof typeof navigation]);
+    if (g.verbe in propres) {
+      out.set(cleDuGeste(g), propres[g.verbe] ?? null);
       continue;
     }
     if (g.reglage && estFluxRegle(g.flux)) {

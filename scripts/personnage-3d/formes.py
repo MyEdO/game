@@ -1,5 +1,5 @@
-"""Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, lissage d'un champ de
-décalages jusqu'à ce qu'aucune arête ne soit hors bornes, sur tout le mesh ou autour des arêtes hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
+"""Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, rabot d'un champ de
+décalages jusqu'à ce qu'aucune arête ne soit hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
 et transfert des clés d'une source vers une cible par liaison de surface (modificateur Surface Deform), pour les peaux
 secondaires de la base comme pour les éléments posés sur elle.
 """
@@ -7,8 +7,14 @@ import bpy
 import numpy
 from mathutils.bvhtree import BVHTree
 
-STAGNATION_M = 1e-4
-"""Variation du champ d'une passe, en mètres, sous laquelle le lissage local s'élargit : valeur d'ingénierie #3101."""
+RABOT = 0.9
+"""Facteur dont une passe de `raboter` multiplie une clé aux nœuds de ses arêtes marquées : valeur
+d'ingénierie #3104 (capture r9 du 2026-11-04 : 53 passes, `feminin` garde 85 % de son amplitude et 5 cm au sein,
+contre 68 % et 3,4 cm à 0,7)."""
+STAGNATION_M = 1e-3
+"""Baisse par passe du plus grand décalage mesuré sous laquelle la région de rabot d'une clé gagne un anneau
+(`raboter`) : valeur d'ingénierie #3104 (constructions du 2026-11-04 : sans anneau, r16 garde 80 arêtes par clé en
+défaut après 39 passes ; r18, où la correction rend aux nœuds rabotés ce que la passe leur ôte, en garde 100 après 13)."""
 
 
 def positions(mesh, cle=None):
@@ -59,16 +65,6 @@ def aux_noeuds(champ, noeud):
     return valeur / numpy.maximum(numpy.bincount(noeud, minlength=n), 1).reshape(-1, *[1] * (champ.ndim - 1))
 
 
-def pas_laplacien(valeur, aretes):
-    """Un pas de lissage laplacien, pas 1/2, des valeurs `valeur` (nœuds, …) le long des arêtes `aretes`
-    (`aretes_des_triangles`) : chaque nœud prend la moitié de sa valeur et la moitié de la moyenne de ses voisins."""
-    a, b = numpy.concatenate([aretes[:, 0], aretes[:, 1]]), numpy.concatenate([aretes[:, 1], aretes[:, 0]])
-    somme = numpy.zeros_like(valeur)
-    numpy.add.at(somme, a, valeur[b])
-    voisins = numpy.maximum(numpy.bincount(a, minlength=len(valeur)), 1).reshape(-1, *[1] * (valeur.ndim - 1))
-    return 0.5 * valeur + 0.5 * somme / voisins
-
-
 def region_locale(aretes, masque, anneaux, n):
     """Par nœud (`n` nœuds), s'il est extrémité d'une arête de `aretes` que marque `masque`, ou à au plus `anneaux`
     arêtes d'une telle extrémité : (nœuds,) booléen."""
@@ -79,40 +75,44 @@ def region_locale(aretes, masque, anneaux, n):
     return dans
 
 
-def lisser(champ, x, noeud, aretes, facteur, hors, passes_max, region):
-    """Le champ de décalages `champ` (sommets, 3) des sommets `x`, lissé (`pas_laplacien` sur les nœuds `noeud` et leurs
-    arêtes `aretes`, `aretes_des_triangles`) puis multiplié par `facteur` (sommets,), jusqu'à ce que `hors` (champ
-    complet -> masque booléen des arêtes `aretes`) ne marque plus aucune arête ; les sommets d'un même nœud reçoivent
-    la même valeur. `region` `'pleine'` : le pas porte sur tous les nœuds ; `'locale'` : sur les seuls nœuds de
-    `region_locale` autour des arêtes marquées, les autres gardent leur valeur, et la région gagne un anneau de voisins
-    dès que le champ y varie de moins de `STAGNATION_M` sur une passe. Rend le champ et le nombre de passes. Une arête
-    marquée dont les deux extrémités ont un `facteur` nul, qu'aucun pas ne change, ou une arête marquée au-delà de
-    `passes_max` passes, arrête la construction."""
-    if region not in ('pleine', 'locale'):
-        raise ValueError(f"région {region!r} : 'pleine' ou 'locale'")
-    valeur = aux_noeuds(champ, noeud)
-    anneaux = 0
+def raboter(champ, noeud, aretes, facteur, mesurer, passes_max, cumul=None):
+    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,) et par le rabot cumulé
+    `cumul` (sommets, clés) d'un rabot précédent (par défaut 1), rabotés passe après passe jusqu'à ce que `mesurer`
+    (champs complets, rabot cumulé de chaque sommet et clé -> (champs mesurés, masque booléen (arêtes, clés))) ne
+    marque plus aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des
+    silhouettes, s'y applique avant le rabot suivant. Une passe multiplie chaque clé marquée par `RABOT` sur les nœuds
+    `noeud` de ses arêtes `aretes` marquées (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne
+    un anneau de voisins dès que le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une
+    passe. Un sommet de `facteur` nul reste nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs
+    mesurés de la dernière passe, le nombre de passes et le rabot cumulé. Une arête marquée dont les deux extrémités
+    ont un `facteur` nul, qu'aucune passe ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la
+    construction."""
+    libre = (facteur > 0)[:, None, None]
+    cumul = aux_noeuds(numpy.ones(champ.shape[:2]) if cumul is None else cumul, noeud)
+    valeur = aux_noeuds(champ * facteur[:, None, None], noeud) * cumul[:, :, None]
+    anneaux = numpy.zeros(valeur.shape[1], dtype=int)
+    rabotees = {}
     for passe in range(passes_max + 1):
-        resultat = valeur[noeud] * facteur[:, None]
-        marquees = hors(resultat)
+        mesures, marquees = mesurer(valeur[noeud] * libre, cumul[noeud])
+        marquees = numpy.asarray(marquees)
         if not marquees.any():
-            return resultat, passe
-        tenues = marquees & (facteur[aretes] == 0).all(axis=1)
+            return mesures, passe, cumul[noeud]
+        tenues = marquees & (facteur[aretes] == 0).all(axis=1)[:, None]
         if tenues.any():
-            raise RuntimeError(f'{int(tenues.sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '
-                               'lissage ne les change')
+            raise RuntimeError(f'{int(tenues.any(axis=1).sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '
+                               'rabot ne les change')
         if passe == passes_max:
-            raise RuntimeError(f'{int(marquees.sum())} arête(s) hors bornes après {passes_max} passes de lissage')
-        lisse = pas_laplacien(valeur, aretes)
-        if region == 'pleine':
-            valeur = lisse
-            continue
-        dans = numpy.flatnonzero(region_locale(aretes, marquees, anneaux, len(valeur)))
-        variation = numpy.abs((lisse[dans] - valeur[dans]) * facteur[dans][:, None]).max()
-        valeur = valeur.copy()
-        valeur[dans] = lisse[dans]
-        if variation < STAGNATION_M:
-            anneaux += 1
+            raise RuntimeError(f'{int(marquees.any(axis=1).sum())} arête(s) hors bornes après {passes_max} passes de rabot')
+        valeur = aux_noeuds(mesures, noeud)
+        for cle, (dans, avant) in rabotees.items():
+            if avant - numpy.linalg.norm(valeur[dans, cle], axis=-1).max() < STAGNATION_M:
+                anneaux[cle] += 1
+        rabotees = {}
+        for cle in numpy.flatnonzero(marquees.any(axis=0)):
+            dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
+            rabotees[cle] = (dans, numpy.linalg.norm(valeur[dans, cle], axis=-1).max())
+            valeur[dans, cle] *= RABOT
+            cumul[dans, cle] *= RABOT
 
 
 def voisins(rig, noms):

@@ -3,7 +3,7 @@
 // si la base ne porte pas un clip, une silhouette ou la carrure demandés, 0 sinon.
 //   npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
-//     [--pas 0.0416] [--clips a,b] [--json <sortie>]
+//     [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]
 // Avec `--base`, `<glb>` est un élément monté sur cette base ; sans lui, `<glb>` est la base. Sans `--manifeste`, seule
 // la racine a une position animée (`osAPositionAnimee` du manifeste de base).
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -27,6 +27,7 @@ try {
     options: {
       base: { type: 'string' },
       manifeste: { type: 'string' },
+      'etats-gabarit': { type: 'boolean' },
       facteurs: { type: 'string' },
       silhouettes: { type: 'string' },
       pas: { type: 'string' },
@@ -36,6 +37,9 @@ try {
   })
   values = argumentsLus.values
   positionals = argumentsLus.positionals
+  if (values['etats-gabarit'] && (!values.manifeste || values.facteurs !== undefined || values.silhouettes !== undefined)) {
+    throw new Error('--etats-gabarit : --manifeste requis, --facteurs et --silhouettes incompatibles')
+  }
   facteurs = values.facteurs === undefined ? undefined : lirePaires(values.facteurs, 'facteurs', FACTEURS)
   silhouettes = values.silhouettes === undefined ? undefined : lirePaires(values.silhouettes, 'silhouettes')
 } catch (erreur) {
@@ -43,7 +47,7 @@ try {
   process.exit(2)
 }
 if (positionals.length !== 1) {
-  console.error('usage : npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--json <sortie>]')
+  console.error('usage : npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
@@ -59,7 +63,7 @@ const ligneDEcart = (e) =>
 
 const { evaluer } = await chargerEvaluateur()
 const [glb] = positionals
-const fiche = await evaluer({
+const entree = {
   base: readFileSync(values.base ?? glb),
   elements: values.base ? [readFileSync(glb)] : [],
   ...(values.manifeste ? { manifeste: JSON.parse(readFileSync(values.manifeste, 'utf8')) } : {}),
@@ -67,29 +71,54 @@ const fiche = await evaluer({
   ...(silhouettes === undefined ? {} : { silhouettes }),
   ...(pas === undefined ? {} : { pas }),
   ...(values.clips ? { clips: values.clips.split(',').filter(Boolean) } : {}),
-}).catch((erreur) => {
+}
+
+function afficherFiche(fiche) {
+  const { triangles, sommets, os, images, corps, clips } = fiche.mesures
+  console.log(`${triangles.total} triangles (${triangles.parMesh.map(({ mesh, triangles: t }) => `${mesh} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
+  for (const c of clips) {
+    console.log(`clip ${c.nom} : ${c.duree.toFixed(3)} s, ${c.echantillons} échantillon(s), sommet le plus bas ${c.plusBas.min.toFixed(4)} à ${c.plusBas.max.toFixed(4)} m`)
+    if (c.appuis) {
+      console.log(`  vitesse au sol : ${c.appuis.vitesseAuSol ?? 'indétectable'} m/s ; déclarée ${c.appuis.vitesseDeclaree} m/s ; direction XZ ${c.appuis.direction.join(', ')}`)
+      for (const p of c.appuis.pieds) console.log(`  ${p.pied} : ${p.vitesseAuSol ?? 'indétectable'} m/s ; appui ${p.duree} s (${p.intervalles} intervalles) ; contact max ${p.contactMax ?? '—'} m ; glissement max ${p.glissementMax ?? '—'} m`)
+    }
+  }
+  const { anneaux, silhouettes: mesuresDesSilhouettes, carrure } = fiche.mesures.silhouettes
+  console.log(`silhouettes : ${anneaux} anneau(x) articulaire(s)`)
+  for (const s of mesuresDesSilhouettes) console.log(`  ${s.nom} : déplacement max ${s.deplacementMax.toFixed(4)} m ; centre ${s.centrePire ? `${s.centrePire.os} à ${s.centrePire.rapport.toFixed(4)} du rayon` : '—'}`)
+  if (carrure) console.log(`  carrure (${carrure.os}, rayon ${carrure.rayonDeRepos.toFixed(4)} m) : ${carrure.points.map((p) => `st=${p.st} → ${p.rapport.toFixed(4)}`).join(', ')} ; écart relatif à st ${carrure.ecartASt.toFixed(4)}, au segment ${carrure.ecartAuSegment.toFixed(4)}`)
+  const { segments } = fiche.mesures
+  const triplet = (t) => `(${t.map((v) => (v === null ? '—' : v.toFixed(4))).join(', ')})`
+  if (segments) console.log(`segments du gabarit (S_b → rapport par axe local) : ${segments.segments.map((s) => `${s.os} (${s.attendu.join(', ')}) → ${triplet(s.rapport)}`).join(', ')} ; écart relatif à S_b ${segments.ecartALEchelle.toFixed(4)}`)
+  for (const e of fiche.ecarts) console.log(ligneDEcart(e))
+  const parGarde = fiche.ecarts.reduce((n, e) => ({ ...n, [e.garde]: (n[e.garde] ?? 0) + 1 }), {})
+  console.log(`${fiche.ecarts.length} écart(s)${fiche.ecarts.length ? ` : ${Object.entries(parGarde).map(([g, n]) => `${g} ${n}`).join(', ')}` : ''}`)
+}
+
+try {
+  if (values['etats-gabarit']) {
+    const { validerManifesteDeBase } = await chargerEvaluateur('../manifesteDeBase.ts')
+    const verdict = validerManifesteDeBase(entree.manifeste, entree.base)
+    if (!verdict.ok) throw new Error(`--etats-gabarit : manifeste invalide : ${verdict.ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`).join('; ')}`)
+    const { etatsDuGabarit } = await chargerEvaluateur('../etatsDuGabarit.ts')
+    const liste = etatsDuGabarit(verdict.manifeste.gabarit, verdict.manifeste.silhouettes)
+    const etats = []
+    let ecarts = 0
+    for (const [indice, etat] of liste.entries()) {
+      console.log(`GABARIT_ETAT ${indice + 1}/${liste.length} ${etat.nom}`)
+      const fiche = await evaluer({ ...entree, facteurs: etat.facteurs, silhouettes: etat.poidsSilhouettes })
+      afficherFiche(fiche)
+      ecarts += fiche.ecarts.length
+      if (values.json) etats.push({ etat, fiche })
+    }
+    if (values.json) writeFileSync(values.json, `${JSON.stringify({ etats }, null, 2)}\n`)
+    process.exit(ecarts ? 1 : 0)
+  }
+  const fiche = await evaluer(entree)
+  afficherFiche(fiche)
+  if (values.json) writeFileSync(values.json, `${JSON.stringify(fiche, null, 2)}\n`)
+  process.exit(fiche.ecarts.length ? 1 : 0)
+} catch (erreur) {
   console.error(erreur instanceof Error ? erreur.message : String(erreur))
   process.exit(1)
-})
-
-const { triangles, sommets, os, images, corps, clips } = fiche.mesures
-console.log(`${triangles.total} triangles (${triangles.parMesh.map(({ mesh, triangles: t }) => `${mesh} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
-for (const c of clips) {
-  console.log(`clip ${c.nom} : ${c.duree.toFixed(3)} s, ${c.echantillons} échantillon(s), sommet le plus bas ${c.plusBas.min.toFixed(4)} à ${c.plusBas.max.toFixed(4)} m`)
-  if (c.appuis) {
-    console.log(`  vitesse au sol : ${c.appuis.vitesseAuSol ?? 'indétectable'} m/s ; déclarée ${c.appuis.vitesseDeclaree} m/s ; direction XZ ${c.appuis.direction.join(', ')}`)
-    for (const p of c.appuis.pieds) console.log(`  ${p.pied} : ${p.vitesseAuSol ?? 'indétectable'} m/s ; appui ${p.duree} s (${p.intervalles} intervalles) ; contact max ${p.contactMax ?? '—'} m ; glissement max ${p.glissementMax ?? '—'} m`)
-  }
 }
-const { anneaux, silhouettes: mesuresDesSilhouettes, carrure } = fiche.mesures.silhouettes
-console.log(`silhouettes : ${anneaux} anneau(x) articulaire(s)`)
-for (const s of mesuresDesSilhouettes) console.log(`  ${s.nom} : déplacement max ${s.deplacementMax.toFixed(4)} m ; centre ${s.centrePire ? `${s.centrePire.os} à ${s.centrePire.rapport.toFixed(4)} du rayon` : '—'}`)
-if (carrure) console.log(`  carrure (${carrure.os}, rayon ${carrure.rayonDeRepos.toFixed(4)} m) : ${carrure.points.map((p) => `st=${p.st} → ${p.rapport.toFixed(4)}`).join(', ')} ; écart relatif à st ${carrure.ecartASt.toFixed(4)}, au segment ${carrure.ecartAuSegment.toFixed(4)}`)
-const { segments } = fiche.mesures
-const triplet = (t) => `(${t.map((v) => (v === null ? '—' : v.toFixed(4))).join(', ')})`
-if (segments) console.log(`segments du gabarit (S_b → rapport par axe local) : ${segments.segments.map((s) => `${s.os} (${s.attendu.join(', ')}) → ${triplet(s.rapport)}`).join(', ')} ; écart relatif à S_b ${segments.ecartALEchelle.toFixed(4)}`)
-for (const e of fiche.ecarts) console.log(ligneDEcart(e))
-const parGarde = fiche.ecarts.reduce((n, e) => ({ ...n, [e.garde]: (n[e.garde] ?? 0) + 1 }), {})
-console.log(`${fiche.ecarts.length} écart(s)${fiche.ecarts.length ? ` : ${Object.entries(parGarde).map(([g, n]) => `${g} ${n}`).join(', ')}` : ''}`)
-if (values.json) writeFileSync(values.json, `${JSON.stringify(fiche, null, 2)}\n`)
-process.exit(fiche.ecarts.length ? 1 : 0)

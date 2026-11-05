@@ -34,7 +34,8 @@ import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
 import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
-import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/schemas/grammaire/descente';
+import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';
+import { auPlusProcheAncetre, coDescendre, defDe, descendre, enfantsDe } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
@@ -47,8 +48,9 @@ import {
   estCleScopee,
   CLES_RESERVEES,
   CONCEPTS,
+  CONCEPT_DE_LA_POSE,
   CONCEPT_REFERENCE,
-  entreeAuSite,
+  entreeDeLaPose,
   GRAPHIE_REFERENCE,
   GRAPHIES_ENVELOPPANTES,
   ROLES_ENVELOPPE,
@@ -56,6 +58,7 @@ import {
   CLES_DE_VALEUR,
   signature,
   type Concept,
+  type IdConceptPose,
   type Strate,
 } from './structures-lexique.mjs';
 
@@ -173,16 +176,15 @@ const natureParametre = (v: string): string => {
 };
 
 export type Contexte = {
-  /**
-   * Dataset PORTEUR de l'objet (`''` = aucun — un littéral de schéma n'a pas de dataset). Avec le
-   * `champ`, il forme le SITE que `statutDe` consulte : une signature SITE-QUALIFIÉE du lexique ne
-   * peut répondre à un classement de valeur que si l'appelant dit d'où il parle.
-   */
+  /** Dataset PORTEUR de l'objet (`''` = aucun — un littéral de schéma n'a pas de dataset). */
   dataset: string;
   /** Nom de la clé sous laquelle l'objet pend (`''` = racine du document). */
   champ: string;
   /** Concepts dont le SITE d'appel a mesuré la candidature structurelle (cf. `plage`). */
   candidats?: readonly string[];
+  /** Les POSES de grammaire de l'objet (`posesDesObjets`) : absentes, seuls le noyau et les entrées nues
+   *  du lexique répondent — un littéral de schéma n'en a pas. */
+  poses?: ReadonlySet<IdConceptPose>;
   /**
    * Lève la clause `horsDesignation` du lexique le temps d'un appel : le classement rend alors le
    * concept qui AURAIT revendiqué l'objet sans elle. Sert à MESURER ce que la clause écarte (§1 du
@@ -229,9 +231,9 @@ const candidatsStructurels = (o: Record<string, unknown>, dansTableau: boolean):
 const porteSesBornes = (o: Record<string, unknown>, ks: readonly string[]): boolean =>
   ks.every((k) => typeof o[k] === 'number' || o[k] === null) && ks.some((k) => typeof o[k] === 'number');
 
-/** Statut d'une signature AU SITE, lu sur son entrée de lexique (`entreeAuSite`). */
-const statutDe = (c: Concept, sig: string, site?: { dataset: string; champ: string }): Classement => {
-  const hit = entreeAuSite(c, sig, site);
+/** Statut d'une signature pour un objet qui porte `poses`, lu sur son entrée de lexique (`entreeDeLaPose`). */
+const statutDe = (c: Concept, sig: string, poses?: ReadonlySet<IdConceptPose>): Classement => {
+  const hit = entreeDeLaPose(c, sig, poses);
   return { concept: c.id, strate: c.strate, statut: hit?.statut ?? 'divergente', note: hit?.note ?? '', signature: sig };
 };
 
@@ -240,15 +242,24 @@ const statutDe = (c: Concept, sig: string, site?: { dataset: string; champ: stri
 export const designeUneEntite = (cles: readonly string[]): boolean =>
   cles.some((k) => (CLES_IDENTITE as readonly string[]).includes(k) || RX_CLE_REFERENCE.test(k));
 
+/** Le concept CLASSABLE que nomment les poses de l'objet (`CONCEPT_DE_LA_POSE`) ; deux concepts lèvent. */
+const conceptDesPoses = (poses: ReadonlySet<IdConceptPose> | undefined): Concept | undefined => {
+  const ids = new Set([...(poses ?? [])].map((p) => CONCEPT_DE_LA_POSE[p]));
+  if (ids.size > 1) throw new Error(`un objet porte les poses de deux concepts : ${[...poses!].join(', ')}.`);
+  return CONCEPTS_CLASSABLES.find((c) => ids.has(c.id));
+};
+
 /**
- * Classement d'un objet dans un concept de VALEUR — par le NOM de la clé qui le porte quand le
- * concept en déclare un (`price` → `prix`), sinon par son NOYAU de clés. Aucun seuil, aucun
- * vocabulaire : un concept de valeur est reconnu à ses clés propres, pas à la fréquence de ses
- * voisins. `null` = ce n'est pas une valeur du lexique.
+ * Classement d'un objet dans un concept de VALEUR — par sa POSE de grammaire d'abord
+ * (`CONCEPT_DE_LA_POSE`), sinon par le NOM de la clé qui le porte quand le concept en déclare un
+ * (`price` → `prix`), sinon par son NOYAU de clés. Aucun seuil, aucun vocabulaire : un concept de
+ * valeur est reconnu à son nœud ou à ses clés propres, pas à la fréquence de ses voisins. `null` = ce
+ * n'est pas une valeur du lexique.
  */
 export function classerValeur(sig: string, cles: readonly string[], contexte: Contexte = { dataset: '', champ: '' }): Classement | null {
+  const pose = conceptDesPoses(contexte.poses);
+  if (pose) return statutDe(pose, projeteValeur(pose.id, cles) || sig, contexte.poses);
   const set = new Set(cles);
-  const site = { dataset: contexte.dataset, champ: contexte.champ };
   for (const c of CONCEPTS_CLASSABLES) {
     if (c.exigeCandidatureStructurelle && !contexte.candidats?.includes(c.id)) continue;
     if (c.datasets && !c.datasets.includes(contexte.dataset)) continue;
@@ -262,7 +273,7 @@ export function classerValeur(sig: string, cles: readonly string[], contexte: Co
     // (`test` cède ainsi les 66 objets qui portent `difficulty` en champ d'une entité ou d'une
     // référence, mesuré au lexique). Le concept suivant, puis la résolution vers l'index, en décident.
     if (c.horsDesignation && !contexte.malgreDesignation && designeUneEntite(cles)) continue;
-    if (parChamp || parNoyau) return statutDe(c, projeteValeur(c.id, cles) || sig, site);
+    if (parChamp || parNoyau) return statutDe(c, projeteValeur(c.id, cles) || sig, contexte.poses);
   }
   return null;
 }
@@ -332,6 +343,8 @@ export type FormeObservee = {
   resolvables: number;
   /** Datasets vers lesquels les valeurs de cette forme résolvent (références seulement). */
   cibles: string[];
+  /** Les poses de grammaire de ses objets (`posesDesObjets`) : elles lisent ses cibles (`ciblesDesPoses`). */
+  poses: IdConceptPose[];
 };
 /**
  * UNE occurrence de référence comptée par le scan, avec le COUPLE `(dataset, champ)` qu'il lui
@@ -530,6 +543,43 @@ export function clesPortees(
   return portees;
 }
 
+/** Les types de nœud dont l'enfant est une clé FACULTATIVE d'un objet. */
+const CLES_FACULTATIVES: ReadonlySet<string> = new Set(['optional', 'default']);
+
+/**
+ * La valeur `valeur` tient-elle dans les CLÉS du nœud objet `noeud` : clés de la valeur ⊆ clés
+ * déclarées, et clés requises ⊆ clés de la valeur. `ouverts` garde toutes les branches d'une union
+ * non discriminée (`coDescendre`) : sans ce filtre, `{bonusOf}` recevrait les poses de `formule`.
+ */
+const clesCompatibles = (noeud: unknown, valeur: Obj): boolean => {
+  if (defDe(noeud)?.type !== 'object') return true;
+  const declarees = enfantsDe(noeud).flatMap((e) => (e.cle === undefined ? [] : [{ cle: e.cle, noeud: e.noeud }]));
+  const noms = new Set(declarees.map((e) => e.cle));
+  return Object.keys(valeur).every((k) => noms.has(k)) && declarees.every((e) => CLES_FACULTATIVES.has(defDe(e.noeud)?.type ?? '') || e.cle in valeur);
+};
+
+/**
+ * Les POSES de grammaire de chaque objet de la donnée (`conceptDe`), lues sur les nœuds que la
+ * co-descente de son document lui ouvre et dont il tient les clés (`clesCompatibles`). L'entrée
+ * partielle embarquée est co-descendue par son hôte.
+ */
+export function posesDesObjets(defs: readonly SchemaDef[], brutParNom: ReadonlyMap<string, unknown>): WeakMap<object, Set<IdConceptPose>> {
+  const poses = new WeakMap<object, Set<IdConceptPose>>();
+  for (const d of defs) {
+    if (!brutParNom.has(d.file)) continue;
+    coDescendre(d.schema, brutParNom.get(d.file), ({ noeuds, valeur }) => {
+      if (!estObjet(valeur)) return;
+      const siennes = poses.get(valeur) ?? new Set<IdConceptPose>();
+      for (const n of noeuds) {
+        const id = conceptDe(n);
+        if (id && clesCompatibles(n, valeur)) siennes.add(id);
+      }
+      poses.set(valeur, siennes);
+    });
+  }
+  return poses;
+}
+
 /**
  * Mesure OBSERVÉE sur les deux racines.
  * @param root racine absolue du dépôt
@@ -558,6 +608,7 @@ export function scannerDonnees(
   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
+  const poses = posesDesObjets(defs, brutParNom);
   /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
    *  strate — exclu des orphelines et des invisibles APRÈS le classement, qui reste entier. */
   const cartesDeRecord = new Set<object>(
@@ -853,7 +904,7 @@ export function scannerDonnees(
     if (champ !== '(racine)' && siteDeReference(dataset, champ, cle)) champsPorteurs.add(champ);
   }
   /** clé `concept | dataset | champ | signature` → ligne de forme observée. */
-  const formes = new Map<string, FormeObservee & { ciblesSet: Set<string> }>();
+  const formes = new Map<string, FormeObservee & { ciblesSet: Set<string>; posesSet: Set<IdConceptPose> }>();
   const orphelines = new Map<string, SignatureOrpheline>();
   const reservees = new Map(CLES_RESERVEES.map((k) => [k as string, new Map<string, Map<string, number>>()]));
   const clesEnveloppe = new Map<string, number>();
@@ -890,12 +941,12 @@ export function scannerDonnees(
    * Classement d'une occurrence de référence : la signature PROJETÉE telle quelle, sauf sous une
    * graphie ENVELOPPANTE (`ref`, `wildcard`, `choice`, `random`), où l'intérieur porte le CHEMIN
    * de graphie (`ref>id`, `wildcard>id`) et HÉRITE du statut de l'enveloppe : `{ref:{id}}` se lit
-   * `ref>id / historique`, jamais `id / cible`.
+   * `ref>id / historique`, jamais `id / cible`. Le statut se lit aux poses de l'objet `o`.
    */
-  const classementDeGraphie = (dataset: string, champ: string, sig: string) =>
+  const classementDeGraphie = (o: Obj, champ: string, sig: string) =>
     (GRAPHIES_ENVELOPPANTES as readonly string[]).includes(champ)
-      ? { ...statutDe(CONCEPT_REFERENCE, champ, { dataset, champ }), signature: `${champ}>${sig}` }
-      : statutDe(CONCEPT_REFERENCE, sig, { dataset, champ });
+      ? { ...statutDe(CONCEPT_REFERENCE, champ, poses.get(o)), signature: `${champ}>${sig}` }
+      : statutDe(CONCEPT_REFERENCE, sig, poses.get(o));
 
   /**
    * Une signature dont le `text` RÉSOUT porte le suffixe ` (résolvable)` : le lexique ne la connaît
@@ -912,16 +963,21 @@ export function scannerDonnees(
    */
   const estRefCanonique = (p: Prepare, k: string, v: unknown): boolean =>
     estObjet(v) &&
-    classementDeGraphie(p.nom, k, signature(Object.keys(v))).statut === 'cible' &&
+    classementDeGraphie(v, k, signature(Object.keys(v))).statut === 'cible' &&
     Object.entries(v).some(([kv, vv]) => resoutIndex(p.nom, v, kv, vv));
 
+  /** La ligne de forme d'un objet `porteur` classé `cl` : elle garde l'ensemble des poses de ses objets, et
+   *  une ligne qui recevrait deux statuts lève. */
   const ligneForme = (
     concept: Concept,
     p: Prepare,
     champ: string,
     cl: { statut: FormeObservee['statut']; note: string; signature: string },
+    porteur: object,
   ) => {
     const k = [concept.id, p.nom, champ || '(racine)', cl.signature].join(' | ');
+    const deja = formes.get(k);
+    if (deja && deja.statut !== cl.statut) throw new Error(`la ligne de forme « ${k} » reçoit deux statuts : ${deja.statut}, ${cl.statut}.`);
     if (!formes.has(k))
       formes.set(k, {
         concept: concept.id,
@@ -935,9 +991,13 @@ export function scannerDonnees(
         occurrences: 0,
         resolvables: 0,
         cibles: [],
+        poses: [],
         ciblesSet: new Set<string>(),
+        posesSet: new Set<IdConceptPose>(),
       });
-    return formes.get(k)!;
+    const ligne = formes.get(k)!;
+    for (const pose of poses.get(porteur) ?? []) ligne.posesSet.add(pose);
+    return ligne;
   };
 
   const referencesParPorteur = new Map<object, Map<string | number, OccurrenceDeReference>>();
@@ -956,7 +1016,7 @@ export function scannerDonnees(
     porteur: object,
     cles: Iterable<string | number>,
   ) => {
-    const ligne = ligneForme(concept, p, champ, cl);
+    const ligne = ligneForme(concept, p, champ, cl, porteur);
     ligne.occurrences += 1;
     const occurrence: OccurrenceDeReference = { dataset: ligne.dataset, champ: ligne.champ, statut: ligne.statut };
     occurrencesDeReference.push(occurrence);
@@ -1033,9 +1093,9 @@ export function scannerDonnees(
         if (datasetsDuTexte(p, o, champ, o.text).length) t.resolvables += 1;
       }
 
-      // ---- VALEUR d'abord (noyau propre), RÉFÉRENCE ensuite (index des ids)
+      // ---- VALEUR d'abord (pose, sinon noyau propre), RÉFÉRENCE ensuite (index des ids)
       const candidats = candidatsStructurels(o, dansTableau);
-      const valeur = classerValeur(sig, cles, { dataset: p.nom, champ, candidats });
+      const valeur = classerValeur(sig, cles, { dataset: p.nom, champ, candidats, poses: poses.get(o) });
       // Une ENTRÉE DE RACINE qu'aucun concept de valeur ne reconnaît ne peut être ni orpheline ni hors
       // strate (un document n'est sommé de rien, cf. la garde plus bas) : sans ce compte, elle sortirait
       // du dénominateur sans un mot le jour où un concept cesse de la revendiquer (#1657).
@@ -1049,19 +1109,19 @@ export function scannerDonnees(
       let classe = false;
       if (valeur) {
         const c = CONCEPTS.find((x) => x.id === valeur.concept)!;
-        ligneForme(c, p, champ, valeur).occurrences += 1;
+        ligneForme(c, p, champ, valeur, o).occurrences += 1;
         classe = true;
       } else if (resolvantes.size && !estDocument) {
         // Un `{text}` qui RÉSOUT est une forme à part entière : `text (résolvable)`, divergente, à
         // migrer en `{id}` (#624). Seul le `{text}` NON résolvable reste la forme `declaree`.
-        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, new Set([...resolvantes, ...refsCanoniques]))), resolvantes), o, resolvantes);
+        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(o, champ, signatureProjetee(cles, new Set([...resolvantes, ...refsCanoniques]))), resolvantes), o, resolvantes);
         for (const d of cibles) ligne.ciblesSet.add(d);
         if (resolvantes.has('text')) ligne.resolvables += 1;
         classe = true;
       } else if (!estDocument && cles.length && cles.every((k) => GRAPHIES_SANS_ID.has(k)) && champsPorteurs.has(champ)) {
         // GRAPHIE de référence sous un champ porteur MESURÉ, qu'elle résolve ou non : l'enveloppe
         // `{ref:{…}}` et la dotation `{text:"…"}` sont des FORMES, pas des objets hors strate.
-        inscrireReference(CONCEPT_REFERENCE, p, champ, classementDeGraphie(p.nom, champ, sig), o, cles);
+        inscrireReference(CONCEPT_REFERENCE, p, champ, classementDeGraphie(o, champ, sig), o, cles);
         classe = true;
       } else if (resolvantes.size && estDocument) {
         // Référence portée par un CHAMP SCALAIRE d'un document (`species: "humain"`).
@@ -1215,7 +1275,7 @@ export function scannerDonnees(
     enveloppeParMotif: [...enveloppeParMotif].sort().map(([k, n]) => ({ role: k.split(' | ')[0], motif: k.split(' | ')[1], documents: n })),
     clesParDocument: [...clesParDocument].sort((a, b) => parUnitesDeCode(a[0], b[0])),
     formes: [...formes.values()]
-      .map(({ ciblesSet, ...f }) => ({ ...f, cibles: [...ciblesSet].sort() }))
+      .map(({ ciblesSet, posesSet, ...f }) => ({ ...f, cibles: [...ciblesSet].sort(), poses: [...posesSet].sort() }))
       .sort(
         (a, b) =>
           parUnitesDeCode(a.concept, b.concept) ||
@@ -1558,8 +1618,8 @@ export type Redeclaration = {
  * clés, il n'a pas de charge utile à replier).
  */
 const classerLitteral = (sig: string, cles: readonly string[], champ: string): Classement | null => {
-  // `dataset: ''` : un littéral de schéma n'a pas de dataset porteur — seules les entrées NUES du
-  // lexique lui répondent, comme `statutDe` le documente.
+  // Un littéral de schéma n'a ni dataset porteur ni pose : seuls le noyau et les entrées NUES du
+  // lexique lui répondent.
   const valeur = classerValeur(sig, cles, { dataset: '', champ, candidats: CONCEPTS_STRUCTURELS.map((c) => c.id) });
   if (valeur) return valeur;
   const hit = CONCEPT_REFERENCE.signatures.find((s) => s.sig === sig);

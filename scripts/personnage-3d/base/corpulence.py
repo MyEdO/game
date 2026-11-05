@@ -9,7 +9,7 @@ armature, la position, la direction et la longueur des articulations MakeHuman (
 corps se pose par le skin linéaire aux poids de l'export (`poids.peau_lineaire`) et chaque sommet se lie au donneur :
 l'os dominant d'une face du donneur est celui de ses sommets aux poids du rig `game_engine` de MPFB, dont les os portent
 les noms d'UAL (`OS_DU_DONNEUR`). Le delta lu au point lié revient au repos par l'inverse de ce même skin, sommet par
-sommet ; le lissage de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
+sommet ; le rabot de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
 (`silhouettes.finir_les_silhouettes`).
 """
 import gzip
@@ -20,6 +20,7 @@ import numpy as np
 
 from animation import clear_animation
 from formes import lier, poser_la_cle, transporter, voisins
+from noms_silhouettes import CORPULENCE as NOM
 from poids import deformer, peau_lineaire, repos as inverses_du_repos
 
 SOMMETS_DU_CORPS = 13380
@@ -29,7 +30,6 @@ RACES = ('african', 'asian', 'caucasian')
 ETAT = 'male-young-maxmuscle'
 """Genre, âge et muscle du donneur : le corps UBC est un homme jeune très musclé (« Superhero »)."""
 REFERENCE, POIDS_MAX = 'averageweight', 'maxweight'
-NOM = 'corpulence'
 OS_DU_DONNEUR = 'game_engine'
 """Le rig MPFB (`rigs/standard/weights.<rig>.json`) dont les os nomment ceux d'UAL, à la casse près."""
 ECART_MAX = 1e-4

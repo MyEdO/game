@@ -12,6 +12,7 @@ export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecVerdictLocal, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { LOCALISATIONS_DE_COUP } from '../engine/types';
+export { formatMoney } from '../engine/money';
 export { conditionLabel } from '../data';
 export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';

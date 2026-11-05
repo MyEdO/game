@@ -15,7 +15,6 @@ import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { creerActionsDuChapitre, sortiesDuChapitre } from './chapitreRecap';
 import { creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
-import { creerActionsDeVision } from './visionState';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude } from './interludeFlow';
 import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
@@ -125,7 +124,6 @@ export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): Actions
       ...creerActionsDeManoeuvre(get, set),
       ...creerActionsDuChapitre(get, set),
       ...creerActionsDeCampagne(get, set),
-      ...creerActionsDeVision(get, set),
       ...creerActionsDEntreeEnScene(get, set),
       ...creerActionsDInterlude(get, set),
       ...creerActionsDeBatailleDeMasse(get, set),

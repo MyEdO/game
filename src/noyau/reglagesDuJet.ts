@@ -2,8 +2,8 @@
  * LES RÉGLAGES D'UN JET EN ATTENTE (#3368) : ce qu'une fenêtre de jet règle avant ou après son dé, sans le tirer —
  * l'arme, la localisation visée, la réaction, la surincantation… Un réglage se joue par un seul verbe,
  * `jetRegler(flux, reglage, valeur[, pid])` (`VerbeDeReglage`) : `ReglagesDuJet` déclare, par flux, chaque réglage et
- * la FORME de sa valeur (une valeur absolue, jamais un incrément ni une bascule), `REGLAGES_DU_JET` sa phase et sa
- * portée. Module feuille : types importés seulement, une table de données ; le générateur des verbes
+ * la FORME de sa valeur (une valeur absolue, jamais un incrément ni une bascule), `REGLAGES_DU_JET` sa phase, sa
+ * portée et, pour l'incantation, son offre (`offreDeLIncantation`). Le générateur des verbes
  * (`scripts/docs/lib/verbesDeLaPartie.mjs`) lit `ReglagesDuJet` comme `ActionsDuNoyau`, et les hôtes du noyau
  * contrôlent la valeur contre sa forme (`REGLAGES`, `src/hote/verbes.generated.ts`). Le corps de chaque réglage vit
  * chez son flux (`CorpsDesReglages`, `fabriquesDuNoyau.ts`).
@@ -15,7 +15,8 @@ import type { DefenseMode } from '../engine/combat';
 import type { OvercastAxis } from '../engine/overcast';
 import type { FermetureDuJet } from './rollFlowFactory';
 import type { Jeu } from './etat';
-import type { IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDObjet } from './designations';
+import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDObjet } from './designations';
+import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
 
 /** Le verbe qui règle un jet (`ActionsDuNoyau.jetRegler`). */
 export const VERBE_DE_REGLAGE = 'jetRegler' as const satisfies keyof VerbeDeReglage;
@@ -87,11 +88,11 @@ export interface ReglagesDuJet {
   };
   battement: {
     /** LDB 10 l.103 */
-    adversaire: IdDeCombattant;
+    adversaire: IdDAdversaireDuBattement;
   };
   distraire: {
     /** LDB 10 l.364 */
-    adversaire: IdDeCombattant;
+    adversaire: IdDAdversaireADistraire;
   };
   test: {
     testeur: IdDeCombattant;
@@ -120,23 +121,30 @@ export type PhaseDuReglage = 'avantLeJet' | 'apresLeJet' | 'horsDuJet';
 /** Ce qu'un réglage règle : la fenêtre entière, ou une rangée d'un flux à plusieurs jets, désignée par le `pid`. */
 export type PorteeDuReglage = 'fenetre' | 'rangee';
 
-/** La déclaration d'un réglage : sa phase, sa portée, et, quand son siège n'est pas le porteur du jet, le combattant
- *  dont le siège le joue, lu sur la valeur (`porteurDeLaValeur`, `netOwnership`). */
+/** La déclaration d'un réglage : sa phase, sa portée, quand son siège n'est pas le porteur du jet le combattant dont le
+ *  siège le joue, lu sur la valeur (`porteurDeLaValeur`, `netOwnership`), et ce qui le ferme dans sa phase là où il ne
+ *  change rien au jet (`offre`, `null` : il s'offre). */
 export interface DeclarationDuReglage {
   phase: PhaseDuReglage;
   portee: PorteeDuReglage;
   porteurDeLaValeur?: (s: Pick<Jeu, 'pendingHeal'>, valeur: unknown) => string | undefined;
+  offre?: (s: Jeu) => FermetureDuJet | null;
 }
 
 const avant = { phase: 'avantLeJet', portee: 'fenetre' } as const;
 const apres = { phase: 'apresLeJet', portee: 'fenetre' } as const;
+const horsDuJet = { phase: 'horsDuJet', portee: 'fenetre' } as const;
+/** Le réglage `reglage` de l'incantation, de déclaration `d`, offert là où il change le Sort. */
+const offertDuSort = (d: Omit<DeclarationDuReglage, 'offre'>, reglage: ReglageOffertDeLIncantation): DeclarationDuReglage =>
+  ({ ...d, offre: (s) => offreDeLIncantation(s, reglage) });
 
 /** La déclaration de chaque réglage, table TOTALE sur `ReglagesDuJet`. */
 export const REGLAGES_DU_JET = {
   attack: { localisation: avant, localisationDuCritique: apres, arme: avant, deuxArmes: avant, retenirSesCoups: avant, sansLaCorde: avant, empoigner: avant },
   defense: { reaction: avant, armeDeParade: avant, porteBouclier: avant, riposte: avant },
   cast: {
-    effetCritique: apres, formeConjuree: avant, discret: avant, jetsDeTable: apres,
+    effetCritique: offertDuSort(apres, 'effetCritique'), formeConjuree: offertDuSort(horsDuJet, 'formeConjuree'),
+    discret: offertDuSort(avant, 'discret'), jetsDeTable: offertDuSort(apres, 'jetsDeTable'),
     surincantationPortee: apres, surincantationZone: apres, surincantationDuree: apres, surincantationCibles: apres, surincantationDegats: apres,
     ciblesSupplementaires: apres,
   },
@@ -151,7 +159,7 @@ export const REGLAGES_DU_JET = {
   battement: { adversaire: avant },
   distraire: { adversaire: avant },
   test: { testeur: avant },
-  shipManeuver: { virage: { phase: 'horsDuJet', portee: 'fenetre' } },
+  shipManeuver: { virage: horsDuJet },
   forceDoor: { arme: { phase: 'avantLeJet', portee: 'rangee' } },
 } as const satisfies { [F in FluxRegle]: { [K in ReglageDu<F>]: DeclarationDuReglage } };
 

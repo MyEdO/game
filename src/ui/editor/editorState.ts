@@ -5,8 +5,7 @@ import type { Pt as ScenePt } from '../../noyau/monde/path';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { walkFlow } from '../../engine/flowCore';
 import { nextEntityId } from '../../lib/entityId';
-import { PROPS } from '../../gameIso/catalog/decor';
-import { findCreatureById } from '../../data';
+import { findCreatureById, findPropById } from '../../data';
 import { propRefPatch } from './propDefaults';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema, type Terrain } from '../../data/schemas/defs-scenes/scene';
@@ -553,7 +552,7 @@ export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0): { sc
     throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
   // #1463 S3 · #1882 : `nomDEntite`.
   const ent: SceneEntity = outil.kind === 'prop'
-    ? { ...base, ...propRefPatch(outil.ref, undefined), label: PROPS[outil.ref]?.label }
+    ? { ...base, ...propRefPatch(outil.ref, undefined), label: findPropById(outil.ref)?.label }
     : outil.kind === 'personnage'
       ? { ...base, ref: outil.ref }
       : { ...base, label: libelleDeValeur(entityKindSchema, outil.kind) };

@@ -1,4 +1,4 @@
-"""Lecture d'un conteneur glTF binaire (GLB 2.0) sans Blender : la seule implémentation de la chaîne."""
+"""Lecture et écriture d'un conteneur glTF binaire (GLB 2.0) sans Blender : la seule implémentation de la chaîne."""
 import json
 import struct
 from pathlib import Path
@@ -7,6 +7,10 @@ MAGIE_GLB = 0x46546C67
 CHUNK_JSON = 0x4E4F534A
 CHUNK_BIN = 0x004E4942
 COMPOSANTES = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT2': 4, 'MAT3': 9, 'MAT4': 16}
+LISSE_DEG = 0.5
+"""Écart de normales de base sous lequel deux sommets de même position sont une même surface lisse
+(`souder_les_normales_des_cibles`) : `anatomie.scinder` pose la normale d'avant la découpe, à l'arrondi du flottant
+près."""
 TYPES_DE_COMPOSANTE = {5120: '<i1', 5121: '<u1', 5122: '<i2', 5123: '<u2', 5125: '<u4', 5126: '<f4'}
 
 
@@ -30,6 +34,70 @@ def lire_glb(path):
             raise ValueError('Second GLB chunk is not BIN')
         binary = data[offset + 8:offset + 8 + bin_length]
     return document, binary
+
+
+def ecrire_glb(path, document, binary):
+    """Écrit le GLB `path` du document JSON et du chunk BIN `binary`, chacun complété à un multiple de 4 octets ; la
+    longueur du premier buffer suit le chunk BIN."""
+    binary = bytes(binary) + b'\0' * (-len(binary) % 4)
+    if document.get('buffers'):
+        document['buffers'][0]['byteLength'] = len(binary)
+    texte = json.dumps(document, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    texte += b' ' * (-len(texte) % 4)
+    total = 12 + 8 + len(texte) + 8 + len(binary)
+    Path(path).write_bytes(struct.pack('<III', MAGIE_GLB, 2, total) + struct.pack('<II', len(texte), CHUNK_JSON) + texte
+                           + struct.pack('<II', len(binary), CHUNK_BIN) + binary)
+
+
+def souder_les_normales_des_cibles(path):
+    """#3380. Réécrit le GLB `path` pour que, sous chaque cible de morph, les sommets d'une même surface portent la
+    même normale déformée : les sommets de même position et de même normale de base, d'une primitive à l'autre (les
+    pièces de `anatomie.scinder`) comme dans une primitive, reçoivent la moyenne de leurs normales déformées. Les cibles
+    se reconnaissent par leur nom (`extras.targetNames` du mesh). Chaque normale de cible réécrite devient un accesseur
+    dense à la fin du chunk BIN. Rend le plus grand écart corrigé, en degrés."""
+    import numpy as np
+    document, binary = lire_glb(path)
+    primitives = [(m['extras']['targetNames'], p) for m in document.get('meshes', []) for p in m['primitives']
+                  if p.get('targets')]
+    if not primitives:
+        return 0.0
+    bases = [(lire_accesseur(document, binary, p['attributes']['POSITION']),
+              lire_accesseur(document, binary, p['attributes']['NORMAL'])) for _, p in primitives]
+    normales = np.concatenate([nor for _, nor in bases])
+    _, premier, groupe = np.unique(np.round(np.concatenate([pos for pos, _ in bases]) * 1e6).astype(np.int64), axis=0,
+                                   return_index=True, return_inverse=True)
+    groupe = groupe.ravel()
+    lisse = (normales * normales[premier[groupe]]).sum(axis=1) > np.cos(np.radians(LISSE_DEG))
+    groupe = np.where(lisse, groupe, len(premier) + np.arange(len(groupe)))
+    partage = np.bincount(groupe)[groupe] > 1
+    bornes = np.cumsum([0, *[len(pos) for pos, _ in bases]])
+    binary = bytearray(binary)
+    pire = 0.0
+    for nom in sorted({n for noms, _ in primitives for n in noms}):
+        portees = [(i, noms.index(nom)) for i, (noms, _) in enumerate(primitives) if nom in noms]
+        deformees = np.zeros((len(groupe), 3))
+        for i, k in portees:
+            normale = bases[i][1] + lire_accesseur(document, binary, primitives[i][1]['targets'][k]['NORMAL'])
+            deformees[bornes[i]:bornes[i + 1]] = normale / np.linalg.norm(normale, axis=1, keepdims=True)
+        somme = np.zeros((groupe.max() + 1, 3))
+        np.add.at(somme, groupe, deformees)
+        soudees = somme[groupe] / np.linalg.norm(somme[groupe], axis=1, keepdims=True)
+        for i, k in portees:
+            tranche = slice(bornes[i], bornes[i + 1])
+            if not partage[tranche].any():
+                continue
+            ecart = np.degrees(np.arccos(np.clip((deformees[tranche] * soudees[tranche]).sum(axis=1), -1, 1)))
+            pire = max(pire, float(ecart[partage[tranche]].max()))
+            delta = np.where(partage[tranche, None], soudees[tranche], deformees[tranche]) - bases[i][1]
+            octets = delta.astype('<f4').tobytes()
+            binary += b'\0' * (-len(binary) % 4)
+            document['bufferViews'].append({'buffer': 0, 'byteOffset': len(binary), 'byteLength': len(octets)})
+            binary += octets
+            document['accessors'].append({'bufferView': len(document['bufferViews']) - 1, 'componentType': 5126,
+                                          'count': len(delta), 'type': 'VEC3'})
+            primitives[i][1]['targets'][k]['NORMAL'] = len(document['accessors']) - 1
+    ecrire_glb(path, document, binary)
+    return pire
 
 
 def lire_accesseur(document, binary, index):

@@ -488,7 +488,7 @@ node scripts/recette/session.mjs purger                                         
   `Remove-Item -Recurse -Force "<chemin>"` (PowerShell).
 
 Le 2026-10-12, le transport `node_repl` observé n'acceptait que les imports JavaScript
-(`.js`/`.mjs`) : importer le kit qui dépend de `devtoolsTimers.ts` y échouait.
+(`.js`/`.mjs`) : importer le kit qui dépend de `src/lib/figerDelais.ts` y échouait.
 Le transport canonique est alors un client `.mjs` exécuté par Node natif depuis CET arbre,
 attaché à la même session tenue. `attacherSession` n'ouvre ni nouveau Chrome ni nouvel onglet ;
 `close` détache seulement le client. Aucun helper générique d'évaluation supplémentaire.

@@ -128,7 +128,8 @@ def zones_des_faces(objet, centre_des_yeux, rig):
 
 def scinder(objet, zones):
     """Un objet par zone de `zones` (une par face), copie de `objet` réduite à ses faces ; `objet` est retiré. Chaque coin
-    garde sa normale d'avant la découpe, posée en normale personnalisée : la couture entre deux zones ne se voit pas."""
+    garde sa normale d'avant la découpe, posée en normale personnalisée : la couture entre deux zones ne se voit pas au
+    repos ; sous les clés, `glb.souder_les_normales_des_cibles` l'efface à l'export."""
     normales = objet.data.attributes.new(NORMALE_DE_COUTURE, 'FLOAT_VECTOR', 'CORNER')
     normales.data.foreach_set('vector', [c for n in objet.data.corner_normals for c in n.vector])
     morceaux = []

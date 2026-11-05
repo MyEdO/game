@@ -6,7 +6,6 @@ import { P } from '../../decorPalette';
 // avec l'établi (table à pieds). Ancrée aux pieds, ombre au sol.
 export const prop: PropViz = {
   id: 'enclume',
-  label: 'Enclume',
   render: () =>
     `<g>` +
     `<ellipse cx="60" cy="147" rx="40" ry="8" fill="${P.ombre}" opacity="0.22"/>` +

@@ -6,7 +6,6 @@ import { P } from '../../decorPalette';
 // en V garnie de foin au pied. Distincte de l'abreuvoir (auge d'eau basse). Ancrée aux pieds, ombre au sol.
 export const prop: PropViz = {
   id: 'stalle-ecurie',
-  label: "Stalle d'écurie",
   render: () =>
     `<g>` +
     `<ellipse cx="60" cy="147" rx="44" ry="9" fill="${P.ombre}" opacity="0.22"/>` +

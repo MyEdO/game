@@ -361,9 +361,10 @@ export type { PropMaterialData };
 export interface PropData {
   id: string;
   type: 'props';
-  /** Nom d'auteur du décor. Miroir du `label` de la def d'ART du même id
-   *  (`src/gameIso/catalog/decor/defs/<id>.ts`) — parité gardée par `src/data/props-label-parite.test.ts`. */
+  /** Nom d'auteur du décor, seule source du libellé : la def d'ART du même id n'en porte pas. */
   label: string;
+  /** Décor fouillable : l'éditeur pré-arme son action `fouiller` à la pose (`propRefPatch`). */
+  searchable?: boolean;
   solid?: boolean;
   opaque?: boolean;
   cover?: 'imparfaite' | 'moyenne' | 'totale';

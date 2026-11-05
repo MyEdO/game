@@ -759,6 +759,7 @@
     "id": "sarcophage",
     "type": "props",
     "label": "Sarcophage",
+    "searchable": true,
     "solid": true
   },
   {
@@ -783,6 +784,7 @@
     "id": "cage",
     "type": "props",
     "label": "Cage de fer",
+    "searchable": true,
     "solid": true
   },
   {
@@ -900,6 +902,7 @@
     "id": "tonneaux-pile",
     "type": "props",
     "label": "Pile de tonneaux",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -1214,6 +1217,7 @@
     "id": "coffre",
     "type": "props",
     "label": "Coffre",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -1311,6 +1315,7 @@
     "id": "urne",
     "type": "props",
     "label": "Urne funéraire",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -1443,6 +1448,7 @@
     "id": "marmite",
     "type": "props",
     "label": "Marmite de troll",
+    "searchable": true,
     "solid": true,
     "light": {
       "radiusM": 8
@@ -1453,6 +1459,7 @@
     "id": "oeuf-dragon",
     "type": "props",
     "label": "Œuf de dragon",
+    "searchable": true,
     "solid": true
   },
   {
@@ -1660,6 +1667,7 @@
     "id": "barque",
     "type": "props",
     "label": "Barque",
+    "searchable": true,
     "solid": true,
     "foot": {
       "w": 2,
@@ -1670,6 +1678,7 @@
     "id": "table",
     "type": "props",
     "label": "Table",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -1765,6 +1774,7 @@
     "id": "table-2x1",
     "type": "props",
     "label": "Table longue",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -1860,6 +1870,7 @@
     "id": "chaise",
     "type": "props",
     "label": "Chaise",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2039,6 +2050,7 @@
     "id": "banc",
     "type": "props",
     "label": "Banc",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2134,6 +2146,7 @@
     "id": "tabouret",
     "type": "props",
     "label": "Tabouret",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2213,6 +2226,7 @@
     "id": "armoire",
     "type": "props",
     "label": "Armoire",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2308,6 +2322,7 @@
     "id": "bureau",
     "type": "props",
     "label": "Bureau",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2417,6 +2432,7 @@
     "id": "bureau-2x1",
     "type": "props",
     "label": "Bureau long",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2540,6 +2556,7 @@
     "id": "etabli",
     "type": "props",
     "label": "Établi",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2649,6 +2666,7 @@
     "id": "etabli-2x1",
     "type": "props",
     "label": "Établi long",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2800,6 +2818,7 @@
     "id": "lit",
     "type": "props",
     "label": "Lit",
+    "searchable": true,
     "solid": true,
     "foot": {
       "w": 2,
@@ -2810,6 +2829,7 @@
     "id": "miroir",
     "type": "props",
     "label": "Miroir",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -2919,6 +2939,7 @@
     "id": "etagere",
     "type": "props",
     "label": "Étagère",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -3884,6 +3905,7 @@
     "id": "cheminee-interieure",
     "type": "props",
     "label": "Cheminée intérieure",
+    "searchable": true,
     "solid": true,
     "light": {
       "radiusM": 10,
@@ -4015,6 +4037,7 @@
     "id": "comptoir-droit",
     "type": "props",
     "label": "Comptoir droit",
+    "searchable": true,
     "solid": true,
     "cover": "moyenne",
     "volume": {
@@ -4168,6 +4191,7 @@
     "id": "comptoir-angle",
     "type": "props",
     "label": "Comptoir d’angle",
+    "searchable": true,
     "solid": true,
     "cover": "moyenne",
     "volume": {
@@ -4321,6 +4345,7 @@
     "id": "table-ronde-4-tabourets",
     "type": "props",
     "label": "Table ronde et 4 tabourets",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -4529,6 +4554,7 @@
     "id": "table-murale-2-tabourets",
     "type": "props",
     "label": "Table murale et 2 tabourets",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -5148,7 +5174,8 @@
   {
     "id": "bourse",
     "type": "props",
-    "label": "Bourse"
+    "label": "Bourse",
+    "searchable": true
   },
   {
     "id": "buisson",
@@ -5283,12 +5310,14 @@
   {
     "id": "cle",
     "type": "props",
-    "label": "Clé"
+    "label": "Clé",
+    "searchable": true
   },
   {
     "id": "cocon",
     "type": "props",
     "label": "Cocon de soie",
+    "searchable": true,
     "solid": true,
     "cover": "moyenne",
     "maison": "couvert maison : une masse de soie dense à hauteur d’homme protège comme la barrière en bois de l’étalon MOYEN (LDB 14 l.81)"
@@ -5297,6 +5326,7 @@
     "id": "coiffeuse",
     "type": "props",
     "label": "Coiffeuse",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -5428,6 +5458,7 @@
     "id": "decor-flat",
     "type": "props",
     "label": "Châssis de décor",
+    "searchable": true,
     "solid": true,
     "cover": "totale",
     "opaque": true,
@@ -5577,7 +5608,8 @@
   {
     "id": "lettre",
     "type": "props",
-    "label": "Lettre"
+    "label": "Lettre",
+    "searchable": true
   },
   {
     "id": "lustre-opera",
@@ -5961,6 +5993,7 @@
     "id": "paravent",
     "type": "props",
     "label": "Paravent",
+    "searchable": true,
     "solid": true,
     "cover": "totale",
     "opaque": true,
@@ -6079,6 +6112,7 @@
     "id": "portant-costumes",
     "type": "props",
     "label": "Portant à costumes",
+    "searchable": true,
     "solid": true,
     "cover": "imparfaite",
     "volume": {
@@ -6231,6 +6265,7 @@
     "id": "scie-chevalet",
     "type": "props",
     "label": "Chevalet de sciage",
+    "searchable": true,
     "solid": true,
     "volume": {
       "capIdentite": "S",
@@ -6448,12 +6483,14 @@
   {
     "id": "tas-or",
     "type": "props",
-    "label": "Trésor"
+    "label": "Trésor",
+    "searchable": true
   },
   {
     "id": "terrier",
     "type": "props",
     "label": "Terrier skaven",
+    "searchable": true,
     "solid": true,
     "cover": "moyenne",
     "maison": "couvert maison : un bourrelet de terre à hauteur de taille au bord du trou — l’étalon MOYEN de la barrière en bois (LDB 14 l.81)"
