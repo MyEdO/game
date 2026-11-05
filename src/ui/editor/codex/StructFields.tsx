@@ -566,7 +566,7 @@ export function CharKeysField({ value, onChange }: { value: CharKey[] | undefine
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 6) sea-cargo / land-cargo `avail` — DISPONIBILITÉ SAISONNIÈRE : quatre colonnes d100, chacune une
+ * 6) cargoes `avail` — DISPONIBILITÉ SAISONNIÈRE : quatre colonnes d100, chacune une
  *    fourchette `{min, max}` (`dispoSaisonniereSchema`). Une `PlageField` par saison.
  * ──────────────────────────────────────────────────────────────────────────── */
 

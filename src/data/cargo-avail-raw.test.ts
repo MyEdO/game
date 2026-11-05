@@ -70,7 +70,7 @@ const TERRE_PAR_SAISON: Record<string, CelluleAvail[]> = {
   automne: [[1, 35], [36, 40], [41, 44], [45, 60], [61, 80], [81, 95], [96, 100]],
   hiver: [[1, 19], [20, 23], [24, 29], [30, 44], [45, 60], [61, 95], [96, 100]],
 };
-/** Les ids de `land-cargo.json` dans l'ordre des colonnes imprimées (l.73). */
+/** Les ids de la voie `terre` de `cargoes.json` dans l'ordre des colonnes imprimées (l.73). */
 const TERRE_COLONNES = ['vivres', 'armement', 'produits-de-luxe-terre', 'metal', 'bois-terre', 'vin-eau-de-vie', 'laine-terre'];
 
 /** La table terrestre, RETOURNÉE dans l'axe du document (une entrée par bien) — l'inversion est faite
@@ -79,10 +79,11 @@ const TERRE: Record<string, CelluleAvail[]> = tableTotale(TERRE_COLONNES, (_id, 
   SAISONS_IMPRIMEES.map((s) => TERRE_PAR_SAISON[s][colonne]),
 );
 
-type Entree = { id: string; label: string; echangeable?: false; avail?: Record<string, { min: number; max: number }> };
+type Entree = { id: string; label: string; voie: string; echangeable?: false; avail?: Record<string, { min: number; max: number }> };
 
-const lire = (fichier: string): Entree[] =>
-  JSON.parse(readFileSync(fileURLToPath(new URL(fichier, import.meta.url)), 'utf8')).cargoes as Entree[];
+/** Les entrées d'UNE voie du catalogue (`cargoes.json`) — chaque voie est la table d'un livre. */
+const lire = (voie: string): Entree[] =>
+  (JSON.parse(readFileSync(fileURLToPath(new URL('./cargoes.json', import.meta.url)), 'utf8')) as Entree[]).filter((e) => e.voie === voie);
 
 /** Les entrées MARCHANDES : le marqueur de colonne Production/Produits n'a pas de disponibilité
  *  (`isEchangeable`, `src/engine/cargo.ts` — le CHAMP d'exclusion, jamais un id). */
@@ -99,12 +100,12 @@ describe('disponibilité saisonnière : la donnée dit ce que le livre imprime (
     ).toEqual(['printemps', 'ete', 'automne', 'hiver']);
   });
 
-  for (const [fichier, attendu, cardinal] of [
-    ['./sea-cargo.json', MER, 44],
-    ['./land-cargo.json', TERRE, 28],
+  for (const [voie, attendu, cardinal] of [
+    ['mer', MER, 44],
+    ['terre', TERRE, 28],
   ] as const) {
-    it(`${fichier} — les ${cardinal} cellules, borne par borne`, () => {
-      const entrees = marchandes(lire(fichier));
+    it(`cargoes.json, voie ${voie} — les ${cardinal} cellules, borne par borne`, () => {
+      const entrees = marchandes(lire(voie));
       expect(
         entrees.map((e) => e.id).sort(),
         'le catalogue et la table imprimée n’ont plus les mêmes cargaisons : une entrée marchande sans ligne au livre est une invention (règle 1).',
@@ -121,20 +122,20 @@ describe('disponibilité saisonnière : la donnée dit ce que le livre imprime (
           return [f?.min as number, f?.max as number];
         });
       }
-      expect(vu, `une cellule de disponibilité de ${fichier} ne dit plus ce que le livre imprime.`).toEqual(attendu);
+      expect(vu, `une cellule de disponibilité de la voie ${voie} ne dit plus ce que le livre imprime.`).toEqual(attendu);
       expect(cellules, 'le compte des cellules LUES a bougé : 4 saisons × cargaisons marchandes.').toBe(cardinal);
     });
   }
 
-  it('les deux catalogues portent 72 cellules — le cardinal du lot, sur le RÉSULTAT', () => {
-    const total = [...marchandes(lire('./sea-cargo.json')), ...marchandes(lire('./land-cargo.json'))]
+  it('les deux voies du catalogue portent 72 cellules — le cardinal du lot, sur le RÉSULTAT', () => {
+    const total = [...marchandes(lire('mer')), ...marchandes(lire('terre'))]
       .flatMap((e) => SAISONS_IMPRIMEES.map((s) => e.avail?.[s]))
       .filter((f) => typeof f?.min === 'number' && typeof f?.max === 'number').length;
     expect(total, 'les 72 disponibilités saisonnières du lot #1659 L-1659-2 ne sont plus toutes des fourchettes.').toBe(72);
   });
 
   it('AUCUNE cellule n’est restée un TUPLE `[min, max]` (la forme que #1659 retire)', () => {
-    const tuples = [...marchandes(lire('./sea-cargo.json')), ...marchandes(lire('./land-cargo.json'))]
+    const tuples = [...marchandes(lire('mer')), ...marchandes(lire('terre'))]
       .flatMap((e) => SAISONS_IMPRIMEES.map((s) => ({ id: e.id, s, f: e.avail?.[s] })))
       .filter((c) => Array.isArray(c.f))
       .map((c) => `${c.id} › ${c.s}`);

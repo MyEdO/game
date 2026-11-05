@@ -135,10 +135,12 @@
     }
   ],
   "seasonMod": {
-    "ete": 0,
-    "automne": 2,
-    "printemps": 2,
-    "hiver": 4,
+    "saisons": {
+      "printemps": 2,
+      "ete": 0,
+      "automne": 2,
+      "hiver": 4
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 106,

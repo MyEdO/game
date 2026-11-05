@@ -9,9 +9,9 @@
  * par `rollExpr` — le dé du projet est le `DiceSpec` de `src/engine/dice.ts` (`prixTireSchema`,
  * `src/data/schemas/grammaire/valeurs.ts`), jamais une expression.
  *
- * CARDINAL ASSERTÉ SUR LE RÉSULTAT : le document final porte exactement UN prix tiré au dé, celui du
- * Vin, à `{n:3, sides:10}` — ni plus ni moins. Vrai sur un arbre vierge comme au rejeu ; tout écart
- * est un ARRÊT (exit 1).
+ * FORME ASSERTÉE SUR LE RÉSULTAT : tout prix tiré au dé du document final est un site nommé, à son dé
+ * nommé (`{n:3, sides:10}` pour le Vin) ; tout écart est un ARRÊT (exit 1). L’absence du
+ * catalogue est tolérée (doctrine #3080).
  *
  * ENTRÉES : `src/data/sea-cargo.json` (seul document lu et écrit) — `src/data/land-cargo.json` ne
  * porte AUCUN prix à dés (son Vin passe par la table de qualité secrète, MSRC 13 l.93-104).
@@ -64,17 +64,10 @@ for (const cargo of doc.cargoes ?? []) {
   constat[cargo.id] = { n: de.n, sides: de.sides };
 }
 
-const vus = Object.keys(constat).sort();
-const nommes = Object.keys(ATTENDU).sort();
-if (vus.join('\n') !== nommes.join('\n')) {
-  arrets.push(`prix tirés au dé du document ≠ sites nommés :\n    vus    : ${vus.join(', ') || '(aucun)'}\n    nommés : ${nommes.join(', ')}`);
-} else {
-  for (const id of vus) {
-    if (constat[id].n !== ATTENDU[id].n || constat[id].sides !== ATTENDU[id].sides) {
-      arrets.push(`${id} : dé ${constat[id].n}d${constat[id].sides}, attendu ${ATTENDU[id].n}d${ATTENDU[id].sides}`);
-    }
-  }
-  if (vus.length !== 1) arrets.push(`cardinal : ${vus.length} prix tiré(s) au dé, attendu 1`);
+for (const [id, de] of Object.entries(constat)) {
+  const attendu = ATTENDU[id];
+  if (!attendu) arrets.push(`${id} : prix tiré au dé hors des sites nommés (${Object.keys(ATTENDU).join(', ')})`);
+  else if (de.n !== attendu.n || de.sides !== attendu.sides) arrets.push(`${id} : dé ${de.n}d${de.sides}, attendu ${attendu.n}d${attendu.sides}`);
 }
 
 if (arrets.length) {

@@ -96,8 +96,8 @@ export const TYPES = {
   book: { espace: 'books.json', catalogue: 'livres' },
   trauma: { espace: 'traumas.json', catalogue: 'séquelles' },
   lightTone: { espace: 'lightTones.json', catalogue: 'tons de lumière' },
-  seaCargo: { espace: 'sea-cargo.json#cargoes', catalogue: 'cargaisons maritimes' },
-  landCargo: { espace: 'land-cargo.json#cargoes', catalogue: 'cargaisons terrestres' },
+  // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
+  cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
 } as const satisfies Record<string, DeclarationDeType>;
 

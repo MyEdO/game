@@ -174,10 +174,10 @@ describe('les DEUX sites de l’atelier — une fourchette REQUISE s’édite su
     expect(bornesDe('Longueur')[0].value, 'la borne basse ne s’ouvre pas sur le début du domaine (1 m)').toBe('1');
   });
 
-  it('cargaison maritime neuve : les QUATRE colonnes de disponibilité s’éditent (8 bornes, d100)', () => {
-    monterNeuve('seaCargo');
-    // `avail` est EXIGÉ par `defs/sea-cargo.ts` : sans ces champs, une cargaison neuve n'est pas
-    // enregistrable — MDG 15 l.406-418 imprime une colonne par saison.
+  it('cargaison neuve : les QUATRE colonnes de disponibilité s’éditent (8 bornes, d100)', () => {
+    monterNeuve('cargoes');
+    // `avail` est EXIGÉ d'une marchandise par `defs/cargoes.ts` : sans ces champs, une cargaison neuve
+    // n'est pas enregistrable — MDG 15 l.406-418 et MSRC 13 l.73-78 impriment une colonne par saison.
     for (const saison of ['Printemps', 'Été', 'Automne', 'Hiver']) {
       expect(bornesDe(saison).length, `la colonne « ${saison} » ne s’édite pas sur une cargaison neuve`).toBe(2);
       expect(bornesDe(saison)[0].value, `la colonne « ${saison} » n’ouvre pas sur le début du d100`).toBe('1');

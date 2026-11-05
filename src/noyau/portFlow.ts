@@ -40,10 +40,11 @@ import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
-  sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc, findCargoById,
-  cargoOverload, overloadMaxEnc, OVERLOAD_HARD_CAP_PCT, isSeaTradeHub,
+  sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
+  cargoOverload, overloadMaxEnc, OVERLOAD_HARD_CAP_PCT,
   type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
+import { findCargoById, isTradeHubColumn } from '../engine/cargo';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import { chainStep } from './enchainerEtape';
@@ -175,7 +176,7 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
   for (const p of port.production) if (findCargoById(p)) ids.add(p);
   for (const s of Object.keys(port.surplus ?? {})) ids.add(s);
   // « commerce » → cargaison(s) aléatoire(s) (l.321/347).
-  if (isSeaTradeHub(port.production)) {
+  if (isTradeHubColumn(port.production)) {
     const draws = cur.cosmopolite ? 3 : 1;
     for (let i = 0; i < draws; i++) { phase(`Cargaison de commerce ${i + 1}`); ids.add(rollRandomCargo(season, rng).id); }
   }

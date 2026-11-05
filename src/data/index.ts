@@ -98,6 +98,7 @@ import calendarIntercalaryJson from './calendarIntercalary.json';
 import calendarWeekdaysJson from './calendarWeekdays.json';
 import calendarPhasesJson from './calendarPhases.json';
 import weatherJson from './weather.json';
+import { saisonParId } from './saisons';
 import symptomsJson from './symptoms.json';
 import detailsJson from './details.json';
 import semencesDeSceneJson from './semences-de-scene.json';
@@ -2588,8 +2589,8 @@ export function findNavalTrait(id: string): NavalTraitData | undefined {
 }
 /** Index des ports de la Mer des Griffes (#217, MDG 15 l.439-506) — catalogue app-owned éditable au
  *  Codex, consommé PAR RÉFÉRENCE depuis un lieu de la carte du monde (`MapPlace.port.ref`,
- *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
- *  (+ marqueurs `commerce`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
+ *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de la voie `mer` de `cargoes.json`
+ *  (+ marqueurs `commerce-mer`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
 export interface NavalPortData {
   id: string;
   type: 'naval-ports';
@@ -2840,7 +2841,7 @@ export const weather = weatherData.seasons;
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
 export function seasonLabel(id: string): PlayerText {
-  return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
+  return libelleOuAbsence(saisonParId(id), 'saison', id);
 }
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant

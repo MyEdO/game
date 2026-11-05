@@ -49,8 +49,8 @@ import { OBSESSIONS } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, facesDuDe, fourchette } from '../../engine/tables';
 import { ARTILLERY_MISFIRE } from '../../data/artilleryMisfire';
-import { type LandCargoDef } from '../../engine/landCargo';
-import { DE_DES_EVENEMENTS_DE_BORD, findCargoEntryById, isEchangeable } from '../../engine/seaVoyage';
+import { DE_DES_EVENEMENTS_DE_BORD } from '../../engine/seaVoyage';
+import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
@@ -815,7 +815,7 @@ function waterModifiersSection(mods: WaterExposureModifier[]): CodexSection | nu
 //    (Salissures, Orientation, Détroits, Tourbillons…) devient une section plutôt qu'une entité isolée. ──
 
 /** Libellé FR d'une entrée de `production`/`surplus`/`demande` d'un Port (`naval-ports.json`) : le
- *  catalogue `sea-cargo.json` porte tout le vocabulaire de la colonne. Une MARCHANDISE ouvre un lien
+ *  catalogue `cargoes.json` porte tout le vocabulaire de la colonne. Une MARCHANDISE ouvre un lien
  *  cross-réf vers sa fiche ; un MARQUEUR (`echangeable: false`, MDG 15 l.321) n'a pas de fiche — il
  *  s'annonce en texte simple, avec son qualificatif `hint` lu EN DONNÉE (« plaque tournante » /
  *  « rien à échanger »), jamais un suffixe codé ici ni un texte par id. */
@@ -826,7 +826,7 @@ function portCargoRow(id: string, qty?: number): CodexRow {
   const show = qty != null ? `${nom} (${qty})` : nom;
   // Repli : une cargaison NON échangeable n'a pas de fiche à ouvrir — pastille NUE, jamais un
   // paragraphe de prose au milieu des pastilles voisines (même classe que les Possessions).
-  return entry && isEchangeable(entry) ? { t: 'ref', category: 'seaCargo', id: entry.id, label, show } : { t: 'chip', label: show };
+  return entry && isEchangeable(entry) ? { t: 'ref', category: 'cargoes', id: entry.id, label, show } : { t: 'chip', label: show };
 }
 
 /** Fait signé (« +10 % », « −20 », « 0 ») — évite de dupliquer le ternaire de signe à chaque site. */
@@ -2388,10 +2388,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           {
             title: 'Modificateur saisonnier', layout: 'list',
             // Les saisons ET leurs noms viennent de la DONNÉE (`weather` + `seasonLabel`) : la
-            // rubrique ne connaît ni la liste ni les libellés. Itérer les CLÉS de `seasonMod`
-            // rendrait en plus sa clé d'enveloppe `source`.
+            // rubrique ne connaît ni la liste ni les libellés.
             rows: weather.map((s) => (
-              { t: 'kv', k: seasonLabel(s.id), v: String((w.seasonMod as Record<string, unknown>)[s.id]) } as CodexRow
+              { t: 'kv', k: seasonLabel(s.id), v: String((w.seasonMod.saisons as Record<string, number>)[s.id]) } as CodexRow
             )),
           },
           {
@@ -2501,18 +2500,16 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  // Cargaisons : le DATASET éditable est le tableau brut du JSON (marqueurs de l'Index compris, cf.
-  // `data/overrides.ts`), la VUE Compendium n'en montre que les marchandises — un marqueur n'a ni
-  // prix ni disponibilité, donc aucune fiche à ouvrir. Le filtre est ICI, pas dans la donnée.
+  // Cargaisons (#1684) : le DATASET éditable est le tableau brut du JSON (marqueurs de l'Index compris,
+  // cf. `data/overrides.ts`), la VUE Compendium n'en montre que les marchandises — un marqueur n'a ni
+  // prix ni disponibilité, donc aucune fiche à ouvrir. Le filtre est ICI, pas dans la donnée. Les
+  // marchandises se groupent par voie, la table du livre qui les porte.
   {
-    key: 'landCargo', label: 'Cargaison terrestre', group: 'Monde',
-    build: () => datasetArray('landCargo').filter(isEchangeable).map((c) => depuisEnveloppe(c, {
-      meta: facts(fact('Vin', (c as LandCargoDef).wine ? 'oui' : null)),
-    })),
-  },
-  {
-    key: 'seaCargo', label: 'Cargaison maritime', group: 'Monde',
-    build: () => datasetArray('seaCargo').filter(isEchangeable).map((c) => depuisEnveloppe(c)),
+    key: 'cargoes', label: 'Cargaisons', group: 'Monde',
+    build: () => datasetArray('cargoes').filter(isEchangeable).map((c) => {
+      const voie = valeurFR('cargoes.json', 'voie', c.voie);
+      return depuisEnveloppe(c, { group: voie, sub: voie, meta: facts(fact('Vin', c.wine ? 'oui' : null)) });
+    }),
   },
   {
     key: 'riverPerils', label: 'Périls fluviaux', group: 'Monde',

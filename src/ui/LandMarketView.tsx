@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../state/store';
-import { findLandCargoById } from '../engine/landCargo';
+import { findCargoEntryById } from '../engine/cargo';
 import { bulkCarriers, bulkCargoRefs, primaryCargoCarrier, type CarrierStateSlice } from '../noyau/carriers';
 import { carrierFreeEnc } from '../engine/cargo';
 import { placeById } from '../noyau/worldMap';
@@ -58,7 +58,7 @@ export function LandMarketView() {
 
   if (!market) return null;
   const devisDe = (cargoId: string) => devisDAchatDeCargaison({ ...slice, landMarket: market, net }, cargoId, buyEnc[cargoId]);
-  const cargoLabel = (id: string) => findLandCargoById(id)?.label ?? id;
+  const cargoLabel = (id: string) => findCargoEntryById(id)?.label ?? id;
 
   const offerGroups: TradeGroup<Offer>[] = [{ key: 'offers', rows: market.offers }];
   const sellGroups: TradeGroup<typeof refs[number]>[] = [{ key: 'refs', rows: refs }];

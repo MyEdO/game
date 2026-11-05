@@ -225,7 +225,7 @@ describe('Codex registry — #157 (audit d’exposition : datasets de contenu ma
       'traumas', 'criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe',
       'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe',
       'incidentsMonture', 'problemesVehicule', 'montures', 'tavernGames', 'obsessions', 'structureCriticals',
-      'landCargo', 'seaCargo', 'riverPerils', 'crewMoraleFactors', 'crewMoraleBands', 'steamBreakdowns',
+      'cargoes', 'riverPerils', 'crewMoraleFactors', 'crewMoraleBands', 'steamBreakdowns',
     ];
     for (const key of keys) {
       const cat = categoryByKey(key);
@@ -395,7 +395,7 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
     expect(marienburg.group).toBe('Wasteland');
     const prodSec = marienburg.sections?.find((s) => s.title === 'Production');
     expect(prodSec, 'section Production').toBeTruthy();
-    expect(prodSec!.rows.some((r) => r.t === 'ref' && r.category === 'seaCargo')).toBe(true);
+    expect(prodSec!.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
   });
 
   it('la table de Progression de navire (MDG 13) porte ses 5 modes avec leur fourchette de DR', () => {

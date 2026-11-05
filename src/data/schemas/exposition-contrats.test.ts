@@ -33,8 +33,10 @@ const jsonSurDisque = () => listerDossier(DATA_DIR).filter((f) => f.endsWith('.j
  * cliquet ; une entrée sans exempt réel en face est une entrée à retirer.
  */
 const DETTES_EXEMPT: Record<string, string> = {
+  'land-cargo.json': '#3433 (2026-11-05)',
   'merchants.json': '#747 (2026-08-29)',
   'reseau-routier.json': '#684 (2026-08-31)',
+  'sea-cargo.json': '#3433 (2026-11-05)',
 };
 
 describe('exposition Codex — contrats de la dérivation (#1472)', () => {

@@ -20,8 +20,9 @@ import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { normalizeScene } from './monde/scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
-import { findCargoEntryById, isEchangeable, type PortProfile } from '../engine/seaVoyage';
-import { findLandCargoEntryById, type LandMarketProfile } from '../engine/landCargo';
+import { isEchangeable, type PortProfile } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
+import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
@@ -445,11 +446,10 @@ export function lieuAUnPlan(place: MapPlace): boolean {
 /** Colonne Produits/Production d'un profil commercial, TERRESTRE ou MARITIME (MSRC 13 ; MDG 15 l.321) :
  *  la plaque tournante (entrée marqueur `tradeHub`) et les seules MARCHANDISES, en libellés. PUR. */
 export function produitsDuProfil(production: readonly string[] | undefined): { plaque: string | null; marchandises: string[] } {
-  const entree = (id: string) => findLandCargoEntryById(id) ?? findCargoEntryById(id);
   const ids = production ?? [];
   return {
-    plaque: ids.map(entree).find(isTradeHubEntry)?.label ?? null,
-    marchandises: ids.filter((id) => { const e = entree(id); return !e || isEchangeable(e); }).map((id) => entree(id)?.label ?? id),
+    plaque: ids.map(findCargoEntryById).find(isTradeHubEntry)?.label ?? null,
+    marchandises: ids.filter((id) => { const e = findCargoEntryById(id); return !e || isEchangeable(e); }).map((id) => findCargoEntryById(id)?.label ?? id),
   };
 }
 
