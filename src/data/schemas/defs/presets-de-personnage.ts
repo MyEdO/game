@@ -8,6 +8,8 @@
  * - `pieces` : les pièces ajoutées à celles de l'ensemble qui habille la `tenue` (D6(b)).
  * - `objets` : les objets instanciables portés hors des mains, revêtus par l'ensemble qui les habille, sinon à leur
  *   `rangement` (`trappings.json`).
+ * - `rangementsObjets` : l'emplacement où le personnage range un de ses `objets`, à la place de son `rangement`
+ *   (`rangerSesObjets`).
  * - `prises` : les objets instanciables tenus, par main.
  * - `apparencesObjets` : l'apparence d'un objet porté, comme `EntityAppearance.apparencesObjets`.
  * - `couleurs` : la palette du personnage, une couleur du nuancier (`materials.json`, domaine `couleur`) par emplacement
@@ -23,7 +25,7 @@
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
-import { ref, refs } from '../grammaire/ref';
+import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema, slotSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille } from '../../index';
@@ -42,6 +44,7 @@ const champs = {
   tenue: ref('gardeRobe', undefined, 'tenue').optional(),
   pieces: refs('gardeRobe', { sousListe: 'piece' }).optional(),
   objets: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
+  rangementsObjets: recordDIds('trapping', ref('gardeRobe', undefined, 'emplacement'), INSTANCIABLE_PAR_ID).optional(),
   prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
@@ -59,6 +62,7 @@ const metaDesChampsDuPreset = {
   tenue: { label: 'Tenue', hint: 'Tenue de la garde-robe, revêtue des pièces de son ensemble' },
   pieces: { label: 'Pièces', hint: 'Pièces ajoutées à celles de l’ensemble de la tenue' },
   objets: { label: 'Objets portés', hint: 'Objets hors des mains : revêtus par leur ensemble, sinon à leur emplacement de rangement' },
+  rangementsObjets: { label: 'Rangements des objets', hint: 'Emplacement où se range un objet porté ; absent, son rangement' },
   prises: { label: 'Objets tenus', hint: 'Objet tenu par chaque main' },
   apparencesObjets: { label: 'Apparences des objets', hint: 'Apparence d’un objet porté ; absente, sa forme' },
   couleurs: { label: 'Couleurs', hint: 'Couleur du nuancier par emplacement de palette ; absente, la matière du modèle' },
@@ -98,8 +102,21 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): void {
   }
 }
 
+/** Chaque clé de `rangementsObjets` est un des `objets` : un objet tenu ou absent ne se range pas. */
+function rangerSesObjets(v: unknown, ctx: z.RefinementCtx): void {
+  const e = v as Pick<PresetDePersonnage, 'objets' | 'rangementsObjets'>;
+  const portes = new Set<string>(e.objets ?? []);
+  for (const id of Object.keys(e.rangementsObjets ?? {}))
+    if (!portes.has(id)) ctx.addIssue({ code: 'custom', path: ['rangementsObjets', id], message: `« ${id} » se range sans être un des objets portés.` });
+}
+
+const affiner = (v: unknown, ctx: z.RefinementCtx): void => {
+  refuserLesPortesDeuxFois(v, ctx);
+  rangerSesObjets(v, ctx);
+};
+
 /** L'entrée sans son enveloppe (`CLES_ENVELOPPE`), règles comprises. */
-export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(refuserLesPortesDeuxFois);
+export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(affiner);
 export const surchargesDEmblemesSchema = z.record(z.string(), emblemeSchema.nullable());
 
 const doc = document(
@@ -119,7 +136,7 @@ const doc = document(
   },
   {
     exiges: ['source'],
-    affinerEntree: (entree) => entree.superRefine(refuserLesPortesDeuxFois),
+    affinerEntree: (entree) => entree.superRefine(affiner),
   },
 );
 
