@@ -32,6 +32,7 @@ export { effectiveArmourAt } from '../engine/characteristics';
 export { effectiveTalents } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION } from './combatAuto';
 export { conversationEnVue } from './dialogue';
+export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';
 export type { ModLine, RollBreakdown } from '../engine/combat';

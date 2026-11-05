@@ -13,12 +13,14 @@
  * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
-import { creerPont, type Suite } from '../pont/pont';
-import { CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
-import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
+import { creerPont, SANS_BORNE, type Suite } from '../pont/pont';
+import { CLICS_DU_CHAMP, brouillonDeLaPartie, creerPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
+import { zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
-import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
+import { fenetreADessiner, type ArgumentDuGeste, type GesteDeLaFenetre } from '../../../src/hote/gestes';
+import { projeter } from '../../../src/hote/projection';
+import { nouvelEntete, scenarioDeTest } from '../../../src/hote/partie';
 
 /** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
 export interface VueFigee {
@@ -47,10 +49,27 @@ const FORMULAIRE: GesteDeLaFenetre = {
 };
 const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', { a: 1 }, { x: 2, y: 'z' }];
 
+/** Le premier document de la liasse de « Documents de L'Ennemi dans l'Ombre » remis dans une partie neuve, sa fenêtre
+ *  dessinée, puis la partie fermée : le noyau n'en tient qu'une, et le pont garde la sienne. */
+function vueDuDocument(): { disposition: string; zones: ZonesDeLEcran } {
+  const [doc] = scenarioDeTest('documents-edo').construire().narratif!.documents;
+  const e = nouvelEntete('documents-edo', { graine: 7 });
+  const partie = creerPartie(etatInitialDuJeu(), { graine: e.graine, reglesMaison: e.regles, cadence: e.cadence, desFixes: e.desFixes, persisterLeHeros: () => {} });
+  try {
+    partie.etat().remettreDocument({ title: doc.titre, text: doc.prose, documentId: doc.id });
+    const etat = partie.etat();
+    const fenetre = fenetreADessiner(etat);
+    return { disposition: fenetre!.disposition, zones: zonesDeLEcran(etat, projeter(etat, 0, 0, SANS_BORNE), fenetre, null, null) };
+  } finally {
+    partie.fermer();
+  }
+}
+
 /** Un geste ouvert que sa fermeture refuse, sa raison dite. */
 const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
 
 export function figerVuesDeLEcran(): VueFigee[] {
+  const remis = vueDuDocument();
   const pont = creerPont();
   const appeler = (methode: string, entree: unknown): Suite => {
     const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
@@ -122,11 +141,14 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer('fiche du héros, une possession choisie', s);
   s = appeler('fiche', { fiche: null });
-  for (let pas = 0; !s.vue.projection.combat?.fin; pas++) {
+  const fini = (s: Suite) => !!s.vue.projection.combat?.fin && !!s.vue.projection.fenetre && !s.vue.projection.fenetre.etape;
+  for (let pas = 0; !fini(s); pas++) {
     if (pas > 600) throw new Error(`aucune fin du combat après ${pas} gestes`);
     s = jouer('jouer', presse(s));
   }
   figer(`fin du combat, ${s.vue.zones['fenetre.titre'][0]?.texte ?? 'sans fenêtre'}`, s);
+
+  vues.push({ nom: 'pièce remise, la première de la liasse', disposition: remis.disposition, zones: { ...remis.zones, 'journal.lignes': [...lignes] }, attendus: {} });
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
