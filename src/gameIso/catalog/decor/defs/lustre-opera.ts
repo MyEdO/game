@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // porte-bougies à flammes (`warm`), pampilles de cristal. Lit « lustre de théâtre » suspendu.
 export const prop: PropViz = {
   id: 'lustre-opera',
-  label: "Lustre d'opéra",
   render: () =>
     `<g><ellipse cx="60" cy="146" rx="18" ry="5" fill="${P.ombre}" opacity="0.12"/>` +
     `<path d="M60 0 L60 30" stroke="${P.boisFonce49}" stroke-width="2"/><circle cx="60" cy="6" r="2" fill="${P.boisFonce49}"/>` +

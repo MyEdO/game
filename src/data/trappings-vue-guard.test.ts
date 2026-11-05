@@ -20,7 +20,7 @@ const FOYER = [
   'src/data/overrides.ts',
   'src/data/schemas/_racines-vivantes.generated.ts',
   'src/ui/compendium/registry.ts',
-  'src/ui/compendium/relations.ts',
+  'src/noyau/codex/relations.ts',
 ];
 
 /** Sites où un appel au seam est ADMIS, chacun avec sa raison. */

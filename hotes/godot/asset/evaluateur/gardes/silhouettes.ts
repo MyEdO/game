@@ -14,7 +14,8 @@ import { Vector3, type Matrix4, type Mesh, type Object3D, type SkinnedMesh } fro
 import { tableTotale } from '../../../../../src/lib/tableTotale.ts';
 import type { Ecart } from '../ecart.ts';
 import { poseDeRepos, type Pose } from '../echantillonnage.ts';
-import { CARRURE_MOINS, CARRURE_PLUS, poidsDeCarrure } from '../../gabarit.ts';
+import { poidsDeCarrure } from '../../gabarit.ts';
+import { CARRURE_MOINS, CARRURE_PLUS } from '../../silhouettes.ts';
 import type { TableDeGabarit } from '../../manifesteDeBase.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
 import { POIDS_NEGLIGEABLE } from './poids.ts';

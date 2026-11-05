@@ -1765,17 +1765,17 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
   it('PORTÉE : un ordre venu d’un AUTRE étage ne joue rien — de plain-pied, le même ordre joue', () => {
     poser([{ id: 'fouiller', flow: don(2), unique: true }]);
     const scene = banc.getState().scene!;
-    const coffre = scene.entities.find((e) => e.id === 'coffre')!;
-    (coffre as { z?: number }).z = 1; // adjacent dans le plan, un plancher entre les deux
-    banc.setState({ scene: { ...scene }, journal: [] });
+    // adjacent dans le plan, un plancher entre les deux
+    banc.setState({ scene: { ...scene, entities: scene.entities.map((e) => (e.id === 'coffre' ? { ...e, z: 1 } : e)) }, journal: [] });
     banc.getState().jouerAction('coffre', 'fouiller');
     expect(or(), 'aucun butin : le geste n’a pas été joué').toBe(0);
     expect(banc.getState().journal, 'ni ligne de journal').toEqual([]);
     expect(banc.getState().flags[cleActionJouee('coffre', 'fouiller')], 'ni drapeau d’épuisement').toBeUndefined();
 
     // TÉMOIN — le MÊME ordre, le décor ramené de plain-pied : rien d'autre n'a changé.
-    delete (coffre as { z?: number }).z;
-    banc.setState({ scene: { ...banc.getState().scene! } });
+    const plainPied = scene.entities.find((e) => e.id === 'coffre')!;
+    const etage = banc.getState().scene!;
+    banc.setState({ scene: { ...etage, entities: etage.entities.map((e) => (e.id === 'coffre' ? plainPied : e)) } });
     banc.getState().jouerAction('coffre', 'fouiller');
     expect(or(), 'de plain-pied, la portée est celle de toujours').toBe(2);
   });
@@ -2280,8 +2280,8 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
   it('#800 — un corps posé à même (x,y) mais sur un AUTRE étage (z) n’est pas ramassable', () => {
     const bh = setup();
     const scene = banc.getState().scene!;
-    scene.entities.find((e) => e.id === 'corps')!.z = 1; // corps à l'étage 1
-    banc.setState({ scene: { ...scene }, battle: { ...banc.getState().battle!, combatants: [{ ...bh, pos: { x: 0, y: 0, z: 0 } }] } }); // actif au rez
+    // corps à l'étage 1
+    banc.setState({ scene: { ...scene, entities: scene.entities.map((e) => (e.id === 'corps' ? { ...e, z: 1 } : e)) }, battle: { ...banc.getState().battle!, combatants: [{ ...bh, pos: { x: 0, y: 0, z: 0 } }] } }); // actif au rez
     banc.getState().battlePickup('corps', 'fouiller:eff:2');
     expect((banc.getState().battle!.combatants[0].items ?? []).some((i) => i.label === 'Tromblon')).toBe(false); // pas de ramassage à travers l'étage
   });

@@ -2,7 +2,7 @@
  * Génère docs/codex-relations.md — la couche RELATIONNELLE du Codex (références inverses, index,
  * auto-liage) et l'origine DÉCLARÉE de ses entrées.
  * La part FACTUELLE est DÉRIVÉE : arêtes inverses lues aux appels `addReverse(...)` de
- * `src/ui/compendium/relations.ts`, API publique du module (AST + JSDoc, via
+ * `src/noyau/codex/relations.ts`, API publique du module (AST + JSDoc, via
  * `scripts/docs/lib/engineExports.mjs`), catégories/groupes/sous-groupes lus au littéral
  * `CODEX_SPECS` de `src/ui/compendium/registry.ts`, et exposition DÉCLARÉE aux defs, dumpée par
  * `scripts/docs/lib/dump-exposition.mts` (`npx tsx` — un générateur Node nu ne peut pas importer
@@ -27,7 +27,7 @@ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-codex-relations'
-  const RELATIONS = 'src/ui/compendium/relations.ts'
+  const RELATIONS = 'src/noyau/codex/relations.ts'
   const REGISTRY = 'src/ui/compendium/registry.ts'
   const DESCRIBE = 'src/ui/compendium/describe.ts'
   const HUMANIZE = 'src/ui/compendium/humanize.ts'
@@ -235,7 +235,7 @@ function rendu() {
   // Gardes NOMMÉES (fail-fast si l'une disparaît) — pas un balayage du dossier : un fichier de test
   // en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
   const TESTS = [
-    'src/ui/compendium/relations.test.ts',
+    'src/noyau/codex/relations.test.ts',
     'src/ui/compendium/registry.test.ts',
     'src/ui/compendium/humanize.test.ts',
     ...CONTRATS,

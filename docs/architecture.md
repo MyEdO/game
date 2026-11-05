@@ -144,13 +144,15 @@ n'est ni suite ni banc (`estFichierVitest`), un arc d'import qu'elle n'ouvre pas
 les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, un paquet de l'hôte web, du JSX ou un module de code hors
 des zones et hors de son `outillage` dans une zone qui survit, et un motif d'`import.meta.glob` dont le dossier de
 zone est un joker ; `murs/tests-survivants` (#3058) refuse, à une suite ou un banc d'une zone qui survit, tout arc
-vers une zone qui n'y survit pas (`fermeAuxInstruments`), même pour un type, un paquet de l'hôte web, du JSX, un
+vers une zone qui n'y survit pas (`fermeParLaSurvie`), même pour un type, un paquet de l'hôte web, du JSX, un
 motif joker, et tout chargement que la lecture des arcs ne suit pas : spécificateur ou motif calculé, chargeur
 (`vi`, `require`, `createRequire`, `module`) renommé, lié comme valeur ou lu par un accès calculé. Les deux règles
-se partagent les fichiers des zones. Le mur de clôture `scripts/corpus/guards/clotureDesInstruments.test.mjs`
-marche la clôture d'imports de ces instruments (`clotureDImports` : les formes d'arc de `arcsDImport.mjs`, motifs
-d'`import.meta.glob` et spécificateurs `/…` compris) et refuse qu'un de ses membres, hors des zones compris, soit
-d'une zone qui n'y survit pas ou charge un paquet de l'hôte web que la zone ferme à l'instrument (`paquetFerme`). Il
+se partagent les fichiers des zones. Le mur de clôture `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`
+marche la clôture d'imports de tout module d'une zone qui survit, production et instruments compris (`clotureDImports` :
+les formes d'arc de `arcsDImport.mjs`, motifs d'`import.meta.glob` et spécificateurs `/…` compris), et refuse qu'un
+de ses membres, hors des zones compris, soit d'une zone qui n'y survit pas ou charge un paquet de l'hôte web que la
+zone ferme au module (`paquetFerme`) : l'`outillage` déclaré ouvre un module hors des zones, jamais une zone qui ne
+survit pas (#3337). Il
 ne suit ni l'acquisition calculée d'un module hors des zones de la clôture (aujourd'hui `scripts/docs/build-all.mjs:216`
 et `scripts/guards/lib/structuresLocales.mts:249`), reste de #3058, ni un chargement par un appel qui n'est pas une
 forme d'import (`tsImport`, `new Worker(new URL(…))`). Ces murs lisent le

@@ -1085,13 +1085,16 @@ func _composer_la_courante() -> void:
 ## squelette (`GabaritDuSquelette`, `CONTRAT.md`, « Gabarit d'une base »), qui le pose sur la pose de chaque image, au
 ## repos comme pendant un clip ; chaque os qu'il nomme et que la base n'a pas donne `os-absent : <os>` aux erreurs du
 ## gabarit, qui remplacent celles de la pose précédente. Le squelette est remis à sa pose de repos, puis le clip engagé
-## est reposé à son instant ; l'orbite cadre le corps neutre jusqu'à la mesure du gabarit au repos.
+## est reposé à son instant ; l'orbite cadre le corps neutre jusqu'à la mesure du gabarit au repos. La marche prend
+## l'échelle de vitesse du gabarit (`echelleDeVitesse`), neutre sans gabarit.
 func _poser_le_gabarit() -> void:
 	_erreurs_du_gabarit = []
+	var gabarit: Dictionary = _composee.get("gabarit", {})
+	_marche.poser_l_echelle_de_vitesse(float(gabarit.get("echelleDeVitesse", MarcheDeLAtelier.VITESSE_NEUTRE)))
 	if _gabarit == null:
 		_marche.cadrer(MarcheDeLAtelier.CADRE_NEUTRE)
 		return
-	for os in _gabarit.poser(_composee.get("gabarit", {})):
+	for os in _gabarit.poser(gabarit):
 		_erreurs_du_gabarit.append("os-absent : %s" % os)
 	_squelette.reset_bone_poses()
 	if _a_un_clip():

@@ -33,7 +33,7 @@ import { OPTIONAL_RULES } from '../engine/policy';
 import { collectionDuDataset } from '../data/overrides';
 import { trappingsInstanciables, psychologies } from '../data';
 import { traumaById } from '../engine/trauma';
-import { browserUnfreezeTimeout } from './devtoolsTimers';
+import { browserUnfreezeTimeout } from '../lib/figerDelais';
 import { mountMovement, movementRemaining } from '../noyau/mount';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';

@@ -1,6 +1,7 @@
 ## La marche de l'atelier 3D (#3086) : les actions `avant`, `arriere`, `gauche` et `droite` (`project.godot`, `[input]`)
 ## déplacent la racine du modèle sur le sol, tournée vers sa direction de marche, à la vitesse de marche de la base
-## (`marche` de la réponse de `modeles`, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») ; le clip de marche se
+## (`marche` de la réponse de `modeles`, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») à l'échelle de son
+## gabarit posé ; le clip de marche se
 ## joue par le lecteur de l'atelier pendant le déplacement ; à l'arrêt, le clip reste engagé en pause à son début et le
 ## squelette revient à sa pose de repos. La caméra orbite autour de la racine au glissé du bouton droit de la souris,
 ## s'en rapproche ou s'en éloigne à la molette hors de l'interface, et la suit ; l'atelier la cadre sur le corps posé.
@@ -17,6 +18,8 @@ const ECHELLE_MINIMALE := 0.3
 const ECHELLE_MAXIMALE := 3.0
 ## L'échelle de l'orbite qui cadre le corps neutre de la base, celle de la caméra de la scène.
 const CADRE_NEUTRE := 1.0
+## L'échelle de la vitesse au sol sans gabarit posé.
+const VITESSE_NEUTRE := 1.0
 
 ## Le pivot de l'orbite, posé sur la racine : son lacet.
 @export var orbite: Node3D
@@ -28,6 +31,8 @@ var _racine: Node3D = null
 var _lecteur: AnimationPlayer = null
 var _squelette: Skeleton3D = null
 var _marche: Dictionary = {}
+## L'échelle de la vitesse au sol du gabarit posé (`echelleDeVitesse`, `CONTRAT.md`, « Gabarit d'une base »).
+var _echelle_de_vitesse := VITESSE_NEUTRE
 var _en_marche := false
 var _echelle := CADRE_NEUTRE
 ## Les actions de la marche dont l'appui a atteint `_input`, tant qu'elles restent tenues.
@@ -46,6 +51,11 @@ func suivre(racine: Node3D, lecteur: AnimationPlayer, marche: Dictionary) -> voi
 	_squelette = MontageDEquipement.squelette_de(racine) if racine != null else null
 	_marche = marche
 	_en_marche = false
+
+
+## L'échelle `echelle` de la vitesse au sol du gabarit posé, `VITESSE_NEUTRE` sans gabarit.
+func poser_l_echelle_de_vitesse(echelle: float) -> void:
+	_echelle_de_vitesse = echelle
 
 
 ## Une touche de la marche que l'interface n'a pas prise est à elle seule : les flèches ne déplacent pas le focus du
@@ -81,7 +91,7 @@ func _process(delta: float) -> void:
 			marche_commencee.emit(_marche.clip)
 		var direction := Vector3(entree.x, 0.0, entree.y).normalized().rotated(Vector3.UP, orbite.rotation.y)
 		_racine.quaternion = Quaternion(Basis.looking_at(direction, Vector3.UP, true))
-		_racine.global_translate(MiseEnPage.pas_de_marche(direction, _marche.vitesse, _lecteur.speed_scale, delta))
+		_racine.global_translate(MiseEnPage.pas_de_marche(direction, _marche.vitesse, _echelle_de_vitesse, _lecteur.speed_scale, delta))
 	orbite.global_position = _racine.global_position
 
 

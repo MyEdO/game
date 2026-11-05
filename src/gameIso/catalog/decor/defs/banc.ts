@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // officiel NADJ 08 folio 38, image (longues banquettes contre les cloisons).
 export const prop: PropViz = {
   id: 'banc',
-  label: 'Banc',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="46" ry="8" fill="${P.ombre}" opacity="0.2"/>` +
     // pieds

@@ -29,7 +29,7 @@ import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
 import { sequence } from '../engine/sequences';
-import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
+import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, REGLAGES_DE_L_INCANTATION, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -66,7 +66,7 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
   fumble: { flux: 'fumble', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.fumble.result }]; } },
   cast: {
     flux: 'cast',
-    reglages: ['castSetCritChoice', 'castSetConjureForm', 'castSetDiscreet', 'castSetChosenTableRolls'],
+    reglages: REGLAGES_DE_L_INCANTATION,
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.

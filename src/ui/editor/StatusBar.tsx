@@ -9,9 +9,8 @@ import { Icon } from '../Icon';
 import type { Layers, Pt, Tool } from './editorState';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
-import { creatureLabel, siegeEngines } from '../../data';
+import { creatureLabel, findPropById, siegeEngines } from '../../data';
 import { layerLabel } from './LayerField';
-import { PROPS } from '../../gameIso/catalog/decor';
 
 const LAYER_LABEL: Record<keyof Layers, string> = {
   triggers: 'Déclencheurs',
@@ -28,7 +27,7 @@ export function toolLabel(tool: Tool): ReactNode {
     case 'select': return '↖ Sélection';
     case 'tile': return <><Icon id="map-tool/paint" size="sm" /> {terrainLabel(tool.terrain)}</>;
     case 'entity':
-      if (tool.kind === 'prop') return <><Icon id="map-tool/prop" size="sm" /> {garanti(PROPS[tool.ref], tool.ref, 'décor de la palette').label}</>;
+      if (tool.kind === 'prop') return <><Icon id="map-tool/prop" size="sm" /> {garanti(findPropById(tool.ref), tool.ref, 'décor de la palette').label}</>;
       if (tool.kind === 'personnage') return <><Icon id="map-tool/npc" size="sm" /> {creatureLabel(tool.ref)}</>;
       return <><Icon id="map-tool/start-flag" size="sm" /> {libelleDeValeur(entityKindSchema, tool.kind)}</>;
     case 'zone': return tool.zone === 'room' ? <><Icon id="rest/home" size="sm" /> Pièce</>

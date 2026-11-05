@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
-import { computeStateVisible, computeStateVisibleAndLight, recordExplored, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
+import { computeStateVisible, computeStateVisibleAndLight, exploreAvec, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
 import { computeLightField, type LightSource } from './monde/vision';
 import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { Scene, WallSeg } from './monde/scene';
@@ -199,21 +199,18 @@ describe('REVEAL_ALL (brouillard OFF) — le `visible` de la carte entière gard
   });
 });
 
-describe('recordExplored — accumulation persistante par scène', () => {
-  function mockStore(scene: Scene | null, explored: Record<string, string[]> = {}) {
-    const state: any = { scene, explored };
-    return { get: () => state, set: (p: any) => Object.assign(state, p), state };
-  }
+describe('exploreAvec — accumulation persistante par scène', () => {
   it('accumule sans perdre l\'ancien', () => {
-    const { get, set, state } = mockStore(scene(6, 1));
-    recordExplored(get, set, ['1,0,0', '2,0,0']);
-    recordExplored(get, set, ['2,0,0', '3,0,0']);
-    expect(new Set(state.explored.s1)).toEqual(new Set(['1,0,0', '2,0,0', '3,0,0']));
+    const sc = scene(6, 1);
+    const un = exploreAvec({ scene: sc, explored: {} }, ['1,0,0', '2,0,0'])!;
+    const deux = exploreAvec({ scene: sc, explored: un }, ['2,0,0', '3,0,0'])!;
+    expect(deux.s1).toEqual(['1,0,0', '2,0,0', '3,0,0']);
   });
   it('garde les scènes séparées', () => {
-    const { get, set, state } = mockStore(scene(6, 1), { autre: ['9,9,0'] });
-    recordExplored(get, set, ['1,0,0']);
-    expect(state.explored.autre).toEqual(['9,9,0']);
-    expect(state.explored.s1).toEqual(['1,0,0']);
+    expect(exploreAvec({ scene: scene(6, 1), explored: { autre: ['9,9,0'] } }, ['1,0,0'])).toEqual({ autre: ['9,9,0'], s1: ['1,0,0'] });
+  });
+  it('rend null sans case neuve, et sans scène', () => {
+    expect(exploreAvec({ scene: scene(6, 1), explored: { s1: ['1,0,0'] } }, ['1,0,0'])).toBeNull();
+    expect(exploreAvec({ scene: null, explored: {} }, ['1,0,0'])).toBeNull();
   });
 });

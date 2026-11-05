@@ -192,7 +192,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // COMMIT, lui (`battleDispelSpell`), est exposé. Voyager le ferait naître chez l'HÔTE.
   dispelSelectCarrier: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
-  markExplored: 'hôte', openWorldMap: 'hôte', startTravel: 'hôte',
+  openWorldMap: 'hôte', startTravel: 'hôte',
   startBilletBargain: 'hôte', resumeTravel: 'hôte', departWaitDawn: 'hôte',
   setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────

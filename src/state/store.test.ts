@@ -158,6 +158,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     'screen', 'party', ...GARDES_D_UNE_PARTIE_A_L_AUTRE,           // navigation / groupe / préférences de vue et de touches
     'scene', 'partyPos', 'flags', 'campaignSceneId', 'journal', 'mode', 'inventory', // dérivés
     'facing', // dérivé : orientation du meneur posée à l'entrée de scène (spawnFacing / heroStart)
+    'explored', // dérivé : la vue d'arrivée, fondue par la transition du jeu (`noyau/transitionDuJeu.ts`)
   ]);
 
   it('startScene réinitialise TOUT champ d’état à son défaut de création (garde-fou anti-dérive)', () => {
@@ -173,6 +174,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
       pendingRoundStart: { round: 7 },
       flags: { vieuxFlag: true },
       journal: ['vieille ligne'],
+      explored: { vieux: ['0,0,0'] },
     });
 
     // 2) Démarrage d’une nouvelle partie/scénario.
@@ -207,6 +209,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     expect((st.party as unknown[])).toHaveLength(1);
     expect((st.scene as { id: string }).id).toBe('neuve');
     expect(st.flags).toEqual({}); // flags de l’ancienne partie effacés
+    expect(Object.keys(st.explored as object), 'l’exploré de l’ancienne partie est effacé : seule la scène d’arrivée y est').toEqual(['neuve']);
   });
 
   it('l’inspection est un GESTE, pas une préférence (#1822) : aucun interrupteur à l’état, et la fiche ouverte ne survit pas à une nouvelle partie', () => {

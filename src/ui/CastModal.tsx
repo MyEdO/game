@@ -9,9 +9,9 @@ import { spellEffectOps } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { clampTarget } from '../engine/tests';
 import { castingValue, castingNumberOf, spellTargetCount, castOvercastBudget, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
-import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastStepCost } from '../engine/overcast';
+import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, missileOvercastDamageBonus, overcastStepCost } from '../engine/overcast';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
-import { rule } from '../engine/policy';
+import { fermeturesDeLIncantation } from '../noyau/reglagesDIncantation';
 import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
@@ -102,6 +102,8 @@ export function CastModal() {
   const conjureForms = spellEffectOps(spell.effects).some((o) => o.op === 'grantWeapon' && o.chooseForm)
     ? conjureFormOptions(caster) : [];
   const selectedForm = pc.conjureForm ?? conjureForms[0];
+  // Les réglages que l'incantation offre maintenant : la même lecture que leurs ops et que les hôtes.
+  const reglagesFermes = fermeturesDeLIncantation(useGame.getState());
   // ZONE non posée (flux « jet puis pose », LDB 47 l.15/28) : pas de cible — le gabarit se dépose
   // APRÈS le jet et la Surincantation. « Puissance totale » (crit) repêche un DR insuffisant.
   const zoneUnplaced = !!pc.zone && !pc.zone.center;
@@ -255,7 +257,7 @@ export function CastModal() {
         <>
           {/* « Prêchez, ma sœur ! » (LDB 40 l.40-42) : entonner la Prière à voix haute (Intermédiaire)
               ou discrètement (murmurée → un cran plus dure). Seulement Prière + option active + avant le jet. */}
-          {isPrayer && !res && rule('prayer-conviction') && (
+          {!reglagesFermes?.castSetDiscreet && (
             <OptionChooser
               layout="seg"
               groupLabel={<><Icon id="faith/prayer" size="sm" /> Ton de la Prière</>}
@@ -265,7 +267,7 @@ export function CastModal() {
               ]}
             />
           )}
-          {conjureForms.length > 0 && (
+          {!reglagesFermes?.castSetConjureForm && (
             <div className="rm-options">
               {/* Arme invoquée à forme libre (LDB 47) : le lanceur choisit sa Compétence de Corps à corps. */}
               <span className="mini-title"><Icon id="item/weapon" size="sm" /> Forme de l'arme invoquée</span>
@@ -354,7 +356,7 @@ export function CastModal() {
                 {/* Jet sur Tableau DÉCLINABLE (EDOC 13 l.276 : « vous pouvez à la fois prolonger la durée
                     et refaire un jet ») : la durée se prolonge intégralement quel que soit ce choix,
                     borné [0, pas Durée alloués]. Défaut = tous les pas (paquet complet, zéro-clic). */}
-                {oc.duration > 0 && spellHasOvercastTableRoll(spellEffectOps(spell.effects)) && (
+                {!reglagesFermes?.castSetChosenTableRolls && (
                   <Row gap="md" align="center">
                     <span {...grow}><Icon id="nav/dice" size="sm" /> Jets sur le Tableau</span>
                     <QtyStepper
@@ -374,7 +376,7 @@ export function CastModal() {
               </div>
             );
           })()}
-          {res.isCritical && !isPrayer && influencesLocally(useGame.getState(), pc.casterId) && (
+          {!reglagesFermes?.castSetCritChoice && (
             <div className="rm-options">
               {/* Incantation CRITIQUE (LDB 46 l.26-32) : puissance supplémentaire au choix
                   (le contrecoup — Imparfaite Mineure sauf Diction instinctive — est automatique). */}

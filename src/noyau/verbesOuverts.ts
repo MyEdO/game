@@ -11,7 +11,8 @@ import type { PendingCascade } from './pendings';
 import { fateSaveOptions } from '../engine/fortune';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOW_HANDLERS, rangeesADeclarerIci } from './rollFlowSpecs';
+import { fermeturesDeLIncantation } from './reglagesDIncantation';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
@@ -36,9 +37,15 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
 }
 
 /** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : « tout résoudre » sur la
- *  cascade, l'annulation du coup que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`). */
+ *  cascade, les réglages de l'incantation (`fermeturesDeLIncantation`), la déclaration du Contre-sort quand ce siège
+ *  n'a plus de rangée à déclarer (`rangeesADeclarerIci`), l'annulation du coup que le Sauvetage par le Destin n'offre
+ *  pas (`fateSaveOptions`). */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
-  cascade: (s) => s.pendingCascade && { cascadeResolveAll: fermetureDeToutResoudre(s, s.pendingCascade) },
+  cascade: (s) => s.pendingCascade && {
+    cascadeResolveAll: fermetureDeToutResoudre(s, s.pendingCascade),
+    ...fermeturesDeLIncantation(s),
+    counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
+  },
   fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
 };
 

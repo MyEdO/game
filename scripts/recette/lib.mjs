@@ -11,7 +11,7 @@ import { attendreSync } from '../guards/lib/spawnResilient.mjs';
 import { TOLERANCE_CREATION_MS } from '../guards/lib/processusWorktrees.mjs';
 import { NAISSANCE_ABSENTE, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs';
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs';
-import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/state/devtoolsTimers.ts';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/lib/figerDelais.ts';
 import { ENTETE_RACINE, RACINE, normaliserRacine, racineDepuisEntete, urlDev } from '../port-dev.mjs';
 
 /** URL de l'app servie par CET arbre (#1679 L1c) : le port est propre à l'arbre, jamais une

@@ -99,8 +99,10 @@ describe('relations — graphe inverse id-based', () => {
     const link = toks.find((t) => typeof t === 'object' && t.id === s.id);
     expect(link).toBeTruthy();
     expect((link as { category: string }).category).toBe('skills');
-    // Lien vers SOI écarté → tout reste en texte (aucun token objet).
-    expect(tokenizeLinks(`${s.label} est une compétence.`, s.label).every((t) => typeof t === 'string')).toBe(true);
+    // Lien vers SOI écarté par l'id de la fiche affichante → tout reste en texte (aucun token objet).
+    expect(tokenizeLinks(`${s.label} est une compétence.`, 'skills', s.id).every((t) => typeof t === 'string')).toBe(true);
+    // Un id porté par une AUTRE catégorie n'est pas la fiche affichante : sur le trait `arme`, la manœuvre `arme` reste liée.
+    expect(tokenizeLinks('La manœuvre Arme / griffes sert ici.', 'traits', 'arme')).toContainEqual(expect.objectContaining({ category: 'maneuvers', id: 'arme' }));
     // Prose sans vocabulaire connu → un seul segment texte, inchangé.
     expect(tokenizeLinks('Zzz qqq wxyz vvv.')).toEqual(['Zzz qqq wxyz vvv.']);
   });
@@ -139,9 +141,8 @@ describe('relations — graphe inverse id-based', () => {
     expect(artLower.every((t) => typeof t === 'string')).toBe(true);
 
     // Accent conservé : « Charme » avec sa capitale ordinaire fonctionne aussi en tout DÉBUT de phrase.
-    const startOfSentence = tokenizeLinks(`${charme.label} est une compétence sociale.`, charme.label);
-    // Auto-référence (selfLabel) → écarté malgré le lien potentiel.
-    expect(startOfSentence.every((t) => typeof t === 'string')).toBe(true);
+    const startOfSentence = tokenizeLinks(`${charme.label} est une compétence sociale.`);
+    expect(startOfSentence.find((t) => typeof t === 'object' && t.id === charme.id)).toBeTruthy();
   });
 
   it('tokenizeLinks garde un libellé MULTI-MOTS tel qu’écrit (casse figée, pas de variante)', () => {
@@ -198,7 +199,7 @@ describe('relations — graphe inverse id-based', () => {
     expect(noCtx?.category).toBe('talents');
     // Avec `selfCategory` = la fiche affichante (ex. une fiche de TRAIT parlant d'un autre trait
     // « Haine ») → le contexte prime sur la priorité globale.
-    const withCtx = tokenizeLinks('Il agit par pure Haine.', undefined, 'traits').find((t) => typeof t === 'object') as
+    const withCtx = tokenizeLinks('Il agit par pure Haine.', 'traits').find((t) => typeof t === 'object') as
       { category: string } | undefined;
     expect(withCtx?.category).toBe('traits');
   });
@@ -218,12 +219,11 @@ describe('relations — graphe inverse id-based', () => {
   });
 
   it('B3 : « Âme pure » — « Points de Corruption » lie la JAUGE (characteristics), jamais le TRAIT homonyme', () => {
-    // Régression B3 : l'ancienne politique liait « Points de Corruption » (desc d'Âme pure) au TRAIT
-    // Corruption (PRIORITY_CAT_ORDER traits avant characteristics). La forme de jauge « Points de X »
-    // est désormais une clé mono-catégorie → la JAUGE.
+    // B3 : la forme de jauge « Points de X » est une clé mono-catégorie → la JAUGE, que
+    // PRIORITY_CAT_ORDER (traits avant characteristics) ne départage pas.
     const ame = talents.find((x) => x.id === 'ame-pure')!;
     expect(ame?.desc, 'desc d’Âme pure présente et mentionnant Points de Corruption').toMatch(/Points de Corruption/);
-    const toks = tokenizeLinks(ame.desc!, ame.label, 'talents', ame.id);
+    const toks = tokenizeLinks(ame.desc!, 'talents', ame.id);
     const corr = toks.find((t) => typeof t === 'object' && /corruption/i.test((t as { text: string }).text)) as
       { category: string } | undefined;
     expect(corr, 'la mention Corruption est bien liée').toBeTruthy();
@@ -253,7 +253,7 @@ describe('relations — graphe inverse id-based', () => {
 
   it('B3 : contexte de fiche — « Corruption » NU dans une fiche de TRAIT résout au TRAIT (selfCategory prime)', () => {
     const traitCorr = traits.find((x) => x.id === 'corruption')!;
-    const link = tokenizeLinks('Cette créature répand la Corruption.', undefined, 'traits').find((t) => typeof t === 'object') as
+    const link = tokenizeLinks('Cette créature répand la Corruption.', 'traits').find((t) => typeof t === 'object') as
       { category: string; id: string } | undefined;
     expect(link, 'le contexte de fiche tranche l’homonyme').toBeTruthy();
     expect(link!.category).toBe('traits');

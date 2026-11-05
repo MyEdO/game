@@ -48,7 +48,7 @@ const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: 
     reason: "éditeur Codex GÉNÉRIQUE de champ `characteristics: CharKey[]` (CareerLevel/DomainData) — édite une LISTE d'ids CharKey, pas une valeur de Combatant.",
   },
   {
-    file: 'src/ui/compendium/relations.ts',
+    file: 'src/noyau/codex/relations.ts',
     match: 'lv.characteristics',
     count: 1,
     reason: "champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",

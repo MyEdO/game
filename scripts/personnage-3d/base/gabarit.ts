@@ -1,11 +1,55 @@
 import { Matrix4, Vector3, type Skeleton } from 'three';
 import type { GabaritResolu } from '../../../src/noyau/index.ts';
-import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, sensCuitsDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import { nomDeCleDuGabarit, poseDuGabarit, sensCuitsDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import { FACTEURS_NEUTRES } from '../../../hotes/godot/asset/facteursDuGabarit.ts';
 import type { TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
-import { bindsAuGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
-import { preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
+import { enfantsDuGabarit, poserEnfantsDuGabarit, bindsAuGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
+import { poidsRelatifsDesAretes, preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
 
 export const REFERENCE_DES_ANCRES = Object.freeze({ ...FACTEURS_NEUTRES, legs: 1.37, arms: 1.23, head: 1.51 });
+/** #3104 issuecomment-6549354475. */
+export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu, poses: Float32Array): Float32Array {
+  const bones = squelette.bones, taille = bones.length * 16;
+  if (poses.length % taille) throw new Error('gabarit : poses binaires tronquées');
+  const pose = poseDuGabarit({ gabarit: table }, facteurs);
+  const binds = bindsAuGabarit(squelette, pose);
+  const enfants = enfantsDuGabarit(pose, (nom) => {
+    const b = bones.find((os) => os.name === nom);
+    if (!b) throw new Error(`gabarit : os absent ${nom}`);
+    return b;
+  });
+  const racine = bones.find((b) => b.name === pose.racine.os);
+  if (!racine) throw new Error('gabarit : racine absente');
+  const originales = bones.map((b) => ({ p: b.position.clone(), q: b.quaternion.clone(), s: b.scale.clone() }));
+  const sortie = new Float32Array(poses.length);
+  const monde = new Matrix4(), local = new Matrix4();
+  try {
+    for (let offset = 0; offset < poses.length; offset += taille) {
+      const mondes = bones.map((_, i) => {
+        const m = new Matrix4();
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) m.elements[c * 4 + r] = poses[offset + i * 16 + r * 4 + c];
+        return m;
+      });
+      bones.forEach((b, i) => {
+        const parent = bones.indexOf(b.parent as typeof b);
+        local.copy(parent < 0 ? mondes[i] : monde.copy(mondes[parent]).invert().multiply(mondes[i]));
+        local.decompose(b.position, b.quaternion, b.scale);
+      });
+      racine.scale.multiplyScalar(pose.racine.echelle);
+      poserEnfantsDuGabarit(enfants);
+      for (const b of bones) b.updateWorldMatrix(true, false);
+      bones.forEach((b, i) => {
+        monde.copy(b.matrixWorld).multiply(binds[i]);
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) sortie[offset + i * 16 + r * 4 + c] = monde.elements[c * 4 + r];
+      });
+    }
+  } finally {
+    bones.forEach((b, i) => { b.position.copy(originales[i].p); b.quaternion.copy(originales[i].q); b.scale.copy(originales[i].s); });
+    for (const b of bones) b.updateWorldMatrix(true, false);
+  }
+  return sortie;
+}
+
 export type PoidsDuSommet = readonly (readonly [os: number, poids: number])[];
 export interface CorpsDuGabarit {
   readonly positions: readonly Vector3[];
@@ -58,9 +102,11 @@ export function preparerGabarit(corps: CorpsDuGabarit) {
     const portes = ws.filter(([, w]) => w > 0).map(([os]) => generiques[os]);
     return portes.every((m) => m.elements.every((x, c) => Math.abs(x - portes[0].elements[c]) < 1e-9));
   });
-  const laplacien = preparerLaplacien(ancres, aretes);
   const peaux = poids.map((ws) => combiner(peau, ws));
   const peauInverse = peaux.map((m) => m.clone().invert());
+  const q0 = positions.map((p, i) => p.clone().applyMatrix4(peaux[i]).toArray());
+  const poidsDesAretes = poidsRelatifsDesAretes(q0, aretes);
+  const laplacien = preparerLaplacien(ancres, aretes, poidsDesAretes);
 
   const resoudre = (facteurs: GabaritResolu, repos: readonly Vector3[] = positions): Vector3[] => {
     if (repos.length !== positions.length) throw new Error('gabarit : repos de taille incorrecte');
@@ -69,15 +115,15 @@ export function preparerGabarit(corps: CorpsDuGabarit) {
     const a = poids.map((ws) => combiner(k, ws));
     const fixes = q.map((p, i) => p.clone().applyMatrix4(a[i]));
     const seconds = laplacien.libres.map(() => [0, 0, 0]);
-    for (const [i, j] of aretes) {
+    for (const [index, [i, j]] of aretes.entries()) {
       const d = q[i].clone().sub(q[j]);
-      const e = lineaire(a[i], d).add(lineaire(a[j], d)).multiplyScalar(0.5);
+      const e = lineaire(a[i], d).add(lineaire(a[j], d)).multiplyScalar(0.5 * poidsDesAretes[index]);
       for (const [sommet, signe] of [[i, 1], [j, -1]]) {
         const r = laplacien.rang[sommet];
         if (r >= 0) { seconds[r][0] += signe * e.x; seconds[r][1] += signe * e.y; seconds[r][2] += signe * e.z; }
       }
     }
-    for (const [r, sommet] of laplacien.bord) { seconds[r][0] += fixes[sommet].x; seconds[r][1] += fixes[sommet].y; seconds[r][2] += fixes[sommet].z; }
+    for (const [r, sommet, w] of laplacien.bord) { seconds[r][0] += w * fixes[sommet].x; seconds[r][1] += w * fixes[sommet].y; seconds[r][2] += w * fixes[sommet].z; }
     const solution = resoudreLaplacien(laplacien, seconds);
     return fixes.map((p, i) => (ancres[i] ? p : new Vector3(...solution[laplacien.rang[i]] as [number, number, number])).applyMatrix4(peauInverse[i]));
   };

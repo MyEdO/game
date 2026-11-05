@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // idéal pour dissimuler une bombe (cf. « Une nuit à l'Opéra »).
 export const prop: PropViz = {
   id: 'plante-pot',
-  label: 'Plante en pot',
   render: () =>
     `<g><ellipse cx="60" cy="146" rx="20" ry="6" fill="${P.ombre}" opacity="0.2"/>` +
     `<path d="M44 116 L76 116 L72 144 L48 144 Z" fill="${P.boisFonce4}"/><path d="M44 116 L76 116 L75 122 L45 122 Z" fill="${P.boisFonce8}"/>` +

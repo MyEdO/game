@@ -1,25 +1,6 @@
 import { BufferGeometry, Float32BufferAttribute, Matrix4, Skeleton, SkinnedMesh, Uint16BufferAttribute, Vector3, type Bone, type Mesh, type Object3D } from 'three';
 import { PREFIXE_DES_CLES_DU_GABARIT, type CandidatDAppui } from '../manifesteDeBase.ts';
 
-export function copierSommet(mesh: SkinnedMesh, indice: number): CandidatDAppui {
-  const g = mesh.geometry, p = new Vector3().fromBufferAttribute(g.attributes.position, indice).applyMatrix4(mesh.bindMatrix);
-  const os: { nom: string; poids: number }[] = [];
-  for (let k = 0; k < g.attributes.skinWeight.itemSize; k++) {
-    const poids = g.attributes.skinWeight.getComponent(indice, k);
-    if (poids > 0) os.push({ nom: mesh.skeleton.bones[g.attributes.skinIndex.getComponent(indice, k)].name, poids });
-  }
-  const deltas = Object.fromEntries(Object.entries(mesh.morphTargetDictionary ?? {}).flatMap(([nom, i]) => {
-    const attribut = g.morphAttributes.position?.[i];
-    if (!attribut) throw new Error(`appuis : delta absent ${nom}`);
-    const d = new Vector3().fromBufferAttribute(attribut, indice);
-    if (!g.morphTargetsRelative) d.sub(new Vector3().fromBufferAttribute(g.attributes.position, indice));
-    const m = mesh.bindMatrix.clone().setPosition(0, 0, 0);
-    const delta = d.applyMatrix4(m).toArray() as [number, number, number];
-    return delta.every((v) => v === 0) ? [] : [[nom, delta]];
-  }));
-  return { position: p.toArray(), os, deltas };
-}
-
 export function peauxDesCandidats(scene: Object3D, candidats: readonly CandidatDAppui[], source?: Skeleton) {
   const bones: Bone[] = [], sources: Mesh[] = [], inverses = new Map<string, Matrix4>();
   source?.bones.forEach((b, i) => inverses.set(b.name, source.boneInverses[i].clone()));
