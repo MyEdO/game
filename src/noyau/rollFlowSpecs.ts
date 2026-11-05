@@ -2434,14 +2434,15 @@ export function fermetureDuReglage(get: Get, flux: FluxRegle, reglage: string, p
 }
 
 /** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas
- *  (`refusDuReglage`), s'abstient hors de sa phase (`fermetureDuReglage`), sinon joue son corps (`corps`). */
+ *  (`refusDuReglage`) ou que sa phase ferme (`fermetureDuReglage`, `libelleDeLaFermeture`), sinon joue son corps
+ *  (`corps`). */
 export function creerReglageDuJet(get: Get, set: Set, corps: CorpsDesReglages): VerbeDeReglage {
   return {
     jetRegler: (...[flux, reglage, valeur, pid]) => {
       const refus = refusDuReglage(flux, reglage, pid);
       if (refus) { refuserGeste(get, set, refus); return; }
-      if (fermetureDuReglage(get, flux, reglage, pid)) return;
-      // La valeur suit son réglage par la signature corrélée du verbe (`VerbeDeReglage`) ; la table se lit par sa clé.
+      const fermeture = fermetureDuReglage(get, flux, reglage, pid);
+      if (fermeture) { refuserGeste(get, set, libelleDeLaFermeture(fermeture)); return; }
       const corpsDuFlux = corps[flux] as unknown as Readonly<Record<string, (v: unknown, rangee?: string) => void>>;
       corpsDuFlux[reglage](valeur, pid);
     },

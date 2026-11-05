@@ -14,6 +14,7 @@ import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 import { desDuTest } from '../engine/dice.testkit';
+import { t } from '../i18n';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -127,6 +128,14 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
 });
 
 describe('Surincantation (LDB 47 l.28-31)', () => {
+  it('un réglage d’après le jet (`apresLeJet`) joué avant le dé se refuse au journal, avec ce qui le ferme', () => {
+    const wiz = pregen(PREGEN.sorcier);
+    banc.setState({ party: [wiz] as Combatant[], pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: null } });
+    banc.getState().jetRegler('cast', 'surincantationDuree', 1);
+    expect(banc.getState().pendingCast!.overcast).toBeUndefined();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.jetNonLance'));
+  });
+
   it('les pas de Surincantation respectent le budget (+2 DR par allocation, au-delà du NI)', () => {
     const { priest, ally } = pair();
     const wiz = pregen(PREGEN.sorcier);
