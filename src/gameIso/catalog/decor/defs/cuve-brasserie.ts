@@ -7,7 +7,6 @@ import { P } from '../../decorPalette';
 // Ancrée aux pieds, ombre au sol.
 export const prop: PropViz = {
   id: 'cuve-brasserie',
-  label: 'Cuve de brasserie',
   render: () =>
     `<g>` +
     `<ellipse cx="60" cy="147" rx="34" ry="8" fill="${P.ombre}" opacity="0.22"/>` +

@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // (loges d'artistes, bureaux, costumiers) — distincte du fauteuil de loge capitonné. Cf. plan NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'chaise',
-  label: 'Chaise',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="27" ry="7" fill="${P.ombre}" opacity="0.2"/>` +
     // pieds avant + arrière

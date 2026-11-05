@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // ref est sa recette volumique (`props.json`), jamais ce dessin.
 export const prop: PropViz = {
   id: 'comptoir-angle',
-  label: 'Comptoir d’angle',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="48" ry="9" fill="${P.ombre}" opacity="0.22"/>` +
     // bras de retour (fuyant), puis bras de face

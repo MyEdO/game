@@ -1,7 +1,7 @@
 /**
  * Palette v2 : un RAIL d'outils à icônes + le contenu CONTEXTUEL de l'outil actif (un seul
  * affiché à la fois — fini la pile infinie du POC). Pose DIRECTE depuis les catalogues
- * recherchables (décors `PROPS`, fiches du bestiaire, bâtiments par catégorie).
+ * recherchables (décors `decorsDuCatalogue`, fiches du bestiaire, bâtiments par catégorie).
  * Composant de PRÉSENTATION : l'état (outil, pinceau, rencontre cible) vit dans Editor.
  *
  * APERÇU AU CAP D'IDENTITÉ : ce que la palette annonce d'un décor — sa chip d'empreinte — se lit au
@@ -19,8 +19,8 @@ import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { terrainIds, terrainLabel } from '../../noyau/monde/terrain';
 import { propDeclaredFoot } from '../../noyau/monde/footprint';
 import { terrainDef } from '../../gameIso/catalog/terrain';
-import { PROPS } from '../../gameIso/catalog/decor';
-import { findPropById, premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
+import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
+import { premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
 import { structureAppearance } from '../../gameIso/catalog/structures';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
@@ -150,7 +150,7 @@ export function Palette({
   const [search, setSearch] = useState(''); // filtre partagé des catalogues (réinitialisé au changement d'outil)
   // Derniers choix par famille → re-cliquer l'icône retrouve l'outil précis.
   const [lastTerrain, setLastTerrain] = useState<Terrain>(DEFAULT_TERRAIN);
-  const [lastProp, setLastProp] = useState(() => premierOffert(Object.values(PROPS), 'Décor'));
+  const [lastProp, setLastProp] = useState(() => premierOffert(decorsDuCatalogue(), 'Décor'));
   const [lastEngine, setLastEngine] = useState(() => premierOffert(siegeEngines(), 'Engin de siège'));
   // FICHES d'un personnage (#1882) : le bestiaire de l'éditeur, les profils standard (`LDB 77 l.7`,
   // désignés par `species.json`) en tête.
@@ -472,17 +472,14 @@ export function Palette({
             <div className="mini-title">Décor à poser</div>
             {searchBox('décor…')}
             <div className="pal-list">
-              {filterByLabel(Object.values(PROPS), (p) => p.label, search).map((p) => {
+              {filterByLabel(decorsDuCatalogue(), (p) => p.label, search).map((p) => {
                 // L'empreinte que la PALETTE annonce est celle que la scène posera : dérivée du corps
                 // pour un décor à recette (#1509), déclarée pour un billboard — au cap d'IDENTITÉ, le
                 // seul que la palette connaît (l'instance choisira le sien), et à l'échelle de la
                 // scène ÉDITÉE : la même recette ne couvre pas les mêmes cases à 2 et à 4 m/case.
-                // `PROPS` est le catalogue d'ART (vignettes) ; la physique du décor vit dans la
-                // donnée app-owned, lue par la même `findPropById` que le monde.
-                const donnee = findPropById(p.id);
                 const volumique = refEstVolumique(p.id);
                 const effective = volumique
-                  ? empreinteDuProp(donnee, CAP_IDENTITE_PROP, sceneMetresPerTile(scene))
+                  ? empreinteDuProp(p, CAP_IDENTITE_PROP, sceneMetresPerTile(scene))
                   : propDeclaredFoot(p.id);
                 // Un décor à recette n'a plus de tri-état à montrer (son corps décide toujours) : sa
                 // chip ne dit quelque chose que s'il dépasse UNE case. Pour un billboard, la présence

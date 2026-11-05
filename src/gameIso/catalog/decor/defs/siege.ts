@@ -43,8 +43,6 @@ const body = (view: (cx: number) => string) =>
 
 export const prop: PropViz = {
   id: 'siege',
-  label: 'Siège',
-  searchable: false,
   views: {
     front: () => body(front),
     profile: () => body(profile),

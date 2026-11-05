@@ -30,7 +30,7 @@ import type { Scene, SceneEntity, ActionAuthoree } from './scene';
 export type Drapeaux = Readonly<Record<string, boolean | undefined>>;
 
 /** Id CANONIQUE de l'action de fouille — celui que la migration de scène a posé sur tout ancien
- *  `interact`, et celui que l'éditeur pré-arme sur un décor `searchable` du catalogue. */
+ *  `interact`, et celui que l'éditeur pré-arme sur un décor fouillable (`PropData.searchable`). */
 export const ACTION_FOUILLER = 'fouiller';
 
 /** Clé du drapeau qui ÉPUISE une action authorée `unique` sur une entité donnée. SOURCE UNIQUE :
