@@ -33,7 +33,7 @@ import { OPTIONAL_RULES } from '../engine/policy';
 import { collectionDuDataset } from '../data/overrides';
 import { trappingsInstanciables, psychologies } from '../data';
 import { traumaById } from '../engine/trauma';
-import { browserUnfreezeTimeout } from './devtoolsTimers';
+import { browserUnfreezeTimeout } from '../lib/figerDelais';
 import { mountMovement, movementRemaining } from '../noyau/mount';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -1037,7 +1037,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
     id: 'm', label: 'Mer des Griffes',
     places: [
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
     ],
     routes: [{ id: 'r1', a: 'A', b: 'B', km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
   };

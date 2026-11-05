@@ -8,7 +8,7 @@
 // MESURÉ — le lexique ne le déclare plus, et aucun seuil ne le décide.
 // Le lexique ne garde que ce qu'un lexique peut dire :
 //   la GRAPHIE d'une référence (`{id}`, `{id,spec}`, `{ref}`, `{skillId}`…) et son statut ;
-//   les concepts de VALEUR, reconnus à leur NOYAU de clés (jamais à un champ porteur) ;
+//   les concepts de VALEUR, reconnus à leur POSE de grammaire (`CONCEPT_DE_LA_POSE`), sinon à leur NOYAU de clés ;
 //   les rôles d'ENVELOPPE d'un document.
 // Statuts : `cible` = forme visée · `historique` = graphie connue à éteindre · `declaree` = forme
 // volontairement conservée · absente du lexique = `divergente`.
@@ -21,6 +21,7 @@ import { basename } from 'node:path';
 import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
 import { exigeSource } from '../../../src/data/schemas/grammaire/sans-livre.ts';
+import type { conceptDe } from '../../../src/data/schemas/grammaire/concepts.ts';
 
 /** Signature canonique d'un objet : ses clés triées, jointes par des virgules. */
 export const signature = (cles: readonly string[]): string => [...cles].sort().join(',');
@@ -28,45 +29,17 @@ export const signature = (cles: readonly string[]): string => [...cles].sort().j
 export type StatutSignature = 'cible' | 'historique' | 'declaree';
 
 /**
- * SITE d'une entrée de lexique — `(datasets × champs)`. Sans site, l'entrée vaut PARTOUT ; avec, elle
- * ne vaut qu'à ce site et une entrée SANS site sert de repli pour tous les autres. Le statut d'une
- * même graphie peut donc différer d'un porteur à l'autre — ce qui est le cas dès que la charge utile
- * appartient au porteur : `{id, value}` est la CIBLE d'une réf de Compétence de statbloc (la valeur
- * IMPRIMÉE y est un champ de la référence) et reste HISTORIQUE partout ailleurs (un `value` de
- * `trappings › qualities` est un Indice d'Atout, un `value` de `creatures › traits` un paramètre
- * d'entité — concepts lotés L3).
- *
- * Le DATASET seul ne suffit pas et c'est mesuré : `creatures.json` porte `{id,value}` sur `skills`
- * (cible) ET sur `traits`/`optionals` (historique). Le champ entre donc dans la clé. `datasets`
- * absent = le champ, dans TOUT dataset : un champ d'ENVELOPPE (`alsoIn`, `grammaire/document.ts`)
- * est le même nœud partout où la fabrique `document()` le pose.
+ * La POSE de grammaire qui qualifie une entrée (`conceptDe`, `src/data/schemas/grammaire/concepts.ts`) :
+ * sans pose, l'entrée vaut PARTOUT ; avec, elle ne vaut que pour un objet qui porte cette pose, et une
+ * entrée SANS pose sert de repli. Le statut d'une même graphie diffère donc d'un nœud de schéma à
+ * l'autre : `{id, value}` est la CIBLE d'une réf de Compétence de statbloc (`reference-chiffree`) et
+ * reste HISTORIQUE partout ailleurs (un Indice d'Atout, un paramètre d'entité, un Trait posé). #3012.
  */
-export type SiteDeSignature = { readonly datasets?: readonly string[]; readonly champs: readonly string[] };
-export type SignatureLexique = { sig: string; statut: StatutSignature; note?: string; site?: SiteDeSignature };
+export type IdConceptPose = NonNullable<ReturnType<typeof conceptDe>>;
+export type SignatureLexique = { sig: string; statut: StatutSignature; note?: string; pose?: IdConceptPose };
 
 /** Les documents des PROJETS DE CAMPAGNE livrés (`listerProjetsLivres`), par nom de dataset. */
 export const DATASETS_DES_PROJETS: readonly string[] = listerProjetsLivres().map((rel) => basename(rel));
-
-/** Les documents qui portent un STATBLOC à valeurs de Test imprimées : le bestiaire et les statblocs
- *  EMBARQUÉS des projets de scène (`CustomStatblock`). MÊME schéma des deux côtés
- *  (`defs/creatures.ts` et `defs-scenes/communs.ts` composent tous deux `refOuSpec('skill', {value})`). */
-
-export const SITE_STATBLOC: SiteDeSignature = {
-  datasets: ['creatures.json', ...DATASETS_DES_PROJETS],
-  champs: ['skills'],
-};
-
-/** L'emplacement SECONDAIRE d'une entrée (`alsoIn`, `secondarySourceRefSchema` de
- *  `grammaire/valeurs.ts`) : la référence de source plus sa preuve `quote`, dans tout document. */
-export const SITE_EMPLACEMENT_SECONDAIRE: SiteDeSignature = { champs: ['alsoIn'] };
-
-/** Le Trait POSÉ (`traitInstanceSchema`, `src/data/schemas/grammaire/reference.ts`) : les champs du
- *  bestiaire et du statbloc de scène (`traits`, `optionals`), de l'espèce (`traits`) et de l'invocation
- *  des sorts (`addTraits`). `vehicles.json › traits` n'en est pas : il désigne des Traits navals (`defs/vehicles.ts`). #1463. */
-export const SITE_TRAIT_POSE: SiteDeSignature = {
-  datasets: ['creatures.json', 'species.json', 'spells.json', ...DATASETS_DES_PROJETS],
-  champs: ['traits', 'optionals', 'addTraits'],
-};
 
 /**
  * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
@@ -139,7 +112,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 36 tuples à l’arbre sur 10 sites (2 racines, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 34 paramètres de recette de rendu (`detail.courses.blockWM` 15, `detail.speckle.rM` 17, `detail.tufts.hM` 2, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (`sea-cargo.json › cargoes[].avail` 44, `land-cargo.json › cargoes[].avail` 28, L-1659-2), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 36 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.',
   'Un concept exprimé en SCALAIRE hors liste (`species: "humain"`) est mesuré sous la forme `id-nu`, sans signature d’objet.',
   '`kind` est polysémique et n’est pas dédoublonné (Condition, Flow, événement de mer, pion de scène).',
-  'Le classement est ORDONNÉ : une VALEUR (reconnue à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
+  'Le classement est ORDONNÉ : une VALEUR (reconnue à sa pose, sinon à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
   'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` des `src/data/schemas/defs/*.ts` : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni les defs hors de ce dossier. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
   '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
@@ -242,13 +215,11 @@ export type Concept = {
   resolvables?: boolean;
   /** Concept exprimé en TABLEAU de chaînes (liste d'ids nus) : pas de signature d'objet. */
   listeIdsNus?: boolean;
-  /** Le concept est nommé par la CLÉ qui le porte — déclaré, jamais mesuré à un seuil. */
+  /** Le concept est nommé par la CLÉ qui le porte — déclaré, jamais mesuré à un seuil — pour ce que sa
+   *  pose ne reconnaît pas (`CONCEPT_DE_LA_POSE`) : un `{dice}` sous `price`, une `forme` d'état. */
   champs?: readonly string[];
-  /**
-   * Documents où le concept vaut, par champ comme par noyau — la moitié dataset du SITE de
-   * `SiteDeSignature`, à l'échelle du concept. Absent = tout document : un champ au nom courant
-   * (`forme`) ou une clé courante (`prix`) revendiquerait alors toute valeur de tout dataset.
-   */
+  /** Documents où le concept vaut, par champ comme par noyau. Absent = tout document : un champ au nom
+   *  courant (`forme`) revendiquerait alors toute valeur de tout dataset. */
   datasets?: readonly string[];
   /** Clés dont la présence (au moins `noyauMin`) classe un objet dans le concept. */
   noyau?: readonly string[];
@@ -288,29 +259,20 @@ export type Concept = {
 };
 
 /**
- * L'entrée de lexique d'une graphie AU SITE : une entrée SITE-QUALIFIÉE qui couvre le site gagne sur
- * l'entrée nue de la même graphie (`site` absent = repli universel). Sans site, seules les entrées nues
- * répondent — un littéral de schéma n'a pas de dataset.
+ * L'entrée de lexique d'une graphie pour un objet qui porte `poses` : une entrée qualifiée par l'une
+ * d'elles gagne sur l'entrée nue de la même graphie (`pose` absente = repli universel). Sans pose,
+ * seules les entrées nues répondent — un littéral de schéma n'en a pas.
  */
-export const entreeAuSite = (
-  c: Concept,
-  sig: string,
-  site?: { dataset: string; champ: string },
-): SignatureLexique | undefined => {
+export const entreeDeLaPose = (c: Concept, sig: string, poses: ReadonlySet<IdConceptPose> = new Set()): SignatureLexique | undefined => {
   const candidates = c.signatures.filter((s) => s.sig === sig);
-  return (
-    (site && candidates.find((s) => s.site && (s.site.datasets?.includes(site.dataset) ?? true) && s.site.champs.includes(site.champ)))
-    ?? candidates.find((s) => !s.site)
-  );
+  return candidates.find((s) => s.pose && poses.has(s.pose)) ?? candidates.find((s) => !s.pose);
 };
 
-/** Les signatures CIBLES du concept `concept` au site `(dataset, champ)` (`entreeAuSite`), dans l'ordre du
- *  lexique : la voie qui SOLDE une forme historique ou divergente de ce site (#2705). */
-export const ciblesDuSite = (concept: string, dataset: string, champ: string): string[] => {
+/** Les signatures CIBLES du concept `concept` pour un objet qui porte `poses` (`entreeDeLaPose`), dans
+ *  l'ordre du lexique : la voie qui SOLDE une forme historique ou divergente (#2705). */
+export const ciblesDesPoses = (concept: string, poses: ReadonlySet<IdConceptPose>): string[] => {
   const c = CONCEPTS.find((x) => x.id === concept);
-  return c
-    ? [...new Set(c.signatures.map((s) => s.sig))].filter((sig) => entreeAuSite(c, sig, { dataset, champ })?.statut === 'cible')
-    : [];
+  return c ? [...new Set(c.signatures.map((s) => s.sig))].filter((sig) => entreeDeLaPose(c, sig, poses)?.statut === 'cible') : [];
 };
 
 /**
@@ -348,7 +310,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'count,id,type', statut: 'cible' },
       { sig: 'of,pick', statut: 'cible', note: 'tirage parmi un ensemble borné' },
       { sig: 'pick,table', statut: 'cible', note: 'tirage sur une table nommée' },
-      // Les trois lignes SITE-QUALIFIÉES ci-dessous passent AVANT leurs homonymes sans site : au
+      // Les trois lignes qualifiées par `reference-chiffree` gagnent sur leurs homonymes sans pose : au
       // statbloc, la valeur IMPRIMÉE est un champ de la référence — `#1463` (« Faits tranchés au
       // Source ») : « `value` = le seul nom du NOMBRE IMPRIMÉ au statbloc », et sa clause de
       // composition « `value` requis sur un statbloc ». `advances` est le nom du RANG ACHETÉ en PX
@@ -358,11 +320,11 @@ export const CONCEPTS: readonly Concept[] = [
       // noyau générique de référence + compositions fermées ; `value`/`times`/avances = un seul rang
       // acheté en PX, à nommer au RAW ». Ce qui est CIBLE ici est la COMPOSITION (charge utile portée
       // par la référence) ; le NOM du champ reste un point ouvert de L5.
-      { sig: 'id,value', statut: 'cible', site: SITE_STATBLOC, note: 'réf de Compétence de STATBLOC + son nombre imprimé (`refOuSpec(\'skill\', {value})`)' },
-      { sig: 'id,spec,value', statut: 'cible', site: SITE_STATBLOC, note: 'idem, spécialisation DÉSIGNÉE' },
-      { sig: 'choix,id,value', statut: 'cible', site: SITE_STATBLOC, note: 'idem, spécialisation À CHOISIR (libre ou bornée) — désignée au spawn' },
-      { sig: 'id,parLocalisation', statut: 'cible', site: SITE_TRAIT_POSE, note: 'Trait posé à un Indice par Localisation' },
-      { sig: 'id,plage', statut: 'cible', site: SITE_TRAIT_POSE, note: 'Trait posé à fourchette d’Indice, tirée pour son porteur' },
+      { sig: 'id,value', statut: 'cible', pose: 'reference-chiffree', note: 'réf de Compétence de STATBLOC + son nombre imprimé (`refOuSpec(\'skill\', {value})`)' },
+      { sig: 'id,spec,value', statut: 'cible', pose: 'reference-chiffree', note: 'idem, spécialisation DÉSIGNÉE' },
+      { sig: 'choix,id,value', statut: 'cible', pose: 'reference-chiffree', note: 'idem, spécialisation À CHOISIR (libre ou bornée) — désignée au spawn' },
+      { sig: 'id,parLocalisation', statut: 'cible', pose: 'trait-pose', note: 'Trait posé à un Indice par Localisation' },
+      { sig: 'id,plage', statut: 'cible', pose: 'trait-pose', note: 'Trait posé à fourchette d’Indice, tirée pour son porteur' },
       { sig: 'id,value', statut: 'historique', note: 'charge utile `value` à plat sur une référence dont le porteur n’est PAS un statbloc (Indice d’Atout, paramètre d’entité) — #1463 S2' },
       { sig: 'id,spec,value', statut: 'historique', note: '#1463 « Cible précisée » l’énumère parmi les 5 graphies historiques, son 1er paragraphe la dit champ optionnel de la MÊME structure — L0 retient l’énumération hors statbloc (une ligne de stock se retire, elle ne se devine pas)' },
       { sig: 'arg,id', statut: 'historique', note: 'paramètre d’entité non déclaré (#1463 S2 A11)' },
@@ -406,8 +368,6 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'palette-d-objet',
     label: 'palette d’objet',
     strate: 'Valeur',
-    champs: ['palette'],
-    datasets: ['materials.json'],
     signatures: [
       { sig: signature(['metal', 'cuir', 'accent']), statut: 'cible' },
     ],
@@ -447,7 +407,6 @@ export const CONCEPTS: readonly Concept[] = [
     label: 'profil de propulsion d’un navire (Mouvement, équipage, Spécialisation de Voile)',
     strate: 'Valeur',
     // Porte : `vehicles.ts › ship.sail`/`ship.oars` ; MDG 12 l.131 ; MDG 13 l.18.
-    champs: ['sail', 'oars'],
     signatures: [
       { sig: 'crew,m', statut: 'cible', note: 'avirons, ou voile d’un plan de construction (`ship-construction.json`)' },
       { sig: 'crew,m,spec', statut: 'cible', note: 'voile d’un navire : `spec` = sa Spécialisation de Voile (MDG 13 l.18 ; LDB 09 l.571)' },
@@ -520,8 +479,8 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [
       { sig: 'book,page', statut: 'cible' },
       { sig: 'book,note,page', statut: 'cible', note: 'note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`)' },
-      { sig: 'book,page,quote', statut: 'cible', site: SITE_EMPLACEMENT_SECONDAIRE, note: 'emplacement secondaire + sa preuve verbatim (`secondarySourceRefSchema`)' },
-      { sig: 'book,note,page,quote', statut: 'cible', site: SITE_EMPLACEMENT_SECONDAIRE, note: 'idem, avec la précision `note`' },
+      { sig: 'book,page,quote', statut: 'cible', pose: 'source-secondaire', note: 'emplacement secondaire + sa preuve verbatim (`secondarySourceRefSchema`)' },
+      { sig: 'book,note,page,quote', statut: 'cible', pose: 'source-secondaire', note: 'idem, avec la précision `note`' },
       { sig: 'book,chapter', statut: 'historique', note: 'folio obligatoire (#1463, 2026-08-23)' },
       { sig: 'book,chapter,page', statut: 'historique' },
     ],
@@ -595,13 +554,12 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['seuil'],
     exigeCandidatureStructurelle: true,
   },
-  // Porte : `routeBilletSchema.marchandage` (`src/data/schemas/defs-scenes/worldmap.ts`) ; `presetId` est
+  // Porte : `marchandageDeBilletSchema` (`src/data/schemas/grammaire/route.ts`) ; `presetId` est
   // une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). EDO 01 l.142.
   {
     id: 'marchandage-de-billet',
     label: 'marchandage d’un billet (vendeur + paliers)',
     strate: 'Valeur',
-    champs: ['marchandage'],
     signatures: [
       { sig: 'paliers,presetId', statut: 'cible' },
       { sig: 'presetId', statut: 'cible', note: '`paliers` est OPTIONNEL au schéma' },
@@ -623,14 +581,13 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'kind,valeurs', statut: 'cible', note: '`enum`, `valeurs` DÉCLARÉES' },
     ],
   },
-  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/defs-scenes/narratif.ts`),
+  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/grammaire/campagne.ts`),
   // sous la forme `heros` d'un état. Noyaux MESURÉS sur les 2 racines (2026-10-17) : ces clés ne vivent que
   // sous `narratif.etats[].forme.identite`. EDO 02 l.112-127.
   {
     id: 'identite-de-heros',
     label: 'identité d’un état `heros` (ancres, repères, lignes)',
     strate: 'Valeur',
-    datasets: DATASETS_DES_PROJETS,
     signatures: [{ sig: 'ancres,lignes,reperes', statut: 'cible' }],
     noyau: ['ancres', 'lignes', 'reperes'],
   },
@@ -638,7 +595,6 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'ligne-d-identite',
     label: 'ligne d’identité (espèce × sexe → valeurs des repères)',
     strate: 'Valeur',
-    datasets: DATASETS_DES_PROJETS,
     signatures: [{ sig: 'espece,sexe,valeurs', statut: 'cible' }],
     noyau: ['espece', 'sexe', 'valeurs'],
   },
@@ -646,49 +602,39 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'valeur-d-identite',
     label: 'valeur d’un repère d’identité, et sa provenance',
     strate: 'Valeur',
-    datasets: DATASETS_DES_PROJETS,
     signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
     noyau: ['repere', 'valeur'],
   },
   // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
-  // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
-  // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
-  // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.
+  // `routeBilletSchema` (`src/data/schemas/grammaire/route.ts`). Noyau MESURÉ sur les 2 racines
+  // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]`. EDO 01 l.142.
   {
     id: 'billet-de-route',
     label: 'billet d’auteur d’une route (`RouteBillet`)',
     strate: 'Valeur',
-    datasets: DATASETS_DES_PROJETS,
     signatures: [
       { sig: 'prix', statut: 'cible' },
       { sig: 'prix+…', statut: 'cible', note: '`suite`, `depuis`, `marchandage`, `source` et `maison` sont OPTIONNELS au schéma' },
     ],
     noyau: ['prix'],
   },
-  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`), `source` OU `maison` ; déclaré
-  // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`).
-  // SITE : la valeur qu'elle justifie sous `provenances` ; `coPresence` laisse au hors-strate le record
-  // `speed` d'une route (`{diligence: 15}`), porté par la même clé. #2533.
+  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/grammaire/route.ts`), `source` OU `maison` ; déclaré
+  // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`). #2533.
   {
     id: 'provenance-de-valeur',
     label: 'provenance d’une valeur d’auteur de route (`ProvenanceDeValeur`)',
     strate: 'Valeur',
-    datasets: DATASETS_DES_PROJETS,
-    champs: ['perilDie', 'speed', 'km'],
-    coPresence: ['source', 'maison'],
     signatures: [
       { sig: 'source', statut: 'cible' },
       { sig: 'maison', statut: 'cible' },
     ],
   },
-  // Porte : `mapRouteSchema.provenances` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`) : chaque clé est
+  // Porte : `provenancesDeRouteSchema` de #2533 (`src/data/schemas/grammaire/route.ts`) : chaque clé est
   // OPTIONNELLE, les sept combinaisons sont la forme cible. #2533.
   {
     id: 'provenances-de-route',
     label: 'provenances des valeurs d’une route (`MapRoute.provenances`)',
     strate: 'Valeur',
-    datasets: DATASETS_DES_PROJETS,
-    champs: ['provenances'],
     signatures: [
       { sig: 'km', statut: 'cible' },
       { sig: 'perilDie', statut: 'cible' },
@@ -718,14 +664,11 @@ export const CONCEPTS: readonly Concept[] = [
     noyauMin: 1,
     coPresence: ['flat', 'literal'],
   },
-  // Porte : `specialSchema` (`src/data/schemas/defs/tavernGames.ts`). Champ MESURÉ sur les 2 racines
-  // (2026-10-17) : `specials` ne vit que dans `tavernGames.json`. NADJ 16 l.82.
+  // Porte : `specialSchema` (`src/data/schemas/grammaire/jeu-de-taverne.ts`). NADJ 16 l.82.
   {
     id: 'special-de-jeu',
     label: 'Spécial d’un jeu de taverne (Talent → Difficulté des Tests du jeu)',
     strate: 'Valeur',
-    champs: ['specials'],
-    datasets: ['tavernGames.json'],
     signatures: [
       { sig: 'effet,hasTalent,source,steps', statut: 'cible', note: '`effet: cran` — `hasTalent`/`steps` composés de `facilitationSchema`' },
       { sig: 'difficulty,effet,hasTalent,source', statut: 'cible', note: '`effet: difficulte` (le `superRefine` exige l’un OU l’autre)' },
@@ -767,6 +710,8 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'difficulty,skill', statut: 'cible', note: 'Test nommé de `flowTestSchema` (#2779)' },
       { sig: 'char,difficulty', statut: 'historique' },
       { sig: 'characteristic,difficulty', statut: 'cible', note: 'Test de caractéristique de `flowTestSchema` (#2779)' },
+      { sig: 'skill', statut: 'cible', note: '`difficulty` est OPTIONNELLE à `flowTestSchema`' },
+      { sig: 'characteristic', statut: 'cible', note: 'idem' },
     ],
     noyau: ['difficulty'],
     horsDesignation: true,
@@ -782,14 +727,14 @@ export const CONCEPTS: readonly Concept[] = [
   // Un concept `condition` keyé sur `when` volerait donc `talents.json › when {rule}` au concept
   // `reference` : c'est le débordement global silencieux que le DoD interdit.
   //
-  // AUCUN de ces quatre ne porte de `site` : le noyau suffit, et son non-débordement est MESURÉ sur
-  // les deux racines (garde `structures-contrat.test.ts`, sonde « noyaux d'enveloppe »). Un scope
-  // posé sans nécessité mentirait au 5ᵉ projet.
+  // AUCUN de ces quatre ne se borne à des `datasets` : la pose, sinon le noyau, suffit, et le
+  // non-débordement du noyau est MESURÉ sur les deux racines (garde `structures-contrat.test.ts`, sonde
+  // « noyaux d'enveloppe »). Un scope posé sans nécessité mentirait au 5ᵉ projet.
   {
     id: 'ouverture',
     label: 'ouverture cérémonielle de chapitre',
     strate: 'Document',
-    // Porte : `ouvertureSchema` (`src/data/schemas/defs-scenes/narratif.ts`), composée par
+    // Porte : `ouvertureSchema` (`src/data/schemas/grammaire/campagne.ts`), composée par
     // `formeNarratif` sous la clé OPTIONNELLE `ouverture`.
     signatures: [
       { sig: 'pitch,titre', statut: 'cible' },
@@ -801,7 +746,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'cloture',
     label: 'clôture de chapitre',
     strate: 'Document',
-    // Porte : `clotureSchema` (`src/data/schemas/defs-scenes/narratif.ts`), clé OPTIONNELLE `cloture`.
+    // Porte : `clotureSchema` (`src/data/schemas/grammaire/campagne.ts`), clé OPTIONNELLE `cloture`.
     signatures: [
       { sig: 'titre,when', statut: 'cible' },
       { sig: 'titre,when+…', statut: 'cible', note: '`sousTitre` est OPTIONNEL au schéma' },
@@ -840,7 +785,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'effet-d-etat',
     label: 'Effet qui ÉCRIT un état de campagne (`type` + `etat`)',
     strate: 'Document',
-    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) ;
+    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/grammaire/campagne.ts`) ;
     // `etat` est une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
     // (2026-10-16). EDO 02 l.91.
     signatures: [
@@ -857,7 +802,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'effet-narratif',
     label: 'Effet qui REMET une entrée du narratif (`type` + `documentId` | `indiceId`)',
     strate: 'Document',
-    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/defs-scenes/effets.ts`) ; `documentId`,
+    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/grammaire/campagne.ts`) ; `documentId`,
     // `indiceId` et `stade` sont des RÉFÉRENCES SCOPÉES (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
     // (2026-10-17) : la co-présence de `type` écarte les stades d'indice `{id, documentId}`. EDO 02 l.89-95.
     signatures: [
@@ -869,6 +814,61 @@ export const CONCEPTS: readonly Concept[] = [
     coPresence: ['type'],
   },
 ];
+
+/**
+ * Le concept du lexique de chaque POSE de la grammaire (`conceptDe`) : la table UNIQUE, totale par le
+ * type. Un concept à plusieurs nœuds porte plusieurs poses. Une pose reconnaît son objet avant tout
+ * noyau (`classerValeur`, `structures-scan.mts`).
+ */
+export const CONCEPT_DE_LA_POSE: Readonly<Record<IdConceptPose, string>> = {
+  'palette-d-objet': 'palette-d-objet',
+  monnaie: 'monnaie',
+  'monnaie-partielle': 'monnaie',
+  'profil-de-propulsion': 'profil-de-propulsion',
+  'profil-de-voile': 'profil-de-propulsion',
+  de: 'de',
+  adresse: 'adresse',
+  'fragment-blocs': 'fragment',
+  'fragment-cellule': 'fragment',
+  'formule-somme': 'formule',
+  'formule-minimum': 'formule',
+  'formule-tranche': 'formule',
+  'formule-peche': 'formule',
+  source: 'source',
+  'source-secondaire': 'source',
+  plage: 'plage',
+  'plage-ouverte': 'plage',
+  quantite: 'quantite',
+  'degats-arme': 'degats-arme',
+  'condition-flag': 'condition',
+  'prose-nommee': 'prose-nommee',
+  reference: 'reference',
+  'reference-typee': 'reference',
+  'reference-a-specialisation': 'reference',
+  'reference-chiffree': 'reference',
+  'tirage-parmi': 'reference',
+  'tirage-sur-table': 'reference',
+  'trait-pose': 'reference',
+  'prix-saisonnier': 'prix',
+  'palier-de-billet': 'palier',
+  'billet-de-route': 'billet-de-route',
+  'marchandage-de-billet': 'marchandage-de-billet',
+  'provenance-de-valeur': 'provenance-de-valeur',
+  'provenances-de-route': 'provenances-de-route',
+  'identite-de-heros': 'identite-de-heros',
+  'ligne-d-identite': 'ligne-d-identite',
+  'valeur-d-identite': 'valeur-d-identite',
+  ouverture: 'ouverture',
+  cloture: 'cloture',
+  'effet-d-etat-poser': 'effet-d-etat',
+  'effet-d-etat-designer': 'effet-d-etat',
+  'effet-narratif-document': 'effet-narratif',
+  'effet-narratif-indice': 'effet-narratif',
+  'special-de-jeu': 'special-de-jeu',
+  test: 'test',
+};
+for (const [pose, concept] of Object.entries(CONCEPT_DE_LA_POSE))
+  if (!CONCEPTS.some((c) => c.id === concept)) throw new Error(`CONCEPT_DE_LA_POSE : la pose « ${pose} » nomme « ${concept} », absent de CONCEPTS.`);
 
 /** Le concept ANCRÉ sur l'index des ids (attribut déclaré, jamais un test d'identité au call-site). */
 export const CONCEPT_REFERENCE = CONCEPTS.find((c) => c.resolvables)!;
@@ -913,7 +913,7 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * "route"` classé référence vers `terrains.json` à l'entrée du dataset des sols (#1690), le seul
  * remède eût été de renommer un point d'arrivée d'auteur pour contenter la MESURE.
  *
- * `suite` (`defs-scenes/worldmap.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
+ * `suite` (`grammaire/route.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
  * billet, des `id` de `worldMap.routes[]` du MÊME projet ; `worldMapSchema` en garde la résolution
  * (`parcoursDuBillet`).
  *
@@ -921,7 +921,7 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * source) nomment une entrée d'un registre du `narratif` du MÊME projet ; `projetSchema` en garde la
  * résolution (`refsNarrativesPendantes`, `raffineNarratif`, FK `presetId`).
  *
- * `stade` (`defs-scenes/effets.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
+ * `stade` (`grammaire/campagne.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
  * `indiceId` qui l'accompagne ; `projetSchema` en garde la résolution.
  */
 export const CLES_REFERENCE_SCOPEE: Readonly<Record<string, string>> = {

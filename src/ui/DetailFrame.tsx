@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Prose } from './Prose';
-import type { Porteur } from './liage';
+import type { Porteur } from '../noyau/codex/porteur';
 import { Row } from './Layout';
 
 /**

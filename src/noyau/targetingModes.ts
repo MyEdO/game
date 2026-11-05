@@ -992,3 +992,7 @@ export const INTENT_ELECTION_LOCALE: Record<string, (get: Get, args: readonly un
 export function intentEluLocalement(get: Get, action: string, args: readonly unknown[]): boolean {
   return INTENT_ELECTION_LOCALE[action]?.(get, args) ?? false;
 }
+
+/** Le cavalier et la monture du couple désigné en attente (`pendingMountTarget`, LDB 14 l.181) : les ids que
+ *  `mountTargetSelect` accepte. */
+export const idsDuCoupleMonte = (s: Jeu): string[] => (s.pendingMountTarget ? [s.pendingMountTarget.riderId, s.pendingMountTarget.mountId] : []);

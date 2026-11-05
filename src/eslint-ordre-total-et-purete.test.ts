@@ -7,7 +7,7 @@ import { correspondGlob } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeAuxInstruments, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeParLaSurvie, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).
@@ -23,7 +23,7 @@ import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, f
  *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les murs ; une zone dont
  *     l'arbre ne porte pas le dossier se mesure sur des fixtures posées dans son dossier ;
  *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, et, depuis une
- *     suite de la zone, celui de `fermeAuxInstruments` (INSTRUMENTS, #3058), depuis des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
+ *     suite de la zone, celui de `fermeParLaSurvie` (INSTRUMENTS, #3058), depuis des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
  *     l'index du dossier : la matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
  *  4. PAQUETS, JOKER — chaque zone × chaque paquet de l'hôte web rend le verdict de `paquetFerme` ; un motif de glob
  *     dont le dossier de zone est un joker est refusé hors de `racine` ;
@@ -35,8 +35,8 @@ import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, f
  * Ensemble, CONTRAT, PAQUETS, JSX et HORS ZONE impliquent que chaque arc qu'un module d'une zone qui survit trace
  * mène à une zone qui survit, à un paquet hors de l'hôte web, à une donnée, ou à un module d'outillage déclaré, que
  * seul son script lit ; le mur est LEXICAL, ce module d'outillage n'y est pas suivi. Les suites et bancs de ces zones
- * sont sous `murs/tests-survivants` (#3058 : INSTRUMENTS), et leur clôture d'imports sous le mur
- * `scripts/corpus/guards/clotureDesInstruments.test.mjs`.
+ * sont sous `murs/tests-survivants` (#3058 : INSTRUMENTS) ; la clôture d'imports de tout module de ces zones, production
+ * comprise, est sous le mur `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`.
  *
  * PIÈGE MESURÉ : sans config explicite, un outil peut rendre `ruleId` nul et tout paraît « pris » par
  * vacuité — d'où la sélection par le MESSAGE du mur, puis l'assertion sur son `ruleId`.
@@ -291,7 +291,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(horsReexportation.filter((rel) => regles(rel).includes(REEX))).toEqual([]);
   });
 
-  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…` ; depuis une suite, celui de `fermeAuxInstruments`', { timeout: 460_000 }, () => {
+  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…` ; depuis une suite, celui de `fermeParLaSurvie`', { timeout: 460_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
     for (const de of ZONES) {
       for (const rel of sondes(de)) {
@@ -310,9 +310,9 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       }
     }
     // INSTRUMENTS (#3058) : une suite de chaque zone vers chaque autre, en import nommé relatif (le câblage de
-    // `fermeAuxInstruments`) ; sur la première paire fermée, chaque forme sous chaque arc (le jugeur, `jugeurDArcs`, est
+    // `fermeParLaSurvie`) ; sur la première paire fermée, chaque forme sous chaque arc (le jugeur, `jugeurDArcs`, est
     // celui de la pureté de couche).
-    const [ferme] = ZONES.flatMap((de) => ZONES.filter((vers) => fermeAuxInstruments(de, vers)).map((vers) => [de, vers]));
+    const [ferme] = ZONES.flatMap((de) => ZONES.filter((vers) => fermeParLaSurvie(de, vers)).map((vers) => [de, vers]));
     expect(ferme, 'aucune paire fermée aux instruments : le banc ne mesure rien').toBeDefined();
     const instruments: { cle: string; attendu: string; fixture: { filePath: string; code: string }; forme: string }[] = [];
     for (const de of ZONES) {
@@ -323,7 +323,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
           : [{ f: FORMES[0], arc: arcsVers(rel, vers)[0] }];
         for (const { f, arc: { p } } of variantes) {
           const filePath = suite(voisin(rel, cas.length + instruments.length));
-          instruments.push({ cle: `${filePath} → ${p} (${f.nom})`, attendu: fermeAuxInstruments(de, vers) ? INSTR : 'passe', fixture: { filePath, code: f.code(p) }, forme: f.nom });
+          instruments.push({ cle: `${filePath} → ${p} (${f.nom})`, attendu: fermeParLaSurvie(de, vers) ? INSTR : 'passe', fixture: { filePath, code: f.code(p) }, forme: f.nom });
         }
       }
     }

@@ -60,8 +60,6 @@ const body = (view: (cx: number) => string) =>
 
 export const prop: PropViz = {
   id: 'barre-de-navire',
-  label: 'Barre à roue',
-  searchable: false,
   views: {
     front: () => body(front),
     profile: () => body(profile),

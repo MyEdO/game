@@ -87,8 +87,8 @@ describe('cliquet — une Activité à JET dit son ENJEU (#1117 L3)', () => {
   it('FAIL-CLOSED : la porte refuse une Activité sans enjeu et un id inconnu', () => {
     expect(hasActivityStake('recuperer')).toBe(false); // Activité SANS Test (EDOC 8 l.176)
     expect(hasActivityStake('revenus')).toBe(true);
-    expect(() => activityStakeRef('recuperer')).toThrow(/aucun enjeu authoré/);
-    expect(() => activityStakeRef('id-qui-n-existe-pas')).toThrow(/aucun enjeu authoré/);
+    expect(() => activityStakeRef('recuperer')).toThrow(/aucune entrée d'enjeu/);
+    expect(() => activityStakeRef('id-qui-n-existe-pas')).toThrow(/aucune entrée d'enjeu/);
   });
 
   it('FAIL-CLOSED : le prédicat de jet voit les 4 formes, et ne voit pas une Activité sans Test', () => {

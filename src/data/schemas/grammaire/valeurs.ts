@@ -210,9 +210,9 @@ export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'S
 export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
 
 /**
- * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des 6 defs
- * qui portent un enjeu (`night-stakes`, `flow-stakes`, `combat-stakes`, `activities`, `psychology`,
- * `maneuvers`). L'OPTIONALITÉ reste au site : elle se décide par def, pas ici.
+ * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des defs
+ * qui portent un enjeu (`stakes`, `activities`, `psychology`, `maneuvers`, `etats`). L'OPTIONALITÉ reste
+ * au site : elle se décide par def, pas ici.
  */
 export const stakeFormSchema = z.enum(STAKE_FORMS);
 
@@ -234,8 +234,8 @@ export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
 
 /**
  * FOYER de la règle derrière un jet, une action ou une étape : `{ id, type }` (#2820) — la fiche que le
- * ⓘ ouvre. UNE graphie pour les 7 porteurs (`actions`, `activities`, `combat-stakes`, `flow-stakes`,
- * `night-stakes`, `voyage-stakes`, `crew-test-types`), l'id résolu AU PARSE dans l'espace de son type.
+ * ⓘ ouvre. UNE graphie pour ses porteurs (`actions`, `activities`, `stakes`, `crew-test-types`), l'id
+ * résolu AU PARSE dans l'espace de son type.
  */
 export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
 export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
@@ -1205,39 +1205,74 @@ export const dispoSaisonniereSchema = parSaison(plageSchema);
 /** Les quatre colonnes, DÉRIVÉES du nœud : la liste des saisons n'est écrite qu'une fois (`parSaison`). */
 const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
 
-/** Ce qu'une entrée MARCHANDE doit porter pour que la couverture se mesure : un libellé (le refus est
- *  NOMINATIF) et les quatre colonnes — et son `id`, clé du catalogue ; `echangeable` : `CargoDef`
- *  (`src/engine/cargo.ts`). */
-type EntreeMarchande = { id: string; label: string; echangeable?: true; avail: z.infer<typeof dispoSaisonniereSchema> };
-/** Un MARQUEUR de colonne Production/Produits : reconnu à son CHAMP d'exclusion, comme le moteur le
- *  reconnaît (`isEchangeable`, `src/engine/cargo.ts`) ; son `id` est une clé du catalogue. */
-type EntreeMarqueur = { id: string; echangeable: false };
+/**
+ * CARGAISON ÉCHANGEABLE — rangée MARCHANDE du tableau des cargaisons des deux livres de commerce
+ * (MDG 15 l.406-434, MSRC 13 l.73-90), déclarée une fois. `echangeable` : `CargoDef` (`src/engine/cargo.ts`).
+ * Un def qui porte un champ de plus en reprend la `shape` (`wine` de `defs/land-cargo.ts`).
+ */
+export const cargaisonMarchandeSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  echangeable: z.literal(true).optional(),
+  avail: dispoSaisonniereSchema,
+  price: z.union([prixSaisonnierSchema, tirageSchema]),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  echangeable: { label: 'Échangeable' },
+  avail: { label: 'Disponibilité' },
+  price: { label: 'Prix' },
+  source: { label: 'Source' },
+});
+
+/**
+ * MARQUEUR de la colonne Production/Produits (MDG 15 l.321, MSRC 13 l.24-28) : `CargoMarkerDef`
+ * (`src/engine/cargo.ts`), reconnu à son CHAMP d'exclusion `echangeable: false` (`isEchangeable`).
+ */
+export const marqueurDeCargaisonSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  echangeable: z.literal(false),
+  hint: z.string().optional(),
+  tradeHub: z.literal(true).optional(),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  echangeable: { label: 'Échangeable' },
+  hint: { label: 'Aide' },
+  tradeHub: { label: 'Plaque tournante' },
+  source: { label: 'Source' },
+});
+
+type EntreeMarchande = z.infer<typeof cargaisonMarchandeSchema>;
+type EntreeMarqueur = z.infer<typeof marqueurDeCargaisonSchema>;
 
 /**
  * CATALOGUE DE CARGAISONS TIRÉ AU D100 — fabrique du tableau `cargoes` des deux livres de commerce
  * (maritime MDG 15 l.406-418, terrestre MSRC 13 l.73-78) : un tableau d'entrées MARCHANDES ou de
- * MARQUEURS, sous l'invariant que chacune des quatre colonnes saisonnières couvre 1 à 100 d'un seul
- * tenant. L'invariant porte sur la COLONNE, jamais sur une entrée — d'où sa place au TABLEAU.
+ * MARQUEURS (`marqueurDeCargaisonSchema`), sous l'invariant que chacune des quatre colonnes
+ * saisonnières couvre 1 à 100 d'un seul tenant. L'invariant porte sur la COLONNE, jamais sur une
+ * entrée — d'où sa place au TABLEAU.
  *
  * Pourquoi une fabrique et non deux refines jumeaux : les deux livres impriment la MÊME table à quatre
  * colonnes, et les deux defs en écrivaient le verrou à l'identique. Ce qui reste au site est ce qui
- * DIFFÈRE : les schémas d'entrée (le Vin terrestre porte `wine`) et le `site` cité par le refus.
+ * DIFFÈRE : la rangée marchande (le Vin terrestre porte `wine`) et le `site` cité par le refus.
  *
  * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
  * Ce champ DISCRIMINE l'élément : une rangée est l'une ou l'autre variante, jamais les deux.
  * Le catalogue est une collection à clé `id` et un ESPACE d'ids (`grammaire/collection-cle.ts`).
  *
- * @param marchand schéma d'une cargaison échangeable (doit porter `label`, `avail` et `echangeable?: true`)
- * @param marqueur schéma d'un marqueur de colonne Production/Produits (`echangeable: false`)
+ * @param marchand `cargaisonMarchandeSchema`, ou la rangée d'un def qui en reprend la `shape`
  * @param options `site` = le porteur cité en tête du refus (`'sea-cargo.json › cargoes'`)
  */
-export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeMarqueur>(
+export function catalogueSaisonnier<A extends EntreeMarchande>(
   marchand: z.ZodType<A> & z.core.$ZodTypeDiscriminable<'echangeable'>,
-  marqueur: z.ZodType<B> & z.core.$ZodTypeDiscriminable<'echangeable'>,
   options: { site: string },
-): z.ZodType<(A | B)[]> {
-  const catalogue = z.array(z.discriminatedUnion('echangeable', [marchand, marqueur])).superRefine((entrees: (A | B)[], ctx) => {
-    const marchandes = entrees.filter((e): e is A => !('echangeable' in e) || e.echangeable !== false);
+): z.ZodType<(A | EntreeMarqueur)[]> {
+  const catalogue = z.array(z.discriminatedUnion('echangeable', [marchand, marqueurDeCargaisonSchema])).superRefine((entrees: (A | EntreeMarqueur)[], ctx) => {
+    const marchandes = entrees.filter((e): e is A => e.echangeable !== false);
     for (const saison of SAISONS_DE_DISPO) {
       const ecarts = ecartsDeCouverture(
         marchandes.map((c) => ({ ...c.avail[saison], label: c.label })),

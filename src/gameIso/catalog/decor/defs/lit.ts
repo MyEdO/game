@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // artistes dans les loges du théâtre. Meuble large (2×1) — le sprite remplit la largeur. Cf. plan NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'lit',
-  label: 'Lit',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="56" ry="9" fill="${P.ombre}" opacity="0.22"/>` +
     // cadre + pieds

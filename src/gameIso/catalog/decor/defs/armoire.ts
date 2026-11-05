@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // Garde-robes des loges d'artistes et rangements des costumes du théâtre. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'armoire',
-  label: 'Armoire',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="32" ry="8" fill="${P.ombre}" opacity="0.22"/>` +
     // petits pieds

@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 const pp: PortProfile = {
-  taille: 4, richesse: 5, production: ['commerce', 'poisson-sale'],
+  taille: 4, richesse: 5, production: ['commerce-mer', 'poisson-sale'],
   surplus: { 'pieces-detachees-de-navire': 1 }, demande: { armes: 1 }, cosmopolite: true,
 };
 const vessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({

@@ -6,7 +6,6 @@ import { P } from '../../decorPalette';
 // poser JUSTE au-dessus de la porte quand elle est surélevée sur la façade (ornement 'facade').
 export const prop: PropViz = {
   id: 'enseigne',
-  label: 'Enseigne',
   render: () =>
     `<g>` +
     `<rect x="43" y="104" width="4" height="40" fill="${P.pierreSombre5}"/>` +

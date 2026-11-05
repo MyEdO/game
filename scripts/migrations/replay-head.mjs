@@ -59,7 +59,7 @@ export const exportsDuProcessus = (pid = process.pid) =>
  * @type {Record<string, string>}
  */
 export const CHEMINS_EXPORTES = {
-  src: 'les deux racines de documents (`src/data`, `src/scenes`) ET le reste de `src/` : `scripts/guards/lib/propArtLabels.mjs` lit `src/gameIso/catalog/…`',
+  src: 'les deux racines de documents (`src/data`, `src/scenes`) ET le reste de `src/` : des migrations importent des modules de `src/` hors des deux racines (`src/lib/normalize.ts`)',
   scripts: 'les migrations elles-mêmes, leurs libs (`scripts/guards/lib`, `scripts/data/lib`, `scripts/raw`) et les générateurs d’authoring du périmètre',
   'docs/raw': 'l’Atlas RAW, lu par `scripts/raw/_lib.mjs` et par `scripts/raw/build-implemente.mjs`',
   Source: 'les livres, lus de façon non bornée : `scripts/raw/_lib.mjs` dérive les dossiers de `books.json`',

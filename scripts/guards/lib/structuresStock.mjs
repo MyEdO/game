@@ -30,19 +30,19 @@ export const STRUCTURES_CIBLES = [
   // #1921 (2026-10-17) — le Spécial d'un jeu de taverne naît CIBLE : `specialSchema` le valide, rien à migrer.
   { concept: "special-de-jeu", signature: "effet,hasTalent,source,steps", date: "2026-10-17" },
   { concept: "special-de-jeu", signature: "difficulty,effet,hasTalent,source", date: "2026-10-17" },
-  // RECLASSEMENT AU SITE (L2 #1548, commit 4bis) — trois graphies passent CIBLE au SEUL site du
-  // STATBLOC (`SITE_STATBLOC` du lexique : bestiaire + statblocs embarqués des projets de scène,
-  // champ `skills`). Elles restent HISTORIQUES partout ailleurs (inventaire `CASES_DE_REFERENCE`,
-  // `inventaireDeDette.mts`, lot L3). Ce que le site tranche, c'est que la valeur IMPRIMÉE est un champ de la
-  // référence de Compétence (#1463, « Faits tranchés au Source »). AUCUNE donnée n'est réécrite par ce reclassement.
-  { concept: "reference", signature: "id,value", date: "2026-08-31" },
-  { concept: "reference", signature: "id,spec,value", date: "2026-08-31" },
+  // RECLASSEMENT AU STATBLOC (L2 #1548, commit 4bis) — trois graphies sont CIBLES sur la seule pose
+  // `reference-chiffree` (la réf de Compétence de statbloc, `refOuSpec('skill', {value})`). Elles restent
+  // HISTORIQUES partout ailleurs (inventaire `CASES_DE_REFERENCE`, `inventaireDeDette.mts`, lot L3). Ce que la
+  // pose tranche, c'est que la valeur IMPRIMÉE est un champ de la référence de Compétence (#1463, « Faits
+  // tranchés au Source »). AUCUNE donnée n'est réécrite par ce reclassement.
+  { concept: "reference", signature: "id,value", pose: "reference-chiffree", date: "2026-08-31" },
+  { concept: "reference", signature: "id,spec,value", pose: "reference-chiffree", date: "2026-08-31" },
   // Le régime `choix` du MÊME nœud (53 emplacements libres + 6 bornés, migrés au commit 4bis).
-  { concept: "reference", signature: "choix,id,value", date: "2026-08-31" },
-  // #1463 Trait PR-3b (2026-10-26) — deux formes du Trait POSÉ naissent CIBLES au seul site du Trait posé
-  // (`SITE_TRAIT_POSE` du lexique) : PR-3b les ouvre dans `traitInstanceSchema` et les peuple par sa migration.
-  { concept: "reference", signature: "id,parLocalisation", date: "2026-10-26" },
-  { concept: "reference", signature: "id,plage", date: "2026-10-26" },
+  { concept: "reference", signature: "choix,id,value", pose: "reference-chiffree", date: "2026-08-31" },
+  // #1463 Trait PR-3b (2026-10-26) — deux formes du Trait POSÉ naissent CIBLES sur la seule pose `trait-pose` :
+  // PR-3b les ouvre dans `traitInstanceSchema` et les peuple par sa migration.
+  { concept: "reference", signature: "id,parLocalisation", pose: "trait-pose", date: "2026-10-26" },
+  { concept: "reference", signature: "id,plage", pose: "trait-pose", date: "2026-10-26" },
   // DESIGN v2 S2 (#1463, commentaire du 2026-08-23) : « `refs(type)` = liste d'ids nus brandée
   // (75 champs `string[]`) ». La liste d'ids nus EST la forme visée — ce qui reste à faire est le
   // TYPAGE du champ, pas une réécriture de la donnée : elle sort du dénominateur des formes.
@@ -78,6 +78,10 @@ export const STRUCTURES_CIBLES = [
   // `char,difficulty` reste historique (`char` → `characteristic`, #1657 B2c).
   { concept: "test", signature: "difficulty,skill", date: "2026-10-18" },
   { concept: "test", signature: "characteristic,difficulty", date: "2026-10-18" },
+  // #3012 (2026-11-05) — `difficulty` est OPTIONNELLE à `flowTestSchema` : le Test sans elle est à la forme
+  // que la porte valide. Reconnu par sa pose `test`, il n'a rien à migrer.
+  { concept: "test", signature: "skill", date: "2026-11-05" },
+  { concept: "test", signature: "characteristic", date: "2026-11-05" },
   // #2662 (2026-10-17) — la forme d'un état passe à ses clés RÉELLES, au seul site des projets.
   { concept: "forme-d-etat", signature: "kind", date: "2026-10-17" },
   { concept: "forme-d-etat", signature: "kind,valeurs", date: "2026-10-17" },
@@ -121,10 +125,10 @@ export const STRUCTURES_CIBLES = [
   { concept: "source", signature: "book,page", date: "2026-08-23" },
   { concept: "source", signature: "book,note,page", date: "2026-08-23" },
   // #1897 : l'emplacement SECONDAIRE (`alsoIn`) est la référence de source plus sa preuve `quote`
-  // (`secondarySourceRefSchema`, `grammaire/valeurs.ts`), cible au SEUL site `alsoIn`
-  // (`SITE_EMPLACEMENT_SECONDAIRE` du lexique). Aucune donnée n'est réécrite.
-  { concept: "source", signature: "book,page,quote", date: "2026-09-23" },
-  { concept: "source", signature: "book,note,page,quote", date: "2026-09-23" },
+  // (`secondarySourceRefSchema`, `grammaire/valeurs.ts`), cible sur sa seule pose `source-secondaire`.
+  // Aucune donnée n'est réécrite.
+  { concept: "source", signature: "book,page,quote", pose: "source-secondaire", date: "2026-09-23" },
+  { concept: "source", signature: "book,note,page,quote", pose: "source-secondaire", date: "2026-09-23" },
   { concept: "plage", signature: "max,min", date: "2026-08-23" },
   // #1463 L4 P2 (2026-08-31) — la FOURCHETTE d'une rangée de table sort du dénominateur. Ce n'est pas
   // un mot du lexique qui la sort : la cible est TRANCHÉE (forme PLATE `{min, max}` + `findTableEntry`,
@@ -146,7 +150,7 @@ export const STRUCTURES_CIBLES = [
   // déclare (les DEUX projections sont donc cibles, la donnée n'en posant aujourd'hui qu'une par
   // porte). Elles quittent les objets invisibles du scan (`scan.objets.invisibles`) : la
   // projection réunit les deux buckets qu'un optionnel peuplé (`source`) séparait.
-  // Portes : `ouvertureSchema` / `clotureSchema` / `formeNarratif`
+  // Portes : `ouvertureSchema` / `clotureSchema` (`src/data/schemas/grammaire/campagne.ts`), `formeNarratif`
   // (`src/data/schemas/defs-scenes/narratif.ts`) et `conditionSchema`
   // (`src/data/schemas/grammaire/mecanique.ts`, variante `flag`).
   { concept: "ouverture", signature: "pitch,titre", date: "2026-09-01" },
@@ -158,7 +162,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "narratif", signature: "affaires,documents,etats,indices,objets,presetsPnj+…", date: "2026-10-16" },
   { concept: "condition", signature: "expr,kind", date: "2026-09-01" },
   // #2539 (2026-10-16) — l'Effet qui ÉCRIT un état de campagne naît CIBLE : `poserEtatSchema` et
-  // `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) le valident, rien à migrer.
+  // `designerHerosSchema` (`src/data/schemas/grammaire/campagne.ts`) le valident, rien à migrer.
   { concept: "effet-d-etat", signature: "etat,type,valeur", date: "2026-10-16" },
   { concept: "effet-d-etat", signature: "etat,invite,type", date: "2026-10-16" },
   { concept: "effet-d-etat", signature: "etat,invite,type+…", date: "2026-10-16" },

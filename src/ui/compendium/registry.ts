@@ -84,7 +84,7 @@ import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
 import type { ResolveurDePreset } from '../../noyau/monde/resolveursDuNarratif';
-import type { Porteur } from '../liage';
+import type { Porteur, PorteurDeRangee } from '../../noyau/codex/porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
@@ -95,7 +95,7 @@ import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
-import { reverseGroups, bookContents } from './relations';
+import { reverseGroups, bookContents } from '../../noyau/codex/relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
 import { libelleDuChamp } from './editFields';
@@ -136,17 +136,6 @@ export interface CodexFact {
   /** Lien Codex du LIBELLÉ (facultatif) — même forme que `CodexRow['kv'].kref` : la bande statbloc
    *  (profil M+carac+B) devient cliquable quand le fait référence une entité du Codex. */
   kref?: { category: string; id: string; label: string };
-}
-/**
- * PORTEUR d'une rangée de prose : le champ d'où sort son texte, VERBATIM. `type`/`id` NOMMENT
- * l'entrée quand la rangée rend le champ d'une AUTRE entrée que la fiche qui l'affiche (fiche de
- * Race rendant les textes d'âge/taille/nom de `details.json`) ; absents, `CodexRowView` les complète
- * avec l'entrée affichée. Un porteur désigne le champ RÉEL, jamais la fiche où on le lit.
- */
-export interface PorteurDeRangee {
-  type?: string;
-  id?: string;
-  chemin: string;
 }
 /** Une ligne d'une section. */
 export type CodexRow =
@@ -898,10 +887,10 @@ function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): Code
   return { title: 'Ratios de Troc (donné : acquis)', layout: 'list', rows: rowsOut };
 }
 
-// ── LOT 3 #422 (FINAL) : les 3 dernières exemptions AUDIT — Empoignade (LDB 14, fiche de règle
+// ── LOT 3 #422 (FINAL) : exemptions AUDIT — Empoignade (LDB 14, fiche de règle
 //    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, DIALECTE compilé — PAS de vrais
 //    `GameOp`, cf. `MiscastRowEntry`/`engine/miscast.ts::JsonRow` — renderer DÉDIÉ ci-dessous, jamais
-//    `passiveSection`), enjeux de la cascade de nuit (`night-stakes.json`, catégorie-tableau simple). ──
+//    `passiveSection`). ──
 
 /** Libellé lisible d'un montant du DIALECTE miscast (nombre / dé / terme de Péché / somme —
  *  `JsonFormula`, `engine/miscast.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
@@ -1279,26 +1268,12 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => datasetArray('miscastWrath').map(miscastRowItem),
   },
   {
-    key: 'nightStakes', label: 'Enjeux — cascade de repos', group: 'Tables', sourceRef: 'LDB 18/09/20/21',
-    build: () => datasetArray('nightStakes').map((e) => depuisEnveloppe(e, { desc: e.stake, sections: sections(regleChips(e.rule)) })),
-  },
-  {
-    // Jumeau du précédent pour les cascades de VOYAGE (#1117) : le contenu est un GABARIT de descripteur
-    // mécanique (trous `{nom}` remplis par le flux), là où l'enjeu de nuit est un verbatim figé.
-    key: 'voyageStakes', label: 'Enjeux — cascade de voyage', group: 'Tables', sourceRef: 'MSRC 7 · MDG 12',
-    build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
-  },
-  {
-    // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par son `id`.
-    // Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
-    key: 'flowStakes', label: 'Enjeux — modales de jet', group: 'Tables', sourceRef: 'LDB 15/16/19/46/62 · MDG 09/12/14',
-    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
-  },
-  {
-    // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par
-    // le `kind` de son applier. Éditable comme ses jumeaux — descripteur mécanique lu à l'applier.
-    key: 'combatStakes', label: 'Enjeux — cascade de combat', group: 'Tables', sourceRef: 'LDB 16/19/20/47/85 · AA 07',
-    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template, sections: sections(regleChips(e.rule)) })),
+    // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade ; `sub` = la clé de
+    // consommation (le `kind` de l'étape servie, ou l'id du jet de modale).
+    key: 'stakes', label: 'Enjeux de jet', group: 'Tables', sourceRef: 'LDB 09/15/16/18/19/20/21/46/47/62/85 · AA 07 · MSRC 7 · MDG 09/12/13/14',
+    build: () => datasetArray('stakes').map((e) => depuisEnveloppe(e, {
+      group: valeurFR('stakes.json', 'cascade', e.cascade), sub: e.cle, desc: e.template, sections: sections(regleChips(e.rule)),
+    })),
   },
 
   {
@@ -1536,13 +1511,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'mutationTables', label: 'Tables de Corruption', group: 'Effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: `${t.ranges.length} plages d100`,
-      // Tirage d100 → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
+      sub: `${t.entries.length} plages ${t.die}`,
+      // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
-        title: 'Tirage (d100 → Mutation)', layout: 'list',
-        rows: t.ranges.map((r) => {
+        title: `Tirage (${t.die} → Mutation)`, layout: 'list',
+        rows: t.entries.map((r) => {
           const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow;
+          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(t.die)) } as CodexRow;
         }),
       }),
     })),
@@ -1747,7 +1722,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'weather', label: 'Météo de voyage', group: 'Tables', cluster: 'Voyage terrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: `${s.ranges.length} plages d100 (EDOC 8)` })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: `${s.entries.length} plages ${s.die} (EDOC 8)` })),
   },
   {
     key: 'weatherConditions', label: 'Conditions météo', group: 'Tables', cluster: 'Voyage terrestre',

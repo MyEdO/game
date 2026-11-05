@@ -37,25 +37,25 @@ function setup(muleCargo: CargoLot[], cartCargo: CargoLot[]) {
 }
 
 describe('moveCargo — transfert entre porteurs co-localisés', () => {
-  beforeEach(() => setup([{ cargoId: 'vin', enc: 10, basePriceGold: 3 }], []));
+  beforeEach(() => setup([{ cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 3 }], []));
 
   it('déplace du vrac d’un porteur à un autre et RE-PERSISTE les deux (source unique Possession.cargo)', () => {
-    get().moveCargo('mule', 'cart', 'vin', 6);
-    expect(carrierById(get(), 'mule')!.cargo).toEqual([{ cargoId: 'vin', enc: 4, basePriceGold: 3 }]);
-    expect(carrierById(get(), 'cart')!.cargo).toEqual([{ cargoId: 'vin', enc: 6, basePriceGold: 3 }]);
+    get().moveCargo('mule', 'cart', 'vin-eau-de-vie', 6);
+    expect(carrierById(get(), 'mule')!.cargo).toEqual([{ cargoId: 'vin-eau-de-vie', enc: 4, basePriceGold: 3 }]);
+    expect(carrierById(get(), 'cart')!.cargo).toEqual([{ cargoId: 'vin-eau-de-vie', enc: 6, basePriceGold: 3 }]);
   });
 
   it('REFUSE (moved 0) si le porteur cible est plein — plafond dur', () => {
-    setup([{ cargoId: 'vin', enc: 10, basePriceGold: 3 }], [{ cargoId: 'sel', enc: 25, basePriceGold: 1 }]); // charrette pleine (25/25)
+    setup([{ cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 3 }], [{ cargoId: 'sel', enc: 25, basePriceGold: 1 }]); // charrette pleine (25/25)
     const refus = t('cg.ciblePleine', { porteur: carrierById(get(), 'cart')!.label });
-    get().moveCargo('mule', 'cart', 'vin', 6);
-    expect(carrierById(get(), 'mule')!.cargo).toEqual([{ cargoId: 'vin', enc: 10, basePriceGold: 3 }]); // inchangé
+    get().moveCargo('mule', 'cart', 'vin-eau-de-vie', 6);
+    expect(carrierById(get(), 'mule')!.cargo).toEqual([{ cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 3 }]); // inchangé
     expect(get().journal.some((l) => l.includes(refus)), 'la cible pleine est nommée').toBe(true);
   });
 
   it('porteur inconnu = no-op', () => {
     const before = carrierById(get(), 'mule')!.cargo;
-    get().moveCargo('mule', 'inconnu', 'vin', 6);
+    get().moveCargo('mule', 'inconnu', 'vin-eau-de-vie', 6);
     expect(carrierById(get(), 'mule')!.cargo).toEqual(before);
   });
 

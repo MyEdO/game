@@ -6,14 +6,13 @@
  * optionnels et voués à enrichir les règles présentées à la page 261 de WFJDR » (EDOC 8 l.33).
  * Il enrichit le déplacement de base du LdB SANS le remplacer — le défaut reste jour-par-jour.
  *
- * Ce module est PUR (RNG injecté, aucun accès store) : il calcule le nombre d'Étapes, tire la
- * Météo par Étape (table verbatim EDOC 8 l.50-59), donne la difficulté d'un Test d'Exposition
+ * Ce module est PUR (aucun accès store) : il calcule le nombre d'Étapes, lit la
+ * Météo par Étape (EDOC 8 l.50-59), donne la difficulté d'un Test d'Exposition
  * de fin d'Étape (« Attraper Froid », l.90) et le rendement de l'activité d'Approvisionnement
  * (« Trouver de la nourriture et des herbes », LDB 09 l.565-572). Les valeurs RAW sont citées en
  * commentaire ; rien n'est inventé.
  */
-import type { RNG } from './dice';
-import { d100 } from './dice';
+import { parseDiceRequired, type DiceSpec } from './dice';
 import type { CharKey, Difficulty } from './types';
 import { rule } from './policy';
 import type { CodexTarget } from './ruleRefs';
@@ -65,38 +64,26 @@ export function weatherRef(w: Weather): CodexTarget {
   return { category: 'weatherConditions', id: w };
 }
 
-/** Une plage d100 → météo. */
+/** Une rangée de la table de Météo d'une saison. */
 interface WeatherRange { min: number; max: number; weather: Weather; }
 
-/**
- * TABLE DE MÉTÉO VERBATIM (EDOC 8 l.52-59 — « Le MJ doit effectuer un jet de Météo au début de
- * chaque étape »). Pour chaque saison, les plages d100 `{min, max}` (bornes INCLUSES ; 00 → 100),
- * les DEUX telles que la source les imprime. Un tiret RAW (« - ») = plage absente cette saison.
- *
- *  | Météo            | Printemps | Été    | Automne | Hiver  |
- *  | Temps sec        | 01-10     | 01-40  | 01-30   | -      |
- *  | Beau temps       | 11-30     | 41-70  | 31-60   | 01-10  |
- *  | Pluie            | 31-90     | 71-95  | 61-90   | 11-60  |
- *  | Pluie diluvienne | 91-95     | 96-00  | 91-98   | 61-65  |
- *  | Neige            | 96-00     | -      | 99-00   | 66-90  |
- *  | Blizzard         | -         | -      | -       | 91-00  |
- */
 const saisonParId = indexParId('weather', weather);
-/** Plages d100 d'une saison, LIVE (le dataset `weather` est éditable au Codex). */
+/** Rangées d'une saison, LIVE (le dataset `weather` est éditable au Codex). EDOC 8 l.52-59 */
 export function weatherRanges(season: Season): WeatherRange[] {
-  return (saisonParId(season)?.ranges ?? []) as WeatherRange[];
+  return (saisonParId(season)?.entries ?? []) as WeatherRange[];
 }
 
-/** Météo depuis un jet d100 explicite (1-100) et une saison — lecture LIVE de la donnée éditable. */
+/** Le DÉ DE TIRAGE de la table de Météo d'une saison (`die`), LIVE — FAIL-FAST sur une saison absente. */
+export function weatherDie(season: Season): DiceSpec {
+  const saison = saisonParId(season);
+  if (!saison) throw new Error(`weatherDie : aucune saison « ${season} » dans weather.json.`);
+  return parseDiceRequired(saison.die, `weather.json › ${season}.die`);
+}
+
+/** Météo depuis un jet explicite et une saison — lecture LIVE de la donnée éditable. */
 export function weatherFromRoll(roll: number, season: Season): Weather {
   const ranges = weatherRanges(season);
   return findTableEntry(ranges, roll).weather;
-}
-
-/** Jet de Météo d'une Étape (EDOC 8 l.50) : d100 sur la table de la saison. */
-export function rollStageWeather(rng: RNG, season: Season): { roll: number; weather: Weather } {
-  const roll = d100(rng);
-  return { roll, weather: weatherFromRoll(roll, season) };
 }
 
 /**

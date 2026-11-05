@@ -7,7 +7,7 @@
     "taille": 4,
     "richesse": 3,
     "production": [
-      "commerce",
+      "commerce-mer",
       "vin"
     ],
     "surplus": {
@@ -15,7 +15,7 @@
     },
     "demande": {
       "armes": 1,
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "dirigeant": "Duc Taubert de L'Anguille",
     "desc": "Capitale d'un duché de Bretonnie ; phare spectaculaire",
@@ -32,7 +32,7 @@
     "taille": 4,
     "richesse": 5,
     "production": [
-      "commerce",
+      "commerce-mer",
       "poisson-sale",
       "vin"
     ],
@@ -41,9 +41,9 @@
     },
     "demande": {
       "armes": 1,
-      "bois": 1,
+      "bois-mer": 1,
       "metaux": 1,
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "cosmopolite": true,
     "dirigeant": "Le Directorat",
@@ -99,7 +99,7 @@
     "taille": 2,
     "richesse": 2,
     "production": [
-      "laine",
+      "laine-mer",
       "poisson-sale"
     ],
     "dirigeant": "Conseil du village",
@@ -116,11 +116,11 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "bois",
-      "commerce"
+      "bois-mer",
+      "commerce-mer"
     ],
     "surplus": {
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "demande": {
       "armes": 1,
@@ -161,14 +161,14 @@
     "taille": 3,
     "richesse": 3,
     "production": [
-      "laine",
+      "laine-mer",
       "poisson-sale"
     ],
     "surplus": {
       "sel": 1
     },
     "demande": {
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "dirigeant": "Baron Gunther von Hargenfels",
     "desc": "Centre du plus gros réseau de contrebande du Nordland",
@@ -185,7 +185,7 @@
     "taille": 3,
     "richesse": 2,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
       "poisson-sale": 2
@@ -205,15 +205,15 @@
     "taille": 3,
     "richesse": 3,
     "production": [
-      "commerce",
-      "produits-de-luxe"
+      "commerce-mer",
+      "produits-de-luxe-mer"
     ],
     "surplus": {
       "poisson-sale": 1
     },
     "demande": {
       "armes": 2,
-      "bois": 1,
+      "bois-mer": 1,
       "metaux": 1,
       "pieces-detachees-de-navire": 1
     },
@@ -233,7 +233,7 @@
     "richesse": 2,
     "production": [
       "poisson-sale",
-      "produits-de-luxe"
+      "produits-de-luxe-mer"
     ],
     "surplus": {
       "sel": 1
@@ -257,7 +257,7 @@
     "taille": 1,
     "richesse": 1,
     "production": [
-      "commerce",
+      "commerce-mer",
       "poisson-sale"
     ],
     "dirigeant": "Baron Wolder",
@@ -275,14 +275,14 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce",
-      "produits-de-luxe"
+      "commerce-mer",
+      "produits-de-luxe-mer"
     ],
     "surplus": {
       "pieces-detachees-de-navire": 1
     },
     "demande": {
-      "laine": 1
+      "laine-mer": 1
     },
     "dirigeant": "Alexandr Yevschenko",
     "source": {
@@ -315,7 +315,7 @@
     "taille": 2,
     "richesse": 3,
     "production": [
-      "produits-de-luxe"
+      "produits-de-luxe-mer"
     ],
     "surplus": {
       "metaux": 1
@@ -339,7 +339,7 @@
     "richesse": 2,
     "production": [
       "armes",
-      "produits-de-luxe"
+      "produits-de-luxe-mer"
     ],
     "dirigeant": "Öskra et Signe",
     "desc": "Respect envers le dieu du sang nécessaire pour faire du commerce ici",
@@ -356,7 +356,7 @@
     "taille": 2,
     "richesse": 2,
     "production": [
-      "bois",
+      "bois-mer",
       "poisson-sale"
     ],
     "demande": {
@@ -417,7 +417,7 @@
     "taille": 1,
     "richesse": 1,
     "production": [
-      "produits-de-luxe"
+      "produits-de-luxe-mer"
     ],
     "demande": {
       "armes": 1
@@ -436,14 +436,14 @@
     "taille": 4,
     "richesse": 5,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "demande": {
       "cereales": 1,
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "dirigeant": "Empereur Karl Franz I Holswig Schliestein",
     "desc": "Capitale impériale ; Grande Cathédrale de Sigmar",
@@ -460,7 +460,7 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
       "poisson-sale": 1
@@ -484,13 +484,13 @@
     "taille": 4,
     "richesse": 3,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "demande": {
-      "bois": 1,
+      "bois-mer": 1,
       "vin": 1
     },
     "dirigeant": "Duc Theodoric de Brionne",
@@ -508,7 +508,7 @@
     "taille": 3,
     "richesse": 1,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "demande": {
       "armes": 1,
@@ -546,11 +546,11 @@
     "taille": 2,
     "richesse": 4,
     "production": [
-      "commerce",
+      "commerce-mer",
       "poisson-sale"
     ],
     "surplus": {
-      "produits-de-luxe": 1
+      "produits-de-luxe-mer": 1
     },
     "demande": {
       "armes": 1,
@@ -572,16 +572,16 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce",
+      "commerce-mer",
       "poisson-sale",
-      "produits-de-luxe"
+      "produits-de-luxe-mer"
     ],
     "surplus": {
       "cereales": 1
     },
     "demande": {
       "armes": 1,
-      "bois": 1
+      "bois-mer": 1
     },
     "dirigeant": "Prince Tibaldus Marsarius de Vela",
     "desc": "Rendue quasi inaccessible par la mer à cause des Rochers du Fol",
@@ -598,7 +598,7 @@
     "taille": 3,
     "richesse": 3,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "demande": {
       "armes": 1,
@@ -621,11 +621,11 @@
     "richesse": 4,
     "production": [
       "cereales",
-      "commerce",
-      "produits-de-luxe"
+      "commerce-mer",
+      "produits-de-luxe-mer"
     ],
     "surplus": {
-      "laine": 1
+      "laine-mer": 1
     },
     "demande": {
       "sel": 1
@@ -645,7 +645,7 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
       "poisson-sale": 1
@@ -667,7 +667,7 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
       "metaux": 1
@@ -691,7 +691,7 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
       "vin": 1
@@ -714,8 +714,8 @@
     "taille": 2,
     "richesse": 3,
     "production": [
-      "bois",
-      "produits-de-luxe"
+      "bois-mer",
+      "produits-de-luxe-mer"
     ],
     "demande": {
       "armes": 1,
@@ -735,11 +735,11 @@
     "taille": 4,
     "richesse": 5,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "demande": {
       "cereales": 1,
-      "laine": 1
+      "laine-mer": 1
     },
     "cosmopolite": true,
     "dirigeant": "Roi phénix Finubar",
@@ -757,13 +757,13 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
       "pieces-detachees-de-navire": 1
     },
     "demande": {
-      "bois": 1
+      "bois-mer": 1
     },
     "dirigeant": "Conseil des princes",
     "desc": "Immense cité taillée dans une falaise et s'étendant loin sous terre",
@@ -780,7 +780,7 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "demande": {
       "cereales": 1
@@ -800,7 +800,7 @@
     "taille": 4,
     "richesse": 5,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "dirigeant": "Sultan de Lashiek",
     "desc": "Beaucoup de pirates rôdent sur les mers autour de ce port",
@@ -817,13 +817,13 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "surplus": {
-      "produits-de-luxe": 2
+      "produits-de-luxe-mer": 2
     },
     "demande": {
-      "bois": 1,
+      "bois-mer": 1,
       "cereales": 1
     },
     "dirigeant": "Sultan de Copher",
@@ -840,7 +840,7 @@
     "taille": 4,
     "richesse": 4,
     "production": [
-      "commerce"
+      "commerce-mer"
     ],
     "demande": {
       "cereales": 1,

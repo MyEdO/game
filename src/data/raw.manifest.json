@@ -90,7 +90,7 @@
     "type": "raw.manifest",
     "label": "Navigation fluviale — Tests de Navigation (MSRC)",
     "ticket": "#2589",
-    "bloque": "Test d'Agilité du jour (MSRC 7 l.17) sans mécanique : le barreur-poste et le barreur sans Voile se modélisent au système de voyage sur l'eau unique (#2588 Q2/Q3). #2589 réécrit l'étape du jour et son applier `riverAgility` (facteur posé sur `river.dayAgilityFactor`), les facteurs d'échec et d'Échec spectaculaire, leur donnée `river-navigation.json › rowingAgility` et son schéma, l'enjeu `voyage-stakes.json › river-agility`, la fiche `regles.json › navigation-agilite-de-rame` et la section Codex de la Navigation fluviale"
+    "bloque": "Test d'Agilité du jour (MSRC 7 l.17) sans mécanique : le barreur-poste et le barreur sans Voile se modélisent au système de voyage sur l'eau unique (#2588 Q2/Q3). #2589 réécrit l'étape du jour et son applier `riverAgility` (facteur posé sur `river.dayAgilityFactor`), les facteurs d'échec et d'Échec spectaculaire, leur donnée `river-navigation.json › rowingAgility` et son schéma, l'enjeu `stakes.json › river-agility`, la fiche `regles.json › navigation-agilite-de-rame` et la section Codex de la Navigation fluviale"
   },
   {
     "id": "4e/deplacement#degats-infliges-aux-vehicules-edoc",

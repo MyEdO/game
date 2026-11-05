@@ -18,7 +18,7 @@ const get = useGame.getState.bind(useGame);
 
 const landMap: WorldMap = {
   id: 'm', label: 'Reikland',
-  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin', 'metal', 'commerce'] } }],
+  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } }],
   routes: [],
 };
 

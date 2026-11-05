@@ -6,6 +6,7 @@ import { seedBattleRng } from './battleRng';
 import { hasCondition } from '../engine/conditions';
 
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { emptyScene } from './monde/scene';
 import type { Combatant } from '../engine/types';
 import { setCadence } from '../engine/cadence';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -13,7 +14,7 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const scene = () => ({ id: 's', label: '', dimensions: { w: 10, h: 10 }, levels: [{ z: 0, tiles: Array(100).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
+const scene = () => emptyScene('s', 10, 10);
 const C = (over: Partial<Combatant>): Combatant =>
   combattantDeTest({ id: 'x', kind: 'hero', label: 'X', conditions: [], skills: [], characteristics: {}, wounds: blessuresDeBase(10), items: [], movement: 4, advantage: 0, ...over });
 

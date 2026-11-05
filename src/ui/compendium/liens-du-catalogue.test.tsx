@@ -17,7 +17,7 @@ import { CODEX, combatantSections, type CodexRow, type CodexSection } from './re
 import { CHEMINS_ADRESSES } from '../liage';
 import { adressesDesEntreesEmbarquees } from '../../data/schemas/grammaire/document';
 import { projetSchema } from '../../data/schemas/defs-scenes/projet';
-import { porteurDeRangee } from './CodexEntry'; // la SEULE composition rangée+entrée — celle du rendu
+import { porteurDeRangee } from '../../noyau/codex/porteur'; // la SEULE composition rangée+entrée — celle du rendu
 import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
@@ -113,9 +113,10 @@ describe('câblage `CHEMINS_ADRESSES` ⇄ porteurs réellement émis (#1392 §10
   });
 
   /* CÂBLAGE des chemins de PROJET : l'inventaire (`CHAMPS_PROSE_DE_SCENE`) ne vaut que si CHAQUE
-   * chemin a son SITE DE DÉCLARATION dans les defs de scène. Recopier le triplet attendu ici ne
-   * prouverait que la recopie ; on le confronte donc au CODE RÉEL des defs (corpus partagé). */
-  const DEFS_SCENES = detenteur(() => [...readCorpus(['src/data/schemas/defs-scenes']), ...readCorpus(['src/data/schemas/grammaire']).filter(f => f.rel === 'src/data/schemas/grammaire/mecanique.ts')]);
+   * chemin a son SITE DE DÉCLARATION dans les defs de scène ou la grammaire qu'elles composent.
+   * Recopier le triplet attendu ici ne prouverait que la recopie ; on le confronte donc au CODE RÉEL
+   * (corpus partagé). */
+  const DEFS_SCENES = detenteur(() => readCorpus(['src/data/schemas/defs-scenes', 'src/data/schemas/grammaire']));
   const DECLARES = detenteur(
     () => new Set(cheminsProseNommee(DEFS_SCENES())),
   );

@@ -6,7 +6,6 @@ import { P } from '../../decorPalette';
 // le garde-corps en bois d'un pont de navire.
 export const prop: PropViz = {
   id: 'bastingage',
-  label: 'Bastingage',
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="56" ry="7" fill="${P.ombre}" opacity="0.2"/>` +
     [4, 26, 48, 70, 92]

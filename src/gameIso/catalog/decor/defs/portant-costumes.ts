@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // Cf. plan officiel NADJ 08 folio 38, image (tringles de vêtements alignées).
 export const prop: PropViz = {
   id: 'portant-costumes',
-  label: 'Portant à costumes',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="34" ry="8" fill="${P.ombre}" opacity="0.2"/>` +
     // montants + base

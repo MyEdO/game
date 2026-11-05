@@ -21,6 +21,7 @@ export interface ConstanteZod {
 }
 
 export function indexerConstantes(fichiers: string[]): Map<string, ConstanteZod>;
+export function constanteImportee(nom: string, entree: ConstanteZod, index?: Map<string, Map<string, ConstanteZod>>): ConstanteZod | undefined;
 export function proprietesZod(node: Node, entree?: ConstanteZod): ProprieteZod[];
 export function noyauZod(node: Node, entree?: ConstanteZod): Node;
 export function estOptionnel(node: Node, entree?: ConstanteZod): boolean;

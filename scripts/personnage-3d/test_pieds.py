@@ -1,5 +1,5 @@
 """sol.surfaces_des_pieds et sol.garder_les_poids_des_pieds sur un squelette synthétique : la surface d'un pied compte le
-poids du pied et de ses descendants jusqu'à `MAJORITE_DU_POIDS`, et un sommet retouché par le lissage des poids qui y
+poids du pied et de ses descendants jusqu'à `MAJORITE_DU_POIDS`, et un sommet retouché par la correction des poids qui y
 tombe arrête la construction en le nommant."""
 import sys
 import unittest

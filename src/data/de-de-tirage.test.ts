@@ -9,6 +9,8 @@ import { DEFS_DE_DOCUMENT } from './schemas/validate';
 import { META_CHARGE } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
 import { formatDice } from '../engine/dice';
+import { weatherDie, type Season } from '../engine/travelStages';
+import { weather } from './index';
 import type * as obsessions from './schemas/defs/obsessions';
 import type * as miscast from './schemas/defs/miscast';
 
@@ -48,6 +50,31 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'vdm-maladie-coups-de-poing-maudits': { die: '1d10', ref: 'VDM 12 l.920' },
   'vdm-catastrophes-de-brassage': { die: '1d10', ref: 'VDM 12 l.389' },
   'vdm-symboles-augure': { die: '1d10', ref: 'VDM 03 l.503' },
+  physique: { die: '1d100', ref: 'LDB 19 l.116' },
+  mentale: { die: '1d100', ref: 'LDB 19 l.144' },
+  'edoc-phys-toute': { die: '1d100', ref: 'EDOC 12 l.65' },
+  'edoc-phys-khorne': { die: '1d100', ref: 'EDOC 12 l.65' },
+  'edoc-phys-nurgle': { die: '1d100', ref: 'EDOC 12 l.65' },
+  'edoc-phys-slaanesh': { die: '1d100', ref: 'EDOC 12 l.65' },
+  'edoc-phys-tzeentch': { die: '1d100', ref: 'EDOC 12 l.65' },
+  'edoc-tete-bestiale-toute': { die: '1d100', ref: 'EDOC 12 l.152' },
+  'edoc-tete-bestiale-khorne': { die: '1d100', ref: 'EDOC 12 l.152' },
+  'edoc-tete-bestiale-nurgle': { die: '1d100', ref: 'EDOC 12 l.152' },
+  'edoc-tete-bestiale-slaanesh': { die: '1d100', ref: 'EDOC 12 l.152' },
+  'edoc-tete-bestiale-tzeentch': { die: '1d100', ref: 'EDOC 12 l.152' },
+  'edoc-mental-toute': { die: '1d100', ref: 'EDOC 12 l.204' },
+  'edoc-mental-khorne': { die: '1d100', ref: 'EDOC 12 l.204' },
+  'edoc-mental-nurgle': { die: '1d100', ref: 'EDOC 12 l.204' },
+  'edoc-mental-slaanesh': { die: '1d100', ref: 'EDOC 12 l.204' },
+  'edoc-mental-tzeentch': { die: '1d100', ref: 'EDOC 12 l.204' },
+};
+
+/** Le dé IMPRIMÉ par le livre pour chaque saison de `weather.json` (table imbriquée, hors fabrique). */
+const SAISONS_LIVRE: Record<string, { die: string; ref: string }> = {
+  printemps: { die: '1d100', ref: 'EDOC 8 l.52-59' },
+  ete: { die: '1d100', ref: 'EDOC 8 l.52-59' },
+  automne: { die: '1d100', ref: 'EDOC 8 l.52-59' },
+  hiver: { die: '1d100', ref: 'EDOC 8 l.52-59' },
 };
 
 /** Tout document dont la FABRIQUE pose `die` (elle en publie la méta, `META_CHARGE`), lu au disque. */
@@ -64,6 +91,13 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(docs.map((d) => d.id).sort(), 'documents à dé de tirage').toEqual(Object.keys(LIVRE).sort());
     for (const d of docs) {
       expect(formatDice(deDeTirageDe<typeof miscast>(docs, d.id)), `${d.id} (${LIVRE[d.id].ref})`).toBe(LIVRE[d.id].die);
+    }
+  });
+
+  it('chaque saison de `weather.json` porte le dé imprimé par le livre, lu par le moteur', () => {
+    expect(weather.map((s) => s.id).sort(), 'saisons à dé de tirage').toEqual(Object.keys(SAISONS_LIVRE).sort());
+    for (const s of weather) {
+      expect(formatDice(weatherDie(s.id as Season)), `${s.id} (${SAISONS_LIVRE[s.id].ref})`).toBe(SAISONS_LIVRE[s.id].die);
     }
   });
 

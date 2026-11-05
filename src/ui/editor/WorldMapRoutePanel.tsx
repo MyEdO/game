@@ -22,7 +22,7 @@ import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
 import { Row } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
-import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
 
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
   route: MapRoute;

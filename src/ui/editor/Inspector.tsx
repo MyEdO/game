@@ -44,7 +44,7 @@ import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
 import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
-import { PROPS } from '../../gameIso/catalog/decor';
+import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
@@ -1376,7 +1376,7 @@ function SelecteurDeDecor({ scene, ent, setScene }: { scene: Scene; ent: SceneEn
               {etat}
             </option>
           )}
-          {Object.values(PROPS).map((p) => (
+          {decorsDuCatalogue().map((p) => (
             <option key={p.id} value={p.id}>
               {p.label}
             </option>

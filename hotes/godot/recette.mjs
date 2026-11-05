@@ -728,10 +728,11 @@ async function parcoursComposition() {
   const assets = await chargerAssets([
     "export { schema as schemaDesPresets } from '/src/data/schemas/defs/presets-de-personnage.ts';",
     "export { validateDocument } from '/src/data/schemas/validate.ts';",
+    "export { FEMININ, CORPULENCE } from '/hotes/godot/asset/silhouettes.ts';",
     "export { evaluer } from '/hotes/godot/asset/evaluateur/evaluer.ts';",
     "export { SOL_TOLERANCE_M } from '/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts';",
   ])
-  const { schemaDesPresets, validateDocument } = assets
+  const { schemaDesPresets, validateDocument, FEMININ, CORPULENCE } = assets
   const p = production(o.base)
   const piece = production(o.piece)
   const base = p.manifeste.base
@@ -763,7 +764,7 @@ async function parcoursComposition() {
   let a = await atelier()
   assert.equal(a.composition.refus, null)
   assert.equal(a.composition.courante.sex, 'F', 'Soldat féminin')
-  verifierLeMorphe(a, 'feminin', 1)
+  verifierLeMorphe(a, FEMININ, 1)
   assert.deepEqual(a.erreurs, [])
   assert.ok(a.composition.montes.length > 0, 'emplacements de composition publiés')
   assert.ok(a.composition.manquants.every((m) => m.ligne && m.id && m.label), 'manquants identifiés et libellés')
@@ -843,12 +844,12 @@ async function parcoursComposition() {
     a = await atelier()
     assert.equal(a.composition.courante.build, valeur)
     verifierLaPeau(a, ligne)
-    const attendu = a.composition.morphes.corpulence
+    const attendu = a.composition.morphes[CORPULENCE]
     assert.ok(Number.isFinite(attendu), 'poids corpulence retourné par composer')
     if (bord === 'droite') assert.ok(attendu > 0, 'corpulence non nulle à droite')
-    verifierLeMorphe(a, 'corpulence', attendu)
-    verifierLeMorphe(a, 'corpulence', attendu, `ligne/${ligne}`)
-    verifierLeMorphe(a, 'feminin', 1)
+    verifierLeMorphe(a, CORPULENCE, attendu)
+    verifierLeMorphe(a, CORPULENCE, attendu, `ligne/${ligne}`)
+    verifierLeMorphe(a, FEMININ, 1)
     await capturer(`3086-r1-3-corpulence-${valeur}`)
   }
 
@@ -863,7 +864,7 @@ async function parcoursComposition() {
   proche(repos.cadre, 1, 1e-4, 'marche au corps neutre')
   const poidsNeutres = Object.values(repos.composition.morphes)
   assert.ok(poidsNeutres.length > 0 && poidsNeutres.every((poids) => poids === 0), 'couplage : tous les poids de silhouette sont nuls')
-  verifierLeMorphe(repos, 'feminin', 0)
+  verifierLeMorphe(repos, FEMININ, 0)
   const racine = p.manifeste.gabarit.racine
   const images = []
   try {

@@ -15,7 +15,7 @@ import { DialogueBox } from './DialogueBox';
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
 import { campaignStart } from '../engine/clock';
-import type { Dialogue, Scene, SceneEntity } from '../noyau/monde/scene';
+import { emptyScene, type Dialogue, type Scene, type SceneEntity } from '../noyau/monde/scene';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -29,7 +29,7 @@ const dlg: Dialogue = {
   nodes: [{ id: 'n1', desc: 'Que faites-vous ?', choices: [{ label: 'Attaquer' }, { label: 'Parler' }] }],
 };
 
-const scene = { id: 'scn', nom: 'Scène', desc: '', size: [4, 4], entities: [pnj], dialogues: [dlg], triggers: [], encounters: [] } as unknown as Scene;
+const scene: Scene = { ...emptyScene('scn', 4, 4), entities: [pnj], dialogues: [dlg] };
 
 /** État réseau : deux sièges nommés, aucun héros attribué (le dialogue n'appartient à personne). */
 const net = (over: Partial<GameState['net']>): GameState['net'] =>

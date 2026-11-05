@@ -57,6 +57,7 @@ import { rule } from '../engine/policy';
 import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
+import { influencesLocally } from './netOwnership';
 import { reprendreLaSuite } from './combatEffects';
 import { distributeCredit } from './bourseFlow';
 import { toMoney } from '../engine/money';
@@ -897,8 +898,10 @@ export const FLOWS = paresseux({
     rolled: (p) => !!p.result,
     // Sort non lancé malgré un jet propre réussi (DR sous le NI) : la Résilience s'y ouvre. LDB 17 l.68, l.75
     perdu: (p) => !!p.result && !p.result.cast,
-    // Incantation Critique d'un Sort : `critChoice` écrit avant `jetConfirm('cast')`. LDB 46 l.28-32
-    cloture: (p) => {
+    // Le Contre-sort ouvert se résout avant l'incantation, LDB 46 l.156 ; l'Incantation Critique d'un Sort attend son
+    // `critChoice`, LDB 46 l.28-32
+    cloture: (p, s) => {
+      if (s.pendingCounterspell) return 'contreSortDu';
       const spell = effectiveSpellOf(p);
       return p.result?.isCritical && !p.critChoice && spell && !castInfoIsPrayer(spell) ? 'choixCritiqueDu' : null;
     },
@@ -2425,6 +2428,10 @@ export function siOuvert(flux: keyof typeof FLOW_HANDLERS, get: Get, geste: () =
  *  dissipé le Sort (LDB 46 l.156) : la clôture les attend. */
 const contreSortsDus = (s: Jeu, p: PendingCounterspell): CounterParticipant[] =>
   p.participants.some((x) => x.result?.dispelled) ? [] : p.participants.filter((x) => x.interactive && !x.result && counterspellRolls(s, p, x));
+
+/** Les rangées de Contre-sort que CE siège a encore à déclarer : vierges, surfacées et jouables ici (`influencesLocally`). */
+export const rangeesADeclarerIci = (s: Jeu, p: PendingCounterspell | null | undefined): CounterParticipant[] =>
+  (p?.participants ?? []).filter((x) => !x.declared && x.interactive && influencesLocally(s, x.id));
 
 /** Le refus de la rangée de Contre-sort `pid` (`null` si elle lance maintenant) : phase de déclaration ouverte
  *  (`counterspellDeclarePhase`, #1042/#1059), Sort déjà dissipé par une AUTRE rangée (LDB 46 l.156 ; la rangée

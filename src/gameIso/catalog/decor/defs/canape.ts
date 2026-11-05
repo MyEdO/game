@@ -36,7 +36,6 @@ const body = (view: (cx: number) => string) =>
 
 export const prop: PropViz = {
   id: 'canape',
-  label: 'Canapé',
   views: {
     front: () => body(front),
     profile: () => body(profile),

@@ -4,8 +4,7 @@
  * (`foyerDeRegleSchema`, `src/data/schemas/grammaire/valeurs.ts`), dont l'id résout AU PARSE dans
  * l'espace de son type ; `ruleCategory` disparaît.
  *
- * ENTRÉES : écrites — `src/data/actions.json`, `activities.json`, `combat-stakes.json`,
- * `flow-stakes.json`, `night-stakes.json`, `voyage-stakes.json` (listes de racine) et
+ * ENTRÉES : écrites — `src/data/actions.json`, `activities.json` (listes de racine) et
  * `crew-test-types.json` (`types`) ; LUS — les catalogues des types admis (`CATEGORIES` ci-dessous),
  * pour juger chaque id dans l'espace de son type.
  * TABLE FIGÉE catégorie Codex → type : celle que portaient les données au 2026-10-18. Une catégorie
@@ -45,10 +44,6 @@ const DEFAUT = 'regles';
 const PORTEURS = {
   'actions.json': null,
   'activities.json': null,
-  'combat-stakes.json': null,
-  'flow-stakes.json': null,
-  'night-stakes.json': null,
-  'voyage-stakes.json': null,
   'crew-test-types.json': 'types',
 };
 

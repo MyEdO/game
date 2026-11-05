@@ -9,8 +9,8 @@
 //
 // Frontière avec `folioIntegrity.mjs` (#536, voie A/B/C) : celle-là part de la `desc` VERBATIM et
 // cherche où elle vit ; celle-ci ne lit aucun texte d'entrée — elle confronte deux MÉTADONNÉES
-// entre elles. Elle mord donc les datasets sans `desc` (`flow-stakes`, `combat-stakes`,
-// `voyage-stakes`, `reglesOptionnelles`…), invisibles de la voie A/B/C.
+// entre elles. Elle mord donc les datasets sans `desc` (`stakes`, `reglesOptionnelles`…),
+// invisibles de la voie A/B/C.
 //
 // Module ESM pur (`node` nu), consommé par `folioLineAlignAudit.ts` (qui nourrit le cliquet
 // `src/data/folio-line-align.test.ts`), `src/data/criticals-folio.test.ts`, et prouvé par

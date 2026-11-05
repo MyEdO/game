@@ -34,7 +34,7 @@ const recoverSchema = nommerChamps(z.strictObject({
   opposedDifficulty: difficultySchema.optional(),
   /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stateRecoveryStakeRef`. */
   enjeu: z.string(),
-  /** Forme déclarée de `enjeu` (garde `night-stake-form.test.ts`). */
+  /** Forme déclarée de `enjeu` (garde `stake-form.test.ts`). */
   form: stakeFormSchema,
 }), {
   ...metaDesChamps(jetSchema, { exigees: true }),
