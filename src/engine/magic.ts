@@ -179,6 +179,13 @@ export function priestCult(c: Combatant): string | undefined {
   return undefined;
 }
 
+/** Compétences associées à la divinité du prêtre (`GodData.associatedSkills`, liste maison du culte) ;
+ *  vide sans culte ou sans liste. LDB 40 l.61, l.70 */
+export function deitySkills(c: Combatant): string[] {
+  const cult = priestCult(c);
+  return (cult ? findGodById(cult)?.associatedSkills : undefined) ?? [];
+}
+
 /** VERROU de Péché du culte (MDG 11 l.148 : « Stromfels retire à un suivant la capacité d'utiliser le
  *  Talent *Invocation* s'il possède au moins deux Points de Péché et celle d'utiliser le Talent *Béni*
  *  s'il possède au moins cinq Points de Péché ») — GÉNÉRIQUE : lit `GodData.sinLocks` du culte du
@@ -868,7 +875,7 @@ export function isDispellableSpell(spell: SpellLike): boolean {
  *  Contre-sort (LDB 46 l.156). Source unique. La valeur NUE (`base`) traverse : c'est elle que le
  *  départage à DR égal compare (LDB 12 l.160). */
 export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'base'>): TestResult {
-  return { roll: res.roll, target: res.target, success: res.roll <= res.target, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
+  return { roll: res.roll, target: res.target, success: evaluateTest(res.roll, res.target).success, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
 }
 
 /** Issue d'un Contre-sort à partir d'un jet de contre-lanceur DÉJÀ obtenu (`counterT`, DR déjà
@@ -1095,7 +1102,7 @@ export function rederiveCastSL(
   const t: TestResult = {
     roll: current.roll,
     target: current.target,
-    success: current.roll <= current.target,
+    success: evaluateTest(current.roll, current.target).success,
     sl: current.sl + bonusSL,
     isDouble: isDoubleRoll(current.roll),
   };

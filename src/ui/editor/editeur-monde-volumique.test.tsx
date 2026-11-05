@@ -4,8 +4,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import * as THREE from 'three';
 import { EditorCanvas } from './EditorCanvas';
-import { DEFAULT_LAYERS } from './editorState';
+import { DEFAULT_LAYERS } from './editorLayers';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
+import { empriseDuPinceau } from '../../noyau/sceneEditLecture';
 import { tileCenter } from '../../geometry/iso';
 import { setStageRendererFactory, type StageRenderer } from '../../gameIso/stage/GameStage3D';
 import { hasSpritePicker } from '../../gameIso/stage/spritePicker';
@@ -206,6 +207,7 @@ async function monter(
     lowerLayerOpacity?: number;
     roofs?: boolean;
     traceLayer?: { position: 'above' | 'below' } | null;
+    brush?: number;
   } = {},
 ) {
   let scene = opts.scene ?? sceneAtelier();
@@ -222,6 +224,7 @@ async function monter(
         scene={scene}
         view={vue as never}
         {...baseProps()}
+        brush={opts.brush ?? 1}
         currentLayer={opts.currentLayer ?? 0}
         lowerLayerMode={opts.lowerLayerMode ?? 'gabarit'}
         lowerLayerOpacity={opts.lowerLayerOpacity ?? 0.22}
@@ -378,6 +381,15 @@ describe('Éditeur — cadence de la cuisson (#1176, P3-3)', () => {
     expect(apercu.querySelectorAll('path[fill^="url(#"]').length).toBeGreaterThanOrEqual(2);
     await h.up(3, 2);
     expect(h.svg.querySelector('[data-apercu-trait]')).toBeNull();
+  });
+
+  it('…et l’aperçu couvre l’EMPRISE du pinceau, celle que les peintres écrivent (#3059)', async () => {
+    const h = await monter({ mode: 'tile', terrain: 'eau' }, { brush: 3 });
+    await h.down(0, 0);
+    const cases = empriseDuPinceau(sceneAtelier().dimensions, { x: 0, y: 0 }, 3);
+    expect(cases).toHaveLength(4); // le coin rogne le carré 3×3
+    expect(Number(h.svg.querySelector('[data-apercu-trait]')!.getAttribute('data-apercu-trait'))).toBe(cases.length);
+    await h.up(0, 0);
   });
 });
 

@@ -95,9 +95,9 @@ export const plural = (n: unknown, singular: string, pluralForm: string): string
 /** DURÉE PROPRE d'une op à trois échelles exclusives (`condition`, `charMod` — `durationFromOp`,
  *  engine/ops) : « 3 heures », « 1 minute », « 2 Rounds » ; `undefined` sans durée propre (celle du
  *  contexte). SOURCE UNIQUE de la pastille (`opRows`) et du résumé d'atelier (`opSummary`). */
-export function dureePropre(o: { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }): string | undefined {
+export function dureePropre(o: { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }): string | undefined {
   const echelle = (f: Formula | undefined, un: MsgKey, plusieurs: MsgKey) => (f != null ? `${humanizeFormula(f)} ${plural(f, t(un), t(plusieurs))}` : undefined);
-  return echelle(o.durationRounds, 'codex.unite.round', 'codex.unite.rounds') ?? echelle(o.durationMinutes, 'codex.unite.minute', 'codex.unite.minutes') ?? echelle(o.durationHours, 'codex.unite.heure', 'codex.unite.heures');
+  return echelle(o.durationRounds, 'codex.unite.round', 'codex.unite.rounds') ?? echelle(o.durationMinutes, 'codex.unite.minute', 'codex.unite.minutes') ?? echelle(o.durationHours, 'codex.unite.heure', 'codex.unite.heures') ?? echelle(o.durationDays, 'codex.unite.jour', 'codex.unite.jours');
 }
 
 /** PLANCHER d'un `charMod` (EDO 11 l.190) : « min 10 », `undefined` sans plancher. SOURCE UNIQUE de la
@@ -443,7 +443,8 @@ export function humanizeOp(o: GameOp): string {
     case 'grantPsychTrait': return `${t('codex.op.grantPsychTrait', { nom: libelleDuTraitOctroye(o), duree: pendant(o) })}${o.resistanceSiAmis ? t('codex.op.grantPsychTrait.amis') : ''}`;
     case 'removePsychTrait': return t('codex.op.perd', { quoi: o.psychType ? t('codex.op.psych', { nom: psychologyLabel(o.psychType.id) }) : t('codex.op.psychAuChoix') });
     case 'grantTalent': return t('codex.op.grantTalent', { nom: refLabel('talents', o.talent) });
-    case 'suppressTalents': return t('codex.op.suppressTalents', { noms: o.talents.map((x) => refLabel('talents', x)).join(', '), n: humanizeFormula(o.durationDays) });
+    case 'deitySkillMod': return t(o.pick === 'all' ? 'codex.op.deitySkillMod.toutes' : 'codex.op.deitySkillMod.une', { mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, duree: pendant(o) });
+    case 'suppressTalents': return t('codex.op.suppressTalents', { noms: o.talents.map((x) => refLabel('talents', x)).join(', '), duree: pendant(o) });
     case 'grantCareerSkill': return t('codex.op.grantCareerSkill', { nom: refLabel('skills', o.skill) });
     case 'grantCareerTalent': return t('codex.op.grantCareerTalent', { nom: refLabel('talents', o.talent) });
     case 'augmentWeapon': return t('codex.op.augmentWeapon', {

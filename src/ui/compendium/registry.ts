@@ -911,7 +911,7 @@ function miscastAmountLabel(a: unknown): string {
 }
 
 /** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`, cf.
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`, cf.
  *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
@@ -947,6 +947,13 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       return skillId
         ? { t: 'ref', category: 'skills', id: skillId, label: refLabel('skills', skill!), show: `${eff}${dur ? ` (${dur})` : ''}` }
         : { t: 'kv', k: 'Magie', v: `${eff}${dur ? ` (${dur})` : ''}` };
+    }
+    case 'suppressTalents':
+      return { t: 'kv', k: 'Talents suspendus', v: `${(o.talents as { id: string }[]).map((x) => refLabel('talents', x)).join(', ')} (${miscastAmountLabel(o.durationDays)} jour(s))` };
+    case 'deitySkillMod': {
+      const dur = o.durationHours != null ? `${miscastAmountLabel(o.durationHours)} heure(s)` : `${miscastAmountLabel(o.durationDays)} jour(s)`;
+      const qui = o.pick === 'all' ? 'toutes' : 'une, tirée au hasard';
+      return { t: 'kv', k: 'Compétences associées au dieu', v: `${o.mod as number} (${qui} ; ${dur})` };
     }
     default:
       return { t: 'text', text: String(o.op) };
@@ -1603,6 +1610,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         chips('Bénédictions', c.blessings.map((id) => idRefRow('spells', id))),
         chips('Miracles', c.miracles.map((id) => idRefRow('spells', id))),
         chips('Sorts du Chaos', (c.chaosSpells ?? []).map((id) => idRefRow('spells', id))),
+        chips('Compétences associées', (c.associatedSkills ?? []).map((id) => idRefRow('skills', id))),
       ),
     })),
   },

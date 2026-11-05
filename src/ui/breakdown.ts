@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { combineMods, type ModLine, type RollBreakdown, type RollMask, type SecondReadLine } from '../engine/combat';
-import { clampTarget, cibleDuTest, cibleMesuree, type CibleMesuree } from '../engine/tests';
+import { clampTarget, cibleDuTest, cibleMesuree, evaluateTest, type CibleMesuree } from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import type { PendingRoll } from './RollLine';
 
@@ -37,7 +37,7 @@ export function testBreakdown(
     // SEUIL PUR (#1426, #2389) : le verdict de l'étape, transmis tel quel (`noyau/pendings.LectureDuDe`).
     ...(r.seuil ? { seuil: r.seuil } : {}),
     roll: r.roll,
-    success: r.success ?? r.roll <= target,
+    success: r.success ?? evaluateTest(r.roll, target).success,
     sl: r.sl ?? 0,
     // SECONDE LECTURE (Test combiné, LDB 12 l.202-208) : la zone est TRANSMISE telle que le socle l'a
     // évaluée (`noyau/cascade.secondReadOf`) — ce module n'en juge rien.

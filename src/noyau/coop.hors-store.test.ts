@@ -28,7 +28,7 @@ function hoteEnPartie(): EtatDeJeu {
     dispelCarrierId: 'heros-hote',
     refus: { texte: 'refus de l’hôte', nonce: 7 },
     pendingCampaign: { id: 'camp-fixture', label: 'Campagne fixture', scenes: [emptyScene('scene-a', 4, 4)], startSceneId: 'scene-a', worldMap: null, projet: { id: 'projet-fixture' } },
-    net: { mode: 'host', mySeat: 0, roomCode: 'ABC234', seatNames: { 0: 'Hôte', 2: 'Anne' }, presence: { 2: 'ok' }, connection: 'ok', hostAway: false, ownership: { 'heros-anne': 2 }, slots: [0, 2, 0, 0] },
+    net: { mode: 'host', mySeat: 0, roomCode: 'ABC234', seatNames: { 0: 'Hôte', 2: 'Anne' }, presence: { 2: 'ok' }, connection: 'ok', hostAway: false, ownership: { 'heros-anne': 2 }, slots: [0, 2, 0, 0], rangs: {} },
   };
 }
 
@@ -40,7 +40,7 @@ function inviteAuSiege2(): EtatDeJeu {
     localIntent: { actionId: 'portee-charge' },
     dispelCarrierId: null,
     refus: { texte: 'refus de l’invité', nonce: 3 },
-    net: { mode: 'guest', mySeat: 2, roomCode: 'ABC234', seatNames: { 2: 'Anne' }, presence: {}, connection: 'reconnecting', hostAway: true, ownership: {}, slots: [0, 0, 0, 0] },
+    net: { mode: 'guest', mySeat: 2, roomCode: 'ABC234', seatNames: { 2: 'Anne' }, presence: {}, connection: 'reconnecting', hostAway: true, ownership: {}, slots: [0, 0, 0, 0], rangs: {} },
   };
 }
 

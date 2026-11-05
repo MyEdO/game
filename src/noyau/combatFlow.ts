@@ -103,7 +103,7 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
@@ -439,7 +439,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
 /** LDB 14 l.106, l.116. */
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
-  if (res.attackerRoll > res.attackerDetail.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')) return null; // n'aurait pas touché même sans la pénalité
+  if (!evaluateTest(res.attackerRoll, cibleBrute(res.attackerDetail) - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')).success) return null; // n'aurait pas touché même sans la pénalité
   const allies = (target.engagedWith ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c && c.kind === attacker.kind && !isOutOfAction(c));
@@ -781,7 +781,7 @@ export function resolveAttack(
       if (res.hit && crowd.length) {
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
         const ad = res.attackerDetail!;
-        const rescued = res.attackerRoll > ad.target - (cm?.value ?? 0); // aurait échoué sans le bonus → 0 DR (l.146)
+        const rescued = !evaluateTest(res.attackerRoll, cibleBrute(ad) - (cm?.value ?? 0)).success; // aurait échoué sans le bonus → 0 DR (l.146)
         const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, { rng: battleRng() }, ad, withhold);
         stray.ajouts = [tr('cf.strayHit', { name: victim.label, rescued: rescued ? tr('cf.fragRescued') : '' })];
         return { res: stray, weapon, victim };
@@ -6145,7 +6145,7 @@ export function applyCast(
   const sorcery = isSort && rule('magic-sorcellerie') === true && isSorceryDomain(spell);
   // Sévérité DÉCIDÉE UNE fois (source unique du delta) : quand elle tombe, l'Imparfaite Mineure du
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
-  const malevolent = malevolentInfluenceSeverity(res.roll, res.roll <= res.target, nearCorruption, res.isFumble);
+  const malevolent = malevolentInfluenceSeverity(res.roll, evaluateTest(res.roll, res.target).success, nearCorruption, res.isFumble);
   const malevolentHandled = malevolent !== null;
   /** Imparfaite ADDITIONNELLE due aux Influences malfaisantes / à la Sorcellerie, appliquée UNE fois après le Sort. */
   const applyExtraMiscast = (): void => {

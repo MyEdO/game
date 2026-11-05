@@ -4,13 +4,14 @@
  * en avaient besoin (dérivation de masses, compilation `MapSpec`, toitures dérivées, affordances de
  * l'éditeur) composent d'ici, chacune dans sa forme de sortie.
  *
- * Il vit à côté de la primitive qu'il compose (`sceneEdit.ts` : `canonEdge`/`setEdgeWall`) parce que
+ * Il vit à côté des primitives qu'il compose (`sceneEditLecture.ts` : `canonEdge` ; `sceneEdit.ts` : `setEdgeWall`) parce que
  * ses consommateurs s'étalent sur `noyau/`, `gameIso/` et `ui/editor/` : un kit hébergé chez l'un
  * d'eux redeviendrait le helper local d'un seul. La CANONICALISATION N/E n'est jamais réencodée ici :
  * elle passe par `canonEdge`/`setEdgeWall`.
  */
 import type { Scene, WallSeg } from './monde/scene';
-import { canonEdge, setEdgeWall } from './sceneEdit';
+import { canonEdge, type Layers } from './sceneEditLecture';
+import { setEdgeWall } from './sceneEdit';
 import type { CellSide } from './monde/scene';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */
@@ -57,3 +58,6 @@ export function encloseRect(scene: Scene, r: PlanRect, z = 0): Scene {
   for (const e of perimeterEdges([r])) next = setEdgeWall(next, e.x, e.y, e.side, z, 'wall');
   return next;
 }
+
+/** Tous les calques allumés — le picking des fixtures voit tout ce que la scène porte. */
+export const TOUS_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
