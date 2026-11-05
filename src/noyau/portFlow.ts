@@ -199,7 +199,7 @@ export function closePort(_get: Get, set: Set): void {
   set({ port: null });
 }
 
-/** DR de camp SIGNÉ pour l'enjeu affiché (`combat-stakes`, achat et vente) : le gabarit dit « compte
+/** DR de camp SIGNÉ pour l'enjeu affiché (`stakes.json`, achat et vente) : le gabarit dit « compte
  *  {sellerDR} DR », le signe fait partie de la valeur — source UNIQUE des deux Marchandages. */
 const signedDR = (dr: number) => (dr >= 0 ? `+${dr}` : String(dr));
 

@@ -42,12 +42,12 @@ function choisir(champ: HTMLSelectElement, valeur: string): void {
   });
 }
 const enregistrer = (ecran: HTMLDivElement) => act(() => { ecran.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click(); });
-const foyerDe = (ds: 'nightStakes' | 'crewTestTypes', id: string) =>
+const foyerDe = (ds: 'stakes' | 'crewTestTypes', id: string) =>
   (datasetArray(ds) as { id: string; rule?: unknown }[]).find((e) => e.id === id)!.rule;
 
 describe('foyer de règle `{ id, type }` à l’atelier (#2820)', () => {
   it('un enjeu de nuit montre son foyer, en change le TYPE puis la FICHE, et l’enregistre', () => {
-    const ecran = monter('nightStakes', 'shelter');
+    const ecran = monter('stakes', 'shelter');
     const type = select(ecran, 'Règle associée — type');
     expect(type, 'aucun sélecteur de type : le foyer n’est pas routé vers le mode polymorphe').toBeTruthy();
     expect(type!.value).toBe('skill');
@@ -62,17 +62,17 @@ describe('foyer de règle `{ id, type }` à l’atelier (#2820)', () => {
     expect([...fiche.options].some((o) => o.value === 'exposition'), 'la fiche se choisit dans l’espace du type choisi').toBe(true);
     choisir(fiche, 'exposition');
     enregistrer(ecran);
-    expect(foyerDe('nightStakes', 'shelter')).toEqual({ id: 'exposition', type: 'regle' });
+    expect(foyerDe('stakes', 'shelter')).toEqual({ id: 'exposition', type: 'regle' });
   });
 
   it('un foyer facultatif se RETIRE (« aucun »)', () => {
-    const ecran = monter('nightStakes', 'contagion');
+    const ecran = monter('stakes', 'land-peril-survie');
     const type = select(ecran, 'Règle associée — type')!;
-    expect(type.value).toBe('symptome');
+    expect(type.value).toBe('etat');
     choisir(type, '');
     expect(select(ecran, 'Règle associée — fiche'), 'sans type, aucune fiche à choisir').toBeNull();
     enregistrer(ecran);
-    expect(foyerDe('nightStakes', 'contagion')).toBeUndefined();
+    expect(foyerDe('stakes', 'land-peril-survie')).toBeUndefined();
   });
 
   it('un type de Test d’équipage (rangée NICHÉE) édite son foyer par le même sélecteur', () => {

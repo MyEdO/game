@@ -34,7 +34,7 @@ import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { codexLookupById } from './compendium/registry';
-import { ACTIONS, ACTIVITY_STAKES, COMBAT_STAKES, FLOW_STAKES, NIGHT_STAKES, VOYAGE_STAKES, cibleCodex, crewTestTypes } from '../data/index';
+import { ACTIONS, ACTIVITY_STAKES, STAKES, cibleCodex, crewTestTypes } from '../data/index';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 
 export interface CodexRefLiteral {
@@ -213,14 +213,13 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
     expect(dynamiques, 'plus aucune ref dynamique vue : le compteur d’angle mort a lâché').toBeGreaterThan(50);
   });
 
-  it('FOYERS DE RÈGLE de la donnée : chaque `rule` des 7 porteurs résout au Codex', () => {
+  it('FOYERS DE RÈGLE de la donnée : chaque `rule` de ses porteurs résout au Codex', () => {
     // Les foyers de règle (cases de console, enjeux de jet, Activités, Tests d'équipage) vivent dans
     // la DONNÉE : le parse juge l'id dans l'espace de son type, cette sonde juge la FICHE que le ⓘ
     // ouvre (`cibleCodex` → `codexLookupById`) — le popover muet à l'écran, la garde verte, sinon.
     const porteurs: Record<string, readonly { id: string; rule?: FoyerDeRegle }[]> = {
-      'actions.json': ACTIONS, 'activities.json': ACTIVITY_STAKES, 'combat-stakes.json': COMBAT_STAKES,
-      'crew-test-types.json': crewTestTypes, 'flow-stakes.json': FLOW_STAKES, 'night-stakes.json': NIGHT_STAKES,
-      'voyage-stakes.json': VOYAGE_STAKES,
+      'actions.json': ACTIONS, 'activities.json': ACTIVITY_STAKES, 'crew-test-types.json': crewTestTypes,
+      'stakes.json': STAKES,
     };
     const portees = Object.entries(porteurs).flatMap(([f, l]) => l.flatMap((e) => (e.rule ? [{ f, id: e.id, cible: cibleCodex(e.rule) }] : [])));
     for (const [f, l] of Object.entries(porteurs)) expect(l.some((e) => e.rule), `${f} ne porte plus aucun foyer : la sonde ne le mesure plus`).toBe(true);
@@ -232,8 +231,7 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
 
   it('FICHE EN LECTURE : chaque porteur de foyer exposé au Codex montre sa section « Règle » vers la fiche du foyer', () => {
     const exposes: Record<string, readonly { id: string; rule?: FoyerDeRegle }[]> = {
-      activities: ACTIVITY_STAKES, combatStakes: COMBAT_STAKES, crewTestTypes, flowStakes: FLOW_STAKES,
-      nightStakes: NIGHT_STAKES, voyageStakes: VOYAGE_STAKES,
+      activities: ACTIVITY_STAKES, crewTestTypes, stakes: STAKES,
     };
     const ecarts = Object.entries(exposes).flatMap(([categorie, l]) => l.flatMap((e) => {
       if (!e.rule) return [];

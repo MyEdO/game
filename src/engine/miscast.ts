@@ -407,8 +407,8 @@ const MISCAST_ROW_CATEGORY: Record<MiscastSeverity, string> = {
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La
  *  branche `success` est vide (le Test réussi = aucun effet). L'ENJEU (#1117) descend à la LIGNE qui
  *  exige ce Test : sa fiche est le foyer, et l'issue se lit aux chips d'ops de la branche d'échec —
- *  l'entrée de catalogue ne porte donc aucun gabarit. Forme DÉJÀ EMPLOYÉE, mesurée : 3 entrées sur 34
- *  de `combat-stakes.json` (miscast-row-test, ambush-surprise, ambush-vigilance). */
+ *  l'entrée de catalogue ne porte donc aucun gabarit. Forme DÉJÀ EMPLOYÉE par d'autres entrées de
+ *  `stakes.json` (miscast-row-test, ambush-surprise, ambush-vigilance). */
 function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
   const fail: Flow = t.onFailHard
     ? {

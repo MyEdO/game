@@ -154,6 +154,7 @@ const NOMMES = [
   'any|all',
   'group|talent|trait|psych|immunity',
   'moderee|grave',
+  'night|voyage|flow|combat',
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',

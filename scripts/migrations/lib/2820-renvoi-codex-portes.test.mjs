@@ -43,10 +43,6 @@ const fichiers = (liste = actions(), crew = equipage()) => ({
   ...catalogues,
   'src/data/actions.json': serialise(liste, FORME_DATA),
   'src/data/activities.json': serialise([], FORME_DATA),
-  'src/data/combat-stakes.json': serialise([], FORME_DATA),
-  'src/data/flow-stakes.json': serialise([], FORME_DATA),
-  'src/data/night-stakes.json': serialise([], FORME_DATA),
-  'src/data/voyage-stakes.json': serialise([], FORME_DATA),
   'src/data/crew-test-types.json': serialise(crew, FORME_DATA),
 });
 

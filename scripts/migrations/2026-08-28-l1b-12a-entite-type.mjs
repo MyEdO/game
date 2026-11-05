@@ -1,5 +1,5 @@
 /**
- * Migration #1467 L1b V-FLIP-ENTITE-b — les 21 datasets `entite` de la vague 12 reçoivent la clé
+ * Migration #1467 L1b V-FLIP-ENTITE-b — les 19 datasets `entite` de la vague 12 reçoivent la clé
  * d'ENVELOPPE `type` sur chacune de leurs entrées, en DEUXIÈME position (juste après `id`).
  *
  * MÊME patron que les vagues 11a/11b (`2026-08-28-l1b-11a-entite-type.mjs`,
@@ -21,7 +21,7 @@
  * MÉTA du vocabulaire de tirage, `scripts/guards/lib/entityConsumers.mjs:144`). Le second porteur
  * cité par 3h, `species.json`, n'appartient PAS à cette vague et reste intact.
  *
- * ENTRÉES : les 21 fichiers de `src/data/` listés dans `TYPES` (seules données lues et écrites).
+ * ENTRÉES : les 19 fichiers de `src/data/` listés dans `TYPES` (seules données lues et écrites).
  *
  * IDEMPOTENT / NO-OP SÉMANTIQUE : le no-op se décide sur le NOMBRE des gestes que ce script
  * POSSÈDE — pose de `type`, purge de la `desc` vide nommée, promotion déclarée de `id`. Zéro geste à
@@ -49,10 +49,8 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 /** Fichier de `src/data/` → `type` du document, tel que son def le déclare à `document()`. */
 const TYPES = {
   'careerLevels.json': 'careerLevels',
-  'combat-stakes.json': 'combat-stakes',
   'domains.json': 'domains',
   'etats.json': 'etats',
-  'flow-stakes.json': 'flow-stakes',
   'maladies.json': 'maladies',
   'maneuvers.json': 'maneuvers',
   'merchants.json': 'merchants',

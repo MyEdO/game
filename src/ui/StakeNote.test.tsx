@@ -53,7 +53,7 @@ describe('resolveStake — la porte UNIQUE, fail-closed (#1117)', () => {
 
   it('une clé INCONNUE jette (aucune surface muette en silence)', () => {
     expect(() => resolveStake({ key: { dataset: 'voyage', kind: 'kind-fantome' } })).toThrow(/aucune entrée d’enjeu|aucune entrée d'enjeu/);
-    expect(() => voyageStakeRef('kind-fantome')).toThrow(/aucun gabarit d'enjeu/);
+    expect(() => voyageStakeRef('kind-fantome')).toThrow(/aucune entrée d'enjeu/);
   });
 
   it('un TROU sans valeur jette (jamais un « {driftKm} » rendu au joueur)', () => {

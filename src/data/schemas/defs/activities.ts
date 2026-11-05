@@ -172,7 +172,7 @@ const doc = document(
     //    elle-même (pas de fichier tiers) : une Activité qui LANCE dit ce que son jet met en jeu.
     /** Texte d'enjeu — descripteur mécanique de ce que le résolveur applique, et/ou verbatim court. */
     stake: z.string().optional(),
-    /** FORME DÉCLARÉE du `stake` (même contrat que `night-stakes`/`flow-stakes`). */
+    /** FORME DÉCLARÉE du `stake` (même contrat que `stakes.form`). */
     stakeForm: stakeFormSchema.optional(),
     /** FOYER de la règle derrière le jet — l'entité qui la PORTE. Absent : le foyer est
      *  l'Activité elle-même (sa `desc` verbatim, catégorie Codex `activities`). */
