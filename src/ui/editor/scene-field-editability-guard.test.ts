@@ -247,8 +247,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
-    // Rabattre `declaredInScene` sur les deux FICHIERS du document fait 292 → 265 (mutation mesurée).
-    // Les champs perdus sont nommés ici : ce sont les seuls du périmètre déclarés hors du document.
+    // Rabattre `declaredInScene` sur les deux FICHIERS du document perd les champs nommés ici (mutation
+    // mesurée) : ce sont les seuls du périmètre déclarés hors du document.
     // #1463 (2026-10-26) : le Trait POSÉ du document est la forme INFÉRÉE de son schéma
     // (`traitInstanceSchema`, `TraitPose`) et non plus l'instance RÉSOLUE du moteur — la rangée de Trait
     // et sa provenance (`SourceRef`, composée par `source`/`alsoIn`) entrent donc au périmètre.
@@ -256,6 +256,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // DÉRIVÉ (`tableTotale`), propriétés synthétiques rattachées à la déclaration de `parLocalisation`.
     // #1463 Trait 3b-2 : la pose, récursive par `confere`, a un type DÉCLARÉ (`TraitPose`) ; ses champs
     // se nomment à leur premier porteur du document.
+    // #3012 S4b : `entryPoints` et `stations[].pos` composent `ptSchema` (`defs-scenes/communs.ts`), le `Pt` du noyau.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -276,6 +277,9 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'ParLocalisation.tete @ src/data/schemas/grammaire/reference.ts',
       'Plage.max @ src/data/schemas/grammaire/valeurs.ts',
       'Plage.min @ src/data/schemas/grammaire/valeurs.ts',
+      'Pt.x @ src/data/schemas/defs-scenes/communs.ts',
+      'Pt.y @ src/data/schemas/defs-scenes/communs.ts',
+      'Pt.z @ src/data/schemas/defs-scenes/communs.ts',
       'SceneEntity.combat.optionals.alsoIn @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.arg @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.count @ src/data/schemas/grammaire/reference.ts',
