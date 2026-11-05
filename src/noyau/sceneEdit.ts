@@ -65,8 +65,7 @@ export function updateArchitectureBody(scene: Scene, bodyId: string, update: (bo
 export function patchArchitectureBody(scene: Scene, bodyId: string, patch: Partial<Pick<ArchitectureBody, 'label' | 'style'>>): Scene {
   const out = updateArchitectureBody(scene, bodyId, (body) => {
     const next: ArchitectureBody = { ...body, ...patch };
-    if ('label' in patch && patch.label === undefined) delete next.label;
-    if ('style' in patch && patch.style === undefined) delete next.style;
+    for (const [k, v] of Object.entries(patch)) if (v === undefined) delete next[k as keyof typeof patch];
     return next;
   });
   return 'style' in patch ? rederiveRoofMasses(out) : out;
