@@ -124,6 +124,7 @@ describe('armement du récap — la CLÔTURE est une Condition relue après chaq
 describe('cycle de vie de la borne (#717)', () => {
   it('`loadProject` pose l’ouverture APRÈS `startScene` ; `startScene` seul efface le cadre', () => {
     const { scenes, narratif } = paquetDuJeu(diligenceCampaign);
+    banc.setState({ party: [hero('h1', 10)] });
     expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), scenes[0].id)).toBeNull();
     expect(get().pendingOuverture?.titre).toBe(narratif.ouverture!.titre);
 

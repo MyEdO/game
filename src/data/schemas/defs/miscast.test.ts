@@ -4,8 +4,9 @@
  * `days` porte une `Formula` sin-paramétrée (`formulaSinSchema`), comme `rounds`/`hours`/`minutes` : le
  * moteur la résout ainsi (`GameOp['castPenalty'].days`, `engine/ops.ts`), le dialecte l'accepte donc au
  * même titre. Un nombre nu EST une `Formula` valide — la donnée (`colere-pensez-a-vos-actes`,
- * `"days": 7`) l'atteste. AUCUNE rangée ne consomme encore la formule : les rangées de la Colère des
- * dieux à durée en jours sont sans `ops`, dette portée au manifeste (`src/data/raw.manifest.json`, `#1653`).
+ * `"days": 7`) l'atteste. AUCUNE rangée ne consomme encore la formule de `days` : les rangées de la Colère
+ * des dieux à pénalité en jours sont sans `ops`, dette portée au manifeste (`src/data/raw.manifest.json`, `#1653`).
+ * La perte de Talents en jours (`suppressTalents.durationDays`, LDB 40 l.80, l.82) porte la même formule.
  *
  * `perRound` + `unlessCondition` + `durationRounds` entrent au dialecte : la forme de « Purifier la
  * chair » (`LDB 40 l.75`, `LDB 16 l.117`). Le dialecte reste CLOS (`strictObject`).
@@ -41,6 +42,11 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
 
   it('`days` : le nombre nu reste ACCEPTÉ (un nombre EST une Formula — `colere-pensez-a-vos-actes`)', () => {
     const ops = [{ op: 'castPenalty', skill: { id: 'priere' }, maxZeroDR: true, days: 7 }];
+    expect(schema.safeParse(table(ops)).success).toBe(true);
+  });
+
+  it('la perte de Béni et Invocation pour « 2d10 + (Points de Péché) » jours est ACCEPTÉE (LDB 40 l.82)', () => {
+    const ops = [{ op: 'suppressTalents', talents: [{ id: 'beni' }, { id: 'invocation' }], durationDays: { sum: [{ dice: { n: 2, sides: 10 } }, { sinPoints: true }] } }];
     expect(schema.safeParse(table(ops)).success).toBe(true);
   });
 

@@ -10,6 +10,7 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
 import type { Jeu } from '../noyau/etat';
 import type { Get } from '../noyau/flowTypes';
+import { refusDeLancer } from '../noyau/partyFlow';
 import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
 import bargeDuSelProjet from './barge-du-sel/barge-du-sel-projet.json';
@@ -62,9 +63,11 @@ export function campagneALancer(choisie: Jeu['pendingCampaign']): NonNullable<Je
 
 /** LANCE la campagne `campagneALancer(choisie)` par `loadProject`, SOURCE UNIQUE de « Lancer »
  *  (`PartyScreen`), du repli de défaite (`CampaignView`) et de `__wfrp.campaign` ; `sceneId` remplace
- *  sa scène d'entrée. Rend le refus de la porte énoncé au joueur (`playerEntryError`, `noyau/worldMap.ts`), `null` quand
- *  la campagne est chargée. */
+ *  sa scène d'entrée. Rend le refus du groupe (`refusDeLancer`), ou celui de la porte énoncé au joueur
+ *  (`playerEntryError`, `noyau/worldMap.ts`), `null` quand la campagne est chargée. */
 export function lancerCampagne(get: Get, choisie: Jeu['pendingCampaign'], sceneId?: string): string | null {
+  const refus = refusDeLancer(get());
+  if (refus) return refus;
   let lancee: NonNullable<Jeu['pendingCampaign']>;
   try {
     lancee = campagneALancer(choisie);

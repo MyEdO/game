@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { evaluateTest } from '../engine/tests';
 import { seedBattleRng } from './battleRng';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
 import { FLOW_VERBS } from './flowVerbs';
@@ -48,7 +49,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: '
 const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'enemy', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
 const arena = (extra: Combatant[] = []) => ({ combatants: [hero(), foe(), ...extra], log: [] });
 
-/** Jets propres PERDANT / GAGNANT réutilisés partout (roll ≤ cible = réussite). */
+/** Jets propres PERDANT / GAGNANT réutilisés partout (verdict `evaluateTest`, LDB 12 l.25-28). */
 const LOSE = { roll: 95, target: 40, success: false, sl: -5, isDouble: false };
 const WIN = { roll: 8, target: 40, success: true, sl: 3, isDouble: false };
 
@@ -253,7 +254,7 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
  *
  * La mesure est possible parce que `TestOutcome` porte le VERDICT **et les chiffres qui le fondent** :
  * `outcomeOf()` rend `{won, roll, target}`. Une ligne ne peut être à la fois VRAIE (elle imprime
- * `roll` et `target`) et alignée sur le seam si `won` contredit `roll ≤ target`. On mesure donc
+ * `roll` et `target`) et alignée sur le seam si `won` contredit `evaluateTest(roll, target)` (LDB 12 l.25-28). On mesure donc
  * l'issue de CHAQUE flux sur ses deux fixtures, sans aucune valeur attendue écrite à la main.
  *
  * Les flux dont l'issue est légitimement COMPOSÉE (Test OPPOSÉ : le verdict n'est pas le d100 propre)
@@ -275,7 +276,7 @@ describe('#1318 V4 — l’issue canonique est COHÉRENTE avec les chiffres qu�
   for (const prefix of Object.keys(FLOW_VERBS)) {
     const fx = FIXTURES[prefix];
     if (!fx) continue;
-    it(`${prefix} : outcome.won == (roll ≤ cible), issues nominales${fx.composite ? ' + composée' : ''}`, () => {
+    it(`${prefix} : outcome.won == evaluateTest(roll, cible), issues nominales${fx.composite ? ' + composée' : ''}`, () => {
       const divergences: string[] = [];
       // Les deux issues nominales, PLUS — quand le flux en a une — l'issue COMPOSÉE (d100 réussi,
       // métier défavorable) : c'est le seul état où le verdict peut s'écarter du dé, donc le seul qui
@@ -291,7 +292,7 @@ describe('#1318 V4 — l’issue canonique est COHÉRENTE avec les chiffres qu�
         banc.setState(state as never);
         const o = FLOW_HANDLERS[prefix as keyof typeof FLOW_HANDLERS].outcomeOf(banc.getState, fx.pid);
         expect(o, `${prefix} : l’issue canonique doit être lisible sur un pending ouvert`).not.toBeNull();
-        const propre = o!.roll <= o!.target;
+        const propre = evaluateTest(o!.roll, o!.target).success;
         if (o!.won !== propre) divergences.push(`${nom} : won=${o!.won} roll=${o!.roll} cible=${o!.target}`);
       }
       if (ISSUE_COMPOSEE[prefix]) {

@@ -3,12 +3,13 @@
  */
 import type { Jeu, NetState } from './etat';
 import type { Combatant } from '../engine/types';
-import { inBattleId, porteurParId } from './monde/combatants';
+import { PARTY_MAX, inBattleId, porteurParId } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
+import { t } from '../i18n';
 
 /**
  * Le réseau après la FERMETURE définitive d'un siège : ses héros et ses emplacements reviennent à l'hôte
- * (siège 0), et s'il portait le rôle MJ, le rôle tombe — `gmSeat` ne désigne jamais un siège absent,
+ * (siège 0), chaque héros à son rang (`net.rangs`), et s'il portait le rôle MJ, le rôle tombe — `gmSeat` ne désigne jamais un siège absent,
  * sans quoi `pilotedByHuman` rendrait les ennemis à personne. Tout hôte coop l'applique au départ d'un siège.
  */
 export function fermerLeSiege(net: NetState, seat: number): NetState {
@@ -20,24 +21,126 @@ export function fermerLeSiege(net: NetState, seat: number): NetState {
   return { ...net, seatNames, presence, ownership, slots: net.slots.map((s) => (s === seat ? 0 : s)), gmSeat: net.gmSeat === seat ? undefined : net.gmSeat };
 }
 
-/** Le réseau après l'attribution du héros `heroId` au siège `seat` (lobby) : décidée par l'hôte seul, sinon
- *  `net` inchangé. */
-export function attribuerLeHeros(net: NetState, heroId: string, seat: number): NetState {
-  if (net.mode !== 'host') return net;
+/** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
+ *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
+export function nomDuSiege(net: Pick<NetState, 'seatNames'>, seat: number): string {
+  return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
+}
+
+/** Un siège de la table tel qu'il se montre : son nom, s'il est le siège local, s'il se reconnecte. */
+export interface SiegeDeLaTable {
+  seat: number;
+  nom: string;
+  moi: boolean;
+  absent: boolean;
+}
+
+/** Les sièges de la table, dans l'ordre de leur numéro : les sièges nommés, et l'hôte (siège 0) TOUJOURS, nommé ou
+ *  non (en solo, `seatNames` est vide, `initialNet`). Seuls ces sièges reçoivent un héros, un emplacement ou le rôle MJ. */
+export function siegesDeLaTable(net: Pick<NetState, 'seatNames' | 'mySeat' | 'presence'>): SiegeDeLaTable[] {
+  const seats = [...new Set([0, ...Object.keys(net.seatNames).map(Number)])].sort((a, b) => a - b);
+  return seats.map((seat) => ({ seat, nom: nomDuSiege(net, seat), moi: seat === net.mySeat, absent: net.presence[seat] === 'away' }));
+}
+
+/** Le siège attribué à ce héros (`net.ownership`), l'hôte (siège 0) s'il n'en a aucun. */
+export function siegeDuHeros(net: Pick<NetState, 'ownership'>, heroId: string): number {
+  return net.ownership[heroId] ?? 0;
+}
+
+/** Un EMPLACEMENT de l'écran d'équipe : son rang (0 à `PARTY_MAX` − 1), le siège qui le remplit (`net.slots`), le héros
+ *  qui l'occupe et le siège de ce héros (`siegeDuHeros`), qui peut différer de celui de l'emplacement après une
+ *  réattribution. */
+export interface Emplacement {
+  rang: number;
+  siege: number;
+  heroId: string | null;
+  proprietaire: number | null;
+}
+
+/** Ce que lisent les emplacements : le groupe, et le réseau qui porte les rangs, les sièges des emplacements et des héros. */
+export interface GroupeAssis {
+  net: Pick<NetState, 'rangs' | 'slots' | 'ownership'>;
+  party: readonly Pick<Combatant, 'id'>[];
+}
+
+/** Les `PARTY_MAX` emplacements du groupe, en solo comme en coop : chaque héros à son rang (`net.rangs`), un héros
+ *  sans rang valide ou au rang déjà pris aux rangs vides, dans l'ordre de `party`. Un rang libéré reste vide. */
+export function emplacementsDuGroupe(s: GroupeAssis): Emplacement[] {
+  const occupants: (string | null)[] = Array.from({ length: PARTY_MAX }, () => null);
+  const sansRang: string[] = [];
+  for (const h of s.party) {
+    const rang = s.net.rangs[h.id];
+    if (rang !== undefined && rang >= 0 && rang < PARTY_MAX && occupants[rang] === null) occupants[rang] = h.id;
+    else sansRang.push(h.id);
+  }
+  for (const id of sansRang) {
+    const vide = occupants.indexOf(null);
+    if (vide >= 0) occupants[vide] = id;
+  }
+  return occupants.map((heroId, rang) => ({
+    rang,
+    siege: s.net.slots[rang] ?? 0,
+    heroId,
+    proprietaire: heroId === null ? null : siegeDuHeros(s.net, heroId),
+  }));
+}
+
+/** Le rang de chaque héros du groupe, tel que `emplacementsDuGroupe` le projette : ce qu'écrit tout geste de composition. */
+export function rangsDuGroupe(s: GroupeAssis): Record<string, number> {
+  return Object.fromEntries(emplacementsDuGroupe(s).flatMap((e) => (e.heroId === null ? [] : [[e.heroId, e.rang]])));
+}
+
+/** Le rang que reçoit un héros ajouté par `seat` : le premier emplacement vide de ce siège, sinon le premier vide ;
+ *  `null` si le groupe est complet. */
+export function rangDAjout(s: GroupeAssis, seat: number): number | null {
+  const vides = emplacementsDuGroupe(s).filter((e) => e.heroId === null);
+  return (vides.find((e) => e.siege === seat) ?? vides[0])?.rang ?? null;
+}
+
+/** Le refus de `siege` comme destinataire d'une attribution : un siège absent de la table (`siegesDeLaTable`). */
+function refusDuSiegeInconnu(net: NetState, siege: number): string | null {
+  return siegesDeLaTable(net).some((x) => x.seat === siege) ? null : t('coop.assign.seatUnknown');
+}
+
+/** Le refus d'attribuer le héros `heroId` au siège `siege` : un héros hors du groupe, un siège hors de la table ;
+ *  `null` s'il s'attribue. */
+export function refusDAttribuerLeHeros(net: NetState, party: GroupeAssis['party'], heroId: string, siege: number): string | null {
+  if (!party.some((h) => h.id === heroId)) return t('coop.assign.heroAbsent');
+  return refusDuSiegeInconnu(net, siege);
+}
+
+/** Le refus de poser le rôle MJ au siège `siege` (`null` : l'IA, toujours permise) : un siège hors de la table. */
+export function refusDuSiegeMJ(net: NetState, siege: number | null): string | null {
+  return siege === null ? null : refusDuSiegeInconnu(net, siege);
+}
+
+/** Le refus d'attribuer l'emplacement `rang` au siège `siege` : un rang hors des emplacements, un emplacement occupé
+ *  (`emplacementsDuGroupe`), un siège hors de la table ; `null` s'il s'attribue. */
+export function refusDAttribuerLEmplacement(net: NetState, party: GroupeAssis['party'], rang: number, siege: number): string | null {
+  if (!Number.isInteger(rang) || rang < 0 || rang >= net.slots.length) return t('coop.assign.slotUnknown');
+  if (emplacementsDuGroupe({ net, party })[rang]?.heroId) return t('coop.assign.slotTaken');
+  return refusDuSiegeInconnu(net, siege);
+}
+
+/** Le réseau après l'attribution du héros `heroId` au siège `seat` (lobby) : décidée par l'hôte seul, refusée par
+ *  `refusDAttribuerLeHeros`, sinon `net` inchangé. */
+export function attribuerLeHeros(net: NetState, party: GroupeAssis['party'], heroId: string, seat: number): NetState {
+  if (net.mode !== 'host' || refusDAttribuerLeHeros(net, party, heroId, seat)) return net;
   return { ...net, ownership: { ...net.ownership, [heroId]: seat } };
 }
 
 /** Le réseau après la pose du RÔLE MJ au siège `seat` (`null` : IA) — UNIQUE, le désigner le retire à tout
- *  autre siège. Décidé par l'hôte, ou en solo pour le siège unique ; chez un invité, `net` inchangé. */
+ *  autre siège. Décidé par l'hôte, ou en solo pour le siège unique, refusé par `refusDuSiegeMJ` ; chez un invité,
+ *  `net` inchangé. */
 export function poserLeSiegeMJ(net: NetState, seat: number | null): NetState {
-  if (net.mode === 'guest') return net;
+  if (net.mode === 'guest' || refusDuSiegeMJ(net, seat)) return net;
   return { ...net, gmSeat: seat ?? undefined };
 }
 
 /** Le réseau après l'attribution de l'EMPLACEMENT `slot` de l'écran d'équipe au siège `seat`, que son
- *  joueur remplira : décidée par l'hôte seul, sur un emplacement existant, sinon `net` inchangé. */
-export function attribuerLEmplacement(net: NetState, slot: number, seat: number): NetState {
-  if (net.mode !== 'host' || slot < 0 || slot >= net.slots.length) return net;
+ *  joueur remplira : décidée par l'hôte seul, refusée par `refusDAttribuerLEmplacement`, sinon `net` inchangé. */
+export function attribuerLEmplacement(net: NetState, party: GroupeAssis['party'], slot: number, seat: number): NetState {
+  if (net.mode !== 'host' || refusDAttribuerLEmplacement(net, party, slot, seat)) return net;
   const slots = [...net.slots];
   slots[slot] = seat;
   return { ...net, slots };
@@ -48,7 +151,7 @@ export function attribuerLEmplacement(net: NetState, slot: number, seat: number)
  * MJ quand il existe (bac-à-sable), l'hôte (siège 0) sinon. Il existe TOUJOURS, et il est humain :
  * c'est ce qui rend un jet de monde surfaçable au même titre que celui d'un héros (`rollSeam.surfaceOf`).
  */
-export function worldSeat(s: Jeu): number {
+export function worldSeat(s: Pick<Jeu, 'net'>): number {
   return s.net.gmSeat ?? 0;
 }
 
@@ -62,7 +165,7 @@ export function worldSeat(s: Jeu): number {
  * qui VOIT (un héros dont le siège est aussi le siège MJ — hôte-MJ solo — reste tenu par SON joueur,
  * il n'est pas « conduit par le monde »).
  */
-export function conduitParLeSiegeDuMonde(s: Jeu, combatantId: string | undefined): boolean {
+export function conduitParLeSiegeDuMonde(s: Pick<Jeu, 'battle' | 'net'>, combatantId: string | undefined): boolean {
   if (combatantId === WORLD_STEP_OWNER) return true;
   if (!combatantId) return false;
   const c = inBattleId(s.battle, combatantId);
@@ -70,14 +173,14 @@ export function conduitParLeSiegeDuMonde(s: Jeu, combatantId: string | undefined
 }
 
 /** Le siège qui possède ce combattant (héros non attribué → hôte, siège 0). */
-export function siegeDe(s: Jeu, combatantId: string | undefined): number {
+export function siegeDe(s: Pick<Jeu, 'battle' | 'net'>, combatantId: string | undefined): number {
   if (conduitParLeSiegeDuMonde(s, combatantId)) return worldSeat(s);
   if (!combatantId) return 0;
-  return s.net.ownership[combatantId] ?? 0;
+  return siegeDuHeros(s.net, combatantId);
 }
 
 /** Le siège possède-t-il ce combattant ? */
-export function seatOwns(s: Jeu, seat: number, combatantId: string | undefined): boolean {
+export function seatOwns(s: Pick<Jeu, 'battle' | 'net'>, seat: number, combatantId: string | undefined): boolean {
   return siegeDe(s, combatantId) === seat;
 }
 

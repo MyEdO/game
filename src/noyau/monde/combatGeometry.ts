@@ -17,6 +17,7 @@ import { isStructure } from '../../engine/structures';
 import { traitSeesInDark } from '../../engine/traits/dispatch';
 import { losBlockingTiles, barrierTilesFor } from './zones';
 import { chebyshev } from '../../engine/grid';
+import { effectiveTalents } from '../../engine/talentEffects';
 
 /**
  * Tuiles qui BLOQUENT le déplacement de `mover` : l'empreinte (LDB 15 l.12) de chaque AUTRE
@@ -221,7 +222,7 @@ export function isFlankOrRear(targetFacing: Dir8, dirToAttacker: Dir8): boolean 
 
 /** Voit dans l'obscurité : Trait Vision nocturne / Infravision (LDB 85) ou Talent Vision nocturne (LDB 10). */
 export function seesInDark(c: Combatant): boolean {
-  return traitSeesInDark(c.traits) || (c.talents ?? []).some((t) => t.talentId === 'vision-nocturne');
+  return traitSeesInDark(c.traits) || effectiveTalents(c).some((t) => t.talentId === 'vision-nocturne');
 }
 
 /** Instantané de `cancelMove` (R6/LOT 6, #199) : ce que capture le PREMIER segment de Mouvement (ou de

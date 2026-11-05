@@ -7,9 +7,11 @@
  * réconciliation (`syncDerivedConditions`) et reviennent d'office à l'expiration (l'effet quitte la
  * liste ; `LDB 16 l.117`).
  *
- * Deux porteurs aujourd'hui, un seul mécanisme : l'op `suppressSymptom` (Racine de terre, `LDB 72
- * l.28`), qui suspend la source ENTIÈRE, et la dépense de Détermination sur un État porté (`LDB 17
- * l.61`, fenêtre `ResolveWindow`), qui ne suspend que l'ÉTAT nommé (`suppressedCondition`).
+ * Trois porteurs aujourd'hui, un seul mécanisme : l'op `suppressSymptom` (Racine de terre, `LDB 72
+ * l.28`) et l'op `suppressTalents` (Colère des dieux, `LDB 40 l.80`, `l.82`), qui suspendent la source
+ * ENTIÈRE — un Talent suspendu manque aussi à la porte de possession `effectiveTalents` —, et la dépense
+ * de Détermination sur un État porté (`LDB 17 l.61`, fenêtre `ResolveWindow`), qui ne suspend que l'ÉTAT
+ * nommé (`suppressedCondition`).
  *
  * LIMITE MESURÉE : seules les sources qui s'ANNONCENT (`PassiveMod.src`) sont suspendables. Les
  * séquelles émettent SANS `src` (`engine/trauma.ts`) — rien ne les suspend par ce canal.
@@ -37,7 +39,7 @@ export function memeSource(a: CodexTarget | undefined, b: CodexTarget | undefine
  * Une suspension PLEINE (`suppressedCondition` absent — op `suppressSymptom`, Racine de terre,
  * `LDB 72 l.28`) garde son régime : elle écarte TOUT ce que la source émet.
  */
-export function sourceSuspended(c: Combatant, src: CodexTarget | undefined, conditionId?: string): boolean {
+export function sourceSuspended(c: { readonly activeEffects?: readonly ActiveEffect[] }, src: CodexTarget | undefined, conditionId?: string): boolean {
   if (!src) return false;
   return (c.activeEffects ?? []).some((e) => memeSource(e.suppressedSource, src)
     && (e.suppressedCondition == null || e.suppressedCondition === conditionId));

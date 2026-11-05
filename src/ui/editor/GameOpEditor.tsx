@@ -83,7 +83,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   grantFreeAttack: 'action/free-attack', interruptFocus: 'mechanic/mind', breakBlade: 'item/weapon',
   push: 'mechanic/chain', teleport: 'mechanic/chain', chain: 'mechanic/chain',
   grantTrait: 'mechanic/invoke', removeTrait: 'magic/gust', grantPsychTrait: 'mechanic/mind', removePsychTrait: 'mechanic/mind',
-  grantTalent: 'mechanic/invoke', grantCareerSkill: 'mechanic/invoke', grantCareerTalent: 'mechanic/invoke',
+  grantTalent: 'mechanic/invoke', suppressTalents: 'mechanic/invoke', grantCareerSkill: 'mechanic/invoke', grantCareerTalent: 'mechanic/invoke',
   augmentWeapon: 'item/weapon', cureDisease: 'medical/infection', reduceDiseaseDays: 'medical/infection',
   preventInfection: 'medical/infection', aideMedicale: 'medical/crutch', cureCriticalWound: 'medical/crutch', amputer: 'medical/crutch', diseaseTestMod: 'medical/infection',
   suppressSymptom: 'medical/infection', aggravateSymptom: 'medical/infection', attenuateSymptom: 'medical/infection', grantSymptom: 'medical/infection',
@@ -107,7 +107,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['États', ['condition', 'removeCondition']],
   ['Buffs & caractéristiques', ['charMod', 'ap', 'testMod', 'skillDRBonus', 'charDRBonus', 'crewTestMod', 'ignoreStatePenalties', 'freeReroll', 'critTwice']],
   ['Ressources', ['gainResource', 'corruption', 'sinMod', 'corruptionExposure']],
-  ['Incantation & contrecoup', ['castPenalty', 'castWard', 'arrowWard', 'domeWard', 'attackWardFM']],
+  ['Incantation & contrecoup', ['castPenalty', 'suppressTalents', 'castWard', 'arrowWard', 'domeWard', 'attackWardFM']],
   ['Invocation & armes', ['summon', 'polymorph', 'transform', 'endTransform', 'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'grantTrait', 'removeTrait', 'grantPsychTrait', 'removePsychTrait', 'beginPsych', 'grantTalent', 'augmentWeapon']],
   ['Zones', ['zone']],
   ['Projection & téléportation', ['push', 'teleport', 'chain']],
@@ -487,6 +487,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'grantPsychTrait': return opPsy.octroi('');
     case 'removePsychTrait': return opPsy.retrait();
     case 'grantTalent': return { op: 'grantTalent', talent: { id: '' } };
+    case 'suppressTalents': return { op: 'suppressTalents', talents: [{ id: '' }], durationDays: 1 };
     case 'grantCareerSkill': return { op: 'grantCareerSkill', skill: { id: '' } };
     case 'grantCareerTalent': return { op: 'grantCareerTalent', talent: { id: '' } };
     case 'augmentWeapon': return { op: 'augmentWeapon' };
