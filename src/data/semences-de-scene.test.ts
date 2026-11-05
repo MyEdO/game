@@ -26,6 +26,7 @@ const LIVRE = {
   terrain: semencesDeScene.terrain,
   reliefDefaults: { ...semencesDeScene.reliefDefaults },
   roofDefaults: { ...semencesDeScene.roofDefaults },
+  facade: semencesDeScene.facade,
 };
 
 describe('semences-de-scene.json — le schéma refuse une semence qui mentirait à toutes les scènes (#1716)', () => {

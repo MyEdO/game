@@ -24,8 +24,9 @@ import { premierOffert, profilsStandard, refEstVolumique, structures } from '../
 import { structureAppearance } from '../../gameIso/catalog/structures';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
-import type { Pt, Tool, ZoneVariant } from './editorState';
-import { planStairFlight } from './editorState';
+import type { Pt } from '../../noyau/sceneEdit';
+import type { Tool, WallPaint, ZoneVariant } from '../../noyau/sceneEditLecture';
+import { planStairFlight } from '../../noyau/stairFlight';
 import { siegeEngines } from '../../data';
 import { LayerField, layerLabel } from './LayerField';
 import { Stack } from '../Layout';
@@ -51,7 +52,7 @@ const RAIL: { key: Family; icon: ReactNode; label: string }[] = [
 ];
 
 /** Sous-modes de l'outil murs (rail contextuel). */
-const WALL_PAINTS: { paint: import('./editorState').WallPaint; icon: ReactNode; label: string }[] = [
+const WALL_PAINTS: { paint: WallPaint; icon: ReactNode; label: string }[] = [
   { paint: 'wall', icon: '▮', label: 'Cloison' },
   { paint: 'door', icon: <Icon id="map-tool/door" />, label: 'Porte' },
   { paint: 'diagBack', icon: '◣', label: 'Diagonale ＼' },

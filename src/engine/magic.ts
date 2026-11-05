@@ -170,6 +170,20 @@ export function prayerMaxZeroDR(c: Combatant): boolean {
   return allCastPenalties(c).some((p) => penaltyMatches(p, 'priere') && p.maxZeroDR);
 }
 
+/** Libellé de l'effet qui impose au porteur des Tests de Prière pour son Action (op `prayerForAction`),
+ *  ou null. LDB 40 l.74 */
+export function prayerForActionBy(c: Combatant): string | null {
+  return (c.activeEffects ?? []).find((e) => e.prayerForAction)?.label ?? null;
+}
+
+/** La Prière `spell` de `caster` échoue-t-elle sur `target` ? Oui quand la divinité du lanceur
+ *  (`priestCult`) a banni la cible (op `deityBan`). LDB 40 l.64 */
+export function prayerBannedOn(target: Combatant, caster: Combatant, spell: SpellLike): boolean {
+  if (!castInfoIsPrayer(spell)) return false;
+  const dieu = priestCult(caster);
+  return !!dieu && (target.activeEffects ?? []).some((e) => e.deityBan === dieu);
+}
+
 /** CULTE du prêtre : la spécialisation de son Talent de Prière (Béni (Sigmar) / Invocation (Sigmar)),
  *  lue en DONNÉE via `castingKind` (aucun name-match). `undefined` si non spécialisé / pas prêtre. */
 export function priestCult(c: Combatant): string | undefined {
@@ -177,6 +191,13 @@ export function priestCult(c: Combatant): string | undefined {
     if ((def.castingKind === 'beni' || def.castingKind === 'invocation') && ctx.spec) return ctx.spec;
   }
   return undefined;
+}
+
+/** Compétences associées à la divinité du prêtre (`GodData.associatedSkills`, liste maison du culte) ;
+ *  vide sans culte ou sans liste. LDB 40 l.61, l.70 */
+export function deitySkills(c: Combatant): string[] {
+  const cult = priestCult(c);
+  return (cult ? findGodById(cult)?.associatedSkills : undefined) ?? [];
 }
 
 /** VERROU de Péché du culte (MDG 11 l.148 : « Stromfels retire à un suivant la capacité d'utiliser le
@@ -868,7 +889,7 @@ export function isDispellableSpell(spell: SpellLike): boolean {
  *  Contre-sort (LDB 46 l.156). Source unique. La valeur NUE (`base`) traverse : c'est elle que le
  *  départage à DR égal compare (LDB 12 l.160). */
 export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'base'>): TestResult {
-  return { roll: res.roll, target: res.target, success: res.roll <= res.target, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
+  return { roll: res.roll, target: res.target, success: evaluateTest(res.roll, res.target).success, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
 }
 
 /** Issue d'un Contre-sort à partir d'un jet de contre-lanceur DÉJÀ obtenu (`counterT`, DR déjà
@@ -1095,7 +1116,7 @@ export function rederiveCastSL(
   const t: TestResult = {
     roll: current.roll,
     target: current.target,
-    success: current.roll <= current.target,
+    success: evaluateTest(current.roll, current.target).success,
     sl: current.sl + bonusSL,
     isDouble: isDoubleRoll(current.roll),
   };

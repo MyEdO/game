@@ -38,7 +38,8 @@ export function TravelDayBody({ day }: { day: import('../noyau/travelFlow').Trav
 export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
   const storeRecap = useGame((s) => s.travelRecap);
   const gameTime = useGame((s) => s.gameTime);
-  const dismiss = useGame((s) => s.dismissTravelRecap);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const dismiss = () => fermer('recitDeVoyage');
   const openWorldMap = useGame((s) => s.openWorldMap);
   const recap = seam ?? storeRecap;
   if (!recap) return null;

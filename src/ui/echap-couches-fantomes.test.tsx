@@ -8,7 +8,7 @@
  *    — et « pas d'`onClose` » veut dire couche BLOQUANTE. Une couche bloquante fantôme mangeait donc
  *    Échap pour TOUTE la session : plus rien ne désarmait, plus rien n'ouvrait le menu.
  *  - `VictoryScreen` appelle ses hooks AVANT son early-return (règle des Hooks) : hors victoire, il
- *    empilait une couche dont le congédiement COMMETTAIT (`dismissVictory`, et en coop
+ *    empilait une couche dont le congédiement COMMETTAIT (la sortie de la victoire, et en coop
  *    `victoryReady()` RÉPLIQUÉ au relais) — le 1ᵉʳ Échap de la partie validait un butin absent.
  *
  * Ce banc monte les composants PERMANENTS avec le hook clavier RÉEL : c'est le seul endroit où le
@@ -58,16 +58,18 @@ afterEach(() => {
 
 describe('Échap — les composants PERMANENTS n’empilent rien tant qu’ils ne s’affichent pas', () => {
   it('menu système FERMÉ + écran de victoire SANS victoire ⇒ pile VIDE, et Échap désarme bien l’intention', () => {
-    const dismissVictory = vi.fn();
-    useGame.setState({ dismissVictory } as never);
+    const fenetreFermer = vi.fn();
+    const sortieReelle = useGame.getState().fenetreFermer;
+    useGame.setState({ fenetreFermer } as never);
     act(() => root.render(<Ecran />));
 
     expect(dismissStackKinds(), 'aucun des deux n’est à l’écran : aucune couche').toEqual([]);
 
     echap();
     expect(useGame.getState().localIntent, 'la touche atteint l’échelle métier (intent-cancel)').toBeNull();
-    expect(dismissVictory, 'une couche fantôme de victoire aurait COMMIS ici').not.toHaveBeenCalled();
+    expect(fenetreFermer, 'une couche fantôme de victoire aurait COMMIS ici').not.toHaveBeenCalled();
     expect(useGame.getState().gameMenuOpen, 'un appui = un échelon : le menu ne s’ouvre pas en plus').toBe(false);
+    useGame.setState({ fenetreFermer: sortieReelle } as never);
   });
 
   it('le menu système OUVERT est une couche, et redevient RIEN une fois refermé', () => {

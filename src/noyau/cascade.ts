@@ -1419,7 +1419,7 @@ export function suspendActiveCascade(get: Get, set: Set): void {
 
 /** RÉSUME la tête de pile (`suspendedCascades`, LIFO) dans le slot `pendingCascade` — SEULEMENT si le
  *  slot est LIBRE (jamais un écrasement). Déclenchée par la couture universelle de teardown de combat
- *  (`dismissVictory`/`dismissDefeat`, noyau/issueDeCombat.ts). Une séquence du pilote immédiat (`piloteImmediat`)
+ *  (les sorties de la victoire et de la défaite, `sortiesDIssueDeCombat`). Une séquence du pilote immédiat (`piloteImmediat`)
  *  ne revient pas au slot : son pilote la reprend (`piloterDepuisLeCurseur`). Renvoie `true` si une
  *  cascade a été résumée. */
 export function resumeSuspendedCascade(get: Get, set: Set): boolean {

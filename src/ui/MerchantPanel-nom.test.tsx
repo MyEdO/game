@@ -5,7 +5,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { MerchantPanel } from './MerchantPanel';
 import { useGame } from '../state/store';
-import { placeEntity } from './editor/editorState';
+import { placeEntity } from '../noyau/sceneEdit';
 import { emptyScene } from '../noyau/monde/scene';
 import { creatureLabel, findMerchantArchetypeById } from '../data';
 import { garanti } from '../lib/garanti';

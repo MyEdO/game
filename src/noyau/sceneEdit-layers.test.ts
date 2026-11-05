@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, surfaceLink } from '../../noyau/monde/scene';
-import { pathTo } from '../../noyau/monde/path';
-import { addLayer, fillTerrainRect, paintHeight } from './editorState';
+import { emptyScene, surfaceLink } from './monde/scene';
+import { pathTo } from './monde/path';
+import { addLayer, fillTerrainRect, paintHeight } from './sceneEdit';
 
 /**
  * Multi-couche à l'éditeur SANS escalier. La façon de relier deux couches : `addLayer` pose la surface

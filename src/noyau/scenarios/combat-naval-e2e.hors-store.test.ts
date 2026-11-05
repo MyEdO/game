@@ -85,7 +85,7 @@ function settle(): void {
   checkBattleOver(() => banc.getState(), banc.setState);
   if (banc.getState().pendingCascade?.combatEndBoundary) {
     banc.getState().cascadeResolveAll();
-    banc.getState().cascadeFinish();
+    banc.getState().fenetreFermer('cascade');
   }
 }
 

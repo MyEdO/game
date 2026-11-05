@@ -3,11 +3,11 @@
  * d'auteur (triggers, zones de repos, points d'entrée) + interactions pointeur — peindre, poser,
  * drag-rectangle, sélection/déplacement et REDIMENSIONNEMENT par poignée (coin SE des zones).
  * Les overlays sont en `pointer-events: none` : tout le picking passe par `hitAt` (les calques
- * masqués laissent cliquer à travers). La logique de mutation vit dans `editorState` (pur).
+ * masqués laissent cliquer à travers). La logique de mutation vit dans `noyau/sceneEdit` (pur).
  */
 import type { JSX } from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } from '../../noyau/monde/scene';
+import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone, type CellSide } from '../../noyau/monde/scene';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
@@ -25,11 +25,8 @@ import type { useEditorView } from './useEditorView';
 import { effectiveLowerLayerMode, gabaritTint, layerHidden, type LowerLayerMode } from './lowerLayerGabarit';
 import { projectedRangeAxes } from './lampMarker';
 import { gridLines } from '../../geometry/grid';
-import {
-  Tool, Layers, Sel, Rect, Pt, CellSide, rectFrom, hitAt, selRect, selZ, moveSel, resizeSel, paintTiles, fillTerrainRect,
-  placeEntity, placeEmplacement, placeEntry, addTrigger, addRestZone, addEffectZone, EFFECT_ZONE_SEEDS, addEnemyMember, eraseAt, entityAt, sameSel,
-  toggleEdgeWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintEffectZone, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge, addFacadeSection,
-} from './editorState';
+import { type Tool, type Layers, type Sel, dansLaCarte, empriseDuPinceau, hitAt, selRect, selZ, sameSel, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge } from '../../noyau/sceneEditLecture';
+import { type Rect, type Pt, type GesteDOutil, rectFrom, moveSel, resizeSel, appliquerOutil, validerRectangle, addFacadeSection } from '../../noyau/sceneEdit';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
@@ -303,18 +300,15 @@ export function EditorCanvas({
   // d'avant le geste (cf. `gelDuMonde`). Vidées au relâché, comme le reste de l'état de geste.
   const [traitCases, setTraitCases] = useState<readonly Pt[]>([]);
   const marquerTrait = (p: Pt, taille: number) => {
-    const r = Math.floor((taille - 1) / 2); // MÊME emprise que `paintTiles` (`noyau/sceneEdit.ts`)
-    const { w, h } = scene.dimensions;
+    const cases = empriseDuPinceau(scene.dimensions, p, taille);
     setTraitCases((prev) => {
       const vues = new Set(prev.map((c) => `${c.x},${c.y}`));
       const out = [...prev];
-      for (let dy = -r; dy <= r; dy++)
-        for (let dx = -r; dx <= r; dx++) {
-          const x = p.x + dx, y = p.y + dy;
-          if (x < 0 || y < 0 || x >= w || y >= h || vues.has(`${x},${y}`)) continue;
-          vues.add(`${x},${y}`);
-          out.push({ x, y });
-        }
+      for (const c of cases) {
+        if (vues.has(`${c.x},${c.y}`)) continue;
+        vues.add(`${c.x},${c.y}`);
+        out.push(c);
+      }
       return out.length === prev.length ? prev : out;
     });
   };
@@ -343,45 +337,34 @@ export function EditorCanvas({
     return { p: { x: px, y: py }, side: nearestEdge(f.x - px, f.y - py) };
   }
 
+  /** Le geste d'outil hors de sa case : couche active, pinceau, rencontre complétée et fiche posée. */
+  const geste: GesteDOutil = { z: currentLayer, brush, encId: encTarget, encRef };
+
   /** Peint la case `p` avec l'outil courant — routine UNIQUE de l'appui ET du glissé : tout outil de
    *  peinture répond au clic simple exactement comme au tracé, avec la même garde de bornes (un
    *  glissé sorti du plateau n'écrit plus au-delà du bord). */
   function paintAt(p: Pt) {
-    const { w, h } = scene.dimensions;
-    if (p.x < 0 || p.y < 0 || p.x >= w || p.y >= h) return;
-    switch (tool.mode) {
-      case 'tile':
-        setSceneNoHistory(paintTiles(scene, p, tool.terrain, brush, currentLayer));
-        marquerTrait(p, brush);
-        return;
-      case 'height':
-        setSceneNoHistory(paintHeight(scene, p, tool.metres, brush, currentLayer));
-        return;
-      case 'crenellated':
-        // COTE et CRÉNELURE mutent la GÉOMÉTRIE : aucun aperçu volumique n'est possible ce lot (un
-        // SVG plaqué ne saurait pas relever une paroi) — la cote se voit au RELÂCHÉ. ÉCART DÉCLARÉ
-        // (#1176, P3-3) : l'incrémental par case est un chantier ultérieur.
-        setSceneNoHistory(paintCrenellated(scene, p, tool.structure, brush, currentLayer));
-        return;
-      case 'zoneTiles':
-        setSceneNoHistory(paintEffectZone(scene, tool.zoneId, p, tool.paint));
-        return;
-      case 'erase':
-        // La GOMME retire une ENTITÉ (`noyau/sceneEdit.ts` `eraseAt`), jamais du terrain : son billboard
-        // disparaît au tick suivant, sans gel ni recuisson — rien à prévisualiser, donc rien à marquer.
-        setScene(eraseAt(scene, p, currentLayer));
-        return;
-      case 'stair':
-        // Tracé SEUL (aucune écriture de scène) : la volée n'est posée qu'une fois son plan validé,
-        // depuis la palette — un geste qui coterait au fil du glissé écrirait une volée impossible.
-        // `stairLastRef` = dernière case basculée par le tracé EN COURS (remise à zéro au relâché) :
-        // un glissement émet N événements par case, sans cette mémoire la case ferait l'aller-retour
-        // dans le tracé à chaque pixel parcouru.
-        if (stairLastRef.current?.x === p.x && stairLastRef.current?.y === p.y) return;
-        stairLastRef.current = p;
-        onStairTrace(p);
-        return;
+    if (tool.mode === 'stair') {
+      // Tracé SEUL (aucune écriture de scène) : la volée n'est posée qu'une fois son plan validé,
+      // depuis la palette — un geste qui coterait au fil du glissé écrirait une volée impossible.
+      // `stairLastRef` = dernière case basculée par le tracé EN COURS (remise à zéro au relâché) :
+      // un glissement émet N événements par case, sans cette mémoire la case ferait l'aller-retour
+      // dans le tracé à chaque pixel parcouru.
+      if (!dansLaCarte(scene, p)) return;
+      if (stairLastRef.current?.x === p.x && stairLastRef.current?.y === p.y) return;
+      stairLastRef.current = p;
+      onStairTrace(p);
+      return;
     }
+    const out = appliquerOutil(scene, tool, p, geste);
+    if (!out) return;
+    // La GOMME retire une ENTITÉ, jamais du terrain : un cran d'annulation par entité retirée, rien à
+    // prévisualiser. Les autres pinceaux coalescent le trait sous le cran posé à l'appui. Seul le
+    // terrain s'aperçoit au fil du trait : COTE et CRÉNELURE mutent la GÉOMÉTRIE, qu'un SVG plaqué ne
+    // relève pas, et se voient au RELÂCHÉ (#1176, P3-3).
+    if (tool.mode === 'erase') setScene(out.scene);
+    else setSceneNoHistory(out.scene);
+    if (tool.mode === 'tile') marquerTrait(p, brush);
   }
 
   function pointerDown(e: React.PointerEvent) {
@@ -400,8 +383,7 @@ export function EditorCanvas({
       return;
     }
     const p = isoTile(e);
-    const { w, h } = scene.dimensions;
-    if (p.x < 0 || p.y < 0 || p.x >= w || p.y >= h) return;
+    if (!dansLaCarte(scene, p)) return;
     switch (tool.mode) {
       case 'select': {
         if (architectureMode) {
@@ -417,12 +399,7 @@ export function EditorCanvas({
           if (architectureAction === 'facade' && architectureBodyId) {
             const px = Math.round(f.x), py = Math.round(f.y);
             const edge = canonEdge(px, py, nearestEdge(f.x - px, f.y - py));
-            const out = addFacadeSection(
-              scene,
-              architectureBodyId,
-              { ...edge, ...(z ? { z } : {}) },
-              'mur-a-ossature-en-bois',
-            );
+            const out = addFacadeSection(scene, architectureBodyId, { ...edge, ...(z ? { z } : {}) });
             if (out) {
               setScene(out.scene);
               onSelect({ type: 'facadeSection', bodyId: architectureBodyId, id: out.id });
@@ -455,54 +432,11 @@ export function EditorCanvas({
           paintAt(p);
         }
         return;
-      case 'entity': {
-        const existing = entityAt(scene, p, currentLayer);
-        if (existing) return onSelect({ type: 'entity', id: existing.id });
-        const out = placeEntity(scene, tool, p, currentLayer);
-        setScene(out.scene);
-        onSelect({ type: 'entity', id: out.id });
-        return;
-      }
       case 'zone':
         dragStartRef.current = p;
         setDragRect({ x: p.x, y: p.y, w: 1, h: 1 });
         return;
       case 'zoneTiles':
-        pushSnapshot(); // 1 cran d'undo pour tout le trait
-        setPainting(true);
-        paintAt(p);
-        return;
-      case 'entry': {
-        const out = placeEntry(scene, p, currentLayer);
-        setScene(out.scene);
-        onSelect({ type: 'entry', id: out.id });
-        return;
-      }
-      case 'emplacement': {
-        const existing = entityAt(scene, p, currentLayer);
-        if (existing) return onSelect({ type: 'entity', id: existing.id });
-        const out = placeEmplacement(scene, tool.trappingId, p, currentLayer);
-        if (out) {
-          setScene(out.scene);
-          onSelect({ type: 'entity', id: out.id }); // édition immédiate (engin / arc / équipage) dans l'inspecteur
-        }
-        return;
-      }
-      case 'encounter': {
-        const out = addEnemyMember(scene, encTarget, encRef, p, currentLayer);
-        setScene(out.scene);
-        if (out.encId !== encTarget) setEncTarget(out.encId);
-        onSelect({ type: 'entity', id: out.entityId }); // sélectionne l'ennemi posé (édition immédiate)
-        return;
-      }
-      case 'wall': {
-        const wh = wallHit(e);
-        if (wh.p.x < 0 || wh.p.y < 0 || wh.p.x >= w || wh.p.y >= h) return;
-        if (tool.paint === 'diagBack') setScene(toggleDiagonalWall(scene, wh.p.x, wh.p.y, '\\', currentLayer));
-        else if (tool.paint === 'diagFwd') setScene(toggleDiagonalWall(scene, wh.p.x, wh.p.y, '/', currentLayer));
-        else setScene(toggleEdgeWall(scene, wh.p.x, wh.p.y, wh.side, currentLayer, tool.paint === 'door' ? 'door' : 'wall', tool.structure));
-        return;
-      }
       case 'height':
       case 'crenellated':
         pushSnapshot(); // 1 cran d'undo pour tout le trait
@@ -514,6 +448,20 @@ export function EditorCanvas({
         setPainting(true);
         paintAt(p);
         return;
+      case 'entity':
+      case 'emplacement':
+      case 'entry':
+      case 'encounter':
+      case 'wall': {
+        // L'outil murs vise l'ARÊTE la plus proche, depuis sa propre case.
+        const cible = tool.mode === 'wall' ? wallHit(e) : { p, side: undefined };
+        const out = appliquerOutil(scene, tool, cible.p, { ...geste, side: cible.side });
+        if (!out) return;
+        if (out.scene !== scene) setScene(out.scene);
+        if (out.encId && out.encId !== encTarget) setEncTarget(out.encId);
+        if (out.sel) onSelect(out.sel); // édition immédiate de ce que le geste a posé ou désigné
+        return;
+      }
     }
   }
 
@@ -578,21 +526,10 @@ export function EditorCanvas({
       return;
     }
     if (dragStartRef.current) {
-      const rect = rectFrom(dragStartRef.current, isoTile(e));
-      if (tool.mode === 'zone' && tool.zone === 'trigger') {
-        const out = addTrigger(scene, rect, currentLayer);
+      const out = validerRectangle(scene, tool, rectFrom(dragStartRef.current, isoTile(e)), currentLayer);
+      if (out) {
         setScene(out.scene);
-        onSelect({ type: 'trigger', id: out.id }); // Editor ouvre le dock Logique dessus
-      } else if (tool.mode === 'zone' && tool.zone === 'rest') {
-        const out = addRestZone(scene, rect, currentLayer);
-        setScene(out.scene);
-        onSelect({ type: 'restZone', idx: out.idx });
-      } else if (tool.mode === 'zone' && (tool.zone === 'room' || tool.zone === 'effect')) {
-        const out = addEffectZone(scene, rect, currentLayer, EFFECT_ZONE_SEEDS[tool.zone]);
-        setScene(out.scene);
-        onSelect({ type: 'effectZone', idx: out.idx });
-      } else if (tool.mode === 'tile' && terrainRect) {
-        setScene(fillTerrainRect(scene, rect, tool.terrain, currentLayer));
+        if (out.sel) onSelect(out.sel); // un déclencheur ouvre le dock Logique dessus (Editor)
       }
     }
     dragStartRef.current = null;

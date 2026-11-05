@@ -48,6 +48,7 @@ import { rule } from '../engine/policy';
 import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -867,7 +868,7 @@ export function massBattleTrackHit(get: Get, set: Set, attacker: Combatant, targ
   set({ massBattle: { ...mb, combatScene: { ...cs, hits: cs.hits + 1, hitters } } });
 }
 
-/** Reprise après une Scène de COMBAT (appelée par `dismissVictory`/`dismissDefeat`) : applique la
+/** Reprise après une Scène de COMBAT (appelée par la sortie de la victoire et de la défaite) : applique la
  *  réduction/malus de Puissance selon l'issue, puis revient à la vue de bataille. */
 export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcome: 'won' | 'lost' = 'won'): void {
   const mb = get().massBattle;
@@ -953,8 +954,7 @@ function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boo
 
 /** Ferme la bataille et revient au jeu. Un Test de bataille en cours (`pendingActivity.battle`) lit
  *  la bataille jusqu'à son issue (`confirmBattleActivity`) : la clôture est alors REFUSÉE, jamais purgée. */
-export function endMassBattle(get: Get, set: Set): void {
-  if (!get().massBattle) return;
+function cloreLaBataille(get: Get, set: Set): void {
   const enCours = get().pendingActivity;
   if (enCours?.battle) { get().log(t('mbf.endTestEnCours', { test: enCours.label })); return; }
   set({ massBattle: null, screen: get().scene ? 'campaign' : 'menu' });
@@ -1003,6 +1003,9 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
     massBattleClash: () => massBattleClash(get, set),
     massBattleAdvance: () => massBattleAdvance(get, set),
-    endMassBattle: () => endMassBattle(get, set),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function sortiesDeBatailleDeMasse(get: Get, set: Set) {
+  return { batailleDeMasse: () => cloreLaBataille(get, set) } satisfies Partial<SortiesDeFenetre>;
 }

@@ -3,7 +3,8 @@ import type { Node, SourceFile } from 'typescript/unstable/ast';
 import type { AnalyseEmpruntee, FichierSource } from './dialecte.mjs';
 
 export type NatureDeModule = 'statique' | 'dynamique' | 'type' | 'require';
-export type GenreDeModule = 'import' | 'export' | 'importEquals' | 'importType' | 'appel' | 'fournisseur';
+/** `chargeur` : un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un espace, ou qui fuit), de nature `nonSuivi`. */
+export type GenreDeModule = 'import' | 'export' | 'importEquals' | 'importType' | 'appel' | 'fournisseur' | 'chargeur';
 export interface PositionDeModule {
   readonly noeud: Node;
   debut: number;
@@ -23,7 +24,7 @@ export interface LiaisonDeModule {
 }
 export interface SiteDeModule extends PositionDeModule {
   genre: GenreDeModule;
-  nature: NatureDeModule;
+  nature: NatureDeModule | 'nonSuivi';
   acquisition: boolean;
   spec: string | null;
   clause: boolean;
@@ -87,7 +88,7 @@ export function clotureDImports(
     specificateurs?: MemoDeSpecificateurs;
     tailleLot?: number;
     analyser?: typeof analyserEnLots;
-    surSites?: (abs: string, sites: SiteDeModule[]) => void;
+    surSites?: (abs: string, sites: SiteDeModule[], arbre: SourceFile) => void;
   },
 ): Set<string>;
 /** Le disque, borné aux `fichiers` (chemins absolus POSIX) : un motif d'`import.meta.glob` y fait ses arcs. */

@@ -159,3 +159,10 @@ export function applyStairFlight(scene: Scene, steps: readonly StairStep[], z: n
   for (const s of steps) out = paintHeight(out, { x: s.x, y: s.y }, s.height, 1, z);
   return out;
 }
+
+/** Pose la volée tracée `cells` de la couche `z` vers l'étage `toZ` : des COTES, la traversée verticale
+ *  s'en dérive. null si le plan est refusé (`planStairFlight`). */
+export function placeStairFlight(scene: Scene, cells: readonly StairCell[], z: number, toZ: number): Scene | null {
+  const plan = planStairFlight(scene, cells, z, toZ);
+  return plan.ok ? applyStairFlight(scene, plan.steps, z) : null;
+}

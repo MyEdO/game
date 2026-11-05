@@ -46,6 +46,9 @@ export interface MiscastResult {
   /** Effets mécaniques IMMÉDIATS à appliquer au lanceur (applyOps) — Blessures/États/Corruption/
    *  pénalités. Le Test imbriqué éventuel vit dans `testFlow` (résolu cadence-aware, pas en silence). */
   ops: GameOp[];
+  /** Effets IMMÉDIATS à appliquer à chaque CIBLE de l'incantation qui a déclenché le tirage, le lanceur
+   *  en contexte (`OpsCtx.caster`). LDB 40 l.64 */
+  targetOps: GameOp[];
   /** Nœud de Flow `test` imbriqué de l'entrée (« Résistance Accessible ou Sonné »), résolu CADENCE-AWARE
    *  par `applyMiscast`→`runCombatFlow` APRÈS les `ops` immédiats. Absent si l'entrée n'a pas de Test. */
   testFlow?: Flow;
@@ -132,9 +135,12 @@ type JsonOp = {
   hours?: JsonFormula;
   minutes?: JsonFormula;
   days?: JsonFormula;
-  // suppressTalents
+  // suppressTalents, deitySkillMod, deityBan
   talents?: { id: string }[];
   durationDays?: JsonFormula;
+  // deitySkillMod
+  pick?: 'all' | 'random';
+  durationHours?: JsonFormula;
 };
 
 /** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
@@ -153,6 +159,8 @@ interface JsonRow {
   max: number | null;
   label: string;
   ops?: JsonOp[];
+  /** Ops appliqués aux CIBLES de l'incantation qui a déclenché le tirage (`MiscastResult.targetOps`). */
+  targetOps?: JsonOp[];
   test?: JsonNestedTest;
   reroll?: 'majeure' | 'mineure-x2';
   /** CLÉ d'une table déclarée par le Domaine du lanceur (`domains.json` → `tables`) : la rangée tire
@@ -226,6 +234,16 @@ function expandOp(op: JsonOp, sin: number): GameOp {
     }
     case 'suppressTalents':
       return { op: 'suppressTalents', talents: op.talents, durationDays: resolveJsonFormula(op.durationDays!, sin) } as unknown as GameOp;
+    case 'deitySkillMod':
+      return {
+        op: 'deitySkillMod', pick: op.pick, mod: op.mod,
+        ...(op.durationHours !== undefined ? { durationHours: resolveJsonFormula(op.durationHours, sin) } : {}),
+        ...(op.durationDays !== undefined ? { durationDays: resolveJsonFormula(op.durationDays, sin) } : {}),
+      } as unknown as GameOp;
+    case 'deityBan':
+      return { op: 'deityBan', durationDays: resolveJsonFormula(op.durationDays!, sin) } as unknown as GameOp;
+    case 'prayerForAction':
+      return { op: 'prayerForAction', durationRounds: resolveJsonFormula(op.durationRounds!, sin) } as unknown as GameOp;
     default:
       return op as unknown as GameOp;
   }
@@ -261,6 +279,8 @@ interface Row {
   label: string;
   /** Ops IMMÉDIATS auto-applicables, closés sur les Points de Péché (sinon : entrée narrative, MJ). */
   ops?: (sin: number) => GameOp[];
+  /** Ops IMMÉDIATS aux cibles de l'incantation, closés sur les Points de Péché. */
+  targetOps?: (sin: number) => GameOp[];
   /** Clé de table déclarée par le Domaine du lanceur (`JsonRow.domainTable`). */
   domainTable?: string;
   /** Test imbriqué de l'entrée (« … ou Sonné »), résolu cadence-aware. */
@@ -277,6 +297,10 @@ function buildRow(jr: JsonRow & { max: number }): Row {
   if (jr.ops && jr.ops.length > 0) {
     const jsonOps = jr.ops;
     row.ops = (sin: number) => expandOps(jsonOps, sin);
+  }
+  if (jr.targetOps && jr.targetOps.length > 0) {
+    const jsonTargetOps = jr.targetOps;
+    row.targetOps = (sin: number) => expandOps(jsonTargetOps, sin);
   }
   if (jr.test) {
     row.test = expandNestedTest(jr.test);
@@ -470,6 +494,11 @@ function rowOps(row: Row, sin: number, domainId?: string): GameOp[] {
   return tableId ? [...ops, { op: 'rollTable', tableId }] : ops;
 }
 
+/** Ops d'une rangée destinés aux cibles de l'incantation. */
+function rowTargetOps(row: Row, sin: number): GameOp[] {
+  return row.targetOps ? row.targetOps(sin) : [];
+}
+
 /**
  * Effectue un jet sur la table d'Incantation Imparfaite / Colère des dieux et
  * renvoie les ops mécaniques + un journal fidèle. `sinPoints` ajoute +10 par
@@ -490,13 +519,14 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
   // Cascade : 96-00 Mineure → relance sur la table Majeure. Même relance quand la rangée réclame une
   // table que la tradition du lanceur ne déclare pas (`VDM 02 l.238`).
   if (row.reroll === 'majeure' || domainRowTable(row, domainId) === null) {
-    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], reroll: 'majeure', rowId: row.id, tableRolls: 1, log: `${label(severity)} (${roll}) : ${row.label}` };
+    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], targetOps: [], reroll: 'majeure', rowId: row.id, tableRolls: 1, log: `${label(severity)} (${roll}) : ${row.label}` };
     const sub = rollMiscast('majeure', rng, 0, domainId);
     return {
       severity,
       rolls: [roll, ...sub.rolls],
       label: `${row.label} → ${sub.label}`,
       ops: sub.ops,
+      targetOps: sub.targetOps,
       ...(sub.testFlow ? { testFlow: sub.testFlow } : {}),
       rowId: row.id,
       tableRolls: 1 + sub.tableRolls,
@@ -505,8 +535,9 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
   }
   // Multiplication : 91-95 Mineure → deux lancers (en relançant les 91-00).
   if (row.reroll === 'mineure-x2') {
-    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], reroll: 'mineure-x2', rowId: row.id, tableRolls: 1, log: `${label(severity)} (${roll}) : ${row.label}` };
+    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], targetOps: [], reroll: 'mineure-x2', rowId: row.id, tableRolls: 1, log: `${label(severity)} (${roll}) : ${row.label}` };
     const ops: GameOp[] = [];
+    const targetOps: GameOp[] = [];
     const tests: Flow[] = [];
     const rolls: number[] = [roll];
     const labels: string[] = [];
@@ -526,11 +557,13 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
         tableRolls += maj.tableRolls;
         labels.push(`${sub.label} (${r}) → ${maj.label}`);
         ops.push(...maj.ops);
+        targetOps.push(...maj.targetOps);
         if (maj.testFlow) tests.push(maj.testFlow);
         continue;
       }
       labels.push(`${sub.label} (${r})`);
       ops.push(...rowOps(sub, 0, domainId));
+      targetOps.push(...rowTargetOps(sub, 0));
       if (sub.test) tests.push(mkTest(sub.test, sub.id, 'mineure'));
     }
     return {
@@ -538,6 +571,7 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
       rolls,
       label: `${row.label} : ${labels.join(' + ')}`,
       ops,
+      targetOps,
       // Deux Tests imbriqués éventuels → un `seq` joué cadence-aware en séquence (le 2ᵉ après le 1ᵉʳ).
       ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'seq', steps: tests } } : {}),
       rowId: row.id,
@@ -547,13 +581,15 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
   }
 
   const ops = rowOps(row, sinPoints, domainId);
+  const targetOps = rowTargetOps(row, sinPoints);
   const testFlow = row.test ? mkTest(row.test, row.id, severity) : undefined;
-  const applied = ops.length || testFlow ? ` [appliqué]` : ` [arbitrage MJ]`;
+  const applied = ops.length || targetOps.length || testFlow ? ` [appliqué]` : ` [arbitrage MJ]`;
   return {
     severity,
     rolls: [roll],
     label: row.label,
     ops,
+    targetOps,
     ...(testFlow ? { testFlow } : {}),
     rowId: row.id,
     tableRolls: 1,
