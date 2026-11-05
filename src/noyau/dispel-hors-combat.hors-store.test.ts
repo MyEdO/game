@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setRule, resetRule } from '../engine/policy';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
+import type { PendingDispel } from './pendings';
+
+/** La ligne de Soutien de la ligne figée au pending (LDB 46 l.162). */
+const soutienDe = (pd: PendingDispel) => pd.ligne.mods.find((m) => m.ref === RULE_REF.soutien);
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -46,8 +51,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     const pd = banc.getState().pendingDispel!;
     expect(pd).toBeTruthy();
     expect(pd.ni).toBe(1);
-    expect(pd.support?.count).toBe(1); // allie (même Domaine Bête, Langue Magick) assiste — pas de portée hors combat
-    expect(pd.support?.bonus).toBe(10);
+    expect(soutienDe(pd), 'allie (même Domaine Bête, Langue Magick) assiste — pas de portée hors combat').toMatchObject({ value: 10, by: [{ id: 'allie' }] });
     expect(pd.value).toBe(60 + 10); // Int 40 + 20 avances Langue = 60, + Soutien 10
   });
 

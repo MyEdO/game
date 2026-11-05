@@ -79,7 +79,7 @@ describe('le rig SVG ne revient pas', () => {
         'scripts/qc/render-siege.mts',
         'scripts/qc/spell-support-census.mts',
         'scripts/qc/lib/pngDecode.mjs',
-        'src/ui/compendium/triggerLabels.ts',
+        'src/noyau/codex/triggerLabels.ts',
         'public/qc/baseline-affine/README.md',
         '.claude/rules/rendu-du-monde.md',
       ]),

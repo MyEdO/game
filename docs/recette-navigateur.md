@@ -2062,7 +2062,7 @@ l'expression `/^\/source\//` — le motif NU `/source/` attrape aussi, en dev, l
 (`src/data/source/*.ts`, servis par Vite) et rendrait un faux positif ; (3) 0 erreur console
 (`window.__wfrp.errors`). En Atelier, le champ d'édition de l'adresse (`DescRefField`) remplace la
 zone de saisie de prose — et le `textarea` « Description » n'existe PAS sur une entrée adressée (un
-champ DÉRIVÉ ne s'offre pas à l'édition, `estDerive` de `src/ui/compendium/editFields.ts`) :
+champ DÉRIVÉ ne s'offre pas à l'édition, `estDerive` de `src/noyau/codex/editFields.ts`) :
 remettre le livre de l'adresse à vide le fait réapparaître, garni de la prose matérialisée (geste
 « détacher »).
 
