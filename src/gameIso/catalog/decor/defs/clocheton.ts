@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // cloche de bronze, croix dorée en faîteau — silhouette qui se lit de loin (ornement 'ridge').
 export const prop: PropViz = {
   id: 'clocheton',
-  label: 'Clocheton',
   render: () =>
     `<g>` +
     `<rect x="58" y="14" width="4" height="16" fill="${P.orFonce4}"/>` +

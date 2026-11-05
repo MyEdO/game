@@ -1,7 +1,7 @@
 /**
  * Catalogue de décors (placeables NWN) — DÉRIVÉ du registre `defs/` (gen-registry.mjs).
- * Ajouter un décor = déposer `defs/<id>.ts` (`export const prop: PropViz = { id, label, render, … }`)
- * puis `npm run gen` (auto en dev via le plugin Vite).
+ * Ajouter un décor = déposer `defs/<id>.ts` (`export const prop: PropViz = { id, render, … }`) à côté de
+ * son entrée `src/data/props.json`, puis `npm run gen` (auto en dev via le plugin Vite).
  * Chaque `render` renvoie un SVG en boîte locale 120×150, pieds en (60,150).
  */
 import type { PropViz, RenderCtx } from '../types';
@@ -11,8 +11,16 @@ import { warnMissing } from '../missing';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { Rot } from '../../../geometry/iso';
 import { PROP_DEFS } from './_registry.generated';
+import { findPropById } from '../../../data';
+import type { PropData } from '../../../data/props.types';
+import { garanti } from '../../../lib/garanti';
 
 export const PROPS: Record<string, PropViz> = Object.fromEntries(PROP_DEFS.map((p) => [p.id, p]));
+
+/** Les décors que le catalogue dessine, dans son ordre, lus dans leur `PropData` : libellé et
+ *  sémantique d'auteur n'ont qu'une source (`src/data/props.json`). */
+export const decorsDuCatalogue = (): PropData[] =>
+  PROP_DEFS.map((p) => garanti(findPropById(p.id), p.id, 'donnée de la def d’art'));
 
 /** Ce que la diagnostique NOMME quand l'entité ne NOMME aucun type — libellé d'AVERTISSEMENT, jamais
  *  un id de repli : rien ne se résout sous ce nom. */

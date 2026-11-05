@@ -8,7 +8,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
   type CombatEvent, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -141,13 +141,16 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];
 
-/** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
- *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
- *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`) et l'issue de la Défense. */
+/** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
+ *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
+ *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle, le
+ *  Sauvetage par le Destin et la victoire en attente. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
-  const attaque = fenetreDAttaque(etat);
+  const pc = etat.pendingCascade;
+  const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
+  const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
   if (attaque) return corpsDeLAttaque(etat, attaque);
-  const defense = fenetreDeDefense(etat);
+  const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
     ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
@@ -157,6 +160,53 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
+    ...revelationDeLEtape(etat),
+    ...destinEnJeu(etat),
+    ...victoire(etat),
+  ];
+}
+
+/** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque
+ *  message de la rencontre ; l'équipement s'attribue par les réglages de la fenêtre (`fenetreDuButin`). */
+function victoire(etat: Jeu): Element[] {
+  const v = etat.pendingVictory;
+  if (!v) return [];
+  const argent = formatMoney(v.gold);
+  return [
+    ...(v.xp ? [puce('victoire/xp', t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
+    ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce('victoire/argent', t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
+    ...v.defeated.map((d, i) => ligne(`victoire/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
+    ...(v.messages ?? []).map((m, i) => ligne(`victoire/message/${i}`, m)),
+  ];
+}
+
+/** Le Sauvetage par le Destin en attente : ce qui emporte le héros, sa mort sans sacrifice au détail, et ses Points de
+ *  Destin. */
+function destinEnJeu(etat: Jeu): Element[] {
+  const p = etat.pendingFateSave;
+  const heros = p && porteurParId(etat, p.heroId);
+  if (!heros) return [];
+  return [ligne('destin/enjeu', t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce('destin/points', t('ecran.destin'), String(heros.fate ?? 0))];
+}
+
+/** Ce que l'étape courante de la cascade révèle (fin de round, entrée de scène, mutation, Coup Critique…). Un Coup
+ *  Critique dit sa localisation, les Blessures perdues s'il en coûte et chaque État infligé en puces, sur un héros en
+ *  `echec`, sur un adversaire en `reussite` ; toute autre révélation, chacune de ses lignes. Puis chacun de ses effets,
+ *  son explication au détail. Ses lignes vont aussi au journal, où ses effets ne se lisent qu'au survol. */
+function revelationDeLEtape(etat: Jeu): Element[] {
+  const pc = etat.pendingCascade;
+  const r = pc?.participants[pc.cursor]?.reveal;
+  if (!r) return [];
+  const crit = r.kind === 'critical' ? r.crit : undefined;
+  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
+  const prefixe = crit ? 'critique' : 'revelation';
+  return [
+    ...(crit ? [
+      puce('critique/localisation', t('ecran.critique.localisation'), crit.location, null, ton),
+      ...(crit.woundsLost ? [puce('critique/blessures', t('ecran.jauge.blessures'), avecSigne(-crit.woundsLost), null, ton)] : []),
+      ...(crit.conditions ?? []).map((c) => puce(`critique/etat/${c.id}`, conditionLabel(c.id), String(c.value), null, ton)),
+    ] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
+    ...(r.details ?? []).map((d, i) => ligne(`${prefixe}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
 }
 
@@ -207,11 +257,13 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
 /** Le ton de chaque issue du combat. */
 const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
 
-/** Ce que le panneau du combat dit hors de ses jauges : pourquoi la barre est fermée (la fenêtre le dit quand elle tient
- *  la main), la fin du combat. */
+/** Ce que le panneau du combat dit hors de ses jauges, quand aucune fenêtre ne tient la main : pourquoi la barre est
+ *  fermée, la fin du tour armée par un premier geste qui laisserait l'Action intacte (`finDeTourArmee`) ; la fin du
+ *  combat. */
 function avisDuCombat(c: Combat, fenetreOuverte: boolean): Ligne[] {
   return [
     ...(c.barre.raison === null || fenetreOuverte ? [] : [ligne('raison', c.barre.raison, 'alerte')]),
+    ...(c.finDeTourArmee && !fenetreOuverte ? [ligne('finDeTourArmee', t('ecran.finDeTourArmee'), 'alerte')] : []),
     ...(c.fin ? [ligne('fin', t('ecran.fin', { issue: t(`ecran.fin.${c.fin}`) }), TON_DE_LA_FIN[c.fin])] : []),
   ];
 }

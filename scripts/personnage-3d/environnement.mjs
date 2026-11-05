@@ -79,7 +79,9 @@ if (import.meta.main) {
   if (!script) {
     process.stdout.write(`[personnage-3d] environnement prêt : ${PYTHON_DU_VENV}\n`)
   } else {
-    const vu = spawnSync(PYTHON_DU_VENV, ['-X', 'utf8', '-u', script, ...args], { stdio: 'inherit' })
+    // #3104 issuecomment-6570150971
+    const env = { ...process.env, OPENBLAS_NUM_THREADS: '1' }
+    const vu = spawnSync(PYTHON_DU_VENV, ['-X', 'utf8', '-u', script, ...args], { stdio: 'inherit', env })
     if (vu.error) throw vu.error
     process.exit(vu.status ?? 1)
   }

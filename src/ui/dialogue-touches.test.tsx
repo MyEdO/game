@@ -20,7 +20,7 @@ import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
 import { hotbar } from '../state/hotbarBridge';
 import { campaignStart } from '../engine/clock';
-import type { Dialogue, DialogueNode } from '../noyau/monde/scene';
+import { emptyScene, type Dialogue, type DialogueNode } from '../noyau/monde/scene';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
@@ -44,7 +44,7 @@ const dlg: Dialogue = {
   ] }, { id: 'n2', desc: 'Suite.', choices: [] }],
 } as Dialogue;
 
-const scene = { id: 'scn', nom: 'Scène', desc: '', size: [4, 4], entities: [], dialogues: [dlg], triggers: [], encounters: [] } as never;
+const scene = { ...emptyScene('scn', 4, 4), dialogues: [dlg] };
 
 let host: HTMLDivElement;
 let root: Root;

@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // ref est sa recette volumique (`props.json`), jamais ce dessin.
 export const prop: PropViz = {
   id: 'table-ronde-4-tabourets',
-  label: 'Table ronde et 4 tabourets',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="142" rx="50" ry="12" fill="${P.ombre}" opacity="0.2"/>` +
     // tabourets arrière

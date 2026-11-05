@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, couvre, fermeAuxInstruments, outillageAtteint, paquetFerme, zoneDe } from './couches.mjs'
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, couvre, fermeParLaSurvie, outillageAtteint, paquetFerme, zoneDe } from './couches.mjs'
 import { lintFixtures, selectionnerMessages } from './lint.testkit.mjs'
 
 const RACINE = new URL('../../../', import.meta.url)
@@ -68,7 +68,7 @@ test('ORACLE : `outillageAtteint` nomme l’outillage qu’un module de la zone 
   assert.deepEqual(cas.map(([de, imp, cible]) => outillageAtteint(de, imp, cible)), cas.map(([, , , v]) => v))
 })
 
-test('ORACLE : `fermeAuxInstruments` ferme aux instruments d’une zone qui survit chaque zone de la table qui n’y survit pas, et rien d’autre', () => {
+test('ORACLE : `fermeParLaSurvie` ferme à une zone qui survit chaque zone de la table qui n’y survit pas, et rien d’autre', () => {
   const cas = [
     ['noyau', 'state', true],
     ['engine', 'ui', true],
@@ -79,11 +79,11 @@ test('ORACLE : `fermeAuxInstruments` ferme aux instruments d’une zone qui surv
     ['state', 'ui', false], // `state` ne survit pas
     ['racine', 'state', false],
     ['noyau', 'src/zz-inconnue', false], // hors de la table : `murs/zone`
-    ['noyau', null, false], // hors des zones : sa clôture, `scripts/corpus/guards/clotureDesInstruments.test.mjs`
+    ['noyau', null, false], // hors des zones : sa clôture, `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`
     ['noyau', 'constructor', false],
     ['constructor', 'state', false],
   ]
-  assert.deepEqual(cas.map(([de, vers]) => fermeAuxInstruments(de, vers)), cas.map(([, , v]) => v))
+  assert.deepEqual(cas.map(([de, vers]) => fermeParLaSurvie(de, vers)), cas.map(([, , v]) => v))
 })
 
 /** Le verdict de chaque fixture pour les messages qui contiennent `marque` : la règle, ou `passe`. */

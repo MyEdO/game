@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // et patins. Le miroir des loges d'artistes où l'on se costume. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'miroir',
-  label: 'Miroir',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="28" ry="7" fill="${P.ombre}" opacity="0.2"/>` +
     // pied : deux montants + patins

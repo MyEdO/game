@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // du théâtre (salle verte, loges d'artistes, costumiers). Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'table',
-  label: 'Table',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="42" ry="9" fill="${P.ombre}" opacity="0.2"/>` +
     `<rect x="34" y="106" width="6" height="42" fill="${P.boisSombre4}"/><rect x="80" y="106" width="6" height="42" fill="${P.boisSombre4}"/>` + // pieds avant

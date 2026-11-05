@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // (tréteaux et bois de charpente).
 export const prop: PropViz = {
   id: 'scie-chevalet',
-  label: 'Chevalet de sciage',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="38" ry="8" fill="${P.ombre}" opacity="0.2"/>` +
     // tréteau (pieds en X)

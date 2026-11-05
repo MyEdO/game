@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // s'élève (groupe `smoke`, dont la montée est ∝ hauteur du panache — cf. feu-camp). Ornement 'ridge'.
 export const prop: PropViz = {
   id: 'cheminee',
-  label: 'Cheminée',
   render: () =>
     `<g>` +
     `<g class="smoke">` +
