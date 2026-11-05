@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // (16) et de la charpenterie (26) du théâtre. Cf. plan officiel NADJ 08 folio 38, image (longs panneaux/toiles rangés).
 export const prop: PropViz = {
   id: 'decor-flat',
-  label: 'Châssis de décor',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="32" ry="7" fill="${P.ombre}" opacity="0.2"/>` +
     // cadre incliné contre le mur

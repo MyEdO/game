@@ -14,7 +14,7 @@ import { DialogueBox } from './DialogueBox';
 import { useGame } from '../state/store';
 import { campaignStart } from '../engine/clock';
 import type { Dialogue, SceneEntity } from '../noyau/monde/scene';
-import type { Scene } from '../noyau/monde/scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { spellMoney, toMoney } from '../engine/money';
@@ -37,7 +37,7 @@ const dlg: Dialogue = {
   ],
 };
 
-const scene: Scene = { id: 'scn', nom: 'Scène de test', desc: '', size: [4, 4], entities: [alice, bob], dialogues: [dlg], triggers: [], encounters: [] } as unknown as Scene;
+const scene: Scene = { ...emptyScene('scn', 4, 4), entities: [alice, bob], dialogues: [dlg] };
 
 describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
   let container: HTMLDivElement;

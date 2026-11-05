@@ -103,8 +103,8 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
   // PLANCHER de la dérivation : `IDS` vient du catalogue, le comparer à sa propre définition ne
   // rougirait jamais. Ce qui peut vraiment casser, c'est une jointure VIDE (dataset non chargé,
   // `volume` renommé) : les `it.each` ci-dessous passeraient alors sans rien mesurer. L'existence de
-  // la def d'ART de chaque id, elle, est gardée par `src/data/props-label-parite.test.ts`
-  // (`labelDArt` est FAIL-FAST sur une def absente, sur TOUTES les entrées de `props.json`).
+  // la def d'ART de chaque id, elle, est gardée par la bijection `src/data/props-art-bijection.test.ts`,
+  // sur TOUTES les entrées de `props.json`.
   it('la dérivation ne rend pas une liste VIDE (les contrats ci-dessous mesureraient du néant)', () => {
     expect(IDS.length).toBeGreaterThanOrEqual(11);
   });

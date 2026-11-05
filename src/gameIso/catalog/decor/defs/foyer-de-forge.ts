@@ -6,7 +6,6 @@ import { P } from '../../decorPalette';
 // gauche. Composite 1×1. Ancré aux pieds, ombre au sol.
 export const prop: PropViz = {
   id: 'foyer-de-forge',
-  label: 'Foyer de forge',
   render: () =>
     `<g>` +
     `<ellipse cx="60" cy="147" rx="42" ry="9" fill="${P.ombre}" opacity="0.22"/>` +

@@ -15,7 +15,7 @@
  * datasets étant mutés EN PLACE (`overrides.ts::setDataset`), re-construire relit la donnée FRAÎCHE —
  * les sections inverses, le contenu des fiches Livre et l'auto-liage suivent une édition sans reload.
  *
- * Le registre (`registry.ts`) en tire les SECTIONS inverses ; les refs AVANT restent projetées par
+ * Le registre (`src/ui/compendium/registry.ts`) en tire les SECTIONS inverses ; les refs AVANT restent projetées par
  * le registre (rendu riche : choix « A ou B », Indices d'instance) — ici, c'est la couche d'INVERSION
  * et d'INDEX, pas une seconde copie des refs avant.
  */
@@ -55,7 +55,7 @@ export interface ReverseGroup {
 }
 
 /** Accès à une projection RE-CALCULÉE après une écriture au seam des datasets : `memoParVersion` sur
- *  toutes les clés, miroir de `makeCategory` (registry.ts). */
+ *  toutes les clés, miroir de `makeCategory` (`src/ui/compendium/registry.ts`). */
 const versionCached = <T,>(build: () => T): (() => T) => memoParVersion(CLES_DE_DATASET, build);
 
 // ── Construction du graphe inverse ─────────────────────────────────────────────
@@ -199,7 +199,7 @@ const graph = versionCached<ReverseGraph>(() => {
 
   // 14) Mutation ← Table de Corruption qui la tire (inversion de mutationTable.entries[].mutation).
   for (const tab of mutationTables) for (const r of tab.entries) addReverse('mutations', r.mutation, { category: 'mutationTables', id: tab.id, label: tab.label, detail: fourchette(r.min, r.max, facesDuDe(tab.die)) }, 'Tables de Corruption la tirant');
-  // 15) Lieu ← sous-lieux (inversion de location.parent, désormais un id de parent).
+  // 15) Lieu ← sous-lieux (inversion de location.parent, un id de parent).
   for (const l of locations) if (l.parent) addReverse('locations', l.parent, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
 
   return { reverse: REVERSE, titles: TITLES };
@@ -406,19 +406,6 @@ const linkCandidatesCached = versionCached<Map<string, LinkCandidate[]>>(() => {
   return idx;
 });
 
-/** Id d'une entité cataloguée par son libellé — résolution de REPLI pour les appelants de
- *  `tokenizeLinks` qui ne connaissent que le libellé de leur propre fiche (Prose hors Codex, non
- *  migrés ce lot, cf. `CodexRef`) : MÊME mécanisme que `codexLookup` (registry.ts) — un Map, pas une
- *  comparaison d'égalité — la décision finale (anti-auto-lien) reste 100 % id-based en aval. */
-const idByLabelCached = versionCached<Map<string, string>>(() => {
-  const m = new Map<string, string>();
-  // Construction seule (parcours inversé = première occurrence gagnante), aucune interrogation par
-  // libellé (#602) : c'est un index de TEXTE, alimenté par la couture tolérée.
-  const all = catalog();
-  for (let i = all.length - 1; i >= 0; i--) m.set(all[i].label, all[i].id);
-  return m;
-});
-
 /** Candidats d'un fragment matché : lookup direct, puis repli PLURIEL en retirant un « s » final par
  *  mot — le pattern `linkRe` tolère le pluriel FR régulier par mot ; l'index reste keyé au SINGULIER,
  *  la résolution y ramène (« Attaques caudales » → « attaque caudale »). */
@@ -483,21 +470,19 @@ const SPEC_TAIL = /^\s*\(([^()]{1,60})\)/;
  * Tokenise une prose en alternant texte brut et mentions d'entité à LIER (auto-liage du Codex,
  * façon `dev.html`). PUR & locale-scoped (matcher dérivé des libellés de la locale active, jamais
  * une chaîne FR en dur → multilingue de principe). Écarte les liens vers SOI et les libellés
- * inconnus/courts — la comparaison est 100 % id-based (`selfId` si l'appelant le connaît, sinon
- * résolu depuis `selfLabel` via `idByLabelCached`, repli des appelants non encore migrés).
+ * inconnus/courts — la fiche affichante s'écarte par sa catégorie et son id STABLE (`selfCategory`, `selfId`), jamais par son libellé.
  * `selfCategory` (catégorie de la fiche affichante) tranche les homonymes en priorité — cf.
  * `resolveLink`/`PRIORITY_CAT_ORDER`. Seul le vocabulaire de RÈGLES est lié.
  */
-export function tokenizeLinks(text: string, selfLabel?: string, selfCategory?: string, selfId?: string): LinkToken[] {
+export function tokenizeLinks(text: string, selfCategory?: string, selfId?: string): LinkToken[] {
   const re = linkRe();
   re.lastIndex = 0;
-  const resolvedSelfId = selfId ?? (selfLabel ? idByLabelCached().get(selfLabel) : undefined);
   const out: LinkToken[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const hit = resolveLink(m[1], selfCategory);
-    if (!hit || hit.id === resolvedSelfId) continue; // inconnu / auto-référence → laissé en texte
+    if (!hit || (hit.id === selfId && hit.category === selfCategory)) continue; // inconnu / auto-référence → laissé en texte
     if (m.index > last) out.push(text.slice(last, m.index));
     let end = m.index + m[1].length;
     let display = m[1];

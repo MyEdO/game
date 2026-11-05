@@ -17,6 +17,7 @@ import { KEYBINDINGS, runBindingById } from '../state/clavier/keybindings';
 import { seedBattleRng } from '../noyau/battleRng';
 import { validTargets } from '../noyau/targeting';
 import { testScene } from '../scenes/test-fixture';
+import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { dialogueDuDessus, resetDismissLayers } from './useDismissLayer';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
@@ -441,7 +442,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
 describe('conversation PNJ — une surface de la pile qui suspend le jeu', () => {
   const Clavier = () => { useGameKeyboard(); return null; };
   const dlg = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [{ label: 'Suite' }, { label: 'Adieu' }] }] };
-  const scene = { id: 's', nom: 'S', desc: '', size: [4, 4], entities: [{ id: 'e1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Alice' }], dialogues: [dlg], triggers: [], encounters: [] };
+  const scene = { ...emptyScene('s', 4, 4), entities: [{ id: 'e1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Alice' }], dialogues: [dlg] };
   const conversation = () => document.querySelector<HTMLElement>('.dialogue-box')!;
   let pris: () => string[];
   beforeEach(() => {

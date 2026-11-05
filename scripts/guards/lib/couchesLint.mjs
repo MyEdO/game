@@ -12,11 +12,11 @@
 //    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
 //    `horsZoneOuvert`). Elle juge tout fichier d'une zone qui n'est ni suite ni banc (`estFichierVitest`).
 //  - `murs/tests-survivants` (#3058) : une suite ou un banc (`estFichierVitest`) d'une zone qui survit n'a aucun arc,
-//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeAuxInstruments`), ne charge aucun
+//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeParLaSurvie`), ne charge aucun
 //    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`), et ne
 //    charge rien que la lecture des arcs ne suive (`surCalcule` de `visiteurDArcs`) : spécificateur ou motif calculé,
 //    chargeur renommé, lié comme valeur ou lu par un accès calculé. Une cible hors des zones s'ouvre : sa clôture est
-//    le mur `scripts/corpus/guards/clotureDesInstruments.test.mjs`, qui ne suit pas l'acquisition calculée d'un module
+//    le mur `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`, qui ne suit pas l'acquisition calculée d'un module
 //    hors des zones (`scripts/docs/build-all.mjs:216`, `scripts/guards/lib/structuresLocales.mts:249` ; reste de
 //    #3058). `purete-imports` et ce mur se partagent les
 //    fichiers des zones, sans trou ni recouvrement, et un seul jugeur d'arcs (`jugeurDArcs`).
@@ -36,7 +36,7 @@ import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
-import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeAuxInstruments, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
+import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeParLaSurvie, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estFichierVitest, estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';
@@ -174,8 +174,8 @@ const testsSurvivants = {
       surPaquet: (node, paquet) => { if (paquetFerme(de, paquet, importeurRel)) rapporter(node, msgPaquet(de, paquet)); },
       surCible: (node, cibleRel) => {
         const vers = zoneDe(cibleRel);
-        if (!fermeAuxInstruments(de, vers)) return;
-        rapporter(node, `Zone fermée (#2882) : une suite ou un banc de ${nommer(de)}, qui survit à la bascule, n’importe rien de ${nommer(vers)}, qui n’y survit pas, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} (\`survit\`, \`fermeAuxInstruments\`) : jouer la règle par une zone qui survit, ou poser le test de l’hôte web dans sa zone.`);
+        if (!fermeParLaSurvie(de, vers)) return;
+        rapporter(node, `Zone fermée (#2882) : une suite ou un banc de ${nommer(de)}, qui survit à la bascule, n’importe rien de ${nommer(vers)}, qui n’y survit pas, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} (\`survit\`, \`fermeParLaSurvie\`) : jouer la règle par une zone qui survit, ou poser le test de l’hôte web dans sa zone.`);
       },
       surJoker: (node, motif) => rapporter(node, msgJoker(de, motif)),
       surJsx: (node) => rapporter(node, msgJsx(de)),

@@ -46,11 +46,10 @@ export interface FacadeAppearanceDef {
  *  REPLIE sur la plus proche déclarée (`nearestView`) ; une def ne sélectionne JAMAIS sa vue elle-même. */
 export type PropViews = ViewArt<[Record<string, unknown>, RenderCtx]>;
 
+/** Art d'un décor, keyé par l'`id` de son `PropData` (`src/data/props.json`), qui porte seul le
+ *  libellé et la sémantique d'auteur (`findPropById`). */
 export interface PropViz {
   id: string;
-  label: string;
-  /** Décor « naturellement fouillable/ramassable » : l'éditeur pré-arme `interact` à la pose (SP2↔SP1). */
-  searchable?: boolean;
   paramsSchema?: ParamField[];
   /** Prop NON orienté (billboard symétrique — un tonneau n'a pas de dos) : un seul dessin. */
   render?(params: Record<string, unknown>, ctx: RenderCtx): string;

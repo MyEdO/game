@@ -16,7 +16,7 @@ import { effectiveMaxWounds } from '../engine/characteristics';
 describe('transitionDuJeu — occupation des sièges', () => {
   it('une écriture qui ne touche pas `party` n’appelle rien', () => {
     const prev = etatAttable();
-    expect(transitionDuJeu(prev, { ...prev, gameTime: prev.gameTime + 1 })).toBeNull();
+    expect(transitionDuJeu(prev, { ...prev, gameTime: prev.gameTime + 1 })?.scene).toBeUndefined();
   });
 
   it('une permutation du groupe sous la même occupation lève les deux chaises', () => {
@@ -29,12 +29,12 @@ describe('transitionDuJeu — occupation des sièges', () => {
 
   it('un héros ajouté derrière les rangs assis ne lève rien', () => {
     const prev = etatAttable();
-    expect(transitionDuJeu(prev, { ...prev, party: [ALDO, BRUNA, CORA] })).toBeNull();
+    expect(transitionDuJeu(prev, { ...prev, party: [ALDO, BRUNA, CORA] })?.scene).toBeUndefined();
   });
 
   it('une occupation NEUVE dans la même écriture porte sa propre vérité : rien à réconcilier', () => {
     const prev = etatAttable();
-    expect(transitionDuJeu(prev, { ...prev, party: [BRUNA, ALDO], scene: taverneAttablee() })).toBeNull();
+    expect(transitionDuJeu(prev, { ...prev, party: [BRUNA, ALDO], scene: taverneAttablee() })?.scene).toBeUndefined();
   });
 
   it('réentrance structurelle : l’écriture de libération ne se rejoue pas', () => {

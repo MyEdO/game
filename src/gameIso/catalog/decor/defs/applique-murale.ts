@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // l'éclairage des couloirs et loges de l'Opéra. (Sans empreinte : fixée au mur.)
 export const prop: PropViz = {
   id: 'applique-murale',
-  label: 'Applique murale',
   render: () =>
     `<g><ellipse cx="60" cy="146" rx="14" ry="4" fill="${P.ombre}" opacity="0.12"/>` +
     `<path d="M55 72 L65 72 L63 100 L57 100 Z" fill="${P.boisMoyen23}"/><ellipse cx="60" cy="72" rx="8" ry="4" fill="${P.boisMoyen21}"/><ellipse cx="60" cy="100" rx="6" ry="3" fill="${P.orFonce2}"/>` +

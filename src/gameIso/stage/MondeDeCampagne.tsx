@@ -103,7 +103,6 @@ function CorpsDuMonde() {
   const gameTime = useGame((s) => s.gameTime);
   const lightLevel = useGame((s) => s.lightLevel);
   const explored = useGame((s) => s.explored);
-  const markExplored = useGame((s) => s.markExplored);
   const dialogue = useGame((s) => s.dialogue);
   // REGARD COURANT : la seule chose qui distingue les deux vues. Il ne démonte plus le monde.
   const pov = useGame((s) => s.mode === 'exploration' && s.povActive);
@@ -214,18 +213,8 @@ function CorpsDuMonde() {
     () => (scene ? sceneLightSources({ scene, battle, party, partyPos }) : []),
     [scene, battle, party, partyPos],
   );
-  // L'EXPLORÉ DU PAS COURANT : ce que le store a retenu, PLUS ce que le groupe voit à l'instant. Un pas
-  // découvre des cases, et l'accumulation persistante ci-dessous ne fait que les CONFIRMER au commit
-  // SUIVANT : sans cette union, un pas passait DEUX champs de teinte (un au calcul de `visible`, un au
-  // retour du store), donc deux fois toute la cascade qui en dépend (#1396).
-  // Sa RÉFÉRENCE ne change qu'au CONTENU : le commit de confirmation rend un ensemble égal, et la
-  // teinte qui en descend ne doit pas s'y reforger.
-  const exploredSet = useExploreCourant(explored, scene?.id, visible);
-  // Accumulation persistante de l'exploré (no-op si rien de neuf → pas de boucle de rendu). Explorer
-  // en première personne nourrit la MÊME mémoire de carte : c'est le même hôte.
-  useEffect(() => {
-    if (visible.size) markExplored([...visible]);
-  }, [visible, markExplored]);
+  // L'EXPLORÉ de la scène, que la transition du jeu accumule (`exploreCourant.ts`).
+  const exploredSet = useExploreCourant(explored, scene?.id);
 
   const mpt = scene ? sceneMetresPerTile(scene) : 2;
   const indoor = useMemo(() => (scene ? isIndoor(scene) : false), [scene]);

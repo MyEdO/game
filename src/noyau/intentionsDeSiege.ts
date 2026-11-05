@@ -190,7 +190,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   dispelSelectCarrier: 'local',
   closeDocument: 'hôte',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
-  markExplored: 'hôte', openWorldMap: 'hôte', closeWorldMap: 'hôte', startTravel: 'hôte',
+  openWorldMap: 'hôte', closeWorldMap: 'hôte', startTravel: 'hôte',
   startBilletBargain: 'hôte', resumeTravel: 'hôte', departWaitDawn: 'hôte', departCancel: 'hôte',
   dismissTravelRecap: 'hôte', setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
