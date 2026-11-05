@@ -638,7 +638,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;
                             `src/audio/` garde le registre et la lecture.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
-                            de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
+                            de la partie passé à `presetDuNarratif`).
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions
                             d'adaptateur (vue, caméra/zoom, fiche, coop, saves) ; il étale les actions
                             du noyau (`creerActionsDuNoyau`), branche le jeu (`brancherLeJeu`), ensemence le
@@ -787,8 +787,8 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               pointer-events:none, hit-target large par tracé). AUCUNE logique de voyage dedans
                               (elle reste dans WorldMapView, premier consommateur ; le plan de ville #343-B sera
                               le second). Caméra pure = `worldMapViewport.ts` (clamp/fit/viewOn).
-  editor/                     Éditeur v2 : Editor.tsx (shell), editorState.ts (sélection unifiée +
-                              mutations PURES), EditorCanvas (pointeur/overlays/resize), Palette (rail
+  editor/                     Éditeur v2 : Editor.tsx (shell ; ses écrivains PURS dans `noyau/sceneEdit.ts`,
+                              outil/sélection/picking dans `noyau/sceneEditLecture.ts`), EditorCanvas (pointeur/overlays/resize), Palette (rail
                               d'outils + contenu contextuel), Inspector (DOCKÉ, folds ; scène si rien
                               de sélectionné), LogicDock (triggers/dialogues/rencontres/validation en
                               master-détail, édition live), EffectList (rangées repliées + picker),

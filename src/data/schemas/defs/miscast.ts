@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { idDe, refOuSpec } from '../grammaire/ref';
+import { idDe, ref, refOuSpec } from '../grammaire/ref';
 import { refuserEtatsInconnus } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
@@ -11,7 +11,7 @@ export const famille = 'entite';
 
 /**
  * `JsonOp` (`engine/miscast.ts`) — miroir aplati du `GameOp` runtime (`op:'condition'|'wounds'|
- * 'corruption'|'reduceToZero'|'castPenalty'`, seuls op observés dans la donnée), en `JsonFormula`.
+ * 'corruption'|'reduceToZero'|'castPenalty'|'suppressTalents'`, seuls op observés dans la donnée), en `JsonFormula`.
  * `escapeStrength` porte la `Formula` générale (`formulaSchema`) : `expandOp` la recopie telle quelle
  * dans le `GameOp`, que `applyOps` résout par `resolveFormula` (`engine/ops.ts`).
  */
@@ -38,6 +38,9 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   hours: formulaSinSchema.optional(),
   minutes: formulaSinSchema.optional(),
   days: formulaSinSchema.optional(),
+  /** LDB 40 l.80, l.82. */
+  talents: z.array(ref('talent')).min(1).optional(),
+  durationDays: formulaSinSchema.optional(),
   escapeStrength: formulaSchema.optional(),
 }).superRefine((v, ctx) => {
   if (v.op === 'condition' || v.op === 'removeCondition') refuserEtatsInconnus(v, ['id'], ctx);
@@ -59,6 +62,8 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   hours: { label: 'heures' },
   minutes: { label: 'minutes' },
   days: { label: 'jours' },
+  talents: { label: 'Talents suspendus' },
+  durationDays: { label: 'durée en jours' },
   escapeStrength: { label: 'Force pour s’échapper' },
 });
 

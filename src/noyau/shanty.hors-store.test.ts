@@ -8,6 +8,7 @@ import { findCrewRoleById, findSeaShantyById } from '../data';
 import { rollCrewRole } from './shipManeuver';
 import { endShanty, applyShantyToCrew, quartIndex, QUART_MINUTES } from './shipCrew';
 import { makeRNG } from '../engine/dice';
+import { evaluateTest } from '../engine/tests';
 import { propulsionDuNavire } from '../engine/shipBuild';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
@@ -195,7 +196,7 @@ describe('Commandant émérite (MDG 09 l.50-54) — +niveau DR aux Tests d’éq
     const sans = { ...c, talents: [] } as Combatant;
     const without = jete(rollCrewRole(sans, 'capitaine', NAVIGATION, makeRNG(11))!.result);
     expect(withTalent.roll).toBe(without.roll); // même dé (même seed)
-    if (withTalent.roll <= withTalent.target) expect(withTalent.sl).toBe(without.sl + 3);
+    if (evaluateTest(withTalent.roll, withTalent.target).success) expect(withTalent.sl).toBe(without.sl + 3);
     else expect(withTalent.sl).toBe(without.sl); // raté → pas de bonus
   });
 });

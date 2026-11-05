@@ -16,7 +16,7 @@
  */
 import { terrains } from '../../../data/index';
 import { memoParVersion } from '../../../data/versionDataset';
-import type { TerrainDef } from '../../../data/terrains.types';
+import type { TerrainDef, TerrainStops } from '../../../data/terrains.types';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 
 
@@ -33,6 +33,16 @@ export function indexDesTerrains(): Readonly<Record<string, TerrainDef>> {
 export function tousLesTerrains(): readonly TerrainDef[] {
   return terrains;
 }
+
+/**
+ * Arrêts d'une rampe de terrain, ORDONNÉS par offset croissant — source UNIQUE des émetteurs de
+ * `<linearGradient>` (`gameIso/sprites.ts`, `gameIso/authoring/detailSvg.ts`) et de la fiche Codex.
+ * SVG lit les `<stop>` dans l'ordre d'ÉMISSION et clampe un offset qui recule sur son prédécesseur :
+ * un arrêt émis hors ordre est inerte, sans un mot. L'ordre est aussi exigé au PARSE
+ * (`schemas/defs/terrains.ts`) ; le tri ici rend l'émission indépendante de l'ordre des clés du Record.
+ */
+export const terrainStopsOrdonnes = (stops: TerrainStops): [string, string][] =>
+  Object.entries(stops).sort((a, b) => Number.parseInt(a[0], 10) - Number.parseInt(b[0], 10));
 
 /** Ids du dataset, dans l'ordre authoré. */
 export function terrainIds(): string[] {

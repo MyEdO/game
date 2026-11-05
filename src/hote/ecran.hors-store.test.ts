@@ -94,3 +94,18 @@ describe('le panneau du combat (`combat.avis`)', () => {
     }
   });
 });
+
+describe('le début du Round (`fenetre.gestes`)', () => {
+  it('seul, on le lance ; en réseau, on se dit prêt ; sans tireur, aucune visée de Tir rapide', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const debut = partie.etat();
+      const gestes = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.gestes'].map((g) => g.id);
+      expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
+      expect(gestes(debut), 'seul : le lancer, et qui agit en premier').toEqual(['confirmRoundStart', 'roundStartPromote']);
+      expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : se dire prêt').toEqual(['roundStartReady', 'roundStartPromote']);
+    } finally {
+      partie.fermer();
+    }
+  });
+});

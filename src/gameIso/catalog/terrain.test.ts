@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { terrainDef, terrainGradient, terrainGradientId, terrainStopsOrdonnes, MISSING_GRADIENT } from './terrain';
-import { tousLesTerrains, terrainEntree, terrainWalkable } from '../../noyau/monde/terrain';
+import { terrainDef, terrainGradient, terrainGradientId, MISSING_GRADIENT } from './terrain';
+import { tousLesTerrains, terrainEntree, terrainWalkable, terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { setDataset } from '../../data/overrides';
 import { type TerrainDef } from '../../data/terrains.types';
 import { defsGlobaux, degradesDeTerrains } from '../sprites';
@@ -54,14 +54,6 @@ const offsetsDuDegrade = (svg: string, id: string): number[] => {
 };
 
 describe('rampe d’un terrain — l’ordre des arrêts est celui de l’ÉMISSION', () => {
-  it('les arrêts se trient par offset croissant, quel que soit l’ordre des clés du Record', () => {
-    expect(terrainStopsOrdonnes({ '100%': '#ffffff', '0%': '#000000', '45%': '#808080' })).toEqual([
-      ['0%', '#000000'],
-      ['45%', '#808080'],
-      ['100%', '#ffffff'],
-    ]);
-  });
-
   it('l’émetteur de `sprites` émet les arrêts DANS L’ORDRE — un Record écrit à l’envers ne perd aucun arrêt', () => {
     const renverse: TerrainDef = {
       id: 'renverse', type: 'terrains', label: 'Renversé', maison: 'fixture en mémoire', walkable: true,

@@ -12,10 +12,14 @@ import { describe, it, expect } from 'vitest';
 import { qualities, findQualityById } from '../../data';
 import { humanizeFlowSentence } from './humanize';
 import { effectsSection } from './describe';
+import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
+
+/** Aucun état de campagne : les données du dépôt n'en déclarent pas (#767). */
+const AUCUN_ETAT: readonly EtatDeclare[] = [];
 
 /** Tout le texte JOUEUR que la section « Effets déclenchés » d'une fiche rend, aplati. */
 function textesDeFiche(effects: Parameters<typeof effectsSection>[0]): string[] {
-  const section = effectsSection(effects);
+  const section = effectsSection(effects, AUCUN_ETAT);
   return (section?.rows ?? []).flatMap((r) => {
     const o = r as { text?: string; label?: string; summary?: string; show?: string };
     return [o.text, o.label, o.summary, o.show].filter((s): s is string => typeof s === 'string');
@@ -33,7 +37,7 @@ describe('Codex des qualités — aucun template d’instance n’atteint le jou
     const fuites: string[] = [];
     for (const q of porteuses) {
       for (const e of q.effects!) {
-        const phrase = humanizeFlowSentence(e.flow);
+        const phrase = humanizeFlowSentence(e.flow, AUCUN_ETAT);
         if (phrase.includes('$')) fuites.push(`${q.id} → phrase : ${phrase}`);
       }
       for (const t of textesDeFiche(q.effects)) if (t.includes('$')) fuites.push(`${q.id} → fiche : ${t}`);
@@ -46,7 +50,7 @@ describe('Codex des qualités — aucun template d’instance n’atteint le jou
 
   it('Taillade : le coût resté TEMPLATE se lit « X », comme le livre l’imprime (AA 08 l.87)', () => {
     const taillade = findQualityById('taillade')!;
-    const phrase = humanizeFlowSentence(taillade.effects![0].flow);
+    const phrase = humanizeFlowSentence(taillade.effects![0].flow, AUCUN_ETAT);
     expect(phrase).toContain('(X Avantage)');
     const fiche = textesDeFiche(taillade.effects);
     expect(fiche.some((t) => t.includes('(X Av)')), `le repli technique n'imprime pas « (X Av) » :\n  ${fiche.join('\n  ')}`).toBe(true);
@@ -55,7 +59,7 @@ describe('Codex des qualités — aucun template d’instance n’atteint le jou
 
   it('Déstabilisante : un coût LITTÉRAL reste chiffré, et sa branche `no` absente ne pend pas', () => {
     const destab = findQualityById('destabilisante')!;
-    const phrase = humanizeFlowSentence(destab.effects![0].flow);
+    const phrase = humanizeFlowSentence(destab.effects![0].flow, AUCUN_ETAT);
     expect(phrase).toContain('(2 Avantage)');
     expect(phrase, 'un « ; sinon » pend sur une branche `no` absente.').not.toContain('sinon');
   });
