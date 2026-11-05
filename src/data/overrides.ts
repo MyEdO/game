@@ -78,7 +78,7 @@ import sizesRawJson from './sizes.json';
 // `engine/magicEnvironment.ts`) importe le MÊME module JSON singleton, sans index précalculé — une
 // édition Compendium reste visible en direct, sans rechargement de page.
 import arcanePhenomenaRawJson from './arcane-phenomena.json';
-import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable } from './arcanePhenomena';
+import type { ArcaneData } from './arcanePhenomena';
 // V9 #1318 : registre des règles optionnelles (`engine/policy.ts`, tableau RACINE) et Tableau de
 // Surincantation (VDM 02, tableau NICHÉ dans `{source,ref,table}`) — importés comme les autres
 // datasets migrés du CODE en donnée, MÊME module JSON singleton que leur lecteur moteur.
@@ -234,12 +234,8 @@ const ARRAYS = {
 export type DatasetKey = keyof typeof ARRAYS;
 export const DATASET_KEYS = Object.keys(ARRAYS) as DatasetKey[];
 
-/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS — mêmes types que `data/arcanePhenomena.ts`. */
-interface ArcanePhenomenaFile {
-  saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
-  phenomena: ArcanePhenomenon[]; tables: ArcaneTable[];
-}
-const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcanePhenomenaFile;
+/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS. */
+const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcaneData;
 
 /** Datasets-OBJETS uniques : pas un tableau d'entités mais UN objet de config (`details`) ou une fiche
  *  de règle UNIQUE (`waterExposure`, MSRC 16). Mutés EN PLACE (mêmes garanties que les tableaux) →

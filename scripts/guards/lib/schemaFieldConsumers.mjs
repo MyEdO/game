@@ -29,6 +29,8 @@ const step = (checker, types, key, node) => types.flatMap(type => parts(type).fl
   return prop && !prop.declarations.some(d => d.resolve().getSourceFile().fileName.endsWith('.json')) ? [checker.getTypeOfSymbolAtLocation(prop, node)] : []
 }))
 
+const expandPath = path => path.reduce((paths, key) => paths.flatMap(p => (Array.isArray(key) ? key : [key]).map(k => [...p, k])), [[]])
+
 export function champsDeclares(schema, visitNode = () => {}) {
   const champs = new Map()
   const visit = (node, path, seen) => {
@@ -47,10 +49,12 @@ export function champsDeclares(schema, visitNode = () => {}) {
   return [...champs.values()]
 }
 
-export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, programme = null, fichiers = null } = {}) {
-  const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), { filtre: rel => /\.(?:[cm]?ts|tsx|[cm]?js)$/.test(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) && !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel) }).map(rel => join(root, dir, rel)))
-  const config = programme ? null : JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'))
-  const session = programme ?? repoProgram(root, () => files, { 'tsconfig.json': JSON.stringify({ ...config, compilerOptions: { ...config.compilerOptions, allowJs: true, checkJs: false } }) })
+/** La JOINTURE des chargements : chaque accès, cast, annotation ou appel de `files` relié à un dataset
+ *  de `definitions`, au `TypeChecker` de `session`. `claims` : les vues TS EXPLICITES d'un chemin du
+ *  dataset (`{ file, path, type, node }`) ; `reads` : les chemins lus, relevés sauf `lectures: false`
+ *  (les `claims` n'en dépendent pas). Partagée par la mesure des champs de schéma et par la dérivation
+ *  des cibles de catalogue (`ciblesDeCatalogue`). */
+function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, lectures = true }) {
   const { program, checker } = session
   const claims = [], reads = [], unresolved = new Set()
   const typedOrigins = new Map()
@@ -73,6 +77,17 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
       node.forEachChild(collect)
     }
     collect(program.getSourceFile(file))
+  }
+  // Noms sous lesquels la porte peut être appelée : le sien, et ceux que lui donnent les `import`/`export
+  // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
+  // demandé qu'aux appels qui portent l'un de ces noms.
+  const nomsDeLaPorte = new Set([FONCTION_DE_LA_PORTE])
+  const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
+    .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
+    .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
+  for (let taille = -1; taille !== nomsDeLaPorte.size;) {
+    taille = nomsDeLaPorte.size
+    for (const [de, vers] of renommages) if (nomsDeLaPorte.has(de)) nomsDeLaPorte.add(vers)
   }
   const resolvedSymbol = node => {
     const symbol = checker.getSymbolAtLocation(node)
@@ -120,14 +135,14 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
     const keys = loop.expression.elements.map(e => stringOf(e))
     return keys.length && keys.every(k => k !== undefined) ? [...new Set(keys)] : null
   }
-  const expandPath = path => path.reduce((paths, key) => paths.flatMap(p => (Array.isArray(key) ? key : [key]).map(k => [...p, k])), [[]])
   const functionOf = expr => {
     const declaration = checker.getSymbolAtLocation(expr)?.declarations?.[0]?.resolve()
     const fn = declaration?.initializer ?? declaration
     return fn && (ts.isArrowFunction(fn) || ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) ? fn : null
   }
   const porteDesRangees = call => {
-    const fn = ts.isCallExpression(call) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
+    const nom = !ts.isCallExpression(call) ? null : ts.isIdentifier(call.expression) ? call.expression.text : ts.isPropertyAccessExpression(call.expression) ? call.expression.name.text : null
+    const fn = nomsDeLaPorte.has(nom) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
     if (!fn || !ts.isFunctionDeclaration(fn) || fn.name?.text !== FONCTION_DE_LA_PORTE || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, MODULE_DE_LA_PORTE))) return null
     const racine = origin(call.arguments[0])
     return racine && { ...racine, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', 'entries'] : ['entries'])] }
@@ -225,7 +240,6 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
     }
     return null
   }
-  try {
     const scan = () => {
     for (const file of program.getSourceFileNames()) {
       if (!retained.has(norm(resolve(file)))) continue
@@ -253,12 +267,12 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
             if (o) claims.push({ ...o, type: checker.getTypeAtLocation(node), node })
           }
         }
-        if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
+        if (lectures && (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))) {
           const o = origin(node)
           const write = ts.isBinaryExpression(node.parent) && node.parent.left === node && node.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken || ts.isDeleteExpression(node.parent)
           if (o && !write) reads.push(o)
         }
-        if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
+        if (lectures && ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
           const o = origin(node.parent.parent.initializer)
           if (o) reads.push({ ...o, path: [...o.path, node.propertyName?.text ?? node.name.text] })
         }
@@ -280,6 +294,16 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
     for (const c of claims) addOrigin(c.type, { file: c.file, path: c.path })
     originCache.clear()
     scan()
+  return { claims, reads, unresolved }
+}
+
+export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, programme = null, fichiers = null } = {}) {
+  const files = fichiers ?? ['src', 'scripts', 'hotes'].flatMap(dir => listerArbre(join(root, dir), { filtre: rel => /\.(?:[cm]?ts|tsx|[cm]?js)$/.test(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) && !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel) }).map(rel => join(root, dir, rel)))
+  const config = programme ? null : JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'))
+  const session = programme ?? repoProgram(root, () => files, { 'tsconfig.json': JSON.stringify({ ...config, compilerOptions: { ...config.compilerOptions, allowJs: true, checkJs: false } }) })
+  const { program, checker } = session
+  try {
+    const { claims, reads, unresolved } = relierChargements(root, session, { files, definitions })
     const typeNomme = (home, name) => {
       const sf = program.getSourceFile(norm(resolve(root, home)))
       const decl = sf?.statements.find(n => (ts.isTypeAliasDeclaration(n) || ts.isInterfaceDeclaration(n)) && n.name.text === name)
@@ -335,4 +359,61 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
     }
     return { absents: absent.sort(), datasets: counts, chargementsNonResolus: [...unresolved].sort() }
   } finally { if (!programme) session.dispose() }
+}
+
+const typesDuChemin = (checker, claim, path) => path.reduce((types, key) => [...new Set(step(checker, types, key, claim.node))], [claim.type])
+const DECLARATIONS_NOMMEES = [ts.isInterfaceDeclaration, ts.isTypeAliasDeclaration, ts.isClassDeclaration]
+const siteDe = (root, node) => `${norm(relative(root, node.getSourceFile().fileName))}:${node.getSourceFile().getLineAndCharacterOfPosition(node.getStart()).line + 1}`
+const parUnites = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
+/** La déclaration NOMMÉE du dépôt qui porte `type`, ou la raison structurelle de son absence. */
+function natureDuType(root, type) {
+  if (type.flags & TypeFlags.AnyOrUnknown) return { raison: `type \`${type.flags & TypeFlags.Any ? 'any' : 'unknown'}\`` }
+  const decl = (type.getAliasSymbol() ?? type.getSymbol())?.declarations?.[0]?.resolve()
+  if (!decl) return { raison: type.isUnionType() ? 'union anonyme' : type.isIntersectionType() ? 'intersection anonyme' : 'type calculé sans déclaration' }
+  if (!DECLARATIONS_NOMMEES.some(est => est(decl)) || !decl.name) return { raison: 'littéral anonyme `{…}`' }
+  const home = norm(relative(root, decl.getSourceFile().fileName))
+  if (home.startsWith('../') || home.includes('node_modules/')) return { raison: `type \`${decl.name.text}\` d'une bibliothèque` }
+  return { decl, type: decl.name.text, home }
+}
+
+/**
+ * Les CIBLES de catalogue du rapport des consommateurs par champ, DÉRIVÉES de la jointure : pour chaque
+ * def, le type que ses chargements donnent EXPLICITEMENT à son ENTRÉE (élément du tableau racine, valeur
+ * d'un enregistrement racine, sinon la racine), domicilié au module qui le déclare, avec les clés de
+ * l'entrée au schéma (`champsDeclares`, sceau `document()` descendu). Un type atteint par plusieurs defs
+ * est UNE cible, à l'union de leurs clés. Un def dont aucun chargement ne nomme l'entrée SORT avec la
+ * raison mesurée. Ordre total : cibles par `(home, position)`, sorties par `file`.
+ */
+export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEFS) {
+  const { checker } = session
+  const { claims } = relierChargements(root, session, { files, definitions, lectures: false })
+  const cibles = new Map(), sorties = []
+  for (const d of [...definitions].sort((a, b) => parUnites(a.file, b.file))) {
+    const declares = champsDeclares(d.schema)
+    const entree = []
+    while (declares.length && ['[]', '{}'].includes(declares[0][entree.length]) && declares.every(p => p[entree.length] === declares[0][entree.length])) entree.push(declares[0][entree.length])
+    const cles = declares.filter(p => p.length === entree.length + 1).map(p => p.at(-1))
+    const duDataset = claims.filter(c => c.file === d.file)
+    const vues = duDataset.filter(c => c.path.length <= entree.length && c.path.every((k, i) => entree[i] === k))
+    const natures = vues.flatMap(c => typesDuChemin(checker, c, entree.slice(c.path.length)).map(t => ({ ...natureDuType(root, t), site: siteDe(root, c.node) })))
+    for (const n of natures.filter(n => n.decl)) {
+      const cle = `${n.home}#${n.type}`
+      const cible = cibles.get(cle) ?? { type: n.type, home: n.home, position: n.decl.getStart(), cles: [], files: [] }
+      cible.cles = [...new Set([...cible.cles, ...cles])]
+      if (!cible.files.includes(d.file)) cible.files.push(d.file)
+      cibles.set(cle, cible)
+    }
+    if (natures.some(n => n.decl)) continue
+    const raisons = natures.length
+      ? natures.map(n => `${n.raison} au chargement ${n.site}`)
+      : duDataset.length
+        ? [`aucune vue typée de l'entrée — vues de sous-chemins seulement : ${[...new Set(duDataset.map(c => `\`${c.path.join('.').replaceAll('.[]', '[]')}\` (${siteDe(root, c.node)})`))].sort(parUnites).join(', ')}`]
+        : ['aucun chargement typé (cast, annotation ou porte `rangeesDe`)']
+    sorties.push({ file: d.file, raison: [...new Set(raisons)].sort(parUnites).join(' ; ') })
+  }
+  return {
+    cibles: [...cibles.values()].sort((a, b) => parUnites(a.home, b.home) || a.position - b.position).map(({ type, home, cles, files }) => ({ type, home, cles, files })),
+    sorties,
+  }
 }

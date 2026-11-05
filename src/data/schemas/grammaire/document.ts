@@ -265,10 +265,8 @@ export interface DocumentHandle<T extends string> {
   /**
    * Clés top-level de l'entrée (enveloppe + champs, plus la CHARGE posée par la fabrique),
    * relevées AVANT le sceau.
-   * Consommateurs mesurés : `variants-integrity.test.ts` (`SHAPE_BY_FILE`, où les TROIS defs à
-   * variantes lisent `cles` — plus aucun `element.shape`, le dernier est mort avec
-   * l'adoption de `spells`) et `scripts/guards/lib/fieldConsumerTargets.mjs` (`if (schema?.shape)` —
-   * sans cette liste, la garde dégrade en SILENCE à zéro champ).
+   * Consommateur mesuré : `variants-integrity.test.ts` (`SHAPE_BY_FILE`, où les TROIS defs à
+   * variantes lisent `cles`).
    */
   readonly cles: readonly string[];
   /** `type` du document, écrit dans le JSON et vérifié au parse. */

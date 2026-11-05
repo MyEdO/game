@@ -26,6 +26,7 @@
  *  - **Dangers** (l.119-166) : Débris, Barrage, Rochers, Eaux peu profondes — cf. `river-perils.json`.
  */
 import riverNavJson from '../data/river-navigation.json';
+import type { RiverNavigationData } from '../data/schemas/defs/river-navigation';
 import riverPerilsJson from '../data/river-perils.json';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { findTableEntry } from './tables';
@@ -59,25 +60,9 @@ export interface RiverWindEffect {
   riggingRisk?: boolean;
 }
 
-interface BandRow { id: string; label: string; min: number; max: number }
 interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
 
-const DATA = riverNavJson as unknown as {
-  windForces: BandRow[];
-  windDirections: BandRow[];
-  windTickThreshold: number;
-  windTicksPerDay: number;
-  windEffect: Record<string, Record<RiverWindDirId, RiverWindEffect>>;
-  driftPctOfSpeed: number;
-  driftNavPenalty: number;
-  navBaseDifficulty: Difficulty;
-  tackDifficulty: Difficulty;
-  savoirVoiesFluvialesDR: number;
-  capsize: { removeSailDifficulty: Difficulty; rightDifficulty: Difficulty; rightCumulativePenalty: number };
-  outOfControl: { navPenalty: number };
-  echouage: { hullDamage: number };
-  temporaryRepair: { difficulty: Difficulty; charpentierPenalty: number; woundsPerRepair: string };
-};
+const DATA = riverNavJson as unknown as RiverNavigationData;
 
 export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.map((f) => f.id as RiverWindForceId));
 export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;

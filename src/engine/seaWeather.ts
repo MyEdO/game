@@ -28,6 +28,7 @@
  *    basés sur la vue au-delà d'une distance).
  */
 import seaWeatherJson from '../data/sea-weather.json';
+import type { SeaWeatherData } from '../data/schemas/defs/sea-weather';
 import { findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
@@ -64,23 +65,7 @@ interface VisibilityDef { id: string; label: string; drPenalty?: number; beyondM
 /** Cellule du tableau EFFET DU VENT : % voiles / % autres, ou Encalminé / Affaler / Virement de bord. */
 export interface WindEffectCell { pctSail?: number; pctOther?: number; encalmine?: boolean; affaler?: boolean; virement?: boolean }
 
-const DATA = seaWeatherJson as unknown as {
-  table: WeatherRow[];
-  seasonMod: Record<Season, number>;
-  warmSeaMod: number;
-  precipitations: PrecipitationDef[];
-  temperatures: TemperatureDef[];
-  visibilites: VisibilityDef[];
-  vents: { id: string; label: string }[];
-  windTickThreshold: number;
-  windTicksPerDay: number;
-  roseDesVents: { min: number; max: number; direction: string }[];
-  effetDuVent: Record<string, Record<WindAspect, WindEffectCell>>;
-  effetDuVentClinfoc: Record<string, Record<WindAspect, WindEffectCell>>;
-  effetDuVentGreementDelta: Record<WindAspect, number>;
-  affaler: { difficulty: Difficulty; failCritLocation: string; driftPctOfSpeed: number };
-  encalmine: { currentM: number; towM: number; towManDR: number };
-};
+const DATA = seaWeatherJson as unknown as SeaWeatherData;
 
 /** Ordre croissant des forces de vent (pour le cran ±1 de la mise à jour, l.272). */
 export const windForces = memoParVersion('seaWeather', (): SeaWindForceId[] => DATA.vents.map((v) => v.id as SeaWindForceId));
