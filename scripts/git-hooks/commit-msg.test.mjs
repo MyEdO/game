@@ -23,7 +23,7 @@ import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/dep
 import { MARQUE_FEINTE, commitDe, depotDe, fusionner, reussi } from '../guards/lib/gitPorte.mjs'
 import { SUJET_MAX, lectureDuMessage, refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { dateLocale } from '../guards/lib/dateLocale.mjs'
-import { MOTIF_EJECTION, MOTIF_MIROIRS, messageDuTrain } from '../ops/etapesDuTrain.mjs'
+import { MOTIF_REPRISE, MOTIF_MIROIRS, messageDuTrain } from '../ops/etapesDuTrain.mjs'
 import { refusDeVersion } from '../node-requis.mjs'
 import { jugerFichierDeMessage } from './commit-msg.mjs'
 import { journalDe } from './journal.mjs'
@@ -602,7 +602,7 @@ test('#2071 porte au commit-msg — les commits scriptés du train (`commitDe`, 
     b.ecrire('src/a.ts', 'export const a = 2\n')
     assert.equal(b.git('commit', '-a', '-m', TEMOIN).status, 0)
     const avant = b.head()
-    const fusion = fusionner(depot, { de: 'br', message: messageDuTrain({ portee: 'chore(merge)', titre: 'fusion de br dans main', numeros: ['7'], motif: MOTIF_EJECTION }) })
+    const fusion = fusionner(depot, { de: 'br', message: messageDuTrain({ portee: 'chore(merge)', titre: 'fusion de br dans main', numeros: ['7'], motif: MOTIF_REPRISE }) })
     assert.ok(reussi(fusion), JSON.stringify(fusion))
     assert.notEqual(b.head(), avant)
     assert.deepEqual(b.verdicts(), ['franchi', 'franchi', 'franchi'])

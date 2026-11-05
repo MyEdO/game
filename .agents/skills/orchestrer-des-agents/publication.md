@@ -11,7 +11,7 @@ Commits intermédiaires `refs #N`, seul le solde clôt.
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
   lots dans un worktree (fiche `user-doctrine-chantier-outille-sans-reinventer`). Une sonde non suivie sort de l'arbre avant `ops:publier`.
 - **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
-  seul sur éjection) : index STAGÉ → `git restore --staged` d'abord ; `git fetch`, `git merge --no-commit
+  seul sur conflit) : index STAGÉ → `git restore --staged` d'abord ; `git fetch`, `git merge --no-commit
   origin/main`, jamais un rebase (#2178) ; aucune reconstruction des dérivés sous `MERGE_HEAD` ; `git rm`
   d'une cible pure → `npm run gen` ; gardes du périmètre rejouées sur l'arbre fusionné. Fusion propre ou
   non substantielle : SANS trailers ; `CLIQUET:` pour le seul apport de la résolution ; 10 lignes ou plus
