@@ -33,11 +33,13 @@ export interface EntiteProjetee {
   pos: [x: number, y: number];
 }
 
-/** Une offre ouverte de la vue : l'action, ses candidats ouverts comptés, son coût. */
+/** Une offre ouverte de la vue : l'action, ses candidats ouverts comptés, son coût en mots, et la part de l'économie
+ *  du tour qu'elle prend (`ActionDef.coutAction`, son id). */
 export interface OffreEnVue {
   id: string;
   n: number;
   cout: string | null;
+  economie: Offre['def']['coutAction'];
 }
 
 /** Les éléments au plus de chaque liste de la projection, le reste compté (`enPlus`) : les combattants après l'actif et
@@ -159,7 +161,7 @@ function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
   const parId = new Map<string, OffreEnVue>();
   for (const o of offres) {
     if (!o.gate.ok) continue;
-    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost };
+    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction };
     vue.n++;
     parId.set(o.actionId, vue);
   }

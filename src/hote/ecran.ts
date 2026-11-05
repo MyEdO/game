@@ -27,7 +27,7 @@ export interface ZonesDeLEcran {
   'combat.tour': Ligne[];
   'combat.actif': Entite[];
   'combat.avis': Ligne[];
-  'combat.offres': Bouton[];
+  'combat.offres': (Bouton | Choix)[];
   'journal.titre': Ligne[];
 }
 
@@ -140,7 +140,7 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 
 /** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
  *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
- *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`). */
+ *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`) et l'issue de la Défense. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const attaque = fenetreDAttaque(etat);
   if (attaque) return corpsDeLAttaque(etat, attaque);
@@ -153,17 +153,19 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
       detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
     })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
+    ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
   ];
 }
 
-/** L'actif du combat : son nom, ses Blessures, son Avantage, son Mouvement, son Action, chacun de ses États. */
+/** L'actif du combat : son nom, ses Blessures et son Mouvement en jauges, puis son Avantage, son Action et chacun de
+ *  ses États en puces. */
 const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   type: 'entite', id: actif.id, ton: 'neutre', nom: actif.nom,
   elements: [
     { type: 'jauge', id: 'blessures', ton: 'neutre', libelle: t('ecran.jauge.blessures'), courant: actif.pb[0], max: actif.pb[1], texte: t('ecran.jauge', { courant: actif.pb[0], max: actif.pb[1] }) },
-    ligne('avantage', t('ecran.avantage', { n: actif.avantage })),
     { type: 'jauge', id: 'mouvement', ton: 'neutre', libelle: t('ecran.jauge.mouvement'), courant: actif.mouvement[0], max: actif.mouvement[1], texte: t('ecran.jauge', { courant: actif.mouvement[0], max: actif.mouvement[1] }) },
-    ligne('action', t('ecran.action', { etat: t(`ecran.action.${actif.action}`) })),
+    puce('avantage', t('ecran.avantage'), String(actif.avantage)),
+    puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
     ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
   ],
 });
@@ -177,13 +179,20 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres ouvertes de l'actif, chacune un bouton qui la joue, son coût dit (`ACTIONS`) ; pressée, l'offre que
- *  l'actif vise. */
-const offresDuCombat = (c: Combat): Bouton[] =>
-  (c.offres?.liste ?? []).map((o) => {
-    const libelle = garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre');
-    return { type: 'bouton', id: o.id, libelle: o.cout === null ? libelle : t('ecran.offre', { libelle, cout: o.cout }), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: null };
+/** Les offres ouvertes de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise ;
+ *  rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui la nomme une fois. Une offre
+ *  qui n'en prend aucune (la fin du tour) reste un bouton seul, après elles. */
+function offresDuCombat(c: Combat): (Bouton | Choix)[] {
+  const offres = c.offres?.liste ?? [];
+  const bouton = (o: (typeof offres)[number]): Bouton => ({
+    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: null,
   });
+  const parts = [...new Set(offres.map((o) => o.economie))].filter((e) => e !== 'aucun');
+  return [
+    ...parts.map((e): Choix => ({ type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton) })),
+    ...offres.filter((o) => o.economie === 'aucun').map(bouton),
+  ];
+}
 
 /** Le ton de chaque issue du combat. */
 const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
