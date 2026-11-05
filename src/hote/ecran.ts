@@ -139,15 +139,19 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 ];
 
 /** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
- *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`), puis les jets de la
- *  fenêtre (`jetsEnVue`). */
+ *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
+ *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`). */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const attaque = fenetreDAttaque(etat);
   if (attaque) return corpsDeLAttaque(etat, attaque);
   const defense = fenetreDeDefense(etat);
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
-    ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme })), ligne('defense/test', t('ecran.defense.test', { test: defense.test }))] : []),
+    ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
+    ...(defense?.jet ? [jet('defense/jet', {
+      qui: nom(defense.defenseurId), libelle: defense.test, cible: t('ecran.jet.cible', { cible: defense.jet.target }), modificateurs: puces('defense/jet', defense.jet.mods),
+      detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
+    })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
   ];
 }

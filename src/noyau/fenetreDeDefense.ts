@@ -1,13 +1,18 @@
 /**
  * LA FENÊTRE DE DÉFENSE EN DONNÉES (#2928) — ce que la fenêtre de la Défense surfacée montre autour de ses lignes de
- * jet, lu de l'état : qui attaque qui et avec quelle arme, le Test de la réaction choisie, et ses choix (la réaction,
- * l'arme de parade, la réaction de Porte-Bouclier, la Riposte), chacun nommant le verbe qui le règle (`reglages.ts`). Lecteur PUR, partagé par
- * l'écran web (`ui/jetProps/useDefenseJetProps.tsx`) et par tout hôte qui lit la partie sans écran.
+ * jet, lu de l'état : qui attaque qui et avec quelle arme, le Test de la réaction choisie et son jet avant le dé, et
+ * ses choix (la réaction, l'arme de parade, la réaction de Porte-Bouclier, la Riposte), chacun nommant le verbe qui le
+ * règle (`reglages.ts`). Lecteur PUR, partagé par l'écran web (`ui/jetProps/useDefenseJetProps.tsx`) et par tout hôte
+ * qui lit la partie sans écran.
  */
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import { inBattleId } from './monde/combatants';
-import { parryWeaponOf } from './rollFlowSpecs';
+import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
+import { ligneDeDefense } from './combatFlow';
+import { defenseDodgeMods } from './mount';
+import { difficultyText } from './difficultyText';
+import type { RollLineParts } from './rollSeam';
 import { DEFENSE_LABEL } from '../engine/combat';
 import { combatSubstitute } from '../engine/skillCombatApps';
 import { isUnarmed } from '../engine/items';
@@ -39,6 +44,9 @@ export interface FenetreDeDefense {
   porteBouclier: ChoixNomme<'damage' | 'push'> | null;
   /** LDB 10 l.1037 : aucune valeur retenue quand les Ripostes du Round sont portées. */
   riposte: ChoixNomme<boolean> | null;
+  /** Le jet de la réaction avant le dé, monté comme le flux le jette (`ligneDeDefense`), et le texte de sa
+   *  Difficulté (`difficultyText`) ; `null` une fois jeté. */
+  jet: (RollLineParts & { difficulte: string }) | null;
 }
 
 /** Le libellé d'une arme de parade : la main secondaire se dit. */
@@ -81,6 +89,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const portees = contre ? contresEpuisees(defenseur, contre) : null;
   const plafond = contre?.plafond;
   const refusDeLaRiposte = portees != null && plafond != null ? t('defense.refus.ripostesPortees', { n: portees, plafond }) : null;
+  const ligne = res ? null : ligneDeDefense(defenseur, { mode: pd.mode, parryWeapon: parade, vsWeapon: pd.weapon, dodgeMods: defenseDodgeMods(s, defenseur), socialBase: defenseSubOf(defenseur, pd)?.base });
   return {
     attaquantId: attaquant.id,
     defenseurId: defenseur.id,
@@ -106,5 +115,6 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
         { valeur: false, libelle: t('valeur.non'), refus: refusDeLaRiposte ?? (res ? jetLance : null) },
       ])
       : null,
+    jet: ligne && { ...ligne, difficulte: difficultyText(ligne.difficulty, ligne.difficultyCombined) },
   };
 }
