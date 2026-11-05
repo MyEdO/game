@@ -45,12 +45,12 @@ function sauver(saisons: Saison[]): string | null {
 const editee = (patch: Record<string, Partial<Range>>): Saison[] =>
   (datasetArray('weather') as Saison[]).map((s) => (s.id !== 'printemps' ? s : {
     ...s,
-    ranges: s.ranges.map((r) => (patch[r.weather] ? { ...r, ...patch[r.weather] } : r)),
+    entries: s.entries.map((r) => (patch[r.weather] ? { ...r, ...patch[r.weather] } : r)),
   }));
 
 describe('météo éditée au Codex — refus transactionnel et table VIVANTE', () => {
   it('une borne éditée SEULE est refusée (trou d100) et l’état d’avant est REPRIS', () => {
-    const maxAvant = printemps().ranges.find((r) => r.weather === 'pluie')!.max;
+    const maxAvant = printemps().entries.find((r) => r.weather === 'pluie')!.max;
     const saisons = editee({ pluie: { max: maxAvant - 10 } });
 
     // Preview VIVANTE : la pose mémoire est vue par la table de cascade avant toute validation.
@@ -65,11 +65,11 @@ describe('météo éditée au Codex — refus transactionnel et table VIVANTE', 
     setDataset('weather', SAISONS_LIVREES);
     expect(rangee('pluie').max).toBe(maxAvant);
     expect(validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'))).toBeNull();
-    expect(tableStepDef(TABLE)!.rows).toEqual(stageWeatherRows(printemps().ranges));
+    expect(tableStepDef(TABLE)!.rows).toEqual(stageWeatherRows(printemps().entries));
   });
 
   it('une édition COHÉRENTE passe et la table de météo la voit SANS rechargement', () => {
-    const maxAvant = printemps().ranges.find((r) => r.weather === 'pluie')!.max;
+    const maxAvant = printemps().entries.find((r) => r.weather === 'pluie')!.max;
     const err = sauver(editee({
       pluie: { max: maxAvant - 10 },
       'pluie-diluvienne': { min: maxAvant - 9 },
@@ -78,6 +78,6 @@ describe('météo éditée au Codex — refus transactionnel et table VIVANTE', 
     expect(err).toBeNull();
     expect(rangee('pluie').max).toBe(maxAvant - 10);
     expect(rangee('pluie-diluvienne').min).toBe(maxAvant - 9);
-    expect(tableStepDef(TABLE)!.rows).toEqual(stageWeatherRows(printemps().ranges));
+    expect(tableStepDef(TABLE)!.rows).toEqual(stageWeatherRows(printemps().entries));
   });
 });

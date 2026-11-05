@@ -126,7 +126,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // fenêtre de pose) qu'après le passage du site qui ouvrait l'étape.
     const saison = weather[weather.length - 1];
     const id = `stage-weather-${saison.id}`;
-    expect(tableStepDef(id)!.rows).toEqual(stageWeatherRows(saison.ranges));
+    expect(tableStepDef(id)!.rows).toEqual(stageWeatherRows(saison.entries));
     expect(tableStepIds()).toContain(id);
 
     setDataset('weather', weather.filter((s) => s.id !== saison.id));
@@ -150,7 +150,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
-        ? { ...t, label: 'physique révisée QC (LDB)', ranges: [{ ...t.ranges[0], max: 99 }, ...t.ranges.slice(1)] }
+        ? { ...t, label: 'physique révisée QC (LDB)', entries: [{ ...t.entries[0], max: 99 }, ...t.entries.slice(1)] }
         : t)),
       neuve,
     ]);

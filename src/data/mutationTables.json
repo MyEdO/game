@@ -3,7 +3,8 @@
     "id": "physique",
     "type": "mutationTables",
     "label": "Tableau de Corruption physique",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -115,7 +116,8 @@
     "id": "mentale",
     "type": "mutationTables",
     "label": "Tableau de Corruption mentale",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -227,7 +229,8 @@
     "id": "edoc-mental-toute",
     "type": "mutationTables",
     "label": "Mentale — Toute Puissance (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -409,7 +412,8 @@
     "id": "edoc-mental-khorne",
     "type": "mutationTables",
     "label": "Mentale — Khorne (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -556,7 +560,8 @@
     "id": "edoc-mental-nurgle",
     "type": "mutationTables",
     "label": "Mentale — Nurgle (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 2,
@@ -708,7 +713,8 @@
     "id": "edoc-mental-slaanesh",
     "type": "mutationTables",
     "label": "Mentale — Slaanesh (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 3,
@@ -870,7 +876,8 @@
     "id": "edoc-mental-tzeentch",
     "type": "mutationTables",
     "label": "Mentale — Tzeentch (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -1022,7 +1029,8 @@
     "id": "edoc-phys-toute",
     "type": "mutationTables",
     "label": "Physique — Toute Puissance (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 3,
@@ -1344,7 +1352,8 @@
     "id": "edoc-phys-khorne",
     "type": "mutationTables",
     "label": "Physique — Khorne (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 4,
@@ -1596,7 +1605,8 @@
     "id": "edoc-phys-nurgle",
     "type": "mutationTables",
     "label": "Physique — Nurgle (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 3,
@@ -1828,7 +1838,8 @@
     "id": "edoc-phys-slaanesh",
     "type": "mutationTables",
     "label": "Physique — Slaanesh (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -2080,7 +2091,8 @@
     "id": "edoc-phys-tzeentch",
     "type": "mutationTables",
     "label": "Physique — Tzeentch (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 7,
@@ -2357,7 +2369,8 @@
     "id": "edoc-tete-bestiale-toute",
     "type": "mutationTables",
     "label": "Tête Bestiale — Toute Puissance (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -2419,7 +2432,8 @@
     "id": "edoc-tete-bestiale-khorne",
     "type": "mutationTables",
     "label": "Tête Bestiale — Khorne (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 10,
@@ -2471,7 +2485,8 @@
     "id": "edoc-tete-bestiale-nurgle",
     "type": "mutationTables",
     "label": "Tête Bestiale — Nurgle (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -2523,7 +2538,8 @@
     "id": "edoc-tete-bestiale-slaanesh",
     "type": "mutationTables",
     "label": "Tête Bestiale — Slaanesh (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -2575,7 +2591,8 @@
     "id": "edoc-tete-bestiale-tzeentch",
     "type": "mutationTables",
     "label": "Tête Bestiale — Tzeentch (EDOC)",
-    "ranges": [
+    "die": "d100",
+    "entries": [
       {
         "min": 1,
         "max": 10,
