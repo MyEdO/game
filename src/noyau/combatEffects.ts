@@ -76,7 +76,7 @@ import { touchActors } from './combatOrParty';
 import { actorIn, coqueParId, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { addPossession } from './possessionsFlow';
-import { possessionLabel, type Possession, type LivingRef, type PossessionInput } from '../engine/possession';
+import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
@@ -1366,25 +1366,25 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   givePossession: {
     group: 'Récompenses', label: libelleEffet('givePossession'), icon: 'item/misc',
-    make: () => ({ type: 'givePossession', nature: 'bete', ref: { creatureId: creatureSemee() } }),
+    make: () => ({ type: 'givePossession', nature: 'bete', ref: { id: creatureSemee(), type: 'creature' } }),
     apply: (e, env) => {
       const owner = env.hero(e.heroId);
       if (!owner) return;
-      // `nature`/`ref` corrélés par construction de l'Effet (vehicule ⟺ {vehicleId}, sinon LivingRef) —
-      // l'union discriminée de `Possession` ne se reconstruit pas depuis 2 champs plats sans assertion.
-      const input = (
-        e.nature === 'vehicule'
-          ? { nature: 'vehicule', vehicleId: (e.ref as { vehicleId: string }).vehicleId, ownerId: owner.id, location: { kind: 'avec-le-groupe' }, items: [] }
-          : { nature: e.nature, ref: e.ref as LivingRef, ownerId: owner.id, location: { kind: 'avec-le-groupe' }, items: [] }
-      ) as unknown as PossessionInput;
+      // Le `type` de la référence choisit la variante : un véhicule, sinon le vivant (`LivingRef`) de sa nature.
+      const r = e.ref;
+      const commun = { ownerId: owner.id, location: { kind: 'avec-le-groupe' as const }, items: [] };
+      const input: PossessionInput = 'type' in r && r.type === 'vehicle'
+        ? { nature: 'vehicule', vehicleId: r.id, ...commun }
+        : { nature: e.nature === 'serviteur' ? 'serviteur' : 'bete', ref: 'custom' in r ? r : { id: r.id }, ...commun };
       const uid = addPossession(env.get, env.set, input);
       env.log(t('eff.recover', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
     },
     // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
     refs: (e) => {
       const r = e.ref;
-      if ('creatureId' in r && !findCreatureById(r.creatureId)) return [{ level: 'error', message: `Possession → créature inexistante « ${r.creatureId || '(aucune)'} »` }];
-      if ('vehicleId' in r && !findVehicleById(r.vehicleId)) return [{ level: 'error', message: `Possession → véhicule inexistant « ${r.vehicleId || '(aucun)'} »` }];
+      if ('custom' in r) return [];
+      if (r.type === 'creature' && !findCreatureById(r.id)) return [{ level: 'error', message: `Possession → créature inexistante « ${r.id || '(aucune)'} »` }];
+      if (r.type === 'vehicle' && !findVehicleById(r.id)) return [{ level: 'error', message: `Possession → véhicule inexistant « ${r.id || '(aucun)'} »` }];
       return [];
     },
   },
@@ -1974,7 +1974,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'travel/foot',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: creatureSemee() } }], encounter: '' }),
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }], encounter: '' }),
     apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter || undefined, policy: e.policy }); },
     refs: (e, ctx) => {
       const issues: EffectRefIssue[] = [];
@@ -1982,8 +1982,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Chaque adversaire est une RÉFÉRENCE : c'est sur la fiche que se lisent son Mouvement et sa
       // valeur de Test — une référence cassée n'a aucune stat à offrir.
       for (const f of e.foes ?? []) {
-        if ('creatureId' in f.ref && !findCreatureById(f.ref.creatureId)) {
-          issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.creatureId || '(aucune)'} »` });
+        if ('id' in f.ref && !findCreatureById(f.ref.id)) {
+          issues.push({ level: 'error', message: `Poursuite → créature inexistante « ${f.ref.id || '(aucune)'} »` });
         }
       }
       if (e.encounter && !ctx.encounterIds.has(e.encounter)) issues.push({ level: 'error', message: `Poursuite → rencontre inexistante « ${e.encounter} »` });

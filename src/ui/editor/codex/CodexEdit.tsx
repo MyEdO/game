@@ -158,11 +158,11 @@ function refIdsIn(v: unknown): string[] {
   for (const x of v) {
     if (typeof x === 'string') { out.push(x); continue; }
     if (!x || typeof x !== 'object') continue;
-    const o = x as { choice?: unknown; of?: unknown; ref?: { id?: unknown }; id?: unknown };
+    const o = x as { choice?: unknown; of?: unknown; ref?: { id?: unknown }; id?: unknown; type?: unknown };
     if (o.of) out.push(...refIdsIn(o.of));
     else if (o.choice) out.push(...refIdsIn(o.choice));
     else if (o.ref && typeof o.ref.id === 'string') out.push(o.ref.id);
-    else if (typeof o.id === 'string') out.push(o.id);
+    else if (typeof o.id === 'string' && o.type === undefined) out.push(o.id); // `{id, type}` : le catalogue de son `type`
   }
   return out;
 }
@@ -204,14 +204,13 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
       if (id === '') errors.push(`${field} : réf à choisir (${ds})`);
       else if (!known.has(id)) errors.push(`${field} : réf « ${id} » introuvable (${ds})`);
     }
-    // `trappings` (classes/careerLevels) porte aussi la dotation VÉHICULE `{vehicleId}` (foyer
-    // `vehicles.json`, jamais le foyer trappings) : même garantie de résolvabilité.
+    // `trappings` (classes/careerLevels) porte aussi la dotation de POSSESSION `{id, type}` (foyer de
+    // son `type`, jamais le foyer trappings) : même garantie de résolvabilité.
     if (field === 'trappings') {
-      const knownVehicles = new Set((datasetArray('vehicles') as { id?: string }[]).map((e) => e.id).filter(Boolean));
-      for (const tr of (entry[field] as { vehicleId?: unknown }[] | undefined) ?? []) {
-        if (tr && typeof tr === 'object' && typeof tr.vehicleId === 'string' && !knownVehicles.has(tr.vehicleId)) {
-          errors.push(`${field} : réf véhicule « ${tr.vehicleId} » introuvable (vehicles)`);
-        }
+      for (const tr of (entry[field] as { id?: unknown; type?: unknown }[] | undefined) ?? []) {
+        const dsDuType = tr?.type === 'vehicle' ? 'vehicles' : tr?.type === 'creature' ? 'creatures' : undefined;
+        if (!dsDuType || typeof tr.id !== 'string') continue;
+        if (!datasetArray(dsDuType).some((e) => e.id === tr.id)) errors.push(`${field} : réf « ${tr.id} » introuvable (${dsDuType})`);
       }
     }
   }

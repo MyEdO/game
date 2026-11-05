@@ -33,9 +33,9 @@ const construireScene = (): Scene => buildScene({
           distance: 4,
           skill: { id: 'athletisme' },
           foes: [
-            { ref: { creatureId: 'humain' } },
-            { ref: { creatureId: 'humain' } },
-            { ref: { creatureId: 'humain' } },
+            { ref: { id: 'humain' } },
+            { ref: { id: 'humain' } },
+            { ref: { id: 'humain' } },
           ],
           encounter: 'enc-rattrapage',
         },

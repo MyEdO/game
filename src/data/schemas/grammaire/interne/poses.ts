@@ -64,6 +64,7 @@ const POSES_DE_GRAMMAIRE = {
   'prose-nommee': classe('proseNommee', CHAMPS_PROSE_DE_SCENE.filter((chemin) => PROSES_NOMMEES[chemin].champ === 'texte')),
   reference: classe('objetDeRef', ['ref']),
   'reference-typee': classe('objetDeRef', ['refTypee']),
+  dotation: classe('objetDeRef', ['refTypee'], ['count', 'label']),
   'reference-a-specialisation': classe('noeudASpecialisation', ['specSeule', 'specOuChoix', 'specOuChoixFacultatifs']),
   'reference-chiffree': classe('noeudASpecialisation', ['specSeule', 'specOuChoix', 'specOuChoixFacultatifs'], ['value']),
   'tirage-parmi': classe('pick', ['of']),

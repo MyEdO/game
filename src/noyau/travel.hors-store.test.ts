@@ -639,7 +639,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   const mountPossession = (
     uid: string, ownerId: string, creatureId = 'cheval-de-monte',
     injury?: 'sangle-cassee' | 'perte-d-un-fer' | 'boiteux' | 'patte-brisee',
-  ): Possession => ({ uid, ownerId, nature: 'bete', ref: { creatureId }, location: { kind: 'avec-le-groupe' }, items: [], mountInjury: injury });
+  ): Possession => ({ uid, ownerId, nature: 'bete', ref: { id: creatureId }, location: { kind: 'avec-le-groupe' }, items: [], mountInjury: injury });
 
   it('OFF (défaut) : le départ « en selle » est refusé', () => {
     const h = hero();

@@ -12,7 +12,7 @@ import { groupeAPoudre, maniementRetenu, type ManiementRetenu } from './weaponGr
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
-import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, matiereDuGroupe, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, matiereDuGroupe, qualityInstance, refLabel, estDotationDObjet, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
 
@@ -398,7 +398,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
  * de la ref se lit à `buildInventory`.
  */
 export function itemFromTrappingRef(
-  ref: Extract<TrappingRef, { id: string }>,
+  ref: Extract<TrappingRef, { id: string; type?: never }>,
   resolveTrapping: TrappingResolver = findTrappingById,
   contexte?: ContexteDeNaissanceDObjet,
 ): ItemInstance | null {
@@ -1216,8 +1216,7 @@ export function damageScore(d?: WeaponDamageSpec): number {
 export function buildInventory(refs: TrappingRef[], rng: RNG, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
-    if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
-    if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
+    if (!estDotationDObjet(ref)) continue; // possession (`possessionGrants.ts`), {text}, {choice} ou {wildcard} non tranché : aucun objet
     const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
     const it = itemFromTrappingRef(ref, undefined, contexte);
     if (!it) continue;

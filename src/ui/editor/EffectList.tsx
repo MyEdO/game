@@ -229,8 +229,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'givePossession': {
       const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
       const refLabelStr = e.nature === 'vehicule'
-        ? (findVehicleById(e.ref?.vehicleId)?.label ?? e.ref?.vehicleId ?? '?')
-        : (e.ref?.creatureId ? refLabel('creatures', { id: e.ref.creatureId }) : e.ref?.custom?.label ?? '?');
+        ? (findVehicleById(e.ref?.id)?.label ?? e.ref?.id ?? '?')
+        : (e.ref?.id ? refLabel('creatures', { id: e.ref.id }) : e.ref?.custom?.label ?? '?');
       return `Possession : ${natureLabel} — ${refLabelStr}${e.heroId ? ` → ${e.heroId}` : ''}`;
     }
     case 'giveMoney': return `Argent : ${formatMoney(toMoney(e.montant))}`;
@@ -442,15 +442,15 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'givePossession' && (
           <>
-            <select value={e.nature ?? 'bete'} onChange={(ev) => upd({ nature: ev.target.value, ref: ev.target.value === 'vehicule' ? { vehicleId: vehiculeSeme() } : { creatureId: creatureSemee() } })}>
+            <select value={e.nature ?? 'bete'} onChange={(ev) => upd({ nature: ev.target.value, ref: ev.target.value === 'vehicule' ? { id: vehiculeSeme(), type: 'vehicle' } : { id: creatureSemee(), type: 'creature' } })}>
               <option value="bete">Bête</option>
               <option value="serviteur">Serviteur</option>
               <option value="vehicule">Véhicule</option>
             </select>
             {e.nature === 'vehicule' ? (
-              <RefField cfg={{ ds: 'vehicles', single: true }} value={e.ref?.vehicleId} onChange={(v) => upd({ ref: { vehicleId: v as string } })} />
+              <RefField cfg={{ ds: 'vehicles', single: true }} value={e.ref?.id} onChange={(v) => upd({ ref: { id: v as string, type: 'vehicle' } })} />
             ) : (
-              <RefField cfg={{ ds: 'creatures', single: true }} value={e.ref?.creatureId} onChange={(v) => upd({ ref: { creatureId: v as string } })} />
+              <RefField cfg={{ ds: 'creatures', single: true }} value={e.ref?.id} onChange={(v) => upd({ ref: { id: v as string, type: 'creature' } })} />
             )}
             <input placeholder="id du héros propriétaire (vide = le premier)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
           </>
@@ -910,14 +910,14 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               </select>
             </label>
             <div className="eff-list-head">Adversaires
-              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { ref: { creatureId: creatureSemee() } }] })}>+ adversaire</button>
+              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { ref: { id: creatureSemee() } }] })}>+ adversaire</button>
             </div>
             <span className="branch-label">Chaque adversaire est une créature du bestiaire : son Mouvement et sa valeur de Test se lisent sur SA fiche.</span>
-            {(e.foes ?? []).map((f: { id?: string; ref: { creatureId?: string } }, i: number) => {
+            {(e.foes ?? []).map((f: { id?: string; ref: { id?: string } }, i: number) => {
               const patchFoe = (patch: Partial<typeof f>) => upd({ foes: (e.foes ?? []).map((x: typeof f, k: number) => (k === i ? { ...x, ...patch } : x)) });
               return (
                 <div key={i} className="eff-row">
-                  <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.ref?.creatureId ?? ''} onChange={(v) => { if (v) patchFoe({ ref: { creatureId: v as string } }); }} />
+                  <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={f.ref?.id ?? ''} onChange={(v) => { if (v) patchFoe({ ref: { id: v as string } }); }} />
                   <button type="button" className="btn small" onClick={() => upd({ foes: (e.foes ?? []).filter((_: typeof f, k: number) => k !== i) })}>×</button>
                 </div>
               );
