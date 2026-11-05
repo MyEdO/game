@@ -8,6 +8,7 @@ import type { Jeu } from './etat';
 import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
+import { fateSaveOptions } from '../engine/fortune';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
@@ -33,6 +34,13 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
   const etape = pc.participants[pc.cursor];
   return !etape || stepInteraction(etape) === 'choix' ? fermeturesDuFlux(s, 'cascade').confirm : null;
 }
+
+/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : « tout résoudre » sur la
+ *  cascade, l'annulation du coup que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`). */
+const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
+  cascade: (s) => s.pendingCascade && { cascadeResolveAll: fermetureDeToutResoudre(s, s.pendingCascade) },
+  fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
+};
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une sortie, le flux d'un geste de jet,
  *  et l'id qu'elle désigne (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`). */
@@ -60,11 +68,14 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
     parFlux.set(cle, f);
     return f;
   };
-  const pc = fenetre.cle === 'cascade' ? s.pendingCascade : null;
+  const propres: Partial<Record<string, FermetureDuJet | null>> = FERMETURES_DES_VERBES[fenetre.cle]?.(s) ?? {};
   for (const g of fenetre.gestes) {
     const sortie = sortieDeLaFenetre(g.fenetre);
     if (sortie) { out.set(cleDuGeste(g), sortie.fermee(s)); continue; }
-    if (pc && g.verbe === 'cascadeResolveAll') { out.set(cleDuGeste(g), fermetureDeToutResoudre(s, pc)); continue; }
+    if (g.verbe in propres) {
+      out.set(cleDuGeste(g), propres[g.verbe] ?? null);
+      continue;
+    }
     for (const flux of fenetre.flux) {
       const cycle = verbeDuCycle(flux, g);
       if (!cycle) continue;

@@ -14,6 +14,7 @@ describe('l’exploration par le pont', () => {
   it('le groupe à sa case, la porte ouverte par son bouton, le réduit gagné par un clic', () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
     expect(suite.vue.projection.fenetre?.etape?.genre, 'l’entrée de la scène tient la main').toBe('sceneEntry');
+    expect(suite.vue.zones['fenetre.corps'].map((e) => e.id), 'elle dit le message d’entrée de la scène').toEqual(['revelation/0']);
     expect(suite.vue.champ, 'une fenêtre tient la main : le champ ne se clique pas').toBeNull();
     expect(suite.vue.zones['exploration.gestes'], 'ni les gestes d’exploration').toEqual([]);
     while (suite.vue.projection.fenetre) {
