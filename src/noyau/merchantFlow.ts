@@ -45,6 +45,7 @@ import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
@@ -442,7 +443,8 @@ export function searchAvailability(get: Get, set: Set): void {
   }, MERCHANT_RAGOT_KIND, { entityId: m.entityId, restockPeriod });
 }
 
-export function closeMerchant(get: Get, set: Set): void {
+/** Quitte le marchand : un marché négocié non honoré verrouille la négociation jusqu'au réassort. */
+function quitterLeMarchand(get: Get, set: Set): void {
   const m = get().merchant;
   // Négocié mais NON honoré (achat non payé, OU vente sans rien vendre) → verrou partagé jusqu'au réassort.
   const renege = !!m && ((m.bargainBuy != null && !m.bargainPaid) || (m.bargainSell != null && !m.bargainSellUsed));
@@ -1052,7 +1054,6 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     openMerchant: (entityId) => openMerchant(get, set, entityId),
     openPlaceMerchant: (entityId, archetype, backdrop) => openPlaceMerchant(get, set, entityId, archetype, backdrop),
-    closeMerchant: () => closeMerchant(get, set),
     searchAvailability: () => searchAvailability(get, set),
     addToCart: (label) => addToCart(get, set, label),
     decFromCart: (label) => decFromCart(get, set, label),
@@ -1073,6 +1074,10 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     barterExchange: (opts) => barterExchange(get, set, opts),
     setSellHalving: (uid, delta) => setSellHalving(get, set, uid, delta),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function sortiesDuMarchand(get: Get, set: Set) {
+  return { marche: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function cloturesDuMarchand(get: Get, set: Set) {

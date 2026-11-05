@@ -199,7 +199,7 @@ describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PA
     expect(get().pendingOuverture?.titre).toBe('T');
     expect(get().chapitreDepuis).toBeNull();
 
-    banc.getState().ajournerChapterRecap();
+    banc.getState().fenetreFermer('chapterRecap');
     expect(get().pendingChapterRecap?.titre).toBe('C');
 
     banc.getState().cloreChapitre();

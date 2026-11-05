@@ -54,7 +54,7 @@ const poser = (combatants: Combatant[]): void => {
 const vider = (): void => {
   if (!banc.getState().pendingCascade) return;
   banc.getState().cascadeResolveAll();
-  banc.getState().cascadeFinish();
+  banc.getState().fenetreFermer('cascade');
 };
 const enJeu = (id: string): Combatant | undefined => banc.getState().battle?.combatants.find((c) => c.id === id);
 const journal = (): string => (banc.getState().battle?.log ?? []).map((e) => (typeof e === 'string' ? e : (e as { text?: string }).text ?? '')).join('\n')

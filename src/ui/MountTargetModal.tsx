@@ -15,7 +15,8 @@ export function MountTargetModal() {
   const pmt = useGame((s) => s.pendingMountTarget);
   const battle = useGame((s) => s.battle);
   const select = useGame((s) => s.mountTargetSelect);
-  const cancel = useGame((s) => s.mountTargetCancel);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const cancel = () => fermer('mountTarget');
   if (!pmt || !battle) return null;
   const rider = battle.combatants.find((c) => c.id === pmt.riderId);
   const mount = battle.combatants.find((c) => c.id === pmt.mountId);

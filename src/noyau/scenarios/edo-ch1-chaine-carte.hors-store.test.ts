@@ -23,7 +23,7 @@ beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens().slice(0, 1
  *  geste se joue après. */
 const lireLesDocuments = (): void => {
   if (banc.getState().pendingDesignationHeros) banc.getState().designerHerosChoisir(banc.getState().party[0].id);
-  while (banc.getState().document) banc.getState().closeDocument();
+  while (banc.getState().document) banc.getState().fenetreFermer('document');
 };
 
 const paquet = paquetDuJeu(diligenceCampaign);

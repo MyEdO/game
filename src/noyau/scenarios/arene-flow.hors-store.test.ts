@@ -191,7 +191,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     banc.getState().jetConfirm('heal');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().medic).not.toBeNull(); // l'infirmerie reste ouverte (autre acte/patient)
-    banc.getState().closeMedic();
+    banc.getState().fenetreFermer('medic');
   });
 
   it('PORTE : un soigneur sans fiche de Guérison n’ouvre AUCUNE infirmerie — rien à lire, rien à inventer (L2 #1548)', () => {
@@ -238,7 +238,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     expect(m.npc!.id).toBe('soigneur');
     expect(m.npc!.label).toBe('Frère Anselm'); // le nom de l'ENTITÉ, pas celui de la fiche
     expect(m.npc!.skill.value).toBe(GUERISON); // la valeur de la FICHE, que l'effet ne porte pas
-    banc.getState().closeMedic();
+    banc.getState().fenetreFermer('medic');
   });
 
   it('le JOUEUR choisit le patient dans l’infirmerie (medicSelectPatient)', () => {
@@ -249,7 +249,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
     banc.getState().medicSelectPatient(party[2].id);
     expect(banc.getState().medic!.patientId).toBe(party[2].id);
-    banc.getState().closeMedic();
+    banc.getState().fenetreFermer('medic');
   });
 
   it('un acte sans patient pertinent est simplement refusé (pas de jet)', () => {
@@ -257,6 +257,6 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
     banc.getState().medicAct('wounds');
     expect(banc.getState().pendingHeal).toBeNull();
-    banc.getState().closeMedic();
+    banc.getState().fenetreFermer('medic');
   });
 });

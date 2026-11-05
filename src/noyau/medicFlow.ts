@@ -87,6 +87,7 @@ export interface MedicState {
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
  *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
@@ -156,12 +157,6 @@ export function medicSelectPatient(get: Get, set: Set, id: string): void {
   if (!m || get().pendingHeal || m.surgery) return;
   if (!get().party.some((h) => h.id === id)) return;
   set({ medic: { ...m, patientId: id } });
-}
-
-export function closeMedic(get: Get, set: Set): void {
-  const m = get().medic;
-  if (!m || get().pendingHeal || m.surgery) return; // résoudre le jet / arrêter l'opération d'abord
-  set({ medic: null });
 }
 
 /** Enjeu servi par chaque acte de soin ; `surgery`/`recovery` : celui de l'opération que l'acte arme. */
@@ -365,8 +360,12 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
     medicSetWound: (idx) => medicSetWound(get, set, idx),
     openSurgeryPass: () => openSurgeryPass(get, set),
     medicAbandonSurgery: () => medicAbandonSurgery(get, set),
-    closeMedic: () => closeMedic(get, set),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`). */
+export function sortiesDuMedecin(_get: Get, set: Set) {
+  return { medic: () => set({ medic: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function cloturesDuMedecin(get: Get, set: Set) {
