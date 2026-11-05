@@ -1705,6 +1705,29 @@
         "min": 41,
         "max": 45,
         "label": "Votre cause est indigne",
+        "targetOps": [
+          {
+            "op": "condition",
+            "id": "a-terre",
+            "value": 1
+          },
+          {
+            "op": "deityBan",
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1923,6 +1946,24 @@
         "min": 76,
         "max": 80,
         "label": "Vous avez péché contre moi",
+        "ops": [
+          {
+            "op": "prayerForAction",
+            "durationRounds": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,

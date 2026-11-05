@@ -9,8 +9,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, jetsEnVue, porteurParId, toneOf,
-  type CombatEvent, type FicheDuPorteur, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -37,7 +37,8 @@ export interface ZonesDeLEcran {
   'groupe.heros': Bouton[];
   'fiche.heros': Entite[];
   'fiche.gestes': Bouton[];
-  'fiche.corps': Puce[];
+  'fiche.corps': (Puce | Bouton)[];
+  'fiche.objet': Entite[];
 }
 
 type Combat = NonNullable<Projection['combat']>;
@@ -313,12 +314,12 @@ const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.s
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
-/** L'onglet `onglet` de la fiche `f`, chaque entrée en puce : une Caractéristique par son abréviation, son nom au
+/** L'onglet ouvert de la fiche `f`, chaque entrée en puce : une Caractéristique par son abréviation, son nom au
  *  détail ; une Compétence et la valeur de son Test, sa Caractéristique et ses Augmentations au détail, par nom ; un
- *  Talent et son niveau, le premier paragraphe de sa description au détail ; une possession et son nombre ou son
- *  argent, les équipées d'abord. */
-function corpsDeLaFiche(f: FicheDuPorteur, onglet: FicheOuverte['onglet']): Puce[] {
-  switch (onglet) {
+ *  Talent et son niveau, le premier paragraphe de sa description au détail. Chaque possession en bouton qui la nomme,
+ *  son nombre s'il y en a plusieurs, les équipées d'abord : il la choisit ; la choisie, pressée, se laisse. */
+function corpsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): (Puce | Bouton)[] {
+  switch (ouverte.onglet) {
     case 'caracteristiques': return f.caracteristiques.map((c) => puce(`carac/${c.cle}`, c.abrege, String(c.valeur), c.libelle));
     case 'competences': {
       const carac = new Map(f.caracteristiques.map((c) => [c.cle, c]));
@@ -330,25 +331,68 @@ function corpsDeLaFiche(f: FicheDuPorteur, onglet: FicheOuverte['onglet']): Puce
         .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
     }
     case 'talents': return f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc)));
-    case 'possessions': return f.possessions
-      .map((p, i) => ({ p, i }))
-      .sort((a, b) => Number(b.p.equipee) - Number(a.p.equipee))
-      .map(({ p, i }) => puce(`possession/${i}`, p.libelle, p.argent ?? nombre(p.nombre), p.equipee ? t('ecran.fiche.equipee') : null, p.equipee ? 'reussite' : 'neutre'));
+    case 'possessions': return [...f.possessions]
+      .sort((a, b) => Number(b.equipee) - Number(a.equipee))
+      .map((p) => {
+        const choisie = ouverte.objet === p.uid;
+        const libelle = p.nombre > 1 ? t('ecran.fiche.possession', { libelle: p.libelle, nombre: p.nombre }) : p.libelle;
+        return boutonDeFiche(`possession/${p.uid}`, libelle, { heros: f.id, onglet: 'possessions', ...(choisie ? {} : { objet: p.uid }) }, choisie);
+      });
   }
 }
 
-/** Les zones de la fiche `ouverte` : son héros, ses onglets et sa fermeture, l'onglet ouvert ; vides sans fiche ou
- *  sans son héros. */
-function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.heros' | 'fiche.gestes' | 'fiche.corps'> {
+/** Un geste sur un objet (`GesteDuNoyau`), pressé quand il dit l'état courant, refusé avec sa raison. */
+const boutonDObjet = (id: string, libelle: string, g: GesteDuNoyau, refus: string | null, presse = false): Bouton => ({
+  type: 'bouton', id, libelle, jeu: { type: g.verbe, args: g.args }, presse, focus: false, refus,
+});
+
+/** Un geste à choix sur un objet : une liste dont chaque choix joue son geste, refusé avec elle. */
+const listeDObjet = (id: string, libelle: string, g: GesteAChoix<unknown>): Choix => ({
+  type: 'liste', id, ton: 'neutre', libelle, focus: false, refus: g.refus,
+  valeurs: g.choix.map((c, i) => boutonDObjet(`${id}/${i}`, c.libelle, c.geste, g.refus)),
+});
+
+/** La possession choisie de la fiche `f` (`FicheOuverte.objet`) en entité : son nom, au ton `reussite` quand elle est
+ *  équipée ; son nombre, son argent et le contenant où elle est rangée en puces ; puis chacun de ses gestes
+ *  (`gestesDeLObjet`), refusé avec sa raison : la porter, la tenir dans une main, l'utiliser, la ranger dans un
+ *  contenant ou l'en sortir, la donner à un porteur à ses côtés, l'évaluer, la détecter. */
+function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): Entite[] {
+  const p = ouverte.onglet === 'possessions' ? f.possessions.find((x) => x.uid === ouverte.objet) : undefined;
+  const g = p && gestesDeLObjet(etat, f.id, p.uid);
+  if (!p || !g) return [];
+  const simple = (id: 'porter' | 'utiliser' | 'sortir' | 'evaluer' | 'detecter', presse = false): Bouton | null => {
+    const x = g[id];
+    return x && boutonDObjet(id, t(`ecran.objet.${id}`), x.geste, x.refus, presse);
+  };
+  const elements: (Element | null)[] = [
+    p.nombre > 1 ? puce('nombre', t('ecran.fiche.nombre', { nombre: p.nombre }), null) : null,
+    p.argent === null ? null : puce('argent', p.argent, null),
+    p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
+    simple('porter', g.porter?.porte),
+    ...(g.mains ? (['main', 'off'] as const).map((m) => boutonDObjet(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
+    simple('utiliser'),
+    g.ranger && listeDObjet('ranger', t('ecran.objet.ranger'), g.ranger),
+    simple('sortir'),
+    g.donner && listeDObjet('donner', t('ecran.objet.donner'), g.donner),
+    simple('evaluer'),
+    simple('detecter'),
+  ];
+  return [{ type: 'entite', id: p.uid, ton: p.equipee ? 'reussite' : 'neutre', nom: p.libelle, elements: elements.filter((e): e is Element => e !== null) }];
+}
+
+/** Les zones de la fiche `ouverte` : son héros, ses onglets et sa fermeture, l'onglet ouvert, la possession choisie ;
+ *  vides sans fiche ou sans son héros. */
+function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.heros' | 'fiche.gestes' | 'fiche.corps' | 'fiche.objet'> {
   const f = ouverte && ficheDuPorteur(etat, ouverte.heros);
-  if (!ouverte || !f) return { 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [] };
+  if (!ouverte || !f) return { 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [] };
   return {
     'fiche.heros': [herosDeLaFiche(f)],
     'fiche.gestes': [
       ...ONGLETS_DE_LA_FICHE.map((o) => boutonDeFiche(`onglet/${o}`, t(`ecran.fiche.onglet.${o}`), { heros: f.id, onglet: o }, o === ouverte.onglet)),
       boutonDeFiche('fermer', t('ecran.fiche.fermer'), null, false),
     ],
-    'fiche.corps': corpsDeLaFiche(f, ouverte.onglet),
+    'fiche.corps': corpsDeLaFiche(f, ouverte),
+    'fiche.objet': objetDeLaFiche(etat, f, ouverte),
   };
 }
 

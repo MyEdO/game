@@ -31,7 +31,7 @@ import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -48,6 +48,7 @@ import {
   castBlockedBy,
   prayerSinLock,
   prayerTalentMissing,
+  prayerBannedOn,
   evaluateMissile,
   spellDRModFor, spellSLFor, spellLandsOn, talentSpellDRMod, zoneTalentSpellDRMod,
   applyFullPower,
@@ -4570,7 +4571,7 @@ function liveSinPoints(caster: Combatant, severity: MiscastSeverity): number {
  * LANCEUR les effets mécaniques modélisés (États, Blessures ignorant BE+PA,
  * réduction à 0 + Inconscient). Retourne les lignes de journal.
  */
-export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string }): string[] {
+export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string; targetIds?: string[] }): string[] {
   // Composant d'incantation (LDB 46 l.111, règle optionnelle) : si un composant adapté a été
   // SACRIFIÉ pour ce Sort (consommation décidée et journalisée au point d'incantation — cf.
   // `useSpellComponent`), il absorbe les pires effets du contrecoup : « toute Incantation Imparfaite
@@ -4584,7 +4585,7 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
     }
     return [
       tr('cf.componentDowngrade', { name: caster.label }),
-      ...applyMiscast(get, set, caster, downgraded, { suppressReveal: opts.suppressReveal, sorceryCorruption: opts.sorceryCorruption, domainId: opts.domainId }),
+      ...applyMiscast(get, set, caster, downgraded, { suppressReveal: opts.suppressReveal, sorceryCorruption: opts.sorceryCorruption, domainId: opts.domainId, targetIds: opts.targetIds }),
     ];
   }
   const ctx: PendingMiscastStep = {
@@ -4592,6 +4593,7 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
     ...(opts?.domainId ? { domainId: opts.domainId } : {}),
     ...(opts?.sorceryCorruption ? { sorceryCorruption: true } : {}),
     ...(opts?.suppressReveal ? { suppressReveal: true } : {}),
+    ...(opts?.targetIds?.length ? { targetIds: opts.targetIds } : {}),
   };
   // Le tirage de la table est une étape à TABLE, poussée NON RÉSOLUE (#1426) : aucun effet n'est
   // appliqué avant que le DERNIER dé ne tombe (relances comprises), et il tombe au RANG de l'étape.
@@ -4640,7 +4642,8 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
   // que la même rangée porte (LDB 46 l.55-75, LDB 40 l.56-89).
-  const opsCtx: OpsCtx = {
+  /** Contexte d'application des ops de la rangée au combattant `c` : la Corruption lui revient. */
+  const ctxPour = (c: Combatant): OpsCtx => ({
     rng: battleRng(),
     label: m.label,
     now: get().gameTime,
@@ -4648,9 +4651,19 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     // ligne) dans la catégorie que sa table déclare — sans lui, la pastille d'un effet durable
     // (« Purifier la chair », `LDB 40 l.75`) s'afficherait nue, sans fiche ni popover.
     source: miscastRowSource(miscastTableId(severity), m.rowId),
-    onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined, ...campAdvantageHooks(get),
-  };
+    onCorruption: followsCharacterRules(c) ? (n, align) => gainCorruption(get, set, c, n, align) : undefined, ...campAdvantageHooks(get),
+  });
+  const opsCtx = ctxPour(caster);
   lines.push(...applyOps(caster, m.ops, opsCtx));
+  // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
+  if (m.targetOps.length) {
+    const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
+    if (!cibles.length) lines.push(tr('cf.miscastSansCible', { label: m.label }));
+    for (const c of cibles) {
+      const cibleCtx: OpsCtx = { ...ctxPour(c), caster };
+      lines.push(...applyOps(c, m.targetOps, cibleCtx));
+    }
+  }
   // Sorcellerie : 1 Point de Corruption PAR JET de table (LDB 49 l.5, verbatim en tête de
   // `sorceryCorruptionLines`). Dé tiré inline → `m.tableRolls` compte TOUS les jets de la cascade
   // (relance 96-00, deux lancers d'une Multiplication et leurs relances 91-00) ; dé posé → 1, les
@@ -4874,11 +4887,13 @@ export function laisserPasserLeContreSort(get: Get, set: SetFn): void {
 }
 
 /** Refus d'incanter `spell`, AVANT toute modale, sinon null — porte UNIQUE de `castSpell` et de
- *  `castZoneSpell` : contrecoup bloquant (« Propos ésotériques », « Vous abusez de ma patience »…,
- *  LDB 46/40), Talent de Prière que le lanceur ne possède pas (LDB 10 l.109, l.625), verrou de Péché du
+ *  `castZoneSpell` : Sort quand l'Action est due à une Prière (LDB 40 l.74), contrecoup bloquant
+ *  (« Propos ésotériques », « Vous abusez de ma patience »…, LDB 46/40), Talent de Prière que le lanceur ne possède pas (LDB 10 l.109, l.625), verrou de Péché du
  *  culte lu en DONNÉE (`GodData.sinLocks`, MDG 11 l.148). */
 function refusDIncanter(caster: Combatant, spell: SpellData): string | null {
   const priere = castInfoIsPrayer(spell);
+  const imposee = priere ? null : refusPriereImposee(caster);
+  if (imposee) return imposee;
   const blocked = castBlockedBy(caster, priere ? 'priere' : 'langue');
   if (blocked) return tr(priere ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked });
   const talentManquant = prayerTalentMissing(caster, spell);
@@ -6147,10 +6162,16 @@ export function applyCast(
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
   const malevolent = malevolentInfluenceSeverity(res.roll, evaluateTest(res.roll, res.target).success, nearCorruption, res.isFumble);
   const malevolentHandled = malevolent !== null;
+  /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
+   *  tirée (« vos cibles », LDB 40 l.64). */
+  const contrecoup = (severity: MiscastSeverity, opts: Parameters<typeof applyMiscast>[4] = {}): string[] =>
+    applyMiscast(get, set, caster, severity, { ...opts, targetIds: zoneTargets.map((t) => t.id) });
+  /** Options du contrecoup d'un SORT (composant, Sorcellerie, Domaine). */
+  const optsDuSort = { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined };
   /** Imparfaite ADDITIONNELLE due aux Influences malfaisantes / à la Sorcellerie, appliquée UNE fois après le Sort. */
   const applyExtraMiscast = (): void => {
-    if (malevolent) logLines.push(...applyMiscast(get, set, caster, malevolent, { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
-    else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'mineure', { sorceryCorruption: true, domainId: spell.domainId ?? undefined }));
+    if (malevolent) logLines.push(...contrecoup(malevolent, optsDuSort));
+    else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...contrecoup('mineure', { sorceryCorruption: true, domainId: spell.domainId ?? undefined }));
   };
   if (crit) {
     logLines.push(
@@ -6160,7 +6181,7 @@ export function applyCast(
           ? tr('cf.overcastFullPower')
           : tr('cf.overcastIrresistible'),
     );
-    if (!hasInstinctiveDiction(caster)) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+    if (!hasInstinctiveDiction(caster)) logLines.push(...contrecoup('mineure', optsDuSort));
     else logLines.push(tr('cf.dictionInstinctive'));
   }
   // « Avantages et Magie » (LDB 46 l.123-125) : si la cible a déjà été visée par un Sort du
@@ -6229,8 +6250,8 @@ export function applyCast(
     if (res.cast) placeSpellZone(get, caster, target, spell, missileSpec, slFor(target), durationMult, durationBonusRounds, logLines);
     // Maladresse d'un Sort → Incantation Imparfaite Mineure ; sort focalisé dont
     // l'incantation échoue → Imparfaite Mineure également (Livre de base l.183).
-    if (res.isFumble && !malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
-    else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+    if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
+    else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
   } else {
     if (res.cast) {
@@ -6248,6 +6269,8 @@ export function applyCast(
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
         if (opp?.resisted) { logLines.push(tr('cf.spellResisted', { name: t.label, spell: spell.label })); continue; }
+        // LDB 40 l.64
+        if (prayerBannedOn(t, caster, spell)) { logLines.push(tr('cf.prayerBanned', { name: t.label, spell: spell.label })); continue; }
         // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28).
         if (immuneToSpellDomain(t.traits, spell.domainId)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
         // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
@@ -6333,11 +6356,11 @@ export function applyCast(
       }
     } else if (res.isFumble) {
       // Prière → Colère des dieux ; Sort → Incantation Imparfaite Mineure (subsumée par la Règle du 8 sur « 88 »).
-      if (castInfoIsPrayer(spell)) logLines.push(...applyMiscast(get, set, caster, 'colere', { componentDowngrade: componentUsed }));
-      else if (!malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+      if (castInfoIsPrayer(spell)) logLines.push(...contrecoup('colere', { componentDowngrade: componentUsed }));
+      else if (!malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     } else if (focusedNI0 && !malevolentHandled) {
       // Sort focalisé dont l'incantation échoue (sans Maladresse) → Imparfaite Mineure.
-      logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+      logLines.push(...contrecoup('mineure', optsDuSort));
     }
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
     // Sort de SOUTIEN (bénédiction/soin/buff) ou prière non-projectile : émet aussi l'event
@@ -6392,7 +6415,7 @@ export function applyCast(
   // Maladresse, elle, a déjà déclenché la sienne ci-dessus).
   if (castInfoIsPrayer(spell) && !res.isFumble && res.roll > 0 && prayerWrathTriggered(res.roll, caster.sinPoints ?? 0)) {
     logLines.push(tr('cf.wrathTriggered', { units: res.roll % 10, name: caster.label, sin: String(caster.sinPoints) }));
-    logLines.push(...applyMiscast(get, set, caster, 'colere'));
+    logLines.push(...contrecoup('colere'));
   }
 
   // Le sort focalisé est consommé après le lancement.
@@ -7740,8 +7763,9 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   set({ battle: { ...get().battle! } });
   bus.emit(EVT.SCENE_DIRTY);
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
-  // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant.
-  if (!tgt || mv.couru || !canTakeAction(enemy) || combatDistance(enemy, tgt) > meleeReachTiles(enemy.weapons)) {
+  // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
+  // à une Prière (LDB 40 l.74).
+  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || combatDistance(enemy, tgt) > meleeReachTiles(enemy.weapons)) {
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
