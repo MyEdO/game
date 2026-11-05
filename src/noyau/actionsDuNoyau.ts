@@ -59,8 +59,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   toggleCluePin: (indiceId: string) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
-  /** Fond les cases visibles courantes dans l'ensemble exploré de la scène (appelé par le rendu). */
-  markExplored: (keys: string[]) => void;
   /** Abandon de la séquence en cours, quand sa définition en déclare un (`SequenceDef.abandon`). */
   sequenceAbandon: () => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */

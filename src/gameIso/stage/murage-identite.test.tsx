@@ -397,12 +397,12 @@ const BATTERIE: readonly Geste[] = [
     monter: monterHub,
     témoin: () => String(explorées()),
     agir: async () => {
-      // La VOIE de l'hôte : le rendu fond les cases vues dans l'ensemble exploré (`markExplored`), et
-      // c'est de cet ensemble que descend la teinte de chaque sommet (`visibilityField`).
-      const dims = useGame.getState().scene!.dimensions;
+      // L'ensemble exploré de la scène (`explored`, accumulé par la transition du jeu) : c'est de lui
+      // que descend la teinte de chaque sommet (`visibilityField`).
+      const { scene, explored } = useGame.getState();
       const cases: string[] = [];
-      for (let x = 0; x < dims.w; x++) for (let y = 0; y < dims.h; y++) cases.push(`${x},${y},0`);
-      await act(async () => { useGame.getState().markExplored(cases); });
+      for (let x = 0; x < scene!.dimensions.w; x++) for (let y = 0; y < scene!.dimensions.h; y++) cases.push(`${x},${y},0`);
+      await act(async () => { useGame.setState({ explored: { ...explored, [scene!.id]: cases } }); });
     },
   },
   {
