@@ -33,6 +33,15 @@ const shipLocEntry = nommerChamps(z.strictObject({
   mixte: { label: 'navire mixte' },
 });
 
+/** Une table de Localisation navale ; sa clé dans le document est son id (`hull.locationTable`). */
+const tableNavale = nommerChamps(z.strictObject({
+  source: sourceRefSchema,
+  entries: z.array(shipLocEntry),
+}), {
+  source: { label: 'source' },
+  entries: { label: 'rangées' },
+});
+
 const doc = document(
   'localisation',
   famille,
@@ -42,20 +51,8 @@ const doc = document(
      *  présentes dans le JSON (les autres formes retombent sur `humanoide`, cf. `hitLocationByShape`). */
     shapes: z.record(z.string(), z.array(bodyLocEntry)),
   }), { shapes: { label: 'formes corporelles' } }),
-  navire: nommerChamps(z.strictObject({
-    source: sourceRefSchema,
-    entries: z.array(shipLocEntry),
-  }), {
-    source: { label: 'source' },
-    entries: { label: 'rangées' },
-  }),
-  'navire-fluvial': nommerChamps(z.strictObject({
-    source: sourceRefSchema,
-    entries: z.array(shipLocEntry),
-  }), {
-    source: { label: 'source' },
-    entries: { label: 'rangées' },
-  }),
+  navire: tableNavale,
+  'navire-fluvial': tableNavale,
   },
   {
     personnage: { label: 'Localisation — Personnage', hint: 'Table de Localisation humaine/créature par Forme de corps' },
