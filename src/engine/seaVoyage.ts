@@ -24,7 +24,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { d10, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { TestExige } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -88,7 +88,9 @@ const CARGO = seaCargoJson as unknown as {
   };
   opportunite: {
     investMaxEnc: boolean;
-    test: { skill: RefDesignee; difficulty: Difficulty; totalDR: number; maxAttempts: number };
+    test: TestExige<'skill' | 'difficulty'>;
+    totalDR: number;
+    maxAttempts: number;
     outcomes: { on: 'success' | 'failure'; minMissing?: number; minExtraDR?: number; pct: number }[];
   };
 };
@@ -353,7 +355,7 @@ export function dumpingPricePct(port: PortProfile, cargoId: string): number | nu
  *  (−10), 10 DR en ≤ 3 tentatives — échec de 6 DR → tout perdu ; échec → moitié ; succès → +10 % ;
  *  succès de 6 DR (16+) → +20 %. Renvoie le % de l'investissement récupéré. PUR. */
 export function opportunityTradePct(totalDR: number): number {
-  const need = CARGO.opportunite.test.totalDR;
+  const need = CARGO.opportunite.totalDR;
   for (const o of CARGO.opportunite.outcomes) {
     if (o.on === 'failure' && o.minMissing != null && totalDR <= need - o.minMissing) return 100 + o.pct;
   }

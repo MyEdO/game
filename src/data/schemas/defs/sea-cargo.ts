@@ -10,7 +10,7 @@ import {
   plageOuverteSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
-import { refOuSpec } from '../grammaire/ref';
+import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'sea-cargo.json';
 export const famille = 'config';
@@ -112,17 +112,9 @@ const doc = document(
   }),
   opportunite: nommerChamps(z.strictObject({
     investMaxEnc: z.boolean(),
-    test: nommerChamps(z.strictObject({
-      skill: refOuSpec('skill'),
-      difficulty: difficultySchema,
-      totalDR: z.number(),
-      maxAttempts: z.number(),
-    }), {
-      skill: { label: 'Compétence' },
-      difficulty: { label: 'Difficulté' },
-      totalDR: { label: 'DR cumulés' },
-      maxAttempts: { label: 'Tentatives maximales' },
-    }),
+    test: flowTestSchema,
+    totalDR: z.number(),
+    maxAttempts: z.number(),
     outcomes: z.array(
       nommerChamps(z.strictObject({
         on: z.enum(['success', 'failure']),
@@ -137,9 +129,11 @@ const doc = document(
       }),
     ),
     source: sourceRefSchema,
-  }), {
+  }).superRefine(exigerDuTest('skill', 'difficulty')), {
     investMaxEnc: { label: 'Investissement maximal (Enc)' },
     test: { label: 'Test' },
+    totalDR: { label: 'DR cumulés' },
+    maxAttempts: { label: 'Tentatives maximales' },
     outcomes: { label: 'Issues' },
     source: { label: 'Source' },
   }),

@@ -169,7 +169,7 @@ describe('#1318 E4/C4-δ3 — parité des champs déclarés de la couche activit
     expect(MOUNT_INCIDENTS.filter((e) => !e.mount)).toEqual([]);
     const sangle = MOUNT_INCIDENTS.find((e) => e.id === 'sangle-cassee')!.mount!;
     expect(sangle.ridingPenalty).toBe(-20);
-    expect(sangle.riderTest).toEqual({ skill: { id: 'chevaucher' }, char: 'agilite', difficulty: 'complexe', fallM: 2 });
+    expect(sangle.riderTest).toEqual({ test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 });
   });
 
   it('CARGAISONS — `tradeHub` : exactement le marqueur « Commerce » des DEUX catalogues, et les deux commerces le lisent', () => {

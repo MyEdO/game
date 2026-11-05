@@ -2321,7 +2321,7 @@ export interface TestDeRegleData {
   id: string;
   label: string;
   source: SourceRef;
-  test: import('../engine/flowCore').FlowTest & { skill: NonNullable<import('../engine/flowCore').FlowTest['skill']>; difficulty: Difficulty };
+  test: import('../engine/flowCore').TestExige<'skill' | 'difficulty'>;
 }
 export interface RangeeDeRegleData {
   id: string;
