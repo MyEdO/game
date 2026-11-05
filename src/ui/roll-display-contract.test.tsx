@@ -18,7 +18,7 @@ import { toRecapLines } from '../noyau/recapLine';
 import type { Combatant } from '../engine/types';
 import type { VerdictReason } from '../engine/tests';
 import { RULE_REF } from '../engine/ruleRefs';
-import { codexLookupById } from './compendium/registry';
+import { codexLookupById } from '../noyau/codex/registry';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const noop = () => {};

@@ -18,7 +18,7 @@ import { instantaneDeLaCoop } from '../noyau/coop';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
-import { proseDeFiche, codexLookupById } from './compendium/registry';
+import { proseDeFiche, codexLookupById } from '../noyau/codex/registry';
 import { CodexEntry } from './compendium/CodexEntry';
 import { Prose } from './Prose';
 import { porteurDuNarratif } from './porteurDeProjet';

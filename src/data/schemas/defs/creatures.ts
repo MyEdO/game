@@ -55,10 +55,10 @@ const harvestDangerSchema = z.enum(['Inoffensive', 'Inquiétante', 'Menaçante',
 const champs = {
   /** SOUS-TITRE de statbloc (« Bandit humain », « Prince démon de Slaanesh »). Mesuré 2026-08-31 :
      *  493/493 porteuses, dont 440 à `null` et 53 à valeur recopiée du livre. LECTEUR NOMINATIF :
-     *  `src/ui/compendium/registry.ts` (rubrique `creatures`, `sub: c.title ?? undefined`) — c'est le
+     *  `src/noyau/codex/registry.ts` (rubrique `creatures`, `sub: c.title ?? undefined`) — c'est le
      *  sous-titre de la fiche Codex. Le `null` est un ÉTAT VOULU, pas un trou : le co-invariant des
      *  deux sens (posé → rendu à l'identique, nul → aucun sous-titre, jamais un repli) est verrouillé
-     *  par `src/ui/compendium/registry-sous-titre-null.test.ts`. Ce champ n'infère JAMAIS la
+     *  par `src/noyau/codex/registry-sous-titre-null.test.ts`. Ce champ n'infère JAMAIS la
      *  nommé-ité : `isNamed` lit `named`. */
     title: z.string().nullable(),
     named: z.boolean().optional(),

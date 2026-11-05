@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateEntry } from '../editor/codex/CodexEdit';
 import { traits, creatures } from '../../data';
 import { datasetArray, DATASET_KEYS } from '../../data/overrides';
-import { entryKey } from './registry';
+import { entryKey } from '../../noyau/codex/registry';
 
 type Entry = Record<string, unknown>;
 

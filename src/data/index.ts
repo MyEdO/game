@@ -2124,7 +2124,7 @@ export interface SpellData {
    *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
   isRitual?: boolean;
   /** Rubriques d'ANATOMIE D'UN RITUEL (`VDM 02 l.377-393`) : ce qu'un Rituel imprime EN PLUS d'un
-   *  Sort. Rendues par la fiche Codex des Sorts (`ui/compendium/registry.ts`) ; `cnFrom` y remplace
+   *  Sort. Rendues par la fiche Codex des Sorts (`noyau/codex/registry.ts`) ; `cnFrom` y remplace
    *  le NI quand la rubrique imprime une formule sur la cible plutôt qu'un nombre (`cn: null`). */
   ritual?: {
     type: string;
@@ -2863,7 +2863,7 @@ export const stars = starsJson as StarData[];
 /** Les 5 demeures célestes (ADE II 3 l.502-512, « Déterminer les demeures célestes ») — ossature
  *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
-/** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`ui/compendium/registry.ts`), la
+/** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`noyau/codex/registry.ts`), la
  *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';

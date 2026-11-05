@@ -247,7 +247,7 @@ function rendu() {
 `
   out += `
 `
-  out += `  - \`desc\`/\`source\` — Codex, \`effectiveEntry\`, \`${citeLigne('src/ui/compendium/registry.ts', 'const e = effectiveEntry(t);')}\`
+  out += `  - \`desc\`/\`source\` — Codex, \`effectiveEntry\`, \`${citeLigne('src/noyau/codex/registry.ts', 'const e = effectiveEntry(t);')}\`
 `
   out += `  - \`test\` — \`talentTestSLBonus\`, \`${citeLigne('src/engine/magic.ts', 'export function talentTestSLBonus(')}\`
 `
@@ -263,7 +263,7 @@ function rendu() {
 `
   out += `
 `
-  out += `  - \`desc\`/\`source\` — Codex, \`effectiveEntry\`, \`${citeLigne('src/ui/compendium/registry.ts', 'const t = effectiveEntry(t0);')}\`
+  out += `  - \`desc\`/\`source\` — Codex, \`effectiveEntry\`, \`${citeLigne('src/noyau/codex/registry.ts', 'const t = effectiveEntry(t0);')}\`
 `
   out += `
 `
