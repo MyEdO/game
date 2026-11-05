@@ -5,14 +5,11 @@
  */
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';
-import { DEFAULT_TERRAIN } from './monde/scene';
+import { emptyScene } from './monde/scene';
 import type { EtatDeJeu } from './etat';
 
 /** Arène minimale au sol de départ (combatantClickActs dérive l'affordance d'attaque → besoin d'une scène). */
-const arena = () => {
-  const w = 16, h = 12;
-  return { id: 's', dimensions: { w, h }, levels: [{ z: 0, tiles: new Array(w * h).fill(DEFAULT_TERRAIN) }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
-};
+const arena = () => emptyScene('s', 16, 12);
 
 /** Pose le combat par `set`, le tour au premier héros, `over` fusionné au `battle`. */
 export function poserLeCombat(set: (patch: Partial<EtatDeJeu>) => void, over: Record<string, unknown> = {}) {

@@ -180,7 +180,7 @@ export type TileClickOpts = { confirm?: boolean; courseArmee?: boolean };
  *  COMPLÈTE côté offensif : un offensif oublié = sort injouable sur l'ennemi (le bug d'origine). */
 const HARMFUL_TARGET_OPS = new Set<string>([
   'condition', 'wounds', 'corruption', 'lifeSteal', 'suffocate', 'senseLoss', 'loseTurn',
-  'breakBlade', 'damageArmour', 'damageWornGear', 'armourPierce', 'reduceToZero', 'castPenalty',
+  'breakBlade', 'damageArmour', 'damageWornGear', 'armourPierce', 'reduceToZero', 'castPenalty', 'suppressTalents',
 ]);
 /** Ops « cible » BÉNÉFIQUES-SANS-AMBIGUÏTÉ → buff sur allié/soi. Liste tenue EXHAUSTIVE au même titre
  *  que HARMFUL_TARGET_OPS (recensement du catalogue `GameOp`, engine/ops.ts) POUR LES OPS DONT LE SIGNE
@@ -992,3 +992,7 @@ export const INTENT_ELECTION_LOCALE: Record<string, (get: Get, args: readonly un
 export function intentEluLocalement(get: Get, action: string, args: readonly unknown[]): boolean {
   return INTENT_ELECTION_LOCALE[action]?.(get, args) ?? false;
 }
+
+/** Le cavalier et la monture du couple désigné en attente (`pendingMountTarget`, LDB 14 l.181) : les ids que
+ *  `mountTargetSelect` accepte. */
+export const idsDuCoupleMonte = (s: Jeu): string[] => (s.pendingMountTarget ? [s.pendingMountTarget.riderId, s.pendingMountTarget.mountId] : []);

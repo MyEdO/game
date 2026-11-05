@@ -1,26 +1,19 @@
 /**
- * L'EXPLORÉ DU PAS COURANT — la dérivation de l'hôte du monde (`stage/MondeDeCampagne`), servie à ses
- * DEUX regards : ce que le store a retenu, PLUS ce que le groupe voit à l'instant.
+ * L'EXPLORÉ DE LA SCÈNE — la dérivation de l'hôte du monde (`stage/MondeDeCampagne`), servie à ses DEUX
+ * regards. La transition du jeu fond la vue dans l'exploré par l'écriture même qui l'a changée
+ * (`noyau/transitionDuJeu.ts`) : un pas ne passe qu'UN champ de teinte (#1396).
  *
- * Deux raisons, et elles vivent ensemble ici pour qu'aucun appelant n'en applique qu'une :
- *  - l'UNION : un pas découvre des cases, et l'accumulation persistante (`markExplored`) ne fait que
- *    les confirmer au commit SUIVANT. Sans elle, un pas passe DEUX champs de teinte — un au calcul de
- *    `visible`, un au retour du store — donc deux fois toute la cascade qui en descend (#1396) ;
- *  - la RÉFÉRENCE STABLE AU CONTENU : le commit de confirmation rend un ensemble ÉGAL, et la teinte
- *    qui en descend (`visibilityField`) ne doit pas s'y reforger.
+ * Sa RÉFÉRENCE ne change qu'au CONTENU : un instantané coop ou un chargement rend un tableau neuf mais
+ * égal, et la teinte qui en descend (`visibilityField`) ne doit pas s'y reforger.
  */
 import { useMemo, useRef } from 'react';
 
-/** L'exploré du store pour cette scène, uni aux cases vues à l'instant — référence stable au CONTENU. */
-export function useExploreCourant(
-  explored: Record<string, string[]>,
-  sceneId: string | undefined,
-  visible: ReadonlySet<string>,
-): Set<string> {
+/** L'exploré du store pour cette scène — référence stable au CONTENU. */
+export function useExploreCourant(explored: Record<string, string[]>, sceneId: string | undefined): Set<string> {
   const retenu = useRef<Set<string> | null>(null);
+  const cases = explored[sceneId ?? ''];
   return useMemo(() => {
-    const set = new Set(explored[sceneId ?? ''] ?? []);
-    for (const k of visible) set.add(k);
+    const set = new Set(cases);
     const précédent = retenu.current;
     if (précédent && précédent.size === set.size) {
       let identique = true;
@@ -29,5 +22,5 @@ export function useExploreCourant(
     }
     retenu.current = set;
     return set;
-  }, [explored, sceneId, visible]);
+  }, [cases]);
 }

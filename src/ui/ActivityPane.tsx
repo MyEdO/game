@@ -3,7 +3,7 @@ import { Icon } from './Icon';
 import { Prose } from './Prose';
 import { PendingRollLine, type PendingRoll } from './RollLine';
 import { StakeNote } from './StakeNote';
-import type { Porteur } from './liage';
+import type { Porteur } from '../noyau/codex/porteur';
 
 /**
  * Gabarit UNIQUE d'un panneau d'Activité/Service (#371) : en-tête (icône du registre + titre),

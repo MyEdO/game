@@ -55,7 +55,8 @@ export interface ArgumentDuGeste {
  *  ou optionnel avec des valeurs nommées : aucune valeur que le noyau nomme ne reste sans saisie. `attendu` : le geste que la politique de la fenêtre
  *  joue maintenant (`drive`, le jet puis sa clôture). `ouvert` : faux pour un geste qu'une fenêtre lue règle
  *  (`LECTEURS`) et qu'elle ne nomme pas maintenant, ou que le flux de jet qui le joue ferme maintenant
- *  (`fermeturesDeLaFenetre`) sans attendre de décision (`FERMETURES_DITES`) ; un hôte ne le dessine pas. `raison` : ce
+ *  (`fermeturesDeLaFenetre`) sans attendre de décision (`FERMETURES_DITES`), ou dont un argument requis se choisit parmi
+ *  aucune valeur ; un hôte ne le dessine pas. `raison` : ce
  *  qui ferme ce verbe de jet, en mots du joueur ; un verbe ouvert qui la porte se dessine refusé. `reglage` : un verbe
  *  qu'une fenêtre lue règle (`LECTEURS`), une option du coup plutôt qu'un pas de sa séquence. */
 export interface GesteDeLaFenetre {
@@ -182,7 +183,8 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
       return a;
     });
     const fermeture = fermetures.get(cle) ?? null;
-    const ouvert = (!regles.has(verbe) || reglages.has(verbe)) && (!fermeture || FERMETURES_DITES.has(fermeture));
+    const sansValeur = args.some((a) => !a.optionnel && a.saisie === 'choix' && !a.valeurs?.length);
+    const ouvert = (!regles.has(verbe) || reglages.has(verbe)) && (!fermeture || FERMETURES_DITES.has(fermeture)) && !sansValeur;
     return { cle, verbe, libelle: garanti(libelleDuGeste(g), cle, 'libellé du geste'), arguments: args, ...renduDe(args), attendu: cle === attendu, ouvert, raison: fermeture && libelleDeLaFermeture(fermeture), reglage: regles.has(verbe) };
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;

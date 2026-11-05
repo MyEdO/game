@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // clous d'or — le siège d'honneur d'une loge (distinct des bancs du parterre `rangee-sieges`).
 export const prop: PropViz = {
   id: 'fauteuil-loge',
-  label: 'Fauteuil de loge',
   render: () =>
     `<g><ellipse cx="60" cy="146" rx="26" ry="8" fill="${P.ombre}" opacity="0.22"/>` +
     `<rect x="38" y="52" width="44" height="66" rx="16" fill="${P.sangFonce5}"/><rect x="44" y="58" width="32" height="54" rx="11" fill="${P.sangFonce14}"/>` +

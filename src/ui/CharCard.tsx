@@ -12,6 +12,7 @@ import { WaxSeal } from './WaxSeal';
 import { EntityRef } from './EntityChip';
 import { speciesSingular, careerLabelFor, skillInstanceLabel, talentConcrete, allAxes, coreAxisIds, type AxisData } from '../data';
 import { dominantAxes, axesProfile } from '../engine/axes';
+import { effectiveTalents } from '../engine/talentEffects';
 import { t } from '../i18n';
 import { GatedAction } from './GatedAction';
 import { Row } from './Layout';
@@ -75,7 +76,7 @@ export function heroKeySkills(hero: Combatant, max = 6): string[] {
 
 /** Talents CLÉS (libellé concret) — présentation lisible. */
 export function heroKeyTalents(hero: Combatant, max = 6): string[] {
-  return hero.talents.slice(0, max).map((tt) => talentConcrete(tt));
+  return effectiveTalents(hero).slice(0, max).map((tt) => talentConcrete(tt));
 }
 
 /** État de recrutement d'un candidat vis-à-vis du groupe (calculé par l'écran d'équipe). */

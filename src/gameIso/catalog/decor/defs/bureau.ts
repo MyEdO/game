@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // papier posée dessus. Mobilier des bureaux du concierge/gestionnaire et du régisseur. Cf. plan NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'bureau',
-  label: 'Bureau',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="42" ry="9" fill="${P.ombre}" opacity="0.2"/>` +
     // pied simple (gauche)

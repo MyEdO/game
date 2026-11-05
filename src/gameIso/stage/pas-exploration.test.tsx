@@ -27,6 +27,7 @@ import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import * as visibilityTint from '../backends/webgl/visibilityTint';
+import * as vision from '../../noyau/monde/vision';
 import { gabaritTint } from '../../ui/editor/lowerLayerGabarit';
 import { staticTexturePins } from '../backends/webgl/svgTexture';
 import { MondeDeCampagne } from './MondeDeCampagne';
@@ -159,6 +160,15 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
     // fois toute la cascade qui en descend (teinte du monde, accents, corps) — et, avant #1396, deux
     // remontages complets du groupe de billboards.
     expect(champ.mock.calls.length, 'le pas dérive le champ de teinte plus d’une fois').toBe(1);
+  });
+
+  it('un pas ne calcule la vision qu’UNE fois : l’exploré du noyau et la vue du stage partagent le calcul', async () => {
+    await monterIso();
+    const vue = vi.spyOn(vision, 'computeVisible');
+
+    await pas('up');
+
+    expect(vue.mock.calls.length, 'le pas recalcule la vision du groupe plus d’une fois').toBe(1);
   });
 
   it('la MARCHE peint : le glissement du jeton tient le battement du stage, hors de tout commit', async () => {

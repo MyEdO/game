@@ -54,16 +54,16 @@ describe('catalogue décors', () => {
 
 describe('SP2 — décors fouillables', () => {
   const NEW = ['lettre', 'coffre', 'cle', 'bourse', 'etagere'];
-  it('les 5 nouveaux décors sont enregistrés, searchable, et rendus non vides', () => {
+  it('les 5 nouveaux décors sont enregistrés, fouillables dans leur donnée, et rendus non vides', () => {
     for (const id of NEW) {
       expect(PROPS[id], id).toBeDefined();
-      expect(PROPS[id].searchable, id).toBe(true);
+      expect(findPropById(id)?.searchable, id).toBe(true);
       expect(propSvg(id).length, id).toBeGreaterThan(40);
     }
   });
-  it('un décor pur n’est pas searchable', () => {
-    expect(PROPS.tonneau.searchable).toBeFalsy();
-    expect(PROPS.cadavre.searchable).toBeFalsy();
+  it('un décor pur n’est pas fouillable', () => {
+    expect(findPropById('tonneau')?.searchable).toBeFalsy();
+    expect(findPropById('cadavre')?.searchable).toBeFalsy();
   });
 });
 
@@ -88,7 +88,7 @@ describe('Opéra — props de théâtre', () => {
   it('les trois variantes longues 2×1 sont enregistrées, rendues, et empreintées par le catalogue', () => {
     for (const [id, base] of [['table-2x1', 'table'], ['bureau-2x1', 'bureau'], ['etabli-2x1', 'etabli']] as const) {
       expect(PROPS[id], id).toBeDefined();
-      expect(PROPS[id].label, id).not.toBe(PROPS[base].label);
+      expect(findPropById(id)?.label, id).not.toBe(findPropById(base)?.label);
       expect(propSvg(id), id).toBe(propSvg(base)); // même vignette que sa base
       expect(propSvg(id).length, id).toBeGreaterThan(40);
       // L'empreinte EFFECTIVE, jamais un `foot` déclaré : les trois variantes longues sont des

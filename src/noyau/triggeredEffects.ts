@@ -41,6 +41,7 @@ import { cibleEnVue, isAfflictionActive, type CibleEnVue, type PsychAffliction }
 import { estCibleType } from '../engine/psych/ciblage';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
+import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { routeTriggeredTest } from './combat/triggeredTest';
 
@@ -116,7 +117,7 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
   // L'Indice de l'instance (`Taillade (1A)` → 1) PARAMÈTRE les effets de la qualité comme l'arg/l'Indice
   // d'un Trait paramètre les siens — MÊME `withArg`, même convention `$indice`, aucune voie parallèle.
   if (weapon) for (const { id, indice } of resolveQualities(weapon)) { const d = findQualityById(id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, undefined, indice), { kind: 'quality', id }), cap: 1, key: `qual:${id}`, label: d.label ?? id }); }
-  for (const t of actor.talents ?? []) { const d = findTalentById(t.talentId); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'talent', id: t.talentId }), cap: t.times ?? 1, key: t.talentId, label: d.label ?? t.talentId }); }
+  for (const t of effectiveTalents(actor)) { const d = findTalentById(t.talentId); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'talent', id: t.talentId }), cap: t.times ?? 1, key: t.talentId, label: d.label ?? t.talentId }); }
   // Symptômes ACTIFS des maladies (Crampes abdominales `onOwnTestFailed`, MSRC 16) — insérés APRÈS les
   // Talents et AVANT les États : ils composent comme un Trait/passif du CORPS (source NON-statut, sans
   // `stacks`), donc dispatchés par la voie `effectsOf`/`applyTriggeredEffects` (≠ pool à pions des États).

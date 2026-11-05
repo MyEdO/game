@@ -84,7 +84,7 @@ import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
 import type { ResolveurDePreset } from '../../noyau/monde/resolveursDuNarratif';
-import type { Porteur } from '../liage';
+import type { Porteur, PorteurDeRangee } from '../../noyau/codex/porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
@@ -95,7 +95,7 @@ import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
-import { reverseGroups, bookContents } from './relations';
+import { reverseGroups, bookContents } from '../../noyau/codex/relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
 import { libelleDuChamp } from './editFields';
@@ -136,17 +136,6 @@ export interface CodexFact {
   /** Lien Codex du LIBELLÉ (facultatif) — même forme que `CodexRow['kv'].kref` : la bande statbloc
    *  (profil M+carac+B) devient cliquable quand le fait référence une entité du Codex. */
   kref?: { category: string; id: string; label: string };
-}
-/**
- * PORTEUR d'une rangée de prose : le champ d'où sort son texte, VERBATIM. `type`/`id` NOMMENT
- * l'entrée quand la rangée rend le champ d'une AUTRE entrée que la fiche qui l'affiche (fiche de
- * Race rendant les textes d'âge/taille/nom de `details.json`) ; absents, `CodexRowView` les complète
- * avec l'entrée affichée. Un porteur désigne le champ RÉEL, jamais la fiche où on le lit.
- */
-export interface PorteurDeRangee {
-  type?: string;
-  id?: string;
-  chemin: string;
 }
 /** Une ligne d'une section. */
 export type CodexRow =

@@ -57,6 +57,7 @@ import { areGrappling } from '../engine/grapple';
 import { rule } from '../engine/policy';
 import { campSpend } from './combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
+import { effectiveTalents } from '../engine/talentEffects';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
@@ -195,7 +196,7 @@ export interface AttackOption {
  *  RÉACTIVES (`applyTalentFreeAttack`), plus de chemin frenzy-spécifique ni de jet en double. */
 export function availableFreeAttackOps(c: Combatant): { op: GrantFreeAttackOp; cap: number }[] {
   const out: { op: GrantFreeAttackOp; cap: number }[] = [];
-  for (const t of c.talents ?? [])
+  for (const t of effectiveTalents(c))
     for (const op of findTalentById(t.talentId)?.passive ?? [])
       if (op.op === 'grantFreeAttack' && op.when === 'available' && (op.activeIf !== 'frenzied' || isFrenzied(c)))
         out.push({ op, cap: t.times ?? 1 });
@@ -707,6 +708,22 @@ export function battementFoes(attacker: Combatant, battle: BattleState): Combata
  *  de la hotbar, défaut de l'ouverture, picker de la modale. Pur. */
 export function distraireFoes(mover: Combatant, battle: BattleState): Combatant[] {
   return battle.combatants.filter((c) => distraireEligible(mover, c) && !!c.pos);
+}
+
+/** Les adversaires que le Battement en attente (`pendingBattement`) peut viser (`battementFoes`) : ceux que
+ *  `battementSetFoe` accepte. */
+export function adversairesDuBattement(s: Jeu): Combatant[] {
+  const pb = s.pendingBattement;
+  const attaquant = pb && s.battle ? inBattleId(s.battle, pb.attackerId) : undefined;
+  return s.battle && attaquant ? battementFoes(attaquant, s.battle) : [];
+}
+
+/** Les adversaires que le Distraire en attente (`pendingDistraire`) peut viser (`distraireFoes`) : ceux que
+ *  `distraireSetFoe` accepte. */
+export function adversairesADistraire(s: Jeu): Combatant[] {
+  const pd = s.pendingDistraire;
+  const mover = pd && s.battle ? inBattleId(s.battle, pd.moverId) : undefined;
+  return s.battle && mover?.pos ? distraireFoes(mover, s.battle) : [];
 }
 
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps

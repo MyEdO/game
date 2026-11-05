@@ -72,6 +72,39 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
   });
 });
 
+describe('une fenêtre de combat ne désigne que les combattants que son verbe accepte (#3328)', () => {
+  const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
+  /** Le duel au contact : le héros `H` face à l'ennemi `E`, les autres ennemis hors de combat. */
+  function leDuel() {
+    const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
+    ouverture.envoyer({ type: 'startScene', args: [testScene()] });
+    ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    const garde = ouverture.etat();
+    ouverture.fermer();
+    const { H, E, patch } = auContact(garde);
+    return { H, E, etat: { ...garde, ...patch } as Jeu };
+  }
+  const valeurs = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
+
+  it('l’Enchaînement et le second coup visent l’adversaire au contact, jamais un allié, l’attaquant ou un vaincu', { timeout: 120_000 }, () => {
+    const { H, E, etat } = leDuel();
+    expect(etat.battle!.combatants.filter((c) => c.kind === 'enemy').length, 'témoin : des ennemis vaincus restent dans la file').toBeGreaterThan(1);
+    const balayage: Jeu = { ...etat, pendingCleave: { attackerId: H.id, hitIds: [], count: 0 } };
+    expect(valeurs(argumentDe(balayage, 'cleaveAttack', 'targetId'))).toEqual(['choix', [[E.id, E.label]]]);
+    const second: Jeu = { ...etat, pendingDualStrike: { attackerId: H.id, offWeaponUid: H.weapons.find((w) => w.uid)!.uid!, jet: 30 } };
+    expect(valeurs(argumentDe(second, 'dualStrikeAttack', 'targetId'))).toEqual(['choix', [[E.id, E.label]]]);
+    expect(fenetreADessiner(second)!.gestes.find((g) => g.verbe === 'dualStrikeAttack')!.rendu, 'la cible seule se dit : un clic par adversaire').toBe('choix');
+  });
+
+  it('le combat monté vise le cavalier ou sa monture, rien d’autre', { timeout: 120_000 }, () => {
+    const { E, etat } = leDuel();
+    const monture = etat.battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const couple: Jeu = { ...etat, pendingMountTarget: { riderId: E.id, mountId: monture.id } };
+    expect(valeurs(argumentDe(couple, 'mountTargetSelect', 'id'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
+  });
+});
+
 describe('un argument qui désigne une ligne sans id se choisit parmi les lignes que sa fenêtre nomme', () => {
   const lignes = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
   const gear = [{ label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }, { label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier' } }] as never;
@@ -84,7 +117,7 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       expect(lignes(argumentDe(victoire, 'appraiseGear', 'index'))).toEqual(nommees);
       expect(lignes(argumentDe(victoire, 'appraiseGear', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
-      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.verbe), 'sans ligne, rien à attribuer ni à évaluer').toEqual(['assignVictoryGear', 'appraiseGear']);
+      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.verbe), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['assignVictoryGear', 'harvestCreature', 'appraiseGear']);
     });
   });
 

@@ -65,8 +65,9 @@ from mathutils import Matrix, Quaternion, Vector
 
 from anatomie import AXES_DU_PERSONNAGE
 from animation import assign_action
+from pas_des_poids import LOT
 from pistes import aller_a, sacs
-from poids import LOT, cadence, deformer, instants, peau_lineaire, poses, repos
+from poids import cadence, deformer, instants, peau_lineaire, poses, repos
 from seuils import MAJORITE_DU_POIDS, SOL_TOLERANCE_M, TOLERANCE_ECHELLE, TOLERANCE_JUMEAUX_POSITION_M
 
 CLES_CONFONDUES = 1e-4
@@ -169,13 +170,13 @@ def surfaces_des_pieds(rig, w, pieds):
 
 
 def garder_les_poids_des_pieds(peau, retouches, surfaces):
-    """Arrête la construction si un sommet de `retouches`, les indices que le lissage des poids a retouchés sur la peau
+    """Arrête la construction si un sommet de `retouches`, les indices que la correction des poids a retouchés sur la peau
     `peau` (nom), tombe dans une surface de pied de `surfaces` (`surfaces_des_pieds`) : G8 du plan de #3101
     (issuecomment-6516726181)."""
     for pied, surface in surfaces.items():
         dedans = sorted(s for s in retouches if surface[s])
         if dedans:
-            raise RuntimeError(f'{peau} : {len(dedans)} sommet(s) de la surface de {pied} retouché(s) par le lissage des '
+            raise RuntimeError(f'{peau} : {len(dedans)} sommet(s) de la surface de {pied} retouché(s) par la correction des '
                                f'poids, dont {dedans[:8]}')
 
 

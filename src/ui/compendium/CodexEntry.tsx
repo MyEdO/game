@@ -5,23 +5,11 @@ import { EntityRef, EntityChoice, PlainChip } from '../EntityChip';
 import { CodexRef } from './CodexRef';
 import { TabbedEntry, type EntryTab } from '../TabbedEntry';
 import { Prose } from '../Prose';
-import type { Porteur } from '../liage';
+import { porteurDeRangee } from '../../noyau/codex/porteur';
 import { libelleDuChamp } from './editFields';
 import { uniqueSlugId } from '../../data/slug';
 import { Row } from '../Layout';
 import { SourceBadge } from '../SourceBadge';
-
-/**
- * Porteur d'une rangée : la rangée dit SON `chemin` (et, si le champ vit dans une AUTRE entrée, son
- * `type`/`id`) ; la fiche dit QUI elle rend. Ni l'un ni l'autre seul ne suffit — sans les deux, la
- * rangée est nue et ne lie rien (#1392 Lot E).
- */
-export function porteurDeRangee(row: CodexRow, entree?: { type: string; id: string }): Porteur | undefined {
-  if (row.t !== 'text' || !row.porteur) return undefined;
-  const type = row.porteur.type ?? entree?.type;
-  const id = row.porteur.id ?? entree?.id;
-  return type && id ? { type, id, chemin: row.porteur.chemin } : undefined;
-}
 
 function CodexRowView({ row, entree }: { row: CodexRow; entree?: { type: string; id: string } }) {
   switch (row.t) {

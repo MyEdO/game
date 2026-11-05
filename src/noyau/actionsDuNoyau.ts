@@ -23,7 +23,7 @@ import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
 import type {
-  IdDeChanson, IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
+  IdDeChanson, IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDeCibleDuBalayage, IdDeCibleDeLaDoubleFrappe, IdDAdversaireDuBattement, IdDAdversaireADistraire, IdDuCoupleMonte, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
   IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
 } from './designations';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
@@ -59,8 +59,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   toggleCluePin: (indiceId: string) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
-  /** Fond les cases visibles courantes dans l'ensemble exploré de la scène (appelé par le rendu). */
-  markExplored: (keys: string[]) => void;
   /** Abandon de la séquence en cours, quand sa définition en déclare un (`SequenceDef.abandon`). */
   sequenceAbandon: () => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
@@ -474,12 +472,11 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   siegeAimCancel: () => void;
   /** Balayage (Frappe Mortelle, LDB 14 l.9) : enchaîne l'attaque sur une cible adjacente (ouvre une
    *  modale d'attaque standard) ; borné à BCC enchaînements. */
-  cleaveAttack: (targetId: IdDeCombattant) => void;
+  cleaveAttack: (targetId: IdDeCibleDuBalayage) => void;
   /** Termine le balayage en cours (le joueur renonce aux enchaînements restants). */
   cleaveEnd: () => void;
-  /** Maniement de deux armes (LDB 10 l.767-773) : 2ᵉ frappe (main secondaire) contre la cible choisie. `skipGate`
-   *  interne : Test de Main ensanglantée déjà PASSÉ (reprise via `jetConfirm('handGate')`), ne pas re-tester. */
-  dualStrikeAttack: (targetId: IdDeCombattant, skipGate?: boolean) => void;
+  /** Maniement de deux armes (LDB 10 l.767-773) : 2ᵉ frappe (main secondaire) contre la cible choisie. */
+  dualStrikeAttack: (targetId: IdDeCibleDeLaDoubleFrappe) => void;
   /** Renonce à la 2ᵉ frappe (« peut viser » = optionnel) → pas de 2ᵉ attaque, pas d'Avantage. */
   dualStrikeSkip: () => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
@@ -495,12 +492,12 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
    *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via `battementSetFoe`). */
   battleBattement: (foeId?: IdDeCombattant) => void;
-  battementSetFoe: (foeId: IdDeCombattant) => void;
+  battementSetFoe: (foeId: IdDAdversaireDuBattement) => void;
   /** Distraire (LDB 10 l.364 / AA 13 l.51) : MOUVEMENT, Test opposé Athlétisme vs Calme. Sur victoire,
    *  le foe est distrait (ne gagne plus d'Avantage). `foeId` absent = 1er éligible en Ligne de vue
    *  (picker via `distraireSetFoe`). */
   battleDistraire: (foeId?: IdDeCombattant) => void;
-  distraireSetFoe: (foeId: IdDeCombattant) => void;
+  distraireSetFoe: (foeId: IdDAdversaireADistraire) => void;
   /** Avantage dépensé par le Regard pétrifiant (variable, LDB 85 l.290) : 1..advantage → +N DR. */
   maneuverSetAvantage: (n: number) => void;
   /** Course (LDB 15 l.41) : ouvrir la modale, lancer le Test `course`, Chance/Résilience, appliquer (déplacement étendu). */
@@ -583,7 +580,7 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** `mountId` = la monture DÉSIGNÉE (sa pastille sur le champ) ; absent = la plus proche. */
   battleMount: (mountId?: IdDeCombattant) => void;
   battleDismount: () => void;
-  mountTargetSelect: (id: IdDeCombattant) => void;
+  mountTargetSelect: (id: IdDuCoupleMonte) => void;
   mountTargetCancel: () => void;
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
   battleDisengage: () => void;

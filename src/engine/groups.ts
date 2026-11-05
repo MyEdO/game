@@ -9,8 +9,9 @@
  * Cf. spec : docs/superpowers/specs/2026-06-07-psychologie-design.md (§3).
  */
 import type { TraitInstance } from './statEntry';
-import type { ConditionInstance } from './types';
+import type { ActiveEffect, ConditionInstance } from './types';
 import { maladieDeclaree, type Disease } from './disease';
+import { effectiveTalents } from './talentEffects';
 import { findCareerById, findClassById, findConditionById, findCreatureById, findGroupById, findSpeciesById, findTalentById, findTraitById, groups, SPEC_SOURCES, type CreatureData, type SpecsSource } from '../data';
 
 /** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.56, l.181. */
@@ -38,7 +39,8 @@ export function groupsFor(src: { speciesId?: string; creature?: Pick<CreatureDat
 }
 
 /** Ce que `groupesDe` lit d'un porteur : ses Groupes déclarés, ses Traits par leur désignation, sa carrière,
- *  la VUE de ses Talents (`talentId` + `spec`), ses États, ses maladies, ses mutations et sa monture. */
+ *  la VUE de ses Talents (`talentId` + `spec`) et ses effets actifs (porte `effectiveTalents`), ses États,
+ *  ses maladies, ses mutations et sa monture. */
 export interface PorteurDeGroupes {
   groups?: readonly string[];
   traits?: readonly Pick<TraitInstance, 'id' | 'arg' | 'hidden'>[];
@@ -48,6 +50,7 @@ export interface PorteurDeGroupes {
   diseases?: readonly Pick<Disease, 'phase'>[];
   mutations?: readonly unknown[];
   mountId?: string;
+  activeEffects?: readonly ActiveEffect[];
 }
 
 /** Groupes de l'entrée que nomme la `valeur` (`spec` d'un Talent, `arg` d'un Trait) dans le registre de sa
@@ -80,7 +83,7 @@ export function groupesDe(c: PorteurDeGroupes): string[] {
     pushAll(career?.grantGroups);
     pushAll(findClassById(career?.class)?.grantGroups);
   }
-  for (const t of c.talents ?? []) {
+  for (const t of effectiveTalents(c)) {
     const def = findTalentById(t.talentId);
     pushAll(def?.grantGroups);
     pushAll(groupesDeLaValeur(def, t.spec));

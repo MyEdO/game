@@ -47,6 +47,7 @@ import {
   prayerWrathTriggered,
   castBlockedBy,
   prayerSinLock,
+  prayerTalentMissing,
   evaluateMissile,
   spellDRModFor, spellSLFor, spellLandsOn, talentSpellDRMod, zoneTalentSpellDRMod,
   applyFullPower,
@@ -230,6 +231,7 @@ import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, type TableStepDef, type CascadeApplier } from './cascade';
 import { inversionDeTalent } from '../engine/reverseToken';
+import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -868,6 +870,15 @@ export function dualStrikeTargets(battle: BattleState, attacker: Combatant, offW
     if (!attacker.pos || !c.pos) return true;
     return combatDistance(attacker, c) <= reachTiles(offWeapon);
   });
+}
+
+/** Les cibles que la 2ᵉ frappe en attente (`pendingDualStrike`) peut viser (`dualStrikeTargets`) : celles que
+ *  `dualStrikeAttack` accepte. */
+export function ciblesDeLaDoubleFrappe(s: Jeu): Combatant[] {
+  const ds = s.pendingDualStrike;
+  const attaquant = ds && s.battle ? inBattleId(s.battle, ds.attackerId) : undefined;
+  const secondaire = attaquant?.weapons.find((w) => w.uid === ds?.offWeaponUid);
+  return s.battle && attaquant && secondaire ? dualStrikeTargets(s.battle, attaquant, secondaire) : [];
 }
 
 /** Aperçu d'attaque (R4) : la valeur de toucher (cible du d100) et sa décomposition de modificateurs, SANS
@@ -3029,7 +3040,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
   const battle = get().battle;
   if (!battle || battle.over) return false;
   if (faits.length && checkBattleOver(get, set)) return false;
-  const tirRapideTimes = (c: Combatant) => c.talents?.find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
+  const tirRapideTimes = (c: Combatant) => effectiveTalents(c).find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
   const shooters = battle.combatants
     .filter((s) => !faits.includes(s.id) && aiDriven(get(), s) && canPreemptRanged(s) && canTakeAction(s) && !s.loseNextAction && !isOutOfAction(s) && !!s.pos)
     .sort((a, b) => tirRapideTimes(b) - tirRapideTimes(a)); // LDB 11 l.103
@@ -3766,6 +3777,15 @@ export function cleaveTargets(battle: BattleState, attacker: Combatant, hitIds: 
     if (!attacker.pos || !c.pos) return true;
     return combatDistance(attacker, c) <= 1;
   });
+}
+
+/** Les cibles que le balayage en attente (`pendingCleave`) peut frapper maintenant (`cleaveTargets`), aucune passé ses
+ *  BCC enchaînements (LDB 14 l.9) : celles que `cleaveAttack` accepte. */
+export function ciblesDuBalayage(s: Jeu): Combatant[] {
+  const pc = s.pendingCleave;
+  const attaquant = pc && s.battle ? inBattleId(s.battle, pc.attackerId) : undefined;
+  if (!pc || !s.battle || !attaquant || pc.count >= bonus(effectiveChar(attaquant, 'capacite-de-combat'))) return [];
+  return cleaveTargets(s.battle, attaquant, pc.hitIds);
 }
 
 /** Poursuit la chaîne de balayage. Chaque enchaînement passe par la MÊME couture d'ouverture que l'attaque
@@ -4853,6 +4873,21 @@ export function laisserPasserLeContreSort(get: Get, set: SetFn): void {
   resumeAfterCounterspell(get, set); // la chaîne reprend (agnostique IA/zone)
 }
 
+/** Refus d'incanter `spell`, AVANT toute modale, sinon null — porte UNIQUE de `castSpell` et de
+ *  `castZoneSpell` : contrecoup bloquant (« Propos ésotériques », « Vous abusez de ma patience »…,
+ *  LDB 46/40), Talent de Prière que le lanceur ne possède pas (LDB 10 l.109, l.625), verrou de Péché du
+ *  culte lu en DONNÉE (`GodData.sinLocks`, MDG 11 l.148). */
+function refusDIncanter(caster: Combatant, spell: SpellData): string | null {
+  const priere = castInfoIsPrayer(spell);
+  const blocked = castBlockedBy(caster, priere ? 'priere' : 'langue');
+  if (blocked) return tr(priere ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked });
+  const talentManquant = prayerTalentMissing(caster, spell);
+  if (talentManquant) return tr('cf.prayerTalentMissing', { name: caster.label, talent: tr(talentManquant === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation') });
+  const sinLock = prayerSinLock(caster, spell);
+  if (sinLock) return tr('cf.sinLock', { cult: sinLock.cult, name: caster.label, talent: tr(sinLock.family === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation'), sin: String(caster.sinPoints ?? 0), threshold: String(sinLock.threshold) });
+  return null;
+}
+
 /** Incante un sort/prière sur une cible (résolution via src/engine/magic). */
 /** Ouvre la modale d'incantation (jet différé, façon attaque) : pose `pendingCast` sans lancer. */
 export function castSpell(
@@ -4868,17 +4903,9 @@ export function castSpell(
     castRefused(get, set, caster, tr('cf.spellNotFound', { spell: spellId }));
     return;
   }
-  // Contrecoups bloquants (LDB 46/40) : « Propos ésotériques », « Vous abusez de ma patience »…
-  const blocked = castBlockedBy(caster, castInfoIsPrayer(spell) ? 'priere' : 'langue');
-  if (blocked) {
-    castRefused(get, set, caster, tr(castInfoIsPrayer(spell) ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked }));
-    return;
-  }
-  // Verrou de Péché du culte (MDG 11 l.148 — Stromfels : Invocation retirée à 2 Péchés, Béni à 5) —
-  // lu en DONNÉE (`GodData.sinLocks`), générique à tout culte qui en porterait.
-  const sinLock = prayerSinLock(caster, spell);
-  if (sinLock) {
-    castRefused(get, set, caster, tr('cf.sinLock', { cult: sinLock.cult, name: caster.label, talent: tr(sinLock.family === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation'), sin: String(caster.sinPoints ?? 0), threshold: String(sinLock.threshold) }));
+  const refus = refusDIncanter(caster, spell);
+  if (refus) {
+    castRefused(get, set, caster, refus);
     return;
   }
   // Lecture au grimoire (LDB 47 l.21) : sort NON mémorisé de son Domaine, NI doublé.
@@ -5235,16 +5262,10 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
   if (!spell) return false;
   const r0m = zoneRadiusMeters(spell, caster);
   if (r0m == null) return false;
-  const blocked = castBlockedBy(caster, castInfoIsPrayer(spell) ? 'priere' : 'langue');
-  if (blocked) {
-    castRefused(get, set, caster, tr(castInfoIsPrayer(spell) ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked }));
+  const refus = refusDIncanter(caster, spell);
+  if (refus) {
+    castRefused(get, set, caster, refus);
     return true; // c'était bien une zone — l'entrée est consommée (refus signalé)
-  }
-  // Verrou de Péché du culte (MDG 11 l.148) — même gate que `castSpell` (les miracles à ZdE passent ici).
-  const sinLock = prayerSinLock(caster, spell);
-  if (sinLock) {
-    castRefused(get, set, caster, tr('cf.sinLock', { cult: sinLock.cult, name: caster.label, talent: tr(sinLock.family === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation'), sin: String(caster.sinPoints ?? 0), threshold: String(sinLock.threshold) }));
-    return true;
   }
   const focusedNI0 = caster.focus?.spell === spell.id && caster.focus.dr >= (spell.cn ?? 0);
   set({

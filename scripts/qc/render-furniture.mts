@@ -7,7 +7,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { propSvg } from '../../src/gameIso/catalog/decor';
-import { PROPS } from '../../src/gameIso/catalog/decor';
+import { findPropById } from '../../src/data';
 import { defsGlobaux } from '../../src/gameIso/sprites';
 
 const NEW = ['chaise', 'tabouret', 'armoire', 'bureau', 'etabli', 'lit', 'miroir', 'table'];
@@ -22,7 +22,7 @@ const cells = NEW.map((id, i) => {
   const cy = Math.floor(i / COLS) * CELL_H;
   // boîte 120×150 du prop centrée dans la cellule
   const inner = propSvg(id);
-  const label = PROPS[id]?.label ?? id;
+  const label = findPropById(id)?.label ?? id;
   const ox = cx + (CELL_W - 120) / 2;
   const oy = cy + 14;
   return (
