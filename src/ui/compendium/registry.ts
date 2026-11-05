@@ -2424,8 +2424,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'montures', label: 'Montures (profils de voyage)', group: 'Monde',
-    build: () => MOUNT_PROFILES.map((p) => ({
-      id: p.id, label: p.label,
+    build: () => MOUNT_PROFILES.map((p) => depuisEnveloppe(p, {
       meta: facts(fact('Mouvement', p.m), fact('Endurance', p.e), fact('Trotte', p.trot ? 'oui' : 'non')),
       sections: sections(chips('Bêtes liées', p.creatureIds.map((id) => idRefRow('creatures', id)))),
     })),

@@ -1,16 +1,16 @@
 /**
- * Migration #1467 L1b V-FLIP-TABLE — les 14 documents UNIQUES que le lot passe en famille `config`
+ * Migration #1467 L1b V-FLIP-TABLE — les 13 documents UNIQUES que le lot passe en famille `config`
  * reçoivent leur ENVELOPPE d'identité : `id`, `type`, `label`.
  *
- * MOTIF : ces 14 racines sont des OBJETS uniques — l'instrument de mesure les classe `config`
+ * MOTIF : ces 13 racines sont des OBJETS uniques — l'instrument de mesure les classe `config`
  * (`docs/structures-donnees.md`), la famille `table` du dépôt étant « liste dont la moitié des
  * entrées portent une plage ». La forme suit la mesure, jamais l'étiquette. Six d'entre eux
- * portaient déjà `id`+`label` : seul `type` leur est INSÉRÉ (huit au total, cf. `IDENTITES`).
+ * portaient déjà `id`+`label` : seul `type` leur est INSÉRÉ (sept au total, cf. `IDENTITES`).
  *
  * CONVENTION DE POSITION (identique à `2026-08-28-l1b-7a-config-enveloppe.mjs`) : `id`, `type`,
  * `label` en tête dans CET ordre, puis TOUTES les clés existantes dans leur ordre existant.
  *
- * ENTRÉES : les 14 `src/data/*.json` nommés dans `IDENTITES` (les seules données lues et écrites).
+ * ENTRÉES : les 13 `src/data/*.json` nommés dans `IDENTITES` (les seules données lues et écrites).
  *
  * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un document portant déjà les trois clés AUX BONNES
  * VALEURS est reconnu migré ; rejouée sur l'état final, la migration n'écrit rien et sort 0.
@@ -34,7 +34,6 @@ const IDENTITES = {
   // — id ET label EXISTANTS (authorés), gardés tels quels : seul `type` est inséré.
   'artillery-misfire.json': { id: 'artillery-misfire', type: 'artillery-misfire', label: "Incidents de Tir d'Artillerie par Salve" },
   'incidents-monture.json': { id: 'incidents-monte', type: 'incidents-monture', label: 'Incidents de monte' },
-  'montures.json': { id: 'montures-voyage', type: 'montures', label: 'Mouvement pour les montures' },
   'problemes-vehicule.json': { id: 'problemes-vehicule', type: 'problemes-vehicule', label: 'Problèmes de véhicule' },
   'rencontres-edoc.json': { id: 'rencontres-edoc', type: 'rencontres-edoc', label: 'Rencontres de voyage' },
   'river-criticals.json': { id: 'river-criticals', type: 'river-criticals', label: 'Coups Critiques sur un bateau fluvial' },

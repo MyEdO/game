@@ -64,9 +64,9 @@ const FLIPPES_V_FLIP_CONFIG = [
   'progression-schemas.derived', 'river-navigation', 'river-perils', 'sea-cargo', 'sea-events',
   'sea-navigation', 'sea-perils', 'sea-weather', 'ship-construction', 'sizes', 'speciesRace', 'water-exposure',
   'weather',
-  // #1467 L1b V-FLIP-TABLE (2026-08-28) — 14 racines-objet UNIQUES : l'instrument de mesure les classe
+  // #1467 L1b V-FLIP-TABLE (2026-08-28) — 13 racines-objet UNIQUES : l'instrument de mesure les classe
   // `config`, la famille déclarée les suit.
-  'artillery-misfire', 'driving-mishap', 'drunkenness', 'incidents-monture', 'montures',
+  'artillery-misfire', 'driving-mishap', 'drunkenness', 'incidents-monture',
   'naval-progression', 'obsessions', 'problemes-vehicule', 'rencontres-edoc', 'river-criticals',
   'ship-criticals', 'structure-criticals', 'surincantation', 'vents-tourbillonnants',
 ];

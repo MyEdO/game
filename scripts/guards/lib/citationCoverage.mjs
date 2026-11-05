@@ -82,7 +82,7 @@ function estListeDeDocumentsPorteurs(data) {
  * - `single` : objet de config unique — cité si sa RACINE porte `source` (convention
  *   documentée `src/data/schemas/grammaire/valeurs.ts:49-54` : "à la racine quand le dataset est un objet de config unique
  *   plutôt qu'une liste" — couvre alors TOUT le fichier, y compris les tableaux/sous-tables
- *   imbriqués, ex. `montures.json`/`river-criticals.json.tables`). Sans racine citée ET sans
+ *   imbriqués, ex. `river-criticals.json.tables`). Sans racine citée ET sans
  *   tableau à convention par-entrée, le fichier entier est UNE entrée non citée.
  * @param {unknown} data @returns {DatasetCoverage}
  */
@@ -117,8 +117,7 @@ export function auditDataset(data) {
   }
   if (isPlainObject(data)) {
     // La RACINE citée prime (convention documentée `src/data/schemas/grammaire/valeurs.ts:49-54`) : elle couvre tout le
-    // fichier, y compris les tableaux/sous-tables imbriqués (`montures.json`, `river-criticals.json.
-    // tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
+    // fichier, y compris les tableaux/sous-tables imbriqués (`river-criticals.json.tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
     // réellement visée par cette réf précise, le fichier est considéré couvert.
     if (isCitedItem(data)) return { total: 1, cited: 1, missing: [], shape: 'single' };
     const categoryProps = Object.entries(data).filter(

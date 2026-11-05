@@ -150,7 +150,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#miscast', ref: '[].entries[].ops[].amount|{sum}', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[].test', occurrence: 1 },
   { fichier: 'src/data#miscast', ref: '[].entries[].test.onFailHard', occurrence: 1 },
-  { fichier: 'src/data#montures', ref: '.entries[]', occurrence: 1 },
   { fichier: 'src/data#mutationTables', ref: '[].ranges[]', occurrence: 1 },
   { fichier: 'src/data#mutations', ref: '[].passive[].*', occurrence: 1 },
   { fichier: 'src/data#names', ref: '[].lastNameSuffixes', occurrence: 1 },

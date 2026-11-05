@@ -701,7 +701,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures devient un dataset.
     //   #3114 : `garde-robe` naît SCELLÉ (83 → 84) — la garde-robe des éléments 3D devient un dataset.
     //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 85, mesures: 0 });
+    //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 86, mesures: 0 });
   });
 
 });
