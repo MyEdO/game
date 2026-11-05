@@ -100,7 +100,7 @@ describe('Cascade séquentielle influençable', () => {
     expect(applied).toHaveLength(3); // toutes les conséquences se sont appliquées
     // BILAN : la modale reste ouverte (curseur EN FIN) pour voir les conséquences, avant fermeture explicite.
     expect(banc.getState().pendingCascade!.cursor).toBe(3);
-    banc.getState().cascadeFinish(); // « Terminer » ferme
+    banc.getState().fenetreFermer('cascade'); // « Terminer » ferme
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -371,14 +371,14 @@ describe('Cascade séquentielle influençable', () => {
 
   // DOCTRINE DU SLOT (#942 L1) : `pendingCascade` porte UNE séquence et rien n'y est jamais écrasé —
   // append à même `purpose` (bilan compris), suspension sinon, REPRISE à la clôture. Tout est joué par
-  // les VRAIES coutures du noyau (`jetRoll('cascade')`/`cascadeNext`/`cascadeResolveAll`/`cascadeFinish`) : la
+  // les VRAIES coutures du noyau (`jetRoll('cascade')`/`cascadeNext`/`cascadeResolveAll`/`fenetreFermer('cascade')`) : la
   // reprise n'est jamais simulée à la main.
   describe('doctrine du slot : aucun écrasement (#942 L1)', () => {
     /** Résout puis TERMINE la séquence en place par les vraies actions du noyau (bouton « Tout lancer »
      *  puis « Terminer ») — c'est `dispatchCascadeDone` qui s'exécute, dénouement et reprise compris. */
     const terminerEnPlace = () => {
       banc.getState().cascadeResolveAll();
-      banc.getState().cascadeFinish();
+      banc.getState().fenetreFermer('cascade');
     };
 
     it('MÊME purpose sur une séquence ACTIVE : les étapes sont APPENDUES, aucune perdue', () => {

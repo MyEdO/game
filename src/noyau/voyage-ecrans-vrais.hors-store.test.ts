@@ -153,7 +153,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
     draineCascade(get);
     expect(get().travelPlan?.interrupted).toBe(true);
     expect(activeDayWeather(get), 'le jour interrompu garde sa météo').toBe('pluie-diluvienne');
-    get().dismissTravelRecap(); // « Faire face » : le combat s'ouvre
+    get().fenetreFermer('recitDeVoyage'); // « Faire face » : le combat s'ouvre
     expect(get().battle!.combatants.every((c) => c.envWeather === 'pluie-diluvienne'), 'l’embuscade lit la météo du jour').toBe(true);
 
     // Victoire simulée, puis reprise le MÊME jour : les 6 h sont marchées (LDB 51 l.195).
@@ -182,7 +182,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     draineCascade(get);
     const jours = get().travelPlan!.recap!.days;
     const jour = structuredClone(jours[jours.length - 1]);
-    get().dismissTravelRecap();
+    get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
     const wm = get().worldMap!;
     set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
@@ -206,7 +206,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   function interromptPuisVainc(): void {
     draineCascade(get);
     expect(get().travelPlan?.interrupted).toBe(true);
-    get().dismissTravelRecap();
+    get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
     const wm = get().worldMap!;
     set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });

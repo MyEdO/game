@@ -445,6 +445,8 @@ export function humanizeOp(o: GameOp): string {
     case 'grantTalent': return t('codex.op.grantTalent', { nom: refLabel('talents', o.talent) });
     case 'deitySkillMod': return t(o.pick === 'all' ? 'codex.op.deitySkillMod.toutes' : 'codex.op.deitySkillMod.une', { mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, duree: pendant(o) });
     case 'suppressTalents': return t('codex.op.suppressTalents', { noms: o.talents.map((x) => refLabel('talents', x)).join(', '), duree: pendant(o) });
+    case 'deityBan': return t('codex.op.deityBan', { duree: pendant(o) });
+    case 'prayerForAction': return t('codex.op.prayerForAction', { duree: pendant(o) });
     case 'grantCareerSkill': return t('codex.op.grantCareerSkill', { nom: refLabel('skills', o.skill) });
     case 'grantCareerTalent': return t('codex.op.grantCareerTalent', { nom: refLabel('talents', o.talent) });
     case 'augmentWeapon': return t('codex.op.augmentWeapon', {

@@ -5,7 +5,7 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
-import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, type HorsModalDef } from './modalArbiter';
+import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, sortieDeLaFenetre, type HorsModalDef } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { seatOwns, jetSurfaced, siegeDuHeros } from './sieges';
 import { targetingHolder } from './targetingHolder';
@@ -154,7 +154,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
 /**
  * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
  * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)` (`ROUTES` :
- * `chooseDialogue`/`closeDialogue`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
+ * `chooseDialogue`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
  * sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il existe, l'hôte sinon). Le prédicat
  * DÉLÈGUE donc au même routage au lieu de recopier la formule : afficher le choix, l'exécuter au
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
@@ -554,16 +554,27 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
     // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
     ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
+    // La sortie d'une fenêtre : la fenêtre est le 1ᵉʳ argument, et son registre dit qui la ferme (`sortie`) — l'hôte
+    // seul, ou le siège de son propriétaire ('*' : tout siège). Une victoire se ferme par l'hôte : l'invité marque
+    // son siège (`victoryReady`), l'hôte ferme à l'unanimité.
+    ['fenetreFermer', {
+      rule: (s, seat, args) => {
+        const sortie = sortieDeLaFenetre(args[0]);
+        if (!sortie) return false;
+        const owner = sortie.sortie === 'hote' ? undefined : sortie.proprietaire(s);
+        return owner === '*' || seatOwns(s, seat, owner); // `undefined` → l'hôte (contrat de `seatOwns`)
+      },
+    }],
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
-    ...(['chooseDialogue', 'closeDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
+    ...(['chooseDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
         rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal ; `closeDialogue` : aucun)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
       }] as readonly [string, Route],
     ),
   ],

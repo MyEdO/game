@@ -106,6 +106,8 @@ export function opSummary(o: GameOp): string {
       o.durationDays != null ? `${formulaSummary(o.durationDays)} jour(s)` : undefined,
     ].filter(Boolean).join(', ');
     case 'suppressTalents': return `${o.talents.map((x) => refLabel('talents', x)).join(', ')} suspendus ${formulaSummary(o.durationDays)} jour(s)`;
+    case 'deityBan': return `${formulaSummary(o.durationDays)} jour(s)`;
+    case 'prayerForAction': return `${formulaSummary(o.durationRounds)} Round(s)`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
     case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
     case 'augmentWeapon': return `${[

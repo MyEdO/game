@@ -47,9 +47,10 @@ export interface Appel { type: string; args: unknown[] }
 /** Les onglets de la fiche d'un héros, dans l'ordre où elle les montre. */
 export const ONGLETS_DE_LA_FICHE = ['caracteristiques', 'competences', 'talents', 'possessions'] as const;
 
-/** La fiche qu'un hôte montre : le héros qu'elle décrit, par son id, et son onglet. Un état de l'hôte, jamais de la
+/** La fiche qu'un hôte montre : le héros qu'elle décrit, par son id, son onglet, et sous l'onglet des possessions
+ *  celle qu'il a choisie (`objet`, l'`uid` qui la désigne, `PossessionDeLaFiche`). Un état de l'hôte, jamais de la
  *  partie. */
-export interface FicheOuverte { heros: string; onglet: (typeof ONGLETS_DE_LA_FICHE)[number] }
+export interface FicheOuverte { heros: string; onglet: (typeof ONGLETS_DE_LA_FICHE)[number]; objet?: string }
 
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, une offre de l'actif, une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), ou la fiche que l'hôte

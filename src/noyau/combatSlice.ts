@@ -128,6 +128,7 @@ import { advanceCascade, maladresseCourante, resolveRemainingCascade, finalizeCa
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, rangeesADeclarerIci, siOuvert, type CloturesDuJet } from './rollFlowSpecs';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { actionsAuthorees } from './monde/usable';
 import { fateSaveOptions } from '../engine/fortune';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -400,7 +401,7 @@ export const DETERMINATION_CONSCIENCE_ID = 'determination-conscience';
  *  État » par point) ouvrent DEUX fenêtres — la seconde n'écrase plus la première. */
 export const determinationWindowId = (conditionId: string): string => `${DETERMINATION_CONSCIENCE_ID}:${conditionId}`;
 
-/** CLÔTURE d'une cascade — partagée par `cascadeNext` (avance) et `cascadeFinish` (« Tout résoudre »),
+/** CLÔTURE d'une cascade — partagée par `cascadeNext` (avance) et la sortie de son bilan (`terminerLaCascade`),
  *  posée par `brancherLeJeu` pour la reprise d'une séquence parquée. Le JOUR de voyage
  *  (`purpose:'travelDay'`) se ROUTE par domaine — fluvial (recalcul des km puis halte/arrivée) OU
  *  terrestre (marche forcée eager/nuit + halte/arrivée) : le domaine se lit sur le plan (`river`
@@ -484,8 +485,15 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
   // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
   // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `startCombat` reste
-  // propriété du teardown, cf. `dismissVictory`/`dismissDefeat`).
+  // propriété du teardown, cf. les sorties de la victoire et de la défaite, `issueDeCombat.ts`).
   if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+}
+
+/** « Terminer » : ferme la cascade et enchaîne la suite (reprise de voyage…). Le joueur ne la joue qu'au bilan
+ *  (`fenetreFermer('cascade')`, `MODAL_DEFS.cascade.sortieFermee`) ; l'abandon d'une manche à son ouverture la joue
+ *  d'emblée (`sequenceAbandon`, `sequenceCore.ts`). */
+function terminerLaCascade(get: Get, set: Set): void {
+  dispatchCascadeDone(get, set, finalizeCascade(get, set));
 }
 
 /** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
@@ -589,7 +597,6 @@ export function createCombatSlice(get: Get, set: Set) {
       // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
       get().battleClickEntity(id, { skipMountChoice: true, approche: pm.approche });
     },
-    mountTargetCancel: () => set({ pendingMountTarget: null }),
 
     // ── Désengagement (héros Engagé qui veut quitter le combat, LDB 15 l.43-49) ──
     battleDisengage: () => {
@@ -1791,7 +1798,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { battle, pendingSiegeAim: sa } = get();
       if (!battle || battle.over || !sa) return;
       const gunner = inBattleId(battle, sa.gunnerId);
-      get().siegeAimCancel(); // referme le placeur — MÊME porte que la sortie d'interlude
+      get().fenetreFermer('siegeAim'); // referme le placeur — MÊME porte que la sortie d'interlude
       if (!gunner || isOutOfAction(gunner) || !canTakeAction(gunner) || battle.acted) return;
       const aim = battle.combatants
         .filter((c) => c.kind !== gunner.kind && !isOutOfAction(c) && c.pos && chebyshev(pt, c.pos) <= sa.radius)
@@ -1800,16 +1807,6 @@ export function createCombatSlice(get: Get, set: Set) {
       // Pilonnage : la pièce est SERVIE (hors loadout main/off) → `openAttackCascade` ne gate jamais un
       // canon monté (`attackHandGate` = null), mais passe par le MÊME point partagé que les autres attaques.
       openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'fire/blast');
-    },
-    /** REFERME le placeur de case du pilonnage SANS tirer : le pending tombe et l'option « Servir … »
-     *  se désarme (l'attaque redevient celle de l'Arme) — l'état exact que laisse un re-clic sur la
-     *  case d'attaque (`battleSelectAttack`, plus haut). Sortie de l'interlude `placing-zone` quand
-     *  la zone en cours vient du siège (`placingZoneOf` source `siege`), et point de fermeture unique
-     *  du commit ci-dessus. Aucun coût : rien n'a été jeté. */
-    siegeAimCancel: () => {
-      const { battle, pendingSiegeAim } = get();
-      if (!battle || !pendingSiegeAim) return;
-      set({ pendingSiegeAim: null, battle: { ...battle, selectedAttack: undefined, preview: null } });
     },
     cleaveAttack: (targetId: string) => {
       const pc = get().pendingCleave;
@@ -2364,16 +2361,15 @@ export function createCombatSlice(get: Get, set: Set) {
     cascadeNext: () => dispatchCascadeDone(get, set, advanceCascade(get, set)),
     // → BILAN (la modale reste ouverte) : rend `null`, rien à router. Rend une cascade FINALISÉE dans le
     // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
-    // son dénouement passe alors par le MÊME routage que `cascadeNext`/`cascadeFinish`.
+    // son dénouement passe alors par le MÊME routage que `cascadeNext` et la sortie du bilan.
     cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(get, set, done); },
-    cascadeFinish: () => dispatchCascadeDone(get, set, finalizeCascade(get, set)),
     // Le joueur renonce à la séquence en cours (noyau/sequenceCore) : l'abandon est DEMANDÉ, et la manche
     // se clôt par les gestes du joueur (« Suivant », « Terminer ») jusqu'à la clôture, qui le joue — ou
     // jusqu'à une étape due, que le joueur joue avant. Une manche sans jet posé se ferme d'emblée.
     sequenceAbandon: () => {
       abandonSequence(get, set);
       for (let pas = pasVersLAbandon(get); pas; pas = pasVersLAbandon(get)) {
-        if (pas === 'terminer') get().cascadeFinish();
+        if (pas === 'terminer') terminerLaCascade(get, set);
         else get().cascadeNext();
       }
     },
@@ -2542,6 +2538,20 @@ export function createCombatSlice(get: Get, set: Set) {
 }
 
 /** Les clôtures des flux du combat (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les sorties des fenêtres du combat : le bilan de la cascade, le choix de monture, le placeur du pilonnage. */
+export function sortiesDuCombat(get: Get, set: Set) {
+  return {
+    cascade: () => terminerLaCascade(get, set),
+    mountTarget: () => set({ pendingMountTarget: null }),
+    /** REFERME le placeur de case du pilonnage SANS tirer : le pending tombe et l'option « Servir … »
+     *  se désarme (l'attaque redevient celle de l'Arme) — l'état exact que laisse un re-clic sur la
+     *  case d'attaque (`battleSelectAttack`). Sortie de l'interlude `placing-zone` quand la zone en cours
+     *  vient du siège (`placingZoneOf` source `siege`), et point de fermeture unique de `siegeAimCommit`.
+     *  Aucun coût : rien n'a été jeté. */
+    siegeAim: () => set((s) => ({ pendingSiegeAim: null, ...(s.battle && { battle: { ...s.battle, selectedAttack: undefined, preview: null } }) })),
+  } satisfies Partial<SortiesDeFenetre>;
+}
+
 export function cloturesDuCombat(get: Get, set: Set) {
   return {
     // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.fumble`) s'appliquent.

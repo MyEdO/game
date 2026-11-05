@@ -201,6 +201,13 @@ theme_override_constants/v_separation = 6
 script = ExtResource("1_zone")
 source = "fiche.corps"
 
+[node name="Objet" type="VBoxContainer" parent="Interface/Fiche/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Objet" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fiche.objet"
+masque = NodePath("..")
+
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5
 anchor_left = 0.5
