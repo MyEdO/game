@@ -578,6 +578,15 @@
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
   },
   {
+    "id": "conceptDe",
+    "type": "primitives.manifest",
+    "label": "conceptDe/noeudDuConcept/posesPerdues",
+    "fichier": "src/data/schemas/grammaire/concepts.ts",
+    "concept": "concept du lexique des structures POSÉ sur un nœud de la grammaire : pose de nœud par identité exacte (un clone n'est pas lu), ou pose de classe de produit de fabrique `(fabrique, rôle, clés d'extra)` lue par `classeDeProduit` ; table unique `interne/poses.ts`, source de `IdConceptPose`, écrivains `marquerConcept`/`marquerConceptDeClasse` derrière le mur `murs/interne`, qui lèvent sur une double pose ; `posesPerdues`, les concepts posés qu'aucun nœud des racines n'atteint",
+    "perimetre": "lecture du concept d'un nœud de schéma hors de `grammaire/` (lexique des structures, #3012)",
+    "verrou": "src/data/schemas/grammaire/concepts-poses.test.ts"
+  },
+  {
     "id": "nommerChamps",
     "type": "primitives.manifest",
     "label": "nommerChamps/metaDesChamps/nommerNoeud/nomDeNoeud/metasExtra",
