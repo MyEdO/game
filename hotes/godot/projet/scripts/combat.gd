@@ -4,7 +4,8 @@
 ## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
 ## que la suite ajoute, `zones` : les lignes du journal) ; le journal va au plateau ; chaque jeton programmé est armé
 ## en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
-## (`Zone.geste` ; la fiche d'un héros, montrée ou fermée, par la méthode `fiche`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
+## (`Zone.geste` ; la fiche d'un héros, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode
+## `creation`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
 ## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Chaque vue montrée, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`),
 ## que la recette lit. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa case.
@@ -33,9 +34,10 @@ func _ready() -> void:
 	_suivre(_pont.appeler("demarrer", entree))
 
 
-## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, toute autre à `jouer`.
+## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
+## toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
-	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "jouer", jeu))
+	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "jouer", jeu))
 
 
 func _reprendre(jeton: int) -> void:

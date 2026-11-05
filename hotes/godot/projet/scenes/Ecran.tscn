@@ -139,11 +139,20 @@ anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 8.0
 grow_vertical = 2
+theme_override_constants/separation = 18
+
+[node name="Heros" type="VBoxContainer" parent="Interface/Groupe"]
 theme_override_constants/separation = 6
 
-[node name="Zone" type="Node" parent="Interface/Groupe"]
+[node name="Zone" type="Node" parent="Interface/Groupe/Heros"]
 script = ExtResource("1_zone")
 source = "groupe.heros"
+
+[node name="Gestes" type="VBoxContainer" parent="Interface/Groupe"]
+
+[node name="Zone" type="Node" parent="Interface/Groupe/Gestes"]
+script = ExtResource("1_zone")
+source = "groupe.gestes"
 
 [node name="Fiche" type="PanelContainer" parent="Interface"]
 visible = false
@@ -207,6 +216,52 @@ source = "fiche.corps"
 script = ExtResource("1_zone")
 source = "fiche.objet"
 masque = NodePath("..")
+
+[node name="Creation" type="PanelContainer" parent="Interface"]
+visible = false
+custom_minimum_size = Vector2(640, 520)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -280.0
+offset_right = 320.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Creation"]
+theme_override_constants/separation = 10
+
+[node name="Titre" type="VBoxContainer" parent="Interface/Creation/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Creation/Pile/Titre" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "creation.titre"
+masque = NodePath("../../..")
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Creation/Pile"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Corps" type="VBoxContainer" parent="Interface/Creation/Pile/Defilement"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Creation/Pile/Defilement/Corps"]
+script = ExtResource("1_zone")
+source = "creation.corps"
+
+[node name="Gestes" type="HBoxContainer" parent="Interface/Creation/Pile"]
+alignment = 2
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Creation/Pile/Gestes"]
+script = ExtResource("1_zone")
+source = "creation.gestes"
 
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5
