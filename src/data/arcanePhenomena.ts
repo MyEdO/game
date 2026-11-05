@@ -111,8 +111,8 @@ export interface ArcaneTableRow {
 export interface ArcaneTable {
   id: string;
   label: string;
-  die: 'd10' | 'd100';
-  rows: ArcaneTableRow[];
+  die: string;
+  entries: ArcaneTableRow[];
   source: { book: string; page: number };
   desc: string;
 }

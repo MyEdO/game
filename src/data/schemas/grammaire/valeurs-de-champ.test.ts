@@ -164,14 +164,13 @@ const NOMMES = [
   // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
   'sl|st|legs|arms|head',
   // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
-  // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json` ;
+  // (`grammaire/mecanique.ts`) ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
   'melee|ranged|all',
   'action|movement',
   'all|metal|nonMagic|nonMetal',
   // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
   'metal|leather|chaos|peau',
-  'd10|d100',
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',

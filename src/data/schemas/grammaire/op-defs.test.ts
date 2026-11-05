@@ -20,7 +20,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       const champs = champsDOpASlot(famille.opDefs);
       expect(champs.has('rollTable.tableId')).toBe(true);
       expect(champs.has('removeTrait.trait')).toBe(true);
-      expect(champs.has('rollTable.rows')).toBe(false);
+      expect(champs.has('rollTable.entries')).toBe(false);
       expect(champs.has('transform.ops')).toBe(false);
     }
   });
@@ -152,23 +152,23 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(fantome.error!.issues.map((i) => i.path.join('.'))).toEqual(['skill.id']);
   });
 
-  it('`rollTable` : table EXCLUSIVE — `rows` OU `tableId`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
-    const rows = [{ min: 1, max: 10, ops: [{ op: 'kill' }] }];
-    expect(gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', rows }).success).toBe(true);
+  it('`rollTable` : table EXCLUSIVE — `entries` OU `tableId`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
+    const entries = [{ min: 1, max: 10, ops: [{ op: 'kill' }] }];
+    expect(gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'rollTable', tableId: 'mendier-ennuis' }).success).toBe(true);
-    for (const table of [{ die: 'd10', rows, tableId: 'mendier-ennuis' }, {}]) {
+    for (const table of [{ die: 'd10', entries, tableId: 'mendier-ennuis' }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'rollTable', ...table });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
-      expect(res.error!.issues[0].message).toMatch(/GameOp « rollTable » : table EXCLUSIVE : « rows » .* OU « tableId »/);
+      expect(res.error!.issues[0].message).toMatch(/GameOp « rollTable » : table EXCLUSIVE : « entries » .* OU « tableId »/);
     }
     const fantome = gameOpSchema.safeParse({ op: 'rollTable', tableId: 'table-fantome' });
     expect(fantome.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
       ['tableId', 'GameOp « rollTable » : « table-fantome » est absent du catalogue des tables (tables.json).'],
     ]);
-    // Les ops de rangée sont PARSÉES : une op fantôme sous `rows` est refusée à son chemin.
-    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', rows: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
-    expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['rows.0.ops.0.disease']);
+    // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
+    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
+    expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease']);
   });
 
   /** `withArg` (`noyau/triggeredEffects`) écarte l'op dont l'instance n'a pas le paramètre : seul un champ
@@ -218,8 +218,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     for (const k of ['grantTrait.trait', 'removeTrait.trait', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
       expect(champs.has(k), k).toBe(true);
     }
-    // `rows`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
-    for (const k of ['rollTable.rows', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
+    // `entries`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
+    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
       expect(champs.has(k), k).toBe(false);
     }
   });

@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
-import { deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
+import { deDeTirageSchema, diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
 export const famille = 'config';
@@ -248,8 +248,8 @@ const doc = document(
     nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
-      die: deDeTableSchema,
-      rows: z.array(
+      die: deDeTirageSchema,
+      entries: z.array(
         nommerChamps(z.strictObject({
           ...plageSchema.shape,
           label: z.string(),
@@ -273,7 +273,7 @@ const doc = document(
       id: { label: 'identifiant' },
       label: { label: 'libellé' },
       die: { label: 'dé de tirage' },
-      rows: { label: 'rangées' },
+      entries: { label: 'rangées' },
       source: { label: 'source' },
       desc: { label: 'texte' },
     }),

@@ -1043,10 +1043,10 @@ function phenomenonSaturationFact(s: ArcanePhenomenon['saturation']): CodexFact 
   return fact('Saturation environnementale', value || null);
 }
 
-/** Rangées d'une table du chapitre (`ArcaneTable.rows`, plage d100/d10 → libellé), Domaine(s) liés
+/** Rangées d'une table du chapitre (`ArcaneTable.entries`, plage d100/d10 → libellé), Domaine(s) liés
  *  quand la rangée en désigne (Flux magique). */
 function arcaneTableRows(t: ArcaneTable): CodexRow[] {
-  return t.rows.map((r) => ({
+  return t.entries.map((r) => ({
     t: 'kv',
     k: fourchette(r.min, r.max, facesDuDe(t.die)),
     v: [r.label, r.domainIds?.length ? `(${r.domainIds.map((d) => refLabel('domains', { id: d })).join(', ')})` : undefined].filter(Boolean).join(' '),
@@ -1121,7 +1121,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: 'Tables', sub: `${t.rows.length} rangée(s) · ${t.die}`,
+          group: 'Tables', sub: `${t.entries.length} rangée(s) · ${t.die}`,
           sections: sections({ title: `Tirage (${t.die})`, layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
@@ -1552,7 +1552,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
-      sub: `${t.rows.length} rangée(s) · ${t.die}`,
+      sub: `${t.entries.length} rangée(s) · ${t.die}`,
       sections: sections({ title: `Tirage (${t.die} → effet)`, layout: 'list', rows: tableRows(t) }),
     })),
   },
