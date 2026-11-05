@@ -68,6 +68,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   removePsychTrait: 'Retirer un Trait psychologique',
   grantTalent: 'Accorder un Talent',
   suppressTalents: 'Suspendre des Talents (jours)',
+  deitySkillMod: 'Modifier les Compétences du dieu',
   grantCareerSkill: 'Compétence ajoutée aux carrières',
   grantCareerTalent: 'Talent ajouté aux carrières',
   augmentWeapon: 'Enchanter l’arme',

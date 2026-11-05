@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { nomDuSiege } from '../noyau/netOwnership';
+import { emplacementsDuGroupe, nomDuSiege, siegesDeLaTable } from '../noyau/sieges';
 import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
-import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
 import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
@@ -15,15 +14,15 @@ import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
 import { playerEntryError } from '../noyau/worldMap';
 import { Combatant } from '../engine/types';
 import { Money } from '../engine/money';
-import { axisScore, AXIS_QUALIFY_MIN } from '../engine/axes';
-import { CandidateCard, SeatCard, ActionCard, axisDataFor, type RecruitState } from './CharCard';
+import { partyCoverage } from '../engine/axes';
+import { CandidateCard, SeatCard, ActionCard, axisDataFor } from './CharCard';
 import { CharacterSheet } from './CharacterSheet';
 import { ActiveModal } from './ActiveModal';
 import { HeroPresentation } from './HeroPresentation';
 import { Modal } from './Modal';
 import { ScreenShell } from './ScreenShell';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusComposition, refusDAjoutAuGroupe } from '../noyau/partyFlow';
+import { partieEnCours, refusComposition, refusDAjoutAuGroupe, refusDeComposerLeHeros, refusDeLancer } from '../noyau/partyFlow';
 import { RoseAxes } from './RoseAxes';
 import { DetailFrame } from './DetailFrame';
 import { HeroSheet } from './HeroSheet';
@@ -63,29 +62,13 @@ export function slotKeyNav(key: string, idx: number, count: number): { focus: nu
   return key === 'Enter' || key === ' ' ? 'primary' : null;
 }
 
-/** Appariement sièges → héros : le k-ième siège attribué au joueur S affiche le k-ième héros possédé
- *  par S (ordre de `party`). Les héros orphelins sont reversés dans les sièges vides restants. */
-function slotViews(party: Combatant[], slots: number[], ownership: Record<string, number>) {
-  const queues = new Map<number, Combatant[]>();
-  for (const h of party) {
-    const seat = ownership[h.id] ?? 0;
-    queues.set(seat, [...(queues.get(seat) ?? []), h]);
-  }
-  const views = [0, 1, 2, 3].map((i) => {
-    const seat = slots[i] ?? 0;
-    return { seat, hero: queues.get(seat)?.shift() };
-  });
-  const leftovers = [...queues.values()].flat();
-  for (const v of views) if (!v.hero && leftovers.length) v.hero = leftovers.shift();
-  return views;
-}
-
 export function PartyScreen() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
+  const battle = useGame((s) => s.battle);
   const setScreen = useGame((s) => s.setScreen);
   const pendingCampaign = useGame((s) => s.pendingCampaign);
-  const sceneInProgress = useGame((s) => s.scene != null);
+  const inProgress = useGame(partieEnCours);
   const addHero = useGame((s) => s.partyAddHero);
   const removeHero = useGame((s) => s.partyRemoveHero);
   const replaceHero = useGame((s) => s.partyReplaceHero);
@@ -104,13 +87,13 @@ export function PartyScreen() {
     if (refus === null) setScreen('campaign');
   };
 
-  const inProgress = sceneInProgress && !pendingCampaign;
   // Le choix de campagne appartient à l'hôte (ou au solo), hors partie en cours (« Reprendre »).
   const canPickCampaign = net.mode !== 'guest' && !inProgress;
   // Axes ACTIFS de la campagne (#409/#417) : `resolveActiveAxes` lit `activeAxes` sur
   // `pendingCampaign` (`ProjectDoc`, `noyau/worldMap.ts`) et retombe sur le socle `coreAxisIds`
   // si absent — SOURCE UNIQUE de ce défaut, jamais un `?? []` dispersé côté écran.
   const axisIds = resolveActiveAxes(pendingCampaign ?? {});
+  const refusDeComposer = Object.fromEntries(party.map((h) => [h.id, refusDeComposerLeHeros({ battle, net, party }, h.id, net.mySeat)]));
 
   return (
     <>
@@ -128,6 +111,7 @@ export function PartyScreen() {
         onCreate={() => { setEditingHero(null); setScreen('creator'); }}
         onEditHero={(id) => { setEditingHero(id); setScreen('creator'); }}
         refusComposition={refusDeComposition}
+        refusDeComposer={refusDeComposer}
         refusAjout={refusDAjout}
         onAddHero={addHero}
         onRemoveHero={removeHero}
@@ -227,22 +211,9 @@ function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: ()
 /** Cible ouverte dans le sélecteur dédié : recruter un siège vide, ou remplacer un héros en place. */
 type SelectorTarget = { mode: 'recruit' } | { mode: 'replace'; heroId: string };
 
-/** Couverture de GROUPE par axe + PORTEUR (le meilleur score) — même seuil `AXIS_QUALIFY_MIN` que le
- *  jumeau moteur `partyCoverage` (`engine/axes.ts`), réutilisé pour retrouver QUI porte la meilleure
- *  valeur QUALIFIÉE, ce que `partyCoverage` seul (agrégat nu, sans porteur) ne donne pas (#417 rail
- *  de composition). Sous le seuil : `value` ramené à 0 ET `heroName` omis — « à pourvoir », jamais une
- *  fausse couverture par Caractéristique nue (réfutation utilisateur 2026-07-15, le rail affichait
- *  Sigmund sur Discrétion à 0.31 < 0.45 alors que la carte de siège l'écartait déjà). */
+/** Couverture de GROUPE par axe (`partyCoverage`), le porteur nommé par son libellé. */
 function partyCoverageWithHero(party: Combatant[], axisIds: string[]): { id: string; label: string; value: number; heroName?: string }[] {
-  return axisDataFor(axisIds).map((axis) => {
-    let best = 0;
-    let heroName: string | undefined;
-    for (const h of party) {
-      const v = axisScore(h, axis);
-      if (v > best) { best = v; heroName = h.label; }
-    }
-    return best >= AXIS_QUALIFY_MIN ? { id: axis.id, label: axis.label, value: best, heroName } : { id: axis.id, label: axis.label, value: 0 };
-  });
+  return partyCoverage(party, axisDataFor(axisIds)).map(({ porteurId, ...c }) => ({ ...c, heroName: party.find((h) => h.id === porteurId)?.label }));
 }
 
 /** Numéraux romains des 4 sièges (« Contrat I »…« Contrat IV ») — habillage cérémoniel de la
@@ -340,6 +311,7 @@ export function PartyScreenView({
   onResume,
   refusComposition: refus = null,
   refusAjout = refus,
+  refusDeComposer,
 }: {
   party: Combatant[];
   net: NetState;
@@ -375,6 +347,9 @@ export function PartyScreenView({
   /** Raison du refus d'ajout (`refusDAjoutAuGroupe` du siège local) : Créer et Choisir se ferment sur
    *  elle. Absent = celle de `refusComposition`. */
   refusAjout?: string | null;
+  /** Verdict de `refusDeComposerLeHeros` du siège local, par héros : Modifier, Remplacer et Retirer se ferment
+   *  sur sa raison (`null` : ouverts). */
+  refusDeComposer: Record<string, string | null>;
 }) {
   // Sélecteur dédié ouvert (recrutement d'un siège vide OU remplacement ciblé).
   const [selector, setSelector] = useState<SelectorTarget | null>(null);
@@ -389,38 +364,11 @@ export function PartyScreenView({
   const sheetId = useGame((s) => s.sheetId);
   const setSheetId = useGame((s) => s.setSheetId);
   const [presentHero, setPresentHero] = useState<Combatant | null>(null);
-  // Solo : carte siège→héros STABLE — le siège d'un héros retiré RESTE en place (le trou ne file plus
-  // à droite). Réconciliée avec `party`. En coop, on garde `slotViews` (sièges attribués).
-  const [slotMap, setSlotMap] = useState<(string | null)[]>(() => {
-    const m: (string | null)[] = Array.from({ length: PARTY_MAX }, () => null);
-    party.forEach((h, i) => { if (i < PARTY_MAX) m[i] = h.id; });
-    return m;
-  });
-  useEffect(() => {
-    setSlotMap((prev) => {
-      const ids = new Set(party.map((h) => h.id));
-      const next = prev.map((id) => (id && ids.has(id) ? id : null));
-      const placed = new Set(next.filter((x): x is string => !!x));
-      for (const h of party) {
-        if (placed.has(h.id)) continue;
-        const e = next.indexOf(null);
-        if (e >= 0) { next[e] = h.id; placed.add(h.id); }
-      }
-      return next.every((v, i) => v === prev[i]) ? prev : next;
-    });
-  }, [party]);
-
   const coop = net.mode !== 'local';
-  const isHost = net.mode !== 'guest';
-  const seats = Object.entries(net.seatNames).map(([s, n]) => ({ seat: Number(s), name: n }));
+  const seats = siegesDeLaTable(net);
   const seatName = (seat: number) => nomDuSiege(net, seat);
-  const views = coop
-    ? slotViews(party, net.slots ?? [0, 0, 0, 0], net.ownership)
-    : slotMap.map((id) => ({ seat: 0, hero: id ? party.find((h) => h.id === id) : undefined }));
-  // Porte UI UNIQUE (#1262) : le siège se lit par le routage d'état, jamais par une comparaison recopiée.
-  const ownsHero = (id: string) => ownsLocalNet(net, id);
-  /** Un siège attribué à un invité n'est pas rempli → l'hôte ne peut pas lancer. */
-  const guestPending = views.some((v) => v.seat !== 0 && !v.hero);
+  const views = emplacementsDuGroupe({ party, net }).map((e) => ({ ...e, hero: e.heroId === null ? undefined : party.find((h) => h.id === e.heroId) }));
+  const refusLancer = refusDeLancer({ party, net });
 
   // Recrutement / remplacement : un seul chemin, le SÉLECTEUR dédié.
   const onSelectorPick = (h: Combatant, wealth?: Money) => {
@@ -459,9 +407,6 @@ export function PartyScreenView({
         )}
       </header>
       {refus && <p className="hint party-coop-hint" role="status">{refus}</p>}
-      {isHost && guestPending && (
-        <p className="hint party-coop-hint"><Icon id="ui/wait" size="sm" /> {t('party.coop.pending')}</p>
-      )}
 
       {/* L'écran de groupe = LA COMPAGNIE SEULE (grille de sièges, 2×2, généreuse) + le RAIL du
           registre (campagne + composition, #417). Aucune galerie ici. */}
@@ -475,8 +420,10 @@ export function PartyScreenView({
           </span>
         </Row>
         <div className="party-roster" aria-label={t('party.acts.title')}>
-          {views.map(({ seat, hero: h }, i) => {
-            const mine = !coop || seat === net.mySeat;
+          {views.map(({ siege: seat, proprietaire, hero: h }, i) => {
+            const mine = seat === net.mySeat;
+            // Verdict du conteneur (`refusDeComposerLeHeros`) ; un héros sans verdict n'offre aucun geste.
+            const raison = h ? refusDeComposer[h.id] : undefined;
             return (
               <div
                 className={`seat-slot ${h ? 'filled' : 'empty'}`}
@@ -506,13 +453,13 @@ export function PartyScreenView({
                   <label className="slot-owner">
                     <span>{t('party.slot.player')}</span>
                     <select value={seat} onChange={(e) => onAssignSlot(i, Number(e.target.value))}>
-                      {seats.map(({ seat: s, name: n }) => (
+                      {seats.map(({ seat: s, nom: n }) => (
                         <option key={s} value={s}>{s === 0 ? `${n} (hôte)` : n}</option>
                       ))}
                     </select>
                   </label>
-                ) : h ? (
-                  <div className="slot-owner hint"><Icon id="nav/seat-owner" size="sm" /> {seatName(seat)}{seat === net.mySeat ? t('party.slot.you') : ''}</div>
+                ) : proprietaire !== null ? (
+                  <div className="slot-owner hint"><Icon id="nav/seat-owner" size="sm" /> {seatName(proprietaire)}{proprietaire === net.mySeat ? t('party.slot.you') : ''}</div>
                 ) : null)}
                 {h ? (
                   <SeatCard
@@ -520,17 +467,17 @@ export function PartyScreenView({
                     seatLabel={t('party.acts.badge', { n: ACT_ROMAN[i] })}
                     axisIds={axisIds}
                     onPresent={() => setPresentHero(h)}
-                    actions={ownsHero(h.id) && (
+                    actions={raison !== undefined && (
                       <>
                         {onEditHero && (
-                          <GatedAction id={`party-edit-${h.id}`} primary={false} btnClassName="small ghost" enabled={!refus} {...raisonSi(refus)}
+                          <GatedAction id={`party-edit-${h.id}`} primary={false} btnClassName="small ghost" enabled={!raison} {...raisonSi(raison)}
                             onClick={() => onEditHero(h.id)} label={t('party.hero.edit')} />
                         )}
                         {onReplaceHero && (
-                          <GatedAction id={`party-replace-${h.id}`} primary={false} btnClassName="small ghost" enabled={!refus} {...raisonSi(refus)}
+                          <GatedAction id={`party-replace-${h.id}`} primary={false} btnClassName="small ghost" enabled={!raison} {...raisonSi(raison)}
                             onClick={() => setSelector({ mode: 'replace', heroId: h.id })} label={t('party.hero.replace')} />
                         )}
-                        <GatedAction id={`party-remove-${h.id}`} primary={false} btnClassName="small ghost danger" enabled={!refus} {...raisonSi(refus)}
+                        <GatedAction id={`party-remove-${h.id}`} primary={false} btnClassName="small ghost danger" enabled={!raison} {...raisonSi(raison)}
                           onClick={() => onRemoveHero(h.id)} label={t('party.hero.remove')} />
                       </>
                     )}
@@ -576,8 +523,8 @@ export function PartyScreenView({
               raisonInline
               className="party-start"
               label={t('party.action.start')}
-              enabled={party.length > 0 && !guestPending}
-              reason={guestPending ? t('party.action.start.guestPending') : t('party.action.start.empty')}
+              enabled={refusLancer === null}
+              reason={refusLancer ?? ''}
               primary={!inProgress}
               onClick={onStart}
             />
@@ -663,7 +610,6 @@ export function CandidatePool({
   party,
   onPick,
   variant = 'gallery',
-  canRecruit = true,
   hideInParty = false,
   axisIds = coreAxisIds(),
   onCreate,
@@ -672,8 +618,6 @@ export function CandidatePool({
   onPick: (h: Combatant, wealth?: Money) => void;
   /** `gallery` = recrutement (les recrutés quittent l'étal) ; `remplacement` : membres grisés. */
   variant?: 'gallery' | 'remplacement';
-  /** Un siège reste-t-il à pourvoir ? Sinon « Recruter » est grisé (groupe complet). */
-  canRecruit?: boolean;
   /** Écarte du vivier les personnages DÉJÀ dans le groupe (recrutement) : un recruté quitte l'étal. Le
    *  mode remplacement (`false`) les garde, grisés « Déjà choisi ». */
   hideInParty?: boolean;
@@ -703,7 +647,6 @@ export function CandidatePool({
   const inParty = (id: string) => party.some((p) => p.id === id);
   const shownPregens = hideInParty ? allPregens.filter((e) => !inParty(e.hero.id)) : allPregens;
   const shownRoster = hideInParty ? roster.filter((e) => !inParty(e.hero.id)) : roster;
-  const state: RecruitState = { status: canRecruit ? 'available' : 'blocked' };
   const shownList: { hero: Combatant; wealth?: Money }[] =
     tab === 'roster' ? shownRoster.map(({ hero, wealth }) => ({ hero, wealth })) : shownPregens.map(({ hero, wealth }) => ({ hero, wealth }));
   const selected = shownList.find((e) => e.hero.id === selectedId) ?? shownList[0] ?? null;
@@ -762,7 +705,6 @@ export function CandidatePool({
                       key={hero.id}
                       hero={hero}
                       variant={variant}
-                      state={state}
                       recruited={inParty(hero.id)}
                       wealth={wealth}
                       axisIds={axisIds}
@@ -778,7 +720,6 @@ export function CandidatePool({
                       key={h.id}
                       hero={h}
                       variant={variant}
-                      state={state}
                       recruited={inParty(h.id)}
                       wealth={wealth}
                       axisIds={axisIds}

@@ -1,23 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isDescriptiveZone, layerTiles, type Scene } from '../../noyau/monde/scene';
-import { isRoomZone } from '../../noyau/monde/rooms';
-import {
-  setMetresPerTile,
-  setAmbientLight,
-  setEnvironment,
-  setSceneFlags,
-  addEffectZone,
-  EFFECT_ZONE_SEEDS,
-  renameEffectZone,
-} from './editorState';
+import { emptyScene, isDescriptiveZone, layerTiles, type Scene } from './monde/scene';
+import { isRoomZone } from './monde/rooms';
+import { EFFECT_ZONE_SEEDS } from './sceneEditLecture';
 // `putLayer` : appelant unique `noyau/mapSpec.ts` (`buildScene`), sans porte en `src/ui/**` (#855).
-import { editEntity, editEntityCombat, putLayer, renameActionAuthoree } from '../../noyau/sceneEdit';
-import { sceneEntitySchema, type Terrain } from '../../data/schemas/defs-scenes/scene';
-import type { ActionAuthoree, SceneEntity } from '../../noyau/monde/scene';
+import { editEntity, editEntityCombat, putLayer, renameActionAuthoree, setMetresPerTile, setAmbientLight, setEnvironment, setSceneFlags, addEffectZone, renameEffectZone } from './sceneEdit';
+import { sceneEntitySchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import type { ActionAuthoree, SceneEntity } from './monde/scene';
 
 /** Primitives pures consommées par le headless-editor `buildScene`. */
 
-describe('editorState — scalaires de scène', () => {
+describe('édition de scène — scalaires de scène', () => {
   it('emptyScene pose des défauts EXPLICITES pour metresPerTile/ambientLight (#841 FU-A)', () => {
     const s = emptyScene('scene-test', 4, 4);
     expect(s.metresPerTile).toBe(2);
@@ -56,7 +48,7 @@ describe('editorState — scalaires de scène', () => {
   });
 });
 
-describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)', () => {
+describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le nœud)', () => {
   it('la variante « Pièce » de l’outil zone crée un intérieur NU : aucun effet, satisfait le filtre « Pièces révélées » (Inspector.tsx)', () => {
     const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
     const zone = scene.effectZones![idx];
@@ -109,7 +101,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
   });
 });
 
-describe('editorState — patch d’entité', () => {
+describe('édition de scène — patch d’entité', () => {
   const base = (): Scene => {
     const s = emptyScene('scene-test', 6, 6);
     s.entities = [{ id: 'e0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
@@ -138,7 +130,7 @@ describe('editorState — patch d’entité', () => {
   });
 });
 
-describe('editorState — putLayer', () => {
+describe('édition de scène — putLayer', () => {
   it('ajoute une couche z avec tuiles + hauteurs, triée', () => {
     const s = emptyScene('scene-test', 2, 2);
     const tiles: Terrain[] = ['pierre', 'pierre', 'pierre', 'pierre'];

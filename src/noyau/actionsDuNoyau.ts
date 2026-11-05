@@ -28,6 +28,7 @@ import type {
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
+import type { FenetreQuiSeFerme } from './modalArbiter';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
 export interface ActionsDuNoyau extends VerbesDeJet {
@@ -47,13 +48,13 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Joue l'offre `actionId` du registre par sa porte unique (`runAction`), pour un hôte qui parle en
    *  intentions (#2898). */
   jouerLOffre: (actionId: string, ctx?: ActionRunCtx) => void;
+  /** Ferme la fenêtre `fenetre`, que son registre déclare se fermer (`sortie`, `modalArbiter.ts`) ; refusé, et dit,
+   *  hors de ce que sa déclaration ouvre (`refusDeLaSortie`). */
+  fenetreFermer: (fenetre: FenetreQuiSeFerme) => void;
   /** « Prendre la route » : ferme l'ouverture et BORNE le chapitre (instantané PX/vivants/date). */
   acquitterOuverture: () => void;
   /** « Terminer la séance » : ferme le récap et re-borne le chapitre suivant. */
   cloreChapitre: () => void;
-  /** AJOURNE le récap (Échap / « Plus tard ») : le chapitre reste clos en donnée, donc le récap se
-   *  re-pose au prochain lot d'effets — rien n'est perdu, rien n'est forcé. */
-  ajournerChapterRecap: () => void;
   /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
   toggleCluePin: (indiceId: string) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
@@ -68,18 +69,11 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   assignVictoryGear: (index: number, heroId: IdDeHeros) => void;
   /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
   harvestCreature: (creatureId: IdDeCreatureADepecer) => void;
-  /** Ferme l'écran de victoire et revient à l'exploration. */
-  dismissVictory: () => void;
-  /** Ferme l'écran de défaite ; dans une Scène de combat de bataille de masse, la bataille CONTINUE
-   *  (défaite tactique = `combatLost`, groupe repoussé mais relevé). */
-  dismissDefeat: () => void;
   /** Dénoue le vol terrestre GRADUÉ (#327) : applique la perte d'Enc du convoi selon l'issue
    *  (`applyLandCargoRaid`, params maison) et éteint `cargoRaid`. No-op hors vol en cours. */
   resolveCargoRaid: (outcome: import('../engine/cargo').CargoRaidOutcome) => void;
   /** Attribue une ligne de la fenêtre de loot au héros choisi. */
   assignLootGear: (index: number, heroId: IdDeHeros) => void;
-  /** Ferme la fenêtre de loot ; l'équipement non attribué va au 1er héros (comme la victoire). */
-  dismissLoot: () => void;
   /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
    *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
   appraiseGear: (scope: 'loot' | 'victory', index: number, mode?: 'evaluate' | 'detect') => void;
@@ -123,8 +117,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   massBattleClash: () => void;
   /** Passe au Round suivant après le Rassemblement (l.124). */
   massBattleAdvance: () => void;
-  /** Ferme la bataille et revient au jeu. */
-  endMassBattle: () => void;
   /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
    *  LANCER passe par `interludeActivity('craft')`. Passer commande (Exotique) + banque restent dédiés. */
   interludeCraftStart: (heroId: IdDeHeros, trappingId: string, atouts: string[], defauts: string[]) => void;
@@ -182,7 +174,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
    *  Détermination selon la Motivation, puis restaure la Chance. Alimenté par l'écran de fin de séance. */
   endSession: (rewards: import('./partyFlow').SessionRewards) => void;
   openSessionEnd: () => void;
-  closeSessionEnd: () => void;
   /** Entraîne une prothèse portée par dépense de PX (Fausse jambe → réapprendre l'Esquive, 200 PX, LDB 73). */
   trainProsthesis: (heroId: IdDeHeros, uid: IdDObjet) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
@@ -231,20 +222,17 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   fouillerLaPiece: () => void;
   setPendingInteract: (pending: PendingInteract | null) => void;
   chooseDialogue: (choiceIndex: number) => void;
-  closeDialogue: () => void;
   openMerchant: (entityId: IdDEntiteDeScene) => void;
   /** Marchand de LIEU (#369) — service de catalogue sans `SceneEntity` (forgeron du hub de ville…) : même
    *  système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   openPlaceMerchant: (entityId: string, archetype: string, backdrop?: string) => void;
-  closeMerchant: () => void;
   /** Recherche active de Disponibilité (LDB 59 l.50) : passer une journée entière + un Test de Ragot →
    *  réassort frais avec +10 % de Disponibilité si le Ragot réussit (avance l'horloge d'une journée). */
   searchAvailability: () => void;
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
-   *  (choisir un jeu + un adversaire, résolution par le moteur générique) / fermer. */
+   *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   openTavernGames: (npcId?: string) => void;
   playTavernGame: (opts: { gameId: string; challengerId: IdDeHeros; opponent: tavernFlow.TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number }) => void;
-  closeTavernGames: () => void;
   /** Troc (LDB 59 l.64-76) : céder N exemplaires d'un objet contre M exemplaires du stock, sans argent. */
   barterExchange: (opts: { giveHeroId: IdDeHeros; giveTrappingId: string; getStockId: string; getCount?: number }) => void;
   /** « Baisse des prix » (LDB 59 l.60) : (dé)cale d'un cran le nombre de divisions de moitié consenties
@@ -286,8 +274,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   corruptionSetNature: (nature: NatureDInfluence) => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
   remettreDocument: (doc: Omit<NonNullable<EtatDeJeu['document']>, 'remise'>) => void;
-  /** Ferme le document et rejoue sa `suite` ; inerte chez l'invité. */
-  closeDocument: () => void;
 
   /** Réensemence le RNG de combat (déterminisme des tests + future coop réseau). */
   seedRng: (seed: number) => void;
@@ -316,7 +302,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   openSurgeryPass: () => void;
   /** Annule la Chirurgie (cumul perdu ; jamais commencée → acte remboursé). */
   medicAbandonSurgery: () => void;
-  closeMedic: () => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
@@ -324,10 +309,8 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Coop : marque PRÊT au repos le siège qui décide (`decidingSeat`). */
   restReady: () => void;
   restSleep: () => void;
-  restCancel: () => void;
-  /** CONSEIL DE BORD (#229) : arrête la paie de la semaine, puis clôt le bilan de Moral. */
+  /** CONSEIL DE BORD (#229) : arrête la paie de la semaine ; le bilan de Moral se lève par sa sortie. */
   councilPay: (decision: IdDeChoixDePaie) => void;
-  councilClose: () => void;
   /** Recharger l'arme à distance (LDB 62 l.335) : OUVRE la modale de Test étendu de Projectiles. */
   battleReload: (weaponUid?: IdDObjet) => void;
   /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
@@ -403,8 +386,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** « Tout lancer » : résout d'office les étapes restantes (on ne peut pas dé-dormir), puis place le
    *  curseur EN FIN = BILAN — la modale RESTE ouverte pour voir toutes les conséquences. */
   cascadeResolveAll: () => void;
-  /** « Terminer » du bilan : ferme la cascade et enchaîne la suite (reprise de voyage…). */
-  cascadeFinish: () => void;
   /** Incantation HORS COMBAT (couture D) : un héros lanceur cible self/allié ; sorts non-offensifs. */
   oocCastSpell: (casterId: IdDeCombattant, spellId: string, targetId: IdDeCombattant, fromGrimoire?: boolean) => void;
   battleFocusSpell: (spellId: string) => void;
@@ -466,9 +447,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Pilonnage INDIRECT : dépose le point d'impact choisi (clic-case du placeur 'siege') et ouvre la modale
    *  de tir de la pièce indirecte servie (`pendingAttack` siège). Cf. `siegeAimCommit` (combatSlice). */
   siegeAimCommit: (pt: Pt) => void;
-  /** Pilonnage INDIRECT : referme le placeur sans tirer (option « Servir … » désarmée). SORTIE de
-   *  l'interlude `placing-zone` de source 'siege' (`ACTION_RUN.placingZoneOff`). */
-  siegeAimCancel: () => void;
   /** Balayage (Frappe Mortelle, LDB 14 l.9) : enchaîne l'attaque sur une cible adjacente (ouvre une
    *  modale d'attaque standard) ; borné à BCC enchaînements. */
   cleaveAttack: (targetId: IdDeCibleDuBalayage) => void;
@@ -580,7 +558,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   battleMount: (mountId?: IdDeCombattant) => void;
   battleDismount: () => void;
   mountTargetSelect: (id: IdDuCoupleMonte) => void;
-  mountTargetCancel: () => void;
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
   battleDisengage: () => void;
   disengageConfirmA: () => void; // Sacrifier l'Avantage
@@ -605,10 +582,8 @@ export interface ActionsDuNoyau extends VerbesDeJet {
    *  cauchemars des héros marqués (LDB 16/18/21). `days` par défaut = 1 (une nuit). */
   restParty: (days?: number) => void;
   openWorldMap: () => void;
-  closeWorldMap: () => void;
   /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
   startBilletBargain: (routeId: string, vehicule: string) => void;
-  dismissTravelRecap: () => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */
   startTravel: (routeId: string, mode: import('../engine/travel').TravelMode, opts?: import('./travelFlow').OptionsDeDepart) => void;
   /** Reprend un voyage interrompu par une péripétie. */
@@ -632,8 +607,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   setPosteAmmo: (shipId: IdDeCombattant, posteUid: string, ammoUid: string | null) => void;
   /** « Attendre l'aube » : joue une nuit (repos) puis efface la porte — le groupe repart au matin. */
   departWaitDawn: () => void;
-  /** « Annuler » le départ nocturne bloqué par la porte. */
-  departCancel: () => void;
   /** Ajoute une Possession au registre (`uid` attribué par scan) — renvoie l'uid. */
   addPossession: (p: PossessionInput) => string;
   /** Renomme l'instance (`label`). */
@@ -654,7 +627,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   learnPossessionTrait: (uid: IdDePossession, traitId: string) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */
   openPort: () => void;
-  closePort: () => void;
   /** Achète `enc` points d'une cargaison de l'escale (Type/Taille/Marchandage, MDG 15 l.319-349). */
   portBuyCargo: (cargoId: string, enc: number) => void;
   /** Vend un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage, MDG 15 l.351-397). */
@@ -673,7 +645,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   portDismissCrew: (roleId: string, count?: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`). */
   openLandMarket: () => void;
-  closeLandMarket: () => void;
   /** Achète `enc` d'une cargaison de l'étape (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131) —
    *  chargée sur le porteur de défaut du groupe dans la limite de sa Contenance (#327). */
   landBuyCargo: (cargoId: string, enc: number) => void;

@@ -105,7 +105,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     banc.getState().cascadeResolveAll();
     expect(applied).toHaveLength(2);
     for (const a of applied) expect(a.id).toBe(a.die <= 50 ? 'basse' : 'haute');
-    banc.getState().cascadeFinish();
+    banc.getState().fenetreFermer('cascade');
     applied.length = 0;
     const out = runCascadeImmediate(banc.getState, banc.setState, [tableStep('t3', { tableId: SYNTH, forcedRoll: 51 })])!;
     expect(out[0].table!.result).toMatchObject({ roll: 51, die: 51, id: 'haute' });
@@ -387,7 +387,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     banc.getState().cascadeResolveAll();
     const st = banc.getState().pendingCascade!.participants[0];
     expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 85).id });
-    banc.getState().cascadeFinish();
+    banc.getState().fenetreFermer('cascade');
     const out = runCascadeImmediate(banc.getState, banc.setState, [structureStep('s2', 20)])!;
     expect(ruleOf(out[0])).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 20).id });
   });

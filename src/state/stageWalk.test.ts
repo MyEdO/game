@@ -15,6 +15,7 @@ import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { areneCampaign, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
+import { makePregens } from '../data/pregens';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 const get = useGame.getState;
@@ -174,6 +175,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
  */
 describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt pas', () => {
   function entrerAuHub(): void {
+    useGame.setState({ party: makePregens().slice(0, 1) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 25, y: 23 },

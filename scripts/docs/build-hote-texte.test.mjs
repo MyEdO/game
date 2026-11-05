@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { rendre } from './build-hote-texte.mjs'
+import { verbesDeLaPartie } from './lib/verbesDeLaPartie.mjs'
 import { INSTRUCTIONS, outils } from '../../src/hoteTexte/outils.ts'
 
 const texte = rendre().get('docs/hote-texte.md')
@@ -30,7 +31,7 @@ const LIGNE_DE_VERBE_AU_PLUS = 400
 test('#2898 le doc reste court : sous son poids, chaque ligne de la table des verbes sous sa largeur', () => {
   assert.ok(texte.length <= DOC_AU_PLUS, `docs/hote-texte.md pèse ${texte.length} caractères`)
   const verbes = texte.split('\n').filter((l) => /^\| `[a-z]\w*` \| `/.test(l))
-  assert.ok(verbes.length > 300, `témoin : la table des verbes se lit (${verbes.length})`)
+  assert.equal(verbes.length, Object.keys(verbesDeLaPartie()).length, 'témoin : chaque verbe de la partie a sa ligne')
   const longues = verbes.filter((l) => l.length > LIGNE_DE_VERBE_AU_PLUS).map((l) => `${/^\| `(\w+)`/.exec(l)[1]} (${l.length})`)
   assert.deepEqual(longues, [])
 })

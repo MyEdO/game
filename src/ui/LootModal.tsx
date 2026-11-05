@@ -18,7 +18,8 @@ export function LootModal() {
   const net = useGame((s) => s.net);
   const assign = useGame((s) => s.assignLootGear);
   const appraise = useGame((s) => s.appraiseGear);
-  const dismiss = useGame((s) => s.dismissLoot);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const dismiss = () => fermer('loot');
   const appraising = useGame((s) => !!s.pendingAppraise);
   const state = useGame();
   if (!pl || battle) return null; // un combat a éclaté : la fenêtre réapparaîtra après (Ramasser/victoire ont leurs flux)

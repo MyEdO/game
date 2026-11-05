@@ -2,7 +2,8 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, le point où se dit le nom de ce
+## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, la largeur d'un texte de
+## bulle replié, le point où se dit le nom de ce
 ## qui occupe une case, et la pose d'une arête (mur ou porte) sur le côté de sa case. Seul script où
 ## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
 ## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
@@ -20,8 +21,16 @@ const TANGAGE_MINIMAL := -1.2
 const TANGAGE_MAXIMAL := 0.2
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
+## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
+const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
+
+
+## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
+## `LARGEUR_DE_BULLE`.
+static func largeur_de_bulle(largeur: float) -> float:
+	return minf(LARGEUR_DE_BULLE, ceilf(largeur))
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).

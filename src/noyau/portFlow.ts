@@ -55,6 +55,7 @@ import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Une offre d'achat générée à l'escale (l.319-331) — Enc disponible + prix de base NOTÉ (le Vin fige son 3d10). */
@@ -193,10 +194,6 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
     });
   }
   set({ port: { placeId: cur.placeId, label: cur.label, ref: cur.ref, port: structuredClone(port), offers } }); // #2097
-}
-
-export function closePort(_get: Get, set: Set): void {
-  set({ port: null });
 }
 
 /** DR de camp SIGNÉ pour l'enjeu affiché (`stakes.json`, achat et vente) : le gabarit dit « compte
@@ -454,10 +451,13 @@ export function portDismissCrew(get: Get, set: Set, roleId: string, count = 1): 
   return lines;
 }
 
+export function sortiesDuPort(_get: Get, set: Set) {
+  return { port: () => set({ port: null }) } satisfies Partial<SortiesDeFenetre>;
+}
+
 export function creerActionsDuPort(get: Get, set: Set) {
   return {
     openPort: () => openPort(get, set),
-    closePort: () => closePort(get, set),
     portBuyCargo: (cargoId, enc) => portBuyCargo(get, set, cargoId, enc),
     portSellCargo: (cargoIndex) => portSellCargo(get, set, cargoIndex),
     portDumpCargo: (cargoIndex) => portDumpCargo(get, set, cargoIndex),

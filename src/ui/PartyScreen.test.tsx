@@ -23,6 +23,9 @@ import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
+/** Le verdict de composition OUVERT pour chaque héros de `party` (vue pure, sans conteneur). */
+const ouverts = (party: Combatant[]) => Object.fromEntries(party.map((h) => [h.id, null]));
+
 function savedHero(): Combatant {
   const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
   h.id = 'roster-test-1';
@@ -133,6 +136,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
         onAssignSlot={noop}
         onStart={noop}
         onResume={noop}
+        refusDeComposer={ouverts(party)}
       />,
     );
 
@@ -186,7 +190,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
   });
 
   it('hôte : select de siège sur les sièges vides, « Commencer » grisé + RAISON portée tant qu’un siège invité est vide', () => {
-    const html = render([], {
+    const html = render([savedHero()], {
       ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 0, 0],
     });
     expect(html).toContain('<select');
@@ -201,13 +205,15 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
     expect(html).toContain('Des emplacements attribués aux autres joueurs sont encore vides.');
   });
 
-  it('hôte : héros de l’invité dans SON siège (carte), « Retirer » réservé au propriétaire', () => {
+  it('un héros de l’hôte dans l’emplacement d’un invité est nommé à SON siège, celui de l’hôte', () => {
     const h = savedHero();
     const html = render([h], {
-      ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0],
+      ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { [h.id]: 0 }, slots: [1, 0, 0, 0], rangs: { [h.id]: 0 },
     });
-    expect(html).toContain(h.label); // carte de siège dans la compagnie
-    expect(html).not.toMatch(/<button[^>]*>Retirer<\/button>/); // siège non possédé → pas d'action
+    const bandeau = html.match(/<div class="slot-owner hint">(.*?)<\/div>/)?.[1] ?? '';
+    expect(bandeau).toContain('Hôte');
+    expect(bandeau).toContain(t('party.slot.you'));
+    expect(bandeau).not.toContain('Antoine');
   });
 
   it('siège possédé : bouton « Remplacer » rendu quand onReplaceHero est fourni', () => {
@@ -219,7 +225,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
         title="Votre groupe d'aventuriers"
         onMenu={noop} onQuitCoop={noop} onCreate={noop}
         onAddHero={noop} onRemoveHero={noop} onReplaceHero={noop}
-        onAssignSlot={noop} onStart={noop}
+        onAssignSlot={noop} onStart={noop} refusDeComposer={ouverts([h])}
       />,
     );
     expect(html).toContain('Remplacer');
@@ -237,6 +243,7 @@ describe('PartyScreen en combat : la composition du groupe est fermée, avec sa 
       onMenu={noop} onQuitCoop={noop} onCreate={noop} onEditHero={noop}
       onAddHero={noop} onRemoveHero={noop} onReplaceHero={noop}
       onAssignSlot={noop} onStart={noop} refusComposition={refus}
+      refusDeComposer={Object.fromEntries(party.map((h) => [h.id, refus]))}
     />
   );
   const composition: string[] = [t('party.hero.edit'), t('party.hero.replace'), t('party.hero.remove'), t('party.seat.create'), t('party.seat.choose')];
@@ -284,6 +291,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
         onRemoveHero={noop}
         onAssignSlot={noop}
         onStart={noop}
+        refusDeComposer={ouverts(party)}
       />,
     );
 
@@ -483,5 +491,25 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
       setDataset('props', avant);
       consoleErr.mockRestore();
     }
+  });
+});
+
+describe('PartyScreen — Modifier, Remplacer, Retirer suivent le verdict du noyau (`refusDeComposerLeHeros`)', () => {
+  beforeEach(() => { poserLeLocalStorage(); });
+  afterEach(() => { demonterRacines(); vi.unstubAllGlobals(); });
+
+  it('hôte : le héros de l’invité ferme ses gestes sur la raison du noyau, le sien les ouvre', () => {
+    const [mien, sien] = makePregens();
+    useGame.setState({
+      battle: null, scene: null, pendingCampaign: null, party: [mien, sien],
+      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 1, 0, 0], ownership: { [mien.id]: 0, [sien.id]: 1 }, rangs: { [mien.id]: 0, [sien.id]: 1 } },
+    });
+    const el = monterRacine(<PartyScreen />).container;
+    const boutons = [...el.querySelectorAll('button')].filter((b) => b.textContent === t('party.hero.remove'));
+    expect(boutons, 'un « Retirer » par héros assis').toHaveLength(2);
+    const [duMien, duSien] = boutons; // rangs 0 puis 1
+    expect(duMien.getAttribute('aria-disabled')).toBeNull();
+    expect(duSien.getAttribute('aria-disabled')).toBe('true');
+    expect(document.getElementById(duSien.getAttribute('aria-describedby') ?? '')?.textContent).toBe(t('pf.heroOfAnotherSeat'));
   });
 });

@@ -9,7 +9,7 @@ import { lightTones } from '../../data';
 import { catalogueSpecs, entreeOuverte, idsDe } from '../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
-import type { Sel } from './editorState';
+import type { Sel } from '../../noyau/sceneEditLecture';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign } from '../../scenes/campaign';

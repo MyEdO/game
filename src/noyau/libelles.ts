@@ -30,9 +30,11 @@ export function libelleDuVerbe(verbe: string): string | null {
   return texte(`verbe.${verbe}`) ?? (suffixe ? texte(`verbe.${suffixe}`) : null);
 }
 
-/** Le libellé d'un geste : pour un verbe de jet, la clé propre à son flux (`verbe.<flux>.<verbe>`), sinon celle du
- *  verbe (`verbe.<verbe>`) ; tout autre geste, celui de son verbe (`libelleDuVerbe`). */
+/** Le libellé d'un geste : pour la sortie d'une fenêtre, la clé propre à sa fenêtre (`verbe.<fenetre>.fermer`) ; pour
+ *  un verbe de jet, la clé propre à son flux (`verbe.<flux>.<verbe>`), sinon celle du verbe (`verbe.<verbe>`) ; tout
+ *  autre geste, celui de son verbe (`libelleDuVerbe`). */
 export function libelleDuGeste(g: GesteDuJeu): string | null {
+  if (g.fenetre) return texte(`verbe.${g.fenetre}.fermer`);
   const deJet = verbeDeJetDe(g.verbe);
   return deJet && g.flux ? texte(`verbe.${g.flux}.${deJet}`) ?? texte(`verbe.${deJet}`) : libelleDuVerbe(g.verbe);
 }

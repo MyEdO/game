@@ -19,7 +19,7 @@ describe('Méta-effets de scène (#83)', () => {
     expect(banc.getState().sessionEndOpen).toBe(false);
     applyEffects(banc.getState, banc.setState, [{ type: 'sessionEnd' }]);
     expect(banc.getState().sessionEndOpen).toBe(true);
-    banc.getState().closeSessionEnd();
+    banc.getState().fenetreFermer('finDeSeance');
     expect(banc.getState().sessionEndOpen).toBe(false);
   });
 });

@@ -8,13 +8,6 @@
   "src/noyau/portFlow.ts": [
     "PortState"
   ],
-  "src/ui/editor/editorState.ts": [
-    "StairCell",
-    "StairFlightPlan",
-    "StairStep",
-    "minFlightCells",
-    "setEdgeWall"
-  ],
   "src/ui/editor/lowerLayerGabarit.ts": [
     "lowerLayerMode",
     "lowerLayerOpacity"
