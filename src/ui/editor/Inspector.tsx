@@ -1371,7 +1371,7 @@ function EntityPanel({
   removeSel: () => void;
 }) {
   useVersionDesDatasets();
-  const jeuOrphelin = !!ent.tavernGame && !idsDe('tavernGame').has(ent.tavernGame.gameId);
+  const jeuOrphelin = !!ent.tavernGame && !idsDe('tavernGame').has(ent.tavernGame.id);
   return (
     <>
       <div className="ent-preview">
@@ -1432,12 +1432,12 @@ function EntityPanel({
             <label className="ed-field">
               Joueur de taverne (jeu proposé)
               <select
-                value={ent.tavernGame?.gameId ?? ''}
+                value={ent.tavernGame?.id ?? ''}
                 aria-invalid={jeuOrphelin || undefined}
-                onChange={(e) => updateSel({ tavernGame: e.target.value ? { ...ent.tavernGame, gameId: e.target.value } : undefined })}
+                onChange={(e) => updateSel({ tavernGame: e.target.value ? { ...ent.tavernGame, id: e.target.value } : undefined })}
               >
                 <option value="">— aucun —</option>
-                {jeuOrphelin && <option value={ent.tavernGame!.gameId}>{ent.tavernGame!.gameId} (introuvable)</option>}
+                {jeuOrphelin && <option value={ent.tavernGame!.id}>{ent.tavernGame!.id} (introuvable)</option>}
                 {TAVERN_GAMES.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.label}

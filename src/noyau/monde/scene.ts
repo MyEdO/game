@@ -19,7 +19,7 @@ import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
-  facadeSectionSchema, layerSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
+  facadeSectionSchema, layerSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
   victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
@@ -134,10 +134,10 @@ export interface SceneEntity {
    *  `EDO 01 l.202` en donne le second exemple (Phillipe Descartes, « quelle que soit la mise, mais
    *  considère comme une perte de temps de jouer pour moins de 2/- »).
    *
-   *  `gameId` = id d'une entrée de `tavernGames.json`, résolu au parse (`idDe('tavernGame')`). `stakeBrass` = mise de DÉPART en sous de
+   *  `id` = id d'une entrée de `tavernGames.json`, résolu au parse (`ref('tavernGame')`). `stakeBrass` = mise de DÉPART en sous de
    *  cuivre (la modale reste libre de la changer — l'auteur pose le défaut, pas une contrainte) ;
    *  absente, la table s'accorde sans mise. */
-  tavernGame?: { gameId: string; stakeBrass?: number };
+  tavernGame?: z.input<typeof offreDeTaverneSchema>;
   /** DÉCOR UTILISABLE (#1687) — deux faits NOMMÉS que l'auteur pose sur CETTE instance, jamais un
    *  drapeau fourre-tout : `assise` ouvre les places que le TYPE porte (`placesJouables`,
    *  `noyau/monde/seating.ts` — la seule capacité qui vive sur le type, donc la seule qu'un opt-in
