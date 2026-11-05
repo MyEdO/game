@@ -2,7 +2,8 @@
  * LES GESTES D'EXPLORATION DU GROUPE (#2898) : ce que le groupe peut jouer, chaque geste écrit en verbe du noyau et ses
  * arguments, pour un hôte qui les donne prêts à jouer. Les arêtes qu'il borde (`aretesUtilisables`, offertes comme à
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
- * `triggersEnJeu`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
+ * `triggersEnJeu`), les offres des entités à sa portée (`offresDExploration` : parler, commercer, s'asseoir, une action
+ * authorée), refusées avec leur raison, puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.
  */
@@ -10,6 +11,7 @@ import { aretesUtilisables } from './aretes';
 import { aretesOffertes, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
 import { cheminMarchable, porteActionnable } from './marcheDuGroupe';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
+import { offresDExploration } from './interactionsDExploration';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
 import { atterrissagesDeSaut, type Pt } from './monde/path';
@@ -20,10 +22,11 @@ import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 
-/** Un geste d'exploration : son libellé joueur et la suite de gestes du noyau qui le joue. */
+/** Un geste d'exploration : son libellé joueur, la suite de gestes du noyau qui le joue, et la raison qui le refuse. */
 export interface GesteDExploration {
   libelle: string;
   gestes: GesteDuNoyau[];
+  refus?: string;
 }
 
 /** La marche du groupe jusqu'à `vers` (`cliquerLaCase`) et son nombre de pas, `null` sans chemin à pied qui y finisse. */
@@ -58,6 +61,15 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
     if (!sortie) continue;
     const marche = marcheVers(s, { x: trig.rect.x, y: trig.rect.y, z: trig.rect.z ?? 0 });
     if (marche) out.push({ libelle: t('exploration.sortie', { scene: sortie.scene }), gestes: marche.gestes });
+  }
+  for (const p of offresDExploration(s)) {
+    for (const o of p.offres) {
+      out.push({
+        libelle: p.porteurLabel ? t('exploration.offre', { porteur: p.porteurLabel, action: o.label }) : o.label,
+        gestes: [{ verbe: 'jouerAction', args: [p.porteurId, o.id] }],
+        ...(o.gate.ok ? {} : { refus: o.gate.reason }),
+      });
+    }
   }
   if (!gestesDeplacantsOuverts(s)) return out;
   const z = partyPos.z ?? 0;

@@ -121,7 +121,7 @@ describe('deleteLoadout — le verdict (`refusDeSupprimerSet`) est celui du gest
 
 describe('transferItem et stowItem — le verdict (`refusDInventaire`, co-localisation) est celui des gestes', () => {
   const mule = (ownerId: string, location: Possession['location'] = { kind: 'avec-le-groupe' }): Possession =>
-    ({ uid: 'pos-1', ownerId, nature: 'bete', ref: { creatureId: 'mule' }, location, items: [] }) as Possession;
+    ({ uid: 'pos-1', ownerId, nature: 'bete', ref: { id: 'mule' }, location, items: [] }) as Possession;
 
   it('en combat, le héros ne donne pas son armure portée à sa mule (le verrou de `toggleEquip` ne se contourne pas)', () => {
     const H0 = heroDuDuel();
@@ -213,7 +213,7 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
 describe('moveCargo — co-localisation des porteurs de cargaison (`carriersColocated`)', () => {
   it('hors carte, la cale du navire et la mule, tous deux avec le groupe, échangent leur vrac', () => {
     const h = heroDuDuel();
-    const mule = { uid: 'pos-mule', ownerId: h.id, nature: 'bete', ref: { creatureId: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [], cargo: [] } as unknown as Possession;
+    const mule = { uid: 'pos-mule', ownerId: h.id, nature: 'bete', ref: { id: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [], cargo: [] } as unknown as Possession;
     const vessel = { vehicleId: 'barge', cargo: [{ cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 1 }] } as unknown as EtatDeJeu['vessel'];
     avecPartie({ ...etatInitialDuJeu(), party: [h], possessions: [mule], vessel, worldMap: null }, (partie) => {
       partie.envoyer({ type: 'moveCargo', args: ['vessel', 'pos-mule', 'vin-eau-de-vie', 2] });
@@ -325,7 +325,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
 });
 
 describe('gestes de possession — le verdict (`refusGestePossession`) est celui des cinq gestes', () => {
-  const mule: Possession = { uid: 'pos-1', ownerId: 'h1', nature: 'bete', ref: { creatureId: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession;
+  const mule: Possession = { uid: 'pos-1', ownerId: 'h1', nature: 'bete', ref: { id: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession;
   const navire = (location: Possession['location']): Possession => ({
     uid: 'pos-2', ownerId: 'h1', nature: 'navire', vehicleId: 'barge', location, items: [],
     naval: { morale: { score: 0, lastMoraleWeek: 0, factors: [] } },

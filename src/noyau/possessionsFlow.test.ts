@@ -83,7 +83,7 @@ const mule = (ownerId: string): Omit<BetePossession, 'uid'> => ({
   ownerId,
   location: { kind: 'avec-le-groupe' },
   items: [],
-  ref: { creatureId: 'mule' },
+  ref: { id: 'mule' },
 });
 
 describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {

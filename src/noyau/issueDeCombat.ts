@@ -67,27 +67,27 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
       }
       cloturer(get, set, issue, [{ verbe: 'teardownDeVictoire', kills, batailleDeMasse: inMassBattleCombat }]);
     },
-    /** Ferme l'écran de DÉFAITE. Dans une Scène de COMBAT de bataille de masse (ADE II 08), la défaite
-     *  tactique ne met PAS fin à la partie : les héros sont repoussés (soignés, le combat de scène est une
-     *  abstraction), l'issue `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge),
-     *  et la bataille CONTINUE. Hors bataille de masse : reprise standard (retour à la scène / redémarrage). */
+    /** Ferme l'écran de l'ANÉANTISSEMENT hors combat (`checkPartyWiped`) : pas de bataille à reprendre, retour au menu. */
+    aneantissement: () => {
+      get().resolveCargoRaid('defeat'); // le convoi est pillé (landRobberyLossPct, #327)
+      set({ partyWiped: false, battle: null, screen: 'menu' });
+    },
+    /** Ferme l'écran du REPLI : dans une Scène de COMBAT de bataille de masse (ADE II 08), la défaite tactique ne met
+     *  PAS fin à la partie : les héros sont repoussés (soignés, le combat de scène est une abstraction), l'issue
+     *  `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge), et la bataille CONTINUE. */
+    repli: () => {
+      get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
+      const heal = (c: import('../engine/types').Combatant): import('../engine/types').Combatant => ({
+        ...c, wounds: { ...c.wounds, current: c.wounds.max }, conditions: [], criticalWounds: 0, dead: false, outOfRencontre: false,
+      });
+      set({ party: get().party.map(heal), battle: null, mode: 'exploration' });
+      massBattleFlow.massBattleResumeCombat(get, set, 0, 'lost');
+      resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
+    },
+    /** Ferme l'écran de DÉFAITE hors bataille de masse : reprise standard (retour à la scène / redémarrage). */
     defaite: () => {
       get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
-      // Anéantissement HORS COMBAT (`checkPartyWiped`) : pas de bataille à reprendre — retour au menu.
-      if (get().partyWiped) { set({ partyWiped: false, battle: null, screen: 'menu' }); return; }
-      const inMassBattleCombat = !!get().massBattle?.combatScene;
-      if (inMassBattleCombat) {
-        // Repoussés, pas anéantis : on relève le groupe (le combat de scène ne tue pas définitivement).
-        const heal = (c: import('../engine/types').Combatant): import('../engine/types').Combatant => ({
-          ...c, wounds: { ...c.wounds, current: c.wounds.max }, conditions: [], criticalWounds: 0, dead: false, outOfRencontre: false,
-        });
-        set({ party: get().party.map(heal), battle: null, mode: 'exploration' });
-        massBattleFlow.massBattleResumeCombat(get, set, 0, 'lost');
-        resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
-        return;
-      }
-      const cur = get().scene;
-      if (cur) set({ mode: 'exploration', battle: null });
+      if (get().scene) set({ mode: 'exploration', battle: null });
       resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
     },
     /** Ferme la fenêtre de loot — même contrat que la victoire : le non-attribué va au 1er héros. */

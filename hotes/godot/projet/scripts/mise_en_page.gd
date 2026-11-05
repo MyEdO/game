@@ -1,12 +1,12 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, la largeur d'un texte de
-## bulle replié, le point où se dit le nom de ce
-## qui occupe une case, et la pose d'une arête (mur ou porte) sur le côté de sa case. Seul script où
-## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
-## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
+## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses pieds
+## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
+## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, et la pose
+## d'une arête (mur ou porte) sur le côté de sa case. Seul script où l'arithmétique et la mesure sont permises
+## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
+## plus un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -15,6 +15,11 @@ const DEMI_CASE := 0.5
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
 const TOLERANCE_D_IMAGE := 0.001
+## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`origine_de_rangement`) : assez pour passer
+## par-dessus un vêtement ample et une ceinture.
+const DEGAGEMENT_DE_RANGEMENT := 0.05
+## La longueur sous laquelle la position d'un emplacement est sur l'axe de son os.
+const TOLERANCE_DE_NORMALE := 0.001
 const RADIANS_PAR_PIXEL := 0.005
 ## Le tangage de l'orbite, borné entre la vue plongeante et la vue rasante au-dessus du sol.
 const TANGAGE_MINIMAL := -1.2
@@ -182,6 +187,27 @@ static func entree_de_marche(gauche: float, droite: float, avant: float, arriere
 ## Le vecteur `vecteur` rapporté au repère de base `base` (`Basis.inverse`).
 static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
+
+
+## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base
+## `emplacement` et de position `point` dans son os (#3319, `CONTRAT.md`) : Z, vers les jointures, sur la normale
+## sortante, la composante de `point` hors de l'axe de l'os, ou l'avant de l'emplacement sur cet axe ; Y, de
+## l'auriculaire vers l'index, vers le bas de l'emplacement, ôté de sa part sur Z ; X, leur produit.
+static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Vector3:
+	var sortante := Vector3(point.x, 0.0, point.z)
+	sortante = sortante.normalized() if sortante.length() > TOLERANCE_DE_NORMALE else emplacement.z.normalized()
+	if axe == Vector3.AXIS_Z:
+		return sortante
+	var bas := -emplacement.y
+	bas = (bas - sortante * bas.dot(sortante)).normalized()
+	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
+
+
+## L'origine du repère de prise d'un objet rangé à l'emplacement de base `emplacement` et de position `point`, dont la
+## face arrière de la boîte est à la cote `arriere` de ce repère : sur la normale sortante, la face arrière à
+## `DEGAGEMENT_DE_RANGEMENT` de l'emplacement.
+static func origine_de_rangement(emplacement: Basis, point: Vector3, arriere: float) -> Vector3:
+	return point + axe_de_rangement(emplacement, point, Vector3.AXIS_Z) * (DEGAGEMENT_DE_RANGEMENT - arriere)
 
 
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.

@@ -375,8 +375,11 @@ export interface SurfaceHorsPendingDef {
   sortie?: 'hote';
 }
 
+/** Un combat perdu tient l'écran. */
+const defaiteDuCombat = (s: ArbiterState): boolean => s.mode === 'battle' && s.battle?.over === 'defeat';
+
 export const SURFACES_HORS_PENDING = [
-  { key: 'marche', tientLaMain: (s) => !!s.merchant, sortie: 'hote' },
+  { key: 'marchand', tientLaMain: (s) => !!s.merchant, sortie: 'hote' },
   { key: 'jeuxDeTaverne', tientLaMain: (s) => !!s.tavernGames, sortie: 'hote' },
   { key: 'document', tientLaMain: (s) => !!s.document, sortie: 'hote' },
   // Montées en EXPLORATION seulement (`ui/CampaignView`) : hors de ce mode, le slot n'a pas d'écran.
@@ -386,8 +389,11 @@ export const SURFACES_HORS_PENDING = [
   // Le récit de voyage attend la conversation et la carte (`ui/CampaignView`) ; la fin de séance, la conversation.
   { key: 'recitDeVoyage', tientLaMain: (s) => !!s.travelRecap && s.mode === 'exploration' && !s.dialogue && !s.worldMapOpen, sortie: 'hote' },
   { key: 'finDeSeance', tientLaMain: (s) => !!s.sessionEndOpen && !s.dialogue, sortie: 'hote' },
-  // La défaite d'un combat, ou l'anéantissement du groupe hors combat (`partyWiped`).
-  { key: 'defaite', tientLaMain: (s) => (s.mode === 'battle' && s.battle?.over === 'defeat') || !!s.partyWiped, sortie: 'hote' },
+  // L'anéantissement du groupe hors combat (`partyWiped`) ; la défaite d'un combat, repli dans le combat d'une
+  // bataille de masse (ADE II 08), sinon défaite.
+  { key: 'aneantissement', tientLaMain: (s) => !!s.partyWiped, sortie: 'hote' },
+  { key: 'repli', tientLaMain: (s) => defaiteDuCombat(s) && !!s.massBattle?.combatScene, sortie: 'hote' },
+  { key: 'defaite', tientLaMain: (s) => defaiteDuCombat(s) && !s.massBattle?.combatScene, sortie: 'hote' },
   { key: 'batailleDeMasse', tientLaMain: (s) => !!s.massBattle && s.screen === 'massBattle', sortie: 'hote' },
   // Un ÉCRAN plein autre que celui du jeu (groupe, interlude, `compendium`…) : la scène n'est pas à l'écran.
   { key: 'ecranPlein', tientLaMain: (s) => s.screen !== 'campaign' },

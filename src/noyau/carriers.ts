@@ -39,7 +39,7 @@ const heroInParty = (h: Combatant): boolean => !h.dead && !h.outOfRencontre;
 function possessionCarrierCapacity(p: Possession): number | undefined {
   if (p.destroyed) return undefined;
   if (p.nature === 'vehicule') return findVehicleById(p.vehicleId)?.chargement;
-  if (p.nature === 'bete') return 'creatureId' in p.ref ? mountProfileForCreature(p.ref.creatureId)?.encPortee : undefined;
+  if (p.nature === 'bete') return 'id' in p.ref ? mountProfileForCreature(p.ref.id)?.encPortee : undefined;
   return undefined;
 }
 

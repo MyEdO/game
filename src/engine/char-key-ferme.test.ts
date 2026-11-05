@@ -40,12 +40,12 @@ describe('CharKey fermé — les tokens courts ne s’écrivent pas (#311, #2724
     const profil: CreatureData['char'] = { 'capacite-de-combat': 40, M: 4, B: null };
     // @ts-expect-error TS2353
     const profilCourt: CreatureData['char'] = { CC: 40 };
-    const test: NonNullable<MiscastRowEntry['test']> = { characteristic: 'force-mentale', difficulty: 'intermediaire', onFail: [] };
+    const test: NonNullable<MiscastRowEntry['test']> = { test: { characteristic: 'force-mentale', difficulty: 'intermediaire' }, onFail: [] };
     // @ts-expect-error TS2322
-    const testCourt: NonNullable<MiscastRowEntry['test']> = { characteristic: 'FM', difficulty: 'intermediaire', onFail: [] };
-    const cavalier: NonNullable<MountIncidentEffects['riderTest']> = { skill: { id: 'chevaucher' }, char: 'agilite', difficulty: 'complexe', fallM: 2 };
+    const testCourt: NonNullable<MiscastRowEntry['test']> = { test: { characteristic: 'FM', difficulty: 'intermediaire' }, onFail: [] };
+    const cavalier: NonNullable<MountIncidentEffects['riderTest']> = { test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 };
     // @ts-expect-error TS2322
-    const cavalierCourt: NonNullable<MountIncidentEffects['riderTest']> = { skill: { id: 'chevaucher' }, char: 'Ag', difficulty: 'complexe', fallM: 2 };
+    const cavalierCourt: NonNullable<MountIncidentEffects['riderTest']> = { test: { skill: { id: 'chevaucher' }, characteristic: 'Ag', difficulty: 'complexe' }, fallM: 2 };
     const physique: (typeof weatherPhysicalTestChars)[number] = 'agilite';
     // @ts-expect-error TS2322
     const physiqueCourt: (typeof weatherPhysicalTestChars)[number] = 'Ag';
@@ -68,16 +68,16 @@ describe('les champs de donnée qui nomment une Caractéristique refusent le tok
       fixture: (carac) => creature({ optionals: [{ note: 'swap', label: 'Octroi fixture', remove: [], grant: [{ char: carac, value: 15 }] }] }) },
     { nom: 'activities.char', schema: activitiesSchema,
       fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'nav/rest', contexts: ['voyage'], char: carac, source: SOURCE }] },
-    { nom: 'miscast.entries[].test.characteristic', schema: miscastSchema,
+    { nom: 'miscast.entries[].test.test.characteristic', schema: miscastSchema,
       fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', die: 'd100', source: SOURCE,
-        entries: [{ id: 'fixture-ligne', min: 1, max: 100, label: 'Ligne fixture', test: { characteristic: carac, difficulty: 'accessible', onFail: [] } }] }] },
+        entries: [{ id: 'fixture-ligne', min: 1, max: 100, label: 'Ligne fixture', test: { test: { characteristic: carac, difficulty: 'accessible' }, onFail: [] } }] }] },
     { nom: 'weather.physicalTestChars', schema: weatherSchema,
       fixture: (carac) => ({ id: 'weather', type: 'weather', label: 'Météo fixture', seasons: [], physicalTestChars: [carac],
         conditions: weatherIdSchema.options.map((id) => ({ id, label: id })) }) },
-    { nom: 'incidents-monture.entries[].mount.riderTest.char', schema: incidentsMontureSchema,
+    { nom: 'incidents-monture.entries[].mount.riderTest.test.characteristic', schema: incidentsMontureSchema,
       fixture: (carac) => ({ id: 'incidents-fixture', type: 'incidents-monture', label: 'Incidents fixture', die: 'd100', source: SOURCE,
         entries: [{ min: 1, max: 100, id: 'incident-fixture', label: 'Incident fixture', desc: 'Fixture.',
-          mount: { riderTest: { skill: { id: 'chevaucher' }, char: carac, difficulty: 'complexe', fallM: 2 } } }] }) },
+          mount: { riderTest: { test: { skill: { id: 'chevaucher' }, characteristic: carac, difficulty: 'complexe' }, fallM: 2 } } }] }) },
   ];
 
   for (const { nom, schema, fixture } of cas) {

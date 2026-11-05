@@ -1,9 +1,9 @@
-import { nommerChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /** LDB 18 ; LDB 18 l.61/72 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 /** LDB 18 l.247/251/273/277/281 */
 const cumulSchema = nommerChamps(z.strictObject({
@@ -22,6 +22,9 @@ const cumulSchema = nommerChamps(z.strictObject({
   escalade: { label: 'Escalade' },
 });
 
+/** Prothèse annulatrice d'une séquelle (`LDB 73`, `Trauma.prosthesis`) : `id` de l'objet porté. */
+export const protheseSchema = ref('trapping', { cancels: nommerNoeud(z.enum(['all', 'movement']), { nom: 'Annulations' }) });
+
 export const file = 'traumas.json';
 export const famille = 'entite';
 
@@ -32,14 +35,7 @@ const doc = document(
     ops: passifsDe().optional(),
     kind: z.enum(['dechirure', 'fracture']).optional(),
     severity: z.enum(['mineur', 'majeur']).optional(),
-    prosthesis: z
-      .array(
-        nommerChamps(z.strictObject({
-          trappingId: idDe('trapping'),
-          cancels: z.enum(['all', 'movement']),
-        }), { trappingId: { label: 'Objet' }, cancels: { label: 'Annulations' } }),
-      )
-      .optional(),
+    prosthesis: z.array(protheseSchema).optional(),
     cumul: cumulSchema.optional(),
     needsSurgery: z.boolean().optional(),
     cosmetic: z.boolean().optional(),

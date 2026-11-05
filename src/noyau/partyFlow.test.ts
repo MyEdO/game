@@ -24,7 +24,7 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
 /** Possession minimale porteuse d'items (`nature: 'bete'`, mule de bât) — #620 Lot 1a. */
 function makeMulePossession(items: ItemInstance[]): Possession {
   return {
-    uid: 'pos-1', ownerId: 'h1', label: 'Grisette', nature: 'bete', ref: { creatureId: 'mule' },
+    uid: 'pos-1', ownerId: 'h1', label: 'Grisette', nature: 'bete', ref: { id: 'mule' },
     location: { kind: 'avec-le-groupe' }, items,
   } as unknown as Possession;
 }

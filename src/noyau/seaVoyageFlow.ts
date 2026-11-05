@@ -1832,18 +1832,19 @@ export function engineerOf(party: Combatant[]): Combatant | undefined {
 function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<SteamBreakdownEntry['restart']>, rng: RNG): number {
   let lastDR = 0;
   for (const step of restart) {
-    const value = testValue(eng, step.skill?.id, step.char, step.skill?.spec);
-    const label = testSkillLabel({ skill: step.skill, char: step.char }) ?? '';
+    const { skill, characteristic, difficulty } = step.test;
+    const value = testValue(eng, skill?.id, characteristic, skill?.spec);
+    const label = testSkillLabel({ skill, char: characteristic }) ?? '';
     if (step.extendedDR != null) {
       let total = 0;
-      for (let i = 0; total < step.extendedDR && i < 20; i++) total += Math.max(0, rollTest(value, step.difficulty, rng).sl);
-      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[step.difficulty], need: step.extendedDR, issue: total >= step.extendedDR ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      for (let i = 0; total < step.extendedDR && i < 20; i++) total += Math.max(0, rollTest(value, difficulty, rng).sl);
+      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.extendedDR, issue: total >= step.extendedDR ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
-      let t = rollTest(value, step.difficulty, rng);
-      for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, step.difficulty, rng);
+      let t = rollTest(value, difficulty, rng);
+      for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);
       lastDR = Math.max(0, t.sl);
       // Aucune rangée nulle part (équipage abstrait, hors modale) — le journal PORTE le jet (#295 Lot 5, gardé nominativement).
-      tell(get, set, [tr('sv.engineRestart', { name: eng.label, label, diff: DIFFICULTY_LABELS[step.difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
+      tell(get, set, [tr('sv.engineRestart', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
     }
   }
   return lastDR;
@@ -2266,7 +2267,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
               hazardId: hazard.id, label: hazard.label,
               need: hazard.freeTest?.totalDR ?? 10, progress: 0,
               manDR: ent.manDR, mMod: ent.mMod,
-              difficulty: hazard.freeTest?.difficulty ?? 'accessible',
+              difficulty: hazard.freeTest?.test.difficulty ?? 'accessible',
             },
           });
           tell(get, set, [t('sv.entangledOn', { hazard: hazard.label })]);

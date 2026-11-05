@@ -68,15 +68,19 @@
     "mode": "opposed",
     "options": [
       {
-        "char": "intelligence",
-        "difficulty": "intermediaire"
+        "test": {
+          "characteristic": "intelligence",
+          "difficulty": "intermediaire"
+        }
       },
       {
-        "skill": {
-          "id": "savoir",
-          "spec": "guerre"
-        },
-        "difficulty": "intermediaire"
+        "test": {
+          "skill": {
+            "id": "savoir",
+            "spec": "guerre"
+          },
+          "difficulty": "intermediaire"
+        }
       }
     ],
     "drBonus": "intelligence",
@@ -351,9 +355,9 @@
       "test": {
         "skill": {
           "id": "resistance-a-l-alcool"
-        }
+        },
+        "difficulty": "intermediaire"
       },
-      "difficulty": "intermediaire",
       "label": "Descendre une pinte",
       "points": 1,
       "ops": [
@@ -390,18 +394,22 @@
     },
     "options": [
       {
-        "skill": {
-          "id": "corps-a-corps",
-          "spec": "bagarre"
+        "test": {
+          "skill": {
+            "id": "corps-a-corps",
+            "spec": "bagarre"
+          },
+          "difficulty": "accessible"
         },
-        "difficulty": "accessible",
         "combatTest": true
       },
       {
-        "skill": {
-          "id": "athletisme"
-        },
-        "difficulty": "intermediaire"
+        "test": {
+          "skill": {
+            "id": "athletisme"
+          },
+          "difficulty": "intermediaire"
+        }
       }
     ],
     "campScore": "sum",

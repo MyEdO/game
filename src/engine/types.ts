@@ -1045,14 +1045,14 @@ export interface Trauma {
    *  intervention médicale », LDB 18 l.208/239) — traité par le Talent Chirurgie, pas par le simple repos. */
   needsSurgery?: boolean;
   /** Prothèses (LDB 73) qui annulent la séquelle permanente d'une amputation TANT QUE l'objet est porté
-   *  (dans `items`). Réf par `trappingId` STABLE (`crochet`/`fausse-jambe`/`merveille-d-ingenierie`/
+   *  (dans `items`). Réf par `id` STABLE (`crochet`/`fausse-jambe`/`merveille-d-ingenierie`/
    *  `nez-dore`/`cache-oeil`/`oeil-de-verre`/`dents-en-bois`) — matchée contre `ItemInstance.trappingId`.
    *  `cancels: 'all'` annule toute la pénalité (Merveille d'ingénierie : « ignorer complètement la
    *  perte… d'une jambe » ; Nez doré ; Œil de verre…) ; `'movement'` rétablit le déplacement seul
    *  (Fausse jambe : « ignorer 1 Point de Mouvement perdu »). L'Esquive se réapprend SÉPARÉMENT pour 200 PX
    *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, noyau/partyFlow.ts) élève l'effet
    *  de CETTE prothèse à `'all'` pour `prosthesisCancels` (trauma.ts), sans changer `cancels` en donnée. */
-  prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
+  prosthesis?: import('zod').z.input<typeof import('../data/schemas/defs/traumas').protheseSchema>[];
   /** Nombre d'éléments perdus pour une séquelle CUMULATIVE par comptage (LDB 18) : doigts (−5/doigt, 4+ →
    *  règle de la main, l.251/263) ou dents (−1 Soc/paire, l.247). Fusionné à chaque nouvelle perte. */
   count?: number;

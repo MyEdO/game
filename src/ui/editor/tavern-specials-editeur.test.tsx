@@ -45,14 +45,14 @@ describe('Inspecteur — un jeu de taverne orphelin se signale', () => {
   }
 
   it('un `gameId` hors catalogue reste affiché, marqué introuvable, et le champ est invalide', () => {
-    const jeu = inspecteur({ id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, tavernGame: { gameId: 'jeu-disparu' } });
+    const jeu = inspecteur({ id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, tavernGame: { id: 'jeu-disparu' } });
     expect(jeu.value, 'jamais « — aucun — » en silence').toBe('jeu-disparu');
     expect(jeu.selectedOptions[0].textContent).toBe('jeu-disparu (introuvable)');
     expect(jeu.getAttribute('aria-invalid')).toBe('true');
   });
 
   it('un jeu du catalogue n’est pas signalé', () => {
-    const jeu = inspecteur({ id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, tavernGame: { gameId: 'dominos' } });
+    const jeu = inspecteur({ id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, tavernGame: { id: 'dominos' } });
     expect(jeu.value).toBe('dominos');
     expect(jeu.getAttribute('aria-invalid')).toBeNull();
     expect([...jeu.options].some((o) => o.textContent?.includes('(introuvable)'))).toBe(false);

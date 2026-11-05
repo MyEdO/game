@@ -481,7 +481,7 @@
       "id": "dague"
     },
     "rangement": {
-      "id": "ceinture_avant"
+      "id": "ceinture_d"
     },
     "bladed": true
   },
@@ -14401,7 +14401,7 @@
       "id": "dague"
     },
     "rangement": {
-      "id": "ceinture_avant"
+      "id": "ceinture_d"
     },
     "bladed": true,
     "onHitEffects": [

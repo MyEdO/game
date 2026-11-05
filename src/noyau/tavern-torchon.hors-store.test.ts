@@ -102,8 +102,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
    *  et un second jeu à lanceurs dont le raté se paie autrement est une entrée JSON. */
   it('l’entrée DÉCLARE la sanction du raté : le Test, sa Difficulté, ses ops, ses points, le balayage, SON récit', () => {
     expect(TORCHON.throwerPenalty).toEqual({
-      test: { skill: { id: 'resistance-a-l-alcool' } },
-      difficulty: 'intermediaire',
+      test: { skill: { id: 'resistance-a-l-alcool' }, difficulty: 'intermediaire' },
       label: 'Descendre une pinte',
       points: 1,
       ops: [{ op: 'intoxicate' }],
@@ -293,8 +292,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     campScore: 'sum',
     table: [{ min: -99, max: 99, points: 2, label: 'de plein fouet' }],
     throwerPenalty: {
-      test: { skill: { id: 'calme' } },
-      difficulty: 'difficile' as const,
+      test: { skill: { id: 'calme' }, difficulty: 'difficile' as const },
       label: 'Garder contenance',
       points: 2,
       lines: {

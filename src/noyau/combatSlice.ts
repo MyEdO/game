@@ -1833,7 +1833,7 @@ export function createCombatSlice(get: Get, set: Set) {
         const mp = heroCombatMount(hero, get().possessions);
         if (!mp) continue;
         const mount = spawnEnemy(
-          'creatureId' in mp.ref ? { ref: mp.ref.creatureId } : { statblock: mp.ref.custom },
+          'id' in mp.ref ? { ref: mp.ref.id } : { statblock: mp.ref.custom },
           mp.uid,
           hero.pos ? { ...hero.pos } : { x: 0, y: 0 },
           { charsRolled: mp.charsRolled, learnedTraits: mp.learnedTraits },
