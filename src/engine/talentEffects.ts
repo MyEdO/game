@@ -26,13 +26,14 @@
  * Costaud (Encombrement) est déjà appliqué par items.maxEncumbrance ; Petit/Massif (Taille)
  * par l'espèce. Les autres talents (combat, social…) sont hors périmètre.
  */
-import { Combatant, CHAR_KEYS, CharKey, TalentInstance } from './types';
+import { Combatant, CHAR_KEYS, CharKey, TalentInstance, type ActiveEffect } from './types';
 import { findTalentById, findTraitById, blessingsOf } from '../data';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PassiveMod } from './ops';
 import { passiveMods, sommeAttrMods } from './trauma';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { sourceSuspended } from './suspension';
 import type { TraitInstance } from './statEntry';
 
 /**
@@ -201,13 +202,21 @@ export function talentEnCarriere(
   return ajoutCouvre(talentsAjoutesALaCarriere(hero), talentId, spec) ? 'ajout' : null;
 }
 
+/** Ce que lit la porte de possession `effectiveTalents` : les Talents acquis, les Traits portés (octrois)
+ *  et les effets actifs (octrois, suspensions). `T` = la forme des Talents acquis du porteur. */
+export interface PorteurDeTalents<T extends Pick<TalentInstance, 'talentId' | 'spec'> = TalentInstance> {
+  talents?: readonly T[];
+  traits?: readonly Pick<TraitInstance, 'id'>[];
+  activeEffects?: readonly ActiveEffect[];
+}
+
 /** Talents STRUCTURELLEMENT possédés via un Trait porté (`TraitData.passive` `grantTalent`, ≠
  *  `grantCareerTalent` qui n'ajoute qu'un DROIT D'ACHAT) — Marque de Khorne « bénéficie du Talent
  *  Frénésie [et] gagne le Talent Savoir-vivre (Suivants de Khorne) » (MDG 07 l.250). Lu DIRECT sur
  *  `c.traits` (marche pour un PJ ou une créature, indépendant de `liveTraits`/spawn) — même lecture
  *  ciblée que `passiveCastPenalties` (magic.ts) pour un op STRUCTUREL, jamais un modificateur numérique
  *  foldé par `traitPassiveMods`/`passiveMods`. */
-export function traitGrantedTalents(c: Combatant): RefDesignee[] {
+export function traitGrantedTalents(c: Pick<PorteurDeTalents, 'traits'>): RefDesignee[] {
   const out: RefDesignee[] = [];
   for (const tr of c.traits ?? []) {
     for (const op of findTraitById(tr.id)?.passive ?? []) {
@@ -224,7 +233,7 @@ export function traitGrantedTalents(c: Combatant): RefDesignee[] {
  *  entrer dans `c.talents` (aucune acquisition, aucun coût en PX, rien à l'avancement). Un effet dont
  *  le compte de Rounds est épuisé ne compte plus (le retrait matériel se fait à la frontière de Round) ;
  *  les échelles `clock`/`adventure` sont purgées par leur horloge respective. */
-export function effectGrantedTalents(c: Combatant): RefDesignee[] {
+export function effectGrantedTalents(c: Pick<PorteurDeTalents, 'activeEffects'>): RefDesignee[] {
   const out: RefDesignee[] = [];
   for (const e of c.activeEffects ?? []) {
     if (!e.grantedTalent) continue;
@@ -236,12 +245,15 @@ export function effectGrantedTalents(c: Combatant): RefDesignee[] {
 
 /** Talents EFFECTIFS d'un combattant : `c.talents` (structurel) + ceux OCTROYÉS par un Trait porté
  *  (`traitGrantedTalents`, ex. Marque de Khorne → Savoir-vivre (Suivants de Khorne), MDG 07 l.250) + ceux
- *  octroyés par un effet ACTIF (`effectGrantedTalents`) —
- *  COLLECTEUR UNIQUE pour la POSSESSION effective (fiche, chips, `hasTalent`), distinct de `c.talents`
- *  brut (qui reste la source d'ACQUISITION/achat PX, cf. `advancement.ts`). Dédoublonne par
+ *  octroyés par un effet ACTIF (`effectGrantedTalents`), MOINS ceux qu'un effet actif SUSPEND (op
+ *  `suppressTalents`, source `talents` suspendue : `sourceSuspended`, LDB 40 l.80, l.82) —
+ *  PORTE UNIQUE de la POSSESSION effective : tout lecteur qui demande « le porteur a-t-il ce Talent, à
+ *  quel niveau ? » (capacités de combat, +DR, passifs, Groupes, Conditions `has`, fiche) passe par elle.
+ *  `c.talents` brut reste la source d'ACQUISITION (achat PX, Maxi, avancement, création) : une
+ *  suspension n'y touche pas, le Talent revient sans PX à l'échéance de l'effet. Dédoublonne par
  *  `(talentId, spec)` — un porteur qui possède AUSSI le talent en propre n'est compté qu'une fois
  *  (l'entrée structurelle, `times` réel, prime sur l'octroi). */
-export function effectiveTalents(c: Combatant): TalentInstance[] {
+export function effectiveTalents<T extends Pick<TalentInstance, 'talentId' | 'spec'> = TalentInstance>(c: PorteurDeTalents<T>): (T | TalentInstance)[] {
   const own = c.talents ?? [];
   const granted: RefDesignee[] = [];
   for (const g of [...traitGrantedTalents(c), ...effectGrantedTalents(c)]) {
@@ -249,7 +261,8 @@ export function effectiveTalents(c: Combatant): TalentInstance[] {
       || granted.some((k) => k.id === g.id && memeSpecialisation(k.spec, g.spec));
     if (!already) granted.push(g);
   }
-  return [...own, ...granted.map((g) => ({ talentId: g.id, spec: g.spec, times: 1 }))];
+  return [...own, ...granted.map((g) => ({ talentId: g.id, spec: g.spec, times: 1 }))]
+    .filter((t) => !sourceSuspended(c, { category: 'talents', id: t.talentId }));
 }
 
 /** Traits de créature que confèrent les Talents possédés de `c` (`TalentData.confereTrait`), la
@@ -268,7 +281,7 @@ export function traitsConferes(c: Combatant): TraitInstance[] {
  *  talent (instance = id seul) est résolu par `findTalentById`. Disjoint des traits → zéro double-comptage. */
 export function talentPassiveMods(c: Combatant): PassiveMod[] {
   const out: PassiveMod[] = [];
-  for (const t of c.talents ?? []) {
+  for (const t of effectiveTalents(c)) {
     const ops = findTalentById(t.talentId)?.passive;
     // `src` = LE talent émetteur : il NOMME la composante d'un détail de jet et ouvre sa fiche
     // (patron des traits/mutations) — jamais le repli de famille (`passivePartLine`).

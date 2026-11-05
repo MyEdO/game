@@ -21,6 +21,7 @@ import type { Combatant } from './types';
 import { bonus, effectiveChar } from './characteristics';
 import { findTalentById } from '../data';
 import type { SpecId } from '../data/schemas/grammaire/ref';
+import { effectiveTalents } from './talentEffects';
 
 /** Id de spec de l'entrée `resistance` de `talents.json` : le tag `menace` d'un Test, lu en donnée par
  *  `menaceSchema` (`data/schemas/grammaire/mecanique.ts`). Un littéral de code hors catalogue ne compile pas. */
@@ -39,7 +40,7 @@ export function menaceIds(): string[] {
 /** La spec du talent Résistance de `c` couvrant `menaceId` et NON consommée cette séance — sinon null.
  *  (Le talent peut être pris plusieurs fois avec des specs différentes : chacune a SON usage.) */
 export function availableResistance(c: Combatant, menaceId: string): string | null {
-  const spec = (c.talents ?? []).find(
+  const spec = effectiveTalents(c).find(
     (t) => t.talentId === 'resistance' && t.spec === menaceId,
   )?.spec;
   if (spec == null) return null;

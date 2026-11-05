@@ -57,7 +57,8 @@ import { norm } from '../lib/normalize';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
-import type { Duration } from './duration';
+import { clockLabel, type Duration } from './duration';
+import { suspendSource } from './suspension';
 import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
@@ -640,16 +641,19 @@ export type GameOp =
    *  quand l'appelant ne fournit ni horloge ni compte de Rounds — et les deux régimes ne se rangent PAS
    *  au même endroit :
    *   - durée (Rounds/horloge) → porté par l'`ActiveEffect` (`grantedTalent`), qui s'éteint avec lui.
-   *     Canaux servis : `combatFeatures.featuresOf` (capacités de combat) et, via `effectGrantedTalents`,
-   *     le collecteur de POSSESSION `effectiveTalents` (fiche, chips, `hasTalent`). NON servis : les
-   *     lecteurs qui parcourent `c.talents` en direct — `talentTestSLBonus` (+DR de Talent),
-   *     `talentPassiveMods` (passifs), `baseWithTalents`, `careerSkillAdditions`/
-   *     `careerTalentAdditions`, l'avancement.
+   *     Tout lecteur de POSSESSION le voit, par la porte unique `effectiveTalents` (capacités de
+   *     combat, +DR de Talent, passifs, fiche). Les lecteurs d'ACQUISITION (`baseWithTalents`,
+   *     `careerSkillAdditions`/`careerTalentAdditions`, l'avancement) lisent `c.talents` et l'ignorent.
    *   - sans échéance (Marques Arcaniques, VDM 02 l.238) → acquisition STRUCTURELLE dans `c.talents`
    *     (comme `attachMutation` et l'effet de Signe astral), bornée par le Maxi du registre : tous les
    *     canaux ci-dessus la voient.
    *  Référence de Talent (`refOuSpec('talent')`, champ à choix de `mecanique.ts`). */
   | { op: 'grantTalent'; talent: RefASpecialisation }
+  /** Talents SUSPENDUS, jamais retirés de `c.talents` : chaque Talent est une source suspendue
+   *  (`suspendSource`, `engine/suspension.ts`), que la porte de possession `effectiveTalents` écarte
+   *  tant que l'effet dure, toutes spécialisations confondues. Une seule durée, tirée une fois pour
+   *  toute la liste. LDB 40 l.80, l.82 */
+  | { op: 'suppressTalents'; talents: { id: string }[]; durationDays: Formula }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
    *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
@@ -1402,7 +1406,20 @@ export function durationFromCtx(ctx: OpsCtx): Duration {
 }
 
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
-interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }
+
+/** L'op porte-t-elle une durée d'HORLOGE intrinsèque (minutes, heures ou jours) ? */
+function aUneHorloge(o: OpDuree): boolean {
+  return o.durationMinutes != null || o.durationHours != null || o.durationDays != null;
+}
+
+/** Minutes d'HORLOGE intrinsèques de l'op, résolues UNE fois dans `ctx` ; `undefined` sans champ
+ *  d'horloge. Résolution UNIQUE des trois unités (LDB 47). */
+function minutesDHorloge(o: OpDuree, ref: Combatant, ctx: OpsCtx): number | undefined {
+  if (!aUneHorloge(o)) return undefined;
+  return formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
+    + formuleDuCtx(o.durationDays ?? 0, ref, ctx) * MINUTES_PER_DAY;
+}
 
 /** Résout `f` dans le contexte `ctx` de l'op qui la porte : TOUS les termes de contexte (`rolled`, `indiceOf`,
  *  `stacks`, `engagedAdvantageGap`, `woundsDealt`, `sl`) y valent leur valeur courante — un terme qu'un
@@ -1417,9 +1434,8 @@ function formuleDuCtx(f: Formula, ref: Combatant, ctx: OpsCtx): number {
  *  la FORMULE de l'entrée (`{minimum, of}`), jamais au site d'appel. */
 function durationFromOp(o: OpDuree, ctx: OpsCtx, ref: Combatant): Duration {
   if (o.durationRounds != null) return { scale: 'rounds', left: formuleDuCtx(o.durationRounds, ref, ctx) };
-  if (o.durationMinutes != null || o.durationHours != null) {
-    return { scale: 'clock', until: (ctx.now ?? 0) + formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60 };
-  }
+  const minutes = minutesDHorloge(o, ref, ctx);
+  if (minutes != null) return { scale: 'clock', until: (ctx.now ?? 0) + minutes };
   return durationFromCtx(ctx);
 }
 
@@ -1430,6 +1446,7 @@ function sansDuree<T extends OpDuree>(o: T): T {
   delete passif.durationRounds;
   delete passif.durationMinutes;
   delete passif.durationHours;
+  delete passif.durationDays;
   return passif;
 }
 
@@ -1931,7 +1948,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'condition': {
         if (!groupGate(o.onlyGroups)) break;
         if (o.grapple && !peutEtreEmpoigne(target)) break; // #1595 c.6230022636
-        if (o.perRound && (o.durationMinutes != null || o.durationHours != null)) throw new Error(messageRecurrenceHorloge(o.id));
+        if (o.perRound && aUneHorloge(o)) throw new Error(messageRecurrenceHorloge(o.id));
         // Gates d'État (Sommeil, LDB 47) : l'op ne s'applique que si la cible porte / ne porte pas
         // l'État — évalués à CHAQUE application. Sous `perRound`, l'application est le REJEU de fin
         // de Round : les gates partent AVEC l'op récurrente (ci-dessous) et sont évalués là.
@@ -1967,9 +1984,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const struggleDamage = o.struggleDamage != null ? Math.max(0, formuleDuCtx(o.struggleDamage, ref, ctx)) : undefined;
         // Durée PORTÉE par l'op, résolue UNE fois ici : horloge (minutes/heures depuis `ctx.now`) ou
         // Rounds. Exclusives (cf. JSDoc du champ) — l'horloge prime, aucun dé n'est tiré pour l'autre.
-        const clockMin = o.durationMinutes != null || o.durationHours != null
-          ? formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
-          : undefined;
+        const clockMin = minutesDHorloge(o, ref, ctx);
         const rounds = clockMin == null && o.durationRounds != null ? formuleDuCtx(o.durationRounds, ref, ctx) : undefined;
         const avantageAvant = target.advantage ?? 0;
         if (o.perRound) {
@@ -2100,8 +2115,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         charRounds = dur.scale === 'rounds' ? dur.left : null;
         // Le fragment de durée en minutes ne se compose que d'une échéance INTRINSÈQUE : une horloge héritée
         // du contexte (`ctx.defaultUntilTime`) est une date, pas un décompte — elle se dit « hors combat ».
-        const horlogeIntrinseque = o.durationMinutes != null || o.durationHours != null;
-        charClockMin = horlogeIntrinseque && dur.scale === 'clock' ? dur.until - (ctx.now ?? 0) : null;
+        charClockMin = aUneHorloge(o) && dur.scale === 'clock' ? dur.until - (ctx.now ?? 0) : null;
         break;
       }
       case 'ap': {
@@ -2410,6 +2424,17 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           grantedTalent: { talentId: o.talent.id, ...(o.talent.spec ? { spec: o.talent.spec } : {}) },
         });
         lines.push(t('op.grantTalent', { name: target.label, talent, src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'suppressTalents': {
+        const duree = durationFromOp(o, ctx, ref);
+        for (const talent of o.talents) suspendSource(target, { category: 'talents', id: talent.id }, duree, nomDeSource(ctx));
+        lines.push(t('op.suppressTalents', {
+          name: target.label,
+          talents: o.talents.map((x) => refLabel('talents', x)).join(', '),
+          duree: duree.scale === 'clock' ? clockLabel(duree.until - (ctx.now ?? 0), { exact: true }) ?? '' : '',
+          src: nomDeSource(ctx),
+        }));
         break;
       }
       case 'reduceToZero': {
