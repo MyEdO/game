@@ -2757,7 +2757,7 @@ test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit
     'scripts/raw/lib.mjs': "import { join } from 'node:path'\nconst cache = new Map()\nexport function chapitre(abbr) {\n  let res\n" +
       "  if (cache.has(abbr)) {\n    res = cache.get(abbr)\n  } else {\n    const dir = 'Source/livre'\n    res = null\n" +
       "    if (dir) res = { path: join(dir, 'ch.md') }\n  }\n  return res\n}\n",
-    // `src/data/prop-art-labels-failfast.test.ts`, `beforeAll` : `let racine` posé dans `beforeAll`.
+    // `let racine` posé dans `beforeAll`.
     // `scripts/docs/lib/chemin-mesure.mjs`, `ancetreExistant` : `ancetre = parent`, parent = `dirname(ancetre)`.
     'scripts/x/garde.test.mjs': "import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs'\nimport { tmpdir } from 'node:os'\n" +
       "import path, { join } from 'node:path'\nimport { chapitre } from '../raw/lib.mjs'\nreadFileSync(chapitre('LDB').path)\n" +

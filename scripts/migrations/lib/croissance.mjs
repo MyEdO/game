@@ -87,7 +87,6 @@ export function reconnaisseurDeRef(racine) {
 export const SANS_CROISSANCE = {
   'src/data/careerLevels.json': 'l’id est DÉRIVÉ (carrière + rang) : un clone collisionne — 2026-08-27-l1b-2a-careerlevels-id.mjs:63',
   'src/data/raceAppearance.json': '`label` et `id` sont liés par le slug — 2026-08-27-l1b-5b-raceappearance-slug-label.mjs:86',
-  'src/data/props.json': 'chaque décor doit avoir sa def d’art `src/gameIso/catalog/decor/defs/<id>.ts` — 2026-08-28-l1b-10a-props-labels.mjs:28',
   'src/data/raw.manifest.json': 'chaque entrée désigne un topic ou une fiche EXISTANTE de `docs/raw/` — 2026-08-28-l1b-10b-rawmanifest-label.mjs:23',
 };
 

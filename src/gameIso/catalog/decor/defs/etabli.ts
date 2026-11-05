@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // + scie posées dessus. Pièce maîtresse de la charpenterie & décors du théâtre. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'etabli',
-  label: 'Établi',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="44" ry="9" fill="${P.ombre}" opacity="0.22"/>` +
     // pieds robustes + entretoise
