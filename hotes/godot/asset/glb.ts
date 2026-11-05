@@ -188,7 +188,7 @@ function arborescence(json: JsonGltf): ReadonlyMap<number, number> {
     chaine.forEach((k) => versUneRacine.add(k));
   });
   const scenes = objets(json.scenes, 'scenes', 'scène');
-  if (json.scene !== undefined) hors('scène du document', json.scene, 'scènes', scenes.length);
+  if (json.scene !== undefined) hors('scène par défaut', json.scene, 'scènes', scenes.length);
   scenes.forEach((s, k) => tableau(s.nodes, `scène ${k} : nodes`).forEach(r => {
     hors(`scène ${k} : racine`, r, 'nœuds', noeuds.length);
     if (parents.has(r as number)) throw new GlbIllisible(`racine ${r} de la scène ${k} enfant du nœud ${parents.get(r as number)}`);

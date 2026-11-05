@@ -10,9 +10,12 @@
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
 //   partie, et chaque bouton se trouve par l'élément de la vue qu'il dessine (`vue.zones`). Le jet tombé, la fenêtre
 //   ne redessine ni son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
-// - `critique` : la fenêtre du round à l'Entrée, puis le combat joué en joueur pressé (chaque fenêtre à l'Entrée, chaque
-//   tour une charge ou une attaque cliquée sur la première cible, sinon la fin du tour) jusqu'au premier Coup Critique,
-//   dont la fenêtre dit la localisation et les effets.
+// - `critique` : la fenêtre du round à l'Entrée, puis le combat joué en joueur pressé (chaque fenêtre à l'Entrée, ou par
+//   la première valeur ouverte de ses choix quand aucun geste n'a le focus, chaque tour une charge ou une attaque cliquée
+//   sur la première cible, sinon la fin du tour) jusqu'au premier Coup Critique, dont la fenêtre dit la localisation et
+//   les effets.
+// - `fin` : le combat joué de même jusqu'à sa fin, la dernière séquence poursuivie, puis la fenêtre de la fin qui tient
+//   la main, sa sortie en focus ; sa sortie à l'Entrée rend la main à la scène.
 // - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
 //   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
@@ -65,7 +68,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|exploration|fiche|inventaire|creation|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|exploration|fiche|inventaire|creation|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -251,15 +254,20 @@ const PAR_DEFAUT = 'Par défaut'
 const RECHARGER = 'Recharger les modèles'
 const COPIER = 'Copier la composition'
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
-async function parcoursCritique() {
+/** Le combat joué en joueur pressé jusqu'à ce que `fini(v)` tienne : chaque fenêtre à l'Entrée, ou par la première
+ *  valeur ouverte de ses choix quand aucun geste n'a le focus, chaque tour une charge ou une attaque cliquée sur la
+ *  première cible, sinon la fin du tour ; `quoi` nomme ce qu'on attend. */
+async function jouerEnJoueurPresse(fini, quoi) {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
-  for (let pas = 0; etape(v) !== 'critical'; pas++) {
+  for (let pas = 0; !fini(v); pas++) {
     const c = v.projection.combat
-    assert.ok(pas < 300 && !c.fin, `aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`)
+    assert.ok(pas < 600 && c, `${quoi} : rien après ${pas} gestes, combat ${c?.fin ?? 'en cours'}`)
     const offres = zone(v, 'combat.offres').flatMap((e) => e.valeurs).filter((b) => !b.refus)
-    if (v.projection.fenetre) {
+    const valeur = zone(v, 'fenetre.gestes').some((g) => g.focus) ? null : zone(v, 'fenetre.gestes').flatMap((g) => (g.type === 'choix' ? g.valeurs : [])).find((b) => !b.refus)
+    if (v.projection.fenetre && valeur) await cliquerBouton(bouton(valeur))
+    else if (v.projection.fenetre) {
       await marquer()
       await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
       await nouvelEcran()
@@ -273,9 +281,30 @@ async function parcoursCritique() {
     }
     v = await vue()
   }
+  return v
+}
+
+async function parcoursCritique() {
+  const v = await jouerEnJoueurPresse((x) => etape(x) === 'critical', 'aucun Coup Critique')
   assert.ok(element(v, 'fenetre.corps', 'critique/localisation'), 'la fenêtre dit la localisation du Coup Critique')
   noter(`Coup Critique : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.valeur ?? e.texte).join(' / ')}`)
   await capturer('3328-f1-coup-critique')
+}
+
+async function parcoursFin() {
+  let v = await jouerEnJoueurPresse((x) => !!x.projection.combat?.fin && !!x.projection.fenetre && !x.projection.fenetre.etape, 'aucune fin du combat')
+  const [titre] = zone(v, 'fenetre.titre')
+  const sortie = zone(v, 'fenetre.gestes').find((g) => g.focus)
+  assert.ok(titre && sortie, `la fin du combat tient la main, sa sortie en focus : ${JSON.stringify(v.projection.fenetre)}`)
+  noter(`Fin du combat : ${titre.texte} ; « ${sortie.libelle} » en focus`)
+  await capturer('3328-g1-fin-du-combat')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  assert.ok(!v.projection.combat, 'la sortie rend la main à la scène')
+  noter(`« ${sortie.libelle} » à l’Entrée : la scène reprend${v.projection.fenetre ? `, ${zone(v, 'fenetre.titre')[0]?.texte} tient la main` : ''}`)
+  await capturer('3328-g1-apres-la-fin')
 }
 
 async function parcoursExploration() {
@@ -1005,7 +1034,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
