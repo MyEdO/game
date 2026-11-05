@@ -51,7 +51,7 @@ export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
-export { gestesDeLObjet, type GesteAChoix, type GestesDeLObjet } from './gestesDeLObjet';
+export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuGeste, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
