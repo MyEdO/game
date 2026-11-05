@@ -18,7 +18,7 @@ import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
 import { marcheDeLaBase } from '../asset/gabarit';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, type EmblemeDef } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, pieceRacine, type EmblemeDef } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -81,7 +81,8 @@ export const blasonsDe = (manifeste: unknown): string[] => (manifeste as Manifes
  *  l'index. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id de
  *  modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
- *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou l'emplacement de sa pièce
+ *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
+ *  #3446), ou l'emplacement de sa pièce
  *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. */
 export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
@@ -127,6 +128,10 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
       });
     const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises)];
     const choix = (idDeChoix: string, label: string, porte: (e: EntreeDeModele) => boolean): ChoixDeLigne => ({ id: idDeChoix, label, elements: servir(pieces.filter(porte)) });
+    const racineDe = (e: EntreeDeModele) => {
+      const piece = cleDe(e.brut).piece;
+      return piece === undefined ? undefined : pieceRacine(piece)?.id;
+    };
     const emplacementDe = (e: EntreeDeModele) => {
       const piece = cleDe(e.brut).piece;
       return piece === undefined ? undefined : emplacementDePiece(piece);
@@ -134,7 +139,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const lignes: LigneDePiece[] = [
       { sorte: 'tete', label: libelleDeLAxe('tete'), choix: gardeRobe.flatMap((g) => (g.kind === 'tete' ? [choix(g.id, g.label, (e) => cleDe(e.brut).tete === g.id)] : [])) },
       { sorte: 'coiffure', label: libelleDeLAxe('coiffure'), choix: gardeRobe.flatMap((g) => (g.kind === 'coiffure' ? [choix(g.id, g.label, (e) => cleDe(e.brut).coiffure === g.id)] : [])) },
-      ...gardeRobe.flatMap((g): LigneDePiece[] => (g.kind === 'piece' && g.categorie !== 'accessoire' ? [{ sorte: 'piece', ...choix(g.id, g.label, (e) => cleDe(e.brut).piece === g.id) }] : [])),
+      ...gardeRobe.flatMap((g): LigneDePiece[] => (g.kind === 'piece' && g.categorie !== 'accessoire' ? [{ sorte: 'piece', ...choix(g.id, g.label, (e) => racineDe(e) === g.id) }] : [])),
       ...gardeRobe.flatMap((g): LigneDePiece[] =>
         g.kind === 'emplacement' && gardeRobe.some((p) => p.kind === 'piece' && emplacementDePiece(p.id) === g.id)
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
