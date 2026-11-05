@@ -1000,7 +1000,8 @@ export type GameOp =
    *  `pick: 'all'` les frappe toutes, `'random'` une seule tirée au `ctx.rng`. Un seul effet, une seule
    *  durée d'horloge (`OpDuree`) ; cible sans divinité ou dieu sans liste : sans effet, journalisé.
    *  LDB 40 l.61, l.70 */
-  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationHours?: Formula; durationDays?: Formula }
+  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationHours: Formula; durationDays?: never }
+  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationDays: Formula; durationHours?: never }
   /** +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ;
    *  chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228).
    *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand

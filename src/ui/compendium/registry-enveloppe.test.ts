@@ -79,7 +79,7 @@ const CLES: Record<string, string> = {
   "psychologie": 'bbc92b778bdff0c9',
   "domains": 'de1aa7f76f613e28',
   "spells": '8f583e09b7e35f6e',
-  "gods": '5e3143486cd735bd',
+  "gods": 'e4610b46055d1cf2',
   "ventsTourbillonnants": 'cc7975018f78a439',
   "creatures": '680cccac6cff1baa',
   "traits": '5837eb6693a3d9e3',

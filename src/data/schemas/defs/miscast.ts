@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, ref, refOuSpec } from '../grammaire/ref';
-import { deitySkillPickSchema, refuserEtatsInconnus } from '../grammaire/mecanique';
+import { deitySkillPickSchema, MESSAGE_DUREE_DE_DIVINITE, refuserEtatsInconnus } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
 export const famille = 'entite';
@@ -47,6 +47,9 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   escapeStrength: formulaSchema.optional(),
 }).superRefine((v, ctx) => {
   if (v.op === 'condition' || v.op === 'removeCondition') refuserEtatsInconnus(v, ['id'], ctx);
+  if (v.op === 'deitySkillMod' && (v.durationHours === undefined) === (v.durationDays === undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['durationHours'], message: MESSAGE_DUREE_DE_DIVINITE });
+  }
 }), {
   op: { label: 'opération' },
   id: { label: 'identifiant' },

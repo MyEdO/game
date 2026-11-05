@@ -55,6 +55,8 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
     expect(schema.safeParse(table([{ op: 'deitySkillMod', pick: 'all', mod: -10, durationHours: duree }])).success).toBe(true);
     expect(schema.safeParse(table([{ op: 'deitySkillMod', pick: 'random', mod: -10, durationDays: duree }])).success).toBe(true);
     expect(refus(table([{ op: 'deitySkillMod', pick: 'une', mod: -10, durationDays: duree }]))).not.toBe('');
+    expect(refus(table([{ op: 'deitySkillMod', pick: 'all', mod: -10 }]))).toContain('durée EXCLUSIVE');
+    expect(refus(table([{ op: 'deitySkillMod', pick: 'all', mod: -10, durationHours: duree, durationDays: duree }]))).toContain('durée EXCLUSIVE');
   });
 
   it('la forme de « Purifier la chair » est ACCEPTÉE : État posé + cause RÉCURRENTE de 1d10 Rounds', () => {
