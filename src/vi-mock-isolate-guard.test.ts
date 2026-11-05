@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
+import { estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { RACINES_DE_LA_SUITE, SUITES_VITEST_DE_CI, estDeLaSuiteDuNoyau, estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 
 /**
@@ -43,10 +44,10 @@ export function moduleMockHits(source: string, label: string): string[] {
 const CONFIGS = ['vite.config.ts', ...Object.values(SUITES_VITEST_DE_CI).map((s) => s.config as string)]
   .map((config) => ({ config, texte: readFileSync(join(ROOT, config), 'utf8') }));
 
-/** Ce que ces suites chargent dans le graphe partagé : leurs fichiers de test, leurs kits (`*.testkit.ts`) et leurs
+/** Ce que ces suites chargent dans le graphe partagé : leurs fichiers de test, leurs kits (`estKitDeTest`) et leurs
  *  setups — un mock posé par un kit lie au même ordre que celui d'un fichier de test qui l'importe. */
 const chargeParLesSuites = (rel: string): boolean =>
-  estDeLaSuiteVitest(rel) || estDeLaSuiteDuNoyau(rel) || /\.testkit\.tsx?$/.test(rel) || /^src\/test-setup[^/]*\.ts$/.test(rel);
+  estDeLaSuiteVitest(rel) || estDeLaSuiteDuNoyau(rel) || estKitDeTest(rel) || /^src\/test-setup[^/]*\.ts$/.test(rel);
 
 describe.each(CONFIGS)('garde-fou — $config partage son graphe de modules', ({ config, texte }) => {
   it('la garde s\'arme sur l\'état RÉEL de la config (`isolate: false` lu, jamais supposé)', () => {
