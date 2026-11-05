@@ -2206,10 +2206,10 @@
   {
     "id": "schemaFieldConsumers",
     "type": "primitives.manifest",
-    "label": "champsDeclares/mesurerChampsDeSchema",
+    "label": "champsDeclares/mesurerChampsDeSchema/ciblesDeCatalogue",
     "fichier": "scripts/guards/lib/schemaFieldConsumers.mjs",
-    "concept": "mesure des lecteurs et des vues explicites des champs déclarés par les schémas de datasets, avec provenance par dataset",
-    "perimetre": "toute garde ou tout diagnostic de consommation des champs de schéma",
+    "concept": "mesure des lecteurs et des vues explicites des champs déclarés par les schémas de datasets, avec provenance par dataset ; sur la même jointure des chargements, le type explicite de l'entrée de chaque catalogue (`ciblesDeCatalogue`), ou la raison mesurée de son absence",
+    "perimetre": "toute garde ou tout diagnostic de consommation des champs de schéma ; les cibles de catalogue du rapport des consommateurs par champ",
     "verrou": "src/data/field-consumers.test.ts"
   }
 ]
