@@ -1,101 +1,132 @@
-{
-  "id": "montures-voyage",
-  "type": "montures",
-  "label": "Mouvement pour les montures",
-  "source": {
-    "book": "ennemi-dans-l-ombre-compagnon",
-    "page": 24
-  },
-  "entries": [
-    {
-      "id": "chien",
-      "label": "Chien",
-      "creatureIds": [
-        "chien-de-trait"
-      ],
-      "m": 4,
-      "e": 20,
-      "trot": false,
-      "encPortee": 8
-    },
-    {
-      "id": "poney-ane-ou-mule",
-      "label": "Poney, âne ou mule",
-      "creatureIds": [
-        "poney",
-        "ane",
-        "mule"
-      ],
-      "m": 4,
-      "e": 45,
-      "trot": false,
-      "encPortee": 14
-    },
-    {
-      "id": "cheval-de-trait",
-      "label": "Cheval de trait",
-      "creatureIds": [
-        "cheval-de-trait"
-      ],
-      "m": 5,
-      "e": 45,
-      "trot": false,
-      "encPortee": 20
-    },
-    {
-      "id": "cheval-de-trait-lourd",
-      "label": "Cheval de trait lourd",
-      "creatureIds": [
-        "cheval-de-trait-lourd"
-      ],
-      "m": 4,
-      "e": 50,
-      "trot": false,
-      "encPortee": 30
-    },
-    {
-      "id": "boeuf",
-      "label": "Bœuf",
-      "creatureIds": [
-        "boeuf"
-      ],
-      "m": 3,
-      "e": 55,
-      "trot": false,
-      "encPortee": 30
-    },
-    {
-      "id": "cheval-de-monte",
-      "label": "Cheval de monte (Palefroi)",
-      "creatureIds": [
-        "cheval-de-monte"
-      ],
-      "m": 7,
-      "e": 45,
-      "trot": true,
-      "encPortee": 16
-    },
-    {
-      "id": "cheval-de-guerre",
-      "label": "Cheval de guerre (Courant)",
-      "creatureIds": [
-        "cheval-de-guerre-leger"
-      ],
-      "m": 7,
-      "e": 35,
-      "trot": true,
-      "encPortee": 18
-    },
-    {
-      "id": "cheval-de-guerre-lourd",
-      "label": "Cheval de guerre lourd (Destrier)",
-      "creatureIds": [
-        "destrier-cheval-de-guerre-lourd"
-      ],
-      "m": 4,
-      "e": 50,
-      "trot": true,
-      "encPortee": 20
+[
+  {
+    "id": "chien",
+    "type": "montures",
+    "label": "Chien",
+    "creatureIds": [
+      "chien-de-trait"
+    ],
+    "m": 4,
+    "e": 20,
+    "trot": false,
+    "encPortee": 8,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
     }
-  ]
-}
+  },
+  {
+    "id": "poney-ane-ou-mule",
+    "type": "montures",
+    "label": "Poney, âne ou mule",
+    "creatureIds": [
+      "poney",
+      "ane",
+      "mule"
+    ],
+    "m": 4,
+    "e": 45,
+    "trot": false,
+    "encPortee": 14,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  },
+  {
+    "id": "cheval-de-trait",
+    "type": "montures",
+    "label": "Cheval de trait",
+    "creatureIds": [
+      "cheval-de-trait"
+    ],
+    "m": 5,
+    "e": 45,
+    "trot": false,
+    "encPortee": 20,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  },
+  {
+    "id": "cheval-de-trait-lourd",
+    "type": "montures",
+    "label": "Cheval de trait lourd",
+    "creatureIds": [
+      "cheval-de-trait-lourd"
+    ],
+    "m": 4,
+    "e": 50,
+    "trot": false,
+    "encPortee": 30,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  },
+  {
+    "id": "boeuf",
+    "type": "montures",
+    "label": "Bœuf",
+    "creatureIds": [
+      "boeuf"
+    ],
+    "m": 3,
+    "e": 55,
+    "trot": false,
+    "encPortee": 30,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  },
+  {
+    "id": "cheval-de-monte",
+    "type": "montures",
+    "label": "Cheval de monte (Palefroi)",
+    "creatureIds": [
+      "cheval-de-monte"
+    ],
+    "m": 7,
+    "e": 45,
+    "trot": true,
+    "encPortee": 16,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  },
+  {
+    "id": "cheval-de-guerre",
+    "type": "montures",
+    "label": "Cheval de guerre (Courant)",
+    "creatureIds": [
+      "cheval-de-guerre-leger"
+    ],
+    "m": 7,
+    "e": 35,
+    "trot": true,
+    "encPortee": 18,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  },
+  {
+    "id": "cheval-de-guerre-lourd",
+    "type": "montures",
+    "label": "Cheval de guerre lourd (Destrier)",
+    "creatureIds": [
+      "destrier-cheval-de-guerre-lourd"
+    ],
+    "m": 4,
+    "e": 50,
+    "trot": true,
+    "encPortee": 20,
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 24
+    }
+  }
+]

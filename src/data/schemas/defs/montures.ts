@@ -1,18 +1,15 @@
-import { nommerChamps } from '../grammaire/meta';
 /** EDOC 7 l.25. */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, type EnveloppeDocument } from '../grammaire/document';
+import { refs } from '../grammaire/ref';
 
 export const file = 'montures.json';
-export const famille = 'config';
+export const famille = 'entite';
 
 /** Une monture ou bête de trait : Mouvement, Endurance, trot et capacité de charge en voyage. */
-export const rangee = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  /** Réfs `CreatureData.id` du bestiaire (SOCLE POSSESSIONS #617/#618) — peut être vide (« Cheval de
-   *  trait lourd »/« Bœuf » n'ont pas de profil de bête possédable dédié). */
-  creatureIds: z.array(z.string()),
+const champs = {
+  /** SOCLE POSSESSIONS #617/#618. */
+  creatureIds: refs('creature'),
   /** Mouvement (M). */
   m: z.number(),
   /** EDOC 07 l.229. */
@@ -21,29 +18,29 @@ export const rangee = nommerChamps(z.strictObject({
   trot: z.boolean(),
   /** EDOC 07 l.97-110. */
   encPortee: z.number(),
-}), {
-  id: { label: 'identifiant' },
-  label: { label: 'libellé' },
-  creatureIds: { label: 'créatures' },
-  m: { label: 'Mouvement' },
-  e: { label: 'Endurance' },
-  trot: { label: 'trot' },
-  encPortee: { label: 'encombrement porté' },
-});
+};
 
 const doc = document(
   'montures',
   famille,
-  {},
-  {},
+  champs,
+  {
+    creatureIds: { label: 'Créatures' },
+    m: { label: 'Mouvement' },
+    e: { label: 'Endurance' },
+    trot: { label: 'Trot' },
+    encPortee: { label: 'Encombrement porté' },
+  },
   {
     codex: { keys: ['montures'] },
-    edit: { niche: { categories: { montures: 'entries' } } },
+    edit: { dataset: 'montures' },
   },
-  { rangee },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
+/** VUE TS du dataset — le nœud rendu par la fabrique est SCELLÉ, la vue se recompose depuis
+ *  l'enveloppe et les champs déclarés. */
+export type MonturesData = (EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>)[];
