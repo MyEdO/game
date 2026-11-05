@@ -7,7 +7,7 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
@@ -30,7 +30,7 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults } from '../data/schemas/defs-scenes/scene';
+import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import type { Pt as ScenePt } from './monde/path';
@@ -53,10 +53,163 @@ function boundedRect(scene: Scene, rect: Rect): Rect {
   };
 }
 
-function updateArchitectureBody(scene: Scene, bodyId: string, update: (body: ArchitectureBody) => ArchitectureBody): Scene {
+/** Réécrit le corps `bodyId` par `update`. No-op si le corps est absent. */
+export function updateArchitectureBody(scene: Scene, bodyId: string, update: (body: ArchitectureBody) => ArchitectureBody): Scene {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   if (!body) return scene;
   return { ...scene, architecture: scene.architecture!.map((candidate) => (candidate.id === bodyId ? update(candidate) : candidate)) };
+}
+
+/** Pose le libellé et le type de bâtiment du corps `bodyId` ; `undefined` retire le champ. Le type gouverne
+ *  la couverture des toitures dérivées (`toitureEffective`) : le changer re-dérive les masses dans le geste. */
+export function patchArchitectureBody(scene: Scene, bodyId: string, patch: Partial<Pick<ArchitectureBody, 'label' | 'style'>>): Scene {
+  const out = updateArchitectureBody(scene, bodyId, (body) => {
+    const next: ArchitectureBody = { ...body, ...patch };
+    for (const [k, v] of Object.entries(patch)) if (v === undefined) delete next[k as keyof typeof patch];
+    return next;
+  });
+  return 'style' in patch ? rederiveRoofMasses(out) : out;
+}
+
+/** Pose un champ de l'INTENTION de toiture du corps (`poseToitureDeCorps`) et re-dérive ses masses. */
+export function poseToitureDuCorps(scene: Scene, bodyId: string, champ: keyof RoofDefaults, valeur: RoofDefaults[keyof RoofDefaults] | undefined): Scene {
+  return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => poseToitureDeCorps(body, champ, valeur)));
+}
+
+type ExclusionDeToiture = NonNullable<ArchitectureBody['roofExclusions']>[number];
+
+/** Ajoute au corps une exclusion de toiture 2×2 en (0,0), à l'étage `z`, et re-dérive ses masses. */
+export function addRoofExclusion(scene: Scene, bodyId: string, z: number): Scene {
+  return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, { x: 0, y: 0, w: 2, h: 2 }) }],
+  })));
+}
+
+/** Patche l'exclusion de toiture `i` du corps (rectangle plafonné à la carte) et re-dérive ses masses. */
+export function patchRoofExclusion(scene: Scene, bodyId: string, i: number, patch: Partial<ExclusionDeToiture>): Scene {
+  return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    roofExclusions: (body.roofExclusions ?? []).map((ex, j) => (j === i ? { ...ex, ...patch, ...(patch.rect ? { rect: boundedRect(scene, patch.rect) } : {}) } : ex)),
+  })));
+}
+
+/** Retire l'exclusion de toiture `i` du corps (la dernière retirée, le champ quitte le corps) et re-dérive. */
+export function removeRoofExclusion(scene: Scene, bodyId: string, i: number): Scene {
+  return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => {
+    const roofExclusions = (body.roofExclusions ?? []).filter((_, j) => j !== i);
+    if (roofExclusions.length) return { ...body, roofExclusions };
+    const { roofExclusions: _vide, ...sans } = body;
+    return sans;
+  }));
+}
+
+/** Patche l'étage `storeyId` du corps `bodyId`. */
+export function patchArchitectureStorey(scene: Scene, bodyId: string, storeyId: string, patch: Partial<ArchitectureStorey>): Scene {
+  return updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    storeys: body.storeys.map((storey) => (storey.id === storeyId ? { ...storey, ...patch } : storey)),
+  }));
+}
+
+/** Patche le volume `partId` ; son emprise est plafonnée à la carte (`boundedRect`, comme à sa création). */
+export function patchArchitecturePart(scene: Scene, bodyId: string, storeyId: string, partId: string, patch: Partial<ArchitecturePart>): Scene {
+  return updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    storeys: body.storeys.map((storey) => (storey.id !== storeyId ? storey : {
+      ...storey,
+      parts: storey.parts.map((part) => (part.id !== partId ? part : { ...part, ...patch, ...(patch.foot ? { foot: boundedRect(scene, patch.foot) } : {}) })),
+    })),
+  }));
+}
+
+/** Patche le pan de façade `facadeId` du corps `bodyId`. */
+export function patchFacadeSection(scene: Scene, bodyId: string, facadeId: string, patch: Partial<FacadeSection>): Scene {
+  return updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    facades: body.facades.map((facade) => (facade.id === facadeId ? { ...facade, ...patch } : facade)),
+  }));
+}
+
+/** Arête `edge` portée à l'étage `z` (l'étage 0 est implicite). */
+function areteALEtage<T extends { z?: number }>(edge: T, z: number): T {
+  const { z: _avant, ...reste } = edge;
+  return (z === 0 ? reste : { ...reste, z }) as T;
+}
+
+/** BORNES d'une ouverture de façade, en fraction de son arête : `offset` place son centre (0 = début,
+ *  1 = fin), `width` est sa largeur. Lues par l'Inspecteur pour ses champs, tenues ici à l'écriture. */
+export const BORNES_D_OUVERTURE = { offset: { min: 0, max: 1 }, width: { min: 0.05, max: 1 } } as const;
+
+/** Ouverture `feature` patchée par `patch`, chaque fraction ramenée dans `BORNES_D_OUVERTURE` ;
+ *  `undefined` retire le champ (défaut de rendu). */
+function ouverturePatchee(feature: FacadeFeature, patch: Partial<Omit<FacadeFeature, 'id'>>): FacadeFeature {
+  const next: FacadeFeature = { ...feature, ...patch };
+  for (const cle of ['offset', 'width'] as const) {
+    const v = next[cle];
+    if (v === undefined) delete next[cle];
+    else next[cle] = Math.max(BORNES_D_OUVERTURE[cle].min, Math.min(BORNES_D_OUVERTURE[cle].max, Number.isFinite(v) ? v : BORNES_D_OUVERTURE[cle].min));
+  }
+  if (next.appearance === undefined) delete next.appearance;
+  return next;
+}
+
+/** Ajoute au pan de façade une ouverture en pignon sur sa première arête (id frais). null sans pan ni arête. */
+export function addFacadeFeature(scene: Scene, bodyId: string, facadeId: string): { scene: Scene; id: string } | null {
+  const facade = scene.architecture?.find((body) => body.id === bodyId)?.facades.find((f) => f.id === facadeId);
+  const edge = facade?.edges[0];
+  if (!facade || !edge) return null;
+  const id = nextEntityId('feature', (facade.features ?? []).map((feature) => feature.id));
+  return { scene: patchFacadeSection(scene, bodyId, facadeId, { features: [...(facade.features ?? []), { id, kind: 'gable', edge: { ...edge } }] }), id };
+}
+
+/** Patche l'ouverture `featureId` du pan de façade, aux bornes de `BORNES_D_OUVERTURE`. */
+export function patchFacadeFeature(scene: Scene, bodyId: string, facadeId: string, featureId: string, patch: Partial<Omit<FacadeFeature, 'id'>>): Scene {
+  const facade = scene.architecture?.find((body) => body.id === bodyId)?.facades.find((f) => f.id === facadeId);
+  if (!facade?.features?.some((f) => f.id === featureId)) return scene;
+  return patchFacadeSection(scene, bodyId, facadeId, { features: facade.features.map((f) => (f.id === featureId ? ouverturePatchee(f, patch) : f)) });
+}
+
+/** Retire l'ouverture `featureId` du pan de façade ; la dernière retirée, le champ quitte le pan. */
+export function removeFacadeFeature(scene: Scene, bodyId: string, facadeId: string, featureId: string): Scene {
+  const facade = scene.architecture?.find((body) => body.id === bodyId)?.facades.find((f) => f.id === facadeId);
+  if (!facade?.features?.some((f) => f.id === featureId)) return scene;
+  return updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    facades: body.facades.map((f) => {
+      if (f.id !== facadeId) return f;
+      const features = (f.features ?? []).filter((feature) => feature.id !== featureId);
+      if (features.length) return { ...f, features };
+      const { features: _vide, ...sans } = f;
+      return sans;
+    }),
+  }));
+}
+
+/** Porte le pan de façade `facadeId` à l'étage `z` : ses arêtes et celles de ses ouvertures le suivent. */
+export function setFacadeSectionZ(scene: Scene, bodyId: string, facadeId: string, z: number): Scene {
+  const facade = scene.architecture?.find((body) => body.id === bodyId)?.facades.find((f) => f.id === facadeId);
+  if (!facade) return scene;
+  return patchFacadeSection(scene, bodyId, facadeId, {
+    z,
+    edges: facade.edges.map((edge) => areteALEtage(edge, z)),
+    features: facade.features?.map((feature) => ({ ...feature, edge: areteALEtage(feature.edge, z) })),
+  });
+}
+
+/** Patche la masse de toiture `massId` aux bornes du schéma : chaque rectangle d'emprise plafonné à la
+ *  carte, au moins un niveau entier, une pente dans `PENTE_TOIT_DEG`. */
+export function patchBuildingMass(scene: Scene, bodyId: string, massId: string, patch: Partial<BuildingMass>): Scene {
+  const borne: Partial<BuildingMass> = {
+    ...patch,
+    ...(patch.footprint ? { footprint: patch.footprint.map((r) => boundedRect(scene, r)) } : {}),
+    ...(patch.levels !== undefined ? { levels: Math.max(1, Math.round(patch.levels) || 1) } : {}),
+    ...(patch.pitchDeg !== undefined ? { pitchDeg: Math.max(PENTE_TOIT_DEG.min, Math.min(PENTE_TOIT_DEG.max, patch.pitchDeg || PENTE_TOIT_DEG.min)) } : {}),
+  };
+  return updateArchitectureBody(scene, bodyId, (body) => ({
+    ...body,
+    masses: body.masses.map((mass) => (mass.id === massId ? { ...mass, ...borne } : mass)),
+  }));
 }
 
 /** Crée un corps BORNÉ dès sa naissance : son étage `z0` porte d'emblée un volume (`part`) à `foot`,
@@ -423,9 +576,10 @@ export function setEffectZoneArea(zone: SceneEffectZone, area: ZoneArea): SceneE
 function clamp(v: number, max: number): number {
   return Math.max(0, Math.min(max - 1, v));
 }
-/** Case `p` plafonnée à la carte — la convention de pose du noyau : un geste hors carte se pose au bord. */
+/** Case `p` plafonnée à la carte et ramenée à une case entière — la convention de pose du noyau : un geste
+ *  hors carte se pose au bord. */
 function borneALaCarte(scene: Scene, p: Pt): Pt {
-  return { x: clamp(p.x, scene.dimensions.w), y: clamp(p.y, scene.dimensions.h) };
+  return { x: clamp(Math.floor(p.x), scene.dimensions.w), y: clamp(Math.floor(p.y), scene.dimensions.h) };
 }
 
 
@@ -654,10 +808,77 @@ export function addTrigger(scene: Scene, rect: Rect, z = 0): { scene: Scene; id:
   return { scene: { ...scene, triggers: [...scene.triggers, { id, rect: { ...rect, ...(z ? { z } : {}) }, once: true, flow: EMPTY_FLOW }] }, id };
 }
 
+/** Patche le trigger `id`. */
+export function patchTrigger(scene: Scene, id: string, patch: Partial<Trigger>): Scene {
+  return { ...scene, triggers: scene.triggers.map((t) => (t.id === id ? { ...t, ...patch } : t)) };
+}
+
+/** Renomme le trigger `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par un autre trigger. */
+export function renameTrigger(scene: Scene, from: string, to: string): Scene {
+  const next = to.trim();
+  if (!next || next === from || scene.triggers.some((t) => t.id === next) || !scene.triggers.some((t) => t.id === from)) return scene;
+  return { ...scene, triggers: scene.triggers.map((t) => (t.id === from ? { ...t, id: next } : t)) };
+}
+
+/** Renomme la rencontre `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par une autre
+ *  rencontre : « Démarrer un combat » désigne une rencontre par son id. */
+export function renameEncounter(scene: Scene, from: string, to: string): Scene {
+  const next = to.trim();
+  if (!next || next === from || scene.encounters.some((e) => e.id === next) || !scene.encounters.some((e) => e.id === from)) return scene;
+  return { ...scene, encounters: scene.encounters.map((e) => (e.id === from ? { ...e, id: next } : e)) };
+}
+
+/** Crée un dialogue d'un seul nœud de départ, sans choix (id frais). */
+export function addDialogue(scene: Scene): { scene: Scene; id: string } {
+  const id = nextEntityId('dlg', scene.dialogues.map((d) => d.id));
+  return { scene: { ...scene, dialogues: [...scene.dialogues, { id, start: 'n1', nodes: [{ id: 'n1', choices: [] }] }] }, id };
+}
+
+/** Remplace le dialogue `id` par `dialogue` (son id compris). */
+export function replaceDialogue(scene: Scene, id: string, dialogue: Dialogue): Scene {
+  return { ...scene, dialogues: scene.dialogues.map((d) => (d.id === id ? dialogue : d)) };
+}
+
+/** Retire le dialogue `id`. */
+export function removeDialogue(scene: Scene, id: string): Scene {
+  return { ...scene, dialogues: scene.dialogues.filter((d) => d.id !== id) };
+}
+
+/** Crée une rencontre sans membre (id frais). */
+export function addEncounter(scene: Scene): { scene: Scene; id: string } {
+  const id = nextEntityId('enc', scene.encounters.map((e) => e.id));
+  return { scene: { ...scene, encounters: [...scene.encounters, { id, members: [] }] }, id };
+}
+
+/** Patche la rencontre `id`. */
+export function patchEncounter(scene: Scene, id: string, patch: Partial<EncounterDef>): Scene {
+  return { ...scene, encounters: scene.encounters.map((e) => (e.id === id ? { ...e, ...patch } : e)) };
+}
+
+/** Retire la rencontre `id`. */
+export function removeEncounter(scene: Scene, id: string): Scene {
+  return { ...scene, encounters: scene.encounters.filter((e) => e.id !== id) };
+}
+
+/** Pose les blocs avancés lus (`lireBlocsAvances`) : chaque bloc présent REMPLACE celui de la scène. */
+export function poseBlocsAvances(scene: Scene, blocs: { dialogues?: Dialogue[]; triggers?: Trigger[]; encounters?: EncounterDef[] }): Scene {
+  return {
+    ...scene,
+    ...(blocs.dialogues !== undefined ? { dialogues: blocs.dialogues } : {}),
+    ...(blocs.triggers !== undefined ? { triggers: blocs.triggers } : {}),
+    ...(blocs.encounters !== undefined ? { encounters: blocs.encounters } : {}),
+  };
+}
+
 /** Crée une zone de repos sur `rect`, à l'étage `z` (camp par défaut — lieux/qualité éditables dans l'inspecteur). */
 export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; idx: number } {
-  const zones = [...(scene.restZones ?? []), { rect: { ...rect, ...(z ? { z } : {}) }, places: { camp: true } }];
+  const zones = [...(scene.restZones ?? []), { rect: { ...rect, ...(z ? { z } : {}) }, places: reposDeScene({}) }];
   return { scene: { ...scene, restZones: zones }, idx: zones.length - 1 };
+}
+
+/** Patche la zone de repos d'indice `idx`. */
+export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
+  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? { ...z, ...patch } : z)) };
 }
 
 /** CONTENU DE NAISSANCE d'une zone d'effet : ce que l'outil qui la dessine lui donne (pièce, piège,
@@ -674,6 +895,11 @@ export function addEffectZone(scene: Scene, rect: Rect, z = 0, seed: EffectZoneS
     { label: id, ...seed, id, area: { kind: 'rect' as const, ...rect }, ...(z ? { z } : {}) },
   ];
   return { scene: { ...scene, effectZones: zones }, idx: zones.length - 1 };
+}
+
+/** Remplace la zone d'effet d'indice `idx` par `zone`. */
+export function replaceEffectZone(scene: Scene, idx: number, zone: SceneEffectZone): Scene {
+  return { ...scene, effectZones: (scene.effectZones ?? []).map((z, i) => (i === idx ? zone : z)) };
 }
 
 /** Renomme l'id d'une ZONE D'EFFET (référencée par `FacadeSection.roomZoneIds` — lien Façade↔Pièce) et
@@ -783,22 +1009,22 @@ export function eraseAt(scene: Scene, p: Pt, z = 0): Scene {
   return ent ? removeEntity(scene, ent.id) : scene;
 }
 
-// ── Scalaires de scène (headless-editor) : champs sans widget SceneProps, posés par `buildScene`. Chacun
-//    comble un gap identifié (échelle mer, lumière ambiante, flags initiaux). `undefined` retire le champ. ──
+// ── Champs de HAUT NIVEAU de la scène : chaque écriture de l'Inspecteur et du LogicDock a ici son écrivain,
+//    pour qu'un hôte qui embarque le noyau édite la scène sans `src/ui`. ──
 
-/** Échelle métrique d'une case (m/case). `undefined` = défaut (2 m). Pilote l'échelle MER (naval, MDG). */
-export function setMetresPerTile(scene: Scene, m: number | undefined): Scene {
-  const next = { ...scene };
-  if (m === undefined) delete next.metresPerTile;
-  else next.metresPerTile = m;
-  return next;
+/** Les champs SCALAIRES EFFAÇABLES de la scène : une valeur sans invariant propre, posée telle quelle, et
+ *  facultative au schéma. `label`, requis, n'en est pas : il se pose par `setSceneLabel`. */
+export type ScalairesDeScene = Partial<Pick<Scene, 'desc' | 'ambiance' | 'weather' | 'couvre' | 'groups' | 'metresPerTile' | 'ambientLight' | 'environment'>>;
+
+/** Pose le nom de la scène, champ requis du schéma. */
+export function setSceneLabel(scene: Scene, label: string): Scene {
+  return { ...scene, label };
 }
 
-/** Niveau de lumière ambiante par défaut (id). `undefined` = auto (horloge/ambiance). */
-export function setAmbientLight(scene: Scene, id: string | undefined): Scene {
-  const next = { ...scene };
-  if (id === undefined) delete next.ambientLight;
-  else next.ambientLight = id;
+/** Pose les champs scalaires de `patch` ; une clé portée à `undefined` RETIRE le champ du document. */
+export function setSceneScalaires(scene: Scene, patch: ScalairesDeScene): Scene {
+  const next: Scene = { ...scene, ...patch };
+  for (const [k, v] of Object.entries(patch)) if (v === undefined) delete next[k as keyof ScalairesDeScene];
   return next;
 }
 
@@ -812,18 +1038,79 @@ export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
   return next;
 }
 
-/** Classification écologique (LDB 48 l.690, bonus de Domaine Vie/Ghyran). `undefined` = non spécifié
- *  (aucun bonus) — c'est une valeur distincte de rural/urbain/sauvage, pas un défaut caché. */
-export function setEnvironment(scene: Scene, env: Scene['environment']): Scene {
-  const next = { ...scene };
-  if (env === undefined) delete next.environment;
-  else next.environment = env;
-  return next;
+/** Renomme la scène éditée. Refusé (scène rendue inchangée) pour un id vide, ou déjà porté par une autre
+ *  scène du projet (`autres`) : les transitions et la carte du monde désignent une scène par son id. */
+export function renameScene(scene: Scene, autres: readonly Pick<Scene, 'id'>[], to: string): Scene {
+  const next = to.trim();
+  if (!next || next === scene.id || autres.some((s) => s.id === next)) return scene;
+  return { ...scene, id: next };
+}
+
+/** Réécrit le point d'entrée `id` : sa case est plafonnée à la carte et ramenée à une case entière
+ *  (`borneALaCarte`, comme `moveSel`) ; l'étage 0 est implicite. No-op si l'entrée est absente. */
+export function editEntry(scene: Scene, id: string, patch: { x?: number; y?: number; z?: number }): Scene {
+  const pos = scene.entryPoints?.[id];
+  if (!pos) return scene;
+  const { z, ...case_ } = { ...pos, ...patch };
+  return { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, case_), ...(z ? { z } : {}) } } };
+}
+
+/** Ajoute une ancre de bataille vers la Scène de Round `sceneId`, à la case (0,0). */
+export function addStation(scene: Scene, sceneId: string): Scene {
+  return { ...scene, stations: [...(scene.stations ?? []), { sceneId, pos: { x: 0, y: 0 } }] };
+}
+
+/** Patche l'ancre de bataille d'indice `i`. */
+export function patchStation(scene: Scene, i: number, patch: Partial<SceneStationAnchor>): Scene {
+  return { ...scene, stations: (scene.stations ?? []).map((st, j) => (j === i ? { ...st, ...patch } : st)) };
+}
+
+/** Retire l'ancre de bataille d'indice `i` ; la dernière retirée, le champ quitte le document. */
+export function removeStation(scene: Scene, i: number): Scene {
+  const stations = (scene.stations ?? []).filter((_, j) => j !== i);
+  return { ...scene, stations: stations.length ? stations : undefined };
+}
+
+/** Pose la piste `piste` de la musique de scène ; sans aucune piste, le champ quitte le document. */
+export function setSceneMusic(scene: Scene, piste: 'ambient' | 'combat', v: string | null | undefined): Scene {
+  const music = { ...scene.music, [piste]: v };
+  return { ...scene, music: music.ambient === undefined && music.combat === undefined ? undefined : music };
+}
+
+/** Pose le texte du message d'introduction ; un texte vide retire le message (provenance comprise). */
+export function setStartMessageTexte(scene: Scene, texte: string): Scene {
+  return { ...scene, startMessage: texte ? { ...scene.startMessage, texte } : undefined };
+}
+
+/** Patche la provenance du message d'introduction. No-op sans message. */
+export function patchStartMessage(scene: Scene, patch: Partial<NonNullable<Scene['startMessage']>>): Scene {
+  return scene.startMessage ? { ...scene, startMessage: { ...scene.startMessage, ...patch } } : scene;
+}
+
+/** Pose la matière de la partie de relief `part`. */
+export function setReliefDefault(scene: Scene, part: keyof ReliefDefaults, matiere: string): Scene {
+  return { ...scene, reliefDefaults: { ...scene.reliefDefaults, [part]: matiere } };
+}
+
+/** Patche la toiture par défaut, et re-dérive dans le geste les masses qu'elle gouverne
+ *  (`rederiveRoofMasses`) : le rendu ne lit que les masses matérialisées. */
+export function patchSceneRoofDefaults(scene: Scene, patch: Partial<SceneRoofDefaults>): Scene {
+  return rederiveRoofMasses({ ...scene, roofDefaults: { ...scene.roofDefaults, ...patch } });
+}
+
+/** Patche l'offre de repos de la scène entière, à partir de l'offre effective (`reposDeScene`). */
+export function setSceneRest(scene: Scene, patch: Partial<NonNullable<Scene['rest']>>): Scene {
+  return { ...scene, rest: { ...reposDeScene(scene), ...patch } };
 }
 
 /** Fusionne des flags initiaux dans `scene.flags` (état de départ : porte ouverte, jalon posé…). */
 export function setSceneFlags(scene: Scene, patch: Record<string, boolean>): Scene {
   return { ...scene, flags: { ...scene.flags, ...patch } };
+}
+
+/** Retire le drapeau initial `key`. */
+export function removeSceneFlag(scene: Scene, key: string): Scene {
+  return { ...scene, flags: Object.fromEntries(Object.entries(scene.flags).filter(([k]) => k !== key)) };
 }
 
 /** Patche les champs de HAUT NIVEAU d'une entité (facing/label/crewIds/upgrades/light/statblock/foot…) —

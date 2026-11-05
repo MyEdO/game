@@ -19,6 +19,7 @@ import { Difficulty, CharKey, type Combatant } from './types';
 import { hasTalent } from './magic';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { TestExige } from './flowCore';
 import { rule } from './policy';
 import type {
   SequencePhases, SequencePotRules, SequenceRoundOps, SequenceTableRow, SequenceSide, SequenceVolleyRules,
@@ -91,7 +92,7 @@ export interface TavernGame {
    *  pas QUI choisit : le choix va au JOUEUR (credo « pas de MJ », jamais un défaut silencieux). La
    *  PREMIÈRE option est celle que jouent les porteurs qu'aucun siège ne tient, et les figurants. */
   options?: {
-    skill?: RefDesignee; char?: CharKey; difficulty: Difficulty;
+    test: TestExige<'difficulty'>;
     /** Ce Test est-il un Test de COMBAT, qui admet le +10 de l'Avantage ? (`LDB 14 l.215`, Middenball
      *  l.119) — DÉCLARÉ par l'entrée (jamais déduit d'un id de Compétence au code). */
     combatTest?: boolean;
@@ -269,7 +270,7 @@ export function specialsApplicables(game: TavernGame, actor: Combatant | undefin
 /** La Difficulté DE BASE d'un Test du jeu : celle de l'option retenue, sinon celle du jeu (NADJ 16
  *  l.90, l.105, l.125, l.145), sinon Intermédiaire (LDB 12 l.166). PUR. */
 export function difficulteDeBase(game: TavernGame, choix?: number): Difficulty {
-  return game.options?.[choix ?? 0]?.difficulty ?? game.difficulty ?? TAVERN_TEST_DIFFICULTY;
+  return game.options?.[choix ?? 0]?.test.difficulty ?? game.difficulty ?? TAVERN_TEST_DIFFICULTY;
 }
 
 /** La Difficulté d'un Test du jeu POUR UN JOUEUR : la Difficulté de base, transformée par SES

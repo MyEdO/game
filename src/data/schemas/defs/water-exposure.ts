@@ -2,8 +2,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 16 l.11-63 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, plageSchema } from '../grammaire/valeurs';
-import { refOuSpec } from '../grammaire/ref';
+import { enumNomme, plageSchema } from '../grammaire/valeurs';
+import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'water-exposure.json';
 export const famille = 'config';
@@ -28,10 +28,7 @@ const doc = document(
   'water-exposure',
   famille,
   {
-  test: nommerChamps(z.strictObject({
-    skill: refOuSpec('skill'),
-    difficulty: difficultySchema,
-  }), { skill: { label: 'Compétence' }, difficulty: { label: 'Difficulté' } }),
+  test: flowTestSchema,
   rollModPerNegativeSL: z.number(),
   modifiers: z.array(
     nommerChamps(z.strictObject({
@@ -75,6 +72,7 @@ const doc = document(
     diseases: { label: 'Maladies contractées', hint: "Table de tirage d100 de la maladie contractée en cas d'échec" },
   },
   { codex: { keys: ['waterExposure'] }, edit: { object: 'single' } },
+  { affinerEntree: (entree) => entree.superRefine(exigerDuTest('skill', 'difficulty')) },
 );
 
 export const schema = doc.schema;

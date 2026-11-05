@@ -24,6 +24,7 @@
  * Réservé aux tables qui activent l'option `tavern-games`.
  */
 import { DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from '../engine/types';
+import type { FlowTest } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, roundSL,
@@ -55,7 +56,7 @@ import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl 
 import { advantageModLine, type ModLine } from '../engine/combat';
 import type { BatchParticipant } from './pendings';
 import { rollBatchParticipant, pushStep, rollTableStep, type TableStepDef } from './cascade';
-import { combatStakeRef, refLabel } from '../data/index';
+import { combatStakeRef } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
 import { startSequence, resolveSequenceTie, recitDuDepartage, sequenceCumRound, sequenceDrBonus, sequencePhaseOf, sequenceScoreOf, sequenceTableRow, resolveSequencePotTurn, sequencePotIssue, resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, activeSequence, setSequencePayload, setSequenceCum, PERTE_DU_TOUR, DECROISSANCE_DU_TOUR } from './sequenceCore';
 import { SEQUENCE_PURPOSE, SEQUENCE_BORNE, type SequenceBoard, type SequenceCloseCtx, type SequenceParams, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
@@ -151,7 +152,7 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
       return fiche ? [{
         id: e.id,
         label: fiche.label,
-        gameId: e.tavernGame!.gameId,
+        gameId: e.tavernGame!.id,
         ...(e.tavernGame!.stakeBrass != null ? { stakeBrass: e.tavernGame!.stakeBrass } : {}),
       }] : [];
     });
@@ -160,16 +161,19 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
 /** Déclaration du Test (skill/char/spec) d'un jeu — MÊME repli que `tavernGameValue` (Pari si rien
  *  d'indiqué), réutilisée par les mints (`req.test`, qui calculent eux-mêmes la valeur par acteur). */
 /** Déclaration de Test RUNTIME (`skill`/`spec` à plat, forme des monteurs de ligne) → `TavernOption`
- *  (référence de Compétence EMBOÎTÉE, forme de la DONNÉE). PURE. */
+ *  (Test de la DONNÉE, référence de Compétence EMBOÎTÉE). PURE. */
 function enOption(t: { skill?: string; spec?: string; char?: CharKey }): TavernOption {
   return {
-    ...(t.skill ? { skill: { id: t.skill, ...(t.spec ? { spec: t.spec } : {}) } } : {}),
-    ...(t.char ? { char: t.char } : {}),
+    test: {
+      ...(t.skill ? { skill: { id: t.skill, ...(t.spec ? { spec: t.spec } : {}) } } : {}),
+      ...(t.char ? { characteristic: t.char } : {}),
+    },
   };
 }
 
-function testDeSequence(test: Pick<TavernOption, 'skill' | 'char'>): { skill?: string; spec?: string; char?: CharKey } {
-  return test.skill ? idsDuTest({ skill: test.skill }) : { char: test.char };
+/** Test de la DONNÉE → déclaration RUNTIME des monteurs de ligne (`skill`/`spec` à plat). PURE. */
+function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): { skill?: string; spec?: string; char?: CharKey } {
+  return test.skill ? idsDuTest({ skill: test.skill }) : { char: test.characteristic };
 }
 
 function tavernTestSpec(game: TavernGame): { skill?: string; char?: CharKey; spec?: string } {
@@ -467,9 +471,9 @@ export function playTavernGame(get: Get, set: Set, opts: ReglageDePartie): void 
 function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, difficulty: Difficulty, nue: number): CascadeSecondRead | undefined {
   const regles = game.combined;
   if (!regles) return undefined;
-  const test = testDeSequence(regles.second);
+  const test = testDeSequence({ skill: regles.second.skill, characteristic: regles.second.char });
   return {
-    label: testSkillLabel(regles.second) ?? game.label,
+    label: testSkillLabel(test) ?? game.label,
     base: acteur ? testValue(acteur, test.skill, test.char, test.spec) : nue,
     target: combinedSecondTarget(regles, acteur, difficulty, nue),
     difficulty,
@@ -484,7 +488,7 @@ function tavernRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, c
   // L'OPTION retenue porte le Test ET sa Difficulté (Alvatafl l.25, Cerevis l.90 : « Pari Accessible
   // (+20) ») ; sans option déclarée, le repli est celui du jeu rapide (Intermédiaire, l.11).
   const opt = optionOf(game, choix);
-  const test = { ...(opt.skill ? { skill: opt.skill.id } : {}), ...(opt.skill?.spec ? { spec: opt.skill.spec } : {}), ...(opt.char ? { char: opt.char } : {}) };
+  const test = testDeSequence(opt.test);
   const difficulty = difficulteDuSiege(p, difficulteDeBase(game, choix), h.id);
   const second = combinedSecondRead(game, h, difficulty, 0);
   const surLaCible = avantageSurLaCible(opt, porteurDAvantage(get, p, h, h.id === p.challengerId ? CAMP_PLAYER : CAMP_OPPONENT));
@@ -514,7 +518,7 @@ function tavernRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, c
  * la modale) — c'est la seule grandeur maison, et elle est éditable, jamais figée au code. */
 
 /** UNE OPTION de Test d'une manche (celle que l'entrée déclare, ou le repli du jeu). */
-type TavernOption = { skill?: import('../data/schemas/grammaire/ref').RefDesignee; char?: CharKey; difficulty?: Difficulty; combatTest?: boolean };
+type TavernOption = { test: Pick<FlowTest, 'skill' | 'characteristic' | 'difficulty'>; combatTest?: boolean };
 
 /**
  * L'AVANTAGE d'un camp, en ligne NOMMÉE sur la cible (`LDB 14 l.215`, NADJ 16 l.34, l.119). Deux
@@ -537,10 +541,10 @@ function avantageSurLaCible(opt: TavernOption, porteur: Combatant | number): Mod
 function figurantRow(id: string, label: string, valeur: number, opt: TavernOption, avantage: number): BatchParticipant {
   const surLaCible = avantageSurLaCible(opt, avantage);
   // LDB 12 l.166
-  const difficulty = opt.difficulty ?? TAVERN_TEST_DIFFICULTY;
+  const difficulty = opt.test.difficulty ?? TAVERN_TEST_DIFFICULTY;
   const row: BatchParticipant = {
     id, label, difficulty, result: null, interactive: false,
-    ...(opt.skill ? { skillId: opt.skill.id } : {}),
+    ...(opt.test.skill ? { skillId: opt.test.skill.id } : {}),
     ...rollStep({ valeur, valeurEtrangere: true, difficulty, ...(surLaCible.length ? { surLaCible } : {}) }),
   };
   return { ...row, result: rollBatchParticipant(row, battleRng()) };
@@ -580,8 +584,8 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
-      label: testSkillLabel({ skill: o.skill, char: o.char ?? 'intelligence' }),
-      detail: DIFFICULTY_LABELS[difficulteDuSiege(p, o.difficulty, h.id)],
+      label: testSkillLabel(testDeSequence(o.test)) ?? dataLabel(game.label),
+      detail: DIFFICULTY_LABELS[difficulteDuSiege(p, o.test.difficulty, h.id)],
     })),
     defaultChoice: '0',
   })).filter((s): s is BuiltCascadeStep => !!s);
@@ -606,13 +610,13 @@ function equipiers(get: Get): Combatant[] {
  *  son Avantage propre entre dans la cible quand ce Test est un Test de Combat. */
 function equipierRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, choix: number | undefined): BatchParticipant {
   const opt = optionOf(game, choix);
-  const test = { ...(opt.skill ? { skill: opt.skill.id } : {}), ...(opt.skill?.spec ? { spec: opt.skill.spec } : {}), ...(opt.char ? { char: opt.char } : {}) };
+  const test = testDeSequence(opt.test);
   const surLaCible = avantageSurLaCible(opt, h);
   const difficulty = difficulteDuSiege(p, difficulteDeBase(game, choix), h.id);
   const row: BatchParticipant = {
     id: h.id,
     label: testSkillLabel(test) ?? game.label,
-    ...(opt.skill ? { skillId: opt.skill.id } : {}),
+    ...(test.skill ? { skillId: test.skill } : {}),
     difficulty,
     result: null,
     interactive: true,
@@ -632,7 +636,8 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
   const heros = equipiers(get);
   if (!heros.length) return undefined;
   const rows: BatchParticipant[] = heros.map((h) => equipierRow(get, p, h, game, p.choices?.[h.id]));
-  const optFigurant = { ...optionOf(game, 0), difficulty: difficulteDeBase(game, 0) };
+  const optionDuFigurant = optionOf(game, 0);
+  const optFigurant = { ...optionDuFigurant, test: { ...optionDuFigurant.test, difficulty: difficulteDeBase(game, 0) } };
   const mien = [...heros.map((h) => h.id)];
   const sien: string[] = [];
   // Les coéquipiers du groupe ont LEUR valeur (`allyValue`), distincte de celle du camp d'en face :
@@ -714,7 +719,7 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
       difficulty, result: null, interactive: true,
       ...rollStep({ actor: heros, test, difficulty }),
     }
-    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { difficulty }, 0);
+    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { test: { difficulty } }, 0);
   const jouable = !!heros && !cadenceAuto() && jetSurfaced(get(), heros);
   // Un héros qu'aucun siège ne tient reste monté sur SA fiche (`equipierRow` l'a déjà roulé) : seule
   // sa rangée devient témoin. Il ne passe jamais par la porte des figurants, dont la fiche ne suit pas la séquence.
@@ -727,7 +732,7 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   const rang = rng.int(1, game.dancers);
   const camp = lanceur.camp === 'player' ? p.opponentName : t('tavern.campMien');
   const valeur = lanceur.camp === 'player' ? p.opponentValue : valeurDesCoequipiers(p);
-  rows.push(figurantRow(`danseur-${seq.round}`, t('tavern.danseur', { rang, camp }), valeur, { skill: { id: 'esquive' } }, 0));
+  rows.push(figurantRow(`danseur-${seq.round}`, t('tavern.danseur', { rang, camp }), valeur, { test: { skill: { id: 'esquive' } } }, 0));
   const band = bandStep({
     id: idDansLaSequence(get, TAVERN_ROUND_KIND), // id = ADRESSE ; la MANCHE voyage sur `meta.round` (#1852)
     kind: TAVERN_ROUND_KIND,
@@ -779,6 +784,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   const regles = seq?.params.throwerPenalty;
   if (!seq || !p || !game || !regles || game.roundShape !== 'thrower') return [];
   const test = testDeSequence(regles.test);
+  const difficulty = regles.test.difficulty ?? TAVERN_TEST_DIFFICULTY;
   const lanceur = p.throwers?.[seq.round - 1];
   const jet = rows.find((r) => r.id === lanceur?.id);
   const danseur = rows.find((r) => r.id.startsWith('danseur-'));
@@ -793,7 +799,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
       icon: 'nav/dice',
       label: composeRollLabel(heros, regles.label ?? game.label, test),
       actor: heros,
-      difficulty: regles.difficulty,
+      difficulty,
       ligne: { test },
       stake: combatStakeRef('tavernGame', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
       meta: { camp: lanceur.camp, who: lanceur.label } satisfies PinteDuLanceur,
@@ -808,11 +814,11 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   // figurant, dont la fiche ne suit pas la séquence (valeur dérivée à l'ouverture). Jamais un jet forgé à la main.
   const pinte: BatchParticipant = heros
     ? {
-      id, label: testSkillLabel(regles.test) ?? lanceur.label, ...(test.skill ? { skillId: test.skill } : {}),
-      difficulty: regles.difficulty, result: null, interactive: false,
-      ...rollStep({ actor: heros, test, difficulty: regles.difficulty }),
+      id, label: testSkillLabel(test) ?? lanceur.label, ...(test.skill ? { skillId: test.skill } : {}),
+      difficulty, result: null, interactive: false,
+      ...rollStep({ actor: heros, test, difficulty }),
     }
-    : figurantRow(id, lanceur.label, lanceur.value ?? p.opponentValue, { ...regles.test, difficulty: regles.difficulty }, 0);
+    : figurantRow(id, lanceur.label, lanceur.value ?? p.opponentValue, { test: { ...regles.test, difficulty } }, 0);
   const jete = pinte.result ?? rollBatchParticipant(pinte, battleRng());
   return torchonBoit(get, set, lanceur.id, lanceur.camp, lanceur.label, jete.success);
 }
@@ -864,8 +870,8 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
-      label: refLabel('skills', o.skill ?? { id: '' }),
-      detail: DIFFICULTY_LABELS[difficulteDuSiege(p, o.difficulty, h.id)],
+      label: testSkillLabel(testDeSequence(o.test)) ?? dataLabel(game.label),
+      detail: DIFFICULTY_LABELS[difficulteDuSiege(p, o.test.difficulty, h.id)],
     })),
     defaultChoice: '0',
   })).filter((s): s is BuiltCascadeStep => !!s);
@@ -942,7 +948,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
 
   const optMien = optionOf(game, p.choices?.[challenger.id]);
   const difficulty = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), challenger.id);
-  const test = { ...(optMien.skill ? { skill: optMien.skill.id } : {}), ...(optMien.skill?.spec ? { spec: optMien.skill.spec } : {}), ...(optMien.char ? { char: optMien.char } : {}) };
+  const test = testDeSequence(optMien.test);
   // L'adversaire de la SALLE joue l'option retenue, à SA Difficulté (NADJ 16 l.82), avec l'Avantage de
   // son camp quand le Test l'admet (l.34).
   const difficulteAdverse = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), idAdverse(p));
@@ -2057,7 +2063,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
       difficulty, result: null, interactive: true,
       ...rollStep({ actor: heros, test, difficulty }),
     }
-    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { ...enOption(test), difficulty }, 0);
+    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { test: { ...enOption(test).test, difficulty } }, 0);
   const rows: BatchParticipant[] = [
     surface ? rowJet : { ...rowJet, interactive: false, result: rowJet.result ?? rollBatchParticipant(rowJet, rng) },
   ];
@@ -2349,7 +2355,7 @@ function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: T
 /** La SECONDE cible d'un camp : la valeur DÉCLARÉE (`combined.second`) montée par l'accesseur canon
  *  pour un porteur, ou la valeur de table pour un adversaire abstrait. */
 function combinedSecondTarget(regles: SequenceCombinedRules, acteur: Combatant | undefined, difficulty: Difficulty, nue: number): number {
-  const test = testDeSequence(regles.second);
+  const test = testDeSequence({ skill: regles.second.skill, characteristic: regles.second.char });
   return acteur
     ? effectiveTarget(acteur, test, difficulty)
     : effectiveTarget(undefined, test, difficulty, nue);

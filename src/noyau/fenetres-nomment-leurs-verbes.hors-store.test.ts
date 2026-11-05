@@ -3,7 +3,8 @@
  * `fenetres.testkit.ts`) déclare au moins un verbe, et chacun est une action de la partie, nommée en mots du joueur
  * (`libelleDuGeste`). Une fenêtre sans verbe de joueur le déclare dans sa définition (`AUCUN_VERBE_DE_JOUEUR`), et le
  * test la nomme. Une fenêtre dont les verbes désignent une rangée par son id (flux de jet multi, verbes d'étape)
- * déclare de quoi rendre ce `pid`. Chaque fenêtre a son titre (`libelleDeLaFenetre`), et chaque réglage d'un flux de
+ * déclare de quoi rendre ce `pid`. Une surface partagée qui se ferme (`SURFACES_A_SORTIE`) en est une, sa sortie pour
+ * verbe. Chaque fenêtre a son titre (`libelleDeLaFenetre`), et chaque réglage d'un flux de
  * jet (`REGLAGES_DU_JET`) est un geste d'une fenêtre : aucun ne se joue hors de celle qui le dessine.
  */
 import { describe, it, expect } from 'vitest';
@@ -55,12 +56,17 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(declares.filter((cle) => !gestes.has(cle)), 'réglage qu’aucune fenêtre ne déclare').toEqual([]);
   });
 
-  it('`fenetreDuJeu` rend les gestes déclarés : le Sauvetage par Destin, la porte de départ de nuit', () => {
+  it('`fenetreDuJeu` rend les gestes déclarés : le Sauvetage par Destin, la porte de départ de nuit, la défaite, le repli, l’anéantissement', () => {
     const destin = fenetreDuJeu({ ...ETAT, pendingFateSave: { heroId: 'h1' } } as unknown as Jeu);
     expect(destin).toMatchObject({ cle: 'fateSave', proprietaire: 'h1' });
     expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fateNegate', 'fateSurvive', 'fateAccept']));
     const depart = fenetreDuJeu({ ...ETAT, pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } } as unknown as Jeu);
     expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'departWaitDawn' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
+    const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' } } as unknown as Jeu);
+    expect(defaite).toMatchObject({ cle: 'defaite', gestes: [{ verbe: 'fenetreFermer', fenetre: 'defaite' }] });
+    const repli = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' }, massBattle: { combatScene: { sceneId: 'duel' } } } as unknown as Jeu);
+    expect(repli, 'dans le combat d’une bataille de masse, le repli').toMatchObject({ cle: 'repli', gestes: [{ verbe: 'fenetreFermer', fenetre: 'repli' }] });
+    expect(fenetreDuJeu({ ...ETAT, partyWiped: true } as unknown as Jeu), 'hors combat, l’anéantissement').toMatchObject({ cle: 'aneantissement' });
   });
 
   it('`fenetreDuJeu` rend le `pid` de la rangée due : la chute à deux tombants, l’étape-bande de cascade', () => {

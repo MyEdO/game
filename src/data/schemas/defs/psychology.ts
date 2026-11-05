@@ -2,9 +2,8 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 21 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
-import { mecaniqueDe, passifsDe } from '../grammaire/mecanique';
-import { refOuSpec } from '../grammaire/ref';
+import { enumNomme, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
+import { flowTestSchema, mecaniqueDe, passifsDe } from '../grammaire/mecanique';
 
 export const file = 'psychology.json';
 export const famille = 'entite';
@@ -54,7 +53,7 @@ const doc = document(
       }), { base: { label: 'Base' }, perDegreeOfFailure: { label: 'Par degré d’échec' } })
       .optional(),
     becomes: z.string().optional(),
-    test: nommerChamps(z.strictObject({ skill: refOuSpec('skill').optional(), difficulty: difficultySchema.optional() }), { skill: { label: 'Compétence' }, difficulty: { label: 'Difficulté' } }).optional(),
+    test: flowTestSchema.optional(),
   },
   {
     passive: { label: 'Effets passifs' },

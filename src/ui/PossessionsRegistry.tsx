@@ -73,8 +73,8 @@ export function prefixOf(p: Possession): ReactNode {
 
 export function labelOf(p: Possession): ReactNode {
   const label = possessionLabel(p);
-  if ((p.nature === 'bete' || p.nature === 'serviteur') && 'creatureId' in p.ref) {
-    return <CodexRef category="creatures" id={p.ref.creatureId} label={label} />;
+  if ((p.nature === 'bete' || p.nature === 'serviteur') && 'id' in p.ref) {
+    return <CodexRef category="creatures" id={p.ref.id} label={label} />;
   }
   if ((p.nature === 'vehicule' || p.nature === 'navire')) {
     return <CodexRef category="vehicles" id={p.vehicleId} label={label} />;
@@ -85,8 +85,8 @@ export function labelOf(p: Possession): ReactNode {
 /** Catégorie/id Codex d'une possession, ou `null` sans fiche catalogue (ex. immeuble) — factorisé de
  *  `labelOf` pour poser le lien Codex en SIBLING d'une ligne cliquable (jamais imbriqué). */
 function codexRefOf(p: Possession): { category: string; id: string } | null {
-  if ((p.nature === 'bete' || p.nature === 'serviteur') && 'creatureId' in p.ref) {
-    return { category: 'creatures', id: p.ref.creatureId };
+  if ((p.nature === 'bete' || p.nature === 'serviteur') && 'id' in p.ref) {
+    return { category: 'creatures', id: p.ref.id };
   }
   if (p.nature === 'vehicule' || p.nature === 'navire') return { category: 'vehicles', id: p.vehicleId };
   return null;
