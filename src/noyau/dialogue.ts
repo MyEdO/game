@@ -194,11 +194,20 @@ export interface ReponseEnVue extends ReponseDeDialogue {
 
 /** La conversation en vue, pour un hôte qui la dessine. */
 export interface ConversationEnVue {
-  /** Le nom de l'interlocuteur du nœud (`speakerEntity`, `nomDEntite`) ; `null` sans interlocuteur nommé. */
+  /** Le nom de l'interlocuteur du nœud (`nomDeLInterlocuteur`) ; `null` sans interlocuteur nommé. */
   orateur: string | null;
   /** La réplique du nœud, en Markdown verbatim ; `null` sans réplique. */
   replique: string | null;
   reponses: ReponseEnVue[];
+}
+
+/** Le nom de l'interlocuteur du nœud courant : l'entité du nœud, à défaut celle de la conversation (`speakerEntity`),
+ *  nommée par `nomDEntite` ; `undefined` hors dialogue ou sans interlocuteur nommé. */
+export function nomDeLInterlocuteur(s: Jeu): string | undefined {
+  const etat = s.dialogue;
+  const node = etat?.dialogue.nodes.find((n) => n.id === etat.nodeId);
+  const locuteur = etat && node && speakerEntity(s.scene?.entities ?? [], node, etat);
+  return locuteur ? nomDEntite(locuteur, presetDuNarratif(s.campaignNarratif)) : undefined;
 }
 
 /** LA CONVERSATION EN VUE : l'interlocuteur et la réplique du nœud courant, et chaque réponse visible
@@ -207,9 +216,8 @@ export function conversationEnVue(s: Jeu): ConversationEnVue | null {
   const etat = s.dialogue;
   const node = etat?.dialogue.nodes.find((n) => n.id === etat.nodeId);
   if (!etat || !node) return null;
-  const locuteur = speakerEntity(s.scene?.entities ?? [], node, etat);
   return {
-    orateur: (locuteur && nomDEntite(locuteur, presetDuNarratif(s.campaignNarratif))) ?? null,
+    orateur: nomDeLInterlocuteur(s) ?? null,
     replique: node.desc ?? null,
     reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'chooseDialogue', args: [r.index] } })),
   };

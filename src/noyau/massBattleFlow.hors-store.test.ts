@@ -441,7 +441,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 2, hitters: ['h1'] } },
       mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
     });
-    banc.getState().fenetreFermer('defaite');
+    banc.getState().fenetreFermer('repli');
     const after = mbState();
     expect(armyMight(after.ally)).toBe(50 - 20);
     expect(armyMight(after.enemy)).toBe(55);
@@ -476,7 +476,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 1, hitters: ['h1'] } },
       mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
     });
-    banc.getState().fenetreFermer('defaite');
+    banc.getState().fenetreFermer('repli');
     expect(mbState().imposed).toContain('charge');
     expect(armyMight(mbState().ally)).toBe(50);
     expect(mbState().phase).toBe('round');

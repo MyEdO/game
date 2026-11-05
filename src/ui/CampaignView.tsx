@@ -70,7 +70,8 @@ import { estNouveauPour } from '../noyau/monde/clues';
 import { presetPnjById } from '../state/campaignData';
 import { RetraitsDeChargement } from './RetraitsDeChargement';
 
-/** Défaite : dans une bataille de masse ou une scène, sa sortie (`fenetreFermer('defaite')`) ; sans scène, l'Arène se
+/** Défaite : dans une bataille de masse, sa sortie (`fenetreFermer('repli')`), dans une scène la sienne
+ *  (`fenetreFermer('defaite')`) ; sans scène, l'Arène se
  *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
  *  de la modale, et chaque nouvel essai le remplace. */
 function ModaleDeDefaite() {
@@ -81,7 +82,7 @@ function ModaleDeDefaite() {
     const g = useGame.getState();
     if (g.massBattle?.combatScene || g.scene) {
       setRefus(null);
-      g.fenetreFermer('defaite');
+      g.fenetreFermer(g.massBattle?.combatScene ? 'repli' : 'defaite');
       return;
     }
     setRefus(lancerCampagne(useGame.getState, null));
@@ -435,8 +436,8 @@ export function CampaignView() {
         {partyWiped && (
           <Modal
             title="Le groupe a péri…"
-            onClose={() => fermer('defaite')}
-            footer={<button className="btn btn-primary" onClick={() => fermer('defaite')}>Retour au menu</button>}
+            onClose={() => fermer('aneantissement')}
+            footer={<button className="btn btn-primary" onClick={() => fermer('aneantissement')}>Retour au menu</button>}
           />
         )}
       </main>

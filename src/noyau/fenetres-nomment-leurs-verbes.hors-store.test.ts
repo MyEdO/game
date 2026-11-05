@@ -56,7 +56,7 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(reglages.filter((v) => !VERBES_DES_FENETRES.has(v)), 'réglage qu’aucune fenêtre ne déclare').toEqual([]);
   });
 
-  it('`fenetreDuJeu` rend les gestes déclarés : le Sauvetage par Destin, la porte de départ de nuit, la défaite', () => {
+  it('`fenetreDuJeu` rend les gestes déclarés : le Sauvetage par Destin, la porte de départ de nuit, la défaite, le repli, l’anéantissement', () => {
     const destin = fenetreDuJeu({ ...ETAT, pendingFateSave: { heroId: 'h1' } } as unknown as Jeu);
     expect(destin).toMatchObject({ cle: 'fateSave', proprietaire: 'h1' });
     expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fateNegate', 'fateSurvive', 'fateAccept']));
@@ -64,6 +64,9 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'departWaitDawn' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
     const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' } } as unknown as Jeu);
     expect(defaite).toMatchObject({ cle: 'defaite', gestes: [{ verbe: 'fenetreFermer', fenetre: 'defaite' }] });
+    const repli = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' }, massBattle: { combatScene: { sceneId: 'duel' } } } as unknown as Jeu);
+    expect(repli, 'dans le combat d’une bataille de masse, le repli').toMatchObject({ cle: 'repli', gestes: [{ verbe: 'fenetreFermer', fenetre: 'repli' }] });
+    expect(fenetreDuJeu({ ...ETAT, partyWiped: true } as unknown as Jeu), 'hors combat, l’anéantissement').toMatchObject({ cle: 'aneantissement' });
   });
 
   it('`fenetreDuJeu` rend le `pid` de la rangée due : la chute à deux tombants, l’étape-bande de cascade', () => {
