@@ -10,8 +10,8 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, argumentsPosesDuGeste, cleDuGeste, fenetreDAttaque, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_L_OPERATION, REGLAGES_DE_LA_DEFENSE, REGLAGES_DU_BUTIN,
+  DESIGNATIONS, FERMETURES_DITES, argumentsPosesDuGeste, cleDuGeste, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  libelleDuGeste, libelleDuParametre, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_L_INCANTATION, REGLAGES_DE_L_OPERATION, REGLAGES_DE_LA_DEFENSE, REGLAGES_DU_BUTIN,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -86,6 +86,7 @@ export interface FenetreADessiner {
 const LECTEURS: readonly { lire: (s: Jeu) => object | null; verbes: readonly string[] }[] = [
   { lire: fenetreDAttaque, verbes: REGLAGES_DE_L_ATTAQUE },
   { lire: fenetreDeDefense, verbes: REGLAGES_DE_LA_DEFENSE },
+  { lire: fenetreDIncantation, verbes: REGLAGES_DE_L_INCANTATION },
   { lire: fenetreDuButin, verbes: REGLAGES_DU_BUTIN },
   { lire: fenetreDeLOperation, verbes: REGLAGES_DE_L_OPERATION },
 ];

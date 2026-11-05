@@ -18,7 +18,7 @@ import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit, editableDataset, editableObjectDataset, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
-import { libelleDuChamp, inferFields } from './editFields';
+import { libelleDuChamp, inferFields } from '../../noyau/codex/editFields';
 import { metaPourFichier, chargeDiscriminee, schemaForFile } from '../../data/schemas/validate';
 import { CODEX } from './registry';
 import { setDataset, datasetArray, datasetFile } from '../../data/overrides';

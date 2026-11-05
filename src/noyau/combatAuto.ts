@@ -19,7 +19,7 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type VerbesDeFenetre } from './modalArbiter';
+import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type VerbesDeFenetre } from './modalArbiter';
 import { maladresseCourante, stepInteraction } from './cascade';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
 import { influencesLocally } from './netOwnership';
@@ -97,8 +97,8 @@ const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   return flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle }));
 };
 
-/** La navigation de la cascade, jugée sur sa clôture : valider l'étape, tout résoudre, terminer le bilan. */
-export const NAVIGATION_DE_CASCADE = ['cascadeNext', 'cascadeResolveAll', 'cascadeFinish'] as const satisfies VerbesDeFenetre;
+/** La navigation de la cascade, jugée sur sa clôture : valider l'étape, tout résoudre, terminer le bilan (sa sortie). */
+export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: 'cascadeNext' }, { verbe: 'cascadeResolveAll' }, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -131,11 +131,14 @@ export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { 
 
 const gestesDuDrive = (pol: AutoPolicy): readonly GesteDuJeu[] => (pol.mode === 'self' ? pol.drive : pol.mode === 'choice' ? (pol.autoDrive ?? []) : []);
 
+/** Le geste de sortie d'une fenêtre qui déclare la sienne (`sortie`) : `fenetreFermer`, la fenêtre en argument. */
+const sortieDe = (def: ModalDef | HorsModalDef): GesteDuJeu[] => (def.sortie ? [{ verbe: 'fenetreFermer', fenetre: def.key as FenetreQuiSeFerme }] : []);
+
 /** Les gestes qu'une fenêtre DÉCLARE : le drive (ou l'`autoDrive`) de sa politique ou ses `intents`, les gestes de ses
- *  `flux`, puis ses `verbes`. */
+ *  `flux`, ses `verbes`, puis sa sortie. */
 export function gestesDeLaFenetre(def: ModalDef | HorsModalDef): readonly GesteDuJeu[] {
   const premiers = 'auto' in def ? gestesDuDrive(def.auto) : nommes(def.intents ?? []);
-  return uniques([...premiers, ...(def.flux ?? []).flatMap(gestesDuFlux), ...nommes(def.verbes ?? [])]);
+  return uniques([...premiers, ...(def.flux ?? []).flatMap(gestesDuFlux), ...nommes(def.verbes ?? []), ...sortieDe(def)]);
 }
 
 /** Les gestes d'une étape-jet de COMBAT : son drive (`JET_AUTO`), ou celui de la fenêtre réactive ouverte dans l'étape
@@ -187,7 +190,7 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
     const flux = parInteraction?.flux;
-    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...nommes(NAVIGATION_DE_CASCADE)]), flux: flux ? [flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, { verbe: 'cascadeNext' }] } : {}), ...(etape ? { etape } : {}) };
+    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: flux ? [flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, { verbe: 'cascadeNext' }] } : {}), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   return hors ? { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;
@@ -269,7 +272,7 @@ function autoResolveCascade(get: Get, set: Set): void {
   if (!pc) return;
   if (pc.cursor >= pc.participants.length) {
     // BILAN : combat → fermer ; voyage/nuit/test → laisser le RÉSUMÉ au joueur (« Terminer »).
-    if (pc.purpose === 'combat') get().cascadeFinish();
+    if (pc.purpose === 'combat') get().fenetreFermer('cascade');
     return;
   }
   const cur = pc.participants[pc.cursor];

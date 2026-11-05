@@ -211,7 +211,7 @@ describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.7
     expect(isAfflictionActive(etat(H, 'camaraderie')!)).toBe(true);
 
     applyAttackResult(banc.getState, banc.setState, live(menace.id), live(A.id), hache, coupMortel(live(A.id).wounds.current + 30));
-    if (banc.getState().pendingCascade) { banc.getState().cascadeResolveAll(); banc.getState().cascadeFinish(); }
+    if (banc.getState().pendingCascade) { banc.getState().cascadeResolveAll(); banc.getState().fenetreFermer('cascade'); }
     expect(isOutOfAction(live(A.id))).toBe(true);
     expect([B, C].map((o) => isOutOfAction(live(o.id)))).toEqual([false, false]);
     expect(etat(H, 'camaraderie')).toBeUndefined();
@@ -221,7 +221,7 @@ describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.7
     const { H, E: aime, F: menace } = setup();
     H.psychState = [{ type: 'amour', cible: ciblePsy.individu(aime.id), sourceId: aime.id, active: true }];
     applyAttackResult(banc.getState, banc.setState, live(menace.id), live(aime.id), hache, coupMortel(live(aime.id).wounds.current + 30));
-    if (banc.getState().pendingCascade) { banc.getState().cascadeResolveAll(); banc.getState().cascadeFinish(); }
+    if (banc.getState().pendingCascade) { banc.getState().cascadeResolveAll(); banc.getState().fenetreFermer('cascade'); }
     expect(isOutOfAction(live(aime.id))).toBe(true);
     expect(etat(H, 'amour'), 'désactivée, pas levée').toMatchObject({ type: 'amour', active: false });
   });

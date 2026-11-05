@@ -4,14 +4,19 @@
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
  * focus, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
- * Critique, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
+ * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, sa première
+ * possession choisie (ses gestes refusés en combat), la création d'un héros hors de la partie (`zonesDeLaCreation` sur
+ * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
+ * liste), et un formulaire
+ * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
  * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
-import { CLICS_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
 /** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
@@ -99,11 +104,38 @@ export function figerVuesDeLEcran(): VueFigee[] {
         : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu);
   }
   figer('Coup Critique', s);
+  s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
+  for (const onglet of ONGLETS_DE_LA_FICHE) {
+    s = appeler('fiche', s.vue.zones['fiche.gestes'].find((b) => b.id === `onglet/${onglet}`)!.jeu);
+    figer(`fiche du héros, ${onglet}`, s);
+  }
+  s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
+  figer('fiche du héros, une possession choisie', s);
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
+    'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [],
+    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [],
   };
+  const etat = etatInitialDuJeu();
+  let creation: CreationOuverte = { brouillon: brouillonDeLaPartie(7, 0), page: 'species' };
+  const figerLaCreation = (nom: string) => vues.push({ nom, disposition: null, zones: { ...vides, ...zonesDeLaCreation(etat, creation), 'journal.lignes': [...lignes] }, attendus: {} });
+  const jouerLaCreation = (id: string, valeur?: string) => {
+    const e = zonesDeLaCreation(etat, creation)['creation.corps'].find((x) => x.id === id)!;
+    const b = (e.type === 'bouton' ? e : (e as Choix).valeurs.find((v) => v.libelle === valeur)!).jeu as { creation: Exclude<GesteDeLaCreation, { geste: 'ouvrir' | 'engager' }> };
+    creation = apresLaCreation(creation, b.creation);
+  };
+  figerLaCreation('création, la race avant le d100');
+  jouerLaCreation('tirage');
+  figerLaCreation('création, la race tirée');
+  creation = { ...creation, page: 'career' };
+  jouerLaCreation('tirage');
+  figerLaCreation('création, la carrière tirée');
+  creation = { ...creation, page: 'chars' };
+  jouerLaCreation('methode', 'Répartir 100 points');
+  figerLaCreation('création, les Caractéristiques en 100 points');
+
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,

@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
-import { inferFields } from './editFields';
+import { inferFields } from '../../noyau/codex/editFields';
 import { refFieldCfg } from './refField/RefField';
 import { isEditableCategory, editableEntries, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 

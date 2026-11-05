@@ -970,6 +970,12 @@ export interface ActiveEffect {
    *  porteur en combat, un Test de `char` décide s'il garde Action ET Mouvement (réussite) ou UN seul
    *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
   actGate?: { char: CharKey };
+  /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
+   *  `prayerForActionBy`). LDB 40 l.74 */
+  prayerForAction?: true;
+  /** Divinité (id de `gods.json`) dont les Bénédictions et Miracles échouent sur le porteur (op `deityBan`,
+   *  lu par `prayerBannedOn`). LDB 40 l.64 */
+  deityBan?: string;
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête — Peau de loup d'hiver d'Ulric,
    *  Protection contre la pluie) : `exposureNight` est sauté tant que l'effet dure. */
   weatherImmune?: boolean;

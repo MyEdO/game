@@ -56,7 +56,8 @@ export function TavernGameModal() {
   const party = useGame((s) => s.party);
   const play = useGame((s) => s.playTavernGame);
   const replay = useGame((s) => s.openTavernGames);
-  const close = useGame((s) => s.closeTavernGames);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const close = () => fermer('jeuxDeTaverne');
   // Manche EN COURS (jet du challenger surfacé par-dessus, cf. docstring) : masque le formulaire de
   // réglage — la cascade (RollShell) porte l'interaction tant qu'elle n'a pas committé.
   const rolling = useGame(tavernPartieEnCours);

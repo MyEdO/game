@@ -1624,6 +1624,26 @@
         "min": 26,
         "max": 30,
         "label": "Vous ne comprenez pas ma volonté",
+        "ops": [
+          {
+            "op": "deitySkillMod",
+            "pick": "all",
+            "mod": -10,
+            "durationHours": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1709,6 +1729,29 @@
         "min": 41,
         "max": 45,
         "label": "Votre cause est indigne",
+        "targetOps": [
+          {
+            "op": "condition",
+            "id": "a-terre",
+            "value": 1
+          },
+          {
+            "op": "deityBan",
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1799,6 +1842,26 @@
         "min": 56,
         "max": 60,
         "label": "Je ne vous aiderai pas",
+        "ops": [
+          {
+            "op": "deitySkillMod",
+            "pick": "random",
+            "mod": -10,
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1911,6 +1974,24 @@
         "min": 76,
         "max": 80,
         "label": "Vous avez péché contre moi",
+        "ops": [
+          {
+            "op": "prayerForAction",
+            "durationRounds": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,

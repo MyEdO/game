@@ -31,7 +31,8 @@ export function ChapterRecapScreen() {
   const recap = useGame((s) => s.pendingChapterRecap);
   const campaignDoc = useGame((s) => s.campaignDoc);
   const cloreChapitre = useGame((s) => s.cloreChapitre);
-  const ajourner = useGame((s) => s.ajournerChapterRecap);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const ajourner = () => fermer('chapterRecap');
   const invite = useGame((s) => s.net.mode === 'guest');
   const [volet, setVolet] = useState<1 | 2>(1);
   const [masque, setMasque] = useState(false);

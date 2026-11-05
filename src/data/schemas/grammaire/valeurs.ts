@@ -337,7 +337,7 @@ export const MIN_FRAGMENTS = 1;
  * d'une adresse COMPLÈTE côté écran : en cours de composition (`{ book, ch: '', parts: [] }`, ce que
  * `DescRefField` rend dès le choix du livre), l'adresse ne résout rien — la prose appartient encore à
  * l'auteur. Accepte de l'`unknown` : l'appelant édite des objets de donnée non typés (`estDerive`,
- * `src/ui/compendium/editFields.ts`).
+ * `src/noyau/codex/editFields.ts`).
  */
 export function adresseUnPassage(ref: unknown): boolean {
   const parts = (ref as { parts?: unknown } | null | undefined)?.parts;

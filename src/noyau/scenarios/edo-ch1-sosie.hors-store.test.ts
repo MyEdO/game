@@ -41,8 +41,8 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
     expect(get().flags['edo-ch1-corps-kastor-fouille'], 'EDO 02 l.89-91 : la suite de la fouille attend la désignation').toBeUndefined();
     get().designerHerosChoisir('h-1');
     expect(get().flags['edo-ch1-corps-kastor-fouille'], 'EDO 02 l.93-95 : les deux documents se lisent avant').toBeUndefined();
-    get().closeDocument();
-    get().closeDocument();
+    get().fenetreFermer('document');
+    get().fenetreFermer('document');
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
   });
 
@@ -90,16 +90,16 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
   it('naine désignée : son identité se fige, le Document 3 lui est remis ; fermé, le Document 4', () => {
     expect(get().identitesFigees[SOSIE]).toEqual({ espece: 'nain', sexe: 'F' });
     expect(get().document?.documentId).toBe('edo-document-3-heritage');
-    get().closeDocument();
+    get().fenetreFermer('document');
     expect(get().document?.documentId).toBe('edo-document-4-affidavit');
-    get().closeDocument();
+    get().fenetreFermer('document');
     expect(get().document).toBeNull();
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
   });
 
   it('l’indice « L’héritage » révèle ses deux stades, un par document', () => {
-    get().closeDocument();
-    get().closeDocument();
+    get().fenetreFermer('document');
+    get().fenetreFermer('document');
     expect(get().clues['edo-ch1-indice-heritage']?.historique.map((h) => h.stade)).toEqual(['veste', 'poche']);
   });
 });

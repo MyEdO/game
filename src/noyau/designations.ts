@@ -11,7 +11,9 @@ import { portalsForParty, type RoomPortal } from './monde/roomPortals';
 import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
-import { findCreatureById, findSeaShantyById } from '../data';
+import { findCreatureById, findSeaShantyById, findTrappingById } from '../data';
+import { conjureFormOptions } from '../engine/conjuredWeapons';
+import { actorIn } from './monde/combatants';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
@@ -57,6 +59,9 @@ export type IdDAdversaireDuBattement = string;
 export type IdDAdversaireADistraire = string;
 /** Le cavalier ou la monture que `mountTargetSelect` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
+/** Une forme d'arme invoquée que `castSetConjureForm` accepte : l'id d'une arme des formes du lanceur de l'incantation
+ *  en attente (`conjureFormOptions`, `engine/conjuredWeapons.ts`). */
+export type IdDeFormeInvoquee = string;
 
 /** Une désignation : son nom en mots, ce qu'elle lit dans l'état (les ids valides, ou les objets désignés par leur `id`),
  *  et le nom en mots du joueur de l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -75,6 +80,10 @@ const labelParmi = (xs: readonly { id: string; label?: string }[], id: string): 
 const nomDeCombattant = (s: Jeu, id: string): string | null => labelParmi(lesCombattants(s), id);
 const lesObjets = (s: Jeu) => [...lesCombattants(s).flatMap((c) => c.items ?? []), ...s.possessions.flatMap((p) => p.items)];
 const labelDePossession = (s: Jeu, uid: string): string | null => s.possessions.find((p) => p.uid === uid)?.label ?? null;
+const formesInvoquees = (s: Jeu): string[] => {
+  const lanceur = s.pendingCast && actorIn(s, s.pendingCast.casterId);
+  return lanceur ? conjureFormOptions(lanceur).map((f) => f.weapon) : [];
+};
 
 /** Les désignations, par NOM d'alias (ou d'interface désignée par son `id`). `mot` est un littéral : le générateur des
  *  verbes le lit au source. */
@@ -108,5 +117,6 @@ export const DESIGNATIONS = {
   IdDAdversaireDuBattement: { mot: 'id d’adversaire du Battement', lire: (s) => ids(adversairesDuBattement(s)), nom: nomDeCombattant },
   IdDAdversaireADistraire: { mot: 'id d’adversaire à distraire', lire: (s) => ids(adversairesADistraire(s)), nom: nomDeCombattant },
   IdDuCoupleMonte: { mot: 'id du couple monté', lire: idsDuCoupleMonte, nom: nomDeCombattant },
+  IdDeFormeInvoquee: { mot: 'id de forme invoquée', lire: formesInvoquees, nom: (_s, id) => findTrappingById(id)?.label ?? null },
   RoomPortal: { mot: 'id de porte', lire: (s): readonly RoomPortal[] => (s.scene ? portalsForParty(s.scene, s.partyPos) : []), nom: () => null },
 } satisfies Record<string, Designation>;

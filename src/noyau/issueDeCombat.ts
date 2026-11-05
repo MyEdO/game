@@ -8,6 +8,7 @@ import { flowFromEffects } from './monde/flow';
 import { decidingSeat, quorumAtteint } from './netOwnership';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables } from './tablesPosees';
 
 export function creerActionsDIssueDeCombat(get: Get, set: Set) {
@@ -24,7 +25,27 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
         get().log(t('store.cargoRaidNothing'));
       }
     },
-    dismissVictory: () => {
+    assignLootGear: (index, heroId) => assignGearAt(get, set, 'pendingLoot', index, heroId),
+    /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/teinte conservées). */
+    assignVictoryGear: (index, heroId) => assignGearAt(get, set, 'pendingVictory', index, heroId),
+    harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
+    victoryReady: () => {
+      const pv = get().pendingVictory;
+      if (!pv) return;
+      const readyBySeat = { ...(pv.readyBySeat ?? {}), [decidingSeat(get())]: true };
+      set({ pendingVictory: { ...pv, readyBySeat } });
+      const s = get();
+      if (s.net.mode === 'guest') return; // l'invité ne fait que marquer
+      if (quorumAtteint(s, readyBySeat)) get().fenetreFermer('victory'); // quorum UNIQUE : `siegesRequis`
+    },
+  } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Les sorties des fenêtres de fin de combat : la victoire, la défaite, le butin. */
+export function sortiesDIssueDeCombat(get: Get, set: Set) {
+  return {
+    /** Ferme l'écran de victoire et revient à l'exploration. */
+    victory: () => {
       get().resolveCargoRaid('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327)
       const pv = get().pendingVictory;
       const leftoverGear = (pv?.gear ?? []).map((g) => g.effect); // équipement non attribué → 1er héros par défaut
@@ -50,7 +71,7 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
      *  tactique ne met PAS fin à la partie : les héros sont repoussés (soignés, le combat de scène est une
      *  abstraction), l'issue `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge),
      *  et la bataille CONTINUE. Hors bataille de masse : reprise standard (retour à la scène / redémarrage). */
-    dismissDefeat: () => {
+    defaite: () => {
       get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
       // Anéantissement HORS COMBAT (`checkPartyWiped`) : pas de bataille à reprendre — retour au menu.
       if (get().partyWiped) { set({ partyWiped: false, battle: null, screen: 'menu' }); return; }
@@ -62,34 +83,21 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
         });
         set({ party: get().party.map(heal), battle: null, mode: 'exploration' });
         massBattleFlow.massBattleResumeCombat(get, set, 0, 'lost');
-        resumeSuspendedCascade(get, set); // teardown de combat (couture universelle) — cf. dismissVictory
+        resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
         return;
       }
       const cur = get().scene;
       if (cur) set({ mode: 'exploration', battle: null });
-      resumeSuspendedCascade(get, set); // teardown de combat (couture universelle) — cf. dismissVictory
+      resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
     },
     /** Ferme la fenêtre de loot — même contrat que la victoire : le non-attribué va au 1er héros. */
-    dismissLoot: () => {
+    loot: () => {
       const pl = get().pendingLoot;
       const leftover = (pl?.gear ?? []).map((g) => g.effect);
       set({ pendingLoot: null });
       if (leftover.length) jouerFlowEntier(applyEffects(get, set, leftover));
     },
-    assignLootGear: (index, heroId) => assignGearAt(get, set, 'pendingLoot', index, heroId),
-    /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/teinte conservées). */
-    assignVictoryGear: (index, heroId) => assignGearAt(get, set, 'pendingVictory', index, heroId),
-    harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
-    victoryReady: () => {
-      const pv = get().pendingVictory;
-      if (!pv) return;
-      const readyBySeat = { ...(pv.readyBySeat ?? {}), [decidingSeat(get())]: true };
-      set({ pendingVictory: { ...pv, readyBySeat } });
-      const s = get();
-      if (s.net.mode === 'guest') return; // l'invité ne fait que marquer
-      if (quorumAtteint(s, readyBySeat)) get().dismissVictory(); // quorum UNIQUE : `siegesRequis`
-    },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies Partial<SortiesDeFenetre>;
 }
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */

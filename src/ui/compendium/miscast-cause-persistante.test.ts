@@ -3,11 +3,11 @@
  * cause récurrente gatée sur l'État qu'elle pose (`LDB 16 l.117`) se lit comme la PERSISTANCE d'UN
  * Inconscient, jamais comme un second État gagné. Le dialecte miscast a son renderer dédié
  * (`registry.ts::miscastOpRow`) : il partage le prédicat (`estCausePersistante`, `engine/ops.ts`) et
- * le terme joueur (`CAUSE_PERSISTANTE`, `humanize.ts`) avec les deux autres lecteurs.
+ * le terme joueur (`causePersistante`, `noyau/codex/humanize.ts`) avec les deux autres lecteurs.
  */
 import { describe, it, expect } from 'vitest';
 import { CODEX, type CodexRow } from './registry';
-import { CAUSE_PERSISTANTE } from './humanize';
+import { causePersistante } from '../../noyau/codex/humanize';
 
 function rangee() {
   const cat = CODEX.find((c) => c.key === 'miscastWrath')!;
@@ -28,7 +28,7 @@ describe('Codex — « Purifier la chair » 81-87 (LDB 40 l.75)', () => {
     const { rows } = rangee();
     const chip = rows.find((r) => r.t === 'ref' && r.category === 'etats' && r.id === 'inconscient')!;
     expect(chip.t === 'ref' && chip.show).toBe('Inconscient');
-    expect(chip.t === 'ref' && chip.badge).toBe(`${CAUSE_PERSISTANTE} · 1d10 Round(s)`);
-    expect(rows.some((r) => r.t === 'text' && r.text.includes(CAUSE_PERSISTANTE)), 'aucune ligne de texte parallèle').toBe(false);
+    expect(chip.t === 'ref' && chip.badge).toBe(`${causePersistante()} · 1d10 Round(s)`);
+    expect(rows.some((r) => r.t === 'text' && r.text.includes(causePersistante())), 'aucune ligne de texte parallèle').toBe(false);
   });
 });

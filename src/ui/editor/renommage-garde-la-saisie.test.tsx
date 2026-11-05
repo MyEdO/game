@@ -14,7 +14,7 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Inspector } from './Inspector';
 import { LogicDock, type LogicTab } from './LogicDock';
-import type { Sel } from './editorState';
+import type { Sel } from '../../noyau/sceneEditLecture';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';

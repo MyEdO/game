@@ -15,7 +15,7 @@ import { serializeDataset } from '../../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
 import { enfantsDe } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
-import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../compendium/editFields';
+import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey, entryKey } from '../../compendium/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
@@ -139,9 +139,10 @@ const OPS_FIELDS: Record<string, string[]> = {
   // #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
   // free`, sous `win`, retombent en sous-formulaire récursif `object`, hors guard — même patron `windEffect`
   // de `riverNavigation`). Incantations Imparfaites/Colère des dieux — `ops` (dialecte compilé, mais MÊMES
-  // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty` que le vocabulaire `GameOp` réel).
+  // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`
+  // que le vocabulaire `GameOp` réel), et `targetOps` (ops aux cibles de l'incantation).
   grapple: ['init'],
-  miscastMinor: ['ops'], miscastMajor: ['ops'], miscastWrath: ['ops'],
+  miscastMinor: ['ops', 'targetOps'], miscastMajor: ['ops', 'targetOps'], miscastWrath: ['ops', 'targetOps'],
   ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];

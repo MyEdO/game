@@ -1,7 +1,6 @@
 import { useGame } from '../state/store';
 import { findSpellById } from '../data/index';
-import { castingValue } from '../engine/magic';
-import { windsMagicLineOf } from '../noyau/combatOrParty';
+import { ligneDeFocalisation } from '../noyau/fenetreDIncantation';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -33,21 +32,21 @@ export function FocusModal() {
   const caster = (battle?.combatants ?? party).find((c) => c.id === pf.casterId); // combat (file) ou hors combat (groupe)
   if (!caster) return null;
   const spell = findSpellById(pf.spellId);
-  const ni = spell?.cn ?? 0;
+  // NI, valeur et Vents annoncés : la ligne du noyau (`ligneDeFocalisation`), celle que le résolveur jette.
+  const ligne = ligneDeFocalisation(useGame.getState());
+  if (!ligne) return null;
+  const { ni } = ligne;
   const r = pf.result;
   const { prev, step } = progresDeFocalisation(pf, caster, ni);
   const rolled = !!r;
-  // Vents Tourbillonnants (LDB 46 l.179-190) : mod visible au pré-jet SEULEMENT si révélés (Seconde
-  // vue), toujours visible au breakdown post-jet (déjà appliqué au Test — cf. `resolveFocus`).
-  const windsLine = windsMagicLineOf(battle);
-  const windsMods = windsLine ? [windsLine] : undefined;
+  const mods = ligne.mods.length ? ligne.mods : undefined;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: caster,
     row: {
       combatant: caster,
-      d: r ? testBreakdown(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success }, undefined, windsMods) : undefined,
-      pending: testPending(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), undefined, undefined, battle?.windsOfMagic?.revealed ? windsMods : undefined),
+      d: r ? testBreakdown(libelleDeTest('focalisation'), ligne.base, { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success }, undefined, mods) : undefined,
+      pending: testPending(libelleDeTest('focalisation'), ligne.base, undefined, undefined, mods),
     },
     onRoll: roll,
     rerolled: !!pf.rerolled,

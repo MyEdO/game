@@ -1044,7 +1044,7 @@ export async function principal({
       // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
       // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
       // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
-      // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
+      // pèse que sur CE rejeu local : la gate reste jouée, elle, par la course de file de `ci.yml`.
       const absents = prerequisAbsents(ecritLu[gate.nom], racine)
       if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
       // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.

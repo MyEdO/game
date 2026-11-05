@@ -83,6 +83,7 @@ import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Une journée du récapitulatif de voyage (audit M4) : progression + ce qui s'y est passé. */
@@ -133,7 +134,7 @@ export interface TravelRecap {
   km: number;
   kmDone: number;
   days: TravelRecapDay[];
-  /** Embuscade en attente : déclenchée par `dismissTravelRecap` (le récit passe AVANT le combat). */
+  /** Embuscade en attente : déclenchée par la sortie du récit (`recitDeVoyage`, qui passe AVANT le combat). */
   then?: TravelThen;
   /** Durée RÉELLE du voyage en minutes de jeu (arrivée seulement) : heure d'arrivée moins
    *  `TravelPlan.departAt` — nuits et attente de l'aube comprises. Capturée AVANT que `travelPlan` ne
@@ -1298,16 +1299,22 @@ function applyEreintant(get: Get, set: Set): string[] {
 export function creerActionsDuVoyage(get: Get, set: Set) {
   return {
     openWorldMap: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
-    closeWorldMap: () => set({ worldMapOpen: false }),
     startTravel: (routeId, mode, opts) => startTravel(get, set, routeId, mode, opts),
     resumeTravel: () => resumeTravel(get, set),
     departWaitDawn: () => departWaitDawn(get, set),
-    departCancel: () => set({ pendingDeparture: null }),
     setVoyageCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
+  } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Les sorties des fenêtres du voyage (`fenetreFermer`). */
+export function sortiesDuVoyage(get: Get, set: Set) {
+  return {
+    carteDuMonde: () => set({ worldMapOpen: false }),
+    departure: () => set({ pendingDeparture: null }),
     /** Acquitte le récit de voyage. Une EMBUSCADE différée (`recap.then`) se déclenche ICI :
      *  le joueur a lu ce qui lui arrive, le combat démarre — fermer la modale (bouton/Échap)
      *  ne l'évite pas, et `resumeTravel` refuse tant qu'elle n'est pas acquittée. */
-    dismissTravelRecap: () => {
+    recitDeVoyage: () => {
       const recap = get().travelRecap;
       set({ travelRecap: null });
       const then = recap?.then;
@@ -1323,7 +1330,7 @@ export function creerActionsDuVoyage(get: Get, set: Set) {
         if (get().battle) set({ cargoRaid: true });
       }
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies Partial<SortiesDeFenetre>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
