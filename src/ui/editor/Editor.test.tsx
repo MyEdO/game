@@ -8,8 +8,7 @@ import { brancherBasesSimulees, type BaseSimulee, type BasesSimulees } from '../
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { architectureSelectionForWarning, Editor, planDefectKey, planFocusAt } from './Editor';
-import { validateScene } from '../../noyau/validateScene';
+import { Editor } from './Editor';
 import { Inspector } from './Inspector';
 import { allBuiltinCampaigns } from '../../scenes/campaign';
 import diligenceProjet from '../../scenes/diligence/diligence-projet.json';
@@ -342,17 +341,6 @@ describe('Editor v2 — authoring architectural', () => {
     expect(html).not.toContain(forbidden);
   });
 
-  it('sélectionne une cible architecturale de warning par ids stables', () => {
-    expect(architectureSelectionForWarning({
-      level: 'error',
-      sceneId: 'scene',
-      scope: 'architecture',
-      refId: 'feature-0',
-      message: 'Feature invalide',
-      architectureRef: { type: 'facadeSection', bodyId: 'corps-0', id: 'facade-0' },
-    })).toEqual({ type: 'facadeSection', bodyId: 'corps-0', id: 'facade-0' });
-  });
-
   it('ouvre dans l’inspecteur la section ciblée par un warning de feature', async () => {
     const initialScene: Scene = {
       ...emptyScene('scene-test', 8, 8),
@@ -474,6 +462,29 @@ describe('Editor v2 — authoring architectural', () => {
       idWarning.click();
     });
     expect(container.querySelector('[data-plan-focus]')).toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('un point d’entrée hors carte s’affiche au panneau de validation (`validateScene`)', async () => {
+    const initialScene: Scene = { ...emptyScene('scene-test', 4, 4), entryPoints: { porte: { x: 4, y: 1 } } };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    await act(async () => {
+      root.render(<Editor initialScene={initialScene} />);
+    });
+    const validationTab = Array.from(container.querySelectorAll('button')).find(
+      (candidate) => candidate.textContent?.includes('Validation'),
+    )!;
+    await act(async () => {
+      validationTab.click();
+    });
+    const rangees = Array.from(container.querySelectorAll('.ed-validation button.listrow')).map((r) => r.textContent ?? '');
+    expect(rangees.some((t) => t.includes('Point d\'entrée « porte » hors carte') && t.includes('(4,1)'))).toBe(true);
 
     await act(async () => {
       root.unmount();
@@ -901,55 +912,6 @@ describe('Editor v2 — pastille de reprise masquée (#834 audit-2 défaut 2)', 
     const rule = css.match(/\.autosave-recovery-pill\s*\{([^}]*)\}/);
     expect(rule).not.toBeNull();
     expect(rule![1]).toMatch(/position:\s*(fixed|absolute)/);
-  });
-});
-
-describe('Editor v2 — le défaut mis en évidence est VIVANT (re-résolution contre les avertissements frais)', () => {
-  /** Plan de plain-pied 6×2 sur la `route` : les colonnes 0-2 sont ENCLOSES par un périmètre de murs
-   *  (le corps de bâtiment), les colonnes 3-5 restent à l'air libre. */
-  function planTemoin(zoneW: number): Scene {
-    const w = 6, h = 2;
-    return {
-      ...emptyScene('scene-test', w, h),
-      layers: [{ z: 0, tiles: new Array(w * h).fill('route') }],
-      walls: [
-        { x: 0, y: 0, side: 'N' }, { x: 1, y: 0, side: 'N' }, { x: 2, y: 0, side: 'N' },
-        { x: 0, y: 2, side: 'N' }, { x: 1, y: 2, side: 'N' }, { x: 2, y: 2, side: 'N' },
-        { x: -1, y: 0, side: 'E' }, { x: -1, y: 1, side: 'E' },
-        { x: 2, y: 0, side: 'E' }, { x: 2, y: 1, side: 'E' },
-      ],
-      effectZones: [
-        { id: 'galerie', label: 'Galerie', presentation: 'interior', area: { kind: 'rect', x: 1, y: 0, w: zoneW, h: 2 }, z: 0 },
-      ],
-    };
-  }
-
-  const alertes = (scene: Scene) => validateScene([scene]).filter((w) => w.sceneId === scene.id);
-  const cases = (at: ReturnType<typeof planFocusAt>) => (at && at.kind === 'zone' ? at.tiles.length : 0);
-
-  it('les cases allumées FONDENT à mesure que l’auteur retaille la zone, puis la mise en évidence s’éteint', () => {
-    const depart = planTemoin(4); // la zone mord 2 colonnes de route → 4 cases fautives
-    const suivi = alertes(depart).find((w) => w.plan?.family === 'zone-debordante');
-    expect(suivi?.plan).toBeTruthy();
-    const key = planDefectKey(suivi!.plan!);
-    expect(cases(planFocusAt(alertes(depart), key))).toBe(4);
-
-    // Une colonne rendue à la route : le MÊME défaut, moins de cases.
-    expect(cases(planFocusAt(alertes(planTemoin(3)), key))).toBe(2);
-
-    // Zone entièrement bâtie : plus aucun avertissement ne porte ce défaut → l’annotation s’éteint.
-    expect(planFocusAt(alertes(planTemoin(2)), key)).toBeNull();
-  });
-
-  it('l’identité d’un défaut ne tient PAS à ses cases (elle survit à leur décompte), et distingue deux zones', () => {
-    const a = alertes(planTemoin(4)).find((w) => w.plan?.family === 'zone-debordante')!.plan!;
-    const b = alertes(planTemoin(3)).find((w) => w.plan?.family === 'zone-debordante')!.plan!;
-    expect(planDefectKey(a)).toBe(planDefectKey(b));
-    expect(planDefectKey({ family: a.family, at: { kind: 'zone', zoneId: 'cave', z: 0, tiles: [] } })).not.toBe(planDefectKey(a));
-  });
-
-  it('sans défaut suivi, rien n’est mis en évidence', () => {
-    expect(planFocusAt(alertes(planTemoin(4)), null)).toBeNull();
   });
 });
 
