@@ -77,12 +77,12 @@ describe('le groupe en exploration', () => {
     expect(lointains.map((g) => g.gestes.map((x) => x.verbe))).toContainEqual(['cliquerLaCase', 'fallAcross']);
   });
 
-  it('le clic d’une case qu’aucun chemin n’atteint ne joue rien, et rien ne s’écrit', () => {
+  it('le clic d’une case qu’aucun chemin n’atteint se refuse en la nommant, et rien ne s’écrit', () => {
     const t = table(fixture('croisee-ecuries.jsonl'));
     const avant = t.fichier();
     const r = t.jouer(verbe('cliquerLaCase', { x: 99, y: 99 }));
     expect(r.erreur, r.texte).toBe('regle');
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/cliquerLaCase sans effet/);
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/Marche refusée : aucun chemin du groupe ne mène à \(99,99\)/);
     expect(t.fichier()).toBe(avant);
   });
 

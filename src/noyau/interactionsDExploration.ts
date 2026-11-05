@@ -97,7 +97,8 @@ export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos
  * (`stage/geste.ts:entiteDuGeste`) : l'homologue hors combat d'`intentionDuClicDeCase` (`combatOrParty.ts`). Chaque
  * variante nomme les verbes que l'hôte joue : `interagir` → `interactEntity` ; `jouer` → `jouerAction` ; `rejoindre`
  * → `setPendingInteract(pending)` puis la marche du `plan` ; `marcher` → la marche du `plan` ; `dire` → `log` ;
- * `annuler` → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `setPendingInteract(null)`.
+ * `injoignable` → le refus qui nomme la case qu'aucun chemin n'atteint (`refuserGeste`) ; `annuler` (la case du groupe)
+ * → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `setPendingInteract(null)`.
  * `null` : rien ne se joue (hors exploration, dialogue ouvert, N offres à portée que la pastille sert, entité
  * utilisable injoignable), le pending et le survol restent.
  */
@@ -107,6 +108,7 @@ export type IntentionDExploration =
   | { kind: 'rejoindre'; plan: ExploreMovePlan; pending: PendingInteract }
   | { kind: 'marcher'; plan: ExploreMovePlan }
   | { kind: 'dire'; message: string }
+  | { kind: 'injoignable'; message: string }
   | { kind: 'annuler' };
 
 export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string | null): IntentionDExploration | null {
@@ -118,6 +120,9 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
   // adjacente d'une entité, ou la case même.
   const plan = exploreMovePlan(sc, s.partyPos, tuile, opts);
   const marcherOu = (sinon: IntentionDExploration): IntentionDExploration => (plan ? { kind: 'marcher', plan } : sinon);
+  const sansChemin: IntentionDExploration = memeCase(s.partyPos, tuile)
+    ? { kind: 'annuler' }
+    : { kind: 'injoignable', message: t('marche.aucunChemin', { x: tuile.x, y: tuile.y }) };
   const presetDe = presetDuNarratif(s.campaignNarratif);
   // MEUBLE À PLACES : il AJOUTE l'assise sans retirer d'affordance ; sans place servable, la chaîne des offres reprend
   // (son offre d'assise, `actionsDe`, le garde utilisable).
@@ -137,14 +142,14 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
   }
   if (ent?.kind === 'personnage') {
     if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: ficheDEntite(ent, presetDe).label }) };
-    return marcherOu({ kind: 'annuler' });
+    return marcherOu(sansChemin);
   }
   // DÉCOR qui OCCUPE sa case (`entityBlockedAt`, la règle d'`isWalkable`) : on s'en approche, sinon on le dit. Un décor
   // PASSABLE se clique comme le sol.
   if (ent?.kind === 'prop' && entityBlockedAt(sc, ent.pos.x, ent.pos.y, ent.z ?? 0)) {
     return marcherOu({ kind: 'dire', message: t('store.propInerte', { what: nomDEntite(ent, presetDe) ?? t('store.propInerteFallback') }) });
   }
-  return marcherOu({ kind: 'annuler' });
+  return marcherOu(sansChemin);
 }
 
 /** Le meneur occupe-t-il CE meuble ? Alors il s'en relève, et le dit. Rend `true` s'il s'est levé —
@@ -224,6 +229,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
         case 'rejoindre': get().setPendingInteract(intention.pending); marcherLeChemin(get, intention.plan.path); return;
         case 'marcher': get().setPendingInteract(null); marcherLeChemin(get, intention.plan.path); return;
         case 'dire': get().setPendingInteract(null); get().log(intention.message); return;
+        case 'injoignable': get().setPendingInteract(null); refuserGeste(get, set, intention.message); return;
         case 'annuler': get().setPendingInteract(null); return;
         default: return intention satisfies never;
       }

@@ -1262,6 +1262,7 @@ export const fr = {
   'fenetre.mouvementInsuffisant': '{name} n’a plus assez de Mouvement pour enjamber la fenêtre ({cout} cases).',
   'saut.aucuneSurface': 'Saut refusé : rien ne recevrait une chute dans ce gouffre.',
   'marche.horsDePas': 'Pas refusé : le groupe marche d’une case voisine à la suivante.',
+  'marche.aucunChemin': 'Marche refusée : aucun chemin du groupe ne mène à ({x},{y}).',
   'marche.autreEtage': 'Pas refusé : cette case voisine est à l’étage {z}, le pas la vise à cet étage.',
   'porte.refus.ouverte': 'Porte refusée : cet accès est déjà ouvert, le groupe le franchit en marchant.',
   'exploration.saut': 'Sauter vers ({x},{y})',
