@@ -143,7 +143,8 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 
 /** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
  *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
- *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`) et l'issue de la Défense. */
+ *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle
+ *  et le Sauvetage par le Destin en attente. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const attaque = fenetreDAttaque(etat);
   if (attaque) return corpsDeLAttaque(etat, attaque);
@@ -157,23 +158,38 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
-    ...critiqueDeLEtape(etat),
+    ...revelationDeLEtape(etat),
+    ...destinEnJeu(etat),
   ];
 }
 
-/** Le Coup Critique que l'étape courante de la cascade révèle : sa localisation, les Blessures perdues s'il en coûte et
- *  chaque État infligé en puces, puis chacun de ses effets, son explication au détail ; sur un héros en `echec`, sur un adversaire
- *  en `reussite`. Ses lignes vont aussi au journal, où ses effets ne se lisent qu'au survol. */
-function critiqueDeLEtape(etat: Jeu): Element[] {
+/** Le Sauvetage par le Destin en attente : ce qui emporte le héros, sa mort sans sacrifice au détail, et ses Points de
+ *  Destin. */
+function destinEnJeu(etat: Jeu): Element[] {
+  const p = etat.pendingFateSave;
+  const heros = p && porteurParId(etat, p.heroId);
+  if (!heros) return [];
+  return [ligne('destin/enjeu', t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce('destin/points', t('ecran.destin'), String(heros.fate ?? 0))];
+}
+
+/** Ce que l'étape courante de la cascade révèle (fin de round, entrée de scène, mutation, Coup Critique…). Un Coup
+ *  Critique dit sa localisation, les Blessures perdues s'il en coûte et chaque État infligé en puces, sur un héros en
+ *  `echec`, sur un adversaire en `reussite` ; toute autre révélation, chacune de ses lignes. Puis chacun de ses effets,
+ *  son explication au détail. Ses lignes vont aussi au journal, où ses effets ne se lisent qu'au survol. */
+function revelationDeLEtape(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const r = pc?.participants[pc.cursor]?.reveal;
-  if (r?.kind !== 'critical' || !r.crit) return [];
+  if (!r) return [];
+  const crit = r.kind === 'critical' ? r.crit : undefined;
   const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
+  const prefixe = crit ? 'critique' : 'revelation';
   return [
-    puce('critique/localisation', t('ecran.critique.localisation'), r.crit.location, null, ton),
-    ...(r.crit.woundsLost ? [puce('critique/blessures', t('ecran.jauge.blessures'), avecSigne(-r.crit.woundsLost), null, ton)] : []),
-    ...(r.crit.conditions ?? []).map((c) => puce(`critique/etat/${c.id}`, conditionLabel(c.id), String(c.value), null, ton)),
-    ...(r.details ?? []).map((d, i) => ligne(`critique/effet/${i}`, d.text, 'neutre', d.note ?? null)),
+    ...(crit ? [
+      puce('critique/localisation', t('ecran.critique.localisation'), crit.location, null, ton),
+      ...(crit.woundsLost ? [puce('critique/blessures', t('ecran.jauge.blessures'), avecSigne(-crit.woundsLost), null, ton)] : []),
+      ...(crit.conditions ?? []).map((c) => puce(`critique/etat/${c.id}`, conditionLabel(c.id), String(c.value), null, ton)),
+    ] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
+    ...(r.details ?? []).map((d, i) => ligne(`${prefixe}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
 }
 
