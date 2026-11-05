@@ -25,10 +25,7 @@ propriete = &"disabled"
 [node name="Geste" type="Node" parent="Presser"]
 script = ExtResource("2_geste")
 
-[node name="Refus" type="Label" parent="."]
-theme_type_variation = &"alerte"
-
-[node name="refus" type="Node" parent="Refus"]
+[node name="infobulle" type="Node" parent="Presser"]
 script = ExtResource("1_liaison")
 champ = "refus"
-cacher_si_nul = true
+propriete = &"tooltip_text"

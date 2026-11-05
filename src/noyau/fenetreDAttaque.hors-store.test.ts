@@ -49,7 +49,8 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
       expect(avant.attaquantId).toBe(H.id);
       expect(avant.cibleId).toBe(E.id);
       expect(avant.sousTitre.startsWith(`${H.label} — Attaque`), avant.sousTitre).toBe(true);
-      expect(avant.enTete).toContain('Dégâts +');
+      expect(avant.arme, 'l’arme employée est nommée').toBeTruthy();
+      expect(avant.degats, 'avant le jet, les Dégâts de l’arme sont dits').toEqual(expect.any(Number));
       expect(avant.localisation).toMatchObject({ verbe: 'attackSetLocation', choisie: null });
       expect(avant.localisation!.options.map((o) => o.valeur)).toEqual(expect.arrayContaining([null, ...LOCALISATIONS_DE_COUP]));
       expect(avant.localisation!.options).toHaveLength(LOCALISATIONS_DE_COUP.length + 1);

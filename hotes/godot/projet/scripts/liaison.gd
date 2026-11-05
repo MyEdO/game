@@ -2,8 +2,8 @@
 ## propriété du contrôle qui la porte, son parent. La valeur se convertit d'après le type de la propriété : un texte
 ## (`null` : vide), un booléen (`null` : faux, toute autre valeur qui n'est pas un booléen : vrai, comme un refus qui
 ## désactive), un nombre, un nom (le ton en variation du thème). Une liste de valeurs nommées remplit une liste
-## déroulante (`OptionButton`) : chaque libellé, chaque refus désactivé, la valeur pressée choisie. `cacher_si_nul` :
-## le contrôle se cache quand le champ vaut `null`. Un champ absent de l'élément est une faute de la scène.
+## déroulante (`OptionButton`) : chaque libellé, chaque refus désactivé et dit à son survol, la valeur pressée
+## choisie. `cacher_si_nul` : le contrôle se cache quand le champ vaut `null`. Un champ absent de l'élément est une faute de la scène.
 class_name Liaison
 extends Node
 
@@ -38,12 +38,14 @@ func poser(element: Dictionary) -> void:
 			cible.set(propriete, valeur)
 
 
-## `liste` remplie des `valeurs` : chacune son libellé, désactivée si elle porte un refus, la valeur pressée choisie.
+## `liste` remplie des `valeurs` : chacune son libellé, désactivée si elle porte un refus et le disant à son survol, la
+## valeur pressée choisie.
 static func _remplir(liste: OptionButton, valeurs: Array) -> void:
 	liste.clear()
 	liste.select(-1)
 	for i in valeurs.size():
 		liste.add_item(str(valeurs[i].libelle))
 		liste.set_item_disabled(i, valeurs[i].refus != null)
+		liste.set_item_tooltip(i, "" if valeurs[i].refus == null else str(valeurs[i].refus))
 		if valeurs[i].presse:
 			liste.select(i)

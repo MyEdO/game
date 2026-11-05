@@ -71,8 +71,10 @@ export interface FenetreDAttaque {
   cibleId: string;
   intitule: string;
   sousTitre: string;
-  /** L'arme RÉELLEMENT employée (`attackWeaponOf`) et, avant le jet, ses Dégâts. */
-  enTete: string;
+  /** L'arme RÉELLEMENT employée (`attackWeaponOf`). */
+  arme: string;
+  /** Les Dégâts de l'arme avant le jet, `null` sans aperçu. */
+  degats: number | null;
   jete: boolean;
   /** L'arme et la Localisation visée se règlent avant le jet ; `null` une fois jeté. */
   deuxArmes: BasculeNommee | null;
@@ -190,7 +192,8 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     cibleId: cible.id,
     intitule,
     sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'ranged' : 'melee')),
-    enTete: apercu ? `${arme.label} · ${t('attaque.degats', { dmg: apercu.dmg })}` : arme.label,
+    arme: arme.label,
+    degats: apercu ? apercu.dmg : null,
     jete,
     deuxArmes: deuxArmesPossibles ? bascule('attackSetDualMode', !!pa.dualMode, null) : null,
     choixDArme: !res && auxArmes.length >= 2 && !pa.dualMode

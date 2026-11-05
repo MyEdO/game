@@ -2,7 +2,7 @@
 ## `VUES` dans la copie qu'elle importe) montrée par la scène `Ecran` comme le routeur `combat.gd` la montre, dans la
 ## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone ; chaque
 ## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
-## (`DITS`) se lit à l'écran ; chaque geste pressé joue l'intention que l'élément porte,
+## (`DITS`) se lit à l'écran, ou au survol de son contrôle ; chaque geste pressé joue l'intention que l'élément porte,
 ## un formulaire celle que la vue attend ; le geste en focus le prend. Remontrée, une vue garde ses nœuds ; vidée, une
 ## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
 ## montrée par une vue.
@@ -13,7 +13,7 @@ const RECETTE_AUTONOME := true
 const FOCUS := {bouton = "Presser", liste = "Valeurs", formulaire = "Jouer"}
 const VUES := "res://recettes/vues/ecran.json"
 ## Les champs d'un élément que l'écran dit en texte.
-const DITS := ["texte", "libelle", "qui", "base", "difficulte", "cible", "resultat", "dr", "verdict", "refus"]
+const DITS := ["texte", "libelle", "qui", "cible", "resultat", "dr", "verdict", "refus", "detail"]
 const ECRANS := "res://ecrans"
 
 var _fautes: Array[String] = []
@@ -125,7 +125,8 @@ func _dessines(zone: Zone) -> Array:
 	return zone.get_parent().get_children().filter(func(n: Node) -> bool: return n.has_meta(Zone.META))
 
 
-## Chaque texte visible sous `noeud` : étiquettes, boutons, champs, et chaque entrée d'une liste déroulante.
+## Chaque texte visible sous `noeud` : étiquettes, boutons, champs, chaque entrée d'une liste déroulante, et la bulle
+## de chaque contrôle.
 func _textes(noeud: Node) -> Array:
 	var textes := []
 	var controles: Array = noeud.find_children("*", "Control", true, false)
@@ -135,6 +136,8 @@ func _textes(noeud: Node) -> Array:
 			continue
 		if n is Label or n is Button or n is LineEdit:
 			textes.append(n.text)
+		if (n as Control).tooltip_text != "":
+			textes.append((n as Control).tooltip_text)
 		if n is OptionButton:
 			for i in (n as OptionButton).item_count:
 				textes.append((n as OptionButton).get_item_text(i))

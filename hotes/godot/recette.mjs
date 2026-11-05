@@ -75,11 +75,13 @@ const actif = (v) => v.projection.combat?.actif
 const zone = (v, z) => v.zones[z]
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
+/** Les gestes que la fenêtre dessine : ses réglages, puis ses gestes. */
+const dessines = (v) => [...zone(v, 'fenetre.reglages'), ...zone(v, 'fenetre.gestes')]
 /** Les gestes que la fenêtre dessine, par leur identité. */
-const ouverts = (v) => zone(v, 'fenetre.gestes').map((g) => g.id)
+const ouverts = (v) => dessines(v).map((g) => g.id)
 /** Le geste en focus : celui que la fenêtre joue à l'Entrée. */
 const enFocus = (v) => {
-  const gestes = zone(v, 'fenetre.gestes').filter((g) => g.focus)
+  const gestes = dessines(v).filter((g) => g.focus)
   assert.equal(gestes.length, 1, `un geste en focus dans ${JSON.stringify(ouverts(v))}`)
   return gestes[0]
 }
@@ -152,11 +154,11 @@ async function parcoursCombat() {
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
   assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
   noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
-  const localiser = element(v, 'fenetre.gestes', 'attackSetLocation')
+  const localiser = element(v, 'fenetre.reglages', 'attackSetLocation')
   const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
   await cliquerBouton(bouton(lieu))
   v = await vue()
-  assert.equal(element(v, 'fenetre.gestes', localiser.id).valeurs.find((x) => x.presse)?.id, lieu.id, 'la Localisation cliquée est retenue')
+  assert.equal(element(v, 'fenetre.reglages', localiser.id).valeurs.find((x) => x.presse)?.id, lieu.id, 'la Localisation cliquée est retenue')
   noter(`Localisation « ${lieu.libelle} » ; ${element(v, 'fenetre.corps', 'jet').cible}`)
   await capturer('2928-6c-2-attaque-apercu')
   const jetDAttaque = enFocus(v).id

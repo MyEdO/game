@@ -27,7 +27,7 @@ const argument = (nom: string, saisie: ArgumentDuGeste['saisie'], partie: Partia
 
 /** Un geste en formulaire, une saisie de chaque sorte, et les arguments qu'il joue pressé tel qu'il est dessiné. */
 const FORMULAIRE: GesteDeLaFenetre = {
-  cle: 'formulaire', verbe: 'verbeDeRecette', libelle: 'Jouer le formulaire', rendu: 'formulaire', aChoisir: null, attendu: true, ouvert: true, raison: null,
+  cle: 'formulaire', verbe: 'verbeDeRecette', libelle: 'Jouer le formulaire', rendu: 'formulaire', aChoisir: null, attendu: true, ouvert: true, raison: null, reglage: false,
   arguments: [
     argument('pid', 'fixe', { libelle: null, valeur: 'designe' }),
     argument('choix', 'choix', { valeur: 'b', valeurs: [{ valeur: 'a', libelle: 'Valeur A', refus: null }, { valeur: 'b', libelle: 'Valeur B', refus: null }, { valeur: 'c', libelle: 'Valeur C', refus: 'Refusée' }] }),
@@ -40,7 +40,7 @@ const FORMULAIRE: GesteDeLaFenetre = {
 const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', { a: 1 }, { x: 2, y: 'z' }];
 
 /** Un geste ouvert que sa fermeture refuse, sa raison dite. */
-const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet' };
+const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
 
 export function figerVuesDeLEcran(): VueFigee[] {
   const pont = creerPont();
@@ -81,7 +81,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('jet d’attaque tombé', s);
 
   const vides: ZonesDeLEcran = {
-    'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.gestes': [],
+    'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.actif': [], 'combat.avis': [], 'combat.offres': [], 'journal.titre': [],
   };
   vues.push({

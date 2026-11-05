@@ -45,6 +45,7 @@ export { plateauDeLaScene, type Scene } from './monde/scene';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
+export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';

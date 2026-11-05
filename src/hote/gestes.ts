@@ -56,7 +56,8 @@ export interface ArgumentDuGeste {
  *  joue maintenant (`drive`, le jet puis sa clôture). `ouvert` : faux pour un geste qu'une fenêtre lue règle
  *  (`LECTEURS`) et qu'elle ne nomme pas maintenant, ou que le flux de jet qui le joue ferme maintenant
  *  (`fermeturesDeLaFenetre`) sans attendre de décision (`FERMETURES_DITES`) ; un hôte ne le dessine pas. `raison` : ce
- *  qui ferme ce verbe de jet, en mots du joueur ; un verbe ouvert qui la porte se dessine refusé. */
+ *  qui ferme ce verbe de jet, en mots du joueur ; un verbe ouvert qui la porte se dessine refusé. `reglage` : un verbe
+ *  qu'une fenêtre lue règle (`LECTEURS`), une option du coup plutôt qu'un pas de sa séquence. */
 export interface GesteDeLaFenetre {
   cle: string;
   verbe: string;
@@ -67,6 +68,7 @@ export interface GesteDeLaFenetre {
   attendu: boolean;
   ouvert: boolean;
   raison: string | null;
+  reglage: boolean;
 }
 
 /** La fenêtre qui tient la main, prête à dessiner : sa disposition (la clé de la fenêtre, `<clé>/<jet>` pour l'étape
@@ -181,7 +183,7 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
     });
     const fermeture = fermetures.get(cle) ?? null;
     const ouvert = (!regles.has(verbe) || reglages.has(verbe)) && (!fermeture || FERMETURES_DITES.has(fermeture));
-    return { cle, verbe, libelle: garanti(libelleDuGeste(g), cle, 'libellé du geste'), arguments: args, ...renduDe(args), attendu: cle === attendu, ouvert, raison: fermeture && libelleDeLaFermeture(fermeture) };
+    return { cle, verbe, libelle: garanti(libelleDuGeste(g), cle, 'libellé du geste'), arguments: args, ...renduDe(args), attendu: cle === attendu, ouvert, raison: fermeture && libelleDeLaFermeture(fermeture), reglage: regles.has(verbe) };
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
