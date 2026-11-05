@@ -7,6 +7,7 @@
  * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
+import { composeRollLabel } from '../rollSeam';
 import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import {
@@ -2309,7 +2310,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe('d10')), v: r.desc } as CodexRow)),
           },
           {
-            title: tr('codex.fiche.pharesClochersPerception'), layout: 'list',
+            title: composeRollLabel(undefined, tr('codex.fiche.pharesClochers'), { skill: 'perception' }), layout: 'list',
             rows: n.phares.voirLaLumiere.map((r) => ({ t: 'kv', k: tr('codex.fiche.milles', { v: fourchette(r.min, r.max) }), v: DIFFICULTY_LABELS[r.difficulty] } as CodexRow)),
           },
           {

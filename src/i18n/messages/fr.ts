@@ -4493,7 +4493,7 @@ export const fr = {
   'codex.fiche.orientationReperes1TestJour': 'Orientation — Repères (1 Test/jour)',
   'codex.fiche.aDr': ', +{driftMajorBonus} à DR {v}',
   'codex.fiche.changementDeCap1d10': 'Changement de cap (1d10{v})',
-  'codex.fiche.pharesClochersPerception': 'Phares & clochers (Perception)',
+  'codex.fiche.pharesClochers': 'Phares & clochers',
   'codex.fiche.longsVoyages': 'Longs voyages',
   'codex.fiche.millesJourParPointDeM': 'Milles/jour par point de M',
   'codex.fiche.sansVoguerDeNuit': 'Sans voguer de nuit',
