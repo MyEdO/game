@@ -140,7 +140,7 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 
 /** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
  *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
- *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`). */
+ *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`) et l'issue de la Défense. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const attaque = fenetreDAttaque(etat);
   if (attaque) return corpsDeLAttaque(etat, attaque);
@@ -153,6 +153,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
       detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
     })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
+    ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
   ];
 }
 

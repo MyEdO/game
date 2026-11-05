@@ -137,6 +137,7 @@ describe('un tour complet par le pont', () => {
     evenements.push(...journal);
     expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
     expect(corpsDe(suite.vue, 'defense/jet'), 'le dé tombé, la ligne avant le dé s’efface').toBeUndefined();
+    expect(corpsDe(suite.vue, 'defense/issue'), 'le dé tombé, la Défense dit son issue').toMatchObject({ type: 'ligne', texte: expect.stringMatching(/\S/) });
     expect(suite.vue.zones['fenetre.corps'].find((e) => e.type === 'jet' && e.libelle === (reaction as Jet).libelle), 'le jet tombé vise le score annoncé avant le dé').toMatchObject({ cible: (reaction as Jet).cible });
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
