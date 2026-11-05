@@ -491,8 +491,8 @@ describe('« un signe, un sens » — les enjeux et leurs conséquences parlent 
   const FACTEUR = /×\s*0[.,]\d/; // ×0.8 / ×0,5 — jamais côté joueur
 
   it('aucun gabarit d’enjeu n’exprime une réduction en FACTEUR', () => {
-    const stakes = JSON.parse(readFileSync(join(process.cwd(), 'src', 'data', 'voyage-stakes.json'), 'utf8')) as { kind: string; template: string }[];
-    const fautifs = stakes.filter((e) => FACTEUR.test(e.template)).map((e) => `${e.kind} — ${e.template}`);
+    const stakes = JSON.parse(readFileSync(join(process.cwd(), 'src', 'data', 'stakes.json'), 'utf8')) as { cascade: string; cle: string; template?: string }[];
+    const fautifs = stakes.filter((e) => FACTEUR.test(e.template ?? '')).map((e) => `${e.cascade}/${e.cle} — ${e.template}`);
     expect(fautifs, ['Enjeu exprimé en facteur (langue du moteur) — dire le % ou la division, comme la Source :', ...fautifs].join('\n')).toEqual([]);
   });
 

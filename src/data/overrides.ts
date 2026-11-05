@@ -24,7 +24,7 @@ import {
   WATER_EXPOSURE, navalPorts,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation,
-  GRAPPLE, NIGHT_STAKES, VOYAGE_STAKES, FLOW_STAKES, COMBAT_STAKES,
+  GRAPPLE, STAKES,
   regles,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
@@ -64,8 +64,7 @@ import { MISHAP_TABLE } from '../engine/drivingMishap';
 import { DRUNK_TABLE } from '../engine/drunkenness';
 // #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
-// 3 tables NICHÉES dans `miscast.json`, même patron que `criticalsTete`/`aaCriticalsTete`), enjeux de
-// la cascade de nuit (`night-stakes.json`, tableau RACINE, nom de fichier kebab-case divergent).
+// 3 tables NICHÉES dans `miscast.json`, même patron que `criticalsTete`/`aaCriticalsTete`).
 import miscastRawJson from './miscast.json';
 import { rangeesDe, type RangeeDe } from './rangees';
 import type * as imparfaites from './schemas/defs/miscast';
@@ -78,7 +77,7 @@ import sizesRawJson from './sizes.json';
 // `engine/magicEnvironment.ts`) importe le MÊME module JSON singleton, sans index précalculé — une
 // édition Compendium reste visible en direct, sans rechargement de page.
 import arcanePhenomenaRawJson from './arcane-phenomena.json';
-import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable } from './arcanePhenomena';
+import type { ArcaneData } from './arcanePhenomena';
 // V9 #1318 : registre des règles optionnelles (`engine/policy.ts`, tableau RACINE) et Tableau de
 // Surincantation (VDM 02, tableau NICHÉ dans `{source,ref,table}`) — importés comme les autres
 // datasets migrés du CODE en donnée, MÊME module JSON singleton que leur lecteur moteur.
@@ -205,14 +204,9 @@ const ARRAYS = {
   miscastMinor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure'),
   miscastMajor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure'),
   miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
-  // #422 (FINAL) : enjeux des cascades — chaque binding écrit EST la racine de son fichier
-  // (tableau RACINE, pas un tableau niché sous une enveloppe). Le fichier disque ne se déduit pas de
-  // la clé JS : il est DÉRIVÉ de l'`exposition.edit` du def (`nightStakes` → `night-stakes.json`) ;
-  // les trois autres sont `edit:{none}` (lecture seule au Codex), donc sans fichier de sauvegarde.
-  nightStakes: NIGHT_STAKES,
-  voyageStakes: VOYAGE_STAKES,
-  flowStakes: FLOW_STAKES,
-  combatStakes: COMBAT_STAKES,
+  // Enjeux des cascades (`stakes.json`, tableau RACINE, #1681) : le fichier disque est DÉRIVÉ de
+  // l'`exposition.edit` du def.
+  stakes: STAKES,
   // Fiches de règle (`regles.json`, tableau RACINE) : leurs `rangees` et `tests` sont lus par le moteur
   // (`engine/reglesChiffrees.ts`), dont l'index se reconstruit à chaque écriture au seam (#1173) ; en
   // lecture seule au Codex, c'est l'espace que le sélecteur du foyer de règle (`refTypee`, `cfgDuType`)
@@ -234,12 +228,8 @@ const ARRAYS = {
 export type DatasetKey = keyof typeof ARRAYS;
 export const DATASET_KEYS = Object.keys(ARRAYS) as DatasetKey[];
 
-/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS — mêmes types que `data/arcanePhenomena.ts`. */
-interface ArcanePhenomenaFile {
-  saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
-  phenomena: ArcanePhenomenon[]; tables: ArcaneTable[];
-}
-const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcanePhenomenaFile;
+/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS. */
+const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcaneData;
 
 /** Datasets-OBJETS uniques : pas un tableau d'entités mais UN objet de config (`details`) ou une fiche
  *  de règle UNIQUE (`waterExposure`, MSRC 16). Mutés EN PLACE (mêmes garanties que les tableaux) →

@@ -39,7 +39,7 @@ import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
-import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
+import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
@@ -56,9 +56,9 @@ const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationT
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
-  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'flowStakes', 'combatStakes', 'seaBoardEvents'] as const,
+  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
   (k) => structuredClone(datasetArray(k)),
-) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'flowStakes' | 'combatStakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
@@ -126,7 +126,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // fenêtre de pose) qu'après le passage du site qui ouvrait l'étape.
     const saison = weather[weather.length - 1];
     const id = `stage-weather-${saison.id}`;
-    expect(tableStepDef(id)!.rows).toEqual(stageWeatherRows(saison.ranges));
+    expect(tableStepDef(id)!.rows).toEqual(stageWeatherRows(saison.entries));
     expect(tableStepIds()).toContain(id);
 
     setDataset('weather', weather.filter((s) => s.id !== saison.id));
@@ -150,7 +150,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
-        ? { ...t, label: 'physique révisée QC (LDB)', ranges: [{ ...t.ranges[0], max: 99 }, ...t.ranges.slice(1)] }
+        ? { ...t, label: 'physique révisée QC (LDB)', entries: [{ ...t.entries[0], max: 99 }, ...t.entries.slice(1)] }
         : t)),
       neuve,
     ]);
@@ -332,19 +332,19 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(daysPerYear()).toBe(avant + 3);
   });
 
-  it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `flowStakes`', () => {
+  it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const chanson = seaShanties[0].id;
     const ref = () => resolveStake(flowStakeRef('shanty-roll', { entryId: chanson })).rule;
     expect(ref()).toEqual({ category: 'seaShanties', id: chanson });
-    setDataset('flowStakes', FLOW_STAKES.map((e) => (e.id === 'shanty-roll' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.id === 'shanty-roll' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toEqual({ category: 'talents', id: 'chanson-de-marin' });
   });
 
-  it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `combatStakes`', () => {
+  it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const maladie = maladies[0].id;
     const ref = () => resolveStake(combatStakeRef('combatEndDisease', { entryId: maladie })).rule;
     expect(ref()).toEqual({ category: 'maladies', id: maladie });
-    setDataset('combatStakes', COMBAT_STAKES.map((e) => (e.kind === 'combatEndDisease' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.cascade === 'combat' && e.cle === 'combatEndDisease' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toBeUndefined();
   });
 

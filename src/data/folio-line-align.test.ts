@@ -26,7 +26,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stoc
  * deux citations ment, et rien ne le montre à la lecture.
  *
  * Complément de `book-source-integrity.test.ts` (voies A/B/C), qui part de la `desc` VERBATIM : les
- * datasets d'ENJEUX (`flow-stakes`, `combat-stakes`, `voyage-stakes`) et le registre des règles
+ * enjeux de jet (`stakes`) et le registre des règles
  * optionnelles n'ont pas de `desc` — ils lui sont invisibles, ils ne le sont pas ici.
  *
  * MODE CLIQUET : `FOLIO_LINE_ALIGN_RATCHET` gèle les désalignements restants en entrées

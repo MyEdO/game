@@ -58,7 +58,6 @@ describe('sauvegarde éditeur — chaque clé de dataset résout un fichier REGI
 
   it('un dataset SANS route d’édition déclarée n’a pas de fichier de sauvegarde — refus nominatif', () => {
     expect(datasetEditable('breathTypes')).toBe(false);
-    expect(datasetEditable('voyageStakes')).toBe(false);
     expect(() => datasetFile('breathTypes')).toThrow(/breathTypes/);
   });
 

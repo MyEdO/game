@@ -176,7 +176,7 @@ function forcedOpposedAtk(p: PendingDefense, def: TestResult): TestResult {
 /** Descripteur de la défense par SUBSTITUTION sociale (Intimidation/Dressage, LDB 09 l.207/287), ou
  *  `undefined` hors mode 'social'. Base = valeur de Test de la Compétence figée au choix
  *  (`substituteSkillId`, `skillBaseValue`) ; libellé = son nom d'affichage. */
-function defenseSubOf(defender: Combatant, p: PendingDefense): DefenseSub | undefined {
+export function defenseSubOf(defender: Combatant, p: PendingDefense): DefenseSub | undefined {
   if (p.mode !== 'social' || !p.substituteSkillId) return undefined;
   return { base: skillBaseValue(defender, p.substituteSkillId), label: byId('skill', p.substituteSkillId)?.label ?? DEFENSE_LABEL_FALLBACK };
 }

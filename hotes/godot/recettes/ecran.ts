@@ -79,10 +79,19 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('fenêtre d’attaque', s);
   s = jouer('jouer', enFocus(s));
   figer('jet d’attaque tombé', s);
+  s = jouer('jouer', enFocus(s));
+  for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
+    if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
+    s = jouer('jouer', { offre: 'end-turn' });
+    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', { offre: 'end-turn' });
+  }
+  figer('Défense', s);
+  s = jouer('jouer', enFocus(s));
+  figer('jet de Défense tombé', s);
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.actif': [], 'combat.avis': [], 'combat.offres': [], 'journal.titre': [],
+    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.offres': [], 'journal.titre': [],
   };
   vues.push({
     nom: 'formulaire de chaque saisie',

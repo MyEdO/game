@@ -178,7 +178,7 @@ export const gestesEcrits = (g: GesteDExploration): { verbe: string; args: unkno
 /** Un geste d'exploration : son libellé et l'appel qui le joue. */
 export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: gestesEcrits(g) })}`);
 
-const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}`;
+const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}${o.refus === null ? '' : ` (fermée : ${o.refus})`}`;
 
 /** La vue par défaut (`BORNES.lignes.vue`). */
 export function rendreLaVue(p: Projection): string[] {

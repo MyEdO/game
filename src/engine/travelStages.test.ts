@@ -1,13 +1,13 @@
 /**
  * Voyage par Étapes (EDOC 8) — fonctions PURES.
- * Vérifie : nombre d'Étapes (l.34) ± bonus, table de Météo VERBATIM seedée (l.44-51), difficulté
+ * Vérifie : nombre d'Étapes (l.34) ± bonus, table de Météo (l.52-59), difficulté
  * d'Exposition selon l'équipement (l.73), rendement d'Approvisionnement (LDB 09 l.568-572), saisons.
  */
 import { describe, it, expect } from 'vitest';
-import { makeRNG } from './dice';
+import { totalDuDe } from './dice';
 import {
   seasonOfMonth, isColdSeason,
-  weatherFromRoll, rollStageWeather, weatherRanges,
+  weatherFromRoll, weatherRanges, weatherDie,
   stageCount, stageExposureDifficulty, forageYield,
   weatherRangedMod, weatherRangedUseless, weatherPowderUseless, weatherVisibiliteM,
   weatherMovementWalkOnly, weatherResistanceTest, weatherLightningNervous,
@@ -83,8 +83,8 @@ describe('table de Météo VERBATIM (EDOC 8 l.50-59)', () => {
     expect(weatherRanges('hiver').map((r) => r.weather)).not.toContain('sec');
   });
   it('édition LIVE au Codex : éditer la météo (setDataset) change le tirage', () => {
-    const orig = weather.map((s) => ({ ...s, ranges: s.ranges.map((r) => ({ ...r })) }));
-    setDataset('weather', weather.map((s) => (s.id === 'printemps' ? { ...s, ranges: [{ min: 1, max: 100, weather: 'blizzard' }] } : s)));
+    const orig = weather.map((s) => ({ ...s, entries: s.entries.map((r) => ({ ...r })) }));
+    setDataset('weather', weather.map((s) => (s.id === 'printemps' ? { ...s, entries: [{ min: 1, max: 100, weather: 'blizzard' }] } : s)));
     expect(weatherFromRoll(50, 'printemps')).toBe('blizzard'); // lecture LIVE de la donnée éditée
     setDataset('weather', orig); // restaurer pour l'isolation des autres tests
     expect(weatherFromRoll(50, 'printemps')).not.toBe('blizzard');
@@ -95,36 +95,28 @@ describe('table de Météo VERBATIM (EDOC 8 l.50-59)', () => {
     // rangées au Codex changeait la météo tirée SANS UN MOT. Les deux bornes étant en donnée
     // (EDOC 08 l.52-59) et le lookup étant `findTableEntry` (borné des DEUX côtés), l'ordre est inerte.
     const seasons: Season[] = ['printemps', 'ete', 'automne', 'hiver'];
-    const orig = weather.map((s) => ({ ...s, ranges: s.ranges.map((r) => ({ ...r })) }));
+    const orig = weather.map((s) => ({ ...s, entries: s.entries.map((r) => ({ ...r })) }));
     const avant = seasons.map((s) => Array.from({ length: 100 }, (_, i) => weatherFromRoll(i + 1, s)));
     // Réordonnement réel : les rangées de chaque saison à l'ENVERS.
-    setDataset('weather', orig.map((s) => ({ ...s, ranges: [...s.ranges].reverse() })));
+    setDataset('weather', orig.map((s) => ({ ...s, entries: [...s.entries].reverse() })));
     const apres = seasons.map((s) => Array.from({ length: 100 }, (_, i) => weatherFromRoll(i + 1, s)));
     setDataset('weather', orig);
     expect(apres, 'le tirage dépend encore de l’ORDRE des rangées — la borne basse est reconstruite par position quelque part.').toEqual(avant);
   });
-  it('chaque saison couvre le d100 EXACTEMENT une fois — aucun trou, aucun chevauchement', () => {
+  it('chaque saison couvre son dé EXACTEMENT une fois — aucun trou, aucun chevauchement', () => {
     // Contrat STRUCTUREL sur les fourchettes, PAS un aller-retour par `weatherFromRoll` : celui-ci
     // passe par `findTableEntry`, qui REPLIE sur la dernière rangée quand aucune ne couvre le jet —
     // il rend donc une météo même sur une table trouée, et un `toBeTruthy()` reste vert. Ce qu'on
-    // mesure ici est la partition : chaque jet de 1 à 100 appartient à UNE fourchette et une seule.
+    // mesure ici est la partition : chaque jet du dé de la saison appartient à UNE fourchette et une seule.
     const seasons: Season[] = ['printemps', 'ete', 'automne', 'hiver'];
     for (const s of seasons) {
       const ranges = weatherRanges(s);
-      const fautifs = Array.from({ length: 100 }, (_, i) => i + 1)
+      const de = weatherDie(s);
+      const fautifs = Array.from({ length: de.n * (de.sides - 1) + 1 }, (_, i) => totalDuDe(de, de.n + i))
         .map((jet) => ({ jet, couvert: ranges.filter((r) => jet >= r.min && jet <= r.max).length }))
         .filter((c) => c.couvert !== 1);
       expect(fautifs, `saison ${s} : des jets couverts 0 fois (trou) ou 2 fois (chevauchement)`).toEqual([]);
     }
-  });
-  it('rollStageWeather : déterministe sous une graine, et cohérent avec weatherFromRoll', () => {
-    const rng = makeRNG(42);
-    const a = rollStageWeather(rng, 'hiver');
-    expect(a.roll).toBeGreaterThanOrEqual(1);
-    expect(a.roll).toBeLessThanOrEqual(100);
-    expect(a.weather).toBe(weatherFromRoll(a.roll, 'hiver'));
-    // Même graine → même tirage (reproductible pour la coop/les tests).
-    expect(rollStageWeather(makeRNG(42), 'hiver')).toEqual(rollStageWeather(makeRNG(42), 'hiver'));
   });
 });
 

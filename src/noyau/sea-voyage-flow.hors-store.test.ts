@@ -2486,7 +2486,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
 /**
  * #1117 volet E — l'ENJEU d'un Test d'équipage disait la règle-cadre (« ce Test peut être remplacé
  * par un Test d'équipage »), qui n'apprend rien au joueur sur ce qu'il risque. Deux contrats :
- * l'enjeu AFFICHÉ décrit l'EFFET du jet (catalogue `voyage-stakes.json`), et le VERBATIM MDG 14 se
+ * l'enjeu AFFICHÉ décrit l'EFFET du jet (catalogue `stakes.json`), et le VERBATIM MDG 14 se
  * lit à un clic (fiche `regles.json` portée par le type). Et le choix ouvert par MDG 14 l.63
  * (« vous pouvez effectuer un Test d'équipage au lieu d'un Test de Navigation ») est POSÉ au joueur.
  */

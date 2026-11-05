@@ -35,7 +35,7 @@ import {
   type Mutation,
 } from '../engine/corruption';
 import {
-  mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTablePlayerLabel, mutationTableRows,
+  mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTableDie, mutationTablePlayerLabel, mutationTableRows,
 } from '../data/mutations';
 import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
 import { findTableEntry } from '../engine/tables';
@@ -187,7 +187,7 @@ const tablesDeMutation = memoParVersion(['mutationTables', 'mutations'], () => {
     const rows = mutationTableRows(id);
     tables.set(id, {
       label: mutationTablePlayerLabel(id),
-      die: 100,
+      die: mutationTableDie(id).sides,
       rows,
       lines: (die) => [mutationAt(id, die).label],
       entryCategory: 'mutations', // la ligne tirée EST la mutation : sa fiche est le foyer de l'enjeu
@@ -225,7 +225,7 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
     id: `mutation-table-${tableId}-${hero.id}`,
     kind: 'mutationTable', actorId: hero.id, icon: 'nav/mutation',
     label: stepDetail(t('step.mutation'), mutationTablePlayerLabel(tableId)),
-    table: { tableId, spec: { n: 1, sides: 100 } },
+    table: { tableId, spec: mutationTableDie(tableId) },
     mutation: { ...ctx, tableId },
     stake: combatStakeRef('mutationTable'),
   });

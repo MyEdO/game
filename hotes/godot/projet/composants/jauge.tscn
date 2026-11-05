@@ -2,20 +2,23 @@
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 
-[node name="Jauge" type="VBoxContainer"]
+[node name="Jauge" type="HBoxContainer"]
+custom_minimum_size = Vector2(250, 0)
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="Libelle" type="Label" parent="."]
+custom_minimum_size = Vector2(92, 0)
+theme_type_variation = &"Discret"
 
 [node name="libelle" type="Node" parent="Libelle"]
 script = ExtResource("1_liaison")
 champ = "libelle"
 
-[node name="ton" type="Node" parent="Libelle"]
-script = ExtResource("1_liaison")
-champ = "ton"
-propriete = &"theme_type_variation"
-
 [node name="Barre" type="ProgressBar" parent="."]
+custom_minimum_size = Vector2(0, 22)
+size_flags_horizontal = 3
+size_flags_vertical = 4
 show_percentage = false
 
 [node name="max" type="Node" parent="Barre"]
@@ -28,8 +31,16 @@ script = ExtResource("1_liaison")
 champ = "courant"
 propriete = &"value"
 
-[node name="Texte" type="Label" parent="."]
+[node name="Texte" type="Label" parent="Barre"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 14
 
-[node name="texte" type="Node" parent="Texte"]
+[node name="texte" type="Node" parent="Barre/Texte"]
 script = ExtResource("1_liaison")
 champ = "texte"

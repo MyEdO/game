@@ -20,9 +20,9 @@
 // dérivée à la ré-extraction Marker, un folio pris sur le titre de section gouvernant et un folio
 // simplement faux se ressemblent tous les trois ici). Le stock ne peut que DÉCROÎTRE : on solde une
 // entrée en RELEVANT le passage, jamais en alignant l'une sur l'autre à l'aveugle. Deux soldes du
-// lot #1318 donnent la mesure du geste : `combat-stakes.json#combat-aa-bleed` 61 → 80 (sommaire
+// lot #1318 donnent la mesure du geste : `stakes.json#combat-aa-bleed` 61 → 80 (sommaire
 // imprimé d'Aux Armes, `01 - CREDITS.md` : « Blessures, Blessures Critiques et mort 80 ») et
-// `flow-stakes.json#fate-save-choice` 34 → 170 (« Dépenser du Destin » sous l'ancre
+// `stakes.json#fate-save-choice` 34 → 170 (« Dépenser du Destin » sous l'ancre
 // `data-folio="170"` de `17 - Destin et Resistance.md` ; le folio 34 est celui de la CRÉATION de
 // personnage, où le Destin est attribué, pas celui de son sacrifice).
 //
@@ -55,35 +55,35 @@
 export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/careers.json', ref: 'alchimiste-ordinaire', occurrence: 1 },
   { fichier: 'src/data/careers.json', ref: 'devin', occurrence: 1 },
-  { fichier: 'src/data/combat-stakes.json', ref: 'combat-end-disease', occurrence: 1 },
-  { fichier: 'src/data/combat-stakes.json', ref: 'combat-psych', occurrence: 1 },
-  { fichier: 'src/data/combat-stakes.json', ref: 'combat-spell-plus', occurrence: 1 },
-  { fichier: 'src/data/combat-stakes.json', ref: 'encounter-psych', occurrence: 1 },
-  { fichier: 'src/data/combat-stakes.json', ref: 'structure-critical', occurrence: 1 },
-  { fichier: 'src/data/combat-stakes.json', ref: 'water-exposure', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'appraise-detect', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'appraise-evaluate', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'crew-test-roll', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'heal-ammo', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'heal-bleed', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'heal-wounds', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'shanty-roll', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'exposition-hydrique', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'tests-opposes', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'crew-progression', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'crew-tourbillon', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'river-capsize', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'river-nav', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'river-peril-detect', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'river-rigging', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'river-righting', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'river-tack', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-epuisement', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-force-pace', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-mal-de-mer', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-scorbut', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-tonneau-contamine', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-tonneau-expose', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'appraise-detect', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'appraise-evaluate', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'combat-end-disease', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'combat-psych', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'combat-spell-plus', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'crew-progression', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'crew-test-roll', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'crew-tourbillon', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'encounter-psych', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'heal-ammo', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'heal-bleed', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'heal-wounds', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'river-capsize', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'river-nav', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'river-peril-detect', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'river-rigging', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'river-righting', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'river-tack', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'sea-epuisement', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'sea-force-pace', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'sea-mal-de-mer', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'sea-scorbut', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'sea-tonneau-contamine', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'sea-tonneau-expose', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'shanty-roll', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'structure-critical', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'water-exposure', occurrence: 1 },
   { fichier: 'src/data/weaponGroups.json', ref: 'munitions', occurrence: 1 },
 ]
 
