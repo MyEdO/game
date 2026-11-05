@@ -348,6 +348,7 @@ export const fr = {
   'jet.disengage': 'Se désengager',
   'jet.forceDoor': 'Enfoncer la porte',
   // L'écran d'un hôte qui dessine la partie (`src/hote/ecran.ts`) : le panneau du combat.
+  'ecran.round': 'Round {round}',
   'ecran.tour': 'Round {round} · tour {tour} sur {tours}',
   'ecran.jauge': '{courant} / {max}',
   'ecran.jauge.blessures': 'Blessures',

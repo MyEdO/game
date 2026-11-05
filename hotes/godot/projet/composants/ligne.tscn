@@ -3,7 +3,13 @@
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 
 [node name="Ligne" type="Label"]
+mouse_filter = 1
 autowrap_mode = 3
+
+[node name="detail" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
 
 [node name="texte" type="Node" parent="."]
 script = ExtResource("1_liaison")

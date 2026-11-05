@@ -120,7 +120,7 @@ export function creerPont() {
 
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
     const programmes = o.jetons.programmes(resultat);
-    const zones = { 'journal.lignes': lignesDuJournal(o.lignes, resultat.journal) };
+    const zones = { 'journal.lignes': lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal) };
     o.lignes += resultat.journal.length;
     return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
   };

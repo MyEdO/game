@@ -4,7 +4,7 @@
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
 ## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`
 ## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
-## `masque` se cache quand la zone n'a rien à montrer.
+## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer.
 ##
 ## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
 ## que les éléments de ces ids, dans l'ordre de la source ; une zone sans `ids` montre ceux qu'aucune autre zone de sa
@@ -50,16 +50,20 @@ func montrer(elements: Array) -> void:
 			if not gardes.has(cle):
 				conteneur.remove_child(dessines[cle])
 				dessines[cle].queue_free()
-	if masque != null:
-		masque.visible = not elements.is_empty() or (ajout and not dessines.is_empty())
 	if ajout and dernier != null:
 		_montrer_le_pied(dernier)
 
 
 ## Chaque zone de `zones` montre les éléments de sa source dans `sources` qui lui reviennent (`ids`).
+## Un `masque` se montre quand l'une des zones qui le nomment a quelque chose à montrer.
 static func montrer_toutes(zones: Array[Zone], sources: Dictionary) -> void:
+	var masques := {}
 	for zone in zones:
 		zone.montrer(Zone.elements_de(zones, zone, sources))
+		if zone.masque != null:
+			masques[zone.masque] = masques.get(zone.masque, false) or zone.get_parent().get_children().any(func(n: Node) -> bool: return n.has_meta(META))
+	for masque in masques:
+		masque.visible = masques[masque]
 
 
 ## Les éléments de la source de `zone` dans `sources` qui lui reviennent parmi `zones` : ceux de ses `ids`, ou, sans

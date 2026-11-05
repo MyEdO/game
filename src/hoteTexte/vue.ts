@@ -106,7 +106,7 @@ function enteteDeCombat(p: Projection): string {
   if (c.fin) return `combat fini : ${c.fin} · R${c.round} · pas ${p.pas}`;
   const a = c.actif;
   const qui = a ? `actif ${a.id} ${a.nom} · PB ${a.pb[0]}/${a.pb[1]} · Av ${a.avantage} · Action ${a.action} · Mvt ${a.mouvement[0]}/${a.mouvement[1]}` : 'aucun actif';
-  return `R${c.round} tour ${c.tour}/${c.tours} · ${qui} · pas ${p.pas}`;
+  return `R${c.round} tour ${c.tour ?? '–'}/${c.tours} · ${qui} · pas ${p.pas}`;
 }
 
 /** Qui tient la main d'une fenêtre, en mots (`ProprietaireDeLaFenetre`). */
