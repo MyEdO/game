@@ -71,7 +71,7 @@ import { aiDriven } from '../noyau/netOwnership';
 import { fluxAccepte, NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from '../noyau/sceneEdit';
+import { canonEdge } from '../noyau/sceneEditLecture';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
