@@ -7,13 +7,13 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { nextEntityId } from '../lib/entityId';
-import { findCreatureById, findPropById, refEstVolumique, siegeEngines } from '../data';
+import { findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
@@ -37,7 +37,7 @@ import type { Pt as ScenePt } from './monde/path';
 import { ACTION_FOUILLER } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { type EntityTool, type Sel, canonEdge, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selRect } from './sceneEditLecture';
+import { type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
@@ -67,11 +67,11 @@ function updateArchitectureBody(scene: Scene, bodyId: string, update: (body: Arc
  *  volume (`resizeSel`) au lieu de partir d'un corps qui revendique toute la scène.
  *  `style` est le TYPE de bâtiment (`buildings.json`), OPTIONNEL au schéma : un corps qui n'en porte
  *  aucun est un bâti sans type (bourg, hameau, corps composite). */
-export function addArchitectureBody(scene: Scene, style: string | undefined, foot: Rect): { scene: Scene; id: string } {
+export function addArchitectureBody(scene: Scene, style: string | undefined, foot: Rect): { scene: Scene; id: string; storeyId: string } {
   const id = nextEntityId('architecture', (scene.architecture ?? []).map((body) => body.id));
   const part: ArchitecturePart = { id: nextEntityId('part', []), foot: boundedRect(scene, foot) };
   const body: ArchitectureBody = { id, ...(style === undefined ? {} : { style }), storeys: [{ id: 'z0', z: 0, parts: [part], roomZoneIds: [] }], facades: [], masses: [] };
-  return { scene: { ...scene, architecture: [...(scene.architecture ?? []), body] }, id };
+  return { scene: { ...scene, architecture: [...(scene.architecture ?? []), body] }, id, storeyId: body.storeys[0].id };
 }
 
 /** Ajoute un ÉTAGE au corps `bodyId` — comble le trou #841 FU-C : `addArchitectureBody` ne posait qu'un
@@ -83,6 +83,16 @@ export function addArchitectureStorey(scene: Scene, bodyId: string, z: number): 
   const id = nextEntityId('etage', body.storeys.map((storey) => storey.id));
   const storey = { id, z, parts: [], roomZoneIds: [] };
   return { scene: updateArchitectureBody(scene, bodyId, (candidate) => ({ ...candidate, storeys: [...candidate.storeys, storey] })), id };
+}
+
+/** Ajoute au corps `bodyId` l'étage juste au-dessus de son plus haut étage, et la couche de scène qui le
+ *  porte si elle manque (`addLayer`). null si le corps est introuvable. */
+export function addStoreyAbove(scene: Scene, bodyId: string): { scene: Scene; id: string; z: number } | null {
+  const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
+  if (!body) return null;
+  const z = Math.max(...body.storeys.map((storey) => storey.z)) + 1;
+  const out = addArchitectureStorey(scene, bodyId, z);
+  return out && { scene: addLayer(out.scene, z), id: out.id, z };
 }
 
 export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: string, foot: Rect): { scene: Scene; id: string } | null {
@@ -100,7 +110,8 @@ export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: stri
   };
 }
 
-export function addFacadeSection(scene: Scene, bodyId: string, edge: ArchitectureEdgeRef, appearance: string): { scene: Scene; id: string } | null {
+/** Pose un pan de façade sur l'arête `edge` ; sa structure par défaut est la semence (`semences-de-scene.json`). */
+export function addFacadeSection(scene: Scene, bodyId: string, edge: ArchitectureEdgeRef, appearance: string = semencesDeScene.facade): { scene: Scene; id: string } | null {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   if (!body) return null;
   const id = nextEntityId('facade', body.facades.map((facade) => facade.id));
@@ -480,6 +491,12 @@ export function moveSel(scene: Scene, sel: Sel, to: Pt): Scene {
       }),
     };
   return scene;
+}
+
+/** Décale la sélection de (dx, dy) depuis son ancrage (`selPos`), plafonnée comme `moveSel`. */
+export function nudgeSel(scene: Scene, sel: Sel, dx: number, dy: number): Scene {
+  const p = selPos(scene, sel);
+  return p ? moveSel(scene, sel, { x: p.x + dx, y: p.y + dy }) : scene;
 }
 
 /** Redimensionne le rect de la sélection (trigger/zone repos) : coin NW fixe, coin SE = `to` (≥ NW, clampé). */
@@ -903,12 +920,24 @@ export class TypeNonNomme extends Error {
   }
 }
 
+/** Un patch d'authoring qui toucherait l'IDENTITÉ d'une entité (`id`, `kind`) : changer `id` délie la
+ *  sélection, les triggers et les dialogues qui la nomment, changer `kind` casse l'union du schéma. */
+export class IdentiteNonPatchable extends Error {
+  constructor(readonly cles: readonly string[]) {
+    super(`« ${cles.join(', ')} » : clé d'IDENTITÉ, jamais patchable — supprimez l'entité et reposez-la pour changer son id ou sa nature`);
+    this.name = 'IdentiteNonPatchable';
+  }
+}
+
 /** Patch d'AUTHORING d'une entité (libellé, orientation, étage, ref, statblock…) : la seule porte
  *  d'écriture d'entité ouverte à `src/ui/**`. Traverse le seam — tourner ou monter d'un étage un
  *  meuble attablé recale ou lève ses places dans la MÊME mutation. Juge la TRANSITION du type
  *  (`PORTEURS_DU_TYPE`) : un porteur avant, aucun après → `TypeNonNomme`, qui nomme l'entité. Une
- *  entité déjà sans type reçoit tout patch ; sa faute est dite par `validateScene`. */
+ *  entité déjà sans type reçoit tout patch ; sa faute est dite par `validateScene`. Un patch qui
+ *  nomme `id` ou `kind` → `IdentiteNonPatchable`. */
 export function editEntity(scene: Scene, id: string, patch: Partial<SceneEntity>): Scene {
+  const identite = Object.keys(patch).filter((cle) => cle === 'id' || cle === 'kind');
+  if (identite.length) throw new IdentiteNonPatchable(identite);
   const avant = scene.entities.find((e) => e.id === id);
   const patchee = patchEntity(scene, id, patch);
   const apres = patchee.entities.find((e) => e.id === id);
@@ -1543,4 +1572,101 @@ export function effectiveArchitecture(scene: Scene): readonly ArchitectureBody[]
 export function rederiveRoofMasses(scene: Scene): Scene {
   if (!scene.architecture?.length) return scene;
   return { ...scene, architecture: deriveArchitectureMasses(scene) };
+}
+
+/** Ce qu'un geste d'outil porte en plus de sa case : la couche active, la taille du pinceau, la
+ *  rencontre que l'outil de rencontre complète et la fiche qu'il pose, l'arête visée par l'outil murs. */
+export type GesteDOutil = { z: number; brush: number; encId: string; encRef: string; side?: CellSide };
+/** Ce qu'un geste rend : la scène, la sélection qu'il désigne, et la rencontre qu'il a complétée. */
+export type EffetDOutil = { scene: Scene; sel?: Sel; encId?: string };
+
+/** Applique l'outil `tool` à la case `p` — routine unique de l'appui et du glissé. null hors de la carte,
+ *  pour un outil qui n'écrit pas à la case (sélection, zone au rectangle, tracé de volée), ou quand la pose
+ *  est refusée. Sur une entité déjà posée, les outils de pose la désignent sans rien écrire. */
+export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOutil): EffetDOutil | null {
+  if (!dansLaCarte(scene, p)) return null;
+  const { z, brush } = geste;
+  switch (tool.mode) {
+    case 'tile': return { scene: paintTiles(scene, p, tool.terrain, brush, z) };
+    case 'height': return { scene: paintHeight(scene, p, tool.metres, brush, z) };
+    case 'crenellated': return { scene: paintCrenellated(scene, p, tool.structure, brush, z) };
+    case 'zoneTiles': return { scene: paintEffectZone(scene, tool.zoneId, p, tool.paint) };
+    case 'erase': return { scene: eraseAt(scene, p, z) };
+    case 'entity':
+    case 'emplacement': {
+      const existing = entityAt(scene, p, z);
+      if (existing) return { scene, sel: { type: 'entity', id: existing.id } };
+      const out = tool.mode === 'entity' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
+      return out && { scene: out.scene, sel: { type: 'entity', id: out.id } };
+    }
+    case 'entry': {
+      const out = placeEntry(scene, p, z);
+      return { scene: out.scene, sel: { type: 'entry', id: out.id } };
+    }
+    case 'encounter': {
+      const out = addEnemyMember(scene, geste.encId, geste.encRef, p, z);
+      return { scene: out.scene, sel: { type: 'entity', id: out.entityId }, encId: out.encId };
+    }
+    case 'wall': {
+      if (!geste.side) return null;
+      if (tool.paint === 'diagBack') return { scene: toggleDiagonalWall(scene, p.x, p.y, '\\', z) };
+      if (tool.paint === 'diagFwd') return { scene: toggleDiagonalWall(scene, p.x, p.y, '/', z) };
+      return { scene: toggleEdgeWall(scene, p.x, p.y, geste.side, z, tool.paint === 'door' ? 'door' : 'wall', tool.structure) };
+    }
+    case 'select':
+    case 'zone':
+    case 'stair':
+      return null;
+  }
+}
+
+/** Valide le rectangle `rect` tracé à l'outil `tool` sur la couche `z` : une zone (déclencheur, repos,
+ *  pièce, zone d'effet) qu'il désigne, ou le terrain qu'il remplit. null pour un outil sans rectangle. */
+export function validerRectangle(scene: Scene, tool: Tool, rect: Rect, z: number): EffetDOutil | null {
+  if (tool.mode === 'tile') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
+  if (tool.mode !== 'zone') return null;
+  if (tool.zone === 'trigger') {
+    const out = addTrigger(scene, rect, z);
+    return { scene: out.scene, sel: { type: 'trigger', id: out.id } };
+  }
+  if (tool.zone === 'rest') {
+    const out = addRestZone(scene, rect, z);
+    return { scene: out.scene, sel: { type: 'restZone', idx: out.idx } };
+  }
+  const out = addEffectZone(scene, rect, z, EFFECT_ZONE_SEEDS[tool.zone]);
+  return { scene: out.scene, sel: { type: 'effectZone', idx: out.idx } };
+}
+
+/** Les scènes d'un projet autour de la scène éditée : l'ordre du document, la première est l'entrée. */
+export type ProjectScenes = { avant: Scene[]; scene: Scene; apres: Scene[] };
+
+function versLaFin(p: ProjectScenes, scene: Scene): ProjectScenes {
+  return { avant: [...p.avant, p.scene, ...p.apres], scene, apres: [] };
+}
+
+/** Ajoute une scène vide d'id `id` en fin de projet et l'édite. L'id vient de l'hôte (son entropie). */
+export function addProjectScene(p: ProjectScenes, id: string): ProjectScenes {
+  return versLaFin(p, { ...emptyScene(id), label: 'Nouvelle scène' });
+}
+
+/** Copie la scène éditée sous l'id `id`, en fin de projet, et édite la copie. */
+export function duplicateProjectScene(p: ProjectScenes, id: string): ProjectScenes {
+  const copie = JSON.parse(JSON.stringify(p.scene)) as Scene;
+  return versLaFin(p, { ...copie, id, label: `${p.scene.label || p.scene.id} (copie)` });
+}
+
+/** Retire la scène éditée et édite sa suivante, sinon sa précédente. null pour la seule scène du projet. */
+export function deleteProjectScene(p: ProjectScenes): ProjectScenes | null {
+  if (p.apres.length > 0) return { avant: p.avant, scene: p.apres[0], apres: p.apres.slice(1) };
+  if (p.avant.length > 0) return { avant: p.avant.slice(0, -1), scene: p.avant[p.avant.length - 1], apres: [] };
+  return null;
+}
+
+/** Édite la scène `id` du projet, à sa place dans l'ordre du document. null si `id` est la scène éditée
+ *  ou n'est pas au projet. */
+export function switchProjectScene(p: ProjectScenes, id: string): ProjectScenes | null {
+  if (id === p.scene.id) return null;
+  const toutes = [...p.avant, p.scene, ...p.apres];
+  const i = toutes.findIndex((s) => s.id === id);
+  return i < 0 ? null : { avant: toutes.slice(0, i), scene: toutes[i], apres: toutes.slice(i + 1) };
 }

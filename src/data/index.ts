@@ -1597,6 +1597,8 @@ export interface SemencesDeSceneData {
   terrain: Terrain;
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
+  /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
+  facade: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
