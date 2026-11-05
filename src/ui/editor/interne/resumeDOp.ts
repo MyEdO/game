@@ -100,6 +100,7 @@ export function opSummary(o: GameOp): string {
     case 'removeTrait': return traitLisible(o.trait);
     case 'grantPsychTrait': return [libelleDuTraitOctroye(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'grantTalent': return `${refLabel('talents', o.talent)}`;
+    case 'suppressTalents': return `${o.talents.map((x) => refLabel('talents', x)).join(', ')} suspendus ${formulaSummary(o.durationDays)} jour(s)`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
     case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
     case 'augmentWeapon': return `${[

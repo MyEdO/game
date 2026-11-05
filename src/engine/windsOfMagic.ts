@@ -21,6 +21,7 @@ import type { ModLine } from './combat';
 import ventsJson from '../data/vents-tourbillonnants.json';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as vents from '../data/schemas/defs/vents-tourbillonnants';
+import { effectiveTalents } from './talentEffects';
 
 /** Le Tableau VIVANT — la collection que le Codex expose et édite (`ventsTourbillonnants`,
  *  `data/overrides.ts`, `src/ui/compendium/registry.ts`) ; le lookup n'en lit que `min`/`max`/`mod`. */
@@ -51,5 +52,5 @@ export function rollWindsOfMagic(rng: RNG): WindsRoll {
 
 /** Le personnage possède-t-il le Talent Seconde vue (id direct, pas de `hasTalent()` littéral) ? */
 export function hasSecondeVue(c: Combatant): boolean {
-  return c.talents.some((t) => t.talentId === 'seconde-vue' && (t.times ?? 1) >= 1);
+  return effectiveTalents(c).some((t) => t.talentId === 'seconde-vue' && (t.times ?? 1) >= 1);
 }

@@ -5,7 +5,7 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
+  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
   type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
@@ -343,7 +343,7 @@ export function rendreLaFiche(etat: Jeu, id: string): string[] | null {
     `armure (PA) : ${LOCALISATIONS_DE_COUP.map((loc) => `${loc} ${effectiveArmourAt(c, loc)}`).join(' · ')}`,
     `États : ${c.conditions.map((e) => etatEcrit(e.id, e.value)).join(', ') || 'aucun'}`,
     `compétences : ${c.skills.map((s) => s.id).join(', ') || 'aucune'}`,
-    `talents : ${c.talents.map((t) => t.talentId).join(', ') || 'aucun'}`,
+    `talents : ${effectiveTalents(c).map((t) => t.talentId).join(', ') || 'aucun'}`,
   ], 'fiche');
 }
 

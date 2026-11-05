@@ -134,6 +134,9 @@ type JsonOp = {
   hours?: JsonFormula;
   minutes?: JsonFormula;
   days?: JsonFormula;
+  // suppressTalents
+  talents?: { id: string }[];
+  durationDays?: JsonFormula;
 };
 
 /** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
@@ -225,6 +228,8 @@ function expandOp(op: JsonOp, sin: number): GameOp {
       if (op.days !== undefined) base.days = resolveJsonFormula(op.days, sin);
       return base as unknown as GameOp;
     }
+    case 'suppressTalents':
+      return { op: 'suppressTalents', talents: op.talents, durationDays: resolveJsonFormula(op.durationDays!, sin) } as unknown as GameOp;
     default:
       return op as unknown as GameOp;
   }

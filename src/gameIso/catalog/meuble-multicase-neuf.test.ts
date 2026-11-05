@@ -7,7 +7,7 @@ import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { losClear, tileBlocksSight } from '../../noyau/monde/lineOfSight';
 import { emptyScene, isWalkable, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
-import { entityAt } from '../../noyau/sceneEdit';
+import { entityAt } from '../../noyau/sceneEditLecture';
 import { seatSlotsOf } from '../../noyau/monde/seating';
 import { validateScene } from '../../noyau/validateScene';
 import { buildOpaque } from '../../noyau/monde/vision';
