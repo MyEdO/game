@@ -56,11 +56,50 @@ const estRequire = (ts, appele) =>
 const estChargeurVitest = (ts, appele) => ts.isPropertyAccessExpression(appele) && ts.isIdentifier(appele.expression) &&
   OBJETS_VITEST.has(appele.expression.text) && METHODES_VITEST.has(appele.name.text);
 
+/** Le module de tsx qui fournit `tsImport` (tsx, « tsImport() ») : l'appel d'une liaison `tsImport` qu'il fournit est
+ *  une acquisition dynamique. */
+const API_DE_TSX = 'tsx/esm/api';
+
+/** `import('<spec>')`, sous `await` ou non. */
+const estImportLitteralDe = (ts, n, spec) => {
+  const appel = n && ts.isAwaitExpression(n) ? n.expression : n;
+  return !!appel && ts.isCallExpression(appel) && appel.expression.kind === ts.SyntaxKind.ImportKeyword &&
+    !!appel.arguments[0] && ts.isStringLiteralLikeNode(appel.arguments[0]) && appel.arguments[0].text === spec;
+};
+
+/** Les enveloppes qui rendent leur opérande : une référence enveloppée reste la même valeur. */
+const enveloppe = (ts, p, e) => ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isNonNullExpression(p) ||
+  ts.isSatisfiesExpression(p) || ts.isTypeAssertion(p) || (ts.isConditionalExpression(p) && p.condition !== e) ||
+  (ts.isBinaryExpression(p) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.CommaToken].includes(p.operatorToken.kind) && (p.right === e || p.operatorToken.kind !== ts.SyntaxKind.CommaToken));
+
+/** Les opérateurs d'affectation qui posent leur membre droit dans leur membre gauche. */
+const affecte = (ts, p) => [ts.SyntaxKind.EqualsToken, ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken].includes(p.operatorToken.kind);
+
+/** La référence `n` à un CHARGEUR (parents `parents`) le fait-elle fuir hors d'un appel que la lecture suit : appelée
+ *  sous une enveloppe, ou valeur d'une liaison, d'une affectation, d'un argument, d'un élément, d'un champ, d'un retour,
+ *  ou receveur de `call`, `apply`, `bind` ? */
+const fuit = (ts, parents, n) => {
+  let e = n;
+  let p = parents.get(e);
+  while (p && enveloppe(ts, p, e)) { e = p; p = parents.get(e); }
+  if (!p) return false;
+  if (ts.isCallExpression(p) || ts.isNewExpression(p)) return p.expression !== e || e !== n;
+  if (ts.isPropertyAccessExpression(p)) return p.expression === e && ['call', 'apply', 'bind'].includes(p.name.text);
+  if (ts.isElementAccessExpression(p)) return p.expression === e;
+  if (ts.isVariableDeclaration(p) || ts.isPropertyAssignment(p) || ts.isPropertyDeclaration(p) || ts.isParameterDeclaration(p) || ts.isBindingElement(p)) return p.initializer === e;
+  if (ts.isBinaryExpression(p)) return p.right === e && affecte(ts, p);
+  return ts.isShorthandPropertyAssignment(p) || ts.isArrayLiteralExpression(p) || ts.isSpreadElement(p) || ts.isSpreadAssignment(p) ||
+    ts.isReturnStatement(p) || ts.isExportAssignment(p) || ts.isYieldExpression(p) || ts.isAwaitExpression(p) || (ts.isArrowFunction(p) && p.body === e);
+};
+
 /**
  * Sites de module, liaisons et rôles lus dans un seul parcours AST. Le source texte est parsé par
  * `analyserTexte`, avec diagnostics séparés ; un SourceFile fourni est réutilisé sans reparsage,
  * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. Les positions
- * utilisent cet arbre explicitement, y compris sans parents. Un nom synthétique porte position:null.
+ * utilisent cet arbre explicitement, y compris sans parents. Un nom synthétique porte position:null. L'appel d'une liaison
+ * `tsImport` de `tsx/esm/api` est une acquisition dynamique ; un chargeur que la lecture ne suit pas (`createRequire`
+ * renommé ou déstructuré, liaison de chargeur qui fuit, `vi` atteint par un espace, déstructuré ou qui fuit) rend un
+ * site `chargeur`, de nature `nonSuivi`, sans acquisition.
  * @param {string} fichier
  * @param {string | import('typescript/unstable/ast').SourceFile} source
  * @param {readonly import('typescript/unstable/sync').Diagnostic[]} [diagnostics] diagnostics de l'arbre fourni
@@ -93,13 +132,22 @@ export function sitesDeModule(fichier, source, diagnostics) {
   const liaison = (forme, typeSeul, local, importe, exporte) => ({ forme, typeSeul: !!typeSeul, local, importe, exporte });
   const tetes = new Set(arbre.statements);
   const vus = [];
-  /** Les liaisons `createRequire(…)` du fichier, et les appels d'un identifiant qui en est peut-être une. */
+  /** Les liaisons `createRequire(…)` et `tsImport` du fichier, les appels d'un identifiant qui en est peut-être une, et
+   *  les références d'un identifiant qui en est peut-être une (`fuit`). */
   const requireurs = new Set();
+  const tsImporteurs = new Set();
   const appelsDIdentifiant = [];
+  const references = [];
+  const parents = new Map();
   const ajouter = (noeud, genre, nature, acquisition, spec, clause = false, liaisons = []) => {
     const p = position(noeud);
     vus.push({ genre, nature, acquisition, spec, clause, niveauModule: tetes.has(noeud), ...p, texte: texte.slice(p.debut, p.fin), liaisons });
   };
+  /** Un CHARGEUR que la lecture ne suit pas : sa valeur sort de la forme d'un appel lu (`fuit`), ou il est lié sous
+   *  une forme qu'aucune liaison ne lit (renommé, déstructuré, atteint par un espace). */
+  const nonSuivi = (noeud) => ajouter(noeud, 'chargeur', 'nonSuivi', false, null);
+  /** La clé d'un élément de motif ou d'import (`{ cle: local }`, `{ cle }`). */
+  const cleDe = (e) => (e.propertyName ?? e.name)?.text;
   const visiter = (n) => {
     if (ts.isImportDeclaration(n)) {
       const clause = n.importClause;
@@ -107,8 +155,11 @@ export function sitesDeModule(fichier, source, diagnostics) {
       if (clause?.name) liaisons.push(liaison('defaut', clause.isTypeOnly, nom(clause.name), synthetique('default'), null));
       const noms = clause?.namedBindings;
       if (noms && ts.isNamespaceImport(noms)) liaisons.push(liaison('espace', clause.isTypeOnly, nom(noms.name), etoile(noms), null));
-      else if (noms) for (const e of noms.elements)
+      else if (noms) for (const e of noms.elements) {
         liaisons.push(liaison('nommee', clause.isTypeOnly || e.isTypeOnly, nom(e.name), nom(e.propertyName ?? e.name), null));
+        if (cleDe(e) === 'createRequire' && e.name.text !== 'createRequire') nonSuivi(e);
+        if (cleDe(e) === 'tsImport' && litteral(n.moduleSpecifier) === API_DE_TSX) tsImporteurs.add(e.name.text);
+      }
       ajouter(n, 'import', clause?.isTypeOnly ? 'type' : 'statique', true, litteral(n.moduleSpecifier), !!clause, liaisons);
     } else if (ts.isExportDeclaration(n)) {
       const acquisition = !!n.moduleSpecifier;
@@ -142,15 +193,35 @@ export function sitesDeModule(fichier, source, diagnostics) {
       else if (estChargeurVitest(ts, n.expression) && premier && !(ts.isCallExpression(premier) && premier.expression.kind === ts.SyntaxKind.ImportKeyword))
         ajouter(n, 'appel', 'dynamique', true, spec);
       else if (ts.isIdentifier(n.expression) && premier) appelsDIdentifiant.push({ n, nom: n.expression.text, spec });
-    } else if (ts.isIdentifier(n) && n.text === 'createRequire') ajouter(n, 'fournisseur', 'require', false, null);
+    } else if (ts.isIdentifier(n)) {
+      if (n.text === 'createRequire') ajouter(n, 'fournisseur', 'require', false, null);
+      references.push(n);
+    } else if (ts.isPropertyAccessExpression(n)) {
+      const cle = n.name.text;
+      if (cle === 'tsImport' || (['require', 'createRequire'].includes(cle) && fuit(ts, parents, n)) || (METHODES_VITEST.has(cle) && ts.isPropertyAccessExpression(n.expression) && OBJETS_VITEST.has(n.expression.name.text))
+        || (METHODES_VITEST.has(cle) && ts.isIdentifier(n.expression) && OBJETS_VITEST.has(n.expression.text) && fuit(ts, parents, n))) nonSuivi(n);
+    } else if (ts.isElementAccessExpression(n) && ts.isIdentifier(n.expression) && OBJETS_VITEST.has(n.expression.text)) nonSuivi(n);
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && estCreateRequire(ts, n.initializer)) requireurs.add(n.name.text);
     if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) && estCreateRequire(ts, n.right)) requireurs.add(n.left.text);
-    n.forEachChild(visiter);
+    if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name)) {
+      const tsx = estImportLitteralDe(ts, n.initializer, API_DE_TSX);
+      const vitest = !!n.initializer && ts.isIdentifier(n.initializer) && OBJETS_VITEST.has(n.initializer.text);
+      for (const e of n.name.elements) {
+        const cle = cleDe(e);
+        if (cle === 'tsImport' && tsx && ts.isIdentifier(e.name)) tsImporteurs.add(e.name.text);
+        else if (cle === 'tsImport' || (cle === 'createRequire' && e.name.text !== 'createRequire') || (vitest && METHODES_VITEST.has(cle))) nonSuivi(e);
+      }
+    }
+    n.forEachChild((enfant) => { parents.set(enfant, n); visiter(enfant); });
   };
   visiter(arbre);
-  const lies = appelsDIdentifiant.filter(({ nom }) => requireurs.has(nom));
-  if (!lies.length) return vus;
-  for (const { n, spec } of lies) ajouter(n, 'appel', 'require', true, spec);
+  /** Un identifiant qui désigne un chargeur : `require`, `createRequire`, ou une de leurs liaisons. */
+  const chargeurs = new Set(['require', 'createRequire', ...requireurs, ...tsImporteurs]);
+  for (const n of references) if (chargeurs.has(n.text) && fuit(ts, parents, n)) nonSuivi(n);
+  for (const { n, nom, spec } of appelsDIdentifiant) {
+    if (requireurs.has(nom)) ajouter(n, 'appel', 'require', true, spec);
+    else if (tsImporteurs.has(nom)) ajouter(n, 'appel', 'dynamique', true, spec);
+  }
   return vus.sort((a, b) => a.debut - b.debut);
 }
 
@@ -332,10 +403,11 @@ const arbreDesCaches = new WeakMap();
  * `specificateurs` mémoïse les spécificateurs NON RÉSOLUS d'un texte brut, sous le régime de la marche (`lire(abs, texte)` → sites
  * ou `undefined`, `ecrire(abs, texte, sites)`) : la résolution, elle, dépend de l'ensemble et se refait.
  * `analyser(entrees, tailleLot)` analyse les modules à lire (`analyserEnLots` par défaut).
- * `surSites(abs, sites)` reçoit les sites de chaque module analysé (`sitesDeModule`), ceux que la marche ne suit
- * pas compris (paquet, spécificateur calculé) ; un module mémoïsé (`specificateurs`) ne le rappelle pas.
+ * `surSites(abs, sites, arbre)` reçoit les sites de chaque module analysé (`sitesDeModule`), ceux que la marche ne suit
+ * pas compris (paquet, spécificateur calculé, chargeur non suivi), et son arbre syntaxique ; un module mémoïsé
+ * (`specificateurs`) ne le rappelle pas.
  * @param {string[]} roots
- * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean, surSites?: (abs: string, sites: ReturnType<typeof sitesDeModule>) => void,
+ * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean, surSites?: (abs: string, sites: ReturnType<typeof sitesDeModule>, arbre: import('typescript/unstable/ast').SourceFile) => void,
  *   arbre?: { existe: (abs: string) => boolean, lire: (abss: string[]) => Map<string, string | null>, fichiers?: readonly string[] },
  *   tailleLot?: number, analyser?: typeof analyserEnLots, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à `racine`
@@ -388,7 +460,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
     }
     for (const { fichier, sourceFile, diagnostics } of analyser(aAnalyser, tailleLot)) {
       const tous = sitesDeModule(fichier.rel, sourceFile, diagnostics);
-      surSites?.(fichier.rel, tous);
+      surSites?.(fichier.rel, tous, sourceFile);
       const sites = [...litterauxDe(tous),
         ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];
       specificateurs?.ecrire(fichier.rel, fichier.brut, sites);

@@ -153,9 +153,11 @@ les formes d'arc de `arcsDImport.mjs`, motifs d'`import.meta.glob` et spécifica
 de ses membres, hors des zones compris, soit d'une zone qui n'y survit pas ou charge un paquet de l'hôte web que la
 zone ferme au module (`paquetFerme`) : l'`outillage` déclaré ouvre un module hors des zones, jamais une zone qui ne
 survit pas (#3337). Il
-ne suit ni l'acquisition calculée d'un module hors des zones de la clôture (aujourd'hui `scripts/docs/build-all.mjs:216`
-et `scripts/guards/lib/structuresLocales.mts:249`), reste de #3058, ni un chargement par un appel qui n'est pas une
-forme d'import (`tsImport`, `new Worker(new URL(…))`). Ces murs lisent le
+suit `tsImport` de `tsx/esm/api`, et chaque acquisition calculée d'un membre en forme FERMÉE (`valeursDAcquisition`,
+`racinesBalayees.mjs`, #3058) : un littéral, `join`/`resolve` de `node:path` sur un chemin du dépôt, le chemin du
+module, `pathToFileURL(x).href`, l'élément d'une constante gelée (`gelerLaConstante`) et la descente directe d'un
+dossier listé (`listerEntrees`) entrent dans la clôture jusqu'au point fixe ; toute autre forme, une valeur vide et
+un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un espace, ou qui fuit) sont rouges. Ces murs lisent le
 code : `src/test-setup.ts`, environnement de la suite principale (`setupFiles`), charge le store pour toute la suite
 web sans être un arc d'un test ; un test posé sous `src/state/` ou à la racine de `src/` est, par sa zone, un test
 de la coque web, que la sonde `scripts/ops/sondes/classement-tests-state/` classe ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
