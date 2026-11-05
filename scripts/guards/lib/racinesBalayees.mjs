@@ -1715,7 +1715,6 @@ const JOINDRE = 'path#join'
 const RESOUDRE = 'path#resolve'
 const CHEMIN_D_URL = 'url#fileURLToPath'
 const URL_DE_CHEMIN = 'url#pathToFileURL'
-const GELER = 'src/lib/gelerProfond.ts#gelerLaConstante'
 const LISTER = 'scripts/guards/lib/lister.mjs#listerEntrees'
 /** Les modules de Node que lit ce régime, sous leurs deux spécificateurs. */
 const MODULES_DE_NODE = Object.freeze({ 'node:path': 'path', path: 'path', 'node:url': 'url', url: 'url' })
@@ -1747,8 +1746,8 @@ const parentsDe = (arbre) => {
  *   · `fileURLToPath(new URL(<littéral>, import.meta.url))`, lié à `node:url` : le chemin du module ;
  *   · `pathToFileURL(x).href`, lié à `node:url` : `x`, un texte ancré à la racine ;
  *   · une liaison `const` de l'une de ces formes, ou l'export `const` d'un module du dépôt ;
- *   · l'élément d'une constante GELÉE à sa déclaration (`gelerLaConstante` d'un tableau d'objets littéraux) rendu par
- *     `find`, et ses champs ;
+ *   · l'élément d'une constante GELÉE à sa déclaration (`Object.freeze(<tableau d'objets littéraux>.map(Object.freeze))`,
+ *     le global `Object` non lié) rendu par `find`, et ses champs ;
  *   · la DESCENTE directe `join(<dossier>, <entrée>.nom)`, où `<entrée>` est le paramètre du rappel de `map` sur
  *     `listerEntrees(<dossier>).entrees` (filtré ou non par `filter`) et `<dossier>` un chemin du dépôt : `{ dossier }`.
  * Un chemin exact rend `{ fichier }`. Les liaisons se résolvent par portée lexicale ; une liaison multiple, un
@@ -1886,6 +1885,10 @@ export function valeursDAcquisition(rel, arbre, argument, { arbreDe, cible }) {
     return non(`liaison ${id.text} hors de la liste (${l.genre})`)
   }
 
+  /** `n` est-il `Object.freeze`, sur le global `Object` qu'aucune liaison du module ne masque ? */
+  const estObjectFreeze = (n, m) => ts.isPropertyAccessExpression(n) && n.name.text === 'freeze' && ts.isIdentifier(n.expression) &&
+    n.expression.text === 'Object' && liaisonDe(n.expression, m) === null
+
   /** Le champ `cle` d'un objet littéral gelé. */
   const champ = ({ noeud, m }, cle, profondeur) => {
     if (noeud.properties.some((p) => !ts.isPropertyAssignment(p) && !ts.isShorthandPropertyAssignment(p))) return non(`objet à étalement ou méthode : ${cle}`)
@@ -1933,9 +1936,11 @@ export function valeursDAcquisition(rel, arbre, argument, { arbreDe, cible }) {
           u.arguments?.length === 2 && ts.isStringLiteralLikeNode(u.arguments[0]) && estImportMetaUrl(u.arguments[1]) ? u.arguments[0].text : null
         return lit === null ? non(`fileURLToPath hors de new URL(<littéral>, import.meta.url) : ${texteDe(n, m)}`) : [ancre(posix.dirname(m.rel), lit)]
       }
-      if (fonction === GELER) {
+      if (estObjectFreeze(n.expression, m)) {
         const [x] = n.arguments
-        return x && ts.isArrayLiteralExpression(x) ? [{ tableauGele: { noeud: x, m } }] : non(`gelerLaConstante d'une valeur non littérale : ${texteDe(n, m)}`)
+        const gele = n.arguments.length === 1 && ts.isCallExpression(x) && ts.isPropertyAccessExpression(x.expression) && x.expression.name.text === 'map' &&
+          ts.isArrayLiteralExpression(x.expression.expression) && x.arguments.length === 1 && estObjectFreeze(x.arguments[0], m)
+        return gele ? [{ tableauGele: { noeud: x.expression.expression, m } }] : non(`Object.freeze hors de Object.freeze(<tableau littéral>.map(Object.freeze)) : ${texteDe(n, m)}`)
       }
       if (ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'find' && n.arguments.length === 1)
         return evaluer(n.expression.expression, m, profondeur + 1).flatMap((v) => 'tableauGele' in v

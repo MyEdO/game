@@ -1,5 +1,4 @@
 import { correspondGlob } from '../../guards/lib/lister.mjs'
-import { gelerLaConstante } from '../../../src/lib/gelerProfond.ts'
 import { MOTIF_CATALOGUES } from '../../raw/motif-catalogues.mjs'
 import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS, SORTIE_VERBES as SORTIE_DES_VERBES, SORTIE_COMBATTANTS_DE_L_ETAT } from './cibles-registres.mjs'
 
@@ -11,9 +10,10 @@ export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.incl
  *  Tout générateur sait `--check` : un de plus coûte une ligne ici, et rien d'autre.
  *  Tout générateur exporte `rendre()` : cible (chemin relatif POSIX) → texte, sans écrire ; il n'écrit
  *  que sous sa porte `import.meta.main`. Un lecteur du texte d'une cible passe par `rendreCible`.
- *  Ordre = ordre d'exécution. Gelée à sa déclaration (`gelerLaConstante`) : `chargerGenerateur` y lit le module qu'il
- *  charge, et le mur de clôture le suit (`valeursDAcquisition`). */
-export const GENERATORS = gelerLaConstante([
+ *  Ordre = ordre d'exécution. Gelée à sa déclaration (`Object.freeze` du tableau et de chaque générateur, que Node
+ *  nu évalue : les hooks lisent ce module) : `chargerGenerateur` y lit le module qu'il charge, et le mur de clôture le
+ *  suit (`valeursDAcquisition`). */
+export const GENERATORS = Object.freeze([
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
   { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
   { runner: 'node', script: 'scripts/gen-verbes.mjs', targets: [SORTIE_DES_VERBES] },
@@ -52,7 +52,7 @@ export const GENERATORS = gelerLaConstante([
   { runner: 'node', script: 'scripts/raw/coverage.mjs', targets: ['docs/raw/coverage.md'] },
   { runner: 'node', script: 'scripts/raw/reconcile.mjs', targets: ['docs/raw/reconciliation.md'] },
   { runner: 'node', script: 'scripts/raw/reanchor.mjs', targets: ['docs/raw/reanchor.md'] },
-])
+].map(Object.freeze))
 
 /** Chemin du dérivé LOCAL qui porte les sets MESURÉS, un par générateur. */
 export const SOURCES_LUES = 'docs/.sources-lues.json'

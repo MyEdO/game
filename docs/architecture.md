@@ -155,7 +155,7 @@ zone ferme au module (`paquetFerme`) : l'`outillage` déclaré ouvre un module h
 survit pas (#3337). Il
 suit `tsImport` de `tsx/esm/api`, et chaque acquisition calculée d'un membre en forme FERMÉE (`valeursDAcquisition`,
 `racinesBalayees.mjs`, #3058) : un littéral, `join`/`resolve` de `node:path` sur un chemin du dépôt, le chemin du
-module, `pathToFileURL(x).href`, l'élément d'une constante gelée (`gelerLaConstante`) et la descente directe d'un
+module, `pathToFileURL(x).href`, l'élément d'une constante gelée (`Object.freeze(<tableau>.map(Object.freeze))`) et la descente directe d'un
 dossier listé (`listerEntrees`) entrent dans la clôture jusqu'au point fixe ; toute autre forme, une valeur vide et
 un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un espace, ou qui fuit) sont rouges. Ces murs lisent le
 code : `src/test-setup.ts`, environnement de la suite principale (`setupFiles`), charge le store pour toute la suite

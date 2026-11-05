@@ -12,12 +12,11 @@ const F = '/forge'
 const BASE = {
   'src/noyau/a.ts': 'export const a = 1\n',
   'src/state/a.ts': 'export const a = 2\n',
-  'src/lib/gelerProfond.ts': 'export const gelerLaConstante = (x) => x\n',
   'scripts/guards/lib/lister.mjs': 'export const listerEntrees = () => ({ entrees: [] })\n',
   'scripts/reg.mjs': "export const REG = ['../src/noyau/a.ts']\nexport const CFG = { p: '../src/noyau/a.ts' }\n",
   'scripts/reg2.mjs': "export const P = '../src/noyau/a.ts'.replace('noyau', 'state')\n",
   'scripts/mut.mjs': "import { REG, CFG } from './reg.mjs'\nREG.push('../src/state/a.ts')\nCFG.p = '../src/state/a.ts'\n",
-  'scripts/gel.mjs': "import { gelerLaConstante } from '../src/lib/gelerProfond.ts'\nexport const G = gelerLaConstante([{ s: 'src/noyau/a.ts' }, { s: 'src/state/a.ts' }])\n",
+  'scripts/gel.mjs': "export const G = Object.freeze([{ s: 'src/noyau/a.ts' }, { s: 'src/state/a.ts' }].map(Object.freeze))\n",
 }
 const URLS = "import { join, dirname } from 'node:path'\nimport { fileURLToPath, pathToFileURL } from 'node:url'\nimport { listerEntrees } from './guards/lib/lister.mjs'\n"
 
@@ -67,7 +66,9 @@ const CAS = {
   'descente sous dirname': [`${URLS}const D = fileURLToPath(new URL('../src/noyau/', import.meta.url))\nexport const x = listerEntrees(D).entrees.map((f) => import(join(dirname(join(D, f.nom)), 'a.ts')))\n`, [['non']]],
   'descente concaténée': [`${URLS}const D = fileURLToPath(new URL('../src/noyau/', import.meta.url))\nexport const x = listerEntrees(D).entrees.map((f) => import(join(D, f.nom) + '/../../state/a.ts'))\n`, [['non']]],
   'descente d’un autre dossier': [`${URLS}const D = fileURLToPath(new URL('../src/noyau/', import.meta.url))\nconst E = fileURLToPath(new URL('../src/state/', import.meta.url))\nexport const x = listerEntrees(D).entrees.map((f) => import(join(E, f.nom)))\n`, [['non']]],
-  'constante gelée vide': ["import { gelerLaConstante } from '../src/lib/gelerProfond.ts'\nconst V = gelerLaConstante([])\nexport const x = () => import(V.find((v) => v).s)\n", [[]]],
+  'gel superficiel': ["const V = Object.freeze([{ s: 'src/noyau/a.ts' }])\nexport const x = () => import(V.find((v) => v).s)\n", [['non']]],
+  'Object masqué': ["const Object = { freeze: (x) => x }\nconst V = Object.freeze([{ s: 'src/noyau/a.ts' }].map(Object.freeze))\nexport const x = () => import(V.find((v) => v).s)\n", [['non']]],
+  'constante gelée vide': ["const V = Object.freeze([].map(Object.freeze))\nexport const x = () => import(V.find((v) => v).s)\n", [[]]],
 }
 
 test('VALEURS D’ACQUISITION : chaque forme hors de la liste blanche rend `non`, chaque forme lue rend le module que l’exécution charge', () => {

@@ -194,12 +194,11 @@ test('CLÔTURE : un module de PRODUCTION d’une zone qui survit qui atteint une
 })
 
 /** Le socle des arbres forgés d'acquisition calculée : une suite du noyau qui importe `scripts/pont.mjs`, le store, un
- *  module du noyau, et les modules du dépôt que la forme fermée lit par leur chemin (`gelerLaConstante`, `listerEntrees`). */
+ *  module du noyau, et les modules du dépôt que la forme fermée lit par leur chemin (`listerEntrees`). */
 const SOCLE_CALCULE = {
   'src/noyau/a.test.ts': "import { x } from '../../scripts/pont.mjs';\nexport const a = x;\n",
   'src/state/store.ts': 'export const useGame = 1;\n',
   'src/noyau/z.ts': 'export const z = 1;\n',
-  'src/lib/gelerProfond.ts': 'export const gelerLaConstante = (x) => x;\n',
   'scripts/guards/lib/lister.mjs': 'export const listerEntrees = () => ({ entrees: [] });\n',
   'scripts/reg.mjs': "export const REG = ['../src/noyau/z.ts'];\nexport const CFG = { p: '../src/noyau/z.ts' };\n",
   'scripts/reg2.mjs': "export const P = '../src/noyau/z.ts'.replace('noyau', 'state');\n",
@@ -236,7 +235,7 @@ const ROUGES_CALCULES = {
   'F5 paquet de l’hôte web': ["const nom = 'react';\nexport const x = () => import(nom);\n", 'scripts/pont.mjs:2'],
   'F7 second ordre': ["const b = './b.mjs';\nexport const x = () => import(b);\n", 'scripts/b.mjs:2', { 'scripts/b.mjs': "const s = '../src/state/store.ts';\nexport const y = () => import(s);\n" }],
   'F8 `require` lié et `vi.importActual` calculés dans un kit': ["import { k } from './kit.testkit.mjs';\nexport const x = k;\n", 'scripts/kit.testkit.mjs:5', { 'scripts/kit.testkit.mjs': "import { createRequire } from 'node:module';\nimport { vi } from 'vitest';\nconst r = createRequire(import.meta.url);\nconst s = '../src/state/store.ts';\nexport const k = () => [r(s), vi.importActual(s), vi.importActual(process.env.X)];\n" }],
-  'valeur vide': ["import { gelerLaConstante } from '../src/lib/gelerProfond.ts';\nconst V = gelerLaConstante([]);\nexport const x = () => import(V.find((v) => v).s);\n", 'scripts/pont.mjs:3'],
+  'valeur vide': ["const V = Object.freeze([].map(Object.freeze));\nexport const x = () => import(V.find((v) => v).s);\n", 'scripts/pont.mjs:2'],
 }
 
 /** La ligne rouge d'un arbre forgé qui nomme `site` sous la zone `zone`, sinon tous ses transits. */
@@ -262,7 +261,7 @@ test('CLÔTURE : une acquisition calculée partagée par deux groupes, ou attein
 test('CLÔTURE : une acquisition calculée que la forme fermée lit vers une zone qui survit passe : littéral (F6), registre gelé, descente', () => {
   const VERTS = {
     'F6 littéral lié': "const m = '../src/noyau/z.ts';\nexport const x = () => import(m);\n",
-    'registre gelé': "import { gelerLaConstante } from '../src/lib/gelerProfond.ts';\nimport path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst G = gelerLaConstante([{ s: 'src/noyau/z.ts' }]);\nconst R = fileURLToPath(new URL('../', import.meta.url));\nexport const x = (g) => { const c = G.find((y) => y.s === g); return import(pathToFileURL(path.join(R, c.s)).href); };\n",
+    'registre gelé': "import path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst G = Object.freeze([{ s: 'src/noyau/z.ts' }].map(Object.freeze));\nconst R = fileURLToPath(new URL('../', import.meta.url));\nexport const x = (g) => { const c = G.find((y) => y.s === g); return import(pathToFileURL(path.join(R, c.s)).href); };\n",
     'descente de `src/noyau/`': `${LISTER}import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../src/noyau/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.filter((f) => f).map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`,
   }
   const formes = Object.keys(VERTS)
