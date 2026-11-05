@@ -25,6 +25,10 @@ export const STRUCTURES_CIBLES = [
   { concept: "reference", signature: "choix,id", date: "2026-08-23" },
   { concept: "reference", signature: "id,type", date: "2026-08-23" },
   { concept: "reference", signature: "count,id,type", date: "2026-08-23" },
+  // #3012 R1 (2026-11-05) — la dotation de POSSESSION naît CIBLE sur la seule pose `dotation`
+  // (`dotationDePossessionSchema`, `refTypee` + `{count, label}`) ; sa migration de donnée est du même commit.
+  { concept: "reference", signature: "id,label,type", pose: "dotation", date: "2026-11-05" },
+  { concept: "reference", signature: "count,id,label,type", pose: "dotation", date: "2026-11-05" },
   { concept: "reference", signature: "of,pick", date: "2026-08-23" },
   { concept: "reference", signature: "pick,table", date: "2026-08-23" },
   // #1921 (2026-10-17) — le Spécial d'un jeu de taverne naît CIBLE : `specialSchema` le valide, rien à migrer.

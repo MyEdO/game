@@ -122,7 +122,7 @@ describe('lireGlb', () => {
     ['des nœuds hors d’un tableau', ecrireGlb({ asset: { version: '2.0' }, nodes: {} }, null), 'nodes : tableau attendu'],
     ['un nœud qui n’est pas un objet', arbre([null]), 'nœud 0 : objet attendu'],
     ['un nœud à mesh au nom vide', arbre([{ name: '', mesh: 0 }]), 'nœud 0 à mesh sans nom'],
-    ['une scène du document hors des scènes', arbre([{ name: 'r' }], { scenes: [{ nodes: [0] }], scene: 4 }), 'scène du document 4 hors des 1 scènes'],
+    ['la scène par défaut hors des scènes', arbre([{ name: 'r' }], { scenes: [{ nodes: [0] }], scene: 4 }), 'scène par défaut 4 hors des 1 scènes'],
   ])('refuse %s, le défaut dit', (_, octets, raison) => {
     expect(() => lireGlb(octets)).toThrow(new GlbIllisible(raison));
   });

@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -35,6 +35,9 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'combat.apercu': Ligne[];
   'combat.offres': Choix[];
   'exploration.gestes': Bouton[];
+  'dialogue.orateur': Ligne[];
+  'dialogue.replique': Ligne[];
+  'dialogue.reponses': Bouton[];
   'journal.titre': Ligne[];
   'groupe.heros': Bouton[];
   'fiche.heros': Entite[];
@@ -412,12 +415,28 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
     'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
-      type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: null,
+      type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: g.refus ?? null,
     })),
+    ...zonesDuDialogue(etat, fenetre !== null),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
     'groupe.heros': herosDuGroupe(etat, fiche),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, creation),
+  };
+}
+
+/** Les zones de la conversation en cours (`conversationEnVue`), quand aucune fenêtre ne la suspend : son
+ *  interlocuteur, sa réplique, et chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son
+ *  coût) avant son libellé, refusée avec sa raison. */
+function zonesDuDialogue(etat: Jeu, fenetreOuverte: boolean): Pick<ZonesDeLEcran, 'dialogue.orateur' | 'dialogue.replique' | 'dialogue.reponses'> {
+  const v = fenetreOuverte ? null : conversationEnVue(etat);
+  return {
+    'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur)] : [],
+    'dialogue.replique': v?.replique ? [ligne('replique', v.replique)] : [],
+    'dialogue.reponses': (v?.reponses ?? []).map((r): Bouton => ({
+      type: 'bouton', id: `reponse/${r.index}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
+      jeu: { type: r.geste.verbe, args: r.geste.args }, presse: false, focus: false, refus: r.refus ?? null,
+    })),
   };
 }
 

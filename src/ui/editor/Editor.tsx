@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene } from '../../noyau/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { validateScene, type Warning } from '../../noyau/validateScene';
 import { idsDesPistesDeMusique } from '../../audio/music';
@@ -947,12 +947,7 @@ export function Editor({
     }
     const { lu } = porte;
     setAdvError(null);
-    setScene({
-      ...scene,
-      ...(lu.dialogues !== undefined ? { dialogues: lu.dialogues } : {}),
-      ...(lu.triggers !== undefined ? { triggers: lu.triggers } : {}),
-      ...(lu.encounters !== undefined ? { encounters: lu.encounters } : {}),
-    });
+    setScene(poseBlocsAvances(scene, lu));
     setAdvOpen(false);
   }
   function resize(w: number, h: number) {

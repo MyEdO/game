@@ -20,4 +20,4 @@ Tout membre de `ActionsDuNoyau` est un verbe que tout hôte joue (`src/hote/verb
 - « Tout » est la rangée omise du verbe unitaire, jamais un verbe `*All`. Un jet se valide par `jetConfirm(flux)`.
 - Un geste, un verbe : le contexte (combat ou non, lieu, joueur ou automatique) et toute différence de règle qu'il porte se dérivent de l'état, jamais du choix de l'appelant. Aucune paire `battle*`/`ooc*`, `port*`/`land*`. #3371
 - Arguments : la fenêtre d'abord, la rangée (`pid`) en dernier et facultative. Ce qui existe se désigne par son id typé `IdDe…` (`src/noyau/designations.ts`), jamais `string` nu, jamais un libellé, jamais un objet entier fourni par l'appelant. Une chose déjà désignée ailleurs garde le même type et le même nom de paramètre.
-- Nom : aucun préfixe de contexte (`battle`, `ooc`, `port`, `land`), une seule langue par nom, celle arbitrée sur #3366 ; jamais un nom mi-français mi-anglais.
+- Nom : en français (arbitré sur #3366), sans préfixe de contexte (`battle`, `ooc`, `port`, `land`) ; jamais un nom mi-français mi-anglais. Un verbe existant au nom anglais se renomme en français dans le lot de #3371 qui le traverse, `jet*` compris.

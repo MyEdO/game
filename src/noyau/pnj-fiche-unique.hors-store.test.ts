@@ -95,21 +95,21 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
 });
 
 describe('#1882 — adversaire de poursuite et possession : une réf. RÉSOLUE, jamais semée vide', () => {
-  const poursuite = (creatureId: string) => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId } }], encounter: '' });
+  const poursuite = (creatureId: string) => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureId } }], encounter: '' });
 
-  it('le schéma refuse un `creatureId` vide ou mort, accepte une créature du bestiaire', () => {
+  it('le schéma refuse une créature vide ou morte, accepte une créature du bestiaire', () => {
     expect(startPursuitSchema.safeParse(poursuite('')).success).toBe(false);
     expect(startPursuitSchema.safeParse(poursuite('creature-fantome-xyz')).success).toBe(false);
     expect(startPursuitSchema.safeParse(poursuite('loup')).success).toBe(true);
-    expect(givePossessionSchema.safeParse({ type: 'givePossession', nature: 'vehicule', ref: { vehicleId: '' } }).success).toBe(false);
+    expect(givePossessionSchema.safeParse({ type: 'givePossession', nature: 'vehicule', ref: { id: '', type: 'vehicle' } }).success).toBe(false);
   });
 
   it('un effet NEUF sème le premier offert du catalogue, et passe son propre schéma', () => {
     const p = EFFECT_HANDLERS.startPursuit.make() as ReturnType<typeof poursuite>;
-    expect(findCreatureById(p.foes[0].ref.creatureId)).toBeDefined();
+    expect(findCreatureById(p.foes[0].ref.id)).toBeDefined();
     expect(startPursuitSchema.safeParse(p).success).toBe(true);
-    const g = EFFECT_HANDLERS.givePossession.make() as { ref: { creatureId: string } };
-    expect(findCreatureById(g.ref.creatureId)).toBeDefined();
+    const g = EFFECT_HANDLERS.givePossession.make() as { ref: { id: string } };
+    expect(findCreatureById(g.ref.id)).toBeDefined();
     expect(givePossessionSchema.safeParse(g).success).toBe(true);
     expect(findVehicleById('')).toBeUndefined();
   });

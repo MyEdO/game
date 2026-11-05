@@ -95,9 +95,9 @@ function firstOwnedBete(
 /** Monture UTILISABLE d'un héros : première Possession bête (avec-le-groupe) au profil EDOC, encore
  *  montable (`possessions` = tout le registre du store, filtré par `ownerId`). */
 export function heroMount(h: Combatant, possessions: Possession[]): PartyMount | undefined {
-  const p = firstOwnedBete(h, possessions, (c) => 'creatureId' in c.ref && !!mountProfileForCreature(c.ref.creatureId) && rideable(c));
+  const p = firstOwnedBete(h, possessions, (c) => 'id' in c.ref && !!mountProfileForCreature(c.ref.id) && rideable(c));
   if (!p) return undefined;
-  const profile = 'creatureId' in p.ref ? mountProfileForCreature(p.ref.creatureId) : undefined;
+  const profile = 'id' in p.ref ? mountProfileForCreature(p.ref.id) : undefined;
   return profile ? { hero: h, possession: p, profile } : undefined;
 }
 
@@ -155,8 +155,8 @@ export function lameLedCapKmh(party: Combatant[], possessions: Possession[]): nu
   const heroIds = new Set(party.filter((h) => !h.dead && !h.outOfRencontre).map((h) => h.id));
   for (const p of possessions) {
     if (p.nature !== 'bete' || !heroIds.has(p.ownerId) || p.mountInjury !== 'boiteux') continue;
-    if (!('creatureId' in p.ref)) continue;
-    const profile = mountProfileForCreature(p.ref.creatureId);
+    if (!('id' in p.ref)) continue;
+    const profile = mountProfileForCreature(p.ref.id);
     if (!profile) continue;
     const kmh = (profile.m * ALLURE_KMH_PER_M.pas) / 2;
     cap = cap == null ? kmh : Math.min(cap, kmh);

@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
+[ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="3_titre"]
 
 [sub_resource type="Theme" id="Avis"]
 Label/font_sizes/font_size = 18
@@ -153,6 +154,48 @@ source = "groupe.heros"
 [node name="Zone" type="Node" parent="Interface/Groupe/Gestes"]
 script = ExtResource("1_zone")
 source = "groupe.gestes"
+
+[node name="Dialogue" type="PanelContainer" parent="Interface"]
+visible = false
+custom_minimum_size = Vector2(660, 0)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -330.0
+offset_top = -16.0
+offset_right = 330.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Dialogue"]
+theme_override_constants/separation = 10
+
+[node name="Orateur" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
+theme = ExtResource("3_titre")
+
+[node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Orateur" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "dialogue.orateur"
+masque = NodePath("../../..")
+
+[node name="Replique" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Replique" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "dialogue.replique"
+masque = NodePath("../../..")
+
+[node name="Reponses" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Reponses" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "dialogue.reponses"
+masque = NodePath("../../..")
 
 [node name="Fiche" type="PanelContainer" parent="Interface"]
 visible = false
