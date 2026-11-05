@@ -4,14 +4,15 @@
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
  * focus, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
- * Critique, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
+ * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, et un formulaire
+ * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
  * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
 import { CLICS_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
 /** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
@@ -99,10 +100,16 @@ export function figerVuesDeLEcran(): VueFigee[] {
         : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu);
   }
   figer('Coup Critique', s);
+  s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
+  for (const onglet of ONGLETS_DE_LA_FICHE) {
+    s = appeler('fiche', s.vue.zones['fiche.gestes'].find((b) => b.id === `onglet/${onglet}`)!.jeu);
+    figer(`fiche du héros, ${onglet}`, s);
+  }
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
+    'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [],
   };
   vues.push({
     nom: 'formulaire de chaque saisie',

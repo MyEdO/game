@@ -3,19 +3,21 @@
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
  * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
- * le journal ; en exploration, les gestes du groupe. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
+ * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche, et la fiche ouverte.
+ * À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
-  type CombatEvent, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, jetsEnVue, porteurParId, toneOf,
+  type CombatEvent, type FicheDuPorteur, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import type { Projection } from './projection';
 import type { FenetreADessiner } from './gestes';
-import { elementsDesGestes, ligne, type Bouton, type Choix, type Element, type Entite, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
 
 /** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre. Une zone vide n'a rien à montrer. */
 export interface ZonesDeLEcran {
@@ -32,6 +34,10 @@ export interface ZonesDeLEcran {
   'combat.offres': Choix[];
   'exploration.gestes': Bouton[];
   'journal.titre': Ligne[];
+  'groupe.heros': Bouton[];
+  'fiche.heros': Entite[];
+  'fiche.gestes': Bouton[];
+  'fiche.corps': Puce[];
 }
 
 type Combat = NonNullable<Projection['combat']>;
@@ -210,13 +216,16 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   ];
 }
 
+/** Une jauge de `courant` sur `max`. */
+const jauge = (id: string, libelle: string, [courant, max]: readonly [number, number]): Element => ({ type: 'jauge', id, ton: 'neutre', libelle, courant, max, texte: t('ecran.jauge', { courant, max }) });
+
 /** L'actif du combat : son nom, ses Blessures et son Mouvement en jauges, puis son Avantage, son Action et chacun de
  *  ses États en puces. */
 const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   type: 'entite', id: actif.id, ton: 'neutre', nom: actif.nom,
   elements: [
-    { type: 'jauge', id: 'blessures', ton: 'neutre', libelle: t('ecran.jauge.blessures'), courant: actif.pb[0], max: actif.pb[1], texte: t('ecran.jauge', { courant: actif.pb[0], max: actif.pb[1] }) },
-    { type: 'jauge', id: 'mouvement', ton: 'neutre', libelle: t('ecran.jauge.mouvement'), courant: actif.mouvement[0], max: actif.mouvement[1], texte: t('ecran.jauge', { courant: actif.mouvement[0], max: actif.mouvement[1] }) },
+    jauge('blessures', t('ecran.jauge.blessures'), actif.pb),
+    jauge('mouvement', t('ecran.jauge.mouvement'), actif.mouvement),
     puce('avantage', t('ecran.avantage'), String(actif.avantage)),
     puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
     ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
@@ -266,8 +275,84 @@ function avisDuCombat(c: Combat, fenetreOuverte: boolean): Ligne[] {
   ];
 }
 
-/** Les zones de l'écran de la partie `etat`, de sa projection `p` et de la fenêtre qui tient la main `fenetre`. */
-export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null): ZonesDeLEcran {
+/** Le bouton d'un geste de la fiche : il montre `fiche` (`null` : la ferme), pressé quand il la montre déjà. */
+const boutonDeFiche = (id: string, libelle: string, fiche: FicheOuverte | null, presse: boolean): Bouton => ({
+  type: 'bouton', id, libelle, jeu: { fiche }, presse, focus: false, refus: null,
+});
+
+/** Chaque héros du groupe en bouton qui ouvre sa fiche, à l'onglet de la fiche ouverte ; celui dont la fiche est
+ *  ouverte, pressé, la ferme. */
+const herosDuGroupe = (etat: Jeu, ouverte: FicheOuverte | null): Bouton[] =>
+  etat.party.map((h) => {
+    const presse = ouverte?.heros === h.id;
+    return boutonDeFiche(`fiche/${h.id}`, h.label, presse ? null : { heros: h.id, onglet: ouverte?.onglet ?? ONGLETS_DE_LA_FICHE[0] }, presse);
+  });
+
+/** Le héros de la fiche : son nom, ses Blessures en jauge, ses Points de Destin, de Chance, de Résilience et de
+ *  Détermination, puis chacun de ses États en puces. */
+const herosDeLaFiche = (f: FicheDuPorteur): Entite => ({
+  type: 'entite', id: f.id, ton: 'neutre', nom: f.nom,
+  elements: [
+    jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
+    puce('destin', t('ecran.destin'), String(f.destin)),
+    puce('chance', t('ecran.fiche.chance'), String(f.chance)),
+    puce('resilience', t('ecran.fiche.resilience'), String(f.resilience)),
+    puce('determination', t('ecran.fiche.determination'), String(f.determination)),
+    ...f.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
+  ],
+});
+
+/** Les caractères au plus d'une description au détail d'une puce : son premier paragraphe, coupé au mot. */
+const DESCRIPTION_AU_DETAIL = 300;
+
+/** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
+const resume = (description: string | null): string | null => description && coupeAuMot(description.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
+
+/** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
+const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
+
+/** L'onglet `onglet` de la fiche `f`, chaque entrée en puce : une Caractéristique par son abréviation, son nom au
+ *  détail ; une Compétence et la valeur de son Test, sa Caractéristique et ses Augmentations au détail, par nom ; un
+ *  Talent et son niveau, le premier paragraphe de sa description au détail ; une possession et son nombre ou son
+ *  argent, les équipées d'abord. */
+function corpsDeLaFiche(f: FicheDuPorteur, onglet: FicheOuverte['onglet']): Puce[] {
+  switch (onglet) {
+    case 'caracteristiques': return f.caracteristiques.map((c) => puce(`carac/${c.cle}`, c.abrege, String(c.valeur), c.libelle));
+    case 'competences': {
+      const carac = new Map(f.caracteristiques.map((c) => [c.cle, c]));
+      return f.competences
+        .map((c, i) => {
+          const k = carac.get(c.caracteristique)!;
+          return puce(`competence/${i}`, c.libelle, String(c.valeur), t('ecran.fiche.competence', { carac: k.abrege, base: k.valeur, avances: c.avances }));
+        })
+        .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+    }
+    case 'talents': return f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.description)));
+    case 'possessions': return f.possessions
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => Number(b.p.equipee) - Number(a.p.equipee))
+      .map(({ p, i }) => puce(`possession/${i}`, p.libelle, p.argent ?? nombre(p.nombre), p.equipee ? t('ecran.fiche.equipee') : null, p.equipee ? 'reussite' : 'neutre'));
+  }
+}
+
+/** Les zones de la fiche `ouverte` : son héros, ses onglets et sa fermeture, l'onglet ouvert ; vides sans fiche ou
+ *  sans son héros. */
+function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.heros' | 'fiche.gestes' | 'fiche.corps'> {
+  const f = ouverte && ficheDuPorteur(etat, ouverte.heros);
+  if (!ouverte || !f) return { 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [] };
+  return {
+    'fiche.heros': [herosDeLaFiche(f)],
+    'fiche.gestes': [
+      ...ONGLETS_DE_LA_FICHE.map((o) => boutonDeFiche(`onglet/${o}`, t(`ecran.fiche.onglet.${o}`), { heros: f.id, onglet: o }, o === ouverte.onglet)),
+      boutonDeFiche('fermer', t('ecran.fiche.fermer'), null, false),
+    ],
+    'fiche.corps': corpsDeLaFiche(f, ouverte.onglet),
+  };
+}
+
+/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre` et de la
+ *  fiche que l'hôte montre `fiche`. */
+export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null): ZonesDeLEcran {
   const c = p.combat;
   const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
   const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
@@ -288,6 +373,8 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: null,
     })),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
+    'groupe.heros': herosDuGroupe(etat, fiche),
+    ...zonesDeLaFiche(etat, fiche),
   };
 }
 
