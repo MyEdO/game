@@ -23,14 +23,34 @@
       "label": "Barrage de débris",
       "kind": "obstacle",
       "obstacle": {
-        "endurance": "1d10",
+        "endurance": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "enduranceMult": 10,
-        "wounds": "2d10",
+        "wounds": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        },
         "ramDamage": 10
       },
       "clear": {
-        "objects": "3d10",
-        "encPerObject": "4d10",
+        "objects": {
+          "dice": {
+            "n": 3,
+            "sides": 10
+          }
+        },
+        "encPerObject": {
+          "dice": {
+            "n": 4,
+            "sides": 10
+          }
+        },
         "encPerHour": 100
       },
       "ref": "MSRC 7 l.128",

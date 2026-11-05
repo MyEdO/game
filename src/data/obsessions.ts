@@ -5,7 +5,7 @@
  * (`groups.json`), la Cible du Trait octroyé. EDOC 12 l.170, l.217, l.241. Données dans `obsessions.json`
  * (source + folio, dé de tirage `die`) ; tirage `rollDice` + lookup partagé `findTableEntry`.
  */
-import { RNG, rollDice } from '../engine/dice';
+import { rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import type { TableDeCibles } from './schemas/grammaire/mecanique';
 import type * as obsessions from './schemas/defs/obsessions';

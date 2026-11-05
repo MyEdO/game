@@ -9,7 +9,7 @@ import {
   ecartsDeCouverture,
   plageOuverteSchema,
   prixSaisonnierSchema,
-  prixTireSchema,
+  tirageSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
@@ -24,7 +24,7 @@ const cargoMarchand = nommerChamps(z.strictObject({
   /** Discriminant du catalogue (`catalogueSaisonnier`) : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
   echangeable: z.literal(true).optional(),
   avail: dispoSaisonniereSchema,
-  price: z.union([prixSaisonnierSchema, prixTireSchema]),
+  price: z.union([prixSaisonnierSchema, tirageSchema]),
   source: sourceRefSchema,
 }), {
   id: { label: 'Identifiant' },

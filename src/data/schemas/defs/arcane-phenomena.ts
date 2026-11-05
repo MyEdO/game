@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
-import { deDeTableSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
+import { deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
 export const famille = 'config';
@@ -211,7 +211,7 @@ const doc = document(
         desc: { label: 'texte' },
       }).optional(),
 
-      overcastPerSpell: nommerChamps(z.strictObject({ dice: z.string(), source: sourceRefSchema, desc: z.string() }), {
+      overcastPerSpell: nommerChamps(z.strictObject({ dice: diceSpecSchema, source: sourceRefSchema, desc: z.string() }), {
         dice: { label: 'dés' },
         source: { label: 'source' },
         desc: { label: 'texte' },

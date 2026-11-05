@@ -31,7 +31,7 @@ import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, d100, rollExpr, type RNG } from './dice';
+import { d10, d100, tirer, type RNG, type Tirage } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
@@ -76,7 +76,7 @@ const DATA = riverNavJson as unknown as {
   capsize: { removeSailDifficulty: Difficulty; rightDifficulty: Difficulty; rightCumulativePenalty: number };
   outOfControl: { navPenalty: number };
   echouage: { hullDamage: number };
-  temporaryRepair: { difficulty: Difficulty; charpentierPenalty: number; woundsPerRepair: string };
+  temporaryRepair: { difficulty: Difficulty; charpentierPenalty: number; woundsPerRepair: Tirage };
 };
 
 export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.map((f) => f.id as RiverWindForceId));
@@ -205,10 +205,10 @@ export interface RiverPerilDef {
   /** Débris (l.125) : Test de Navigation raté → `hullHits` coups à la coque, `damagePerHit` chacun. */
   onFail?: { hullHits: number; damagePerHit: number };
   /** Barrage (l.128) : Endurance (`endurance`×`enduranceMult`), Blessures (`wounds`), bélier +`ramDamage`. */
-  obstacle?: { endurance: string; enduranceMult: number; wounds: string; ramDamage: number };
+  obstacle?: { endurance: Tirage; enduranceMult: number; wounds: Tirage; ramDamage: number };
   /** Déblayage à la main (l.128) : `objects` éléments de `encPerObject` Enc ; `encPerHour` = débit de
    *  halage (valeur maison éditable, l.128, règle stricte 7 — le halage n'y est pas chiffré en temps). */
-  clear?: { objects: string; encPerObject: string; encPerHour: number };
+  clear?: { objects: Tirage; encPerObject: Tirage; encPerHour: number };
   /** Rochers/eaux peu profondes (l.138-144) : à l'impact, Dégâts + chances de percée/échouage. */
   onHit?: { hullDamage: number; holeChancePct?: number; echouageChancePct?: number };
   ref: string;
@@ -237,16 +237,16 @@ export function resolveRiverImpact(onHit: NonNullable<RiverPerilDef['onHit']>, r
 
 /** Endurance & Blessures d'un barrage de débris (l.128 : « Endurance de 1d10 × 10 et 2d10 de Blessures »). PUR. */
 export function rollBarrage(obstacle: NonNullable<RiverPerilDef['obstacle']>, rng: RNG): { endurance: number; wounds: number } {
-  return { endurance: rollExpr(obstacle.endurance, rng) * obstacle.enduranceMult, wounds: rollExpr(obstacle.wounds, rng) };
+  return { endurance: tirer(obstacle.endurance, rng) * obstacle.enduranceMult, wounds: tirer(obstacle.wounds, rng) };
 }
 
 /** Déblayage à la main d'un barrage (l.128 : « il faut déblayer 3d10 objets. Chaque élément a 4d10 Points
  *  d'Encombrement ») : `objects` éléments tirés, Encombrement TOTAL halé, converti en HEURES par le débit
  *  maison `encPerHour` (l.128, règle stricte 7 — plancher 1 h). PUR (RNG injecté). */
 export function rollBarrageClearing(clear: NonNullable<RiverPerilDef['clear']>, rng: RNG): { objects: number; enc: number; hours: number } {
-  const objects = rollExpr(clear.objects, rng);
+  const objects = tirer(clear.objects, rng);
   let enc = 0;
-  for (let i = 0; i < objects; i++) enc += rollExpr(clear.encPerObject, rng);
+  for (let i = 0; i < objects; i++) enc += tirer(clear.encPerObject, rng);
   return { objects, enc, hours: Math.max(1, Math.ceil(enc / clear.encPerHour)) };
 }
 

@@ -7,6 +7,7 @@ import { MultiRollList } from './MultiRollList';
 import { Coins } from './Coins';
 import { Icon } from './Icon';
 import { moraleBand, findMoraleFactor, payChoices, payChoiceCostBrass } from '../engine/crewMorale';
+import { formatEffetSigne } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { moraleTone } from './shipStatus';
@@ -63,7 +64,7 @@ export function CouncilModal() {
         <>
           <span className="council-opt-label">{f?.label ?? factorId}</span>
           <span className="council-opt-cost">{costBrass > 0 ? <Coins money={fromBrass(costBrass)} /> : 'gratuit'}</span>
-          <span className="council-opt-effect">{f?.effect} Moral</span>
+          <span className="council-opt-effect">{f && formatEffetSigne(f.effect)} Moral</span>
         </>
       ),
       onSelect: () => councilPay(factorId),

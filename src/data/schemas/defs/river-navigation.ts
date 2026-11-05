@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 7 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 
 export const file = 'river-navigation.json';
 export const famille = 'config';
@@ -54,7 +54,7 @@ const champs = {
   temporaryRepair: nommerChamps(z.strictObject({
     difficulty: difficultySchema,
     charpentierPenalty: z.number(),
-    woundsPerRepair: z.string(),
+    woundsPerRepair: tirageSchema,
     source: sourceRefSchema,
   }), {
     difficulty: { label: 'Difficulté' },

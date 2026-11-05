@@ -7,7 +7,12 @@
     "label": "Le moteur broute",
     "desc": "Le moteur broute : le moteur saute un tour et perd de la vitesse. Pendant les 1d10 prochains Rounds, le M du vaisseau est réduit de 3.",
     "mMod": -3,
-    "durationRounds": "1d10",
+    "durationRounds": {
+      "dice": {
+        "n": 1,
+        "sides": 10
+      }
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 99,
@@ -21,7 +26,13 @@
     "max": 60,
     "label": "Fuite de vapeur",
     "desc": "Fuite de vapeur : un jet de vapeur jaillit de la chaudière. La personne qui s'occupe du moteur doit réussir un Test d'Initiative sous peine d'être ébouillantée et de subir 1d10–5 Dégâts (1 minimum), qui ignorent l'Armure.",
-    "failDamage": "1d10-5",
+    "failDamage": {
+      "dice": {
+        "n": 1,
+        "sides": 10,
+        "plus": -5
+      }
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 99,
@@ -87,7 +98,13 @@
     "label": "Rupture du réservoir",
     "desc": "Rupture du réservoir : une plaque se dévisse et laisse passer de la vapeur. Le M du navire est réduit de 3. Le moteur ne peut être réparé qu'une fois refroidi. Pour cela, il est nécessaire de retirer les morceaux de charbon (voir ci-dessus) et d'attendre 20+1d10 minutes. Puis vous devez réussir un Test de Métier (Ingénieur) Complexe (–10) pour réparer le moteur et un autre Test de Métier (Ingénieur) Intermédiaire (+0) pour le redémarrer. Il faut ensuite attendre 5–DR Rounds jusqu'à ce que la pression soit suffisante pour propulser le navire.",
     "mMod": -3,
-    "coolMinutes": "20+1d10",
+    "coolMinutes": {
+      "dice": {
+        "n": 1,
+        "sides": 10,
+        "plus": 20
+      }
+    },
     "restart": [
       {
         "char": "force",

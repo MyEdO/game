@@ -88,7 +88,7 @@ import type { Porteur } from '../liage';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
@@ -444,8 +444,6 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
  */
 const valeurFR = (fichier: string, champ: string, valeur: string): string =>
   libelleDeValeur(noeudDuChamp(fichier, champ), valeur);
-/** Libellé d'un jet de dés (`{n,d,plus?}`) — « 1d10 », « 2d10+2 ». */
-const diceLabel = formatDice;
 
 /** Section « Issues par Degrés de Réussite » d'une Activité (bandes `OutcomeBand[]`) : une sous-tête par
  *  bande (issue + fourchette de DR + gate de bataille) puis note verbatim, résolveur, rendu, effets et
@@ -743,7 +741,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
 function travelEntryItem(e: TravelTableEntry, occupantsTitle: string): CodexItem {
   return depuisEnveloppe(e, {
     sub: bandeAuDe('d100', e.min, e.max),
-    meta: facts(fact('Dégâts véhicule', e.vehicleWounds ?? null)),
+    meta: facts(fact('Dégâts véhicule', e.vehicleWounds ? formatDice(e.vehicleWounds.dice) : null)),
     sections: sections(passiveSection(e.occupantOps, occupantsTitle)),
   });
 }
@@ -769,7 +767,7 @@ function shipCritEntryItem(e: ShipCritEntry): CodexItem {
     desc: e.note,
     meta: facts(
       typeof e.shrapnel === 'number' ? fact('Éclats (Indice)', e.shrapnel) : null,
-      e.hullCrits ? fact('Critiques Coque suppl.', e.hullCrits) : null,
+      e.hullCrits ? fact('Critiques Coque suppl.', formatDice(e.hullCrits.dice)) : null,
     ),
     sections: sections(
       passiveSection(e.ops, 'Effet immédiat'),
@@ -795,12 +793,10 @@ function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
 }
 
 /** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157 suite) : effet signé
- *  (Nd10 + constante) appliqué UNE fois par navire. */
+ *  appliqué UNE fois par navire. */
 function manannFactorItem(f: ManannFactor): CodexItem {
-  const eff = f.effect;
-  const magnitude = eff.d10 > 0 ? diceLabel({ n: eff.d10, sides: 10, plus: eff.flat || undefined }) : String(eff.flat);
   return depuisEnveloppe(f, {
-    meta: facts(fact('Effet sur l’Humeur de Manann', `${eff.sign > 0 ? '+' : '−'}${magnitude}`)),
+    meta: facts(fact('Effet sur l’Humeur de Manann', formatEffetSigne(f.effect))),
   });
 }
 
@@ -1106,7 +1102,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             fact('Vent réfracté', p.singleWind ? 'un seul à la fois' : null),
             p.cancelsTraitId ? { label: 'Annule le Trait', value: refLabel('traits', { id: p.cancelsTraitId }), kref: { category: 'traits', id: p.cancelsTraitId, label: refLabel('traits', { id: p.cancelsTraitId }) } } : null,
             p.controlFlux ? fact('Contrôle du Flux', `Test de Focalisation ${DIFFICULTY_LABELS[p.controlFlux.difficulty as keyof typeof DIFFICULTY_LABELS] ?? p.controlFlux.difficulty}`) : null,
-            p.overcastPerSpell ? fact('Surincantation par Sort', p.overcastPerSpell.dice) : null,
+            p.overcastPerSpell ? fact('Surincantation par Sort', formatDice(p.overcastPerSpell.dice)) : null,
             p.stonePropertySlots ? fact('Propriétés de pierre gardienne', String(p.stonePropertySlots.max)) : null,
             p.draws ? fact('Tirages', String(p.draws)) : null,
           ),
@@ -1245,7 +1241,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             rows: [
               { t: 'kv', k: 'Hors de contrôle', v: `${n.outOfControl.navPenalty} Navigation` } as CodexRow,
               { t: 'kv', k: 'S’échouer', v: `${n.echouage.hullDamage} Dégâts de coque` } as CodexRow,
-              { t: 'kv', k: 'Réparation temporaire', v: `${DIFFICULTY_LABELS[n.temporaryRepair.difficulty]} (Charpentier ${n.temporaryRepair.charpentierPenalty}, ${n.temporaryRepair.woundsPerRepair} Blessures)` } as CodexRow,
+              { t: 'kv', k: 'Réparation temporaire', v: `${DIFFICULTY_LABELS[n.temporaryRepair.difficulty]} (Charpentier ${n.temporaryRepair.charpentierPenalty}, ${formatDice(n.temporaryRepair.woundsPerRepair.dice)} Blessures)` } as CodexRow,
             ],
           },
         ),
@@ -2338,8 +2334,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             title: 'Réparations au port', layout: 'list',
             rows: [
               { t: 'kv', k: 'Coût au port', v: `${n.reparation.portCostGoldPerWound} po / Blessure` } as CodexRow,
-              { t: 'kv', k: 'Temps de Test', v: n.reparation.testHours } as CodexRow,
-              { t: 'kv', k: 'Blessures réparées / Test', v: n.reparation.woundsPerTest } as CodexRow,
+              { t: 'kv', k: 'Temps de Test', v: formatDice(n.reparation.testHours.dice) } as CodexRow,
+              { t: 'kv', k: 'Blessures réparées / Test', v: formatDice(n.reparation.woundsPerTest.dice) } as CodexRow,
             ],
           },
         ),
@@ -2532,7 +2528,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'crewMoraleFactors', label: 'Moral d’équipage — Facteurs', group: 'Tables', cluster: 'Équipage & navire',
-    build: () => MORALE_FACTORS.map((f) => depuisEnveloppe(f, { desc: f.effect })),
+    build: () => MORALE_FACTORS.map((f) => depuisEnveloppe(f, { desc: formatEffetSigne(f.effect) })),
   },
   {
     key: 'crewMoraleBands', label: 'Moral d’équipage — Effets', group: 'Tables', cluster: 'Équipage & navire',
