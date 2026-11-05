@@ -7,7 +7,7 @@
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
-import { horlogeVirtuelle } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
@@ -75,7 +75,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', { offre: 'charge' });
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
-  s = jouer('jouer', { type: s.vue.champ!.combattant, args: [cible] });
+  s = jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [cible] });
   figer('fenêtre d’attaque', s);
   s = jouer('jouer', enFocus(s));
   figer('jet d’attaque tombé', s);
@@ -91,7 +91,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'journal.titre': [],
+    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
   };
   vues.push({
     nom: 'formulaire de chaque saisie',

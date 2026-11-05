@@ -710,3 +710,5 @@ export interface GesteDuNoyau {
 /** Les clics du champ de bataille, par ce qu'ils désignent : un combattant (son id), une case (`Pt`). Un premier clic
  *  pose l'aperçu, le même clic le confirme (`battle.preview`). */
 export const CLICS_DU_CHAMP = { combattant: 'battleClickEntity', case: 'battleClickTile' } as const satisfies Record<string, keyof ActionsDuNoyau>;
+/** Le clic d'une case en exploration : le groupe y marche par son chemin à pied. */
+export const CLICS_DE_L_EXPLORATION = { case: 'marcherVers' } as const satisfies Record<string, keyof ActionsDuNoyau>;

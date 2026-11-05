@@ -68,6 +68,7 @@ source = "journal.lignes"
 ajout = true
 
 [node name="Bas" type="PanelContainer" parent="Interface"]
+visible = false
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
@@ -77,11 +78,21 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Panneau"
 
-[node name="Offres" type="VBoxContainer" parent="Interface/Bas"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Bas"]
 
-[node name="Zone" type="Node" parent="Interface/Bas/Offres"]
+[node name="Offres" type="VBoxContainer" parent="Interface/Bas/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Bas/Pile/Offres" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.offres"
+masque = NodePath("../../..")
+
+[node name="Exploration" type="HFlowContainer" parent="Interface/Bas/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Bas/Pile/Exploration" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "exploration.gestes"
+masque = NodePath("../../..")
 
 [node name="Haut" type="PanelContainer" parent="Interface"]
 visible = false

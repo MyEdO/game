@@ -3,7 +3,7 @@
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
  * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
- * le journal. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
+ * le journal ; en exploration, les gestes du groupe. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
  */
@@ -30,6 +30,7 @@ export interface ZonesDeLEcran {
   'combat.avis': Ligne[];
   'combat.apercu': Ligne[];
   'combat.offres': Choix[];
+  'exploration.gestes': Bouton[];
   'journal.titre': Ligne[];
 }
 
@@ -233,6 +234,9 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
     'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
+    'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
+      type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: null,
+    })),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
   };
 }

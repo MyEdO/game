@@ -1,6 +1,7 @@
-## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), chaque combattant à sa case (`voisins`), les
-## surbrillances des cases que la vue peint (`vue.cases`), des cibles et de l'aperçu du premier clic, et la case sous le
-## pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
+## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), chaque combattant à sa case (`voisins`) ou, en
+## exploration, le meneur du groupe à la case du groupe et chaque entité de la scène nommée à sa case, les
+## surbrillances des cases que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la
+## case sous le pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
 ## cliquée.
 class_name Plateau
 extends Node3D
@@ -26,6 +27,7 @@ const DISTANCE_MAX := 40.0
 
 var _bornes := Rect2i()
 var _modeles: Dictionary = {}
+var _entites: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
 var _lacet := 0.0
@@ -43,8 +45,15 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	if not _bornes.has_area() and vue.plateau != null:
 		_poser_le_sol(vue.plateau)
 	var combat: Variant = vue.projection.combat
+	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
-	for c in ([] if combat == null else combat.voisins.liste):
+	var dessines: Array = []
+	if combat != null:
+		dessines = combat.voisins.liste
+	elif exploration != null:
+		dessines = exploration.heros.slice(0, 1)
+		_nommer_les_entites(exploration.entites.liste)
+	for c in dessines:
 		if c.pos == null:
 			continue
 		var lieu := _monde(Vector2i(int(c.pos[0]), int(c.pos[1])))
@@ -60,6 +69,20 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_modeles[e.actorId].agir_vers(_modeles[e.targetId].position)
 			_modeles[e.targetId].subir()
 	_peindre()
+
+
+## Chaque entité de la scène nommée au-dessus de sa case.
+func _nommer_les_entites(entites: Array) -> void:
+	for e in entites:
+		if _entites.has(e.id) or e.nom == null:
+			continue
+		var nom := Label3D.new()
+		nom.text = e.nom
+		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		nom.no_depth_test = true
+		nom.position = MiseEnPage.au_dessus_de_la_case(Vector2i(int(e.pos[0]), int(e.pos[1])))
+		_entites[e.id] = nom
+		add_child(nom)
 
 
 ## Le point de l'écran de la case de l'aperçu du premier clic (sa case, ou celle du combattant qu'il vise), `null` sans
@@ -102,7 +125,7 @@ func _monde(case: Vector2i) -> Vector3:
 	return MiseEnPage.centre_de_case(case)
 
 
-## Les cases peintes : celles de la vue, les cibles, l'aperçu, puis la case sous le pointeur.
+## Les cases peintes : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis la case sous le pointeur.
 func _peindre() -> void:
 	_surbrillance.clear()
 	for c in _vue.get("cases", []):
@@ -118,6 +141,11 @@ func _peindre() -> void:
 				_surligner(Vector2i(int(c.pos[0]), int(c.pos[1])), ITEM_SURVOL if apercu != null and apercu.cible == c.id else ITEM_CIBLE)
 		if apercu != null and apercu.case != null:
 			_surligner(Vector2i(int(apercu.case[0]), int(apercu.case[1])), ITEM_SURVOL)
+	var exploration: Variant = _vue.get("projection", {}).get("exploration")
+	if exploration != null:
+		for e in exploration.entites.liste:
+			if e.nom != null:
+				_surligner(Vector2i(int(e.pos[0]), int(e.pos[1])), ITEM_CIBLE)
 	if _survol != null:
 		_surligner(_survol, ITEM_SURVOL)
 

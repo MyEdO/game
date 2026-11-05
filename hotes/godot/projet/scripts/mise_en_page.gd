@@ -2,7 +2,8 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, un vecteur rapporté à un repère, et le coin d'une bulle au-dessus d'un point. Seul script où
+## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, et le point où se dit le nom de ce qui
+## occupe une case. Seul script où
 ## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
 ## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -19,11 +20,18 @@ const TANGAGE_MINIMAL := -1.2
 const TANGAGE_MAXIMAL := 0.2
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
+## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
+const HAUTEUR_DU_NOM := 1.2
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
 static func diametre(rayon: float) -> float:
 	return 2.0 * rayon
+
+
+## Le point, au-dessus du centre de la case `case`, où se dit le nom de ce qui l'occupe.
+static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
+	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
 
 
 ## Le centre de la case `case` sur le sol (y = 0).
