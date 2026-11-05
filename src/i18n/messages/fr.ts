@@ -383,7 +383,6 @@ export const fr = {
   'ecran.jet.reussite': 'réussite',
   'ecran.jet.echec': 'échec',
   'ecran.defense.qui': '{attaquant} attaque {defenseur} avec {arme}',
-  'ecran.defense.test': 'Réaction : {test}',
   'ecran.drNet': 'DR net {dr}',
   // Fenêtre d'attaque — libellés lus par `fenetreDAttaque` (`noyau/fenetreDAttaque.ts`), le web et tout hôte.
   // Dégâts d'arme avant le DR du jet : en-tête de la fenêtre web et réticule du stage (`gameIso/stage/AimOverlay.tsx`).

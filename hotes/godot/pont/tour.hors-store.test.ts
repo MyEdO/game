@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import type { Suite } from './pont';
-import type { Bouton, Ligne } from '../../../src/hote/elements';
+import type { Bouton, Jet, Ligne } from '../../../src/hote/elements';
 
 const { appel: appelNu } = table();
 
@@ -128,11 +128,16 @@ describe('un tour complet par le pont', () => {
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'defenseJet' } });
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense dit qui attaque').toMatchObject({ type: 'ligne', texte: expect.stringContaining(adversaire.nom) });
     const etape = suite.vue.zones['fenetre.etape'][0]?.texte;
+    expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');
+    const reaction = corpsDe(suite.vue, 'defense/jet');
+    expect(reaction, 'avant le dé, la réaction dit son score à atteindre').toMatchObject({ type: 'jet', cible: expect.stringMatching(/\d+$/), resultat: null, detail: expect.stringMatching(/^base \d+/) });
     expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetRoll@defense');
     const evenements = [...journal];
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
     expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
+    expect(corpsDe(suite.vue, 'defense/jet'), 'le dé tombé, la ligne avant le dé s’efface').toBeUndefined();
+    expect(suite.vue.zones['fenetre.corps'].find((e) => e.type === 'jet' && e.libelle === (reaction as Jet).libelle), 'le jet tombé vise le score annoncé avant le dé').toMatchObject({ cible: (reaction as Jet).cible });
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense confirmée, sa fenêtre se ferme').toBeUndefined();

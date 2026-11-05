@@ -21,7 +21,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
+import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
@@ -240,7 +240,7 @@ import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
   stepDetail, stepPrecision, stepPsych, stepSansPeur,
-  type ChoiceSpec, type Consequence, type TableSpec,
+  type ChoiceSpec, type Consequence, type RollLineParts, type TableSpec,
 } from './rollSeam';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -976,17 +976,27 @@ export function previewDefense(
   ctx?: { mode?: 'parade' | 'esquive'; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMods?: ModLine[] },
 ): { label: string; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
   const mode = ctx?.mode ?? bestDefenseMode(defender);
-  const arme = ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender);
-  const line = rollLine({
-    difficulty: 'intermediaire', // LDB 13 l.118
-    valeur: defenseValue(defender, mode, arme), valeurEtrangere: true,
-    surLaCible: defenseTargetMods(defender, mode, ctx?.dodgeMods ?? [], arme, ctx?.vsWeapon), plafond: 'difficultes',
-  });
+  const { mods, difficulty, difficultyCombined, difficultyParts } = ligneDeDefense(defender, { ...ctx, mode, parryWeapon: ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender) });
   return {
-    label: DEFENSE_LABEL[mode], mods: line.mods, difficulty: line.difficulty,
-    ...(line.difficultyCombined != null ? { difficultyCombined: line.difficultyCombined } : {}),
-    ...(line.difficultyParts ? { difficultyParts: line.difficultyParts } : {}),
+    label: DEFENSE_LABEL[mode], mods, difficulty,
+    ...(difficultyCombined != null ? { difficultyCombined } : {}),
+    ...(difficultyParts ? { difficultyParts } : {}),
   };
+}
+
+/** La ligne ENTIÈRE du jet de défense `mode` avant le dé, valeur et cible comprises : ce que le défenseur lit de sa
+ *  propre réaction. Montée comme `rollMeleeDefender` la jette (valeur `defenseValue`, modificateurs qui font la cible
+ *  `defenseTargetMods`, LDB 13 l.118), par le monteur canonique en mode plafonné. `socialBase` : la valeur de la
+ *  Compétence substituée (LDB 09 l.207, l.287). */
+export function ligneDeDefense(
+  defender: Combatant,
+  ctx: { mode: DefenseMode; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMods?: ModLine[]; socialBase?: number },
+): RollLineParts {
+  return rollLine({
+    difficulty: 'intermediaire', // LDB 13 l.118
+    valeur: defenseValue(defender, ctx.mode, ctx.parryWeapon, ctx.socialBase), valeurEtrangere: true,
+    surLaCible: defenseTargetMods(defender, ctx.mode, ctx.dodgeMods ?? [], ctx.parryWeapon, ctx.vsWeapon), plafond: 'difficultes',
+  });
 }
 
 /** Pré-jet d'INCANTATION pour le panneau de jet (même rôle que previewAttack/previewDefense) : valeur
