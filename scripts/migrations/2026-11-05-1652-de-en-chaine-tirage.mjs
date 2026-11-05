@@ -23,7 +23,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
-const RACINE = fileURLToPath(new URL('../../src/data/', import.meta.url));
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 /** Recensement attendu sur le résultat : [tirages, effets signés] par document. */
 const ATTENDU = {
@@ -91,7 +91,7 @@ function recenser(noeud, acc = [0, 0, []], chemin = '') {
 
 const ecritures = [];
 for (const [fichier, [tirages, signes]] of Object.entries(ATTENDU)) {
-  const chemin = `${RACINE}${fichier}`;
+  const chemin = `${ROOT}src/data/${fichier}`;
   const brut = readFileSync(chemin, 'utf8');
   const doc = JSON.parse(brut);
   if (brut !== serializeDataset(doc)) { arrets.push(`${fichier} : forme non canonique`); continue; }
