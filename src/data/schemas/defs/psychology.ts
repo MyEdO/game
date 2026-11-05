@@ -43,7 +43,7 @@ const doc = document(
      *  `becomes`), donc un texte au `kind` serait tautologique. Patron `ActivityDef.stake` : l'entité
      *  qui PORTE la règle porte aussi ce que son jet met en jeu. `{indice}` = trou rempli par le flux. */
     stake: z.string().optional(),
-    /** FORME DÉCLARÉE du `stake` (même contrat que `night-stakes`/`flow-stakes`/`activities`). */
+    /** FORME DÉCLARÉE du `stake` (même contrat que `stakes.form`/`activities`). */
     stakeForm: stakeFormSchema.optional(),
     resolution: z.enum(['extended', 'terreur', 'binary']).optional(),
     failCondition: z.string().optional(),

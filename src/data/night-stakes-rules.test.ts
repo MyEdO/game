@@ -11,13 +11,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { NIGHT_STAKES, regles } from './index';
+import { STAKES, regles } from './index';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 const RULE_BY_ID = new Map(regles.map((r) => [r.id, r]));
 /** Fiches de `regles.json` référencées par la nuit — les foyers d'un AUTRE type (amendement A,
  *  2026-08-06 : l'entité qui PORTE la règle d'abord) ont leur propre garde de source et sortent de ce
  *  périmètre. */
+const NIGHT_STAKES = STAKES.filter((e) => e.cascade === 'night');
 const NIGHT_RULE_IDS = new Set(NIGHT_STAKES.flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])));
 
 /** Lignes du fichier de CHAPITRE cité par une note (`LDB 18 l.294-300` → `18 - Traumatisme.md`). */
@@ -45,7 +46,7 @@ function folioAt(lines: string[], lineNo: number): number | null {
   return f;
 }
 
-describe('night-stakes.json — chaque enjeu porte sa règle (#1117 L0a)', () => {
+describe('stakes.json, cascade de nuit — chaque enjeu porte sa règle (#1117 L0a)', () => {
   it('les kinds de la cascade de nuit sont couverts', () => {
     expect(NIGHT_STAKES.length, 'catalogue vide : la couverture ne dirait rien').toBeGreaterThan(0);
     expect(NIGHT_RULE_IDS.size).toBeGreaterThan(0);

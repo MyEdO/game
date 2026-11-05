@@ -64,7 +64,6 @@ const TYPES = {
   'actions.json': 'actions',
   'activities.json': 'activities',
   'creatures.json': 'creatures',
-  'night-stakes.json': 'night-stakes',
   'psychology.json': 'psychology',
   'raceAppearance.json': 'raceAppearance',
   'species.json': 'species',

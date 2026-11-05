@@ -319,27 +319,9 @@
         },
         {
           "files": [
-            "night-stakes.json"
+            "stakes.json"
           ],
-          "desc": "Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStakeRef` (`src/data/index.ts`, appelé par `src/noyau/restFlow.ts`)"
-        },
-        {
-          "files": [
-            "voyage-stakes.json"
-          ],
-          "desc": "Enjeu par `kind` d'étape de cascade de VOYAGE (#1117) — GABARIT de descripteur mécanique dont les trous `{nom}` reçoivent les valeurs calculées du flux, lu par `voyageStake` (`src/data/index.ts`)"
-        },
-        {
-          "files": [
-            "flow-stakes.json"
-          ],
-          "desc": "Enjeu d'un JET DE MODALE MONO (#1117), keyé par son `id` (`FlowStakeId`) — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `flowStakeRef`/`resolveStake` (`src/data/index.ts`)"
-        },
-        {
-          "files": [
-            "combat-stakes.json"
-          ],
-          "desc": "Enjeu d'une étape de cascade de COMBAT (#1117), keyé par le `kind` de son applier — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `combatStakeRef`/`resolveStake` (`src/data/index.ts`)"
+          "desc": "Enjeu d'un jet de cascade (#1117, #1681), discriminé par `cascade` (nuit, voyage, modale, combat) et lu à sa clé de consommation `cle` — gabarit à trous et sa forme (`verbatim`/`descripteur`), foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `resolveStake` et construit par `stakeRef` (`src/data/index.ts`)"
         }
       ]
     },

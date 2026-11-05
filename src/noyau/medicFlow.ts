@@ -74,8 +74,8 @@ export interface MedicState {
     targetDR: number;
     cumDR: number;
     /** ENJEU d'une passe (#1117) — posé à l'ARMEMENT, où le `kind` et la cible de DR sont connus :
-     *  opérer et rééduquer ne mettent pas la même chose en jeu (`flow-stakes`, `surgery/roll` vs
-     *  `surgery/recovery`). Rendu par la zone de jet embarquée (`MedicModal`). */
+     *  opérer et rééduquer ne mettent pas la même chose en jeu (`stakes.json`, `surgery-roll` vs
+     *  `surgery-recovery`). Rendu par la zone de jet embarquée (`MedicModal`). */
     stake: StakeRef;
     /** Dernière passe (affichage DrBar) — absent tant qu'aucune passe n'a été tentée. */
     last?: { roll: number; sl: number };

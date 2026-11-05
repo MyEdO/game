@@ -717,7 +717,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #3114 : `garde-robe` naît SCELLÉ (83 → 84) — la garde-robe des éléments 3D devient un dataset.
     //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
     //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 86, mesures: 0 });
+    //   #1681 : les quatre defs d'enjeux fusionnent en UN def `stakes` (86 → 83).
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
   });
 
 });
@@ -841,14 +842,11 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'regles.json · desc',
     'regles.json · source',
     'stars.json · source',
-    'voyage-stakes.json · source',
     // vague 12 — 17 exigences NEUVES, chacune MORDANTE (la paire n'entre dans la population que si
     // l'entrée amputée est refusée par le schéma). `talents` n'exige que `source` : l'écart est
     // motivé au mesureur ci-dessus (entrée MÉTA `talent-aleatoire`, sans prose).
-    'combat-stakes.json · source',
     'etats.json · desc',
     'etats.json · source',
-    'flow-stakes.json · source',
     'maladies.json · desc',
     'maneuvers.json · source',
     'naval-ports.json · source',
@@ -875,7 +873,6 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'activities.json · icon',
     'activities.json · source',
     'creatures.json · source',
-    'night-stakes.json · source',
     'presets-de-personnage.json · source',
     'psychology.json · desc',
     'psychology.json · source',
@@ -905,6 +902,8 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // #1715 — les 7 types de bâtiment naissent en donnée : aucun folio n'imprime de catalogue de
     // bâtiments, chaque entrée dit ce qu'elle arbitre (empreinte, couverture, ornement).
     'buildings.json · maison',
+    // #1681 — les quatre datasets d'enjeux fusionnent en `stakes` : chaque entrée cite son passage.
+    'stakes.json · source',
   ];
 
   it('la 1ʳᵉ entrée réelle de chaque def adopté est ACCEPTÉE — témoin positif de chaque paire', () => {

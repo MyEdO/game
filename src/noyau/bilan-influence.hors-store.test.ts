@@ -66,7 +66,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     const faim = stepOfKind('faim');
     expect(faim).toBeTruthy();
     expect(faim!.participants!.map((r) => r.id)).toEqual(['A']); // UNE fenêtre Faim, une rangée par affamé
-    expect(resolveStake(faim!.stake!).text).toContain('Test de Résistance'); // enjeu verbatim surfacé (NIGHT_STAKES)
+    expect(resolveStake(faim!.stake!).text).toContain('Test de Résistance'); // enjeu verbatim surfacé (`stakes.json`)
     const aNow = banc.getState().party.find((h) => h.id === 'A')!;
     expect(aNow.hunger!.tests).toBe(0); // DIFFÉRÉ, pas roulé en eager
     expect(aNow.hunger!.failures).toBe(0);
