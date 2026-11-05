@@ -18,8 +18,8 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
-import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
+import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
@@ -110,7 +110,8 @@ import { garanti } from '../lib/garanti';
 import { progresDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint, decidingSeat } from './netOwnership';
-import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
+import { fermeturesDeLIncantation } from './reglagesDIncantation';
+import { batteryBlock, currentTargetingMode, idsDuCoupleMonte, type BattleClickOpts, type TileClickOpts } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { resolveRenounce } from './corruptionFlow';
 import type {
@@ -126,7 +127,7 @@ import { bus, EVT } from './bus';
 import { advanceCascade, maladresseCourante, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
-import { FLOWS, siOuvert, type CloturesDuJet } from './rollFlowSpecs';
+import { FLOWS, rangeesADeclarerIci, siOuvert, type CloturesDuJet } from './rollFlowSpecs';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { actionsAuthorees } from './monde/usable';
 import { fateSaveOptions } from '../engine/fortune';
@@ -496,6 +497,30 @@ function terminerLaCascade(get: Get, set: Set): void {
 }
 
 /** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
+/** La 2ᵉ frappe du Maniement de deux armes sur `targetId` (LDB 10 l.767-773) ; `testPasse` : le Test de main de
+ *  l'Action est déjà passé (reprise de `jetConfirm('handGate')`). */
+function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boolean): void {
+  const { battle, pendingDualStrike: ds } = get();
+  if (!battle || !ds) return;
+  const attacker = inBattleId(battle, ds.attackerId);
+  const target = inBattleId(battle, targetId);
+  if (!attacker || !target) return;
+  const off = attacker.weapons.find((w) => w.uid === ds.offWeaponUid);
+  if (!off) { set({ pendingDualStrike: null }); return; }
+  if (!ciblesDeLaDoubleFrappe(get()).some((t) => t.id === targetId)) return;
+  // Main ensanglantée (AA 07 l.117) : « des deux armes » est UNE Action impliquant les DEUX mains → UN SEUL Test
+  // avant l'Action. La main directrice est testée à la déclaration (`openAttackCascade`) ; si SEULE la 2nde est
+  // gatée (la main directrice a déjà consommé le Test le cas échéant), la 2ᵉ frappe joue le Test ICI. Échec →
+  // l'objet de la 2nde main glisse (`disarm`), la 2ᵉ frappe est renoncée. `testPasse` : Test déjà PASSÉ (reprise).
+  if (!testPasse && attackHandGate(attacker, off.uid) && !attackHandGate(attacker)) {
+    poserLeTestDeMain(set, attacker, 'off', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attack');
+    return;
+  }
+  // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
+  const res = resolveDualSecond(get, attacker, target, off, ds.jet);
+  poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid });
+}
+
 export function createCombatSlice(get: Get, set: Set) {
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */
@@ -567,7 +592,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // sur l'id choisi en court-circuitant la modale (skipMountChoice). Annuler ne consomme rien.
     mountTargetSelect: (id: string) => {
       const pm = get().pendingMountTarget;
-      if (!pm) return;
+      if (!pm || !idsDuCoupleMonte(get()).includes(id)) return;
       set({ pendingMountTarget: null });
       // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
       get().battleClickEntity(id, { skipMountChoice: true, approche: pm.approche });
@@ -962,7 +987,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { battle, pendingBattement: pb } = get();
       if (!battle || !pb) return;
       const active = inBattleId(battle, pb.attackerId);
-      const foe = active && battementFoes(active, battle).find((c) => c.id === foeId);
+      const foe = adversairesDuBattement(get()).find((c) => c.id === foeId);
       if (!active || !foe) return;
       startBattement(get, set, active, foe);
     }),
@@ -987,7 +1012,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { battle, pendingDistraire: pd } = get();
       if (!battle || !pd || pd.atk) return; // verrouillé une fois lancé
       const mover = inBattleId(battle, pd.moverId);
-      const foe = mover && mover.pos && distraireFoes(mover, battle).find((c) => c.id === foeId);
+      const foe = adversairesADistraire(get()).find((c) => c.id === foeId);
       if (!mover || !foe) return;
       startDistraire(get, set, mover, foe);
     },
@@ -1784,41 +1809,16 @@ export function createCombatSlice(get: Get, set: Set) {
       openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'fire/blast');
     },
     cleaveAttack: (targetId: string) => {
-      const { battle, pendingCleave: pc } = get();
-      if (!battle || !pc) return;
-      const attacker = inBattleId(battle, pc.attackerId);
-      const target = inBattleId(battle, targetId);
-      if (!attacker || !target) return;
-      if (pc.count >= bonus(effectiveChar(attacker, 'capacite-de-combat'))) return; // borné à BCC enchaînements (LDB 14 l.9)
-      if (!cleaveTargets(battle, attacker, pc.hitIds).some((t) => t.id === targetId)) return; // cible invalide (non adjacente / déjà frappée)
-      poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: null, result: null, cleave: true });
+      const pc = get().pendingCleave;
+      if (!pc || !ciblesDuBalayage(get()).some((t) => t.id === targetId)) return;
+      poserLaFrappeSuivante(get, set, { attackerId: pc.attackerId, targetId, location: null, result: null, cleave: true });
     },
     cleaveEnd: () => { // fin du balayage → la restitution que la chaîne portait, puis clore l'étape-jet de la cascade (reprise)
       const { battle, pendingCleave: pc } = get();
       set({ pendingCleave: null, ...(battle && pc?.restitution ? { battle: { ...battle, acted: pc.restitution.prevActed } } : {}) });
       advanceCombatJet(get);
     },
-    dualStrikeAttack: (targetId: string, skipGate = false) => {
-      const { battle, pendingDualStrike: ds } = get();
-      if (!battle || !ds) return;
-      const attacker = inBattleId(battle, ds.attackerId);
-      const target = inBattleId(battle, targetId);
-      if (!attacker || !target || isOutOfAction(target)) return;
-      const off = attacker.weapons.find((w) => w.uid === ds.offWeaponUid);
-      if (!off) { set({ pendingDualStrike: null }); return; }
-      if (!dualStrikeTargets(battle, attacker, off).some((t) => t.id === targetId)) return; // cible invalide (hors d'Allonge)
-      // Main ensanglantée (AA 07 l.117) : « des deux armes » est UNE Action impliquant les DEUX mains → UN SEUL Test
-      // avant l'Action. La main directrice est testée à la déclaration (`openAttackCascade`) ; si SEULE la 2nde est
-      // gatée (la main directrice a déjà consommé le Test le cas échéant), la 2ᵉ frappe joue le Test ICI. Échec →
-      // l'objet de la 2nde main glisse (`disarm`), la 2ᵉ frappe est renoncée. `skipGate` : Test déjà PASSÉ (reprise).
-      if (!skipGate && attackHandGate(attacker, off.uid) && !attackHandGate(attacker)) {
-        poserLeTestDeMain(set, attacker, 'off', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attack');
-        return;
-      }
-      // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
-      const res = resolveDualSecond(get, attacker, target, off, ds.jet);
-      poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid });
-    },
+    dualStrikeAttack: (targetId: string) => frapperDeLaSeconde(get, set, targetId, false),
     dualStrikeSkip: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); }, // « peut viser » = optionnel : pas de 2ᵉ → pas d'Avantage (LDB 10 l.767-773)
     // ── Défense réactive (héros attaqué par l'IA en mêlée) ──
     defenseSetMode: (mode: DefenseMode) => {
@@ -2228,23 +2228,23 @@ export function createCombatSlice(get: Get, set: Set) {
      *  budget de Surincantation en dépend (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
     castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => {
       const pc = get().pendingCast;
-      if (!pc || !pc.result?.isCritical) return;
+      if (!pc?.result || fermeturesDeLIncantation(get())?.castSetCritChoice) return;
       const inchange = (pc.critChoice ?? defaultCritChoice(pc.result, !!pc.missile)) === choice;
       set({ pendingCast: { ...pc, critChoice: choice, ...(inchange ? {} : overcastReset(pc, sceneMetresPerTile(get().scene))) } });
     },
     /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
     castSetConjureForm: (form: ConjureForm) => {
       const pc = get().pendingCast;
-      if (!pc) return;
+      if (!pc || fermeturesDeLIncantation(get())?.castSetConjureForm) return;
       set({ pendingCast: { ...pc, conjureForm: form } });
     },
     /** « Prêchez, ma sœur ! » (LDB 40 l.42) : entonner la Prière à voix haute (défaut) ou discrètement
      *  (murmurée → Difficulté d'un cran plus dure). Choix AVANT le jet ; sans effet après lancer. */
-    castSetDiscreet: (discreet: boolean) => siOuvert('cast', get, () => {
+    castSetDiscreet: (discreet: boolean) => {
       const pc = get().pendingCast;
-      if (!pc) return;
+      if (!pc || fermeturesDeLIncantation(get())?.castSetDiscreet) return;
       set({ pendingCast: { ...pc, discreet } });
-    }),
+    },
     /** Surincantation : un pas (`delta` +1/−1, stepper avec reset) sur un axe que `castOvercastAxes`
      *  ouvre, borné au budget `castOvercastBudget` — les MÊMES lectures que la modale. L'EFFET d'un pas
      *  est SOURCE-AWARE (`engine/overcast.ts`). */
@@ -2280,7 +2280,7 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Jets sur le Tableau CHOISIS (EDOC 13 l.276, déclinable) : borné [0, pas Durée alloués]. */
     castSetChosenTableRolls: (n: number) => {
       const pc = get().pendingCast;
-      if (!pc || !pc.result?.cast) return;
+      if (!pc || fermeturesDeLIncantation(get())?.castSetChosenTableRolls) return;
       const max = pc.overcast?.duration ?? 0;
       set({ pendingCast: { ...pc, chosenTableRolls: Math.max(0, Math.min(n, max)) } });
     },
@@ -2349,9 +2349,7 @@ export function createCombatSlice(get: Get, set: Set) {
      *  déjà déclarées à l'ouverture (`autoDeclareWitnessRows`). */
     counterspellDeclareAll: () => {
       const s = get();
-      for (const p of s.pendingCounterspell?.participants ?? []) {
-        if (!p.declared && p.interactive && influencesLocally(s, p.id)) get().counterspellDeclare(p.id, 'solo');
-      }
+      for (const p of rangeesADeclarerIci(s, s.pendingCounterspell)) get().counterspellDeclare(p.id, 'solo');
     },
     // Test Étendu SÉQUENTIEL (LDB 12) : chaque Round est un slot du flux multi (fabrique UNIQUE).
     // « Une situation = une modale » : le Test étendu EST une cascade à une étape `jet:'extended'`,
@@ -2983,8 +2981,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!attacker) return;
       if (pg.success) {
         // Réussite : l'Action déclarée s'ouvre TELLE QUELLE (`skipGate` pour ne pas re-tester). Une 2ᵉ frappe
-        // « des deux armes » reprend sa résolution pré-figée (`dualStrikeAttack`) ; sinon la cascade d'attaque.
-        if (pg.pa.dualSecond) get().dualStrikeAttack(pg.pa.targetId, true);
+        // « des deux armes » reprend sa résolution pré-figée (`frapperDeLaSeconde`) ; sinon la cascade d'attaque.
+        if (pg.pa.dualSecond) frapperDeLaSeconde(get, set, pg.pa.targetId, true);
         else openAttackCascade(get, set, pg.pa, pg.title, pg.icon, true);
         return;
       }
@@ -3270,10 +3268,6 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const lance = garanti(pc.result, pc.casterId, 'jet d’incantation');
       // Choix tranché : l'aiguilleur du Contre-sort, différé au jet, s'exécute maintenant.
       if (lance.isCritical && !pc.counterspellRouted && routeCounterspell(get, set)) return;
-      // Fenêtre de Contre-sort OUVERTE : l'incantation ne s'applique pas par-dessus (LDB 46 l.156 —
-      // la Dissipation se résout AVANT). MÊME garde que `resolveCastChain` : elle vaut aussi pour les
-      // appelants qui ne passent pas par la modale (auto-combat, intentions réseau).
-      if (get().pendingCounterspell) return;
       // ZONE non posée → la confirmation NE résout JAMAIS en mono-cible sur l'ancre lanceur : ce bloc est
       // l'UNIQUE sortie d'une ZdE non posée (héros comme IA), exactement la même pour tous. Seul l'éventuel
       // « clic » de pose change de SOURCE (souris du héros / décision de l'IA), comme l'auto-combat fournit

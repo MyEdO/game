@@ -104,10 +104,11 @@ static func image_voisine(instant: float, pas: float, sens: float, duree: float)
 	return fposmod(voisine * pas, duree)
 
 
-## Le pas de la marche en `delta` secondes : la direction unitaire `direction` sur le sol, à `vitesse` m/s, à la cadence
-## `cadence` du lecteur de clips (`AnimationPlayer.speed_scale`), qui règle le clip au même rythme.
-static func pas_de_marche(direction: Vector3, vitesse: float, cadence: float, delta: float) -> Vector3:
-	return direction * vitesse * cadence * delta
+## Le pas de la marche en `delta` secondes : la direction unitaire `direction` sur le sol, à `vitesse` m/s multipliée par
+## `echelle`, celle de la vitesse au sol du gabarit posé (`echelleDeVitesse`, `CONTRAT.md`, « Gabarit d'une base »), à
+## la cadence `cadence` du lecteur de clips (`AnimationPlayer.speed_scale`), qui règle le clip au même rythme.
+static func pas_de_marche(direction: Vector3, vitesse: float, echelle: float, cadence: float, delta: float) -> Vector3:
+	return direction * vitesse * echelle * cadence * delta
 
 
 ## Le lacet de l'orbite tourné par un glissé de `pixels` à la souris.

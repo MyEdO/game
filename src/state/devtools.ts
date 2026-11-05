@@ -133,7 +133,7 @@ import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../web/stockageWeb';
 import { lireLeTexte } from '../lib/stockage';
-import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from '../lib/figerDelais';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
 import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
@@ -991,8 +991,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Brouillard ON/OFF (recette) : `fog(false)` ou `fog()` révèle TOUTE la carte pour diagnostiquer le
-     *  RENDU sans la vision ; `fog(true)` rétablit le brouillard normal. Bump `partyPos` (dep du useMemo
-     *  de visibilité d'IsoStage) → recalcul + re-render immédiat. */
+     *  RENDU sans la vision ; `fog(true)` rétablit le brouillard normal. Bump `partyPos` (entrée de la
+     *  vision, `noyau/visionState.ts`) → recalcul + re-render immédiat. */
     fog: (on = false) => {
       setRevealAll(!on);
       useGame.setState((s) => ({ partyPos: { ...s.partyPos } }));

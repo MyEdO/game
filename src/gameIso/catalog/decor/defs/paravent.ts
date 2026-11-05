@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // se changent dans les loges/vestiaires. Cf. plan officiel NADJ 08 folio 38, image (paravents des vestiaires des chœurs).
 export const prop: PropViz = {
   id: 'paravent',
-  label: 'Paravent',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="36" ry="7" fill="${P.ombre}" opacity="0.2"/>` +
     // trois panneaux en accordéon (perspective légère)

@@ -5,8 +5,6 @@ import { P } from '../../decorPalette';
 // d'artistes, du passage et des ateliers du théâtre. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'tabouret',
-  label: 'Tabouret',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="24" ry="6" fill="${P.ombre}" opacity="0.2"/>` +
     // trois pieds écartés

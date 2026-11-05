@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // de bois par un bras de fer forgé en volute — halo chaud (groupe « warm »).
 export const prop: PropViz = {
   id: 'lanterne-de-poupe',
-  label: 'Lanterne de poupe',
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="18" ry="6" fill="${P.ombre}" opacity="0.25"/>` +
     // Potence de bois : montant vertical, sabot au pied, deux cerclages de fer
