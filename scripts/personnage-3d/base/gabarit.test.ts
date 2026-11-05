@@ -10,7 +10,8 @@ import { poidsRelatifsDesAretes, preparerLaplacien, resoudreLaplacien, type Aret
 
 import { etatsDuGabarit } from '../../../hotes/godot/asset/etatsDuGabarit.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
-import { BORNES, jouet } from './gabarit.testkit.ts';
+import { jouet } from './gabarit.testkit.ts';
+import { BORNES } from '../../../hotes/godot/asset/gabarit.testkit.ts';
 
 describe('H5 de construction, ancres fixes (#3104)', () => {
   it('émet chaque état de construction avec sa référence sans silhouettes', () => {

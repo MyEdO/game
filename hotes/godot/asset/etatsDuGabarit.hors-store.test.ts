@@ -3,11 +3,11 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
-import { jouet } from '../../../scripts/personnage-3d/base/gabarit.testkit.ts';
+import { TABLE_DU_JOUET as table } from './gabarit.testkit.ts';
 import { etatsAuxFacteursNeutres, etatsDuGabarit, type EtatDuGabarit } from './etatsDuGabarit.ts';
 import { grilleDesAppuis } from './evaluateur/grilleDesAppuis.ts';
 import { cellulesDeSilhouettesAtteignables, coinsDeSilhouettesAtteignables, poidsDeSilhouettes, poidsDuGabarit, sensCuitsDuGabarit } from './gabarit.ts';
-import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from './silhouettes.ts';
+import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ, NOMS_DES_SILHOUETTES as noms } from './silhouettes.ts';
 import { FACTEURS_NEUTRES, sontNeutres } from './facteursDuGabarit.ts';
 import { fauteDeBornesDuGabarit, validerManifesteDeBase } from './manifesteDeBase.ts';
 
@@ -20,7 +20,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
   });
 
   it('rend les états aux facteurs neutres, un par coin de silhouettes atteignable', () => {
-    const { table, silhouettes } = jouet(), noms = silhouettes.map((s) => s.nom);
     for (const selection of [[], noms]) {
       const neutres = etatsAuxFacteursNeutres(table, selection);
       expect(neutres.every((e) => sontNeutres(e.facteurs))).toBe(true);
@@ -39,7 +38,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
   });
 
   it('valide chaque plage autour du neutre reçu et la pondération neutre de chaque facteur', () => {
-    const { table } = jouet();
     for (const neutre of Object.values(FACTEURS_NEUTRES)) {
       expect(fauteDeBornesDuGabarit({ min: neutre, max: neutre }, neutre)).toBeUndefined();
       expect(fauteDeBornesDuGabarit({ min: neutre + 0.1, max: neutre + 1 }, neutre)).toBeDefined();
@@ -55,7 +53,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
     }
   });
   it('croise exactement les neuf coins atteignables avec chaque jeu de facteurs', () => {
-    const { table, silhouettes } = jouet(), noms = silhouettes.map((s) => s.nom);
     const etats = etatsDuGabarit(table, noms);
     const groupes = new Map<string, EtatDuGabarit[]>();
     for (const e of etats) {
@@ -81,8 +78,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
   });
 
   it('partage les coins atteignables avec la grille des appuis pour chaque sous-ensemble de silhouettes', () => {
-    const { table, silhouettes } = jouet();
-    const noms = silhouettes.map((s) => s.nom);
     const sousEnsembles = noms.reduce<string[][]>((ensembles, nom) => [...ensembles, ...ensembles.map((s) => [...s, nom])], [[]]);
     for (const selection of sousEnsembles) {
       const domaine = etatsAuxFacteursNeutres(table, selection);
@@ -96,7 +91,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
   });
 
   it('émet quatre cellules affines qui couvrent les poids continus, carrure_plus seule hors du cumul', () => {
-    const { table, silhouettes } = jouet(), noms = silhouettes.map((s) => s.nom);
     const cellules = cellulesDeSilhouettesAtteignables(table, noms);
     expect(cellules).toHaveLength(4);
     const point = (cellule: (typeof cellules)[number], u: number, v: number) =>
@@ -119,14 +113,12 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
   });
 
   it('refuse une silhouette inconnue dans les deux consommateurs du domaine', () => {
-    const { table } = jouet();
     const silhouettes = ['feminin', 'inconnue'];
     expect(() => etatsDuGabarit(table, silhouettes)).toThrow('silhouette-inconnue : inconnue');
     expect(() => grilleDesAppuis({ gabarit: table, silhouettes })).toThrow('silhouette-inconnue : inconnue');
   });
 
   it('marque exactement les sens cuits sans silhouette pour les normales de la porte', () => {
-    const { table, silhouettes } = jouet(), noms = silhouettes.map((s) => s.nom);
     const points = etatsDuGabarit(table, noms).filter((e) => e.pointCuisson);
     const sens = sensCuitsDuGabarit(table.bornes);
     expect(points).toHaveLength(sens.length);
@@ -137,7 +129,6 @@ describe('domaine des silhouettes et du gabarit (#3104)', () => {
   });
 
   it('quotiente les coins équivalents quand des silhouettes sont absentes', () => {
-    const { table } = jouet();
     const neutres = etatsDuGabarit(table, []);
     expect(neutres).toHaveLength(13);
     expect(neutres.find((e) => e.nom === 'neutre')?.facteurs).toEqual(FACTEURS_NEUTRES);
