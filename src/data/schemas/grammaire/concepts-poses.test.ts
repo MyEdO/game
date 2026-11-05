@@ -29,7 +29,7 @@ describe('lecture — un id par entrée de la table', () => {
       'formule-tranche', 'fragment-blocs', 'fragment-cellule', 'identite-de-heros', 'ligne-d-identite', 'marchandage-de-billet',
       'monnaie', 'monnaie-partielle', 'ouverture', 'palette-d-objet', 'palier-de-billet', 'plage', 'plage-ouverte', 'prix-saisonnier',
       'profil-de-propulsion', 'profil-de-voile', 'prose-nommee', 'provenance-de-valeur', 'provenances-de-route', 'quantite',
-      'reference', 'reference-a-specialisation', 'reference-typee', 'source', 'source-secondaire', 'special-de-jeu', 'test',
+      'reference', 'reference-a-specialisation', 'reference-chiffree', 'reference-typee', 'source', 'source-secondaire', 'special-de-jeu', 'test',
       'tirage-parmi', 'tirage-sur-table', 'trait-pose', 'valeur-d-identite',
     ]);
   });
@@ -46,7 +46,9 @@ describe('lecture — un id par entrée de la table', () => {
   });
 
   it('une classe compte ses clés d’extra : un appelant qui en apporte une autre n’hérite pas du concept', () => {
-    expect(conceptDe(ref('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }))).toBeUndefined();
+    const valeur = nommerNoeud(z.number(), { nom: 'valeur' });
+    expect(conceptDe(ref('skill', { value: valeur }))).toBeUndefined();
+    expect(conceptDe(refOuSpec('skill', { value: valeur }))).toBe('reference-chiffree');
   });
 });
 

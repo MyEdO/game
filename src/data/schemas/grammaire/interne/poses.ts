@@ -65,6 +65,7 @@ const POSES_DE_GRAMMAIRE = {
   reference: classe('objetDeRef', ['ref']),
   'reference-typee': classe('objetDeRef', ['refTypee']),
   'reference-a-specialisation': classe('noeudASpecialisation', ['specSeule', 'specOuChoix', 'specOuChoixFacultatifs']),
+  'reference-chiffree': classe('noeudASpecialisation', ['specSeule', 'specOuChoix', 'specOuChoixFacultatifs'], ['value']),
   'tirage-parmi': classe('pick', ['of']),
   'tirage-sur-table': classe('pick', ['table'], ['table']),
   'trait-pose': classe('traitPose', ['pose'], ['value']),
