@@ -18,6 +18,8 @@
 // l'évaluation attend la résolution des imports (`evaluateurDuDepot`), et `tracer` rend les REQUÊTES dont
 // elle dépend (`requeteDe`). Ce qui ne se lit pas ainsi n'est pas deviné : il rend `{ non: raison }`, et
 // son site sort au rapport de l'appelant.
+// ACQUISITIONS (#3058 B2) : l'argument d'une acquisition calculée se lit à part, en forme FERMÉE (`valeursDAcquisition`) :
+// une liste blanche de formes, sans les transparences des lectures, et tout le reste en `non`.
 import { posix } from 'node:path'
 import { types } from 'node:util'
 import { typescript } from './dialecte.mjs'
@@ -1705,4 +1707,252 @@ export function evaluer(e, { lambdas } = {}) {
   const lu = lambdas ? { lambdas, fonctions: {}, exports: {}, sites: [], etoiles: [] } : null
   return evaluateurDuDepot({ lecture: () => lu, cible: () => null }).valeurs(e, { f: '', env: null })
     .filter((v) => !('absent' in v)).map(racineFinale)
+}
+
+/** Les fonctions que lit le régime d'ACQUISITION (`valeursDAcquisition`), par `<module>#<export>` : un module du dépôt
+ *  par son chemin, un module de Node par son nom nu. */
+const JOINDRE = 'path#join'
+const RESOUDRE = 'path#resolve'
+const CHEMIN_D_URL = 'url#fileURLToPath'
+const URL_DE_CHEMIN = 'url#pathToFileURL'
+const LISTER = 'scripts/guards/lib/lister.mjs#listerEntrees'
+/** Les modules de Node que lit ce régime, sous leurs deux spécificateurs. */
+const MODULES_DE_NODE = Object.freeze({ 'node:path': 'path', path: 'path', 'node:url': 'url', url: 'url' })
+
+/** Les enveloppes de TYPE, qui rendent leur opérande inchangé. */
+const ENVELOPPES_DE_TYPE = ['isParenthesizedExpression', 'isAsExpression', 'isNonNullExpression', 'isSatisfiesExpression']
+/** Les portées qui déclarent leurs paramètres. */
+const FONCTIONS = ['isArrowFunction', 'isFunctionExpression', 'isFunctionDeclaration', 'isMethodDeclaration', 'isConstructorDeclaration', 'isGetAccessorDeclaration', 'isSetAccessorDeclaration']
+
+/** Les parents de chaque nœud d'un arbre, posés une fois par arbre. */
+const parentsParArbre = new WeakMap()
+const parentsDe = (arbre) => {
+  if (!parentsParArbre.has(arbre)) {
+    const parents = new Map()
+    const marquer = (n) => n.forEachChild((e) => { parents.set(e, n); marquer(e) })
+    marquer(arbre)
+    parentsParArbre.set(arbre, parents)
+  }
+  return parentsParArbre.get(arbre)
+}
+
+/**
+ * Les VALEURS D'ACQUISITION de l'argument `argument` d'une acquisition calculée du module `rel` (#3058 B2), en forme
+ * FERMÉE : seule une liste blanche de formes se lit, toute autre rend `{ non: raison }`. Les transparences du régime de
+ * lecture (`evaluateurDuDepot`) ne s'y appliquent pas. Formes lues :
+ *   · un littéral de chaîne : `{ specificateur }`, à résoudre comme celui d'un import du module ;
+ *   · `join(<base>, …segments)` et `resolve(…)`, liés à `node:path` : `join` sur une base ANCRÉE (un chemin du dépôt),
+ *     `resolve` sur une base ancrée ou un texte, ancré à la racine du dépôt ; des segments de chaîne ;
+ *   · `fileURLToPath(new URL(<littéral>, import.meta.url))`, lié à `node:url` : le chemin du module ;
+ *   · `pathToFileURL(x).href`, lié à `node:url` : `x`, un texte ancré à la racine ;
+ *   · une liaison `const` de l'une de ces formes, ou l'export `const` d'un module du dépôt ;
+ *   · l'élément d'une constante GELÉE à sa déclaration (`Object.freeze(<tableau d'objets littéraux>.map(Object.freeze))`,
+ *     le global `Object` non lié) rendu par `find`, et ses champs ;
+ *   · la DESCENTE directe `join(<dossier>, <entrée>.nom)`, où `<entrée>` est le paramètre du rappel de `map` sur
+ *     `listerEntrees(<dossier>).entrees` (filtré ou non par `filter`) et `<dossier>` un chemin du dépôt : `{ dossier }`.
+ * Un chemin exact rend `{ fichier }`. Les liaisons se résolvent par portée lexicale ; une liaison multiple, un
+ * paramètre (relais) ou une forme non lue rendent `non`.
+ * @param {string} rel chemin POSIX du module, relatif au dépôt
+ * @param {import('typescript/unstable/ast').SourceFile} arbre
+ * @param {import('typescript/unstable/ast').Node | undefined} argument
+ * @param {{ arbreDe: (rel: string) => import('typescript/unstable/ast').SourceFile | null, cible: (rel: string, spec: string) => string | null }} depot
+ *   l'arbre d'un module du dépôt (`null` s'il n'est pas lisible), et le module qu'un spécificateur d'un module désigne
+ * @returns {({ fichier: string } | { dossier: string } | { specificateur: string } | { non: string })[]}
+ */
+export function valeursDAcquisition(rel, arbre, argument, { arbreDe, cible }) {
+  const ts = typescript()
+  const non = (raison) => [{ non: raison }]
+  const texteDe = (n, m) => m.arbre.text.slice(n.getStart(m.arbre), n.getEnd()).replace(/\s+/g, ' ')
+  const est = (n, predicats) => predicats.some((p) => ts[p](n))
+  const contexteDe = (r) => {
+    const a = r === rel ? arbre : arbreDe(r)
+    return a ? { rel: r, arbre: a, parents: parentsDe(a) } : null
+  }
+
+  /** Les identifiants liés par un nom de déclaration (identifiant ou motif). */
+  const nomsLies = (nom) => ts.isIdentifier(nom) ? [nom]
+    : ts.isObjectBindingPattern(nom) || ts.isArrayBindingPattern(nom) ? nom.elements.flatMap((e) => ts.isBindingElement(e) ? nomsLies(e.name) : []) : []
+  /** Les `var` d'une portée de fonction, hors fonctions imbriquées. */
+  const varsDe = (n, nom) => {
+    const vus = []
+    const visiter = (x) => {
+      if (est(x, FONCTIONS) || ts.isClassDeclaration(x) || ts.isClassExpression(x)) return
+      if (ts.isVariableDeclarationList(x) && (x.flags & ts.NodeFlags.BlockScoped) === 0)
+        for (const d of x.declarations) for (const id of nomsLies(d.name)) if (id.text === nom) vus.push({ genre: 'var', declaration: d, id })
+      x.forEachChild(visiter)
+    }
+    n.forEachChild(visiter)
+    return vus
+  }
+  /** Les déclarations de `nom` que pose la portée `p`. */
+  const declarationsDe = (p, nom) => {
+    const vus = []
+    const poserListe = (liste, genre) => {
+      for (const d of liste.declarations) for (const id of nomsLies(d.name))
+        if (id.text === nom) vus.push({ genre: genre ?? ((liste.flags & ts.NodeFlags.BlockScoped) === ts.NodeFlags.Const && ts.isIdentifier(d.name) ? 'const' : 'autre'), declaration: d, id })
+    }
+    if (ts.isSourceFile(p) || ts.isBlock(p) || ts.isModuleBlock(p) || ts.isCaseClause(p) || ts.isDefaultClause(p)) {
+      for (const s of p.statements) {
+        if (ts.isVariableStatement(s) && (s.declarationList.flags & ts.NodeFlags.BlockScoped) !== 0) poserListe(s.declarationList)
+        else if ((ts.isFunctionDeclaration(s) || ts.isClassDeclaration(s) || ts.isEnumDeclaration(s)) && s.name?.text === nom) vus.push({ genre: 'autre', declaration: s, id: s.name })
+        else if (ts.isImportDeclaration(s) && s.importClause) {
+          const c = s.importClause
+          if (c.name?.text === nom) vus.push({ genre: 'defaut', declaration: s, id: c.name })
+          const liees = c.namedBindings
+          if (liees && ts.isNamespaceImport(liees) && liees.name.text === nom) vus.push({ genre: 'espace', declaration: s, id: liees.name })
+          else if (liees && ts.isNamedImports(liees)) for (const e of liees.elements) if (e.name.text === nom) vus.push({ genre: 'nommee', declaration: s, id: e.name, importe: (e.propertyName ?? e.name).text })
+        } else if (ts.isImportEqualsDeclaration(s) && s.name.text === nom) vus.push({ genre: 'autre', declaration: s, id: s.name })
+      }
+      if (ts.isSourceFile(p)) vus.push(...varsDe(p, nom))
+    } else if (est(p, FONCTIONS)) {
+      for (const prm of p.parameters) for (const id of nomsLies(prm.name)) if (id.text === nom) vus.push({ genre: 'parametre', declaration: prm, id })
+      if (ts.isFunctionExpression(p) && p.name?.text === nom) vus.push({ genre: 'autre', declaration: p, id: p.name })
+      if (p.body) vus.push(...varsDe(p.body, nom))
+    } else if ((ts.isForStatement(p) || ts.isForInStatement(p) || ts.isForOfStatement(p)) && p.initializer && ts.isVariableDeclarationList(p.initializer)) poserListe(p.initializer, 'autre')
+    else if (ts.isCatchClause(p) && p.variableDeclaration) for (const id of nomsLies(p.variableDeclaration.name)) { if (id.text === nom) vus.push({ genre: 'autre', declaration: p, id }) }
+    else if (ts.isClassExpression(p) && p.name?.text === nom) vus.push({ genre: 'autre', declaration: p, id: p.name })
+    return vus
+  }
+  /** La déclaration qui lie l'identifiant `id` du module `m`, `null` pour un global, `{ non }` pour une liaison multiple. */
+  const liaisonDe = (id, m) => {
+    for (let p = m.parents.get(id); p; p = m.parents.get(p)) {
+      const vus = declarationsDe(p, id.text)
+      if (vus.length > 1) return { non: `liaison multiple ${id.text}` }
+      if (vus.length === 1) return vus[0]
+    }
+    return null
+  }
+  /** Le spécificateur littéral d'une déclaration d'import. */
+  const specDe = (declaration) => ts.isStringLiteralLikeNode(declaration.moduleSpecifier) ? declaration.moduleSpecifier.text : null
+  /** Le module qu'un spécificateur désigne : `path`/`url` de Node, ou un module du dépôt ; `null` sinon. */
+  const moduleDe = (spec, m) => Object.hasOwn(MODULES_DE_NODE, spec) ? MODULES_DE_NODE[spec] : spec.startsWith('.') ? cible(m.rel, spec) : null
+  /** La fonction (`<module>#<export>`) que désigne l'appelé `n` du module `m`, `null` hors de la liste. */
+  const fonctionDe = (n, m) => {
+    if (ts.isIdentifier(n)) {
+      const l = liaisonDe(n, m)
+      if (!l || l.genre !== 'nommee') return null
+      const module = moduleDe(specDe(l.declaration) ?? '', m)
+      return module ? `${module}#${l.importe}` : null
+    }
+    if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression)) {
+      const l = liaisonDe(n.expression, m)
+      if (!l || (l.genre !== 'defaut' && l.genre !== 'espace')) return null
+      return moduleDe(specDe(l.declaration) ?? '', m) === 'path' ? `path#${n.name.text}` : null
+    }
+    return null
+  }
+  const estImportMetaUrl = (n) => ts.isPropertyAccessExpression(n) && n.name.text === 'url' && ts.isMetaProperty(n.expression) &&
+    n.expression.keywordToken === ts.SyntaxKind.ImportKeyword && n.expression.name.text === 'meta'
+  /** Un chemin du dépôt depuis un texte relatif à `base` (chemin du dépôt) ; hors du dépôt, `non`. */
+  const ancre = (base, t) => {
+    const v = borne(posix.join(base || '.', t.replace(/\\/g, '/')))
+    return 'chemin' in v ? v : { non: `hors du dépôt : ${t}` }
+  }
+
+  /** Le dossier listé que nomme le paramètre `prm`, entrée du rappel de `map` sur `listerEntrees(<dossier>).entrees`. */
+  const dossierDEntree = (prm, m, profondeur) => {
+    const fn = m.parents.get(prm)
+    const appel = fn && m.parents.get(fn)
+    if (!fn || !(ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) || fn.parameters[0] !== prm || !ts.isIdentifier(prm.name) || !appel ||
+      !ts.isCallExpression(appel) || appel.arguments[0] !== fn || !ts.isPropertyAccessExpression(appel.expression) || appel.expression.name.text !== 'map')
+      return { non: `paramètre ${texteDe(prm, m)} : relais` }
+    let recu = appel.expression.expression
+    while (ts.isCallExpression(recu) && ts.isPropertyAccessExpression(recu.expression) && recu.expression.name.text === 'filter') recu = recu.expression.expression
+    if (!ts.isPropertyAccessExpression(recu) || recu.name.text !== 'entrees' || !ts.isCallExpression(recu.expression) ||
+      fonctionDe(recu.expression.expression, m) !== LISTER || recu.expression.arguments.length !== 1)
+      return { non: `paramètre ${prm.name.text} : relais hors d'une descente de listerEntrees` }
+    const dossiers = evaluer(recu.expression.arguments[0], m, profondeur + 1)
+    return dossiers.length === 1 && 'chemin' in dossiers[0] ? { dossier: dossiers[0].chemin } : { non: `dossier listé non ancré : ${texteDe(recu.expression.arguments[0], m)}` }
+  }
+
+  /** La valeur d'une liaison `id` du module `m` (constante locale, export constant d'un module du dépôt). */
+  const valeurDeLiaison = (id, m, profondeur) => {
+    const l = liaisonDe(id, m)
+    if (l === null) return non(`global ${id.text}`)
+    if ('non' in l) return [l]
+    if (l.genre === 'const' && l.declaration.initializer) return evaluer(l.declaration.initializer, m, profondeur + 1)
+    if (l.genre === 'parametre') return [{ parametre: l.declaration, m }]
+    if (l.genre === 'nommee') {
+      const spec = specDe(l.declaration) ?? ''
+      const autre = spec.startsWith('.') ? cible(m.rel, spec) : null
+      const m2 = autre && contexteDe(autre)
+      if (!m2) return non(`liaison ${id.text} hors d'un module du dépôt (${spec})`)
+      for (const s of m2.arbre.statements)
+        if (ts.isVariableStatement(s) && s.modifiers?.some((x) => x.kind === ts.SyntaxKind.ExportKeyword) && (s.declarationList.flags & ts.NodeFlags.BlockScoped) === ts.NodeFlags.Const)
+          for (const d of s.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === l.importe && d.initializer) return evaluer(d.initializer, m2, profondeur + 1)
+      return non(`${l.importe} n'est pas un export const de ${autre}`)
+    }
+    return non(`liaison ${id.text} hors de la liste (${l.genre})`)
+  }
+
+  /** `n` est-il `Object.freeze`, sur le global `Object` qu'aucune liaison du module ne masque ? */
+  const estObjectFreeze = (n, m) => ts.isPropertyAccessExpression(n) && n.name.text === 'freeze' && ts.isIdentifier(n.expression) &&
+    n.expression.text === 'Object' && liaisonDe(n.expression, m) === null
+
+  /** Le champ `cle` d'un objet littéral gelé. */
+  const champ = ({ noeud, m }, cle, profondeur) => {
+    if (noeud.properties.some((p) => !ts.isPropertyAssignment(p) && !ts.isShorthandPropertyAssignment(p))) return non(`objet à étalement ou méthode : ${cle}`)
+    const vus = noeud.properties.filter((p) => (ts.isIdentifier(p.name) || ts.isStringLiteralLikeNode(p.name)) && p.name.text === cle)
+    if (vus.length !== 1 || noeud.properties.some((p) => ts.isComputedPropertyName(p.name))) return non(`champ ${cle} absent ou calculé`)
+    return ts.isShorthandPropertyAssignment(vus[0]) ? valeurDeLiaison(vus[0].name, m, profondeur) : evaluer(vus[0].initializer, m, profondeur + 1)
+  }
+
+  /** Le produit des valeurs des arguments d'un appel. */
+  const produit = (listes) => listes.reduce((acc, l) => acc.flatMap((a) => l.map((v) => [...a, v])), [[]])
+
+  /** @returns {object[]} */
+  function evaluer(n, m, profondeur) {
+    if (profondeur > PROFONDEUR) return non('profondeur')
+    if (!n) return non('argument absent')
+    if (est(n, ENVELOPPES_DE_TYPE)) return evaluer(n.expression, m, profondeur + 1)
+    if (ts.isStringLiteralLikeNode(n)) return [{ texte: n.text }]
+    if (ts.isIdentifier(n)) return valeurDeLiaison(n, m, profondeur)
+    if (ts.isPropertyAccessExpression(n)) {
+      if (n.name.text === 'href' && ts.isCallExpression(n.expression) && fonctionDe(n.expression.expression, m) === URL_DE_CHEMIN && n.expression.arguments.length === 1)
+        return evaluer(n.expression.arguments[0], m, profondeur + 1).map((v) => 'texte' in v ? /^([a-zA-Z]:)?[\\/]/.test(v.texte) ? { non: `chemin absolu ${v.texte}` } : ancre('', v.texte)
+          : 'chemin' in v || 'descente' in v || 'non' in v ? v : { non: `pathToFileURL d'une valeur non chemin : ${texteDe(n, m)}` })
+      return evaluer(n.expression, m, profondeur + 1).flatMap((v) => 'objet' in v ? champ(v.objet, n.name.text, profondeur)
+        : 'parametre' in v && n.name.text === 'nom' ? [(() => { const d = dossierDEntree(v.parametre, v.m, profondeur); return 'dossier' in d ? { nomDEntree: d.dossier } : d })()]
+          : 'non' in v ? [v] : [{ non: `champ ${n.name.text} d'une valeur hors de la liste : ${texteDe(n, m)}` }])
+    }
+    if (ts.isCallExpression(n)) {
+      const fonction = fonctionDe(n.expression, m)
+      const args = () => n.arguments.map((a) => evaluer(a, m, profondeur + 1))
+      if (fonction === JOINDRE) return produit(args()).map((vs) => {
+        const [base, ...segments] = vs
+        const echec = vs.find((v) => 'non' in v)
+        if (echec) return echec
+        if (vs.length === 2 && 'chemin' in base && 'nomDEntree' in segments[0] && segments[0].nomDEntree === base.chemin) return { descente: base.chemin }
+        if (!base || !('chemin' in base)) return { non: `join sur une base non ancrée : ${texteDe(n, m)}` }
+        if (!segments.every((s) => 'texte' in s)) return { non: `join d'un segment hors de la liste : ${texteDe(n, m)}` }
+        return ancre(base.chemin, posix.join('.', ...segments.map((s) => s.texte)))
+      })
+      if (fonction === RESOUDRE) return produit(args()).map((vs) => vs.reduce((acc, v) => 'non' in acc ? acc : 'non' in v ? v : 'chemin' in v ? v
+        : 'texte' in v ? /^([a-zA-Z]:)?[\\/]/.test(v.texte) ? { non: `chemin absolu ${v.texte}` } : ancre(acc.chemin, v.texte)
+          : { non: `resolve d'un segment hors de la liste : ${texteDe(n, m)}` }, { chemin: '' }))
+      if (fonction === CHEMIN_D_URL) {
+        const [u] = n.arguments
+        const lit = u && ts.isNewExpression(u) && ts.isIdentifier(u.expression) && u.expression.text === 'URL' && liaisonDe(u.expression, m) === null &&
+          u.arguments?.length === 2 && ts.isStringLiteralLikeNode(u.arguments[0]) && estImportMetaUrl(u.arguments[1]) ? u.arguments[0].text : null
+        return lit === null ? non(`fileURLToPath hors de new URL(<littéral>, import.meta.url) : ${texteDe(n, m)}`) : [ancre(posix.dirname(m.rel), lit)]
+      }
+      if (estObjectFreeze(n.expression, m)) {
+        const [x] = n.arguments
+        const gele = n.arguments.length === 1 && ts.isCallExpression(x) && ts.isPropertyAccessExpression(x.expression) && x.expression.name.text === 'map' &&
+          ts.isArrayLiteralExpression(x.expression.expression) && x.arguments.length === 1 && estObjectFreeze(x.arguments[0], m)
+        return gele ? [{ tableauGele: { noeud: x.expression.expression, m } }] : non(`Object.freeze hors de Object.freeze(<tableau littéral>.map(Object.freeze)) : ${texteDe(n, m)}`)
+      }
+      if (ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'find' && n.arguments.length === 1)
+        return evaluer(n.expression.expression, m, profondeur + 1).flatMap((v) => 'tableauGele' in v
+          ? v.tableauGele.noeud.elements.map((e) => ts.isObjectLiteralExpression(e) ? { objet: { noeud: e, m: v.tableauGele.m } } : { non: `élément non littéral d'une constante gelée : ${texteDe(e, v.tableauGele.m)}` })
+          : 'non' in v ? [v] : [{ non: `find sur une collection non gelée : ${texteDe(n, m)}` }])
+      return non(`appel hors de la liste : ${texteDe(n, m)}`)
+    }
+    return non(`forme hors de la liste : ${texteDe(n, m)}`)
+  }
+
+  const m = contexteDe(rel)
+  return evaluer(argument, m, 0).map((v) => 'texte' in v ? { specificateur: v.texte } : 'chemin' in v ? { fichier: v.chemin }
+    : 'descente' in v ? { dossier: v.descente } : 'non' in v ? { non: v.non }
+      : 'parametre' in v ? { non: `paramètre ${texteDe(v.parametre, v.m)} : relais` } : { non: 'valeur non chemin' })
 }

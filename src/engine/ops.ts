@@ -59,7 +59,7 @@ import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import { clockLabel, type Duration } from './duration';
 import { suspendSource } from './suspension';
-import { deitySkills } from './magic'; // cycle runtime (magic→ops) : appelé à l'application, jamais à l'init du module
+import { deitySkills, priestCult } from './magic'; // cycle runtime (magic→ops) : appelé à l'application, jamais à l'init du module
 import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
@@ -655,6 +655,13 @@ export type GameOp =
    *  tant que l'effet dure, toutes spécialisations confondues. Une seule durée, tirée une fois pour
    *  toute la liste. LDB 40 l.80, l.82 */
   | { op: 'suppressTalents'; talents: { id: string }[]; durationDays: Formula }
+  /** La cible ne peut plus être l'objet d'aucune Bénédiction ni d'aucun Miracle de la divinité de qui
+   *  applique l'op (`priestCult` de `ctx.caster`) : `prayerBannedOn` les fait échouer sur elle tant que
+   *  l'effet dure. Sans divinité : sans effet, journalisé. LDB 40 l.64 */
+  | { op: 'deityBan'; durationDays: Formula }
+  /** Le porteur doit effectuer des Tests de Prière pour son Action tant que l'effet dure
+   *  (`prayerForActionBy`) ; le Mouvement reste libre. LDB 40 l.74 */
+  | { op: 'prayerForAction'; durationRounds: Formula }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
    *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
@@ -2447,6 +2454,26 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           duree: libelleDHorloge(duree, ctx),
           src: nomDeSource(ctx),
         }));
+        break;
+      }
+      case 'deityBan': {
+        const dieu = priestCult(ref);
+        if (!dieu) {
+          lines.push(t('op.deityBan.sansDivinite', { name: target.label, src: nomDeSource(ctx) }));
+          break;
+        }
+        const duree = durationFromOp(o, ctx, ref);
+        target.activeEffects = target.activeEffects ?? [];
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, deityBan: dieu });
+        lines.push(t('op.deityBan', { name: target.label, dieu: refLabel('gods', { id: dieu }), duree: libelleDHorloge(duree, ctx), src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'prayerForAction': {
+        const duree = durationFromOp(o, ctx, ref);
+        target.activeEffects = target.activeEffects ?? [];
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: duree, prayerForAction: true });
+        const n = duree.scale === 'rounds' ? duree.left : 0;
+        lines.push(t('op.prayerForAction', { name: target.label, duree: t('op.frag.roundsCap', { n, s: n > 1 ? 's' : '' }), src: nomDeSource(ctx) }));
         break;
       }
       case 'reduceToZero': {

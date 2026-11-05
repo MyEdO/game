@@ -1,0 +1,24 @@
+name: Caches 3D
+description: >-
+  Restaure, puis sauve en fin de job, les deux caches hors de l'arbre de la chaîne 3D : les GLB épinglés
+  (`CACHE_DES_MODELES`, hotes/godot/asset/release.ts) et l'éditeur Godot (`CACHE`, hotes/godot/construire.mjs).
+  Un cache ne se lit que depuis sa ref ou depuis `main` : `caches.yml` les remplit sur `main` (#3412).
+
+outputs:
+  complets:
+    description: "`true` quand les deux caches sont trouvés à leur clé exacte."
+    value: ${{ steps.modeles.outputs.cache-hit == 'true' && steps.godot.outputs.cache-hit == 'true' }}
+
+runs:
+  using: composite
+  steps:
+    - id: modeles
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/wfrp-modeles-3d
+        key: modeles-3d-${{ hashFiles('hotes/godot/projet/modeles/*.provenance.json') }}
+    - id: godot
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/wfrp-godot
+        key: godot-${{ hashFiles('hotes/godot/construire.mjs') }}
