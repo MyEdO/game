@@ -19,6 +19,7 @@ import type { CascadeStep, OppositionParticipant, PendingAttack, PendingCascade,
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fixtureText } from '../i18n/fixtureText';
+import { tableTotale } from '../lib/tableTotale';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -136,7 +137,7 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     expect(avant.fermes).toEqual({ 'jetRegler@attack#localisationDuCritique': 'jetNonLance' });
     const apres = verbes(enEtape('attack', { pendingAttack: attaque(COUP) }), true);
     expect(apres.ouverts).toEqual(['jetRegler@attack#localisationDuCritique']);
-    expect(apres.fermes).toEqual(Object.fromEntries(avantLeJet.map((g) => [g, 'jetLance'])));
+    expect(apres.fermes).toEqual(tableTotale(avantLeJet, () => 'jetLance'));
     const lance = verbes(enEtape('cast', { pendingCast: incantation(true, true) }), true);
     expect(lance.ouverts, 'LDB 46 l.26-32 ; LDB 47 l.15-17').toEqual(expect.arrayContaining(['jetRegler@cast#effetCritique', 'jetRegler@cast#surincantationDuree', 'jetRegler@cast#ciblesSupplementaires']));
     expect(lance.fermes).toMatchObject({ 'jetRegler@cast#discret': 'jetLance' });
