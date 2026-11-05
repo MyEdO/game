@@ -170,6 +170,20 @@ export function prayerMaxZeroDR(c: Combatant): boolean {
   return allCastPenalties(c).some((p) => penaltyMatches(p, 'priere') && p.maxZeroDR);
 }
 
+/** Libellé de l'effet qui impose au porteur des Tests de Prière pour son Action (op `prayerForAction`),
+ *  ou null. LDB 40 l.74 */
+export function prayerForActionBy(c: Combatant): string | null {
+  return (c.activeEffects ?? []).find((e) => e.prayerForAction)?.label ?? null;
+}
+
+/** La Prière `spell` de `caster` échoue-t-elle sur `target` ? Oui quand la divinité du lanceur
+ *  (`priestCult`) a banni la cible (op `deityBan`). LDB 40 l.64 */
+export function prayerBannedOn(target: Combatant, caster: Combatant, spell: SpellLike): boolean {
+  if (!castInfoIsPrayer(spell)) return false;
+  const dieu = priestCult(caster);
+  return !!dieu && (target.activeEffects ?? []).some((e) => e.deityBan === dieu);
+}
+
 /** CULTE du prêtre : la spécialisation de son Talent de Prière (Béni (Sigmar) / Invocation (Sigmar)),
  *  lue en DONNÉE via `castingKind` (aucun name-match). `undefined` si non spécialisé / pas prêtre. */
 export function priestCult(c: Combatant): string | undefined {

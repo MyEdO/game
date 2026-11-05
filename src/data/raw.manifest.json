@@ -60,13 +60,6 @@
     "ticket": "#1035"
   },
   {
-    "id": "4e/religion#colere-des-dieux-declencheur-maladresse",
-    "type": "raw.manifest",
-    "label": "Colère des dieux — déclencheur Maladresse",
-    "ticket": "#1653",
-    "bloque": "2 rangées à DÉ du Tableau de la Colère des dieux sans `ops` — LDB 40 l.64 (cibles dans `applyMiscast` + échec automatique par divinité), l.74 (action contrainte) : le vocabulaire de `GameOp` ne les exprime pas encore"
-  },
-  {
     "id": "4e/combat#tableau-des-incidents-de-tir-d-artillerie-par-salve",
     "type": "raw.manifest",
     "label": "Tableau des Incidents de Tir d'Artillerie par Salve",
