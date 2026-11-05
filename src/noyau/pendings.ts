@@ -18,7 +18,7 @@ import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
 import type { ManeuverDef, StakeRef, SpellData } from '../data';
-import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
+import type { CastResult, CritChoice, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { PsychType, TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
@@ -761,7 +761,8 @@ export interface PendingDispel {
   label: string;
   ni: number; // NI du sort = DR cumulé cible
   value: number; // valeur de Langue (Magick) du lanceur, Soutien « même Domaine » inclus
-  support?: SupportDetail; // détail du Soutien (affichage)
+  /** La ligne du jet, figée à l'ouverture sur `value` (`rollLine`) : ce que la fenêtre annonce. */
+  ligne: RollLineParts;
   result: JetPose | null;
   rerolled?: boolean;
 }
@@ -1390,10 +1391,10 @@ export interface PendingCast {
    *  Ne concerne que les Prières ; absent/faux = à voix haute (Intermédiaire, RAW). */
   discreet?: boolean;
   /** Incantation CRITIQUE (LDB 46 l.26-32) : choix du lanceur — Blessure Critique
-   *  (Projectile à Dégâts) / Puissance totale (lancé quel que soit le NI, dissipable) /
+   *  (Sort à Dégâts, `sortInfligeDesDegats`) / Puissance totale (lancé quel que soit le NI, dissipable) /
    *  Force inéluctable (indissipable). ÉCRIT avant toute application : par le lanceur (modale) ou par
    *  le moteur pour un lanceur qu'il conduit (`jetRoll('cast')`) — les gardes ne lisent QUE ce champ. */
-  critChoice?: 'critique' | 'puissance' | 'ineluctable';
+  critChoice?: CritChoice;
   /** Forme choisie pour une arme invoquée à forme libre (Arme aethyrique, op `grantWeapon` +
    *  `chooseForm`) — le lanceur sélectionne la Compétence de Corps à corps/profil d'arme. Défaut
    *  (absent) : sa meilleure Spé de Corps à corps. */

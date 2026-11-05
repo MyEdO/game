@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { applyOpposedCritical } from './combatFlow';
+import { applyCoupCritiqueSec } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { seedBattleRng } from './battleRng';
@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * la touche), et les Dégâts non-Critiques sont recalculés à cette nouvelle Localisation. La mêlée le
  * faisait déjà (`woundsAtCritLocation` + `chosenCritLocation`) ; on FIGE ici les deux autres chemins
  * où la loc était « par dé inversé » : le Projectile magique (`evaluateMissile`) et le Critique de
- * défense opposée (`applyOpposedCritical`).
+ * défense opposée (`applyCoupCritiqueSec`).
  */
 const mkTarget = (armour: Partial<Record<string, number>> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -66,11 +66,11 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
     seedBattleRng(7);
     const v1 = mkTarget();
     const log1: string[] = [];
-    applyOpposedCritical(get, set, v1, 11, {}, log1);
+    applyCoupCritiqueSec(get, set, v1, 11, 'double', {}, log1);
     seedBattleRng(7);
     const v2 = mkTarget();
     const log2: string[] = [];
-    applyOpposedCritical(get, set, v2, 99, {}, log2);
+    applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2);
     expect(v1.criticalWounds).toBe(1); // un Critique a bien été appliqué
     expect(v1.traumas).toEqual(v2.traumas); // jet 11 ≠ 99 → Critique IDENTIQUE : la loc ne dérive plus de l’inversion
     expect(log1).toEqual(log2);
@@ -86,7 +86,7 @@ describe('#43.2 Critique de défense opposée — HÉROS blindé : étape de dé
       selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
     banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, pendingCascade: null, pendingFateSave: null });
-    applyOpposedCritical(banc.getState, banc.setState, h, 11, {}, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, h, 11, 'double', {}, []);
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation')?.deviation;
     expect(dev?.mode).toBe('self'); // suspendu : choix Dévier/Subir
     expect(h.criticalWounds ?? 0).toBe(0); // Critique toujours différé à la résolution (non appliqué à ce stade)

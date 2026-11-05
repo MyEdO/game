@@ -5,7 +5,6 @@ import type { StakeRef } from '../data';
 import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
-import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { MassBattleSpec } from '../engine/massBattle';
@@ -24,7 +23,7 @@ import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
 import type {
   IdDeChanson, IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDeCibleDuBalayage, IdDeCibleDeLaDoubleFrappe, IdDAdversaireDuBattement, IdDAdversaireADistraire, IdDuCoupleMonte, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
+  IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide, IdDeFormeInvoquee,
 } from './designations';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { CiblesChoisies } from './verdictsDInterlude';
@@ -357,7 +356,7 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   /** Incantation CRITIQUE (LDB 46 l.26-32) : choix de l'effet bonus (modale). */
   castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => void;
   /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
-  castSetConjureForm: (form: ConjureForm) => void;
+  castSetConjureForm: (arme: IdDeFormeInvoquee) => void;
   /** « Prêchez, ma sœur ! » (LDB 40 l.42, option `prayer-conviction`) : entonner la Prière discrètement
    *  (murmurée → Difficulté d'un cran plus dure) plutôt qu'à voix haute. Avant le jet uniquement. */
   castSetDiscreet: (discreet: boolean) => void;

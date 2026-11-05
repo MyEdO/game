@@ -7,7 +7,7 @@ import type { Jeu } from './etat';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { REGLAGES_DE_L_INCANTATION } from './reglages';
 import { actorIn } from './monde/combatants';
-import { influencesLocally } from './netOwnership';
+import { aiDriven, influencesLocally } from './netOwnership';
 import { findSpellById } from '../data/index';
 import { castInfoIsPrayer } from '../engine/magic';
 import { spellEffectOps } from '../engine/flowCore';
@@ -23,16 +23,18 @@ export function fermeturesDeLIncantation(s: Jeu): Record<(typeof REGLAGES_DE_L_I
   if (!pc || !sort || !lanceur) return null;
   const jet = pc.result;
   const priere = castInfoIsPrayer(sort);
-  const ici = influencesLocally(s, lanceur.id);
+  // Le moteur règle seul le lanceur qu'il conduit (`aiDriven`) ; le réglage offert se refuse au siège qui ne pilote pas
+  // le lanceur (`influencesLocally`).
+  const ici = (offert: boolean): FermetureDuJet | null => (!offert || aiDriven(s, lanceur) ? 'nonOffert' : influencesLocally(s, lanceur.id) ? null : 'rangeeTemoin');
   const ops = spellEffectOps(sort.effects);
   return {
     // LDB 46 l.26-32
-    castSetCritChoice: !jet ? 'jetNonLance' : jet.isCritical && !priere && ici ? null : 'nonOffert',
+    castSetCritChoice: !jet ? 'jetNonLance' : ici(jet.isCritical && !priere),
     // LDB 47
-    castSetConjureForm: ops.some((o) => o.op === 'grantWeapon' && o.chooseForm) && conjureFormOptions(lanceur).length ? null : 'nonOffert',
+    castSetConjureForm: ici(ops.some((o) => o.op === 'grantWeapon' && o.chooseForm) && conjureFormOptions(lanceur).length > 0),
     // LDB 40 l.42
-    castSetDiscreet: jet ? 'jetLance' : priere && rule('prayer-conviction') ? null : 'nonOffert',
+    castSetDiscreet: jet ? 'jetLance' : ici(priere && !!rule('prayer-conviction')),
     // EDOC 13 l.276
-    castSetChosenTableRolls: !jet ? 'jetNonLance' : jet.cast && ici && (pc.overcast?.duration ?? 0) > 0 && spellHasOvercastTableRoll(ops) ? null : 'nonOffert',
+    castSetChosenTableRolls: !jet ? 'jetNonLance' : ici(jet.cast && (pc.overcast?.duration ?? 0) > 0 && spellHasOvercastTableRoll(ops)),
   };
 }

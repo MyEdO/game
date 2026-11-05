@@ -19,7 +19,7 @@ import { TEMPO } from './monde/tempo';
 import { beatHold, approachMs } from './combatDirector';
 import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
-import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
+import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
 import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -78,7 +78,11 @@ import {
   consumeMalepierre,
   sorceryMandatoryMiscast,
   castOvercastBudget,
+  castingNumberOf,
+  focalisationAboutie,
+  sortInfligeDesDegats,
   type CastResult,
+  type CritChoice,
   type MissileResult,
   type CounterspellOutcome,
   type SpellLike,
@@ -116,7 +120,7 @@ import { STRUCTURE_CRITICALS_DIE, STRUCTURE_CRITICALS_LABEL } from '../data/stru
 import { actorIn, inBattleId } from './monde/combatants';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
-import { touchActors, windsMagicModOf, seaMagicContext } from './combatOrParty';
+import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
@@ -1018,10 +1022,8 @@ export function previewCast(
   spell: NonNullable<ReturnType<typeof findSpell>>,
   opts?: {
     missile?: boolean; focused?: boolean;
-    /** Vents Tourbillonnants (LDB 46 l.179-190) : n'entre dans l'APERÇU pré-jet que si RÉVÉLÉS
-     *  (Seconde vue) — sinon on subit les Vents sans les avoir repérés (le mod reste appliqué au
-     *  jet, cf. `jetRoll('cast')`/`resolveCasting`, mais n'apparaît qu'au breakdown POST-jet). */
-    winds?: { roll: number; mod: number } | null;
+    /** Le jet est tombé : les Vents Tourbillonnants s'y lisent, révélés ou non (`ventsAnnonces`). */
+    jete?: boolean;
     /** CONTEXTE du jet (état + cible visée) : l'aperçu annonce alors la CIBLE RÉELLE — protection de
      *  la victime, attribut et environnement de Domaine (`castContextMods`) compris. Absent (aucune
      *  cible désignée) : aperçu de la seule valeur du lanceur. */
@@ -1032,10 +1034,10 @@ export function previewCast(
   const target = castingValue(caster, ci.skill, ci.spec);
   const advLine = advantageModLine(caster); // Tests d'Incantation
   const penMod = castPenaltyMod(caster, ci.skill); // contrecoups actifs (Imparfaite/Colère)
-  const windsLine = windsModLine(opts?.winds);
-  const windsMod = opts?.winds?.mod ?? 0;
+  const windsLine = opts?.ctx ? ventsAnnonces(opts.ctx.s.battle, !!opts.jete) : null;
+  const windsMod = windsLine?.value ?? 0;
   const isPrayer = !ci.requireNI; // la branche de résolution, pas un proxy sur `cn`
-  const ni = opts?.focused ? 0 : spell.cn ?? 0;
+  const ni = castingNumberOf(spell, opts?.focused, {}, [], caster);
   const ctx = opts?.ctx ? castContextMods(opts.ctx.s, caster, opts.ctx.target, spell, { skipWard: opts.ctx.skipWard }) : null;
   const mods: ModLine[] = [
     ...(advLine ? [advLine] : []),
@@ -2060,7 +2062,7 @@ function autoDeviate(
 /** DÉCLARATION de l'étape UNIQUE d'une Blessure critique (#1426) : le d100 de SÉVÉRITÉ (LDB 18) et la
  *  décision Dévier/Subir (LDB 63 l.30) sont la MÊME fenêtre. `severite` = la table reste à tirer (le
  *  Critique n'existe qu'APRÈS le dé — il est posé par le PLI post-dé, table `plis`) ;
- *  `pretire` = aucune table déclarée pour ce cas (`critSeverityInSeam`, `applyOpposedCritical`), le
+ *  `pretire` = aucune table déclarée pour ce cas (`critSeverityInSeam`, `applyCoupCritiqueSec`), le
  *  Critique voyage alors dans la charge dès le mint. */
 interface DeviationStepSpec {
   targetId: string;
@@ -2117,23 +2119,24 @@ export function weaponHasBlade(w: Weapon | undefined): boolean {
   return w?.type === 'melee' && !!w.bladed;
 }
 
-/** Blessure critique « sèche » d'un Test opposé (LDB 14 l.3) : un double réussi inflige une Blessure
- *  critique à l'adversaire indépendamment du vainqueur de l'échange. Localisation = 1d100 frais (LDB 18
+/** Blessure critique « sèche » de cause `cause` : le double d'un Test opposé (LDB 14 l.3), l'Incantation Critique
+ *  d'un Sort à Dégâts hors Projectile (LDB 46 l.30). Localisation = 1d100 frais (LDB 18
  *  l.53). Critique « sec » → aucune composante de Dégâts de base (overkill=0). La
  *  Déviation Critique (LDB 63 l.30) est offerte sur les TROIS chemins via les atomes partagés, sous le
  *  MÊME prédicat (#1426, `tenuParUnHumain`) : un porteur blindé TENU par un siège humain CHOISIT (étape
  *  `self`), un porteur blindé que personne ne tient voit l'automate trancher (`autoDeviate`, rule-gated),
  *  sinon le Critique est subi (`applyCritAndFinalize`). */
-export function applyOpposedCritical(
+export function applyCoupCritiqueSec(
   get: Get,
   set: SetFn,
   victim: Combatant,
   roll: number,
+  cause: CauseCoupCritique,
   ctx: { attackerId?: string; weapon?: string; weaponObj?: Weapon },
   log: string[],
 ): void {
-  // LDB 14 l.3 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
-  const coup = { coupCritique: 'double' as const, prise: true, current: victim.wounds.current };
+  // LDB 14 l.3 ; LDB 46 l.30 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
+  const coup = { coupCritique: cause, prise: true, current: victim.wounds.current };
   const compte = critiquesDuCoup(victim, { ...coup, touche: true, relance: relanceLaLocalisation(victim, coup), blessures: 0 });
   const [entree] = compte.critiques;
   if (!entree) return;
@@ -2684,7 +2687,7 @@ function appliquerLaTouche(
     // (a) Attaquant : Critique au jet mais échange PERDU (pas de touche) → le défenseur subit un Critique sec.
     if (ad && ad.success && isDoubleRoll(ad.roll) && !res.hit && !isOutOfAction(target)) {
       critLog.push(tr('cf.critDespiteLoss', { name: attacker.label }));
-      applyOpposedCritical(get, set, target, ad.roll, { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog);
+      applyCoupCritiqueSec(get, set, target, ad.roll, 'double', { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog);
     }
     // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee).
     if (dd.success && isDoubleRoll(dd.roll) && !isOutOfAction(attacker) && res.parryWeapon) {
@@ -2695,7 +2698,7 @@ function appliquerLaTouche(
         pushChoice(set, choixPiegeLame(pbt, target, attacker, res.parryWeapon));
       } else {
         critLog.push(tr('cf.critOnDefense', { name: target.label }));
-        applyOpposedCritical(get, set, attacker, dd.roll, { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog);
+        applyCoupCritiqueSec(get, set, attacker, dd.roll, 'double', { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog);
       }
     }
   }
@@ -4317,7 +4320,7 @@ function resumeMeleeAfterSuspension(
  *  de l'IA est gérée par la FERMETURE de la séquence, pas ici). « Subir » applique le Critique pré-tiré
  *  (`dev.crit`) tel quel ; « Dévier » l'ignore (−1 PA). Union discriminée :
  *  - `melee` → RÉ-ENTRE `applyAttackResult` avec la décision (son tail décision-indépendant tourne UNE fois) ;
- *  - `self` → le Critique pré-tiré d'`applyOpposedCritical`. */
+ *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
 export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, deviate: boolean): void {
   const battle = get().battle;
   if (!battle) return;
@@ -4833,14 +4836,14 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
   if (aqshy) get().log(tr('cs.aqshyBonus', { name: caster.label, n: aqshy }));
   // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
   // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
-  const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
-    : {};
   // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
   // Incantation Critique — sa politique (`defaultCritChoice`) est son CHOIX, et elle s'ÉCRIT ici
-  // (LDB 46 l.28-32 : « vous pouvez aussi choisir »). Plus aucun défaut lu en douce par les gardes.
-  const critIA = aiDriven(get(), caster) && res.isCritical
-    ? { critChoice: defaultCritChoice(res, !!pc.missile) }
+  // (LDB 46 l.28-32 : « vous pouvez aussi choisir »). Un lanceur piloté par un humain n'a aucun défaut.
+  const critIA = aiDriven(get(), caster) && res.isCritical && !castInfoIsPrayer(spell)
+    ? { critChoice: defaultCritChoice(res, sortInfligeDesDegats(spell)) }
+    : {};
+  const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
+    ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, critIA.critChoice)
     : {};
   set({ pendingCast: { ...pc, result: res, ...auto, ...critIA } });
   // Dissipation (LDB 46 l.156) : le Contre-sort s'aiguille ICI, AU JET, pour TOUT lanceur (héros,
@@ -4921,7 +4924,7 @@ export function castSpell(
     castRefused(get, set, caster, horsAtteinte.detail);
     return;
   }
-  const focusedNI0 = caster.focus?.spell === spell.id && caster.focus.dr >= (spell.cn ?? 0);
+  const focusedNI0 = focalisationAboutie(caster, spell);
   set({
     pendingCast: {
       casterId: caster.id, targetId: target.id, spellId: spell.id, missile: breathSpell ? false : isMagicMissile(spell),
@@ -5267,7 +5270,7 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
     castRefused(get, set, caster, refus);
     return true; // c'était bien une zone — l'entrée est consommée (refus signalé)
   }
-  const focusedNI0 = caster.focus?.spell === spell.id && caster.focus.dr >= (spell.cn ?? 0);
+  const focusedNI0 = focalisationAboutie(caster, spell);
   set({
     pendingCast: {
       casterId: caster.id, targetId: caster.id, spellId: spell.id, missile: isMagicMissile(spell),
@@ -5376,7 +5379,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const spell = effectiveSpellOf(pc);
   if (!caster?.pos || !spell) return;
   const res = pc.result;
-  if (!castAfterCrit(res, pc.critChoice, !!pc.missile)) return;
+  if (!castAfterCrit(res, pc.critChoice)) return;
   const range = spellRangeTiles(spell.range, caster);
   if (range != null && chebyshev(caster.pos, pt) > range) {
     get().log(tr('cf.zoneOutOfRange', { spell: spell.label, range }));
@@ -5577,10 +5580,11 @@ export function aiOvercastPlan(
   combatants: Combatant[],
   sight?: SpellSight,
   missile = false,
+  critChoice?: CritChoice,
 ): { overcast?: { range: number; zone: number; duration: number; targets: number; damage: number }; extraTargetIds?: string[] } {
   if (!caster.pos) return {};
   const source = overcastSourceOf(spell);
-  const budget = castOvercastBudget(spell, res, undefined, missile);
+  const budget = castOvercastBudget(spell, res, critChoice);
   if (budget <= 0) return {};
   const axes = overcastAxesFor(spell, missile);
   const range = spellRangeTiles(spell.range, caster) ?? Infinity;
@@ -5707,7 +5711,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   }
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
+    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
     : {};
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
@@ -5742,9 +5746,6 @@ export function applyCounterspellFallback(get: Get, set: SetFn, pcs: PendingCoun
   if (ia) applyCounterspell(get, set, ia);
 }
 
-/** Choix du lanceur sur une Incantation CRITIQUE (LDB 46 l.26-32). */
-export type CastCritChoice = 'critique' | 'puissance' | 'ineluctable';
-
 type SortJoue = NonNullable<ReturnType<typeof findSpell>>;
 
 /** Durée par défaut des effets d'un lancement : Rounds `base × mult + bonus`, sinon échéance d'horloge
@@ -5763,7 +5764,7 @@ function sourceDissipableDe(spell: SortJoue, caster: Combatant): OpsCtx['sourceS
   if (castInfoIsPrayer(spell)) return undefined;
   const zdeDiam = zdeDiameterMeters(spell.target, caster);
   return {
-    spellId: spell.id, ni: spell.cn ?? 0, casterId: caster.id, label: spell.label,
+    spellId: spell.id, ni: castingNumberOf(spell, false, {}, [], caster), casterId: caster.id, label: spell.label,
     ...(zdeDiam != null ? { zde: { diametreM: zdeDiam, rayonM: zoneRadiusMeters(spell, caster)! } } : {}),
   };
 }
@@ -6061,7 +6062,7 @@ export function applyCast(
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
   focusedNI0: boolean,
-  critChoice?: CastCritChoice,
+  critChoice?: CritChoice,
   extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; extraTargets?: Combatant[]; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
@@ -6110,9 +6111,8 @@ export function applyCast(
   if (missile && res.cast && overcastDamageSteps > 0) {
     res = evaluateMissile(caster, target, spell, res, undefined, overcastDamageSteps);
   }
-  let choice = critChoice;
+  const choice = critChoice;
   if (crit) {
-    choice ??= defaultCritChoice(res, !!missile);
     if (choice === 'puissance') {
       const full = applyFullPower(res);
       if (full !== res) {
@@ -6153,13 +6153,7 @@ export function applyCast(
     else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'mineure', { sorceryCorruption: true, domainId: spell.domainId ?? undefined }));
   };
   if (crit) {
-    logLines.push(
-      choice === 'critique'
-        ? tr('cf.castCritical')
-        : choice === 'puissance'
-          ? tr('cf.overcastFullPower')
-          : tr('cf.overcastIrresistible'),
-    );
+    if (choice) logLines.push(tr(choice === 'critique' ? 'cf.castCritical' : choice === 'puissance' ? 'cf.overcastFullPower' : 'cf.overcastIrresistible'));
     if (!hasInstinctiveDiction(caster)) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
     else logLines.push(tr('cf.dictionInstinctive'));
   }
@@ -6260,6 +6254,7 @@ export function applyCast(
             continue;
           }
         }
+        const blessuresAvant = t.wounds.current;
         logLines.push(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
@@ -6268,6 +6263,10 @@ export function applyCast(
             sl: opp ? opp.margin : slFor(t), duree, overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
           })),
         );
+        // LDB 46 l.30 ; LDB 18 l.21
+        if (crit && choice === 'critique' && t.wounds.current < blessuresAvant) {
+          applyCoupCritiqueSec(get, set, t, res.roll, 'incantation-critique', { attackerId: caster.id, weapon: spell.label }, logLines);
+        }
         // Métamorphose (Forme bestiale, LDB 48) : op `polymorph` du Flow (on:'target') — appliquée
         // ci-dessus par runCastFlow → applyOps (expansion charMod différentiel + grantTrait via
         // engine/polymorph, auto-restitués à l'expiration). Plus de site dédié.
@@ -8835,7 +8834,7 @@ export const TABLES = {
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critOnDefense', { name: defender.label })];
-        applyOpposedCritical(get, set, attacker, pbt.roll, { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
+        applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
         const b = get().battle!;
         set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'info', defender.id, attacker.id)] } });
         bus.emit(EVT.SCENE_DIRTY);
