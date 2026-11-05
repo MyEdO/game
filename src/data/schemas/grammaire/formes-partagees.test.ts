@@ -1,6 +1,6 @@
 /**
- * `trappingRefSchema` (`src/data/schemas/grammaire/reference.ts`) — branche `{creatureId}` ouverte au SOCLE
- * POSSESSIONS #615/#617 §9 (dotation BÊTE, `creatures.json`), en plus des branches existantes.
+ * `trappingRefSchema` (`src/data/schemas/grammaire/reference.ts`) — dotation de POSSESSION `{id, type}`
+ * (SOCLE POSSESSIONS #615/#617 §9, #3012), en plus des branches existantes.
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
@@ -63,18 +63,22 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ text: 'collection d’alcool sans pareille' }).success).toBe(true);
   });
 
-  it('accepte {vehicleId} — dotation véhicule', () => {
-    expect(trappingRefSchema.safeParse({ vehicleId: 'chariot-leger' }).success).toBe(true);
+  it('accepte {id, type: vehicle} — dotation véhicule', () => {
+    expect(trappingRefSchema.safeParse({ id: 'chariot-leger', type: 'vehicle' }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'chariot-leger', type: 'vehicle', label: 'La Grise' }).success).toBe(true);
   });
 
-  it('accepte {creatureId} — dotation bête (#615/#617 §9)', () => {
-    expect(trappingRefSchema.safeParse({ creatureId: 'mule' }).success).toBe(true);
-    expect(trappingRefSchema.safeParse({ creatureId: 'mule', count: { fixed: 1 } }).success).toBe(true);
+  it('accepte {id, type: creature} — dotation bête (#615/#617 §9)', () => {
+    expect(trappingRefSchema.safeParse({ id: 'mule', type: 'creature' }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'mule', type: 'creature', count: { fixed: 1 } }).success).toBe(true);
   });
 
-  it('refuse un mélange de branches (strictObject)', () => {
-    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', vehicleId: 'chariot-leger' }).success).toBe(false);
-    expect(trappingRefSchema.safeParse({ creatureId: 'mule', vehicleId: 'chariot-leger' }).success).toBe(false);
+  it('refuse l’ancienne graphie, un id hors du catalogue de son `type`, un mélange de branches', () => {
+    expect(trappingRefSchema.safeParse({ creatureId: 'mule' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ vehicleId: 'chariot-leger' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ id: 'mule', type: 'vehicle' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ id: 'mule', type: 'monture' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', type: 'vehicle', qualityChoice: true }).success).toBe(false);
   });
 
   it('accepte {choice} — dotation « X ou Y » migrée (chantier #654 Lot 3)', () => {

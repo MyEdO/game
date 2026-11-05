@@ -14,7 +14,7 @@ import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALIS
 import type { DiseaseSymptom } from '../../../engine/disease';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
-import type { AdvancementRef, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
+import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
 import { dispoSaisonniereSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
@@ -479,8 +479,7 @@ function ChoiceList({ ds, value, onChange }: { ds: 'skills' | 'talents'; value: 
  * ──────────────────────────────────────────────────────────────────────────── */
 
 const isText = (t: TrappingRef): t is { text: string; count?: CountSpec } => 'text' in t;
-const isVehicle = (t: TrappingRef): t is { vehicleId: string; count?: CountSpec; label?: string } => 'vehicleId' in t;
-const isCreature = (t: TrappingRef): t is { creatureId: string; count?: CountSpec; label?: string } => 'creatureId' in t;
+const isPossession = (t: TrappingRef): t is DotationDePossession => 'type' in t;
 
 export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | undefined; onChange: (v: TrappingRef[]) => void }) {
   const list = value ?? [];
@@ -496,7 +495,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
     const dc = parseDice(v);
     return dc ? { roll: dc } : { fixed: Number(v) || 1 };
   };
-  const kindOf = (t: TrappingRef): 'text' | 'vehicle' | 'creature' | 'ref' => (isText(t) ? 'text' : isVehicle(t) ? 'vehicle' : isCreature(t) ? 'creature' : 'ref');
+  const kindOf = (t: TrappingRef): 'text' | 'vehicle' | 'creature' | 'ref' => (isText(t) ? 'text' : isPossession(t) ? t.type : 'ref');
   return (
     <div className="ed-field">
       <span>possessions — par id du catalogue (+ quantité), dotation véhicule (catalogue des véhicules), dotation bête (bestiaire), ou texte narratif hors catalogue</span>
@@ -505,7 +504,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
           <div className="fieldrow">
             <select
               value={kindOf(t)}
-              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' ? { vehicleId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : e.target.value === 'creature' ? { creatureId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
+              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' || e.target.value === 'creature' ? { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
             >
               <option value="ref">Réf. (catalogue)</option>
               <option value="vehicle">Véhicule (vehicles.json)</option>
@@ -517,18 +516,18 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
           </div>
           {isText(t)
             ? <input placeholder="possession narrative (ex. Pile de prospectus)" value={t.text} onChange={(e) => set(i, { text: e.target.value, count: t.count })} />
-            : isVehicle(t)
+            : isPossession(t) && t.type === 'vehicle'
               ? (
                 <>
-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.vehicleId} onChange={(v) => set(i, { vehicleId: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
-                  <label className="dr">nom<input placeholder={findVehicleById(t.vehicleId)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
+                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                  <label className="dr">nom<input placeholder={findVehicleById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                 </>
               )
-              : isCreature(t)
+              : isPossession(t)
                 ? (
                   <>
-                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.creatureId} onChange={(v) => set(i, { creatureId: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
-                    <label className="dr">nom<input placeholder={findCreatureById(t.creatureId)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
+                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                    <label className="dr">nom<input placeholder={findCreatureById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                   </>
                 )
                 : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}

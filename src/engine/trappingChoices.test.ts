@@ -34,7 +34,7 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
 
   it('`estEmplacementDeDotation` : `{choice}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
     expect([{ choice: [] }, { wildcard: 'arme' }, { id: 'fleuret', qualityChoice: true }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true]);
-    expect(([{ id: 'dague' }, { text: 'Toges' }, { creatureId: 'cheval' }, { vehicleId: 'charrette' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
+    expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
   });
 });
 

@@ -118,7 +118,7 @@ export const ANGLES_MORTS: readonly string[] = [
   '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
   'Les portes MOTEUR (`src/engine`, `src/state`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
   'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill`, `characteristic` ou `char`), l’invariant de `flowTestSchema` (#1657 B3-3), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`criticals › amputation`, `land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`critical.ts`, `landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
-  'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 149 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 64, `scene.ts` 55, `worldmap.ts` 16, `narratif.ts` 11, `communs.ts` 2, `projet.ts` 1 ; mesuré 2026-11-05, #3012) en sont HORS PÉRIMÈTRE — 9 d’entre eux y seraient relevés : 2 par la seule signature d’un schéma commun (les `pos` de `worldmap.ts`, points continus 0-100 de même forme que `cell2Schema`, qui compte en cases), 7 par le lexique : `effets.ts` `livingRefSchema` (`creatureId`) et `givePossession.ref` (`vehicleId`), concept `reference` en graphie historique ; et 5 littéraux à ÉTIQUETTE (`{id, type}` ×3 et `discreditClue` d’`effets.ts`, `formeNarratif` de `narratif.ts`) que le classement range sans lire la valeur de leur étiquette. Aucun au concept `test` : `wallClimbSchema` et `wallSecretSchema` (`scene.ts`) portent `difficulty` sans sujet. L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
+  'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 147 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 62, `scene.ts` 55, `worldmap.ts` 16, `narratif.ts` 11, `communs.ts` 2, `projet.ts` 1 ; mesuré 2026-11-05, #3012) en sont HORS PÉRIMÈTRE — 7 d’entre eux y seraient relevés : 2 par la seule signature d’un schéma commun (les `pos` de `worldmap.ts`, points continus 0-100 de même forme que `cell2Schema`, qui compte en cases), 5 par le lexique, tous à ÉTIQUETTE (`{id, type}` ×3 et `discreditClue` d’`effets.ts`, `formeNarratif` de `narratif.ts`) que le classement range sans lire la valeur de leur étiquette. Aucun au concept `test` : `wallClimbSchema` et `wallSecretSchema` (`scene.ts`) portent `difficulty` sans sujet. L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
   'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de MÊME signature exacte — deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`, 482 après ce lot, 487 à `9739ee1f4`) bouge.',
 ];
 
@@ -308,6 +308,8 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'choix,id', statut: 'cible', note: 'choix borné / libre (DESIGN v2 S2)' },
       { sig: 'id,type', statut: 'cible', note: 'référence polymorphe : le `type` nomme l’espace où l’`id` résout (`refTypee`, foyer de règle #2820)' },
       { sig: 'count,id,type', statut: 'cible' },
+      { sig: 'id,label,type', statut: 'cible', pose: 'dotation', note: 'dotation de POSSESSION et son libellé imprimé (`dotationDePossessionSchema`, #3012)' },
+      { sig: 'count,id,label,type', statut: 'cible', pose: 'dotation', note: 'idem, avec sa quantité' },
       { sig: 'of,pick', statut: 'cible', note: 'tirage parmi un ensemble borné' },
       { sig: 'pick,table', statut: 'cible', note: 'tirage sur une table nommée' },
       // Les trois lignes qualifiées par `reference-chiffree` gagnent sur leurs homonymes sans pose : au
@@ -341,8 +343,6 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'skill,spec', statut: 'historique' },
       { sig: 'talentId', statut: 'historique' },
       { sig: 'trappingId', statut: 'historique' },
-      { sig: 'creatureId', statut: 'historique' },
-      { sig: 'vehicleId', statut: 'historique' },
       { sig: 'career', statut: 'historique' },
       { sig: 'choice', statut: 'historique' },
       { sig: 'random', statut: 'historique' },
@@ -847,6 +847,7 @@ export const CONCEPT_DE_LA_POSE: Readonly<Record<IdConceptPose, string>> = {
   'prose-nommee': 'prose-nommee',
   reference: 'reference',
   'reference-typee': 'reference',
+  dotation: 'reference',
   'reference-a-specialisation': 'reference',
   'reference-chiffree': 'reference',
   'tirage-parmi': 'reference',
