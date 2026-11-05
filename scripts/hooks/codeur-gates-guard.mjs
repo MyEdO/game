@@ -6,8 +6,8 @@
 //     l'appeler) et ça va nous prendre 25 min ? »
 //   « La mémoire c'est cool mais ça n'empêche pas de réitérer la même erreur plus tard »
 // Mesuré sur #1768 : ~12 min de code + test verts, puis ~13 min de gates (lint, knip, docs:check,
-// test:ops) imposées au codeur par son BRIEF. Le run CI de la branche les joue TOUTES, UNE fois, sur
-// la tête poussée (`.github/workflows/ci.yml`, #1776) : les payer aussi en local, par agent, c'est
+// test:ops) imposées au codeur par son BRIEF. La CI les joue TOUTES, UNE fois, sur le commit de file
+// (`.github/workflows/ci.yml`, #1776, #3412) : les payer aussi en local, par agent, c'est
 // les payer deux fois. `.claude/agents/codeur.md` le disait déjà — une consigne, pas un verrou : le
 // brief l'a écrasée. D'où ce hook, qui refuse le geste au lieu de le déconseiller.
 //

@@ -88,7 +88,7 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
 - **Socle → les trois sections de `.claude/agents/codeur.md`, sinon le codeur REFUSE** ; `## Design
   jugé :` cite le rendu du `juge`.
 - **Le brief ne prescrit jamais un appel d'outil de plus de 270 s** (#2596), ni un outil dont il n'a pas
-  vérifié ce qu'il fait (`ops:publier` ne fusionne pas en local, hors éjection de la file).
+  vérifié ce qu'il fait (`ops:publier` ne fusionne pas en local, hors conflit avec la base).
 - **Un brief POSE les questions, il ne les pré-répond pas** : provenance d'une règle, consommateur, état
   d'un fichier se demandent en SORTIE, citation exigée. Le banni est l'affirmation NON citée : verbatim,
   réf RAW nue, ligne de `package.json`, sortie de sonde collés restent légitimes. **Toute RÈGLE affirmée

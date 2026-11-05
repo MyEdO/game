@@ -13,6 +13,18 @@ on:
 #
 # Un run par ref. Sur une branche de travail, un push qui en suit un autre ANNULE le run en vol :
 # seule la tête compte. Une entrée de file a sa propre ref (`gh-readonly-queue/main/pr-<N>-<sha>`).
+#
+# DEUX COURSES (#3412, arbitrage du 2026-11-05 au ticket) : la course de FILE (`merge_group`) joue TOUTES
+# les gates, celle de BRANCHE (`push`) n'en joue qu'un sous-ensemble — le job `branche` : `typecheck`,
+# puis `test:perimetre` (scripts/test/perimetre.mjs : le lint des fichiers touchés, la suite du noyau
+# dès qu'un fichier de `src/` l'est, les tests dérivés du diff sous son budget ; le reste à la file). Le
+# partage se fait au niveau du STEP : le checkout et le prologue de chaque job portent la condition
+# d'événement de sa course (`SI_DE_COURSE`, scripts/gates/gatesDeCi.mjs), et chaque gate attend
+# `steps.prologue.outcome == 'success'` ; hors de sa course, un job saute tous ses steps et rend
+# « Success » en quelques secondes. Ses checks restent REQUIS des deux côtés : le ruleset les exige
+# tous sur le commit de file, et `branche` bloque l'entrée en file tant qu'il n'est pas vert. Un rouge
+# hors du périmètre dérivé se découvre en file, qui éjecte la PR (`causeDEjection`,
+# scripts/ops/etapesDuTrain.mjs).
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -27,7 +39,8 @@ concurrency:
 # report its status as "Success". It will not prevent a pull request from merging, even if it is a
 # required check. » (docs GitHub, control-jobs-with-conditions.md:42) ; « A job depends on a failed
 # job | The dependent job is skipped and may not block merging » (troubleshooting-required-status-
-# checks.md:78). Garde : `scripts/ops/ruleset-main.test.mjs`.
+# checks.md:78). Garde : `scripts/ops/ruleset-main.test.mjs`, qui verrouille aussi la condition
+# d'événement du checkout et du prologue de chaque job (`SI_DE_COURSE`).
 #
 # `timeout-minutes` sur CHAQUE job, jamais sur un step : `TIMEOUT_JOB_MINUTES`
 # (scripts/gates/gatesDeCi.mjs), garde `scripts/ops/ruleset-main.test.mjs`.
@@ -51,16 +64,48 @@ concurrency:
 # reste rouge dès qu'un step l'est — jamais de `continue-on-error`, qui rendrait le step VERT. Seul
 # l'échec du prologue coupe la suite (`steps.prologue.outcome`) : rien ne s'y jouerait.
 jobs:
+  # La course de BRANCHE (`JOB_DE_BRANCHE`, scripts/gates/gatesDeCi.mjs ; en tête de ce fichier), hors du
+  # rejeu local (`JOBS_HORS_REJEU_LOCAL`). `test:perimetre` lit les durées par fichier de la dernière course
+  # de file réussie (`rapatrierDureesCi`, scripts/test/dureesCi.mjs) par `gh` : `GH_TOKEN` et
+  # `actions: read`. Sa base est la base commune avec `origin/main`, que `fetch-depth: 0` porte.
+  branche:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'push' }}
+        uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run typecheck
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:perimetre
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
   # Les LECTEURS de docs/ et docs/raw/, et `build` (`gen && vite build`, qui n'écrit ni docs/ ni
   # docs/raw/).
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run docs:build
@@ -96,10 +141,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:docs
@@ -112,10 +159,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
@@ -178,10 +227,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:hooks
@@ -201,10 +252,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:corpus
@@ -234,10 +287,12 @@ jobs:
     env:
       WFRP_TEST_PARTIE: ${{ matrix.partie }}/${{ strategy.job-total }}
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm test
@@ -257,10 +312,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
       - name: Rejeu des migrations (idempotence de la donnée)
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}

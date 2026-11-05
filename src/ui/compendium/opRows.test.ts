@@ -6,7 +6,7 @@ import { newOp } from '../editor/GameOpEditor';
 import { OP_LABEL, OP_REF_FIELDS, opRefValue, opWithRefValue } from '../editor/refsDOp';
 import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
-import { humanizeFormula, humanizeOp } from './humanize';
+import { humanizeFormula, humanizeOp } from '../../noyau/codex/humanize';
 import { codexLookupById } from './registry';
 import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
 import type { CharKey } from '../../engine/types';

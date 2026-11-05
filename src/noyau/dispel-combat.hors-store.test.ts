@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
+import type { PendingDispel } from './pendings';
+
+/** La ligne de Soutien de la ligne figée au pending (LDB 46 l.162). */
+const soutienDe = (pd: PendingDispel) => pd.ligne.mods.find((m) => m.ref === RULE_REF.soutien);
 import type { BattleState } from './etat';
 import type { Combatant } from '../engine/types';
 import { setRule, resetRule } from '../engine/policy';
@@ -41,8 +46,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const pd = banc.getState().pendingDispel!;
     expect(pd).toBeTruthy();
     expect(pd.ni).toBe(2);
-    expect(pd.support?.count).toBe(1); // allie (même Domaine Bête, Langue Magick) assiste
-    expect(pd.support?.bonus).toBe(10);
+    expect(soutienDe(pd), 'allie (même Domaine Bête, Langue Magick) assiste').toMatchObject({ value: 10, by: [{ id: 'allie' }] });
     expect(pd.value).toBe(60 + 10); // Int 40 + 20 avances Langue = 60, + Soutien 10
   });
 
@@ -76,7 +80,7 @@ describe('Dissipation permanente — Action de combat', () => {
     setup();
     banc.getState().battleDispelSpell('malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
-    expect(pd.support?.count).toBe(1);
+    expect(soutienDe(pd)).toMatchObject({ value: 10, by: [{ id: 'allie' }] });
     expect(pd.value).toBe(60 + 10);
   });
 
@@ -92,7 +96,7 @@ describe('Dissipation permanente — Action de combat', () => {
     banc.setState({ battle });
     banc.getState().battleDispelSpell('malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
-    expect(pd.support).toBeUndefined();
+    expect(soutienDe(pd)).toBeUndefined();
     expect(pd.value).toBe(60); // Int 40 + 20 avances Langue, pas de Soutien (allie hors de portée)
   });
 

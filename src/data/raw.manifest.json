@@ -54,12 +54,6 @@
     "ticket": "#2669"
   },
   {
-    "id": "4e/magie#incantation-critique",
-    "type": "raw.manifest",
-    "label": "Incantation Critique",
-    "ticket": "#1035"
-  },
-  {
     "id": "4e/combat#tableau-des-incidents-de-tir-d-artillerie-par-salve",
     "type": "raw.manifest",
     "label": "Tableau des Incidents de Tir d'Artillerie par Salve",
