@@ -16,6 +16,7 @@ import {
   entreesPartiellesEmbarquees,
   listerDocuments,
   mesurerEnveloppe,
+  posesDesObjets,
   scanDuCorpus,
   scannerDonnees,
   scannerRedeclarations,
@@ -28,6 +29,7 @@ import { CLES_POSEES_INCONDITIONNELLEMENT, clesDeclareesJamaisPortees, INVENTAIR
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
+  CONCEPT_DE_LA_POSE,
   CONCEPTS,
   DATASETS_DES_PROJETS,
   LOTS_CONNUS,
@@ -36,6 +38,7 @@ import {
   CLES_IDENTITE,
   RX_CLE_REFERENCE,
   signature,
+  type IdConceptPose,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
 import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
 import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
@@ -149,12 +152,12 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
 
   it('signatures CIBLES : lexique == `STRUCTURES_CIBLES` (une cible ne se décrète pas dans le lexique)', () => {
     const auLexique = CONCEPTS.flatMap((c) =>
-      c.signatures.filter((s) => s.statut === 'cible').map((s) => `${c.id} | ${s.sig}`),
+      c.signatures.filter((s) => s.statut === 'cible').map((s) => `${c.id} | ${s.sig} | ${s.pose ?? ''}`),
     );
     expect(
       lignes(auLexique),
       'le lexique déclare des signatures `cible` que `STRUCTURES_CIBLES` ne connaît pas (ou l’inverse) — faire passer une graphie en cible la sort du dénominateur : ça se décide au STOCK, pas d’un mot du lexique.',
-    ).toEqual(lignes(STRUCTURES_CIBLES.map((c) => `${c.concept} | ${c.signature}`)));
+    ).toEqual(lignes(STRUCTURES_CIBLES.map((c) => `${c.concept} | ${c.signature} | ${c.pose ?? ''}`)));
   });
 
   it('redéclarations locales dans les defs : observé == stock (keyé par def | champ | concept | signature)', () => {
@@ -413,7 +416,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     // mutée est la même paire.
     const avecCompte = <E,>(cle: (e: E) => string) => (e: E & { occurrences: number }) => `${cle(e)} | ${occurrencesDe(e)}`;
     const stocks: Array<[string, readonly Record<string, unknown>[], (x: never) => string, string[]]> = [
-      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES, ((c: { concept: string; signature: string; date: string }) => `${c.concept} | ${c.signature} | ${c.date}`) as never, ['concept', 'signature', 'date']],
+      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES, ((c: { concept: string; signature: string; pose?: string; date: string }) => `${c.concept} | ${c.signature} | ${c.pose ?? ''} | ${c.date}`) as never, ['concept', 'signature', 'pose', 'date']],
       ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, avecCompte(cleRedeclaration) as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', 'lot', 'date']],
     ];
     const aveugles: string[] = [];
@@ -550,9 +553,12 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect(classement({ couleur: 'x', taille: 1 }, 'forme', 'creatures.json')).toBeNull();
   });
 
-  it('un `prix` hors des projets n’est pas un billet de route', () => {
-    expect(classement({ prix: { exterieur: 1 } }, 'diligence', 'diligence-projet.json')).toMatchObject({ concept: 'billet-de-route', statut: 'cible' });
-    expect(classerValeur('label,prix', ['label', 'prix'], { dataset: 'merchants.json', champ: 'offres' })?.concept).not.toBe('billet-de-route');
+  it('un concept que le champ ou le dataset nommait se reconnaît à sa POSE, où qu’il pende (#3012)', () => {
+    const palette = { metal: 'x', cuir: 'y', accent: 'z' };
+    expect(classement(palette, 'palette', 'materials.json'), 'le champ `palette` ne classe plus rien : seule la pose reconnaît.').toBeNull();
+    expect(classerValeur(sig(palette), Object.keys(palette), { dataset: 'x.json', champ: 'autre', poses: new Set(['palette-d-objet']) })).toMatchObject({ concept: 'palette-d-objet', statut: 'cible' });
+    expect(classerValeur('crew,m', ['crew', 'm'], { dataset: 'x.json', champ: 'autre', poses: new Set(['profil-de-voile']) })).toMatchObject({ concept: 'profil-de-propulsion', statut: 'cible' });
+    expect(classerValeur('prix', ['prix'], { dataset: 'merchants.json', champ: 'offres', poses: new Set(['billet-de-route']) })).toMatchObject({ concept: 'billet-de-route', statut: 'cible' });
   });
 
   it('une clé RÉSERVÉE encore homonyme ne force aucun concept (`count`, `cost`, `skill`)', () => {
@@ -612,17 +618,74 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect([...parFamille.values()].reduce((a, b) => a + b, 0), 'la partition PERD des porteurs.').toBe(porteurs.length);
     expect(porteurs.length, 'aucun porteur de `difficulty` : la sonde ne mesure rien.').toBeGreaterThan(0);
 
-    // (c) le bucket « aucune » EST le concept `test` du scan, site par site et compte par compte.
+    // (c) le bucket « aucune » EST le concept `test` du scan porteur de `difficulty`, site par site et compte
+    //     par compte ; le Test sans `difficulty`, reconnu à sa seule pose (#3012), n'entre pas dans la marche.
     const parSite = (xs: [string, number][]) => lignes(xs.map(([site, n]) => site + ' | ' + n));
     const brute = new Map<string, number>();
     for (const p of porteurs) if (p.famille === 'aucune') brute.set(p.site, (brute.get(p.site) ?? 0) + 1);
     const mesure = new Map<string, number>();
-    for (const f of scan.formes.filter((f) => f.concept === 'test'))
+    for (const f of scan.formes.filter((f) => f.concept === 'test' && f.signature.replace('+…', '').split(',').includes('difficulty')))
       mesure.set(f.dataset + ' › ' + f.champ, (mesure.get(f.dataset + ' › ' + f.champ) ?? 0) + f.occurrences);
     expect(
       parSite([...brute]),
       'la marche BRUTE et le SCAN ne voient pas le même concept `test` : la prémisse du discriminant (un jet = un porteur de `difficulty` qui ne désigne rien et n’est pas une rangée à bornes) ne tient plus.',
     ).toEqual(parSite([...mesure]));
+  });
+});
+
+/**
+ * POSES (#3012) — le lexique reconnaît un concept à la pose que la grammaire met sur son nœud
+ * (`conceptDe`, lue par `posesDesObjets`), plus au nom d'un champ ou d'un dataset. Mesuré sur la donnée
+ * des deux racines, co-descendue avec ses defs.
+ */
+describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () => {
+  const estObjet = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+  const brutParNom = new Map<string, unknown>(listerDocuments(ROOT).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))]));
+  const poses = posesDesObjets(DEFS, brutParNom);
+  const objets: { site: string; dataset: string; champ: string; o: Record<string, unknown> }[] = [];
+  const marche = (v: unknown, dataset: string, champ: string, chemin: string): void => {
+    if (Array.isArray(v)) { v.forEach((e, i) => marche(e, dataset, champ, `${chemin}[${i}]`)); return; }
+    if (!estObjet(v)) return;
+    objets.push({ site: `${dataset} › ${chemin || '(racine)'}`, dataset, champ, o: v });
+    for (const [k, e] of Object.entries(v)) marche(e, dataset, k, `${chemin}.${k}`);
+  };
+  for (const [nom, brut] of brutParNom) marche(brut, nom, '', '');
+  const conceptsDesPoses = (ids: ReadonlySet<IdConceptPose> | undefined) => new Set([...(ids ?? [])].map((p) => CONCEPT_DE_LA_POSE[p]));
+  const STRUCTURELS = CONCEPTS.filter((c) => c.exigeCandidatureStructurelle).map((c) => c.id);
+
+  it('pose et noyau ne se contredisent pas : aucun objet posé n’est revendiqué par le noyau d’un AUTRE concept', () => {
+    const posees = objets.filter((x) => poses.get(x.o)?.size);
+    expect(posees.length, 'aucun objet posé : la sonde ne mesurerait rien.').toBeGreaterThan(0);
+    const contradictions = posees.flatMap((x) => {
+      const concepts = conceptsDesPoses(poses.get(x.o));
+      const noyau = classerValeur(signature(Object.keys(x.o)), Object.keys(x.o), { dataset: x.dataset, champ: x.champ, candidats: STRUCTURELS })?.concept;
+      return concepts.size > 1 || (noyau && !concepts.has(noyau)) ? [`${x.site} : poses ${[...concepts].join('+')} | noyau ${noyau ?? '∅'}`] : [];
+    });
+    expect(contradictions, 'un objet porte les poses de deux concepts, ou la pose d’un concept que son noyau dément : le lexique et la grammaire divergent.').toEqual([]);
+  });
+
+  it('un concept que nommaient un champ ou un dataset ne classe que des objets qui portent sa pose', () => {
+    const anciennementNommes = [
+      'palette-d-objet',
+      'profil-de-propulsion',
+      'marchandage-de-billet',
+      'identite-de-heros',
+      'ligne-d-identite',
+      'valeur-d-identite',
+      'billet-de-route',
+      'provenance-de-valeur',
+      'provenances-de-route',
+      'special-de-jeu',
+    ];
+    const classes = objets.map((x) => ({ ...x, concept: classerValeur(signature(Object.keys(x.o)), Object.keys(x.o), { dataset: x.dataset, champ: x.champ, poses: poses.get(x.o) })?.concept }));
+    expect(
+      anciennementNommes.filter((c) => !classes.some((x) => x.concept === c)),
+      'un concept nommé ne classe plus aucun objet : sa pose ne le reconnaît pas.',
+    ).toEqual([]);
+    expect(
+      classes.filter((x) => x.concept && anciennementNommes.includes(x.concept) && !conceptsDesPoses(poses.get(x.o)).has(x.concept)).map((x) => `${x.concept} | ${x.site}`),
+      'un noyau revendique hors de sa pose ce que le dataset bornait : c’est un débordement.',
+    ).toEqual([]);
   });
 });
 
