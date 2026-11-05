@@ -48,7 +48,7 @@ export { plateauDeLaScene, type Scene } from './monde/scene';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
-export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncantation';
+export { fenetreDIncantation } from './fenetreDIncantation';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
