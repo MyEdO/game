@@ -69,7 +69,7 @@ describe('les champs de donnée qui nomment une Caractéristique refusent le tok
     { nom: 'activities.char', schema: activitiesSchema,
       fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'nav/rest', contexts: ['voyage'], char: carac, source: SOURCE }] },
     { nom: 'miscast.entries[].test.characteristic', schema: miscastSchema,
-      fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', source: SOURCE,
+      fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', die: 'd100', source: SOURCE,
         entries: [{ id: 'fixture-ligne', min: 1, max: 100, label: 'Ligne fixture', test: { characteristic: carac, difficulty: 'accessible', onFail: [] } }] }] },
     { nom: 'weather.physicalTestChars', schema: weatherSchema,
       fixture: (carac) => ({ id: 'weather', type: 'weather', label: 'Météo fixture', seasons: [], physicalTestChars: [carac],

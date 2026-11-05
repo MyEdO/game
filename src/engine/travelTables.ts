@@ -10,7 +10,7 @@ import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import incidentsMonteJson from '../data/incidents-monture.json';
 import problemesVehiculeJson from '../data/problemes-vehicule.json';
-import { rangeesDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as incidentsDeMonte from '../data/schemas/defs/incidents-monture';
 import type * as problemesDeVehicule from '../data/schemas/defs/problemes-vehicule';
 import rencontresJson from '../data/rencontres-edoc.json';
@@ -62,9 +62,9 @@ export const MOUNT_INCIDENTS: TravelTableEntry[] = rangeesDe<typeof incidentsDeM
 export const VEHICLE_PROBLEMS: TravelTableEntry[] = rangeesDe<typeof problemesDeVehicule>(problemesVehiculeJson);
 
 /** Dé AUTHORÉ des Incidents de monte (`incidents-monture.json`, `die`). */
-export const MOUNT_INCIDENT_DIE = parseDiceRequired(incidentsMonteJson.die, 'incidents-monture.die');
+export const MOUNT_INCIDENT_DIE = deDeTirageDe<typeof incidentsDeMonte>(incidentsMonteJson);
 /** Dé AUTHORÉ des Problèmes de véhicule (`problemes-vehicule.json`, `die`). */
-export const VEHICLE_PROBLEM_DIE = parseDiceRequired(problemesVehiculeJson.die, 'problemes-vehicule.die');
+export const VEHICLE_PROBLEM_DIE = deDeTirageDe<typeof problemesDeVehicule>(problemesVehiculeJson);
 
 export function rollMountIncident(roll: number): TravelTableEntry {
   return findTableEntry(MOUNT_INCIDENTS, roll);

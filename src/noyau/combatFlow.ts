@@ -99,7 +99,7 @@ import { canCastFromGrimoire } from '../engine/grimoire';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
 import {
-  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
+  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
@@ -8908,7 +8908,7 @@ export const TABLES = {
     memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], () => new Map<string, TableStepDef>(
       MISCAST_TABLES.map((table) => [table.id, {
         label: table.label,
-        die: 100,
+        die: miscastDie(table.id).sides,
         rows: miscastTableRows(table.id),
         lines: (die) => [miscastRowAt(table.id, die).label],
         ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),
