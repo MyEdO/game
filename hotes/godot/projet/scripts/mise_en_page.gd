@@ -22,11 +22,6 @@ const TANGAGE_MAXIMAL := 0.2
 const ECART_DE_BULLE := 12.0
 ## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
-## Par côté d'arête (`N`, `E`, `\\`, `/`, dans cet ordre) : son lacet, la longueur qu'elle couvre en cases, et le centre
-## de son tracé dans sa case.
-const LACETS_D_ARETE := [0.0, -QUART_DE_TOUR, -PI / 4.0, PI / 4.0]
-const LONGUEURS_D_ARETE := [1.0, 1.0, sqrt(2.0), sqrt(2.0)]
-const CENTRES_D_ARETE := [Vector2(DEMI_CASE, 0.0), Vector2(1.0, DEMI_CASE), Vector2(DEMI_CASE, DEMI_CASE), Vector2(DEMI_CASE, DEMI_CASE)]
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
@@ -39,20 +34,19 @@ static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
 
 
-## Le centre d'une arête de `hauteur` posée au côté de rang `cote` de la case `case` (`LACETS_D_ARETE`).
-static func centre_d_arete(case: Vector2i, cote: int, hauteur: float) -> Vector3:
-	var centre: Vector2 = CENTRES_D_ARETE[cote]
-	return Vector3(case.x + centre.x, hauteur / 2.0, case.y + centre.y)
+## Le centre d'une arête de `hauteur` dont le milieu est `milieu`, en coins de grille (`plateauDeLaScene`).
+static func centre_d_arete(milieu: Vector2, hauteur: float) -> Vector3:
+	return Vector3(milieu.x + DEMI_CASE, hauteur / 2.0, milieu.y + DEMI_CASE)
 
 
-## Le lacet d'une arête au côté de rang `cote`.
-static func lacet_d_arete(cote: int) -> float:
-	return LACETS_D_ARETE[cote]
+## Le lacet d'une arête qui court selon `sens` sur le plateau.
+static func lacet_d_arete(sens: Vector2) -> float:
+	return atan2(-sens.y, sens.x)
 
 
-## La longueur, en cases, d'une arête au côté de rang `cote`.
-static func longueur_d_arete(cote: int) -> float:
-	return LONGUEURS_D_ARETE[cote]
+## La longueur, en cases, d'une arête qui court selon `sens`.
+static func longueur_d_arete(sens: Vector2) -> float:
+	return sens.length()
 
 
 ## Le centre de la case `case` sur le sol (y = 0).

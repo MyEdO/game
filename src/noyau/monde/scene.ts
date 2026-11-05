@@ -472,18 +472,31 @@ export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: Rea
   return terrainWalkable(t) || (swim !== undefined && swim.has(t));
 }
 
-/** Une arête de la couche de base telle qu'un hôte la dessine : sa case, son côté, si elle est une porte en jeu
- *  (`porteEnJeu`) et si elle est ouverte (`wallIsOpen`). */
-export interface AreteDuPlateau { x: number; y: number; side: WallSide; porte: boolean; ouverte: boolean }
+/** Extrémités A,B (coins de GRILLE, ±0.5) de l'arête d'un segment — l'aiguillage UNIQUE N/E/`\`/`/`
+ *  (SOURCE UNIQUE des extrémités d'arête pour l'iso comme pour le POV).
+ *  Cardinales = les MÊMES coins que `tileEdge` (iso.ts) → un backend affine qui projette ces points
+ *  retombe sur la géométrie d'arête historique ; le POV les multiplie par `mpt`. */
+export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
+  const { x, y } = w;
+  switch (w.side) {
+    case 'N': return [{ x: x - 0.5, y: y - 0.5 }, { x: x + 0.5, y: y - 0.5 }];
+    case 'E': return [{ x: x + 0.5, y: y - 0.5 }, { x: x + 0.5, y: y + 0.5 }];
+    case '\\': return [{ x: x - 0.5, y: y - 0.5 }, { x: x + 0.5, y: y + 0.5 }];
+    default: return [{ x: x + 0.5, y: y - 0.5 }, { x: x - 0.5, y: y + 0.5 }]; // '/'
+  }
+}
 
 /** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les cases de sa couche de base que nul ne
- *  franchit à pied (`isWalkable`), ligne par ligne, et les arêtes de cette couche. */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; infranchissables: Pt[]; aretes: AreteDuPlateau[] } {
+ *  franchit à pied (`isWalkable`), ligne par ligne, et les arêtes de cette couche, chacune son milieu et son sens en
+ *  coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`). */
+export function plateauDeLaScene(scene: Scene): { w: number; h: number; infranchissables: Pt[]; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
   const { w, h } = scene.dimensions;
   const infranchissables: Pt[] = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!isWalkable(scene, x, y)) infranchissables.push({ x, y });
-  const aretes = (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === 0)
-    .map((seg) => ({ x: seg.x, y: seg.y, side: seg.side, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) }));
+  const aretes = (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === 0).map((seg) => {
+    const [a, b] = wallEnds(seg);
+    return { milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
+  });
   return { w, h, infranchissables, aretes };
 }
 

@@ -16,8 +16,6 @@ const ITEM_SURVOL := 4
 const DUREE_QUART_S := 0.25
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
-## Le rang de chaque côté d'arête dans la mise en page (`MiseEnPage.LACETS_D_ARETE`).
-const COTES := {"N": 0, "E": 1, "\\": 2, "/": 3}
 
 @export var scene_combattant: PackedScene
 @export var mesh_mur: BoxMesh
@@ -91,10 +89,10 @@ func _poser_les_aretes(aretes: Array) -> void:
 			continue
 		var arete := MeshInstance3D.new()
 		arete.mesh = mesh_porte if a.porte else mesh_mur
-		var cote: int = COTES[a.side]
-		arete.position = MiseEnPage.centre_d_arete(Vector2i(int(a.x), int(a.y)), cote, arete.mesh.size.y)
-		arete.rotation.y = MiseEnPage.lacet_d_arete(cote)
-		arete.scale.x = MiseEnPage.longueur_d_arete(cote)
+		var sens := Vector2(a.sens.x, a.sens.y)
+		arete.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), arete.mesh.size.y)
+		arete.rotation.y = MiseEnPage.lacet_d_arete(sens)
+		arete.scale.x = MiseEnPage.longueur_d_arete(sens)
 		_aretes.add_child(arete)
 
 

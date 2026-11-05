@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION, type AreteDuPlateau } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, type plateauDeLaScene } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -31,10 +31,10 @@ describe('l’exploration par le pont', () => {
     expect(boutons.map((b) => b.libelle), 'chaque geste d’exploration est un bouton qui le nomme').toEqual(exploration.gestes.liste.map((g) => g.libelle));
     const porte = boutons.find((b) => 'suite' in b.jeu && b.jeu.suite.some((a) => a.type === 'actionnerLaPorte'));
     expect(porte, 'la porte fermée s’ouvre par un bouton').toBeDefined();
-    const porteDuPlateau = (aretes: AreteDuPlateau[]) => aretes.find((a) => a.porte);
-    expect(porteDuPlateau(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, entre ses deux murs')
-      .toEqual({ x: 2, y: 1, side: 'E', porte: true, ouverte: false });
-    expect(suite.vue.plateau!.aretes.filter((a) => !a.porte).map((a) => [a.y, a.ouverte]), 'les murs pleins').toEqual([[0, false], [2, false]]);
+    const porteDuPlateau = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.porte);
+    expect(porteDuPlateau(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
+      .toEqual({ milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, porte: true, ouverte: false });
+    expect(suite.vue.plateau!.aretes.filter((a) => !a.porte).map((a) => [a.milieu, a.ouverte]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, false], [{ x: 2.5, y: 2 }, false]]);
     ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
     expect(porteDuPlateau(suite.vue.plateau!.aretes)?.ouverte, 'la porte ouverte, le plateau la dessine ouverte').toBe(true);
 
