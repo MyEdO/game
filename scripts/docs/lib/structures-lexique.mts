@@ -580,14 +580,20 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['fixed'],
   },
-  // Porte : `palierDeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). EDO 01 l.142.
-  // Noyau MESURÉ sur les 2 racines (2026-10-16) : `drMin` ne vit que sous `billets.*.marchandage.paliers[]`.
+  // Porte : `palierSchema` (`src/data/schemas/grammaire/valeurs.ts`), lu par `findTierEntry`
+  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-05) : `seuil` ne vit que sous
+  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]` et
+  // `billets.*.marchandage.paliers[]` (EDO 01 l.142).
   {
-    id: 'palier-de-billet',
-    label: 'palier d’un billet marchandé (`PalierDeBillet`)',
+    id: 'palier',
+    label: 'palier d’une table à seuils (seuil)',
     strate: 'Valeur',
-    signatures: [{ sig: 'drMin,prix', statut: 'cible' }],
-    noyau: ['drMin', 'prix'],
+    signatures: [
+      { sig: 'seuil', statut: 'cible' },
+      { sig: 'seuil+…', statut: 'cible', note: 'RANGÉE d’une table à paliers : la charge utile est INHÉRENTE — cible = `palierSchema` composé par sa shape + `findTierEntry` (src/engine/tables.ts). #1666.' },
+    ],
+    noyau: ['seuil'],
+    exigeCandidatureStructurelle: true,
   },
   // Porte : `routeBilletSchema.marchandage` (`src/data/schemas/defs-scenes/worldmap.ts`) ; `presetId` est
   // une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). EDO 01 l.142.
@@ -644,7 +650,7 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
     noyau: ['repere', 'valeur'],
   },
-  // APRÈS `palier-de-billet` (même clé `prix`, le palier porte `drMin`), et l'ordre décide. Porte :
+  // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
   // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
   // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
   // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.

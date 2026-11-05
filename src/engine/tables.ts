@@ -13,6 +13,18 @@ export function findTableEntry<T extends { min: number; max: number }>(table: T[
 }
 
 /**
+ * Lookup PARTAGÉ d'une table à PALIERS (`palierSchema`, `src/data/schemas/grammaire/valeurs.ts`) —
+ * SOURCE UNIQUE du « plus haut palier atteint » : la rangée de plus grand `seuil` ≤ `valeur`,
+ * indépendante de l'ordre d'authoring. `undefined` sous le plus bas palier : le repli est celui de
+ * l'appelant, qui le nomme. PUR.
+ */
+export function findTierEntry<T extends { seuil: number }>(table: readonly T[], valeur: number): T | undefined {
+  let atteint: T | undefined;
+  for (const r of table) if (r.seuil <= valeur && (atteint === undefined || r.seuil > atteint.seuil)) atteint = r;
+  return atteint;
+}
+
+/**
  * Bande d'une table dont une borne EXTRÊME n'est pas imprimée — `null` (JSON n'a pas d'Infinity) :
  * `max: null` pour la DERNIÈRE bande (« 71 et + », LDB 07 l.70 ; « 4 ou plus », MDG 15 l.383 ;
  * « 81+ », MDG 12 l.129 ; « 96 ou plus », AA 10 l.127 ; « 101 ou plus », MDG 14 l.188), `min: null`

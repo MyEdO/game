@@ -1089,6 +1089,19 @@ export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z
 export const plageOuverteSchema = nommerChamps(z.strictObject({ min: z.number().nullable(), max: z.number().nullable() }), metaDesChamps(plageSchema, { exigees: true }));
 
 /**
+ * PALIER d'une table à SEUILS — forme CANONIQUE du concept `palier`
+ * (`scripts/docs/lib/structures-lexique.mts`) : un seul nombre, le `seuil` à partir duquel la rangée
+ * vaut ; l'ordre total des seuils fait les bandes, et la rangée retenue est celle du plus haut seuil
+ * atteint. C'est exactement ce que lit `findTierEntry` (`src/engine/tables.ts`), primitive unique de ce
+ * lookup. Ni `plageSchema` ni `plageOuverteSchema` : aucune borne haute n'est écrite.
+ *
+ * La charge utile d'un palier s'ajoute par la SHAPE — `z.strictObject({ ...palierSchema.shape, … })`,
+ * comme une fourchette. Un seuil est un ENTIER (DR, minute du jour, effectif) ; la borne de son domaine
+ * appartient à la table qui le compose.
+ */
+export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int() }), { seuil: { label: 'Seuil', hint: 'Valeur à partir de laquelle le palier s’applique' } });
+
+/**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique
  * (`scripts/docs/lib/structures-lexique.mts`), DISTINCT de `plage` : aucune rangée n'est tirée ici,
  * rien ne traverse `findTableEntry` ; ce sont les bornes de SAISIE d'un paramètre éditable, qui

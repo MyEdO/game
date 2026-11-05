@@ -1,11 +1,11 @@
 /**
  * Schéma de `calendarPhases.json` — les 7 phases de la journée (Aube→Nuit), consommé par
- * `src/data/index.ts` (`{ id, start, label, icon }[]`). `start` = minute du jour (0-1439) où la
- * phase commence ; `icon` = clé d'ENVELOPPE, EXIGÉE ici (`options.exiges`) — toute phase porte
- * la sienne à l'écran (`ajouter-une-icone`).
+ * `src/data/index.ts` (`{ id, seuil, label, icon }[]`). Chaque phase est un PALIER (`palierSchema`) :
+ * `seuil` = minute du jour (0-1439) où elle commence ; `icon` = clé d'ENVELOPPE, EXIGÉE ici
+ * (`options.exiges`) — toute phase porte la sienne à l'écran (`ajouter-une-icone`).
  */
-import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { palierSchema } from '../grammaire/valeurs';
 
 export const file = 'calendarPhases.json';
 export const famille = 'entite';
@@ -13,11 +13,9 @@ export const famille = 'entite';
 const doc = document(
   'calendarPhases',
   famille,
+  { ...palierSchema.shape },
   {
-    start: z.number(),
-  },
-  {
-    start: { label: 'Heure de début', hint: 'Minute du jour (0-1439) où la phase commence' },
+    seuil: { label: 'Heure de début', hint: 'Minute du jour (0-1439) où la phase commence' },
   },
   {
     codex: { keys: ['calendarPhases'] },

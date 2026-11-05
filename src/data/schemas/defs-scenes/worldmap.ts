@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
-import { enumNomme, maisonSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { enumNomme, maisonSchema, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refuserSansProvenance } from '../grammaire/document';
 import { idDe, recordDIds, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -192,11 +192,11 @@ export const routePerilSchema = nommerChamps(z.strictObject({
 /** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
 const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
 
-/** `PalierDeBillet` (`engine/travel.ts`) — prix d'un billet marchandé, à partir de `drMin` de DR net gagné. */
+/** `PalierDeBillet` (`engine/travel.ts`) — prix d'un billet marchandé, palier (`palierSchema`) de DR net gagné. */
 export const palierDeBilletSchema = nommerChamps(z.strictObject({
-  drMin: z.number().int().min(0),
+  ...palierSchema.shape,
   prix: prixParClasseSchema,
-}), { drMin: { label: "DR net minimal" }, prix: { label: "prix par classe" , texte: { regime: "technique"} } });
+}).refine((p) => p.seuil >= 0, { path: ['seuil'], message: 'le DR net minimal d’un palier de billet est ≥ 0' }), { seuil: { label: "DR net minimal" }, prix: { label: "prix par classe" , texte: { regime: "technique"} } });
 
 /** `RouteBillet` (`noyau/worldMap.ts`) — billet d'auteur d'un passage payant (`EDO 01 l.142`). La
  *  contiguïté de `suite` se valide à la carte (`worldMapSchema`), les classes et `depuis` à la route. */

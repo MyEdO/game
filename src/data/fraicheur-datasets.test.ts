@@ -313,7 +313,7 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(dawnMinute()).toBe(300);
     expect(isTravelDaylight(330)).toBe(true);
     setDataset('calendarPhases', datasetArray('calendarPhases').map((p) => (
-      p.id === 'aube' ? { ...p, start: 360 } : p.id === 'crepuscule' ? { ...p, start: 1140 } : p)));
+      p.id === 'aube' ? { ...p, seuil: 360 } : p.id === 'crepuscule' ? { ...p, seuil: 1140 } : p)));
     expect(dawnMinute()).toBe(360);
     expect(duskMinute()).toBe(1140);
     expect(isTravelDaylight(330)).toBe(false);

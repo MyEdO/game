@@ -10,6 +10,7 @@
  * `DAY_PHASES`, `WEEKDAYS`) restent valides et live.
  */
 import { calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases } from '../data';
+import { findTierEntry } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 
 export interface ImperialMonth { label: string; days: number; }
@@ -115,10 +116,10 @@ export const campaignStart = memoParVersion(['calendarMonths', 'calendarIntercal
 export type DayPhaseId = 'aube' | 'matin' | 'midi' | 'apresmidi' | 'crepuscule' | 'soir' | 'nuit';
 export interface DayPhase { id: DayPhaseId; label: string; icon: string; isNight: boolean; }
 
-/** Phases d'AFFICHAGE (heure de début minutes-de-jour + libellé + icône) — DONNÉE éditable, réf live.
+/** Phases d'AFFICHAGE (palier `seuil` en minutes-de-jour + libellé + icône) — DONNÉE éditable, réf live.
  *  'nuit' enjambe minuit (00:00–05:00). Le canon est muet sur l'heure exacte du lever/coucher. */
-export const DAY_PHASES: { id: DayPhaseId; start: number; label: string; icon: string }[] =
-  calendarPhases as { id: DayPhaseId; start: number; label: string; icon: string }[];
+export const DAY_PHASES: { id: DayPhaseId; seuil: number; label: string; icon: string }[] =
+  calendarPhases as { id: DayPhaseId; seuil: number; label: string; icon: string }[];
 
 /**
  * Heure de début d'une phase ANCRE, résolue par son id. PURE (les phases sont un paramètre) : sa
@@ -128,7 +129,7 @@ export const DAY_PHASES: { id: DayPhaseId; start: number; label: string; icon: s
  * AUTRE phase que celle demandée et rendrait une heure fausse en silence — une donnée amputée pète
  * ici, à la première lecture de son ancre.
  */
-export function ancreDePhase(phases: readonly { id: string; start: number }[], id: DayPhaseId): number {
+export function ancreDePhase(phases: readonly { id: string; seuil: number }[], id: DayPhaseId): number {
   const phase = phases.find((p) => p.id === id);
   if (!phase) {
     throw new Error(
@@ -136,7 +137,7 @@ export function ancreDePhase(phases: readonly { id: string; start: number }[], i
         `${phases.map((p) => p.id).join(', ') || '(aucun)'}).`,
     );
   }
-  return phase.start;
+  return phase.seuil;
 }
 
 /** Fenêtre d'OBSCURITÉ mécanique (combat −20 tir / rendu sombre), DÉCOUPLÉE des phases d'affichage.
@@ -151,11 +152,10 @@ export function isNight(minutes: number): boolean {
   return m >= NIGHT_WINDOW.start || m < NIGHT_WINDOW.end;
 }
 
-/** Phase d'affichage pour une heure donnée (dernière dont `start` ≤ l'heure ; défaut = la dernière, qui enjambe minuit). */
+/** Phase d'affichage pour une heure donnée (`findTierEntry`) ; avant le plus bas palier, la phase du
+ *  plus HAUT, qui enjambe minuit. */
 export function dayPhase(minutes: number): DayPhase {
-  const m = minuteOfDay(minutes);
-  let chosen = DAY_PHASES[DAY_PHASES.length - 1]; // défaut avant la 1ʳᵉ phase (00:00 → 'aube')
-  for (const p of DAY_PHASES) if (m >= p.start) chosen = p;
+  const chosen = findTierEntry(DAY_PHASES, minuteOfDay(minutes)) ?? findTierEntry(DAY_PHASES, Number.POSITIVE_INFINITY)!;
   return { id: chosen.id, label: chosen.label, icon: chosen.icon, isNight: isNight(minutes) };
 }
 

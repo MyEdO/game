@@ -30,6 +30,7 @@ import { slowestMovement } from './movement';
 import { Money, fromBrass } from './money';
 import { bargainPct, NEGOTIATOR_PCT, type BargainOutcome } from './bargain';
 import { rule } from './policy';
+import { findTierEntry } from './tables';
 import {
   type Allure, ALLURE_KMH_PER_M, mountedSpeedKmh, partyMounts, mountProfileById, lameLedCapKmh,
 } from './mountTravel';
@@ -154,9 +155,9 @@ export function travelPlanCalc(km: number, kmh: number, hoursPerDay: number, fir
   return { days, hoursLastDay, travelMinutes: Math.round(totalHours * 60) };
 }
 
-/** Palier de prix d'un billet marchandé : il s'applique à partir de `drMin` de DR net gagné. */
+/** Palier de prix d'un billet marchandé : il s'applique à partir de `seuil` de DR net gagné. */
 export interface PalierDeBillet {
-  drMin: number;
+  seuil: number;
   /** Sous par passager, par classe du véhicule. */
   prix: Partial<Record<string, number>>;
 }
@@ -187,16 +188,14 @@ export function classeRetenue(tarif: TarifDePassage, classeId: string): string {
 }
 
 /** Prix d'UN passager dans la classe retenue (`classeRetenue`), arrondi au sou supérieur.
- *  Gagné avec `paliers` : le palier de plus grand `drMin` ≤ DR net (EDO 01 l.142), puis `NEGOTIATOR_PCT`
+ *  Gagné avec `paliers` : le palier atteint par le DR net (`findTierEntry`, EDO 01 l.142), puis `NEGOTIATOR_PCT`
  *  (LDB 10 l.818 ; arbitrage #2547, 2026-10-09) ; gagné sans `paliers` : `bargainPct`. */
 export function prixParPassager(tarif: TarifDePassage, classeId: string, issue?: BargainOutcome): number {
   const classe = classeRetenue(tarif, classeId);
   const plein = tarif.prix[classe]!;
   if (!issue?.won) return Math.ceil(plein);
   if (!tarif.paliers?.length) return Math.ceil((plein * (100 - bargainPct(true, issue.drNet, issue.negotiator))) / 100);
-  const palier = tarif.paliers
-    .filter((p) => p.drMin <= issue.drNet && p.prix[classe] != null)
-    .reduce<PalierDeBillet | undefined>((a, p) => (!a || p.drMin > a.drMin ? p : a), undefined);
+  const palier = findTierEntry(tarif.paliers.filter((p) => p.prix[classe] != null), issue.drNet);
   const prix = palier ? palier.prix[classe]! : plein;
   return Math.ceil((prix * (100 - (issue.negotiator ? NEGOTIATOR_PCT : 0))) / 100);
 }
