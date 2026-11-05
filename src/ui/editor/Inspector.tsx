@@ -14,6 +14,7 @@ import {
   SceneEffectZone,
   WallSeg,
   type ActionAuthoree,
+  type ArchitectureBody,
   type ArchitecturePart,
   type ArchitectureStorey,
   type FacadeSection,
@@ -26,6 +27,7 @@ import {
   isDescriptiveZone,
   enrolledEntityIds,
   porteAuteur,
+  reposDeScene,
   sceneMetresPerTile,
   secretAuteur,
 } from '../../noyau/monde/scene';
@@ -36,6 +38,7 @@ import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { NumberField } from '../NumberField';
 import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { EntryRename } from './EntryRename';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
@@ -50,7 +53,7 @@ import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
 import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
-import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setMetresPerTile, setAmbientLight, setNorthDeg, setEnvironment, setSceneFlags } from '../../noyau/sceneEdit';
+import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
@@ -80,11 +83,9 @@ import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/refField/RefField';
-import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
 import type { IconIdInput } from '../../data/icons';
-import { nextEntityId } from '../../lib/entityId';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
@@ -227,7 +228,7 @@ export function Inspector({
   const cleZone = sel?.type === 'effectZone' ? clesZones[sel.idx] : undefined;
   const setEfz = (z: SceneEffectZone) => {
     if (sel?.type !== 'effectZone') return;
-    setScene({ ...scene, effectZones: (scene.effectZones ?? []).map((x, i) => (i === sel.idx ? z : x)) });
+    setScene(replaceEffectZone(scene, sel.idx, z));
   };
   const entry = sel?.type === 'entry' ? scene.entryPoints?.[sel.id] ?? null : null;
   const selW = sel?.type === 'wall' ? scene.walls?.find((w) => w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z) ?? null : null;
@@ -300,77 +301,48 @@ export function Inspector({
     if (!ent) return;
     setScene(editEntityCombat(scene, ent.id, patch));
   };
-  const updateSelT = (patch: Partial<Trigger>) =>
-    setScene({ ...scene, triggers: scene.triggers.map((t) => (selT && t.id === selT.id ? { ...t, ...patch } : t)) });
+  const updateSelT = (patch: Partial<Trigger>) => {
+    if (selT) setScene(patchTrigger(scene, selT.id, patch));
+  };
   const updateZone = (patch: Partial<NonNullable<Scene['restZones']>[number]>) => {
     if (sel?.type !== 'restZone') return;
-    setScene({ ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === sel.idx ? { ...z, ...patch } : z)) });
+    setScene(patchRestZone(scene, sel.idx, patch));
   };
-  type Body = NonNullable<Scene['architecture']>[number];
-  const sceneWithBody = (update: (body: Body) => Body): Scene =>
-    ({ ...scene, architecture: scene.architecture?.map((body) => body.id === architectureBody!.id ? update(body) : body) });
-  const updateArchitectureBody = (update: (body: Body) => Body) => {
-    if (!architectureBody) return;
-    setScene(sceneWithBody(update));
-  };
-  // Édition d'INTENTION de toiture : le rendu (`gameIso/builders/roofs.buildRoofs`) ne lit QUE les
-  // masses matérialisées, jamais `roofDefaults`/`roofExclusions` — l'intention re-dérive donc les
-  // masses dans le geste (`rederiveRoofMasses`), les surcharges authorées préservées (#829/#841).
-  const updateArchitectureRoof = (update: (body: Body) => Body) => {
-    if (!architectureBody) return;
-    setScene(rederiveRoofMasses(sceneWithBody(update)));
-  };
+  // Toute écriture d'un corps passe par son écrivain du noyau : l'INTENTION de toiture (type, surcharge,
+  // exclusions) re-dérive les masses dans le geste (`rederiveRoofMasses`) — le rendu ne lit que les masses
+  // matérialisées (#829/#841) —, et chaque emprise est plafonnée à la carte.
   // Ce que la dérivation appliquerait MAINTENANT à ce corps : surcharge du corps, sinon couverture de
   // son TYPE de bâtiment, sinon toiture de la scène (#1715).
   const toiture = architectureBody ? toitureEffective(scene, architectureBody) : null;
-  const poseToiture = (champ: keyof RoofDefaults, valeur: RoofDefaults[keyof RoofDefaults] | undefined) =>
-    updateArchitectureRoof((body) => poseToitureDeCorps(body, champ, valeur));
-  const patchExclusion = (i: number, patch: Partial<{ z: number; rect: ArchitectureRect }>) =>
-    updateArchitectureRoof((body) => ({
-      ...body,
-      roofExclusions: (body.roofExclusions ?? []).map((ex, j) => (j === i ? { ...ex, ...patch } : ex)),
-    }));
-  const addExclusion = () =>
-    updateArchitectureRoof((body) => ({
-      ...body,
-      roofExclusions: [...(body.roofExclusions ?? []), { z: architectureStorey?.z ?? 0, rect: { x: 0, y: 0, w: 2, h: 2 } }],
-    }));
-  const removeExclusion = (i: number) =>
-    updateArchitectureRoof((body) => {
-      const next = (body.roofExclusions ?? []).filter((_, j) => j !== i);
-      return { ...body, roofExclusions: next.length ? next : undefined };
-    });
+  const poseToiture = (champ: keyof RoofDefaults, valeur: RoofDefaults[keyof RoofDefaults] | undefined) => {
+    if (architectureBody) setScene(poseToitureDuCorps(scene, architectureBody.id, champ, valeur));
+  };
+  const patchExclusion = (i: number, patch: Partial<{ z: number; rect: ArchitectureRect }>) => {
+    if (architectureBody) setScene(patchRoofExclusion(scene, architectureBody.id, i, patch));
+  };
+  const addExclusion = () => {
+    if (architectureBody) setScene(addRoofExclusion(scene, architectureBody.id, architectureStorey?.z ?? 0));
+  };
+  const removeExclusion = (i: number) => {
+    if (architectureBody) setScene(removeRoofExclusion(scene, architectureBody.id, i));
+  };
+  const patchBody = (patch: Partial<Pick<ArchitectureBody, 'label' | 'style'>>) => {
+    if (architectureBody) setScene(patchArchitectureBody(scene, architectureBody.id, patch));
+  };
   const updateArchitectureStorey = (patch: Partial<ArchitectureStorey>) => {
-    if (!architectureStorey) return;
-    updateArchitectureBody((body) => ({
-      ...body,
-      storeys: body.storeys.map((storey) => storey.id === architectureStorey.id ? { ...storey, ...patch } : storey),
-    }));
+    if (architectureBody && architectureStorey) setScene(patchArchitectureStorey(scene, architectureBody.id, architectureStorey.id, patch));
   };
   const updateArchitecturePart = (patch: Partial<ArchitecturePart>) => {
-    if (!architectureStorey || !architecturePart) return;
-    updateArchitectureStorey({
-      parts: architectureStorey.parts.map((part) => part.id === architecturePart.id ? { ...part, ...patch } : part),
-    });
+    if (architectureBody && architectureStorey && architecturePart) setScene(patchArchitecturePart(scene, architectureBody.id, architectureStorey.id, architecturePart.id, patch));
   };
   const updateFacadeSection = (patch: Partial<FacadeSection>) => {
-    if (!facadeSection) return;
-    updateArchitectureBody((body) => ({
-      ...body,
-      facades: body.facades.map((facade) => facade.id === facadeSection.id ? { ...facade, ...patch } : facade),
-    }));
+    if (architectureBody && facadeSection) setScene(patchFacadeSection(scene, architectureBody.id, facadeSection.id, patch));
+  };
+  const patchFeature = (featureId: string, patch: Parameters<typeof patchFacadeFeature>[4]) => {
+    if (architectureBody && facadeSection) setScene(patchFacadeFeature(scene, architectureBody.id, facadeSection.id, featureId, patch));
   };
   const updateRoofSection = (patch: Partial<BuildingMass>) => {
-    if (!roofSection) return;
-    updateArchitectureBody((body) => ({
-      ...body,
-      masses: body.masses.map((mass) => mass.id === roofSection.id ? { ...mass, ...patch } : mass),
-    }));
-  };
-  const edgeAtZ = <T extends { z?: number }>(edge: T, z: number): T => {
-    const next = { ...edge, z };
-    if (z === 0) Reflect.deleteProperty(next, 'z');
-    return next;
+    if (architectureBody && roofSection) setScene(patchBuildingMass(scene, architectureBody.id, roofSection.id, patch));
   };
   const removeSel = () => {
     setScene(deleteSel(scene, sel));
@@ -422,14 +394,14 @@ export function Inspector({
                   Libellé
                   <input
                     value={architectureBody.label ?? ''}
-                    onChange={(event) => updateArchitectureBody((body) => ({ ...body, label: event.target.value || undefined }))}
+                    onChange={(event) => patchBody({ label: event.target.value || undefined })}
                   />
                 </label>
                 <label className="ed-field">
                   Type de bâtiment
                   <select
                     value={architectureBody.style ?? ''}
-                    onChange={(event) => updateArchitectureBody((body) => ({ ...body, style: event.target.value || undefined }))}
+                    onChange={(event) => patchBody({ style: event.target.value || undefined })}
                   >
                     <option value="" />
                     {Object.values(buildingsMeta()).map((meta) => <option key={meta.id} value={meta.id}>{meta.label}</option>)}
@@ -567,12 +539,7 @@ export function Inspector({
                         type="number"
                         min={key === 'w' || key === 'h' ? 1 : 0}
                         value={architecturePart.foot[key]}
-                        onChange={(event) => updateArchitecturePart({
-                          foot: {
-                            ...architecturePart.foot,
-                            [key]: Math.max(key === 'w' || key === 'h' ? 1 : 0, Number(event.target.value)),
-                          },
-                        })}
+                        onChange={(event) => updateArchitecturePart({ foot: { ...architecturePart.foot, [key]: Number(event.target.value) || 0 } })}
                       />
                     </label>
                   ))}
@@ -597,11 +564,7 @@ export function Inspector({
                 <LayerField
                   z={facadeSection.z}
                   layers={architectureBody?.storeys.map((storey) => storey.z) ?? []}
-                  onChange={(z) => updateFacadeSection({
-                    z,
-                    edges: facadeSection.edges.map((edge) => edgeAtZ(edge, z)),
-                    features: facadeSection.features?.map((feature) => ({ ...feature, edge: edgeAtZ(feature.edge, z) })),
-                  })}
+                  onChange={(z) => architectureBody && setScene(setFacadeSectionZ(scene, architectureBody.id, facadeSection.id, z))}
                 />
                 <div className="mini-title">Features</div>
                 <Stack>
@@ -612,11 +575,7 @@ export function Inspector({
                         Type
                         <select
                           value={feature.kind}
-                          onChange={(event) => updateFacadeSection({
-                            features: facadeSection.features?.map((candidate) => candidate.id === feature.id
-                              ? { ...candidate, kind: event.target.value as typeof feature.kind }
-                              : candidate),
-                          })}
+                          onChange={(event) => patchFeature(feature.id, { kind: event.target.value as typeof feature.kind })}
                         >
                           {optionsDuNoeud(facadeFeatureKindSchema).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                         </select>
@@ -625,50 +584,37 @@ export function Inspector({
                         Apparence (id)
                         <input
                           value={feature.appearance ?? ''}
-                          onChange={(event) => updateFacadeSection({
-                            features: facadeSection.features?.map((candidate) => candidate.id === feature.id
-                              ? { ...candidate, appearance: event.target.value || undefined }
-                              : candidate),
-                          })}
+                          onChange={(event) => patchFeature(feature.id, { appearance: event.target.value || undefined })}
                         />
                       </label>
                       <div className="ed-dim">
                         {([
-                          ['offset', 'Position', 0, 1, 'Position du centre le long de l’arête (0 = début, 1 = fin). Vide = défaut de rendu.'],
-                          ['width', 'Largeur', 0.05, 1, 'Largeur de l’ouverture en fraction de l’arête. Vide = défaut de rendu.'],
-                        ] as const).map(([key, lab, min, max, title]) => (
+                          ['offset', 'Position', 'Position du centre le long de l’arête (0 = début, 1 = fin). Vide = défaut de rendu.'],
+                          ['width', 'Largeur', 'Largeur de l’ouverture en fraction de l’arête. Vide = défaut de rendu.'],
+                        ] as const).map(([key, lab, title]) => (
                           <label key={key} title={title}>
                             {lab}
                             <input
                               type="number"
-                              min={min}
-                              max={max}
+                              min={BORNES_D_OUVERTURE[key].min}
+                              max={BORNES_D_OUVERTURE[key].max}
                               step={0.05}
                               value={feature[key] ?? ''}
                               placeholder="défaut"
-                              onChange={(event) => {
-                                const raw = event.target.value;
-                                const next = raw === '' ? undefined : Math.max(min, Math.min(max, Number(raw)));
-                                updateFacadeSection({
-                                  features: facadeSection.features?.map((candidate) => candidate.id === feature.id
-                                    ? { ...candidate, [key]: next }
-                                    : candidate),
-                                });
-                              }}
+                              onChange={(event) => patchFeature(feature.id, { [key]: event.target.value === '' ? undefined : Number(event.target.value) })}
                             />
                           </label>
                         ))}
                       </div>
+                      <button className="btn small danger" onClick={() => architectureBody && setScene(removeFacadeFeature(scene, architectureBody.id, facadeSection.id, feature.id))}>Retirer</button>
                     </Stack>
                   ))}
                   <button
                     className="btn small"
                     disabled={!facadeSection.edges[0]}
                     onClick={() => {
-                      const edge = facadeSection.edges[0];
-                      if (!edge) return;
-                      const id = nextEntityId('feature', (facadeSection.features ?? []).map((feature) => feature.id));
-                      updateFacadeSection({ features: [...(facadeSection.features ?? []), { id, kind: 'gable', edge: { ...edge } }] });
+                      const out = architectureBody && addFacadeFeature(scene, architectureBody.id, facadeSection.id);
+                      if (out) setScene(out.scene);
                     }}
                   >
                     Nouvelle feature
@@ -696,7 +642,7 @@ export function Inspector({
                 />
                 <label className="ed-field">
                   Niveaux (hauteur d'égout = niveaux × hauteur d'étage)
-                  <input type="number" min={1} step={1} value={roofSection.levels} onChange={(event) => updateRoofSection({ levels: Math.max(1, Math.round(Number(event.target.value) || 1)) })} />
+                  <input type="number" min={1} step={1} value={roofSection.levels} onChange={(event) => updateRoofSection({ levels: Number(event.target.value) })} />
                 </label>
                 {roofSection.footprint.map((part, partIndex) => (
                   <div key={partIndex} className="ed-field">
@@ -712,19 +658,7 @@ export function Inspector({
                             max={key === 'x' || key === 'w' ? scene.dimensions.w : scene.dimensions.h}
                             value={part[key]}
                             onChange={(event) => {
-                              const value = Number(event.target.value);
-                              const next = { ...part };
-                              if (key === 'w') {
-                                next.w = Math.max(1, Math.min(Number.isFinite(value) ? value : 1, scene.dimensions.w));
-                                next.x = Math.min(next.x, scene.dimensions.w - next.w);
-                              } else if (key === 'h') {
-                                next.h = Math.max(1, Math.min(Number.isFinite(value) ? value : 1, scene.dimensions.h));
-                                next.y = Math.min(next.y, scene.dimensions.h - next.h);
-                              } else if (key === 'x') {
-                                next.x = Math.max(0, Math.min(Number.isFinite(value) ? value : 0, scene.dimensions.w - next.w));
-                              } else {
-                                next.y = Math.max(0, Math.min(Number.isFinite(value) ? value : 0, scene.dimensions.h - next.h));
-                              }
+                              const next = { ...part, [key]: Number(event.target.value) || 0 };
                               updateRoofSection({ footprint: roofSection.footprint.map((candidate, index) => index === partIndex ? next : candidate) });
                             }}
                           />
@@ -746,9 +680,7 @@ export function Inspector({
                   className="btn small"
                   onClick={() => {
                     const last = roofSection.footprint[roofSection.footprint.length - 1];
-                    const x = Math.min((last?.x ?? 0) + (last?.w ?? 1), scene.dimensions.w - 1);
-                    const y = Math.min(last?.y ?? 0, scene.dimensions.h - 1);
-                    updateRoofSection({ footprint: [...roofSection.footprint, { x: Math.max(0, x), y: Math.max(0, y), w: 1, h: 1 }] });
+                    updateRoofSection({ footprint: [...roofSection.footprint, { x: (last?.x ?? 0) + (last?.w ?? 1), y: last?.y ?? 0, w: 1, h: 1 }] });
                   }}
                 >
                   Ajouter une partie
@@ -781,7 +713,7 @@ export function Inspector({
                 )}
                 <label className="ed-field">
                   Pente (degrés)
-                  <input type="number" min={5} max={75} step={1} value={roofSection.pitchDeg} onChange={(event) => updateRoofSection({ pitchDeg: Math.max(5, Math.min(75, Number(event.target.value) || 5)) })} />
+                  <input type="number" min={5} max={75} step={1} value={roofSection.pitchDeg} onChange={(event) => updateRoofSection({ pitchDeg: Number(event.target.value) })} />
                 </label>
                 <label className="ed-field">
                   Matériau
@@ -1297,7 +1229,7 @@ export function Inspector({
                     <input
                       type="number"
                       value={entry.x}
-                      onChange={(e) => setScene({ ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...entry, x: Number(e.target.value) } } })}
+                      onChange={(e) => setScene(editEntry(scene, sel.id, { x: Number(e.target.value) }))}
                     />
                   </label>
                   <label>
@@ -1305,14 +1237,14 @@ export function Inspector({
                     <input
                       type="number"
                       value={entry.y}
-                      onChange={(e) => setScene({ ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...entry, y: Number(e.target.value) } } })}
+                      onChange={(e) => setScene(editEntry(scene, sel.id, { y: Number(e.target.value) }))}
                     />
                   </label>
                 </div>
                 <LayerField
                   z={entry.z}
                   layers={sceneLayerZs(scene)}
-                  onChange={(z) => setScene({ ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...entry, z: z || undefined } } })}
+                  onChange={(z) => setScene(editEntry(scene, sel.id, { z }))}
                 />
               </Fold>
               <div className="insp-actions">
@@ -1324,24 +1256,9 @@ export function Inspector({
           )}
         </>
       ) : (
-        <SceneProps scene={scene} narratif={narratif} setScene={setScene} setSel={setSel} resizeScene={resizeScene} />
+        <SceneProps scene={scene} otherScenes={otherScenes} narratif={narratif} setScene={setScene} setSel={setSel} resizeScene={resizeScene} />
       )}
     </aside>
-  );
-}
-
-/** Renommage d'un id STABLE (point d'entrée, zone d'effet…), en BROUILLON (`SaisieEnBrouillon`) posé au
- *  blur ou à Entrée. L'inspecteur RÉUTILISE l'instance d'un objet sélectionné au suivant : le brouillon
- *  tombe dès que l'id AFFICHÉ change, jamais recopié sur l'objet suivant. Le champ ne garde jamais un id
- *  que le document a REFUSÉ (doublon) : posé, le brouillon cède la place à l'id en vigueur. */
-function EntryRename({ label, caption = 'Nom (référencé par les transitions)', onRename }: { label: string; caption?: string; onRename: (next: string) => void }) {
-  return (
-    <label className="ed-field">
-      {caption}
-      <SaisieEnBrouillon
-        value={label} afficher={(x) => x} relire={(t, avant) => t.trim() || avant}
-        onChange={(n) => { if (n !== label) onRename(n); }} />
-    </label>
   );
 }
 
@@ -2072,12 +1989,15 @@ const LIBELLE_DE_PARTIE: Record<keyof ReliefDefaults, string> = {
 /** Propriétés de la SCÈNE (rien de sélectionné) + inventaire filtrable du plan. */
 function SceneProps({
   scene,
+  otherScenes,
   setScene,
   narratif,
   setSel,
   resizeScene,
 }: {
   scene: Scene;
+  /** Les autres scènes du projet : l'identifiant de la scène y est unique (`renameScene`). */
+  otherScenes: readonly Scene[];
   narratif: NarratifBlock;
   setScene: (s: Scene) => void;
   setSel: (s: Sel) => void;
@@ -2087,16 +2007,11 @@ function SceneProps({
   const content = sceneContent(scene, narratif);
   const shown = filterByLabel(content, (row) => `${row.label} ${row.key}`, filter);
   const layerZs = sceneLayerZs(scene);
-  const patchStation = (i: number, patch: Partial<SceneStationAnchor>) =>
-    setScene({ ...scene, stations: (scene.stations ?? []).map((st, j) => (j === i ? { ...st, ...patch } : st)) });
+  const patchStationDe = (i: number, patch: Partial<SceneStationAnchor>) => setScene(patchStation(scene, i, patch));
   // Cibles = Scènes de bataille du CATALOGUE (cf. `battleAnchorTargets`), jamais les Scènes du projet.
   const anchorTargets = battleAnchorTargets();
-  const addStation = () =>
-    setScene({ ...scene, stations: [...(scene.stations ?? []), { sceneId: anchorTargets[0]!.id, pos: { x: 0, y: 0 } }] });
-  const removeStation = (i: number) => {
-    const next = (scene.stations ?? []).filter((_, j) => j !== i);
-    setScene({ ...scene, stations: next.length ? next : undefined });
-  };
+  const ajouterStation = () => setScene(addStation(scene, anchorTargets[0]!.id));
+  const retirerStation = (i: number) => setScene(removeStation(scene, i));
   const [newFlagKey, setNewFlagKey] = useState('');
   const flagEntries = Object.entries(scene.flags);
   const addFlag = () => {
@@ -2105,25 +2020,25 @@ function SceneProps({
     setScene(setSceneFlags(scene, { [key]: true }));
     setNewFlagKey('');
   };
-  const removeFlag = (key: string) =>
-    setScene({ ...scene, flags: Object.fromEntries(flagEntries.filter(([k]) => k !== key)) });
+  const removeFlag = (key: string) => setScene(removeSceneFlag(scene, key));
   return (
     <>
       <div className="insp-head">
         <span className="insp-title"><Icon id="file/document" size="sm" /> {scene.label || scene.id}</span>
       </div>
       <Fold title="Identité" open>
-        <label className="ed-field">
-          Identifiant (référencé par les transitions et la carte du monde)
-          <input value={scene.id} onChange={(e) => setScene({ ...scene, id: e.target.value })} />
-        </label>
+        <EntryRename
+          label={scene.id}
+          caption="Identifiant (référencé par les transitions et la carte du monde)"
+          onRename={(next) => setScene(renameScene(scene, otherScenes, next))}
+        />
         <label className="ed-field">
           Nom
-          <input value={scene.label} onChange={(e) => setScene({ ...scene, label: e.target.value })} />
+          <input value={scene.label} onChange={(e) => setScene(setSceneLabel(scene, e.target.value))} />
         </label>
         <label className="ed-field">
           Description (notes d'auteur)
-          <textarea value={scene.desc ?? ''} onChange={(e) => setScene({ ...scene, desc: e.target.value })} />
+          <textarea value={scene.desc ?? ''} onChange={(e) => setScene(setSceneScalaires(scene, { desc: e.target.value }))} />
         </label>
         <div className="ed-field">
           <div className="ed-dim">
@@ -2137,7 +2052,7 @@ function SceneProps({
             </label>
           </div>
         </div>
-        <CouvreField value={scene.couvre} sujet="de la scène" onChange={(couvre) => setScene({ ...scene, couvre })} />
+        <CouvreField value={scene.couvre} sujet="de la scène" onChange={(couvre) => setScene(setSceneScalaires(scene, { couvre }))} />
       </Fold>
       <Fold title={`Contenu du plan (${content.length})`} open>
         <p className="hint">
@@ -2158,7 +2073,7 @@ function SceneProps({
       <Fold title="Ambiance & météo">
         <label className="ed-field">
           Ambiance
-          <select value={scene.ambiance === 'interieur' ? 'interieur' : 'exterieur'} onChange={(e) => setScene({ ...scene, ambiance: e.target.value as Scene['ambiance'] })}>
+          <select value={scene.ambiance === 'interieur' ? 'interieur' : 'exterieur'} onChange={(e) => setScene(setSceneScalaires(scene, { ambiance: e.target.value as Scene['ambiance'] }))}>
             <option value="exterieur">Extérieur (jour/nuit = horloge)</option>
             <option value="interieur">Intérieur (éclairé)</option>
           </select>
@@ -2169,12 +2084,12 @@ function SceneProps({
             type="number"
             min={1}
             value={sceneMetresPerTile(scene)}
-            onChange={(e) => setScene(setMetresPerTile(scene, Math.max(1, Number(e.target.value) || 2)))}
+            onChange={(e) => setScene(setSceneScalaires(scene, { metresPerTile: Math.max(1, Number(e.target.value) || 2) }))}
           />
         </label>
         <label className="ed-field">
           Lumière ambiante
-          <select value={scene.ambientLight ?? 'auto'} onChange={(e) => setScene(setAmbientLight(scene, e.target.value === 'auto' ? undefined : e.target.value))}>
+          <select value={scene.ambientLight ?? 'auto'} onChange={(e) => setScene(setSceneScalaires(scene, { ambientLight: e.target.value === 'auto' ? undefined : e.target.value }))}>
             <option value="auto">Automatique (suit l'horloge)</option>
             {lightLevels.map((l) => (
               <option key={l.id} value={l.id}>{l.label}</option>
@@ -2196,7 +2111,7 @@ function SceneProps({
         </label>
         <label className="ed-field">
           Environnement (bonus de Domaine Ghyran en rural/sauvage, LDB 48)
-          <select value={scene.environment ?? ''} onChange={(e) => setScene(setEnvironment(scene, (e.target.value || undefined) as Scene['environment']))}>
+          <select value={scene.environment ?? ''} onChange={(e) => setScene(setSceneScalaires(scene, { environment: (e.target.value || undefined) as Scene['environment'] }))}>
             <option value="">Non spécifié</option>
             <option value="rural">Rural</option>
             <option value="urbain">Urbain</option>
@@ -2208,7 +2123,7 @@ function SceneProps({
           {/* Vocabulaire ET libellés DE L'ENUM (`sceneWeatherSchema`, `defs-scenes/scene.ts`) : une météo
               ajoutée au schéma s'offre ici le jour même. L'absence est une VALEUR d'authoring — le hub de
               ville ne nomme alors aucune météo, et aucun modificateur de combat ne s'applique. */}
-          <select value={scene.weather ?? ''} onChange={(e) => setScene({ ...scene, weather: (e.target.value || undefined) as Scene['weather'] })}>
+          <select value={scene.weather ?? ''} onChange={(e) => setScene(setSceneScalaires(scene, { weather: (e.target.value || undefined) as Scene['weather'] }))}>
             <option value="">Non spécifiée</option>
             {optionsDuNoeud(sceneWeatherSchema).map(([id, label]) => (
               <option key={id} value={id} title={hintDeValeur(sceneWeatherSchema, id)}>{label}</option>
@@ -2220,26 +2135,20 @@ function SceneProps({
           label="Groupes du lieu"
           title="Source de Peur ou de Haine des personnages dont un Trait vise l’un de ces Groupes"
           value={scene.groups}
-          onChange={(groups) => setScene({ ...scene, groups })}
+          onChange={(groups) => setScene(setSceneScalaires(scene, { groups }))}
         />
         <MusicSelect
           label="Musique (ambiance)"
           value={scene.music?.ambient}
-          onChange={(v) => {
-            const m = { ...scene.music, ambient: v };
-            setScene({ ...scene, music: m.ambient === undefined && m.combat === undefined ? undefined : m });
-          }}
+          onChange={(v) => setScene(setSceneMusic(scene, 'ambient', v))}
         />
         <MusicSelect
           label="Musique (combat)"
           value={scene.music?.combat}
-          onChange={(v) => {
-            const m = { ...scene.music, combat: v };
-            setScene({ ...scene, music: m.ambient === undefined && m.combat === undefined ? undefined : m });
-          }}
+          onChange={(v) => setScene(setSceneMusic(scene, 'combat', v))}
         />
-        <ProseField label="Message d'introduction" value={scene.startMessage?.texte ?? ''} onChange={(texte) => setScene({ ...scene, startMessage: texte ? { ...scene.startMessage, texte } : undefined })} />
-        {scene.startMessage && <ProvenanceDuTexte copie identite={`${scene.id}/introduction`} sujet="du message d'introduction" value={scene.startMessage} onChange={(patch) => setScene({ ...scene, startMessage: { ...scene.startMessage!, ...patch } })} />}
+        <ProseField label="Message d'introduction" value={scene.startMessage?.texte ?? ''} onChange={(texte) => setScene(setStartMessageTexte(scene, texte))} />
+        {scene.startMessage && <ProvenanceDuTexte copie identite={`${scene.id}/introduction`} sujet="du message d'introduction" value={scene.startMessage} onChange={(patch) => setScene(patchStartMessage(scene, patch))} />}
       </Fold>
       <Fold title="Matières de relief">
         <p className="hint">
@@ -2251,7 +2160,7 @@ function SceneProps({
             {LIBELLE_DE_PARTIE[part]}
             <select
               value={scene.reliefDefaults[part]}
-              onChange={(e) => setScene({ ...scene, reliefDefaults: { ...scene.reliefDefaults, [part]: e.target.value } })}
+              onChange={(e) => setScene(setReliefDefault(scene, part, e.target.value))}
             >
               {matieresDe('relief').map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -2268,7 +2177,7 @@ function SceneProps({
           Couverture
           <select
             value={scene.roofDefaults.material}
-            onChange={(e) => setScene(rederiveRoofMasses({ ...scene, roofDefaults: { ...scene.roofDefaults, material: e.target.value } }))}
+            onChange={(e) => setScene(patchSceneRoofDefaults(scene, { material: e.target.value }))}
           >
             {matieresCouvrantes().map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
@@ -2279,14 +2188,14 @@ function SceneProps({
           min={5}
           max={75}
           value={scene.roofDefaults.pitchDeg}
-          onChange={(pitchDeg) => setScene(rederiveRoofMasses({ ...scene, roofDefaults: { ...scene.roofDefaults, pitchDeg } }))}
+          onChange={(pitchDeg) => setScene(patchSceneRoofDefaults(scene, { pitchDeg }))}
         />
         <NumberField
           variant="champ"
           label="Comble (étages)"
           min={1}
           value={scene.roofDefaults.riseMaxStoreys}
-          onChange={(riseMaxStoreys) => setScene(rederiveRoofMasses({ ...scene, roofDefaults: { ...scene.roofDefaults, riseMaxStoreys } }))}
+          onChange={(riseMaxStoreys) => setScene(patchSceneRoofDefaults(scene, { riseMaxStoreys }))}
         />
       </Fold>
       <Fold title="Repos sur place">
@@ -2296,8 +2205,8 @@ function SceneProps({
             <label key={k} className="ed-check">
               <input
                 type="checkbox"
-                checked={(scene.rest ?? { camp: true })[k] ?? false}
-                onChange={(e) => setScene({ ...scene, rest: { ...(scene.rest ?? { camp: true }), [k]: e.target.checked } })}
+                checked={reposDeScene(scene)[k] ?? false}
+                onChange={(e) => setScene(setSceneRest(scene, { [k]: e.target.checked }))}
               />
               {label}
             </label>
@@ -2306,7 +2215,7 @@ function SceneProps({
             <input
               type="checkbox"
               checked={scene.rest?.quality === 'pietre'}
-              onChange={(e) => setScene({ ...scene, rest: { ...(scene.rest ?? { camp: true }), quality: e.target.checked ? 'pietre' : undefined } })}
+              onChange={(e) => setScene(setSceneRest(scene, { quality: e.target.checked ? 'pietre' : undefined }))}
             />
             <Icon id="resource/gold-purse" size="sm" /> Piètre (½ prix, tambouille à risque)
           </label>
@@ -2358,7 +2267,7 @@ function SceneProps({
                 Scène
                 <select
                   value={st.sceneId}
-                  onChange={(e) => patchStation(i, { sceneId: e.target.value })}
+                  onChange={(e) => patchStationDe(i, { sceneId: e.target.value })}
                 >
                   {!anchorTargets.some((t) => t.id === st.sceneId) && <option value={st.sceneId}>{st.sceneId} (hors catalogue)</option>}
                   {anchorTargets.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
@@ -2371,15 +2280,15 @@ function SceneProps({
                     type="number"
                     min={0}
                     value={st.pos[key] ?? 0}
-                    onChange={(e) => patchStation(i, { pos: { ...st.pos, [key]: Number(e.target.value) } })}
+                    onChange={(e) => patchStationDe(i, { pos: { ...st.pos, [key]: Number(e.target.value) } })}
                   />
                 </label>
               ))}
-              <LayerField z={st.pos.z} layers={sceneLayerZs(scene)} onChange={(z) => patchStation(i, { pos: { ...st.pos, z } })} />
-              <button className="btn small danger" onClick={() => removeStation(i)}>Retirer</button>
+              <LayerField z={st.pos.z} layers={sceneLayerZs(scene)} onChange={(z) => patchStationDe(i, { pos: { ...st.pos, z } })} />
+              <button className="btn small danger" onClick={() => retirerStation(i)}>Retirer</button>
             </div>
           ))}
-          <button className="btn small" disabled={!anchorTargets.length} onClick={addStation}>+ Ancre</button>
+          <button className="btn small" disabled={!anchorTargets.length} onClick={ajouterStation}>+ Ancre</button>
         </Stack>
       </Fold>
     </>

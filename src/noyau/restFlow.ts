@@ -26,6 +26,7 @@ import type { RNG } from '../engine/dice';
 import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
+import { reposDeScene } from './monde/scene';
 import { partyAssisted, peutTenter, testValue } from '../engine/skills';
 import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
@@ -580,7 +581,7 @@ export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale
   const zone = pos ? [...(sc.restZones ?? [])].reverse().find((z) =>
     pos.x >= z.rect.x && pos.x < z.rect.x + z.rect.w && pos.y >= z.rect.y && pos.y < z.rect.y + z.rect.h
     && (z.rect.z ?? 0) === (pos.z ?? 0)) : undefined;
-  const places = zone?.places ?? sc.rest ?? { camp: true };
+  const places = zone?.places ?? reposDeScene(sc);
   if (!places.auberge && !places.maison && !places.camp) return null; // repos interdit ici
   return { places, quality: zone?.quality ?? sc.rest?.quality ?? 'normale' };
 }
