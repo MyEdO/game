@@ -97,8 +97,8 @@ const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
   return flux.verbs.map((v) => ({ verbe: NOM_DU_VERBE_DE_JET[v], flux: cle }));
 };
 
-/** La navigation de la cascade, jugée sur sa clôture : valider l'étape, tout résoudre, terminer le bilan (sa sortie). */
-export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: 'cascadeNext' }, { verbe: 'cascadeResolveAll' }, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
+/** La navigation de la cascade : valider l'étape (la clôture de son flux), tout résoudre, terminer le bilan (sa sortie). */
+export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.confirm, flux: 'cascade' }, { verbe: 'cascadeResolveAll' }, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -169,9 +169,10 @@ export interface FenetreDuJeu {
  *  `MODAL_DEFS` dont le `when` tient, comme `pickActiveModalKey`), son propriétaire, ses gestes DÉCLARÉS
  *  (`gestesDeLaFenetre`) et l'id de sa rangée due (`rangees`) ; pour la cascade, ceux de l'étape courante : l'étape-jet
  *  de combat, `gestesDuJet` et la rangée due de sa fenêtre réactive ou de son flux (`FENETRE_DU_JET`) ;
- *  toute autre étape et le bilan, les gestes de son interaction (`VERBES_D_INTERACTION`) puis les clôtures de la
- *  cascade (`NAVIGATION_DE_CASCADE`), et pour une interaction jouée par un flux de jet le drive « le jet, puis valider
- *  l'étape » ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
+ *  toute autre étape et le bilan, les gestes de son interaction (`VERBES_D_INTERACTION`) puis la navigation de la
+ *  cascade (`NAVIGATION_DE_CASCADE`), le flux de son interaction puis `cascade`, dont la clôture valide l'étape, et pour
+ *  une interaction jouée par un flux de jet le drive « le jet, puis valider l'étape » ; sinon la première situation
+ *  `HORS_MODAL` ouverte (`pendingOuvert`)
  *  qui tient la main, avec ses gestes déclarés. L'étape de cascade courante est rendue avec la cascade.
  *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
@@ -190,7 +191,7 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
     const flux = parInteraction?.flux;
-    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: flux ? [flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, { verbe: 'cascadeNext' }] } : {}), ...(etape ? { etape } : {}) };
+    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: [...new Set<FlowKey>([...(flux ? [flux] : []), 'cascade'])], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, NAVIGATION_DE_CASCADE[0]] } : {}), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   return hors ? { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;
@@ -302,7 +303,7 @@ function autoResolveCascade(get: Get, set: Set): void {
     }
     // Combat : avancer d'UNE étape (comme le joueur) → les étapes-jet en aval (Maladresse…) gardent leur
     // driver bespoke au tick suivant, au lieu d'être écrasées par un `cascadeResolveAll` global.
-    if (pc.purpose === 'combat') { get().cascadeNext(); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
+    if (pc.purpose === 'combat') { get().jetConfirm('cascade'); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
   }
   get().cascadeResolveAll();
   programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante

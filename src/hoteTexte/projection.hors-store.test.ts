@@ -69,7 +69,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       const f = projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!;
       expect(f.etape?.interaction, 'témoin : l’étape courante est un tirage sur table').toBe('table');
       expect(f.pid).toBe(f.etape!.id);
-      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeTirage', 'jetSetForcedRoll@cascadeTirage', 'cascadeNext']));
+      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeTirage', 'jetSetForcedRoll@cascadeTirage', 'jetConfirm@cascade']));
       // La vue replie une ligne trop large en continuations indentées de deux espaces (`BORNES.largeur`).
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetRoll(flux: "cascadeTirage", pid?: chaine) · jetSetForcedRoll(flux: "cascadeTirage", roll: nombre, pid?: chaine)`);
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascadeTirage : \S+ .+ à tirer$/m);

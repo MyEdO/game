@@ -818,7 +818,7 @@ sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénari
 **Flux HORS gestes `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
 les couvrent PAS — cliquer les VRAIS boutons) : `pendingCascade` se
 résout par `cascadeResolveAll` (bouton **« Tout lancer »**, résout d'un coup le reste sans influence)
-puis `fenetreFermer('cascade')` (bouton **« Terminer »** du bilan, sa sortie) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
+puis `fenetreFermer('cascade')` (bouton **« Terminer »** du bilan, sa sortie) — `jetRoll('cascade', id)`/`jetConfirm('cascade')` avancent étape
 par étape (bouton « Continuer »/« Terminer » de la dernière étape), cf. `src/ui/CascadeModal.tsx`.
 
 **`pendingTest` seul ne rend RIEN à l'écran** : c'est un slot d'état pur (`noyau/etat.ts`), consommé en
@@ -861,7 +861,7 @@ pas la cible d'UX.
 | `maneuver('id', side?, helmsmanId?)` | manœuvre RÉELLE (Test de Navigation, peut échouer) | contrairement à `turnShip`, PEUT rater — pas une triche. Un raté rend « ✓ Test joué : <navire> rate la manœuvre (DR n) — cap <cap> inchangé » : le `✓` dit que le Test est JOUÉ, pas réussi — lire le DR et le cap |
 | `killEnemies({withQualityLoot?})` | élimine tous les ennemis + flux de victoire NORMAL | ignore les postes `inert` non `dead` (affûts non visés, LDB — voir `isOutOfAction`) ; `withQualityLoot:true` ajoute à `pendingVictory.gear` un objet CATALOGUÉ à qualités (premier trapping de `trappings.json` avec `qualities` non vide, choisi dynamiquement — MÊME brique `gearFromEffects` que le vrai butin) — NON ajouté si la victoire n'est pas atteinte (cascade de fin de combat ouverte / combat en cours), le message le signale |
 | `dealDamage('id', n=5)` | inflige `n` Dégâts à un combattant par le VRAI pipeline (`applyOps` op `wounds`, BE et PA ignorés, États, puis `checkBattleOver` : reddition/naufrage/victoire) ; `n` est un nombre fini, sinon refus nommé (`✗`) | combat requis ; éprouve l'issue navale (coule une coque, teste un naufrage) sans jouer chaque tir |
-| `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte. `corruption` est l'id du Degré du trait `corruption` posé sur un ennemi : `'mineure'`, `'moderee'` (défaut, clé absente) ou `'majeure'` ; `false` n'expose pas. `critical:false` retire l'Infection post-critique ; un `corruption` qui n'est ni l'id d'un Degré ni `false` (`true`, un nombre, un libellé) est refusé, nommé (`✗`) | à conduire à la main (`jetRoll('cascade', id)`/`cascadeNext`) — n'auto-résout rien, contrairement à `killEnemies` |
+| `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte. `corruption` est l'id du Degré du trait `corruption` posé sur un ennemi : `'mineure'`, `'moderee'` (défaut, clé absente) ou `'majeure'` ; `false` n'expose pas. `critical:false` retire l'Infection post-critique ; un `corruption` qui n'est ni l'id d'un Degré ni `false` (`true`, un nombre, un libellé) est refusé, nommé (`✗`) | à conduire à la main (`jetRoll('cascade', id)`/`jetConfirm('cascade')`) — n'auto-résout rien, contrairement à `killEnemies` |
 | `healParty()` | groupe à neuf (PB max, états/critiques/maladies purgés, morts relevés) | ne touche QUE `kind:'hero'` en combat |
 | `charge('enemyId', heroId?)` | simule une charge (déclenche `onCharged`, Frappe réactive) | héros cible = le plus proche par défaut. ⚠ **Ni `place()` ni `charge()` n'établissent l'Engagement** (`engagedWith` reste vide) : RAW, seule une VRAIE attaque de corps à corps engage (LDB 13 l.169-175). Une recette qui a besoin d'un Engagement le crée en ATTAQUANT, pas en approchant — ~20 appels perdus à chercher pourquoi l'état n'arrivait pas |
 | `quality('id', label?, advantage?)` | ajoute un Atout/Défaut à l'arme ACTIVE + Avantages | ne touche que `weapons[0]` ; `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut « Déstabilisante », Avantage inchangé |
@@ -1054,7 +1054,7 @@ __wfrp.scenario('chute-du-greement', 11)   // lancement (combat direct)
 __wfrp.prefs('des-fixes', true)            // pour POSER les dés
 
 __wfrp.shipCrit('greement')                // 1. Critique sur la coque des HÉROS (défaut)
-// 2. valider l'étape « Critique de navire » (cascadeNext), puis LANCER chaque rangée d'Athlétisme :
+// 2. valider l'étape « Critique de navire » (jetConfirm('cascade')), puis LANCER chaque rangée d'Athlétisme :
 //    la bande est une étape à RANGÉES — le geste est jetRoll('cascadeBatch', idDuTesteur), pas jetRoll('cascade', …).
 // 3. les étapes de dé de la chute suivent : jetRoll('cascadeTirage', id) puis jetSetForcedRoll('cascadeTirage', v, id)
 ```

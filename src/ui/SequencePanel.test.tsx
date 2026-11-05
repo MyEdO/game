@@ -42,7 +42,7 @@ function poseManche(sl: Record<string, number>): void {
   }));
   act(() => {
     useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   });
 }
 
@@ -67,7 +67,7 @@ function poseMancheMono(mien: number, sien: number): void {
         }],
       },
     });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   });
 }
 
@@ -137,7 +137,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
 
     const step = get().pendingCascade!.participants[0];
     act(() => { get().jetRoll('cascade', step.id); });
-    act(() => { get().cascadeNext(); });
+    act(() => { get().jetConfirm('cascade'); });
     render();
 
     const cum = get().sequence!.cum as Record<string, number>;
@@ -204,7 +204,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     }));
     act(() => {
       useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     });
     render();
 
@@ -241,7 +241,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     for (let i = 0; i < 4; i++) {
       const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
       if (!cur || cur.kind !== 'tavern-option') break;
-      act(() => { get().cascadeChoose(cur.id, '0'); get().cascadeNext(); });
+      act(() => { get().cascadeChoose(cur.id, '0'); get().jetConfirm('cascade'); });
     }
     const pc = get().pendingCascade!;
     const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
@@ -253,7 +253,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     participants[idx] = { ...band, participants: rows };
     act(() => {
       useGame.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     });
     render();
 
@@ -281,7 +281,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
     expect(cur().kind, 'le héros annonce d’abord la cible (étape de CHOIX)').toBe('tavern-pot-target');
     render();
     expect(boutons(), 'branche choix').toContain('Abandonner');
-    act(() => { get().cascadeChoose(cur().id, '7'); get().cascadeNext(); });
+    act(() => { get().cascadeChoose(cur().id, '7'); get().jetConfirm('cascade'); });
     expect(cur().table, 'le tour du héros est un tirage sur TABLE').toBeDefined();
     render();
     expect(boutons(), 'branche table').toContain('Abandonner');
@@ -350,13 +350,13 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     render();
     expect(boutons(), 'fenêtre d’ouverture : offert').toContain('Abandonner');
     expect(boutonAbandon()!.getAttribute('aria-disabled'), 'ouvert').not.toBe('true');
-    act(() => { get().cascadeChoose(cur().id, '7'); get().cascadeNext(); });
+    act(() => { get().cascadeChoose(cur().id, '7'); get().jetConfirm('cascade'); });
     act(() => { get().jetSetForcedRoll('cascadeTirage', 17, cur().id); });
     expect(cur().table?.result, 'le dé est posé, l’étape n’est pas validée').toBeTruthy();
     render();
     ferme('dé posé', 'Abandon possible entre deux manches.');
-    act(() => { get().cascadeNext(); });
-    act(() => { get().jetSetForcedRoll('cascadeTirage', 4, cur().id); get().cascadeNext(); });
+    act(() => { get().jetConfirm('cascade'); });
+    act(() => { get().jetSetForcedRoll('cascadeTirage', 4, cur().id); get().jetConfirm('cascade'); });
     expect(cur().kind, 'le 4 appende le choix « remettre ou abandonner »').toBe('tavern-pot-fold');
     render();
     ferme('pli dû', 'Abandon possible entre deux manches.');
@@ -400,7 +400,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     }));
     act(() => {
       useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     });
     expect(cur().kind, 'le lancer raté appende la pinte').toBe('tavern-drink');
     render();
@@ -417,7 +417,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     if (st.target != null && !st.result) get().jetRoll('cascade', st.id);
     else if (st.table && !st.table.result) get().jetRoll('cascadeTirage', st.id);
     else if (st.de && !st.de.result) get().jetRoll('cascadeTirage', st.id);
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   });
 
   it('Torchon : le lancer RATÉ posé non validé — l’abandon DEMANDÉ laisse la pinte due, survit à la sauvegarde, puis perd la partie à la clôture (NADJ 16 l.111)', () => {

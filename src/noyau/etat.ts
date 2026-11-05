@@ -455,7 +455,7 @@ export interface EtatDeJeu {
   /** LOT DE DÉS d'un étal (#1426) : les tirages d'ouverture d'un marché/port, posables d'un bloc. */
   pendingEtalLot: PendingEtalLot | null;
   /** CASCADE séquentielle influençable (jets de NUIT / VOYAGE) : une étape à la fois (`FLOWS.cascade`),
-   *  conséquence par `kind` + avancée du curseur dans `cascadeNext` (noyau/cascade.ts). */
+   *  conséquence par `kind` + avancée du curseur dans `jetConfirm('cascade')` (`advanceCascade`, noyau/cascade.ts). */
   pendingCascade: PendingCascade | null;
   /** Pile de cascades SUSPENDUES (`suspendActiveCascade`/`resumeSuspendedCascade`, noyau/cascade.ts) :
    *  quand un combat s'ouvre PENDANT une cascade active (ex. un abordage déclenché par l'applier d'une

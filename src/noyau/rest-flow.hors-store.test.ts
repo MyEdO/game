@@ -70,7 +70,7 @@ function walkCascade(): string[] {
   while (banc.getState().pendingCascade && guard++ < 60) {
     kinds.push(banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor].kind);
     rollCurrent();
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
   }
   return kinds;
 }
@@ -85,7 +85,7 @@ function walkCascadeAbriFails(): { kind: string; rows: number }[] {
     const cur = p.participants[p.cursor];
     seen.push({ kind: cur.kind, rows: cur.participants?.length ?? 0 });
     failCurrent();
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
   }
   return seen;
 }
@@ -171,7 +171,7 @@ describe('openRest / choix par héros', () => {
   });
 
   it('cascade : valider un TEST QUOTIDIEN de maladie raté applique son `onFail` (applicateur diseaseTick, #674)', () => {
-    // DERNIER maillon de prod : la bande est verrouillée par `cascadeNext`, l'applier `diseaseTick`
+    // DERNIER maillon de prod : la bande est verrouillée par `jetConfirm('cascade')`, l'applier `diseaseTick`
     // lit `row.meta.onFail` et le passe à `applyOps`. Aucun appel direct au moteur ici.
     const h = banc.getState().party[0];
     h.diseases = [contractDisease('pneumonie', battleRngFor())!];
@@ -185,12 +185,12 @@ describe('openRest / choix par héros', () => {
     ], { title: 'Entretien', purpose: 'travel' });
 
     banc.setState({ pendingCascade: bande('bande-dz1') });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const fievre = () => banc.getState().party[0].diseases![0].symptoms.find((s) => s.symptomId === 'fievre');
     expect(fievre()!.severity, '1er échec : la Fièvre passe Grave').toBe('grave');
 
     banc.setState({ pendingCascade: bande('bande-dz2') });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const symptomes = banc.getState().party[0].diseases![0].symptoms.map((s) => s.symptomId);
     expect(symptomes, '2ᵉ échec, Fièvre DÉJÀ Grave : l’échelon suivant tombe').toContain('toxine');
   });
@@ -203,7 +203,7 @@ describe('openRest / choix par héros', () => {
       { id: 'bande-m1', kind: 'forcedMarch', label: fixtureText('Marche forcée'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
     ], { title: 'Marche', purpose: 'travel' }) });
-    banc.getState().cascadeNext(); // verrouille l'échec → +Exténué (applyForcedMarch)
+    banc.getState().jetConfirm('cascade'); // verrouille l'échec → +Exténué (applyForcedMarch)
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(exten0 + 1);
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -294,7 +294,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
       }
       sawEmpty = false;
       forceFailCurrent();
-      banc.getState().cascadeNext();
+      banc.getState().jetConfirm('cascade');
     }
     return nights;
   }
@@ -317,7 +317,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
 
     // Valider la nuit 1 (échec garanti) → conséquence appliquée UNE fois.
     forceFailCurrent();
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().party[0].hunger!.tests).toBe(1);
     expect(banc.getState().party[0].hunger!.failures).toBe(1); // 1er échec (l.422)
 

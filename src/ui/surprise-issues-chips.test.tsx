@@ -206,7 +206,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     expect(chipTalent.getAttribute('role'), 'la chip ouvre la fiche talents/vigilance').toBe('button');
 
     lancer('h');
-    act(() => { useGame.getState().cascadeNext(); });
+    act(() => { useGame.getState().jetConfirm('cascade'); });
     const suite = useGame.getState().pendingCascade!;
     expect(suite.participants.map((s) => s.label), 'le Test de Vigilance est APPENDU à la cascade').toContain('Vigilance');
     // …et il est JOUABLE : son identité ne collisionne pas avec le Test de Perception déjà résolu.
@@ -262,7 +262,7 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     expect(jets.every((r) => r), 'les 3 rangées ont leur jet').toBe(true);
     expect(jets.every((r) => r.roll <= r.target), 'chaque dé est SOUS la cible : le Test simple serait réussi').toBe(true);
     expect(jets.every((r) => !r.success), 'et pourtant les 3 PERDENT — l’embusqueur remporte l’opposition').toBe(true);
-    act(() => { useGame.getState().cascadeNext(); });
+    act(() => { useGame.getState().jetConfirm('cascade'); });
     const suite = useGame.getState().pendingCascade!;
     // UN seul second Test appendu — celui du porteur de Vigilance.
     expect(suite.participants.filter((s) => s.label === 'Vigilance').map((s) => s.actorId)).toEqual(['h']);
@@ -296,7 +296,7 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     expect(apres.success, 'la réussite PAYÉE par le point de Résilience a été perdue au choix du dé').toBe(true);
     expect(resilienceOf('h'), 'le choix du dé a re-dépensé une ressource').toBe(resApres);
 
-    act(() => { g().cascadeNext(); });
+    act(() => { g().jetConfirm('cascade'); });
     const surpris = g().battle!.combatants.find((c) => c.id === 'h')!.conditions.some((x) => x.id === 'surpris');
     expect(surpris, 'le guetteur a REMPORTÉ son Test : aucun État Surpris ne doit être posé').toBe(false);
   });

@@ -55,7 +55,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
     expect(step.combatPsych?.sourceId).toBe(E.id);
     expect(step.participants!.map((p) => p.id)).toEqual([H.id]); // BANDE : le jet vit sur la rangée
     banc.getState().jetRoll('cascadeBatch', H.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect((h.psychState ?? []).some((p) => p.type === 'animosite' && p.active)).toBe(true);
   });
@@ -68,7 +68,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
     H.resilience = 1;
     openRoundStartPsych(banc.getState, banc.setState);
     banc.getState().jetForceSuccess('cascadeBatch', H.id); // garantit le succès (par rangée)
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect((h.psychState ?? []).some((p) => p.type === 'animosite' && p.active)).toBe(false);
     openRoundStartPsych(banc.getState, banc.setState);

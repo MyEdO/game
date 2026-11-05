@@ -63,10 +63,10 @@ describe('la partie et son fichier', () => {
   });
   it('une suite s’arrête au premier geste refusé : les précédents s’écrivent, lui non, la réponse dit combien sont passés', () => {
     const t = partie('dome');
-    const r = t.jouer(verbe('confirmRoundStart'), { offre: 'charge' }, verbe('cascadeNext'), verbe('battleEndTurn'));
+    const r = t.jouer(verbe('confirmRoundStart'), { offre: 'charge' }, verbe('jetConfirm', 'cascade'), verbe('battleEndTurn'));
     expect(r.erreur, r.texte).not.toBeNull();
     expect(r.lignes[0]).toMatch(/^2\/4 appliqués : confirmRoundStart · offre charge/);
-    expect(r.texte).toMatch(/geste 3\/4 refusé, rien de lui ne s’écrit : erreur regle : cascadeNext sans effet/);
+    expect(r.texte).toMatch(/geste 3\/4 refusé, rien de lui ne s’écrit : erreur regle : jetConfirm sans effet/);
     expect(r.texte, 'une seule vue, à la fin').toMatch(/intention armée : charge/);
     expect(t.fichier().trimEnd().split('\n')).toHaveLength(3);
   });
@@ -120,8 +120,8 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
       vraie.fermer();
     }
   });
-  it('cascadeNext sans cascade ouverte', { timeout: 120_000 }, () => {
-    refuse(partie('dome', verbe('confirmRoundStart')), verbe('cascadeNext'), 'regle', /cascadeNext sans effet/);
+  it('valider une étape sans cascade ouverte', { timeout: 120_000 }, () => {
+    refuse(partie('dome', verbe('confirmRoundStart')), verbe('jetConfirm', 'cascade'), 'regle', /jetConfirm sans effet/);
   });
   it('une Dissipation sans Langue (Magick) ne dit sa raison qu’au journal : sans effet, la ligne du journal est la raison', { timeout: 120_000 }, () => {
     refuse(partie('revisit'), verbe('oocDispelSpell', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /oocDispelSpell sans effet : Il faut la compétence Langue \(Magick\)/);
@@ -181,7 +181,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un Pt sans y', verbe('battleClickTile', { x: 3 }), /pt\.y manque/],
     ['un pid nombre', verbe('cascadeChoose', 0, 'devier'), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('cascadeChoose', 0), /l’argument key manque/],
-    ['un argument en trop', verbe('cascadeNext', 1), /0 argument\(s\) au plus/],
+    ['un argument en trop', verbe('jetConfirm', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('confirmRoundStart')), geste, 'validation', message);
   });

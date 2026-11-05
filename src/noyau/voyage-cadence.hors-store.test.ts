@@ -320,7 +320,7 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de {skill
       }
       const c = p.participants[p.cursor];
       if (c && c.target != null && !c.result) get().jetRoll('cascade', c.id);
-      else get().cascadeNext();
+      else get().jetConfirm('cascade');
     }
   });
 });

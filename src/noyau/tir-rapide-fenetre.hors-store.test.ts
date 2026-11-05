@@ -190,7 +190,7 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     expect(tirsDe('h2')).toBe(0);
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
     g().jetSetForcedRoll('cascadeTirage', 1, solide!.id);
-    g().cascadeNext();
+    g().jetConfirm('cascade');
     expect(de('e1').weapons.some((w) => w.uid === 'lame'), 'la Lame Bâclée se brise (1 < Solide)').toBe(false);
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur H2').toBe('h2');
     expect(tirsDe('h2'), 'H2 tire UNE fois').toBe(1);
@@ -227,7 +227,7 @@ describe('#1765 — Tir rapide instantané : la sauvegarde de la cible suspend l
     expect(tirsDe('e2'), 'E2 n’a pas tiré').toBe(0);
     expect(de('e2').loseNextAction, 'E2 n’a rien payé').toBeFalsy();
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
-    g().cascadeNext();
+    g().jetConfirm('cascade');
     expect(tirsDe('e2'), 'la boucle reprend : E2 tire UNE fois').toBe(1);
     expect(g().pendingCascade, 'aucune étape orpheline').toBeNull();
     expect(g().battle!.order[g().battle!.turn], 'le Round s’ouvre').toBe('h1');

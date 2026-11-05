@@ -107,7 +107,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
     expect(seatOwns(get(), 0, modalOwnerOf(get()) as string), 'et plus à l’hôte').toBe(false);
 
     get().cascadeChoose(choix.id, 'crew');
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     const bande = parKind('progression')!;
     expect(bande, 'la voie ÉQUIPAGE insère sa bande').toBeTruthy();
     // La possession se DÉDUIT du nombre de porteurs (`bandStep`) : `groupOwner` à plusieurs, le porteur
@@ -227,7 +227,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     expect(jour.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').toBe(false);
     const i = jour.findIndex((s) => s.kind === 'riverPerilCheck');
     expect(i, 'le pas de vérification du péril est dans la cascade du jour').toBeGreaterThanOrEqual(0);
-    for (let k = 0; k < i; k++) get().cascadeNext();
+    for (let k = 0; k < i; k++) get().jetConfirm('cascade');
     const pc = get().pendingCascade!;
     expect(pc.participants[pc.cursor].kind, 'la fenêtre est posée sur le pas de vérification').toBe('riverPerilCheck');
     expect(pc.participants[pc.cursor].actorId, 'aucun héros ne le porte').toBeUndefined();

@@ -137,7 +137,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState({
       pendingCascade: { ...p, cursor: idx, participants: p.participants.map((s, i) => (i === idx ? injecte(s) : s)) },
     });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
 
     const fievre = banc.getState().party[0].diseases![0].symptoms.find((s) => s.symptomId === 'fievre');
     expect(fievre?.severity, 'échec du Test quotidien → la Fièvre passe Grave (EDOC 08 l.104-108)').toBe('grave');
@@ -222,7 +222,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
         ? { ...s, participants: s.participants.map((r) => ({ ...r, result: ok })) }
         : { ...s, result: ok });
       banc.setState({ pendingCascade: { ...p, participants: p.participants.map(injecte) } });
-      for (let g = 0; g < steps.length + 4 && banc.getState().pendingCascade; g++) banc.getState().cascadeNext();
+      for (let g = 0; g < steps.length + 4 && banc.getState().pendingCascade; g++) banc.getState().jetConfirm('cascade');
       const h2 = banc.getState().party[0];
       return { extenue: stacks(h2, 'extenue'), maladies: (h2.diseases ?? []).length };
     })();

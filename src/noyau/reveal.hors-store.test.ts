@@ -20,7 +20,7 @@ import { groupesDe } from '../engine/groups';
  * RÉVÉLATION = étape d'AFFICHAGE de la cascade (#942 L8) : `pushReveal` n'alimente plus une file
  * parallèle, il APPEND une étape dans la séquence d'accueil — celle en vol, sinon une séquence
  * d'affichage qu'il ouvre. Le contrat porte donc sur la SÉQUENCE : ordre d'arrivée, charge riche
- * portée par l'étape, cadence d'auto-fermeture dérivée de la gravité, acquittement par `cascadeNext`. La traversée de
+ * portée par l'étape, cadence d'auto-fermeture dérivée de la gravité, acquittement par `jetConfirm('cascade')`. La traversée de
  * la sauvegarde du navigateur se joue en `src/state/reveal.test.ts`.
  */
 let banc: Banc;
@@ -63,12 +63,12 @@ describe('révélation → étape d’affichage de cascade', () => {
     expect(banc.getState().pendingCascade!.participants.map((s) => s.autoCloseMs)).toEqual([3500, 9000]);
   });
 
-  it('`cascadeNext` dépile étape par étape et ferme la séquence à la dernière', () => {
+  it('`jetConfirm@cascade` dépile étape par étape et ferme la séquence à la dernière', () => {
     pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [] });
     pushReveal(banc.setState, { kind: 'round', title: 'B', lines: [] });
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -136,7 +136,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     expect(c.participants[0].kind).toBe('sceneEntry'); // la carte est l'étape COURANTE, pas la dernière
     expect(c.purpose).toBe('affichage');
     expect(banc.getState().suspendedCascades.map((s) => s.purpose)).toEqual(['test']); // Sang-froid PARQUÉ
-    banc.getState().cascadeNext(); // « Continuer » ferme la carte…
+    banc.getState().jetConfirm('cascade'); // « Continuer » ferme la carte…
     expect(banc.getState().suspendedCascades).toHaveLength(0);
     expect(banc.getState().pendingCascade!.purpose).toBe('test'); // …et rend la main aux Tests de rencontre
   });
@@ -154,7 +154,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     // La carte de la scène QUITTÉE a disparu de la pile ; celle de la scène d'arrivée est à l'écran.
     expect(banc.getState().suspendedCascades).toHaveLength(0);
     expect(banc.getState().pendingCascade!.title).toBe('Salle basse');
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull(); // rien derrière : la Crypte ne revient pas
   });
 
@@ -168,7 +168,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     banc.getState().startScene(crypteCombat);
     pushReveal(banc.setState, { kind: 'effet', title: 'Conséquence B', lines: ['b'] }); // rejoint la séquence d'affichage EN VOL, derrière la carte
     expect(banc.getState().pendingCascade!.participants).toHaveLength(2);
-    banc.getState().cascadeNext(); // la carte est acquittée : le curseur pointe « Conséquence B »
+    banc.getState().jetConfirm('cascade'); // la carte est acquittée : le curseur pointe « Conséquence B »
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
     banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); // parque la séquence mixte
     banc.getState().transitionTo('probe-suite-2'); // purge la carte de la scène quittée

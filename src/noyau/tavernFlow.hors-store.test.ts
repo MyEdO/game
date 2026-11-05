@@ -42,7 +42,7 @@ async function drain(): Promise<void> {
       if (cur?.participants) {
         for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
       } else if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-      get().cascadeNext();
+      get().jetConfirm('cascade');
     }
     await tick();
   }
@@ -208,7 +208,7 @@ describe('playTavernGame', () => {
     // DR ÉGAL POSÉ sur les deux rangées : seule la Compétence NUE peut trancher.
     const pose = (r: typeof rb) => ({ ...r, result: { roll: 11, target: r.target, sl: 2, success: true } });
     banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: [pose(rb), pose(ra)] }] } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
     expect(get().tavernGames!.result!.winner, 'la nue la plus haute l’emporte').toBe('opponent');
   }
 
@@ -253,7 +253,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
       result: { roll: sl[r.id] >= 0 ? 11 : 99, target: r.target!, sl: sl[r.id], success: sl[r.id] >= 0 },
     }));
     banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   }
 
   const cum = () => (get().sequence?.cum ?? {}) as Record<string, number>;
@@ -552,7 +552,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const step = pc.participants[0];
     const result = { roll: sl >= 0 ? 11 : 99, target: step.target!, sl, success: sl >= 0, isDouble: false };
     banc.setState({ pendingCascade: { ...pc, participants: [{ ...step, result }] } });
-    get().cascadeNext();
+    get().jetConfirm('cascade');
   }
 });
 

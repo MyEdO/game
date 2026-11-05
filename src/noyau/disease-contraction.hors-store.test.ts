@@ -39,7 +39,7 @@ function resolveCombatEnd(): void {
     // (upkeep différé non bandable) garde son lancer d'étape.
     if (cur?.participants) { for (const row of cur.participants) if (!row.result) banc.getState().jetRoll('cascadeBatch', row.id); }
     else if (cur?.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
   }
 }
 

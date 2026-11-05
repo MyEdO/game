@@ -162,19 +162,19 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     // Héros A : « Le Prévôt arrive » (−30 % sur les bourses) — l'effet de GROUPE reste en suspens.
     banc.getState().jetSetForcedRoll('cascadeTirage', PREVOT, steps()[0].id);
     expect(steps()[0].fixed).toBe(true);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(perHeroOf(party[0].id).eventRoll).toBe(PREVOT);
     expect(perHeroOf(party[0].id).fx?.moneyPct).toBe(-30);
     expect(toBrass(partyMoneyTotal(banc.getState)), 'la bourse a encaissé avant la fin des tirages').toBe(avant);
     // Héros B : « Un homme averti en vaut deux » (+1 Point de Chance, appliqué à SON dénouement).
     banc.getState().jetSetForcedRoll('cascadeTirage', AVERTI, steps()[1].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(perHeroOf(party[1].id).eventRoll).toBe(AVERTI);
     expect(banc.getState().party[1].fortune).toBe(fortune0 + 1);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(avant);
     expect(banc.getState().interlude!.phase, 'les Activités ont ouvert avant le dernier dé').toBe('tirage');
     // Étape FINALE : le dénouement de GROUPE ponctionne, et les Activités ouvrent.
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(avant - Math.floor((avant * 30) / 100));
     expect(banc.getState().interlude!.phase).toBe('activities');
@@ -186,11 +186,11 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     setDesFixes(true);
     banc.getState().startInterlude(2);
     banc.getState().jetSetForcedRoll('cascadeTirage', PREVOT, steps()[0].id); // −30
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     banc.getState().jetSetForcedRoll('cascadeTirage', KLEPTO, steps()[1].id); // −50
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(toBrass(partyMoneyTotal(banc.getState)), 'ponctionné avant le dénouement de groupe').toBe(avant);
-    banc.getState().cascadeNext(); // étape des bourses
+    banc.getState().jetConfirm('cascade'); // étape des bourses
     expect(party.map((h) => perHeroOf(h.id).eventRoll)).toEqual([PREVOT, KLEPTO]);
     expect(party.map((_, i) => toBrass(partyBourse(i))), 'A : −30 % (Prévôt) ; B : −30 % et −50 % de sa bourse d’avant les Activités')
       .toEqual([1400, 400]);
@@ -201,7 +201,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     setDesFixes(true);
     banc.getState().startInterlude(3);
     banc.getState().jetSetForcedRoll('cascadeTirage', FESTIVITES, steps()[0].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     expect(perHeroOf(party[0].id).left).toBe(2); // min(3, 3) − 1
     expect(perHeroOf(party[1].id).left, 'le budget du VOISIN a bougé').toBe(3);
   });
@@ -246,10 +246,10 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     // Le dé posé APPLIQUE l'interdiction que l'esquive contournait (Complications monstrueuses : Revenus
     // interdits à toutes les Classes) — la même demande est alors refusée pour SA raison.
     banc.getState().jetSetForcedRoll('cascadeTirage', MONSTRUEUX, steps()[0].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     banc.getState().jetSetForcedRoll('cascadeTirage', AVERTI, steps()[1].id);
-    banc.getState().cascadeNext();
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
+    banc.getState().jetConfirm('cascade');
     banc.setState({ journal: [] });
     banc.getState().interludeActivity(party[0].id, 'revenus');
     expect(banc.getState().pendingActivity).toBeNull();
@@ -262,7 +262,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     setDesFixes(true);
     banc.getState().startInterlude(2);
     banc.getState().jetSetForcedRoll('cascadeTirage', AVERTI, steps()[0].id);
-    banc.getState().cascadeNext(); // 1ʳᵉ étape validée : le curseur est sur la 2ᵉ (1/3)
+    banc.getState().jetConfirm('cascade'); // 1ʳᵉ étape validée : le curseur est sur la 2ᵉ (1/3)
     const save = sauverLeBanc(banc);
     // Partie rechargée EN PLEIN TIRAGE (le slot de séquence et la phase sont persistés).
     banc.setState({ interlude: null, pendingCascade: null });
@@ -276,8 +276,8 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(perHeroOf(party[1].id).eventRoll).toBeUndefined();
     // La reprise dénoue normalement : dé du 2ᵉ héros, puis les bourses.
     banc.getState().jetSetForcedRoll('cascadeTirage', KLEPTO, steps()[1].id);
-    banc.getState().cascadeNext();
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
+    banc.getState().jetConfirm('cascade');
     expect(banc.getState().interlude!.phase).toBe('activities');
     expect(toBrass(partyMoneyTotal(banc.getState)), 'le Kleptomane de B n’entame que sa bourse').toBe(avant - 1000);
   });
@@ -287,11 +287,11 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     setDesFixes(true);
     banc.getState().startInterlude(2);
     banc.getState().jetSetForcedRoll('cascadeTirage', PREVOT, steps()[0].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     banc.getState().jetSetForcedRoll('cascadeTirage', AVERTI, steps()[1].id);
-    banc.getState().cascadeNext();
+    banc.getState().jetConfirm('cascade');
     banc.setState({ journal: [] });
-    banc.getState().cascadeNext(); // étape des bourses : conséquence journalisée
+    banc.getState().jetConfirm('cascade'); // étape des bourses : conséquence journalisée
     const bourse = banc.getState().journal.join('\n');
     expect(bourse).toContain('La bourse de A perd 30 %');
     expect(bourse).toContain('La bourse de B perd 30 %');

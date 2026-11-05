@@ -113,13 +113,22 @@ describe('possession réseau (netOwnership)', () => {
   it('révélation SANS sujet (entretien) → hôte seul ; roundStartReady → toujours permis', () => {
     // #942 L8 : une révélation est une ÉTAPE d'affichage de la cascade — l'owner suit `actorId`
     // (absent pour un entretien de Round) → `seatOwns(…, undefined)` = l'hôte, et le verbe
-    // d'acquittement est celui de la cascade (`cascadeNext`).
+    // d'acquittement est celui de la cascade (`jetConfirm('cascade')`).
     const s = base({
       pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]),
     });
-    expect(intentAllowedFor(s, 0, 'cascadeNext')).toBe(true);
-    expect(intentAllowedFor(s, 1, 'cascadeNext')).toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetConfirm', ['cascade'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetConfirm', ['cascade'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'roundStartReady')).toBe(true);
+  });
+
+  it("valider l'étape (`jetConfirm('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {
+    const etape = (over: object) => base({ pendingCascade: cascadeDeTest([{ id: 'e', kind: 'round', ...over }]) });
+    const acteur = etape({ actorId: 'h2' });
+    expect(intentAllowedFor(acteur, 1, 'jetConfirm', ['cascade']), 'le siège de l’acteur').toBe(true);
+    expect(intentAllowedFor(acteur, 0, 'jetConfirm', ['cascade']), 'un autre siège').toBe(false);
+    const groupe = etape({ actorId: 'h2', groupOwner: true });
+    expect([0, 1].map((seat) => intentAllowedFor(groupe, seat, 'jetConfirm', ['cascade'])), 'étape de groupe').toEqual([true, true]);
   });
 
   it('seatOwns : héros non attribué → hôte', () => {

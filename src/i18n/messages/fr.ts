@@ -148,7 +148,7 @@ export const fr = {
   'verbe.cascadeAmount': 'Quantité',
   'verbe.cascadeChoose': 'Choisir',
   'verbe.cascadeTirage.roll': 'Lancer le dé',
-  'verbe.cascadeNext': 'Continuer',
+  'verbe.cascade.confirm': 'Continuer',
   'verbe.cascade.fermer': 'Terminer',
   'verbe.cascadeResolveAll': 'Tout résoudre',
   'verbe.extendedTest.confirm': 'Round suivant',

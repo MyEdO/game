@@ -4753,7 +4753,7 @@ export function advanceCombatJet(get: () => Jeu): void {
   const jet = seq?.purpose === 'combat' ? seq.participants[seq.cursor]?.jet : undefined;
   if ((jet === 'attack' || jet === 'defense')
     && !get().pendingAttack && !get().pendingDefense
-    && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().cascadeNext();
+    && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().jetConfirm('cascade');
 }
 
 /** Jet d'attaque (verbe `roll` du flux `attack`, `FLOWS.attack.onRoll`). */
@@ -7250,7 +7250,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
- *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`cascadeNext`, la sortie du bilan →
+ *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`jetConfirm('cascade')`, la sortie du bilan →
  *  `dispatchCascadeDone`), seule couture depuis #942 L8. Garde alignée sur celle de `resumeEnemyTurn`. */
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
@@ -8719,7 +8719,7 @@ export const TABLES = {
      *   · OUI — « Subir » applique le Critique montré, « Dévier » l'ignore (−1 PA) : `resolveDeviation` ;
      *   · NON — le Critique est subi, et sa RÉVÉLATION reste DUE (aucune fenêtre ne l'a montrée) : la
      *     reprise part sans `deviation` tranchée, ce qui laisse le chemin normal la produire.
-     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`, la sortie du bilan
+     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetConfirm('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
     deviation: (get, set, step) => {

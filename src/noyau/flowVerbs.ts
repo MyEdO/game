@@ -97,8 +97,8 @@ export const FLOW_VERBS = {
   // `resist` et `reverse` font exception : ils DÉPENSENT la ressource de l'acteur de l'étape (talent,
   // jeton d'inversion), donc ils sont routés sur LUI (`netOwnership`, `acteurDEtape`),
   // jamais sur la fenêtre — une étape de GROUPE ('*') laissait sinon n'importe quel siège brûler la
-  // ressource d'autrui.
-  cascade:      { kind: 'multi', pidIsActor: false, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'reverse'] },
+  // ressource d'autrui. `confirm` valide l'étape courante, quelle que soit son interaction.
+  cascade:      { kind: 'multi', pidIsActor: false, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'reverse', 'confirm'] },
   opposition:   { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'] },
   // `pid` = id de ROUND (`ExtendedTestRound.id`), pas un combattant : même politique que `cascade`.
   extendedTest: { kind: 'multi', pidIsActor: false, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'] },
@@ -110,14 +110,14 @@ export const FLOW_VERBS = {
   shipManeuver: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
   shipBattery:  { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
   crewTest:     { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
-  // Étape « batch » DANS une cascade : aucune action de clôture propre — c'est la cascade qui avance.
+  // Étape « batch » DANS une cascade : aucune action de clôture propre — la cascade valide l'étape (`jetConfirm('cascade')`).
   // PARITÉ de verbes avec l'étape MONO `cascade` : une bande met en jeu les MÊMES règles qu'une étape
   // seule — `resist` (LDB 10 l.1016-1020) s'y joue PAR RANGÉE, routé par le porteur du participant
   // (`pidIsActor:true`), jamais sur la fenêtre partagée ; `determine` (LDB 17 l.59) de même, la
   // Psychologie ne se testant qu'en bandes (déclaration sur l'ÉTAPE, immunité sur la RANGÉE).
   cascadeBatch: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'resist', 'determine', 'reverse'] },
   // Dé d'une étape de cascade, sur une table ou nu (#942, #1508) : un tirage, pas un Test — ni influence ni clôture
-  // propre, la cascade avance. `pid` = id d'ÉTAPE.
+  // propre, la cascade valide l'étape. `pid` = id d'ÉTAPE.
   cascadeTirage: { kind: 'multi', pidIsActor: false, verbs: ['roll', 'setForcedRoll'] },
   // Maladresse (LDB 14) : le tirage sur le Tableau des Oups ! de l'étape, puis son application. `pid` = id d'ÉTAPE.
   fumble:       { kind: 'multi', pidIsActor: false, verbs: ['roll', 'confirm'] },
