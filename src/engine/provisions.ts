@@ -45,6 +45,7 @@ import { RULE_REF, type CodexTarget } from './ruleRefs';
 import { traceLineOf } from './traceLine';
 import type { ModFamille } from './types';
 import { t } from '../i18n';
+import { effectiveTalents } from './talentEffects';
 
 /** La pénalité CUMULATIVE des Tests de Faim/Soif, NOMMÉE et liée à sa règle (LDB 18 l.338) — c'est
  *  le producteur qui la nomme, la couture d'entretien différé ne fait que la porter. */
@@ -81,7 +82,7 @@ export interface ThirstState {
 
 /** Talent Brouet (LDB 10 l.139) — lu sur la donnée, sans import. */
 export function hasBrouet(c: Combatant): boolean {
-  return (c.talents ?? []).some((t) => t.talentId === 'brouet' && (t.times ?? 1) >= 1);
+  return effectiveTalents(c).some((t) => t.talentId === 'brouet' && (t.times ?? 1) >= 1);
 }
 
 /** Consommation de vivres/eau ×N (ADE II 2 l.708, folio 31 : « les ogres doivent manger et boire

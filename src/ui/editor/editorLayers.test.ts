@@ -5,8 +5,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { emptyScene, type SceneEffectZone } from '../../noyau/monde/scene';
-import { DEFAULT_LAYERS, hitAt } from './editorState';
-import { effectiveLayers, layerChoicesFrom } from './editorLayers';
+import { hitAt } from '../../noyau/sceneEditLecture';
+import { effectiveLayers, layerChoicesFrom, DEFAULT_LAYERS } from './editorLayers';
 
 /** Zone DESCRIPTIVE : un nom de pièce, sans aucune mécanique (`isDescriptiveZone`). */
 const piece: SceneEffectZone = {

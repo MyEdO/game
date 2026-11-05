@@ -31,7 +31,7 @@ import {
   TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
 import { findTableEntry } from '../engine/tables';
-import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
+import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps, avantageDeCampSansFiche } from '../engine/ops';
@@ -53,7 +53,7 @@ import {
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
 import { advantageModLine, type ModLine } from '../engine/combat';
-import type { BatchParticipant, CascadeRoll } from './pendings';
+import type { BatchParticipant } from './pendings';
 import { rollBatchParticipant, pushStep, rollTableStep, type TableStepDef } from './cascade';
 import { combatStakeRef, refLabel } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
@@ -760,6 +760,12 @@ function lirePinte(meta: CascadeStepMeta | undefined): PinteDuLanceur {
   return { camp, who: meta.who };
 }
 
+/** Le Test PROPRE d'une rangée de taverne : le verdict du d100 (`evaluateTest`, LDB 12 l.25-28), jamais
+ *  l'issue d'opposition déjà portée par la rangée (`CascadeRoll.success`). */
+function asTest(r: { roll: number; target: number; sl: number }, base?: number): TestResult {
+  return { roll: r.roll, target: r.target, ...(base != null ? { base } : {}), success: evaluateTest(r.roll, r.target).success, sl: r.sl, isDouble: false };
+}
+
 /**
  * LE RATÉ d'un lancer — la SANCTION est DÉCLARÉE (famille 10, `SequenceParams.throwerPenalty`) :
  * le Test imposé, sa Difficulté, ce que l'échec applique au lanceur et ce qu'il coûte à son camp
@@ -780,10 +786,6 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   const jet = rows.find((r) => r.id === lanceur?.id);
   const danseur = rows.find((r) => r.id.startsWith('danseur-'));
   if (!lanceur || !jet || !danseur || !estJete(jet.result) || !estJete(danseur.result)) return [];
-  const asTest = (r: CascadeRoll, base: number): TestResult => ({
-    roll: r.roll, target: r.target, base,
-    success: r.roll <= r.target, sl: r.sl, isDouble: false,
-  });
   if (resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base)).attackerWins) return [];
   const heros = actorIn(get(), lanceur.id);
   const id = `${TAVERN_DRINK_KIND}-${seq.round}`;
@@ -987,12 +989,6 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
   const p = seq.payload;
   const step = done.participants.find((s) => s.kind === TAVERN_ROUND_KIND);
   if (!step) return undefined;
-  const asTest = (r: { roll: number; target: number; sl: number }, base?: number): TestResult => ({
-    roll: r.roll, target: r.target, ...(base != null ? { base } : {}),
-    // Succès BRUT (roll ≤ target) : la comparaison de manche ne connaît QUE le succès propre au jet —
-    // jamais l'issue d'opposition déjà tranchée ailleurs (tie distinct, plafond `drCap` de Boules).
-    success: r.roll <= r.target, sl: r.sl, isDouble: false,
-  });
   if (step.participants) {
     const mien = step.participants.find((r) => r.id === p.challengerId);
     const sien = step.participants.find((r) => r.id === p.opponentId);
@@ -1031,10 +1027,6 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
   const danseur = band.participants.find((r) => r.id.startsWith('danseur-'));
   const cum = { ...seq.cum };
   const log: string[] = [];
-  const asTest = (r: CascadeRoll, base: number): TestResult => ({
-    roll: r.roll, target: r.target, base,
-    success: r.roll <= r.target, sl: r.sl, isDouble: false,
-  });
   if (jet && danseur && estJete(jet.result) && estJete(danseur.result)) {
     const opp = resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base));
     if (opp.attackerWins) {
@@ -1986,7 +1978,7 @@ function volleyTurnOf(get: Get, seq: SequenceState<TavernPayload>, step: Cascade
   const acteur = actorIn(get(), jet.id);
   const tr: TestResult = {
     roll: jet.result.roll, target: jet.result.target, sl: jet.result.sl,
-    success: jet.result.roll <= jet.result.target, isDouble: isDoubleRoll(jet.result.roll),
+    success: evaluateTest(jet.result.roll, jet.result.target).success, isDouble: isDoubleRoll(jet.result.roll),
     ...(jet.base != null ? { base: jet.base } : {}),
   };
   const turn: SequenceThrowTurn = {

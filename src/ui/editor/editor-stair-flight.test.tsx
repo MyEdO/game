@@ -12,7 +12,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import { heightAt, type Scene } from '../../noyau/monde/scene';
-import { planStairFlight, applyStairFlight, type Pt } from './editorState';
+import { planStairFlight, applyStairFlight } from '../../noyau/stairFlight';
+import type { Pt } from '../../noyau/sceneEdit';
 import { Palette } from './Palette';
 
 beforeAll(() => {

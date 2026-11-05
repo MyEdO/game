@@ -13,7 +13,7 @@ import { Inspector } from './Inspector';
 import { toolLabel } from './StatusBar';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { creatureLabel, profilsStandard } from '../../data';
-import type { Tool } from './editorState';
+import type { Tool } from '../../noyau/sceneEditLecture';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {

@@ -5,7 +5,8 @@ import { EMPTY_FLOW } from '../../engine/flowCore';
 import { Inspector } from './Inspector';
 import { LogicDock } from './LogicDock';
 import { Palette } from './Palette';
-import { DEFAULT_LAYERS, hitAt } from './editorState';
+import { DEFAULT_LAYERS } from './editorLayers';
+import { hitAt } from '../../noyau/sceneEditLecture';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 /**
