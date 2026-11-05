@@ -8,6 +8,7 @@
 import type { CharKey, Difficulty } from './types';
 import type { GameOp } from './ops';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
+import type { TestExige } from './flowCore';
 
 /** Les clés de CODE des tables de séquence (`src/noyau/sequenceCore.ts`, part TOTALE sur chaque liste) :
  *  la donnée n'en nomme pas d'autre. Ce qui indexe est le nom d'un EFFET, jamais l'identité d'une
@@ -278,8 +279,7 @@ export interface SequenceCombinedRules {
 export interface SequenceThrowerPenalty {
   /** Le Test que doit passer le lanceur qui a manqué (« un Test de **Résistance à l'alcool
    *  Intermédiaire (+0)** », `NADJ 16 l.111`). */
-  test: { skill?: RefASpecialisation; char?: CharKey };
-  difficulty: Difficulty;
+  test: TestExige<'difficulty'>;
   /** Intitulé du geste qui accompagne ce Test — AFFICHAGE (« Descendre une pinte »). */
   label?: string;
   /** Points RETIRÉS au camp du lanceur quand ce Test échoue (l.111 : « votre équipe perd 1 point »).

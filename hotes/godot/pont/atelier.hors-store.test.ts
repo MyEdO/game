@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
-import { gardeRobe } from '../../../src/noyau/index';
+import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
@@ -58,11 +58,13 @@ describe('modelesDeLAtelier', () => {
     expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['bouclier'], main: ['epee'], off: ['epee'] });
   });
 
-  it('un objet tenu construit pour une prise est offert à chaque prise de sa base, jamais à un emplacement d’un autre os (#3319)', () => {
+  it('un objet tenu construit pour une prise est offert à chaque prise de sa base et aux emplacements où sa forme se range, jamais à un autre emplacement (#3319)', () => {
     const attache = (os: string) => ({ os, position: [0, 0, 0], rotation: [0, 0, 0] });
-    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], prises: { main: attache('main_d'), off: attache('main_g') } };
+    expect(emplacementsDeRangement('epee')).toContain('ceinture_g');
+    expect(emplacementsDeRangement('epee')).not.toContain('dos');
+    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), off: attache('main_g') } };
     const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }).bases[0];
-    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['bouclier'], main: ['epee'], off: ['epee'] });
+    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['bouclier'], ceinture_g: ['epee'], main: ['epee'], off: ['epee'] });
   });
   it('les lignes de pièce sont, dans l’ordre de la garde-robe, le sélecteur `tete`, le sélecteur `coiffure`, une bascule `piece` par pièce de vêtement ou d’armure, puis une liste `emplacement` par emplacement d’une pièce d’accessoire', () => {
     const emplacementsDAccessoire = new Set<string>(gardeRobe.flatMap((g) => (g.kind === 'piece' && g.emplacement ? [g.emplacement.id] : [])));

@@ -459,7 +459,7 @@ function quitterLeMarchand(get: Get, set: Set): void {
 /** La Possession d'une UNITÉ achetée (#619, #760), au propriétaire `ownerId`, avec le groupe. */
 function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof addPossession>[2] {
   return unit.kind === 'bete'
-    ? { nature: 'bete', ref: { creatureId: unit.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [] }
+    ? { nature: 'bete', ref: { id: unit.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [] }
     : { nature: 'vehicule', vehicleId: unit.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [] };
 }
 

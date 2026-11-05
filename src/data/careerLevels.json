@@ -657,7 +657,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "diligence"
+        "id": "diligence",
+        "type": "vehicle"
       },
       {
         "text": "Cocher"
@@ -709,7 +710,8 @@
         "text": "Chaîne officielle"
       },
       {
-        "vehicleId": "diligence"
+        "id": "diligence",
+        "type": "vehicle"
       },
       {
         "text": "Valet de pied"
@@ -1029,10 +1031,12 @@
         "text": "Bouiller"
       },
       {
-        "creatureId": "mule"
+        "id": "mule",
+        "type": "creature"
       },
       {
-        "vehicleId": "charrette"
+        "id": "charrette",
+        "type": "vehicle"
       },
       {
         "id": "bache-de-toile"
@@ -1708,7 +1712,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -1803,7 +1808,8 @@
         "id": "sac"
       },
       {
-        "creatureId": "chien",
+        "id": "chien",
+        "type": "creature",
         "label": "Petit chien féroce"
       }
     ],
@@ -1970,7 +1976,8 @@
         "text": "Assistant"
       },
       {
-        "creatureId": "chien",
+        "id": "chien",
+        "type": "creature",
         "label": "Grand chien féroce"
       },
       {
@@ -2442,7 +2449,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -3373,7 +3381,8 @@
         "text": "Arme simple ou arc avec 10 flèches"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -4083,7 +4092,8 @@
         "id": "veste-de-cuir"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -4152,7 +4162,8 @@
         "id": "heaume"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -4338,7 +4349,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -4407,7 +4419,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "destrier-cheval-de-guerre-lourd"
+        "id": "destrier-cheval-de-guerre-lourd",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -5483,7 +5496,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -5768,7 +5782,8 @@
         "text": "Lettre de nomination"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -5861,7 +5876,8 @@
         "id": "fronde"
       },
       {
-        "creatureId": "blaireau",
+        "id": "blaireau",
+        "type": "creature",
         "label": "Blaireau apprivoisé"
       },
       {
@@ -6026,7 +6042,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "blaireau",
+        "id": "blaireau",
+        "type": "creature",
         "label": "Gros blaireau apprivoisé"
       },
       {
@@ -6176,7 +6193,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -6733,7 +6751,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "text": "Selle"
@@ -6781,10 +6800,12 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-trait"
+        "id": "cheval-de-trait",
+        "type": "creature"
       },
       {
-        "vehicleId": "charrette"
+        "id": "charrette",
+        "type": "vehicle"
       },
       {
         "id": "chemise-de-mailles"
@@ -7439,7 +7460,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "mule"
+        "id": "mule",
+        "type": "creature"
       },
       {
         "id": "fontes-de-selle"
@@ -7502,7 +7524,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "charrette"
+        "id": "charrette",
+        "type": "vehicle"
       },
       {
         "text": "Biens (2d10 CO)"
@@ -7550,10 +7573,12 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-trait"
+        "id": "cheval-de-trait",
+        "type": "creature"
       },
       {
-        "vehicleId": "charrette"
+        "id": "charrette",
+        "type": "vehicle"
       },
       {
         "text": "Biens (5d10 CO)"
@@ -8153,7 +8178,8 @@
         "id": "veste-de-cuir"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -8653,7 +8679,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -8771,7 +8798,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "pistolet"
@@ -9184,7 +9212,8 @@
         "id": "veste-de-cuir"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -9534,10 +9563,12 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-trait"
+        "id": "cheval-de-trait",
+        "type": "creature"
       },
       {
-        "vehicleId": "chariot-leger",
+        "id": "chariot-leger",
+        "type": "vehicle",
         "label": "Chariot (Scène)"
       },
       {
@@ -11671,7 +11702,8 @@
         "text": "Apprenti"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"
@@ -11859,7 +11891,8 @@
         "id": "corde"
       },
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       }
     ],
     "characteristics": [
@@ -11958,7 +11991,8 @@
         "id": "chapeau"
       },
       {
-        "vehicleId": "barge-fluviale",
+        "id": "barge-fluviale",
+        "type": "vehicle",
         "label": "Bateau de transport fluvial"
       },
       {
@@ -12114,7 +12148,8 @@
         "id": "veste-de-cuir"
       },
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       }
     ],
     "characteristics": [
@@ -12168,7 +12203,8 @@
         "text": "Coureur de rivières"
       },
       {
-        "vehicleId": "barque-fluviale",
+        "id": "barque-fluviale",
+        "type": "vehicle",
         "label": "Bateau de transport fluvial rapide"
       }
     ],
@@ -12648,7 +12684,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       },
       {
         "id": "lampe-tempete"
@@ -13060,7 +13097,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       },
       {
         "id": "lampe-tempete"
@@ -13129,7 +13167,8 @@
         "text": "Corde avec grappin"
       },
       {
-        "vehicleId": "barge-fluviale",
+        "id": "barge-fluviale",
+        "type": "vehicle",
         "label": "Bateau de transport fluvial"
       }
     ],
@@ -13320,7 +13359,8 @@
         "id": "corde"
       },
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       }
     ],
     "characteristics": [
@@ -13424,7 +13464,8 @@
         "text": "Canotier"
       },
       {
-        "vehicleId": "barque-fluviale",
+        "id": "barque-fluviale",
+        "type": "vehicle",
         "label": "Petit bateau de transport fluvial"
       }
     ],
@@ -13669,7 +13710,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "bateau-de-patrouille",
+        "id": "bateau-de-patrouille",
+        "type": "vehicle",
         "count": {
           "roll": {
             "n": 1,
@@ -14357,7 +14399,8 @@
         "id": "heaume"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -14479,7 +14522,8 @@
         "id": "pied-de-biche"
       },
       {
-        "vehicleId": "charrette-a-bras"
+        "id": "charrette-a-bras",
+        "type": "vehicle"
       },
       {
         "text": "Cape à capuchon"
@@ -14610,7 +14654,8 @@
         "id": "corde"
       },
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       }
     ],
     "characteristics": [
@@ -15815,7 +15860,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval"
+        "id": "cheval",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -16128,7 +16174,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -16332,7 +16379,8 @@
         "id": "carte"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -16595,7 +16643,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "rhinox"
+        "id": "rhinox",
+        "type": "creature"
       },
       {
         "text": "Pansière avec un crâne de rhinox"
@@ -16894,10 +16943,12 @@
     ],
     "trappings": [
       {
-        "creatureId": "poney"
+        "id": "poney",
+        "type": "creature"
       },
       {
-        "vehicleId": "charrette"
+        "id": "charrette",
+        "type": "vehicle"
       }
     ],
     "characteristics": [
@@ -17801,10 +17852,12 @@
     ],
     "trappings": [
       {
-        "creatureId": "mule"
+        "id": "mule",
+        "type": "creature"
       },
       {
-        "vehicleId": "charrette"
+        "id": "charrette",
+        "type": "vehicle"
       },
       {
         "text": "Maison de village"
@@ -17938,7 +17991,8 @@
         ]
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "javelot"
@@ -18006,7 +18060,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "cotte-de-mailles"
@@ -18116,7 +18171,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger",
+        "id": "cheval-de-guerre-leger",
+        "type": "creature",
         "label": "Cheval de guerre"
       },
       {
@@ -18203,7 +18259,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "outils-professionnels",
@@ -18278,7 +18335,8 @@
         "text": "Armure de plates"
       },
       {
-        "creatureId": "destrier-cheval-de-guerre-lourd"
+        "id": "destrier-cheval-de-guerre-lourd",
+        "type": "creature"
       },
       {
         "id": "heaume"
@@ -18466,7 +18524,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "outils-professionnels",
@@ -18546,7 +18605,8 @@
         "text": "Armure de plates"
       },
       {
-        "creatureId": "destrier-cheval-de-guerre-lourd"
+        "id": "destrier-cheval-de-guerre-lourd",
+        "type": "creature"
       },
       {
         "id": "heaume"
@@ -18733,7 +18793,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "marteau-a-bec-de-corbin"
@@ -18815,7 +18876,8 @@
         "text": "Cape en peau de loup"
       },
       {
-        "creatureId": "destrier-cheval-de-guerre-lourd"
+        "id": "destrier-cheval-de-guerre-lourd",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -19000,7 +19062,8 @@
         "id": "chemise-de-mailles"
       },
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "id": "outils-professionnels",
@@ -19078,7 +19141,8 @@
         "text": "Cape en peau de Panthère"
       },
       {
-        "creatureId": "destrier-cheval-de-guerre-lourd"
+        "id": "destrier-cheval-de-guerre-lourd",
+        "type": "creature"
       },
       {
         "id": "arme-simple"
@@ -19696,7 +19760,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Lettre de nomination"
@@ -19947,7 +20012,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "arme-simple",
@@ -20197,7 +20263,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Lettre de nomination"
@@ -20449,7 +20516,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Lettre de nomination"
@@ -20710,7 +20778,8 @@
         "text": "Brassards d'acier"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "jambieres-d-acier"
@@ -20991,7 +21060,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "id": "tente",
@@ -21233,7 +21303,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval-de-monte"
+        "id": "cheval-de-monte",
+        "type": "creature"
       },
       {
         "text": "Cercle de suiveurs de camp"
@@ -21374,7 +21445,8 @@
     ],
     "trappings": [
       {
-        "creatureId": "cheval"
+        "id": "cheval",
+        "type": "creature"
       },
       {
         "id": "selle-et-harnais"
@@ -21742,7 +21814,8 @@
         "id": "carte"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Lettre de nomination"
@@ -22666,7 +22739,8 @@
         }
       },
       {
-        "vehicleId": "barge",
+        "id": "barge",
+        "type": "vehicle",
         "label": "Bateau de transport"
       },
       {
@@ -22854,7 +22928,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque-fluviale"
+        "id": "barque-fluviale",
+        "type": "vehicle"
       },
       {
         "id": "corde"
@@ -22958,7 +23033,8 @@
         "text": "Canotier"
       },
       {
-        "vehicleId": "esquif",
+        "id": "esquif",
+        "type": "vehicle",
         "label": "Petit bateau de transport"
       }
     ],
@@ -23142,7 +23218,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "galere-de-guerre",
+        "id": "galere-de-guerre",
+        "type": "vehicle",
         "label": "Bateau à commander"
       },
       {
@@ -23388,7 +23465,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "chaloupe",
+        "id": "chaloupe",
+        "type": "vehicle",
         "label": "Bateau de cérémonie"
       },
       {
@@ -23639,7 +23717,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque-fluviale",
+        "id": "barque-fluviale",
+        "type": "vehicle",
         "label": "Bateau"
       },
       {
@@ -23902,7 +23981,8 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barge-fluviale",
+        "id": "barge-fluviale",
+        "type": "vehicle",
         "label": "Bateau de transport fluvial"
       },
       {
@@ -24876,7 +24956,8 @@
         "text": "Apprenti acolyte"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"
@@ -25151,7 +25232,8 @@
         "text": "Apprenti alchimiste"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"
@@ -25670,7 +25752,8 @@
         "text": "Sphère armillaire ou planétaire de valeur"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"
@@ -25930,7 +26013,8 @@
         "text": "Apprenti"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"
@@ -26188,7 +26272,8 @@
         "text": "Quatrième et cinquième Clefs des Secrets"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"
@@ -26912,7 +26997,8 @@
         "text": "Apprenti"
       },
       {
-        "creatureId": "cheval-de-guerre-leger"
+        "id": "cheval-de-guerre-leger",
+        "type": "creature"
       },
       {
         "text": "Objet magique"

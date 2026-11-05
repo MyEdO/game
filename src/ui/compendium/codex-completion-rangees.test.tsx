@@ -37,8 +37,8 @@ describe('Codex — un objet présent se rend par l’objet de son nœud', () =>
   });
 
   it('alvatafl : la Compétence `{ id, spec }` d’une option se rend par sa référence à spécialisation, ses deux contrôles nommés par sa position', () => {
-    const competence = libelles('tavernGames', 'alvatafl').filter((l) => /Compétence de la rangée 2 de Options de Test$/.test(l));
-    expect(competence).toEqual(['Compétence de la rangée 2 de Options de Test', 'Spécialisation — Compétence de la rangée 2 de Options de Test']);
+    const competence = libelles('tavernGames', 'alvatafl').filter((l) => /Compétence de Test de la rangée 2 de Options de Test$/.test(l));
+    expect(competence).toEqual(['Compétence de Test de la rangée 2 de Options de Test', 'Spécialisation — Compétence de Test de la rangée 2 de Options de Test']);
   });
 
   it('cogue : le `pos` d’un poste NEUF s’ouvre en objet, `x`/`y` saisissables', () => {
