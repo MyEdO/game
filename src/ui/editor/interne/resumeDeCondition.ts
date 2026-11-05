@@ -12,7 +12,7 @@ import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { findTrappingById, refLabel } from '../../../data';
 import { cfgDeLaFeuille } from '../../compendium/refField/RefField';
 import { formatMoney } from '../../../engine/money';
-import { libelleDEtat } from '../../compendium/libellesNarratifs';
+import { libelleDEtat } from '../../../noyau/codex/libellesNarratifs';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
 const trappingLabelOrId = (id?: string): string => (id ? findTrappingById(id)?.label ?? id : '');

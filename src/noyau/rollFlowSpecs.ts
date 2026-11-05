@@ -52,7 +52,7 @@ import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
 import { testValue, valeurDuTest, idsDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
-import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castingValue, castInfoIsPrayer, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
+import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castInfoIsPrayer, counterspellValue, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
 import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
@@ -1030,7 +1030,7 @@ export const FLOWS = paresseux({
         // Résilience « Je ne faillirai pas ! » : le Contre-sort l'emporte (dissipe). Rien à forcer si déjà dissipé.
         const cur = part.result;
         if (cur?.dispelled) return null;
-        const value = castingValue(actor, 'langue', 'magick') + soutien;
+        const value = counterspellValue(actor) + soutien;
         const roll = cur ? cur.counter.roll : 1; // 01 = jet propre garanti (LDB 17 l.68)
         // Le dé passé par la MÊME source de modificateurs que les deux autres voies (`castTestDRMods`),
         // puis planché : Test opposé → l'emporter d'au moins DR +1, minimum 1 (LDB 17 l.68).

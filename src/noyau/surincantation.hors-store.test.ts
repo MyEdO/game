@@ -142,7 +142,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 11 est une Incantation Critique qui ne lance pas le Sort').toMatchObject({ cast: false, isCritical: true });
       p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
-      expect(castAfterCrit(res, 'puissance', false)).toBe(true);
+      expect(castAfterCrit(res, 'puissance')).toBe(true);
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 11);
   });
@@ -166,8 +166,8 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       // Forme que pose l'issue d'un Contre-sort gagnant (`applyCounterspellOutcome`).
       const dissipe = { ...pc.result!, cast: false, dispelled: true };
       for (const choix of [undefined, 'puissance'] as const) {
-        expect(castAfterCrit(dissipe, choix, false)).toBe(false);
-        expect(castOvercastBudget(FIXTURES.critique, dissipe, choix, false)).toBe(0);
+        expect(castAfterCrit(dissipe, choix)).toBe(false);
+        expect(castOvercastBudget(FIXTURES.critique, dissipe, choix)).toBe(0);
       }
       expect(plan(dissipe)).toEqual({});
     }, {}, 11);

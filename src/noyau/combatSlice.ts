@@ -14,11 +14,11 @@ import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
 import { Combatant, CHAR_LABELS, type FireArc } from '../engine/types';
-import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
+import { rollLine, hostStep, pushDisplay, temoinSiSansJet, type RollLineParts } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -53,7 +53,7 @@ import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, focusCriticalDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
+import { isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castAfterCrit, focusCriticalDR, consumeMalepierre, malepierreItemOf, castingNumberOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
@@ -76,7 +76,7 @@ import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
-import { testValue, actorHasSkill, soutienDetail } from '../engine/skills';
+import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
 import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, posteARecharger } from './monde/shipPostes';
@@ -115,6 +115,7 @@ import { resolveRecoverTest } from './combat/recover';
 import { resolveRenounce } from './corruptionFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import type { CorpsDesReglages } from './reglagesDuJet';
+import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById } from '../data/index';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
@@ -138,6 +139,10 @@ import { testDuCavalier } from '../engine/movement';
  *  d'un jet. La console masque ses cases, mais ce garde-fou couvre AUSSI le clavier, les
  *  intents coop et la recette. (La PAUSE de début de Round, elle, est gatée à l'entrée UI —
  *  performClick d'IsoStage — pour rester neutre vis-à-vis des harnais de test sans UI.) */
+/** La ligne du jet de Dissipation, figée à son ouverture sur sa valeur, Soutien « même Domaine » compris. LDB 46 l.158-162 */
+const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportDetail): RollLineParts =>
+  rollLine({ actor: lanceur, test: { skill: 'langue', spec: 'magick' }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
+
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
 
@@ -2085,9 +2090,10 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Pose de la ZONE (flux « jet puis pose ») : la modale s'efface, le gabarit FINAL suit le
      *  curseur, le clic-case dépose (castCommitZone) ; `false` = revenir à la modale. */
     castPlaceZone: (on: boolean) => {
-      const pc = get().pendingCast;
-      if (!pc?.zone || pc.zone.center || !pc.result || !get().battle) return;
-      set({ pendingCast: { ...pc, zone: { ...pc.zone, placing: on } } });
+      if (refuseSi(get, set, (s) => refusDeLaPose(s, on))) return;
+      const pc = garanti(get().pendingCast, 'pendingCast', 'pose de la zone');
+      const zone = garanti(pc.zone, pc.spellId, 'pose de la zone');
+      set({ pendingCast: { ...pc, zone: { ...zone, placing: on } } });
     },
     // Contre-sort (flux multi) : chaque verbe cible un participant via `pid` (fabrique unique).
     /**
@@ -2211,7 +2217,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({
         pendingDispel: {
           casterId: active.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,
-          support: sup.bonus > 0 ? sup : undefined,
+          ligne: ligneDeDissipation(active, value, sup),
           result: null,
         },
         // Le paramètre est choisi : le panneau borné qui l'a servi n'a plus lieu d'être.
@@ -2257,7 +2263,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const value = testValue(caster, 'langue', undefined, 'magick') + sup.bonus;
       set({ pendingDispel: {
         casterId: caster.id, spellId, spellCasterId, label: target.label, ni: target.ni, value,
-        support: sup.bonus > 0 ? sup : undefined,
+        ligne: ligneDeDissipation(caster, value, sup),
         result: null,
       } });
     },
@@ -2318,19 +2324,14 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
     const pa = get().pendingAttack;
     if (pa) set({ pendingAttack: { ...pa, [champ]: v } });
   };
-  /** Les pas de Surincantation de l'axe `axis` (`REGLAGE_DE_L_AXE`), sur ceux que `castOvercastAxes` ouvre, bornés au
-   *  budget `castOvercastBudget` — les MÊMES lectures que la modale. L'EFFET d'un pas est SOURCE-AWARE
-   *  (`engine/overcast.ts`). */
+  /** Les pas de Surincantation de l'axe `axis` (`REGLAGE_DE_L_AXE`), refusés par `refusDuPasDeSurincantation`, que la
+   *  fenêtre lit aussi. L'EFFET d'un pas est SOURCE-AWARE (`engine/overcast.ts`). */
   const surincantation = (axis: OvercastAxis) => (pas: number) => {
-    const pc = get().pendingCast;
-    const spell = pc && findSpellById(pc.spellId);
-    if (!pc?.result || !spell || !Number.isInteger(pas) || pas < 0) return;
-    if (!castOvercastAxes(pc, spell).includes(axis)) return;
+    if (refuseSi(get, set, (s) => refusDuPasDeSurincantation(s, axis, pas))) return;
+    const pc = garanti(get().pendingCast, 'pendingCast', 'Surincantation');
+    const spell = garanti(findSpellById(pc.spellId), pc.spellId, 'Surincantation');
     const source = overcastSourceOf(spell);
     const oc = pc.overcast ?? { range: 0, zone: 0, duration: 0, targets: 0, damage: 0 };
-    const budget = castOvercastBudget(spell, pc.result, pc.critChoice, !!pc.missile);
-    const spent = oc.range + oc.zone + oc.duration + oc.targets + oc.damage;
-    if (pas > oc[axis] && spent - oc[axis] + pas > budget) return; // surplus épuisé
     const next = { ...oc, [axis]: pas };
     // ZdE : chaque pas ajoute le Ø INITIAL — le rayon du gabarit suit (pose et aperçu lisent `zone.radius`).
     const zone = axis === 'zone' && pc.zone
@@ -2441,19 +2442,20 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       },
     },
     cast: {
-      /** Le budget de Surincantation en dépend (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
+      /** Refusé par `refusDuChoixCritique`, que la fenêtre lit aussi. Le budget de Surincantation en dépend
+       *  (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
       effetCritique: (choice) => {
-        const pc = get().pendingCast;
-        if (!pc || !pc.result?.isCritical) return;
-        const inchange = (pc.critChoice ?? defaultCritChoice(pc.result, !!pc.missile)) === choice;
+        if (refuseSi(get, set, (s) => refusDuChoixCritique(s, choice))) return;
+        const pc = garanti(get().pendingCast, 'pendingCast', 'Incantation Critique');
+        const inchange = pc.critChoice === choice;
         set({ pendingCast: { ...pc, critChoice: choice, ...(inchange ? {} : overcastReset(pc, sceneMetresPerTile(get().scene))) } });
       },
+      /** Refusé par `refusDeLaForme`, que la fenêtre lit aussi. */
       formeConjuree: (arme) => {
-        const pc = get().pendingCast;
-        const lanceur = pc && actorIn(get(), pc.casterId);
-        const forme = lanceur && conjureFormOptions(lanceur).find((f) => f.weapon === arme);
-        if (!pc || !forme) return void refuserGeste(get, set, t('cast.refus.formeConjuree'));
-        set({ pendingCast: { ...pc, conjureForm: forme } });
+        if (refuseSi(get, set, (s) => refusDeLaForme(s, arme))) return;
+        const pc = garanti(get().pendingCast, 'pendingCast', 'forme d’arme invoquée');
+        const lanceur = garanti(actorIn(get(), pc.casterId), pc.casterId, 'forme d’arme invoquée');
+        set({ pendingCast: { ...pc, conjureForm: garanti(conjureFormOptions(lanceur).find((f) => f.weapon === arme), arme, 'forme d’arme invoquée') } });
       },
       discret: (discreet) => {
         const pc = get().pendingCast;
@@ -3271,7 +3273,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // « clic » de pose change de SOURCE (souris du héros / décision de l'IA), comme l'auto-combat fournit
       // déjà ses jets.
       if (pc.zone && !pc.zone.center) {
-        const castable = castAfterCrit(lance, pc.critChoice, !!pc.missile);
+        const castable = castAfterCrit(lance, pc.critChoice);
         // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser →
         // on ferme proprement la situation (data + cascade-hôte) — pas de soft-lock, cibles intactes.
         if (!castable) {
@@ -3384,7 +3386,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingFocus: null });
       if (!caster || !spell) return;
       const res = garanti(pf.result, pf.casterId, 'jet de Focalisation');
-      const ni = spell.cn ?? 0;
+      const ni = castingNumberOf(spell, false, {}, [], caster);
       caster.focus = { spell: pf.spellId, dr: garanti(progresDeFocalisation(pf, caster, ni).step, pf.spellId, 'jet de Focalisation').total };
       // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur
       // `res.malepierreConsumed`, `engine/magic.ts`) décrémente ICI la réserve — seul point

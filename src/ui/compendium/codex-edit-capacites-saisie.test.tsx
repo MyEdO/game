@@ -16,7 +16,7 @@ import { datasetArray, datasetSerializeRoot, setDataset } from '../../data/overr
 import { DEFS_DE_DOCUMENT, validateDataset } from '../../data/schemas/validate';
 import { descendre } from '../../data/schemas/grammaire/descente';
 import { metaDesChamps } from '../../data/schemas/grammaire/meta';
-import { admetUneListe, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from './editFields';
+import { admetUneListe, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../noyau/codex/editFields';
 import { declarationDeFeuilleDId, estFeuilleDId, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { ouverts } from '../../data/schemas/grammaire/descente';
 import { libelleDeDataset } from './refField/RefField';

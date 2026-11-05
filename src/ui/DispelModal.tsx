@@ -2,7 +2,7 @@ import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import { testBreakdown, testPending, testValueSplit } from './breakdown';
+import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { Icon } from './Icon';
 import { ev } from '../noyau/combatLog';
@@ -34,10 +34,8 @@ export function DispelModal() {
   const r = pd.result;
   const { prev, step } = progresDeDissipation(pd, caster);
   const cum = Math.min(pd.ni, step?.total ?? prev);
-  // Soutien de dissipation à plusieurs (LDB 12) et composantes de la valeur de Test (États, séquelles,
-  // passifs, effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu
-  // (LDB 09 l.17). Compétence testée = celle que `battleDispelSpell`/`oocDispelSpell` roulent.
-  const { base, mods: supMods } = testValueSplit(caster, pd.value, { support: pd.support, skill: 'langue', spec: 'magick' });
+  // La ligne figée à l'ouverture (`pd.ligne`) : Soutien et composantes de la valeur nommés (LDB 12 ; #1178).
+  const { base, mods: supMods } = pd.ligne;
   const rolled = !!r;
 
   const actorRow: BuiltRollRow = buildRollRow({

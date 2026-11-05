@@ -69,7 +69,7 @@ import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecia
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
 import { makeRNG } from '../../engine/dice';
-import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
+import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
 
@@ -766,10 +766,14 @@ export type EtatCivil = Pick<CreatorDraft, 'label' | 'motivation' | 'ambitionSho
 export function withEtatCivil(d: CreatorDraft, patch: Partial<EtatCivil>): CreatorDraft {
   return { ...d, ...patch };
 }
+/** Sexe `sex` de l'apparence. */
+export function withSexe(d: CreatorDraft, sex: Sexe): CreatorDraft {
+  return { ...d, apparence: { ...d.apparence, sex } };
+}
 /** Sexe suivant de `sexeSchema`, en boucle. */
 export function withSexeSuivant(d: CreatorDraft): CreatorDraft {
   const options = sexeSchema.options;
-  return { ...d, apparence: { ...d.apparence, sex: options[(options.indexOf(d.apparence.sex) + 1) % options.length] } };
+  return withSexe(d, options[(options.indexOf(d.apparence.sex) + 1) % options.length]);
 }
 /** Nom tiré au générateur de l'espèce (`generateName`) avec la graine `graine` ; sans espèce ni table de noms, le
  *  brouillon est INCHANGÉ. */

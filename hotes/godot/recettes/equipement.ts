@@ -35,7 +35,7 @@ export function figerVueDEquipement(): VueDuPont {
     ];
     projection.combat.voisins = { liste: cas, enPlus: 0 };
     projection.combat.actif = null;
-    return { projection, ...modelesDesCombattants(cas), disposition: null, zones: zonesDeLEcran(etat, projection, null, null), cases: [], plateau: null, champ: null, occupants: {} };
+    return { projection, ...modelesDesCombattants(cas), disposition: null, zones: zonesDeLEcran(etat, projection, null, null, null), cases: [], plateau: null, champ: null, occupants: {} };
   } finally {
     ouverte.partie.fermer();
   }

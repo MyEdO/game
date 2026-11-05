@@ -131,7 +131,7 @@ export function unSiegeAgit(): boolean {
  *  Exporté pour les gestes qui MARQUENT leur siège dans l'état partagé (demande de pause de Round) :
  *  le siège vient du TRANSPORT (`withActingSeat`, posé par `appliquerLIntentionDUnSiege`), jamais des arguments
  *  de l'émetteur — un siège ne peut donc marquer ni démarquer que lui-même. */
-export function decidingSeat(s: Jeu): number {
+export function decidingSeat(s: Pick<Jeu, 'net'>): number {
   return actingSeat ?? s.net.mySeat;
 }
 

@@ -42,7 +42,8 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   ce qui part à la CI). Le diff change un libellé, un nom accessible ou un champ keyé par un stock de
   garde : tout test de signal `[symbole …]` imprimé `→ CI` se lance aussi (`npm test -- <fichier>`) avant le rendu (#2400).
   Les gates du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
-  appartiennent au run CI de la branche, qui les joue une fois : un brief qui te les impose se
+  appartiennent à la CI, qui les joue une fois (la course de file toutes, la course de branche son
+  sous-ensemble, en tête de `.github/workflows/ci.yml`) : un brief qui te les impose se
   refuse (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les
   bloque de toute façon. Un code de sortie se lit par `spawnSync` ou redirection fichier + `$?`
   immédiat, et se joint tel que rendu.

@@ -21,7 +21,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit } from '../editor/codex/CodexEdit';
-import { estDerive } from './editFields';
+import { estDerive } from '../../noyau/codex/editFields';
 import { psychologies } from '../../data';
 
 beforeAll(() => {

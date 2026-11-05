@@ -93,32 +93,35 @@ describe('Incantation Critique — « Puissance totale » (`VDM 02 l.55`, folio 
 
   it('CÂBLAGE : le DR de Surincantation grandit sous l’option, pas sous le LDB', () => {
     const res = crit(true, 3);
-    expect(overcastSL(res, 'puissance', false)).toBe(3);
+    expect(overcastSL(res, 'puissance')).toBe(3);
     setRule(RULE, true);
-    expect(overcastSL(res, 'puissance', false)).toBe(3 + 4);
+    expect(overcastSL(res, 'puissance')).toBe(3 + 4);
   });
 
   it('le DR ne bouge que pour l’effet « Puissance totale » — les deux autres n’y touchent pas', () => {
     setRule(RULE, true);
     const res = crit(true, 3);
-    expect(overcastSL(res, 'critique', true)).toBe(3);
-    expect(overcastSL(res, 'ineluctable', false)).toBe(3);
-    expect(overcastSL({ ...res, isCritical: false }, 'puissance', false)).toBe(3); // pas de Critique
+    expect(overcastSL(res, 'critique')).toBe(3);
+    expect(overcastSL(res, 'ineluctable')).toBe(3);
+    expect(overcastSL({ ...res, isCritical: false }, 'puissance')).toBe(3); // pas de Critique
   });
 
-  it('sans choix explicite, le DÉFAUT décide (repêchage, sinon Blessure Critique / Force inéluctable)', () => {
+  it('la politique du lanceur conduit par le moteur : repêchage, sinon Blessure Critique d’un Sort à Dégâts, sinon Force inéluctable', () => {
     expect(defaultCritChoice({ cast: false }, false)).toBe('puissance');
     expect(defaultCritChoice({ cast: true }, true)).toBe('critique');
     expect(defaultCritChoice({ cast: true }, false)).toBe('ineluctable');
+  });
+
+  it('sans effet choisi, aucun n’est retenu : le DR de Surincantation reste celui du jet (LDB 46 l.28-32)', () => {
     setRule(RULE, true);
-    expect(overcastSL(crit(false, 0), undefined, false)).toBe(0 + 4); // défaut = Puissance totale
+    expect(overcastSL(crit(false, 0), undefined)).toBe(0);
   });
 
   it('« Puissance totale » lance le Sort dans les deux régimes (prédicat unique)', () => {
-    expect(castAfterCrit(crit(false, 0), 'puissance', false)).toBe(true);
-    expect(castAfterCrit(crit(false, 0), 'ineluctable', false)).toBe(false);
+    expect(castAfterCrit(crit(false, 0), 'puissance')).toBe(true);
+    expect(castAfterCrit(crit(false, 0), 'ineluctable')).toBe(false);
     setRule(RULE, true);
-    expect(castAfterCrit(crit(false, 0), 'puissance', false)).toBe(true);
+    expect(castAfterCrit(crit(false, 0), 'puissance')).toBe(true);
   });
 
   it('le contrecoup d’Incantation Critique reste lu sur le Talent Diction instinctive (`VDM 02 l.52`)', () => {

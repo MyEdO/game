@@ -3,9 +3,10 @@
  * au plus une chaîne JSON et rend toujours une chaîne JSON, `{ ok: true, … }` ou `{ ok: false, erreur }` ; elle ne lève
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
- * l'écran montre est un état du pont, que la méthode `fiche` pose, jamais de la partie.
+ * l'écran montre et la création d'un héros sont des états du pont, que les méthodes `fiche` et `creation` posent,
+ * jamais de la partie ; seul l'engagement du héros créé la touche.
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, cataloguesDeComposition, ficheDuPorteur, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -16,7 +17,8 @@ import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran
 import { modelesDeLAtelier, type ModelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
-import { ONGLETS_DE_LA_FICHE, type FicheOuverte } from '../../../src/hote/elements';
+import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
+import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -95,7 +97,7 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { pas: number; lignes: number; fiche: FicheOuverte | null }) | null = null;
+  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` lit. */
   let atelier: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
@@ -114,7 +116,7 @@ export function creerPont() {
       projection,
       ...modelesDesCombattants(combat?.voisins.liste ?? projection.exploration?.heros ?? []),
       disposition: fenetre?.disposition ?? null,
-      zones: zonesDeLEcran(etat, projection, fenetre, o.fiche),
+      zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
       champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
@@ -128,6 +130,9 @@ export function creerPont() {
     o.lignes += resultat.journal.length;
     return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
   };
+
+  /** Une suite sans jeton ni journal : la vue d'un état du pont changé, la partie intacte. */
+  const sansJeton = (o: NonNullable<typeof ouverte>): Suite => ({ vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } });
 
   /** Un geste joué : une offre de l'actif, ou un verbe et ses arguments. */
   const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): ResultatDeLAppel => {
@@ -143,8 +148,9 @@ export function creerPont() {
       const e = entreeDe('demarrer', json, ['scenario', 'graine']);
       valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
       valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
-      const o = ouvrirLaPartie(nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined }), sansRoster);
-      ouverte = { ...o, pas: 0, lignes: 0, fiche: null };
+      const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
+      const o = ouvrirLaPartie(entete, sansRoster);
+      ouverte = { ...o, graine: entete.graine, pas: 0, lignes: 0, fiche: null, creation: null, brouillons: 0 };
       return suite(ouverte, o.lancement);
     },
     vue(json) {
@@ -177,7 +183,27 @@ export function creerPont() {
         valider(objets.includes(f.objet as string), `fiche : objet, sous l’onglet possessions, l’uid d’une possession de la fiche (${objets.join(', ') || 'aucune'})`);
       }
       o.fiche = f === null ? null : { heros: f!.heros as string, onglet: f!.onglet as FicheOuverte['onglet'], ...(f!.objet === undefined ? {} : { objet: f!.objet as string }) };
-      return { vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } } satisfies Suite;
+      if (o.fiche) o.creation = null;
+      return sansJeton(o);
+    },
+    creation(json) {
+      const o = demarree();
+      const e = entreeDe('creation', json, ['creation']);
+      const b = boutonDeLaCreation(vueDe(o).zones, e.creation);
+      valider(b, 'creation : creation, un geste de la création que l’écran offre (`{ creation }` d’un bouton des zones groupe.gestes et creation.*)');
+      if (b!.refus) throw new ErreurDeGeste('regle', `creation : ${b!.refus}`);
+      const g = e.creation as GesteDeLaCreation | null;
+      if (g === null) o.creation = null;
+      else if (g.geste === 'ouvrir') {
+        o.creation = { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] };
+        o.fiche = null;
+      } else if (g.geste === 'engager') {
+        const resultat = envoyerLIntention(o.partie, intentionDEngagement(o.creation!.brouillon));
+        o.creation = null;
+        o.pas++;
+        return suite(o, resultat);
+      } else o.creation = apresLaCreation(o.creation!, g);
+      return sansJeton(o);
     },
     reprendre(json) {
       const o = demarree();

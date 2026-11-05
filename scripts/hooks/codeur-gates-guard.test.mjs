@@ -43,7 +43,7 @@ const pourCodeur = (commande) => evaluate({ sousAgent: true, commande, gates: GA
 const SOUS_AGENT = { agent_id: 'a1', agent_type: 'codeur' }
 const SESSION_AGENT = { agent_type: 'codeur' }
 
-/** Commandes REFUSÉES : la gate est jouée une fois par le run CI de la branche. */
+/** Commandes REFUSÉES : la gate est jouée une fois par la CI. */
 const REFUSEES = [
   'npm run lint',
   'npm test',

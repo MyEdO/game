@@ -10,7 +10,7 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, VERBE_DE_REGLAGE, argumentsPosesDuGeste, cleDuGeste, declarationDuReglage, fenetreDAttaque, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  DESIGNATIONS, FERMETURES_DITES, VERBE_DE_REGLAGE, argumentsPosesDuGeste, cleDuGeste, declarationDuReglage, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuGeste, libelleDuParametre, libelleDuReglage, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DE_L_OPERATION, REGLAGES_DU_BUTIN,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
@@ -89,8 +89,9 @@ export interface FenetreADessiner {
   gestes: GesteDeLaFenetre[];
 }
 
-/** Les réglages du flux de jet `flux` (`jetRegler`). */
-const duFlux = (flux: string) => (g: GesteDuJeu): boolean => g.verbe === VERBE_DE_REGLAGE && g.flux === flux;
+/** Les réglages du flux de jet `flux` (`jetRegler`) : ceux de `reglages`, tous sans liste. */
+const duFlux = (flux: string, reglages?: readonly string[]) => (g: GesteDuJeu): boolean =>
+  g.verbe === VERBE_DE_REGLAGE && g.flux === flux && (!reglages || reglages.includes(g.reglage ?? ''));
 /** Les gestes des verbes `verbes`. */
 const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.includes(g.verbe);
 
@@ -98,6 +99,9 @@ const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.
 const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle: (g: GesteDuJeu) => boolean }[] = [
   { lire: fenetreDAttaque, regle: duFlux('attack') },
   { lire: fenetreDeDefense, regle: duFlux('defense') },
+  // La fenêtre d'incantation nomme ses choix ; la Surincantation et les jets sur le Tableau sont des pas qu'elle ne
+  // nomme pas.
+  { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique']) },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeLOperation, regle: parmi(REGLAGES_DE_L_OPERATION) },
 ];
