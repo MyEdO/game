@@ -34,7 +34,7 @@
  *    le cliquet 3 qui ferme ce trou, pas le type ;
  *  - les résolveurs de donnée encore `string` : `conditionLabel`, `damageTypeLabel`,
  *    `SPEC_SOURCES[].label` (`data/index.ts`) ;
- *  - le nom `rawText` employé pour AUTRE CHOSE qu'un minteur (`ui/compendium/relations.ts` le prend comme
+ *  - le nom `rawText` employé pour AUTRE CHOSE qu'un minteur (`noyau/codex/relations.ts` le prend comme
  *    nom de PARAMÈTRE) : le cliquet 1 compte des APPELS `rawText(`, donc un paramètre homonyme APPELÉ y
  *    rougirait à tort — angle mort inverse, dit ici et sans site actuel ;
  *  - la météo de Scène (`Scene['weather']`) : son libellé FR vit désormais SUR LE NŒUD

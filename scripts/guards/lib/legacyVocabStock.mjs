@@ -868,20 +868,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/compendium/relations.test.ts",
-    motif: "désormais",
-    ancre: "est désormais une clé mono-catégorie → la JAUGE.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/compendium/relations.ts",
-    motif: "désormais",
-    ancre: "// 15) Lieu ← sous-lieux (inversion de location.parent, désormais un id de parent).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/coop-surfaces-combat.test.tsx",
     motif: "désormais",
     ancre: "// La modale s'ouvre ENSUITE (jet du héros distant) : c'est elle qui parle désormais.",

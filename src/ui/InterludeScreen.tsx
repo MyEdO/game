@@ -53,7 +53,7 @@ import { testPending } from './breakdown';
 import { cibleMesuree } from '../engine/tests';
 import { mdToText } from './Prose';
 import { ActivityPane, idBlocage } from './ActivityPane';
-import type { Porteur } from './liage';
+import type { Porteur } from '../noyau/codex/porteur';
 import { SearchFilterField, useFilteredList } from './SearchFilterField';
 import { MasterDetail } from './MasterDetail';
 import { Tabs } from './composites/Tabs';

@@ -59,7 +59,7 @@ function setupPort(party: Combatant[]): void {
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port: PORT }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
-    port: { placeId: 'P', label: 'Port', port: structuredClone(PORT), offers: [{ cargoId: 'bois', label: 'Bois', enc: LOT_ENC, basePrice: 10, surplus: false }] },
+    port: { placeId: 'P', label: 'Port', port: structuredClone(PORT), offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: LOT_ENC, basePrice: 10, surplus: false }] },
     journal: [],
     pendingCascade: null,
   } as never);
@@ -99,7 +99,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     seedBattleRng(1);
-    get().portBuyCargo('bois', LOT_ENC);
+    get().portBuyCargo('bois-mer', LOT_ENC);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
     expect(testValue(leader, 'marchandage')).toBe(NUE + ETAT); // l'État pèse sur la valeur de Test…
     expect(step.base).toBe(NUE); // …mais PAS sur la Compétence (LDB 09 l.17)
@@ -114,7 +114,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     expect(merchant).toBeGreaterThan(NUE + ETAT); // la valeur de Test EMPOISONNÉE perdrait (le piège)
     expect(merchant).toBeLessThan(NUE); // …la Compétence NUE, elle, l'emporte (l.160)
     seedBattleRng(seed);
-    get().portBuyCargo('bois', LOT_ENC);
+    get().portBuyCargo('bois-mer', LOT_ENC);
     const opened = get().pendingCascade!.participants[0] as CascadeStep;
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;
@@ -139,7 +139,7 @@ function setupLand(): Combatant {
     worldMap: null, possessions: [convoiPossession(leader.id)],
     landMarket: {
       placeId: 'L', label: 'Grünburg', market: { taille: 10, richesse: 4, produits: [] },
-      offers: [{ cargoId: 'vin', label: 'Vin', enc: LOT_ENC, basePrice: 10, wine: false }],
+      offers: [{ cargoId: 'vin-eau-de-vie', label: 'Vin', enc: LOT_ENC, basePrice: 10, wine: false }],
     },
     journal: [],
     pendingCascade: null,
@@ -178,7 +178,7 @@ describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la gra
     expect(found!.merchant).toBeGreaterThan(NUE + ETAT);
     expect(found!.merchant).toBeLessThan(NUE);
     seedBattleRng(found!.seed);
-    landBuyCargo(get, set, 'vin', LOT_ENC);
+    landBuyCargo(get, set, 'vin-eau-de-vie', LOT_ENC);
     expect(bargainLineOf()).toMatch(/remise de \d+ %/);
     expect(bargainLineOf()).not.toMatch(/surcoût/);
   });

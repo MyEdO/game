@@ -25,6 +25,9 @@
 // Le classement `estFeuilleDId`/`descente` et `OP_DEFS`, importé de `src/`, suit l’image : sa modification peut masquer une baisse sous les deux détecteurs (#2969).
 // La marque de produit de fabrique (`marquerProduit`, `grammaire/interne/produits.ts`) se lit dans l’image : la changer
 // re-classe les STRUCTURES LOCALES sous les deux détecteurs (#3012).
+// La table des poses (`grammaire/interne/poses.ts`) se lit dans l’image : la changer re-classe les formes de
+// l’inventaire sous les deux détecteurs, hors porte. Une composition ajoutée dans un second def, sans donnée, fait
+// sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

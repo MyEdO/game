@@ -5,7 +5,6 @@ import { P } from '../../decorPalette';
 // partition — la fosse d'orchestre de l'Opéra. Se lit « pupitre/orchestre » au premier coup d'œil.
 export const prop: PropViz = {
   id: 'pupitre-chef',
-  label: 'Pupitre de chef',
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="24" ry="7" fill="${P.ombre}" opacity="0.2"/>` +
     `<path d="M38 138 L82 138 L86 149 L34 149 Z" fill="${P.boisFonce21}"/><rect x="38" y="129" width="44" height="10" rx="1" fill="${P.boisFonce22}"/><path d="M38 129 L82 129" stroke="${P.boisSombre15}" stroke-width="1.5"/>` +

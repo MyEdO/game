@@ -94,8 +94,8 @@ function poser(): { scene: Scene; heroId: string } {
 function poserRelief(coteM: (x: number, y: number) => number): { scene: Scene; heroId: string } {
   const { scene, heroId } = poser();
   const { w, h } = scene.dimensions;
-  scene.layers[0].height = Array.from({ length: w * h }, (_, i) => coteM(i % w, Math.floor(i / w)));
-  useGame.setState({ scene: { ...scene } });
+  const height = Array.from({ length: w * h }, (_, i) => coteM(i % w, Math.floor(i / w)));
+  useGame.setState({ scene: { ...scene, layers: scene.layers.map((l, i) => (i === 0 ? { ...l, height } : l)) } });
   return { scene: useGame.getState().scene!, heroId };
 }
 
@@ -143,10 +143,9 @@ describe('POV volumique — l’hôte (#1176 P3-1a)', () => {
     expect(vol.querySelectorAll('polygon, path').length, 'aucune géométrie SVG au-dessus du monde volumique').toBe(0);
   });
 
-  it('l’exploré s’accumule (même couture de store que l’iso)', () => {
+  it('l’exploré s’accumule en première personne par la même couture que l’iso : l’écriture qui pose le groupe', () => {
     const scene = useGame.getState().scene!;
-    expect(useGame.getState().explored[scene.id] ?? []).toEqual([]);
-    monter(<MondeDeCampagne />);
+    expect(useGame.getState().povActive).toBe(true);
     expect(useGame.getState().explored[scene.id] ?? []).toContain('4,4,0');
   });
 });

@@ -52,7 +52,7 @@ const COGUE: Navire = { vehicleId: 'cogue' };
 const COGUE_LISSEE: Navire = { vehicleId: 'cogue', upgrades: [{ id: 'lissage' }] };
 const CORACLE_IMMOBILE: Navire = { vehicleId: 'coracle', upgrades: [{ id: 'bouteur' }, { id: 'bouteur' }, { id: 'bouteur' }] };
 /** Cogue chargée au double de sa Contenance, au-delà du plafond dur. */
-const COGUE_SURCHARGEE: Navire = { vehicleId: 'cogue', cargo: [{ cargoId: 'bois', enc: 2 * findVehicleById('cogue')!.ship!.capacity, basePriceGold: 10 }] };
+const COGUE_SURCHARGEE: Navire = { vehicleId: 'cogue', cargo: [{ cargoId: 'bois-mer', enc: 2 * findVehicleById('cogue')!.ship!.capacity, basePriceGold: 10 }] };
 
 describe('#3059 — jours de mer : une seule durée pour la carte et le noyau', () => {
   it('cogue (M 5) qui vogue de nuit : 550 milles en 7 jours', () => {

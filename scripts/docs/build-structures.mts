@@ -25,6 +25,7 @@ import { parUnitesDeCode } from '../guards/lib/lister.mjs';
 import {
   ANGLES_MORTS,
   ANGLES_MORTS_SLOTS,
+  CONCEPT_DE_LA_POSE,
   CONCEPTS,
   LOTS_DE_PEUPLEMENT,
   MANDAT_SLOTS,
@@ -326,7 +327,14 @@ function rendu() {
     const total = lignes.reduce((a, f) => a + f.occurrences, 0);
     out += `### ${SECTION.concept(c)} ${c.label} — \`${c.id}\` (strate ${c.strate})\n\n`;
     out += `${lignes.length} ligne(s), ${total} occurrence(s).\n`;
-    out += `Reconnu par : ${c.resolvables ? 'RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré' : c.listeIdsNus ? 'tableau de chaînes dont au moins un élément résout' : c.champs?.length ? `la clé porteuse ${c.champs.map((x) => `\`${x}\``).join(' ')}` : `son noyau ${(c.noyau ?? []).map((k) => `\`${k}\``).join(' ')}${c.noyauMin ? ` (≥ ${c.noyauMin})` : ''}`}${c.datasets ? `, dans ${c.datasets.map((x) => `\`${x}\``).join(' ')}` : ''}\n\n`;
+    const posesDuConcept = Object.entries(CONCEPT_DE_LA_POSE).filter(([, concept]) => concept === c.id).map(([pose]) => `\`${pose}\``);
+    const parCles = c.champs?.length
+      ? `la clé porteuse ${c.champs.map((x) => `\`${x}\``).join(' ')}`
+      : c.noyau?.length
+        ? `son noyau ${c.noyau.map((k) => `\`${k}\``).join(' ')}${c.noyauMin ? ` (≥ ${c.noyauMin})` : ''}`
+        : '';
+    const parForme = [...(posesDuConcept.length ? [`sa pose ${posesDuConcept.join(' ')}`] : []), ...(parCles ? [parCles] : [])].join(', sinon ');
+    out += `Reconnu par : ${c.resolvables ? 'RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré' : c.listeIdsNus ? 'tableau de chaînes dont au moins un élément résout' : parForme}${c.datasets ? `, dans ${c.datasets.map((x) => `\`${x}\``).join(' ')}` : ''}\n\n`;
     if (!lignes.length) {
       out += '_aucune occurrence observée._\n\n';
       continue;

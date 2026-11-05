@@ -75,7 +75,7 @@ describe('MondeDeCampagne — stabilité de propEls entre deux rendus sans chang
     container = document.createElement('div');
     root = createRoot(container);
     act(() => root!.render(<MondeDeCampagne />));
-    // Le montage peut déclencher SA PROPRE re-passe interne (effet `markExplored`) — on ne fige le
+    // Le montage peut déclencher SA PROPRE re-passe interne — on ne fige le
     // compteur qu'UNE FOIS le montage stabilisé, pour isoler le SEUL rendu forcé qui suit.
     const afterMount = spy.mock.calls.length;
     expect(afterMount).toBeGreaterThan(0);

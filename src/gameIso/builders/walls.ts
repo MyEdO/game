@@ -8,7 +8,7 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { heightAt, tileAt, wallEnds, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../noyau/planDefects';
@@ -62,20 +62,6 @@ const BREACH_H = 0.32, BREACH_M1 = 0.34, BREACH_M2 = 0.62, BREACH_POST_A = 0.7, 
 const EPS = 1e-9;
 
 type GXY = { x: number; y: number };
-
-/** Extrémités A,B (coins de GRILLE, ±0.5) de l'arête d'un segment — l'aiguillage UNIQUE N/E/`\`/`/`
- *  (SOURCE UNIQUE des extrémités d'arête pour l'iso comme pour le POV).
- *  Cardinales = les MÊMES coins que `tileEdge` (iso.ts) → un backend affine qui projette ces points
- *  retombe sur la géométrie d'arête historique ; le POV les multiplie par `mpt`. */
-export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [GXY, GXY] {
-  const { x, y } = w;
-  switch (w.side) {
-    case 'N': return [{ x: x - 0.5, y: y - 0.5 }, { x: x + 0.5, y: y - 0.5 }];
-    case 'E': return [{ x: x + 0.5, y: y - 0.5 }, { x: x + 0.5, y: y + 0.5 }];
-    case '\\': return [{ x: x - 0.5, y: y - 0.5 }, { x: x + 0.5, y: y + 0.5 }];
-    default: return [{ x: x + 0.5, y: y - 0.5 }, { x: x - 0.5, y: y + 0.5 }]; // '/'
-  }
-}
 
 /** COURONNE crénelée (parapet dressé + ferrure + arase + merlons) posée à partir de la hauteur `baseH`,
  *  le long de l'arête A→B. SOURCE UNIQUE : (a) le sommet d'une fortification `wallFaces` (baseH = haut de

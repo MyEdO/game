@@ -35,11 +35,11 @@ describe('prix d’offre — équivalence bandes / seuils sur tout le domaine (#
   it('MER : de 1 à 12, `findTableEntry` rend exactement ce que le lookup à seuils rendait', () => {
     const rendus: Record<number, [number, number]> = {};
     for (let somme = 1; somme <= 12; somme++) {
-      rendus[somme] = [ancienPct(SEUILS_MER, (r) => r.sum, (r) => r.pct, somme), offerPricePct(port(somme), 'bois')];
+      rendus[somme] = [ancienPct(SEUILS_MER, (r) => r.sum, (r) => r.pct, somme), offerPricePct(port(somme), 'bois-mer')];
     }
     expect(Object.fromEntries(Object.entries(rendus).filter(([, [a, b]]) => a !== b)), 'le rendu a CHANGÉ dans le domaine du livre').toEqual({});
     // La sonde mesure vraiment les quatre bandes, pas quatre fois la même.
-    expect([1, 2, 3, 4, 12].map((s) => offerPricePct(port(s), 'bois'))).toEqual([50, 75, 90, 100, 100]);
+    expect([1, 2, 3, 4, 12].map((s) => offerPricePct(port(s), 'bois-mer'))).toEqual([50, 75, 90, 100, 100]);
   });
 
   it('TERRE : de 1 à 9, `findTableEntry` rend exactement ce que le lookup à seuils rendait', () => {
@@ -61,7 +61,7 @@ describe('prix d’offre — équivalence bandes / seuils sur tout le domaine (#
     for (let somme = -3; somme <= 0; somme++) {
       // L'ancien lookup rabattait tout sur la rangée la plus basse, sans rien dire.
       expect(ancienPct(SEUILS_MER, (r) => r.sum, (r) => r.pct, somme)).toBe(50);
-      expect(() => offerPricePct(port(somme), 'bois')).toThrow(
+      expect(() => offerPricePct(port(somme), 'bois-mer')).toThrow(
         new RegExp(`= ${somme}, hors du tableau \\(MDG 15 l\\.378-383`),
       );
     }

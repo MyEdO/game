@@ -17,7 +17,7 @@ import { CODEX, combatantSections, type CodexRow, type CodexSection } from './re
 import { CHEMINS_ADRESSES } from '../liage';
 import { adressesDesEntreesEmbarquees } from '../../data/schemas/grammaire/document';
 import { projetSchema } from '../../data/schemas/defs-scenes/projet';
-import { porteurDeRangee } from './CodexEntry'; // la SEULE composition rangée+entrée — celle du rendu
+import { porteurDeRangee } from '../../noyau/codex/porteur'; // la SEULE composition rangée+entrée — celle du rendu
 import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
