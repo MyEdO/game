@@ -461,7 +461,7 @@ export interface EtatDeJeu {
    *  quand un combat s'ouvre PENDANT une cascade active (ex. un abordage déclenché par l'applier d'une
    *  étape de voyage), la cascade active est poussée ICI (LIFO) plutôt qu'écrasée/perdue — le slot
    *  `pendingCascade` redevient disponible pour les cascades DU COMBAT. Résumée (tête de pile) au
-   *  teardown de combat (`dismissVictory`/`dismissDefeat`) si le slot est libre. */
+   *  teardown de combat (sorties de la victoire et de la défaite) si le slot est libre. */
   suspendedCascades: PendingCascade[];
   /** Tests d'entretien du FRANCHISSEMENT DE JOUR mis EN FILE pendant un combat (#253) : en combat le slot
    *  de cascade appartient à l'arène → les Tests de Résistance quotidiens (Faim/Soif/maladie/convalescence/
@@ -562,7 +562,7 @@ export interface EtatDeJeu {
   pendingLoot: PendingLoot | null;
   /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
    *  `documentId` = l'entrée de `narratif.documents` remise (Effet `document`) : le texte est une prose de paquet ;
-   *  `suite` = la SUITE du Flow qui l'a remise (geste `suspensif`), rejouée par `closeDocument`. */
+   *  `suite` = la SUITE du Flow qui l'a remise (geste `suspensif`), rejouée par sa sortie (`fenetreFermer('document')`). */
   document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Flow; remise: number } | null;
   /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
   remisesDeDocument: number;

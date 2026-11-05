@@ -78,7 +78,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
     expect(get().dialogue?.nodeId, 'sous le document, la touche ne répond pas').toBe('nc1');
     expect(get().dialogueHistory).toHaveLength(1);
 
-    get().closeDocument();
+    get().fenetreFermer('document');
     runBindingById('dialogue-choice-2', get); // « La laisser tranquille »
     expect(get().dialogueHistory, 'document fermé : la réponse 2 se joue').toHaveLength(2);
     expect(get().dialogue).toBeNull();

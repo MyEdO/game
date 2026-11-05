@@ -1199,7 +1199,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('document'), icon: 'file/document',
     make: () => ({ type: 'document', documentId: '' }),
     suspensif: true,
-    // EDO 02 l.89-95 : chaque document remis se lit avant la suite, refermé par `closeDocument` qui la rejoue.
+    // EDO 02 l.89-95 : chaque document remis se lit avant la suite, refermé par sa sortie (`fenetreFermer('document')`) qui la rejoue.
     apply: (e, env, suite) => {
       const doc = documentDuNarratif(env.get().campaignNarratif)(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }

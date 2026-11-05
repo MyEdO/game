@@ -46,6 +46,7 @@ import { seasonOfMonth } from '../engine/travelStages';
 import { toDate, dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ (le Vin fige sa
@@ -202,10 +203,6 @@ export function landEvalWine(get: Get, set: Set, cargoId: string): void {
 }
 
 const LAND_WINE_EVAL_KIND = 'land-market-wine-eval';
-
-export function closeLandMarket(_get: Get, set: Set): void {
-  set({ landMarket: null });
-}
 
 /** TRANSFERT de cargaison entre deux porteurs CO-LOCALISÉS (#327, décision 8) — route par `transferCargo`
  *  du tronc (jamais une 2ᵉ arithmétique) puis RE-PERSISTE les deux porteurs. Le refus du plan
@@ -429,10 +426,13 @@ export function landDumpCargo(get: Get, set: Set, carrierId: string, cargoIndex:
   log(get, set, [t('lm.brade', { enc: lot.enc, label, pct, prix: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
 }
 
+export function sortiesDuMarcheTerrestre(_get: Get, set: Set) {
+  return { marcheDeTerre: () => set({ landMarket: null }) } satisfies Partial<SortiesDeFenetre>;
+}
+
 export function creerActionsDuMarcheTerrestre(get: Get, set: Set) {
   return {
     openLandMarket: () => openLandMarket(get, set),
-    closeLandMarket: () => closeLandMarket(get, set),
     landBuyCargo: (cargoId, enc) => landBuyCargo(get, set, cargoId, enc),
     landSellCargo: (carrierId, cargoIndex) => landSellCargo(get, set, carrierId, cargoIndex),
     landDumpCargo: (carrierId, cargoIndex) => landDumpCargo(get, set, carrierId, cargoIndex),

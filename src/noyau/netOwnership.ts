@@ -6,7 +6,7 @@
 import type { Jeu } from './etat';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
-import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, type HorsModalDef } from './modalArbiter';
+import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, sortieDeLaFenetre, type HorsModalDef } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { seatOwns, jetSurfaced } from './sieges';
 import { targetingHolder } from './targetingHolder';
@@ -563,6 +563,17 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
     // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
     ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
+    // La sortie d'une fenêtre : la fenêtre est le 1ᵉʳ argument, et son registre dit qui la ferme (`sortie`) — l'hôte
+    // seul, ou le siège de son propriétaire ('*' : tout siège). Une victoire se ferme par l'hôte : l'invité marque
+    // son siège (`victoryReady`), l'hôte ferme à l'unanimité.
+    ['fenetreFermer', {
+      rule: (s, seat, args) => {
+        const sortie = sortieDeLaFenetre(args[0]);
+        if (!sortie) return false;
+        const owner = sortie.sortie === 'hote' ? undefined : sortie.proprietaire(s);
+        return owner === '*' || seatOwns(s, seat, owner); // `undefined` → l'hôte (contrat de `seatOwns`)
+      },
+    }],
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],

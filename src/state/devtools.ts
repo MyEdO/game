@@ -59,6 +59,7 @@ import { estAbsent } from '../noyau/monde/terrain';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
+import { refusDeLaSortie } from '../noyau/sortieDeFenetre';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { routeDistanceLabel } from '../engine/travel';
 import { inscrireEnBataille } from '../noyau/summonFlow';
@@ -422,7 +423,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
     type TimeoutSetter = (cb: (...a: unknown[]) => void, ms?: number, ...a: unknown[]) => unknown;
     const real = (globalThis as unknown as { setTimeout: TimeoutSetter }).setTimeout;
     let n = 0;
-    let seenTravelDays = 0; // cascades `purpose:'travelDay'` intégralement résolues (BILAN + `cascadeFinish`)
+    let seenTravelDays = 0; // cascades `purpose:'travelDay'` intégralement résolues (BILAN + sa sortie)
     let sawVoyage = false;
     const tick = () => {
       try {
@@ -469,7 +470,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
             real(tick, 0); return;
           }
           if (p.purpose === 'travelDay') seenTravelDays++;
-          useGame.getState().cascadeFinish();
+          useGame.getState().fenetreFermer('cascade');
           real(tick, 0); return;
         }
         if (s.pendingRest) {
@@ -1560,7 +1561,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
       for (let guard = 0; useGame.getState().pendingCascade && !useGame.getState().battle?.over && guard < 8; guard++) {
         useGame.getState().cascadeResolveAll();
-        useGame.getState().cascadeFinish();
+        if (!refusDeLaSortie(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
         if (!useGame.getState().battle?.over) checkBattleOver(() => useGame.getState(), useGame.setState);
       }
       let lootNote = '';

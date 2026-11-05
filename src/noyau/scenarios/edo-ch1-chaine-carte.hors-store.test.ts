@@ -18,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du geste se joue après. */
-const lireLesDocuments = (): void => { while (banc.getState().document) banc.getState().closeDocument(); };
+const lireLesDocuments = (): void => { while (banc.getState().document) banc.getState().fenetreFermer('document'); };
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;

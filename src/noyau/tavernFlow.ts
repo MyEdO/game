@@ -73,6 +73,7 @@ import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /**
@@ -194,10 +195,6 @@ export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
 export function openTavernGames(get: Get, set: Set, npcId?: string): void {
   if (refuseSi(get, set, refusDOuvrirLaTaverne)) return;
   set({ tavernGames: { result: null, ...(npcId ? { npcId } : {}) } });
-}
-
-export function closeTavernGames(_get: Get, set: Set): void {
-  set({ tavernGames: null });
 }
 
 /** Id de la définition de séquence des jeux de taverne (donnée : écrit dans les saves). */
@@ -2504,8 +2501,11 @@ export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
     openTavernGames: (npcId?: string) => openTavernGames(get, set, npcId),
     playTavernGame: (opts) => playTavernGame(get, set, opts),
-    closeTavernGames: () => closeTavernGames(get, set),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function sortiesDeLaTaverne(_get: Get, set: Set) {
+  return { jeuxDeTaverne: () => set({ tavernGames: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

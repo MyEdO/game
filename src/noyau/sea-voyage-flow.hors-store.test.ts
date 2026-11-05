@@ -765,7 +765,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().pendingCascade).toBeNull();
     expect(get().suspendedCascades.length).toBe(1);
 
-    get().dismissVictory();
+    get().fenetreFermer('victory');
     // APRÈS « Continuer » : la victoire s'efface ET la cascade-jour REPREND (teardown de combat,
     // couture universelle `resumeSuspendedCascade`).
     expect(get().pendingVictory).toBeNull();
@@ -804,7 +804,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
-    get().dismissVictory();
+    get().fenetreFermer('victory');
 
     expect(get().pendingCascade, 'la reprise après la victoire a rouvert une fenêtre').toBeNull();
     expect(get().suspendedCascades).toEqual([]);

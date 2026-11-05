@@ -818,7 +818,7 @@ sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénari
 **Flux HORS gestes `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
 les couvrent PAS — cliquer les VRAIS boutons) : `pendingCascade` se
 résout par `cascadeResolveAll` (bouton **« Tout lancer »**, résout d'un coup le reste sans influence)
-puis `cascadeFinish` (bouton **« Terminer »** du bilan) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
+puis `fenetreFermer('cascade')` (bouton **« Terminer »** du bilan, sa sortie) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
 par étape (bouton « Continuer »/« Terminer » de la dernière étape), cf. `src/ui/CascadeModal.tsx`.
 
 **`pendingTest` seul ne rend RIEN à l'écran** : c'est un slot d'état pur (`noyau/etat.ts`), consommé en

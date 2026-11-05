@@ -5266,7 +5266,7 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
  *  ENNEMI → `groupOwner:true` (l'arbitre `cascade` met l'owner à '*' : moment partagé + Contre-sort
  *  multi en coop) ; HÉROS → owner dérivé de `actorId` (le lanceur). Hôte aussi l'incantation HORS
  *  COMBAT (couture D) : `CascadeModal` lit `battle?.combatants ?? party`, l'owner = le héros lanceur,
- *  et les résolveurs de cast ferment le pending directement (jamais `cascadeFinish` → pas de reprise IA).
+ *  et les résolveurs de cast ferment le pending directement (jamais la sortie du bilan → pas de reprise IA).
  *
  *  RENVOIE si la fenêtre s'est ouverte : le mint refuse l'étape sans `pendingCast`, et l'appelant reste
  *  maître de la dégradation (il vient de poser le pending, il sait quoi en faire). */
@@ -7098,7 +7098,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   const brassBefore = toBrass(partyMoneyTotal(get));
   // #9 : on sépare les effets onVictory. Récompenses/flags/journal s'appliquent MAINTENANT (pour peupler
   // l'écran) ; ceux qui CHANGENT le contexte (téléport/dialogue/combat) sont DIFFÉRÉS au clic « Continuer »
-  // (dismissVictory) — sinon le téléport masque l'écran de victoire (cas de l'arène).
+  // (la sortie de la victoire) — sinon le téléport masque l'écran de victoire (cas de l'arène).
   const CONTEXT = new Set(['transition', 'transitionBack', 'startDialogue', 'startCombat']);
   // onVictory est un Flow (UN format avec triggers/dialogues) — on l'APLATIT ici (les `if` résolus contre
   // l'état courant) pour garder la partition CONTEXT/immédiat + la mesure de récompense sur la séquence plate.
@@ -7250,7 +7250,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
- *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`cascadeNext`/`cascadeFinish` →
+ *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`cascadeNext`, la sortie du bilan →
  *  `dispatchCascadeDone`), seule couture depuis #942 L8. Garde alignée sur celle de `resumeEnemyTurn`. */
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
@@ -8719,7 +8719,7 @@ export const TABLES = {
      *   · OUI — « Subir » applique le Critique montré, « Dévier » l'ignore (−1 PA) : `resolveDeviation` ;
      *   · NON — le Critique est subi, et sa RÉVÉLATION reste DUE (aucune fenêtre ne l'a montrée) : la
      *     reprise part sans `deviation` tranchée, ce qui laisse le chemin normal la produire.
-     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`/`cascadeFinish`
+     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
     deviation: (get, set, step) => {

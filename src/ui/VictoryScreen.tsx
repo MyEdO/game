@@ -32,7 +32,8 @@ export function VictoryScreen() {
   const assignGear = useGame((s) => s.assignVictoryGear);
   const harvest = useGame((s) => s.harvestCreature);
   const appraiseGear = useGame((s) => s.appraiseGear);
-  const dismiss = useGame((s) => s.dismissVictory);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const dismiss = () => fermer('victory');
   const victoryReady = useGame((s) => s.victoryReady);
   const state = useGame();
   // Tenue du coup fatal : on diffère l'apparition de l'écran d'un beat après `over:'victory'` (la scène, avec

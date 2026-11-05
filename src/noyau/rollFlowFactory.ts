@@ -54,13 +54,15 @@ import { t } from '../i18n';
  * et aucun booléen ne peut le rallumer.
  */
 
-/** Ce qui ferme un verbe du cycle de jet maintenant ; son libellé est `jet.ferme.<code>` (`libelleDeLaFermeture`). */
+/** Ce qui ferme un verbe du cycle de jet, ou la sortie d'une fenêtre (`sortieFermee`, `modalArbiter.ts`), maintenant ;
+ *  son libellé est `jet.ferme.<code>` (`libelleDeLaFermeture`). */
 export type FermetureDuJet =
   | 'sansJet' | 'nonOffert' | 'sansActeur' | 'rangeeTemoin' | 'jetImpose'
   | 'jetNonLance' | 'jetLance' | 'jetReussi' | 'dejaRelance'
   | 'sansChance' | 'sansResilience' | 'sansDetermination' | 'reserveAuxHeros'
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance' | 'sansMalusPsy'
-  | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee';
+  | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
+  | 'etapesDues' | 'soinEnCours' | 'paieDue' | 'halteDeVoyage';
 
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
 export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);

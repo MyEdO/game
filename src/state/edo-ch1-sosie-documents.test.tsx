@@ -41,7 +41,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie', () => {
     expect(document.body.textContent).toContain('la dernière parente vivante de feu le baronet Linkass,');
     expect(document.body.textContent).toContain('du manoir de Linkass et');
     expect(document.body.textContent).not.toContain('Lieberung');
-    act(() => get().closeDocument());
+    act(() => get().fenetreFermer('document'));
     expect(document.body.textContent).toContain('se nomme Kallar Linkassniz.');
   });
 

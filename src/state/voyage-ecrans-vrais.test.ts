@@ -86,7 +86,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     draineCascade(get);
     const jours = get().travelPlan!.recap!.days;
     const jour = structuredClone(jours[jours.length - 1]);
-    get().dismissTravelRecap();
+    get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
     const wm = get().worldMap!;
     set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
