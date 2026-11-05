@@ -191,7 +191,7 @@ export const ENGINE_DELEGATED_ROLL_STOCK = new Map([
  */
 export const DES_HORS_PORTE_STOCK = new Map([
   ['src/data/mutations.ts', { n: 1, kind: 'dette', why: 'mesuré : deMonde×1. A (`deMonde` de la table de mutation) -> #1508 T4.' }],
-  ['src/data/obsessions.ts', { n: 1, kind: 'dette', why: 'mesuré : rollExpr×1. C (`rollExpr` d\'une magnitude authorée) -> #1508 T5.' }],
+  ['src/data/obsessions.ts', { n: 1, kind: 'dette', why: 'mesuré : rollDice×1. C (`rollDice` du dé authoré de la table, `deDeTirageDe`) -> #1508 T5.' }],
   ['src/data/pregens.ts', { n: 1, kind: 'dette', why: 'mesuré : rollInitialWealth×1. C (fortune de départ) -> #1508 T5.' }],
   ['src/noyau/activityIssue.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2 — l’issue UNIQUE d’une Activité, terre et mer (`onSuccess`, Exténué de `failExtenue`). B -> #1508 T2.' }],
   ['src/noyau/activityWorldRolls.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1 — celui de l\'APPLIER des issues (applier `ACTIVITY_WORLD_ROLL_KIND`), qui applique `wr.ops` une fois le seuil tombé. Le dé de MONDE lui-même passe par la porte (`worldStep`, évaluation `seuil`) et sa CIBLE se LIT sans rng (`formulaExpectation`) : AUCUN dé ne se tire ici aujourd\'hui — la seule issue authorée est `statusMod` (`activities.json › mendier.worldRolls`), sans magnitude. L\'entrée reste au stock parce que le détecteur compte `applyOps` comme SURFACE de dé, pas parce qu\'un dé y roule. B (magnitudes d\'`applyOps`) -> #1508 T2.' }],
