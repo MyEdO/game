@@ -350,7 +350,7 @@ function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { 
       const rr = forceCrewRole(actor, r.roleId, r.navigation, r.cumul, r.sense);
       return rr ? { result: rr } : null;
     },
-    outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)
+    outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (LDB 12 l.25-28)
     // Chance « +1 DR » sur CE contributeur (LDB 17 l.24).
     bonus: { derive: (_s, r) => bumpResultSL(r) },
   };
@@ -411,15 +411,15 @@ const sealOutcome = (won: boolean, sl: number, roll = 0, target = 0, detail?: Ro
 const testOutcome = (r: { roll?: number; target?: number; success?: boolean; sl?: number } | null | undefined): TestOutcome =>
   sealOutcome(!!r?.success, r?.sl ?? 0, r?.roll ?? 0, r?.target ?? 0);
 
-/** Issue d'un Test dont on lit le d100 BRUT (réussite propre = `roll ≤ cible`, LDB 12) + son DR — les
+/** Issue d'un Test dont on lit le d100 BRUT (réussite propre = `evaluateTest`, LDB 12 l.25-28) + son DR — les
  *  flux qui gatent la Chance sur le jet propre (soin/rechargement/évaluation/marchandage/corruption…). */
 const rollOutcome = (roll: number | null | undefined, target: number, sl: number | null | undefined): TestOutcome =>
-  sealOutcome((roll ?? 0) <= target, sl ?? 0, roll ?? 0, target);
+  sealOutcome(roll != null && evaluateTest(roll, target).success, sl ?? 0, roll ?? 0, target);
 
 /** Issue d'un Test dont le résultat est un `{ roll, target, sl }` SANS champ `success` (réussite propre
- *  = `roll ≤ cible`) : incantation, enfoncement de porte, Test d'équipage — un résultat absent = échec. */
+ *  = `evaluateTest`, LDB 12 l.25-28) : incantation, enfoncement de porte, Test d'équipage — un résultat absent = échec. */
 const cleanRollOutcome = (r: { roll: number; target: number; sl?: number } | EchecSansJet | null | undefined): TestOutcome =>
-  estJete(r) ? sealOutcome(r.roll <= r.target, r.sl ?? 0, r.roll, r.target) : sealOutcome(false, 0);
+  estJete(r) ? sealOutcome(evaluateTest(r.roll, r.target).success, r.sl ?? 0, r.roll, r.target) : sealOutcome(false, 0);
 
 /** Réussite forcée d'un Test BINAIRE (Résilience « Je ne faillirai pas ! », LDB 17 l.68) : le jet rangé
  *  forcé — avant le jet (dé 01, contre `cible`, la cible AVANT bornage du Test du flux), ou après un échec
@@ -979,7 +979,7 @@ export const FLOWS = paresseux({
         : resolveCasting(actor, spell, battleRng(), difficulty, p.focused, ward, seaMagicContext(s));
       return castRelance(s, p, res);
     },
-    // Issue CANONIQUE = d100 propre réussi (roll ≤ cible) — relance/Pacte alignés sur le jet propre.
+    // Issue CANONIQUE = d100 propre réussi (LDB 12 l.25-28) — relance/Pacte alignés sur le jet propre.
     outcome: (p) => cleanRollOutcome(p.result),
     bonus: {
       // Chance « +1 DR » : peut franchir le NI, cumulable.
@@ -1394,7 +1394,7 @@ export const FLOWS = paresseux({
       const t = rollTest(value, 'intermediaire', battleRng());
       return { result: { roll: t.roll, target: t.target, sl: t.sl, damage: degatsDEnfoncement(actor, arme, t.sl, p.doorBE) } };
     },
-    outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)
+    outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (LDB 12 l.25-28)
     caps: { forced: true },
     bonus: {
       // Chance « +1 DR » : +1 au DR → +1 dégât (avant réduction par le BE).
@@ -2222,7 +2222,7 @@ export const FLOWS = paresseux({
       return { roll: res.roll, sl, isDouble: res.isDouble, success: res.success && meetsRequiredSL(p.requireSL, sl) };
     },
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl), // d100 propre réussi (LDB 12 l.11)
-    bonus: { derive: (_s, p) => ({ sl: p.sl + 1, success: (p.roll ?? 0) <= p.target && meetsRequiredSL(p.requireSL, p.sl + 1) }) },
+    bonus: { derive: (_s, p) => ({ sl: p.sl + 1, success: p.roll != null && evaluateTest(p.roll, p.target).success && meetsRequiredSL(p.requireSL, p.sl + 1) }) },
     // Inversion de Test (LDB 23 l.209/218 « vous POUVEZ inverser » ; LDB 10 — Talents Sociable/
     // Studieux/Lecture rapide/Pharmacologie/Chat de gouttière/Noctambule/Pansement de fortune, MÊME
     // formule « vous pouvez ») : CHOIX du joueur (#558), offert par la rangée d'influence — jamais

@@ -860,7 +860,7 @@ export function isDispellableSpell(spell: SpellLike): boolean {
  *  Contre-sort (LDB 46 l.156). Source unique. La valeur NUE (`base`) traverse : c'est elle que le
  *  départage à DR égal compare (LDB 12 l.160). */
 export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'base'>): TestResult {
-  return { roll: res.roll, target: res.target, success: res.roll <= res.target, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
+  return { roll: res.roll, target: res.target, success: evaluateTest(res.roll, res.target).success, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
 }
 
 /** Issue d'un Contre-sort à partir d'un jet de contre-lanceur DÉJÀ obtenu (`counterT`, DR déjà
@@ -1087,7 +1087,7 @@ export function rederiveCastSL(
   const t: TestResult = {
     roll: current.roll,
     target: current.target,
-    success: current.roll <= current.target,
+    success: evaluateTest(current.roll, current.target).success,
     sl: current.sl + bonusSL,
     isDouble: isDoubleRoll(current.roll),
   };

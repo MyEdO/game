@@ -7,7 +7,7 @@ import type { CounterDeclaration } from '../noyau/pendings';
 import { findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
-import { clampTarget } from '../engine/tests';
+import { clampTarget, evaluateTest } from '../engine/tests';
 import { castingValue, castingNumberOf, spellTargetCount, castOvercastBudget, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastStepCost } from '../engine/overcast';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
@@ -141,7 +141,7 @@ export function CastModal() {
       : resultLine(freeCons([
           res.isFumble
             ? 'Maladresse — Incantation Imparfaite / Colère des dieux'
-            : res.roll <= res.target
+            : evaluateTest(res.roll, res.target).success
               ? `Réussite trop faible : DR ${res.sl} < NI ${ni}`
               : 'Incantation échouée',
         ]));
@@ -171,9 +171,9 @@ export function CastModal() {
     // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.22-24` : DR sous le NI, le Test est RÉUSSI et
     // le sort n'est pas lancé). Le « sort non lancé » se dit par le verdict
     // du flux (issue/journal), jamais par le succès de la ligne : c'est aussi l'issue canonique du
-    // seam (`cleanRollOutcome`, roll ≤ cible), dont dérivent Chance et Résilience.
+    // seam (`cleanRollOutcome`, `evaluateTest`), dont dérivent Chance et Résilience.
     row: res
-      ? { combatant: caster, d: testBreakdown(castLabel, previewRolled.base, { roll: res.roll, target: res.target, sl: res.sl, success: res.roll <= res.target }, undefined, previewRolled.mods) }
+      ? { combatant: caster, d: testBreakdown(castLabel, previewRolled.base, { roll: res.roll, target: res.target, sl: res.sl, success: evaluateTest(res.roll, res.target).success }, undefined, previewRolled.mods) }
       : { combatant: caster, pending: testPending(castLabel, preview.base, clampTarget(preview.target), undefined, preview.mods) },
     onRoll: roll,
     rerolled: !!pc.rerolled,
