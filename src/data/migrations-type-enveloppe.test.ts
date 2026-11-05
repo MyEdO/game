@@ -211,7 +211,6 @@ describe('vague 12b — la donnée porte son `type` et RIEN d’autre n’a boug
     'actions.json',
     'activities.json',
     'creatures.json',
-    'night-stakes.json',
     'psychology.json',
     'raceAppearance.json',
     'species.json',

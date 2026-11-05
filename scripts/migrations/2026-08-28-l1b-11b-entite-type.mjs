@@ -1,5 +1,5 @@
 /**
- * Migration #1467 L1b V-FLIP-ENTITE-b — les 20 datasets `entite` de la vague 11b reçoivent la clé
+ * Migration #1467 L1b V-FLIP-ENTITE-b — les 19 datasets `entite` de la vague 11b reçoivent la clé
  * d'ENVELOPPE `type` sur chacune de leurs entrées, en DEUXIÈME position (juste après `id`).
  *
  * MÊME patron que la vague 11a (`2026-08-28-l1b-11a-entite-type.mjs`), même contrat : `document()`
@@ -13,7 +13,7 @@
  * table mais par le SCHÉMA lui-même : `z.literal(<type>)` rend rouge toute entrée dont le `type`
  * diverge (mesuré par mutation du lot sur `careers.json`).
  *
- * ENTRÉES : les 20 fichiers de `src/data/` listés dans `TYPES` (seules données lues et écrites).
+ * ENTRÉES : les 19 fichiers de `src/data/` listés dans `TYPES` (seules données lues et écrites).
  *
  * IDEMPOTENT / NO-OP SÉMANTIQUE : le no-op se décide sur le NOMBRE du seul geste que ce script
  * POSSÈDE — la pose de `type`. Zéro `type` à poser dans un fichier = rien n'y est écrit et la sortie
@@ -58,7 +58,6 @@ const TYPES = {
   'stars.json': 'stars',
   'systemes.manifest.json': 'systemes.manifest',
   'tables.json': 'tables',
-  'voyage-stakes.json': 'voyage-stakes',
   'weaponGroups.json': 'weaponGroups',
 };
 

@@ -190,7 +190,7 @@ export const ENGINE_DELEGATED_ROLL_STOCK = new Map([
  * @type {Map<string, StockEntry>}
  */
 export const DES_HORS_PORTE_STOCK = new Map([
-  ['src/data/mutations.ts', { n: 1, kind: 'dette', why: 'mesuré : deMonde×1. A (`deMonde` de la table de mutation) -> #1508 T4.' }],
+  ['src/data/mutations.ts', { n: 1, kind: 'dette', why: 'mesuré : rollDice×1. A (`rollDice` du dé authoré de la table de mutation, `mutationTableDie`) -> #1508 T4.' }],
   ['src/data/obsessions.ts', { n: 1, kind: 'dette', why: 'mesuré : rollDice×1. C (`rollDice` du dé authoré de la table, `deDeTirageDe`) -> #1508 T5.' }],
   ['src/data/pregens.ts', { n: 1, kind: 'dette', why: 'mesuré : rollInitialWealth×1. C (fortune de départ) -> #1508 T5.' }],
   ['src/noyau/activityIssue.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2 — l’issue UNIQUE d’une Activité, terre et mer (`onSuccess`, Exténué de `failExtenue`). B -> #1508 T2.' }],

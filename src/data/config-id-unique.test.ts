@@ -9,7 +9,7 @@ import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
  *
  * Les documents de famille `config` portent depuis ce lot leur ENVELOPPE (`id`/`type`/`label`), et
  * leur `id` est AUTHORÉ — jamais dérivé du `type` : la dérivation a été RÉFUTÉE à la mesure, le type
- * `water-exposure` collisionnant avec l'entrée `water-exposure` de `combat-stakes.json`. Un id
+ * `water-exposure` collisionnant avec l'entrée `water-exposure` de `stakes.json`. Un id
  * authoré n'est libre que s'il est UNIQUE, faute de quoi deux documents se répondraient sous le même
  * nom au premier index qui les réunit.
  *

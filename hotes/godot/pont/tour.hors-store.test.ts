@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import type { Suite } from './pont';
-import type { Bouton, Ligne } from '../../../src/hote/elements';
+import type { Bouton, Choix, Jet, Ligne } from '../../../src/hote/elements';
 
 const { appel: appelNu } = table();
 
@@ -70,11 +70,15 @@ describe('un tour complet par le pont', () => {
     const heros = actifDe(suite);
     expect(heros.camp).toBe('hero');
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
-    expect(suite.vue.zones['combat.offres'].find((o) => o.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé').toMatch(/^Charger/);
+    const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
+    expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
+    expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
+    expect(economie('end-turn'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
+    expect(suite.vue.zones['combat.ordre'].filter((p) => p.ton === 'alerte').map((p) => p.libelle), 'le bandeau de l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
     ({ suite } = jouer({ offre: 'charge' }));
     expect(suite.vue.projection.combat!.intention, 'l’offre arme son intention').toBe('charge');
-    expect(suite.vue.zones['combat.offres'].find((o) => o.presse)?.id, 'l’offre armée est pressée').toBe('charge');
+    expect(suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs).find((o) => o.presse)?.id, 'l’offre armée est pressée').toBe('charge');
     const [cible] = suite.vue.projection.combat!.cibles.liste; // les cibles que le clic accepte, la Charge armée
     const nomDe = (id: string) => suite.vue.projection.combat!.voisins.liste.find((v) => v.id === id)!.nom;
     const nomDeLaCible = nomDe(cible);
@@ -108,6 +112,10 @@ describe('un tour complet par le pont', () => {
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
+    const offres = suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs);
+    const fermees = suite.vue.projection.combat!.offres!.liste.filter((o) => o.refus !== null);
+    expect(fermees.length, 'l’Action jouée, des offres se ferment').toBeGreaterThan(0);
+    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, refusée avec sa raison').toEqual(fermees.map((o) => o.refus));
     ({ suite } = finirLeTour());
 
     const second = actifDe(suite);
@@ -128,11 +136,17 @@ describe('un tour complet par le pont', () => {
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'defenseJet' } });
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense dit qui attaque').toMatchObject({ type: 'ligne', texte: expect.stringContaining(adversaire.nom) });
     const etape = suite.vue.zones['fenetre.etape'][0]?.texte;
+    expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');
+    const reaction = corpsDe(suite.vue, 'defense/jet');
+    expect(reaction, 'avant le dé, la réaction dit son score à atteindre').toMatchObject({ type: 'jet', cible: expect.stringMatching(/\d+$/), resultat: null, detail: expect.stringMatching(/^base \d+/) });
     expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetRoll@defense');
     const evenements = [...journal];
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
     expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
+    expect(corpsDe(suite.vue, 'defense/jet'), 'le dé tombé, la ligne avant le dé s’efface').toBeUndefined();
+    expect(corpsDe(suite.vue, 'defense/issue'), 'le dé tombé, la Défense dit son issue').toMatchObject({ type: 'ligne', texte: expect.stringMatching(/\S/) });
+    expect(suite.vue.zones['fenetre.corps'].find((e) => e.type === 'jet' && e.libelle === (reaction as Jet).libelle), 'le jet tombé vise le score annoncé avant le dé').toMatchObject({ cible: (reaction as Jet).cible });
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense confirmée, sa fenêtre se ferme').toBeUndefined();

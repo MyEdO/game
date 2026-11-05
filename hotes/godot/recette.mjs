@@ -75,6 +75,8 @@ const actif = (v) => v.projection.combat?.actif
 const zone = (v, z) => v.zones[z]
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
+/** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
+const offre = (v, id) => zone(v, 'combat.offres').flatMap((e) => e.valeurs).find((e) => e.id === id)
 /** Les gestes que la fenêtre dessine : ses réglages, puis ses gestes. */
 const dessines = (v) => [...zone(v, 'fenetre.reglages'), ...zone(v, 'fenetre.gestes')]
 /** Les gestes que la fenêtre dessine, par leur identité. */
@@ -139,11 +141,11 @@ async function parcoursCombat() {
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
   assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
-  const charge = element(v, 'combat.offres', 'charge')
+  const charge = offre(v, 'charge')
   await cliquerBouton(bouton(charge))
   v = await vue()
   assert.equal(v.projection.combat.intention, 'charge', 'l’offre arme son intention')
-  assert.equal(element(v, 'combat.offres', 'charge').presse, true, 'l’offre armée est pressée')
+  assert.equal(offre(v, 'charge').presse, true, 'l’offre armée est pressée')
   const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
   assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   noter(`offre ${charge.libelle} : intention charge, ${v.cases.length} cases peintes`)

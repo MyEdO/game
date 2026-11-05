@@ -117,7 +117,7 @@ export interface ArcaneTable {
   desc: string;
 }
 
-interface ArcaneData {
+export interface ArcaneData {
   saturationLevels: SaturationLevel[];
   windSaturationEffects: WindSaturationEffects[];
   phenomena: ArcanePhenomenon[];

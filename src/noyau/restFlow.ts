@@ -365,7 +365,7 @@ const UPKEEP_STEP_ICON: Record<string, string> = {
 };
 
 /** Convertit les Tests d'entretien DIFFÉRÉS (`runDailyUpkeep` onDeferTest — Faim/Soif/maladie/
- *  convalescence/dessoûlage) en étapes de cascade influençables, avec leur enjeu verbatim (NIGHT_STAKES)
+ *  convalescence/dessoûlage) en étapes de cascade influençables, avec leur enjeu verbatim (`stakes.json`)
  *  quand il est documenté. SOURCE UNIQUE partagée par la nuit (`buildNightCascade`) et l'avance
  *  d'horloge (`advanceTime`). `startIndex` = décalage d'id quand d'autres étapes précèdent (marche forcée). */
 export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeepTest[], startIndex = 0): BuiltCascadeStep[] {

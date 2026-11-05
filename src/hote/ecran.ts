@@ -2,7 +2,7 @@
  * L'ÉCRAN D'UN HÔTE QUI DESSINE LA PARTIE (#2928, #3328), commun aux hôtes qui la montrent au joueur : chaque zone de
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
- * combat (le round et le tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
+ * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
  * le journal. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
@@ -25,9 +25,10 @@ export interface ZonesDeLEcran {
   'fenetre.reglages': (Bouton | Choix | Formulaire)[];
   'fenetre.gestes': (Bouton | Choix | Formulaire)[];
   'combat.tour': Ligne[];
+  'combat.ordre': Puce[];
   'combat.actif': Entite[];
   'combat.avis': Ligne[];
-  'combat.offres': Bouton[];
+  'combat.offres': Choix[];
   'journal.titre': Ligne[];
 }
 
@@ -139,27 +140,33 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 ];
 
 /** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
- *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`), puis les jets de la
- *  fenêtre (`jetsEnVue`). */
+ *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
+ *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`) et l'issue de la Défense. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
   const attaque = fenetreDAttaque(etat);
   if (attaque) return corpsDeLAttaque(etat, attaque);
   const defense = fenetreDeDefense(etat);
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
-    ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme })), ligne('defense/test', t('ecran.defense.test', { test: defense.test }))] : []),
+    ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
+    ...(defense?.jet ? [jet('defense/jet', {
+      qui: nom(defense.defenseurId), libelle: defense.test, cible: t('ecran.jet.cible', { cible: defense.jet.target }), modificateurs: puces('defense/jet', defense.jet.mods),
+      detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
+    })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
+    ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
   ];
 }
 
-/** L'actif du combat : son nom, ses Blessures, son Avantage, son Mouvement, son Action, chacun de ses États. */
+/** L'actif du combat : son nom, ses Blessures et son Mouvement en jauges, puis son Avantage, son Action et chacun de
+ *  ses États en puces. */
 const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   type: 'entite', id: actif.id, ton: 'neutre', nom: actif.nom,
   elements: [
     { type: 'jauge', id: 'blessures', ton: 'neutre', libelle: t('ecran.jauge.blessures'), courant: actif.pb[0], max: actif.pb[1], texte: t('ecran.jauge', { courant: actif.pb[0], max: actif.pb[1] }) },
-    ligne('avantage', t('ecran.avantage', { n: actif.avantage })),
     { type: 'jauge', id: 'mouvement', ton: 'neutre', libelle: t('ecran.jauge.mouvement'), courant: actif.mouvement[0], max: actif.mouvement[1], texte: t('ecran.jauge', { courant: actif.mouvement[0], max: actif.mouvement[1] }) },
-    ligne('action', t('ecran.action', { etat: t(`ecran.action.${actif.action}`) })),
+    puce('avantage', t('ecran.avantage'), String(actif.avantage)),
+    puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
     ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
   ],
 });
@@ -173,12 +180,26 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres ouvertes de l'actif, chacune un bouton qui la joue, son coût dit (`ACTIONS`) ; pressée, l'offre que
- *  l'actif vise. */
-const offresDuCombat = (c: Combat): Bouton[] =>
-  (c.offres?.liste ?? []).map((o) => {
-    const libelle = garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre');
-    return { type: 'bouton', id: o.id, libelle: o.cout === null ? libelle : t('ecran.offre', { libelle, cout: o.cout }), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: null };
+/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise, refusée avec sa
+ *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
+ *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. */
+function offresDuCombat(c: Combat): Choix[] {
+  const offres = c.offres?.liste ?? [];
+  const bouton = (o: (typeof offres)[number]): Bouton => ({
+    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: o.refus,
+  });
+  return [...new Set(offres.map((o) => o.economie))].map((e): Choix => ({
+    type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton),
+  }));
+}
+
+/** L'ordre du tour (`battle.order`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en alerte,
+ *  un ennemi en échec. */
+const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
+  (etat.battle?.order ?? []).flatMap((id) => {
+    const x = porteurParId(etat, id);
+    if (!x) return [];
+    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'enemy' ? 'echec' : 'neutre')];
   });
 
 /** Le ton de chaque issue du combat. */
@@ -208,6 +229,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
     'combat.tour': c ? [ligne('tour', t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
+    'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
     'combat.offres': c ? offresDuCombat(c) : [],

@@ -434,7 +434,7 @@ export interface ActivityDef extends TestSpec {
    *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
    *  unique `resolveStake` (`src/data/index.ts`, dataset `activity`). */
   stake?: string;
-  /** FORME DÉCLARÉE du `stake` — même contrat que `night-stakes`/`flow-stakes` (garde de forme). */
+  /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
   stakeForm?: StakeForm;
   /** FOYER de la règle derrière le jet : l'ENTITÉ qui la porte. Absent = l'Activité elle-même
    *  (sa `desc` verbatim, catégorie Codex `activities`) — jamais une fiche `regles.json` doublon. */

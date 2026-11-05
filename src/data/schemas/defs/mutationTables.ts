@@ -7,25 +7,22 @@ import { plageSchema } from '../grammaire/valeurs';
 export const file = 'mutationTables.json';
 export const famille = 'entite';
 
+export const rangee = nommerChamps(z.strictObject({
+  ...plageSchema.shape,
+  /** id d'une entrée de `mutations.json` (résolu par `rollMutation`/`BY_ID`). */
+  mutation: z.string(),
+}), { ...metaDesChamps(plageSchema, { exigees: true }), mutation: { label: 'Mutation' } });
+
 const doc = document(
   'mutationTables',
   famille,
-  {
-    ranges: z.array(
-      nommerChamps(z.strictObject({
-        ...plageSchema.shape,
-        /** id d'une entrée de `mutations.json` (résolu par `rollMutation`/`BY_ID`). */
-        mutation: z.string(),
-      }), { ...metaDesChamps(plageSchema, { exigees: true }), mutation: { label: 'Mutation' } }),
-    ),
-  },
-  {
-    ranges: { label: 'Plages de tirage', hint: 'Bandes d100 associant chacune une plage à une Mutation par identifiant' },
-  },
+  {},
+  {},
   {
     codex: { keys: ['mutationTables'] },
     edit: { dataset: 'mutationTables' },
   },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

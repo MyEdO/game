@@ -5,6 +5,7 @@
  */
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
+import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
@@ -124,10 +125,7 @@ import grappleJson from './grapple.json';
 import reglesJson from './regles.json';
 import disponibiliteJson from './disponibilite.json';
 import waterExposureJson from './water-exposure.json';
-import nightStakesJson from './night-stakes.json';
-import voyageStakesJson from './voyage-stakes.json';
-import flowStakesJson from './flow-stakes.json';
-import combatStakesJson from './combat-stakes.json';
+import stakesJson from './stakes.json';
 import activitiesStakeJson from './activities.json';
 import actionsJson from './actions.json';
 import axesJson from './axes.json';
@@ -223,73 +221,26 @@ export interface WaterExposureData {
 }
 export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
 
-/** Enjeu VERBATIM (règle 5, #331) d'un `kind` d'étape de la cascade de nuit (`src/noyau/restFlow.ts`,
- *  via `nightStakeRef`) — un `kind` absent du catalogue n'affiche rien (surfaçage progressif). */
-export interface NightStakeEntry {
-  /** Identité STABLE + libellé FR (#422, exposition Codex) — distincts de `kind` (vocabulaire lu par
-   *  `nightStakeRef`), ajoutés pour la navigation/l'édition. */
-  id: string;
-  label: string;
-  kind: string;
-  stake: string;
-  /** FORME DÉCLARÉE du `stake` (garde `night-stake-form.test.ts`) : `verbatim` (défaut) = contigu au
-   *  Source, bloc par bloc ; `descripteur` = assemblage mécanique assumé, fiche `rule` exigée. */
-  form?: StakeForm;
-  source: SourceRef;
-  /** FOYER de la règle derrière l'étape : l'ENTITÉ qui la porte (amendement A) — une fiche
-   *  `regles.json` seulement quand aucune entité ne l'héberge. */
-  rule?: FoyerDeRegle;
-}
-export const NIGHT_STAKES = nightStakesJson as NightStakeEntry[];
+/** CASCADE d'un enjeu de `stakes.json` : la famille de jets qu'il sert — ses valeurs sont celles de
+ *  `StakeKey.dataset` (`schemas/defs/stakes.ts`). */
+export type StakeCascade = 'night' | 'voyage' | 'flow' | 'combat';
 
-/** ENJEU d'un `kind` d'étape de cascade de VOYAGE (#1117) — GABARIT de descripteur mécanique dont les
- *  trous `{nom}` sont remplis par le flux avec ses valeurs CALCULÉES. Distinct de `NightStakeEntry`
- *  (verbatim figé) : cf. `schemas/defs/voyage-stakes.ts`. */
-export interface VoyageStakeEntry {
+/** ENJEU d'un jet de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. Lu à la clé
+ *  `{ dataset: cascade, kind: cle }` par `resolveStake`. */
+export interface StakeEntry {
   id: string;
-  type: 'voyage-stakes';
+  type: 'stakes';
   label: string;
-  kind: string;
-  template: string;
-  /** FOYER de la règle — l'entité qui la PORTE (Compétence, État…), à défaut la fiche de cadre
-   *  de `regles.json`. Même contrat que `flow-stakes`/`combat-stakes`. */
-  rule?: FoyerDeRegle;
-  source: SourceRef;
-}
-export const VOYAGE_STAKES = voyageStakesJson as VoyageStakeEntry[];
-
-/** ENJEU d'un JET DE MODALE MONO (#1117 L1b), keyé par son `id` (`FlowStakeId`). Le foyer de la
- *  règle est l'entité qui la PORTE (`rule`), ou l'ENTRÉE jouée quand `entryCategory`
- *  la déclare : cf. `schemas/defs/flow-stakes.ts`. */
-export interface FlowStakeEntry {
-  id: FlowStakeId;
-  type: 'flow-stakes';
-  label: string;
-  template: string;
-  form: StakeForm;
-  rule?: FoyerDeRegle;
-  /** Catégorie Codex de l'ENTRÉE jouée — le renvoi descend jusqu'à elle quand la clé la nomme. */
-  entryCategory?: string;
-  source: SourceRef;
-}
-export const FLOW_STAKES = flowStakesJson as FlowStakeEntry[];
-/** Id d'un enjeu de modale mono : l'union GÉNÉRÉE des ids de `flow-stakes.json` (`scripts/gen-espaces.mts`). */
-export type FlowStakeId = IdsParEspace['flow-stakes.json'];
-
-/** ENJEU d'un `kind` d'étape de CASCADE (#1117 L2) — jumeau de `FlowStakeEntry`, keyé par un `kind`
- *  au lieu du couple `{flow, phase}` : cf. `schemas/defs/combat-stakes.ts`. Le `kind` est celui de
- *  l'applier servi quand il en existe un ; sinon celui du TIRAGE servi, car une même étape peut
- *  jouer sur deux jeux de tables qui ne mettent pas la même chose en jeu (Imparfaite vs Colère).
- *  Famille née en combat, elle sert toute cascade à étapes (mutation, interlude). */
-export interface CombatStakeEntry {
-  id: string;
-  type: 'combat-stakes';
-  label: string;
-  kind: string;
-  /** Gabarit du descripteur — ABSENT quand l'issue du jet se lit en chips d'ops (#1117) : l'entrée ne
-   *  porte alors que son foyer de règle. `form` le qualifie, donc absente avec lui. */
+  cascade: StakeCascade;
+  /** Clé de consommation : le `kind` de l'étape servie (celui de l'applier, sinon du TIRAGE servi, car
+   *  une même étape peut jouer deux jeux de tables), ou l'id du jet de modale (`FlowStakeId`). */
+  cle: string;
+  /** Gabarit du texte, trous `{nom}` remplis par le producteur — ABSENT quand l'issue du jet se lit en
+   *  chips d'ops (#1117) : l'entrée ne porte alors que son foyer de règle. */
   template?: string;
+  /** Nature du `template` (garde `stake-form.test.ts`), présente si et seulement s'il y en a un. */
   form?: StakeForm;
+  /** FOYER de la règle : l'ENTITÉ qui la porte (amendement A), une fiche `regles.json` à défaut. */
   rule?: FoyerDeRegle;
   /** Catégorie Codex de l'ENTRÉE jouée — le renvoi descend jusqu'à elle quand la clé la nomme. */
   entryCategory?: string;
@@ -300,7 +251,10 @@ export interface CombatStakeEntry {
   entryFromSource?: boolean;
   source: SourceRef;
 }
-export const COMBAT_STAKES = combatStakesJson as CombatStakeEntry[];
+export const STAKES = stakesJson as StakeEntry[];
+/** Id d'un jet de modale mono : l'union GÉNÉRÉE des ids de la cascade `flow` (`scripts/gen-espaces.mts`),
+ *  qui sont aussi leurs `cle`. */
+export type FlowStakeId = IdsParEspace['stakes.json?cascade=flow'];
 
 /** ENJEU d'une ACTIVITÉ (#1117 L3) — porté par l'ENTITÉ elle-même (`activities.json`), pas par un
  *  fichier d'enjeux tiers : une Activité EST déjà une entrée Codex éditable qui porte sa règle en
@@ -358,9 +312,10 @@ export const ACTIONS = actionsJson as ActionDef[];
 /** Action par id STABLE (jamais par libellé). */
 export const findActionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 
-/** DATASET d'enjeux servant une famille de jets (#1117). Union FERMÉE : ajouter une famille = ajouter
- *  son dataset ICI et sa branche dans `resolveStake` — jamais une N-ième porte de résolution. */
-export type StakeDataset = 'night' | 'voyage' | 'weather' | 'flow' | 'activity' | 'combat' | 'etat';
+/** DATASET d'enjeux servant une famille de jets (#1117). Union FERMÉE : une cascade de plus est une
+ *  valeur de `StakeCascade` et ses entrées dans `stakes.json` ; les trois autres familles portent leur
+ *  enjeu sur l'ENTITÉ (météo, Activité, État) et ont chacune leur branche dans `stakeEntry`. */
+export type StakeDataset = StakeCascade | 'weather' | 'activity' | 'etat';
 
 /** CLÉ d'enjeu — la coordonnée de la DONNÉE, jamais son texte. `entryId` fait DESCENDRE la résolution
  *  à l'ENTRÉE jouée quand elle existe (le symptôme d'une étape de maladie, la psychologie affrontée,
@@ -381,9 +336,9 @@ export interface StakeKey {
 
 /** RÉFÉRENCE d'enjeu vers un DATASET : la clé de la donnée + les valeurs CALCULÉES par le flux pour
  *  ses trous. Seule forme ouverte au MOTEUR — un littéral de texte au call-site n'y compile pas
- *  (arbitrage Z5 appliqué à la zone d'enjeu), les producteurs passent par les portes fail-closed
- *  (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`, `voyageStakeRef`, `activityStakeRef`,
- *  `weatherStakeRef`, `stateRecoveryStakeRef`). */
+ *  (arbitrage Z5 appliqué à la zone d'enjeu), les producteurs passent par la porte fail-closed
+ *  `stakeRef`, sous ses signatures typées par famille (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`,
+ *  `voyageStakeRef`, `activityStakeRef`, `weatherStakeRef`, `stateRecoveryStakeRef`). */
 export interface CatalogStake {
   key: StakeKey;
   values?: Record<string, string | number>;
@@ -522,19 +477,14 @@ function shipCritPools(set: ShipCritSet, prefixe: string): Record<string, (id: s
  *  Déclaratif — ajouter une famille à entrées (tables régionales de Lustrie, périls…) = une ligne ICI,
  *  jamais un `if` par kind au rendu. La famille MALADIE l'énumère (les trois étapes de maladie jouent
  *  un SYMPTÔME nommé) ; les jets de modale mono la DÉRIVENT de leur donnée (`entryCategory`). */
-const stakeEntryCatalog = memoParVersion(['flowStakes', 'combatStakes'], (): Record<string, { category: string; has: (id: string) => boolean }> => ({
+const stakeEntryCatalog = memoParVersion(['stakes'], (): Record<string, { category: string; has: (id: string) => boolean }> => ({
   diseaseTick: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   diseaseGangrene: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   diseasePersist: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   ...Object.fromEntries(
-    FLOW_STAKES
+    STAKES
       .filter((e) => e.entryCategory)
-      .map((e) => [e.id, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
-  ),
-  ...Object.fromEntries(
-    COMBAT_STAKES
-      .filter((e) => e.entryCategory)
-      .map((e) => [e.kind, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
+      .map((e) => [e.cle, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
   ),
 }));
 
@@ -555,7 +505,7 @@ const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
  *  (b) DYNAMIQUE BORNÉE : le producteur fournit `key.entryCategory`, valide seulement si le nom
  *      figure dans `STAKE_ENTRY_POOLS` — pour un `kind` jouant sur N catégories connues au tirage
  *      (les Critiques par localisation).
- *  (c) PAR LA SOURCE : le dataset pose `entryFromSource: true` (schéma `defs/combat-stakes.ts`),
+ *  (c) PAR LA SOURCE : le dataset pose `entryFromSource: true` (schéma `defs/stakes.ts`),
  *      qui déclare que la catégorie ne se connaît qu'au RUNTIME — le producteur la tire de
  *      `ActiveEffect.source` (`CATEGORY_BY_SOURCE_KIND`) et la verse par la porte (b) ; le kind
  *      `actGate` en vit (un même gate est exigé par un objet, un Talent, une maladie…).
@@ -583,16 +533,6 @@ function entryText(key: StakeKey): string | undefined {
 }
 
 function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; id: string } } | undefined {
-  // La fiche de l'ENTRÉE jouée PRIME sur celle du `kind` (une étape « Blessé » renvoie au symptôme
-  // Blessé, pas à l'intro du chapitre des maladies) ; à défaut, la fiche du kind.
-  const kindRule = (foyer?: FoyerDeRegle) => entryRule(key) ?? (foyer ? cibleCodex(foyer) : undefined);
-  if (key.dataset === 'night') {
-    const e = NIGHT_STAKES.find((x) => x.kind === key.kind);
-    if (!e) return undefined;
-    // Le FOYER peut être une entité (compétence, État, symptôme) — son type voyage avec l'id.
-    const rule = kindRule(e.rule);
-    return { text: e.stake, ...(rule ? { rule } : {}) };
-  }
   if (key.dataset === 'weather') {
     // MÉTÉO : l'enjeu de la traversée vit sur la CONDITION (`weather.json`, `resistanceTest.enjeu`) —
     // key.kind = l'id de météo. Même porte, même fail-closed : pas d'entrée → pas d'enjeu.
@@ -605,24 +545,6 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     const r = etats.find((x) => x.id === key.kind)?.recover;
     return r ? { text: r.enjeu, rule: { category: 'etats', id: key.kind } } : undefined;
   }
-  if (key.dataset === 'flow') {
-    // MODALES MONO : `key.kind` = l'id de l'entrée. Le FOYER est l'entité porteuse déclarée par
-    // l'entrée ; l'ENTRÉE JOUÉE (chanson, type de Test d'équipage) prime quand la clé la nomme.
-    const e = FLOW_STAKES.find((x) => x.id === key.kind);
-    if (!e) return undefined;
-    const rule = kindRule(e.rule);
-    return { text: entryText(key) ?? e.template, ...(rule ? { rule } : {}) };
-  }
-  if (key.dataset === 'combat') {
-    // COMBAT : `key.kind` = le `kind` de l'applier de cascade. Même règle de foyer que `flow` —
-    // l'ENTRÉE JOUÉE (la maladie contractée, la manœuvre subie, le sort prolongé) prime sur le kind.
-    const e = COMBAT_STAKES.find((x) => x.kind === key.kind);
-    if (!e) return undefined;
-    const rule = kindRule(e.rule);
-    // Entrée SANS gabarit : le foyer voyage seul (aucune phrase à rendre — l'issue se lit en chips).
-    const text = entryText(key) ?? e.template;
-    return { ...(text ? { text } : {}), ...(rule ? { rule } : {}) };
-  }
   if (key.dataset === 'activity') {
     // ACTIVITÉS : `key.kind` = l'id de l'`ActivityDef`. Le FOYER par DÉFAUT est l'Activité ELLE-MÊME
     // (catégorie Codex `activities`, où vit sa `desc` verbatim) — une fiche `regles.json` doublon
@@ -632,54 +554,62 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     if (!e?.stake) return undefined;
     return { text: e.stake, rule: e.rule ? cibleCodex(e.rule) : { category: 'activities', id: e.id } };
   }
-  const e = VOYAGE_STAKES.find((x) => x.kind === key.kind);
+  // CASCADES (`stakes.json`) : `key.dataset` est la cascade, `key.kind` la clé de consommation `cle`.
+  const cascade: StakeCascade = key.dataset;
+  const e = STAKES.find((x) => x.cascade === cascade && x.cle === key.kind);
   if (!e) return undefined;
-  const rule = kindRule(e.rule);
-  return { text: e.template, ...(rule ? { rule } : {}) };
+  // La fiche de l'ENTRÉE jouée PRIME sur celle du `kind` (une étape « Blessé » renvoie au symptôme
+  // Blessé, pas à l'intro du chapitre des maladies ; la maladie contractée, la manœuvre subie, la
+  // chanson chantée) ; à défaut, le foyer que l'entrée déclare.
+  const rule = entryRule(key) ?? (e.rule ? cibleCodex(e.rule) : undefined);
+  // Entrée SANS gabarit : le foyer voyage seul (aucune phrase à rendre — l'issue se lit en chips).
+  const text = entryText(key) ?? e.template;
+  return { ...(text ? { text } : {}), ...(rule ? { rule } : {}) };
 }
 
-/** RÉFÉRENCE d'enjeu de VOYAGE — valide le `kind` À LA CONSTRUCTION (fail-closed au plus tôt : une
- *  étape qui LANCE et dont l'enjeu n'existe pas ne se construit pas). */
-export function voyageStakeRef(kind: string, values?: Record<string, string | number>): StakeRef {
-  if (!stakeEntry({ dataset: 'voyage', kind })) {
-    throw new Error(`voyageStakeRef('${kind}') : aucun gabarit d'enjeu (voyage-stakes.json) — une étape qui LANCE dit ce qu'elle met en jeu`);
+/** RÉFÉRENCE d'enjeu — l'UNIQUE constructeur : la clé se valide À LA CONSTRUCTION (fail-closed au plus
+ *  tôt : une étape qui LANCE et dont l'enjeu n'existe pas ne se construit pas). `entryId` = l'ENTRÉE
+ *  JOUÉE quand l'étape en nomme une (le symptôme, la maladie contractée, la manœuvre subie, la chanson
+ *  chantée) : le renvoi descend alors à SA fiche ; un id inconnu replie sur le foyer de la clé (déclaré,
+ *  jamais silencieux). `entryCategory` = la catégorie FOURNIE par le producteur, pour les clés dont le
+ *  dataset ne peut pas la déclarer (`entryFromSource` : l'entité source d'un effet peut être de
+ *  n'importe quelle nature). */
+function stakeRef(
+  dataset: StakeDataset,
+  kind: string,
+  opts: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> } = {},
+): StakeRef {
+  if (!stakeEntry({ dataset, kind })) {
+    throw new Error(`stakeRef('${dataset}/${kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
-  return { key: { dataset: 'voyage', kind }, ...(values ? { values } : {}) };
+  return {
+    key: {
+      dataset, kind,
+      ...(opts.entryId ? { entryId: opts.entryId } : {}),
+      ...(opts.entryCategory ? { entryCategory: opts.entryCategory } : {}),
+    },
+    ...(opts.values ? { values: opts.values } : {}),
+  };
 }
 
-/** RÉFÉRENCE d'enjeu de COMBAT (#1117 L2) — patron `voyageStakeRef` : le `kind` se valide À LA
- *  CONSTRUCTION (fail-closed au plus tôt). `entryId` = l'ENTRÉE JOUÉE quand l'étape en nomme une dans
- *  son `meta` (la maladie contractée, la manœuvre subie, le sort prolongé) : le renvoi descend alors à
- *  SA fiche ; un id inconnu replie sur le foyer du `kind` (déclaré, jamais silencieux). */
+/** Enjeu d'une étape de cascade de VOYAGE (`stakeRef`) : les valeurs remplissent les trous du gabarit. */
+export function voyageStakeRef(kind: string, values?: Record<string, string | number>): StakeRef {
+  return stakeRef('voyage', kind, { values });
+}
+
+/** Enjeu d'une étape de cascade de COMBAT (#1117 L2, `stakeRef`) : `entryId`/`entryCategory` viennent du
+ *  `meta` de l'étape ou de la source de l'effet. */
 export function combatStakeRef(
   kind: string,
   opts?: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> },
 ): StakeRef {
-  if (!stakeEntry({ dataset: 'combat', kind })) {
-    throw new Error(`combatStakeRef('${kind}') : aucune entrée d'enjeu (combat-stakes.json) — une étape de combat qui LANCE dit ce qu'elle met en jeu`);
-  }
-  return {
-    key: {
-      dataset: 'combat', kind,
-      ...(opts?.entryId ? { entryId: opts.entryId } : {}),
-      // Catégorie FOURNIE par le producteur, pour les kinds dont le dataset ne peut pas la déclarer
-      // (`entryFromSource` : l'entité source d'un effet peut être de n'importe quelle nature).
-      ...(opts?.entryCategory ? { entryCategory: opts.entryCategory } : {}),
-    },
-    ...(opts?.values ? { values: opts.values } : {}),
-  };
+  return stakeRef('combat', kind, opts);
 }
 
-/** RÉFÉRENCE d'enjeu de NUIT — même patron fail-closed que `voyageStakeRef` : le TYPE ferme le
- *  vocabulaire (`NightTestKind`, 16 kinds) en PREMIER rideau, le throw est le second. Plus de
- *  `undefined` rendu en silence : une étape de nuit qui existe a son enjeu authoré.
- *  `entryId` = l'ENTRÉE JOUÉE quand le kind en a une (symptôme d'une étape de maladie) : la fiche
- *  renvoyée descend alors à CETTE entrée. Un id inconnu replie sur la fiche du kind (déclaré). */
+/** Enjeu d'une étape de NUIT (`stakeRef`) : le TYPE ferme le vocabulaire (`NightTestKind`) en PREMIER
+ *  rideau, le throw est le second. `entryId` = le symptôme joué par une étape de maladie. */
 export function nightStakeRef(kind: NightTestKind, entryId?: string): StakeRef {
-  if (!stakeEntry({ dataset: 'night', kind })) {
-    throw new Error(`nightStakeRef('${kind}') : aucune entrée d'enjeu (night-stakes.json) — une étape de nuit qui LANCE dit ce qu'elle met en jeu`);
-  }
-  return { key: { dataset: 'night', kind, ...(entryId ? { entryId } : {}) } };
+  return stakeRef('night', kind, { entryId });
 }
 
 /** L'Activité a-t-elle son enjeu authoré ? PRÉDICAT de la MÊME porte que `activityStakeRef` — pour
@@ -689,48 +619,31 @@ export function hasActivityStake(activityId: string): boolean {
   return !!stakeEntry({ dataset: 'activity', kind: activityId });
 }
 
-/** RÉFÉRENCE d'enjeu d'une ACTIVITÉ (#1117 L3) — patron `voyageStakeRef` : l'id se valide À LA
- *  CONSTRUCTION. Le renvoi vise le foyer déclaré, à défaut la fiche Codex de l'Activité elle-même. */
+/** Enjeu d'une ACTIVITÉ (#1117 L3, `stakeRef`) : le renvoi vise le foyer déclaré, à défaut la fiche
+ *  Codex de l'Activité elle-même. */
 export function activityStakeRef(activityId: string): StakeRef {
-  if (!stakeEntry({ dataset: 'activity', kind: activityId })) {
-    throw new Error(`activityStakeRef('${activityId}') : aucun enjeu authoré (activities.json) — une Activité qui LANCE dit ce qu'elle met en jeu`);
-  }
-  return { key: { dataset: 'activity', kind: activityId } };
+  return stakeRef('activity', activityId);
 }
 
-/** RÉFÉRENCE d'enjeu de MÉTÉO (Test de Résistance de traversée) — fail-closed : l'appelant n'appelle
- *  QUE si la condition déclare un Test (`weatherResistanceTest`), une météo sans enjeu JETTE. */
+/** Enjeu de MÉTÉO (Test de Résistance de traversée, `stakeRef`) : l'appelant n'appelle QUE si la
+ *  condition déclare un Test (`weatherResistanceTest`). */
 export function weatherStakeRef(weatherId: string): StakeRef {
-  if (!stakeEntry({ dataset: 'weather', kind: weatherId })) {
-    throw new Error(`weatherStakeRef('${weatherId}') : aucun enjeu déclaré (weather.json, resistanceTest.enjeu)`);
-  }
-  return { key: { dataset: 'weather', kind: weatherId } };
+  return stakeRef('weather', weatherId);
 }
 
-/** RÉFÉRENCE d'enjeu de RÉCUPÉRATION d'un État — l'appelant n'appelle QUE pour un État qui déclare
- *  `recover` (`etats.json`), dont `enjeu` est exigé au schéma ; un État sans `recover` JETTE. */
+/** Enjeu de RÉCUPÉRATION d'un État (`stakeRef`) : l'appelant n'appelle QUE pour un État qui déclare
+ *  `recover` (`etats.json`), dont `enjeu` est exigé au schéma. */
 export function stateRecoveryStakeRef(etatId: string): StakeRef {
-  if (!stakeEntry({ dataset: 'etat', kind: etatId })) {
-    throw new Error(`stateRecoveryStakeRef('${etatId}') : aucun enjeu déclaré (etats.json, recover.enjeu)`);
-  }
-  return { key: { dataset: 'etat', kind: etatId } };
+  return stakeRef('etat', etatId);
 }
 
-/** RÉFÉRENCE d'enjeu d'une MODALE MONO (#1117 L1b) — patron `voyageStakeRef`. Le TYPE ferme l'id
- *  (`FlowStakeId`, généré) en PREMIER rideau, le throw est le second. `entryId` = l'ENTRÉE JOUÉE quand
- *  le jet en nomme une (la chanson chantée, le type de Test d'équipage) : le renvoi descend alors à SA
- *  fiche ; un id inconnu replie sur le foyer du jet. */
+/** Enjeu d'une MODALE MONO (#1117 L1b, `stakeRef`) : le TYPE ferme l'id (`FlowStakeId`, généré) en
+ *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage. */
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
 ): StakeRef {
-  if (!stakeEntry({ dataset: 'flow', kind: id })) {
-    throw new Error(`flowStakeRef('${id}') : aucune entrée d'enjeu (flow-stakes.json) — une modale qui LANCE dit ce qu'elle met en jeu`);
-  }
-  return {
-    key: { dataset: 'flow', kind: id, ...(opts?.entryId ? { entryId: opts.entryId } : {}) },
-    ...(opts?.values ? { values: opts.values } : {}),
-  };
+  return stakeRef('flow', id, opts);
 }
 
 /** ENTITÉ PORTEUSE d'un enjeu dérivé, résolue en `{catégorie Codex, fiche}` — `undefined` si la
@@ -2335,21 +2248,11 @@ export interface LocationData {
   source: SourceRef;
 }
 /** Ouvrage WFRP4 référencé (bibliographie). `desc` = présentation en texte/Markdown (règle 5). */
-export interface BookData {
+export interface BookData extends EntreeDeLivre {
   id: string;
   type: 'books';
   label: string;
   abbr: string;
-  dir?: string | null;
-  /** Nom du PDF officiel sous `Source/` — résolu par `scripts/raw/_lib.mjs#pdfDe`. */
-  pdf?: string | null;
-  language: string | null;
-  /** Corps de règles dont ce livre est le CŒUR (`4e`, `5e`) — absent (ou vidé à l'atelier) d'un supplément. */
-  coeur?: string | null;
-  /** Teneur des chapitres non couverts par une fiche d'Atlas — absente = livre de RÈGLES. */
-  teneur?: 'scenario' | 'mixte' | null;
-  /** Niveau de heading qui porte les SUJETS de ce livre (`sectionsOf`) — absent = 2. */
-  niveauDeSection?: number | null;
   folder: string | null;
   desc?: string;
 }
@@ -2500,7 +2403,7 @@ export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'mode
   const qualifs = [inst.severity ? libelleDeValeur(symptomSeveritySchema, inst.severity) : null, inst.spec ?? null].filter(Boolean);
   return qualifs.length ? dataLabel(`${symptomLabel(inst.symptomId)} (${qualifs.join(', ')})`) : symptomLabel(inst.symptomId);
 };
-/** Mutations (entités) + Tables de Corruption (plages d100 → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
+/** Mutations (entités) + Tables de Corruption (plages de leur dé → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
  *  app-owned éditables au Codex. Le runtime du tirage (`rollMutation`) vit dans `mutations.ts`. */
 export const mutations = mutationsJson as MutationData[];
 export const mutationTables = mutationTablesJson as MutationTable[];
@@ -2802,7 +2705,7 @@ export interface CrewTestTypeData {
   essential: string;
   /** FOYER de la règle qui ADRESSE le passage MDG 14 de ce Test d'équipage — la règle est à un clic
    *  depuis sa fiche Codex (`cibleCodex`). L'ENJEU AFFICHÉ, lui, est le descripteur d'EFFET du `kind`
-   *  joué (`voyage-stakes.json`, `voyageStake`) : deux natures, deux datasets. */
+   *  joué (`stakes.json`, cascade `voyage`, `voyageStakeRef`) : deux natures, deux datasets. */
   rule?: FoyerDeRegle;
   /** MDG 14 l.110. */
   moraleOnNegativeDR?: boolean;
@@ -2912,10 +2815,10 @@ export const calendarMonths = calendarMonthsJson as { id: string; type: 'calenda
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];
 export const calendarWeekdays = calendarWeekdaysJson as { id: string; type: 'calendarWeekdays'; label: string }[];
 export const calendarPhases = calendarPhasesJson as { id: string; type: 'calendarPhases'; seuil: number; label: string; icon: string }[];
-/** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages d100 → météo par saison ;
+/** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages du dé `die` → météo par saison ;
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {
-  seasons: { id: string; label: string; ranges: { min: number; max: number; weather: string }[] }[];
+  seasons: { id: string; label: string; die: string; entries: { min: number; max: number; weather: string }[] }[];
   physicalTestChars: CharKey[];
   conditions: {
     id: string; label: string; desc?: string;
@@ -2925,7 +2828,7 @@ const weatherData = weatherJson as {
     source?: SourceRef;
   }[];
 };
-/** 1 entrée par saison, `ranges` = plages d100 → météo (lecture par `rollStageWeather`). */
+/** 1 entrée par saison, `entries` = plages de son dé `die` → météo (lecture par `weatherFromRoll`, `weatherDie`). */
 export const weather = weatherData.seasons;
 /**
  * Libellé d'affichage d'une SAISON (`Season`, `src/engine/travelStages.ts`) — SOURCE UNIQUE, keyée par

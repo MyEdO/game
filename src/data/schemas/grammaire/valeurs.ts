@@ -210,9 +210,9 @@ export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'S
 export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
 
 /**
- * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des 6 defs
- * qui portent un enjeu (`night-stakes`, `flow-stakes`, `combat-stakes`, `activities`, `psychology`,
- * `maneuvers`). L'OPTIONALITÉ reste au site : elle se décide par def, pas ici.
+ * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des defs
+ * qui portent un enjeu (`stakes`, `activities`, `psychology`, `maneuvers`, `etats`). L'OPTIONALITÉ reste
+ * au site : elle se décide par def, pas ici.
  */
 export const stakeFormSchema = z.enum(STAKE_FORMS);
 
@@ -234,8 +234,8 @@ export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
 
 /**
  * FOYER de la règle derrière un jet, une action ou une étape : `{ id, type }` (#2820) — la fiche que le
- * ⓘ ouvre. UNE graphie pour les 7 porteurs (`actions`, `activities`, `combat-stakes`, `flow-stakes`,
- * `night-stakes`, `voyage-stakes`, `crew-test-types`), l'id résolu AU PARSE dans l'espace de son type.
+ * ⓘ ouvre. UNE graphie pour ses porteurs (`actions`, `activities`, `stakes`, `crew-test-types`), l'id
+ * résolu AU PARSE dans l'espace de son type.
  */
 export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
 export type FoyerDeRegle = RefTypee<TypeDeFoyer>;

@@ -5,7 +5,7 @@ import { fenetreDeDefense } from '../../noyau/fenetreDeDefense';
 import { libelleDuJet } from '../../noyau/libelles';
 import { t } from '../../i18n';
 import { defenseDodgeMods } from '../../noyau/mount';
-import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
+import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, type DefenseMode } from '../../engine/combat';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';
 import { opposedResponded } from '../opposedFrozen';
@@ -57,7 +57,6 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const defender = battle.combatants.find((c) => c.id === vue.defenseurId);
   if (!attacker || !defender) return null;
   const res = pd.result;
-  const issue = res ? issueAuJet(defender, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defender), pd.weapon, attacker) : null;
   const rolled = !!res;
   // Armes pouvant parer et arme de parade du jet : la fenêtre de Défense du noyau (`fenetreDeDefense`).
   const chosenParry = vue.parade;
@@ -202,9 +201,9 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
     rows: [attackerRow, defenderRow],
     winnerIndex: res?.defenderDetail ? (res.hit ? 0 : 1) : undefined,
     netSL: res?.defenderDetail ? res.netSL : undefined,
-    outcome: res
+    outcome: vue.issue
       ? [recapLineOfEvent(
-          ev(issue?.compte.critiques.length ? 'crit' : res.hit ? 'damage' : pd.mode === 'parade' ? 'parry' : 'dodge', issue?.ligne ?? res.log, attacker.id, defender.id),
+          ev(vue.issue.genre, vue.issue.ligne, attacker.id, defender.id),
           battle.combatants,
         )]
       : undefined,
