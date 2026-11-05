@@ -1077,7 +1077,7 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
 }
 
 export function sortiesDuMarchand(get: Get, set: Set) {
-  return { marche: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;
+  return { marchand: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function cloturesDuMarchand(get: Get, set: Set) {

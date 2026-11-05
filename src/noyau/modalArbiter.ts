@@ -374,7 +374,7 @@ export interface SurfaceHorsPendingDef {
 }
 
 export const SURFACES_HORS_PENDING = [
-  { key: 'marche', tientLaMain: (s) => !!s.merchant, sortie: 'hote' },
+  { key: 'marchand', tientLaMain: (s) => !!s.merchant, sortie: 'hote' },
   { key: 'jeuxDeTaverne', tientLaMain: (s) => !!s.tavernGames, sortie: 'hote' },
   { key: 'document', tientLaMain: (s) => !!s.document, sortie: 'hote' },
   // Montées en EXPLORATION seulement (`ui/CampaignView`) : hors de ce mode, le slot n'a pas d'écran.

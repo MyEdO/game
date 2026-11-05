@@ -3,9 +3,10 @@
  * la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Un tour de `dome` joué par le pont comme
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
- * focus, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
+ * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
  * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, sa première
- * possession choisie (ses gestes refusés en combat), la création d'un héros hors de la partie (`zonesDeLaCreation` sur
+ * possession choisie (ses gestes refusés en combat), le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
+ * fin, sa sortie en focus), la création d'un héros hors de la partie (`zonesDeLaCreation` sur
  * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
  * liste), et un formulaire
  * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
@@ -95,13 +96,22 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));
   figer('jet de Défense tombé', s);
+  /** Le geste du joueur pressé : dans une fenêtre, son geste en focus, sinon sa première valeur ouverte ; sinon, une
+   *  charge ou une attaque sur la première cible, ou la fin du tour. */
+  const presse = (s: Suite): Jeu => {
+    const c = s.vue.projection.combat!;
+    if (s.vue.projection.fenetre) {
+      const g = s.vue.zones['fenetre.gestes'];
+      return g.some((b) => b.type === 'bouton' && b.focus) ? enFocus(s) : g.flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((b) => !b.refus)!.jeu;
+    }
+    const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
+    return c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
+      : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu;
+  };
   for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
     const c = s.vue.projection.combat!;
     if (pas > 300 || c.fin) throw new Error(`aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`);
-    const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
-    s = jouer('jouer', s.vue.projection.fenetre ? enFocus(s)
-      : c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
-        : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu);
+    s = jouer('jouer', presse(s));
   }
   figer('Coup Critique', s);
   s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
@@ -111,6 +121,12 @@ export function figerVuesDeLEcran(): VueFigee[] {
   }
   s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer('fiche du héros, une possession choisie', s);
+  s = appeler('fiche', { fiche: null });
+  for (let pas = 0; !s.vue.projection.combat?.fin; pas++) {
+    if (pas > 600) throw new Error(`aucune fin du combat après ${pas} gestes`);
+    s = jouer('jouer', presse(s));
+  }
+  figer(`fin du combat, ${s.vue.zones['fenetre.titre'][0]?.texte ?? 'sans fenêtre'}`, s);
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
