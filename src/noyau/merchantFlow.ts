@@ -9,7 +9,7 @@ import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
-import { SL_ASTOUNDING, estJete } from '../engine/tests';
+import { SL_ASTOUNDING, cibleMesuree, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './monde/scene';
@@ -30,7 +30,7 @@ import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { startCascade } from './cascade';
-import { freeCons, openPartyTest } from './rollSeam';
+import { freeCons, openPartyTest, rollLine } from './rollSeam';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
@@ -894,8 +894,8 @@ function acquitterLeMarchandage(get: Get, set: Set): void {
 const DETECT_TALENT = 'detection-d-artefact';
 
 /** Compétence testée par CHAQUE mode de la fenêtre Évaluation/Détection, par id STABLE — SOURCE
- *  UNIQUE lue par l'ouverture du jet (`bestDetector`/`openAppraise`) ET par la modale qui décompose
- *  la valeur affichée (`AppraiseModal`, #1178). Détection : Talent « Détection d'artefact »
+ *  UNIQUE du meneur (`bestDetector`/`appraiseLeader`), de la ligne figée à l'ouverture (`openAppraise`) et du
+ *  libellé (`libelleDEvaluation`). Détection : Talent « Détection d'artefact »
  *  (`LDB 10 l.336`). Les Caractéristiques associées sont celles de `skills.json`. */
 export const APPRAISE_SKILL = {
   evaluate: { skill: 'evaluation', characteristic: 'intelligence' },
@@ -936,13 +936,14 @@ function openAppraise(
   const best = appraiseLeader(get().party, mode);
   if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
+  const ligne = rollLine({ actor: best.actor, test: { skill: APPRAISE_SKILL[mode].skill, char: APPRAISE_SKILL[mode].characteristic }, difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', { id: APPRAISE_SKILL[mode].skill }),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
     availability: (t?.availability as string | undefined) ?? null,
-    skillValue: best.value, support: best.support, difficulty: 'intermediaire', target: best.value, roll: null, success: false, sl: 0,
+    ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0,
   } });
 }
 

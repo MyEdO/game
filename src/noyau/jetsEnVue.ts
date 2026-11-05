@@ -4,7 +4,8 @@
  * ligne gagnante et le DR net. Lecteur PUR, partagé par l'écran web (libellés de ligne, graphie du dé nu et du
  * seuil) et par tout hôte qui lit la partie sans écran.
  *
- * Une ligne dont le dé n'est pas tombé est rendue « à lancer » (`jet: null`) avec la cible que le pending porte.
+ * Une ligne dont le dé n'est pas tombé est rendue « à lancer » (`jet: null`) avec la cible annoncée : celle que le
+ * pending porte (flux figés), ou celle du lecteur de ligne que le résolveur jette (flux sur l'acteur vivant).
  * Le jet FIGÉ d'un adversaire n'est rendu qu'une fois la réponse jetée (`ui/opposedFrozen.ts`, #990).
  */
 import type { Jeu } from './etat';
@@ -29,6 +30,7 @@ import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
 import { maladresseCourante, specDeEtape, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import { APPRAISE_SKILL } from './merchantFlow';
+import { ligneDeFrenesie, ligneDuTestNomme } from './rollFlowSpecs';
 
 /** Le dé d'une ligne de Test, une fois tombé. */
 export interface DeDuTest { d100: number; dr: number; reussi: boolean }
@@ -171,6 +173,13 @@ function opposeBinaire(
 
 const pool = (s: Jeu): readonly Combatant[] => s.battle?.combatants ?? s.party;
 
+/** La cible qu'annonce, avant le jet, le lecteur de ligne que le résolveur jette (`ligneDuTestNomme`, `ligneDeFrenesie`)
+ *  sur l'acteur `id` ; `null` sans lui. */
+function cibleDuLecteur(s: Jeu, id: string, lire: (c: Combatant) => { target: number }): number | null {
+  const c = pool(s).find((x) => x.id === id);
+  return c ? lire(c).target : null;
+}
+
 /** Le Test opposé d'un coup tranché : la ligne 0 (l'attaquant) gagne quand le coup touche ; `null` sans jet de
  *  défense. Lu par `lireCoup` et par la fenêtre d'attaque (`fenetreDAttaque`). */
 export function oppositionDuCoup(res: AttackResult): OppositionEnVue | null {
@@ -257,7 +266,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const touche = fleeTouche(pd);
     const lignes: LigneDeJet[] = [
       ...(dos ? [ligne(dos.id, libelleDeTest('dans-le-dos'), dos.result?.attackerDetail)] : []),
-      ...(touche ? [ligne(touche.id, libelleDuTestNomme(touche.test), touche.jet)] : []),
+      ...(touche ? [ligne(touche.id, libelleDuTestNomme(touche.test), touche.jet, cibleDuLecteur(s, touche.id, (c) => ligneDuTestNomme(c, touche.test)))] : []),
     ];
     return vue('flee', lignes);
   },
@@ -286,13 +295,13 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   },
   run: (s) => {
     const pr = s.pendingRun;
-    return pr && vue('run', [ligne(pr.combatantId, libelleDuTestNomme(pr.test), pr.result && { ...pr.result, sl: pr.result.dr })]);
+    return pr && vue('run', [ligne(pr.combatantId, libelleDuTestNomme(pr.test), pr.result && { ...pr.result, sl: pr.result.dr }, cibleDuLecteur(s, pr.combatantId, (c) => ligneDuTestNomme(c, pr.test)))]);
   },
   fall: (s) => {
     const p = s.pendingFall;
     if (!p) return null;
     const test = libelleDuTestNomme(p.test);
-    return vue('fall', p.participants.filter((x) => x.attempt === true).map((x) => ligne(x.id, test, x.result && { ...x.result, sl: x.result.dr })));
+    return vue('fall', p.participants.filter((x) => x.attempt === true).map((x) => ligne(x.id, test, x.result && { ...x.result, sl: x.result.dr }, cibleDuLecteur(s, x.id, (c) => ligneDuTestNomme(c, p.test)))));
   },
   reload: (s) => {
     const p = s.pendingReload;
@@ -316,8 +325,11 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     return p && vue('focus', [ligne(p.casterId, libelleDeTest('focalisation'), r && { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success })]);
   },
   dispel: (s) => s.pendingDispel && vue('dispel', [ligne(s.pendingDispel.casterId, libelleDeTest('langue-magick'), s.pendingDispel.result)]),
-  frenzy: (s) => s.pendingFrenzy && vue('frenzy', [ligne(s.pendingFrenzy.combatantId, libelleDeTest('force-mentale'), s.pendingFrenzy.result)]),
-  approach: (s) => s.pendingApproach && vue('approach', [ligne(s.pendingApproach.combatantId, libelleDuTestNomme(s.pendingApproach.test), s.pendingApproach.result)]),
+  frenzy: (s) => s.pendingFrenzy && vue('frenzy', [ligne(s.pendingFrenzy.combatantId, libelleDeTest('force-mentale'), s.pendingFrenzy.result, cibleDuLecteur(s, s.pendingFrenzy.combatantId, ligneDeFrenesie))]),
+  approach: (s) => {
+    const p = s.pendingApproach;
+    return p && vue('approach', [ligne(p.combatantId, libelleDuTestNomme(p.test), p.result, cibleDuLecteur(s, p.combatantId, (c) => ligneDuTestNomme(c, p.test)))]);
+  },
   ward: (s) => s.pendingWard && vue('ward', [ligne(s.pendingWard.attackerId, libelleDeTest('force-mentale'), s.pendingWard.result)]),
   heal: (s) => {
     const p = s.pendingHeal;
@@ -329,7 +341,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   },
   corruption: (s) => {
     const p = s.pendingCorruption;
-    return p && vue('corruption', [ligne(p.heroId, libelleDuTestNomme(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target)]);
+    return p && vue('corruption', [ligne(p.heroId, libelleDuTestNomme(p.test), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, cibleDuLecteur(s, p.heroId, (c) => ligneDuTestNomme(c, p.test)))]);
   },
   test: (s) => {
     const p = s.pendingTest;
