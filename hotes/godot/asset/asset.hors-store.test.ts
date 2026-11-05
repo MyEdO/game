@@ -954,10 +954,13 @@ describe('publierAssets', () => {
 });
 
 describe('les modèles commités', () => {
+  // Le cache des modèles de la machine (`CACHE_DES_MODELES`, restauré par la CI avant cette suite) : un cache neuf
+  // tirerait de la Release les GLB épinglés, ~45 Mo, à chaque passage. Le délai couvre ce tirage quand l'empreinte
+  // épinglée change et que le cache ne l'a pas encore.
   it('valident chacun leur manifeste contre le GLB épinglé', async () => {
-    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, cache: temporaire(), journal: muet });
+    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: muet });
     expect(modeles.length).toBeGreaterThan(0);
-  });
+  }, 180_000);
   it('sont épinglés chacun par sa provenance', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);
