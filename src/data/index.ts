@@ -5,6 +5,7 @@
  */
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
+import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
@@ -2321,21 +2322,11 @@ export interface LocationData {
   source: SourceRef;
 }
 /** Ouvrage WFRP4 référencé (bibliographie). `desc` = présentation en texte/Markdown (règle 5). */
-export interface BookData {
+export interface BookData extends EntreeDeLivre {
   id: string;
   type: 'books';
   label: string;
   abbr: string;
-  dir?: string | null;
-  /** Nom du PDF officiel sous `Source/` — résolu par `scripts/raw/_lib.mjs#pdfDe`. */
-  pdf?: string | null;
-  language: string | null;
-  /** Corps de règles dont ce livre est le CŒUR (`4e`, `5e`) — absent (ou vidé à l'atelier) d'un supplément. */
-  coeur?: string | null;
-  /** Teneur des chapitres non couverts par une fiche d'Atlas — absente = livre de RÈGLES. */
-  teneur?: 'scenario' | 'mixte' | null;
-  /** Niveau de heading qui porte les SUJETS de ce livre (`sectionsOf`) — absent = 2. */
-  niveauDeSection?: number | null;
   folder: string | null;
   desc?: string;
 }

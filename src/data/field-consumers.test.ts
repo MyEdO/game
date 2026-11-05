@@ -385,7 +385,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
   ActivityStakeEntry: ['stakeForm'],
   AdvanceCostBand: ['max', 'min'],
-  BookData: ['coeur', 'dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
   CombatStakeEntry: ['entryFromSource', 'form'],
   DetailColorData: ['randByRace'],
   DomainData: ['grantGroups'],
@@ -424,7 +423,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
  *  une autre vue) ou par clé dynamique. Les clés d'ENVELOPPE sans lecteur, elles, sont classées par le
  *  rapport (`CLES_ENVELOPPE`). */
 const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
-  'BookData.dir': 'lu sous `EntreeDeLivre` (`src/data/schemas/grammaire/livres-extraits.ts`), vue étroite partagée avec l’outillage `scripts/raw/`',
   'TrappingData.service': 'lu par clé dynamique : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`)',
 };
 
