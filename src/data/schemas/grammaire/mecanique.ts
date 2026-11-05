@@ -49,6 +49,9 @@ export type ArmourBypass = z.infer<typeof armourBypassSchema>;
 /** Ce que l'op `loseTurn` retire ; absent = les deux. */
 export const loseTurnWhatSchema = enumNomme({ action: 'son Action', movement: 'son Mouvement' });
 
+/** Compétences du dieu que frappe l'op `deitySkillMod`. LDB 40 l.61, l.70 */
+export const deitySkillPickSchema = enumNomme({ all: 'toutes', random: 'une au hasard' });
+
 /** Forme d'une `zone`. */
 export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
 
@@ -306,6 +309,7 @@ const DECLARATIONS_D_OPS = {
     suffocates: z.boolean().optional(),
   }), { op: { label: "opération"  }, terrain: { label: "terrain" , texte: { regime: "technique"} }, mSet: { label: "Mouvement imposé" }, testDR: { label: "DR de Test" }, suffocates: { label: "asphyxie" } }),
   skillMod: nommerChamps(z.strictObject({ op: z.literal('skillMod'), skill: refOuSpec('skill'), mod: z.number(), sense: senseSchema.optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, sense: { label: "sens"  } }),
+  deitySkillMod: nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationHours: formulaSchema.optional(), durationDays: formulaSchema.optional() }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationHours: { label: 'durée en heures', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). `testType` : id de
    *  `crew-test-types.json`, document `config` dont les ids vivent sous `types[]` — hors de l'INDEX
    *  DES IDS (`IDS_PAR_ESPACE`, `scripts/gen-espaces.mts`) ; clé étrangère tenue par

@@ -856,6 +856,8 @@ export const fr = {
   'op.martyr': '{caster} recevra les Dégâts subis par {name} ({src}).',
   'op.lifeSteal': '{name} draine {n} Blessure(s).',
   'op.skillMod': '{name} : {mod} aux Tests de {skill} ({src}).',
+  'op.deitySkillMod': '{name} : {mod} aux Tests de {skills} pour {duree} ({src}).',
+  'op.deitySkillMod.sansListe': '{name} : aucune Compétence associée à sa divinité, sans effet ({src}).',
   'op.drBonus': '{name} : bonus de DR aux Tests de {what} ({src}).',
   'op.crewTestMod': '{name} : {mod} aux Tests individuels des Tests d’équipage ({src}).',
   'op.light': '{name} émet de la lumière sur {n} m ({src}).',
