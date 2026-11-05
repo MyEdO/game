@@ -13,10 +13,10 @@ const hero = (): Combatant =>
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [], armour: {}, skills: [], talents: [], movement: 4, items: [],
   })) as unknown as Combatant;
 
-describe('dismissVictory — fermeture de l’écran de victoire', () => {
+describe('sortie de la victoire — fermeture de l’écran de victoire', () => {
   it('ferme l’écran et revient à l’exploration', () => {
     banc.setState({ party: [hero()], battle: { over: 'victory' } as never, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [] } as never });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     const st = banc.getState();
     expect(st.pendingVictory).toBeNull();
     expect(st.battle).toBeNull();
@@ -56,7 +56,7 @@ describe('assignVictoryGear — équipement attribuable, qualités conservées',
 
   it('équipement non attribué → 1er héros à la fermeture (rien de perdu)', () => {
     banc.setState({ battle: { over: 'victory' } as never });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     const it = banc.getState().party[0].items?.find((x) => /dague/i.test(x.label));
     expect(it).toBeTruthy();
   });

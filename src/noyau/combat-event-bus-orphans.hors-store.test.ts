@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emitCombatEvent } from './combatEvents';
-import { applyOpposedCritical } from './combatFlow';
+import { applyCoupCritiqueSec } from './combatFlow';
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -84,10 +84,10 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
 
 /**
  * 7bis (#316) : un Coup Critique OPPOSÉ (LDB 14 l.3 — double au Test opposé) est une Blessure Critique ;
- * `applyOpposedCritical` émet `onCrit` via le bus → les Atouts d'arme « sur Critique » (Taillade
+ * `applyCoupCritiqueSec` émet `onCrit` via le bus → les Atouts d'arme « sur Critique » (Taillade
  * → Hémorragique, AA 8 l.87) s'appliquent, avec l'arme RÉELLE de l'attaquant (weaponObj).
  */
-describe('7bis — applyOpposedCritical émet onCrit (Taillade sur Critique opposé)', () => {
+describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique opposé)', () => {
   const taillade = (): Weapon => ({ label: 'Hache de Taillade', type: 'melee', damage: { plusBF: true, flat: 6 }, qualities: [{ id: 'taillade' }] } as Weapon);
 
   it('un Critique opposé de l’attaquant Taillade → la victime gagne Hémorragique', () => {
@@ -106,7 +106,7 @@ describe('7bis — applyOpposedCritical émet onCrit (Taillade sur Critique oppo
     banc.setState({ battle: { ...b } });
 
     const log: string[] = [];
-    applyOpposedCritical(banc.getState, banc.setState, H, 40, { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, H, 40, 'double', { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log);
 
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.hemorragique)).toBe(true); // onCrit émis par le bus → Taillade appliquée

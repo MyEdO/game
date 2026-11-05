@@ -1,14 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/bulle.gd" id="2_bulle"]
 
 [node name="Puce" type="PanelContainer"]
 theme_type_variation = &"Puce"
-
-[node name="detail" type="Node" parent="."]
-script = ExtResource("1_liaison")
-champ = "detail"
-propriete = &"tooltip_text"
 
 [node name="Rangee" type="HBoxContainer" parent="."]
 
@@ -29,3 +25,12 @@ propriete = &"theme_type_variation"
 script = ExtResource("1_liaison")
 champ = "valeur"
 cacher_si_nul = true
+
+[node name="Bulle" type="Control" parent="."]
+mouse_filter = 1
+script = ExtResource("2_bulle")
+
+[node name="detail" type="Node" parent="Bulle"]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"

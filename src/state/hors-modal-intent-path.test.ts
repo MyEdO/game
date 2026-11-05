@@ -43,6 +43,8 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   confirmRoundStart: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « commencer » (solo)', dans: 'src/noyau/actionRegistry.ts' },
   roundStartReady: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « prêt » (coop)', dans: 'src/noyau/actionRegistry.ts' },
   victoryReady: { parUI: true },
+  // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran.
+  fenetreFermer: { parUI: true },
   // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, relais du
   // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
   raiseHand: { parUI: true },

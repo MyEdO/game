@@ -1,9 +1,9 @@
 /**
  * `<defs>` de dégradés partagés du rendu iso : `defsGlobaux()` regroupe tous les dégradés.
  */
-import { MISSING_GRADIENT, terrainGradientId, terrainStopsOrdonnes } from './catalog/terrain';
+import { MISSING_GRADIENT, terrainGradientId } from './catalog/terrain';
 import { MISSING_TONE, MISSING_TONE_DARK } from './catalog/missing';
-import { tousLesTerrains } from '../noyau/monde/terrain';
+import { tousLesTerrains, terrainStopsOrdonnes } from '../noyau/monde/terrain';
 import { type TerrainDef } from '../data/terrains.types';
 import { memoParVersion } from '../data/versionDataset';
 import { FX_GRADIENTS_DEFS } from './fx/fxGradients';

@@ -86,11 +86,11 @@ Triggers CÂBLÉS par #316 (jadis orphelins) : `onAttackResolved` (fin de résol
 `onCastResolved` (post-`runCastFlow`/`applyCast`), `onMiscast` (`applyMiscast`), `onCharged`
 (`subirLaCharge`, par `declarerLaCharge` — les Flows `grantFreeAttack` sont sautés par le bus, la Frappe réactive
 part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
-(LDB 14 l.7) / dévié (`applyOpposedCritical`, `resolveDeviation` mode `self`) émet désormais `onCrit` via le
+(LDB 14 l.7) / dévié (`applyCoupCritiqueSec`, `resolveDeviation` mode `self`) émet désormais `onCrit` via le
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
 Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Blessure critique non létale, avec
 `triggerCtx.origine` ; un effet `coupCritique: true` (Empaleuse, Poings d'ignominie) ne réagit qu'au Coup Critique
-(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien. `applyOpposedCritical` reste MACHINERIE (ne nomme
+(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien. `applyCoupCritiqueSec` reste MACHINERIE (ne nomme
 aucune entité, §3) — elle ÉMET l'événement, elle n'est pas convertie en hook (un hook de phase ne porte pas
 le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution du Critique opposé).
 

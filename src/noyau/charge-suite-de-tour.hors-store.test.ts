@@ -91,6 +91,11 @@ function ouvrirUneFenetreNeutre(acteurId: string): void {
   startCascade(g, banc.setState, { title: 'T', purpose: 'combat', steps: [{ id: 'aff', kind: cleDeFixture('display'), actorId: acteurId, options: [{ key: 'ok', label: fixtureText('OK') }] }] });
 }
 
+/** Le joueur tranche et valide l'unique étape de la fenêtre neutre : la séquence se clôt (`cascadeNext`). */
+function fermerLaFenetreNeutre(): void {
+  avanceEtapeCascade(g);
+}
+
 /** Le joueur remet l'Auto-combat (effet de la préférence de cadence, `state/preferences.ts`). */
 function remettreLAutoCombat(): void {
   setCadence('auto');
@@ -260,7 +265,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     ouvrirUneFenetreNeutre('h');
     banc.reprendreTout();
     expect([suite(), parquee(), b().acted, b().turn], 'chemin : la suite échue sur la fenêtre est parquée, l’Action dépensée').toEqual(['frappe', true, true, 0]);
-    g().cascadeFinish();
+    fermerLaFenetreNeutre();
     tantQue(auPremierTour);
     expect(attaques('h', 'e'), 'aucune frappe').toBe(0);
     expect(b().turn, 'le tour a avancé une fois').toBe(1);
@@ -360,7 +365,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
     ouvrirUneFenetreNeutre(acteurId);
     banc.avancer(3000);
     const tenue = [suite(), parquee()];
-    g().cascadeFinish();
+    fermerLaFenetreNeutre();
     return tenue;
   };
 
@@ -396,7 +401,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
     expect(decider(), 'chemin : l’IA recharge, puis finit son tour').toBe('avancer');
     const premier = b().tourEnCours?.suite?.n ?? 0;
     ouvrirUneFenetreNeutre('e');
-    g().cascadeFinish(); // la clôture réarme l'« avancer » du tour
+    fermerLaFenetreNeutre(); // la clôture réarme l'« avancer » du tour
     expect(b().tourEnCours?.suite?.n, 'chemin : la suite est réarmée').toBe(premier + 1);
     banc.jusquALaProchaine(); // le minuteur du premier armement
     expect(b().turn, 'le minuteur remplacé n’avance pas le tour').toBe(0);
@@ -467,7 +472,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     passerEnManuel();
     banc.reprendreTout();
     expect([suite(), parquee(), n()], 'chemin : le sort échu sur la fenêtre est parqué, rien incanté').toEqual(['sort', true, 0]);
-    g().cascadeFinish();
+    fermerLaFenetreNeutre();
     g().battleSelectSpell('flechette');
     g().battleClickEntity('e', { confirm: true });
     for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetRoll('cast'); else g().jetConfirm('cast'); }
@@ -496,7 +501,7 @@ describe('#3058 — un déplacement décidé par l’IA ne part pas par-dessus u
       passerEnManuel();
       banc.reprendreTout();
       expect([suite(), parquee(), glisses], 'chemin : le déplacement échu sur la fenêtre est parqué, rien joué').toEqual(['deplacer', true, 0]);
-      g().cascadeFinish();
+      fermerLaFenetreNeutre();
       g().battleClickTile({ x: 8, y: 0 }, { confirm: true });
       expect(b().movementUsed, 'le joueur s’est déplacé à la main').toBeGreaterThan(0);
       const apresLeJoueur = glisses;

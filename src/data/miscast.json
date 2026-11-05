@@ -79,8 +79,10 @@
         "max": 30,
         "label": "Murmures mortels",
         "test": {
-          "characteristic": "force-mentale",
-          "difficulty": "accessible",
+          "test": {
+            "characteristic": "force-mentale",
+            "difficulty": "accessible"
+          },
           "onFail": [
             {
               "op": "corruption",
@@ -235,10 +237,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "intermediaire"
           },
-          "difficulty": "intermediaire",
           "onFail": [
             {
               "op": "condition",
@@ -285,10 +289,12 @@
         "max": 80,
         "label": "L'horreur !",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "difficile"
           },
-          "difficulty": "difficile",
           "onFail": [
             {
               "op": "condition",
@@ -375,10 +381,12 @@
         "max": 5,
         "label": "Voix fantomatiques",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "corruption",
@@ -429,10 +437,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -922,10 +932,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "intermediaire"
           },
-          "difficulty": "intermediaire",
           "onFail": [
             {
               "op": "condition",
@@ -982,8 +994,10 @@
         "max": 70,
         "label": "Murmures mortels",
         "test": {
-          "characteristic": "force-mentale",
-          "difficulty": "accessible",
+          "test": {
+            "characteristic": "force-mentale",
+            "difficulty": "accessible"
+          },
           "onFail": [
             {
               "op": "corruption",
@@ -1003,10 +1017,12 @@
         "max": 75,
         "label": "L'horreur !",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "difficile"
           },
-          "difficulty": "difficile",
           "onFail": [
             {
               "op": "condition",
@@ -1111,10 +1127,12 @@
         "max": 5,
         "label": "Voix fantomatiques",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "corruption",
@@ -1147,10 +1165,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -1481,10 +1501,12 @@
         "max": 5,
         "label": "Visions sacrées",
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -1602,6 +1624,26 @@
         "min": 26,
         "max": 30,
         "label": "Vous ne comprenez pas ma volonté",
+        "ops": [
+          {
+            "op": "deitySkillMod",
+            "pick": "all",
+            "mod": -10,
+            "durationHours": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1662,10 +1704,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -1685,6 +1729,29 @@
         "min": 41,
         "max": 45,
         "label": "Votre cause est indigne",
+        "targetOps": [
+          {
+            "op": "condition",
+            "id": "a-terre",
+            "value": 1
+          },
+          {
+            "op": "deityBan",
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1750,10 +1817,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "intermediaire"
           },
-          "difficulty": "intermediaire",
           "onFail": [
             {
               "op": "condition",
@@ -1773,6 +1842,26 @@
         "min": 56,
         "max": 60,
         "label": "Je ne vous aiderai pas",
+        "ops": [
+          {
+            "op": "deitySkillMod",
+            "pick": "random",
+            "mod": -10,
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1860,10 +1949,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "complexe"
           },
-          "difficulty": "complexe",
           "onFail": [
             {
               "op": "condition",
@@ -1883,6 +1974,24 @@
         "min": 76,
         "max": 80,
         "label": "Vous avez péché contre moi",
+        "ops": [
+          {
+            "op": "prayerForAction",
+            "durationRounds": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -1915,10 +2024,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "difficile"
           },
-          "difficulty": "difficile",
           "onFail": [
             {
               "op": "condition",
@@ -2028,6 +2139,32 @@
         "min": 106,
         "max": 110,
         "label": "Ne prononcez pas mon nom en vain",
+        "ops": [
+          {
+            "op": "suppressTalents",
+            "talents": [
+              {
+                "id": "beni"
+              },
+              {
+                "id": "invocation"
+              }
+            ],
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,
@@ -2050,6 +2187,32 @@
         "min": 116,
         "max": 120,
         "label": "Vous abusez de ma miséricorde",
+        "ops": [
+          {
+            "op": "suppressTalents",
+            "talents": [
+              {
+                "id": "beni"
+              },
+              {
+                "id": "invocation"
+              }
+            ],
+            "durationDays": {
+              "sum": [
+                {
+                  "dice": {
+                    "n": 2,
+                    "sides": 10
+                  }
+                },
+                {
+                  "sinPoints": true
+                }
+              ]
+            }
+          }
+        ],
         "source": {
           "book": "livre-de-base",
           "page": 218,

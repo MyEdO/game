@@ -871,9 +871,8 @@ export interface ActiveEffect {
    *  Cornes), retirée à l'expiration. Dégâts SB-relatifs (« +BF+N ») et Atouts portés par l'arme. */
   naturalWeapon?: Weapon;
   /** Talent ACCORDÉ TEMPORAIREMENT par cet effet (op `grantTalent` à durée — Flambeau de Vertu : Sans
-   *  peur…) : réf par `talentId` STABLE (+ `spec` éventuel), lu tant que l'effet dure par
-   *  `combatFeatures/dispatch.featuresOf` (capacités de combat) et par `effectGrantedTalents` →
-   *  `effectiveTalents` (POSSESSION : fiche, chips, `hasTalent`). JAMAIS posé dans `c.talents` :
+   *  peur…) : réf par `talentId` STABLE (+ `spec` éventuel), lu tant que l'effet dure par la porte de
+   *  POSSESSION `effectiveTalents` (via `effectGrantedTalents`). JAMAIS posé dans `c.talents` :
    *  l'acquisition et l'avancement restent hors de portée d'un octroi qui expire. Un octroi SANS
    *  échéance ne passe pas par ici — il est structurel (`engine/ops.ts`, op `grantTalent`). Rendu à
    *  l'affichage par `talentConcrete`. */
@@ -955,8 +954,9 @@ export interface ActiveEffect {
   diseaseTestMod?: { diseases?: string[]; amount: number };
   /** SOURCE passive SUSPENDUE (identité Codex) : tout ce qu'elle émet est ignoré tant que l'effet dure
    *  — mécanisme général `engine/suspension.ts` (`sourceSuspended`/`suspendSource`), lu par le
-   *  collecteur `passiveMods` et par les cycles de maladie (`symptomSuppressed`). Porteurs : op
-   *  `suppressSymptom` (Racine de terre, LDB 72 l.28) et fenêtre de Détermination (LDB 17 l.61). */
+   *  collecteur `passiveMods`, par les cycles de maladie (`symptomSuppressed`) et, pour un Talent, par la
+   *  porte de possession `effectiveTalents`. Porteurs : ops `suppressSymptom` (Racine de terre, LDB 72
+   *  l.28) et `suppressTalents` (LDB 40 l.80, l.82), fenêtre de Détermination (LDB 17 l.61). */
   suppressedSource?: CodexTarget;
   /** RESTREINT la suspension ci-dessus au SEUL État nommé (#1695) : « Retirez un État » (LDB 17 l.61)
    *  n'écarte qu'UN pion, même quand la source en porte plusieurs (Transmutation de Chamon : Aveuglé,
@@ -970,6 +970,12 @@ export interface ActiveEffect {
    *  porteur en combat, un Test de `char` décide s'il garde Action ET Mouvement (réussite) ou UN seul
    *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
   actGate?: { char: CharKey };
+  /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
+   *  `prayerForActionBy`). LDB 40 l.74 */
+  prayerForAction?: true;
+  /** Divinité (id de `gods.json`) dont les Bénédictions et Miracles échouent sur le porteur (op `deityBan`,
+   *  lu par `prayerBannedOn`). LDB 40 l.64 */
+  deityBan?: string;
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête — Peau de loup d'hiver d'Ulric,
    *  Protection contre la pluie) : `exposureNight` est sauté tant que l'effet dure. */
   weatherImmune?: boolean;

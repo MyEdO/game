@@ -19,7 +19,7 @@ import { TEMPO } from './monde/tempo';
 import { beatHold, approachMs } from './combatDirector';
 import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
-import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
+import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
 import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -31,7 +31,7 @@ import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -47,6 +47,8 @@ import {
   prayerWrathTriggered,
   castBlockedBy,
   prayerSinLock,
+  prayerTalentMissing,
+  prayerBannedOn,
   evaluateMissile,
   spellDRModFor, spellSLFor, spellLandsOn, talentSpellDRMod, zoneTalentSpellDRMod,
   applyFullPower,
@@ -77,7 +79,11 @@ import {
   consumeMalepierre,
   sorceryMandatoryMiscast,
   castOvercastBudget,
+  castingNumberOf,
+  focalisationAboutie,
+  sortInfligeDesDegats,
   type CastResult,
+  type CritChoice,
   type MissileResult,
   type CounterspellOutcome,
   type SpellLike,
@@ -102,7 +108,7 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { idsDuTest, testValue, valeurDuTest, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
@@ -115,7 +121,7 @@ import { STRUCTURE_CRITICALS_DIE, STRUCTURE_CRITICALS_LABEL } from '../data/stru
 import { actorIn, inBattleId } from './monde/combatants';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
-import { touchActors, windsMagicModOf, seaMagicContext } from './combatOrParty';
+import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
@@ -230,6 +236,7 @@ import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, type TableStepDef, type CascadeApplier } from './cascade';
 import { inversionDeTalent } from '../engine/reverseToken';
+import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -437,7 +444,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
 /** LDB 14 l.106, l.116. */
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
-  if (res.attackerRoll > res.attackerDetail.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')) return null; // n'aurait pas touché même sans la pénalité
+  if (!evaluateTest(res.attackerRoll, cibleBrute(res.attackerDetail) - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')).success) return null; // n'aurait pas touché même sans la pénalité
   const allies = (target.engagedWith ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c && c.kind === attacker.kind && !isOutOfAction(c));
@@ -779,7 +786,7 @@ export function resolveAttack(
       if (res.hit && crowd.length) {
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
         const ad = res.attackerDetail!;
-        const rescued = res.attackerRoll > ad.target - (cm?.value ?? 0); // aurait échoué sans le bonus → 0 DR (l.146)
+        const rescued = !evaluateTest(res.attackerRoll, cibleBrute(ad) - (cm?.value ?? 0)).success; // aurait échoué sans le bonus → 0 DR (l.146)
         const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, { rng: battleRng() }, ad, withhold);
         stray.ajouts = [tr('cf.strayHit', { name: victim.label, rescued: rescued ? tr('cf.fragRescued') : '' })];
         return { res: stray, weapon, victim };
@@ -1016,10 +1023,8 @@ export function previewCast(
   spell: NonNullable<ReturnType<typeof findSpell>>,
   opts?: {
     missile?: boolean; focused?: boolean;
-    /** Vents Tourbillonnants (LDB 46 l.179-190) : n'entre dans l'APERÇU pré-jet que si RÉVÉLÉS
-     *  (Seconde vue) — sinon on subit les Vents sans les avoir repérés (le mod reste appliqué au
-     *  jet, cf. `jetRoll('cast')`/`resolveCasting`, mais n'apparaît qu'au breakdown POST-jet). */
-    winds?: { roll: number; mod: number } | null;
+    /** Le jet est tombé : les Vents Tourbillonnants s'y lisent, révélés ou non (`ventsAnnonces`). */
+    jete?: boolean;
     /** CONTEXTE du jet (état + cible visée) : l'aperçu annonce alors la CIBLE RÉELLE — protection de
      *  la victime, attribut et environnement de Domaine (`castContextMods`) compris. Absent (aucune
      *  cible désignée) : aperçu de la seule valeur du lanceur. */
@@ -1030,10 +1035,10 @@ export function previewCast(
   const target = castingValue(caster, ci.skill, ci.spec);
   const advLine = advantageModLine(caster); // Tests d'Incantation
   const penMod = castPenaltyMod(caster, ci.skill); // contrecoups actifs (Imparfaite/Colère)
-  const windsLine = windsModLine(opts?.winds);
-  const windsMod = opts?.winds?.mod ?? 0;
+  const windsLine = opts?.ctx ? ventsAnnonces(opts.ctx.s.battle, !!opts.jete) : null;
+  const windsMod = windsLine?.value ?? 0;
   const isPrayer = !ci.requireNI; // la branche de résolution, pas un proxy sur `cn`
-  const ni = opts?.focused ? 0 : spell.cn ?? 0;
+  const ni = castingNumberOf(spell, opts?.focused, {}, [], caster);
   const ctx = opts?.ctx ? castContextMods(opts.ctx.s, caster, opts.ctx.target, spell, { skipWard: opts.ctx.skipWard }) : null;
   const mods: ModLine[] = [
     ...(advLine ? [advLine] : []),
@@ -2058,7 +2063,7 @@ function autoDeviate(
 /** DÉCLARATION de l'étape UNIQUE d'une Blessure critique (#1426) : le d100 de SÉVÉRITÉ (LDB 18) et la
  *  décision Dévier/Subir (LDB 63 l.30) sont la MÊME fenêtre. `severite` = la table reste à tirer (le
  *  Critique n'existe qu'APRÈS le dé — il est posé par le PLI post-dé, table `plis`) ;
- *  `pretire` = aucune table déclarée pour ce cas (`critSeverityInSeam`, `applyOpposedCritical`), le
+ *  `pretire` = aucune table déclarée pour ce cas (`critSeverityInSeam`, `applyCoupCritiqueSec`), le
  *  Critique voyage alors dans la charge dès le mint. */
 interface DeviationStepSpec {
   targetId: string;
@@ -2115,23 +2120,24 @@ export function weaponHasBlade(w: Weapon | undefined): boolean {
   return w?.type === 'melee' && !!w.bladed;
 }
 
-/** Blessure critique « sèche » d'un Test opposé (LDB 14 l.3) : un double réussi inflige une Blessure
- *  critique à l'adversaire indépendamment du vainqueur de l'échange. Localisation = 1d100 frais (LDB 18
+/** Blessure critique « sèche » de cause `cause` : le double d'un Test opposé (LDB 14 l.3), l'Incantation Critique
+ *  d'un Sort à Dégâts hors Projectile (LDB 46 l.30). Localisation = 1d100 frais (LDB 18
  *  l.53). Critique « sec » → aucune composante de Dégâts de base (overkill=0). La
  *  Déviation Critique (LDB 63 l.30) est offerte sur les TROIS chemins via les atomes partagés, sous le
  *  MÊME prédicat (#1426, `tenuParUnHumain`) : un porteur blindé TENU par un siège humain CHOISIT (étape
  *  `self`), un porteur blindé que personne ne tient voit l'automate trancher (`autoDeviate`, rule-gated),
  *  sinon le Critique est subi (`applyCritAndFinalize`). */
-export function applyOpposedCritical(
+export function applyCoupCritiqueSec(
   get: Get,
   set: SetFn,
   victim: Combatant,
   roll: number,
+  cause: CauseCoupCritique,
   ctx: { attackerId?: string; weapon?: string; weaponObj?: Weapon },
   log: string[],
 ): void {
-  // LDB 14 l.3 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
-  const coup = { coupCritique: 'double' as const, prise: true, current: victim.wounds.current };
+  // LDB 14 l.3 ; LDB 46 l.30 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
+  const coup = { coupCritique: cause, prise: true, current: victim.wounds.current };
   const compte = critiquesDuCoup(victim, { ...coup, touche: true, relance: relanceLaLocalisation(victim, coup), blessures: 0 });
   const [entree] = compte.critiques;
   if (!entree) return;
@@ -2682,7 +2688,7 @@ function appliquerLaTouche(
     // (a) Attaquant : Critique au jet mais échange PERDU (pas de touche) → le défenseur subit un Critique sec.
     if (ad && ad.success && isDoubleRoll(ad.roll) && !res.hit && !isOutOfAction(target)) {
       critLog.push(tr('cf.critDespiteLoss', { name: attacker.label }));
-      applyOpposedCritical(get, set, target, ad.roll, { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog);
+      applyCoupCritiqueSec(get, set, target, ad.roll, 'double', { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog);
     }
     // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee).
     if (dd.success && isDoubleRoll(dd.roll) && !isOutOfAction(attacker) && res.parryWeapon) {
@@ -2693,7 +2699,7 @@ function appliquerLaTouche(
         pushChoice(set, choixPiegeLame(pbt, target, attacker, res.parryWeapon));
       } else {
         critLog.push(tr('cf.critOnDefense', { name: target.label }));
-        applyOpposedCritical(get, set, attacker, dd.roll, { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog);
+        applyCoupCritiqueSec(get, set, attacker, dd.roll, 'double', { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog);
       }
     }
   }
@@ -3038,7 +3044,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
   const battle = get().battle;
   if (!battle || battle.over) return false;
   if (faits.length && checkBattleOver(get, set)) return false;
-  const tirRapideTimes = (c: Combatant) => c.talents?.find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
+  const tirRapideTimes = (c: Combatant) => effectiveTalents(c).find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
   const shooters = battle.combatants
     .filter((s) => !faits.includes(s.id) && aiDriven(get(), s) && canPreemptRanged(s) && canTakeAction(s) && !s.loseNextAction && !isOutOfAction(s) && !!s.pos)
     .sort((a, b) => tirRapideTimes(b) - tirRapideTimes(a)); // LDB 11 l.103
@@ -4315,7 +4321,7 @@ function resumeMeleeAfterSuspension(
  *  de l'IA est gérée par la FERMETURE de la séquence, pas ici). « Subir » applique le Critique pré-tiré
  *  (`dev.crit`) tel quel ; « Dévier » l'ignore (−1 PA). Union discriminée :
  *  - `melee` → RÉ-ENTRE `applyAttackResult` avec la décision (son tail décision-indépendant tourne UNE fois) ;
- *  - `self` → le Critique pré-tiré d'`applyOpposedCritical`. */
+ *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
 export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, deviate: boolean): void {
   const battle = get().battle;
   if (!battle) return;
@@ -4568,7 +4574,7 @@ function liveSinPoints(caster: Combatant, severity: MiscastSeverity): number {
  * LANCEUR les effets mécaniques modélisés (États, Blessures ignorant BE+PA,
  * réduction à 0 + Inconscient). Retourne les lignes de journal.
  */
-export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string }): string[] {
+export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string; targetIds?: string[] }): string[] {
   // Composant d'incantation (LDB 46 l.111, règle optionnelle) : si un composant adapté a été
   // SACRIFIÉ pour ce Sort (consommation décidée et journalisée au point d'incantation — cf.
   // `useSpellComponent`), il absorbe les pires effets du contrecoup : « toute Incantation Imparfaite
@@ -4582,7 +4588,7 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
     }
     return [
       tr('cf.componentDowngrade', { name: caster.label }),
-      ...applyMiscast(get, set, caster, downgraded, { suppressReveal: opts.suppressReveal, sorceryCorruption: opts.sorceryCorruption, domainId: opts.domainId }),
+      ...applyMiscast(get, set, caster, downgraded, { suppressReveal: opts.suppressReveal, sorceryCorruption: opts.sorceryCorruption, domainId: opts.domainId, targetIds: opts.targetIds }),
     ];
   }
   const ctx: PendingMiscastStep = {
@@ -4590,6 +4596,7 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
     ...(opts?.domainId ? { domainId: opts.domainId } : {}),
     ...(opts?.sorceryCorruption ? { sorceryCorruption: true } : {}),
     ...(opts?.suppressReveal ? { suppressReveal: true } : {}),
+    ...(opts?.targetIds?.length ? { targetIds: opts.targetIds } : {}),
   };
   // Le tirage de la table est une étape à TABLE, poussée NON RÉSOLUE (#1426) : aucun effet n'est
   // appliqué avant que le DERNIER dé ne tombe (relances comprises), et il tombe au RANG de l'étape.
@@ -4638,7 +4645,8 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
   // que la même rangée porte (LDB 46 l.55-75, LDB 40 l.56-89).
-  const opsCtx: OpsCtx = {
+  /** Contexte d'application des ops de la rangée au combattant `c` : la Corruption lui revient. */
+  const ctxPour = (c: Combatant): OpsCtx => ({
     rng: battleRng(),
     label: m.label,
     now: get().gameTime,
@@ -4646,9 +4654,19 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     // ligne) dans la catégorie que sa table déclare — sans lui, la pastille d'un effet durable
     // (« Purifier la chair », `LDB 40 l.75`) s'afficherait nue, sans fiche ni popover.
     source: miscastRowSource(miscastTableId(severity), m.rowId),
-    onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined, ...campAdvantageHooks(get),
-  };
+    onCorruption: followsCharacterRules(c) ? (n, align) => gainCorruption(get, set, c, n, align) : undefined, ...campAdvantageHooks(get),
+  });
+  const opsCtx = ctxPour(caster);
   lines.push(...applyOps(caster, m.ops, opsCtx));
+  // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
+  if (m.targetOps.length) {
+    const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
+    if (!cibles.length) lines.push(tr('cf.miscastSansCible', { label: m.label }));
+    for (const c of cibles) {
+      const cibleCtx: OpsCtx = { ...ctxPour(c), caster };
+      lines.push(...applyOps(c, m.targetOps, cibleCtx));
+    }
+  }
   // Sorcellerie : 1 Point de Corruption PAR JET de table (LDB 49 l.5, verbatim en tête de
   // `sorceryCorruptionLines`). Dé tiré inline → `m.tableRolls` compte TOUS les jets de la cascade
   // (relance 96-00, deux lancers d'une Multiplication et leurs relances 91-00) ; dé posé → 1, les
@@ -4691,7 +4709,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
  * Effet déclenché « sur une Imparfaite » (`onMiscast`) — dispatcher générique via le bus. Émis UNE
  * fois par ÉVÉNEMENT d'Imparfaite (une par appel réel ; le repli-composant qui absorbe tout retourne
  * AVANT). C'est le déclencheur qui le dicte, pas le nombre de dés : son libellé joueur est « Sur une
- * Imparfaite » (`ui/compendium/triggerLabels.ts`), et ses consommateurs (hooks de machinerie +
+ * Imparfaite » (`noyau/codex/triggerLabels.ts`), et ses consommateurs (hooks de machinerie +
  * `effects` de donnée) réagissent à l'ÉVÉNEMENT, pas à chaque lancer d'une cascade de relances.
  * D'où l'émission au site d'`applyMiscast` et NON dans le dénouement : sous l'option « Dés fixés »,
  * une Multiplication d'infortune dénoue DEUX fois et sur-déclencherait. Inerte sans donnée.
@@ -4831,14 +4849,14 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
   if (aqshy) get().log(tr('cs.aqshyBonus', { name: caster.label, n: aqshy }));
   // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
   // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
-  const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
-    : {};
   // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
   // Incantation Critique — sa politique (`defaultCritChoice`) est son CHOIX, et elle s'ÉCRIT ici
-  // (LDB 46 l.28-32 : « vous pouvez aussi choisir »). Plus aucun défaut lu en douce par les gardes.
-  const critIA = aiDriven(get(), caster) && res.isCritical
-    ? { critChoice: defaultCritChoice(res, !!pc.missile) }
+  // (LDB 46 l.28-32 : « vous pouvez aussi choisir »). Un lanceur piloté par un humain n'a aucun défaut.
+  const critIA = aiDriven(get(), caster) && res.isCritical && !castInfoIsPrayer(spell)
+    ? { critChoice: defaultCritChoice(res, sortInfligeDesDegats(spell)) }
+    : {};
+  const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
+    ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, critIA.critChoice)
     : {};
   set({ pendingCast: { ...pc, result: res, ...auto, ...critIA } });
   // Dissipation (LDB 46 l.156) : le Contre-sort s'aiguille ICI, AU JET, pour TOUT lanceur (héros,
@@ -4871,6 +4889,23 @@ export function laisserPasserLeContreSort(get: Get, set: SetFn): void {
   resumeAfterCounterspell(get, set); // la chaîne reprend (agnostique IA/zone)
 }
 
+/** Refus d'incanter `spell`, AVANT toute modale, sinon null — porte UNIQUE de `castSpell` et de
+ *  `castZoneSpell` : Sort quand l'Action est due à une Prière (LDB 40 l.74), contrecoup bloquant
+ *  (« Propos ésotériques », « Vous abusez de ma patience »…, LDB 46/40), Talent de Prière que le lanceur ne possède pas (LDB 10 l.109, l.625), verrou de Péché du
+ *  culte lu en DONNÉE (`GodData.sinLocks`, MDG 11 l.148). */
+function refusDIncanter(caster: Combatant, spell: SpellData): string | null {
+  const priere = castInfoIsPrayer(spell);
+  const imposee = priere ? null : refusPriereImposee(caster);
+  if (imposee) return imposee;
+  const blocked = castBlockedBy(caster, priere ? 'priere' : 'langue');
+  if (blocked) return tr(priere ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked });
+  const talentManquant = prayerTalentMissing(caster, spell);
+  if (talentManquant) return tr('cf.prayerTalentMissing', { name: caster.label, talent: tr(talentManquant === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation') });
+  const sinLock = prayerSinLock(caster, spell);
+  if (sinLock) return tr('cf.sinLock', { cult: sinLock.cult, name: caster.label, talent: tr(sinLock.family === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation'), sin: String(caster.sinPoints ?? 0), threshold: String(sinLock.threshold) });
+  return null;
+}
+
 /** Incante un sort/prière sur une cible (résolution via src/engine/magic). */
 /** Ouvre la modale d'incantation (jet différé, façon attaque) : pose `pendingCast` sans lancer. */
 export function castSpell(
@@ -4886,17 +4921,9 @@ export function castSpell(
     castRefused(get, set, caster, tr('cf.spellNotFound', { spell: spellId }));
     return;
   }
-  // Contrecoups bloquants (LDB 46/40) : « Propos ésotériques », « Vous abusez de ma patience »…
-  const blocked = castBlockedBy(caster, castInfoIsPrayer(spell) ? 'priere' : 'langue');
-  if (blocked) {
-    castRefused(get, set, caster, tr(castInfoIsPrayer(spell) ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked }));
-    return;
-  }
-  // Verrou de Péché du culte (MDG 11 l.148 — Stromfels : Invocation retirée à 2 Péchés, Béni à 5) —
-  // lu en DONNÉE (`GodData.sinLocks`), générique à tout culte qui en porterait.
-  const sinLock = prayerSinLock(caster, spell);
-  if (sinLock) {
-    castRefused(get, set, caster, tr('cf.sinLock', { cult: sinLock.cult, name: caster.label, talent: tr(sinLock.family === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation'), sin: String(caster.sinPoints ?? 0), threshold: String(sinLock.threshold) }));
+  const refus = refusDIncanter(caster, spell);
+  if (refus) {
+    castRefused(get, set, caster, refus);
     return;
   }
   // Lecture au grimoire (LDB 47 l.21) : sort NON mémorisé de son Domaine, NI doublé.
@@ -4912,7 +4939,7 @@ export function castSpell(
     castRefused(get, set, caster, horsAtteinte.detail);
     return;
   }
-  const focusedNI0 = caster.focus?.spell === spell.id && caster.focus.dr >= (spell.cn ?? 0);
+  const focusedNI0 = focalisationAboutie(caster, spell);
   set({
     pendingCast: {
       casterId: caster.id, targetId: target.id, spellId: spell.id, missile: breathSpell ? false : isMagicMissile(spell),
@@ -5253,18 +5280,12 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
   if (!spell) return false;
   const r0m = zoneRadiusMeters(spell, caster);
   if (r0m == null) return false;
-  const blocked = castBlockedBy(caster, castInfoIsPrayer(spell) ? 'priere' : 'langue');
-  if (blocked) {
-    castRefused(get, set, caster, tr(castInfoIsPrayer(spell) ? 'cf.cannotPray' : 'cf.cannotCast', { name: caster.label, reason: blocked }));
+  const refus = refusDIncanter(caster, spell);
+  if (refus) {
+    castRefused(get, set, caster, refus);
     return true; // c'était bien une zone — l'entrée est consommée (refus signalé)
   }
-  // Verrou de Péché du culte (MDG 11 l.148) — même gate que `castSpell` (les miracles à ZdE passent ici).
-  const sinLock = prayerSinLock(caster, spell);
-  if (sinLock) {
-    castRefused(get, set, caster, tr('cf.sinLock', { cult: sinLock.cult, name: caster.label, talent: tr(sinLock.family === 'beni' ? 'cf.talentBeni' : 'cf.talentInvocation'), sin: String(caster.sinPoints ?? 0), threshold: String(sinLock.threshold) }));
-    return true;
-  }
-  const focusedNI0 = caster.focus?.spell === spell.id && caster.focus.dr >= (spell.cn ?? 0);
+  const focusedNI0 = focalisationAboutie(caster, spell);
   set({
     pendingCast: {
       casterId: caster.id, targetId: caster.id, spellId: spell.id, missile: isMagicMissile(spell),
@@ -5284,7 +5305,7 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
  *  ENNEMI → `groupOwner:true` (l'arbitre `cascade` met l'owner à '*' : moment partagé + Contre-sort
  *  multi en coop) ; HÉROS → owner dérivé de `actorId` (le lanceur). Hôte aussi l'incantation HORS
  *  COMBAT (couture D) : `CascadeModal` lit `battle?.combatants ?? party`, l'owner = le héros lanceur,
- *  et les résolveurs de cast ferment le pending directement (jamais `cascadeFinish` → pas de reprise IA).
+ *  et les résolveurs de cast ferment le pending directement (jamais la sortie du bilan → pas de reprise IA).
  *
  *  RENVOIE si la fenêtre s'est ouverte : le mint refuse l'étape sans `pendingCast`, et l'appelant reste
  *  maître de la dégradation (il vient de poser le pending, il sait quoi en faire). */
@@ -5373,7 +5394,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const spell = effectiveSpellOf(pc);
   if (!caster?.pos || !spell) return;
   const res = pc.result;
-  if (!castAfterCrit(res, pc.critChoice, !!pc.missile)) return;
+  if (!castAfterCrit(res, pc.critChoice)) return;
   const range = spellRangeTiles(spell.range, caster);
   if (range != null && chebyshev(caster.pos, pt) > range) {
     get().log(tr('cf.zoneOutOfRange', { spell: spell.label, range }));
@@ -5574,10 +5595,11 @@ export function aiOvercastPlan(
   combatants: Combatant[],
   sight?: SpellSight,
   missile = false,
+  critChoice?: CritChoice,
 ): { overcast?: { range: number; zone: number; duration: number; targets: number; damage: number }; extraTargetIds?: string[] } {
   if (!caster.pos) return {};
   const source = overcastSourceOf(spell);
-  const budget = castOvercastBudget(spell, res, undefined, missile);
+  const budget = castOvercastBudget(spell, res, critChoice);
   if (budget <= 0) return {};
   const axes = overcastAxesFor(spell, missile);
   const range = spellRangeTiles(spell.range, caster) ?? Infinity;
@@ -5704,7 +5726,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   }
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
+    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
     : {};
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
@@ -5739,9 +5761,6 @@ export function applyCounterspellFallback(get: Get, set: SetFn, pcs: PendingCoun
   if (ia) applyCounterspell(get, set, ia);
 }
 
-/** Choix du lanceur sur une Incantation CRITIQUE (LDB 46 l.26-32). */
-export type CastCritChoice = 'critique' | 'puissance' | 'ineluctable';
-
 type SortJoue = NonNullable<ReturnType<typeof findSpell>>;
 
 /** Durée par défaut des effets d'un lancement : Rounds `base × mult + bonus`, sinon échéance d'horloge
@@ -5760,7 +5779,7 @@ function sourceDissipableDe(spell: SortJoue, caster: Combatant): OpsCtx['sourceS
   if (castInfoIsPrayer(spell)) return undefined;
   const zdeDiam = zdeDiameterMeters(spell.target, caster);
   return {
-    spellId: spell.id, ni: spell.cn ?? 0, casterId: caster.id, label: spell.label,
+    spellId: spell.id, ni: castingNumberOf(spell, false, {}, [], caster), casterId: caster.id, label: spell.label,
     ...(zdeDiam != null ? { zde: { diametreM: zdeDiam, rayonM: zoneRadiusMeters(spell, caster)! } } : {}),
   };
 }
@@ -6058,7 +6077,7 @@ export function applyCast(
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
   focusedNI0: boolean,
-  critChoice?: CastCritChoice,
+  critChoice?: CritChoice,
   extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; extraTargets?: Combatant[]; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
@@ -6107,9 +6126,8 @@ export function applyCast(
   if (missile && res.cast && overcastDamageSteps > 0) {
     res = evaluateMissile(caster, target, spell, res, undefined, overcastDamageSteps);
   }
-  let choice = critChoice;
+  const choice = critChoice;
   if (crit) {
-    choice ??= defaultCritChoice(res, !!missile);
     if (choice === 'puissance') {
       const full = applyFullPower(res);
       if (full !== res) {
@@ -6142,22 +6160,22 @@ export function applyCast(
   const sorcery = isSort && rule('magic-sorcellerie') === true && isSorceryDomain(spell);
   // Sévérité DÉCIDÉE UNE fois (source unique du delta) : quand elle tombe, l'Imparfaite Mineure du
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
-  const malevolent = malevolentInfluenceSeverity(res.roll, res.roll <= res.target, nearCorruption, res.isFumble);
+  const malevolent = malevolentInfluenceSeverity(res.roll, evaluateTest(res.roll, res.target).success, nearCorruption, res.isFumble);
   const malevolentHandled = malevolent !== null;
+  /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
+   *  tirée (« vos cibles », LDB 40 l.64). */
+  const contrecoup = (severity: MiscastSeverity, opts: Parameters<typeof applyMiscast>[4] = {}): string[] =>
+    applyMiscast(get, set, caster, severity, { ...opts, targetIds: zoneTargets.map((t) => t.id) });
+  /** Options du contrecoup d'un SORT (composant, Sorcellerie, Domaine). */
+  const optsDuSort = { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined };
   /** Imparfaite ADDITIONNELLE due aux Influences malfaisantes / à la Sorcellerie, appliquée UNE fois après le Sort. */
   const applyExtraMiscast = (): void => {
-    if (malevolent) logLines.push(...applyMiscast(get, set, caster, malevolent, { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
-    else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'mineure', { sorceryCorruption: true, domainId: spell.domainId ?? undefined }));
+    if (malevolent) logLines.push(...contrecoup(malevolent, optsDuSort));
+    else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...contrecoup('mineure', { sorceryCorruption: true, domainId: spell.domainId ?? undefined }));
   };
   if (crit) {
-    logLines.push(
-      choice === 'critique'
-        ? tr('cf.castCritical')
-        : choice === 'puissance'
-          ? tr('cf.overcastFullPower')
-          : tr('cf.overcastIrresistible'),
-    );
-    if (!hasInstinctiveDiction(caster)) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+    if (choice) logLines.push(tr(choice === 'critique' ? 'cf.castCritical' : choice === 'puissance' ? 'cf.overcastFullPower' : 'cf.overcastIrresistible'));
+    if (!hasInstinctiveDiction(caster)) logLines.push(...contrecoup('mineure', optsDuSort));
     else logLines.push(tr('cf.dictionInstinctive'));
   }
   // « Avantages et Magie » (LDB 46 l.123-125) : si la cible a déjà été visée par un Sort du
@@ -6226,8 +6244,8 @@ export function applyCast(
     if (res.cast) placeSpellZone(get, caster, target, spell, missileSpec, slFor(target), durationMult, durationBonusRounds, logLines);
     // Maladresse d'un Sort → Incantation Imparfaite Mineure ; sort focalisé dont
     // l'incantation échoue → Imparfaite Mineure également (Livre de base l.183).
-    if (res.isFumble && !malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
-    else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+    if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
+    else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
   } else {
     if (res.cast) {
@@ -6245,6 +6263,8 @@ export function applyCast(
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
         if (opp?.resisted) { logLines.push(tr('cf.spellResisted', { name: t.label, spell: spell.label })); continue; }
+        // LDB 40 l.64
+        if (prayerBannedOn(t, caster, spell)) { logLines.push(tr('cf.prayerBanned', { name: t.label, spell: spell.label })); continue; }
         // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28).
         if (immuneToSpellDomain(t.traits, spell.domainId)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
         // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
@@ -6257,6 +6277,7 @@ export function applyCast(
             continue;
           }
         }
+        const blessuresAvant = t.wounds.current;
         logLines.push(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
@@ -6265,6 +6286,10 @@ export function applyCast(
             sl: opp ? opp.margin : slFor(t), duree, overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
           })),
         );
+        // LDB 46 l.30 ; LDB 18 l.21
+        if (crit && choice === 'critique' && t.wounds.current < blessuresAvant) {
+          applyCoupCritiqueSec(get, set, t, res.roll, 'incantation-critique', { attackerId: caster.id, weapon: spell.label }, logLines);
+        }
         // Métamorphose (Forme bestiale, LDB 48) : op `polymorph` du Flow (on:'target') — appliquée
         // ci-dessus par runCastFlow → applyOps (expansion charMod différentiel + grantTrait via
         // engine/polymorph, auto-restitués à l'expiration). Plus de site dédié.
@@ -6330,11 +6355,11 @@ export function applyCast(
       }
     } else if (res.isFumble) {
       // Prière → Colère des dieux ; Sort → Incantation Imparfaite Mineure (subsumée par la Règle du 8 sur « 88 »).
-      if (castInfoIsPrayer(spell)) logLines.push(...applyMiscast(get, set, caster, 'colere', { componentDowngrade: componentUsed }));
-      else if (!malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+      if (castInfoIsPrayer(spell)) logLines.push(...contrecoup('colere', { componentDowngrade: componentUsed }));
+      else if (!malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     } else if (focusedNI0 && !malevolentHandled) {
       // Sort focalisé dont l'incantation échoue (sans Maladresse) → Imparfaite Mineure.
-      logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
+      logLines.push(...contrecoup('mineure', optsDuSort));
     }
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
     // Sort de SOUTIEN (bénédiction/soin/buff) ou prière non-projectile : émet aussi l'event
@@ -6389,7 +6414,7 @@ export function applyCast(
   // Maladresse, elle, a déjà déclenché la sienne ci-dessus).
   if (castInfoIsPrayer(spell) && !res.isFumble && res.roll > 0 && prayerWrathTriggered(res.roll, caster.sinPoints ?? 0)) {
     logLines.push(tr('cf.wrathTriggered', { units: res.roll % 10, name: caster.label, sin: String(caster.sinPoints) }));
-    logLines.push(...applyMiscast(get, set, caster, 'colere'));
+    logLines.push(...contrecoup('colere'));
   }
 
   // Le sort focalisé est consommé après le lancement.
@@ -7116,7 +7141,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   const brassBefore = toBrass(partyMoneyTotal(get));
   // #9 : on sépare les effets onVictory. Récompenses/flags/journal s'appliquent MAINTENANT (pour peupler
   // l'écran) ; ceux qui CHANGENT le contexte (téléport/dialogue/combat) sont DIFFÉRÉS au clic « Continuer »
-  // (dismissVictory) — sinon le téléport masque l'écran de victoire (cas de l'arène).
+  // (la sortie de la victoire) — sinon le téléport masque l'écran de victoire (cas de l'arène).
   const CONTEXT = new Set(['transition', 'transitionBack', 'startDialogue', 'startCombat']);
   // onVictory est un Flow (UN format avec triggers/dialogues) — on l'APLATIT ici (les `if` résolus contre
   // l'état courant) pour garder la partition CONTEXT/immédiat + la mesure de récompense sur la séquence plate.
@@ -7268,7 +7293,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
- *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`cascadeNext`/`cascadeFinish` →
+ *  fois qu'elle est CLOSE — appelée par la fin de cette séquence (`cascadeNext`, la sortie du bilan →
  *  `dispatchCascadeDone`), seule couture depuis #942 L8. Garde alignée sur celle de `resumeEnemyTurn`. */
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
@@ -7737,8 +7762,9 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   set({ battle: { ...get().battle! } });
   bus.emit(EVT.SCENE_DIRTY);
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
-  // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant.
-  if (!tgt || mv.couru || !canTakeAction(enemy) || combatDistance(enemy, tgt) > meleeReachTiles(enemy.weapons)) {
+  // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
+  // à une Prière (LDB 40 l.74).
+  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || combatDistance(enemy, tgt) > meleeReachTiles(enemy.weapons)) {
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
@@ -8737,7 +8763,7 @@ export const TABLES = {
      *   · OUI — « Subir » applique le Critique montré, « Dévier » l'ignore (−1 PA) : `resolveDeviation` ;
      *   · NON — le Critique est subi, et sa RÉVÉLATION reste DUE (aucune fenêtre ne l'a montrée) : la
      *     reprise part sans `deviation` tranchée, ce qui laisse le chemin normal la produire.
-     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`/`cascadeFinish`
+     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
     deviation: (get, set, step) => {
@@ -8832,7 +8858,7 @@ export const TABLES = {
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critOnDefense', { name: defender.label })];
-        applyOpposedCritical(get, set, attacker, pbt.roll, { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
+        applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
         const b = get().battle!;
         set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'info', defender.id, attacker.id)] } });
         bus.emit(EVT.SCENE_DIRTY);

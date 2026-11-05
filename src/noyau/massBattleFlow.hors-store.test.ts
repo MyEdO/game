@@ -346,7 +346,7 @@ describe('Scène MENACE (Intrus l.219)', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Sanguinaire', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     expect(mbState().activeThreats).not.toContain('intrus');
     expect(mbState().resolvedScenes).toContain('intrus');
   });
@@ -395,7 +395,7 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Mutant', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     const after = mbState();
     expect(armyMight(after.enemy)).toBe(55 - 7);
     expect(after.combatScene).toBeUndefined();
@@ -414,7 +414,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     expect(armyMight(mbState().enemy)).toBe(55 - 20);
     expect(mbState().imposed).not.toContain('charge');
   });
@@ -428,7 +428,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     expect(armyMight(mbState().enemy)).toBe(55 - 10);
     expect(mbState().imposed).toContain('charge');
   });
@@ -439,9 +439,9 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 2, hitters: ['h1'] } },
-      battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
     });
-    banc.getState().dismissDefeat();
+    banc.getState().fenetreFermer('defaite');
     const after = mbState();
     expect(armyMight(after.ally)).toBe(50 - 20);
     expect(armyMight(after.enemy)).toBe(55);
@@ -463,7 +463,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Garde', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().dismissVictory();
+    banc.getState().fenetreFermer('victory');
     expect(armyMight(mbState().ally)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
     expect(mbState().imposed).not.toContain('charge');
   });
@@ -474,9 +474,9 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 1, hitters: ['h1'] } },
-      battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
     });
-    banc.getState().dismissDefeat();
+    banc.getState().fenetreFermer('defaite');
     expect(mbState().imposed).toContain('charge');
     expect(armyMight(mbState().ally)).toBe(50);
     expect(mbState().phase).toBe('round');
@@ -955,17 +955,18 @@ describe('Aléa & fermeture', () => {
     expect(mbState().hazard?.label).toBe('Peur');
   });
 
-  it('endMassBattle ferme la bataille', () => {
-    start();
-    banc.getState().endMassBattle();
+  it('la sortie de la bataille de masse la ferme', () => {
+    start({}, pregenParty(PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    banc.getState().fenetreFermer('batailleDeMasse');
     expect(banc.getState().massBattle).toBeNull();
   });
 
-  it('endMassBattle REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
-    start();
-    prep('inspire');
+  it('la sortie de la bataille de masse REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
+    start({ situations: [['motivation']] }, pregenParty(PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    banc.getState().massBattleScene('motivation');
     const pa = pending()!;
-    banc.getState().endMassBattle();
+    expect(pa?.battle, 'un Test de Scène est ouvert').toBeTruthy();
+    banc.getState().fenetreFermer('batailleDeMasse');
     expect(banc.getState().massBattle, 'le Test lit la bataille jusqu’à son issue').not.toBeNull();
     expect(pending()).toEqual(pa);
     expect(banc.getState().journal.slice(-1)[0]).toBe(`Le Test « ${pa.label} » est en cours : terminez-le avant de clore la bataille.`);

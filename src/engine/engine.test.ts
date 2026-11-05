@@ -634,14 +634,14 @@ describe('Magie — résolution de l’incantation', () => {
     const c = caster({ intelligence: 60 }, [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 1 }]);
     for (let seed = 0; seed < 20; seed++) {
       const res = resolveCasting(c, FLECHETTE, makeRNG(seed));
-      const success = res.roll <= res.target;
+      const success = evaluateTest(res.roll, res.target).success;
       expect(res.cast).toBe(success && res.sl >= 0);
     }
   });
   it('une Prière réussie est lancée sans seuil de NI', () => {
     const c = caster({ sociabilite: 99 }, [{ id: 'priere', characteristic: 'sociabilite', advances: 1 }]);
     const res = resolveCasting(c, PRIERE, makeRNG(2));
-    expect(res.cast).toBe(res.roll <= res.target);
+    expect(res.cast).toBe(evaluateTest(res.roll, res.target).success);
   });
 });
 
@@ -777,7 +777,7 @@ describe('Magie — compétences Avancées (gating)', () => {
     for (let seed = 1; seed <= 6; seed++) {
       const a = resolveCasting(sans, FLECHETTE, makeRNG(seed));
       const b = resolveCasting(avec, FLECHETTE, makeRNG(seed));
-      expect(b.sl).toBe(a.sl + (a.roll <= a.target ? 2 : 0));
+      expect(b.sl).toBe(a.sl + (evaluateTest(a.roll, a.target).success ? 2 : 0));
     }
   });
 
@@ -795,7 +795,7 @@ describe('Magie — compétences Avancées (gating)', () => {
     for (let seed = 1; seed <= 6; seed++) {
       const a = resolveFocus(sans, ARCANE, makeRNG(seed));
       const b = resolveFocus(avec, ARCANE, makeRNG(seed));
-      if (a.roll <= (a.target ?? 0)) expect(b.dr).toBe(a.dr + 3);
+      if (evaluateTest(a.roll, a.target ?? 0).success) expect(b.dr).toBe(a.dr + 3);
       else expect(b.dr).toBe(a.dr); // échec : pas de bonus (« utilisation réussie »)
     }
   });

@@ -87,7 +87,14 @@
     "source": {
       "book": "zoo-imperial",
       "page": 14
-    }
+    },
+    "associatedSkills": [
+      "escalade",
+      "discretion",
+      "piegeage",
+      "survie-en-exterieur"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite du chamane gobelin des forêts qui la sert (ZI 01 : Arboricole, Bénédictions de La Chasse et de Sauvagerie)."
   },
   {
     "id": "dyrath",
@@ -140,7 +147,14 @@
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 90
-    }
+    },
+    "associatedSkills": [
+      "marchandage",
+      "orientation",
+      "escamotage",
+      "evaluation"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Voyage, Commerce, Vol » et des Adorateurs « Marchands, mendiants, voleurs »."
   },
   {
     "id": "grand-pere-reik",
@@ -326,7 +340,13 @@
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 90
-    }
+    },
+    "associatedSkills": [
+      "discretion",
+      "pistage",
+      "perception"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Ombres, Vengeance » et des Adorateurs « Assassins, victimes d'injustice »."
   },
   {
     "id": "manann",
@@ -365,7 +385,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 205
-    }
+    },
+    "associatedSkills": [
+      "voile",
+      "natation",
+      "orientation",
+      "ramer"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Mers, océans » et des Adorateurs « Marins, pêcheurs »."
   },
   {
     "id": "mathlann",
@@ -421,7 +448,13 @@
     "source": {
       "book": "livre-de-base",
       "page": 206
-    }
+    },
+    "associatedSkills": [
+      "calme",
+      "intuition",
+      "perception"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Mort et rêves » et des Adorateurs « Fossoyeurs, endeuillés, chasseurs de morts-vivants, mystiques »."
   },
   {
     "id": "myrmidia",
@@ -460,7 +493,13 @@
     "source": {
       "book": "livre-de-base",
       "page": 207
-    }
+    },
+    "associatedSkills": [
+      "commandement",
+      "corps-a-corps",
+      "projectiles"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Stratégie martiale » et des Adorateurs « stratèges »."
   },
   {
     "id": "nurgle",
@@ -522,7 +561,15 @@
     "source": {
       "book": "livre-de-base",
       "page": 208
-    }
+    },
+    "associatedSkills": [
+      "crochetage",
+      "escamotage",
+      "discretion",
+      "pari",
+      "charme"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Duperie, voleurs, chance » et des Adorateurs « Voleurs, parieurs »."
   },
   {
     "id": "rhya",
@@ -552,7 +599,13 @@
     "source": {
       "book": "livre-de-base",
       "page": 209
-    }
+    },
+    "associatedSkills": [
+      "guerison",
+      "soin-aux-animaux",
+      "survie-en-exterieur"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Fertilité, vie, été » et des Adorateurs « Fermiers, herboristes, sages-femmes »."
   },
   {
     "id": "ringil",
@@ -579,7 +632,14 @@
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 90
-    }
+    },
+    "associatedSkills": [
+      "divertissement",
+      "representation",
+      "charme",
+      "ragot"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Divertissement, Espionnage, Tromperie » et des Adorateurs « Charlatans, amuseurs, espions »."
   },
   {
     "id": "shallya",
@@ -609,7 +669,13 @@
     "source": {
       "book": "livre-de-base",
       "page": 210
-    }
+    },
+    "associatedSkills": [
+      "guerison",
+      "intuition",
+      "calme"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Miséricorde et guérison » et des Adorateurs « médecins, malades »."
   },
   {
     "id": "sigmar",
@@ -640,7 +706,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 211
-    }
+    },
+    "associatedSkills": [
+      "corps-a-corps",
+      "commandement",
+      "calme",
+      "intimidation"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « L'Empire, Reikland » : le dieu guerrier, protecteur du peuple de l'Empire."
   },
   {
     "id": "slaanesh",
@@ -695,7 +768,14 @@
     "source": {
       "book": "mer-des-griffes",
       "page": 88
-    }
+    },
+    "associatedSkills": [
+      "voile",
+      "natation",
+      "intimidation",
+      "corps-a-corps"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite du « Dieu Requin, le prédateur […] le Naufrageur, la fureur de la mer » et de ses fidèles « pirates, pillards ou naufrageurs » (MDG 11)."
   },
   {
     "id": "taal",
@@ -725,7 +805,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 212
-    }
+    },
+    "associatedSkills": [
+      "survie-en-exterieur",
+      "pistage",
+      "emprise-sur-les-animaux",
+      "soin-aux-animaux"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Régions sauvages, printemps » et des Adorateurs « Bergers, forestiers »."
   },
   {
     "id": "tzeentch",
@@ -789,7 +876,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 213
-    }
+    },
+    "associatedSkills": [
+      "corps-a-corps",
+      "survie-en-exterieur",
+      "resistance",
+      "intimidation"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Guerre, hiver, loups » et des Adorateurs « Guerriers »."
   },
   {
     "id": "valaya",
@@ -832,6 +926,12 @@
     "source": {
       "book": "livre-de-base",
       "page": 214
-    }
+    },
+    "associatedSkills": [
+      "savoir",
+      "recherche",
+      "intuition"
+    ],
+    "maison": "Compétences associées « déterminées par le MJ » (LDB 40 l.61, l.70) : liste d'adaptation (arbitrage #1653, 2026-11-05) déduite des Sphères « Apprentissage, justice, sagesse » et des Adorateurs « Scribes, juristes, érudits »."
   }
 ]

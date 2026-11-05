@@ -19,8 +19,6 @@ import { NumberField } from '../NumberField';
 import { stockageDuRoster } from '../../state/roster';
 import { chargerLeRoster, engagerLeHeros } from '../../hote/roster';
 import {
-  species as allSpecies,
-  careersForSpecies,
   classes,
   findCareerById,
   careerLabelFor,
@@ -44,7 +42,6 @@ import {
   stars as starsTable,
   celestialHouses,
   indexParId,
-  memoParVersion,
   spells as allSpells,
   sourceRefLabel,
   skillInstanceLabel,
@@ -91,6 +88,7 @@ import { previewHero } from './CreatorSummary';
 import { CreatorStepFrame, StepHeader, Section, XpBadge, type StepZones } from './CreatorStepFrame';
 import { Band } from '../Band';
 import { fillDraftDefaults } from '../../noyau/creation/defauts';
+import { carrieresOffertes, famillesDEspeces } from '../../noyau/creation/vueDeLaCreation';
 import { QtyStepper } from '../QtyStepper';
 import { CreatorDice } from './CreatorDice';
 import { useRollFrisson, prefersReducedMotion } from '../useRollFrisson';
@@ -120,7 +118,6 @@ import {
   rollDraftTalents,
   withCoastalSwap,
   coastalSwapAvailable,
-  careerRollPool,
   speciesXp,
   careerXp,
   charsXp,
@@ -192,7 +189,7 @@ import {
   probeHero,
   xpTotal,
 } from '../../noyau/creation/brouillon';
-import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_CHARS_KEPT, XP_CHARS_REASSIGNED, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED, speciesAllowed } from '../../engine/creation';
+import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_CHARS_KEPT, XP_CHARS_REASSIGNED, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
 import { formuleDeRevenus } from '../../engine/money';
 import { t as msg } from '../../i18n'; // `msg` : alias local — `t` nomme aussi un trapping ou une minuterie dans ce module
 import { PARTY_MAX } from '../../noyau/monde/combatants';
@@ -219,10 +216,6 @@ export const STEP_META: Record<StepId, { label: string; screen: (p: StepProps) =
   details: { label: 'Détails', screen: DetailsScreen },
   presentation: { label: 'Présentation', screen: PresentationScreen },
 };
-
-/** Espèces mises en avant : celles du Livre de base — dérivé des données, les suppléments
- *  apparaissent automatiquement à la suite. */
-const especesDuLivreDeBase = memoParVersion('species', () => new Set(allSpecies.filter((s) => s.source.book === 'livre-de-base').map((s) => s.id)));
 
 /** Demeure céleste par ID (ADE II 3 l.504-512) — libellé affiché + desc RAW en tooltip du thème astral. */
 const demeureParId = indexParId('celestialHouses', celestialHouses);
@@ -453,31 +446,19 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   const [search, setSearch] = useState('');
   const sp = draftSpecies(d);
 
-  // Groupes par race (`SpeciesData.family` — donnée, jamais une regex sur le libellé),
-  // les races du Livre de base d'abord — l'ordre des familles suit les données ; au sein d'une
-  // famille, la 1ʳᵉ lignée des données EST la canonique (ex. Reiklander pour Humains, LDB 04 l.91).
-  // Une espèce gatée par une règle optionnelle inactive (`SpeciesData.gatedByRule`) n'apparaît pas
-  // dans la grille — MÊME filtre que le Tableau des Races aléatoires (`speciesAllowed`).
-  const families: { family: string; list: SpeciesData[] }[] = [];
-  for (const s of allSpecies) {
-    if (!speciesAllowed(s)) continue;
-    const g = families.find((f) => f.family === s.family);
-    if (g) g.list.push(s);
-    else families.push({ family: s.family, list: [s] });
-  }
-  const socle = especesDuLivreDeBase();
-  families.sort((a, b) => Number(b.list.some((s) => socle.has(s.id))) - Number(a.list.some((s) => socle.has(s.id))));
-  const totalRaces = families.reduce((n, f) => n + f.list.length, 0);
+  // Familles jouables, celles du Livre de base d'abord (`famillesDEspeces`, la lecture des hôtes).
+  const families = famillesDEspeces();
+  const totalRaces = families.reduce((n, f) => n + f.especes.length, 0);
 
   // La recherche filtre les RACES (nom de famille) ET les LIGNÉES (variantes) — une lignée matchée
   // garde/surligne sa carte de race (le filtre agit au niveau famille, jamais en éclatant la grille).
-  const visibleFamilies = filterByLabel(families, (f) => `${f.family} ${f.list.map((s) => s.variant ?? s.label).join(' ')}`, search);
-  const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.family === sp?.family));
+  const visibleFamilies = filterByLabel(families, (f) => `${f.famille} ${f.especes.map((s) => s.variant ?? s.label).join(' ')}`, search);
+  const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.famille === sp?.family));
   const selectFamily = (list: SpeciesData[]) => setD(withSpecies(d, sp && list.some((s) => s.id === sp.id) ? sp.id : list[0].id));
 
   // Lignées de la famille COURANTE (chips en tête du panneau détail) — masquées si la famille n'a
   // qu'une lignée (Gnomes/Hauts elfes/Elfes sylvains/Ogres du LDB) : rien à trancher.
-  const famList = sp ? families.find((f) => f.family === sp.family)?.list ?? [] : [];
+  const famList = sp ? families.find((f) => f.famille === sp.family)?.especes ?? [] : [];
 
   // Encrier de tirage RACE (#393 P3, correction structurelle du verdict utilisateur 2026-07-14) :
   // rangée UNIQUE avec la recherche (recherche à gauche, encrier remplit le reste — pas de section
@@ -539,22 +520,22 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
         className="creator-race-grid"
         count={visibleFamilies.length}
         activeIndex={activeFamilyIdx}
-        onActivate={(idx) => selectFamily(visibleFamilies[idx].list)}
+        onActivate={(idx) => selectFamily(visibleFamilies[idx].especes)}
       >
         {visibleFamilies.map((f, idx) => {
-          const selected = sp?.family === f.family;
-          const rolled = !selected && rolledFamilies.has(f.family);
+          const selected = sp?.family === f.famille;
+          const rolled = !selected && rolledFamilies.has(f.famille);
           return (
             <FigTile
-              key={f.family}
-              label={f.family}
-              sub={`${f.list.length} lignée${f.list.length > 1 ? 's' : ''}`}
+              key={f.famille}
+              label={f.famille}
+              sub={`${f.especes.length} lignée${f.especes.length > 1 ? 's' : ''}`}
               selected={selected}
               sealed={selected}
               fig="big" // surface PRINCIPALE de l'étape (patron `.fam-grid.big`)
               tabIndex={idx === activeFamilyIdx ? 0 : -1}
               className={rolled ? 'rolled' : undefined}
-              onClick={() => selectFamily(f.list)}
+              onClick={() => selectFamily(f.especes)}
             />
           );
         })}
@@ -647,12 +628,8 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
 export function CareerScreen({ d, setD }: StepProps): ReactNode {
   const [search, setSearch] = useState('');
   const sp = draftSpecies(d);
-  // Table EFFECTIVE (#393 P2 correctif utilisateur) : `careersForSpecies` seule renvoie les DEUX
-  // portions Riverains/Côtiers quand la colonne d'espèce les porte toutes deux — la grille doit
-  // rester en phase avec la bascule `coastalSwap` (MÊME exclusivité que le tirage, `careerRollPool`),
-  // sinon la classe désactivée reste visible/sélectionnable quel que soit l'état de la chip.
-  const pool = careerRollPool(d);
-  const accessible = sp ? careersForSpecies(sp.refCareer, d.ignoreRestrictions).filter((c) => pool.some((p) => p.id === c.id)) : [];
+  // Carrières offertes (`carrieresOffertes`, la lecture des hôtes) : la grille suit la bascule `coastalSwap`.
+  const accessible = carrieresOffertes(d);
   const career = findCareerById(d.careerId);
   const levels = levelsForCareer(d.careerId);
   const lvl1 = levels.find((l) => l.level === 1);

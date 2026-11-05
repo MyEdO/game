@@ -225,7 +225,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     expect(banc.getState().travelRecap?.then).toBeTruthy();
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
     // « Faire face » : l'acquittement déclenche le combat.
-    banc.getState().dismissTravelRecap();
+    banc.getState().fenetreFermer('recitDeVoyage');
     st = banc.getState();
     expect(st.battle).toBeTruthy();
     expect(st.travelRecap).toBeNull();
@@ -250,7 +250,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     drainCascade(); // péripétie du jour en cascade → drainer pour l'interruption
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
     expect(banc.getState().travelPlan?.kmDone).toBeCloseTo(12);
-    banc.getState().dismissTravelRecap(); // « Faire face » → le combat démarre
+    banc.getState().fenetreFermer('recitDeVoyage'); // « Faire face » → le combat démarre
     expect(banc.getState().battle).toBeTruthy();
     banc.setState({ battle: null, mode: 'exploration' });
     banc.getState().resumeTravel(); // péripétie TOUJOURS à 100 % — ne doit plus se déclencher
@@ -267,7 +267,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
         then: { kind: 'ambush', scene: 'lieu-a-scene', encounter: 'enc-test', noSurprise: true },
       },
     });
-    banc.getState().dismissTravelRecap();
+    banc.getState().fenetreFermer('recitDeVoyage');
     const st = banc.getState();
     expect(st.battle).toBeTruthy();
     expect(st.travelRecap).toBeNull();
@@ -298,11 +298,11 @@ describe('nourriture en voyage (LDB 18 l.337-343)', () => {
     expect(st.journal.some((l) => l.includes('affamé'))).toBe(true); // récup bloquée journalisée (rest.ts)
   });
 
-  it('openWorldMap/closeWorldMap : overlay piloté par le store (pas en combat)', () => {
+  it('openWorldMap et sa sortie : overlay piloté par le store (pas en combat)', () => {
     setup(map());
     banc.getState().openWorldMap();
     expect(banc.getState().worldMapOpen).toBe(true);
-    banc.getState().closeWorldMap();
+    banc.getState().fenetreFermer('carteDuMonde');
     expect(banc.getState().worldMapOpen).toBe(false);
   });
 });
@@ -319,7 +319,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect(r.kmDone).toBeCloseTo(12);
     expect(r.days.length).toBe(1); // 12 km à M4 = 3 h
     expect(r.days[0].lines.some((l) => l.text.includes('colporteur'))).toBe(true);
-    banc.getState().dismissTravelRecap();
+    banc.getState().fenetreFermer('recitDeVoyage');
     expect(banc.getState().travelRecap).toBeNull();
   });
 
@@ -335,7 +335,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect(r.kmDone).toBeLessThan(30);
     expect(r.days[0].lines.some((l) => l.text.includes('Brigands'))).toBe(true);
     // « Faire face » : le combat différé démarre à l'acquittement du recap.
-    banc.getState().dismissTravelRecap();
+    banc.getState().fenetreFermer('recitDeVoyage');
     expect(banc.getState().battle).toBeTruthy();
     // victoire simulée → reprise : nouveau segment, nouveau recap
     banc.setState({ battle: null, mode: 'exploration' });

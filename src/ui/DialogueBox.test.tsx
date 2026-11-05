@@ -18,7 +18,7 @@ import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { spellMoney, toMoney } from '../engine/money';
-import { placeEntity } from './editor/editorState';
+import { placeEntity } from '../noyau/sceneEdit';
 import { creatureLabel } from '../data';
 
 beforeAll(() => {

@@ -1,7 +1,7 @@
 /**
  * CHAQUE ARGUMENT D'UN VERBE DE FENÊTRE SE DESSINE EN MOTS DU JOUEUR (#2928) : pour chaque verbe que `fenetreDuJeu`
  * peut offrir (`VERBES_DES_FENETRES`), chacun de ses paramètres (`VERBES`), et chaque champ d'un objet, a son libellé
- * (`libelleDuParametre`), hormis ce que la fenêtre pose (`argumentsPosesDuGeste` : `pid`, `flux`) ; chaque valeur littérale que sa forme énumère a le
+ * (`libelleDuParametre`), hormis ce que la fenêtre pose (`argumentsPosesDuGeste` : `pid`, `flux`, `fenetre`) ; chaque valeur littérale que sa forme énumère a le
  * sien (`libelleDuLitteral`) ; chaque désignation qu'elle cite est une désignation du noyau (`DESIGNATIONS`), qui
  * nomme ses éléments. `fenetreADessiner` dessine ainsi, sans id à l'écran, toute fenêtre ouverte.
  */
@@ -13,7 +13,7 @@ import { VERBES } from './verbes.generated';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 
 /** Les paramètres que la fenêtre pose d'office (`argumentsPosesDuGeste`) : aucun ne se saisit. */
-const POSES = new Set(['pid', 'flux']);
+const POSES = new Set(['pid', 'flux', 'fenetre']);
 
 /** Ce qui manque à la forme `f` de l'argument `ou` du verbe `verbe` pour se dessiner. */
 function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {

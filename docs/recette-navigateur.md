@@ -818,7 +818,7 @@ sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénari
 **Flux HORS gestes `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
 les couvrent PAS — cliquer les VRAIS boutons) : `pendingCascade` se
 résout par `cascadeResolveAll` (bouton **« Tout lancer »**, résout d'un coup le reste sans influence)
-puis `cascadeFinish` (bouton **« Terminer »** du bilan) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
+puis `fenetreFermer('cascade')` (bouton **« Terminer »** du bilan, sa sortie) — `jetRoll('cascade', id)`/`cascadeNext` avancent étape
 par étape (bouton « Continuer »/« Terminer » de la dernière étape), cf. `src/ui/CascadeModal.tsx`.
 
 **`pendingTest` seul ne rend RIEN à l'écran** : c'est un slot d'état pur (`noyau/etat.ts`), consommé en
@@ -1673,7 +1673,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 |---|---|---|---|
 | 1 | **Un jet possédé par l'invité surface CHEZ LUI** | `ActiveModal` (`src/ui/ActiveModal.tsx`) ne monte la modale que si le siège local possède le concerné (`modalOwnerOf` + `ownsLocal`) ; `'*'` = tous | **invité** : la modale est rendue (`.modal-overlay`) — **hôte** : rien. Hors tour du concerné (défense réactive), l'hôte a la puce `.spectator-chip` |
 | 2 | **Le `pending*` NE prouve rien** | l'état voyage entier (`instantaneDeLaCoop`, `src/noyau/coop.ts`) | `__wfrp.modal()` répond PAREIL des deux côtés — la possession se lit au DOM, jamais au pending. C'est le piège n°1 d'une recette coop |
-| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/noyau/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/noyau/netOwnership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
+| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/noyau/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/noyau/netOwnership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
 | 4 | **Une bande partagée : chaque siège ses rangées** | `bandStep` (`src/noyau/rollSeam.ts`) pose `groupOwner` dès >1 porteur → `modalOwnerOf` rend `'*'` → fenêtre chez TOUS ; chaque rangée n'est actionnable que par le siège qui possède son acteur (`useOwns`, `src/ui/ownership.ts` — `rollAllUnrolledRows` filtré par `owns`) | la MÊME fenêtre est ouverte des deux côtés ; le bouton de jet d'une rangée n'est servi qu'au siège propriétaire ; « Tout lancer » ne roule QUE les rangées du siège qui clique |
 | 5 | **La Résilience de l'invité sur SA rangée** | `seatInfluences` : un héros non piloté par l'IA n'est influençable que par SON siège (`src/noyau/netOwnership.ts`) ; `canFixDie` (option « Dés fixés ») en dérive | chez l'invité, Chance/Résilience/Pacte ne sont offerts QUE sur sa rangée ; la rangée d'un héros de l'hôte les porte chez l'hôte et pas chez lui |
 | 6 | **Console 0 des DEUX côtés** | — | `guard.errors()` vide pour chacune des deux sessions (un `consoleGuard` par page) |
@@ -2032,8 +2032,8 @@ fichier de données. Chemins vérifiés au registre (`src/ui/compendium/registry
 |---|---|
 | `weather` (table de tirage d100 par saison) | Tables › Voyage terrestre › **Météo de voyage** |
 | `weatherConditions` (effets par météo) | Tables › Voyage terrestre › **Conditions météo** |
-| `mutations` | Effets › **Mutations** (`registry.ts:1576`) — pas sous `Personnage` |
-| `talents` | Compétences › **Talents** (`registry.ts:1441`) — pas sous `Personnage` |
+| `mutations` | Effets › **Mutations** (`registry.ts:1504`) — pas sous `Personnage` |
+| `talents` | Compétences › **Talents** (`registry.ts:1375`) — pas sous `Personnage` |
 
 Les deux niches météo éditent le MÊME fichier (`src/data/weather.json`) sous deux catégories Codex : une
 recette qui vérifie l'édition d'une météo doit dire LAQUELLE des deux elle a ouverte.
@@ -2062,7 +2062,7 @@ l'expression `/^\/source\//` — le motif NU `/source/` attrape aussi, en dev, l
 (`src/data/source/*.ts`, servis par Vite) et rendrait un faux positif ; (3) 0 erreur console
 (`window.__wfrp.errors`). En Atelier, le champ d'édition de l'adresse (`DescRefField`) remplace la
 zone de saisie de prose — et le `textarea` « Description » n'existe PAS sur une entrée adressée (un
-champ DÉRIVÉ ne s'offre pas à l'édition, `estDerive` de `src/ui/compendium/editFields.ts`) :
+champ DÉRIVÉ ne s'offre pas à l'édition, `estDerive` de `src/noyau/codex/editFields.ts`) :
 remettre le livre de l'adresse à vide le fait réapparaître, garni de la prose matérialisée (geste
 « détacher »).
 

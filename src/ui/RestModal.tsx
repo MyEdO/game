@@ -61,7 +61,8 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const net = useGame((s) => s.net);
   const restSet = useGame((s) => s.restSet);
   const restSleep = useGame((s) => s.restSleep);
-  const restCancel = useGame((s) => s.restCancel);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const renoncer = () => fermer('rest');
   const restReady = useGame((s) => s.restReady);
   const severity = useGame((s) => activeExposureSeverity(() => s));
   const pleinAir = useGame((s) => nuitDispenseeParPleinAir(() => s));
@@ -189,7 +190,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   );
   const reglagesFooter = (
     <>
-        {!p.travelHalt && <button className="btn btn-ghost" onClick={() => restCancel()}>Annuler</button>}
+        {!p.travelHalt && <button className="btn btn-ghost" onClick={renoncer}>Annuler</button>}
         {online && !ready[net.mySeat] && (
           <button className="btn" onClick={() => restReady()}><Icon id="action/attack" size="sm" /> Prêt</button>
         )}
@@ -209,7 +210,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
     return <EmbeddedShell title={reglagesTitle} footer={reglagesFooter}>{reglagesBody}</EmbeddedShell>;
   }
   return (
-    <Modal title={reglagesTitle} onClose={p.travelHalt ? undefined : () => restCancel()} footer={reglagesFooter}>
+    <Modal title={reglagesTitle} onClose={p.travelHalt ? undefined : renoncer} footer={reglagesFooter}>
       {reglagesBody}
     </Modal>
   );

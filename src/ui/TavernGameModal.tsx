@@ -56,7 +56,8 @@ export function TavernGameModal() {
   const party = useGame((s) => s.party);
   const play = useGame((s) => s.playTavernGame);
   const replay = useGame((s) => s.openTavernGames);
-  const close = useGame((s) => s.closeTavernGames);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const close = () => fermer('jeuxDeTaverne');
   // Manche EN COURS (jet du challenger surfacé par-dessus, cf. docstring) : masque le formulaire de
   // réglage — la cascade (RollShell) porte l'interaction tant qu'elle n'a pas committé.
   const rolling = useGame(tavernPartieEnCours);
@@ -136,8 +137,8 @@ export function TavernGameModal() {
   const rapide = tavernFastRegime();
   const opt = !rapide ? game?.options?.[0] : undefined;
   const testAffiche = {
-    skill: opt?.skill ?? game?.skill,
-    char: opt?.char ?? (opt?.skill ? undefined : game?.characteristic),
+    skill: opt?.test.skill ?? game?.skill,
+    char: opt?.test.characteristic ?? (opt?.test.skill ? undefined : game?.characteristic),
   };
   const difficulteAffichee: Difficulty | undefined = game && difficulteDuJoueur(difficulteDeBase(game), specialsApplicables(game, challenger));
   const nomDuTest = testSkillLabel(testAffiche) ?? refLabel('skills', { id: 'pari' });

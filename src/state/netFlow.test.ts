@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyNetSnapshot, netHostStart, netJoin, netLeave } from './netFlow';
+import { applyNetSnapshot, netAssign, netAssignSlot, netHostStart, netJoin, netLeave, setGmSeat } from './netFlow';
+import { t } from '../i18n';
+import { makePregens } from '../data/pregens';
 import { instantaneDeLaCoop } from '../noyau/coop';
 import { initialNet } from '../noyau/etat';
 import { useGame } from './store';
@@ -114,5 +116,31 @@ describe('invité : son interface se remet comme chez l’hôte au changement de
     const { enA, enAPlusTard } = snapshotsDeLHote();
     inviteRecoit(enA, enAPlusTard);
     expect(interfaceDeLInvite()).toEqual(INTERFACE_GLISSEE);
+  });
+});
+
+describe('lobby de l’hôte : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
+  const hote = () => ({ ...initialNet(), mode: 'host' as const, roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
+  beforeEach(() => { useGame.setState({ net: hote(), party: [{ ...makePregens()[0], id: 'h' }], battle: null }); });
+
+  it('netAssignSlot vers un emplacement occupé, puis vers un siège hors de la table ; netAssign et setGmSeat vers un siège hors de la table', () => {
+    const avant = useGame.getState().net;
+    const journal = useGame.getState().journal.length;
+    netAssignSlot(useGame.getState, useGame.setState, 0, 1);
+    netAssignSlot(useGame.getState, useGame.setState, 1, 7);
+    netAssign(useGame.getState, useGame.setState, 'h', 7);
+    netAssign(useGame.getState, useGame.setState, 'absent', 1);
+    setGmSeat(useGame.getState, useGame.setState, 7);
+    expect(useGame.getState().net).toBe(avant);
+    expect(useGame.getState().journal.slice(journal)).toEqual([
+      t('coop.assign.slotTaken'), t('coop.assign.seatUnknown'), t('coop.assign.seatUnknown'), t('coop.assign.heroAbsent'), t('coop.assign.seatUnknown'),
+    ]);
+  });
+
+  it('les mêmes gestes vers un emplacement vide et un siège de la table s’appliquent', () => {
+    netAssignSlot(useGame.getState, useGame.setState, 1, 1);
+    netAssign(useGame.getState, useGame.setState, 'h', 1);
+    setGmSeat(useGame.getState, useGame.setState, 1);
+    expect(useGame.getState().net).toMatchObject({ slots: [0, 1, 0, 0], ownership: { h: 1 }, gmSeat: 1 });
   });
 });

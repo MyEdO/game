@@ -37,7 +37,8 @@ export function LandMarketView() {
   const worldMap = useGame((s) => s.worldMap);
   const possessions = useGame((s) => s.possessions);
   const rumours = useGame((s) => s.tradeRumours);
-  const close = useGame((s) => s.closeLandMarket);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const close = () => fermer('marcheDeTerre');
   const buy = useGame((s) => s.landBuyCargo);
   const sell = useGame((s) => s.landSellCargo);
   const dump = useGame((s) => s.landDumpCargo);

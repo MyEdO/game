@@ -11,12 +11,10 @@
  */
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
-import { HitLocation, ItemInstance, Combatant } from '../engine/types';
-import { isCapeItem, isWearable, containerFillEnc, canStow, armourLayer, itemLabel } from '../engine/items';
+import { HitLocation, ItemInstance } from '../engine/types';
+import { isCapeItem, containerFillEnc, armourLayer, itemLabel } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
-import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, type Carrier } from '../noyau/monde/carrier';
-import { carriersColocated } from '../engine/cargo';
+import { gestesDeLObjet, type GestesDeLObjet } from '../noyau/gestesDeLObjet';
 import { weaponStatParts } from '../engine/weaponStats';
 import { PlaqueRow } from './PlaqueRow';
 import { ItemIcon } from './ItemIcon';
@@ -29,7 +27,6 @@ import { QualityChips } from './EntityChip';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { prefixOf } from './PossessionsRegistry';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusDInventaire } from '../noyau/verrousDeFiche';
 
 const LOC_SHORT: Record<HitLocation, string> = {
   tete: 'Tête',
@@ -48,15 +45,13 @@ export interface CarrierInventoryProps {
   /** BF du porteur pour le calcul mécanique des armes — `forceDuPorteur(hero)` côté héros ; nul par
    *  défaut (porteur sans caractéristiques). */
   force?: { bf: number; passif: number };
-  /** Autre porteurs éligibles au « Donner » (typiquement le reste du groupe) — filtré de `carrierId`. */
-  party?: Combatant[];
   /** Surbrillance « équipé/en main » d'une arme — défaut `it.equipped` (héros injecte `isWeaponActive`). */
   weaponHighlighted?: (it: ItemInstance) => boolean;
   /** Libellé de main portée d'une arme (« Main principale/secondaire ») — défaut aucun (« En main »). */
   weaponHandLabel?: (it: ItemInstance) => ReactNode | null;
-  /** Extensions HÉROS-ONLY par objet (sets d'armes, Évaluer/Détecter, Utiliser un consommable),
-   *  insérées AVANT les actions communes de la rangée. */
-  rowExtra?: (it: ItemInstance) => ReactNode;
+  /** Extensions HÉROS-ONLY par objet (sets d'armes, Évaluer/Détecter, Utiliser un consommable), d'après ses gestes
+   *  (`gestesDeLObjet`), insérées AVANT les actions communes de la rangée. */
+  rowExtra?: (it: ItemInstance, gestes: GestesDeLObjet) => ReactNode;
 }
 
 /** Groupes d'affichage du Sac (E3, langage du registre État) — chaque objet dans son PREMIER groupe. */
@@ -71,7 +66,6 @@ export function CarrierInventory({
   carrierId,
   items,
   force = { bf: 0, passif: 0 },
-  party = [],
   weaponHighlighted,
   weaponHandLabel,
   rowExtra,
@@ -80,22 +74,12 @@ export function CarrierInventory({
   const stowItem = useGame((s) => s.stowItem);
   const transferItem = useGame((s) => s.transferItem);
   const battle = useGame((s) => s.battle);
-  // Verdict du noyau, celui que rendent les gestes d'objet (porter, ranger, sortir, donner).
-  const refusInventaire = refusDInventaire({ battle });
+  const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
+  const gameTime = useGame((s) => s.gameTime);
   // Registre (#492 lot POSSESSIONS B) : un clic ÉLIT une seule rangée à la fois (ré-clic désélectionne).
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const carrier = { items };
-
-  // Cibles « Donner » (#723) : héros ET possessions CO-LOCALISÉES avec le porteur source (`carriersColocated`,
-  // MÊME verdict que le refus de `transferItem` — l'UI n'en est que le reflet, jamais une 2e vérité).
-  const sourceCarrier = resolveCarrier({ party, possessions }, carrierId);
-  const isCoLocated = (c: Carrier) => !!sourceCarrier && carriersColocated(porteurLocalise(sourceCarrier), porteurLocalise(c));
-  const otherHeroes = party.filter((p) => p.id !== carrierId && isCoLocated({ kind: 'hero', hero: p }));
-  const otherPossessions = possessions.filter(
-    (p) => p.uid !== carrierId && !p.destroyed && isCoLocated({ kind: 'possession', possession: p }),
-  );
-  const otherCarriers = [...otherHeroes, ...otherPossessions];
 
   const itemStats = (it: ItemInstance): ReactNode => {
     // Objet non identifié : ses qualités sont MASQUÉES à l'affichage (elles restent actives au combat) ;
@@ -118,10 +102,7 @@ export function CarrierInventory({
   const renderRow = (it: ItemInstance, indent = false): ReactNode => {
     const isProsthesis = it.subType === 'protheses'; // prothèse (LDB 73, Groupe id) : se PORTE pour annuler un malus d'amputation
     const isCape = isCapeItem(it); // cape/manteau : emplacement Cape (cosmétique, onglet Combat)
-    const consumable = isConsumable(it); // bandages / potion : utilisable depuis la fiche
-    const equipable = isWearable(it) && !consumable; // armure/accessoire porté sur le corps (LDB 61) — pas une arme (tenue), pas un consommable
-    // Rangement (LDB 64) : contenants où CET objet tient ; objet rangeable = ni contenant, ni déjà rangé, ≥1 sac dispo.
-    const containers = it.container || it.inside ? [] : items.filter((i) => i.container && canStow(carrier, it, i.uid));
+    const gestes = gestesDeLObjet({ battle, party, possessions, gameTime }, carrierId, it.uid);
     const isWeaponItem = it.kind === 'melee' || it.kind === 'ranged';
     const handLabel = isWeaponItem ? (weaponHandLabel?.(it) ?? null) : null;
     // Surbrillance « équipé » : arme tenue dans le set ACTIF (défaut `it.equipped`) ; sinon armure portée.
@@ -158,64 +139,64 @@ export function CarrierInventory({
           onClick={() => setSelectedUid(selected ? null : it.uid)}
           className={indent ? 'inv-item-nested' : undefined}
         />
-        {selected && (
+        {selected && gestes && (
           <div className="inv-actionbar">
-            {rowExtra?.(it)}
-            {equipable ? (
+            {rowExtra?.(it, gestes)}
+            {gestes.porter && (
               <GatedAction
                 id={`inv-equip-${it.uid}`}
-                label={it.kind === 'armor' ? (it.equipped ? 'Équipé' : 'Équiper') : it.equipped ? 'Portée' : 'Porter'}
-                enabled={!refusInventaire}
-                {...raisonSi(refusInventaire)}
+                label={it.kind === 'armor' ? (gestes.porter.porte ? 'Équipé' : 'Équiper') : gestes.porter.porte ? 'Portée' : 'Porter'}
+                enabled={!gestes.porter.refus}
+                {...raisonSi(gestes.porter.refus)}
                 descOfferte={isProsthesis ? 'Porter la prothèse (annule le malus d’amputation correspondant)' : isCape ? 'Porter la cape (cosmétique — visible dans le dos du héros)' : it.kind === 'misc' ? 'Porter (−1 Enc)' : undefined}
                 onClick={() => toggleEquip(carrierId, it.uid)}
                 primary={false}
-                ariaPressed={!!it.equipped}
+                ariaPressed={gestes.porter.porte}
                 btnClassName="small"
               />
-            ) : null}
-            {containers.length > 0 && refusInventaire && (
-              <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="item/misc" size="sm" /> Ranger</>} enabled={false} {...raisonSi(refusInventaire)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
-            {containers.length > 0 && !refusInventaire && (
+            {gestes.ranger?.refus && (
+              <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="item/misc" size="sm" /> Ranger</>} enabled={false} {...raisonSi(gestes.ranger.refus)} onClick={() => {}} primary={false} btnClassName="small" />
+            )}
+            {gestes.ranger && !gestes.ranger.refus && (
               <MediaSelect
                 align="right"
                 triggerClassName="btn small"
                 title="Ranger dans un contenant"
                 trigger={<><Icon id="item/misc" size="sm" /> Ranger</>}
-                options={containers.map((bag) => ({
+                options={gestes.ranger.choix.map(({ cible: bag, libelle }) => ({
                   key: bag.uid,
                   media: <ItemIcon item={bag} size="sm" />,
-                  label: itemLabel(bag),
+                  label: libelle,
                   sub: `${containerFillEnc(carrier, bag.uid)}/${bag.container?.capacity ?? 0}`,
                 }))}
                 onSelect={(cid) => stowItem(carrierId, it.uid, cid)}
               />
             )}
-            {otherCarriers.length > 0 && refusInventaire && (
-              <GatedAction id={`inv-give-${it.uid}`} label={<><Icon id="action/pick-up" size="sm" /> Donner</>} enabled={false} {...raisonSi(refusInventaire)} onClick={() => {}} primary={false} btnClassName="small" />
+            {gestes.donner?.refus && (
+              <GatedAction id={`inv-give-${it.uid}`} label={<><Icon id="action/pick-up" size="sm" /> Donner</>} enabled={false} {...raisonSi(gestes.donner.refus)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
-            {otherCarriers.length > 0 && !refusInventaire && (
+            {gestes.donner && !gestes.donner.refus && (
               <MediaSelect
                 align="right"
                 triggerClassName="btn small"
                 title="Donner cet objet à un autre porteur"
                 trigger={<><Icon id="action/pick-up" size="sm" /> Donner</>}
-                options={otherCarriers.map(
-                  (c): MediaOption =>
-                    'uid' in c
-                      ? { key: c.uid, media: prefixOf(c), label: possessionLabel(c) }
-                      : { key: c.id, media: <CharFrame c={c} variant="identity" size="xs" decoratif />, label: c.label },
+                options={gestes.donner.choix.map(
+                  ({ cible: c, libelle }): MediaOption =>
+                    c.kind === 'possession'
+                      ? { key: c.possession.uid, media: prefixOf(c.possession), label: libelle }
+                      : { key: c.hero.id, media: <CharFrame c={c.hero} variant="identity" size="xs" decoratif />, label: libelle },
                 )}
                 onSelect={(cid) => transferItem(it.uid, carrierId, cid)}
               />
             )}
-            {it.inside && (
+            {gestes.sortir && (
               <GatedAction
                 id={`inv-unstow-${it.uid}`}
                 label="Sortir"
-                enabled={!refusInventaire}
-                {...raisonSi(refusInventaire)}
+                enabled={!gestes.sortir.refus}
+                {...raisonSi(gestes.sortir.refus)}
                 descOfferte="Sortir du contenant"
                 onClick={() => stowItem(carrierId, it.uid, null)}
                 primary={false}

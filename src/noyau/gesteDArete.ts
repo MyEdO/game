@@ -37,6 +37,7 @@ import { ev } from './combatLog';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { rule } from '../engine/policy';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { effectiveTalents } from '../engine/talentEffects';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau, GesteDuNoyau } from './actionsDuNoyau';
 
@@ -246,7 +247,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       // Grimpeur (LDB 15 l.57) : porté par le mobile du geste (`gesteDArete`). Grimpant
       // (LDB 85 l.160-162, créature, combat seulement) : `autoClimb` dispense de tout Test — et de la garde
       // `requiresGrimpeur`, réservée au Talent joueur (`planClimb` arbitre `autoSucceed`, réf ci-dessous).
-      const hasGrimpeur = !!mover.talents?.some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
+      const hasGrimpeur = effectiveTalents(mover).some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
       const autoClimb = !!battle && hasAutoClimb(mover.traits);
       const plan = planClimb(scene, from, to, hasGrimpeur, battle ? mover.id : undefined, autoClimb);
       if (!plan) return void refuserGeste(get, set, t('climb.pasGrimpable'));

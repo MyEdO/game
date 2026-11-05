@@ -15,7 +15,7 @@ import { serializeDataset } from '../../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
 import { enfantsDe } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
-import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../compendium/editFields';
+import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey, entryKey } from '../../compendium/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
@@ -139,9 +139,10 @@ const OPS_FIELDS: Record<string, string[]> = {
   // #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
   // free`, sous `win`, retombent en sous-formulaire récursif `object`, hors guard — même patron `windEffect`
   // de `riverNavigation`). Incantations Imparfaites/Colère des dieux — `ops` (dialecte compilé, mais MÊMES
-  // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty` que le vocabulaire `GameOp` réel).
+  // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`
+  // que le vocabulaire `GameOp` réel), et `targetOps` (ops aux cibles de l'incantation).
   grapple: ['init'],
-  miscastMinor: ['ops'], miscastMajor: ['ops'], miscastWrath: ['ops'],
+  miscastMinor: ['ops', 'targetOps'], miscastMajor: ['ops', 'targetOps'], miscastWrath: ['ops', 'targetOps'],
   ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
@@ -321,7 +322,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {id,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
-  if (categoryKey === 'steamBreakdowns') add('restart'); // {skill:{id,spec?},difficulty,extendedDR?}[] → éditeur dédié
+  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,extendedDR?}[] → éditeur dédié
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
@@ -504,7 +505,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Critique localisé (LDB 6/AA, #173) : `traumas` = string[] d'ids de fiche (`traumas.json`) →
   // éditeur dédié (TraumaListField, sélecteurs id→label) au lieu du datalist générique par-label.
   const hasTraumaList = CRITICAL_CATEGORIES.includes(categoryKey);
-  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {skill:{id,spec?},difficulty,extendedDR?}[].
+  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,extendedDR?}[].
   const hasRestartTest = categoryKey === 'steamBreakdowns';
   // Champs `GameOp[]` autres que `passive` (ops/occupantOps/crewOps/captainOps, #157) — même GameOpEditor.
   const opsFields = opsFieldsOf(categoryKey);
@@ -1295,36 +1296,38 @@ type RestartTest = NonNullable<SteamBreakdownEntry['restart']>[number];
 type WaterTest = WaterExposureData['test'];
 
 /** Test de REDÉMARRAGE d'un moteur à vapeur (`steamBreakdowns.restart`, MDG 12, #157) :
- *  `{skill:{id,spec?},difficulty,extendedDR?}[]` — Compétence + Difficulté (+ DR cumulés si Test étendu). */
+ *  `{test:{skill?,characteristic?,difficulty},extendedDR?}[]` — Compétence OU Caractéristique + Difficulté
+ *  (+ DR cumulés si Test étendu). */
 function RestartTestField({ value, onChange }: { value: RestartTest[] | undefined; onChange: (v: RestartTest[]) => void }) {
   const list = value ?? [];
   const skillOpts = datasetArray('skills') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
+  const setTest = (i: number, patch: Partial<RestartTest['test']>) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch } } : x)));
   return (
     <div className="ed-field">
       <span>Test de redémarrage du moteur — Compétence OU Caractéristique + Difficulté (DR cumulés si Test étendu)</span>
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <select value={r.skill?.id ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, skill: e.target.value ? reposerLId(x.skill ?? { id: '' }, e.target.value) : undefined } : x)))}>
+          <select value={r.test.skill?.id ?? ''} onChange={(e) => setTest(i, { skill: e.target.value ? reposerLId(r.test.skill ?? { id: '' }, e.target.value) : undefined })}>
             <option value="">— (Caractéristique) —</option>
             {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
-          {r.skill
-            ? <ChoixDeSpec type="skill" id={r.skill.id} value={r.skill.spec} ariaLabel={`Spécialisation — Test ${i + 1}`} onChange={(spec) => set(list.map((x, j) => (j === i ? { ...x, skill: { id: x.skill!.id, spec } } : x)))} />
+          {r.test.skill
+            ? <ChoixDeSpec type="skill" id={r.test.skill.id} value={r.test.skill.spec} ariaLabel={`Spécialisation — Test ${i + 1}`} onChange={(spec) => setTest(i, { skill: { id: r.test.skill!.id, spec } })} />
             : (
-              <select value={r.char ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, char: (e.target.value || undefined) as CharKey | undefined } : x)))}>
+              <select value={r.test.characteristic ?? ''} onChange={(e) => setTest(i, { characteristic: (e.target.value || undefined) as CharKey | undefined })}>
                 <option value="">— (choisir une Caractéristique) —</option>
                 {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
               </select>
             )}
-          <select value={r.difficulty} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, difficulty: e.target.value as Difficulty } : x)))}>
+          <select value={r.test.difficulty} onChange={(e) => setTest(i, { difficulty: e.target.value as Difficulty })}>
             {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
           </select>
           <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.extendedDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, extendedDR: n ?? undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { skill: { id: '' }, difficulty: DIFFICULTIES[0] }])}>+ Test</button>
+      <button className="btn small" onClick={() => set([...list, { test: { skill: { id: '' }, difficulty: DIFFICULTIES[0] } }])}>+ Test</button>
     </div>
   );
 }

@@ -31,7 +31,7 @@ export type CleEnveloppe = (typeof CLES_ENVELOPPE)[number];
 /**
  * Libellés FR des clés d'ENVELOPPE (#1466). `document()` REFUSE une `MetaChamp` sur une
  * clé d'enveloppe (la fabrique la pose, aucun def ne la déclare) : leur nom lisible appartient donc à
- * la FABRIQUE, ici. Consommé par la cascade de libellés de l'atelier (`src/ui/compendium/editFields.ts`).
+ * la FABRIQUE, ici. Consommé par la cascade de libellés de l'atelier (`src/noyau/codex/editFields.ts`).
  */
 export const LIBELLES_ENVELOPPE: Readonly<Record<CleEnveloppe, string>> = {
   id: 'Identifiant',
@@ -55,7 +55,7 @@ export type CleCharge = 'entries' | 'die';
  * Méta FR des clés de CHARGE (même régime que `LIBELLES_ENVELOPPE`) : la fabrique les pose, aucun def
  * ne les déclare, leur nom lisible vit donc ICI — un libellé par clé, pour tous les documents.
  * Le handle les publie dans sa `meta`, où la cascade de l'atelier les lit
- * (`src/ui/compendium/editFields.ts::libelleDuChamp`).
+ * (`src/noyau/codex/editFields.ts::libelleDuChamp`).
  */
 export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
   entries: { label: 'Rangées', hint: 'Contenu du document, dans l’ordre authoré' },

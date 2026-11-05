@@ -41,7 +41,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, reprendre, modeles, composer, catalogues, presetDeComposition, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, fiche, creation, reprendre, modeles, composer, catalogues, presetDeComposition, erreursGlobales)');
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -57,8 +57,8 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
   });
 
-  it('`vue`, `jouer` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'confirmRoundStart', args: [] }], ['reprendre', { jeton: 0 }]] as const) {
+  it('`vue`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'confirmRoundStart', args: [] }], ['fiche', { fiche: null }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
     }
   });

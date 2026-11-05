@@ -31,11 +31,14 @@ export const DELAI_DE_REPONSE_MINUTES = 2 * TIMEOUT_JOB_MINUTES
  * Paramètres de la règle `merge_queue` — les sept que le schéma `repository-rule-merge-queue` exige.
  * `MERGE` : les commits de la branche entrent avec LEURS shas (#2178, design v2). `ALLGREEN` : chaque
  * commit de file passe les checks requis. `min_entries_to_merge: 1` : aucune attente de groupe.
- * `max_entries_to_build: 2` : une course de `ci.yml` = 8 jobs (run 36831681566), et le plan `free` de
- * l'organisation `MyEdO` (`gh api orgs/MyEdO --jq .plan.name`) en sert 20 à la fois (limits.md, tableau
- * « Total concurrent jobs »). Deux entrées de file = 2 × 8 = 16 jobs ; il reste 20 − 16 = 4 jobs pour
- * TOUTE course de branche : N courses de branche simultanées (N × 8) attendent dès que 16 + N × 8 > 20,
- * soit dès N = 1. L'attente se mesure `createdAt` → `startedAt` (#2178, design du lot 1b §5).
+ * `max_entries_to_build: 2` : une course de `ci.yml` démarre 10 jobs (`contextesRequis`), dont ceux d'une
+ * autre course sautent leurs steps en quelques secondes (#3412, en tête de `ci.yml`) : une course de file
+ * en JOUE 9, une course de branche 1 (`JOB_DE_BRANCHE`). Le plan `free` de l'organisation `MyEdO`
+ * (`gh api orgs/MyEdO --jq .plan.name`) en sert 20 à la fois (limits.md, tableau « Total concurrent
+ * jobs »). Deux entrées de file tiennent 2 × 9 = 18 runners ; il en reste 2 pour TOUTE course de branche,
+ * dont chaque job sauté rend son runner en secondes : N courses de branche simultanées tiennent N
+ * runners, et attendent dès que 18 + N > 20, soit dès N = 3. L'attente se mesure `createdAt` →
+ * `startedAt` (#2178, design du lot 1b §5).
  */
 export const PARAMETRES_DE_FILE = Object.freeze({
   check_response_timeout_minutes: DELAI_DE_REPONSE_MINUTES,

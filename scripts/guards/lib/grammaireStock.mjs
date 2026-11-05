@@ -49,19 +49,10 @@ export const GRAMMAIRE_STOCK = {
   // l'avait fait sortir du scan (l'argument `champs` n'était pas visité), pas de la déclaration.
   // Le champ `skill` est toujours là, la donnée n'a pas bougé.
   'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (le champ moteur `TestSpec.skill`, non migré).', L2),
-  'src/data/schemas/defs/miscast.ts:jsonNestedTestSchema|alias|skill': e('Test IMBRIQUÉ d’un maléfice, même graphie `skill` que l’op porteuse.', L2),
-  'src/data/schemas/defs/psychology.ts:doc.test|alias|skill': e('Test de Psychologie désignant sa Compétence par `skill` (`STRUCTURES_REDECLARATIONS` psychology.ts).', L2),
-  'src/data/schemas/defs/sea-cargo.ts:doc.opportunite.test|alias|skill': e('Test d’opportunité de cargaison maritime : la réf de Compétence est EMBOÎTÉE (`skill: {id, spec?}`) — le conteneur de Test, lui, reste au lot L4.', L2),
-  'src/data/schemas/defs/sea-perils.ts:seaHazardDef.freeTest|alias|skill': e('Test gratuit d’un péril maritime : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
-  'src/data/schemas/defs/sea-perils.ts:champs.tourbillonSwim|alias|skill': e('Test de Natation du tourbillon : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   'src/data/schemas/defs/spells.ts:champs.opposed|alias|skill': e('Jet OPPOSÉ d’un sort désignant les deux Compétences par `skill`.', L2),
-  'src/data/schemas/defs/steam-breakdown.ts:doc.restart|alias|skill': e('Test de redémarrage d’une machine à vapeur : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   'src/data/schemas/defs/talents.ts:testMatchSchema|alias|skill': e('Filtre de test d’un Talent (à quel jet il s’applique) désignant la Compétence par `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.fastSkill|alias|skill': e('Variante RAPIDE d’un jeu de taverne, même graphie `skill`.', L2),
-  'src/data/schemas/defs/tavernGames.ts:doc.options|alias|skill': e('Options de jeu de taverne, même graphie `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.combined.second|alias|skill': e('Second volet d’un test COMBINÉ de jeu de taverne, même graphie `skill`.', L2),
-  'src/data/schemas/defs/tavernGames.ts:doc.throwerPenalty.test|alias|skill': e('Malus du lanceur d’un jeu de taverne, même graphie `skill`.', L2),
-  'src/data/schemas/defs/water-exposure.ts:doc.test|alias|skill': e('Test d’exposition à l’eau : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   // AUCUNE entrée pour les graphies portées par `src/data/schemas/grammaire/` : ce module n'est scanné
   // que pour `.extend` (`PERIMETRE_FABRIQUES`, `sansRedeclaration`), ses littéraux ÉTANT le canon. La
   // liste nominative de ces graphies et son cardinal sont tenus par le test « les graphies de la
@@ -79,8 +70,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/worldmap.ts:portProfileSchema|alias|ref': e('Profil de port désignant son entité par une enveloppe `ref`.', L3),
 
   // ── Formes de VALEUR re-tapées (monnaie, dé, cellule de grille) ───────────────────────────────
-  'src/data/schemas/defs-scenes/effets.ts:zoneBlastSchema.center|redeclaration|cell2Schema {x,y}': e('Centre d’une zone d’effet re-tapé `{x, y}` — la cellule de grille est `cell2Schema`.', L4),
-  'src/data/schemas/defs-scenes/scene.ts:baseDEntiteSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’une entité de scène re-tapée `{x, y}`.', L4),
   'src/data/schemas/defs-scenes/worldmap.ts:placePoiSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un point d’intérêt : point CONTINU PLAN-LOCAL 0-100 (worldmap.ts:84), forme propre au worldMap — PAS une cell2 (la cellule de grille est un indice DISCRET). À REQUALIFIER au lot L4 valeurs : « composer `cell2Schema` » y serait sémantiquement FAUX, il faut une forme de point normalisé à la grammaire.', L4),
   'src/data/schemas/defs-scenes/worldmap.ts:mapPlaceSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un lieu de la carte du monde : point en % du CANEVAS, forme propre au worldMap — PAS une cell2. MÊME requalification que `placePoiSchema.pos` au lot L4 valeurs.', L4),
 

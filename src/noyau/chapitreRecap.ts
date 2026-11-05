@@ -15,6 +15,7 @@ import type { Objective } from './etat';
 import { condCtx } from './bourseFlow';
 import { visiblePlaces } from './worldMap';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -98,12 +99,17 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
 
 export function creerActionsDuChapitre(_get: Get, set: SetFn) {
   return {
-    // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (classe `hôte`,
+    // Cadre de campagne et COOP (#717) : ces deux gestes vivent chez l'HÔTE (classe `hôte`,
     // `noyau/intentionsDeSiege.ts` `CLASSE_DES_ACTIONS_DU_NOYAU`). Chez un invité ils sont INERTES — sans cette
     // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
     // L'écran, lui, reste visible : il porte son refus par `GatedAction` (`src/ui/GatedAction.tsx`).
     acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
     cloreChapitre: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
-    ajournerChapterRecap: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null })),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** AJOURNE le récap (Échap / « Plus tard ») : le chapitre reste clos en donnée, donc le récap se re-pose au prochain lot
+ *  d'effets — rien n'est perdu, rien n'est forcé. Sortie de l'hôte (`HORS_MODAL.chapterRecap`). */
+export function sortiesDuChapitre(_get: Get, set: SetFn) {
+  return { chapterRecap: () => set({ pendingChapterRecap: null }) } satisfies Partial<SortiesDeFenetre>;
 }

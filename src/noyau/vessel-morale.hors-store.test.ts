@@ -141,7 +141,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
     expect(s.vessel!.morale.lastMoraleWeek).toBe(1); // semaine avancée à la validation
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 144); // ½ de 288
     expect((s.pendingCouncil?.results ?? []).some((e) => e.label.includes('chiche'))).toBe(true);
-    banc.getState().councilClose();
+    banc.getState().fenetreFermer('council');
     expect(banc.getState().pendingCouncil).toBeNull();
   });
 

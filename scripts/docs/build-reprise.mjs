@@ -595,8 +595,9 @@ et son journal sépare le temps machine LOCAL du temps d'ATTENTE de GitHub.
 ## 6. Gates et livraison
 
 **Régime** (\`scripts/ops/ruleset-main.mjs\`, #2178) : une branche \`chantier/**\` se
-pousse **LIBREMENT**, aussi souvent qu'on veut — c'est le push qui déclenche la CI, et la CI joue les
-mêmes gates que la file. \`main\` n'avance que par la **FILE DE FUSION**, et c'est le SERVEUR qui la
+pousse **LIBREMENT**, aussi souvent qu'on veut — c'est le push qui déclenche la course de BRANCHE,
+un sous-ensemble des gates (le job \`branche\` : \`typecheck\`, puis \`test:perimetre\`) ; la course de
+FILE les joue toutes (#3412, en tête de \`.github/workflows/ci.yml\`). \`main\` n'avance que par la **FILE DE FUSION**, et c'est le SERVEUR qui la
 tient et la SÉRIALISE : le ruleset \`main\` (\`${script('ops:ruleset')}\`, mode \`active\`) exige une PR,
 la file (méthode MERGE) et les checks requis sur chaque commit de file, refuse le non-fast-forward et la
 suppression. Un push de PLUSIEURS commits est jugé par sa **TÊTE** — c'est la seule unité que la CI joue.

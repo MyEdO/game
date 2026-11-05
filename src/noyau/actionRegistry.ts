@@ -40,13 +40,13 @@ import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
-import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusSansMouvement } from './refusDuTour';
+import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusPriereImposee, refusSansMouvement } from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, posteARecharger } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
-import { isArcaneSpell, castBlockedBy, focusSkillFor, focusWindLabel } from '../engine/magic';
+import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
 import { postesPretsAFaireFeu } from './monde/shipBattery';
@@ -111,10 +111,18 @@ function peutAgir({ active }: ActionCtx): ActionGate {
   return verdict(refusHorsDEtatDAgir(active));
 }
 
-/** L'Action du Tour est-elle encore disponible ET utilisable ? Dépensée, impossible (`peutAgir`), ou
- *  verrouillée par un État (`horsVerrouDEtat`). La Frénésie est un gate à part (`action-libre-hors-frenesie`). */
+/** L'Action du Tour est-elle encore disponible ET utilisable ? Dépensée, impossible (`peutAgir`),
+ *  verrouillée par un État (`horsVerrouDEtat`), ou due à une Prière (`prierePourLAction`). La Frénésie est
+ *  un gate à part (`action-libre-hors-frenesie`). */
 function actionLibre(ctx: ActionCtx): ActionGate {
-  return verdict(refusActionDepensee(ctx.battle) ?? refusHorsDEtatDAgir(ctx.active) ?? refusVerrouDAction(ctx.active));
+  return verdict(refusActionDepensee(ctx.battle) ?? refusHorsDEtatDAgir(ctx.active) ?? refusVerrouDAction(ctx.active) ?? prierePourLAction(ctx));
+}
+
+/** L'Action est due à une Prière (`refusPriereImposee`) : seule la case d'un sort qui EST une Prière y
+ *  satisfait. LDB 40 l.74 */
+function prierePourLAction({ active, args }: ActionCtx): string | null {
+  const sort = args?.spellId ? findSpellById(args.spellId) : undefined;
+  return sort && castInfoIsPrayer(sort) ? null : refusPriereImposee(active);
 }
 
 /** Désengagement (LDB 15 l.43-49) : ouvert si l'UNE de ses options l'est (`noyau/combat/desengagement.ts`) —
@@ -610,7 +618,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
     if (!pz) return;
     switch (pz.source) {
       case 'cast': get().castPlaceZone(false); return;
-      case 'siege': get().siegeAimCancel(); return;
+      case 'siege': get().fenetreFermer('siegeAim'); return;
       default: pz.source satisfies never;
     }
   },

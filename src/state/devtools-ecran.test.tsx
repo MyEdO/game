@@ -22,8 +22,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees } from '../web/indexedDb.testkit';
 import { tileEdge, screenToTileF, type Dims } from '../geometry/iso';
-import { canonEdge } from '../noyau/sceneEdit';
-import { nearestEdge } from '../ui/editor/editorState';
+import { canonEdge, nearestEdge } from '../noyau/sceneEditLecture';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
