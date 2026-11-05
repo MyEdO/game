@@ -17,7 +17,8 @@ import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
-import { initialNet, type Jeu } from './etat';
+import { initialNet } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get, Set } from './flowTypes';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -33,7 +34,7 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     scene: { id: 'sc-1' },
     log: () => {},
     net: initialNet(),
-  } as unknown as Jeu;
+  } as unknown as JeuDuNoyau;
   const get: Get = () => state;
   const set: Set = (p) => {
     state = { ...state, ...(typeof p === 'function' ? p(state) : p) };

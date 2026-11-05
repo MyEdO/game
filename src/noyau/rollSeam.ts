@@ -417,7 +417,7 @@ export function surfaceDesEtapes(get: Get, steps: readonly CascadeStep[]): Surfa
  * `isOutOfAction` n'entre PAS ici : « le sujet peut-il encore jouer » est un critère MÉTIER, tranché
  * au site ; les sites divergent (#1265).
  */
-export function surfaceOf(get: Get, porteurId: string | undefined): boolean {
+export function surfaceOf(get: Get<Jeu>, porteurId: string | undefined): boolean {
   if (cadenceAuto()) return false;
   return tenuParUnHumain(get(), porteurId);
 }

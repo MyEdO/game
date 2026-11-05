@@ -16,11 +16,12 @@ import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
 import { porteurDExploration } from './gesteDArete';
+import { marcherLeChemin } from './marcheDuGroupe';
 import { roomFocusAt } from './monde/rooms';
 import { fouilleDeLaPiece } from './monde/decouvertePorteSecrete';
 import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 import type { ActionGate } from './actionRegistry';
 import type { Jeu, PendingInteract } from './etat';
@@ -214,6 +215,19 @@ export function fouilleOuverte(s: Jeu): { scene: Scene; piece: RoomFocus } | Ref
 
 export function creerActionsDInteraction(get: Get, set: Set) {
   return {
+    cliquerLaCase: (pt, entite) => {
+      const intention = intentionDuClicDExploration(get(), pt, entite ?? null);
+      if (!intention) return;
+      switch (intention.kind) {
+        case 'interagir': get().setPendingInteract(null); get().interactEntity(intention.id); return;
+        case 'jouer': get().setPendingInteract(null); get().jouerAction(intention.id, intention.actionId); return;
+        case 'rejoindre': get().setPendingInteract(intention.pending); marcherLeChemin(get, intention.plan.path); return;
+        case 'marcher': get().setPendingInteract(null); marcherLeChemin(get, intention.plan.path); return;
+        case 'dire': get().setPendingInteract(null); get().log(intention.message); return;
+        case 'annuler': get().setPendingInteract(null); return;
+        default: return intention satisfies never;
+      }
+    },
     interactEntity: (entityId) => {
       const { scene, partyPos } = get();
       if (!scene) return;
@@ -309,7 +323,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
      *  éloigné AVEC la case d'arrivée du plan de marche, consommé par `moveParty` à CETTE case ;
      *  annulé sur tout autre clic. */
     setPendingInteract: (pending) => set({ pendingInteract: pending }),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */

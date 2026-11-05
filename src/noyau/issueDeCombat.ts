@@ -7,7 +7,7 @@ import { t } from '../i18n';
 import { flowFromEffects } from './monde/flow';
 import { decidingSeat, quorumAtteint } from './netOwnership';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables } from './tablesPosees';
 
@@ -38,7 +38,7 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
       if (s.net.mode === 'guest') return; // l'invité ne fait que marquer
       if (quorumAtteint(s, readyBySeat)) get().fenetreFermer('victory'); // quorum UNIQUE : `siegesRequis`
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les sorties des fenêtres de fin de combat : la victoire, la défaite, le butin. */

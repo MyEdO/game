@@ -7,7 +7,7 @@ import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engi
 import { spawnEnemy } from './monde/spawn';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Combatant, ShipPoste, Weapon, FireArc } from '../engine/types';
 import type { Scene } from './monde/scene';
 import { initialNet } from './etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
@@ -60,8 +60,8 @@ const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
-const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}, movementUsed = 0): (() => Jeu) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
+const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}, movementUsed = 0): (() => JeuDuNoyau) =>
+  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
 
 // (A) SERVICE — la SceneEntity au sol qui PORTE des postes se spawn avec `Combatant.postes` ; au combat,
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).

@@ -87,6 +87,7 @@ export interface MedicState {
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
@@ -360,7 +361,7 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
     medicSetWound: (idx) => medicSetWound(get, set, idx),
     openSurgeryPass: () => openSurgeryPass(get, set),
     medicAbandonSurgery: () => medicAbandonSurgery(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`). */

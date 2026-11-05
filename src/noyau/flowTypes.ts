@@ -1,11 +1,13 @@
 /**
  * Types canoniques de la plomberie des flux : tout module qui reçoit le couple (get, set) de son
- * propriétaire d'état les importe d'ici, typés sur `Jeu` (#2817 D5) ; l'adaptateur les paramètre sur son état
+ * propriétaire d'état les importe d'ici, typés sur `Jeu` (#2817 D5), le `get` sur `JeuDuNoyau` (#3370) ; l'adaptateur les paramètre sur son état
  * entier. `Set` accepte l'objet partiel ET la forme à updater fonctionnel, comme le `set` de Zustand.
  */
 import type { Jeu } from './etat';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 
-export type Get<E = Jeu> = () => E;
+/** Le `get` d'un flux du noyau : l'état, les verbes et la machinerie (`JeuDuNoyau`). Un hôte lit `Get<Jeu>`. */
+export type Get<E = JeuDuNoyau> = () => E;
 /** Les clés RÉSERVÉES : aucun flux ne les écrit par son patch. `journal` a pour écrivains `log`
  *  (`journal.ts`) et `startScene` (`entreeEnScene.ts`) (#319, #2724) ; `gameTime`, `avancerLHorloge`
  *  (`horloge.ts`, #668, #2817 D7). Tous passent par `SetDesClesReservees`, et le remplacement d'état par

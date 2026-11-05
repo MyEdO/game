@@ -56,7 +56,7 @@ import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, fr
 import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
@@ -274,7 +274,7 @@ export function seaActivitiesCatalog(): ActivityDef[] {
 export function creerActionsDesActivitesEnMer(get: Get, set: Set) {
   return {
     seaActivitiesConfirm: (picks) => seaActivitiesConfirm(get, set, picks),
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

@@ -21,7 +21,6 @@ import { offresUtilisables } from '../../state/offresUtilisables';
 import { useGame } from '../../state/store';
 import { props } from '../../data';
 import { bus, EVT } from '../../noyau/bus';
-import { STEP_MS } from '../../geometry/walk';
 import type { Combatant } from '../../engine/types';
 import { aretesUtilisables, type AreteUtilisable } from '../../noyau/aretes';
 import { projeterAretes } from './aretesProjetees';
@@ -165,7 +164,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes: [],
       });
@@ -207,7 +205,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes: [],
       });
@@ -237,7 +234,6 @@ describe('useStagePointer — picking exploration', () => {
   });
 
   it('n’anime aucun pas au-delà de la position logique quand un dialogue interrompt la marche', () => {
-    vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => {
       useGame.setState({
@@ -249,7 +245,7 @@ describe('useStagePointer — picking exploration', () => {
       scene,
       mode: 'exploration',
       partyPos: { x: 2, y: 1 },
-      party: [],
+      party: [heroSauteur()],
       dialogue: null,
       moveParty,
     });
@@ -266,7 +262,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: { id: 'hero' } as Combatant,
         activeZ: 0,
         aretes: [],
       });
@@ -278,15 +273,13 @@ describe('useStagePointer — picking exploration', () => {
     const event = pointerEvent(center.cx, center.cy);
     pointer!.handlers.onPointerDown(event);
     pointer!.handlers.onPointerUp(event);
-    vi.advanceTimersByTime(STEP_MS * 4);
 
     expect(moveParty).toHaveBeenCalledTimes(1);
     expect(useGame.getState().partyPos).toEqual({ x: 2, y: 2 });
     expect(emitted).toEqual([{ id: 'hero', path: [{ x: 2, y: 1 }, { x: 2, y: 2 }] }]);
   });
 
-  it('arrête la marche avant toute nouvelle émission si la scène active est remplacée', () => {
-    vi.useFakeTimers();
+  it('arrête la marche, sans émission, si la scène active est remplacée', () => {
     const scene = emptyScene('scene-test', 8, 8);
     const replacement = emptyScene('scene-test', 8, 8);
     replacement.id = 'replacement';
@@ -297,7 +290,7 @@ describe('useStagePointer — picking exploration', () => {
       scene,
       mode: 'exploration',
       partyPos: { x: 2, y: 1 },
-      party: [],
+      party: [heroSauteur()],
       dialogue: null,
       moveParty,
     });
@@ -314,7 +307,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: { id: 'hero' } as Combatant,
         activeZ: 0,
         aretes: [],
       });
@@ -326,22 +318,20 @@ describe('useStagePointer — picking exploration', () => {
     const event = pointerEvent(center.cx, center.cy);
     pointer!.handlers.onPointerDown(event);
     pointer!.handlers.onPointerUp(event);
-    vi.advanceTimersByTime(STEP_MS * 4);
 
     expect(useGame.getState().scene).toBe(replacement);
     expect(moveParty).toHaveBeenCalledTimes(1);
-    expect(emitted).toEqual([{ id: 'hero', path: [{ x: 2, y: 1 }, { x: 2, y: 2 }] }]);
+    expect(emitted, 'le meneur ne glisse pas dans la scène qu’il a quittée').toEqual([]);
   });
 
-  it('anime un trajet complet par émissions contiguës cadencées et atteint la destination', () => {
-    vi.useFakeTimers();
+  it('marche le trajet complet en une passe, puis l’anime en UNE émission du chemin parcouru', () => {
     const scene = emptyScene('scene-test', 8, 8);
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => useGame.setState({ partyPos: pos }));
     useGame.setState({
       scene,
       mode: 'exploration',
       partyPos: { x: 2, y: 1 },
-      party: [],
+      party: [heroSauteur()],
       dialogue: null,
       moveParty,
     });
@@ -358,7 +348,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: { id: 'hero' } as Combatant,
         activeZ: 0,
         aretes: [],
       });
@@ -371,14 +360,7 @@ describe('useStagePointer — picking exploration', () => {
     pointer!.handlers.onPointerDown(event);
     pointer!.handlers.onPointerUp(event);
 
-    expect(emitted).toEqual([{ id: 'hero', path: [{ x: 2, y: 1 }, { x: 2, y: 2 }] }]);
-    vi.advanceTimersByTime(STEP_MS);
-    expect(emitted[emitted.length - 1]?.path).toEqual([{ x: 2, y: 2 }, { x: 2, y: 3 }]);
-    vi.advanceTimersByTime(STEP_MS);
-    expect(emitted[emitted.length - 1]?.path).toEqual([{ x: 2, y: 3 }, { x: 2, y: 4 }]);
-    vi.runAllTimers();
-
-    expect(emitted).toHaveLength(3);
+    expect(emitted).toEqual([{ id: 'hero', path: [{ x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 }, { x: 2, y: 4 }] }]);
     expect(moveParty).toHaveBeenCalledTimes(3);
     expect(useGame.getState().partyPos).toEqual({ x: 2, y: 4 });
   });
@@ -413,7 +395,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes: [],
       });
@@ -461,7 +442,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes: [],
       });
@@ -506,7 +486,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes,
       });
@@ -550,7 +529,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes: [],
       });
@@ -604,7 +582,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ: 0,
         aretes: [],
       });
@@ -652,7 +629,6 @@ describe('useStagePointer — picking exploration', () => {
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: hero,
         activeZ: 0,
         aretes: [],
       });
@@ -679,12 +655,12 @@ describe('useStagePointer — picking exploration', () => {
 describe('useStagePointer — le saut et la porte passent par les actions du jeu', () => {
   afterEach(() => vi.useRealTimers());
 
-  const monterPointeur = (meneur: Combatant | undefined): StagePointer => {
+  const monterPointeur = (): StagePointer => {
     let pointer: StagePointer | undefined;
     const Probe = () => {
       const svgRef = useRef(stageEl());
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: meneur, activeZ: 0, aretes: [] });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
       return null;
     };
     renderToStaticMarkup(<Probe />);
@@ -699,7 +675,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
     scene.layers[0].tiles[3 + 1 * 8] = 'herbe';
     const hero = heroSauteur();
     useGame.setState({ scene, mode: 'exploration', partyPos: { x: 1, y: 1 }, party: [hero], dialogue: null });
-    const pointer = monterPointeur(hero);
+    const pointer = monterPointeur();
 
     const center = tileCenter(3, 1, dims);
     pointer.handlers.onPointerDown(pointerEvent(center.cx, center.cy));
@@ -714,7 +690,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
     scene.effectZones = [piece('room-a', 1, 1)];
     scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: true }];
     useGame.setState({ scene, mode: 'exploration', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
-    const pointer = monterPointeur(undefined);
+    const pointer = monterPointeur();
 
     const fermee = areteDe(scene, { x: 0, y: 1 }, '0,1,E,0');
     expect(fermee.portail?.kind, 'témoin : la porte est fermée').toBe('door-closed');
@@ -729,7 +705,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
     scene.effectZones = [piece('room-a', 1, 1)];
     scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: false }];
     useGame.setState({ scene, mode: 'battle', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
-    const pointer = monterPointeur(undefined);
+    const pointer = monterPointeur();
 
     const ouverte = areteDe(scene, { x: 0, y: 1 }, '0,1,E,0');
     expect(ouverte.portail?.kind, 'témoin : la porte est ouverte').toBe('door-open');
@@ -762,7 +738,6 @@ describe('useStagePointer — relief et franchissement d’étage à la souris',
         zoom: 1,
         camRef,
         hoverTracking: false,
-        partyLeader: undefined,
         activeZ,
         aretes: [],
       });
@@ -851,7 +826,7 @@ describe('useStagePointer — glisser-tourner au bouton MILIEU', () => {
     const Probe = () => {
       const svgRef = useRef(stageEl());
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
       return null;
     };
     renderToStaticMarkup(<Probe />);
@@ -957,7 +932,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const Probe = () => {
       const svgRef = useRef(stageEl());
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
       return null;
     };
     renderToStaticMarkup(<Probe />);
@@ -1007,7 +982,6 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const ev = pointerEvent(ailleurs.cx, ailleurs.cy);
     pointer.handlers.onPointerDown(ev);
     pointer.handlers.onPointerUp(ev);
-    expect(useGame.getState().pendingInteract).toMatchObject({ id: 'table-1' }); // pending ARMÉ, marche lancée
     act(() => { vi.runAllTimers(); });
 
     const abords = seatSlotsOf(useGame.getState().scene!, 'table-1').map((s) => `${s.approach.x},${s.approach.y}`);
@@ -1257,7 +1231,6 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const ev = pointerEvent(ailleurs.cx, ailleurs.cy);
     pointer.handlers.onPointerDown(ev);
     pointer.handlers.onPointerUp(ev);
-    expect(useGame.getState().pendingInteract, 'la fouille est ARMÉE, pas refusée').toMatchObject({ id: 'table-1' });
     act(() => { vi.runAllTimers(); });
 
     const arrivee = useGame.getState().partyPos;
@@ -1541,7 +1514,7 @@ describe('useStagePointer — le clic d’exploration joue l’intention du noya
     const Probe = () => {
       const svgRef = useRef(stageEl());
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes: [] });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes: [] });
       return null;
     };
     renderToStaticMarkup(<Probe />);

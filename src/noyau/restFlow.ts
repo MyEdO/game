@@ -151,7 +151,7 @@ import { placeById, type WorldMap } from './worldMap';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
@@ -748,7 +748,7 @@ export function creerActionsDuRepos(get: Get, set: Set) {
     restSleep: () => restSleep(get, set),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
     restParty: (days = 1) => { sleepParty(get, set, days); },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

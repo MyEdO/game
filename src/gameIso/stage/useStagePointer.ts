@@ -14,7 +14,6 @@
  *  - TACTILE à DEUX DOIGTS : pincer = zoom (`setZoom`, borné par le store), translation du milieu des
  *    doigts = panoramique. Un seul pointeur garde strictement le comportement ci-dessus ;
  *  - `performClick` : sélection / cible / déplacement (combat et exploration) ;
- *  - `moveAlong` : marche pas-à-pas du groupe (sauts par-dessus les gouffres compris) ;
  *  - geste SECONDAIRE (clic droit à la souris, appui long au doigt ou au stylet) : INSPECTER la
  *    fiche du jeton désigné (`ficheSous`) — le clic GAUCHE garde l'attaque et le ciblage ;
  *  - suivi du SURVOL borné aux changements de tuile (curseur main sur l'interactif).
@@ -23,9 +22,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
 import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import type { Pt } from '../../noyau/monde/path';
-import { marcheOuverte, pasDeLaMarche, porteActionnable } from '../../noyau/marcheDuGroupe';
-import { exploreMovePlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
-import { Combatant } from '../../engine/types';
+import { marcheOuverte, porteActionnable } from '../../noyau/marcheDuGroupe';
 import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsActive } from '../../noyau/netOwnership';
@@ -36,13 +33,11 @@ import { jouerLeClicDeCase, jouerLeClicDuCombattant } from '../../noyau/combatOr
 import { hoverClickCommits } from '../../ui/pointerCaps';
 import { useLongPress } from '../../ui/useLongPress';
 import { type Dims } from '../../geometry/iso';
-import { STEP_MS } from '../../geometry/walk';
 import { poseFromDims } from './projection';
 import { targetUnderPointer } from './spritePicker';
 import { pointStageSousPixel, pointViewBoxSousPixel, resoudrePixel, tireLeRayon, type Verdict } from './pickResolve';
 import { armeParSurvol, entiteDuGeste, jouerArete, type VerbesArete } from './geste';
 import { estUtilisable } from '../../noyau/monde/usable';
-import { intentionDuClicDExploration } from '../../noyau/interactionsDExploration';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import type { AreteUtilisable } from '../../noyau/aretes';
 import type { AreteProjetee } from './aretesProjetees';
@@ -90,7 +85,6 @@ export function useStagePointer({
   zoom,
   camRef,
   hoverTracking,
-  partyLeader,
   activeZ = 0,
   aretes,
 }: {
@@ -101,7 +95,6 @@ export function useStagePointer({
    *  lisent la valeur au moment de l'événement, comme la closure historique). */
   camRef: RefObject<{ x: number; y: number }>;
   hoverTracking: boolean;
-  partyLeader: Combatant | undefined;
   activeZ?: number;
   /** ARÊTES utilisables projetées que l'hôte a filtrées et posées à l'écran
    *  (`stage/aretesProjetees.ts`) — l'entrée de l'étage `arete` de la chaîne, comme `vise` est celle
@@ -116,7 +109,6 @@ export function useStagePointer({
   // de `hover` : une même tuile peut changer d'entité (décor épuisé), et l'id ne bouge pas à chaque pixel.
   const [entiteSurvolee, setEntiteSurvolee] = useState<string | null>(null);
   const [ficheSurvolee, setFicheSurvolee] = useState<string | null>(null);
-  const movingRef = useRef(false);
   // Glisser-caméra : on diffère l'action de clic au relâchement ; un glissement > seuil = panoramique.
   // La BASE du panoramique (`pan0` + le point de viewBox `vbX/vbY` + le zoom + le n° d'accord du
   // décalage vivant) se re-pose dès qu'une de ses hypothèses bouge sous le geste : un recentrage
@@ -191,41 +183,6 @@ export function useStagePointer({
     pointViewBoxSousPixel(svgRef.current, cx, cy);
   const clientToSvg = (ev: React.PointerEvent): { x: number; y: number } | null => clientPtToSvg(ev.clientX, ev.clientY);
 
-  const pathOpts = (): PathOpts => optionsDeCheminDuGroupe(useGame.getState().party);
-
-  const moveAlong = (sceneId: string, plan: ExploreMovePlan) => {
-    if (movingRef.current || plan.path.length < 2) return;
-    const path = plan.path;
-    movingRef.current = true;
-    let i = 1;
-    const step = () => {
-      const st = useGame.getState();
-      // La garde du pas est celle de la marche du noyau (`pasDeLaMarche`) : une porte qui s'est refermée coupe la marche.
-      const pas = pasDeLaMarche(st, sceneId, path, i);
-      if (!pas) {
-        movingRef.current = false;
-        return;
-      }
-      const prev = st.partyPos;
-      const cur = path[i];
-      if (pas.verbe === 'sauter') {
-        // SAUT par-dessus un gouffre (`sauter`) : la marche ne reprend que si le saut la laisse continuer.
-        if (!st.sauter(path, i)) {
-          movingRef.current = false;
-          return;
-        }
-        i++;
-        setTimeout(step, STEP_MS);
-        return;
-      }
-      if (partyLeader) bus.emit(EVT.ANIM_MOVE, { id: partyLeader.id, path: [prev, cur] });
-      st.moveParty(cur);
-      i++;
-      setTimeout(step, STEP_MS);
-    };
-    step();
-  };
-
   const activatePortal = (portal: RoomPortal) => {
     const st = useGame.getState();
     if (st.dialogue || !st.scene) return;
@@ -234,13 +191,9 @@ export function useStagePointer({
       return;
     }
     if (!marcheOuverte(st)) return;
-    const currentScene = st.scene;
-    const plan = exploreMovePlan(currentScene, st.partyPos, portal.to, pathOpts());
-    if (!plan) return;
     setHover(null);
     setAreteSurvolee(null);
-    st.setPendingInteract(null);
-    moveAlong(currentScene.id, plan);
+    st.cliquerLaCase(portal.to);
   };
 
   /** Les VERBES que la table des gestes appelle (`stage/geste.ts`) : le franchissement vit ici, parce
@@ -329,20 +282,9 @@ export function useStagePointer({
       jouerLeClicDeCase(useGame.getState, t, hoverClickCommits());
       return;
     }
-    // Ce que joue la case hors combat : `intentionDuClicDExploration`, sur l'entité que le geste désigne ; le stage
-    // n'en garde que l'effacement du survol et la marche pas à pas.
-    const intention = intentionDuClicDExploration(st, t, entiteDuGeste(sc, v, t)?.id ?? null);
-    if (!intention) return;
+    // Ce que joue la case hors combat : le clic du noyau (`cliquerLaCase`), sur l'entité que le geste désigne.
     setHover(null);
-    switch (intention.kind) {
-      case 'interagir': st.setPendingInteract(null); st.interactEntity(intention.id); return;
-      case 'jouer': st.setPendingInteract(null); st.jouerAction(intention.id, intention.actionId); return;
-      case 'rejoindre': st.setPendingInteract(intention.pending); moveAlong(sc.id, intention.plan); return;
-      case 'marcher': st.setPendingInteract(null); moveAlong(sc.id, intention.plan); return;
-      case 'dire': st.setPendingInteract(null); st.log(intention.message); return;
-      case 'annuler': st.setPendingInteract(null); return;
-      default: return intention satisfies never;
-    }
+    st.cliquerLaCase(t, entiteDuGeste(sc, v, t)?.id);
   };
 
   /** RE-POSE la base du panoramique sur l'état courant : le décalage vivant devient l'origine, et le

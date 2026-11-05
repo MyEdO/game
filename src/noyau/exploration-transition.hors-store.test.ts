@@ -34,7 +34,7 @@ describe('l’exploré suit la vision à chaque écriture, sans stage', () => {
     poser(banc, couloir('couloir'), { gameTime: MIDI, lightLevel: 0 });
     expect(explore(banc, 'couloir')).toEqual(rangee(0));
 
-    banc.actions.marcherVers({ x: 6, y: 0, z: 0 });
+    banc.actions.cliquerLaCase({ x: 6, y: 0, z: 0 });
 
     expect(banc.getState().partyPos).toMatchObject({ x: 6, y: 0 });
     expect(explore(banc, 'couloir')).toEqual(rangee(0, 1, 2, 3, 4, 5, 6));
@@ -104,7 +104,7 @@ describe('coop : parité hôte / invité', () => {
     poser(banc, couloir('couloir'), { gameTime: MIDI, lightLevel: 0, net: { ...initialNet(), mode, mySeat: mode === 'host' ? 0 : 1 } });
     const instantanes: Record<string, unknown>[] = [];
     banc.subscribe((etat) => { instantanes.push(instantaneDeLaCoop(etat)); });
-    banc.actions.marcherVers({ x: 6, y: 0, z: 0 });
+    banc.actions.cliquerLaCase({ x: 6, y: 0, z: 0 });
     return { explore: explore(banc, 'couloir'), instantanes };
   });
 

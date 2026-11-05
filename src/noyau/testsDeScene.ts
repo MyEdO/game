@@ -23,7 +23,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
 import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { CorpsDesReglages } from './reglagesDuJet';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
@@ -58,7 +58,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'forceDoor', groupOwner: true }));
       if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies FabriqueDuNoyau;
 }
 
 /** Les réglages des Tests de scène (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase. */

@@ -43,9 +43,8 @@ function refusNeuf(partie: Partie, envoyer: () => unknown): string | undefined {
 
 /** Le duel de `combatDeTest.testkit.ts`, ouvert : le héros est en combat. */
 function enCombat(jouer: (partie: Partie, H: Combatant) => void, patch: Partial<EtatDeJeu> | ((H: Combatant) => Partial<EtatDeJeu>) = {}): void {
-  const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
-  ouverture.envoyer({ type: 'startScene', args: [testScene()] });
-  ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+  const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
   const garde = ouverture.etat();
   ouverture.fermer();

@@ -108,7 +108,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     const Probe = () => {
       const svgRef = useRef(stageEl());
       const camRef = useRef({ x: 0, y: 0 });
-      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes });
       return null;
     };
     root = createRoot(document.createElement('div'));
@@ -166,7 +166,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     const Harnais = () => {
       const svgRef = useRef<SVGSVGElement>(null);
       const camRef = useRef({ x: 0, y: 0 });
-      const p = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: undefined, activeZ: 0, aretes });
+      const p = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, activeZ: 0, aretes });
       return (
         <svg ref={svgRef} {...p.handlers}>
           <AreteOverlay

@@ -4,7 +4,7 @@
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
  * `triggersEnJeu`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
- * `marcherVers`.
+ * le clic de sa case (`cliquerLaCase`), comme un saut.
  */
 import { aretesUtilisables } from './aretes';
 import { aretesOffertes, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
@@ -26,11 +26,11 @@ export interface GesteDExploration {
   gestes: GesteDuNoyau[];
 }
 
-/** La marche du groupe jusqu'à `vers` (`marcherVers`) et son nombre de pas, `null` sans chemin à pied qui y finisse. */
+/** La marche du groupe jusqu'à `vers` (`cliquerLaCase`) et son nombre de pas, `null` sans chemin à pied qui y finisse. */
 function marcheVers(s: Jeu, vers: Pt): { gestes: GesteDuNoyau[]; pas: number } | null {
   const plan = s.scene && exploreMovePlan(s.scene, s.partyPos, vers, optionsDeCheminDuGroupe(s.party));
   const fin = plan?.path[plan.path.length - 1];
-  return plan && fin && plan.path.length > 1 && memeCase(fin, vers) && cheminMarchable(s.scene!, plan.path) ? { gestes: [{ verbe: 'marcherVers', args: [vers] }], pas: plan.path.length - 1 } : null;
+  return plan && fin && plan.path.length > 1 && memeCase(fin, vers) && cheminMarchable(s.scene!, plan.path) ? { gestes: [{ verbe: 'cliquerLaCase', args: [vers] }], pas: plan.path.length - 1 } : null;
 }
 
 const estTransition = (e: Effect): e is Extract<Effect, { type: 'transition' }> => e.type === 'transition';
@@ -50,7 +50,7 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
     } else out.push({ libelle: arete.libelle, gestes: [geste] });
   }
   for (const a of atterrissagesDeSaut(scene, partyPos, optionsDeCheminDuGroupe(s.party))) {
-    out.push({ libelle: t('exploration.saut', { x: a.x, y: a.y }), gestes: [{ verbe: 'sauter', args: [[partyPos, a], 1] }] });
+    out.push({ libelle: t('exploration.saut', { x: a.x, y: a.y }), gestes: [{ verbe: 'cliquerLaCase', args: [a] }] });
   }
   for (const trig of triggersEnJeu(scene, () => visible)) {
     if (s.flags[`__trigger_${trig.id}`]) continue;
