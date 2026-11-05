@@ -14,6 +14,7 @@
 import { findRegleById, type RangeeDeRegleData, type RegleData, type TestDeRegleData } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { DIFFICULTY_MODIFIERS, type ModLine } from './types';
+import { findTierEntry } from './tables';
 import {
   RANGEES_DE_REGLE, TESTS_DE_REGLE,
   type CodexTarget, type RegleChiffree, type RangeeDe, type RegleATest, type TestDe,
@@ -87,8 +88,8 @@ export function ligneDeRegle<R extends RegleChiffree>(id: R, cle: RangeeDe<R>, o
  *  (le résidu d'un tir dévié). Une valeur littérale à côté de lui est refusée (`rule-refs.test.ts`). */
 export const refDeRegle = (id: RegleChiffree): CodexTarget => ({ category: 'regles', id });
 
-/** La ligne de la rangée de plus haut `seuil` atteint par `n` ; `null` sous le plus bas. */
+/** La ligne du palier (`findTierEntry`) atteint par `n` parmi les rangées à `seuil` ; `null` sous le plus bas. */
 export function ligneParSeuil(id: RegleChiffree, n: number): ModLine | null {
-  const r = rangeesDeRegle(id).filter((x) => x.seuil !== undefined && n >= x.seuil).sort((a, b) => b.seuil! - a.seuil!)[0];
+  const r = findTierEntry(rangeesDeRegle(id).filter((x): x is RangeeDeRegleData & { seuil: number } => x.seuil !== undefined), n);
   return r ? ligne(id, r, modDeRangee(r)) : null;
 }

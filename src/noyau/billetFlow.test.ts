@@ -13,7 +13,7 @@ const route: MapRoute = {
   billets: {
     diligence: {
       prix: { exterieur: 48, interieur: 96 }, depuis: 'A', maison: 'test',
-      marchandage: { presetId: 'vendeur', paliers: [{ drMin: 0, prix: { exterieur: 36, interieur: 72 } }] },
+      marchandage: { presetId: 'vendeur', paliers: [{ seuil: 0, prix: { exterieur: 36, interieur: 72 } }] },
     },
   },
 };

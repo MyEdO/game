@@ -2,24 +2,25 @@ import { nommerChamps } from '../grammaire/meta';
 /** VDM 02 l.205-215 ; VDM 02 l.198 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { palierSchema } from '../grammaire/valeurs';
 
 export const file = 'surincantation.json';
 export const famille = 'config';
 
-/** Un palier : des DR dépensés sur UNE colonne. */
+/** Un palier (`palierSchema`) : `seuil` = DR dépensés sur UNE colonne. */
 export const rangee = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string().min(1),
-  dr: z.number().int().min(1),
+  ...palierSchema.shape,
   targets: z.number().int().min(0),
   damage: z.number().int().min(0),
   range: z.number().int().min(1),
   zone: z.number().int().min(1),
   duration: z.number().int().min(1),
-}), {
+}).refine((r) => r.seuil >= 1, { path: ['seuil'], message: 'un palier de Surincantation coûte au moins 1 DR' }), {
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
-  dr: { label: 'Degrés de Réussite' },
+  seuil: { label: 'Degrés de Réussite' },
   targets: { label: 'Cibles' },
   damage: { label: 'Dégâts' },
   range: { label: 'Portée' },

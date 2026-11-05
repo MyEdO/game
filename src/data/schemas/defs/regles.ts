@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import { nommerChamps } from '../grammaire/meta';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 import { flowTestSchema } from '../grammaire/mecanique';
 
@@ -21,8 +21,8 @@ export const famille = 'entite';
 
 /** Une rangée chiffrée : le PALIER que le livre nomme (« Accessible (+20) ») ou la VALEUR nue qu'il
  *  donne (« bonus de +20 »), jamais les deux. `famille` est celle de la `ModLine` émise (`LDB 14 l.48`) ;
- *  `seuil` est le plancher de la grandeur qui sélectionne la rangée (cibles, attaquants), `plafond` son
- *  plafond (facteur de Portée d'une bande de tir). */
+ *  `seuil` fait de la rangée un PALIER (`palierSchema`) de la grandeur qui la sélectionne (cibles,
+ *  attaquants), `plafond` en est le plafond (facteur de Portée d'une bande de tir). */
 const rangeeSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string().min(1),
@@ -32,7 +32,7 @@ const rangeeSchema = nommerChamps(z.strictObject({
     { circonstance: 'Circonstance', jet: 'Jet' },
     { circonstance: 'Comptée dans le plafond des Difficultés (`LDB 14 l.48`)', jet: 'Hors plafond (`LDB 14 l.48`)' },
   ),
-  seuil: z.number().optional(),
+  ...palierSchema.partial().shape,
   plafond: z.number().optional(),
 }).superRefine((r, ctx) => {
   if ((r.palier === undefined) === (r.valeur === undefined))

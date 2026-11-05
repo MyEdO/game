@@ -64,9 +64,12 @@ export const STRUCTURES_CIBLES = [
   // `vehicles.ts › ship.sail`/`ship.oars` et `ship-construction.ts` valident, rien à migrer.
   { concept: "profil-de-propulsion", signature: "crew,m", date: "2026-10-15" },
   { concept: "profil-de-propulsion", signature: "crew,m,spec", date: "2026-10-15" },
-  // #2534 / #2539 (2026-10-16) — billet de route, son marchandage et ses paliers, forme d'un état de
-  // campagne : nés CIBLES, ce sont les formes que `worldmap.ts` et `narratif.ts` valident, rien à migrer.
-  { concept: "palier-de-billet", signature: "drMin,prix", date: "2026-10-16" },
+  // #1666 (2026-11-05) — le PALIER d'une table à seuils : `palierSchema` + `findTierEntry` ; ses
+  // instances (surincantation, phases du jour, rangées de règle, paliers de billet) migrent au même commit.
+  { concept: "palier", signature: "seuil", date: "2026-11-05" },
+  { concept: "palier", signature: "seuil+…", date: "2026-11-05" },
+  // #2534 / #2539 (2026-10-16) — billet de route et son marchandage, forme d'un état de campagne : nés
+  // CIBLES, ce sont les formes que `worldmap.ts` et `narratif.ts` valident, rien à migrer.
   { concept: "marchandage-de-billet", signature: "paliers,presetId", date: "2026-10-16" },
   { concept: "marchandage-de-billet", signature: "presetId", date: "2026-10-16" },
   // #2779 (2026-10-18) — le Test NOMMÉ : `flowTestSchema` (`src/data/schemas/grammaire/mecanique.ts:644`)

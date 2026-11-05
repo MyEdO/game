@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bandeAuDe, facesDuDe, findTableEntry, findTableEntryIndex, fourchette, tableOuverte } from './tables';
+import { bandeAuDe, facesDuDe, findTableEntry, findTableEntryIndex, findTierEntry, fourchette, tableOuverte } from './tables';
 import { tableDesCritiquesDeStructure } from './structureCritical';
 
 describe('findTableEntry — lookup d100 par fourchette [min,max] (source unique)', () => {
@@ -16,6 +16,29 @@ describe('findTableEntry — lookup d100 par fourchette [min,max] (source unique
   });
   it('repli sur la DERNIÈRE entrée si le jet dépasse la table', () => {
     expect(findTableEntry(table, 999).v).toBe('c');
+  });
+});
+
+describe('findTierEntry — lookup d’une table à paliers (source unique)', () => {
+  const paliers = [
+    { seuil: 1, v: 'a' },
+    { seuil: 3, v: 'b' },
+    { seuil: 8, v: 'c' },
+  ];
+  it('retient le palier de plus grand seuil atteint (seuil inclus)', () => {
+    expect(findTierEntry(paliers, 1)?.v).toBe('a');
+    expect(findTierEntry(paliers, 2)?.v).toBe('a');
+    expect(findTierEntry(paliers, 3)?.v).toBe('b');
+    expect(findTierEntry(paliers, 7)?.v).toBe('b');
+    expect(findTierEntry(paliers, 999)?.v).toBe('c');
+  });
+  it('`undefined` sous le plus bas palier : le repli est celui de l’appelant', () => {
+    expect(findTierEntry(paliers, 0)).toBeUndefined();
+    expect(findTierEntry([], 5)).toBeUndefined();
+  });
+  it('indépendant de l’ordre d’authoring', () => {
+    const desordre = [paliers[2], paliers[0], paliers[1]];
+    expect([0, 1, 2, 3, 7, 8, 20].map((n) => findTierEntry(desordre, n)?.v)).toEqual([0, 1, 2, 3, 7, 8, 20].map((n) => findTierEntry(paliers, n)?.v));
   });
 });
 

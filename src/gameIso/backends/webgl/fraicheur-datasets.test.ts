@@ -64,7 +64,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
 describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', () => {
   it('les phases du jour ÉDITÉES : aube, crépuscule, créneau de départ et arche solaire suivent', () => {
     setDataset('calendarPhases', datasetArray('calendarPhases').map((p) => (
-      p.id === 'aube' ? { ...p, start: 360 } : p.id === 'crepuscule' ? { ...p, start: 1140 } : p)));
+      p.id === 'aube' ? { ...p, seuil: 360 } : p.id === 'crepuscule' ? { ...p, seuil: 1140 } : p)));
     expect(sunJeuHalfArcMin()).toBe(12 * 60 - 360);
   });
 });

@@ -252,6 +252,15 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "findTierEntry",
+    "type": "primitives.manifest",
+    "label": "findTierEntry",
+    "fichier": "src/engine/tables.ts",
+    "concept": "lookup d'une table à PALIERS (`palierSchema`) : la rangée de plus grand `seuil` ≤ la valeur, indépendante de l'ordre d'authoring, `undefined` sous le plus bas palier",
+    "perimetre": "toute table à seuils : Tableau de Surincantation, phases du jour, rangées de règle à `seuil`, paliers de billet",
+    "verrou": "src/engine/tables.test.ts"
+  },
+  {
     "id": "rangeesDe",
     "type": "primitives.manifest",
     "label": "rangeesDe/RangeeDe",
