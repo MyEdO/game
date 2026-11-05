@@ -53,6 +53,7 @@ import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid, degatsDeLEtatIgnores } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
 import { ciblesAPulsion, isFrenzied, sourceCombattant, vise } from '../../engine/psychology';
+import { castInfoIsPrayer, prayerForActionBy } from '../../engine/magic';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -516,6 +517,16 @@ export function adversairesDe(input: Pick<EnemyTurnInput, 'heroes' | 'ciblesDePu
   return [...input.heroes, ...(input.ciblesDePulsion ?? []).filter((c) => c.pos && !input.heroes.some((h) => h.id === c.id))];
 }
 
+/** Le candidat reste-t-il permis quand l'Action est due à une Prière (`prayerForActionBy`) ? L'incantation
+ *  d'une Prière (`castInfoIsPrayer`), le Mouvement (l'attaque d'après est gardée à l'exécution) et la
+ *  Détermination, qui ne sont pas l'Action. LDB 40 l.74 */
+function permisSousPriereImposee(a: EnemyAction, spells: readonly CastableSpell[]): boolean {
+  if (a.kind === 'move' || a.kind === 'spendResource') return true;
+  if (a.kind !== 'cast' && a.kind !== 'castArea') return false;
+  const sp = spells.find((s) => s.id === a.spell);
+  return !!sp && castInfoIsPrayer(sp.data);
+}
+
 /** Choisit l'action d'un ennemi pour son tour. Pure et déterministe. */
 export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const { enemy, scene, blocked, smoke, flying, facing, traverse } = input;
@@ -540,7 +551,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // En flammes (LDB 16 l.84) : un ennemi NON frénétique se roule au sol pour éteindre le feu (1d10/Round
   // est mortel). Un frénétique ignore le danger et continue d'attaquer (Frénésie, LDB 21 l.33) ; un
   // immunisé à ses Dégâts n'a rien à éteindre (LDB 85 l.174).
-  if (hasCondition(enemy, 'en-flammes') && !isFrenzied(enemy) && !degatsDeLEtatIgnores(enemy.traits, 'en-flammes')) return forced({ kind: 'recover', state: 'en-flammes' });
+  // Action due à une Prière (LDB 40 l.74) : seules les Prières restent candidates (filtre de l'argmax).
+  const priereImposee = prayerForActionBy(enemy) !== null;
+  if (hasCondition(enemy, 'en-flammes') && !isFrenzied(enemy) && !priereImposee && !degatsDeLEtatIgnores(enemy.traits, 'en-flammes')) return forced({ kind: 'recover', state: 'en-flammes' });
   const pos = enemy.pos!;
   // Ligne de Vue de CE tour : toutes les questions `from → to` de la décision passent par le mémo (le
   // positionnement en pose des dizaines de milliers, cf. `makeLosMemo`). Verdicts IDENTIQUES à l'appel direct.
@@ -1137,11 +1150,11 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // --- ARGMAX : meilleur candidat (utilité pondérée + tie-break déterministe) ----------------
   // TRACE (DEV gated) : classement des candidats (top 8 par utilité décroissante) = l'« intention » du tour.
   if (AI_TRACE) _lastRanking = [...candidates].sort((a, b) => b.utility - a.utility).slice(0, 8).map((c) => ({ kind: c.kind, spell: (c.action as { spell?: string }).spell, targetId: c.targetId || undefined, utility: Math.round(c.utility * 100) / 100 }));
-  const chosen = argmax(candidates);
+  const chosen = argmax(priereImposee ? candidates.filter((c) => permisSousPriereImposee(c.action, spells)) : candidates);
   if (chosen) return chosen.action;
 
   // Aucun candidat jouable : un Empêtré (Mouvement nul, LDB 16 l.64) se libère plutôt que perdre son
   // tour (Test opposé de Force contre la source, l.66). Sinon, passe la main.
-  if (hasCondition(enemy, 'empetre')) return { kind: 'recover', state: 'empetre' };
+  if (hasCondition(enemy, 'empetre') && !priereImposee) return { kind: 'recover', state: 'empetre' };
   return { kind: 'end' };
 }
