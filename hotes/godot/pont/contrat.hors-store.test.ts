@@ -7,30 +7,20 @@
  * erreurs de la page s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
  * même pont.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
 import { CLICS_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
+import * as projection from '../../../src/hote/projection';
 
-/** La panne d'un lecteur de la vue, armée par le test de la catégorie `interne`. */
-const panne = vi.hoisted(() => ({ projeter: false }));
-vi.mock('../../../src/hote/projection', async (importOriginal) => {
-  const origine = await importOriginal<typeof import('../../../src/hote/projection')>();
-  return {
-    ...origine,
-    projeter: (...a: Parameters<typeof origine.projeter>) => {
-      if (panne.projeter) throw new Error('lecteur en panne');
-      return origine.projeter(...a);
-    },
-  };
-});
-
-/** La page témoin : son `addEventListener`, posé avant le pont, reçoit les erreurs que le test y émet. */
+/** La page témoin : son `addEventListener`, posé avant le pont, reçoit les erreurs que le test y émet ; rendu à la fin
+ *  du fichier, le graphe étant partagé avec les fichiers suivants du worker. */
 const page = new EventTarget();
-Object.assign(globalThis, { addEventListener: page.addEventListener.bind(page) });
+vi.stubGlobal('addEventListener', page.addEventListener.bind(page));
+afterAll(() => { vi.unstubAllGlobals(); });
 
 const { pont, appel } = table();
 
@@ -106,12 +96,9 @@ describe('le pont et sa partie', () => {
   });
 
   it('une levée qu’aucun contrôle n’attendait se rend en `interne`, dans une chaîne JSON', () => {
-    panne.projeter = true;
-    try {
-      expect(JSON.parse(pont.appeler('vue'))).toEqual({ ok: false, erreur: { categorie: 'interne', message: 'lecteur en panne' } });
-    } finally {
-      panne.projeter = false;
-    }
+    const panne = vi.spyOn(projection, 'projeter').mockImplementation(() => { throw new Error('lecteur en panne'); });
+    expect(JSON.parse(pont.appeler('vue'))).toEqual({ ok: false, erreur: { categorie: 'interne', message: 'lecteur en panne' } });
+    panne.mockRestore();
     expect(appel('vue').ok, 'le lecteur rétabli, la vue se rend').toBe(true);
   });
 
