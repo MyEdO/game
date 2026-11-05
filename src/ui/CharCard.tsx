@@ -78,11 +78,6 @@ export function heroKeyTalents(hero: Combatant, max = 6): string[] {
   return hero.talents.slice(0, max).map((tt) => talentConcrete(tt));
 }
 
-/** État de recrutement d'un candidat vis-à-vis du groupe (calculé par l'écran d'équipe). */
-export interface RecruitState {
-  status: 'available' | 'blocked';
-}
-
 /** Identité (nom COMPLET + archétype). La PRÉSENTATION s'ouvre par le bouton loupe `WhoButton`
  *  (`.btn` canon) — pas un `<button>` nu recodé sur le nom (cliquet #373). */
 function CardIdentity({ hero }: { hero: Combatant }) {
@@ -151,7 +146,6 @@ function PresentHandle({ hero, onPresent, className, children }: { hero: Combata
 export function CandidateCard({
   hero,
   variant = 'gallery',
-  state,
   wealth,
   recruited,
   selected,
@@ -163,7 +157,6 @@ export function CandidateCard({
 }: {
   hero: Combatant;
   variant?: 'gallery' | 'remplacement';
-  state?: RecruitState;
   wealth?: Money;
   /** Déjà dans le groupe (modale de remplacement) → bouton « Déjà choisi » désactivé. */
   recruited?: boolean;
@@ -176,7 +169,6 @@ export function CandidateCard({
   onExport?: () => void;
   onDelete?: () => void;
 }) {
-  const blocked = state?.status === 'blocked';
   return (
     <OrnateFrame className={`candidate-card candidate-${variant}${selected ? ' selected' : ''}`}>
       {/* Le personnage (identité) EST le contrôle qui ouvre sa présentation (directive user
@@ -193,8 +185,8 @@ export function CandidateCard({
         <GatedAction
           id={`char-recruit-${hero.id}`}
           label={variant === 'remplacement' ? (recruited ? t('picker.hero.inParty') : t('picker.hero.choose')) : t('party.hero.recruit')}
-          enabled={variant === 'remplacement' ? !recruited : !blocked}
-          reason={variant === 'remplacement' ? t('party.recruit.already') : t('party.recruit.full')}
+          enabled={variant !== 'remplacement' || !recruited}
+          reason={t('party.recruit.already')}
           onClick={() => onRecruit?.()}
           btnClassName="small"
         />

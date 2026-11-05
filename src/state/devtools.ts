@@ -1249,7 +1249,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (seed != null) s.seedRng(seed);
       s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
-      lancerCampagne(g, lancee, sceneId);
+      const refus = lancerCampagne(g, lancee, sceneId);
+      if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
       s.setScreen('campaign');
       const after = useGame.getState();
       return `✓ campagne « ${c.label} » chargée (${after.party.length} héros, scène « ${after.scene?.id} »)`;
