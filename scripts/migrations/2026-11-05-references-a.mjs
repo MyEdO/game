@@ -3,15 +3,14 @@
  * graphie de la grammaire, `ref(type, extra)` : l'identité passe sous `id`, la charge reste à côté.
  *
  * GESTE : toute liste `prosthesis` : `{ trappingId, cancels }` devient `{ id, cancels }`
- * (`protheseSchema`, `src/data/schemas/defs/traumas.ts`) — `traumas.json`, et la référence figée des
- * Critiques, qui porte la séquelle (`Trauma.prosthesis`) telle que le moteur la rend.
+ * (`protheseSchema`, `src/data/schemas/defs/traumas.ts`) — `traumas.json`.
  * `SceneEntity.tavernGame` (`offreDeTaverneSchema`) : 0 graphie dans les scènes commitées, rien à écrire.
  *
- * ENTRÉES : écrites — `src/data/traumas.json`, `src/engine/crit-rng-invariance.fixture.json`.
+ * ENTRÉES : écrite — `src/data/traumas.json`.
  * IDEMPOTENT : rejouée sur l'état final, aucun objet ne porte plus l'ancienne clé ; rien ne s'écrit.
  * FAIL-FAST — sortie 1 avant toute écriture : un fichier hors de son formatage ; un objet qui porte
  * déjà `id` à côté de l'ancienne clé, ou un id qui n'est pas une chaîne.
- * FORMATAGE : `serializeDataset` (la fixture, suivie de sa fin de ligne).
+ * FORMATAGE : `serializeDataset`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,11 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-/** Chaque fichier, et la fin de ligne que son formatage ajoute à `serializeDataset`. */
-const FICHIERS = [
-  ['src/data/traumas.json', ''],
-  ['src/engine/crit-rng-invariance.fixture.json', '\n'],
-];
+const FICHIERS = ['src/data/traumas.json'];
 
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const fautes = [];
@@ -53,15 +48,15 @@ function marcher(noeud, ou) {
 }
 
 const ecritures = [];
-for (const [rel, fin] of FICHIERS) {
+for (const rel of FICHIERS) {
   const cible = path.join(ROOT, rel);
   const avant = fs.readFileSync(cible, 'utf8');
   const doc = JSON.parse(avant);
-  if (serializeDataset(doc) + fin !== avant) {
+  if (serializeDataset(doc) !== avant) {
     fautes.push(`${rel} : formatage non canonique`);
     continue;
   }
-  const apres = serializeDataset(marcher(doc, rel)) + fin;
+  const apres = serializeDataset(marcher(doc, rel));
   if (apres !== avant) ecritures.push([cible, apres]);
 }
 
