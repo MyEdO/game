@@ -62,6 +62,22 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_peindre()
 
 
+## Le point de l'écran de la case de l'aperçu du premier clic (sa case, ou celle du combattant qu'il vise), `null` sans
+## aperçu.
+func point_de_l_apercu() -> Variant:
+	var combat: Variant = _vue.get("projection", {}).get("combat")
+	var apercu: Variant = null if combat == null else combat.apercu
+	if apercu == null:
+		return null
+	var case: Variant = apercu.case
+	for c in combat.voisins.liste:
+		if c.id == apercu.cible:
+			case = c.pos
+	if case == null:
+		return null
+	return _camera.unproject_position(_monde(Vector2i(int(case[0]), int(case[1]))))
+
+
 ## Le point de l'écran de chaque case du plateau, par sa clé `x,y`.
 func points() -> Dictionary:
 	var points := {}

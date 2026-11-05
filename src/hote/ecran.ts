@@ -28,6 +28,7 @@ export interface ZonesDeLEcran {
   'combat.ordre': Puce[];
   'combat.actif': Entite[];
   'combat.avis': Ligne[];
+  'combat.apercu': Ligne[];
   'combat.offres': Choix[];
   'journal.titre': Ligne[];
 }
@@ -206,12 +207,10 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
 const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
 
 /** Ce que le panneau du combat dit hors de ses jauges : pourquoi la barre est fermée (la fenêtre le dit quand elle tient
- *  la main), ce que l'aperçu coûte, la fin du combat. */
+ *  la main), la fin du combat. */
 function avisDuCombat(c: Combat, fenetreOuverte: boolean): Ligne[] {
-  const apercu = apercuDe(c);
   return [
     ...(c.barre.raison === null || fenetreOuverte ? [] : [ligne('raison', c.barre.raison, 'alerte')]),
-    ...(apercu === null ? [] : [ligne('apercu', apercu)]),
     ...(c.fin ? [ligne('fin', t('ecran.fin', { issue: t(`ecran.fin.${c.fin}`) }), TON_DE_LA_FIN[c.fin])] : []),
   ];
 }
@@ -232,6 +231,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
+    'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
   };

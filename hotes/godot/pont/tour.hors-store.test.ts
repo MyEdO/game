@@ -123,7 +123,7 @@ describe('un tour complet par le pont', () => {
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
     ({ suite } = jouer({ type: suite.vue.champ!.case, args: [vers] }));
     expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y] });
-    expect(suite.vue.zones['combat.avis'].map((l) => l.id), 'le panneau dit ce que l’aperçu coûte').toContain('apercu');
+    expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
     ({ suite } = jouer({ type: suite.vue.champ!.case, args: [vers] }));
     expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y]);
     expect(suite.vue.occupants[`${vers.x},${vers.y}`], 'la case porte son occupant').toBe(second.id);

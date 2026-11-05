@@ -7,7 +7,7 @@
 ## (`Zone.geste`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
 ## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Chaque vue montrée, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`),
-## que la recette lit.
+## que la recette lit. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa case.
 extends Node
 
 @onready var _plateau: Plateau = $Plateau
@@ -15,6 +15,7 @@ extends Node
 @onready var _disposition: Disposition = $Ecran/Fenetre/Disposition
 @onready var _refus: Label = $Ecran/Interface/Avis/Refus
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
+@onready var _apercu: Control = $Ecran/Interface/Apercu
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -53,6 +54,13 @@ func _suivre(reponse: Dictionary) -> void:
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()
+
+
+## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
+func _process(_delta: float) -> void:
+	var point: Variant = _plateau.point_de_l_apercu()
+	if _apercu.visible and point != null:
+		_apercu.position = MiseEnPage.bulle_au_dessus(point, _apercu.size.x, _apercu.size.y)
 
 
 ## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu.

@@ -2,7 +2,7 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, et un vecteur rapporté à un repère. Seul script où
+## pieds au sol, un vecteur rapporté à un repère, et le coin d'une bulle au-dessus d'un point. Seul script où
 ## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
 ## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -17,6 +17,8 @@ const RADIANS_PAR_PIXEL := 0.005
 ## Le tangage de l'orbite, borné entre la vue plongeante et la vue rasante au-dessus du sol.
 const TANGAGE_MINIMAL := -1.2
 const TANGAGE_MAXIMAL := 0.2
+## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
+const ECART_DE_BULLE := 12.0
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
@@ -147,3 +149,8 @@ static func entree_de_marche(gauche: float, droite: float, avant: float, arriere
 ## Le vecteur `vecteur` rapporté au repère de base `base` (`Basis.inverse`).
 static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
+
+
+## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
+static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
+	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
