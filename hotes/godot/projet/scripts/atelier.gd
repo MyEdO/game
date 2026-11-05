@@ -14,6 +14,8 @@ const AUCUN := "Aucun"
 const AIDE_DU_GENRE := {emplacement = "emplacements", prise = "prises"}
 const COULEUR_DES_AIDES := {os = Color(0.95, 0.85, 0.2), emplacements = Color(0.3, 0.8, 1.0), prises = Color(1.0, 0.4, 0.35)}
 const ORIGINE := [0.0, 0.0, 0.0]
+## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`_repere_de_rangement`).
+const DEGAGEMENT_DE_RANGEMENT := 0.01
 const RAYON_DU_REPERE_D_OS := 0.02
 ## Plus grand que celui d'un os : le repère d'un point déborde de celui de son os, quel que soit l'ordre de rendu.
 const RAYON_DU_REPERE_DE_POINT := 0.035
@@ -593,23 +595,30 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 
 
 ## `piece`, qui pend aux os `noms`, posée sur `squelette`, celui de la base, pour l'emplacement `id` : rigide, sous un os
-## de même nom que le sien, ou, à une prise, reposée du repère de sa prise d'origine (celle dont l'os porte son mesh) dans
-## celui de la prise `id`, sans miroir (#3319, `CONTRAT.md`) ; skinnée, sous le squelette, son skin lié par nom dès
-## l'import (`_scene_du_glb`). Le nœud qui la porte dans la scène.
+## de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui de
+## la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_repere_de_rangement`) (#3319, `CONTRAT.md`) ; skinnée,
+## sous le squelette, son skin lié par nom dès l'import (`_scene_du_glb`). Le nœud qui la porte dans la scène.
 func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], squelette: Skeleton3D, id: String) -> Node:
 	piece.owner = null
 	if piece.skin == null:
 		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
-		var cible := _prise(id)
+		var cible := _point(id)
 		var origine := _prise_de_l_os(noms[0])
-		if cible.is_empty() or origine.is_empty():
+		if cible.is_empty() or origine.is_empty() or (cible.genre == "emplacement" and cible.attache.os == noms[0]):
 			var support := MontageDEquipement.attacher(squelette, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
 			piece.reparent(support, false)
 			return support.get_parent()
-		var portage := MontageDEquipement.attacher(squelette, cible.attache, nom)
+		var dans_la_prise := MontageDEquipement.repere(origine.attache).affine_inverse()
+		var portage: Node3D
 		var relais := Node3D.new()
 		relais.name = "DepuisLaPrise_%s" % origine.id
-		relais.transform = MontageDEquipement.repere(origine.attache).affine_inverse()
+		if cible.genre == "prise":
+			portage = MontageDEquipement.attacher(squelette, cible.attache, nom)
+			relais.transform = dans_la_prise
+		else:
+			portage = MontageDEquipement.attacher(squelette, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom)
+			var en_prise := dans_la_prise * piece.transform
+			relais.transform = _repere_de_rangement(cible.attache, en_prise * piece.get_aabb()) * dans_la_prise
 		portage.add_child(relais)
 		piece.reparent(relais, false)
 		return portage.get_parent()
@@ -618,12 +627,30 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], squelette: Skel
 	return piece
 
 
-## Le point de prise `id` de la base posée, `{}` si `id` n'est pas une prise.
-func _prise(id: String) -> Dictionary:
+## Le point d'accroche `id` de la base posée, emplacement ou prise, `{}` si aucun.
+func _point(id: String) -> Dictionary:
 	for point in _base.get("points", []):
-		if point.genre == "prise" and point.id == id:
+		if point.id == id:
 			return point
 	return {}
+
+
+## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la boîte, dans ce
+## repère de prise, est `boite` : +Y de la prise (de l'auriculaire vers l'index, vers la tête de l'objet) vers le bas du
+## personnage, +Z (vers les jointures) sur la normale sortante de l'emplacement, sa composante hors de l'axe de l'os ;
+## la boîte centrée sur l'emplacement en X et Y, sa face arrière à `DEGAGEMENT_DE_RANGEMENT` de la peau. Sur l'axe de
+## l'os, la normale est l'avant du personnage.
+static func _repere_de_rangement(attache: Dictionary, boite: AABB) -> Transform3D:
+	var emplacement := MontageDEquipement.repere(attache)
+	var point := emplacement.origin
+	var sortante := point - Vector3.UP * point.dot(Vector3.UP)
+	sortante = sortante.normalized() if sortante.length() > 0.001 else emplacement.basis.z.normalized()
+	var bas := -emplacement.basis.y
+	bas = (bas - sortante * bas.dot(sortante)).normalized()
+	var axes := Basis(bas.cross(sortante), bas, sortante)
+	var centre := boite.get_center()
+	var origine := point + sortante * (DEGAGEMENT_DE_RANGEMENT - boite.position.z) - axes.x * centre.x - axes.y * centre.y
+	return Transform3D(axes, origine)
 
 
 ## La prise de la base posée dont l'os est `os`, `{}` si aucune.
