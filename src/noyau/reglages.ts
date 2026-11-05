@@ -51,6 +51,10 @@ export const REGLAGES_DE_L_ATTAQUE = [
 /** Les verbes que la fenêtre de la Défense règle (`fenetreDeDefense`, `FENETRE_DU_JET.defense`), comme ceux de l'attaque. */
 export const REGLAGES_DE_LA_DEFENSE = ['defenseSetMode', 'defenseSetParryWeapon', 'defenseSetShieldReaction', 'defenseSetRiposte'] as const satisfies readonly (keyof ActionsDuNoyau)[];
 
+/** Les verbes qui règlent l'incantation en attente (`FENETRE_DU_JET.cast`), chacun fermé là où il ne change rien au
+ *  Sort (`fermeturesDeLIncantation`). */
+export const REGLAGES_DE_L_INCANTATION = ['castSetCritChoice', 'castSetConjureForm', 'castSetDiscreet', 'castSetChosenTableRolls'] as const satisfies readonly (keyof ActionsDuNoyau)[];
+
 const estNomme = (e: unknown): e is ChoixNomme<string | number | boolean> | BasculeNommee => typeof e === 'object' && e !== null && 'verbe' in e;
 
 /** Les réglages des éléments nommés d'une fenêtre lue (`fenetreDAttaque`, `fenetreDeDefense`) : chaque champ qui
