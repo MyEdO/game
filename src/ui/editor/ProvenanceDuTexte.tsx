@@ -6,7 +6,7 @@
  * `copie` : le site offre la copie sous `source`. Sans `copie` (réplique, journal), la copie est une
  * ADRESSE (`descRef`) que l'éditeur ne produit pas : reçue (`adresseUnPassage`), sa prose matérialisée
  * se LIT chez l'hôte (`ProseField lecture`), et le seul geste est « Détacher » (`estDerive`,
- * `compendium/editFields.ts`). Avec `copie`, `adresseEmbarquee` porte l'adresse d'une entrée
+ * `noyau/codex/editFields.ts`). Avec `copie`, `adresseEmbarquee` porte l'adresse d'une entrée
  * embarquée (`profil` d'un preset) : même lecture ; « Détacher » reporte `source` sur `adapteDe` (#2206).
  */
 import { useState } from 'react';

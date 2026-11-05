@@ -94,11 +94,11 @@ import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
-import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
+import { humanizeCastBonus, causePersistante, replieCausesPersistantes } from '../../noyau/codex/humanize';
 import { reverseGroups, bookContents } from '../../noyau/codex/relations';
-import { formatManeuverMeasure } from './maneuverMeasure';
+import { formatManeuverMeasure } from '../../noyau/codex/maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
-import { libelleDuChamp } from './editFields';
+import { libelleDuChamp } from '../../noyau/codex/editFields';
 // Ordre des arrêts d'une rampe de terrain : SOURCE UNIQUE partagée avec les émetteurs SVG — la fiche
 // Codex lit la rampe dans l'ordre où le rendu la peint, jamais dans l'ordre des clés du Record.
 import { terrainStopsOrdonnes } from '../../noyau/monde/terrain';
@@ -922,7 +922,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       const dur = o.durationRounds != null ? `${miscastAmountLabel(o.durationRounds)} Round(s)` : undefined;
       // CAUSE PERSISTANTE (`LDB 16 l.117`) : la rangée pose UN État et le MAINTIENT — la persistance se
       // dit au BADGE de SA chip, du mot du journal et de la même forme que l'autre lecteur (`opRows`).
-      const badge = [estCausePersistante(o) ? CAUSE_PERSISTANTE : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
+      const badge = [estCausePersistante(o) ? causePersistante() : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
       const show = value && value !== '1' ? `${value} × ${label}` : label;
       return { t: 'ref', category: 'etats', id, label, show, badge };
     }

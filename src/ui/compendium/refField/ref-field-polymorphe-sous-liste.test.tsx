@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RefField, cfgDuNoeudType } from './RefField';
-import { inferFields } from '../editFields';
+import { inferFields } from '../../../noyau/codex/editFields';
 import { datasetArray } from '../../../data/overrides';
 import { metaPourFichier, noeudObjet, schemaForFile } from '../../../data/schemas/validate';
 import { file } from '../../../data/schemas/defs/garde-robe';

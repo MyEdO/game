@@ -4,7 +4,7 @@
  * leur forme : un id que son libellé ne contient pas.
  */
 import { describe, it, expect } from 'vitest';
-import { humanizeOp } from './humanize';
+import { humanizeOp } from '../../noyau/codex/humanize';
 import { opRow } from './opRows';
 import { groupLabel, groups, psychologies, psychologyLabel } from '../../data';
 import type { GameOp } from '../../engine/ops';
