@@ -4,7 +4,8 @@
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
  * focus, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
- * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, et un formulaire
+ * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, sa première
+ * possession choisie (ses gestes refusés en combat), et un formulaire
  * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
  * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
@@ -105,11 +106,13 @@ export function figerVuesDeLEcran(): VueFigee[] {
     s = appeler('fiche', s.vue.zones['fiche.gestes'].find((b) => b.id === `onglet/${onglet}`)!.jeu);
     figer(`fiche du héros, ${onglet}`, s);
   }
+  s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
+  figer('fiche du héros, une possession choisie', s);
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
-    'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [],
+    'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [],
   };
   vues.push({
     nom: 'formulaire de chaque saisie',

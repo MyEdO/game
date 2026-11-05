@@ -5,7 +5,7 @@
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
  * l'écran montre est un état du pont, que la méthode `fiche` pose, jamais de la partie.
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, cataloguesDeComposition, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, cataloguesDeComposition, ficheDuPorteur, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -168,10 +168,15 @@ export function creerPont() {
       const o = demarree();
       const e = entreeDe('fiche', json, ['fiche']);
       const f = e.fiche as Record<string, unknown> | null | undefined;
-      const heros = o.partie.etat().party.map((h) => h.id);
-      valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'heros' || k === 'onglet') && heros.includes(f.heros as string) && ONGLETS_DE_LA_FICHE.includes(f.onglet as FicheOuverte['onglet'])),
-        `fiche : fiche, null ou { heros, onglet } : l’id d’un héros du groupe (${heros.join(', ')}) et un onglet (${ONGLETS_DE_LA_FICHE.join(', ')})`);
-      o.fiche = f === null ? null : { heros: f!.heros as string, onglet: f!.onglet as FicheOuverte['onglet'] };
+      const etat = o.partie.etat();
+      const heros = etat.party.map((h) => h.id);
+      valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'heros' || k === 'onglet' || k === 'objet') && heros.includes(f.heros as string) && ONGLETS_DE_LA_FICHE.includes(f.onglet as FicheOuverte['onglet'])),
+        `fiche : fiche, null ou { heros, onglet, objet? } : l’id d’un héros du groupe (${heros.join(', ')}) et un onglet (${ONGLETS_DE_LA_FICHE.join(', ')})`);
+      if (f && f.objet !== undefined) {
+        const objets = f.onglet === 'possessions' ? ficheDuPorteur(etat, f.heros as string)!.possessions.map((p) => p.uid) : [];
+        valider(objets.includes(f.objet as string), `fiche : objet, sous l’onglet possessions, l’uid d’une possession de la fiche (${objets.join(', ') || 'aucune'})`);
+      }
+      o.fiche = f === null ? null : { heros: f!.heros as string, onglet: f!.onglet as FicheOuverte['onglet'], ...(f!.objet === undefined ? {} : { objet: f!.objet as string }) };
       return { vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } } satisfies Suite;
     },
     reprendre(json) {
