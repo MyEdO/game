@@ -1,0 +1,43 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "tete",
+  "cle": {
+    "tete": "humain"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [
+    "tete",
+    "visage",
+    "nez",
+    "oeil_g",
+    "oeil_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "carrure_moins",
+    "carrure_plus",
+    "corpulence"
+  ],
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "peau"
+    },
+    {
+      "nom": "cheveux",
+      "palette": "cheveux"
+    },
+    {
+      "nom": "yeux",
+      "palette": "yeux"
+    }
+  ],
+  "glb": {
+    "sha256": "4b32f01a44569b568223e95f4b095d0762fb4af063c204c0671e1ed641b129ba",
+    "octets": 657736
+  }
+}
