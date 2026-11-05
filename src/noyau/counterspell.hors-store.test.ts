@@ -3,6 +3,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
 import { castSpell, resolveRoundBoundary, counterspellCandidates, routeCounterspell } from './combatFlow';
 import { createHero } from '../engine/character';
+import { acquerirTalent } from '../engine/careerSlots';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -133,6 +134,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     const { H } = setup();
     const hero = banc.getState().battle!.combatants.find((c) => c.id === H.id)! as Combatant;
     hero.skills = [...hero.skills, { id: 'priere', characteristic: 'sociabilite', advances: 5 }];
+    acquerirTalent(hero, { id: 'beni', spec: 'shallya' }); // LDB 10 l.109
     hero.spells = ['benediction-de-guerison'];
     castSpell(banc.getState, banc.setState, hero, hero, 'benediction-de-guerison');
     banc.getState().jetRoll('cast');

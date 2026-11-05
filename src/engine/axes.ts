@@ -48,6 +48,7 @@ import { skillBaseValue } from './skills';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { possesses } from './skills';
 import type { AxisData } from '../data';
+import { effectiveTalents } from './talentEffects';
 
 const SKILL_VALUE_MIN = 15;
 const SKILL_VALUE_SPAN = 55;
@@ -67,7 +68,7 @@ function skillContribution(hero: Combatant, ref: RefDesignee): number {
 
 function talentContribution(hero: Combatant, ref: RefDesignee): number {
   let best = 0;
-  for (const t of hero.talents) {
+  for (const t of effectiveTalents(hero)) {
     if (!refCouvre(ref, { id: t.talentId, spec: t.spec })) continue;
     best = Math.max(best, Math.min(1, TALENT_BASE + TALENT_STEP * (Math.max(1, t.times) - 1)));
   }

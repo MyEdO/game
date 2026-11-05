@@ -443,6 +443,7 @@ export function humanizeOp(o: GameOp): string {
     case 'grantPsychTrait': return `gagne l'état psychologique ${libelleDuTraitOctroye(o)}${pendant(o)}${o.resistanceSiAmis ? ', résistible si la cible et la personne sont amies' : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType.id)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
+    case 'suppressTalents': return `perd les Talents ${o.talents.map((x) => refLabel('talents', x)).join(', ')} pendant ${humanizeFormula(o.durationDays)} jours`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
     case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', o.talent)} à ses carrières`;
     case 'augmentWeapon': return `voit son arme enchantée${o.addQualities?.length ? ` (${o.addQualities.map((id) => qualityRefLabel({ id })).join(', ')})` : ''}${o.damageBonus != null ? ` +${humanizeFormula(o.damageBonus)} Dégâts` : ''}`;

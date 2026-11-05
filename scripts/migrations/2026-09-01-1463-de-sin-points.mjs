@@ -22,9 +22,10 @@
  *   colere-frappe-de-cecite                         ops[1].value   1     LDB 40 l.72
  *   colere-redoutez-ma-colere                       ops[0].value   1     LDB 40 l.77
  *
- * CARDINAL ASSERTÉ SUR LE RÉSULTAT : le document final porte exactement ces 10 sommes
- * sin-paramétrées — 6 dés (4 à `n:1`, 2 à `n:2`) et 4 « 1 + » —, ni plus ni moins. L'assertion vaut
- * donc sur un arbre vierge comme au rejeu ; tout écart est un ARRÊT (exit 1).
+ * PORTE DE FORME SUR LE RÉSULTAT : le document final porte ces 10 sommes sin-paramétrées — 6 dés (4 à
+ * `n:1`, 2 à `n:2`) et 4 « 1 + » —, chacune à son terme. La table nominative ne gouverne que ces sites :
+ * une somme sin-paramétrée NEUVE, déjà à la forme cible, traverse (#1812). L'assertion vaut donc sur un
+ * arbre vierge comme au rejeu ; tout écart est un ARRÊT (exit 1).
  *
  * ENTRÉES : `src/data/miscast.json` (seul document lu et écrit).
  * IDEMPOTENT : rejouée, elle ne voit plus aucun `sinPlus` et n'écrit rien.
@@ -127,8 +128,9 @@ const sitesUn = [...migresUn].sort();
 const total = sitesDes.length + sitesUn.length;
 
 /**
- * CARDINAL asserté sur le RÉSULTAT, jamais sur le seul delta : le document FINAL doit porter les 10
- * sommes sin-paramétrées, ni plus ni moins — vrai sur un arbre vierge comme sur un rejeu.
+ * Porte assertée sur le RÉSULTAT, jamais sur le seul delta : le document FINAL doit porter les 10
+ * sommes nommées à leur terme — vrai sur un arbre vierge comme sur un rejeu. Un site hors table, déjà à
+ * la forme cible, traverse.
  */
 const estTermeSin = (v) => v && typeof v === 'object' && v.sinPoints === true && Object.keys(v).length === 1;
 /** `{sum:[X, {sinPoints:true}]}` → `X` ; `null` si ce n'est pas une somme sin-paramétrée. */
@@ -155,14 +157,9 @@ for (const document of doc) {
 }
 
 const attendu = { ...ATTENDUS_DES, ...tableTotale(ATTENDUS_UN, () => 0) };
-const vus = Object.keys(constat).sort();
-const nommes = Object.keys(attendu).sort();
-if (vus.join('\n') !== nommes.join('\n')) {
-  arrets.push(`sites sin-paramétrés du document ≠ sites nommés :\n    vus     : ${vus.join(', ')}\n    nommés  : ${nommes.join(', ')}`);
-} else {
-  for (const s of vus) {
-    if (constat[s] !== attendu[s]) arrets.push(`${s} : terme ${constat[s] ? `dé n=${constat[s]}` : '« 1 »'}, attendu ${attendu[s] ? `dé n=${attendu[s]}` : '« 1 »'}`);
-  }
+for (const s of Object.keys(attendu).sort()) {
+  if (!(s in constat)) arrets.push(`${s} : site nommé absent du document`);
+  else if (constat[s] !== attendu[s]) arrets.push(`${s} : terme ${constat[s] ? `dé n=${constat[s]}` : '« 1 »'}, attendu ${attendu[s] ? `dé n=${attendu[s]}` : '« 1 »'}`);
 }
 
 if (arrets.length) {
