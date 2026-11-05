@@ -155,7 +155,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
 /**
  * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
  * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)` (`ROUTES` :
- * `chooseDialogue`/`closeDialogue`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
+ * `chooseDialogue`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
  * sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il existe, l'hôte sinon). Le prédicat
  * DÉLÈGUE donc au même routage au lieu de recopier la formule : afficher le choix, l'exécuter au
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
@@ -580,10 +580,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
-    ...(['chooseDialogue', 'closeDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
+    ...(['chooseDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
         rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal ; `closeDialogue` : aucun)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
       }] as readonly [string, Route],
     ),
   ],

@@ -52,9 +52,9 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
  *  argument ; le verbe d'un flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Aucune ne porte non
  *  plus un nom de sortie de fenêtre (`close…`, `dismiss…`, `…Cancel`) : une fenêtre se ferme par `fenetreFermer`, la
  *  fenêtre déclarée dans son registre (`sortie`) et son corps dans `sortiesDeFenetre`. Une telle clé ne compile pas.
- *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. `closeDialogue` : #3370. */
+ *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
 type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet | `close${string}` | `dismiss${string}` | `${string}Cancel`;
-function horsDelegues<T extends object>(actions: T & { [K in Exclude<Extract<keyof T, NomDeDelegue>, 'closeDialogue'>]: 'geste de jet ou sortie de fenêtre : verbe générique' }): T {
+function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet ou sortie de fenêtre : verbe générique' }): T {
   return actions;
 }
 

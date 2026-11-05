@@ -252,7 +252,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   resumeCadence: 'interne', moveParty: 'interne', marcherVers: 'interne', stepPartyRelative: 'interne',
   sauter: 'interne', actionnerLaPorte: 'interne',
   pivotParty: 'interne', restParty: 'interne', setPendingInteract: 'interne', jouerAction: 'interne',
-  interactEntity: 'interne', closeDialogue: 'interne', designerHerosOuvrir: 'interne', remettreDocument: 'interne',
+  interactEntity: 'interne', designerHerosOuvrir: 'interne', remettreDocument: 'interne',
   startCombat: 'interne', faceAtCombatStart: 'interne', faceFromPath: 'interne', faceToward: 'interne',
   aiWouldCast: 'interne', restoreFortuneNow: 'interne', siegeAimCommit: 'interne',
   startExtendedTest: 'interne', startForceDoor: 'interne', startInterlude: 'interne', startMassBattle: 'interne',

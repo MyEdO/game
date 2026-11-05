@@ -225,7 +225,6 @@ export interface ActionsDuNoyau extends VerbesDeJet {
   fouillerLaPiece: () => void;
   setPendingInteract: (pending: PendingInteract | null) => void;
   chooseDialogue: (choiceIndex: number) => void;
-  closeDialogue: () => void;
   openMerchant: (entityId: IdDEntiteDeScene) => void;
   /** Marchand de LIEU (#369) — service de catalogue sans `SceneEntity` (forgeron du hub de ville…) : même
    *  système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */

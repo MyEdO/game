@@ -3102,15 +3102,15 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.search);
   });
 
-  it('clôturer un dialogue avance le temps de TIME_COST.dialogue (idempotent)', () => {
+  it('clôturer un dialogue par une réponse sans suite avance le temps de TIME_COST.dialogue (idempotent)', () => {
     banc.setState({
-      gameTime: campaignStart(),
-      dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', text: '…', choices: [] }] }, nodeId: 'n' } as any,
+      gameTime: campaignStart(), screen: 'campaign',
+      dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ label: 'Adieu' }] }] }, nodeId: 'n' } as any,
     });
-    banc.getState().closeDialogue();
+    banc.getState().chooseDialogue(0);
+    expect(banc.getState().dialogue).toBeNull();
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.dialogue);
-    // Re-clôture (dialogue déjà null) → no-op (garde `if (get().dialogue)`).
-    banc.getState().closeDialogue();
+    banc.getState().chooseDialogue(0);
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.dialogue);
   });
 
