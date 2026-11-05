@@ -78,7 +78,7 @@ import { talentMaxLabel } from '../../engine/careerSlots';
 import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
 import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
-import { ACTIVITIES } from '../../engine/activities';
+import { ACTIVITIES, testsDeLActivite } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
 import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
@@ -1775,20 +1775,21 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'activities', label: 'Activités', group: 'Tables',
     // Catalogue UNIQUE des Activités (interlude LDB 23 / voyage EDOC 8 / mer MDG 15 / bataille de
-    // masse ADE II 8). Un Test « posté » (compétence(s) au choix + Difficulté) dont l'issue s'exprime
+    // masse ADE II 8). Un Test « posté » (Tests au choix, chacun avec sa Difficulté) dont l'issue s'exprime
     // en `onSuccess` (GameOp) et/ou en bandes `outcomes` (table DR → résultat, verbatim + effets).
     build: () => ACTIVITIES.map((a) => depuisEnveloppe(a, {
       sub: a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', '),
       meta: facts(
         fact('Contextes', a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', ')),
-        fact('Compétence(s)', a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : null),
-        fact('Caractéristique', a.char ? CHAR_LABELS[a.char] : null),
+        fact('Tests au choix', a.tests?.length
+          ? a.tests.map((o) => [testSkillLabel({ skill: o.skill, char: o.characteristic }), o.difficulty && DIFFICULTY_LABELS[o.difficulty]].filter(Boolean).join(' ')).join(' / ')
+          : null),
         fact('Difficulté', a.difficulty ? DIFFICULTY_LABELS[a.difficulty] : null),
         fact('Test étendu', a.extended ? `${a.extended.drPerStage} DR / Étape` : null),
         fact('Résolveur', a.resolver ?? null),
       ),
       sections: sections(
-        chips('Compétences (au choix)', (a.skills ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
+        chips('Tests (au choix)', testsDeLActivite(a).flatMap((t) => ('skill' in t ? [idRefRow('skills', t.skill.id, t.skill.spec)] : charRefRows([t.char])))),
         chips('Compétence libre', (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, 'Effet de réussite'),
         outcomeBandsSection(a.outcomes),

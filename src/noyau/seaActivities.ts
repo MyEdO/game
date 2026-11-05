@@ -105,7 +105,7 @@ export function seaActivityBlocked(get: Get, def: ActivityDef): string | null {
 /** Test d'une Activité en mer à compétence FIXE (MDG 15 l.274-290) ; le chemin générique dérive la
  *  sienne du héros (`travelActivitySpec`). Spec par ID (#1341). */
 function seaActivityTest(def: ActivityDef): { skill: string; spec?: string } | undefined {
-  if (def.resolver === 'seaChart') return { skill: 'metier', spec: 'cartographe' };
+  if (def.resolver === 'seaChart') { const sk = def.tests?.[0]?.skill; return sk && { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) }; }
   if (def.resolver === 'opportunityTrade') return { skill: OPPORTUNITE.test.skill.id, ...(OPPORTUNITE.test.skill.spec ? { spec: OPPORTUNITE.test.skill.spec } : {}) };
   return undefined;
 }
@@ -136,7 +136,7 @@ function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPic
 function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityPick): BuiltCascadeStep | undefined {
   const chart = seaActivityTest(def)!;
   const test: RollRequest['test'] = chart;
-  const difficulty = def.difficulty ?? 'complexe';
+  const difficulty = def.tests?.[0]?.difficulty ?? 'complexe';
   return monoStep({
     id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actor: hero,
     label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', { id: chart.skill, ...(chart.spec ? { spec: chart.spec } : {}) }),

@@ -92,16 +92,16 @@ describe('cliquet — une Activité à JET dit son ENJEU (#1117 L3)', () => {
   });
 
   it('FAIL-CLOSED : le prédicat de jet voit les 4 formes, et ne voit pas une Activité sans Test', () => {
-    expect(activityRolls({ skills: [{ id: 'ragot' }] })).toBe(true);
-    expect(activityRolls({ char: 'intelligence' })).toBe(true);
+    expect(activityRolls({ tests: [{ skill: { id: 'ragot' } }] })).toBe(true);
+    expect(activityRolls({ tests: [{ characteristic: 'intelligence' }] })).toBe(true);
     expect(activityRolls({ freeSkill: [{ id: 'orientation' }] })).toBe(true);
     expect(activityRolls({ resolver: 'income' })).toBe(true); // compétence dérivée du héros
     // Un résolveur QUELCONQUE ne suffit pas : seuls ceux qui DÉRIVENT la compétence comptent
-    // (`identify` lance par ses `skills` authorées, pas par son résolveur).
+    // (`identify` lance par ses `tests` authorés, pas par son résolveur).
     expect(activityRolls({ resolver: 'identify' })).toBe(false);
-    // Le Rassemblement (ADE II 8 l.122) lance par ses `skills` en donnée : Résistance.
+    // Le Rassemblement (ADE II 8 l.122) lance par ses `tests` en donnée : Résistance.
     expect(activityRolls(ACTIVITIES.find((a) => a.id === 'rassemblement')!)).toBe(true);
     expect(activityRolls({})).toBe(false);
-    expect(activityRolls({ skills: [] })).toBe(false);
+    expect(activityRolls({ tests: [] })).toBe(false);
   });
 });

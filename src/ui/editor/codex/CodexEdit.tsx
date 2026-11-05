@@ -48,7 +48,7 @@ import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
+import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
 import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
@@ -379,10 +379,10 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
   if (categoryKey === 'shipHullSizes') add('lengthM');
   if (categoryKey === 'seaCargo' || categoryKey === 'landCargo') add('avail');
-  // #168 : Activité — Test « posté » (contexts/skills « au choix »/char/difficulty) + table d'issues
+  // #168 : Activité — Test « posté » (contexts/tests « au choix »/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
-  if (categoryKey === 'activities') add('contexts', 'skills', 'freeSkill', 'char', 'difficulty', 'outcomes', 'resolver');
+  if (categoryKey === 'activities') add('contexts', 'tests', 'freeSkill', 'difficulty', 'outcomes', 'resolver');
   // #1612 : `testMods` (modificateurs de situation) et `worldRolls` (dés de MONDE après le Test) sont des
   // tableaux top-level d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), MEME patron
   // que la rubrique de Vent et les options de jeu de taverne — jamais le repli JSON.
@@ -576,7 +576,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches ci-dessus.
   const isRiverNavigation = categoryKey === 'riverNavigation';
   const hasHullLength = categoryKey === 'shipHullSizes'; // `lengthM` : [minM,maxM]
-  // #168 : Activité (`activities`) — Test « posté » (contexts/skills « au choix »/char/difficulty) +
+  // #168 : Activité (`activities`) — Test « posté » (contexts/tests « au choix »/difficulty) +
   // table d'issues `outcomes` (OutcomeBand[]) ; `onSuccess` reste sur le lot GameOpEditor commun.
   const isActivity = categoryKey === 'activities';
   // #851 : Magie environnementale (`arcanePhenomena`, mode 'single') — ses 4 tableaux top-level au
@@ -1294,35 +1294,48 @@ const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 
 type RestartTest = NonNullable<SteamBreakdownEntry['restart']>[number];
 type WaterTest = WaterExposureData['test'];
+/** Le Test d'une ligne d'éditeur (`flowTestSchema`) : ce qu'il teste et sa Difficulté. */
+type TestEdite = Pick<FlowTest, 'skill' | 'characteristic' | 'difficulty'>;
+
+/** Champs d'un Test de donnée (`flowTestSchema`) sur une ligne d'éditeur : Compétence (et Spécialisation)
+ *  OU Caractéristique, puis Difficulté — que `difficulteFacultative` laisse vide quand le porteur ne
+ *  l'exige pas. */
+function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: { test: TestEdite; index: number; onChange: (patch: Partial<TestEdite>) => void; difficulteFacultative?: boolean }) {
+  const skillOpts = datasetArray('skills') as { id: string; label: string }[];
+  return (
+    <>
+      <select value={test.skill?.id ?? ''} onChange={(e) => onChange(e.target.value ? { skill: reposerLId(test.skill ?? { id: '' }, e.target.value), characteristic: undefined } : { skill: undefined })}>
+        <option value="">— (Caractéristique) —</option>
+        {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+      </select>
+      {test.skill
+        ? <ChoixDeSpec type="skill" id={test.skill.id} value={test.skill.spec} ariaLabel={`Spécialisation — Test ${index + 1}`} onChange={(spec) => onChange({ skill: { id: test.skill!.id, spec } })} />
+        : (
+          <select value={test.characteristic ?? ''} onChange={(e) => onChange({ characteristic: (e.target.value || undefined) as CharKey | undefined })}>
+            <option value="">— (choisir une Caractéristique) —</option>
+            {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
+          </select>
+        )}
+      <select value={test.difficulty ?? ''} onChange={(e) => onChange({ difficulty: (e.target.value || undefined) as Difficulty | undefined })}>
+        {difficulteFacultative && <option value="">— (aucune) —</option>}
+        {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
+      </select>
+    </>
+  );
+}
 
 /** Test de REDÉMARRAGE d'un moteur à vapeur (`steamBreakdowns.restart`, MDG 12, #157) :
  *  `{test:{skill?,characteristic?,difficulty},extendedDR?}[]` — Compétence OU Caractéristique + Difficulté
  *  (+ DR cumulés si Test étendu). */
 function RestartTestField({ value, onChange }: { value: RestartTest[] | undefined; onChange: (v: RestartTest[]) => void }) {
   const list = value ?? [];
-  const skillOpts = datasetArray('skills') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
-  const setTest = (i: number, patch: Partial<RestartTest['test']>) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch } } : x)));
   return (
     <div className="ed-field">
       <span>Test de redémarrage du moteur — Compétence OU Caractéristique + Difficulté (DR cumulés si Test étendu)</span>
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <select value={r.test.skill?.id ?? ''} onChange={(e) => setTest(i, { skill: e.target.value ? reposerLId(r.test.skill ?? { id: '' }, e.target.value) : undefined })}>
-            <option value="">— (Caractéristique) —</option>
-            {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          {r.test.skill
-            ? <ChoixDeSpec type="skill" id={r.test.skill.id} value={r.test.skill.spec} ariaLabel={`Spécialisation — Test ${i + 1}`} onChange={(spec) => setTest(i, { skill: { id: r.test.skill!.id, spec } })} />
-            : (
-              <select value={r.test.characteristic ?? ''} onChange={(e) => setTest(i, { characteristic: (e.target.value || undefined) as CharKey | undefined })}>
-                <option value="">— (choisir une Caractéristique) —</option>
-                {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
-              </select>
-            )}
-          <select value={r.test.difficulty} onChange={(e) => setTest(i, { difficulty: e.target.value as Difficulty })}>
-            {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
-          </select>
+          <ChampsDuTest test={r.test} index={i} onChange={(patch) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch, difficulty: patch.difficulty ?? x.test.difficulty } } : x)))} />
           <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.extendedDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, extendedDR: n ?? undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
@@ -1428,27 +1441,37 @@ const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
 
 const LIBRE = metaPourFichier('activities.json')!.freeSkill;
 
-/** Test « posté » d'une Activité (`TestSpec` — LDB 12) : contextes de proposition + compétence(s) « au
- *  choix » (la meilleure de l'acteur est retenue) + compétence libre (`freeSkill`, EDOC 8 l.172) +
- *  caractéristique de repli + Difficulté. Réutilise `SkillSpecListField` (mêmes `{id,spec?}[]` que les
- *  Rôles d'équipage). Vide = Activité SANS Test. */
+/** Tests AU CHOIX d'une Activité (`tests`, LDB 23 l.209 ; AA 12 l.49) : chacun sa Compétence OU
+ *  sa Caractéristique, et sa Difficulté. */
+function TestsAuChoixField({ value, onChange }: { value: TestEdite[] | undefined; onChange: (v: TestEdite[]) => void }) {
+  const list = value ?? [];
+  return (
+    <div className="ed-subfield">
+      {list.map((o, i) => (
+        <div className="tf-row" key={i}>
+          <ChampsDuTest test={o} index={i} difficulteFacultative onChange={(patch) => onChange(list.map((x, j) => (j === i ? { ...x, ...patch } : x)))} />
+          <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <button className="btn small" onClick={() => onChange([...list, { skill: { id: '' } }])}>+ Test</button>
+    </div>
+  );
+}
+
+/** Test « posté » d'une Activité : contextes de proposition + Tests « au choix » (le meilleur de l'acteur
+ *  est retenu) + compétence libre (`freeSkill`, EDOC 8 l.172) et Difficulté du Test dont la donnée ne
+ *  nomme pas le sujet. Vide = Activité SANS Test. */
 function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
   return (
     <div className="ed-field">
       <span>contextes où l’Activité est proposable (au moins un)</span>
       <EnsembleDeCases nom="Contextes de l’Activité" options={ACTIVITY_CONTEXTS} value={entry.contexts as ActivityContext[] | undefined}
         facultatif={admetLAbsence(noeudDuChamp('activities.json', 'contexts')) ?? false} onChange={(next) => edit('contexts', next)} />
-      <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
-      <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <span>Test « posté » — Tests « au choix », chacun avec sa Difficulté (laisser vide = Activité SANS Test)</span>
+      <TestsAuChoixField value={entry.tests as TestEdite[] | undefined} onChange={(v) => edit('tests', v.length ? v : undefined)} />
       <SkillSpecListField hint={[LIBRE.label, LIBRE.hint].filter(Boolean).join(' — ')} value={entry.freeSkill as RefDesignee[] | undefined} onChange={(v) => edit('freeSkill', v.length ? v : undefined)} />
       <div className="tf-row">
-        <label className="dr">Caractéristique (repli)
-          <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>
-            <option value="">— (aucune) —</option>
-            {CHAR_KEYS.map((k) => <option key={k} value={k}>{CHAR_LABELS[k]}</option>)}
-          </select>
-        </label>
-        <label className="dr">Difficulté
+        <label className="dr">Difficulté (compétence libre ou dérivée)
           <select value={(entry.difficulty as string) ?? ''} onChange={(e) => edit('difficulty', e.target.value || undefined)}>
             <option value="">— (aucune) —</option>
             {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}

@@ -36,12 +36,12 @@ export function innGatherInfoMinutes(): number {
  *  attendu si aucun héros n'a la Compétence (`openRoll` : garde `partyBest` sans candidat, D3). */
 export function gatherInnInfo(get: Get, set: Set): void {
   const def = activityById(ACTIVITY_ID);
-  const skillId = def?.skills?.[0]?.id;
-  if (!def || !skillId) return;
+  const test = def?.tests?.[0];
+  if (!def || !test?.skill) return;
   openPartyTest(get, set, {
-    skill: skillId, assisted: false,
+    skill: test.skill.id, assisted: false,
     actionLabel: def.label,
-    difficulty: def.difficulty ?? 'intermediaire',
+    difficulty: test.difficulty ?? 'intermediaire',
     stake: activityStakeRef(ACTIVITY_ID),
   }, INN_GOSSIP_KIND, {});
 }

@@ -194,7 +194,6 @@ export const STRUCTURES_CIBLES = [
  *  ligne sort quand `misfire` sort du dataset : c'est la question #1544 (découpage produit), pas une
  *  adoption de forme. */
 export const STRUCTURES_REDECLARATIONS = [
-  { def: "activities.ts", champ: "", concept: "test", signature: "char,difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "oups.ts", champ: "", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "tavernGames.ts", champ: "rows", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-09-01" },
   { def: "water-exposure.ts", champ: "", concept: "", signature: "kind,op,value", statut: "hors lexique", commun: "conditionSchema", occurrences: 2, lot: "L1a #1466", date: "2026-08-23" },
