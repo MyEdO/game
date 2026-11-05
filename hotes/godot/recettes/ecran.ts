@@ -130,7 +130,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
+    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [],
     'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [],
   };

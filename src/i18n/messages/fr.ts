@@ -211,6 +211,8 @@ export const fr = {
   'verbe.recitDeVoyage.fermer': 'Continuer',
   'verbe.finDeSeance.fermer': 'Continuer',
   'verbe.defaite.fermer': 'Reprendre',
+  'verbe.repli.fermer': 'Poursuivre la bataille',
+  'verbe.aneantissement.fermer': 'Retour au menu',
   'verbe.batailleDeMasse.fermer': 'Terminer la bataille',
   // Le libellé d'une valeur littérale qu'un verbe prend (`libelleDuLitteral`, `noyau/libelles.ts`) :
   // `valeur.<argument>.<v>`, sinon `valeur.<v>`.
@@ -367,6 +369,8 @@ export const fr = {
   'fenetre.recitDeVoyage': 'Récit de voyage',
   'fenetre.finDeSeance': 'Fin de séance',
   'fenetre.defaite': 'Défaite',
+  'fenetre.repli': 'Repoussés',
+  'fenetre.aneantissement': 'Le groupe a péri',
   'fenetre.batailleDeMasse': 'Bataille de masse',
   // Le titre d'une étape-jet de la séquence (`libelleDuJet`, `noyau/libelles.ts`), par son `jet`.
   'jet.attack': 'Attaque',
@@ -1282,6 +1286,7 @@ export const fr = {
   'exploration.saut': 'Sauter vers ({x},{y})',
   'exploration.sortie': 'Sortie vers {scene}',
   'exploration.ailleurs': '{geste} depuis ({x},{y})',
+  'exploration.offre': '{porteur} : {action}',
   'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
   'saut.horsDePortee': 'Saut refusé : aucun saut ne mène à cette case.',
