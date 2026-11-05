@@ -1,5 +1,5 @@
 /**
- * Migration #1665 (#1463) — `montures.json` devient une LISTE d'entités : ses 8 profils de voyage
+ * Migration #1665 (#1463) — `montures.json` devient une LISTE d'entités : ses profils de voyage
  * étaient les « rangées » d'un document `config` alors qu'aucune ne porte de borne et que le moteur
  * les lit par id et par créature (`src/engine/mountTravel.ts`).
  *
@@ -12,7 +12,7 @@
  * IDEMPOTENT : une racine déjà LISTE n'a aucun geste à faire ; rien ne s'écrit.
  * FAIL-FAST — sortie 1 avant toute écriture : fichier hors de son formatage, racine ni liste ni
  * document à `entries`, rangée sans `id`/`label` de chaîne ou portant déjà `type`/`source`, ids en
- * double, cardinal du RÉSULTAT ≠ 8, entrée du résultat hors enveloppe.
+ * double, entrée du résultat hors enveloppe. Aucun cardinal gelé : la liste est éditable (#1812).
  * FORMATAGE : `serializeDataset`.
  */
 import fs from 'node:fs';
@@ -23,8 +23,6 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const MONTURES = 'src/data/montures.json';
 const TYPE = 'montures';
-/** EDOC 07 l.115-130 */
-const CARDINAL = 8;
 
 const fautes = [];
 const cible = path.join(ROOT, MONTURES);
@@ -49,7 +47,6 @@ else if (estObjet(doc) && Array.isArray(doc.entries) && estObjet(doc.source)) {
 } else fautes.push(`${MONTURES} : racine ni liste ni document à \`entries\` et \`source\``);
 
 if (liste) {
-  if (liste.length !== CARDINAL) fautes.push(`${MONTURES} : ${liste.length} entrée(s) au résultat, ${CARDINAL} attendues`);
   const ids = liste.map((e) => e?.id);
   if (new Set(ids).size !== ids.length) fautes.push(`${MONTURES} : ids en double (${ids.join(', ')})`);
   for (const e of liste) {
