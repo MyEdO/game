@@ -132,7 +132,7 @@ import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../web/stockageWeb';
 import { lireLeTexte } from '../lib/stockage';
-import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from '../lib/figerDelais';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
 import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
