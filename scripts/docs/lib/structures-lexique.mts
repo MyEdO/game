@@ -595,7 +595,7 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['seuil'],
     exigeCandidatureStructurelle: true,
   },
-  // Porte : `routeBilletSchema.marchandage` (`src/data/schemas/defs-scenes/worldmap.ts`) ; `presetId` est
+  // Porte : `marchandageDeBilletSchema` (`src/data/schemas/grammaire/route.ts`) ; `presetId` est
   // une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). EDO 01 l.142.
   {
     id: 'marchandage-de-billet',
@@ -623,7 +623,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'kind,valeurs', statut: 'cible', note: '`enum`, `valeurs` DÉCLARÉES' },
     ],
   },
-  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/defs-scenes/narratif.ts`),
+  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/grammaire/campagne.ts`),
   // sous la forme `heros` d'un état. Noyaux MESURÉS sur les 2 racines (2026-10-17) : ces clés ne vivent que
   // sous `narratif.etats[].forme.identite`. EDO 02 l.112-127.
   {
@@ -651,7 +651,7 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['repere', 'valeur'],
   },
   // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
-  // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
+  // `routeBilletSchema` (`src/data/schemas/grammaire/route.ts`). Noyau MESURÉ sur les 2 racines
   // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
   // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.
   {
@@ -665,7 +665,7 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['prix'],
   },
-  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`), `source` OU `maison` ; déclaré
+  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/grammaire/route.ts`), `source` OU `maison` ; déclaré
   // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`).
   // SITE : la valeur qu'elle justifie sous `provenances` ; `coPresence` laisse au hors-strate le record
   // `speed` d'une route (`{diligence: 15}`), porté par la même clé. #2533.
@@ -681,7 +681,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'maison', statut: 'cible' },
     ],
   },
-  // Porte : `mapRouteSchema.provenances` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`) : chaque clé est
+  // Porte : `provenancesDeRouteSchema` de #2533 (`src/data/schemas/grammaire/route.ts`) : chaque clé est
   // OPTIONNELLE, les sept combinaisons sont la forme cible. #2533.
   {
     id: 'provenances-de-route',
@@ -718,7 +718,7 @@ export const CONCEPTS: readonly Concept[] = [
     noyauMin: 1,
     coPresence: ['flat', 'literal'],
   },
-  // Porte : `specialSchema` (`src/data/schemas/defs/tavernGames.ts`). Champ MESURÉ sur les 2 racines
+  // Porte : `specialSchema` (`src/data/schemas/grammaire/jeu-de-taverne.ts`). Champ MESURÉ sur les 2 racines
   // (2026-10-17) : `specials` ne vit que dans `tavernGames.json`. NADJ 16 l.82.
   {
     id: 'special-de-jeu',
@@ -789,7 +789,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'ouverture',
     label: 'ouverture cérémonielle de chapitre',
     strate: 'Document',
-    // Porte : `ouvertureSchema` (`src/data/schemas/defs-scenes/narratif.ts`), composée par
+    // Porte : `ouvertureSchema` (`src/data/schemas/grammaire/campagne.ts`), composée par
     // `formeNarratif` sous la clé OPTIONNELLE `ouverture`.
     signatures: [
       { sig: 'pitch,titre', statut: 'cible' },
@@ -801,7 +801,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'cloture',
     label: 'clôture de chapitre',
     strate: 'Document',
-    // Porte : `clotureSchema` (`src/data/schemas/defs-scenes/narratif.ts`), clé OPTIONNELLE `cloture`.
+    // Porte : `clotureSchema` (`src/data/schemas/grammaire/campagne.ts`), clé OPTIONNELLE `cloture`.
     signatures: [
       { sig: 'titre,when', statut: 'cible' },
       { sig: 'titre,when+…', statut: 'cible', note: '`sousTitre` est OPTIONNEL au schéma' },
@@ -840,7 +840,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'effet-d-etat',
     label: 'Effet qui ÉCRIT un état de campagne (`type` + `etat`)',
     strate: 'Document',
-    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) ;
+    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/grammaire/campagne.ts`) ;
     // `etat` est une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
     // (2026-10-16). EDO 02 l.91.
     signatures: [
@@ -857,7 +857,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'effet-narratif',
     label: 'Effet qui REMET une entrée du narratif (`type` + `documentId` | `indiceId`)',
     strate: 'Document',
-    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/defs-scenes/effets.ts`) ; `documentId`,
+    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/grammaire/campagne.ts`) ; `documentId`,
     // `indiceId` et `stade` sont des RÉFÉRENCES SCOPÉES (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
     // (2026-10-17) : la co-présence de `type` écarte les stades d'indice `{id, documentId}`. EDO 02 l.89-95.
     signatures: [
@@ -913,7 +913,7 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * "route"` classé référence vers `terrains.json` à l'entrée du dataset des sols (#1690), le seul
  * remède eût été de renommer un point d'arrivée d'auteur pour contenter la MESURE.
  *
- * `suite` (`defs-scenes/worldmap.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
+ * `suite` (`grammaire/route.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
  * billet, des `id` de `worldMap.routes[]` du MÊME projet ; `worldMapSchema` en garde la résolution
  * (`parcoursDuBillet`).
  *
@@ -921,7 +921,7 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * source) nomment une entrée d'un registre du `narratif` du MÊME projet ; `projetSchema` en garde la
  * résolution (`refsNarrativesPendantes`, `raffineNarratif`, FK `presetId`).
  *
- * `stade` (`defs-scenes/effets.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
+ * `stade` (`grammaire/campagne.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
  * `indiceId` qui l'accompagne ; `projetSchema` en garde la résolution.
  */
 export const CLES_REFERENCE_SCOPEE: Readonly<Record<string, string>> = {

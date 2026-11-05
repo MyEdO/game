@@ -19,7 +19,7 @@ import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
 import { declarationProseNommee, sourceHeritee } from '../data/schemas/grammaire/prose';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-import { identiteSchema, motifEnMot } from '../data/schemas/defs-scenes/narratif';
+import { identiteSchema, motifEnMot } from '../data/schemas/grammaire/campagne';
 import { identitesDe, nommer } from '../noyau/monde/identites';
 import { metaDesChamps } from '../data/schemas/grammaire/meta';
 import { raceKeySchema, sexeSchema } from '../data/schemas/grammaire/valeurs';

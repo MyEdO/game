@@ -35,6 +35,19 @@ const dossierTemporaire = (prefixe) => {
   }
 }
 
+test('readZodUnionMembers suit à son import un membre que l’index ne porte pas (constanteImportee)', () => {
+  const dossier = dossierTemporaire('jsdoc-import-')
+  try {
+    writeFileSync(join(dossier, 'membres.ts'), `import { z } from ${ZOD};\n/** Rôle importé. */\nexport const importe = z.strictObject({ kind: z.literal('importe'), champ: z.number() });`)
+    const chemin = join(dossier, 'union.ts')
+    writeFileSync(chemin, `import { z } from ${ZOD};\nimport { importe } from './membres';\nexport const local = z.strictObject({ kind: z.literal('local') });\nexport const union = z.discriminatedUnion('kind', [local, importe]);`)
+    assert.deepEqual(readZodUnionMembers(indexerConstantes([chemin]), 'union', 'kind', 'test').rows, [
+      { name: 'local', fieldGroups: [[]], role: null },
+      { name: 'importe', fieldGroups: [['champ']], role: 'Rôle importé.' },
+    ])
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
 test('compositions de prose canoniques : champs finaux adresse, folio et document par import, alias, namespace et réexport', () => {
   const dossier = dossierTemporaire('jsdoc-prose-')
   try {

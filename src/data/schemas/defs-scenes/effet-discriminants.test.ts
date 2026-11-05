@@ -1,4 +1,5 @@
 import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs';
+import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 /**
  * VERROU D'UNION d'`Effect` (#1466 L1a T3bis-a) — jumeau de `condition-discriminants.test.ts`.
  *
@@ -13,42 +14,76 @@ import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs
  * — côté TYPE : les membres de l'union manuscrite `Effect` (`effets.ts`), lus à l'AST —
  *   composition mince de `z.infer<typeof xSchema>` + 3 corps manuscrits (`DelayedEffect`,
  *   `PetitePriere`, `EffectOp`). Le discriminant d'un membre `z.infer` est relu à l'AST du schéma
- *   NOMMÉ (`effets.ts`), celui d'un corps manuscrit à l'AST de sa déclaration — jamais une liste
- *   recopiée, qui mourrait au premier ajout ;
+ *   NOMMÉ (son module de schémas), celui d'un corps manuscrit à l'AST de sa déclaration — jamais
+ *   une liste recopiée, qui mourrait au premier ajout ;
  * — côté SCHÉMA : les discriminants réels des options d'`effectSchema`, par INTROSPECTION zod (le
  *   `z.lazy` est déroulé — la seule façon de voir ce que la porte accepte VRAIMENT).
  * Manquants et en-trop sont NOMMÉS dans les deux sens.
  *
- * ANGLES MORTS MESURÉS (2026-09-02) :
- * — le côté TYPE ne sait lire un membre `z.infer<typeof xSchema>` que si `xSchema` est déclaré dans
- *   l'un des `MODULES_DE_SCHEMAS` (`effets.ts` et la grammaire `grammaire/mecanique.ts`, qui porte
- *   les nœuds partagés par les deux instances du Flow — `extendedTestSchema`, #1657). Un schéma
- *   d'effet vivant déclaré hors de cette liste sort `<symbole introuvable…>` et fait rougir le
- *   verrou : c'est une contrainte de CROISSANCE (un module de schémas d'effet s'ajoute ICI), pas une
- *   vérification. Une COLLISION de nom entre deux modules est refusée nommément ;
+ * ANGLES MORTS MESURÉS (2026-11-05) :
+ * — le côté TYPE lit un membre `z.infer<typeof xSchema>` dans `effets.ts` et dans chaque module
+ *   relatif dont `effets.ts` IMPORTE un nom de membre (`modulesDesSchemas`, lus à ses imports :
+ *   `grammaire/mecanique.ts` pour `extendedTestSchema`, #1657 ; `grammaire/campagne.ts`, #3012). Un
+ *   membre qu'aucun de ces modules ne déclare sort `<symbole introuvable…>` et fait rougir le verrou.
+ *   Une COLLISION de nom entre deux modules est refusée nommément ;
  * — `lit ??=` retient le PREMIER `z.literal(…)` porté par une clé `type` rencontré dans le schéma, y
  *   compris IMBRIQUÉ (un `type: z.literal(…)` d'un sous-objet du schéma serait pris pour le
- *   discriminant de l'effet). Aucun schéma des `MODULES_DE_SCHEMAS` n'est dans ce cas : les `type:
+ *   discriminant de l'effet). Aucun schéma de ces modules n'est dans ce cas : les `type:
  *   z.literal(…)` y sont tous à la RACINE de leur `export const`, zéro imbriqué (mesuré à l'AST
- *   2026-09-02 — 56 dans `effets.ts`, 2 dans `mecanique.ts`).
+ *   2026-11-05 — 54 dans `effets.ts`, 2 dans `mecanique.ts`, 4 dans `campagne.ts`).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as ts from 'typescript/unstable/ast';
 import { effectSchema } from './effets';
 import { defDe, enfantsDe, ouverts } from '../grammaire/descente';
 
 const EFFETS = fileURLToPath(new URL('./effets.ts', import.meta.url));
-const MECANIQUE = fileURLToPath(new URL('../grammaire/mecanique.ts', import.meta.url));
-/** Modules où vit un schéma composé par un membre `z.infer<…>` de l'union `Effect`. */
-const MODULES_DE_SCHEMAS = [EFFETS, MECANIQUE];
-
-type Module = { nom: string; texte: string };
-const contenusDesModules = (): Module[] => MODULES_DE_SCHEMAS.map((nom) => ({ nom, texte: readFileSync(nom, 'utf8') }));
 const FLOW_CORE = fileURLToPath(new URL('../../../engine/flowCore.ts', import.meta.url));
 
 const source = (f: string): ts.SourceFile => ast({ rel: f, text: readFileSync(f, 'utf8') })!;
+
+/** Les membres de l'union manuscrite `Effect` d'un fichier source. */
+function membresDEffect(sf: ts.SourceFile): readonly ts.TypeNode[] {
+  let membres: readonly ts.TypeNode[] = [];
+  sf.forEachChild((n) => {
+    if (ts.isTypeAliasDeclaration(n) && n.name.text === 'Effect') membres = ts.isUnionTypeNode(n.type) ? n.type.types : [n.type];
+  });
+  return membres;
+}
+
+/** Le schéma que compose un membre `z.infer<typeof xSchema>`, `undefined` pour un autre membre. */
+function schemaDuMembre(m: ts.TypeNode): string | undefined {
+  const arg = ts.isTypeReferenceNode(m) ? m.typeArguments?.[0] : undefined;
+  return arg && ts.isTypeQueryNode(arg) && ts.isIdentifier(arg.exprName) ? arg.exprName.text : undefined;
+}
+
+/** Modules où vit un schéma composé par un membre `z.infer<…>` de l'union `Effect` : `effets.ts`, et
+ *  chaque module relatif dont il importe un nom de membre. */
+function modulesDesSchemas(): string[] {
+  const sf = source(EFFETS);
+  const membres = new Set(membresDEffect(sf).map(schemaDuMembre));
+  const modules = new Set<string>();
+  sf.forEachChild((n) => {
+    if (!ts.isImportDeclaration(n) || !ts.isStringLiteral(n.moduleSpecifier) || !n.moduleSpecifier.text.startsWith('.')) return;
+    const liens = n.importClause?.namedBindings;
+    if (liens && ts.isNamedImports(liens) && liens.elements.some((e) => membres.has(e.name.text)))
+      modules.add(fileURLToPath(new URL(`${n.moduleSpecifier.text}.ts`, pathToFileURL(EFFETS))));
+  });
+  return [EFFETS, ...modules];
+}
+
+type Module = { nom: string; texte: string };
+/** Le contenu des modules de schémas, lu au corpus partagé des schémas. */
+function contenusDesModules(): Module[] {
+  const corpus = new Map(readCorpus(['src/data/schemas']).map((f) => [f.abs, f]));
+  return modulesDesSchemas().map((abs) => {
+    const f = corpus.get(abs);
+    if (!f) throw new Error(`module de schémas hors du corpus de \`src/data/schemas\` : ${abs}`);
+    return { nom: f.rel, texte: f.text };
+  });
+}
 
 /** Texte d'un littéral de chaîne d'un nœud de TYPE (`type: 'ops'`), `null` sinon. */
 const litDeType = (t: ts.TypeNode | undefined): string | null =>
@@ -123,32 +158,27 @@ function typesDuType(texteUnion?: string): string[] {
   const manuscrits = new Map([...corpsManuscrits(EFFETS), ...corpsManuscrits(FLOW_CORE)]);
   const sf = texteUnion ? ast({ rel: EFFETS, text: texteUnion })! : source(EFFETS);
   const types: string[] = [];
-  sf.forEachChild((n) => {
-    if (!ts.isTypeAliasDeclaration(n) || n.name.text !== 'Effect') return;
-    const membres = ts.isUnionTypeNode(n.type) ? n.type.types : [n.type];
-    for (const m of membres) {
-      if (!ts.isTypeReferenceNode(m)) {
-        types.push(`<non-référence: ${m.getText().slice(0, 40)}>`);
-        continue;
-      }
-      // `z.infer<typeof xSchema>` — le membre COMPOSE un schéma nommé de `effets.ts`.
-      const arg = m.typeArguments?.[0];
-      if (arg && ts.isTypeQueryNode(arg) && ts.isIdentifier(arg.exprName)) {
-        const nom = arg.exprName.text;
-        // DEUX causes distinctes, deux libellés : le schéma n'existe dans aucun module de
-        // `MODULES_DE_SCHEMAS`, ou il y existe mais ne porte aucun `type: z.literal(…)`. Les
-        // confondre enverrait chercher un discriminant manquant là où c'est le SYMBOLE qui manque.
-        if (!schemas.has(nom)) {
-          types.push(`<symbole introuvable dans les modules de schémas: ${nom}>`);
-          continue;
-        }
-        types.push(schemas.get(nom) ?? `<schéma sans littéral \`type\`: ${nom}>`);
-        continue;
-      }
-      const nom = m.typeName.getText();
-      types.push(manuscrits.get(nom) ?? `<corps manuscrit introuvable: ${nom}>`);
+  for (const m of membresDEffect(sf)) {
+    if (!ts.isTypeReferenceNode(m)) {
+      types.push(`<non-référence: ${m.getText().slice(0, 40)}>`);
+      continue;
     }
-  });
+    // `z.infer<typeof xSchema>` — le membre COMPOSE un schéma nommé d'un module de schémas.
+    const nom = schemaDuMembre(m);
+    if (nom !== undefined) {
+      // DEUX causes distinctes, deux libellés : le schéma n'existe dans aucun module de
+      // `modulesDesSchemas`, ou il y existe mais ne porte aucun `type: z.literal(…)`. Les
+      // confondre enverrait chercher un discriminant manquant là où c'est le SYMBOLE qui manque.
+      if (!schemas.has(nom)) {
+        types.push(`<symbole introuvable dans les modules de schémas: ${nom}>`);
+        continue;
+      }
+      types.push(schemas.get(nom) ?? `<schéma sans littéral \`type\`: ${nom}>`);
+      continue;
+    }
+    const manuscrit = m.typeName.getText();
+    types.push(manuscrits.get(manuscrit) ?? `<corps manuscrit introuvable: ${manuscrit}>`);
+  }
   return types;
 }
 
@@ -195,10 +225,10 @@ describe('`effectSchema` — verrou d\'union : les discriminants du SCHÉMA == c
 
   it('deux modules qui déclarent le MÊME `xSchema` lèvent NOMMÉMENT (preuve de câblage de la garde de collision)', () => {
     const homonyme = "export const revealClueSchema = z.strictObject({ type: z.literal('revealClue'), indiceId: z.string() });";
-    // Le jouet REJOUE la lecture réelle : le vrai `effets.ts` PLUS un module qui redéclare l'un de ses
-    // symboles. Sans la garde, la seconde lecture écraserait la première en silence.
+    // Le jouet REJOUE la lecture réelle : les vrais modules de schémas PLUS un module qui redéclare l'un
+    // de leurs symboles. Sans la garde, la seconde lecture écraserait la première en silence.
     const jouet = [
-      { nom: EFFETS, texte: readFileSync(EFFETS, 'utf8') },
+      ...contenusDesModules(),
       { nom: 'src/data/schemas/grammaire/jouet.ts', texte: ["import { z } from 'zod';", homonyme, ''].join('\n') },
     ];
     expect(() => litterauxDesSchemas(jouet)).toThrowError(/revealClueSchema.*DEUX modules de schémas/s);

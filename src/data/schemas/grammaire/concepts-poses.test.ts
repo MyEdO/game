@@ -1,5 +1,5 @@
 /**
- * LECTEUR — les poses de concept de la grammaire (#3012, S1) : chaque id de la table se lit sur un nœud
+ * LECTEUR — les poses de concept de la grammaire (#3012) : chaque id de la table se lit sur un nœud
  * qu'un def atteint, une double pose lève, un clone d'un nœud posé n'est pas lu, et aucun concept posé
  * n'est perdu par la descente des defs.
  */
@@ -24,10 +24,13 @@ describe('lecture — un id par entrée de la table', () => {
       if (id) lus.add(id);
     });
     expect([...lus].sort()).toEqual([
-      'adresse', 'condition-flag', 'de', 'degats-arme', 'formule-minimum', 'formule-peche', 'formule-somme', 'formule-tranche',
-      'fragment-blocs', 'fragment-cellule', 'monnaie', 'monnaie-partielle', 'palette-d-objet', 'plage', 'plage-ouverte',
-      'prix-saisonnier', 'profil-de-propulsion', 'profil-de-voile', 'prose-nommee', 'quantite', 'reference',
-      'reference-a-specialisation', 'reference-typee', 'source', 'source-secondaire', 'tirage-parmi', 'tirage-sur-table', 'trait-pose',
+      'adresse', 'billet-de-route', 'cloture', 'condition-flag', 'de', 'degats-arme', 'effet-d-etat-designer', 'effet-d-etat-poser',
+      'effet-narratif-document', 'effet-narratif-indice', 'formule-minimum', 'formule-peche', 'formule-somme',
+      'formule-tranche', 'fragment-blocs', 'fragment-cellule', 'identite-de-heros', 'ligne-d-identite', 'marchandage-de-billet',
+      'monnaie', 'monnaie-partielle', 'ouverture', 'palette-d-objet', 'palier-de-billet', 'plage', 'plage-ouverte', 'prix-saisonnier',
+      'profil-de-propulsion', 'profil-de-voile', 'prose-nommee', 'provenance-de-valeur', 'provenances-de-route', 'quantite',
+      'reference', 'reference-a-specialisation', 'reference-typee', 'source', 'source-secondaire', 'special-de-jeu', 'test',
+      'tirage-parmi', 'tirage-sur-table', 'trait-pose', 'valeur-d-identite',
     ]);
   });
 

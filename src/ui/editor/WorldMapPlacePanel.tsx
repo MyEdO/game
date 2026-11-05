@@ -21,7 +21,7 @@ import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
-import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
 import { idDEntropie } from '../../web/entropie';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */

@@ -18,12 +18,26 @@ import {
   weaponDamageSpecSchema,
 } from '../valeurs';
 import { CHAMPS_PROSE_DE_SCENE, PROSES_NOMMEES } from '../champs-prose-de-scene';
+import { flowTestSchema } from '../mecanique';
+import { marchandageDeBilletSchema, palierDeBilletSchema, provenanceDeValeurSchema, provenancesDeRouteSchema, routeBilletSchema } from '../route';
+import {
+  clotureSchema,
+  designerHerosSchema,
+  documentSchema,
+  identiteSchema,
+  ligneDIdentiteSchema,
+  ouvertureSchema,
+  poserEtatSchema,
+  revealClueSchema,
+  valeurDIdentiteSchema,
+} from '../campagne';
+import { specialSchema } from '../jeu-de-taverne';
 
 /** La classe de produit `(fabrique, rôles, clés d'extra)`. */
 const classe = (fabrique: string, roles: readonly string[], clesDExtra: readonly string[] = []): ClasseDePose => ({ fabrique, roles, clesDExtra });
 
 /**
- * TABLE des poses de concept de la grammaire (#3012, S1) : id → nœud ou classe de produit. Source
+ * TABLE des poses de concept de la grammaire (#3012) : id → nœud ou classe de produit. Source
  * unique de `IdConceptPose`. Seuls les nœuds qu'un def atteint y sont posés (`posesPerdues`).
  */
 const POSES_DE_GRAMMAIRE = {
@@ -55,6 +69,22 @@ const POSES_DE_GRAMMAIRE = {
   'tirage-sur-table': classe('pick', ['table'], ['table']),
   'trait-pose': classe('traitPose', ['pose'], ['value']),
   'prix-saisonnier': prixSaisonnierSchema,
+  'palier-de-billet': palierDeBilletSchema,
+  'billet-de-route': routeBilletSchema,
+  'marchandage-de-billet': marchandageDeBilletSchema,
+  'provenance-de-valeur': provenanceDeValeurSchema,
+  'provenances-de-route': provenancesDeRouteSchema,
+  'identite-de-heros': identiteSchema,
+  'ligne-d-identite': ligneDIdentiteSchema,
+  'valeur-d-identite': valeurDIdentiteSchema,
+  ouverture: ouvertureSchema,
+  cloture: clotureSchema,
+  'effet-d-etat-poser': poserEtatSchema,
+  'effet-d-etat-designer': designerHerosSchema,
+  'effet-narratif-document': documentSchema,
+  'effet-narratif-indice': revealClueSchema,
+  'special-de-jeu': specialSchema,
+  test: flowTestSchema,
 };
 
 export type IdConceptPose = keyof typeof POSES_DE_GRAMMAIRE;

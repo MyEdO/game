@@ -10,15 +10,14 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
-import { conditionSchema } from '../grammaire/mecanique';
-import { enumNomme, maisonSchema, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { refuserSansProvenance } from '../grammaire/document';
+import { conditionCondCtxSchema } from '../grammaire/campagne';
+import { enumNomme } from '../grammaire/valeurs';
+import { routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
 import { findVehicleById } from '../../index';
-import type { Condition } from '../../../engine/flowCore';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
 export const travelModeSchema = z.string();
@@ -116,49 +115,6 @@ export const placePoiSchema = nommerChamps(z
     }
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, serviceKind: { label: "type de service" , texte: { regime: "technique"} } });
 
-/**
- * Kinds de `Condition` réellement ÉVALUABLES avec le contexte de la CARTE (`condCtx`,
- * `src/noyau/bourseFlow.ts` : `flags`, `etats`, `gameTime`, `party`, `money`). Les autres kinds lisent
- * `target`/`caster`/`sl`/`location`/état de combat — absents ici, et `evalCondition`
- * (`src/engine/flowCore.ts`) les rend alors FAUX : un lieu disparaîtrait de la carte, ou un trajet
- * se fermerait, EN SILENCE et sans qu'aucune donnée ne soit fautive. Le sous-ensemble se vérifie
- * kind par kind dans `evalCondition` ; tout kind non listé est REFUSÉ à l'authoring (fail-fast).
- * Exporté : les panneaux de carte du studio en DÉRIVENT l'offre de leur `ConditionEditor`
- * (prop `kinds`), au lieu d'une seconde liste recopiée dans l'UI.
- */
-export const CONDITION_KINDS_CARTE: ReadonlySet<Condition['kind']> = new Set<Condition['kind']>([
-  'always', 'flag', 'etat', 'time', 'hasItem', 'money', 'partyDead',
-  'skill', 'career', 'species', 'status',
-  'all', 'any', 'not',
-]);
-
-/** Kinds hors portée rencontrés dans une `Condition` authored (récursif : `all`/`any`/`not`). */
-function kindsHorsCarte(cond: unknown, out: Set<string> = new Set()): Set<string> {
-  if (!cond || typeof cond !== 'object') return out;
-  const c = cond as { kind?: unknown; of?: unknown };
-  // La Condition arrive ICI encore NON VALIDÉE (`unknown`) : son `kind` est une chaîne quelconque.
-  if (typeof c.kind === 'string' && !(CONDITION_KINDS_CARTE as ReadonlySet<string>).has(c.kind)) out.add(c.kind);
-  if (Array.isArray(c.of)) for (const sub of c.of) kindsHorsCarte(sub, out);
-  else if (c.of) kindsHorsCarte(c.of, out);
-  return out;
-}
-
-/** `Condition` d'un `when` évalué au contexte HORS COMBAT (`condCtx`) — l'algèbre complète,
- *  restreinte aux kinds évaluables là : le `when` d'un lieu/trajet de carte, et celui de la CLÔTURE
- *  d'un chapitre (#717), qui passe par le MÊME `condCtx`. */
-export const conditionCondCtxSchema = conditionSchema.superRefine((cond, ctx) => {
-  const hors = [...kindsHorsCarte(cond)];
-  if (hors.length) {
-    ctx.addIssue({
-      code: 'custom',
-      message:
-        `Condition : « ${hors.join(' », « ')} » n'est pas évaluable au contexte hors combat ` +
-        `(drapeaux, états de campagne, horloge, groupe, bourse — « condCtx », src/noyau/bourseFlow.ts) : la Condition serait ` +
-        `FAUSSE en silence. Kinds admis : ${[...CONDITION_KINDS_CARTE].join(', ')}.`,
-    });
-  }
-});
-
 /** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. */
 export const mapPlaceSchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -189,30 +145,6 @@ export const routePerilSchema = nommerChamps(z.strictObject({
   effects: z.array(effectSchema),
 }).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
-/** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
-const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
-
-/** `PalierDeBillet` (`engine/travel.ts`) — prix d'un billet marchandé, palier (`palierSchema`) de DR net gagné. */
-export const palierDeBilletSchema = nommerChamps(z.strictObject({
-  ...palierSchema.shape,
-  prix: prixParClasseSchema,
-}).refine((p) => p.seuil >= 0, { path: ['seuil'], message: 'le DR net minimal d’un palier de billet est ≥ 0' }), { seuil: { label: "DR net minimal" }, prix: { label: "prix par classe" , texte: { regime: "technique"} } });
-
-/** `RouteBillet` (`noyau/worldMap.ts`) — billet d'auteur d'un passage payant (`EDO 01 l.142`). La
- *  contiguïté de `suite` se valide à la carte (`worldMapSchema`), les classes et `depuis` à la route. */
-export const routeBilletSchema = nommerChamps(z.strictObject({
-  prix: prixParClasseSchema,
-  suite: z.array(z.string()).optional(),
-  depuis: z.string().optional(),
-  marchandage: nommerChamps(z.strictObject({
-    presetId: z.string(),
-    paliers: z.array(palierDeBilletSchema).optional(),
-  }), { presetId: { label: "vendeur (preset PNJ)" , texte: { regime: "technique"} }, paliers: { label: "paliers" } }).optional(),
-  source: sourceRefSchema.optional(),
-  maison: maisonSchema.optional(),
-})
-  .superRefine((billet, ctx) => refuserSansProvenance(billet, ctx, 'du billet')), { prix: { label: "prix par classe" , texte: { regime: "technique"} }, suite: { label: "routes suivantes couvertes" , texte: { regime: "technique"} }, depuis: { label: "lieu de départ" , texte: { regime: "technique"} }, marchandage: { label: "marchandage" }, source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} } });
-
 /** Fautes d'un billet contre SA route : véhicule à classes de passage offert sur la route, classes connues,
  *  `depuis` exigé sur une route à double sens et désignant une de ses extrémités. */
 function fautesDuBillet(route: { a: string; b: string; from?: string; modes: string[] }, mode: string, billet: z.infer<typeof routeBilletSchema>): string[] {
@@ -228,13 +160,6 @@ function fautesDuBillet(route: { a: string; b: string; from?: string; modes: str
   if (billet.depuis != null && route.from != null && billet.depuis !== route.from) fautes.push(`« depuis » (« ${billet.depuis} ») contredit le sens unique de la route (« ${route.from} »).`);
   return fautes;
 }
-
-/** Provenance d'une VALEUR d'auteur de route : `source` ou `maison`, jamais ni l'un ni l'autre. */
-export const provenanceDeValeurSchema = nommerChamps(z.strictObject({
-  source: sourceRefSchema.optional(),
-  maison: maisonSchema.optional(),
-})
-  .superRefine((p, ctx) => refuserSansProvenance(p, ctx, 'de la valeur')), { source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} } });
 
 /** Valeurs de route dont la provenance se dit : posées, `perilDie` et `speed` l'exigent. */
 const PROVENANCE_EXIGEE = { perilDie: 'du dé de péril', speed: 'de la vitesse' } as const;
@@ -283,12 +208,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
     }), { source: { label: "source" , texte: { regime: "technique"} }, mode: { label: "mode"  }, chancePct: { label: "probabilité" } })
     .optional(),
   couvre: couvreSchema.optional(),
-  /** Provenance de chaque valeur d'auteur (`refuserSansProvenance`). */
-  provenances: nommerChamps(z.strictObject({
-    perilDie: provenanceDeValeurSchema.optional(),
-    speed: provenanceDeValeurSchema.optional(),
-    km: provenanceDeValeurSchema.optional(),
-  }), { perilDie: { label: "dé de péril" }, speed: { label: "vitesse" }, km: { label: "kilomètres" } }).optional(),
+  provenances: provenancesDeRouteSchema.optional(),
 })
   .superRefine((route, ctx) => {
     const posees = { perilDie: route.perilDie !== undefined, speed: Object.values(route.speed ?? {}).some((v) => v !== undefined) };

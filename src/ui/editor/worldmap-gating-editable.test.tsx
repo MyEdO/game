@@ -16,7 +16,7 @@ import { WorldMapEditor } from './WorldMapEditor';
 import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
-import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
 import { tacheSuivante } from '../focus.testkit';
 
 beforeAll(() => {
