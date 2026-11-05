@@ -6,7 +6,7 @@
  * `optionsDuNoeud`), et ses axes (`AXES`) ; `lireComposition` la valide, seule validation d'une composition, et
  * `presetDeComposition` rend son entrée JSON, l'enveloppe d'un preset reprise, et les fautes de son schéma.
  */
-import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, trappings, type GabaritId } from '../../data';
+import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId } from '../../data';
 import { serializeDataset } from '../../data/serialize';
 import type { TenueId } from '../../data/schemas/defs/garde-robe';
 import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
@@ -129,10 +129,10 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   return { portees: liste, rapport, embleme: emblemeDuPorteur(composition.embleme), facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
 }
 
-/** Les emplacements où se range un objet de forme `apparence` : le `rangement` de chaque trapping de cette forme (D1),
- *  sans doublon, dans l'ordre des trappings. */
+/** Les emplacements où se range un objet de forme `apparence` : le `rangement` de chaque trapping instanciable de cette
+ *  forme (D1), sans doublon, dans l'ordre des trappings. */
 export const emplacementsDeRangement = (apparence: string): string[] =>
-  [...new Set(trappings.flatMap((t) => (t.shape?.id === apparence && t.rangement ? [t.rangement.id] : [])))];
+  [...new Set(trappingsInstanciables().flatMap((t) => (t.shape?.id === apparence && t.rangement ? [t.rangement.id] : [])))];
 
 /** Un choix d'un catalogue : l'id stocké, le libellé affiché. */
 export interface Choix {
