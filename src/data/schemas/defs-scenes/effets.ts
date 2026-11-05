@@ -9,16 +9,16 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * montage qui tient est `z.ZodType<T> = z.lazy(…)`, où le type manuscrit est l'ANNOTATION.
  *
  * Le `flowSchema` de la grammaire (`grammaire/mecanique.ts`) reste `Flow<EffectOp>` : sa feuille
- * `do` est la seule op mécanique. `sceneFlowSchema` ci-dessous est le MÊME arbre paramétré sur
- * l'union `Effect` complète (transition/dialogue/combat…) — `conditionSchema` est partagé et le nœud
- * `test` vient de la fabrique `noeudTest` de la grammaire, aucune structure n'est recopiée.
+ * `do` est la seule op mécanique. `sceneFlowSchema` ci-dessous est le MÊME arbre, produit par la
+ * fabrique `arbreDeFlow` de la grammaire, paramétré sur l'union `Effect` complète
+ * (transition/dialogue/combat…) et sur `conditionSchema` : aucune structure n'est recopiée.
  */
 import { z } from 'zod';
 import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
-import { conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, noeudTest } from '../grammaire/mecanique';
+import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
+import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
@@ -348,7 +348,7 @@ export const inflictTraumaSchema = nommerChamps(z.strictObject({
  *  Dégâts BRUTS par défaut (`op:'wounds'` ignore BE+PA) ; mitiger = `{ignoreTB:false, ignoreAP:false}`. */
 export const zoneBlastSchema = nommerChamps(z.strictObject({
   type: z.literal('zoneBlast'),
-  center: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
+  center: cell2Schema,
   radius: z.number(),
   ops: executeesDe(),
 }), { type: { label: "type"  }, center: { label: "centre" }, radius: { label: "rayon" }, ops: { label: "opérations" } });
@@ -730,24 +730,9 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   ]),
 );
 
-/** `Flow<Effect>` (`engine/flowCore.ts`) — le MÊME arbre acyclique seq/do/if/test/choice que le
- *  `flowSchema` de la grammaire, mais dont la feuille `do` est l'union `Effect` de scène (et non le
- *  seul `EffectOp` mécanique). */
-export const sceneFlowSchema: z.ZodType<Flow> = z.lazy(() =>
-  z.discriminatedUnion('kind', [
-    nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(sceneFlowSchema) }), { kind: { label: "type"  }, steps: { label: "étape" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectSchema }), { kind: { label: "type"  }, effect: { label: "effet" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: sceneFlowSchema, else: sceneFlowSchema.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
-    noeudTest(sceneFlowSchema),
-    proseNommee(nommerChamps(z.strictObject({
-      kind: z.literal('choice'),
-      advantageCost: z.number().optional(),
-      icon: z.string().optional(),
-      yes: sceneFlowSchema,
-      no: sceneFlowSchema.optional(),
-    }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage" }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
-  ]),
-);
+/** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
+ *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */
+export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number());
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });

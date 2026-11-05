@@ -217,7 +217,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetConfirm('heal');
     expect(banc.getState().party.find((c) => c.id === 'al')!.wounds.current).toBeGreaterThan(4);
     expect(banc.getState().medic).not.toBeNull(); // PERSISTANTE : on enchaîne actes et patients
-    banc.getState().closeMedic();
+    banc.getState().fenetreFermer('medic');
     expect(banc.getState().medic).toBeNull();
   });
 
@@ -263,7 +263,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().medicAct('wounds');
     banc.getState().medicSelectPatient('bob'); // refusé : jet en cours
     expect(banc.getState().medic!.patientId).toBe('al');
-    banc.getState().closeMedic(); // refusé aussi
+    banc.getState().fenetreFermer('medic'); // refusé aussi
     expect(banc.getState().medic).not.toBeNull();
   });
 

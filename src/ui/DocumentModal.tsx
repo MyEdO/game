@@ -16,14 +16,14 @@ import { porteurDuNarratif } from './porteurDeProjet';
  */
 export function DocumentModal() {
   const doc = useGame((s) => s.document);
-  const closeDocument = useGame((s) => s.closeDocument);
+  const fermer = useGame((s) => s.fenetreFermer);
   const invite = useGame((s) => s.net.mode === 'guest');
   const campaignDoc = useGame((s) => s.campaignDoc);
   const [masque, setMasque] = useState<number | null>(null);
   if (!doc) return null;
-  // COOP : l'hôte ferme (`closeDocument`) ; l'invité ne fait que MASQUER cette remise (`remise`).
+  // COOP : l'hôte ferme (`fenetreFermer('document')`) ; l'invité ne fait que MASQUER cette remise (`remise`).
   if (invite && masque === doc.remise) return null;
-  const close = invite ? () => setMasque(doc.remise) : closeDocument;
+  const close = invite ? () => setMasque(doc.remise) : () => fermer('document');
   return (
     <Modal
       title={doc.title}

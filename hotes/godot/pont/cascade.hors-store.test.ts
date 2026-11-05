@@ -10,7 +10,7 @@ import { CLICS_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix, Element } from '../../../src/hote/elements';
 
 const { appel } = table();
-const NAVIGATION = ['cascadeNext', 'cascadeResolveAll', 'cascadeFinish'];
+const NAVIGATION = ['cascadeNext', 'cascadeResolveAll', 'fenetreFermer@cascade'];
 
 describe('Entrée dans la cascade', () => {
   it('chaque rangée jetée puis l’étape validée ; le choix d’une étape attendu avant sa navigation ; le Coup Critique seul', () => {

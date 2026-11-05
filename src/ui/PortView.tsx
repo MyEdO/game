@@ -118,7 +118,8 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
-  const close = useGame((s) => s.closePort);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const close = () => fermer('port');
   const buy = useGame((s) => s.portBuyCargo);
   const sell = useGame((s) => s.portSellCargo);
   const dump = useGame((s) => s.portDumpCargo);

@@ -610,7 +610,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
     if (!pz) return;
     switch (pz.source) {
       case 'cast': get().castPlaceZone(false); return;
-      case 'siege': get().siegeAimCancel(); return;
+      case 'siege': get().fenetreFermer('siegeAim'); return;
       default: pz.source satisfies never;
     }
   },

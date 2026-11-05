@@ -110,6 +110,11 @@ export function effectZoneArea(kind: ZoneArea['kind'], r: Rect): ZoneArea {
   return { kind: 'disc', cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2), radius };
 }
 
+/** La case `p` est-elle sur la carte ? La garde de bornes de tout geste à la case. */
+export function dansLaCarte(scene: Scene, p: Pt): boolean {
+  return p.x >= 0 && p.y >= 0 && p.x < scene.dimensions.w && p.y < scene.dimensions.h;
+}
+
 /** Entité posée à `p` sur la couche `z` (défaut 0) — prédicat UNIQUE de picking/gomme/collision
  *  d'entités. Source unique remplaçant les comparaisons dupliquées `pos.x===p.x && pos.y===p.y`
  *  qui omettaient le filtre de couche (#835 FU-3) : `hitAt`/`eraseAt`/`addEnemyMember` et la pose

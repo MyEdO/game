@@ -223,7 +223,7 @@ function opIsBeneficial(op: GameOp): boolean {
     case 'domeWard': case 'attackWardFM': case 'martyr': case 'giveTrapping':
       return true;
     case 'charMod': return op.mod > 0;
-    case 'skillMod': return op.mod > 0;
+    case 'skillMod': case 'deitySkillMod': return op.mod > 0;
     default: return false;
   }
 }
@@ -238,7 +238,7 @@ function opIsHostileControl(op: GameOp): boolean {
     case 'damageArmour': case 'damageWornGear':
       return true;
     case 'charMod': return op.mod < 0;
-    case 'skillMod': return op.mod < 0;
+    case 'skillMod': case 'deitySkillMod': return op.mod < 0;
     case 'testMod': return op.amount < 0;
     default: return false;
   }

@@ -91,12 +91,12 @@ export function deFormule(f: Formula): string {
  *  pluriel (jamais garanti « un » à l'affichage). Jamais le pluriel-code « (s) ». */
 export const plural = (n: unknown, singular: string, pluralForm: string): string => (n === 1 ? singular : pluralForm);
 
-/** DURÉE PROPRE d'une op à trois échelles exclusives (`condition`, `charMod` — `durationFromOp`,
- *  engine/ops) : « 3 heures », « 1 minute », « 2 Rounds » ; `undefined` sans durée propre (celle du
+/** DURÉE PROPRE d'une op à échelles exclusives (`OpDuree` — `durationFromOp`, engine/ops) : « 3 heures »,
+ *  « 1 minute », « 2 Rounds », « 4 jours » ; `undefined` sans durée propre (celle du
  *  contexte). SOURCE UNIQUE de la pastille (`opRows`) et du résumé d'atelier (`opSummary`). */
-export function dureePropre(o: { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }): string | undefined {
+export function dureePropre(o: { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula; durationDays?: Formula }): string | undefined {
   const echelle = (f: Formula | undefined, un: string, plusieurs: string) => (f != null ? `${humanizeFormula(f)} ${plural(f, un, plusieurs)}` : undefined);
-  return echelle(o.durationRounds, 'Round', 'Rounds') ?? echelle(o.durationMinutes, 'minute', 'minutes') ?? echelle(o.durationHours, 'heure', 'heures');
+  return echelle(o.durationRounds, 'Round', 'Rounds') ?? echelle(o.durationMinutes, 'minute', 'minutes') ?? echelle(o.durationHours, 'heure', 'heures') ?? echelle(o.durationDays, 'jour', 'jours');
 }
 
 /** PLANCHER d'un `charMod` (EDO 11 l.190) : « min 10 », `undefined` sans plancher. SOURCE UNIQUE de la
@@ -443,7 +443,8 @@ export function humanizeOp(o: GameOp): string {
     case 'grantPsychTrait': return `gagne l'état psychologique ${libelleDuTraitOctroye(o)}${pendant(o)}${o.resistanceSiAmis ? ', résistible si la cible et la personne sont amies' : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType.id)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
-    case 'suppressTalents': return `perd les Talents ${o.talents.map((x) => refLabel('talents', x)).join(', ')} pendant ${humanizeFormula(o.durationDays)} jours`;
+    case 'deitySkillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${o.pick === 'all' ? 'aux Compétences associées à sa divinité' : 'à une Compétence associée à sa divinité, tirée au hasard'}${pendant(o)}`;
+    case 'suppressTalents': return `perd les Talents ${o.talents.map((x) => refLabel('talents', x)).join(', ')}${pendant(o)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
     case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', o.talent)} à ses carrières`;
     case 'augmentWeapon': return `voit son arme enchantée${o.addQualities?.length ? ` (${o.addQualities.map((id) => qualityRefLabel({ id })).join(', ')})` : ''}${o.damageBonus != null ? ` +${humanizeFormula(o.damageBonus)} Dégâts` : ''}`;

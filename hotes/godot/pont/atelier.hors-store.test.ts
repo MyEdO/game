@@ -1,7 +1,7 @@
 /**
  * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`, section « Atelier 3D ») : `modelesDeLAtelier` rend chaque base avec
- * ses points d'accroche, emplacements puis prises, à chaque point les éléments rigides de cette base dont un mesh pend à
- * l'os du point (`osDesRigides`), ses lignes de pièce tirées de la garde-robe (#3086, D3), où vont ses éléments liés au
+ * ses points d'accroche, emplacements puis prises, à chaque emplacement les éléments rigides de cette base dont un mesh
+ * pend à l'os du point, à chaque prise ceux dont un mesh pend à l'os de l'une de ses prises (`osDesRigides`), ses lignes de pièce tirées de la garde-robe (#3086, D3), où vont ses éléments liés au
  * squelette ou en surface et ses accessoires rigides, le fichier GLB de chaque base et de chaque élément servi, et pour ces seuls éléments les noms de
  * leurs surfaces `blason`, et la marche de chaque base (l'unique clip de ses appuis et sa vitesse au sol, au gabarit
  * neutre) ; les emblèmes sont la sous-liste `embleme` de la garde-robe ; un rigide sans os n'est servi nulle part, les
@@ -58,6 +58,12 @@ describe('modelesDeLAtelier', () => {
     expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['bouclier'], main: ['epee'], off: ['epee'] });
   });
 
+  it('un objet tenu construit pour une prise est offert à chaque prise de sa base, jamais à un emplacement d’un autre os (#3319)', () => {
+    const attache = (os: string) => ({ os, position: [0, 0, 0], rotation: [0, 0, 0] });
+    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], prises: { main: attache('main_d'), off: attache('main_g') } };
+    const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }).bases[0];
+    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['bouclier'], main: ['epee'], off: ['epee'] });
+  });
   it('les lignes de pièce sont, dans l’ordre de la garde-robe, le sélecteur `tete`, le sélecteur `coiffure`, une bascule `piece` par pièce de vêtement ou d’armure, puis une liste `emplacement` par emplacement d’une pièce d’accessoire', () => {
     const emplacementsDAccessoire = new Set<string>(gardeRobe.flatMap((g) => (g.kind === 'piece' && g.emplacement ? [g.emplacement.id] : [])));
     expect(lignes.map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual([
