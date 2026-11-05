@@ -2,9 +2,10 @@
  * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`, section « Atelier 3D ») : l'index (base, clé) → élément
  * (`indexerModeles`) des manifestes que le listage servi a validés contre leur GLB (`verdictsDesModeles`), mis en données
  * que Godot dessine sans les relire : chaque base avec ses points d'accroche (ses emplacements, puis ses prises), à chaque
- * emplacement les objets rigides construits pour elle dont un mesh pend à l'os du point, à chaque prise ceux dont un mesh
- * pend à l'os de l'une de ses prises (`osDesRigides` du listage, `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts`
- * `monter`), que Godot repose du repère de leur prise d'origine dans celui de la prise retenue (#3319) ; ses lignes de pièce (#3086, D3), tirées de la
+ * emplacement les objets rigides construits pour elle dont un mesh pend à l'os du point, et les objets tenus qui s'y rangent
+ * (`emplacementsDeRangement`), à chaque prise ceux dont un mesh pend à l'os de l'une de ses prises (`osDesRigides` du
+ * listage, `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts` `monter`), que Godot repose du repère de leur prise
+ * d'origine dans celui de la prise retenue, ou range à l'emplacement (#3319) ; ses lignes de pièce (#3086, D3), tirées de la
  * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ; et la marche de chaque base, son clip et sa vitesse au sol (`asset/gabarit.ts`
@@ -17,7 +18,7 @@ import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
 import { marcheDeLaBase } from '../asset/gabarit';
-import { cataloguesDeComposition, emplacementDePiece, gardeRobe, libelleDeCleDElement, type EmblemeDef } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, type EmblemeDef } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -116,8 +117,13 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const osDesPrises = Object.values(m.prises).map((a) => a.os);
     const pointsDe = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
       Object.entries(attaches).map(([pointId, attache]) => {
-        const porteurs = genre === 'prise' ? osDesPrises : [attache.os];
-        return { id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter((e) => (osDesRigides[e.id] ?? []).some((os) => porteurs.includes(os)))) };
+        const pendA = (e: EntreeDeModele, porteurs: readonly string[]) => (osDesRigides[e.id] ?? []).some((os) => porteurs.includes(os));
+        const seRangeIci = (e: EntreeDeModele) => {
+          const apparence = cleDe(e.brut).apparence;
+          return apparence !== undefined && pendA(e, osDesPrises) && emplacementsDeRangement(apparence).includes(pointId);
+        };
+        const offert = genre === 'prise' ? (e: EntreeDeModele) => pendA(e, osDesPrises) : (e: EntreeDeModele) => pendA(e, [attache.os]) || seRangeIci(e);
+        return { id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter(offert)) };
       });
     const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises)];
     const choix = (idDeChoix: string, label: string, porte: (e: EntreeDeModele) => boolean): ChoixDeLigne => ({ id: idDeChoix, label, elements: servir(pieces.filter(porte)) });

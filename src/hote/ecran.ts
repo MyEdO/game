@@ -3,24 +3,26 @@
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
  * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
- * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche, et la fiche ouverte.
+ * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche, et la fiche ouverte ;
+ * la création d'un héros (`creation.ts`).
  * À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import type { Projection } from './projection';
 import type { FenetreADessiner } from './gestes';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
+import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
 
-/** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre. Une zone vide n'a rien à montrer. */
-export interface ZonesDeLEcran {
+/** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise. Une zone vide n'a
+ *  rien à montrer. */
+export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'fenetre.titre': Ligne[];
   'fenetre.etape': Ligne[];
   'fenetre.corps': Element[];
@@ -33,6 +35,9 @@ export interface ZonesDeLEcran {
   'combat.apercu': Ligne[];
   'combat.offres': Choix[];
   'exploration.gestes': Bouton[];
+  'dialogue.orateur': Ligne[];
+  'dialogue.replique': Ligne[];
+  'dialogue.reponses': Bouton[];
   'journal.titre': Ligne[];
   'groupe.heros': Bouton[];
   'fiche.heros': Entite[];
@@ -305,12 +310,6 @@ const herosDeLaFiche = (f: FicheDuPorteur): Entite => ({
   ],
 });
 
-/** Les caractères au plus d'une description au détail d'une puce : son premier paragraphe, coupé au mot. */
-const DESCRIPTION_AU_DETAIL = 300;
-
-/** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
-const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
-
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
@@ -396,9 +395,9 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
   };
 }
 
-/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre` et de la
- *  fiche que l'hôte montre `fiche`. */
-export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null): ZonesDeLEcran {
+/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre`, de la
+ *  fiche que l'hôte montre `fiche` et de la création qu'il tient `creation` (`zonesDeLaCreation`). */
+export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null, creation: CreationOuverte | null): ZonesDeLEcran {
   const c = p.combat;
   const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
   const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
@@ -416,11 +415,28 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
     'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
-      type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: null,
+      type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: g.refus ?? null,
     })),
+    ...zonesDuDialogue(etat, fenetre !== null),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
     'groupe.heros': herosDuGroupe(etat, fiche),
     ...zonesDeLaFiche(etat, fiche),
+    ...zonesDeLaCreation(etat, creation),
+  };
+}
+
+/** Les zones de la conversation en cours (`conversationEnVue`), quand aucune fenêtre ne la suspend : son
+ *  interlocuteur, sa réplique, et chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son
+ *  coût) avant son libellé, refusée avec sa raison. */
+function zonesDuDialogue(etat: Jeu, fenetreOuverte: boolean): Pick<ZonesDeLEcran, 'dialogue.orateur' | 'dialogue.replique' | 'dialogue.reponses'> {
+  const v = fenetreOuverte ? null : conversationEnVue(etat);
+  return {
+    'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur)] : [],
+    'dialogue.replique': v?.replique ? [ligne('replique', v.replique)] : [],
+    'dialogue.reponses': (v?.reponses ?? []).map((r): Bouton => ({
+      type: 'bouton', id: `reponse/${r.index}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
+      jeu: { type: r.geste.verbe, args: r.geste.args }, presse: false, focus: false, refus: r.refus ?? null,
+    })),
   };
 }
 

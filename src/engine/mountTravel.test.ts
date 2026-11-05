@@ -27,7 +27,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
   }) as Combatant);
 
 const beast = (ownerId: string, creatureId: string, injury?: MountInjury): Possession => ({
-  uid: `pos-${ownerId}-${creatureId}`, ownerId, nature: 'bete', ref: { creatureId },
+  uid: `pos-${ownerId}-${creatureId}`, ownerId, nature: 'bete', ref: { id: creatureId },
   location: { kind: 'avec-le-groupe' }, items: [], mountInjury: injury,
 });
 

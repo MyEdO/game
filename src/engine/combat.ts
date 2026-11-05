@@ -1557,7 +1557,7 @@ export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon
 }
 
 /** Touche d'une frappe passive, portée par le Test de défense GAGNÉ (`defBd`) au DR du Test opposé. Le
- *  double de la défense est le Critique d'`applyOpposedCritical` (LDB 14 l.3). LDB 10 l.1037 ; LDB 85 l.71 ;
+ *  double de la défense est le Critique d'`applyCoupCritiqueSec` (LDB 14 l.3). LDB 10 l.1037 ; LDB 85 l.71 ;
  *  AA 13 l.84 ; LDB 13 l.123, l.151, l.183 ; LDB 62 l.248 ; #1595 c.6234104573. */
 export function toucheDuTestDeDefense(defenseur: Combatant, attaquant: Combatant, arme: Weapon, defBd: RollBreakdown, dr: number, tirage: TirageDeLocalisation): AttackResult {
   return applyHit(defenseur, attaquant, arme, defBd, dr, false, tirage);

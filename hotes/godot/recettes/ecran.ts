@@ -3,17 +3,21 @@
  * la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Un tour de `dome` joué par le pont comme
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
- * focus, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
+ * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
  * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, sa première
- * possession choisie (ses gestes refusés en combat), et un formulaire
+ * possession choisie (ses gestes refusés en combat), le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
+ * fin, sa sortie en focus), la création d'un héros hors de la partie (`zonesDeLaCreation` sur
+ * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
+ * liste), et un formulaire
  * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
  * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
-import { CLICS_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
 /** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
@@ -92,13 +96,22 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));
   figer('jet de Défense tombé', s);
+  /** Le geste du joueur pressé : dans une fenêtre, son geste en focus, sinon sa première valeur ouverte ; sinon, une
+   *  charge ou une attaque sur la première cible, ou la fin du tour. */
+  const presse = (s: Suite): Jeu => {
+    const c = s.vue.projection.combat!;
+    if (s.vue.projection.fenetre) {
+      const g = s.vue.zones['fenetre.gestes'];
+      return g.some((b) => b.type === 'bouton' && b.focus) ? enFocus(s) : g.flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((b) => !b.refus)!.jeu;
+    }
+    const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
+    return c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
+      : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu;
+  };
   for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
     const c = s.vue.projection.combat!;
     if (pas > 300 || c.fin) throw new Error(`aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`);
-    const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
-    s = jouer('jouer', s.vue.projection.fenetre ? enFocus(s)
-      : c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
-        : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu);
+    s = jouer('jouer', presse(s));
   }
   figer('Coup Critique', s);
   s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
@@ -108,12 +121,37 @@ export function figerVuesDeLEcran(): VueFigee[] {
   }
   s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer('fiche du héros, une possession choisie', s);
+  s = appeler('fiche', { fiche: null });
+  for (let pas = 0; !s.vue.projection.combat?.fin; pas++) {
+    if (pas > 600) throw new Error(`aucune fin du combat après ${pas} gestes`);
+    s = jouer('jouer', presse(s));
+  }
+  figer(`fin du combat, ${s.vue.zones['fenetre.titre'][0]?.texte ?? 'sans fenêtre'}`, s);
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
+    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [],
+    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [],
   };
+  const etat = etatInitialDuJeu();
+  let creation: CreationOuverte = { brouillon: brouillonDeLaPartie(7, 0), page: 'species' };
+  const figerLaCreation = (nom: string) => vues.push({ nom, disposition: null, zones: { ...vides, ...zonesDeLaCreation(etat, creation), 'journal.lignes': [...lignes] }, attendus: {} });
+  const jouerLaCreation = (id: string, valeur?: string) => {
+    const e = zonesDeLaCreation(etat, creation)['creation.corps'].find((x) => x.id === id)!;
+    const b = (e.type === 'bouton' ? e : (e as Choix).valeurs.find((v) => v.libelle === valeur)!).jeu as { creation: Exclude<GesteDeLaCreation, { geste: 'ouvrir' | 'engager' }> };
+    creation = apresLaCreation(creation, b.creation);
+  };
+  figerLaCreation('création, la race avant le d100');
+  jouerLaCreation('tirage');
+  figerLaCreation('création, la race tirée');
+  creation = { ...creation, page: 'career' };
+  jouerLaCreation('tirage');
+  figerLaCreation('création, la carrière tirée');
+  creation = { ...creation, page: 'chars' };
+  jouerLaCreation('methode', 'Répartir 100 points');
+  figerLaCreation('création, les Caractéristiques en 100 points');
+
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,

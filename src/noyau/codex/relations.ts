@@ -22,7 +22,7 @@
 import {
   species, careers, careerLevels, skills, talents, trappings, creatures, traits, mutations,
   spells, gods, domains, classes, maneuvers, qualities, characteristics, etats, maladies,
-  locations, stars, mutationTables, advancementBaseId, careersForSpecies, findCareerById,
+  locations, stars, mutationTables, advancementBaseId, careersForSpecies, findCareerById, estDotationDObjet,
 } from '../../data';
 import type { AdvancementRef } from '../../data';
 import { isOptionalNote } from '../../engine/statEntry';
@@ -125,7 +125,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const id of advancementIds(lv.skills)) addReverse('skills', id, by, 'Carrières (par rang)');
     for (const id of advancementIds(lv.talents)) addReverse('talents', id, by, 'Carrières (par rang)');
     for (const k of lv.characteristics) addReverse('characteristics', k, by, 'Carrières (avancée)');
-    for (const t of lv.trappings) if ('id' in t) addReverse('trappings', t.id, by, 'Carrières (par rang)');
+    for (const t of lv.trappings) if (estDotationDObjet(t)) addReverse('trappings', t.id, by, 'Carrières (par rang)');
   }
 
   // 4) Compétences → caractéristique de test.
@@ -151,7 +151,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const sk of c.skills) addReverse('skills', sk.id, by);
     for (const ta of c.talents) addReverse('talents', ta.id, by);
     for (const sp of c.spells) addReverse('spells', sp, by, 'Créatures la lançant');
-    for (const tp of c.trappings) if ('id' in tp) addReverse('trappings', tp.id, by, 'Créatures la possédant');
+    for (const tp of c.trappings) if (estDotationDObjet(tp)) addReverse('trappings', tp.id, by, 'Créatures la possédant');
   }
 
   // 7) Possessions → qualités + groupe d'objet.
@@ -164,7 +164,7 @@ const graph = versionCached<ReverseGraph>(() => {
   // 8) Classes → possessions de départ.
   for (const cl of classes) {
     const by: Referrer = { category: 'classes', id: cl.id, label: cl.label };
-    for (const t of cl.trappings) if ('id' in t) addReverse('trappings', t.id, by, 'Possession de classe');
+    for (const t of cl.trappings) if (estDotationDObjet(t)) addReverse('trappings', t.id, by, 'Possession de classe');
   }
 
   // 9) Traits → manœuvres conférées.

@@ -49,9 +49,9 @@ describe('PossessionsRegistry (#649) — registre des possessions dont le héros
   it('affiche une possession `bete` du héros, masque celle détruite et celle d’un autre propriétaire', () => {
     const h = hero('h1');
     const possessions: Possession[] = [
-      { uid: 'pos-1', ownerId: 'h1', nature: 'bete', ref: { creatureId: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [] },
-      { uid: 'pos-2', ownerId: 'h1', nature: 'bete', ref: { creatureId: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [], destroyed: true, label: 'Détruite' },
-      { uid: 'pos-3', ownerId: 'h2', nature: 'bete', ref: { creatureId: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [], label: 'AutrePropriétaire' },
+      { uid: 'pos-1', ownerId: 'h1', nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [] },
+      { uid: 'pos-2', ownerId: 'h1', nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [], destroyed: true, label: 'Détruite' },
+      { uid: 'pos-3', ownerId: 'h2', nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [], label: 'AutrePropriétaire' },
     ];
     useGame.setState({ party: [h], possessions, battle: null });
     ({ container, root } = mount(<PossessionsRegistry hero={h} />));
@@ -65,7 +65,7 @@ describe('PossessionsRegistry (#649) — registre des possessions dont le héros
     const h = hero('h1');
     const sacoche: Possession[] = [
       {
-        uid: 'pos-7', ownerId: 'h1', nature: 'bete', ref: { creatureId: 'cheval' }, location: { kind: 'avec-le-groupe' },
+        uid: 'pos-7', ownerId: 'h1', nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' },
         items: [
           { uid: 'i1', trappingId: 'outils-professionnels', spec: 'Maréchal-ferrant', label: 'Outils professionnels', kind: 'misc', qualities: [], enc: 1, equipped: false },
           { uid: 'i2', trappingId: 'bouclier', label: 'Bouclier', kind: 'melee', subType: 'base', qualities: [], enc: 1, equipped: false },
@@ -102,7 +102,7 @@ describe('PossessionsRegistry (#649) — registre des possessions dont le héros
   it('deux natures présentes → deux `Band` distinctes', () => {
     const h = hero('h1');
     const possessions: Possession[] = [
-      { uid: 'pos-5', ownerId: 'h1', nature: 'bete', ref: { creatureId: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [] },
+      { uid: 'pos-5', ownerId: 'h1', nature: 'bete', ref: { id: 'cheval' }, location: { kind: 'avec-le-groupe' }, items: [] },
       { uid: 'pos-6', ownerId: 'h1', nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] },
     ];
     useGame.setState({ party: [h], possessions, battle: null });

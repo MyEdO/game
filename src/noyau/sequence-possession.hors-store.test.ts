@@ -19,7 +19,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import {
-  applySurprise, approachFearTrigger, applyAttackResult, applyOpposedCritical,
+  applySurprise, approachFearTrigger, applyAttackResult, applyCoupCritiqueSec,
   openCombatEndCascade, openRoundStartPsych,
 } from './combatFlow';
 import { createHero } from '../engine/character';
@@ -223,13 +223,13 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
     expect(seatOwns(g(), 1, cible.id), 'la décision est au siège qui tient la victime').toBe(true);
   });
 
-  it('JUMEAU `applyOpposedCritical` (LDB 14 l.3) : même offre, même possession — les deux chemins s’alignent', () => {
+  it('JUMEAU `applyCoupCritiqueSec` (LDB 14 l.3) : même offre, même possession — les deux chemins s’alignent', () => {
     const { H, E } = setupCoop({ heros: 2, invites: [1] });
     const cible = g().battle!.combatants.find((c) => c.id === H[1].id)!;
     blinde(cible);
     seedBattleRng(5);
 
-    applyOpposedCritical(g, banc.setState, cible, 33, { attackerId: E[0].id, weapon: 'Hache' }, []);
+    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, []);
 
     const dev = parKind('deviation');
     expect(dev, 'le jumeau n’a jamais porté le filtre d’affordance locale').toBeTruthy();

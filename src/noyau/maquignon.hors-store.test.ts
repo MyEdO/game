@@ -67,7 +67,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.getState().assignDistribution(idx, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
     banc.getState().confirmDistribution();
     const st = banc.getState();
-    const pos = st.possessions.find((p) => p.nature === 'bete' && 'creatureId' in p.ref && p.ref.creatureId === 'mule');
+    const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');
     expect(pos).toBeDefined();
     expect(pos!.ownerId).toBe('h2');
     expect(pos!.location).toEqual({ kind: 'avec-le-groupe' });
@@ -105,7 +105,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.getState().assignDistribution(itemIdx, 'h1');
     banc.getState().confirmDistribution();
     const st = banc.getState();
-    const pos = st.possessions.find((p) => p.nature === 'bete' && 'creatureId' in p.ref && p.ref.creatureId === 'mule');
+    const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');
     expect(pos!.ownerId).toBe('h2');
     expect(st.party.find((h) => h.id === 'h1')!.items!.some((i) => i.trappingId === 'selle-et-harnais')).toBe(true);
     expect(st.party.find((h) => h.id === 'h2')!.items!.some((i) => i.trappingId === 'selle-et-harnais')).toBe(false);

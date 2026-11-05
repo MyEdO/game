@@ -1,9 +1,9 @@
 import { nommerChamps } from '../grammaire/meta';
 /** MDG 12 l.313-352 */
 import { z } from 'zod';
-import { charKeySchema, difficultySchema, plageSchema, tirageSchema } from '../grammaire/valeurs';
+import { plageSchema, tirageSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { refOuSpec } from '../grammaire/ref';
+import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'steam-breakdown.json';
 export const famille = 'entite';
@@ -24,14 +24,10 @@ const doc = document(
     restart: z
       .array(
         nommerChamps(z.strictObject({
-          skill: refOuSpec('skill').optional(),
-          char: charKeySchema.optional(),
-          difficulty: difficultySchema,
+          test: flowTestSchema,
           extendedDR: z.number().optional(),
-        }), {
-          skill: { label: 'Compétence' },
-          char: { label: 'Caractéristique' },
-          difficulty: { label: 'Difficulté' },
+        }).superRefine(exigerDuTest('difficulty')), {
+          test: { label: 'Test' },
           extendedDR: { label: 'DR du Test étendu' },
         }),
       )

@@ -141,7 +141,7 @@ function signaturesDeLaGrammaire(
 
 /** GRAPHIES HISTORIQUES de référence (invariant #1466, corps du ticket) : une clé qui désigne une
  *  entité sous son ancien nom, là où la grammaire écrit `ref(type)`. */
-const ALIAS = ['skillId', 'talentId', 'trappingId', 'traitId', 'skill', 'ref', 'wildcard', 'specOptions'];
+const ALIAS = ['skillId', 'talentId', 'trappingId', 'traitId', 'creatureId', 'skill', 'ref', 'wildcard', 'specOptions'];
 
 describe('liaison lexicale des extensions de grammaire', () => {
   const regles = { signatures: [], alias: [] };
@@ -352,9 +352,7 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // (`engine/ops.ts`), tenu par `idDe('creature')`.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:extendedTestSchema|skill',
       'src/data/schemas/grammaire/mecanique.ts:jetSchema|skill',
-      'src/data/schemas/grammaire/mecanique.ts:travelTableEntry.mount.riderTest|skill',
       'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
     ]);
     const auStock = dansLaGrammaire.filter((cle) => cle in GRAMMAIRE_STOCK);

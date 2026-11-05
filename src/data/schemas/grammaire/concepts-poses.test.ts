@@ -24,7 +24,7 @@ describe('lecture — un id par entrée de la table', () => {
       if (id) lus.add(id);
     });
     expect([...lus].sort()).toEqual([
-      'adresse', 'billet-de-route', 'cloture', 'condition-flag', 'de', 'degats-arme', 'effet-d-etat-designer', 'effet-d-etat-poser',
+      'adresse', 'billet-de-route', 'cloture', 'condition-flag', 'de', 'degats-arme', 'dotation', 'effet-d-etat-designer', 'effet-d-etat-poser',
       'effet-narratif-document', 'effet-narratif-indice', 'formule-minimum', 'formule-peche', 'formule-somme',
       'formule-tranche', 'fragment-blocs', 'fragment-cellule', 'identite-de-heros', 'ligne-d-identite', 'marchandage-de-billet',
       'monnaie', 'monnaie-partielle', 'ouverture', 'palette-d-objet', 'palier-de-billet', 'plage', 'plage-ouverte', 'prix-saisonnier',
