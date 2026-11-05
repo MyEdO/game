@@ -27,7 +27,7 @@ export interface ZonesDeLEcran {
   'combat.tour': Ligne[];
   'combat.actif': Entite[];
   'combat.avis': Ligne[];
-  'combat.offres': (Bouton | Choix)[];
+  'combat.offres': Choix[];
   'journal.titre': Ligne[];
 }
 
@@ -179,19 +179,17 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres ouvertes de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise ;
- *  rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui la nomme une fois. Une offre
- *  qui n'en prend aucune (la fin du tour) reste un bouton seul, après elles. */
-function offresDuCombat(c: Combat): (Bouton | Choix)[] {
+/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise, refusée avec sa
+ *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
+ *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. */
+function offresDuCombat(c: Combat): Choix[] {
   const offres = c.offres?.liste ?? [];
   const bouton = (o: (typeof offres)[number]): Bouton => ({
-    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: null,
+    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: o.refus,
   });
-  const parts = [...new Set(offres.map((o) => o.economie))].filter((e) => e !== 'aucun');
-  return [
-    ...parts.map((e): Choix => ({ type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton) })),
-    ...offres.filter((o) => o.economie === 'aucun').map(bouton),
-  ];
+  return [...new Set(offres.map((o) => o.economie))].map((e): Choix => ({
+    type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton),
+  }));
 }
 
 /** Le ton de chaque issue du combat. */

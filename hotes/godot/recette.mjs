@@ -75,8 +75,8 @@ const actif = (v) => v.projection.combat?.actif
 const zone = (v, z) => v.zones[z]
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
-/** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend ou seule. */
-const offre = (v, id) => zone(v, 'combat.offres').flatMap((e) => e.valeurs ?? [e]).find((e) => e.id === id)
+/** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
+const offre = (v, id) => zone(v, 'combat.offres').flatMap((e) => e.valeurs).find((e) => e.id === id)
 /** Les gestes que la fenêtre dessine : ses réglages, puis ses gestes. */
 const dessines = (v) => [...zone(v, 'fenetre.reglages'), ...zone(v, 'fenetre.gestes')]
 /** Les gestes que la fenêtre dessine, par leur identité. */
