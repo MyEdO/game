@@ -61,8 +61,8 @@ describe('trappings.json — `shape` et `formChoices` sont des racines du catalo
   });
 });
 
-/** AA 08 l.188 ; AA 08 l.190 */
-describe('trappings.json — un maniement à pied se fait dans un Groupe de Corps à corps', () => {
+/** AA 08 l.188 ; AA 08 l.343 */
+describe('trappings.json — un maniement alternatif se fait dans un Groupe de Corps à corps', () => {
   const sabre = (doc: Entree[]) => doc.find((t) => t.id === 'sabre')!;
 
   it.each([
@@ -70,7 +70,16 @@ describe('trappings.json — un maniement à pied se fait dans un Groupe de Corp
     ['de Projectiles', 'arc', /« arc » est hors de la sous-liste « melee »/],
   ])('un Groupe %s est refusé, nommément', (_cas, groupe, motif) => {
     const doc = clone();
-    sabre(doc).usagesAPied = { [groupe]: [] };
+    sabre(doc).manieAussi = { [groupe]: {} };
     expect(refus(doc).join(' ')).toMatch(motif);
+  });
+});
+
+/** AA 08 l.343 */
+describe('trappings.json — un maniement alternatif tient l’arme à une main, jamais à deux', () => {
+  it('`mains: 2` est refusé', () => {
+    const doc = clone();
+    doc.find((t) => t.id === 'epee-batarde')!.manieAussi = { base: { mains: 2 } };
+    refus(doc);
   });
 });
