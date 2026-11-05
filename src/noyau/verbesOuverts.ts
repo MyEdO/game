@@ -8,6 +8,7 @@ import type { Jeu } from './etat';
 import { fenetreDuJeu, NAVIGATION_DE_CASCADE, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction, stepReady } from './cascade';
 import type { PendingCascade } from './pendings';
+import { fateSaveOptions } from '../engine/fortune';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
@@ -37,6 +38,13 @@ function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<(typeof NA
   return { cascadeNext: due, cascadeResolveAll: choix ? due : null, cascadeFinish: 'etapesDues' };
 }
 
+/** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : la navigation de la cascade,
+ *  l'annulation du coup que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`). */
+const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
+  cascade: (s) => s.pendingCascade && fermeturesDeLaNavigation(s, s.pendingCascade),
+  fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
+};
+
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : le flux d'un geste de jet, et l'id qu'elle désigne
  *  (`pid`) — pour un geste de jet, seulement quand il vise une rangée (`viseUneRangee`). */
 export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { flux?: FlowKey; pid?: string } {
@@ -62,10 +70,10 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
     parFlux.set(cle, f);
     return f;
   };
-  const navigation = fenetre.cle === 'cascade' && s.pendingCascade ? fermeturesDeLaNavigation(s, s.pendingCascade) : null;
+  const propres: Partial<Record<string, FermetureDuJet | null>> = FERMETURES_DES_VERBES[fenetre.cle]?.(s) ?? {};
   for (const g of fenetre.gestes) {
-    if (navigation && g.verbe in navigation) {
-      out.set(cleDuGeste(g), navigation[g.verbe as keyof typeof navigation]);
+    if (g.verbe in propres) {
+      out.set(cleDuGeste(g), propres[g.verbe] ?? null);
       continue;
     }
     for (const flux of fenetre.flux) {
