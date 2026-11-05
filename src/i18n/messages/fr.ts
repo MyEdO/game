@@ -373,6 +373,18 @@ export const fr = {
   'ecran.apercu': '{cout} de Mouvement',
   'ecran.apercu.cible': 'Cible : {cible}',
   'ecran.separateur': ' · ',
+  // La fiche d'un héros (`zonesDeLaFiche`, `src/hote/ecran.ts`) : ses Points, ses onglets, le détail d'une Compétence.
+  'ecran.fiche.chance': 'Chance',
+  'ecran.fiche.resilience': 'Résilience',
+  'ecran.fiche.determination': 'Détermination',
+  'ecran.fiche.onglet.caracteristiques': 'Caractéristiques',
+  'ecran.fiche.onglet.competences': 'Compétences',
+  'ecran.fiche.onglet.talents': 'Talents',
+  'ecran.fiche.onglet.possessions': 'Possessions',
+  'ecran.fiche.fermer': 'Fermer',
+  'ecran.fiche.competence': '{carac} {base} + {avances}',
+  'ecran.fiche.equipee': 'Équipé',
+  'ecran.fiche.nombre': '×{nombre}',
   // Qui tient la main d'une fenêtre (`ProprietaireDeLaFenetre`, `src/hote/projection.ts`), dit par l'hôte texte
   // (`src/hoteTexte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.
   'ecran.proprietaire.aucun': 'l’hôte',

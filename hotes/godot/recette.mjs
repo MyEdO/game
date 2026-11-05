@@ -15,6 +15,8 @@
 //   dont la fenêtre dit la localisation et les effets.
 // - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
 //   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
+// - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
+//   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément offert par la liste des seuls points dont l'os porte sa lame (`osDesRigides`
@@ -49,7 +51,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -57,7 +59,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|exploration|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|exploration|fiche|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -297,6 +299,39 @@ async function parcoursExploration() {
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${reduit.x},${reduit.y}'`)
   noter(`clic sur la case ${reduit.x},${reduit.y} : le groupe y marche`)
   await capturer('3328-e1-3-reduit')
+}
+
+async function parcoursFiche() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  let v = await vue()
+  assert.equal(v.projection.fenetre, null, 'l’Entrée ferme la fenêtre du round')
+  const [heros] = zone(v, 'groupe.heros')
+  assert.ok(heros, 'chaque héros du groupe a son bouton')
+  await cliquerBouton(bouton(heros))
+  v = await vue()
+  assert.equal(zone(v, 'fiche.heros')[0]?.nom, heros.libelle, 'son bouton ouvre la fiche du héros')
+  noter(`bouton « ${heros.libelle} » : fiche ouverte ; ${zone(v, 'fiche.corps').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')}`)
+  await capturer('3328-fiche-1-caracteristiques')
+  for (const [i, onglet] of ['competences', 'talents', 'possessions'].entries()) {
+    await cliquerBouton({ element: `bouton/onglet/${onglet}` })
+    v = await vue()
+    assert.equal(zone(v, 'fiche.gestes').find((b) => b.presse)?.id, `onglet/${onglet}`, `l’onglet ${onglet} cliqué est ouvert`)
+    noter(`onglet ${onglet} : ${zone(v, 'fiche.corps').length} entrées`)
+    await capturer(`3328-fiche-${i + 2}-${onglet}`)
+    if (onglet === 'talents') {
+      const premier = trouver((await ecran()).boutons, { element: 'bouton/onglet/caracteristiques' })
+      await survoler(session, { surface: 'canvas', x: premier.x, y: premier.y + 100 }, { attenteMs: 1500 })
+      await capturer('3328-fiche-3b-talent-survole')
+    }
+  }
+  await cliquerBouton({ element: 'bouton/fermer' })
+  v = await vue()
+  assert.deepEqual(zone(v, 'fiche.heros'), [], 'le bouton « Fermer » ferme la fiche')
+  await capturer('3328-fiche-5-fermee')
 }
 
 const atelier = async () => (await ecran()).atelier
@@ -876,7 +911,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, exploration: parcoursExploration, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, exploration: parcoursExploration, fiche: parcoursFiche, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
