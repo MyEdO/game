@@ -12,8 +12,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from porte_gabarit import normaliser, verifier_gabarit  # noqa: E402
-from glb import lire_accesseur  # noqa: E402
-from test_verifier_export import ecrire_glb  # noqa: E402
+from glb import ecrire_glb, lire_accesseur  # noqa: E402
 
 
 class PorteGabarit(unittest.TestCase):
@@ -107,10 +106,11 @@ class PorteGabarit(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'porte refusée'):
                     self.verifier()
 
-    def test_les_normales_mixtes_sont_mesurees_avec_leur_base_sans_seuil(self):
+    def test_les_normales_feminines_sont_mesurees_avec_leur_base_sans_seuil(self):
         self.document['meshes'][0]['extras']['targetNames'].append('feminin')
         self.primitive['targets'].append(self.primitive['targets'][0].copy())
-        self.etat('mixte', {'gabarit_legs_moins': .5}, {'feminin': .5})
+        self.etat('feminin', {'gabarit_legs_moins': .5}, {'feminin': 1})
+        self.reference['positions'][0, :, 2] = .15
         self.perturber('NORMAL', 1)
         mesure = self.verifier()[0]
         self.assertFalse(mesure['normales_bloquantes'])
