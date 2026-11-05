@@ -46,8 +46,10 @@
         }
       ],
       "freeTest": {
-        "char": "force",
-        "difficulty": "accessible",
+        "test": {
+          "characteristic": "force",
+          "difficulty": "accessible"
+        },
         "totalDR": 10
       },
       "desc": "Les Débris marins se déplacent à une vitesse de M1 et ont un Indice de Collision de 3. S'ils entrent en collision avec un navire, ce dernier a 20 % de chances de s'y empêtrer, ce qui lui impose une pénalité en fonction de sa Taille. L'équipage peut dégager le bateau des Débris marins en réussissant un Test étendu de Force Accessible (+20) pour un total de 10 DR.",
@@ -212,10 +214,12 @@
     }
   ],
   "tourbillonSwim": {
-    "skill": {
-      "id": "natation"
+    "test": {
+      "skill": {
+        "id": "natation"
+      },
+      "difficulty": "complexe"
     },
-    "difficulty": "complexe",
     "source": {
       "book": "mer-des-griffes",
       "page": 113,

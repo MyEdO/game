@@ -582,7 +582,7 @@ function rendu() {
     );
   }
   {
-    const CLES_REF = ['skillId', 'skill', 'talentId', 'trappingId', 'traitId', 'spellId', 'creatureId', 'vehicleId', 'tableId', 'spec'];
+    const CLES_REF = ['skillId', 'skill', 'talentId', 'trappingId', 'traitId', 'spellId', 'tableId', 'spec'];
     out += 'Une ligne par (op, signature, dataset), mesurée sur la donnée, lot `L1c #1468` : la cible est une union\n';
     out += 'discriminée générée d’`OP_DEFS`, à refs EMBOÎTÉES (`skill: {id, spec}`). La dette d’ops que la porte juge\n';
     out += 'est le volet `DETTE_OPS`, mesuré au schéma seul : `OPS_NON_TYPEES` et les références à plat de `OP_DEFS`.\n\n';

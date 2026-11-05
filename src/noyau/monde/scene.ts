@@ -379,6 +379,13 @@ export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | un
   return scene?.metresPerTile ?? 2;
 }
 
+/** Offre de repos EFFECTIVE de la scène entière : absente, le groupe peut camper. Source UNIQUE de l'offre
+ *  implicite — la lisent le repos (`noyau/restFlow.restPlacesHere`), l'éditeur et la zone de repos neuve
+ *  (`noyau/sceneEdit.addRestZone`). PUR. */
+export function reposDeScene(scene: { rest?: Scene['rest'] }): NonNullable<Scene['rest']> {
+  return scene.rest ?? { camp: true };
+}
+
 /** La scène est-elle à l'échelle MER (combat naval OPÉRATIONNEL : navire-unité, équipage abstrait/passager) ?
  *  Proxy = case ≥ 4 m (vs 2 m person-scale du Pont/sol). Pilote le modèle navire-unité (cf. couche Mer ⇄ Pont). PUR. */
 export function isMerScene(scene: { metresPerTile?: number } | null | undefined): boolean {

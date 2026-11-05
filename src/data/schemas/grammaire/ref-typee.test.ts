@@ -7,7 +7,12 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { declarationDeRefTypee, idsDeLaSousListe, refTypee } from './ref';
-import { enumNomme, foyerDeRegleSchema } from './valeurs';
+import { countSpecSchema, enumNomme, foyerDeRegleSchema } from './valeurs';
+import { nommerNoeud } from './meta';
+import { classeDeProduit } from './produits';
+import { conceptDe } from './concepts';
+import { descendre } from './descente';
+import { dotationDePossessionSchema } from './reference';
 
 /** Les messages du refus, joints — `null` si la valeur passe. */
 function refus(valeur: unknown): string | null {
@@ -68,5 +73,38 @@ describe('refTypee — une valeur hors des types nomme la sous-liste d’un espa
 
   it('une valeur qui n’est ni un type ni une sous-liste nommée lève à la construction', () => {
     expect(() => refTypee(z.enum(['zzz']) as unknown as z.ZodEnum<{ skill: 'skill' }>)).toThrow(/« zzz » n'est ni un type de la grammaire/);
+  });
+});
+
+describe('refTypee — `extra` compose les champs du porteur dans chaque branche (#3012)', () => {
+  /** Les produits de fabrique que rencontre la descente de `noeud`, avec leur concept. */
+  const produits = (noeud: unknown): string[] => {
+    const vus: string[] = [];
+    descendre([noeud], ({ noeud: n }) => {
+      const p = classeDeProduit(n);
+      if (!p) return;
+      vus.push(`${p.fabrique}:${p.role}:${Object.keys(p.clesDExtra).sort().join(',')} ${conceptDe(n)}`);
+      return 'elaguer';
+    });
+    return vus;
+  };
+
+  it('sans `extra`, la branche est un produit nu ; avec, elle porte ses clés, son concept compris', () => {
+    const nue = refTypee(enumNomme({ creature: 'Créature', vehicle: 'Véhicule' }));
+    expect(nue.safeParse({ id: 'mule', type: 'creature', count: { fixed: 1 } }).success).toBe(false);
+    const avec = refTypee(enumNomme({ creature: 'Créature' }), {}, { count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }) });
+    expect(avec.safeParse({ id: 'mule', type: 'creature', count: { fixed: 2 } }).success).toBe(true);
+    expect(avec.safeParse({ id: 'mule', type: 'creature', x: 1 }).success).toBe(false);
+  });
+
+  it('la dotation de possession : chaque branche est la classe `objetDeRef:refTypee:{count,label}`, posée `dotation`', () => {
+    expect(declarationDeRefTypee(dotationDePossessionSchema)?.types).toEqual(['creature', 'vehicle']);
+    expect(produits(dotationDePossessionSchema)).toEqual(['objetDeRef:refTypee:count,label dotation', 'objetDeRef:refTypee:count,label dotation']);
+  });
+
+  it('l’id résout dans le catalogue de son type : une mule n’est pas un véhicule', () => {
+    expect(dotationDePossessionSchema.safeParse({ id: 'mule', type: 'creature', label: 'Grisette' }).success).toBe(true);
+    expect(dotationDePossessionSchema.safeParse({ id: 'mule', type: 'vehicle' }).success).toBe(false);
+    expect(dotationDePossessionSchema.safeParse({ creatureId: 'mule' }).success).toBe(false);
   });
 });

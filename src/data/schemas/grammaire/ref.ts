@@ -604,6 +604,9 @@ export interface RefTypee<T extends string = TypeEntite> {
   readonly type: T;
 }
 
+/** `RefTypee` et les champs que le porteur lui ajoute (`extra`) ; sans `extra`, `RefTypee` seul. */
+export type RefTypeeAvec<V extends string, E extends Record<string, z.ZodType>> = [keyof E] extends [never] ? RefTypee<V> : RefTypee<V> & z.output<z.ZodObject<E>>;
+
 /** L'espace que NOMME une valeur de `type` hors de `TYPES` : un type et la sous-liste de son espace
  *  (`idDe(type, sousListe)`, patron `material`). */
 export interface SousListeNommee {
@@ -639,14 +642,18 @@ export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | u
  * nomme la sous-liste d'un espace que `sousListes` lui associe (`SousListeNommee`). UNION DISCRIMINÉE fermée
  * des `{ id: idDe(type, sousListe), type: valeur }` — chaque branche est l'objet de `ref` —, patron `sceneEntitySchema`
  * (`defs-scenes/scene.ts`) : le littéral DISCRIMINE la branche, `types` en NOMME la valeur. Le type ne
- * se déduit jamais de l'id : un même id vit dans plusieurs espaces.
+ * se déduit jamais de l'id : un même id vit dans plusieurs espaces. `extra` : les champs propres au
+ * porteur, composés dans chaque branche comme ceux de `ref`.
  */
-export function refTypee<V extends string>(
+export function refTypee<V extends string, E extends Record<string, z.ZodType> = Record<never, never>>(
   types: z.ZodEnum<{ [K in V]: K }>,
-  ...sousListes: [Exclude<V, TypeEntite>] extends [never] ? [] : [{ readonly [K in Exclude<V, TypeEntite>]: SousListeNommee }]
-): z.ZodType<RefTypee<V>> {
+  ...reste: [Exclude<V, TypeEntite>] extends [never]
+    ? [sousListes?: Record<never, never>, extra?: E]
+    : [sousListes: { readonly [K in Exclude<V, TypeEntite>]: SousListeNommee }, extra?: E]
+): z.ZodType<RefTypeeAvec<V, E>> {
   const admis = types.options as readonly V[];
-  const nommees: Readonly<Record<string, SousListeNommee>> = sousListes[0] ?? {};
+  const nommees: Readonly<Record<string, SousListeNommee>> = reste[0] ?? {};
+  const extra: Readonly<Record<string, z.ZodType>> = reste[1] ?? {};
   const inconnues = Object.keys(nommees).filter((v) => !(admis as readonly string[]).includes(v) || Object.prototype.hasOwnProperty.call(TYPES, v));
   if (inconnues.length) throw new Error(`refTypee : la sous-liste nommée ${inconnues.map((v) => `« ${v} »`).join(', ')} n'est pas une valeur du vocabulaire hors des types.`);
   const cibleDe = (v: V): { readonly type: TypeEntite; readonly sousListe?: SousListe } => {
@@ -656,14 +663,14 @@ export function refTypee<V extends string>(
   };
   const branches = admis.map((v) => {
     const cible = cibleDe(v);
-    const objet = objetDeRef(cible.type, { type: z.literal(v).pipe(types) }, { type: { label: 'type de la référence' } }, 'refTypee', {}, cible.sousListe);
+    const objet = objetDeRef(cible.type, { ...extra, type: z.literal(v).pipe(types) }, { ...metasExtra(extra), type: { label: 'type de la référence' } }, 'refTypee', extra, cible.sousListe);
     return { v, cible, objet };
   });
   const [premiere, ...autres] = branches.map((b) => b.objet);
   const nomDe = ({ type, sousListe }: { readonly type: TypeEntite; readonly sousListe?: SousListe }) =>
     typeof sousListe === 'string' ? `${TYPES[type].catalogue}, sous-liste « ${sousListe} »` : TYPES[type].catalogue;
   const refus = `type de référence absent ou inconnu — admis : ${branches.map((b) => `« ${b.v} » (${nomDe(b.cible)})`).join(', ')}.`;
-  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<V>>;
+  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypeeAvec<V, E>>;
   REFS_TYPEES.set(noeud, {
     types: admis,
     libelles: valeursDe(types) ?? {},

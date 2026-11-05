@@ -22,7 +22,7 @@
  * dont le `creatureId` figure dans `montures.json`. L'état d'incident persiste sur la Possession (`mountInjury`).
  * L'Exténué des bêtes est journalier (la halte de nuit vaut repos — LDB 16, l'Exténué part au repos).
  */
-import type { Combatant } from './types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant } from './types';
 import type { Possession } from './possession';
 import { possessionLabel, possessionCombatRideable } from './possession';
 import { rollDice, type RNG } from './dice';
@@ -30,7 +30,7 @@ import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
 import { rollMountIncident, mountIncidentEffects, MOUNT_INCIDENT_DIE, type TravelTableEntry } from './travelTables';
 import { t, type MsgKey } from '../i18n';
-import { refLabel, dataLabel } from '../data';
+import { refLabel, dataLabel, testSkillLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import monturesJson from '../data/montures.json';
 import type { MonturesData } from '../data/schemas/defs/montures';
@@ -95,9 +95,9 @@ function firstOwnedBete(
 /** Monture UTILISABLE d'un héros : première Possession bête (avec-le-groupe) au profil EDOC, encore
  *  montable (`possessions` = tout le registre du store, filtré par `ownerId`). */
 export function heroMount(h: Combatant, possessions: Possession[]): PartyMount | undefined {
-  const p = firstOwnedBete(h, possessions, (c) => 'creatureId' in c.ref && !!mountProfileForCreature(c.ref.creatureId) && rideable(c));
+  const p = firstOwnedBete(h, possessions, (c) => 'id' in c.ref && !!mountProfileForCreature(c.ref.id) && rideable(c));
   if (!p) return undefined;
-  const profile = 'creatureId' in p.ref ? mountProfileForCreature(p.ref.creatureId) : undefined;
+  const profile = 'id' in p.ref ? mountProfileForCreature(p.ref.id) : undefined;
   return profile ? { hero: h, possession: p, profile } : undefined;
 }
 
@@ -155,8 +155,8 @@ export function lameLedCapKmh(party: Combatant[], possessions: Possession[]): nu
   const heroIds = new Set(party.filter((h) => !h.dead && !h.outOfRencontre).map((h) => h.id));
   for (const p of possessions) {
     if (p.nature !== 'bete' || !heroIds.has(p.ownerId) || p.mountInjury !== 'boiteux') continue;
-    if (!('creatureId' in p.ref)) continue;
-    const profile = mountProfileForCreature(p.ref.creatureId);
+    if (!('id' in p.ref)) continue;
+    const profile = mountProfileForCreature(p.ref.id);
     if (!profile) continue;
     const kmh = (profile.m * ALLURE_KMH_PER_M.pas) / 2;
     cap = cap == null ? kmh : Math.min(cap, kmh);
@@ -191,9 +191,10 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
   if (eff.riderTest) {
     // Test du cavalier, sous peine de chute (l.166 / l.171). Une séquelle DÉJÀ portée grève ce Test (l.174).
     const carried = mountIncidentEffects(mount.possession.mountInjury)?.ridingPenalty ?? 0;
-    const base = Math.max(0, testValue(mount.hero, eff.riderTest.skill.id, eff.riderTest.char) + carried);
-    const tst = rollTest(base, eff.riderTest.difficulty, rng);
-    out.riderTest = testDetail(refLabel('skills', eff.riderTest.skill), base, tst);
+    const { skill, characteristic, difficulty = DIFFICULTE_PAR_DEFAUT } = eff.riderTest.test;
+    const base = Math.max(0, testValue(mount.hero, skill?.id, characteristic, skill?.spec) + carried);
+    const tst = rollTest(base, difficulty, rng);
+    out.riderTest = testDetail(testSkillLabel({ skill, char: characteristic }) ?? 'Test', base, tst);
     if (!tst.success) {
       out.riderFallM = eff.riderTest.fallM;
       out.lines.push(t('mt.riderFalls', { name: mount.hero.label, metres: `${eff.riderTest.fallM}` }));

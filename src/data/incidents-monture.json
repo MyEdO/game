@@ -16,11 +16,13 @@
       "desc": "Une sangle de selle arrachée, un harnais en morceaux ou un étrier perdu, une partie de la sellerie de votre monture a été endommagée, ce qui rend le voyage plus difficile. Le cavalier doit effectuer un Test de Chevaucher Complexe (-10) ou tomber (d'une hauteur de 2 mètres). Jusqu'à ce que la partie abîmée soit réparée, tous les futurs Tests de Chevaucher subissent une pénalité de -20.",
       "mount": {
         "riderTest": {
-          "skill": {
-            "id": "chevaucher"
+          "test": {
+            "skill": {
+              "id": "chevaucher"
+            },
+            "characteristic": "agilite",
+            "difficulty": "complexe"
           },
-          "char": "agilite",
-          "difficulty": "complexe",
           "fallM": 2
         },
         "ridingPenalty": -20,
@@ -35,11 +37,13 @@
       "desc": "L'animal perd un fer. Le cavalier doit réussir un Test de Chevaucher Complexe (-10) ou tomber (d'une hauteur de 2 mètres). L'animal doit se déplacer au pas jusqu'à ce que le fer ait été remplacé par un maréchal-ferrant. Si l'on force l'animal à se déplacer plus rapidement, il devient Boiteux.",
       "mount": {
         "riderTest": {
-          "skill": {
-            "id": "chevaucher"
+          "test": {
+            "skill": {
+              "id": "chevaucher"
+            },
+            "characteristic": "agilite",
+            "difficulty": "complexe"
           },
-          "char": "agilite",
-          "difficulty": "complexe",
           "fallM": 2
         },
         "forcedAllure": "pas",
