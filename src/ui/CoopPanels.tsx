@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { nomDuSiege } from '../noyau/netOwnership';
+import { emplacementsDuGroupe, nomDuSiege, siegesDeLaTable, type SiegeDeLaTable } from '../noyau/sieges';
 import { useGame } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';
@@ -72,16 +72,8 @@ export function CoopCodeInput({ valeur, onChange, placeholder }: {
   );
 }
 
-/** Un siège tel qu'il se MONTRE : son nom, s'il est le mien, s'il se reconnecte. */
-export interface SiegeVu {
-  seat: number;
-  nom: string;
-  moi: boolean;
-  absent: boolean;
-}
-
 /** Sièges + présence (connecté / reconnexion) — partagé lobby et menu ☰. */
-export function SeatList({ sieges }: { sieges: SiegeVu[] }) {
+export function SeatList({ sieges }: { sieges: SiegeDeLaTable[] }) {
   return (
     <Row as="ul" gap="md">
       {sieges.map(({ seat, nom, moi, absent }) => (
@@ -95,19 +87,9 @@ export function SeatList({ sieges }: { sieges: SiegeVu[] }) {
   );
 }
 
-/** Les sièges de la vue réseau, dans l'ordre où ils ont été pris. */
-function siegesDe(net: NetState): SiegeVu[] {
-  return Object.entries(net.seatNames).map(([s, nom]) => ({
-    seat: Number(s),
-    nom,
-    moi: Number(s) === net.mySeat,
-    absent: net.presence[Number(s)] === 'away',
-  }));
-}
-
 export function CoopSeatList() {
   const net = useGame((s) => s.net);
-  return <SeatList sieges={siegesDe(net)} />;
+  return <SeatList sieges={siegesDeLaTable(net)} />;
 }
 
 /** UNE ligne d'attribution : qui (portrait + nom) tient quel siège. Sert le héros ET le rôle MJ. */
@@ -137,20 +119,23 @@ export function CoopAssignList() {
   const net = useGame((s) => s.net);
   const party = useGame((s) => s.party);
   const assign = useGame((s) => s.netAssign);
-  const options = siegesDe(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }));
+  const options = siegesDeLaTable(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }));
   return (
     <Grid cols={2} gap="md" align="stretch">
-      {party.map((h) => (
-        <CoopAssignRow
-          key={h.id}
-          /* Tuile + nom : lobby coop = écran méta (un invité découvre les héros par leur NOM). */
-          portrait={<CharFrame c={h} variant="identity" size="xs" decoratif />}
-          libelle={h.label}
-          valeur={net.ownership[h.id] ?? 0}
-          options={options}
-          onChange={(v) => assign(h.id, Number(v))}
-        />
-      ))}
+      {emplacementsDuGroupe({ party, net }).flatMap(({ heroId, proprietaire }) => {
+        const h = party.find((x) => x.id === heroId);
+        return h && proprietaire !== null ? [
+          <CoopAssignRow
+            key={h.id}
+            /* Tuile + nom : lobby coop = écran méta (un invité découvre les héros par leur NOM). */
+            portrait={<CharFrame c={h} variant="identity" size="xs" decoratif />}
+            libelle={h.label}
+            valeur={proprietaire}
+            options={options}
+            onChange={(v) => assign(h.id, Number(v))}
+          />,
+        ] : [];
+      })}
       <GmSeatSelect />
     </Grid>
   );
@@ -167,7 +152,7 @@ export function GmSeatSelect() {
     <CoopAssignRow
       libelle="Maître du Jeu"
       valeur={net.gmSeat ?? ''}
-      options={[{ valeur: '', libelle: 'IA (aucun MJ)' }, ...siegesDe(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }))]}
+      options={[{ valeur: '', libelle: 'IA (aucun MJ)' }, ...siegesDeLaTable(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }))]}
       onChange={(v) => setGmSeat(v === '' ? null : Number(v))}
     />
   );

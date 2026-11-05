@@ -77,6 +77,7 @@ import { actorIn, coqueParId, ecrireActeur, inBattleId } from './monde/combatant
 import { garanti } from '../lib/garanti';
 import { addPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef, type PossessionInput } from '../engine/possession';
+import { effectiveTalents } from '../engine/talentEffects';
 import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
@@ -1437,7 +1438,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // sacré → 1d100 secret, exaucé sur 01 (pourcentage relevé s'il a la Compétence Prière).
       if (!rule('prayer-petites')) return; // option désactivée → ignorée
       const pool = env.get().party;
-      const isBeni = (h: Combatant) => h.talents.some((t) => t.talentId === 'beni' && (t.times ?? 1) >= 1);
+      const isBeni = (h: Combatant) => effectiveTalents(h).some((t) => t.talentId === 'beni' && (t.times ?? 1) >= 1);
       const target = e.heroId
         ? pool.find((h) => h.id === e.heroId && !h.dead)
         : pool.find((h) => !h.dead && !isBeni(h));

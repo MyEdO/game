@@ -20,7 +20,7 @@ const MORTES_PROUVEES = new Set<string>([
   "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);",
   "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: 'licorne-mauve' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « licorne-mauve »' }]);",
   "src/noyau/validateScene-contenu.test.ts|expect(() => spawnEnemy({ ref: 'ref-qui-nexiste-nulle-part' }, 'e-1', { x: 2, y: 2 })).toThrow(RefIrresoluble);",
-  "src/ui/editor/editorState.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
+  "src/noyau/sceneEdit-editeur.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
 ]);
 
 /** Le `creatureId` d'un combattant : une réf de fiche, ou l'id d'une STRUCTURE (objet inanimé). */

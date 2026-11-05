@@ -9,6 +9,7 @@ import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction, stepReady } from './cascade';
 import type { PendingCascade } from './pendings';
 import { fateSaveOptions } from '../engine/fortune';
+import { preemptShooterIds } from './targeting';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS, fermetureDuReglage, rangeesADeclarerIci } from './rollFlowSpecs';
@@ -42,14 +43,19 @@ function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<'cascadeNe
 
 /** Ce qui ferme maintenant les verbes qu'une fenêtre joue sans flux de jet, par sa clé : la navigation de la cascade, la
  *  déclaration du Contre-sort quand ce siège n'a plus de rangée
- *  à déclarer (`rangeesADeclarerIci`), l'annulation du coup
- *  que le Sauvetage par le Destin n'offre pas (`fateSaveOptions`). */
+ *  à déclarer (`rangeesADeclarerIci`), l'annulation du coup que le Sauvetage par le Destin n'offre pas
+ *  (`fateSaveOptions`) ; au début du Round, le geste du mode de jeu que la table ne joue pas (lancer seul, se dire prêt
+ *  en réseau) et la visée du Tir rapide sans tireur (`preemptShooterIds`). */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     ...fermeturesDeLaNavigation(s, s.pendingCascade),
     counterspellDeclareAll: rangeesADeclarerIci(s, s.pendingCounterspell).length ? null : 'rienADeclarer',
   },
   fateSave: (s) => s.pendingFateSave && { fateNegate: fateSaveOptions(s.pendingFateSave.source).includes('negate') ? null : 'nonOffert' },
+  roundStart: (s) => ({
+    [s.net.mode === 'local' ? 'roundStartReady' : 'confirmRoundStart']: 'nonOffert',
+    armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
+  }),
 };
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une sortie, le flux d'un geste de jet,

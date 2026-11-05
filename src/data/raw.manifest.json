@@ -64,7 +64,7 @@
     "type": "raw.manifest",
     "label": "Colère des dieux — déclencheur Maladresse",
     "ticket": "#1653",
-    "bloque": "6 rangées à DÉ du Tableau de la Colère des dieux sans `ops` — LDB 40 l.61 et l.70 (pénalité de Compétence à durée, hors magie), l.64 (cibles dans `applyMiscast` + échec automatique par divinité), l.74 (action contrainte), l.80 et l.82 (suppression temporaire de Talent) : le vocabulaire de `GameOp` ne les exprime pas encore"
+    "bloque": "2 rangées à DÉ du Tableau de la Colère des dieux sans `ops` — LDB 40 l.64 (cibles dans `applyMiscast` + échec automatique par divinité), l.74 (action contrainte) : le vocabulaire de `GameOp` ne les exprime pas encore"
   },
   {
     "id": "4e/combat#tableau-des-incidents-de-tir-d-artillerie-par-salve",

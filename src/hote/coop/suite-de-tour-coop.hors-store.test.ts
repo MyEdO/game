@@ -27,7 +27,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
 /** La table : l'hôte au siège 0, l'invité au siège 1, qui possède `h2`. */
 const NET = (mode: 'host' | 'guest', mySeat: number): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0],
+  connection: 'ok', hostAway: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 /** Le combat de l'hôte : `chargeur` (à 4 cases) charge `charge`, porteur de Frappe réactive ; `h2` est à l'invité. */

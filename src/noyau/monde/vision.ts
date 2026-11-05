@@ -20,6 +20,7 @@ import { sceneIsDark } from './sceneRules';
 import { propFootTiles, decorAncre } from './footprint';
 import { Pt } from './path';
 import { chebyshev } from '../../engine/grid';
+import { effectiveTalents, type PorteurDeTalents } from '../../engine/talentEffects';
 import { findLightLevelById, findTraitById, findPropById } from '../../data';
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
 import type { Dir8 } from '../../geometry/dir8';
@@ -271,7 +272,7 @@ export function combatantLights(c: {
 /** Portée de vision dans le noir (cases) d'un combattant : max des `darkSightTiles` de ses traits ;
  *  le talent Vision nocturne réutilise la valeur du trait homonyme. `null` : LDB 85 l.191, portée du
  *  niveau de lumière `jour`. 0 = aveugle dans le noir. */
-export function darkSightTiles(c: { traits?: { id: string }[]; talents?: { talentId: string }[] }): number {
+export function darkSightTiles(c: PorteurDeTalents<{ talentId: string }>): number {
   const porteeDuTrait = (id: string): number => {
     const caps = findTraitById(id)?.capabilities;
     if (caps?.darkSightTiles === null) return findLightLevelById('jour')!.baseSightTiles;
@@ -279,7 +280,7 @@ export function darkSightTiles(c: { traits?: { id: string }[]; talents?: { talen
   };
   let m = 0;
   for (const t of c.traits ?? []) m = Math.max(m, porteeDuTrait(t.id));
-  if ((c.talents ?? []).some((t) => t.talentId === 'vision-nocturne')) m = Math.max(m, porteeDuTrait('vision-nocturne'));
+  if (effectiveTalents(c).some((t) => t.talentId === 'vision-nocturne')) m = Math.max(m, porteeDuTrait('vision-nocturne'));
   return m;
 }
 

@@ -3,15 +3,15 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { idDe, refOuSpec } from '../grammaire/ref';
-import { refuserEtatsInconnus } from '../grammaire/mecanique';
+import { idDe, ref, refOuSpec } from '../grammaire/ref';
+import { deitySkillPickSchema, MESSAGE_DUREE_DE_DIVINITE, refuserEtatsInconnus } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
 export const famille = 'entite';
 
 /**
  * `JsonOp` (`engine/miscast.ts`) — miroir aplati du `GameOp` runtime (`op:'condition'|'wounds'|
- * 'corruption'|'reduceToZero'|'castPenalty'`, seuls op observés dans la donnée), en `JsonFormula`.
+ * 'corruption'|'reduceToZero'|'castPenalty'|'suppressTalents'|'deitySkillMod'`, seuls op observés dans la donnée), en `JsonFormula`.
  * `escapeStrength` porte la `Formula` générale (`formulaSchema`) : `expandOp` la recopie telle quelle
  * dans le `GameOp`, que `applyOps` résout par `resolveFormula` (`engine/ops.ts`).
  */
@@ -38,9 +38,18 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   hours: formulaSinSchema.optional(),
   minutes: formulaSinSchema.optional(),
   days: formulaSinSchema.optional(),
+  /** LDB 40 l.80, l.82. */
+  talents: z.array(ref('talent')).min(1).optional(),
+  durationDays: formulaSinSchema.optional(),
+  /** LDB 40 l.61, l.70. */
+  pick: deitySkillPickSchema.optional(),
+  durationHours: formulaSinSchema.optional(),
   escapeStrength: formulaSchema.optional(),
 }).superRefine((v, ctx) => {
   if (v.op === 'condition' || v.op === 'removeCondition') refuserEtatsInconnus(v, ['id'], ctx);
+  if (v.op === 'deitySkillMod' && (v.durationHours === undefined) === (v.durationDays === undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['durationHours'], message: MESSAGE_DUREE_DE_DIVINITE });
+  }
 }), {
   op: { label: 'opération' },
   id: { label: 'identifiant' },
@@ -59,6 +68,10 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   hours: { label: 'heures' },
   minutes: { label: 'minutes' },
   days: { label: 'jours' },
+  talents: { label: 'Talents suspendus' },
+  durationDays: { label: 'durée en jours' },
+  pick: { label: 'Compétences frappées' },
+  durationHours: { label: 'durée en heures' },
   escapeStrength: { label: 'Force pour s’échapper' },
 });
 

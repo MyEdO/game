@@ -12,6 +12,7 @@ import { weaponLoaded } from '../weaponLoad';
 import { groupeAPoudre, weaponGroup } from '../weaponGroup';
 import type { CombatFeature, CombatFeatureCtx, CastingKind } from './types';
 import { refCouvre } from '../../data/schemas/grammaire/ref';
+import { effectiveTalents } from '../talentEffects';
 
 /** Famille d'incantation d'un Talent par son `id` STABLE (« magie-mineure », « beni ») via sa DONNÉE
  *  EFFECTIVE (`effectiveEntry`, #563/#564 — `combat` est republiable par variante réglée, comme pour
@@ -24,7 +25,7 @@ export function castingKindOf(talentId: string): CastingKind | undefined {
  *  Arcanes — Métal, Bêtes…), ou undefined. Source DONNÉE (`combat.castingKind`), consommée pour les
  *  exemptions d'armure, le domaine d'incantation, le Souffle de breathType. */
 export function arcaneDomainOf(c: Combatant): string | undefined {
-  for (const t of c.talents ?? []) if (castingKindOf(t.talentId) === 'arcane') return t.spec;
+  for (const t of effectiveTalents(c)) if (castingKindOf(t.talentId) === 'arcane') return t.spec;
   return undefined;
 }
 
@@ -41,25 +42,20 @@ export function arcaneDomainIdOf(c: Combatant): string | undefined {
  *  (Allure démoniaque : sélection de la colonne du Tableau des aspects démoniaques). Sans Talent Magie du
  *  Chaos → undefined (un Sort d'Arcanes du Chaos est réservé aux porteurs du Talent, EDOC 13 l.264-266). */
 export function chaosDomainOf(c: Combatant): string | undefined {
-  for (const t of c.talents ?? []) if (castingKindOf(t.talentId) === 'chaos') return t.spec;
+  for (const t of effectiveTalents(c)) if (castingKindOf(t.talentId) === 'chaos') return t.spec;
   return undefined;
 }
 
-/** Capacités de combat présentes sur le combattant, lues de la DONNÉE (`TalentData.combat`) : talents
- *  POSSÉDÉS (niveau = times) + talents ACCORDÉS par un effet actif de sort (op `grantTalent`, niveau 1
- *  tant que l'effet dure — Flambeau de Vertu : Sans peur ; Cœurs ardents : Cœur vaillant…, Jalon 2.6).
+/** Capacités de combat présentes sur le combattant, lues de la DONNÉE (`TalentData.combat`) des talents
+ *  POSSÉDÉS (`effectiveTalents` : niveau = times ; un talent ACCORDÉ par un effet actif, op `grantTalent`,
+ *  au niveau 1 tant que l'effet dure ; un talent SUSPENDU, op `suppressTalents`, absent).
  *  La DONNÉE lue est l'entrée EFFECTIVE (`effectiveEntry`, #563/#564) : la variante réglée active
  *  remplace le `combat` de base ; aucun code ne nomme un Talent. */
 export function featuresOf(c: Combatant): { def: CombatFeature; ctx: CombatFeatureCtx }[] {
   const out: { def: CombatFeature; ctx: CombatFeatureCtx }[] = [];
-  for (const t of c.talents ?? []) {
+  for (const t of effectiveTalents(c)) {
     const def = effectiveEntry(findTalentById(t.talentId))?.combat;
     if (def) out.push({ def, ctx: { combatant: c, level: t.times ?? 1, spec: t.spec } });
-  }
-  for (const e of c.activeEffects ?? []) {
-    if (!e.grantedTalent) continue;
-    const def = effectiveEntry(findTalentById(e.grantedTalent.talentId))?.combat;
-    if (def) out.push({ def, ctx: { combatant: c, level: 1, spec: e.grantedTalent.spec } });
   }
   return out;
 }

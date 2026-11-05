@@ -652,7 +652,7 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   // descend pas : son conteneur se type.
   // Stock NOMINATIF, compte EXACT par document : les ops du dialecte `jsonOpSchema`
   // (`schemas/defs/miscast.ts`), lot de mort #1902.
-  const HORS_PARSE: Record<string, number> = { 'miscast.json': 77 };
+  const HORS_PARSE: Record<string, number> = { 'miscast.json': 81 };
   const ATTEINTES = opsDuParse(CORPUS, DEFS);
   /** La jointure corpus ↔ parse : les nœuds d'op que le parse de mesure n'atteint pas. */
   type NoeudDOp = (typeof scan.noeudsDOp)[number];

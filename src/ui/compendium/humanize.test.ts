@@ -6,12 +6,15 @@ import {
   domains, spells, etats, talents, traits, groups, maladies, symptoms, skills, creatures,
 } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
-import { useGame } from '../../state/store';
-import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { OPTIONAL_RULES, setRule, resetRule } from '../../engine/policy';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { walkFlow, type Condition, type EffectOp } from '../../engine/flowCore';
 import type { GameOp, Formula } from '../../engine/ops';
+
+/** Aucun état de campagne : les données du dépôt n'en déclarent pas (#767). */
+const AUCUN_ETAT: readonly EtatDeclare[] = [];
 
 /** Ids KEBAB (multi-segment) connus des registres : « en-flammes », « magie-des-arcanes »,
  *  « force-mentale »… — jamais un mot français de prose (« peut-être »). Une sortie JOUEUR qui en
@@ -46,7 +49,7 @@ function collectOps(flow: Flow): GameOp[] {
 describe('humanize — registre JOUEUR', () => {
   it('rend le rider du Domaine du Feu en phrase lisible (sans →, sans NON(, sans id brut)', () => {
     const feu = domains.find((d) => d.id === 'feu')!;
-    const phrase = humanizeFlowSentence(feu.effects![0].flow as Flow);
+    const phrase = humanizeFlowSentence(feu.effects![0].flow as Flow, AUCUN_ETAT);
     // Lisible : État et Talent en libellé.
     expect(phrase).toContain('En flammes');
     expect(phrase).toContain('Magie des Arcanes (Feu)');
@@ -61,8 +64,8 @@ describe('humanize — registre JOUEUR', () => {
 
   it('nœud `test` : la préposition s’élide devant une voyelle, jamais « Jet de Endurance »', () => {
     const rien: Flow = { kind: 'seq', steps: [] };
-    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'endurance' }, success: rien, fail: rien })).toMatch(/^Jet d’Endurance : /);
-    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, success: rien, fail: rien })).toMatch(/^Jet opposé de Force : /);
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'endurance' }, success: rien, fail: rien }, AUCUN_ETAT)).toMatch(/^Jet d’Endurance : /);
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, success: rien, fail: rien }, AUCUN_ETAT)).toMatch(/^Jet opposé de Force : /);
   });
 
   it('op `fall` : la CHUTE dit sa table, jamais son id de table (#1657, MDG 13 l.678)', () => {
@@ -80,16 +83,16 @@ describe('humanize — registre JOUEUR', () => {
 
   it('humanizeCondition : négation NATURELLE poussée dans la feuille (pas de « NON( … ) »)', () => {
     const c: Condition = { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'feu' } };
-    expect(humanizeCondition(c)).toBe('la cible ne possède pas le Talent Magie des Arcanes (Feu)');
+    expect(humanizeCondition(c, AUCUN_ETAT)).toBe('la cible ne possède pas le Talent Magie des Arcanes (Feu)');
     const rel: Condition = { kind: 'relation', who: 'target', is: 'opponent' };
-    expect(humanizeCondition(rel)).toBe('la cible est un adversaire');
+    expect(humanizeCondition(rel, AUCUN_ETAT)).toBe('la cible est un adversaire');
     // De Morgan sur any sous négation.
     const morgan: Condition = { kind: 'not', of: { kind: 'any', of: [
       { kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' },
       { kind: 'has', who: 'target', what: 'trait', value: 'demoniaque' },
     ] } };
     // Sujet dédoublonné dans la conjonction (même « la cible » en tête des deux clauses).
-    expect(humanizeCondition(morgan)).toBe('la cible ne possède pas le Trait Mort-vivant et ne possède pas le Trait Démoniaque');
+    expect(humanizeCondition(morgan, AUCUN_ETAT)).toBe('la cible ne possède pas le Trait Mort-vivant et ne possède pas le Trait Démoniaque');
   });
 
   it('humanizeCondition : dédoublonne le sujet répété dans all/any (jamais deux sujets différents)', () => {
@@ -97,19 +100,19 @@ describe('humanize — registre JOUEUR', () => {
       { kind: 'relation', who: 'target', is: 'opponent' },
       { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'feu' } },
     ] };
-    expect(humanizeCondition(same)).toBe('la cible est un adversaire et ne possède pas le Talent Magie des Arcanes (Feu)');
+    expect(humanizeCondition(same, AUCUN_ETAT)).toBe('la cible est un adversaire et ne possède pas le Talent Magie des Arcanes (Feu)');
     // Sujets DIFFÉRENTS (cible / lanceur) : aucun dédoublonnage (sûreté grammaticale).
     const mixed: Condition = { kind: 'all', of: [
       { kind: 'relation', who: 'target', is: 'opponent' },
       { kind: 'not', of: { kind: 'has', who: 'caster', what: 'trait', value: 'mort-vivant' } },
     ] };
-    expect(humanizeCondition(mixed)).toBe('la cible est un adversaire et le lanceur ne possède pas le Trait Mort-vivant');
+    expect(humanizeCondition(mixed, AUCUN_ETAT)).toBe('la cible est un adversaire et le lanceur ne possède pas le Trait Mort-vivant');
   });
 
   it('humanizeCondition : compare sur un État → « porte / ne porte pas »', () => {
     const has: Condition = { kind: 'compare', subject: { who: 'target', condition: 'extenue' }, op: '>=', value: 1 };
-    expect(humanizeCondition(has)).toBe('la cible porte *Exténué*');
-    expect(humanizeCondition({ kind: 'not', of: has })).toBe('la cible ne porte pas *Exténué*');
+    expect(humanizeCondition(has, AUCUN_ETAT)).toBe('la cible porte *Exténué*');
+    expect(humanizeCondition({ kind: 'not', of: has }, AUCUN_ETAT)).toBe('la cible ne porte pas *Exténué*');
   });
 
   it('humanizeFormula : Caractéristiques et dés en clair', () => {
@@ -160,10 +163,10 @@ describe('humanize — GARDE structurelle (toutes les données réelles)', () =>
     for (const d of domains) {
       for (const e of d.effects ?? []) {
         const flow = e.flow as Flow;
-        const full = humanizeFlowSentence(flow);
+        const full = humanizeFlowSentence(flow, AUCUN_ETAT);
         expect(full, `${d.id}: →/->/NON(`).not.toMatch(/→|->|NON\(/);
         for (const c of collectConditions(flow)) {
-          const s = humanizeCondition(c);
+          const s = humanizeCondition(c, AUCUN_ETAT);
           expect(firstKebab(s), `${d.id} cond « ${s} »`).toBeUndefined();
         }
         for (const o of collectOps(flow)) {
@@ -186,10 +189,10 @@ describe('humanize — GARDE structurelle (toutes les données réelles)', () =>
       // Les `narrative` (prose VERBATIM) peuvent porter un « → » de source → l'arbre if/test (le VRAI
       // risque « → » d'atelier) est couvert par la garde des DOMAINES (sans narrative). Ici : pas de
       // « NON( » structurel, et aucun id kebab par condition/op.
-      const full = humanizeFlowSentence(flow);
+      const full = humanizeFlowSentence(flow, AUCUN_ETAT);
       expect(full, `${s.id}: NON(`).not.toContain('NON(');
       for (const c of collectConditions(flow)) {
-        const str = humanizeCondition(c);
+        const str = humanizeCondition(c, AUCUN_ETAT);
         expect(firstKebab(str), `${s.id} cond « ${str} »`).toBeUndefined();
       }
       for (const o of collectOps(flow)) {
@@ -259,16 +262,14 @@ describe('humanizeOp — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', (
   });
 });
 
-describe('humanizeCondition — états de campagne (#2539) : libellés de la campagne chargée, négation naturelle', () => {
-  afterEach(() => useGame.setState({ campaignNarratif: null }));
-
+describe('humanizeCondition — états de campagne (#2539) : libellés des états passés en argument, négation naturelle', () => {
   it('l’état, sa valeur et le héros désigné se disent par leur LIBELLÉ ; « n’est pas mort » sous négation', () => {
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), etats: [
+    const etatsDeCampagne: NarratifBlock['etats'] = [
       { id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } },
       { id: 'issue', label: 'Issue du procès', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
-    ] } });
-    expect(humanizeCondition({ kind: 'etat', etat: 'issue', value: 'condamne' })).toBe('l\'état de campagne « Issue du procès » vaut « Condamné »');
-    expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: { etat: 'sosie' } } })).toBe('le héros désigné par « Le sosie » n\'est pas mort');
-    expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: 'any' } })).toBe('aucun héros n\'est mort');
+    ];
+    expect(humanizeCondition({ kind: 'etat', etat: 'issue', value: 'condamne' }, etatsDeCampagne)).toBe('l\'état de campagne « Issue du procès » vaut « Condamné »');
+    expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: { etat: 'sosie' } } }, etatsDeCampagne)).toBe('le héros désigné par « Le sosie » n\'est pas mort');
+    expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: 'any' } }, etatsDeCampagne)).toBe('aucun héros n\'est mort');
   });
 });

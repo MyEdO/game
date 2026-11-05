@@ -222,11 +222,11 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     banc.getState().seedRng(4);
     const { heroes, E } = setup();
     const [H] = heroes;
-    H.characteristics.intelligence = 99; // cible 99 : le dé 99 PASSE et fait un double (Critique)
+    H.characteristics.intelligence = 99; // le dé 33 PASSE et fait un double (Critique) ; 99 serait un échec (LDB 12 l.25-28)
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    preArmer(99);
+    preArmer(33);
     const pc = banc.getState().pendingCast!;
-    expect(pc.result!.roll, 'le jet retenu est la valeur SAISIE, pas le naturel').toBe(99);
+    expect(pc.result!.roll, 'le jet retenu est la valeur SAISIE, pas le naturel').toBe(33);
     expect(pc.result!.isCritical, 'un double saisi EST un Critique').toBe(true);
     expect(banc.getState().pendingCounterspell, 'aucune Dissipation actée sur un résultat périmé').toBeNull();
     expect(E.dispelledThisRound, 'aucun chant inline sur le jet naturel').toBeFalsy();

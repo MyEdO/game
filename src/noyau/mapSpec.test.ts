@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildScene, type MapSpec } from './mapSpec';
 import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass } from './monde/scene';
 import { pathTo, reachable, walkNeighbors } from './monde/path';
-import { edgeWallState } from './sceneEdit';
+import { edgeWallState } from './sceneEditLecture';
 import { sceneZoneTiles } from './monde/zones';
 import { scenario as zonesPieces } from '../scenes/test-scenarios/zones-pieces';
 import { buildVitrineScene, vitrineSpec } from '../scenes/vitrine-batiments';

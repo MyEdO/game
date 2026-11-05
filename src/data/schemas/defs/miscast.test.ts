@@ -4,8 +4,9 @@
  * `days` porte une `Formula` sin-paramétrée (`formulaSinSchema`), comme `rounds`/`hours`/`minutes` : le
  * moteur la résout ainsi (`GameOp['castPenalty'].days`, `engine/ops.ts`), le dialecte l'accepte donc au
  * même titre. Un nombre nu EST une `Formula` valide — la donnée (`colere-pensez-a-vos-actes`,
- * `"days": 7`) l'atteste. AUCUNE rangée ne consomme encore la formule : les rangées de la Colère des
- * dieux à durée en jours sont sans `ops`, dette portée au manifeste (`src/data/raw.manifest.json`, `#1653`).
+ * `"days": 7`) l'atteste. Les durées sin-paramétrées de la Colère des dieux passent par la durée canonique
+ * (`OpDuree`) : `suppressTalents.durationDays` (LDB 40 l.80, l.82), `deitySkillMod.durationHours`/`durationDays`
+ * (LDB 40 l.61, l.70).
  *
  * `perRound` + `unlessCondition` + `durationRounds` entrent au dialecte : la forme de « Purifier la
  * chair » (`LDB 40 l.75`, `LDB 16 l.117`). Le dialecte reste CLOS (`strictObject`).
@@ -34,7 +35,7 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
     expect(schema.safeParse(miscastJson).success).toBe(true);
   });
 
-  it('`days` : la formule « 1d10 + (Points de Péché) » est ACCEPTÉE (LDB 40 l.70)', () => {
+  it('`days` : la formule « 1d10 + (Points de Péché) » est ACCEPTÉE', () => {
     const ops = [{ op: 'castPenalty', skill: { id: 'priere' }, mod: -10, days: { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] } }];
     expect(schema.safeParse(table(ops)).success).toBe(true);
   });
@@ -42,6 +43,20 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
   it('`days` : le nombre nu reste ACCEPTÉ (un nombre EST une Formula — `colere-pensez-a-vos-actes`)', () => {
     const ops = [{ op: 'castPenalty', skill: { id: 'priere' }, maxZeroDR: true, days: 7 }];
     expect(schema.safeParse(table(ops)).success).toBe(true);
+  });
+
+  it('la perte de Béni et Invocation pour « 2d10 + (Points de Péché) » jours est ACCEPTÉE (LDB 40 l.82)', () => {
+    const ops = [{ op: 'suppressTalents', talents: [{ id: 'beni' }, { id: 'invocation' }], durationDays: { sum: [{ dice: { n: 2, sides: 10 } }, { sinPoints: true }] } }];
+    expect(schema.safeParse(table(ops)).success).toBe(true);
+  });
+
+  it('le malus aux Compétences du dieu, toutes pour des heures ou une au hasard pour des jours, est ACCEPTÉ (LDB 40 l.61, l.70)', () => {
+    const duree = { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] };
+    expect(schema.safeParse(table([{ op: 'deitySkillMod', pick: 'all', mod: -10, durationHours: duree }])).success).toBe(true);
+    expect(schema.safeParse(table([{ op: 'deitySkillMod', pick: 'random', mod: -10, durationDays: duree }])).success).toBe(true);
+    expect(refus(table([{ op: 'deitySkillMod', pick: 'une', mod: -10, durationDays: duree }]))).not.toBe('');
+    expect(refus(table([{ op: 'deitySkillMod', pick: 'all', mod: -10 }]))).toContain('durée EXCLUSIVE');
+    expect(refus(table([{ op: 'deitySkillMod', pick: 'all', mod: -10, durationHours: duree, durationDays: duree }]))).toContain('durée EXCLUSIVE');
   });
 
   it('la forme de « Purifier la chair » est ACCEPTÉE : État posé + cause RÉCURRENTE de 1d10 Rounds', () => {

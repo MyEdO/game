@@ -72,7 +72,7 @@ import { aiDriven } from '../noyau/netOwnership';
 import { fluxAccepte, NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from '../noyau/sceneEdit';
+import { canonEdge } from '../noyau/sceneEditLecture';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
@@ -1250,7 +1250,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (seed != null) s.seedRng(seed);
       s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
-      lancerCampagne(g, lancee, sceneId);
+      const refus = lancerCampagne(g, lancee, sceneId);
+      if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
       s.setScreen('campaign');
       const after = useGame.getState();
       return `✓ campagne « ${c.label} » chargée (${after.party.length} héros, scène « ${after.scene?.id} »)`;

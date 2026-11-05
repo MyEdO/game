@@ -593,18 +593,55 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 
 
 ## `piece`, qui pend aux os `noms`, posée sur `squelette`, celui de la base, pour l'emplacement `id` : rigide, sous un os
-## de même nom que le sien ; skinnée, sous le squelette, son skin lié par nom dès l'import (`_scene_du_glb`). Le nœud qui
-## la porte dans la scène.
+## de même nom que le sien, ou, à une prise, reposée du repère de sa prise d'origine (celle dont l'os porte son mesh) dans
+## celui de la prise `id`, sans miroir (#3319, `CONTRAT.md`) ; skinnée, sous le squelette, son skin lié par nom dès
+## l'import (`_scene_du_glb`). Le nœud qui la porte dans la scène.
 func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], squelette: Skeleton3D, id: String) -> Node:
 	piece.owner = null
 	if piece.skin == null:
 		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
-		var support := MontageDEquipement.attacher(squelette, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
-		piece.reparent(support, false)
-		return support.get_parent()
+		var cible := _prise(id)
+		var origine := _prise_de_l_os(noms[0])
+		if cible.is_empty() or origine.is_empty():
+			var support := MontageDEquipement.attacher(squelette, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
+			piece.reparent(support, false)
+			return support.get_parent()
+		var portage := MontageDEquipement.attacher(squelette, cible.attache, nom)
+		var relais := Node3D.new()
+		relais.name = "DepuisLaPrise_%s" % origine.id
+		relais.transform = _repere_de_l_attache(origine.attache).affine_inverse()
+		portage.add_child(relais)
+		piece.reparent(relais, false)
+		return portage.get_parent()
 	piece.reparent(squelette, false)
 	piece.skeleton = piece.get_path_to(squelette)
 	return piece
+
+
+## Le point de prise `id` de la base posée, `{}` si `id` n'est pas une prise.
+func _prise(id: String) -> Dictionary:
+	for point in _base.get("points", []):
+		if point.genre == "prise" and point.id == id:
+			return point
+	return {}
+
+
+## La prise de la base posée dont l'os est `os`, `{}` si aucune.
+func _prise_de_l_os(os: String) -> Dictionary:
+	for point in _base.get("points", []):
+		if point.genre == "prise" and point.attache.os == os:
+			return point
+	return {}
+
+
+## Le repère d'une attache `{os, position, rotation}` dans son os, tel que `MontageDEquipement.attacher` le pose.
+static func _repere_de_l_attache(attache: Dictionary) -> Transform3D:
+	var repere := Node3D.new()
+	repere.position = Vector3(attache.position[0], attache.position[1], attache.position[2])
+	repere.rotation = Vector3(attache.rotation[0], attache.rotation[1], attache.rotation[2])
+	var transformation := repere.transform
+	repere.free()
+	return transformation
 
 
 ## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`surfaces` de la réponse de

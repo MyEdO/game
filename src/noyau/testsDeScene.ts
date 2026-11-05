@@ -5,7 +5,7 @@ import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
 import type { BuiltCascadeStep } from './stepBrand';
 import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
-import { extendedTestStep } from '../engine/tests';
+import { evaluateTest, extendedTestStep } from '../engine/tests';
 import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
@@ -184,9 +184,9 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const actor = get().party.find((c) => c.id === pt.actorId);
       const tool = pt.itemUid ? actor?.items?.find((i) => i.uid === pt.itemUid) : undefined;
       // Pratique/Peu Fiable : ±1 DR sur un Test RATÉ (LDB 60 l.22/58). Ne repêche qu'un échec qui a
-      // réussi le d100 mais manqué le seuil requireSL (jamais un roll > cible → on ne crée pas de réussite).
+      // réussi le d100 mais manqué le seuil requireSL (jamais un Test raté, `evaluateTest` → on ne crée pas de réussite).
       const drDelta = tool ? craftTestDRAdjust(tool, pt.success) : 0;
-      const effSuccess = drDelta !== 0 ? lance <= pt.target && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
+      const effSuccess = drDelta !== 0 ? evaluateTest(lance, pt.target).success && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
       // SEAM d'observation pure (recette navigateur, #514) — jamais lu par du code de règles.
       bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: lance, target: pt.target });
       // Bâclé : un outil Bâclé qui Maladresse (échec + double) se brise (LDB 60, généralisé hors combat).

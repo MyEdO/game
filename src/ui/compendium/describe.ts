@@ -10,6 +10,7 @@ import type { CodexRow, CodexSection } from './registry';
 import { opRows } from './opRows';
 import type { GameOp } from '../../engine/ops';
 import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
+import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { walkFlow } from '../../engine/flowCore';
 import { refLabel } from '../../data';
 import { statName } from '../../engine/statEntry';
@@ -45,30 +46,30 @@ export function careerGrantSection(ops: GameOp[] | undefined, title = 'Ajouté �
 /** Résumé LISIBLE d'un Flow d'effet (conditions `if` + ops `do`, jet `test`) — réutilise
  *  `humanizeCondition`/`humanizeOp` (registre JOUEUR). Le Test (SIMPLE ou OPPOSÉ) n'est PLUS une op :
  *  c'est un nœud de STRUCTURE Flow (`{kind:'test'}`) décrit ci-dessous (zéro vocabulaire dupliqué). */
-function flowSummary(f: Flow): string {
+function flowSummary(f: Flow, etats: readonly EtatDeclare[]): string {
   switch (f.kind) {
     case 'do': return f.effect.type === 'ops' ? f.effect.ops.map(humanizeOp).join(', ') : f.effect.type;
-    case 'seq': return f.steps.map(flowSummary).filter(Boolean).join(' ; ');
-    case 'if': return `si ${humanizeCondition(f.cond)} → ${flowSummary(f.then)}${f.else ? ` (sinon ${flowSummary(f.else)})` : ''}`;
+    case 'seq': return f.steps.map((s) => flowSummary(s, etats)).filter(Boolean).join(' ; ');
+    case 'if': return `si ${humanizeCondition(f.cond, etats)} → ${flowSummary(f.then, etats)}${f.else ? ` (sinon ${flowSummary(f.else, etats)})` : ''}`;
     case 'test': {
       const who = f.test.skill ? refLabel('skills', f.test.skill) : (f.test.characteristic ?? '');
       const opp = f.test.opposed ? ` opposé (${f.test.opposed.attackerLabel ?? f.test.opposed.attacker})` : '';
-      return `jet${opp} ${who} → réussite : ${flowSummary(f.success)} / échec : ${flowSummary(f.fail)}`;
+      return `jet${opp} ${who} → réussite : ${flowSummary(f.success, etats)} / échec : ${flowSummary(f.fail, etats)}`;
     }
     case 'choice': {
       const cout = coutAvantageTexte(f.advantageCost);
-      return `choix${cout ? ` (${cout} Av)` : ''} « ${f.prompt} » → oui : ${flowSummary(f.yes)}${flowMuet(f.no) ? '' : ` / non : ${flowSummary(f.no!)}`}`;
+      return `choix${cout ? ` (${cout} Av)` : ''} « ${f.prompt} » → oui : ${flowSummary(f.yes, etats)}${flowMuet(f.no) ? '' : ` / non : ${flowSummary(f.no!, etats)}`}`;
     }
   }
 }
 
 /** Effets DÉCLENCHÉS (`TriggeredEffect[]`) → déclencheur + cible, PUIS la phrase JOUEUR (`humanize`) de ce
  *  que l'effet fait, avec la forme TECHNIQUE d'atelier (`flowSummary`) repliée dans « Détail technique ». */
-const effectRows = (effects: TriggeredEffect[] | undefined): CodexRow[] =>
+const effectRows = (effects: TriggeredEffect[] | undefined, etats: readonly EtatDeclare[]): CodexRow[] =>
   (effects ?? []).flatMap((e) => {
     const head = `${libelleDeValeur(effectTriggerSchema, e.trigger)} — ${onLabel(e.on)}`;
-    const human = humanizeFlowSentence(e.flow);
-    const tech = flowSummary(e.flow);
+    const human = humanizeFlowSentence(e.flow, etats);
+    const tech = flowSummary(e.flow, etats);
     const rows: CodexRow[] = [
       { t: 'sub', label: head },
       { t: 'text', text: human || '(aucun effet)' },
@@ -77,8 +78,8 @@ const effectRows = (effects: TriggeredEffect[] | undefined): CodexRow[] =>
     return rows;
   });
 
-export function effectsSection(effects: TriggeredEffect[] | undefined, title = 'Effets déclenchés'): CodexSection | null {
-  const rows = effectRows(effects);
+export function effectsSection(effects: TriggeredEffect[] | undefined, etats: readonly EtatDeclare[], title = 'Effets déclenchés'): CodexSection | null {
+  const rows = effectRows(effects, etats);
   return rows.length ? { title, layout: 'list', rows } : null;
 }
 
@@ -95,36 +96,36 @@ const flowHasRollTable = (f: Flow): boolean => {
 /** Rangées structurées (chips codex-liées, tables `rollTable` EXPANSÉES) d'un Flow, branche par branche —
  *  ref #540 : seul canal de rendu Flow qui expose le CONTENU d'une table (le reste tient déjà dans la
  *  phrase humanisée `humanizeFlowSentence`, jamais dupliqué en chips pour les branches sans table). */
-function flowOpRows(f: Flow): CodexRow[] {
+function flowOpRows(f: Flow, etats: readonly EtatDeclare[]): CodexRow[] {
   switch (f.kind) {
     case 'do':
       return f.effect.type === 'ops' ? opRows(f.effect.ops) : [];
     case 'seq':
-      return f.steps.flatMap(flowOpRows);
+      return f.steps.flatMap((s) => flowOpRows(s, etats));
     case 'if': {
       const rows: CodexRow[] = [];
-      const then = flowOpRows(f.then);
-      if (then.length) rows.push({ t: 'sub', label: `Si ${humanizeCondition(f.cond)}` }, ...then);
+      const then = flowOpRows(f.then, etats);
+      if (then.length) rows.push({ t: 'sub', label: `Si ${humanizeCondition(f.cond, etats)}` }, ...then);
       if (f.else) {
-        const els = flowOpRows(f.else);
+        const els = flowOpRows(f.else, etats);
         if (els.length) rows.push({ t: 'sub', label: 'Sinon' }, ...els);
       }
       return rows;
     }
     case 'test': {
       const rows: CodexRow[] = [];
-      const succ = flowOpRows(f.success);
+      const succ = flowOpRows(f.success, etats);
       if (succ.length) rows.push({ t: 'sub', label: 'Réussite' }, ...succ);
-      const fail = flowOpRows(f.fail);
+      const fail = flowOpRows(f.fail, etats);
       if (fail.length) rows.push({ t: 'sub', label: 'Échec' }, ...fail);
       return rows;
     }
     case 'choice': {
       const rows: CodexRow[] = [];
-      const yes = flowOpRows(f.yes);
+      const yes = flowOpRows(f.yes, etats);
       if (yes.length) rows.push({ t: 'sub', label: 'Oui' }, ...yes);
       if (f.no) {
-        const no = flowOpRows(f.no);
+        const no = flowOpRows(f.no, etats);
         if (no.length) rows.push({ t: 'sub', label: 'Non' }, ...no);
       }
       return rows;
@@ -134,13 +135,13 @@ function flowOpRows(f: Flow): CodexRow[] {
 
 /** Effet MÉCANIQUE d'un Sort (`Flow` éditable : do/if/test) → section lisible (réutilise `flowSummary`).
  *  Source unique de la projection des effets de sort au Codex (≠ desc narrative). Vide → null. */
-export function spellFlowSection(flow: Flow | undefined, title = 'Effet mécanique'): CodexSection | null {
+export function spellFlowSection(flow: Flow | undefined, etats: readonly EtatDeclare[], title = 'Effet mécanique'): CodexSection | null {
   if (!flow) return null;
-  const human = humanizeFlowSentence(flow);
-  const tech = flowSummary(flow);
+  const human = humanizeFlowSentence(flow, etats);
+  const tech = flowSummary(flow, etats);
   const rows: CodexRow[] = [];
   if (human) rows.push({ t: 'text', text: human });
   if (tech) rows.push({ t: 'fold', summary: 'Détail technique', text: tech });
-  if (flowHasRollTable(flow)) rows.push(...flowOpRows(flow));
+  if (flowHasRollTable(flow)) rows.push(...flowOpRows(flow, etats));
   return rows.length ? { title, layout: 'list', rows } : null;
 }

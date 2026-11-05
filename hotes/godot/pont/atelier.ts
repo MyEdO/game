@@ -2,8 +2,9 @@
  * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`, section « Atelier 3D ») : l'index (base, clé) → élément
  * (`indexerModeles`) des manifestes que le listage servi a validés contre leur GLB (`verdictsDesModeles`), mis en données
  * que Godot dessine sans les relire : chaque base avec ses points d'accroche (ses emplacements, puis ses prises), à chaque
- * point les objets rigides construits pour elle dont un mesh pend à l'os du point (`osDesRigides` du listage,
- * `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts` `monter`) ; ses lignes de pièce (#3086, D3), tirées de la
+ * emplacement les objets rigides construits pour elle dont un mesh pend à l'os du point, à chaque prise ceux dont un mesh
+ * pend à l'os de l'une de ses prises (`osDesRigides` du listage, `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts`
+ * `monter`), que Godot repose du repère de leur prise d'origine dans celui de la prise retenue (#3319) ; ses lignes de pièce (#3086, D3), tirées de la
  * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ; et la marche de chaque base, son clip et sa vitesse au sol (`asset/gabarit.ts`
@@ -76,8 +77,9 @@ export const blasonsDe = (manifeste: unknown): string[] => (manifeste as Manifes
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
  *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les refus de
  *  l'index et ceux des bases dont la marche est ambiguë (`marcheDeLaBase`), qui ne sont pas servies, et le rapport de
- *  l'index. Un objet lié en `rigide` se monte aux points de sa base dont l'os est l'un de ses `osDesRigides` (id de
- *  modèle → os qui portent ses meshes rigides, du listage servi) ; toute pièce, accessoire rigide compris, à la ligne dont
+ *  l'index. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id de
+ *  modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
+ *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou l'emplacement de sa pièce
  *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. */
 export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
@@ -111,10 +113,12 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const pieces = deLaBase.filter(estUnePiece);
     glb[id] = fichiersDuModele(id).glb;
     surfaces[id] = m.surfaces ?? [];
+    const osDesPrises = Object.values(m.prises).map((a) => a.os);
     const pointsDe = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
-      Object.entries(attaches).map(([pointId, attache]) => ({
-        id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter((e) => (osDesRigides[e.id] ?? []).includes(attache.os))),
-      }));
+      Object.entries(attaches).map(([pointId, attache]) => {
+        const porteurs = genre === 'prise' ? osDesPrises : [attache.os];
+        return { id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter((e) => (osDesRigides[e.id] ?? []).some((os) => porteurs.includes(os)))) };
+      });
     const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises)];
     const choix = (idDeChoix: string, label: string, porte: (e: EntreeDeModele) => boolean): ChoixDeLigne => ({ id: idDeChoix, label, elements: servir(pieces.filter(porte)) });
     const emplacementDe = (e: EntreeDeModele) => {

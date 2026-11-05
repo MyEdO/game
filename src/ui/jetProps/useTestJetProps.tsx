@@ -1,4 +1,4 @@
-import { cibleMesuree } from '../../engine/tests';
+import { cibleMesuree, evaluateTest } from '../../engine/tests';
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { FLOWS } from '../../noyau/rollFlowSpecs';
@@ -118,7 +118,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
            se dit par le verdict du flux ; la ligne, elle, dit le Test. C'est aussi l'issue canonique
            du seam (`rollOutcome`), dont dérivent Chance et Résilience. */
         row: rolled
-          ? { combatant: actor, d: testBreakdown(skillLabel, base, { roll: pt.roll!, ...cibleMesuree(pt), sl: pt.sl, success: pt.roll! <= pt.target }, pt.difficulty, extraMods, pt.easedBy) }
+          ? { combatant: actor, d: testBreakdown(skillLabel, base, { roll: pt.roll!, ...cibleMesuree(pt), sl: pt.sl, success: evaluateTest(pt.roll!, pt.target).success }, pt.difficulty, extraMods, pt.easedBy) }
           : (multi ? { pending: pendingLine } : { combatant: actor, pending: pendingLine }),
         onRoll: roll,
         rerolled: !!pt.rerolled,

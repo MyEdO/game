@@ -66,7 +66,7 @@ export const REGLES = Object.freeze([
     preuve: 'src/noyau/mapSpec.ts:1-8 ; src/noyau/monde/sceneToAscii.ts:1-6 ; src/noyau/sceneEdit.ts:1-4 ; src/state/traceLayer.ts:5 (« aide d\'AUTHORING »)',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/editor/(EditorCanvas|Palette|TraceLayerPanel|editorLayers|lowerLayerGabarit|lampMarker|propDefaults|useEditorView|editorState|editor-layers|editor-stair-flight|editor-walls-height|palette-empreinte|traceLayer-export-safety|editeur-monde-volumique|editor-monde-sous-filet)[.-]`),
+    motif: new RegExp(String.raw`^src/ui/editor/(EditorCanvas|Palette|TraceLayerPanel|editorLayers|lowerLayerGabarit|lampMarker|useEditorView|editor-stair-flight|palette-empreinte|traceLayer-export-safety|editeur-monde-volumique|editor-monde-sous-filet)[.-]`),
     categorie: 'moteur-generique',
     raison: 'Authoring de carte isométrique (canvas, palette, calques, vue, calque de décalque) : même classe que src/noyau/mapSpec et src/gameIso/authoring, que l\'éditeur du moteur tiers remplace (exemple « authoring de carte » du ticket).',
     preuve: 'src/ui/editor/EditorCanvas.tsx:3-7 (« Canvas SVG iso de l\'éditeur ») ; imports ../../gameIso/authoring/floorsSvg, ../../noyau/sceneEdit',

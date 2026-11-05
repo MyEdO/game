@@ -179,6 +179,13 @@ export function priestCult(c: Combatant): string | undefined {
   return undefined;
 }
 
+/** Compétences associées à la divinité du prêtre (`GodData.associatedSkills`, liste maison du culte) ;
+ *  vide sans culte ou sans liste. LDB 40 l.61, l.70 */
+export function deitySkills(c: Combatant): string[] {
+  const cult = priestCult(c);
+  return (cult ? findGodById(cult)?.associatedSkills : undefined) ?? [];
+}
+
 /** VERROU de Péché du culte (MDG 11 l.148 : « Stromfels retire à un suivant la capacité d'utiliser le
  *  Talent *Invocation* s'il possède au moins deux Points de Péché et celle d'utiliser le Talent *Béni*
  *  s'il possède au moins cinq Points de Péché ») — GÉNÉRIQUE : lit `GodData.sinLocks` du culte du
@@ -189,6 +196,14 @@ export function prayerSinLock(c: Combatant, spell: SpellLike): { family: 'beni' 
   const cult = priestCult(c);
   const threshold = cult ? findGodById(cult)?.sinLocks?.[fam] : undefined;
   return cult && threshold != null && (c.sinPoints ?? 0) >= threshold ? { family: fam, threshold, cult } : null;
+}
+
+/** Talent de la famille de la Prière tentée que le porteur ne possède pas (`featuresOf`, porte de
+ *  possession : un Talent suspendu y manque), sinon null. LDB 10 l.109, l.625 */
+export function prayerTalentMissing(c: Combatant, spell: SpellLike): 'beni' | 'invocation' | null {
+  const fam = spell.family;
+  if (fam !== 'beni' && fam !== 'invocation') return null;
+  return featuresOf(c).some(({ def }) => def.castingKind === fam) ? null : fam;
 }
 
 /**
@@ -253,7 +268,7 @@ export function armourCastDRPenalty(c: Combatant): number {
   const ignorees = new Set<MatiereDArmure>([
     ...(domId === 'metal' ? ['metal' as const] : []),
     ...(domId === 'bete' ? ['leather' as const] : []),
-    ...(rule('magic-vdm-incantation') === true && (c.talents ?? []).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
+    ...(rule('magic-vdm-incantation') === true && effectiveTalents(c).some((t) => castingKindOf(t.talentId) === 'chaos') ? ['chaos' as const] : []),
   ]);
   const exemptee = (m: MatiereDArmure | undefined): boolean => m !== undefined && ignorees.has(m);
   const pieces = wornArmourPoints(c.items ?? [], (i) => exemptee(matiereDuGroupe(i.subType)));
@@ -361,7 +376,7 @@ export function talentTestSLBonus(
   whenHolds: (cond: import('./flowCore').Condition) => boolean = () => false,
 ): number {
   let n = 0;
-  for (const inst of c.talents ?? []) {
+  for (const inst of effectiveTalents(c)) {
     const matches = effectiveEntry(findTalentById(inst.talentId))?.test?.matches;
     if (matches?.some((m) => matchApplies(m, inst, q, whenHolds))) n += inst.times;
   }
@@ -860,7 +875,7 @@ export function isDispellableSpell(spell: SpellLike): boolean {
  *  Contre-sort (LDB 46 l.156). Source unique. La valeur NUE (`base`) traverse : c'est elle que le
  *  départage à DR égal compare (LDB 12 l.160). */
 export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'base'>): TestResult {
-  return { roll: res.roll, target: res.target, success: res.roll <= res.target, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
+  return { roll: res.roll, target: res.target, success: evaluateTest(res.roll, res.target).success, sl: res.sl, isDouble: res.roll === 100 || res.roll % 11 === 0, ...(res.base != null ? { base: res.base } : {}) };
 }
 
 /** Issue d'un Contre-sort à partir d'un jet de contre-lanceur DÉJÀ obtenu (`counterT`, DR déjà
@@ -1087,7 +1102,7 @@ export function rederiveCastSL(
   const t: TestResult = {
     roll: current.roll,
     target: current.target,
-    success: current.roll <= current.target,
+    success: evaluateTest(current.roll, current.target).success,
     sl: current.sl + bonusSL,
     isDouble: isDoubleRoll(current.roll),
   };

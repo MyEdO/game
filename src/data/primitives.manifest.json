@@ -668,6 +668,15 @@
     "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
   },
   {
+    "id": "effectiveTalents",
+    "type": "primitives.manifest",
+    "label": "effectiveTalents",
+    "fichier": "src/engine/talentEffects.ts",
+    "concept": "porte UNIQUE de la POSSESSION des Talents : Talents acquis, plus ceux qu'octroie un Trait porté ou un effet actif, moins ceux qu'un effet actif suspend (op `suppressTalents`) ; `c.talents` brut ne sert qu'à l'ACQUISITION (PX, Maxi, avancement, création)",
+    "perimetre": "capacités de combat (`featuresOf`), +DR de Talent, passifs, Groupes, Conditions `has`, Domaines d'Arcane et du Chaos, vision nocturne, effets déclenchés de Talent, fiche et carte de héros, hôte texte",
+    "verrou": "—"
+  },
+  {
     "id": "vocabulairesDuMoteur",
     "type": "primitives.manifest",
     "label": "VOCABULAIRES/lectureDuVocabulaire",
