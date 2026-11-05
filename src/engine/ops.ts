@@ -59,6 +59,7 @@ import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import { clockLabel, type Duration } from './duration';
 import { suspendSource } from './suspension';
+import { deitySkills } from './magic'; // cycle runtime (magic→ops) : appelé à l'application, jamais à l'init du module
 import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
@@ -995,6 +996,12 @@ export type GameOp =
    *  (`testValue`), pas une liste de compétences codée en dur. Absent = inconditionnel (Cécité : compétences
    *  nommément listées CC/CT/Esquive/Chevaucher, `sense` inutile car déjà scopé par `skill`). */
   | { op: 'skillMod'; skill: RefDesignee; mod: number; sense?: PairedSense }
+  /** `mod` aux Compétences associées à la divinité de la cible (`deitySkills`, `engine/magic.ts`) :
+   *  `pick: 'all'` les frappe toutes, `'random'` une seule tirée au `ctx.rng`. Un seul effet, une seule
+   *  durée d'horloge (`OpDuree`) ; cible sans divinité ou dieu sans liste : sans effet, journalisé.
+   *  LDB 40 l.61, l.70 */
+  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationHours: Formula; durationDays?: never }
+  | { op: 'deitySkillMod'; pick: 'all' | 'random'; mod: number; durationDays: Formula; durationHours?: never }
   /** +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ;
    *  chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228).
    *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand
@@ -1403,6 +1410,11 @@ export function durationFromCtx(ctx: OpsCtx): Duration {
   if (ctx.defaultUntilTime != null) return { scale: 'clock', until: ctx.defaultUntilTime };
   if (ctx.defaultDurationRounds != null) return { scale: 'rounds', left: ctx.defaultDurationRounds };
   return { scale: 'permanent' };
+}
+
+/** Libellé EXACT de l'échéance d'horloge d'une durée posée (« 4 j », « 7 h »), vide hors horloge. */
+function libelleDHorloge(duree: Duration, ctx: OpsCtx): string {
+  return duree.scale === 'clock' ? clockLabel(duree.until - (ctx.now ?? 0), { exact: true }) ?? '' : '';
 }
 
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
@@ -2432,7 +2444,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         lines.push(t('op.suppressTalents', {
           name: target.label,
           talents: o.talents.map((x) => refLabel('talents', x)).join(', '),
-          duree: duree.scale === 'clock' ? clockLabel(duree.until - (ctx.now ?? 0), { exact: true }) ?? '' : '',
+          duree: libelleDHorloge(duree, ctx),
           src: nomDeSource(ctx),
         }));
         break;
@@ -2920,6 +2932,28 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           passive: [o],
         });
         lines.push(t('op.skillMod', { name: target.label, mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`, skill: o.skill.id, src: nomDeSource(ctx) }));
+        break;
+      }
+      case 'deitySkillMod': {
+        const associees = deitySkills(target);
+        if (!associees.length) {
+          lines.push(t('op.deitySkillMod.sansListe', { name: target.label, src: nomDeSource(ctx) }));
+          break;
+        }
+        const frappees = o.pick === 'all' ? associees : [associees[rng.int(0, associees.length - 1)]];
+        const duree = durationFromOp(o, ctx, ref);
+        target.activeEffects = target.activeEffects ?? [];
+        target.activeEffects.push({
+          label: nomDeSource(ctx), bonus: 0, duration: duree,
+          passive: frappees.map((id) => ({ op: 'skillMod', skill: { id }, mod: o.mod })),
+        });
+        lines.push(t('op.deitySkillMod', {
+          name: target.label,
+          mod: `${o.mod >= 0 ? '+' : ''}${o.mod}`,
+          skills: frappees.map((id) => refLabel('skills', { id })).join(', '),
+          duree: libelleDHorloge(duree, ctx),
+          src: nomDeSource(ctx),
+        }));
         break;
       }
       // +DR temporisé à une Compétence / une Caractéristique (chansons de marin, MDG 09 l.228/236) :
