@@ -14,10 +14,10 @@ import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { walkFlow } from '../../engine/flowCore';
 import { refLabel } from '../../data';
 import { statName } from '../../engine/statEntry';
-import { onLabel } from './triggerLabels';
+import { onLabel } from '../../noyau/codex/triggerLabels';
 import { effectTriggerSchema } from '../../data/schemas/grammaire/mecanique';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { humanizeFlowSentence, humanizeOp, humanizeCondition, coutAvantageTexte, flowMuet } from './humanize';
+import { humanizeFlowSentence, humanizeOp, humanizeCondition, coutAvantageTexte, flowMuet } from '../../noyau/codex/humanize';
 
 /** Octrois de carrière (`grantCareerSkill`/`grantCareerTalent`) — affichés à part (cross-réf cliquable),
  *  jamais comme « modificateur continu ». Filtrés ici pour ne pas doublonner avec `careerGrantSection`. */

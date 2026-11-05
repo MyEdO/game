@@ -6,7 +6,7 @@ import { CodexRef } from './CodexRef';
 import { TabbedEntry, type EntryTab } from '../TabbedEntry';
 import { Prose } from '../Prose';
 import { porteurDeRangee } from '../../noyau/codex/porteur';
-import { libelleDuChamp } from './editFields';
+import { libelleDuChamp } from '../../noyau/codex/editFields';
 import { uniqueSlugId } from '../../data/slug';
 import { Row } from '../Layout';
 import { SourceBadge } from '../SourceBadge';

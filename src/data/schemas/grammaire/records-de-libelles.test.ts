@@ -178,10 +178,10 @@ const STOCK: readonly string[] = [
   'src/engine/size.ts:SIZE_LABEL',
   'src/ui/CarrierInventory.tsx:LOC_SHORT',
   'src/ui/EquipmentPanel.tsx:ZONE_OF_LOC',
-  'src/ui/compendium/humanize.ts:FIELD',
-  'src/ui/compendium/humanize.ts:REL_PLAYER',
-  'src/ui/compendium/humanize.ts:negTable',
-  'src/ui/compendium/humanize.ts:table',
+  'src/noyau/codex/humanize.ts:FIELD',
+  'src/noyau/codex/humanize.ts:REL_PLAYER',
+  'src/noyau/codex/humanize.ts:negTable',
+  'src/noyau/codex/humanize.ts:table',
 ].sort();
 
 describe('cliquet — un libellé de valeur vit sur le NŒUD, jamais dans un Record', () => {

@@ -17,7 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { CODEX } from '../registry';
-import { inferFields } from '../editFields';
+import { inferFields } from '../../../noyau/codex/editFields';
 import { REF_FIELD } from './RefField';
 import { isEditableCategory, editableEntries } from '../../editor/codex/CodexEdit';
 import { schemaForFile } from '../../../data/schemas/validate';

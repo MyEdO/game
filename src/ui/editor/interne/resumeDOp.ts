@@ -20,7 +20,7 @@ import { formatWardSave, traitLisible } from '../../../engine/traits/dispatch';
 import { traumaLabelOf } from '../../../engine/trauma';
 import { ruleDef } from '../../../engine/policy';
 import { terrainLabel } from '../../../noyau/monde/terrain';
-import { dureePropre, plancher, traitOctroyeLisible } from '../../compendium/humanize';
+import { dureePropre, plancher, traitOctroyeLisible } from '../../../noyau/codex/humanize';
 import { coupeAuMot } from '../../../lib/coupeAuMot.mjs';
 import { opMissingRefs } from '../refsDOp';
 import { libelleDeLaNature } from './libelleDeLaNature';

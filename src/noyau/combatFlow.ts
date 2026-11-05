@@ -4706,7 +4706,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
  * Effet déclenché « sur une Imparfaite » (`onMiscast`) — dispatcher générique via le bus. Émis UNE
  * fois par ÉVÉNEMENT d'Imparfaite (une par appel réel ; le repli-composant qui absorbe tout retourne
  * AVANT). C'est le déclencheur qui le dicte, pas le nombre de dés : son libellé joueur est « Sur une
- * Imparfaite » (`ui/compendium/triggerLabels.ts`), et ses consommateurs (hooks de machinerie +
+ * Imparfaite » (`noyau/codex/triggerLabels.ts`), et ses consommateurs (hooks de machinerie +
  * `effects` de donnée) réagissent à l'ÉVÉNEMENT, pas à chaque lancer d'une cascade de relances.
  * D'où l'émission au site d'`applyMiscast` et NON dans le dénouement : sous l'option « Dés fixés »,
  * une Multiplication d'infortune dénoue DEUX fois et sur-déclencherait. Inerte sans donnée.
