@@ -152,7 +152,9 @@ lisibles à taille de jeu ; éléments indépendants et dépendances ; interface
 support, leur contact/dégagement, souplesse et poses ; grandes surfaces ; tri CONSERVER /
 SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypothèses du dos.
 Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
-coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
+coutures et usure restent du détail. Le but est un niveau de qualité suffisant, pas la copie de l'illustration :
+le personnage est fini quand chaque élément montré a son modèle attaché, à la porte (fiche
+`user-doctrine-personnage-3d-qualite-suffisante-pas-copie`). Palette mate limitée, ombrage flat/smooth intentionnel.
 
 Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
 neutre (écu uni, lame nue, insigne vierge), dont la couleur reste celle de son emplacement de palette, et le manifeste
