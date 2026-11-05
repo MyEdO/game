@@ -79,8 +79,10 @@
         "max": 30,
         "label": "Murmures mortels",
         "test": {
-          "characteristic": "force-mentale",
-          "difficulty": "accessible",
+          "test": {
+            "characteristic": "force-mentale",
+            "difficulty": "accessible"
+          },
           "onFail": [
             {
               "op": "corruption",
@@ -235,10 +237,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "intermediaire"
           },
-          "difficulty": "intermediaire",
           "onFail": [
             {
               "op": "condition",
@@ -285,10 +289,12 @@
         "max": 80,
         "label": "L'horreur !",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "difficile"
           },
-          "difficulty": "difficile",
           "onFail": [
             {
               "op": "condition",
@@ -375,10 +381,12 @@
         "max": 5,
         "label": "Voix fantomatiques",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "corruption",
@@ -429,10 +437,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -922,10 +932,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "intermediaire"
           },
-          "difficulty": "intermediaire",
           "onFail": [
             {
               "op": "condition",
@@ -982,8 +994,10 @@
         "max": 70,
         "label": "Murmures mortels",
         "test": {
-          "characteristic": "force-mentale",
-          "difficulty": "accessible",
+          "test": {
+            "characteristic": "force-mentale",
+            "difficulty": "accessible"
+          },
           "onFail": [
             {
               "op": "corruption",
@@ -1003,10 +1017,12 @@
         "max": 75,
         "label": "L'horreur !",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "difficile"
           },
-          "difficulty": "difficile",
           "onFail": [
             {
               "op": "condition",
@@ -1111,10 +1127,12 @@
         "max": 5,
         "label": "Voix fantomatiques",
         "test": {
-          "skill": {
-            "id": "calme"
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "corruption",
@@ -1147,10 +1165,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -1481,10 +1501,12 @@
         "max": 5,
         "label": "Visions sacrées",
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -1662,10 +1684,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "accessible"
           },
-          "difficulty": "accessible",
           "onFail": [
             {
               "op": "condition",
@@ -1750,10 +1774,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "intermediaire"
           },
-          "difficulty": "intermediaire",
           "onFail": [
             {
               "op": "condition",
@@ -1860,10 +1886,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "complexe"
           },
-          "difficulty": "complexe",
           "onFail": [
             {
               "op": "condition",
@@ -1915,10 +1943,12 @@
           }
         ],
         "test": {
-          "skill": {
-            "id": "resistance"
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "difficile"
           },
-          "difficulty": "difficile",
           "onFail": [
             {
               "op": "condition",

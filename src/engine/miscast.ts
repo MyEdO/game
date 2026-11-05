@@ -23,7 +23,7 @@ import { findTableEntry, tableOuverte } from './tables';
 import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
 import { GameOp, Formula } from './ops';
-import { CATEGORY_BY_SOURCE_KIND, type CharKey, type Difficulty, type EffectSource, type EffectSourceKind } from './types';
+import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // Type-only (effacé à la compilation, comme `domainAttributes`/`ops` importent déjà `TriggeredEffect`) :
 // le nœud de Test imbriqué d'une entrée de table EST un nœud de Flow `test` — la STRUCTURE de logique
@@ -72,9 +72,7 @@ export interface MiscastResult {
 /** Spécification d'un Test imbriqué d'une entrée de table (« Résistance Accessible (+20) ou Sonné » ;
  *  « échec à −4 DR ou moins → Inconscient EN PLUS »). Transformée en nœud de Flow `test` par `mkTest`. */
 interface NestedTest {
-  skill?: RefDesignee;
-  characteristic?: CharKey;
-  difficulty: Difficulty;
+  test: FlowTest;
   /** Ops appliqués au lanceur sur un ÉCHEC du Test (« ou Sonné »). */
   onFail: GameOp[];
   /** Palier d'échec aggravé (Purifier la chair `LDB 40 l.75`) — appliqué EN PLUS d'`onFail` via une
@@ -138,9 +136,7 @@ type JsonOp = {
 
 /** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
 interface JsonNestedTest {
-  skill?: RefDesignee;
-  characteristic?: CharKey;
-  difficulty: string;
+  test: FlowTest;
   onFail: JsonOp[];
   onFailHard?: { dr: number; ops: JsonOp[] };
 }
@@ -239,9 +235,7 @@ function expandOps(jsonOps: JsonOp[], sin: number): GameOp[] {
  *  jamais le Péché directement). */
 function expandNestedTest(t: JsonNestedTest): NestedTest {
   const result: NestedTest = {
-    ...(t.skill ? { skill: t.skill } : {}),
-    ...(t.characteristic ? { characteristic: t.characteristic } : {}),
-    difficulty: t.difficulty as Difficulty,
+    test: t.test,
     onFail: expandOps(t.onFail, 0), // les ops onFail d'un test ne référencent jamais le Péché
   };
   if (t.onFailHard) {
@@ -419,12 +413,9 @@ function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
         ],
       }
     : doOps(t.onFail);
-  const test: FlowTest = {
-    ...(t.skill ? { skill: t.skill } : {}), ...(t.characteristic ? { characteristic: t.characteristic } : {}), difficulty: t.difficulty,
-  };
   return {
     kind: 'test',
-    test: poserEnjeu(test, combatStakeRef('miscastRowTest', { entryId: rowId, entryCategory: MISCAST_ROW_CATEGORY[severity] })),
+    test: poserEnjeu(t.test, combatStakeRef('miscastRowTest', { entryId: rowId, entryCategory: MISCAST_ROW_CATEGORY[severity] })),
     success: { kind: 'seq', steps: [] },
     fail,
   };

@@ -926,15 +926,27 @@ export const flowTestSchema = nommerChamps(z.strictObject({
 }), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
 
 
+/** Champ que `flowTestSchema` laisse FACULTATIF et qu'un porteur peut exiger. */
+type ChampExigibleDuTest = 'skill' | 'difficulty';
+
+/** RESSERREMENT, au PORTEUR, du Test qu'il compose par identité sous sa clé `test` : les `champs` que le
+ *  nœud partagé laisse facultatifs y sont exigés. Un clone resserré du nœud perdrait sa pose
+ *  (`interne/concepts.ts`) ; le `superRefine` du porteur la garde. */
+export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
+  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
+    const test = porteur.test;
+    if (typeof test !== 'object' || test === null) return;
+    for (const champ of champs)
+      if (Reflect.get(test, champ) === undefined)
+        ctx.addIssue({ code: 'custom', path: ['test', champ], message: `Test : \`${champ}\` exigée.` });
+  };
+}
+
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`
  *  (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
 export const extendedTestSchema = nommerChamps(z.strictObject({
   type: z.literal('extendedTest'),
-  /** Compétence testée — référence `{ id, spec? }` ; la `spec` précise QUELLE instance est testée
-   *  quand le héros en possède plusieurs (Métier (Serrurier), Savoir (Magie)…). */
-  skill: refOuSpec('skill').optional(),
-  characteristic: charKeySchema.optional(),
-  difficulty: difficultySchema.optional(),
+  ...jetSchema.shape,
   label: z.string(),
   /** DR CUMULÉ à atteindre (ex. serrure complexe = 5). */
   targetDR: z.number(),
@@ -942,7 +954,7 @@ export const extendedTestSchema = nommerChamps(z.strictObject({
   /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
    *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
-}), { type: { label: "type"  }, skill: { label: "Compétence" }, characteristic: { label: "caractéristique"  }, difficulty: { label: "difficulté"  }, label: { label: "libellé" , texte: { regime: "designation"} }, targetDR: { label: "DR à atteindre" }, flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
+}), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, targetDR: { label: "DR à atteindre" }, flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
 /** Options de `noeudTest` — ce qu'un document RESSERRE sur le nœud partagé, jamais un spread. */
 export interface OptionsNoeudTest {
@@ -1239,11 +1251,9 @@ function construire(regimes: Regimes) {
     mount: marquerProduit(nommerChamps(z.strictObject({
       /** Test du CAVALIER, sous peine de chute de `fallM` mètres (l.166/l.171). */
       riderTest: marquerProduit(nommerChamps(z.strictObject({
-        skill: refOuSpec('skill'),
-        char: charKeySchema.optional(),
-        difficulty: difficultySchema,
+        test: flowTestSchema,
         fallM: z.number(),
-      }), { skill: { label: "Compétence" }, char: { label: "caractéristiques"  }, difficulty: { label: "difficulté"  }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
+      }).superRefine(exigerDuTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */

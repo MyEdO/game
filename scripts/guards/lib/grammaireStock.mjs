@@ -49,19 +49,10 @@ export const GRAMMAIRE_STOCK = {
   // l'avait fait sortir du scan (l'argument `champs` n'était pas visité), pas de la déclaration.
   // Le champ `skill` est toujours là, la donnée n'a pas bougé.
   'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (le champ moteur `TestSpec.skill`, non migré).', L2),
-  'src/data/schemas/defs/miscast.ts:jsonNestedTestSchema|alias|skill': e('Test IMBRIQUÉ d’un maléfice, même graphie `skill` que l’op porteuse.', L2),
-  'src/data/schemas/defs/psychology.ts:doc.test|alias|skill': e('Test de Psychologie désignant sa Compétence par `skill` (`STRUCTURES_REDECLARATIONS` psychology.ts).', L2),
-  'src/data/schemas/defs/sea-cargo.ts:doc.opportunite.test|alias|skill': e('Test d’opportunité de cargaison maritime : la réf de Compétence est EMBOÎTÉE (`skill: {id, spec?}`) — le conteneur de Test, lui, reste au lot L4.', L2),
-  'src/data/schemas/defs/sea-perils.ts:seaHazardDef.freeTest|alias|skill': e('Test gratuit d’un péril maritime : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
-  'src/data/schemas/defs/sea-perils.ts:champs.tourbillonSwim|alias|skill': e('Test de Natation du tourbillon : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   'src/data/schemas/defs/spells.ts:champs.opposed|alias|skill': e('Jet OPPOSÉ d’un sort désignant les deux Compétences par `skill`.', L2),
-  'src/data/schemas/defs/steam-breakdown.ts:doc.restart|alias|skill': e('Test de redémarrage d’une machine à vapeur : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   'src/data/schemas/defs/talents.ts:testMatchSchema|alias|skill': e('Filtre de test d’un Talent (à quel jet il s’applique) désignant la Compétence par `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.fastSkill|alias|skill': e('Variante RAPIDE d’un jeu de taverne, même graphie `skill`.', L2),
-  'src/data/schemas/defs/tavernGames.ts:doc.options|alias|skill': e('Options de jeu de taverne, même graphie `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.combined.second|alias|skill': e('Second volet d’un test COMBINÉ de jeu de taverne, même graphie `skill`.', L2),
-  'src/data/schemas/defs/tavernGames.ts:doc.throwerPenalty.test|alias|skill': e('Malus du lanceur d’un jeu de taverne, même graphie `skill`.', L2),
-  'src/data/schemas/defs/water-exposure.ts:doc.test|alias|skill': e('Test d’exposition à l’eau : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   // AUCUNE entrée pour les graphies portées par `src/data/schemas/grammaire/` : ce module n'est scanné
   // que pour `.extend` (`PERIMETRE_FABRIQUES`, `sansRedeclaration`), ses littéraux ÉTANT le canon. La
   // liste nominative de ces graphies et son cardinal sont tenus par le test « les graphies de la
