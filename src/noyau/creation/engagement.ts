@@ -5,14 +5,14 @@
 import type { Jeu } from '../etat';
 import type { RosterEntry } from '../persistance/roster';
 import { decidingSeat } from '../netOwnership';
-import { refusComposition, refusDAjoutAuGroupe } from '../partyFlow';
+import { refusDAjoutAuGroupe, refusDeComposerLeHeros } from '../partyFlow';
 import { buildHero, draftWealth, stepIds, validateStep, type CreatorDraft } from './brouillon';
 
-/** Le refus d'engager `d` : en édition du héros `heroId`, la composition close (`refusComposition`), sinon le refus
- *  d'ajout du siège qui décide (`refusDAjoutAuGroupe`) ; puis la première étape invalide (`validateStep`). `null`
- *  s'il s'engage. */
+/** Le refus d'engager `d` pour le siège qui décide : en édition du héros `heroId`, le refus de le composer
+ *  (`refusDeComposerLeHeros`), sinon le refus d'ajout (`refusDAjoutAuGroupe`) ; puis la première étape invalide
+ *  (`validateStep`). `null` s'il s'engage. */
 export function refusDEngagement(s: Jeu, d: CreatorDraft, heroId?: string): string | null {
-  const composition = heroId ? refusComposition(s) : refusDAjoutAuGroupe(s, undefined, decidingSeat(s));
+  const composition = heroId ? refusDeComposerLeHeros(s, heroId, decidingSeat(s)) : refusDAjoutAuGroupe(s, undefined, decidingSeat(s));
   return composition ?? stepIds().map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
 }
 

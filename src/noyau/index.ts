@@ -29,6 +29,7 @@ export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
 export { combatDistance } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
+export { effectiveTalents } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION } from './combatAuto';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';

@@ -26,7 +26,8 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { DialogueDetail } from './DialogueDetail';
 import { DialogueBox } from '../DialogueBox';
 import type { Ctx } from './EffectList';
-import { paintEffectZone, type Sel, type Tool } from './editorState';
+import { paintEffectZone } from '../../noyau/sceneEdit';
+import type { Sel, Tool } from '../../noyau/sceneEditLecture';
 import { evalCondition, conditionCtx } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 

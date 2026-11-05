@@ -3,11 +3,11 @@
  * d'auteur (triggers, zones de repos, points d'entrée) + interactions pointeur — peindre, poser,
  * drag-rectangle, sélection/déplacement et REDIMENSIONNEMENT par poignée (coin SE des zones).
  * Les overlays sont en `pointer-events: none` : tout le picking passe par `hitAt` (les calques
- * masqués laissent cliquer à travers). La logique de mutation vit dans `editorState` (pur).
+ * masqués laissent cliquer à travers). La logique de mutation vit dans `noyau/sceneEdit` (pur).
  */
 import type { JSX } from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } from '../../noyau/monde/scene';
+import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone, type CellSide } from '../../noyau/monde/scene';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
@@ -25,11 +25,8 @@ import type { useEditorView } from './useEditorView';
 import { effectiveLowerLayerMode, gabaritTint, layerHidden, type LowerLayerMode } from './lowerLayerGabarit';
 import { projectedRangeAxes } from './lampMarker';
 import { gridLines } from '../../geometry/grid';
-import {
-  Tool, Layers, Sel, Rect, Pt, CellSide, rectFrom, hitAt, selRect, selZ, moveSel, resizeSel, paintTiles, fillTerrainRect,
-  placeEntity, placeEmplacement, placeEntry, addTrigger, addRestZone, addEffectZone, EFFECT_ZONE_SEEDS, addEnemyMember, eraseAt, entityAt, sameSel,
-  toggleEdgeWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintEffectZone, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge, addFacadeSection,
-} from './editorState';
+import { type Tool, type Layers, type Sel, empriseDuPinceau, hitAt, selRect, selZ, EFFECT_ZONE_SEEDS, entityAt, sameSel, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge } from '../../noyau/sceneEditLecture';
+import { type Rect, type Pt, rectFrom, moveSel, resizeSel, paintTiles, fillTerrainRect, placeEntity, placeEmplacement, placeEntry, addTrigger, addRestZone, addEffectZone, addEnemyMember, eraseAt, toggleEdgeWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintEffectZone, addFacadeSection } from '../../noyau/sceneEdit';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
@@ -303,18 +300,15 @@ export function EditorCanvas({
   // d'avant le geste (cf. `gelDuMonde`). Vidées au relâché, comme le reste de l'état de geste.
   const [traitCases, setTraitCases] = useState<readonly Pt[]>([]);
   const marquerTrait = (p: Pt, taille: number) => {
-    const r = Math.floor((taille - 1) / 2); // MÊME emprise que `paintTiles` (`noyau/sceneEdit.ts`)
-    const { w, h } = scene.dimensions;
+    const cases = empriseDuPinceau(scene.dimensions, p, taille);
     setTraitCases((prev) => {
       const vues = new Set(prev.map((c) => `${c.x},${c.y}`));
       const out = [...prev];
-      for (let dy = -r; dy <= r; dy++)
-        for (let dx = -r; dx <= r; dx++) {
-          const x = p.x + dx, y = p.y + dy;
-          if (x < 0 || y < 0 || x >= w || y >= h || vues.has(`${x},${y}`)) continue;
-          vues.add(`${x},${y}`);
-          out.push({ x, y });
-        }
+      for (const c of cases) {
+        if (vues.has(`${c.x},${c.y}`)) continue;
+        vues.add(`${c.x},${c.y}`);
+        out.push(c);
+      }
       return out.length === prev.length ? prev : out;
     });
   };

@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { makePregens } from '../../data/pregens';
 import { routesEtat, routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import { reachableCells } from '../../noyau/mapQC';
 import { aPorteeDe } from '../../noyau/monde/exploreNav';
@@ -15,10 +16,15 @@ import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '.
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
+// Le groupe qui part : un pré-tiré (un groupe vide ne se lance pas, `refusDeLancer`).
+beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens().slice(0, 1) } }); });
 
-/** Ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du geste se joue après. */
-const lireLesDocuments = (): void => { while (banc.getState().document) banc.getState().fenetreFermer('document'); };
+/** Désigne le sosie (EDO 02 l.91) puis ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du
+ *  geste se joue après. */
+const lireLesDocuments = (): void => {
+  if (banc.getState().pendingDesignationHeros) banc.getState().designerHerosChoisir(banc.getState().party[0].id);
+  while (banc.getState().document) banc.getState().fenetreFermer('document');
+};
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;

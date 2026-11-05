@@ -25,6 +25,7 @@ import { sceneCombatModifiers } from './monde/sceneRules';
 import { inBattleId } from './monde/combatants';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
+import { effectiveTalents } from '../engine/talentEffects';
 
 /** Ce combattant chevauche-t-il une monture (= cavalier) ? */
 export const isRider = (c: Combatant): boolean => !!c.mountId;
@@ -263,7 +264,7 @@ export function sweepDismountDeaths(battle: BattleState, scene: Scene): string[]
 // ── Combat monté : Mouvement & modificateurs de combat (LDB 14 l.179-184) ──────────────────────────
 /** Acrobaties équestres (LDB 10 l.30) : annule la pénalité d'Esquive du cavalier (LDB 14 l.184). */
 const hasAcrobatiesEquestres = (c: Combatant): boolean =>
-  (c.talents ?? []).some((t) => (t.times ?? 0) > 0 && t.talentId === 'acrobaties-equestres');
+  effectiveTalents(c).some((t) => (t.times ?? 0) > 0 && t.talentId === 'acrobaties-equestres');
 
 /** Mouvement effectif d'un combattant : celui de sa MONTURE s'il est cavalier (LDB 14 l.179), sinon le sien. */
 export function mountMovement(battle: BattleState, c: Combatant): number {

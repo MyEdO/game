@@ -29,7 +29,8 @@ import { isOutOfAction, raisonRefusDetermination } from '../../engine/conditions
 import { isFrenzied } from '../../engine/psychology';
 import { posteARecharger } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
-import { controlsCombatant, nomDuSiege } from '../../noyau/netOwnership';
+import { controlsCombatant } from '../../noyau/netOwnership';
+import { nomDuSiege } from '../../noyau/sieges';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { combatDistance } from '../../noyau/monde/footprint';
 import { hotbar } from '../../state/hotbarBridge';

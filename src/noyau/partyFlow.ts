@@ -44,6 +44,7 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, refLabel, dataLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
+import { rangDAjout, rangsDuGroupe, seatOwns } from './sieges';
 import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
 import { releaseSeat } from './monde/seating';
 import type { Scene } from './monde/scene';
@@ -706,8 +707,30 @@ export function refusDAjoutAuGroupe(s: Pick<Jeu, 'battle' | 'party' | 'net'>, he
     ?? (seatSlotsRemaining(s, seat) <= 0 ? t('pf.seatSlotsSpent') : null);
 }
 
+/** Raison du refus de RETIRER, REMPLACER ou MODIFIER le héros `heroId` pour `seat` : composition close
+ *  (`refusComposition`), héros d'un autre siège (`seatOwns`) ; `null` s'il se compose. Verdict UNIQUE de
+ *  `partyRemoveHero`, `partyReplaceHero`, de l'engagement en édition (`refusDEngagement`) et de l'écran d'équipe. */
+export function refusDeComposerLeHeros(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId: string, seat: number): string | null {
+  return refusComposition(s) ?? (seatOwns(s, seat, heroId) ? null : t('pf.heroOfAnotherSeat'));
+}
+
+/** Raison du refus de LANCER la partie avec ce groupe : un groupe vide, ou un siège invité qui a encore des
+ *  emplacements à remplir (`seatSlotsRemaining`) ; `null` si elle se lance. Verdict UNIQUE de `lancerCampagne`
+ *  (`scenes/campaign.ts`) et de l'écran d'équipe. */
+export function refusDeLancer(s: Pick<Jeu, 'net' | 'party'>): string | null {
+  if (s.party.length === 0) return t('party.action.start.empty');
+  const invites = new Set(s.net.slots.filter((seat) => seat !== 0));
+  return [...invites].some((seat) => seatSlotsRemaining(s, seat) > 0) ? t('party.action.start.guestPending') : null;
+}
+
+/** Une partie est-elle EN COURS (une scène vivante, hors lancement d'une campagne choisie) : l'écran d'équipe
+ *  offre alors « Reprendre », et le choix de campagne se ferme. */
+export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolean {
+  return s.scene != null && !s.pendingCampaign;
+}
+
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
- *  du transport pour un intent) — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
+ *  du transport pour un intent), au rang `rangDAjout` — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
  *  créateur), refusé par `refusDAjoutAuGroupe`. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
 export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money): void {
@@ -715,9 +738,10 @@ export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money
   const seat = decidingSeat(s);
   if (compositionRefusee(get, set, refusDAjoutAuGroupe(s, hero.id, seat))) return;
   const copy: Combatant = ensureBourse(structuredClone(hero));
+  const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
   set({
     party: [...s.party, copy],
-    net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat } },
+    net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat }, rangs },
   });
   if (wealth) {
     creditBourse(get, set, copy.id, wealth);
@@ -741,7 +765,8 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
   return next as S;
 }
 
-/** Retire un héros du groupe (écran d'équipe) et nettoie sa possession réseau.
+/** Retire un héros du groupe (écran d'équipe), refusé par `refusDeComposerLeHeros`, et nettoie sa possession
+ *  réseau ; son rang (`net.rangs`) reste vide.
  *  SUCCESSION (§6/§19, décision №3, SOCLE POSSESSIONS #615) — jamais d'orphelin gelé : les
  *  Possessions du héros retiré ET sa Bourse passent à un héritier VIVANT, défaut = le DOYEN (1er
  *  membre RESTANT de `party` après retrait qui n'est PAS mort — un héros mort reste dans `party`,
@@ -749,7 +774,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
  *  (groupe vidé ou tout-morts) → repli : rien à hériter, la Bourse/les Possessions du partant
  *  restent SUR LUI (il quitte le groupe avec son bien, aucun héritier vivant à défausser dessus). */
 export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
-  if (compositionRefusee(get, set)) return;
+  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), heroId, decidingSeat(get())))) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;
@@ -765,26 +790,31 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
   }
   const ownership = { ...s.net.ownership };
   delete ownership[heroId];
-  set((s2) => ({ party: s2.party.filter((h) => h.id !== heroId), net: { ...s2.net, ownership } }));
+  const rangs = rangsDuGroupe(s);
+  delete rangs[heroId];
+  set((s2) => ({ party: s2.party.filter((h) => h.id !== heroId), net: { ...s2.net, ownership, rangs } }));
 }
 
 /** Remplace ATOMIQUEMENT le héros `oldId` par `hero` à SA position dans `party` (substitution en
- *  place → préserve l'index/ordre) ; transfère la possession du siège qui possédait `oldId`, sinon du siège qui
- *  décide (`decidingSeat`), au remplaçant (l'ancien id est libéré).
+ *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
+ *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
 export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant): void {
-  if (compositionRefusee(get, set)) return;
+  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())))) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
   if (hero.id !== oldId && s.party.some((h) => h.id === hero.id)) return; // doublon d'id
   const copy: Combatant = structuredClone(hero);
   const ownership = { ...s.net.ownership };
-  const seat = ownership[oldId] ?? decidingSeat(s);
   delete ownership[oldId];
-  ownership[copy.id] = seat;
-  set({ party: s.party.map((h, i) => (i === idx ? copy : h)), net: { ...s.net, ownership } });
+  ownership[copy.id] = decidingSeat(s);
+  const rangs = rangsDuGroupe(s);
+  const rang = rangs[oldId];
+  delete rangs[oldId];
+  rangs[copy.id] = rang;
+  set({ party: s.party.map((h, i) => (i === idx ? copy : h)), net: { ...s.net, ownership, rangs } });
 }
 
 

@@ -145,7 +145,7 @@ function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: n
   const c = r?.target ?? cible ?? null;
   return {
     genre: 'test', qui: qui ?? null, test, cible: c,
-    jet: r ? { d100: r.roll, dr: r.sl ?? 0, reussi: r.success ?? (c != null && r.roll <= c) } : null,
+    jet: r ? { d100: r.roll, dr: r.sl ?? 0, reussi: r.success ?? (c != null && evaluateTest(r.roll, c).success) } : null,
   };
 }
 
@@ -313,7 +313,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   focus: (s) => {
     const p = s.pendingFocus;
     const r = p?.result;
-    return p && vue('focus', [ligne(p.casterId, libelleDeTest('focalisation'), r && { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.dr > 0 })]);
+    return p && vue('focus', [ligne(p.casterId, libelleDeTest('focalisation'), r && { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.success })]);
   },
   dispel: (s) => s.pendingDispel && vue('dispel', [ligne(s.pendingDispel.casterId, libelleDeTest('langue-magick'), s.pendingDispel.result)]),
   frenzy: (s) => s.pendingFrenzy && vue('frenzy', [ligne(s.pendingFrenzy.combatantId, libelleDeTest('force-mentale'), s.pendingFrenzy.result)]),
@@ -333,7 +333,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   },
   test: (s) => {
     const p = s.pendingTest;
-    return p && vue('test', [ligne(p.actorId, libelleDuTestDeScene(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.roll <= p.target } : null, p.target)]);
+    return p && vue('test', [ligne(p.actorId, libelleDuTestDeScene(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: evaluateTest(p.roll, p.target).success } : null, p.target)]);
   },
   steamSave: (s) => {
     const p = s.pendingSteamSave;
