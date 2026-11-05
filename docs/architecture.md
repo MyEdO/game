@@ -864,7 +864,7 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   `mods:check` le prouve par `claude plugin validate --strict`) ; un `../x` depuis un sous-dossier de
   `hooks/` ; ni les prédicats que seul le type du receveur distingue (`.every`, `.length === x`,
   `Object.is`, `t[0]`, la déstructuration d'une chaîne).
-- **Garde** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : un mod sans banc
+- **Garde** `mods:check` (`scripts/mods/verifier.mjs`, job `corpus`) : un mod sans banc
   `*.test.ts` est rouge ; sur une COPIE sans les artefacts du moteur (`.claude-plugin/types`,
   `tsconfig.json`), validation stricte, types posés par `claude -p` à la version exacte, `tsc`, bancs ;
   le CLI tourne sous un env en liste blanche (`ENV_HERITE`) et un HOME temporaire, lancé par l'hôte
