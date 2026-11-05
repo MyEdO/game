@@ -34,8 +34,8 @@ function pose(entities: SceneEntity[]): void {
   set({ party: makePregens().slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
 }
 
-const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', ref: 'humain', tavernGame: { gameId: 'dominos' } };
-const MORT: SceneEntity = { id: 'fantome', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Le Fantôme', ref: 'creature-fantome-xyz', tavernGame: { gameId: 'dominos' } };
+const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', ref: 'humain', tavernGame: { id: 'dominos' } };
+const MORT: SceneEntity = { id: 'fantome', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Le Fantôme', ref: 'creature-fantome-xyz', tavernGame: { id: 'dominos' } };
 
 describe('#1882 — un PNJ, une fiche, UN nom', () => {
   

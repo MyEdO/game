@@ -8,7 +8,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const legSequela = { label: 'Membre inférieur amputé (jambeD)', location: 'jambeD' as const, ops: [{ op: 'moveScale' as const, num: 1, den: 2 }, { op: 'skillMod' as const, skill: { id: 'esquive' }, mod: -20 }], prosthesis: [{ trappingId: 'fausse-jambe', cancels: 'movement' as const }] };
+const legSequela = { label: 'Membre inférieur amputé (jambeD)', location: 'jambeD' as const, ops: [{ op: 'moveScale' as const, num: 1, den: 2 }, { op: 'skillMod' as const, skill: { id: 'esquive' }, mod: -20 }], prosthesis: [{ id: 'fausse-jambe', cancels: 'movement' as const }] };
 const fausseJambe = (over: Partial<ItemInstance> = {}): ItemInstance => ({ ...itemFromTrappingById('fausse-jambe')!, uid: 'fj', equipped: true, ...over });
 
 const hero = (p: Partial<Combatant>): Combatant =>

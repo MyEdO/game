@@ -79,7 +79,7 @@ export interface TraumaFiche {
   ops?: OpPassive[];
   kind?: TraumaKind;
   severity?: TraumaSeverity;
-  prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
+  prosthesis?: Trauma['prosthesis'];
   /** Séquelle CUMULATIVE : sa règle de comptage/agrégation, en donnée (LDB 18 l.247/251/273/277/281). */
   cumul?: TraumaCumul;
   needsSurgery?: boolean;
@@ -774,7 +774,7 @@ export function treatTrauma(c: Combatant, dr: number, success = true): string[] 
 function prosthesisCancels(c: Combatant, t: Trauma, aspect: 'movement' | 'all'): boolean {
   if (!t.prosthesis?.length) return false;
   return t.prosthesis.some((p) => {
-    const worn = (c.items ?? []).find((i) => i.trappingId === p.trappingId && i.equipped);
+    const worn = (c.items ?? []).find((i) => i.trappingId === p.id && i.equipped);
     if (!worn) return false;
     if (p.cancels === 'all') return true;
     if (worn.prosthesisTrained) return true; // 200 PX : mouvement + Esquive (Fausse jambe, LDB 73)
@@ -833,7 +833,7 @@ export function prosthesisMoveRestore(c: Combatant): number {
   for (const t of c.traumas ?? []) {
     if (!t.prosthesis?.length || !traumaOps(t).some((o) => o.op === 'moveScale')) continue;
     if (prosthesisCancels(c, t, 'movement')) continue; // ÷2 déjà levé (100/200 PX) : rien à restaurer en plus
-    const worn = t.prosthesis.some((p) => (c.items ?? []).find((i) => i.trappingId === p.trappingId && i.equipped));
+    const worn = t.prosthesis.some((p) => (c.items ?? []).find((i) => i.trappingId === p.id && i.equipped));
     if (worn) n += 1;
   }
   return n;

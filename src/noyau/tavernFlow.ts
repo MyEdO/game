@@ -150,7 +150,7 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
       return fiche ? [{
         id: e.id,
         label: fiche.label,
-        gameId: e.tavernGame!.gameId,
+        gameId: e.tavernGame!.id,
         ...(e.tavernGame!.stakeBrass != null ? { stakeBrass: e.tavernGame!.stakeBrass } : {}),
       }] : [];
     });
