@@ -2,8 +2,8 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, et le point où se dit le nom de ce qui
-## occupe une case. Seul script où
+## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, le point où se dit le nom de ce
+## qui occupe une case, et la pose d'une arête (mur ou porte) sur le côté de sa case. Seul script où
 ## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
 ## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -32,6 +32,21 @@ static func diametre(rayon: float) -> float:
 ## Le point, au-dessus du centre de la case `case`, où se dit le nom de ce qui l'occupe.
 static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
+
+
+## Le centre d'une arête de `hauteur` dont le milieu est `milieu`, en coins de grille (`plateauDeLaScene`).
+static func centre_d_arete(milieu: Vector2, hauteur: float) -> Vector3:
+	return Vector3(milieu.x + DEMI_CASE, hauteur / 2.0, milieu.y + DEMI_CASE)
+
+
+## Le lacet d'une arête qui court selon `sens` sur le plateau.
+static func lacet_d_arete(sens: Vector2) -> float:
+	return atan2(-sens.y, sens.x)
+
+
+## La longueur, en cases, d'une arête qui court selon `sens`.
+static func longueur_d_arete(sens: Vector2) -> float:
+	return sens.length()
 
 
 ## Le centre de la case `case` sur le sol (y = 0).
