@@ -6,15 +6,15 @@
 import { describe, it, expect } from 'vitest';
 import { gestesDeLObjet } from './gestesDeLObjet';
 import { appraiseRefus } from './merchantFlow';
-import { makePregens } from '../data/pregens';
+import { PREGEN, pregenParty } from '../data/pregens';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 
 /** Deux pré-tirés hors combat, au jour 3 ; `rosa`, la seconde, porte un objet non identifié (`inconnu`). */
 function partie(inconnu: { appraiseTriedDay?: number; detectTried?: boolean } = {}) {
-  const party = makePregens().filter((h) => h.label === 'Sigmund Reikhardt' || h.label === 'Rosa Brandt');
-  const rosa = party.find((h) => h.label === 'Rosa Brandt')!;
+  const party = pregenParty(PREGEN.soldat, PREGEN.apothicaire);
+  const rosa = party[1];
   const pilon = rosa.items!.find((i) => i.label === 'Pilon et Mortier')!;
   Object.assign(pilon, { identified: false, ...inconnu });
   const s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime'> = { battle: null, party, possessions: [], gameTime: 3 * MINUTES_PER_DAY + 10 };
