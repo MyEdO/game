@@ -100,11 +100,11 @@ describe('la création d’un héros par le pont', () => {
     expect(elementDe(s, 'bourse')?.type, 'la bourse tombée se dit').toBe('jet');
     s = jouer(boutonDe(s, 'creation.gestes', 'suivante'));
 
-    // Identité : un nom proposé, le physique aux dés.
+    // Identité : le nom aux dés, le physique aux dés.
     expect(titre(s)).toBe('Identité · 9/10');
     expect(boutonDe(s, 'creation.gestes', 'suivante').refus).toBe('Donnez un nom à votre personnage.');
-    const nom = choixDe(s, 'nom')!.valeurs[0];
-    s = jouer(nom);
+    s = jouer(boutonDe(s, 'creation.corps', 'nom'));
+    const nom = (elementDe(s, 'nomTire') as Puce).valeur!;
     s = jouer(boutonDe(s, 'creation.corps', 'physique'));
     expect((elementDe(s, 'age') as Puce).valeur, 'le physique tombé dit l’âge').toMatch(/^\d+$/);
     s = jouer(boutonDe(s, 'creation.gestes', 'suivante'));
@@ -113,17 +113,17 @@ describe('la création d’un héros par le pont', () => {
     expect(titre(s)).toBe('Présentation · 10/10');
     const valeurs = (x: Suite, zone: 'creation.corps' | 'fiche.corps') => Object.fromEntries((x.vue.zones[zone] as Element[]).filter((e): e is Puce => e.type === 'puce').map((p) => [p.id, p.valeur]));
     const presentation = valeurs(s, 'creation.corps');
-    expect((s.vue.zones['creation.corps'] as Puce[]).slice(0, 3).map((p) => p.libelle), 'le héros se présente : son nom, sa race, sa carrière').toEqual([nom.libelle, espece, carriere]);
+    expect((s.vue.zones['creation.corps'] as Puce[]).slice(0, 3).map((p) => p.libelle), 'le héros se présente : son nom, sa race, sa carrière').toEqual([nom, espece, carriere]);
     expect(s.vue.projection.pas, 'la création n’a joué aucun geste de la partie').toBe(pas);
     const engager = boutonDe(s, 'creation.gestes', 'engager');
     expect([engager.refus, engager.focus], 'l’engagement se joue à l’Entrée').toEqual([null, true]);
     const fin = jouer(engager);
     expect([fin.vue.zones['creation.titre'], fin.vue.zones['creation.corps'], fin.vue.zones['creation.gestes']], 'engagé, la création se ferme').toEqual([[], [], []]);
-    expect(fin.vue.zones['groupe.heros'].map((b) => b.libelle), 'le héros rejoint le groupe').toEqual([...avant, nom.libelle]);
-    expect(fin.vue.projection.exploration!.heros.some((h) => h.nom === nom.libelle), 'la partie le porte').toBe(true);
-    expect(fin.zones['journal.lignes'].some((l) => l.texte.includes(nom.libelle)), 'sa bourse de départ au journal').toBe(true);
+    expect(fin.vue.zones['groupe.heros'].map((b) => b.libelle), 'le héros rejoint le groupe').toEqual([...avant, nom]);
+    expect(fin.vue.projection.exploration!.heros.some((h) => h.nom === nom), 'la partie le porte').toBe(true);
+    expect(fin.zones['journal.lignes'].some((l) => l.texte.includes(nom)), 'sa bourse de départ au journal').toBe(true);
 
-    s = suiteDe(appel('fiche', fin.vue.zones['groupe.heros'].find((b) => b.libelle === nom.libelle)!.jeu));
+    s = suiteDe(appel('fiche', fin.vue.zones['groupe.heros'].find((b) => b.libelle === nom)!.jeu));
     const fiche = valeurs(s, 'fiche.corps');
     const caracs = Object.fromEntries(Object.entries(presentation).filter(([id]) => id.startsWith('carac/')));
     expect(fiche, 'ses dix Caractéristiques, celles que la présentation disait').toEqual(caracs);

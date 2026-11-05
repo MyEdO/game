@@ -3596,6 +3596,7 @@ export const fr = {
   'crea.vue.auChoix': 'Au choix',
   'crea.vue.sexe': 'Sexe',
   'crea.vue.nom': 'Nom',
+  'crea.vue.tirerNom': 'Nom aux dés',
   'crea.vue.tirerPhysique': 'Physique aux dés',
   'crea.vue.age': 'Âge',
   'crea.vue.taille': 'Taille',

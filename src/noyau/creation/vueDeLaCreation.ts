@@ -12,14 +12,14 @@ import {
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
   speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds,
   valeurDuCompteur, bornesDuCompteur, validateStep, withAssignment, withCareer, withCareerSkillSpec, withCareerTalent, withCharMode,
-  withCoastalSwap, withCompteur, withEtatCivil, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
+  withCoastalSwap, withCompteur, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
   withRandomTalentSpec, withSexe, withSpecies, withSpeciesSkillDefaults, withSpeciesSkillSpec, withSpeciesSkillTier, withSpeciesTalentChoice,
   withStar, withTrappingChoice, xpTotal,
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
 import {
   advancementLabel, armesChoisissables, careerLabelFor, careersForSpecies, charAbr, classes, DEFAULT_FABRICATION_ATOUT, fabricationAtouts,
-  findCareerById, findQualityById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, stars,
+  findBookById, findCareerById, findQualityById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, stars,
   trappingRefLabel, type AdvancementRef, type CareerData, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -65,7 +65,7 @@ const GESTES_DU_BROUILLON = {
   tirerLaBourse: (d: CreatorDraft) => rollDraftWealth(d),
   dotation: (d: CreatorDraft, adresse: AdresseDeCreation, v: number | string) => withTrappingChoice(d, adresse, v),
   sexe: (d: CreatorDraft, sexe: Sexe) => withSexe(d, sexe),
-  nom: (d: CreatorDraft, nom: string) => withEtatCivil(d, { label: nom }),
+  tirerUnNom: (d: CreatorDraft, graine: number) => rollDraftName(d, graine),
   tirerLePhysique: (d: CreatorDraft) => rollDraftDetails(d),
 } satisfies Record<string, (d: CreatorDraft, ...args: never[]) => CreatorDraft>;
 
@@ -88,10 +88,13 @@ export const brouillonDeLaPartie = (graine: number, rang: number): CreatorDraft 
 /** Une page de l'assistant : une étape (`StepId`), l'étape des Compétences en ses trois sous-écrans (`SkillsSub`). */
 export type PageDeCreation = Exclude<StepId, 'skills'> | `skills.${SkillsSub}`;
 
-const SOUS_ECRANS = ['race', 'career', 'talents'] as const satisfies readonly SkillsSub[];
+/** Les étapes qui se jouent en plusieurs pages, chacune ses sous-écrans dans l'ordre. */
+const SOUS_ECRANS: Partial<Record<StepId, readonly PageDeCreation[]>> = {
+  skills: (['race', 'career', 'talents'] as const satisfies readonly SkillsSub[]).map((s) => `skills.${s}` as const),
+};
 
 /** Les pages de l'assistant, dans l'ordre de ses étapes (`stepIds`). */
-export const pagesDeCreation = (): PageDeCreation[] => stepIds().flatMap((id): PageDeCreation[] => (id === 'skills' ? SOUS_ECRANS.map((s) => `skills.${s}` as const) : [id]));
+export const pagesDeCreation = (): PageDeCreation[] => stepIds().flatMap((id): readonly PageDeCreation[] => SOUS_ECRANS[id] ?? [id as PageDeCreation]);
 
 const sousEcran = (p: PageDeCreation): SkillsSub | null => (p.startsWith('skills.') ? (p.slice('skills.'.length) as SkillsSub) : null);
 
@@ -123,7 +126,7 @@ const valeur = (id: string, libelle: string, v: string | null, detail: string | 
 /** Les PX de création que la page vaut, quand elle en vaut. */
 const px = (n: number): RubriqueDeCreation[] => (n > 0 ? [valeur('px', t('crea.vue.px'), t('crea.vue.gainDePx', { px: n }))] : []);
 
-/** Les familles d'espèces jouables (`speciesAllowed`), dans l'ordre de la donnée, celles du Livre de base d'abord ;
+/** Les familles d'espèces jouables (`speciesAllowed`), dans l'ordre de la donnée, celles d'un livre de cœur (`coeur`) d'abord ;
  *  chacune ses espèces, sa première la canonique (LDB 04 l.91). */
 export function famillesDEspeces(): { famille: string; especes: SpeciesData[] }[] {
   const familles: { famille: string; especes: SpeciesData[] }[] = [];
@@ -132,7 +135,7 @@ export function famillesDEspeces(): { famille: string; especes: SpeciesData[] }[
     if (f) f.especes.push(s);
     else familles.push({ famille: s.family, especes: [s] });
   }
-  const duLivreDeBase = (f: (typeof familles)[number]) => Number(f.especes.some((s) => s.source.book === 'livre-de-base'));
+  const duLivreDeBase = (f: (typeof familles)[number]) => Number(f.especes.some((s) => !!findBookById(s.source.book)?.coeur));
   return familles.sort((a, b) => duLivreDeBase(b) - duLivreDeBase(a));
 }
 
@@ -351,17 +354,12 @@ function pageDesPossessions(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** Les noms proposés au brouillon : ceux que le générateur de son espèce tire (`rollDraftName`), des graines que la
- *  sienne dérive. */
-const NOMS_PROPOSES = 6;
-const nomsProposes = (d: CreatorDraft): string[] =>
-  [...new Set(Array.from({ length: NOMS_PROPOSES }, (_, i) => rollDraftName(d, hashSeed(`nom/${d.seed}/${i}`)).label))];
-
 /** 6) L'identité : le sexe, le nom, le physique tiré aux dés. */
 function pageDeLIdentite(d: CreatorDraft): RubriqueDeCreation[] {
   return [
     choix('sexe', t('crea.vue.sexe'), sexeSchema.options.map((s) => option(libelleDeValeur(sexeSchema, s), geste('sexe', s), s === d.apparence.sex))),
-    choix('nom', t('crea.vue.nom'), nomsProposes(d).map((n) => option(n, geste('nom', n), n === d.label))),
+    gesteDe('nom', t('crea.vue.tirerNom'), geste('tirerUnNom', hashSeed(`nom/${d.seed}/${d.label}`))),
+    ...(d.label ? [valeur('nomTire', t('crea.vue.nom'), d.label)] : []),
     ...(d.age === undefined
       ? [gesteDe('physique', t('crea.vue.tirerPhysique'), geste('tirerLePhysique'))]
       : [
