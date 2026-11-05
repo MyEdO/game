@@ -30,11 +30,25 @@ export const CI_SEULEMENT = {
     'ses `CANDIDATS`',
 }
 
+/** Le job de `ci.yml` qui joue la course de BRANCHE (#3412, en tête de `ci.yml`) ; tous les autres jouent la
+ *  course de FILE. */
+export const JOB_DE_BRANCHE = 'branche'
+
+/** Condition d'événement EXACTE du checkout et du prologue d'un job de `ci.yml`, par course (#3412) : hors de
+ *  sa course, le job saute tous ses steps et rend « Success ». Garde : `scripts/ops/ruleset-main.test.mjs`. */
+export const SI_DE_COURSE = Object.freeze({
+  branche: "${{ github.event_name == 'push' }}",
+  file: "${{ github.event_name == 'merge_group' }}",
+})
+
 /**
  * Jobs de `ci.yml` dont les steps ne se rejouent PAS localement, avec leur raison. Nominatif : un
  * job neuf est rejoué tant qu'il n'est pas nommé ici.
  */
 export const JOBS_HORS_REJEU_LOCAL = {
+  [JOB_DE_BRANCHE]:
+    'la course de branche rejoue un SOUS-ENSEMBLE des gates de la course de file : `typecheck` est déjà une gate ' +
+    'de la lane `types`, et `test:perimetre` est le geste local de l’agent',
   migrations:
     'rejeu EN PLACE des migrations : le jouer sur un arbre de travail réécrit src/data et src/scenes ' +
     'et rend un verdict faux (#1613) — localement, il se joue sur un EXPORT de la tête, ' +
