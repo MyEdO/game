@@ -49,11 +49,13 @@
     "mSet": 0,
     "restart": [
       {
-        "skill": {
-          "id": "metier",
-          "spec": "ingenieur"
-        },
-        "difficulty": "intermediaire"
+        "test": {
+          "skill": {
+            "id": "metier",
+            "spec": "ingenieur"
+          },
+          "difficulty": "intermediaire"
+        }
       }
     ],
     "source": {
@@ -72,16 +74,20 @@
     "mSet": 0,
     "restart": [
       {
-        "char": "force",
-        "difficulty": "intermediaire",
+        "test": {
+          "characteristic": "force",
+          "difficulty": "intermediaire"
+        },
         "extendedDR": 10
       },
       {
-        "skill": {
-          "id": "metier",
-          "spec": "ingenieur"
-        },
-        "difficulty": "intermediaire"
+        "test": {
+          "skill": {
+            "id": "metier",
+            "spec": "ingenieur"
+          },
+          "difficulty": "intermediaire"
+        }
       }
     ],
     "source": {
@@ -107,23 +113,29 @@
     },
     "restart": [
       {
-        "char": "force",
-        "difficulty": "intermediaire",
+        "test": {
+          "characteristic": "force",
+          "difficulty": "intermediaire"
+        },
         "extendedDR": 10
       },
       {
-        "skill": {
-          "id": "metier",
-          "spec": "ingenieur"
-        },
-        "difficulty": "complexe"
+        "test": {
+          "skill": {
+            "id": "metier",
+            "spec": "ingenieur"
+          },
+          "difficulty": "complexe"
+        }
       },
       {
-        "skill": {
-          "id": "metier",
-          "spec": "ingenieur"
-        },
-        "difficulty": "intermediaire"
+        "test": {
+          "skill": {
+            "id": "metier",
+            "spec": "ingenieur"
+          },
+          "difficulty": "intermediaire"
+        }
       }
     ],
     "source": {

@@ -967,9 +967,9 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
 /** Section « Test imbriqué » d'une entrée miscast (« Résistance Accessible ou Sonné »), palier
  *  `onFailHard` inclus (« si vous échouez avec DR ≤ N → EN PLUS »). */
 function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSection {
-  const who = testSkillLabel({ skill: t.skill, char: t.characteristic }) ?? 'Test';
+  const who = testSkillLabel({ skill: t.test.skill, char: t.test.characteristic }) ?? 'Test';
   const rows: CodexRow[] = [
-    { t: 'kv', k: 'Test', v: `${who} ${DIFFICULTY_LABELS[t.difficulty as keyof typeof DIFFICULTY_LABELS]}` },
+    { t: 'kv', k: 'Test', v: `${who} ${DIFFICULTY_LABELS[t.test.difficulty!]}` },
     { t: 'sub', label: 'Échec' },
     ...replieCausesPersistantes(t.onFail).map(miscastOpRow),
   ];
