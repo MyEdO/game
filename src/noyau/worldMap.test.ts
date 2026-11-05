@@ -66,8 +66,8 @@ describe('parseProject — validation du format projet', () => {
     // Un Lieu-port complet : taille/richesse/production/surplus/demande/cosmopolite/lighthouse — édité
     // par la section « Port » de WorldMapEditor, préservé tel quel par le round-trip du projet.
     const port = {
-      taille: 4, richesse: 5, production: ['commerce', 'produits-de-luxe'],
-      surplus: { 'produits-de-luxe': 1 }, demande: { cereales: 2 }, cosmopolite: true, lighthouse: true,
+      taille: 4, richesse: 5, production: ['commerce-mer', 'produits-de-luxe-mer'],
+      surplus: { 'produits-de-luxe-mer': 1 }, demande: { cereales: 2 }, cosmopolite: true, lighthouse: true,
     };
     const mapWithPort = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Marienburg', pos: { x: 50, y: 50 }, scene: 's1', port }], routes: [] };
     const doc = projet([scene('s1')], { worldMap: mapWithPort as never });
@@ -238,8 +238,8 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     ({ id: 'l1', label: 'Lieu', pos: { x: 0, y: 0 }, scene: 's1', ...patch });
 
   it('lieu COMPLET (port + marché + auberge propre) → 3 services, payloads RÉFÉRENCÉS (pas copiés)', () => {
-    const port = { taille: 4, richesse: 5, production: ['commerce'] };
-    const market = { taille: 3, richesse: 4, produits: ['vin'] };
+    const port = { taille: 4, richesse: 5, production: ['commerce-mer'] };
+    const market = { taille: 3, richesse: 4, produits: ['vin-eau-de-vie'] };
     const rest = { auberge: true, camp: true };
     const p = place({ port, market, services: [{ kind: 'auberge', rest }] });
     const svc = placeServices(p);
@@ -324,7 +324,7 @@ describe('parseProject — porte de schéma', () => {
 
 describe('produitsDuProfil — colonne Produits d’un profil commercial (MDG 15 l.321)', () => {
   it('le marqueur « commerce » nomme la plaque tournante ; seules les marchandises se listent', () => {
-    const { plaque, marchandises } = produitsDuProfil(['commerce', 'poisson-sale']);
+    const { plaque, marchandises } = produitsDuProfil(['commerce-mer', 'poisson-sale']);
     expect(plaque).toBeTruthy();
     expect(marchandises).toEqual([findCargoEntryById('poisson-sale')!.label]);
   });

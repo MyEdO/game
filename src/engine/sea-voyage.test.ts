@@ -12,8 +12,8 @@ const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: 
 
 const salzenmund: PortProfile = {
   taille: 4, richesse: 4,
-  production: ['bois', 'commerce'],
-  surplus: { 'produits-de-luxe': 1 },
+  production: ['bois-mer', 'commerce-mer'],
+  surplus: { 'produits-de-luxe-mer': 1 },
   demande: { armes: 1, cereales: 1 },
 };
 
@@ -82,7 +82,7 @@ describe('longs voyages très rapides (MDG 15 l.21-37)', () => {
 
 describe('commerce maritime (MDG 15 l.309-436)', () => {
   it('cargaison aléatoire par SAISON (l.402-418) : d100 50 → Laine au printemps, Vin en été', () => {
-    expect(rollRandomCargo('printemps', seq(50)).id).toBe('laine');
+    expect(rollRandomCargo('printemps', seq(50)).id).toBe('laine-mer');
     expect(rollRandomCargo('ete', seq(50)).id).toBe('vin');
   });
 
@@ -96,9 +96,9 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   });
 
   it('disponibilité (l.323-331) : (Taille + Richesse + Surplus) × 1d10 × 10 ; d10 = 1 → rien — exemple Salzenmund l.329-331', () => {
-    expect(rollCargoAvailability(salzenmund, 'bois', seq(4)).enc).toBe(320); // (4+4) × 40
-    expect(rollCargoAvailability(salzenmund, 'produits-de-luxe', seq(4)).enc).toBe(360); // (4+4+1) × 40
-    expect(rollCargoAvailability(salzenmund, 'bois', seq(1)).enc).toBe(0);
+    expect(rollCargoAvailability(salzenmund, 'bois-mer', seq(4)).enc).toBe(320); // (4+4) × 40
+    expect(rollCargoAvailability(salzenmund, 'produits-de-luxe-mer', seq(4)).enc).toBe(360); // (4+4+1) × 40
+    expect(rollCargoAvailability(salzenmund, 'bois-mer', seq(1)).enc).toBe(0);
   });
 
   it('marchand : 3d10+40, Négociateur sur deux 10 ; Marienburg/Lothern 3d10+55, un seul 10 suffit (l.337/349)', () => {
@@ -114,7 +114,7 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
 
   it('vente (l.355-397) : relation du port au bien → nombre visé + DR du vendeur', () => {
     // Salzenmund a « commerce » en Production → toujours 'no-produce' ; armes en Demande +1.
-    expect(sellRelation(salzenmund, 'bois')).toBe('no-produce');
+    expect(sellRelation(salzenmund, 'bois-mer')).toBe('no-produce');
     const armes = sellChance(salzenmund, 'armes', 500);
     expect(armes.gossip).toBeNull();
     expect(armes.target).toBe(80); // (4 + 1) × 10 + 30 (commerce)
@@ -134,9 +134,9 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   it('prix d’offre (l.374-383) : Richesse+Taille+Demande ≥ 4 → 100 % ; 2 → 75 % ; brader = 25 % (l.399)', () => {
     expect(offerPricePct(salzenmund, 'armes')).toBe(100);
     const hamlet: PortProfile = { taille: 1, richesse: 1, production: [] };
-    expect(offerPricePct(hamlet, 'bois')).toBe(75);
-    expect(dumpingPricePct(salzenmund, 'laine')).toBe(25); // « commerce » en Production
-    expect(dumpingPricePct(hamlet, 'laine')).toBeNull();
+    expect(offerPricePct(hamlet, 'bois-mer')).toBe(75);
+    expect(dumpingPricePct(salzenmund, 'laine-mer')).toBe(25); // « commerce » en Production
+    expect(dumpingPricePct(hamlet, 'laine-mer')).toBeNull();
   });
 
   it('commerce d’opportunité (l.276-286) : échec de 6 DR → 0 % ; échec → 50 % ; succès → 110 % ; +6 DR → 120 %', () => {
@@ -147,9 +147,9 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   });
 
   it('cargaison embarquée : total d’Enc, retrait par lots (avaries d’événement)', () => {
-    const lots = [{ cargoId: 'bois', enc: 100, basePriceGold: 1.5 }, { cargoId: 'bois', enc: 40, basePriceGold: 1 }, { cargoId: 'sel', enc: 20, basePriceGold: 2 }];
+    const lots = [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1.5 }, { cargoId: 'bois-mer', enc: 40, basePriceGold: 1 }, { cargoId: 'sel', enc: 20, basePriceGold: 2 }];
     expect(cargoTotalEnc(lots)).toBe(160);
-    const r = removeCargo(lots, 'bois', 120);
+    const r = removeCargo(lots, 'bois-mer', 120);
     expect(r.removed).toBe(120);
     expect(cargoTotalEnc(r.lots)).toBe(40);
     expect(r.lots).toHaveLength(2); // bois 20 + sel 20

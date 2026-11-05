@@ -146,7 +146,7 @@ export const STRUCTURES_CIBLES = [
   // déclare (les DEUX projections sont donc cibles, la donnée n'en posant aujourd'hui qu'une par
   // porte). Elles quittent les objets invisibles du scan (`scan.objets.invisibles`) : la
   // projection réunit les deux buckets qu'un optionnel peuplé (`source`) séparait.
-  // Portes : `ouvertureSchema` / `clotureSchema` / `formeNarratif`
+  // Portes : `ouvertureSchema` / `clotureSchema` (`src/data/schemas/grammaire/campagne.ts`), `formeNarratif`
   // (`src/data/schemas/defs-scenes/narratif.ts`) et `conditionSchema`
   // (`src/data/schemas/grammaire/mecanique.ts`, variante `flag`).
   { concept: "ouverture", signature: "pitch,titre", date: "2026-09-01" },
@@ -158,7 +158,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "narratif", signature: "affaires,documents,etats,indices,objets,presetsPnj+…", date: "2026-10-16" },
   { concept: "condition", signature: "expr,kind", date: "2026-09-01" },
   // #2539 (2026-10-16) — l'Effet qui ÉCRIT un état de campagne naît CIBLE : `poserEtatSchema` et
-  // `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) le valident, rien à migrer.
+  // `designerHerosSchema` (`src/data/schemas/grammaire/campagne.ts`) le valident, rien à migrer.
   { concept: "effet-d-etat", signature: "etat,type,valeur", date: "2026-10-16" },
   { concept: "effet-d-etat", signature: "etat,invite,type", date: "2026-10-16" },
   { concept: "effet-d-etat", signature: "etat,invite,type+…", date: "2026-10-16" },

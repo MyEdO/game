@@ -2,7 +2,8 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, et un vecteur rapporté à un repère. Seul script où
+## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, le point où se dit le nom de ce
+## qui occupe une case, et la pose d'une arête (mur ou porte) sur le côté de sa case. Seul script où
 ## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
 ## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -17,11 +18,35 @@ const RADIANS_PAR_PIXEL := 0.005
 ## Le tangage de l'orbite, borné entre la vue plongeante et la vue rasante au-dessus du sol.
 const TANGAGE_MINIMAL := -1.2
 const TANGAGE_MAXIMAL := 0.2
+## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
+const ECART_DE_BULLE := 12.0
+## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
+const HAUTEUR_DU_NOM := 1.2
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
 static func diametre(rayon: float) -> float:
 	return 2.0 * rayon
+
+
+## Le point, au-dessus du centre de la case `case`, où se dit le nom de ce qui l'occupe.
+static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
+	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
+
+
+## Le centre d'une arête de `hauteur` dont le milieu est `milieu`, en coins de grille (`plateauDeLaScene`).
+static func centre_d_arete(milieu: Vector2, hauteur: float) -> Vector3:
+	return Vector3(milieu.x + DEMI_CASE, hauteur / 2.0, milieu.y + DEMI_CASE)
+
+
+## Le lacet d'une arête qui court selon `sens` sur le plateau.
+static func lacet_d_arete(sens: Vector2) -> float:
+	return atan2(-sens.y, sens.x)
+
+
+## La longueur, en cases, d'une arête qui court selon `sens`.
+static func longueur_d_arete(sens: Vector2) -> float:
+	return sens.length()
 
 
 ## Le centre de la case `case` sur le sol (y = 0).
@@ -147,3 +172,8 @@ static func entree_de_marche(gauche: float, droite: float, avant: float, arriere
 ## Le vecteur `vecteur` rapporté au repère de base `base` (`Basis.inverse`).
 static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
+
+
+## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
+static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
+	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)

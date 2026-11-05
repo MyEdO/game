@@ -12,7 +12,7 @@
  * Consommé par l'hôte du monde de campagne (`stage/MondeDeCampagne`, qui le sert à SES DEUX regards)
  * et par l'éditeur — mêmes décors partout.
  */
-import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, type ArchitectureRect } from '../../noyau/monde/scene';
+import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type ArchitectureRect } from '../../noyau/monde/scene';
 import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
@@ -27,7 +27,7 @@ import type { Dir4, Dir8 } from '../../geometry/dir8';
 import { edgeKey, fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
 import type { FloorView } from './floors';
 import type { PropEl, OrigineDecor } from './types';
-import { CARD_NB, outwardSide, wallEnds } from './walls';
+import { CARD_NB, outwardSide } from './walls';
 
 /** La scène porte-t-elle AU MOINS un décor volumique désignable ? Ce que le pointeur demande pour
  *  savoir si une face du monde peut nommer une entité sous le pixel — seul un décor d'ENTITÉ porte un

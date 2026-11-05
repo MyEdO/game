@@ -2,12 +2,14 @@
  * LES VUES FIGÉES DE L'ÉCRAN (#3328) : ce que la recette native de l'écran (`projet/recettes/ecran.gd`) montre, figé par
  * la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Un tour de `dome` joué par le pont comme
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
- * jet, chaque fois le geste en focus pressé) et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
+ * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
+ * focus, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
+ * Critique, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
  * ses zones, les lignes que le tour a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
 import { creerPont, type Suite } from '../pont/pont';
-import { horlogeVirtuelle } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, type Bouton, type Jeu, type Ligne } from '../../../src/hote/elements';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
@@ -75,7 +77,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', { offre: 'charge' });
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
-  s = jouer('jouer', { type: s.vue.champ!.combattant, args: [cible] });
+  s = jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [cible] });
   figer('fenêtre d’attaque', s);
   s = jouer('jouer', enFocus(s));
   figer('jet d’attaque tombé', s);
@@ -88,10 +90,19 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));
   figer('jet de Défense tombé', s);
+  for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
+    const c = s.vue.projection.combat!;
+    if (pas > 300 || c.fin) throw new Error(`aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`);
+    const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
+    s = jouer('jouer', s.vue.projection.fenetre ? enFocus(s)
+      : c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
+        : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu);
+  }
+  figer('Coup Critique', s);
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.offres': [], 'journal.titre': [],
+    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'journal.titre': [],
   };
   vues.push({
     nom: 'formulaire de chaque saisie',

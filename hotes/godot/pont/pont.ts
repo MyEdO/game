@@ -4,7 +4,7 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
  */
-import { CLICS_DU_CHAMP, cataloguesDeComposition, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, cataloguesDeComposition, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -34,7 +34,8 @@ interface ErreurGlobale {
 /** La vue : la projection commune (`projeter`), la disposition de la fenêtre qui tient la main
  *  (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses éléments (`zonesDeLEcran`), les cases
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
- *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` ; `null` : la barre de l'actif n'est pas ouverte), et l'id du
+ *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` la barre de l'actif ouverte, `CLICS_DE_L_EXPLORATION` en exploration
+ *  quand rien ne tient la main ; `null` sinon), et l'id du
  *  combattant que chaque case porte, par `"x,y"`. */
 export interface VueDuPont extends CouvertureDesModeles {
   projection: Projection;
@@ -42,7 +43,7 @@ export interface VueDuPont extends CouvertureDesModeles {
   zones: ZonesDeLEcran;
   cases: CaseAtteignable[];
   plateau: ReturnType<typeof plateauDeLaScene> | null;
-  champ: typeof CLICS_DU_CHAMP | null;
+  champ: typeof CLICS_DU_CHAMP | typeof CLICS_DE_L_EXPLORATION | null;
   occupants: Record<string, string>;
 }
 
@@ -59,7 +60,7 @@ export interface Suite {
 const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
 
 /** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
-const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : ['type', 'args', 'siege']);
+const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : 'suite' in e ? ['suite'] : ['type', 'args', 'siege']);
 
 /** La valeur de `lu`, le champ `champ` de l'entrée de `methode` lu par le noyau ; refusée en `validation`, chaque faute à
  *  son chemin. */
@@ -108,21 +109,30 @@ export function creerPont() {
     const fenetre = fenetreADessiner(etat);
     return {
       projection,
-      ...modelesDesCombattants(combat?.voisins.liste ?? []),
+      ...modelesDesCombattants(combat?.voisins.liste ?? projection.exploration?.heros ?? []),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
-      champ: combat?.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null,
+      champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]}`, c.id]] : []))),
     };
   };
 
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
     const programmes = o.jetons.programmes(resultat);
-    const zones = { 'journal.lignes': lignesDuJournal(o.lignes, resultat.journal) };
+    const zones = { 'journal.lignes': lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal) };
     o.lignes += resultat.journal.length;
     return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
+  };
+
+  /** Un geste joué : une offre de l'actif, ou un verbe et ses arguments. */
+  const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): ResultatDeLAppel => {
+    const etat = o.partie.etat();
+    const geste = 'offre' in e ? lireGeste(e) : gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE);
+    const resultat = envoyerLIntention(o.partie, intentionDuGeste(etat, geste, SANS_PISTE));
+    o.pas++;
+    return resultat;
   };
 
   const methodes: Record<string, (json?: string | null) => object> = {
@@ -141,11 +151,15 @@ export function creerPont() {
     jouer(json) {
       const o = demarree();
       const e = entreeDe('jouer', json, clesDuGeste);
-      const etat = o.partie.etat();
-      const geste = 'offre' in e ? lireGeste(e) : gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE);
-      const resultat = envoyerLIntention(o.partie, intentionDuGeste(etat, geste, SANS_PISTE));
-      o.pas++;
-      return suite(o, resultat);
+      if (!('suite' in e)) return suite(o, jouerUnGeste(o, e));
+      valider(Array.isArray(e.suite) && e.suite.length > 0 && e.suite.every(estObjet), 'jouer : suite, une liste non vide de verbes { type, args }');
+      const [premier, ...reste] = e.suite as Record<string, unknown>[];
+      const resultats = [jouerUnGeste(o, premier)];
+      for (const g of reste) {
+        if (fenetreADessiner(o.partie.etat())) break;
+        resultats.push(jouerUnGeste(o, g));
+      }
+      return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
     },
     reprendre(json) {
       const o = demarree();

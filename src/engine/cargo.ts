@@ -51,6 +51,18 @@ export function isEchangeable(entry: CargoEntry): entry is CargoDef {
   return entry.echangeable !== false;
 }
 
+/** L'entrée d'id `id` d'un catalogue de cargaisons, marqueur compris — la recherche par id des deux
+ *  commerces (`seaVoyage.ts`, `landCargo.ts`). PUR. */
+export function entreeDeCargaison<E extends CargoEntry>(catalogue: readonly E[], id: string): E | undefined {
+  return catalogue.find((c) => c.id === id);
+}
+
+/** La MARCHANDISE d'id `id` d'un catalogue de cargaisons : un marqueur n'en est pas une. PUR. */
+export function marchandiseDeCargaison<E extends CargoEntry>(catalogue: readonly E[], id: string): Exclude<E, CargoMarkerDef> | undefined {
+  const entree = entreeDeCargaison(catalogue, id);
+  return entree && isEchangeable(entree) ? (entree as Exclude<E, CargoMarkerDef>) : undefined;
+}
+
 /** L'entrée désigne-t-elle une PLAQUE TOURNANTE du commerce ? Lit le CHAMP `tradeHub` du marqueur
  *  (MSRC 13 l.24-28, MDG 15 l.321) — SOURCE UNIQUE du concept pour les deux commerces : aucun site ne
  *  teste l'id d'une entrée de la colonne Production/Produits. Une entrée absente du catalogue (id

@@ -51,9 +51,9 @@ describe('Scénario Commerce fluvial — carte fidèle à l’Index géographiqu
     const places = scenConstruit.worldMap!.places;
     const place = (id: string) => places.find((p) => p.id === `p-${id}`)!;
     // Indices recopiés de l'Index (l.187 Altdorf, l.227 Kemperbad, l.221 Grünburg, l.237 Ubersreik).
-    expect(place('altdorf').market).toMatchObject({ taille: 4, richesse: 5, produits: ['commerce'] });
+    expect(place('altdorf').market).toMatchObject({ taille: 4, richesse: 5, produits: ['commerce-terre'] });
     expect(place('kemperbad').market).toMatchObject({ taille: 3, richesse: 4, wineBonusEchelons: 2 });
-    expect(place('grunburg').market).toMatchObject({ taille: 3, richesse: 2, produits: ['commerce'] });
+    expect(place('grunburg').market).toMatchObject({ taille: 3, richesse: 2, produits: ['commerce-terre'] });
     expect(place('ubersreik').market).toMatchObject({ taille: 3, richesse: 4 });
     // Chaque Lieu de la carte a un marché (LandMarketProfile) et est relié par barge.
     expect(places.every((p) => p.market)).toBe(true);

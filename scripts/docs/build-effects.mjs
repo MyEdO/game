@@ -1,7 +1,8 @@
 // Carte du vocabulaire `Effect` = DONNÉE (#667) : GÉNÉRÉE depuis les SCHÉMAS zod des variantes
 // (src/data/schemas/defs-scenes/effets.ts — AST TypeScript, pas de regex sur les accolades) ; c'est
 // là que vivent la forme de chaque variante, sa JSDoc et l'union `Effect` qui en compose les noms par
-// `z.infer`. La feuille `type:'ops'` est le schéma de la grammaire, indexé lui aussi.
+// `z.infer`. Une variante importée (la feuille `type:'ops'` de la grammaire, les Effets de campagne) se
+// suit à son import dans `effets.ts` (`constanteImportee`).
 // Sortie : docs/campagne-effects.md.
 // Re-run : node scripts/docs/build-effects.mjs (npm run docs:effects).
 // Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
@@ -13,11 +14,10 @@ import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
   const SRC = 'src/data/schemas/defs-scenes/effets.ts'
-  const SRC_OPS = 'src/data/schemas/grammaire/mecanique.ts'
   const OUT = 'docs/campagne-effects.md'
   const TOOL = 'build-effects'
 
-  const index = indexerConstantes([SRC, SRC_OPS])
+  const index = indexerConstantes([SRC])
   const { rows: merged, rawCount } = readZodUnionMembers(index, 'effectSchema', 'type', TOOL, {
     // `...scheduleShape` (la shape étalée) NOMME `ScheduleSpec` (engine/clock) dans la carte.
     nomsDeSpread: { scheduleShape: 'ScheduleSpec' },
