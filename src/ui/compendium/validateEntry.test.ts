@@ -56,7 +56,7 @@ describe('validateEntry — garde du persist de CodexEdit (Enregistrer bloqué t
  * dans un champ que le lecteur résout par ID. `validateEntry` est le gate PRE-PERSIST unique ; ces cas
  * couvrent (a) un champ-liste de CHAÎNES top-level (`REF_LIST_DATASET`, ex. `criticalsTete.traumas`),
  * (b) une réf NICHÉE sous un sous-objet/sous-tableau (`NESTED_REF_FIELDS`, ex. `mutationTables.
- * ranges[].mutation`, `domains.castBonus.perCondition`) — les deux mécanismes déclarés dans
+ * entries[].mutation`, `domains.castBonus.perCondition`) — les deux mécanismes déclarés dans
  * `CodexEdit.tsx`. Le dernier test balaie TOUTE la donnée committée : round-trip = déjà résolvable.
  */
 describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datalist/sélecteur) → bloquant', () => {
@@ -70,13 +70,13 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
     expect(errs.some((e) => /traumas.*Fracture.*introuvable/.test(e))).toBe(true);
   });
 
-  it('mutationTables.ranges[].mutation (réf NICHÉE) : id résolvable → OK ; libellé → bloquant', () => {
+  it('mutationTables.entries[].mutation (réf NICHÉE) : id résolvable → OK ; libellé → bloquant', () => {
     const tables = datasetArray('mutationTables') as unknown as Entry[];
     const goodId = (datasetArray('mutations') as { id: string }[]).find((m) => m.id === 'pattes-d-animaux')!.id;
     const base = tables[0];
-    expect(validateEntry('mutationTables', { ...base, ranges: [{ min: 1, max: 100, mutation: goodId }] }, tables, 0)).toEqual([]);
-    const errs = validateEntry('mutationTables', { ...base, ranges: [{ min: 1, max: 100, mutation: 'Pattes d’animaux' }] }, tables, 0);
-    expect(errs.some((e) => /ranges\[\]\.mutation.*introuvable/.test(e))).toBe(true);
+    expect(validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: goodId }] }, tables, 0)).toEqual([]);
+    const errs = validateEntry('mutationTables', { ...base, entries: [{ min: 1, max: 100, mutation: 'Pattes d’animaux' }] }, tables, 0);
+    expect(errs.some((e) => /entries\[\]\.mutation.*introuvable/.test(e))).toBe(true);
   });
 
   it('domains.castBonus.perCondition (réf NICHÉE) : id d’État résolvable → OK ; libellé → bloquant', () => {

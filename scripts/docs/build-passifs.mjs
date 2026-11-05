@@ -320,7 +320,7 @@ function renduDuProgramme(session) {
 
   const MUTATIONS = JSON.parse(readFileSync(ancre(`${DATA}/mutations.json`, 'mutations'), 'utf8'))
   const TABLES = JSON.parse(readFileSync(ancre(`${DATA}/mutationTables.json`, 'tables de Corruption'), 'utf8'))
-  const REFS_TABLES = new Set(TABLES.flatMap((t) => (t.entries ?? t.ranges ?? []).map((r) => r.mutation)))
+  const REFS_TABLES = new Set(TABLES.flatMap((t) => t.entries.map((r) => r.mutation)))
   const MUT_HORS_TABLE = MUTATIONS.filter((m) => !REFS_TABLES.has(m.id)).length
   const MUT_KINDS = [...new Set(MUTATIONS.map((m) => m.kind).filter(Boolean))].sort()
 

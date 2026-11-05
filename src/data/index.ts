@@ -2500,7 +2500,7 @@ export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'mode
   const qualifs = [inst.severity ? libelleDeValeur(symptomSeveritySchema, inst.severity) : null, inst.spec ?? null].filter(Boolean);
   return qualifs.length ? dataLabel(`${symptomLabel(inst.symptomId)} (${qualifs.join(', ')})`) : symptomLabel(inst.symptomId);
 };
-/** Mutations (entités) + Tables de Corruption (plages d100 → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
+/** Mutations (entités) + Tables de Corruption (plages de leur dé → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
  *  app-owned éditables au Codex. Le runtime du tirage (`rollMutation`) vit dans `mutations.ts`. */
 export const mutations = mutationsJson as MutationData[];
 export const mutationTables = mutationTablesJson as MutationTable[];
@@ -2912,10 +2912,10 @@ export const calendarMonths = calendarMonthsJson as { id: string; type: 'calenda
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];
 export const calendarWeekdays = calendarWeekdaysJson as { id: string; type: 'calendarWeekdays'; label: string }[];
 export const calendarPhases = calendarPhasesJson as { id: string; type: 'calendarPhases'; seuil: number; label: string; icon: string }[];
-/** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages d100 → météo par saison ;
+/** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages du dé `die` → météo par saison ;
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {
-  seasons: { id: string; label: string; ranges: { min: number; max: number; weather: string }[] }[];
+  seasons: { id: string; label: string; die: string; entries: { min: number; max: number; weather: string }[] }[];
   physicalTestChars: CharKey[];
   conditions: {
     id: string; label: string; desc?: string;
@@ -2925,7 +2925,7 @@ const weatherData = weatherJson as {
     source?: SourceRef;
   }[];
 };
-/** 1 entrée par saison, `ranges` = plages d100 → météo (lecture par `rollStageWeather`). */
+/** 1 entrée par saison, `entries` = plages de son dé `die` → météo (lecture par `weatherFromRoll`, `weatherDie`). */
 export const weather = weatherData.seasons;
 /**
  * Libellé d'affichage d'une SAISON (`Season`, `src/engine/travelStages.ts`) — SOURCE UNIQUE, keyée par

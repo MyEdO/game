@@ -1536,13 +1536,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'mutationTables', label: 'Tables de Corruption', group: 'Effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: `${t.ranges.length} plages d100`,
-      // Tirage d100 → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
+      sub: `${t.entries.length} plages ${t.die}`,
+      // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
-        title: 'Tirage (d100 → Mutation)', layout: 'list',
-        rows: t.ranges.map((r) => {
+        title: `Tirage (${t.die} → Mutation)`, layout: 'list',
+        rows: t.entries.map((r) => {
           const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow;
+          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(t.die)) } as CodexRow;
         }),
       }),
     })),
@@ -1747,7 +1747,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'weather', label: 'Météo de voyage', group: 'Tables', cluster: 'Voyage terrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: `${s.ranges.length} plages d100 (EDOC 8)` })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: `${s.entries.length} plages ${s.die} (EDOC 8)` })),
   },
   {
     key: 'weatherConditions', label: 'Conditions météo', group: 'Tables', cluster: 'Voyage terrestre',
