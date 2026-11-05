@@ -609,7 +609,7 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], squelette: Skel
 		var portage := MontageDEquipement.attacher(squelette, cible.attache, nom)
 		var relais := Node3D.new()
 		relais.name = "DepuisLaPrise_%s" % origine.id
-		relais.transform = _repere_de_l_attache(origine.attache).affine_inverse()
+		relais.transform = MontageDEquipement.repere(origine.attache).affine_inverse()
 		portage.add_child(relais)
 		piece.reparent(relais, false)
 		return portage.get_parent()
@@ -632,16 +632,6 @@ func _prise_de_l_os(os: String) -> Dictionary:
 		if point.genre == "prise" and point.attache.os == os:
 			return point
 	return {}
-
-
-## Le repère d'une attache `{os, position, rotation}` dans son os, tel que `MontageDEquipement.attacher` le pose.
-static func _repere_de_l_attache(attache: Dictionary) -> Transform3D:
-	var repere := Node3D.new()
-	repere.position = Vector3(attache.position[0], attache.position[1], attache.position[2])
-	repere.rotation = Vector3(attache.rotation[0], attache.rotation[1], attache.rotation[2])
-	var transformation := repere.transform
-	repere.free()
-	return transformation
 
 
 ## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`surfaces` de la réponse de

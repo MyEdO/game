@@ -38,8 +38,10 @@ func _squelette() -> Skeleton3D:
 	return squelette
 
 
+## Le repère d'une attache selon le contrat (`hotes/godot/asset/attache.ts`) : R = Rx·Ry·Rz, composée ici axe par axe.
 func _repere(attache: Dictionary) -> Transform3D:
-	return Transform3D(Basis.from_euler(Vector3(attache.rotation[0], attache.rotation[1], attache.rotation[2])),
+	var r: Array = attache.rotation
+	return Transform3D(Basis(Vector3.RIGHT, r[0]) * Basis(Vector3.UP, r[1]) * Basis(Vector3.BACK, r[2]),
 		Vector3(attache.position[0], attache.position[1], attache.position[2]))
 
 
@@ -65,10 +67,11 @@ func _verifier(cible: String) -> void:
 	else:
 		attendu = attendu * _repere(OFF.attache) * _repere(MAIN.attache).affine_inverse() * local
 	var obtenu := piece.global_transform
-	if not (obtenu.origin.is_equal_approx(attendu.origin) and obtenu.basis.x.distance_to(attendu.basis.x) < EPSILON
-			and obtenu.basis.y.distance_to(attendu.basis.y) < EPSILON and obtenu.basis.z.distance_to(attendu.basis.z) < EPSILON):
+	var juste := obtenu.origin.is_equal_approx(attendu.origin) and obtenu.basis.x.distance_to(attendu.basis.x) < EPSILON \
+			and obtenu.basis.y.distance_to(attendu.basis.y) < EPSILON and obtenu.basis.z.distance_to(attendu.basis.z) < EPSILON
+	if not juste:
 		_fautes.append("%s : lame à %s, attendue à %s" % [cible, obtenu, attendu])
-	print("[prise-reposee] %s : %s" % [cible, "OK" if _fautes.is_empty() else "KO"])
+	print("[prise-reposee] %s : %s" % [cible, "OK" if juste else "KO"])
 	atelier.free()
 	squelette.queue_free()
 	await process_frame
