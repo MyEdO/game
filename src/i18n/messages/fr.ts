@@ -1280,6 +1280,7 @@ export const fr = {
   'exploration.saut': 'Sauter vers ({x},{y})',
   'exploration.sortie': 'Sortie vers {scene}',
   'exploration.ailleurs': '{geste} depuis ({x},{y})',
+  'exploration.offre': '{porteur} : {action}',
   'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
   'saut.horsDePortee': 'Saut refusé : aucun saut ne mène à cette case.',

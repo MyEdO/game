@@ -18,6 +18,9 @@
 //   la main, sa sortie en focus ; sa sortie à l'Entrée rend la main à la scène.
 // - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
 //   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
+// - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
+//   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
+//   réponse cliquée : l'interlocuteur suivant prend la parole.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -48,6 +51,7 @@
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -68,7 +72,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|exploration|fiche|inventaire|creation|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|fiche|inventaire|creation|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -334,6 +338,37 @@ async function parcoursExploration() {
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${reduit.x},${reduit.y}'`)
   noter(`clic sur la case ${reduit.x},${reduit.y} : le groupe y marche`)
   await capturer('3328-e1-3-reduit')
+}
+
+async function parcoursDialogue() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const pres = { x: 5, y: 4 }
+  await cliquerCase(pres)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
+  v = await vue()
+  const parler = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'parler'))
+  assert.ok(parler, `à portée de Gustav, son offre « Parler » est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
+  noter(`clic sur la case ${pres.x},${pres.y} ; bouton « ${parler.libelle} »`)
+  await capturer('3328-h1-1-a-portee')
+  await cliquerBouton(bouton(parler))
+  await attendreLaVue("v.zones['dialogue.reponses'].length > 0")
+  v = await vue()
+  noter(`${zone(v, 'dialogue.orateur')[0]?.texte} : ${zone(v, 'dialogue.replique')[0]?.texte} ; réponses ${zone(v, 'dialogue.reponses').map((b) => b.libelle).join(' | ')}`)
+  await capturer('3328-h1-2-conversation')
+  const orateur = zone(v, 'dialogue.orateur')[0]?.texte
+  await cliquerBouton(bouton(zone(v, 'dialogue.reponses')[0]))
+  await attendreLaVue(`v.zones['dialogue.orateur'][0]?.texte !== ${JSON.stringify(orateur)}`)
+  v = await vue()
+  noter(`réponse cliquée : ${zone(v, 'dialogue.orateur')[0]?.texte} prend la parole`)
+  await capturer('3328-h1-3-interlocuteur-suivant')
 }
 
 async function parcoursFiche() {
@@ -1034,7 +1069,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
