@@ -69,7 +69,8 @@ export interface Projection {
   jets: JetEnVue[];
   combat: null | {
     round: number;
-    tour: number;
+    /** Le rang du tour dans le round, `null` avant le premier. */
+    tour: number | null;
     tours: number;
     fin: NonNullable<Jeu['battle']>['over'];
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
@@ -90,7 +91,8 @@ export interface Projection {
     groupe: [x: number, y: number];
     etage: number | null;
     cap: string | null;
-    heros: string[];
+    /** Les héros du groupe, le meneur d'abord, chacun à la case du groupe. */
+    heros: CombattantProjete[];
     /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
     gestes: { liste: GesteDExploration[]; enPlus: number };
     /** Les entités de la scène (`scene.entities`) : décors, PNJ, objets. */
@@ -222,7 +224,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     combat: b
       ? {
           round: b.round,
-          tour: b.turn + 1,
+          tour: b.turn < 0 ? null : b.turn + 1,
           tours: b.order.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
@@ -241,7 +243,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           groupe: [etat.partyPos.x, etat.partyPos.y],
           etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
           cap: capDuGroupe(etat),
-          heros: etat.party.map((h) => h.label),
+          heros: etat.party.map((h) => ({ ...combattant(h, undefined), pos: [etat.partyPos.x, etat.partyPos.y] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
           entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y] })), bornes.entites),
         },

@@ -70,7 +70,7 @@
       }
     },
     {
-      "id": "produits-de-luxe",
+      "id": "produits-de-luxe-mer",
       "label": "Produits de luxe",
       "avail": {
         "printemps": {
@@ -136,7 +136,7 @@
       }
     },
     {
-      "id": "bois",
+      "id": "bois-mer",
       "label": "Bois",
       "avail": {
         "printemps": {
@@ -202,7 +202,7 @@
       }
     },
     {
-      "id": "laine",
+      "id": "laine-mer",
       "label": "Laine",
       "avail": {
         "printemps": {
@@ -367,7 +367,7 @@
       }
     },
     {
-      "id": "commerce",
+      "id": "commerce-mer",
       "label": "Commerce",
       "echangeable": false,
       "hint": "plaque tournante",

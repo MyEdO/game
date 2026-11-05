@@ -1407,24 +1407,20 @@ const SONDE_DEF = [
 const SAISONS = (valeur: string) =>
   `z.strictObject({ printemps: ${valeur}, ete: ${valeur}, automne: ${valeur}, hiver: ${valeur} })`;
 
-/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`defs` = son dossier). */
-const reTape = (remplace: (source: string) => string) => (defs: string) => {
+/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`defs` = son dossier) : le
+ *  champ `cle` de la rangée marchande (`cargaisonMarchandeSchema`) re-déclaré au site. */
+const reTape = (cle: string, valeur: string) => (defs: string) => {
   for (const def of ['sea-cargo.ts', 'land-cargo.ts']) {
     const chemin = join(defs, def);
-    writeFileSync(chemin, remplace(readFileSync(chemin, 'utf8')), 'utf8');
+    writeFileSync(chemin, `${readFileSync(chemin, 'utf8')}\nexport const contrefacon = z.strictObject({ ${cle}: ${valeur} });\n`, 'utf8');
   }
 };
 
 /** Les trois mutations, chacune posée sur SA racine `apres`. La clé nomme le verdict. */
 const MUTATIONS: Record<string, (defs: string) => void> = {
   sonde: (defs) => writeFileSync(join(defs, 'sonde-mutation.ts'), SONDE_DEF, 'utf8'),
-  cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema,', `avail: ${SAISONS('plageSchema')},`)),
-  cfPrix: reTape((source) =>
-    source.replace(
-      'price: z.union([prixSaisonnierSchema, tirageSchema]),',
-      `price: z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })]),`,
-    ),
-  ),
+  cfAvail: reTape('avail', SAISONS('plageSchema')),
+  cfPrix: reTape('price', `z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })])`),
 };
 
 /** Clé d'une redéclaration : ce que la comparaison `avant`/`apres` tient pour identique. */

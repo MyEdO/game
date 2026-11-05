@@ -3,13 +3,13 @@
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
  * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
- * le journal. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
+ * le journal ; en exploration, les gestes du groupe. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId,
-  type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
+  type CombatEvent, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -28,7 +28,9 @@ export interface ZonesDeLEcran {
   'combat.ordre': Puce[];
   'combat.actif': Entite[];
   'combat.avis': Ligne[];
+  'combat.apercu': Ligne[];
   'combat.offres': Choix[];
+  'exploration.gestes': Bouton[];
   'journal.titre': Ligne[];
 }
 
@@ -206,12 +208,10 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
 const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
 
 /** Ce que le panneau du combat dit hors de ses jauges : pourquoi la barre est fermée (la fenêtre le dit quand elle tient
- *  la main), ce que l'aperçu coûte, la fin du combat. */
+ *  la main), la fin du combat. */
 function avisDuCombat(c: Combat, fenetreOuverte: boolean): Ligne[] {
-  const apercu = apercuDe(c);
   return [
     ...(c.barre.raison === null || fenetreOuverte ? [] : [ligne('raison', c.barre.raison, 'alerte')]),
-    ...(apercu === null ? [] : [ligne('apercu', apercu)]),
     ...(c.fin ? [ligne('fin', t('ecran.fin', { issue: t(`ecran.fin.${c.fin}`) }), TON_DE_LA_FIN[c.fin])] : []),
   ];
 }
@@ -228,11 +228,15 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.corps': fenetre ? corpsDeLaFenetre(etat) : [],
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
-    'combat.tour': c ? [ligne('tour', t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
+    'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
+    'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
+    'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
+      type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: null,
+    })),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
   };
 }
@@ -242,10 +246,28 @@ export interface ZonesDeLaSuite {
   'journal.lignes': Ligne[];
 }
 
-/** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites ; un événement de combat
- *  sans texte n'en écrit aucune. */
-export const lignesDuJournal = (avant: number, journal: readonly LigneDuJournal[]): Ligne[] =>
-  journal.flatMap((l, i) => {
+/** Le ton d'un événement du journal de combat : le début d'un round en alerte ; un coup grave (Critique, mort) dit le
+ *  camp qu'il frappe, un héros en échec, un adversaire en réussite. */
+const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
+  if (e.kind === 'round') return 'alerte';
+  if (toneOf(e.kind) !== 'grave') return 'neutre';
+  const frappe = e.targetId ?? e.actorId;
+  return frappe && porteurParId(etat, frappe)?.kind === 'hero' ? 'echec' : 'reussite';
+};
+
+/** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites : une par événement, son
+ *  ton dit ce qu'il pèse ; les sous-lignes d'un événement (`detail`) vont au détail de la ligne qui les précède dans
+ *  l'appel, montré à la demande. Un événement sans texte n'en écrit aucune. */
+export const lignesDuJournal = (etat: Jeu, avant: number, journal: readonly LigneDuJournal[]): Ligne[] =>
+  journal.reduce<Ligne[]>((lignes, l, i) => {
     const texte = l.de === 'journal' ? l.texte : l.evenement.text;
-    return texte ? [ligne(`journal/${avant + i}`, texte)] : [];
-  });
+    if (!texte) return lignes;
+    const id = `journal/${avant + i}`;
+    if (l.de === 'journal') return [...lignes, ligne(id, texte)];
+    const precedente = lignes[lignes.length - 1] as Ligne | undefined;
+    if (l.evenement.kind === 'detail' && precedente) {
+      const sous = texte.replace(/^\s*↳\s*/, '');
+      return [...lignes.slice(0, -1), { ...precedente, detail: precedente.detail === null ? sous : `${precedente.detail}\n${sous}` }];
+    }
+    return [...lignes, ligne(id, texte, tonDeLEvenement(etat, l.evenement))];
+  }, []);

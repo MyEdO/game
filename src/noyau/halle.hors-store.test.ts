@@ -19,7 +19,7 @@ import { t } from '../i18n';
 
 const carte: WorldMap = {
   id: 'm', label: 'Reikland',
-  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin', 'metal', 'commerce'] } }],
+  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } }],
   routes: [],
 };
 
@@ -140,7 +140,7 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
 describe('#3059 — bradage à la halle : refusé hors d’un Lieu ayant le Commerce en Produits (MSRC 13 l.160)', () => {
   it('siège local, Produits sans « commerce » : le geste dit le refus, la cargaison reste, la bourse aussi', () => {
     const lot: CargoLot = { cargoId: 'metal', enc: 12, basePriceGold: 10 };
-    const partie = halleFixee('local', [lot], ['vivres', 'vin', 'metal']);
+    const partie = halleFixee('local', [lot], ['vivres', 'vin-eau-de-vie', 'metal']);
     try {
       const bourse = bourseOf(partie.etat().party[0]);
       partie.envoyer({ type: 'landDumpCargo', args: ['convoi', 0] });

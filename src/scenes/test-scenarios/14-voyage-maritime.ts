@@ -98,7 +98,7 @@ const construireCarte = (): WorldMap => ({
     {
       id: 'p-marienburg', label: 'Marienburg', pos: { x: 75, y: 55 }, scene: 'test-mer-arrivee', icon: 'scenario/port',
       // grand port cosmopolite (MDG 15 l.343) + phare à l'atterrage (MDG 13 l.337)
-      port: { taille: 4, richesse: 5, production: ['commerce', 'produits-de-luxe'], surplus: { 'produits-de-luxe': 1 }, cosmopolite: true, lighthouse: true },
+      port: { taille: 4, richesse: 5, production: ['commerce-mer', 'produits-de-luxe-mer'], surplus: { 'produits-de-luxe-mer': 1 }, cosmopolite: true, lighthouse: true },
     },
   ],
   routes: [
