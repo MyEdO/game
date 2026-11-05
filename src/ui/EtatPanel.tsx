@@ -31,7 +31,8 @@ import { corruptionThreshold, limitesDeMutation } from '../engine/corruption';
 import { limiteDeCritiques } from '../engine/conditions';
 import { formatRemaining } from '../engine/disease';
 import { isPsychAfflictionActive } from '../engine/psychology';
-import { CHAR_LABELS, LOCALISATIONS_DE_COUP, type ConditionInstance } from '../engine/types';
+import { CHAR_LABELS, LOCALISATIONS_DE_COUP, effectRef, type ConditionInstance } from '../engine/types';
+import { effetDePenaliteDIncantation } from '../engine/ops';
 import { chipNom, summarizeEffects } from '../gameIso/effectIcons';
 import { fortuneMax, resolveMax } from '../engine/talentEffects';
 import { diseaseLabel, findPsychologyById, psychologyLabel, symptomLabel, symptomInstanceLabel, mutationLabel } from '../data';
@@ -307,13 +308,13 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
                 );
               })}
               {castPen.map((p, i) => {
-                const val = p.blocked ? 'Incantation bloquée' : p.maxZeroDR ? 'Prière plafonnée à 0 DR' : p.mod != null ? `${p.mod}` : '';
+                const val = effetDePenaliteDIncantation(p);
                 const dur = effectDuration(p, gameTime).replace(/^ · /, '');
                 const parts = [val, dur].filter(Boolean).join(' · ');
                 return (
                   <CodexRef
                     key={`cp${i}`}
-                    category="spells"
+                    {...effectRef(p)}
                     label={p.label}
                     fallback={{ body: parts || undefined }}
                     className="chip tone-warn"

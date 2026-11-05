@@ -17,7 +17,7 @@ import { enfantsDe } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
-import { categoryByKey, entryKey } from '../../compendium/registry';
+import { categoryByKey, entryKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';

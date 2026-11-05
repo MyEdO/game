@@ -12,7 +12,7 @@ const RULE = 'magic-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 
-describe('affichage — la fiche Codex RÉELLE (ui/compendium/registry) suit la règle', () => {
+describe('affichage — la fiche Codex RÉELLE (noyau/codex/registry) suit la règle', () => {
   const fiche = (id: string) => {
     return CODEX.find((c) => c.key === 'spells')!.items.find((i) => i.id === id)!;
   };
