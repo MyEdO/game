@@ -13,6 +13,7 @@ import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { evaluateTest, type TestResult } from '../engine/tests';
 import { setDesFixes } from '../engine/fixedDie';
+import { resetRule, setRule } from '../engine/policy';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
 import type { CascadeStep, OppositionParticipant, PendingAttack, PendingCascade, PendingCast, PendingCastOpposition, PendingDefense, PendingTest } from './pendings';
 import type { HostJet } from './slotsDeJet';
@@ -172,6 +173,32 @@ describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)
     const { ouverts, fermes } = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre }));
     expect(fermes['jetRoll@cast'], 'le jet d’incantation est tombé').toBe('jetLance');
     expect(ouverts, 'la rangée du Contre-sort, elle, reste à jeter').toContain('jetRoll@counterspell');
+  });
+
+  it('le Contre-sort ouvert : « Tout déclarer » tant qu’une rangée d’ici est vierge, l’incantation ne s’applique qu’après lui (LDB 46 l.156)', () => {
+    const contre = (declared: string | undefined) => ({ participants: [{ id: H.id, interactive: true, declared, result: null }] }) as unknown as Jeu['pendingCounterspell'];
+    const vierge = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre(undefined) }));
+    expect(vierge.ouverts, 'une rangée du héros reste à déclarer').toContain('counterspellDeclareAll');
+    const declare = verbes(enEtape('cast', { pendingCast: incantation(true), pendingCounterspell: contre('solo') }));
+    expect(declare.fermes.counterspellDeclareAll, 'plus rien à déclarer : l’Entrée passe au jet').toBe('rienADeclarer');
+    expect(declare.ouverts).toContain('jetRoll@counterspell');
+    expect(declare.fermes['jetConfirm@cast'], 'l’incantation attend son Contre-sort').toBe('contreSortDu');
+    expect(verbes(enEtape('cast', { pendingCast: incantation(true) })).ouverts, 'sans Contre-sort, l’incantation s’applique').toContain('jetConfirm@cast');
+  });
+
+  it('l’incantation n’offre que les réglages qui changent son Sort', () => {
+    const { fermes } = verbes(enEtape('cast', { pendingCast: incantation(true) }));
+    expect([fermes.castSetCritChoice, fermes.castSetConjureForm, fermes.castSetDiscreet, fermes.castSetChosenTableRolls], 'un Sort jeté sans Critique, sans arme invoquée ni Durée surincantée')
+      .toEqual(['nonOffert', 'nonOffert', 'jetLance', 'nonOffert']);
+    expect(verbes(enEtape('cast', { pendingCast: incantation(true, true) })).ouverts, 'LDB 46 l.26-32').toContain('castSetCritChoice');
+    setRule('prayer-conviction', true);
+    try {
+      const priere = verbes(enEtape('cast', { pendingCast: { ...incantation(false), spellId: 'benediction-de-guerison' } }));
+      expect(priere.ouverts, 'LDB 40 l.42').toContain('castSetDiscreet');
+      expect(priere.fermes.castSetCritChoice, 'une Prière n’a pas de Critique').toBe('jetNonLance');
+    } finally {
+      resetRule('prayer-conviction');
+    }
   });
 });
 

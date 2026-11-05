@@ -4,6 +4,8 @@ import { lignesDuJournal, zonesDeLEcran } from './ecran';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
 import type { Jeu, LigneDuJournal } from '../noyau/index';
+import { turnEconomyStamp } from '../noyau/endTurnGuard';
+import { t } from '../i18n';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -69,6 +71,24 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
       ]);
       expect(zones['fenetre.gestes'].map((g) => g.id), 'un choix sans valeur ne se dessine pas').not.toContain('harvestCreature');
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('le panneau du combat (`combat.avis`)', () => {
+  it('la fin du tour armée par un premier geste qui laisse l’Action intacte se lit, et rien avant', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const b = partie.etat().battle!;
+      const avis = (battle: typeof b) => {
+        const etat: Jeu = { ...partie.etat(), pendingRoundStart: null, battle };
+        expect(fenetreADessiner(etat), 'témoin : aucune fenêtre ne tient la main').toBeNull();
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null)['combat.avis'];
+      };
+      expect(avis(b).map((l) => l.id)).not.toContain('finDeTourArmee');
+      expect(avis({ ...b, endTurnArmed: turnEconomyStamp(b) }), 'le second geste finit le tour : l’écran le dit').toContainEqual(expect.objectContaining({ id: 'finDeTourArmee', ton: 'alerte', texte: t('ecran.finDeTourArmee') }));
     } finally {
       partie.fermer();
     }
