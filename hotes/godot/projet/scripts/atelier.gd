@@ -14,8 +14,9 @@ const AUCUN := "Aucun"
 const AIDE_DU_GENRE := {emplacement = "emplacements", prise = "prises"}
 const COULEUR_DES_AIDES := {os = Color(0.95, 0.85, 0.2), emplacements = Color(0.3, 0.8, 1.0), prises = Color(1.0, 0.4, 0.35)}
 const ORIGINE := [0.0, 0.0, 0.0]
-## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`_repere_de_rangement`).
-const DEGAGEMENT_DE_RANGEMENT := 0.01
+## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`_repere_de_rangement`) : assez pour passer
+## par-dessus un vêtement ample et une ceinture.
+const DEGAGEMENT_DE_RANGEMENT := 0.05
 const RAYON_DU_REPERE_D_OS := 0.02
 ## Plus grand que celui d'un os : le repère d'un point déborde de celui de son os, quel que soit l'ordre de rendu.
 const RAYON_DU_REPERE_DE_POINT := 0.035

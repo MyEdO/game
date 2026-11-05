@@ -5,11 +5,11 @@ extends SceneTree
 ## d'origine. Sur un squelette à deux mains d'orientations différentes, le mesh garde, dans le repère de la prise retenue,
 ## la place qu'il avait dans celui de sa prise d'origine ; à sa propre prise, il garde sa place sous son os. Rangé à un
 ## emplacement du bassin, sa prise a la tête vers le bas du personnage et les jointures sur la normale sortante, sa
-## poignée sur l'emplacement, et sa boîte à 1 cm de la peau.
+## poignée sur l'emplacement, et sa boîte à 5 cm de la peau.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
-const DEGAGEMENT := 0.01
+const DEGAGEMENT := 0.05
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
 const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const CEINTURE := {id = "ceinture_avant", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.148, 0.108], rotation = [-0.29, 0.0, 0.0]}}
