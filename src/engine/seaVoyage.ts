@@ -32,7 +32,7 @@ import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasona
 
 /** La voie du catalogue que porte la table de ce livre (MDG 15 l.406-418). */
 export const VOIE_MARITIME: Voie = 'mer';
-export { type CargoDef, type CargoEntry, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoBasePrice } from './cargo';
+export { type CargoDef, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoBasePrice } from './cargo';
 
 // ── Types de la donnée ───────────────────────────────────────────────────────────────────────────
 
