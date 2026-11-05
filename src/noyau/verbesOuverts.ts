@@ -5,7 +5,9 @@
  * « avant » ou « après » le jet de lui-même.
  */
 import type { Jeu } from './etat';
-import { fenetreDuJeu, type FenetreDuJeu } from './combatAuto';
+import { fenetreDuJeu, NAVIGATION_DE_CASCADE, type FenetreDuJeu } from './combatAuto';
+import { stepInteraction, stepReady } from './cascade';
+import type { PendingCascade } from './pendings';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
@@ -17,13 +19,22 @@ export function fermeturesDuFlux(s: Jeu, flux: FlowKey, pid?: string): Fermeture
   return FLOW_HANDLERS[flux].fermetures(() => s, pid);
 }
 
-/** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux` : un verbe de jet sur ce flux, la
- *  validation de l'étape de cascade (`cascadeNext`). `enFenetre` : le geste agit
- *  sur la fenêtre entière, jamais sur une rangée. `null` : le flux ne joue pas ce geste. */
+/** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux`, un verbe de jet sur ce flux. `enFenetre` :
+ *  le geste agit sur la fenêtre entière, jamais sur une rangée. `null` : le flux ne joue pas ce geste. */
 function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetre: boolean } | null {
   const deJet = verbeDeJetDe(g.verbe);
-  if (deJet) return g.flux === flux ? { verbe: deJet, enFenetre: estVerbeDeFenetre(deJet) } : null;
-  return flux === 'cascade' && g.verbe === 'cascadeNext' ? { verbe: 'confirm', enFenetre: true } : null;
+  return deJet && g.flux === flux ? { verbe: deJet, enFenetre: estVerbeDeFenetre(deJet) } : null;
+}
+
+/** Ce qui ferme maintenant la navigation de la cascade `pc` (`NAVIGATION_DE_CASCADE`). Sur une étape : la valider tant
+ *  qu'elle n'est pas prête (`stepReady`), tout résoudre tant qu'elle attend un choix que rien ne tranche à la place du
+ *  joueur (`resolveRemainingCascade`), terminer tant qu'il reste des étapes. Au bilan, seul « Terminer » reste. */
+function fermeturesDeLaNavigation(s: Jeu, pc: PendingCascade): Record<(typeof NAVIGATION_DE_CASCADE)[number], FermetureDuJet | null> {
+  const etape = pc.participants[pc.cursor];
+  if (!etape) return { cascadeNext: 'etapesJouees', cascadeResolveAll: 'etapesJouees', cascadeFinish: null };
+  const choix = stepInteraction(etape) === 'choix';
+  const due: FermetureDuJet | null = stepReady(etape, s) ? null : choix ? 'choixDu' : 'jetNonLance';
+  return { cascadeNext: due, cascadeResolveAll: choix ? due : null, cascadeFinish: 'etapesDues' };
 }
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : le flux d'un geste de jet, et l'id qu'elle désigne
@@ -51,7 +62,12 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
     parFlux.set(cle, f);
     return f;
   };
+  const navigation = fenetre.cle === 'cascade' && s.pendingCascade ? fermeturesDeLaNavigation(s, s.pendingCascade) : null;
   for (const g of fenetre.gestes) {
+    if (navigation && g.verbe in navigation) {
+      out.set(cleDuGeste(g), navigation[g.verbe as keyof typeof navigation]);
+      continue;
+    }
     for (const flux of fenetre.flux) {
       const cycle = verbeDuCycle(flux, g);
       if (!cycle) continue;
