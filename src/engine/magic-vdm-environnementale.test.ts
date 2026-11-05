@@ -61,7 +61,7 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
     for (const t of arcaneTables) {
       const faces = t.die === 'd10' ? 10 : 100;
       let next = 1;
-      for (const r of t.rows) {
+      for (const r of t.entries) {
         expect(r.min).toBe(next);
         next = r.max + 1;
       }
@@ -79,15 +79,15 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
 
   it('Flux magique : la rangée 9 est RECONSTRUITE — la cellule imprimée est vide, la note le dit', () => {
     const table = findArcaneTableById('vdm-flux-magique');
-    const neuf = table.rows.find((r) => r.min === 9)!;
+    const neuf = table.entries.find((r) => r.min === 9)!;
     expect(neuf.maison).toMatch(/RECONSTRUITE/);
     expect(neuf.maison).toMatch(/VIDE/);
     // Aucune autre rangée n'est déduite : les neuf autres sont lues telles qu'imprimées.
-    expect(table.rows.filter((r) => r.maison)).toHaveLength(1);
+    expect(table.entries.filter((r) => r.maison)).toHaveLength(1);
   });
 
   it('Corruption chaotique / nécromantique : d100 de 20 rangées chacune, tirées par findTableEntry', () => {
-    expect(findArcaneTableById('vdm-corruption-chaotique').rows).toHaveLength(20);
+    expect(findArcaneTableById('vdm-corruption-chaotique').entries).toHaveLength(20);
     expect(rollArcaneTable('vdm-corruption-chaotique', 3).label).toBe('Colonnes de crânes');
     expect(rollArcaneTable('vdm-corruption-chaotique', 100).label).toBe('Pustules en germination');
     expect(rollArcaneTable('vdm-corruption-necromantique', 100).label).toBe('Brume effroyable');

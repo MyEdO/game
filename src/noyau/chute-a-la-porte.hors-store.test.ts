@@ -458,7 +458,7 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
   // deux dés sous `applyOps` (`imbrique` retire `ctx.des`) : c'est une dette COMPTÉE (stock
   // `DES_HORS_PORTE_STOCK`, à l'`applyOps` de l'appelant), pas une classe exemptée. Ce contrat FIXE
   // l'état mesuré pour qu'un futur train le voie rougir en l'adoptant, au lieu de le croire fait.
-  const imbriquee = () => [{ op: 'rollTable', die: 'd10', rows: [{ min: 1, max: 10, ops: opsDeChute() }] }] as unknown as GameOp[];
+  const imbriquee = () => [{ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: opsDeChute() }] }] as unknown as GameOp[];
 
   it('`demandesDeDes` n’annonce RIEN pour la forme imbriquée, et aucune fenêtre ne s’ouvre', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],

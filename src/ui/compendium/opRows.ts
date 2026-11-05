@@ -15,7 +15,6 @@ import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { facesDuDe, fourchette } from '../../engine/tables';
-import type { DeDeTable } from '../../data/schemas/grammaire/valeurs';
 import { statName } from '../../engine/statEntry';
 import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
@@ -209,9 +208,9 @@ const MAX_TABLE_DEPTH = 1;
 /** Rangées `[min,max] → ops` d'une table d'effets → lignes Codex (sous-titre de fourchette + ops de la
  *  rangée passées par la MÊME humanisation récursive). SOURCE UNIQUE, composée par la catégorie Codex
  *  « Tables d'effets » (`registry.ts`) ET par l'expansion générique de l'op `rollTable` ci-dessous. */
-export function tableRows(table: { die: DeDeTable; rows: { min: number; max: number; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
+export function tableRows(table: { die: string; entries: { min: number; max: number; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
   const faces = facesDuDe(table.die);
-  return table.rows.flatMap((r): CodexRow[] => [
+  return table.entries.flatMap((r): CodexRow[] => [
     { t: 'sub', label: tableRowRange(r, faces) },
     ...r.ops.flatMap((o) => opRowsForOp(o, depth, ctx)),
   ]);
@@ -224,7 +223,7 @@ function opRowsForOp(o: GameOp, depth: number, ctx?: OpRowCtx): CodexRow[] {
   if (o.op === 'rollTable') {
     if (depth >= MAX_TABLE_DEPTH) {
       // Table imbriquée déjà sous une rangée expansée : libellé + lien codex (tableId), sinon repli texte
-      // (rows inline sans id à lier) — jamais de ré-expansion (borne l'imbrication).
+      // (rangées inline sans id à lier) — jamais de ré-expansion (borne l'imbrication).
       if ('tableId' in o) {
         const t = findEffectTableById(o.tableId);
         return [{ t: 'ref', category: 'effectTables', id: t.id, label: t.label, show: t.label }];

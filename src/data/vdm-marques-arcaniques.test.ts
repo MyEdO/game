@@ -32,8 +32,8 @@ describe('Marques Arcaniques (VDM) — 8 tables d10, une par Domaine de Couleur'
   it('chaque table : 1d10, 10 rangées 1→10 contiguës, source VDM avec folio', () => {
     for (const t of marques) {
       expect(t.die).toBe('d10');
-      expect(t.rows).toHaveLength(10);
-      t.rows.forEach((r, i) => {
+      expect(t.entries).toHaveLength(10);
+      t.entries.forEach((r, i) => {
         expect(r.min, `${t.id} rangée ${i + 1}`).toBe(i + 1);
         expect(r.max, `${t.id} rangée ${i + 1}`).toBe(i + 1);
         expect(r.label, `${t.id} rangée ${i + 1} sans libellé`).toBeTruthy();
@@ -47,7 +47,7 @@ describe('Marques Arcaniques (VDM) — 8 tables d10, une par Domaine de Couleur'
   it('la rangée 10 de chaque table octroie un Talent *Empreint* DISTINCT et existant', () => {
     const granted = new Set<string>();
     for (const t of marques) {
-      const ops = t.rows[9].ops.filter((o) => o.op === 'grantTalent');
+      const ops = t.entries[9].ops.filter((o) => o.op === 'grantTalent');
       expect(ops, `${t.id} : rangée 10 sans grantTalent`).toHaveLength(1);
       const id = ops[0].op === 'grantTalent' ? ops[0].talent.id : '';
       expect(findTalentById(id), `${t.id} : Talent « ${id} » introuvable`).toBeDefined();
@@ -60,7 +60,7 @@ describe('Marques Arcaniques (VDM) — 8 tables d10, une par Domaine de Couleur'
   it('les 8 Talents *Empreint* sont OBTENABLES par leur table (câblage réel du graphe)', () => {
     const { talentSources } = computeObtainability(ROOT);
     for (const t of marques) {
-      const op = t.rows[9].ops.find((o) => o.op === 'grantTalent');
+      const op = t.entries[9].ops.find((o) => o.op === 'grantTalent');
       const id = op?.op === 'grantTalent' ? op.talent.id : '';
       expect([...(talentSources.get(id) ?? [])], `${id} sans source de table`).toContain(`table:${t.id}`);
     }

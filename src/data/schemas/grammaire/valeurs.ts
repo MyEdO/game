@@ -10,6 +10,7 @@ import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
+import { parseDice } from '../../../engine/dice';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -94,10 +95,12 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 export const roleAmbiantSchema = enumNomme({ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
 
-/** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
- *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
-export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
-export type DeDeTable = z.infer<typeof deDeTableSchema>;
+/** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que
+ *  `parseDice` (`src/engine/dice.ts`) lit en `DiceSpec`. UNE déclaration pour la fabrique
+ *  (`options.deDeTirage`, `grammaire/document.ts`), les tables de `arcane-phenomena.json`, les porteurs
+ *  de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`) et l'op `rollTable`
+ *  (`grammaire/mecanique.ts`). #1669 */
+export const deDeTirageSchema = z.string().refine((s) => parseDice(s) !== null, { message: 'dé de tirage illisible : une expression « NdM » (ex. « d10 », « 2d10 »)' });
 
 /** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
  *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`

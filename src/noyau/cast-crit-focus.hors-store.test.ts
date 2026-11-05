@@ -183,7 +183,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     banc.getState().jetConfirm('focus');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Marqué par la Magie/);
-    const marques = findEffectTableById('vdm-marques-arcaniques-feu').rows;
+    const marques = findEffectTableById('vdm-marques-arcaniques-feu').entries;
     const tiree = marques.filter((r) => j.includes((r.ops[0] as { text: string }).text));
     expect(tiree, 'aucune Marque d’Aqshy dans le journal').toHaveLength(1);
     resetRule('magic-vdm-incantation');

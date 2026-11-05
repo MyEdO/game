@@ -11,7 +11,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stoc
 /**
  * Intégrité de `tables.json` (tables d'effets référençables) + BIEN-FORMATION des ops `rollTable`/
  * `rollMutation` dans TOUS les `src/data/*.json` : `gameOpSchema` est LOOSE (seul `op` validé), donc les
- * contraintes XOR (`rows` ⊕ `tableId`) et la résolution des refs (`tableId` → tables.json ; `table` →
+ * contraintes XOR (`entries` ⊕ `tableId`) et la résolution des refs (`tableId` → tables.json ; `table` →
  * mutationTables.json) vivent ICI (jamais un tirage vers une table fantôme au runtime).
  */
 const DIR = __dirname;
@@ -40,16 +40,16 @@ describe('tables.json — tables d’effets référençables', () => {
       expect(seen.has(t.id), `id dupliqué : ${t.id}`).toBe(false);
       seen.add(t.id);
       expect(['d10', 'd100']).toContain(t.die);
-      expect(t.rows.length).toBeGreaterThan(0);
+      expect(t.entries.length).toBeGreaterThan(0);
       expect(t.source?.book, `${t.id} sans source`).toBeTruthy();
-      for (const r of t.rows) expect(r.min).toBeLessThanOrEqual(r.max);
+      for (const r of t.entries) expect(r.min).toBeLessThanOrEqual(r.max);
     }
   });
 
   it('les 4 colonnes du Tableau des aspects démoniaques (EDOC 13) existent, 10 rangées chacune', () => {
     for (const dom of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible']) {
       const t = findEffectTableById(`allure-demoniaque-${dom}`);
-      expect(t.rows).toHaveLength(10);
+      expect(t.entries).toHaveLength(10);
       expect(t.die).toBe('d10');
     }
   });
@@ -60,9 +60,9 @@ describe('tables.json — tables d’effets référençables', () => {
 });
 
 describe('bien-formation des ops rollTable / rollMutation (tous les datasets)', () => {
-  it('rollTable : EXACTEMENT un de `rows` ⊕ `tableId`', () => {
-    const bad = collectOps('rollTable').filter((o) => ('rows' in o) === ('tableId' in o));
-    expect(bad, `rollTable doit porter rows OU tableId (jamais les deux, jamais aucun) :\n${JSON.stringify(bad)}`).toEqual([]);
+  it('rollTable : EXACTEMENT un de `entries` ⊕ `tableId`', () => {
+    const bad = collectOps('rollTable').filter((o) => ('entries' in o) === ('tableId' in o));
+    expect(bad, `rollTable doit porter entries OU tableId (jamais les deux, jamais aucun) :\n${JSON.stringify(bad)}`).toEqual([]);
   });
 
   it('rollTable.tableId résout dans tables.json', () => {

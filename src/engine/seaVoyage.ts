@@ -20,7 +20,6 @@ import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
-import type { DeDeTable } from '../data/schemas/grammaire/valeurs';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
@@ -102,7 +101,7 @@ export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
  *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
 export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(EVENTS.boardEvents));
 /** Dé du tableau des événements de bord, MDG 15 l.182. */
-export const DE_DES_EVENEMENTS_DE_BORD: DeDeTable = 'd100';
+export const DE_DES_EVENEMENTS_DE_BORD = 'd100';
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
 const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
 /** Le catalogue COMPLET tel qu'il est authoré : marchandises ET marqueurs de l'Index (MDG 15 l.321) —

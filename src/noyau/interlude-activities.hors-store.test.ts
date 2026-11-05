@@ -471,9 +471,9 @@ describe('Activités d’interlude (LDB 23)', () => {
     const table = findEffectTableById('vdm-catastrophes-de-brassage');
     const seed = 4242;
     const die = roll(1, 10, makeRNG(seed)); // même tirage que consommera `rollTable`
-    const rowNoSL = findTableEntry(table.rows, die);
-    const rowWithSL = findTableEntry(table.rows, die + 3); // sl=-3 → |DR négatif| = 3
-    expect(findTableEntryIndex(table.rows, die + 3)).toBeGreaterThan(findTableEntryIndex(table.rows, die));
+    const rowNoSL = findTableEntry(table.entries, die);
+    const rowWithSL = findTableEntry(table.entries, die + 3); // sl=-3 → |DR négatif| = 3
+    expect(findTableEntryIndex(table.entries, die + 3)).toBeGreaterThan(findTableEntryIndex(table.entries, die));
 
     const basePending: PendingActivity = {
       kind: 'catalog', heroId: h.id, activityId: 'alchimie-ordinaire', label: 'Alchimie ordinaire',

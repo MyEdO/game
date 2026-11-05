@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { travelTableEntrySchema } from '../grammaire/mecanique';
 import { listeCle } from '../grammaire/collection-cle';
+import { deDeTirageSchema } from '../grammaire/valeurs';
 
 export const file = 'rencontres-edoc.json';
 export const famille = 'config';
@@ -12,7 +13,7 @@ const doc = document(
   'rencontres-edoc',
   famille,
   {
-    die: z.string(),
+    die: deDeTirageSchema,
     tables: nommerChamps(z.strictObject({
       positives: listeCle(travelTableEntrySchema, 'id'),
       fortuites: listeCle(travelTableEntrySchema, 'id'),

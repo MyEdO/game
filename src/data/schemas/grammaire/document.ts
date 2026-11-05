@@ -12,8 +12,8 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
-import { defDe, descendre, enfantsDe, ouverts } from './descente';
+import { deDeTirageSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
@@ -154,14 +154,15 @@ export interface OptionsDocument {
   /**
    * Schéma d'une RANGÉE du document — admissible dans TOUTE famille : la charge est orthogonale à
    * l'emballage du fichier. Même mécanique que `valeurRecord` : la fabrique pose
-   * `entries` sur l'entrée, en collection à clé `id` (`marquerCollection`, `grammaire/collection-cle.ts`),
-   * avec sa méta FR (`META_CHARGE`) — un def à rangées ne redéclare donc jamais sa charge, `die` compris
-   * (`options.deDeTirage`).
+   * `entries` sur l'entrée, avec sa méta FR (`META_CHARGE`) — un def à rangées ne redéclare donc jamais
+   * sa charge, `die` compris (`options.deDeTirage`). Une rangée qui déclare un `id` fait de `entries`
+   * une collection à clé `id` (`marquerCollection`, `grammaire/collection-cle.ts`) ; sans `id`, la
+   * rangée se désigne par sa fourchette (`findTableEntry`).
    */
-  readonly rangee?: z.ZodType<{ id: string }>;
+  readonly rangee?: z.ZodType<object>;
   /**
-   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis) avec sa méta FR
-   * (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
+   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis, `deDeTirageSchema`) avec sa
+   * méta FR (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
    * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (inventaire
    * `STRUCTURES_DEFAUT`, `scripts/guards/lib/inventaireDeDette.mts`). Exige `rangee`.
    */
@@ -539,8 +540,8 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       : rangee
         ? marquerProduit(z.strictObject({
             ...complet.shape,
-            ...(deDeTirage ? { die: z.string().min(1) } : {}),
-            entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
+            ...(deDeTirage ? { die: deDeTirageSchema } : {}),
+            entries: pasDeDonnee(ouverts([rangee]), 'id').length ? marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')) : z.array(rangee),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };

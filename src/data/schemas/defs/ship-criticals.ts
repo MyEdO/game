@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe, shipCritEntrySchema } from '../grammaire/mecanique';
-import { formulaSchema, replisSansExposeSchema, shipSizeSchema } from '../grammaire/valeurs';
+import { deDeTirageSchema, formulaSchema, replisSansExposeSchema, shipSizeSchema } from '../grammaire/valeurs';
 import { recordDIds } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 
@@ -28,7 +28,7 @@ const doc = document(
   'ship-criticals',
   famille,
   {
-    die: z.string(),
+    die: deDeTirageSchema,
     shrapnelHit: executeesDe(),
     replisSansExpose: replisSansExposeSchema,
     tablesDeChute: z.array(tableDeChuteSchema),

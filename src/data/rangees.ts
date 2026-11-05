@@ -13,7 +13,7 @@ import { parseDiceRequired, type DiceSpec } from '../engine/dice';
 /** Le module d'un def de document à rangées : sa famille et le schéma de sa rangée. */
 interface DefARangees {
   readonly famille: FamilleDocument;
-  readonly rangee: z.ZodType<{ id: string }>;
+  readonly rangee: z.ZodType<object>;
 }
 
 /** Une rangée du document du def `D`. */

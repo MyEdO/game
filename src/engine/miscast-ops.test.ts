@@ -365,7 +365,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
     const c = hero();
     const roulee: GameOp = {
       op: 'rollTable', die: 'd10',
-      rows: [{ min: 1, max: 10, ops: [{ op: 'condition', id: 'aveugle', value: 1, unlessCondition: 'aveugle' }] }],
+      entries: [{ min: 1, max: 10, ops: [{ op: 'condition', id: 'aveugle', value: 1, unlessCondition: 'aveugle' }] }],
     };
     c.activeEffects = [{ label: 'Nuée', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [roulee] }];
     expect(endOfRound(c, makeRNG(4))).toEqual(['Cobaye reçoit 1 État Aveuglé.']);

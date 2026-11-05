@@ -19,7 +19,7 @@ import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
@@ -550,7 +550,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'critOnRoll': return { op: 'critOnRoll', mod: 10, equals: 0 };
     case 'spendAdvantage': return { op: 'spendAdvantage', amount: 1 };
     case 'rollThreshold': return { op: 'rollThreshold', sides: 10, thresholds: [] };
-    case 'rollTable': return { op: 'rollTable', die: 'd10', rows: [] };
+    case 'rollTable': return { op: 'rollTable', die: 'd10', entries: [] };
     case 'rollMutation': return { op: 'rollMutation', table: '' };
     case 'narrative': return { op: 'narrative', text: '' };
     default: return { op: 'wounds', amount: 5 };
@@ -1141,7 +1141,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <label className="dr">Source de table
               <select value={'tableId' in o ? 'ref' : 'inline'} onChange={(e) => onChange(e.target.value === 'ref'
                 ? { op: 'rollTable', ...(o.addNegativeSL ? { addNegativeSL: true } : {}), ...(o.extraRollsPerStep ? { extraRollsPerStep: o.extraRollsPerStep } : {}), tableId: '' }
-                : { op: 'rollTable', die: 'd10', ...(o.addNegativeSL ? { addNegativeSL: true } : {}), ...(o.extraRollsPerStep ? { extraRollsPerStep: o.extraRollsPerStep } : {}), rows: [] })}>
+                : { op: 'rollTable', die: 'd10', ...(o.addNegativeSL ? { addNegativeSL: true } : {}), ...(o.extraRollsPerStep ? { extraRollsPerStep: o.extraRollsPerStep } : {}), entries: [] })}>
                 <option value="inline">Rangées inline</option>
                 <option value="ref">Table référencée (tables.json)</option>
               </select>
@@ -1158,13 +1158,12 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             ) : (
               <>
                 <label className="dr">Dé
-                  <select value={o.die ?? 'd10'} onChange={(e) => upd({ die: e.target.value as 'd10' | 'd100' })}>
-                    {optionsDuNoeud(deDeTableSchema).map(([k, l]) => (
-                      <option key={k} value={k}>{l}</option>
-                    ))}
-                  </select>
+                  <SaisieEnBrouillon
+                    ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={o.die ?? 'd10'} afficher={(die) => die}
+                    relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
+                    onChange={(die) => upd({ die })} />
                 </label>
-                <RollTableRowsField rows={o.rows ?? []} onChange={(rows) => upd({ rows })} />
+                <RollTableRowsField rows={o.entries ?? []} onChange={(entries) => upd({ entries })} />
               </>
             )}
           </>

@@ -19874,7 +19874,7 @@
                 {
                   "op": "rollTable",
                   "die": "d10",
-                  "rows": [
+                  "entries": [
                     {
                       "min": 1,
                       "max": 2,
@@ -21279,7 +21279,7 @@
               {
                 "op": "rollTable",
                 "die": "d10",
-                "rows": [
+                "entries": [
                   {
                     "min": 1,
                     "max": 3,
@@ -23210,7 +23210,7 @@
                   {
                     "op": "rollTable",
                     "die": "d10",
-                    "rows": [
+                    "entries": [
                       {
                         "min": 1,
                         "max": 3,
