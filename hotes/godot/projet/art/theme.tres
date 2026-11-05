@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=4 format=3]
+[gd_resource type="Theme" load_steps=6 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -25,15 +25,48 @@ content_margin_top = 12.0
 content_margin_right = 12.0
 content_margin_bottom = 12.0
 
+[sub_resource type="StyleBoxFlat" id="Fond_de_puce"]
+bg_color = Color(0.2, 0.18, 0.15, 1)
+content_margin_left = 6.0
+content_margin_top = 1.0
+content_margin_right = 6.0
+content_margin_bottom = 1.0
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Fond_de_bulle"]
+bg_color = Color(0.08, 0.07, 0.06, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.47, 0.33, 1)
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [resource]
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
 Panneau/base_type = &"PanelContainer"
 Panneau/styles/panel = ExtResource("1_fond")
 Fenetre/base_type = &"PanelContainer"
 Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
+Puce/base_type = &"PanelContainer"
+Puce/styles/panel = SubResource("Fond_de_puce")
 reussite/base_type = &"Label"
 reussite/colors/font_color = Color(0.55, 0.82, 0.5, 1)
 echec/base_type = &"Label"
 echec/colors/font_color = Color(1, 0.45, 0.4, 1)
 alerte/base_type = &"Label"
 alerte/colors/font_color = Color(0.95, 0.75, 0.35, 1)
+Discret/base_type = &"Label"
+Discret/colors/font_color = Color(0.7, 0.66, 0.6, 1)
+TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
+TooltipLabel/colors/font_color = Color(0.92, 0.88, 0.8, 1)

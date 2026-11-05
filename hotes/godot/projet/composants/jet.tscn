@@ -5,7 +5,12 @@
 
 [node name="Jet" type="VBoxContainer"]
 
-[node name="Tete" type="HFlowContainer" parent="."]
+[node name="detail" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
+
+[node name="Tete" type="HBoxContainer" parent="."]
 
 [node name="Qui" type="Label" parent="Tete"]
 
@@ -15,61 +20,59 @@ champ = "qui"
 cacher_si_nul = true
 
 [node name="Libelle" type="Label" parent="Tete"]
+theme_type_variation = &"Discret"
 
 [node name="libelle" type="Node" parent="Tete/Libelle"]
 script = ExtResource("1_liaison")
 champ = "libelle"
 
-[node name="Seuil" type="HFlowContainer" parent="."]
+[node name="Chiffres" type="HBoxContainer" parent="."]
+theme_override_constants/separation = 14
 
-[node name="Base" type="Label" parent="Seuil"]
+[node name="Cible" type="Label" parent="Chiffres"]
+theme_override_font_sizes/font_size = 30
 
-[node name="base" type="Node" parent="Seuil/Base"]
-script = ExtResource("1_liaison")
-champ = "base"
-cacher_si_nul = true
-
-[node name="Difficulte" type="Label" parent="Seuil"]
-
-[node name="difficulte" type="Node" parent="Seuil/Difficulte"]
-script = ExtResource("1_liaison")
-champ = "difficulte"
-cacher_si_nul = true
-
-[node name="Cible" type="Label" parent="Seuil"]
-
-[node name="cible" type="Node" parent="Seuil/Cible"]
+[node name="cible" type="Node" parent="Chiffres/Cible"]
 script = ExtResource("1_liaison")
 champ = "cible"
 cacher_si_nul = true
 
-[node name="Tombe" type="HFlowContainer" parent="."]
+[node name="Resultat" type="Label" parent="Chiffres"]
+theme_override_font_sizes/font_size = 30
 
-[node name="Resultat" type="Label" parent="Tombe"]
-
-[node name="resultat" type="Node" parent="Tombe/Resultat"]
+[node name="resultat" type="Node" parent="Chiffres/Resultat"]
 script = ExtResource("1_liaison")
 champ = "resultat"
 cacher_si_nul = true
 
-[node name="Dr" type="Label" parent="Tombe"]
-
-[node name="dr" type="Node" parent="Tombe/Dr"]
+[node name="ton" type="Node" parent="Chiffres/Resultat"]
 script = ExtResource("1_liaison")
-champ = "dr"
-cacher_si_nul = true
+champ = "ton"
+propriete = &"theme_type_variation"
 
-[node name="Verdict" type="Label" parent="Tombe"]
+[node name="Issue" type="VBoxContainer" parent="Chiffres"]
+size_flags_horizontal = 3
+alignment = 1
 
-[node name="verdict" type="Node" parent="Tombe/Verdict"]
+[node name="Verdict" type="Label" parent="Chiffres/Issue"]
+autowrap_mode = 3
+
+[node name="verdict" type="Node" parent="Chiffres/Issue/Verdict"]
 script = ExtResource("1_liaison")
 champ = "verdict"
 cacher_si_nul = true
 
-[node name="ton" type="Node" parent="Tombe/Verdict"]
+[node name="ton" type="Node" parent="Chiffres/Issue/Verdict"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
+
+[node name="Dr" type="Label" parent="Chiffres/Issue"]
+
+[node name="dr" type="Node" parent="Chiffres/Issue/Dr"]
+script = ExtResource("1_liaison")
+champ = "dr"
+cacher_si_nul = true
 
 [node name="Modificateurs" type="HFlowContainer" parent="."]
 

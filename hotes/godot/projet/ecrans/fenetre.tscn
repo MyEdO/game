@@ -41,6 +41,12 @@ size_flags_horizontal = 3
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 
+[node name="Reglages" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Reglages"]
+script = ExtResource("1_zone")
+source = "fenetre.reglages"
+
 [node name="Pied" type="HSeparator" parent="Colonne"]
 
 [node name="Gestes" type="VBoxContainer" parent="Colonne"]

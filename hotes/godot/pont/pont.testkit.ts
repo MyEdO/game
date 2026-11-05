@@ -71,14 +71,14 @@ function fautesDeLaSaisie(ou: string, s: Saisie): string[] {
 export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   const f = vue.projection.fenetre;
   const z = vue.zones;
-  const dessinee = [z['fenetre.titre'], z['fenetre.etape'], z['fenetre.corps'], z['fenetre.gestes']].some((l) => l.length);
+  const dessinee = [z['fenetre.titre'], z['fenetre.etape'], z['fenetre.corps'], z['fenetre.reglages'], z['fenetre.gestes']].some((l) => l.length);
   if (!f) return dessinee ? ['une fenêtre dessinée sans fenêtre qui tient la main'] : [];
   const [titre] = z['fenetre.titre'];
   if (!titre) return [`la fenêtre ${f.cle} n’est pas dessinée`];
   const gestes = new Map(f.gestes.map((g) => [cleDuGeste(g), g]));
   const ids = new Set([f.cle, ...gestes.keys(), ...f.gestes.map((g) => g.verbe)]);
   const fautes = ids.has(titre.texte) ? [`titre ${titre.texte} : un id`] : [];
-  for (const e of z['fenetre.gestes']) {
+  for (const e of gestesDessines(vue)) {
     const geste = gestes.get(e.id);
     if (!geste) { fautes.push(`${e.id} : aucun geste de la fenêtre`); continue; }
     if (!e.libelle || ids.has(e.libelle)) fautes.push(`${e.id} : libellé ${e.libelle}`);
@@ -107,10 +107,13 @@ export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   return fautes;
 }
 
-/** Le geste d'identité `cle` (`cleDuGeste`) dans la zone des gestes de la fenêtre, ou l'échec qui la dit. */
+/** Les gestes dessinés de la fenêtre : ses réglages, puis ses gestes. */
+export const gestesDessines = (vue: VueDuPont): (Bouton | Choix | Formulaire)[] => [...vue.zones['fenetre.reglages'], ...vue.zones['fenetre.gestes']];
+
+/** Le geste d'identité `cle` (`cleDuGeste`) parmi les gestes dessinés de la fenêtre, ou l'échec qui la dit. */
 export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulaire {
-  const g = vue.zones['fenetre.gestes'].find((x) => x.id === cle);
-  if (!g) throw new Error(`aucun geste ${cle} dans ${JSON.stringify(vue.zones['fenetre.gestes'].map((x) => x.id))}`);
+  const g = gestesDessines(vue).find((x) => x.id === cle);
+  if (!g) throw new Error(`aucun geste ${cle} dans ${JSON.stringify(gestesDessines(vue).map((x) => x.id))}`);
   return g;
 }
 

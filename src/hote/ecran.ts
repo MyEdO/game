@@ -1,12 +1,14 @@
 /**
  * L'ÉCRAN D'UN HÔTE QUI DESSINE LA PARTIE (#2928, #3328), commun aux hôtes qui la montrent au joueur : chaque zone de
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
- * contre qui, ses jets, le DR net, l'issue ; ses gestes), le panneau du combat (le round et le tour, l'actif, ce que la
- * barre et l'aperçu disent, la fin du combat, la barre des offres) et le journal. Chaque texte vient du catalogue
- * (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit aucun id.
+ * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
+ * combat (le round et le tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
+ * le journal. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
+ * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
+ * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId,
   type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -20,6 +22,7 @@ export interface ZonesDeLEcran {
   'fenetre.titre': Ligne[];
   'fenetre.etape': Ligne[];
   'fenetre.corps': Element[];
+  'fenetre.reglages': (Bouton | Choix | Formulaire)[];
   'fenetre.gestes': (Bouton | Choix | Formulaire)[];
   'combat.tour': Ligne[];
   'combat.actif': Entite[];
@@ -30,20 +33,38 @@ export interface ZonesDeLEcran {
 
 type Combat = NonNullable<Projection['combat']>;
 
+const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null, ton: Ton = 'neutre'): Puce => ({ type: 'puce', id, ton, libelle, valeur, detail });
+
 /** Les modificateurs `mods` d'un jet, chacun une puce. */
 const puces = (id: string, mods: readonly ModLine[] | undefined): Puce[] =>
-  (mods ?? []).map((m, i) => ({ type: 'puce', id: `${id}/m${i}`, ton: 'neutre', libelle: m.label, valeur: avecSigne(m.value) }));
+  (mods ?? []).map((m, i) => puce(`${id}/m${i}`, m.label, avecSigne(m.value)));
+
+/** Ce dont une cible est faite, une ligne par part : sa base, sa Difficulté et les paliers qui la composent
+ *  (LDB 14 l.91-96), puis son écrêtage MESURÉ (`clamped`, `engine/tests.ts` : négatif au plafond, positif au plancher). */
+interface CompositionDeLaCible { base: number | null; difficulte: string | null; paliers?: readonly ModLine[]; target: number | null; clamped?: number }
+
+/** Le détail d'un jet : la composition de sa cible, puis `enPlus` ; `null` sans rien à dire. */
+function detailDuJet(c: CompositionDeLaCible, enPlus: readonly string[] = []): string | null {
+  const lignes = [
+    ...(c.base === null ? [] : [t('ecran.jet.base', { base: c.base })]),
+    ...(c.difficulte === null ? [] : [c.difficulte]),
+    ...(c.paliers ?? []).map((m) => t('ecran.jet.part', { libelle: m.label, valeur: avecSigne(m.value) })),
+    ...(c.clamped && c.target !== null ? [t(c.clamped < 0 ? 'ecran.jet.plafond' : 'ecran.jet.plancher', { cible: c.target, ecart: avecSigne(c.clamped) })] : []),
+    ...enPlus,
+  ];
+  return lignes.length ? lignes.join('\n') : null;
+}
 
 /** Un jet dont seules les parties de `parties` sont dites. */
 const jet = (id: string, parties: Partial<Omit<Jet, 'type' | 'id'>> & { libelle: string }): Jet => ({
-  type: 'jet', id, ton: 'neutre', qui: null, base: null, difficulte: null, cible: null, resultat: null, dr: null, verdict: null, modificateurs: [], ...parties,
+  type: 'jet', id, ton: 'neutre', qui: null, cible: null, resultat: null, dr: null, verdict: null, modificateurs: [], detail: null, ...parties,
 });
 
 const verdictDuTest = (reussi: boolean) => ({ verdict: t(reussi ? 'ecran.jet.reussite' : 'ecran.jet.echec'), ton: reussi ? 'reussite' as const : 'echec' as const });
 
 /** Un jet tombé : le dé contre la cible, le DR et le verdict ; masqué quand la ligne l'est (`RollBreakdown.mask`), son
- *  seuil pur dit sans DR (`seuil`). */
-function jetTombe(id: string, d: RollBreakdown, qui: string | null): Jet {
+ *  seuil pur dit sans DR (`seuil`). `enPlus` : ce que son détail ajoute à la composition de sa cible. */
+function jetTombe(id: string, d: RollBreakdown, qui: string | null, enPlus: readonly string[] = []): Jet {
   if (d.mask === 'roll') return jet(id, { qui, libelle: d.label, resultat: t('ecran.jet.cache') });
   const verdict = d.seuil
     ? { verdict: d.success ? d.seuil.reussite : d.seuil.echec, ton: d.success ? 'reussite' as const : 'echec' as const }
@@ -54,29 +75,43 @@ function jetTombe(id: string, d: RollBreakdown, qui: string | null): Jet {
     cible: cache ? null : t('ecran.jet.cible', { cible: d.target }),
     dr: cache || d.seuil ? null : t('ecran.jet.dr', { dr: avecSigne(d.sl) }),
     modificateurs: cache ? [] : puces(id, d.mods),
+    detail: cache ? null : detailDuJet({
+      base: d.base, difficulte: d.difficulty ? difficultyText(d.difficulty, d.difficultyCombined) : null, paliers: d.difficultyParts, target: d.target, clamped: d.clamped,
+    }, enPlus),
   });
 }
 
 /** Le DR net d'un Test opposé tranché. */
 const drNet = (id: string, dr: number): Ligne => ligne(id, t('ecran.drNet', { dr: avecSigne(dr) }));
 
-/** Le corps de la fenêtre d'attaque : qui attaque qui et avec quoi, la ligne de l'attaquant et celle de la défense
- *  (à jeter ou tombées), le DR net, l'issue ou l'attente d'une Défense. */
+/** Une posture de tir, en lecture seule (son contrôle vit à la console) : son état, ce qu'elle change à la demande. */
+const posture = (id: string, p: FenetreDAttaque['tirDansLeTas']): Puce | null =>
+  p && puce(id, p.etat, null, p.note, p.sansObjet ? 'alerte' : 'neutre');
+
+/** Le corps de la fenêtre d'attaque : la cible, l'arme et ses Dégâts, les postures de tir, la ligne de l'attaquant et
+ *  celle de la défense (à jeter ou tombées ; l'issue que l'inversion du dé donnerait au détail de l'attaquant), le DR
+ *  net, l'issue ou l'attente d'une Défense. */
 function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   const nom = (id: string) => porteurParId(etat, id)?.label ?? null;
   const attaquant = nom(a.attaquantId);
   const cible = nom(a.cibleId);
+  const inversion = a.influences.inversion?.apercu ?? null;
   const elements: (Element | null)[] = [
-    ligne('sousTitre', a.sousTitre),
     ligne('cible', t('ecran.attaque.cible', { cible: cible ?? '' })),
-    ligne('enTete', a.enTete),
+    ligne('arme', a.arme),
+    a.degats === null ? null : puce('degats', t('ecran.degats'), avecSigne(a.degats)),
+    posture('tirDansLeTas', a.tirDansLeTas),
+    posture('tirImmobile', a.tirImmobile),
     a.bloque === null ? null : ligne('bloque', a.bloque, 'alerte'),
     a.jet === null ? null : 'd' in a.jet
-      ? jetTombe('jet', a.jet.d, attaquant)
-      : jet('jet', { qui: attaquant, libelle: a.jet.pending.label, base: t('ecran.jet.base', { base: a.jet.pending.base }), cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), difficulte: a.jet.pending.difficulte, resultat: t('ecran.jet.aLancer'), modificateurs: puces('jet', a.jet.pending.mods) }),
+      ? jetTombe('jet', a.jet.d, attaquant, inversion ? [t('ecran.attaque.inversion', { d100: inversion.roll, dr: avecSigne(inversion.sl), verdict: verdictDuTest(inversion.success).verdict })] : [])
+      : jet('jet', {
+          qui: attaquant, libelle: a.jet.pending.label, cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), modificateurs: puces('jet', a.jet.pending.mods),
+          detail: detailDuJet({ ...a.jet.pending, paliers: a.jet.pending.difficultyParts }),
+        }),
     a.defense === null ? null : 'd' in a.defense
       ? jetTombe('defense', a.defense.d, cible)
-      : jet('defense', { qui: cible, libelle: a.defense.pending.label, difficulte: a.defense.pending.difficulte, resultat: t('ecran.jet.aLancer'), modificateurs: puces('defense', a.defense.pending.mods) }),
+      : jet('defense', { qui: cible, libelle: a.defense.pending.label, modificateurs: puces('defense', a.defense.pending.mods), detail: detailDuJet({ base: null, difficulte: a.defense.pending.difficulte, target: null }) }),
     a.opposition ? drNet('drNet', a.opposition.drNet) : null,
     a.issue ? ligne('issue', a.issue.ligne) : null,
     a.attente === null ? null : ligne('attente', a.attente),
@@ -84,16 +119,17 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   return elements.filter((e): e is Element => e !== null);
 }
 
-/** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé. */
+/** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé : le dé
+ *  et son verdict, ou ce que la table ou le dé lit. */
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
   const qui = l.qui === null ? null : porteurParId(etat, l.qui)?.label ?? null;
   switch (l.genre) {
     case 'test': return jet(id, {
       qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }),
-      ...(l.jet ? { resultat: String(l.jet.d100), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.dr) }), ...verdictDuTest(l.jet.reussi) } : { resultat: t('ecran.jet.aLancer') }),
+      ...(l.jet ? { resultat: String(l.jet.d100), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.dr) }), ...verdictDuTest(l.jet.reussi) } : {}),
     });
-    case 'table': return jet(id, { qui, libelle: l.table, resultat: l.jet ? l.jet.ligne : t('ecran.jet.aTirer') });
-    case 'de': return jet(id, { qui, libelle: l.de, resultat: l.jet ? l.jet.lecture : t('ecran.jet.aLancer') });
+    case 'table': return jet(id, { qui, libelle: l.table, ...(l.jet ? { resultat: String(l.jet.effectif), verdict: l.jet.ligne } : {}) });
+    case 'de': return jet(id, { qui, libelle: l.de, ...(l.jet ? { resultat: String(l.jet.total), verdict: l.jet.lecture } : {}) });
   }
 }
 
@@ -124,7 +160,7 @@ const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
     ligne('avantage', t('ecran.avantage', { n: actif.avantage })),
     { type: 'jauge', id: 'mouvement', ton: 'neutre', libelle: t('ecran.jauge.mouvement'), courant: actif.mouvement[0], max: actif.mouvement[1], texte: t('ecran.jauge', { courant: actif.mouvement[0], max: actif.mouvement[1] }) },
     ligne('action', t('ecran.action', { etat: t(`ecran.action.${actif.action}`) })),
-    ...actif.etats.map((e): Puce => ({ type: 'puce', id: `etat/${e.id}`, ton: 'alerte', libelle: conditionLabel(e.id), valeur: String(e.valeur) })),
+    ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
   ],
 });
 
@@ -162,12 +198,15 @@ function avisDuCombat(c: Combat, fenetreOuverte: boolean): Ligne[] {
 /** Les zones de l'écran de la partie `etat`, de sa projection `p` et de la fenêtre qui tient la main `fenetre`. */
 export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null): ZonesDeLEcran {
   const c = p.combat;
+  const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
+  const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
   const etape = fenetre ? [fenetre.etape === fenetre.titre ? null : fenetre.etape, fenetre.proprietaire.genre === 'porteur' ? fenetre.proprietaire.nom : null].filter((x): x is string => x !== null) : [];
   return {
     'fenetre.titre': fenetre ? [ligne('titre', fenetre.titre)] : [],
     'fenetre.etape': etape.length ? [ligne('etape', etape.join(t('ecran.separateur')))] : [],
     'fenetre.corps': fenetre ? corpsDeLaFenetre(etat) : [],
-    'fenetre.gestes': fenetre ? elementsDesGestes(fenetre.gestes) : [],
+    'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
+    'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
     'combat.tour': c ? [ligne('tour', t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],

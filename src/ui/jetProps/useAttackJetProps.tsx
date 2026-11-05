@@ -95,7 +95,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     flowKey: 'attack',
     title: vue.intitule,
     subtitle: vue.sousTitre,
-    extra: <VsHeader actor={attacker} target={target} label={vue.enTete} />,
+    extra: <VsHeader actor={attacker} target={target} label={vue.degats === null ? vue.arme : `${vue.arme} · ${t('attaque.degats', { dmg: vue.degats })}`} />,
     rolled: vue.jete,
     onCancel: cancel,
     /* Options d'attaque + aperçu de la défense adverse + bouton Détermination (retirer un État), pré-jet. */
