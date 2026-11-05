@@ -37,7 +37,7 @@ export const baseDeTest = (base = 'humanoide') => ({
 });
 export const elementSchema3 = (base = 'humanoide') => ({
   schema: 3, base, categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' },
-  surfaces: [{ nom: 'metal', teinte: true }], glb: empreinte(GLB_D_ELEMENT),
+  surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_D_ELEMENT),
 });
 
 /** Le texte de licence de pack que `productionDeTest` dépose : une production importable établit sa licence. */

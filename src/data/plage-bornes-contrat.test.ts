@@ -191,7 +191,7 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
       'sea-events.json::.fastVoyage.paliers[]', 'sea-navigation.json::.orientation.changementDeCap[]',
       'sea-navigation.json::.orientation.reperes[]', 'sea-navigation.json::.phares.voirLaLumiere[]',
       'sea-navigation.json::.poursuite.drDeltas[]', 'sea-navigation.json::.vitesseMax.table[]',
-      'ship-construction.json::.standard[].lengthM', 'structure-criticals.json::.entries[]', 'tables.json::[].rows[]',
+      'ship-construction.json::.standard[].lengthM', 'structure-criticals.json::.entries[]', 'tables.json::[].entries[]',
     ]);
     const documents = new Set(positions.map((p) => p.split('::')[0]));
     expect(

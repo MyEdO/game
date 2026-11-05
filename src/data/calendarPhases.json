@@ -2,49 +2,49 @@
   {
     "id": "aube",
     "type": "calendarPhases",
-    "start": 300,
+    "seuil": 300,
     "label": "Aube",
     "icon": "time/dawn"
   },
   {
     "id": "matin",
     "type": "calendarPhases",
-    "start": 480,
+    "seuil": 480,
     "label": "Matin",
     "icon": "time/morning"
   },
   {
     "id": "midi",
     "type": "calendarPhases",
-    "start": 660,
+    "seuil": 660,
     "label": "Midi",
     "icon": "time/noon"
   },
   {
     "id": "apresmidi",
     "type": "calendarPhases",
-    "start": 840,
+    "seuil": 840,
     "label": "Après-midi",
     "icon": "time/afternoon"
   },
   {
     "id": "crepuscule",
     "type": "calendarPhases",
-    "start": 1080,
+    "seuil": 1080,
     "label": "Crépuscule",
     "icon": "time/dusk"
   },
   {
     "id": "soir",
     "type": "calendarPhases",
-    "start": 1200,
+    "seuil": 1200,
     "label": "Soir",
     "icon": "time/evening"
   },
   {
     "id": "nuit",
     "type": "calendarPhases",
-    "start": 1320,
+    "seuil": 1320,
     "label": "Nuit",
     "icon": "time/night"
   }

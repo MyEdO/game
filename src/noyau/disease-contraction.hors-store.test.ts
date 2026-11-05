@@ -37,8 +37,8 @@ function resolveCombatEnd(): void {
     const cur = p.participants[p.cursor];
     // Les jets de bilan de combat sont des BANDES (#1117 L4) : on lance chaque RANGÉE ; une étape MONO
     // (upkeep différé non bandable) garde son lancer d'étape.
-    if (cur?.participants) { for (const row of cur.participants) if (!row.result) banc.getState().cascadeBatchRoll(row.id); }
-    else if (cur?.target != null && !cur.result) banc.getState().cascadeRoll(cur.id);
+    if (cur?.participants) { for (const row of cur.participants) if (!row.result) banc.getState().jetRoll('cascadeBatch', row.id); }
+    else if (cur?.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
     banc.getState().cascadeNext();
   }
 }

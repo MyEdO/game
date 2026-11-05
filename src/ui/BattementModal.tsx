@@ -14,25 +14,26 @@ import { VsHeader } from './VsHeader';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant
  * de l'Avantage adverse. Même patron de jet MONO d'attaquant influençable que le Piétinement — la seule
- * différence métier est l'issue (`battementConfirm` → `resolveBattement`). Le picker de cible
+ * différence métier est l'issue (`jetConfirm('battement')` → `resolveBattement`). Le picker de cible
  * (`OptionChooser`) n'apparaît que si plusieurs adversaires sont éligibles (avant le jet).
  */
 export function BattementModal() {
   const pb = useGame((s) => s.pendingBattement);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.battementRoll);
-  const reroll = useGame((s) => s.battementReroll);
-  const bonusSL = useGame((s) => s.battementBonusSL);
-  const darkPact = useGame((s) => s.battementDarkPact);
-  const force = useGame((s) => s.battementForceSuccess);
-  const reverse = useGame((s) => s.battementReverse); // Inversion (LDB 12 l.42)
+  const roll = useGesteDeJet('jetRoll', 'battement');
+  const reroll = useGesteDeJet('jetReroll', 'battement');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'battement');
+  const darkPact = useGesteDeJet('jetDarkPact', 'battement');
+  const force = useGesteDeJet('jetForceSuccess', 'battement');
+  const reverse = useGesteDeJet('jetReverse', 'battement'); // Inversion (LDB 12 l.42)
   const setFoe = useGame((s) => s.battementSetFoe);
-  const confirm = useGame((s) => s.battementConfirm);
-  const cancel = useGame((s) => s.battementCancel);
+  const confirm = useGesteDeJet('jetConfirm', 'battement');
+  const cancel = useGesteDeJet('jetCancel', 'battement');
   if (!pb || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pb.attackerId);
   const foe = battle.combatants.find((c) => c.id === pb.foeId);
@@ -56,16 +57,13 @@ export function BattementModal() {
     onDarkPact: darkPact,
     onForce: force,
   }, {
-    // Résilience AVANT le jet (LDB 17 l.68) : on lance puis on force la réussite (dé PAR DÉFAUT = DR max
-    // → plus d'Avantage retiré). PAS de choix du dé : l'Avantage retiré ne dépend que du DR.
-    preRollForce: () => { roll(); force(); },
     // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.battement`).
     ...(FLOWS.battement.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.battement.reversePreview(useGame.getState) } } : {}),
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

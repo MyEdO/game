@@ -8,7 +8,7 @@ export const file = 'vents-tourbillonnants.json';
 export const famille = 'config';
 
 /** Une rangée du 1d10 : `mod` = modificateur d'Incantation. */
-const windsEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   mod: z.number(),
@@ -29,7 +29,7 @@ const doc = document(
     codex: { keys: ['ventsTourbillonnants'] },
     edit: { niche: { categories: { ventsTourbillonnants: 'entries' } } },
   },
-  { rangee: windsEntrySchema },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

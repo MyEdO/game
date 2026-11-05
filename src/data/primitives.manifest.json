@@ -123,7 +123,7 @@
     "label": "RollShell",
     "fichier": "src/ui/RollShell.tsx",
     "css": "src/ui/styles/roll-shell.css",
-    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
+    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte ; une action qui joue un verbe du cycle le nomme (`RollAction.verbe`) et ne se montre que tant que le noyau le laisse ouvert (`fermeturesDuFlux`)",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
     "verrou": "roll-modal-invariant.hors-store.test.ts"
   },
@@ -145,6 +145,15 @@
     "concept": "fabrique de flux de jet + registre spec par kind",
     "perimetre": "tout Test interactif joueur",
     "verrou": "rollflow-no-drift.test.ts, rollFlowWiring.test.ts"
+  },
+  {
+    "id": "verbesOuverts",
+    "type": "primitives.manifest",
+    "label": "fermeturesDuFlux / fermeturesDeLaFenetre",
+    "fichier": "src/noyau/verbesOuverts.ts",
+    "concept": "ce qui ferme MAINTENANT chaque verbe du cycle d'un flux de jet (`FermetureDuJet`, libellé `libelleDeLaFermeture`), le prédicat même que gardent ses ops (`RollFlowHandlers.fermetures` : Résilience `fermetureDuForcage`, clôtures `cloture`/`jetPose`/`jetImpose`, annulation `annulation`, issue perdue `perdu` du spec), et chaque verbe de la fenêtre qui tient la main qu'un de ses flux joue ; une fermeture qui attend une décision du joueur (`FERMETURES_DITES`) se montre refusée avec sa raison ; aucun site ne date un verbe « avant » ou « après » le jet",
+    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages manuscrits du store (`siOuvert`)",
+    "verrou": "verbesOuverts.hors-store.test.ts, gestes-a-l-etat.hors-store.test.ts"
   },
   {
     "id": "rollSeam",
@@ -241,6 +250,24 @@
     "concept": "lookup d'une table d100 par fourchette [min,max]",
     "perimetre": "toute table à fourchettes RAW",
     "verrou": "table-lookup-guard.test.ts"
+  },
+  {
+    "id": "findTierEntry",
+    "type": "primitives.manifest",
+    "label": "findTierEntry",
+    "fichier": "src/engine/tables.ts",
+    "concept": "lookup d'une table à PALIERS (`palierSchema`) : la rangée de plus grand `seuil` ≤ la valeur, indépendante de l'ordre d'authoring, `undefined` sous le plus bas palier",
+    "perimetre": "toute table à seuils : Tableau de Surincantation, phases du jour, rangées de règle à `seuil`, paliers de billet",
+    "verrou": "src/engine/tables.test.ts"
+  },
+  {
+    "id": "rangeesDe",
+    "type": "primitives.manifest",
+    "label": "rangeesDe/RangeeDe",
+    "fichier": "src/data/rangees.ts",
+    "concept": "rangées VIVANTES d'un document à rangées (`options.rangee`), lues dans le module JSON de son fichier (racine que le seam mute en place) et, dans un fichier à plusieurs documents, par id de document — typées par le schéma de rangée que le def exporte",
+    "perimetre": "tout lecteur d'une table de donnée (moteur, seam, Codex)",
+    "verrou": "tsc : la rangée a le type dérivé du schéma du def (`z.output`), l'id de document est exigé pour la famille `entite` ; fail-fast à l'exécution sur un document absent"
   },
   {
     "id": "clockLabel",
@@ -475,7 +502,7 @@
     "fichier": "src/noyau/monde/identites.ts",
     "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
     "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
-    "verrou": "src/noyau/monde/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
+    "verrou": "src/noyau/monde/identites.hors-store.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "masterDetail",
@@ -549,6 +576,15 @@
     "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
     "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
+  },
+  {
+    "id": "conceptDe",
+    "type": "primitives.manifest",
+    "label": "conceptDe/noeudDuConcept/posesPerdues",
+    "fichier": "src/data/schemas/grammaire/concepts.ts",
+    "concept": "concept du lexique des structures POSÉ sur un nœud de la grammaire : pose de nœud par identité exacte (un clone n'est pas lu), ou pose de classe de produit de fabrique `(fabrique, rôle, clés d'extra)` lue par `classeDeProduit` ; table unique `interne/poses.ts`, source de `IdConceptPose`, écrivains `marquerConcept`/`marquerConceptDeClasse` derrière le mur `murs/interne`, qui lèvent sur une double pose ; `posesPerdues`, les concepts posés qu'aucun nœud des racines n'atteint",
+    "perimetre": "lecture du concept d'un nœud de schéma hors de `grammaire/` (lexique des structures, #3012)",
+    "verrou": "src/data/schemas/grammaire/concepts-poses.test.ts"
   },
   {
     "id": "nommerChamps",
@@ -711,6 +747,15 @@
     "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG) ; la sélection suit le focus, ou le focus seul se déplace (`suivi: 'focus'`) ; la touche consommée ne se propage pas au roving générique d’une modale",
     "perimetre": "tablist, listbox, radiogroup, menu",
     "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
+  },
+  {
+    "id": "useGesteDeJet",
+    "type": "primitives.manifest",
+    "label": "useGesteDeJet",
+    "fichier": "src/ui/useGesteDeJet.ts",
+    "concept": "le geste d'un bouton de modale de jet : un verbe de jet du noyau (`jet<Verbe>(flux, …)`, `VerbesDeJet`) lié au flux de la modale, qui ne prend plus que la rangée `pid` et le dé posé",
+    "perimetre": "modales de jet (`CastModal`, `DisengageModal`, `FallModal`, `CascadeModal`…) et lentilles `jetProps/`",
+    "verrou": "`horsDelegues` (`src/noyau/fabriquesDuNoyau.ts`) : aucune action `<flux><Verbe>` ni `jet<Verbe>` écrite à la main ; `rollFlowWiring.test.ts` — aucun handler de verbe appelé hors des verbes de jet"
   },
   {
     "id": "useRamenerEnVue",
@@ -1621,9 +1666,9 @@
   {
     "id": "porteDesComptes",
     "type": "primitives.manifest",
-    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/sitesDeDetteDOps/sitesDEnveloppeASourcer/COLLECTIONS_A_COMPTE/DETTE_OPS/DETTE_ENVELOPPE/FEUILLES_D_ID/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/sitesDeDetteDOps/COLLECTIONS_A_COMPTE/DETTE_OPS/FEUILLES_D_ID/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
-    "concept": "porte des comptes : collection à compte STRUCTURES_REDECLARATIONS, volets de un par site mesurés au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS` ; DETTE_ENVELOPPE : types de `CONTENU_A_SOURCER`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
+    "concept": "porte des comptes : collection à compte STRUCTURES_REDECLARATIONS, volet de un par site mesuré au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
     "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
     "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
   },
@@ -2170,10 +2215,10 @@
   {
     "id": "schemaFieldConsumers",
     "type": "primitives.manifest",
-    "label": "champsDeclares/mesurerChampsDeSchema",
+    "label": "champsDeclares/mesurerChampsDeSchema/ciblesDeCatalogue",
     "fichier": "scripts/guards/lib/schemaFieldConsumers.mjs",
-    "concept": "mesure des lecteurs et des vues explicites des champs déclarés par les schémas de datasets, avec provenance par dataset",
-    "perimetre": "toute garde ou tout diagnostic de consommation des champs de schéma",
+    "concept": "mesure des lecteurs et des vues explicites des champs déclarés par les schémas de datasets, avec provenance par dataset ; sur la même jointure des chargements, le type explicite de l'entrée de chaque catalogue (`ciblesDeCatalogue`), ou la raison mesurée de son absence",
+    "perimetre": "toute garde ou tout diagnostic de consommation des champs de schéma ; les cibles de catalogue du rapport des consommateurs par champ",
     "verrou": "src/data/field-consumers.test.ts"
   }
 ]

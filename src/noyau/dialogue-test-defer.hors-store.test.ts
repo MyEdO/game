@@ -1,6 +1,6 @@
 /**
  * chooseDialogue — l'avancée du dialogue (`choice.next`) est DIFFÉRÉE quand le `choice.flow` suspend
- * sur un Test : la boîte de dialogue n'avance qu'APRÈS résolution (`resolveTest`), jamais sous la
+ * sur un Test : la boîte de dialogue n'avance qu'APRÈS résolution (`jetConfirm('test')`), jamais sous la
  * modale de jet. Un choix sans Test enchaîne comme avant.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -50,7 +50,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
 
   it('la réponse à Test ouvre la fenêtre de jet ORDINAIRE — pas une modale propre au dialogue (#1869)', () => {
     // `chooseDialogue` → `runFlow` → `openSkillTest` : le dialogue n'a AUCUN chemin de jet à lui. Le
-    // pending est celui de tous les Tests (même slot, même verbe de résolution `resolveTest`), et il
+    // pending est celui de tous les Tests (même slot, même verbe de résolution `jetConfirm('test')`), et il
     // porte la SITUATION déclarée par le flux — jamais le libellé de la réponse.
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
     banc.getState().chooseDialogue(0);
@@ -64,7 +64,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
     banc.getState().chooseDialogue(0);
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 5, success: true } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().flags.gagne).toBe(true); // effet de branche appliqué
     expect(banc.getState().dialogue?.nodeId).toBe('n2'); // avancée APRÈS résolution
     expect(banc.getState().pendingTest).toBeNull();
@@ -74,7 +74,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
     banc.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
     banc.getState().chooseDialogue(0);
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     expect(banc.getState().flags.perd).toBe(true);
     expect(banc.getState().dialogue?.nodeId).toBe('n2');
   });

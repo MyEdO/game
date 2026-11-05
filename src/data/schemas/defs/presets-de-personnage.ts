@@ -10,6 +10,8 @@
  *   `rangement` (`trappings.json`).
  * - `prises` : les objets instanciables tenus, par main.
  * - `apparencesObjets` : l'apparence d'un objet porté, comme `EntityAppearance.apparencesObjets`.
+ * - `couleurs` : la palette du personnage, une couleur du nuancier (`materials.json`, domaine `couleur`) par emplacement
+ *   de palette ; chaque surface d'un élément monté prend celle de son emplacement.
  * - Rien n'est porté deux fois, ni un objet ni une pièce (`refuserLesPortesDeuxFois`).
  *
  * `compositionSchema` est l'entrée sans son enveloppe, règles comprises : la composition
@@ -23,7 +25,7 @@ import { document, type EnveloppeDocument } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
+import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema, slotSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille } from '../../index';
 import type { HabilleDEnsemble, TenueId } from './garde-robe';
 
@@ -43,6 +45,7 @@ const champs = {
   prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
+  couleurs: z.partialRecord(slotSchema, ref('material', undefined, 'couleur')).optional(),
 };
 
 const metaDesChampsDuPreset = {
@@ -58,6 +61,7 @@ const metaDesChampsDuPreset = {
   objets: { label: 'Objets portés', hint: 'Objets hors des mains : revêtus par leur ensemble, sinon à leur emplacement de rangement' },
   prises: { label: 'Objets tenus', hint: 'Objet tenu par chaque main' },
   apparencesObjets: { label: 'Apparences des objets', hint: 'Apparence d’un objet porté ; absente, sa forme' },
+  couleurs: { label: 'Couleurs', hint: 'Couleur du nuancier par emplacement de palette ; absente, la matière du modèle' },
 };
 
 type Chemin = (string | number)[];

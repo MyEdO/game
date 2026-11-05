@@ -19,15 +19,14 @@ import {
 import { defenseDodgeMods } from './mount';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
-import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique } from '../engine/combat';
+import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique, penaliteDeMainSecondaire } from '../engine/combat';
 import { rule } from '../engine/policy';
 import { isUnarmed } from '../engine/items';
 import { isInanimate } from '../engine/structures';
 import { peutEtreEmpoigne } from '../engine/grapple';
 import { itemCapability } from '../engine/capabilities';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
-import { attackModesFor, offHandPenalty } from '../engine/combatFeatures/dispatch';
-import { modDeRegle } from '../engine/reglesChiffrees';
+import { attackModesFor } from '../engine/combatFeatures/dispatch';
 import { testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { difficultyText } from './difficultyText';
@@ -72,9 +71,12 @@ export interface FenetreDAttaque {
   cibleId: string;
   intitule: string;
   sousTitre: string;
-  /** L'arme RÉELLEMENT employée (`attackWeaponOf`) et, avant le jet, ses Dégâts. */
-  enTete: string;
+  /** L'arme RÉELLEMENT employée (`attackWeaponOf`). */
+  arme: string;
+  /** Les Dégâts de l'arme avant le jet, `null` sans aperçu. */
+  degats: number | null;
   jete: boolean;
+  /** L'arme et la Localisation visée se règlent avant le jet ; `null` une fois jeté. */
   deuxArmes: BasculeNommee | null;
   choixDArme: ChoixNomme | null;
   localisation: ChoixNomme<HitLocation> | null;
@@ -91,10 +93,10 @@ export interface FenetreDAttaque {
   /** La ligne de la défense adverse : le jet subi, ou l'annonce d'avant le jet ; `null` sans défense. */
   defense: { d: RollBreakdown } | { pending: DefenseAnnoncee } | null;
   /** Les entrées du cycle d'influence de l'attaquant ; ses fenêtres se jugent par les prédicats de
-   *  `rollFlowFactory` (`rerollAvailable`, `darkPactAvailable`, `forceAvailable`). */
+   *  `rollFlowFactory` (`fermetureDeLaRelance`, `fermetureDuPacte`, `fermetureDeLaResilience`). */
   influences: {
     relancee: boolean;
-    /** Le Sombre Pacte est offert (pas au second coup d'une attaque à deux armes). */
+    /** Le Sombre Pacte est offert : le jet n'est pas imposé (`FLOWS.attack.fermetures`). */
     sombrePacte: boolean;
     /** La rangée n'offre aucun dé forcé (`noForcedDie` du web). LDB 16 l.113 ; LDB 17 l.68 */
     sansDeForce: boolean;
@@ -142,7 +144,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const tir = arme.type === 'ranged';
   const auxArmes = armeTenue ? attaquant.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
   // LDB 14 l.78
-  const penaliteSecondaire = offHandPenalty(attaquant, modDeRegle('main-secondaire', 'main-secondaire'));
+  const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
   const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
   const heros = attaquant.kind === 'hero';
@@ -178,7 +180,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       ? (defenseAuTir ? previewDefense(cible, { mode: defenseAuTir.mode, parryWeapon: defenseAuTir.parryWeapon, vsWeapon: arme, dodgeMods: esquive }) : undefined)
       : isInanimate(cible) ? undefined : previewDefense(cible, { vsWeapon: arme, dodgeMods: esquive });
   const defenseAnnoncee: DefenseAnnoncee | undefined = annonce && { ...annonce, difficulte: difficultyText(annonce.difficulty) };
-  const inversion = jete && FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
+  const inversion = FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
   const bloque = apercu && (apercu.blocked || !apercu.inRange) ? t(apercu.blocked ? 'attaque.sansLigneDeVue' : 'attaque.horsDePortee') : null;
   const defenseAttendue = !!res && surfacedDefensePending(s, attaquant, cible, arme, pa);
   const bascule = (verbe: ReglageDeLAttaque, active: boolean, note: string | null): BasculeNommee => ({ verbe, libelle: libelleDuVerbe(verbe)!, active, note });
@@ -190,16 +192,17 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     cibleId: cible.id,
     intitule,
     sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'ranged' : 'melee')),
-    enTete: apercu ? `${arme.label} · ${t('attaque.degats', { dmg: apercu.dmg })}` : arme.label,
+    arme: arme.label,
+    degats: apercu ? apercu.dmg : null,
     jete,
     deuxArmes: deuxArmesPossibles ? bascule('attackSetDualMode', !!pa.dualMode, null) : null,
-    choixDArme: auxArmes.length >= 2 && !pa.dualMode
+    choixDArme: !res && auxArmes.length >= 2 && !pa.dualMode
       ? choix('attackSetWeapon', pa.weaponUid ?? arme.uid ?? null, auxArmes.map((w) => ({
           valeur: w.uid!,
           libelle: w.hand === 'off' && penaliteSecondaire ? t('attaque.armeSecondaire', { arme: w.label, penalite: penaliteSecondaire }) : w.label,
         })))
       : null,
-    localisation: isInanimate(cible)
+    localisation: res || isInanimate(cible)
       ? null
       : choix('attackSetLocation', pa.location ?? null, [{ valeur: null, libelle: t('attaque.auHasard') }, ...LOCALISATIONS_A_L_ECRAN.map(localisations)]),
     tirDansLeTas: !res && tir && (!!pa.intoCrowd || !raisonTas || tasSansObjet)
@@ -255,7 +258,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       : (!bloque && defenseAnnoncee ? { pending: defenseAnnoncee } : null),
     influences: {
       relancee: !!pa.rerolled,
-      sombrePacte: !pa.dualSecond,
+      sombrePacte: FLOWS.attack.fermetures(get).darkPact !== 'jetImpose',
       sansDeForce: isHelplessTarget(cible),
       inversion,
     },

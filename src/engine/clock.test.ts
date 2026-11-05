@@ -105,23 +105,24 @@ describe('clock — phases du jour & obscurité (#T1c)', () => {
     expect(dayPhase(at(12))).toMatchObject({ id: 'midi', icon: 'time/noon', isNight: false });
     expect(dayPhase(at(23))).toMatchObject({ id: 'nuit', isNight: true });
   });
-  // #1467 L1b V-P1 : `dayPhase()` SCANNE `DAY_PHASES` dans l'ordre du fichier et retient la dernière
-  // dont `start` ≤ l'heure ; son défaut (`[length - 1]`) suppose que la dernière entrée est celle qui
-  // enjambe minuit. Ces deux hypothèses vivaient dans un commentaire. Elles sont ici un CONTRAT sur
-  // la donnée : avec des `start` strictement croissants, « la dernière = celle qui enjambe » tient par
-  // construction. Aucun tri défensif au chargement — une donnée cassée se DÉNONCE, elle ne se répare
-  // pas en silence.
-  it('`calendarPhases.json` : `start` STRICTEMENT croissants (contrat du scan de `dayPhase`)', () => {
-    const desordres = DAY_PHASES.flatMap((p, i) =>
-      i > 0 && p.start <= DAY_PHASES[i - 1].start
-        ? [`${DAY_PHASES[i - 1].id} (${DAY_PHASES[i - 1].start}) → ${p.id} (${p.start})`]
-        : [],
-    );
-    expect(desordres, 'ordre du fichier non strictement croissant : le scan de `dayPhase` rendrait une phase fausse').toEqual([]);
-    // TÉMOIN POSITIF de l'enjambement : AVANT la première phase (00:00 < aube), le défaut du scan
-    // prend la DERNIÈRE entrée — le comportement décrit par le commentaire de `dayPhase` est verrouillé.
+  // #1666 : les phases sont des PALIERS (`findTierEntry`) — l'ordre du fichier ne décide de rien, des
+  // seuils DISTINCTS font l'ordre total. Une donnée à seuil répété se DÉNONCE ici.
+  it('`calendarPhases.json` : seuils DISTINCTS (ordre total des paliers de `dayPhase`)', () => {
+    const seuils = DAY_PHASES.map((p) => p.seuil);
+    expect(new Set(seuils).size, `seuils répétés : ${seuils.join(', ')}`).toBe(seuils.length);
+    // TÉMOIN de l'enjambement : AVANT le plus bas palier (00:00 < aube), la phase du plus HAUT palier.
     expect(dayPhase(0).id).toBe('nuit');
-    expect(DAY_PHASES[DAY_PHASES.length - 1].id).toBe('nuit');
+  });
+
+  it('`dayPhase` ne dépend pas de l’ordre d’authoring des phases', () => {
+    const avant = [0, 300, 479, 480, 700, 1079, 1080, 1250, 1439].map((m) => dayPhase(m).id);
+    const ordre = [...DAY_PHASES];
+    DAY_PHASES.reverse();
+    try {
+      expect([0, 300, 479, 480, 700, 1079, 1080, 1250, 1439].map((m) => dayPhase(m).id)).toEqual(avant);
+    } finally {
+      DAY_PHASES.splice(0, DAY_PHASES.length, ...ordre);
+    }
   });
 
   // #1467 L1b V-P1 : les deux ancres se RÉSOLVENT par id sur la donnée réelle. Elles s'écrivaient
@@ -131,16 +132,16 @@ describe('clock — phases du jour & obscurité (#T1c)', () => {
     expect(dawnMinute()).toBe(300); // 05:00
     expect(duskMinute()).toBe(1080); // 18:00
     // Chaque ancre est bien LA phase demandée, pas sa voisine de position.
-    expect(DAY_PHASES.find((p) => p.id === 'aube')?.start).toBe(dawnMinute());
-    expect(DAY_PHASES.find((p) => p.id === 'crepuscule')?.start).toBe(duskMinute());
+    expect(DAY_PHASES.find((p) => p.id === 'aube')?.seuil).toBe(dawnMinute());
+    expect(DAY_PHASES.find((p) => p.id === 'crepuscule')?.seuil).toBe(duskMinute());
     // TÉMOIN du repli mort : 'soir' (l'ancienne cible de `[length - 2]`) n'est PAS le crépuscule.
-    expect(DAY_PHASES.find((p) => p.id === 'soir')?.start).not.toBe(duskMinute());
+    expect(DAY_PHASES.find((p) => p.id === 'soir')?.seuil).not.toBe(duskMinute());
   });
 
   it('`ancreDePhase` : une ancre absente FAIL-FAST, et le message nomme donnée + id + ids présents', () => {
     const forgees = [
-      { id: 'aube', start: 300 },
-      { id: 'soir', start: 1200 },
+      { id: 'aube', seuil: 300 },
+      { id: 'soir', seuil: 1200 },
     ];
     expect(ancreDePhase(forgees, 'aube')).toBe(300);
     // La branche d'erreur est ATTEIGNABLE (résolveur pur) : elle n'est pas du texte mort.

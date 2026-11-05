@@ -70,7 +70,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const opp = step.meta!.opposed!;
-    act(() => { get().cascadeRoll(step.id); });
+    act(() => { get().jetRoll('cascade', step.id); });
     act(() => { get().cascadeNext(); });
 
     const journal = get().journal.join('\n');

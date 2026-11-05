@@ -36,7 +36,7 @@ import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs
 import { describe, expect, it } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../../../detenteur.testkit';
+import { detenteur } from '../../../lib/detenteur.testkit';
 
 const DIR_WEBGL = 'src/gameIso/backends/webgl';
 const DIR_STAGE = 'src/gameIso/stage';

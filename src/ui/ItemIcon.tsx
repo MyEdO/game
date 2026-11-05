@@ -6,9 +6,9 @@ import type { ItemInstance, Weapon } from '../engine/types';
 import { isCapeItem, isShieldItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { Icon } from './Icon';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 
-/** Id d'icône de catégorie (registre src/ui/icons, famille item/*). */
+/** Id d'icône de catégorie (registre src/data/icons, famille item/*). */
 function glyphe(item: ItemInstance | Weapon): IconId {
   if ('kind' in item) {
     if (item.kind === 'armor') return 'item/armour';

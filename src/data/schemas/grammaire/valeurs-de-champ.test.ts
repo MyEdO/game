@@ -112,10 +112,11 @@ const NOMMES = [
   'flag|param|mode',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|ranged|zone|allFoes|allAround|self',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
   'physique|mentale',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
-  'prop|roof|relief|objet',
+  'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
@@ -153,6 +154,7 @@ const NOMMES = [
   'any|all',
   'group|talent|trait|psych|immunity',
   'moderee|grave',
+  'night|voyage|flow|combat',
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
@@ -163,14 +165,13 @@ const NOMMES = [
   // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
   'sl|st|legs|arms|head',
   // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
-  // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json` ;
+  // (`grammaire/mecanique.ts`) ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
   'melee|ranged|all',
   'action|movement',
   'all|metal|nonMagic|nonMetal',
   // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
   'metal|leather|chaos|peau',
-  'd10|d100',
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
@@ -277,7 +278,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'party|hero',
   'party|hero|caster|target',
   'pas|trot|galop',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent',
   'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',

@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { availableResistance, resistanceImproves } from '../engine/menace';
+import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { exposureLevelSchema, NATURES_D_INFLUENCE } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -15,6 +15,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeCorruption } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
@@ -31,23 +32,22 @@ export function CorruptionModal() {
   const pc = useGame((s) => s.pendingCorruption);
   const party = useGame((s) => s.party);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.corruptionRoll);
+  const roll = useGesteDeJet('jetRoll', 'corruption');
   const setNature = useGame((s) => s.corruptionSetNature);
-  const reroll = useGame((s) => s.corruptionReroll);
-  const bonusSL = useGame((s) => s.corruptionBonusSL);
-  const darkPact = useGame((s) => s.corruptionDarkPact);
-  const resistAct = useGame((s) => s.corruptionResist); // Résistance (Menace) : auto-succès du talent (LDB 10)
-  const forceSuccess = useGame((s) => s.corruptionForceSuccess); // Résilience (LDB 17 l.68)
-  const resolve = useGame((s) => s.resolveCorruption);
+  const reroll = useGesteDeJet('jetReroll', 'corruption');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'corruption');
+  const darkPact = useGesteDeJet('jetDarkPact', 'corruption');
+  const resistAct = useGesteDeJet('jetResist', 'corruption'); // Résistance (Menace) : auto-succès du talent (LDB 10)
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'corruption'); // Résilience (LDB 17 l.68)
+  const resolve = useGesteDeJet('jetConfirm', 'corruption');
   if (!pc) return null;
   const pool = battle?.combatants ?? party;
   const hero = pool.find((c) => c.id === pc.heroId);
   const rolled = pc.roll != null;
   const seuil = pc.kind === 'seuil';
   // Résistance (Menace) (LDB 10 l.1020) : exposition → 'corruption', seuil → 'mutation' (tag posé
-  // à l'ouverture). MÊME fenêtre que le verbe `resist` de la fabrique — `resistanceImproves`.
-  const resistAvail = pc.menace != null && hero != null && availableResistance(hero, pc.menace) != null
-    && resistanceImproves(hero, rolled ? { won: !!pc.success, sl: pc.sl ?? 0 } : null);
+  // à l'ouverture). La fenêtre est le verbe `resist` du flux.
+  const resistAvail = pc.menace != null && !fermeturesDuFlux(useGame.getState(), 'corruption').resist;
   // Pré-jet (audit M6) : `pc.target` n'existe qu'après resolve → base réelle du Test affichée
   // AVANT le jet (même parité que les autres flux).
   const { base, mods } = hero ? valeurDecomposee(hero, pc.test) : { base: 0, mods: [] };
@@ -72,7 +72,7 @@ export function CorruptionModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Continuer', onClick: resolve, when: 'post' },
+    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'confirm' },
   ];
 
   return (

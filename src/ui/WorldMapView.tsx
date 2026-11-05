@@ -413,7 +413,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
             <circle r="2.1" fill="none" stroke="var(--accent)" strokeWidth="0.3" strokeDasharray="0.7 0.55" opacity="0.9" />
           )}
           <circle r="1.5" fill="url(#wm-medal)" stroke="var(--wm-age-spot)" strokeWidth="0.22" filter="url(#wm-drop)" />
-          {/* `p.icon` = id d'icône (registre src/ui/icons) ; sans icône, drapeau de lieu. */}
+          {/* `p.icon` = id d'icône (registre src/data/icons) ; sans icône, drapeau de lieu. */}
           <g style={{ color: 'var(--wm-marker-icon)' }}>
             <IconG id={p.icon ?? 'nav/entry-point'} x={-1.05} y={-1.05} size={2.1} />
           </g>

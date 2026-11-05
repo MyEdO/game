@@ -37,8 +37,8 @@ export const REGISTRIES = [
   {
     // Icônes UI SVG maison (24×24, currentColor — remplacent les emojis) : 1 famille = 1 fichier defs/.
     // + union `IconIdGenerated` des ids déclarés, à part dans `src/data/` → `IconId` (types.ts) est un VRAI type fermé.
-    dir: 'src/ui/icons/defs',
-    out: 'src/ui/icons/_registry.generated.ts',
+    dir: 'src/data/icons/defs',
+    out: 'src/data/icons/_registry.generated.ts',
     exportName: 'icons',
     arrayName: 'ICON_FAMILIES',
     type: 'IconFamily',

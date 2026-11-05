@@ -1,24 +1,30 @@
-## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`) : il démarre la partie de l'adresse de la page
-## (`?scenario=<id>&graine=<n>`), applique chaque suite (la vue au plateau, à l'interface et à la fenêtre, le journal
-## au plateau et à l'interface, chaque jeton programmé armé en minuteur et repris à son échéance), et rend chaque geste
-## du joueur en intention : une offre de la vue, un geste de la fenêtre, ou un clic du champ (`vue.champ` : le verbe qui
-## désigne un combattant, celui qui désigne une case). Chaque vue montrée, il publie à la page ce que l'écran porte
-## (`PontDuNoyau.publier_l_ecran`), que la recette lit.
+## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
+## l'adresse de la page (`?scenario=<id>&graine=<n>`) et applique chaque suite. La vue va au plateau ; la fenêtre prend
+## la disposition que la vue nomme (`vue.disposition`, `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène
+## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
+## que la suite ajoute, `zones` : les lignes du journal) ; le journal va au plateau ; chaque jeton programmé est armé
+## en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
+## (`Zone.geste`), ou un clic du champ (`vue.champ` : le verbe qui désigne un combattant, celui qui désigne une case ;
+## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
+## reste tel quel, saisies comprises. Chaque vue montrée, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`),
+## que la recette lit. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa case.
 extends Node
 
 @onready var _plateau: Plateau = $Plateau
-@onready var _interface: InterfaceDuCombat = $Interface
-@onready var _fenetre: FenetreDuJeu = $Fenetre
+@onready var _ecran: Node = $Ecran
+@onready var _disposition: Disposition = $Ecran/Fenetre/Disposition
+@onready var _refus: Label = $Ecran/Interface/Avis/Refus
+@onready var _panne: Label = $Ecran/Interface/Avis/Panne
+@onready var _apercu: Control = $Ecran/Interface/Apercu
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
+var _zones: Array[Zone] = []
 
 
 func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
-	_interface.offre_choisie.connect(func(offre: String) -> void: _jouer({offre = offre}))
-	_fenetre.geste.connect(_jouer)
-	if not await _pont.rejoindre(_interface.afficher_refus, _interface.afficher_panne):
+	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var entree := {scenario = _pont.parametre("scenario")}
 	var graine := _pont.parametre("graine")
@@ -27,8 +33,8 @@ func _ready() -> void:
 	_suivre(_pont.appeler("demarrer", entree))
 
 
-func _jouer(geste: Dictionary) -> void:
-	_suivre(_pont.appeler("jouer", geste))
+func _jouer(jeu: Dictionary) -> void:
+	_suivre(_pont.appeler("jouer", jeu))
 
 
 func _reprendre(jeton: int) -> void:
@@ -40,28 +46,45 @@ func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
 	_vue = reponse.vue
+	_refus.text = ""
 	_plateau.montrer(_vue, reponse.journal)
-	_interface.montrer(_vue, reponse.journal)
-	_fenetre.montrer(_vue.fenetre)
+	if _disposition.disposer(_vue.disposition):
+		_relier()
+	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()
+
+
+## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
+func _process(_delta: float) -> void:
+	var point: Variant = _plateau.point_de_l_apercu()
+	if _apercu.visible and point != null:
+		_apercu.position = MiseEnPage.bulle_au_dessus(point, _apercu.size.x, _apercu.size.y)
+
+
+## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu.
+func _relier() -> void:
+	_zones = Zone.racines(_ecran)
+	for zone in _zones:
+		if not zone.geste.is_connected(_jouer):
+			zone.geste.connect(_jouer)
 
 
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`) et le point de
 ## chaque case du plateau.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface, _fenetre]), cases = _plateau.points()})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points()})
 
 
 ## Un clic sur `case` : le clic du champ qui désigne son occupant s'il en a un, celui qui désigne la case sinon.
 func _cliquer(case: Vector2i) -> void:
-	var combat: Variant = _vue.get("projection", {}).get("combat")
-	if combat == null or combat.barre.forme != "ouverte":
+	var champ: Variant = _vue.get("champ")
+	if champ == null:
 		return
-	for c in combat.voisins.liste:
-		if c.pos != null and not c.horsCombat and Vector2i(int(c.pos[0]), int(c.pos[1])) == case:
-			_jouer({type = _vue.champ.combattant, args = [c.id]})
-			return
-	_jouer({type = _vue.champ.case, args = [{x = case.x, y = case.y}]})
+	var occupant: Variant = _vue.occupants.get("%d,%d" % [case.x, case.y])
+	if occupant != null:
+		_jouer({type = champ.combattant, args = [occupant]})
+	else:
+		_jouer({type = champ.case, args = [{x = case.x, y = case.y}]})

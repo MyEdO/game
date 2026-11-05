@@ -82,7 +82,7 @@ function estListeDeDocumentsPorteurs(data) {
  * - `single` : objet de config unique — cité si sa RACINE porte `source` (convention
  *   documentée `src/data/schemas/grammaire/valeurs.ts:49-54` : "à la racine quand le dataset est un objet de config unique
  *   plutôt qu'une liste" — couvre alors TOUT le fichier, y compris les tableaux/sous-tables
- *   imbriqués, ex. `montures.json`/`river-criticals.json.tables`). Sans racine citée ET sans
+ *   imbriqués, ex. `river-criticals.json.tables`). Sans racine citée ET sans
  *   tableau à convention par-entrée, le fichier entier est UNE entrée non citée.
  * @param {unknown} data @returns {DatasetCoverage}
  */
@@ -117,8 +117,7 @@ export function auditDataset(data) {
   }
   if (isPlainObject(data)) {
     // La RACINE citée prime (convention documentée `src/data/schemas/grammaire/valeurs.ts:49-54`) : elle couvre tout le
-    // fichier, y compris les tableaux/sous-tables imbriqués (`montures.json`, `river-criticals.json.
-    // tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
+    // fichier, y compris les tableaux/sous-tables imbriqués (`river-criticals.json.tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
     // réellement visée par cette réf précise, le fichier est considéré couvert.
     if (isCitedItem(data)) return { total: 1, cited: 1, missing: [], shape: 'single' };
     const categoryProps = Object.entries(data).filter(
@@ -150,22 +149,8 @@ export function auditDataset(data) {
  * @type {Record<string, string>}
  */
 export const EXEMPT_DATASETS = {
-  'details.json': "`ageBase`/`ageRoll`/`heightBase`/`heightRoll` reprennent le verbatim direct de LDB `05` l.705-728 (folio 39) pour les 4 seules colonnes que le canon imprime (humain/nain/elfe/halfling) ; `gnome`/`ogre` y sont posés SANS source trouvée, et `texts` est de la prose d'application — aucune de ces strates n'est une table RAW autonome à citer par entrée.",
-  'localisation.json': 'table de dé inversé (mapping résultat→zone de touche) — vocabulaire structurel du moteur, pas une table RAW à citer en tant que telle (les zones sont LDB, déjà couvertes par `hitLocationSchema`).',
-  'names.json': "liste de PRÉNOMS d'authoring par race — pas une mécanique mesurable, aucune règle à sourcer.",
-  'sizes.json': "3 tables, 3 provenances : `rangedMod` = LDB folio 162 (`14 - _GoBack.md` l.118-131), `shipboardEnc` = MDG folio 92 (`12` l.25-33), `footprintSide` = MAISON (aucune barre chiffrée au canon, cf. `src/engine/size.ts:40-49`). Aucune des trois n'est une entrée narrative sourçable individuellement : les deux tables RAW portent leur réf à leur foyer (`src/data/schemas/defs/sizes.ts:2-4`), la troisième n'a pas de folio à citer.",
-  'speciesRace.json': "race d'apparence par défaut de l'authoring, pas une donnée RAW.",
   // (`reglesOptionnelles.json` n'est PAS exempté : sa dette de folios est un cliquet DÉCROISSANT,
   //  `BASELINES` de `src/data/citation-coverage-guard.test.ts` — E8 du programme #1318.)
-  'groups.json': "vocabulaire app-interne de GROUPES de créatures (tags de regroupement/rencontre), pas une notion RAW nommée.",
-  'damage-types.json': "vocabulaire de catégorisation (argument du Trait Immunité) ; le `domaine` d'une entrée se source au schéma (`src/data/schemas/defs/damage-types.ts`), aucune entrée n'est une règle à citer.",
-  'qualityTypes.json': "vocabulaire de catégorisation des Qualités/Défauts (id+label, Atout/Défaut) — aucune valeur mécanique propre.",
-  'qualitySubtypes.json': "vocabulaire de catégorisation des Qualités/Défauts (id+label, Arme/Armure/Objet) — aucune valeur mécanique propre.",
-  'pregens.json': "personnages PRÉ-GÉNÉRÉS d'authoring (fiches jouables), contenu app-inventé — pas une règle RAW à sourcer.",
-  'calendarPhases.json': "les 7 phases de la journée (Aube→Nuit) sont un DÉCOUPAGE app-interne (minute de départ + icône, moteur de lumière/vision) — introuvable comme table RAW nommée dans le Calendrier Impérial (EDO Annexe 3, folio 149-150 : seuls mois/jours/jours intercalaires y sont RAW, #309 phase 3) ; aucune valeur mécanique à sourcer par entrée.",
-  'lieux-services.json': "vocabulaire des SERVICES de lieu (#343 — auberge/temple/forgeron/guilde) : id/label/icône de routage d'écran (hub de lieu), aucune valeur mécanique propre à sourcer (port/marché portent leur propre schéma sourcé).",
-  'merchants.json': "archétypes de MARCHAND (#2) — config app-owned (taux de rachat/Marchandage/agglo par défaut/familles vendues), pas une table RAW à folio unique par entrée : les VALEURS RAW citées (½/¼ de revente, majoration, Disponibilité) vivent dans `engine/disponibilite.ts` (LDB 59) et `bargain.ts`, déjà sourcées à leur foyer ; le `boniment` est une réplique d'auteur, sans RAW à sourcer.",
-  'merchantFamilies.json': "familles de PRÉSENTATION du stock marchand (onglets/colonnes de `ui/MerchantPanel.tsx`) — vocabulaire de mise en page app-interne, aucune valeur mécanique RAW à sourcer par entrée.",
 };
 
 /** Motif d’exemption de citation d’un fichier de dataset.

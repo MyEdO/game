@@ -1020,7 +1020,7 @@ function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): Cas
  * (side `partyBest`) — 8 call-sites identiques avaient la compétence RÉPÉTÉE
  * (`side.partyBest.skill` ET `req.test.skill`, divergence exprimable = bug possible). SOURCE UNIQUE :
  * la compétence se déclare UNE FOIS ; `side`/`test` la reprennent ICI, jamais recopiée au call-site.
- * Réserve `openRoll` (exporté) aux formes hors ce patron (`enemy`/participants/`actorId` — cf. `rollSeam.test.ts`).
+ * Réserve `openRoll` (exporté) aux formes hors ce patron (`enemy`/participants/`actorId` — cf. `rollSeam.hors-store.test.ts`).
  */
 export function openPartyTest(
   get: Get, set: Set,

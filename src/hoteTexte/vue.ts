@@ -6,13 +6,14 @@
  */
 import {
   effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
-  LOCALISATIONS_DE_COUP, ACTIONS,
-  type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
+  LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
+  type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { t } from '../i18n';
 import { ecritALaForme, signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
+import { parametresDuGeste } from '../hote/gestes';
 import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection, type ProprietaireDeLaFenetre } from '../hote/projection';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
@@ -105,7 +106,7 @@ function enteteDeCombat(p: Projection): string {
   if (c.fin) return `combat fini : ${c.fin} · R${c.round} · pas ${p.pas}`;
   const a = c.actif;
   const qui = a ? `actif ${a.id} ${a.nom} · PB ${a.pb[0]}/${a.pb[1]} · Av ${a.avantage} · Action ${a.action} · Mvt ${a.mouvement[0]}/${a.mouvement[1]}` : 'aucun actif';
-  return `R${c.round} tour ${c.tour}/${c.tours} · ${qui} · pas ${p.pas}`;
+  return `R${c.round} tour ${c.tour ?? '–'}/${c.tours} · ${qui} · pas ${p.pas}`;
 }
 
 /** Qui tient la main d'une fenêtre, en mots (`ProprietaireDeLaFenetre`). */
@@ -135,10 +136,20 @@ export function replier(texte: string): string[] {
   });
 }
 
-/** Les verbes de la fenêtre, chacun par sa signature (`VERBES`, lus du type du noyau), repliés, et l'id que leurs
- *  paramètres `pid` attendent. */
-const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] =>
-  f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : [];
+/** La signature d'un geste (`parametresDuGeste`) : le flux d'un verbe de jet y est écrit en valeur. */
+const signatureDuGeste = (g: GesteDuJeu): string =>
+  signature(g.verbe, parametresDuGeste(g).map((p) => (p.nom === 'flux' && g.flux ? { ...p, forme: { genre: 'litteral' as const, valeur: g.flux } } : p)));
+
+/** Les gestes ouverts de la fenêtre, chacun par sa signature (`signatureDuGeste`), repliés, et l'id que leurs
+ *  paramètres `pid` attendent ; puis ceux que son jet ferme maintenant, chacun avec sa raison (`Projection.fenetre.fermes`). */
+const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] => {
+  const ouverts = f.gestes.filter((g) => !(cleDuGeste(g) in f.fermes));
+  const fermes = Object.entries(f.fermes);
+  return [
+    ...(ouverts.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${ouverts.map(signatureDuGeste).join(' · ')}`) : []),
+    ...(fermes.length ? replier(`fermés : ${fermes.map(([v, raison]) => `${v} (${raison})`).join(' · ')}`) : []),
+  ];
+};
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
@@ -167,7 +178,7 @@ export const gestesEcrits = (g: GesteDExploration): { verbe: string; args: unkno
 /** Un geste d'exploration : son libellé et l'appel qui le joue. */
 export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: gestesEcrits(g) })}`);
 
-const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}`;
+const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}${o.refus === null ? '' : ` (fermée : ${o.refus})`}`;
 
 /** La vue par défaut (`BORNES.lignes.vue`). */
 export function rendreLaVue(p: Projection): string[] {
@@ -193,7 +204,7 @@ export function rendreLaVue(p: Projection): string[] {
     lignes.push(...p.jets.flatMap(ligneDeJets));
     if (p.exploration) {
       const x = p.exploration;
-      lignes.push(`groupe ${pos(x.groupe)}${x.etage === null ? '' : ` étage ${x.etage}`}${x.cap ? ` · cap ${x.cap}` : ''} : ${x.heros.join(', ')}`);
+      lignes.push(`groupe ${pos(x.groupe)}${x.etage === null ? '' : ` étage ${x.etage}`}${x.cap ? ` · cap ${x.cap}` : ''} : ${x.heros.map((h) => h.nom).join(', ')}`);
       lignes.push(...(x.gestes.liste.length ? x.gestes.liste.flatMap(ligneDeGeste) : ['gestes : aucun depuis cette case']));
       lignes.push(...enPlus(x.gestes.enPlus, `gestes (${appelEcrit('lire', { quoi: 'offres' })})`));
     }

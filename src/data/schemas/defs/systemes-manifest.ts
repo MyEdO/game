@@ -1,7 +1,7 @@
 /**
  * Schéma de `systemes.manifest.json` — manifeste éditorial des systèmes implémentés (#298), consommé
  * par `scripts/docs/build-systemes.mjs` pour générer `docs/systemes.md`. Vocabulaire app-interne
- * (tooling), pas une donnée RAW — cf. `EXEMPT_DATASETS` (citationCoverage.mjs).
+ * (tooling), pas une donnée RAW — cf. `SANS_LIVRE_DEFINITIF` (`grammaire/sans-livre.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

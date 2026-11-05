@@ -5,6 +5,8 @@
  * (`pertesDArgentDuTirage`), clôture (`devisDeCloture` ; LDB 23 l.15, l.191).
  */
 import type { Jeu } from './etat';
+import type { CloturesDuJet } from './rollFlowSpecs';
+import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
 import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
@@ -13,17 +15,16 @@ import { startCascade } from './cascade';
 import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
-import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
-import { garanti } from '../lib/garanti';
 import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, refusDeClore, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
@@ -342,7 +343,7 @@ export interface PendingActivityFields extends PendingBase {
   traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
-   *  sur le héros — routée par `confirmActivity` vers le résolveur de bataille. `prep` = Activité de
+   *  sur le héros — routée par `jetConfirm('activity')` vers le résolveur de bataille. `prep` = Activité de
    *  préparation ('bataille') ; `round` = Scène cinématique d'un Round ('bataille-round'). */
   battle?: 'prep' | 'round';
   /** Modificateur de SITUATION (fondu dans la cible, en LIGNE de mod pour la modale) : Menace −20 (l.219)
@@ -559,7 +560,7 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depositIndex: number, p
 
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
  *  héros (deltas NON exprimables en `GameOp` : DR du Test étendu, crédit différé des Revenus,
- *  compteur d'acharnement — fusionnés dans l'écriture finale de `confirmActivity`). */
+ *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetConfirm('activity')`). */
 interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState>; closeOps?: GameOp[] }
 
 /** Ce résolveur appartient-il à la famille INTERLUDE (`RESOLVER_OWNER`) ? */
@@ -567,7 +568,7 @@ const ownedByInterlude = (r: ActivityResolver): r is ResolverOf<'interlude'> => 
 
 /** Dispatch des résolveurs BESPOKE d'issue d'Activité (`ActivityDef.resolver` + bandes `resolver`) —
  *  chacun RÉUTILISE une logique PURE existante et implémente la règle RAW vérifiée. Le `patch` porte
- *  les deltas d'état d'interlude (le `set` final est fait par `confirmActivity`). FERMÉ sur le
+ *  les deltas d'état d'interlude (le `set` final est fait par `jetConfirm('activity')`). FERMÉ sur le
  *  sous-ensemble POSSÉDÉ par l'interlude (`RESOLVER_OWNER`) : un résolveur d'une autre famille qui
  *  arriverait ici est une erreur de routage, elle CRIE. */
 function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa: PendingActivity, h: Combatant, st: InterludeHeroState): ResolverResult {
@@ -828,9 +829,9 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const rng = battleRng();
       // Trois tirages de MONDE par la porte du canal (`deMonde`, `engine/dice`) : ils sont la
       // CONSÉQUENCE du Test de Ragot déjà joué et surfacé (`pa`), pas une occasion de pose de plus.
-      const lieu = findTableEntry(findEffectTableById('contremaitre-lieu').rows, deMonde(rng));
-      const objectif = findTableEntry(findEffectTableById('contremaitre-objectif').rows, deMonde(rng));
-      const perso = findTableEntry(findEffectTableById('contremaitre-personnalite').rows, deMonde(rng));
+      const lieu = findTableEntry(findEffectTableById('contremaitre-lieu').entries, deMonde(rng));
+      const objectif = findTableEntry(findEffectTableById('contremaitre-objectif').entries, deMonde(rng));
+      const perso = findTableEntry(findEffectTableById('contremaitre-personnalite').entries, deMonde(rng));
       return {
         lines: [
           msg('if.contremaitreOk', { name: h.label, lieu: ligneNommee(lieu, 'contremaitre-lieu'), objectif: ligneNommee(objectif, 'contremaitre-objectif'), perso: ligneNommee(perso, 'contremaitre-personnalite') }),
@@ -937,9 +938,9 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
  *  l'issue vient de la DONNÉE de l'`ActivityDef` — bandes `outcomes`/`onSuccess` (GameOp + `resolver`
  *  de bande) OU `resolver` DIRECT (Revenus/Artisanat/Apprentissage/Identification, sans table). Les
  *  `patch` des résolveurs sont ACCUMULÉS puis fusionnés dans l'unique écriture finale. */
-export function confirmActivity(get: Get, set: Set): void {
+function appliquerLActivite(get: Get, set: Set): void {
   const pa = get().pendingActivity;
-  if (!pa || pa.roll == null || !pa.activityId) return;
+  if (!pa || !pa.activityId) return;
   // Activité/Scène de BATAILLE de masse (ADE II 8) : l'issue porte sur l'ARMÉE (application distincte
   // par `confirmBattleActivity`, canal de jet identique). BUDGET UNIQUE (l.65 : « comme à l'accoutumée,
   // ils ne peuvent participer qu'à un maximum de trois Activités ») : une prépa de bataille EST une
@@ -973,7 +974,7 @@ export function confirmActivity(get: Get, set: Set): void {
   const source: EffectSource = { kind: 'activity', id: def.id };
   // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'fumble'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
-  const fumble = isFumble(pa.roll, pa.success);
+  const fumble = isFumble(garanti(pa.roll, pa.heroId, 'jet de l’Activité'), pa.success);
   // Résolveur DIRECT (pas de table d'issues) : Revenus/Artisanat/Apprentissage/Identification —
   // ils agissent/consomment MÊME sur échec (RAW). Les résolveurs de BANDE restent dans la boucle.
   if (def.resolver && !def.outcomes?.length && !def.onSuccess?.length) {
@@ -1126,7 +1127,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
 /** Clôture : applique le devis (`devisDeCloture`) que le récap affiche, puis le temps passe (repos
  *  standard). Touche toutes les bourses : geste du groupe. LDB 23 l.15, l.33, l.191 */
 export function interludeEnd(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
+  if (refuseSi(get, set, refusDeClore)) return;
   const devis = devisDeCloture(get());
   if (!devis) return;
   const lines: string[] = [];
@@ -1180,7 +1181,6 @@ export function creerActionsDInterlude(get: Get, set: Set) {
   return {
     startInterlude: (weeks) => startInterlude(get, set, weeks),
     interludeEnd: () => interludeEnd(get, set),
-    activityConfirm: () => confirmActivity(get, set),
     interludeCraftStart: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
     interludeBank: (heroId, kind, amountBrass, rate) => bankDeposit(get, set, heroId, kind, amountBrass, rate),
     interludeWithdraw: (index) => bankWithdraw(get, set, index),
@@ -1188,6 +1188,10 @@ export function creerActionsDInterlude(get: Get, set: Set) {
     interludeEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
     interludeActivity: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function cloturesDInterlude(get: Get, set: Set) {
+  return { activity: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

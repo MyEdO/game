@@ -10,6 +10,7 @@ import { describeFrenzy } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale d'entrée en Frénésie (LDB 21 l.31) : « Lancer » jette le Test de Force Mentale,
@@ -19,12 +20,12 @@ import { t } from '../i18n';
 export function FrenzyModal() {
   const pf = useGame((s) => s.pendingFrenzy);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.frenzyRoll);
-  const reroll = useGame((s) => s.frenzyReroll);
-  const darkPact = useGame((s) => s.frenzyDarkPact);
-  const force = useGame((s) => s.frenzyForceSuccess);
-  const confirm = useGame((s) => s.frenzyConfirm);
-  const cancel = useGame((s) => s.frenzyCancel);
+  const roll = useGesteDeJet('jetRoll', 'frenzy');
+  const reroll = useGesteDeJet('jetReroll', 'frenzy');
+  const darkPact = useGesteDeJet('jetDarkPact', 'frenzy');
+  const force = useGesteDeJet('jetForceSuccess', 'frenzy');
+  const confirm = useGesteDeJet('jetConfirm', 'frenzy');
+  const cancel = useGesteDeJet('jetCancel', 'frenzy');
   if (!pf || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pf.combatantId);
   if (!c) return null;
@@ -50,8 +51,8 @@ export function FrenzyModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

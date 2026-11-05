@@ -135,7 +135,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(stepInteraction(etapes[0])).toBe('table');
     // Le dé tombe DANS la fenêtre (kit = ce que la fenêtre offre) : la ligne tirée par l'étape est
     // celle que le moteur applique, et la révélation riche la RAPPORTE.
-    banc.getState().cascadeTableRoll(etapes[0].id);
+    banc.getState().jetRoll('cascadeTirage', etapes[0].id);
     const ligne = banc.getState().pendingCascade!.participants[0].table!.result!.id;
     draineCascade(banc.getState);
     const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -168,7 +168,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
-    banc.getState().cascadeTableSetForcedRoll(step.id, entry.min);
+    banc.getState().jetSetForcedRoll('cascadeTirage', entry.min, step.id);
     const posee = banc.getState().pendingCascade!.participants[0];
     expect(posee.table!.result).toMatchObject({ roll: entry.min, die: entry.min, id: entry.id });
     expect(posee.fixed, 'la provenance « dé fixé » vit sur l’étape').toBe(true);
@@ -200,7 +200,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       const brut = rng.int.bind(rng);
       let n = 0;
       (rng as { int: typeof brut }).int = (a: number, b: number) => { n++; return brut(a, b); };
-      try { banc.getState().cascadeTableSetForcedRoll(step.id, nat); } finally { (rng as { int: typeof brut }).int = brut; }
+      try { banc.getState().jetSetForcedRoll('cascadeTirage', nat, step.id); } finally { (rng as { int: typeof brut }).int = brut; }
       const apres = banc.getState().pendingCascade!.participants[0];
       return { crit: apres.deviation!.crit, ligne: apres.table!.result!.id, des: n };
     };
@@ -296,7 +296,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
    * UNE INSTANCE = UN ID (#1426) : deux Critiques sur la MÊME cible à la MÊME localisation dans la
    * MÊME séquence (Balayage, deux frappes du Maniement de deux armes) portaient un id d'étape
    * IDENTIQUE — les seams keyés par id (`liveMerge` de `commitStep`, la pose du dé
-   * `cascadeTableSetForcedRoll`) ne les distinguaient plus. L'index d'append les sépare.
+   * `jetSetForcedRoll('cascadeTirage')`) ne les distinguaient plus. L'index d'append les sépare.
    */
   it('deux Critiques MÊME cible / MÊME localisation dans une séquence = DEUX ids d’étape', () => {
     const { H, E } = startFight();
@@ -309,7 +309,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // Et la pose n'agit que sur l'étape SOUS LE CURSEUR : le dé de la seconde ne suit pas celui de la
     // première (avec un id partagé, elles répondaient au même geste).
     const entry = critiqueTable('ldb', 'corps').find((e) => !e.lethal && !e.amputation)!;
-    banc.getState().cascadeTableSetForcedRoll(etapes[0].id, entry.min);
+    banc.getState().jetSetForcedRoll('cascadeTirage', entry.min, etapes[0].id);
     const apres = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(apres[0].table!.result!.id).toBe(entry.id);
     expect(apres[1].table!.result, 'la SECONDE étape a été résolue par le geste de la première').toBeUndefined();
@@ -326,8 +326,8 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     setDesFixes(true);
     applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
     const step = banc.getState().pendingCascade!.participants[0];
-    banc.getState().cascadeTableSetForcedRoll(step.id, 76); // exploré…
-    banc.getState().cascadeTableSetForcedRoll(step.id, 20); // …puis ABANDONNÉ
+    banc.getState().jetSetForcedRoll('cascadeTirage', 76, step.id); // exploré…
+    banc.getState().jetSetForcedRoll('cascadeTirage', 20, step.id); // …puis ABANDONNÉ
     const courante = banc.getState().pendingCascade!.participants[0];
     expect(Object.keys(courante.foldMemo ?? {}), 'sonde : le mémo doit bien porter les DEUX poses')
       .toEqual(expect.arrayContaining(['76', '20']));

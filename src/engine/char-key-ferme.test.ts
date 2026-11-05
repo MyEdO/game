@@ -40,9 +40,9 @@ describe('CharKey fermé — les tokens courts ne s’écrivent pas (#311, #2724
     const profil: CreatureData['char'] = { 'capacite-de-combat': 40, M: 4, B: null };
     // @ts-expect-error TS2353
     const profilCourt: CreatureData['char'] = { CC: 40 };
-    const test: NonNullable<MiscastRowEntry['test']> = { characteristic: 'force-mentale', difficulty: 'moyenne', onFail: [] };
+    const test: NonNullable<MiscastRowEntry['test']> = { characteristic: 'force-mentale', difficulty: 'intermediaire', onFail: [] };
     // @ts-expect-error TS2322
-    const testCourt: NonNullable<MiscastRowEntry['test']> = { characteristic: 'FM', difficulty: 'moyenne', onFail: [] };
+    const testCourt: NonNullable<MiscastRowEntry['test']> = { characteristic: 'FM', difficulty: 'intermediaire', onFail: [] };
     const cavalier: NonNullable<MountIncidentEffects['riderTest']> = { skill: { id: 'chevaucher' }, char: 'agilite', difficulty: 'complexe', fallM: 2 };
     // @ts-expect-error TS2322
     const cavalierCourt: NonNullable<MountIncidentEffects['riderTest']> = { skill: { id: 'chevaucher' }, char: 'Ag', difficulty: 'complexe', fallM: 2 };
@@ -69,7 +69,7 @@ describe('les champs de donnée qui nomment une Caractéristique refusent le tok
     { nom: 'activities.char', schema: activitiesSchema,
       fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'nav/rest', contexts: ['voyage'], char: carac, source: SOURCE }] },
     { nom: 'miscast.entries[].test.characteristic', schema: miscastSchema,
-      fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', source: SOURCE,
+      fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', die: 'd100', source: SOURCE,
         entries: [{ id: 'fixture-ligne', min: 1, max: 100, label: 'Ligne fixture', test: { characteristic: carac, difficulty: 'accessible', onFail: [] } }] }] },
     { nom: 'weather.physicalTestChars', schema: weatherSchema,
       fixture: (carac) => ({ id: 'weather', type: 'weather', label: 'Météo fixture', seasons: [], physicalTestChars: [carac],

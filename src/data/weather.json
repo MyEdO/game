@@ -6,7 +6,8 @@
     {
       "id": "printemps",
       "label": "Printemps",
-      "ranges": [
+      "die": "d100",
+      "entries": [
         {
           "min": 1,
           "max": 10,
@@ -42,7 +43,8 @@
     {
       "id": "ete",
       "label": "Été",
-      "ranges": [
+      "die": "d100",
+      "entries": [
         {
           "min": 1,
           "max": 40,
@@ -73,7 +75,8 @@
     {
       "id": "automne",
       "label": "Automne",
-      "ranges": [
+      "die": "d100",
+      "entries": [
         {
           "min": 1,
           "max": 30,
@@ -109,7 +112,8 @@
     {
       "id": "hiver",
       "label": "Hiver",
-      "ranges": [
+      "die": "d100",
+      "entries": [
         {
           "min": 1,
           "max": 10,

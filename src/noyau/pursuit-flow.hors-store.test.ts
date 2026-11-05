@@ -182,8 +182,8 @@ describe('Poursuite terrestre (#95)', () => {
     expect(band.groupOwner).toBe(true);
     const s = banc.getState();
     expect(modalOwnerOf(s)).toBe('*');
-    expect(intentAllowedFor(s, 1, 'cascadeBatchRoll', [b.id]), 'l’invité roule SA rangée').toBe(true);
-    expect(intentAllowedFor(s, 0, 'cascadeBatchRoll', [a.id]), 'l’hôte roule la sienne').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetRoll', ['cascadeBatch', b.id]), 'l’invité roule SA rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRoll', ['cascadeBatch', a.id]), 'l’hôte roule la sienne').toBe(true);
   });
 
   it('manche gagnée par les poursuivis (poursuivants médiocres) → Distance grimpe jusqu’à l’évasion', () => {
@@ -293,7 +293,7 @@ describe('Poursuite terrestre (#95)', () => {
     const bande = () => banc.getState().pendingCascade!.participants[0].participants!;
     const jouables = bande().filter((r) => r.interactive !== false);
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
-    banc.getState().cascadeBatchRoll(jouables[0].id);
+    banc.getState().jetRoll('cascadeBatch', jouables[0].id);
     expect(sequenceAbandonOf(banc.getState)).toBeNull();
     banc.getState().sequenceAbandon();
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();

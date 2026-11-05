@@ -3,7 +3,7 @@ import { emptyScene, isWalkable, setDoorOpen, setStructureDown, type Scene, type
 import { portalsForParty, portalsFromRooms, roomPortals, type RoomPortal } from './roomPortals';
 import { pathTo, walkNeighbors, tileKey, type Pt } from './path';
 import { effectiveArchitecture } from '../sceneEdit';
-import { massFootprintCells } from '../../gameIso/builders/roofs';
+import { massFootprintCells } from './buildings';
 import { isRoomZone, occupiedRoomIds, roomsByTile } from './rooms';
 import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 

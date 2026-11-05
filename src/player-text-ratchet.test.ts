@@ -61,7 +61,7 @@ export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/noyau/cascade-bande-possession.hors-store.test.ts': 1,
   'src/noyau/cascade-batch-socle.hors-store.test.ts': 1,
   'src/noyau/cascade-quantite-second.hors-store.test.ts': 6,
-  'src/noyau/cascade.test.ts': 2,
+  'src/noyau/cascade.hors-store.test.ts': 2,
   'src/noyau/combat-tables-choix-porte.hors-store.test.ts': 1,
   'src/noyau/departage-etats-non-fondus.hors-store.test.ts': 3,
   'src/noyau/miscast-step.hors-store.test.ts': 1,
@@ -340,8 +340,8 @@ describe('#1318 V8a₀ T2 — les `as CascadeStep` des TESTS sont GELÉS (la pro
   });
 
   it('MUTATION : un cast de PLUS dans un test gelé rougit', () => {
-    expect(violations({ 'src/noyau/cascade.test.ts': 3 }, GEL_AS_CASCADE_STEP, 'cast(s) `as CascadeStep`'))
-      .toEqual(['src/noyau/cascade.test.ts : 3 cast(s) `as CascadeStep` pour un gel de 2']);
+    expect(violations({ 'src/noyau/cascade.hors-store.test.ts': 3 }, GEL_AS_CASCADE_STEP, 'cast(s) `as CascadeStep`'))
+      .toEqual(['src/noyau/cascade.hors-store.test.ts : 3 cast(s) `as CascadeStep` pour un gel de 2']);
   });
 
   it('MUTATION : un test NEUF qui caste rougit', () => {

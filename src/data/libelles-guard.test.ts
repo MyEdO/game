@@ -62,8 +62,8 @@ function rangees(): Rangee[] {
  * HORS répertoire, et pourquoi : `⇒ ≥ ≠ ±` comptent ZÉRO occurrence, et les signes de CODE
  * (`_ [ ] { } | @ $ ~ ^ * & < > " “ ” ‘ – ° ² ³ ?`) n'en comptent aucune non plus — les admettre
  * ouvrirait la porte à « Couleur ${face} » ou « payload|null » sous une garde censée FERMER le
- * répertoire. Le ban des ACCOLADES a mordu dans le lot 11b : le hint de `voyage-stakes.template`
- * montrait son trou nommé entre accolades, il le DIT désormais en français (`defs/voyage-stakes.ts`).
+ * répertoire. Le ban des ACCOLADES vaut pour les hints de gabarit : un trou nommé se DIT en français
+ * (`defs/stakes.ts`, `template`).
  * Un signe légitime qui apparaîtra plus tard fera ROUGE, et s'inscrira ici avec son compte.
  *
  * Tout le reste est un caractère ÉTRANGER — un mojibake (`Ã©`) est refusé par sa lettre `Ã`, une

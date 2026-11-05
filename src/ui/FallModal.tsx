@@ -15,6 +15,7 @@ import { refusDuTestDeChute, refusDeLaSuspension, type RefusGeste } from '../noy
 import type { RollSegOption } from './OptionChooser';
 import { t } from '../i18n';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque phase de la chute. */
 const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
@@ -46,13 +47,13 @@ export function FallModal() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const owns = useOwns();
-  const roll = useGame((s) => s.fallRoll);
-  const reroll = useGame((s) => s.fallReroll);
-  const bonusSL = useGame((s) => s.fallBonusSL);
-  const darkPact = useGame((s) => s.fallDarkPact);
-  const force = useGame((s) => s.fallForceSuccess);
-  const confirm = useGame((s) => s.fallConfirm);
-  const cancel = useGame((s) => s.fallCancel);
+  const roll = useGesteDeJet('jetRoll', 'fall');
+  const reroll = useGesteDeJet('jetReroll', 'fall');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'fall');
+  const darkPact = useGesteDeJet('jetDarkPact', 'fall');
+  const force = useGesteDeJet('jetForceSuccess', 'fall');
+  const confirm = useGesteDeJet('jetConfirm', 'fall');
+  const cancel = useGesteDeJet('jetCancel', 'fall');
   const choose = useGame((s) => s.fallChoose);
   const refusTests = useGame(useShallow(refusDesTests));
   const refusSuspensions = useGame(useShallow(refusDesSuspensions));
@@ -131,8 +132,8 @@ export function FallModal() {
   const unJet = aLancer.some((x) => !!x.result);
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

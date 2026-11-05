@@ -2,9 +2,9 @@
  * Câblage RÉEL de l'axe Dégâts de la Surincantation révisée (`VDM 02 l.198`, option
  * `magic-vdm-incantation`) jusqu'au CHEMIN DE PROD : Carreau (Projectile magique) lancé via le
  * noyau, DR alloués à l'axe Dégâts par la VRAIE action de modale (`castAllocOvercast`), appliqué
- * par la VRAIE `castConfirm` (→ `applyCast`) — aucun budget/damage recalculé à la main pour
+ * par la VRAIE `jetConfirm('cast')` (→ `applyCast`) — aucun budget/damage recalculé à la main pour
  * l'occasion. Le jet est FIGÉ AVANT l'allocation (`evaluateMissile` à 0 pas, exactement ce que fait
- * `resolveMagicMissile`/`castRoll` — l'allocation intervient après le jet) ; seule
+ * `resolveMagicMissile`/`jetRoll('cast')` — l'allocation intervient après le jet) ; seule
  * l'ALLOCATION et l'APPLICATION passent par les actions réelles du noyau. Si le fil
  * `pc.overcast.damage` → `applyCast` se débranche, ce test rougit (les deux volets rendraient le
  * MÊME delta de Blessures).
@@ -54,10 +54,10 @@ function setup() {
 describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de prod (store)', () => {
   beforeEach(() => { setRule(RULE, true); });
 
-  it('0 DR alloué à l’axe Dégâts (nerf sec) vs 3 DR alloués (palier 3, `castAllocOvercast` + `castConfirm` réels) : +3 Blessures', () => {
+  it('0 DR alloué à l’axe Dégâts (nerf sec) vs 3 DR alloués (palier 3, `castAllocOvercast` + `jetConfirm(\'cast\')` réels) : +3 Blessures', () => {
     const { enemy } = setup();
     const before = enemy.wounds.current;
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after = banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!.wounds.current;
     const baseline = before - after;
     expect(baseline).toBeGreaterThan(0);
@@ -68,7 +68,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     banc.getState().castAllocOvercast('damage', 1);
     banc.getState().castAllocOvercast('damage', 1);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 0, damage: 3 });
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after2 = banc.getState().battle!.combatants.find((c) => c.id === enemy2.id)!.wounds.current;
     // missileOvercastDamageBonus('arcane', 3) === 3 (palier 3 du Tableau, VDM 02 l.207-215).
     expect(before2 - after2).toBe(baseline + 3);
@@ -100,7 +100,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
     // Nettoyage : le jet reste applicable normalement (parité LDB).
     const before = enemy.wounds.current;
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
     const after = banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!.wounds.current;
     expect(before - after).toBeGreaterThan(0);
   });

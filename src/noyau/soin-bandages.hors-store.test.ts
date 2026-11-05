@@ -1,6 +1,6 @@
 /**
  * Les Bandages dans le soin (#3059 I3) : le Test déclaré (Guérison / Dextérité), les Bandages engagés, et l'issue que
- * l'annonce dit = celle que `healConfirm` applique. LDB 74 l.41 ; LDB 09 l.260-261 ; LDB 16 l.107 ; LDB 18 l.308-311 ;
+ * l'annonce dit = celle que `jetConfirm('heal')` applique. LDB 74 l.41 ; LDB 09 l.260-261 ; LDB 16 l.107 ; LDB 18 l.308-311 ;
  * LDB 10 l.19, l.897-899 ; LDB 23 l.209. Valeurs de lacune (orchestrateur, 2026-11-03) : une unité s'use, la Dextérité
  * retire 1 État, Intermédiaire (+0).
  */
@@ -48,7 +48,7 @@ const enCombat = (id: string) => garanti(banc.getState().battle?.combatants.find
 const hemorragie = (id: string) => enCombat(id).conditions.find((c) => c.id === 'hemorragique')?.value ?? 0;
 /** Le jet posé par le résolveur, figé au dé `roll` réussi de DR `sl`. */
 function jete(roll: number, success: boolean, sl: number) {
-  banc.getState().healRoll();
+  banc.getState().jetRoll('heal');
   const ph = garanti(banc.getState().pendingHeal, 'heal', 'soin');
   banc.setState({ pendingHeal: { ...ph, roll, success, sl } });
 }
@@ -61,7 +61,7 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
       if (avec) banc.getState().healSetBandages('doc');
       jete(10, true, 1);
       expect(describeHeal(banc.getState().pendingHeal!, enCombat('al'))).toBe(annonce);
-      banc.getState().healConfirm();
+      banc.getState().jetConfirm('heal');
       expect(hemorragie('al')).toBe(reste);
       expect(enCombat('doc').items!.length).toBe(avec ? 0 : 1);
     }
@@ -80,7 +80,7 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
     const ph = banc.getState().pendingHeal!;
     expect([ph.test, ph.bandagesDe, ph.skillValue, ph.difficulty]).toEqual(['dexterite', 'doc', 35, 'intermediaire']);
     jete(10, true, 3);
-    banc.getState().healConfirm();
+    banc.getState().jetConfirm('heal');
     expect(hemorragie('al')).toBe(3);
   });
 
@@ -116,7 +116,7 @@ describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311
       banc.getState().battleHeal('al', 'wounds');
       if (avec) banc.getState().healSetBandages('doc');
       jete(10, true, 1);
-      banc.getState().healConfirm();
+      banc.getState().jetConfirm('heal');
       expect(!!enCombat('al').woundDressed).toBe(avec);
     }
   });
@@ -127,7 +127,7 @@ describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311
       banc.getState().battleHeal('al', 'wounds');
       if (avec) banc.getState().healSetBandages('doc');
       jete(90, false, -5);
-      banc.getState().healConfirm();
+      banc.getState().jetConfirm('heal');
       expect(enCombat('al').traumas![0].awaitingMedicalAid).toBe(!avec);
       expect(enCombat('doc').items!.length).toBe(avec ? 0 : 1);
     }
@@ -141,7 +141,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
       combat([doc, hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
       seedBattleRng(seed);
       banc.getState().battleHeal('al', 'wounds');
-      banc.getState().healRoll();
+      banc.getState().jetRoll('heal');
       const ph = banc.getState().pendingHeal!;
       if (!ph.success) continue;
       expect(ph.sl).toBe(evaluateTest(ph.roll!, ph.target).sl + 1);
@@ -154,8 +154,8 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
     const doc = hero({ id: 'doc', skills: GUERISON, talents: [{ talentId: 'pansement-de-fortune', times: 1 }] as never });
     combat([doc, hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
     banc.getState().battleHeal('al', 'wounds');
-    banc.getState().healRoll();
-    banc.getState().healSetForcedRoll(5);
+    banc.getState().jetRoll('heal');
+    banc.getState().jetSetForcedRoll('heal', 5);
     const ph = garanti(banc.getState().pendingHeal, 'heal', 'soin');
     expect([ph.roll, ph.success, ph.sl]).toEqual([5, true, evaluateTest(5, ph.target).sl + 1]);
   });
@@ -167,7 +167,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
     banc.getState().battleHeal('al', 'wounds');
     const ph = banc.getState().pendingHeal!;
     banc.setState({ pendingHeal: { ...ph, roll: 82, target: 40, success: false, sl: -4 } });
-    banc.getState().healReverse();
+    banc.getState().jetReverse('heal');
     const apres = banc.getState().pendingHeal!;
     expect([apres.roll, apres.success, apres.sl]).toEqual([28, true, 3]);
   });
@@ -181,7 +181,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
         battle: null, party: [doc, al], medic: { patientId: 'al' },
         pendingHeal: { healerId: 'doc', healerName: 'Doc', targetId: 'al', targetName: 'Al', mode: 'wounds', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 82, success: false, sl: -4 },
       });
-      banc.getState().healReverse();
+      banc.getState().jetReverse('heal');
       expect([talentId, banc.getState().pendingHeal!.sl]).toEqual([talentId, sl]);
     }
   });

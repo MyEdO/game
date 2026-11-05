@@ -21,7 +21,7 @@ export interface Station {
   kind: StationKind;
   pos: { x: number; y: number; z?: number };
   label: string;
-  /** id `ICON_DEFS` (registre `src/ui/icons`) — pièce d'artillerie servie = `action/serve-engine`. */
+  /** id `ICON_DEFS` (registre `src/data/icons`) — pièce d'artillerie servie = `action/serve-engine`. */
   icon: string;
   /** Faction dérivée du `kind` de la coque : héros → allié, ennemi → ennemi, PNJ → neutre. */
   faction: 'ally' | 'enemy' | 'neutral';

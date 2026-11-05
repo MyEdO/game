@@ -1,4 +1,6 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" load_steps=12 format=3]
+
+[ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
 [sub_resource type="StyleBoxFlat" id="Piste_de_glissiere"]
 bg_color = Color(0.32, 0.31, 0.3, 1)
@@ -11,5 +13,150 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="Cadre_de_fenetre"]
+bg_color = Color(0.11, 0.1, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.47, 0.33, 1)
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Fond_de_puce"]
+bg_color = Color(0.2, 0.18, 0.15, 1)
+content_margin_left = 6.0
+content_margin_top = 1.0
+content_margin_right = 6.0
+content_margin_bottom = 1.0
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Fond_de_bulle"]
+bg_color = Color(0.08, 0.07, 0.06, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.47, 0.33, 1)
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Fond_de_jauge"]
+bg_color = Color(0.16, 0.14, 0.12, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Plein_de_jauge"]
+bg_color = Color(0.58, 0.45, 0.26, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Bouton_repos"]
+bg_color = Color(0.22, 0.19, 0.16, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.31, 0.24, 1)
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Bouton_survol"]
+bg_color = Color(0.3, 0.26, 0.2, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.47, 0.33, 1)
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Bouton_presse"]
+bg_color = Color(0.36, 0.29, 0.18, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.68, 0.38, 1)
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Bouton_refuse"]
+bg_color = Color(0.15, 0.14, 0.13, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.22, 0.2, 0.18, 1)
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [resource]
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
+Panneau/base_type = &"PanelContainer"
+Panneau/styles/panel = ExtResource("1_fond")
+Fenetre/base_type = &"PanelContainer"
+Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
+Puce/base_type = &"PanelContainer"
+Puce/styles/panel = SubResource("Fond_de_puce")
+reussite/base_type = &"Label"
+reussite/colors/font_color = Color(0.55, 0.82, 0.5, 1)
+echec/base_type = &"Label"
+echec/colors/font_color = Color(1, 0.45, 0.4, 1)
+alerte/base_type = &"Label"
+alerte/colors/font_color = Color(0.95, 0.75, 0.35, 1)
+Discret/base_type = &"Label"
+Discret/colors/font_color = Color(0.7, 0.66, 0.6, 1)
+TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
+TooltipLabel/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+ProgressBar/styles/background = SubResource("Fond_de_jauge")
+ProgressBar/styles/fill = SubResource("Plein_de_jauge")
+Button/colors/font_color = Color(0.9, 0.86, 0.78, 1)
+Button/colors/font_hover_color = Color(1, 0.95, 0.85, 1)
+Button/colors/font_pressed_color = Color(1, 0.88, 0.6, 1)
+Button/colors/font_hover_pressed_color = Color(1, 0.9, 0.65, 1)
+Button/colors/font_disabled_color = Color(0.5, 0.47, 0.42, 1)
+Button/styles/normal = SubResource("Bouton_repos")
+Button/styles/hover = SubResource("Bouton_survol")
+Button/styles/pressed = SubResource("Bouton_presse")
+Button/styles/hover_pressed = SubResource("Bouton_presse")
+Button/styles/disabled = SubResource("Bouton_refuse")

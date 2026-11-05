@@ -121,7 +121,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
    * LE TABLEAU PROGRESSE ENTRE DEUX MANCHES — déroulé de recette REJOUÉ : Bras de fer contre un
    * adversaire de la salle, manche 1 GAGNÉE (l'op de manche du vainqueur tire : « porte son Avantage
    * à 1 », `NADJ 16 l.34`), puis lecture de la fenêtre de la manche 2. Le dé est LANCÉ par la porte du
-   * jeu (`cascadeRoll`), pas posé : l'issue d'une manche mono passe par l'opposition figée
+   * jeu (`jetRoll('cascade')`), pas posé : l'issue d'une manche mono passe par l'opposition figée
    * (`opposedCascadeRoll`), et un résultat posé à la main court-circuiterait justement ce chemin.
    * Ce qu'un cumul vers cible doit montrer, c'est le TOTAL de chaque camp APRÈS la manche close
    * (`LDB 12 l.170-179`) — le socle écrit `seq.cum`, le système le rend, la fenêtre suivante le lit.
@@ -136,7 +136,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     expect(texte(), 'au départ, les deux camps sont à zéro').toContain('0/10 DR');
 
     const step = get().pendingCascade!.participants[0];
-    act(() => { get().cascadeRoll(step.id); });
+    act(() => { get().jetRoll('cascade', step.id); });
     act(() => { get().cascadeNext(); });
     render();
 
@@ -351,12 +351,12 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     expect(boutons(), 'fenêtre d’ouverture : offert').toContain('Abandonner');
     expect(boutonAbandon()!.getAttribute('aria-disabled'), 'ouvert').not.toBe('true');
     act(() => { get().cascadeChoose(cur().id, '7'); get().cascadeNext(); });
-    act(() => { get().cascadeTableSetForcedRoll(cur().id, 17); });
+    act(() => { get().jetSetForcedRoll('cascadeTirage', 17, cur().id); });
     expect(cur().table?.result, 'le dé est posé, l’étape n’est pas validée').toBeTruthy();
     render();
     ferme('dé posé', 'Abandon possible entre deux manches.');
     act(() => { get().cascadeNext(); });
-    act(() => { get().cascadeTableSetForcedRoll(cur().id, 4); get().cascadeNext(); });
+    act(() => { get().jetSetForcedRoll('cascadeTirage', 4, cur().id); get().cascadeNext(); });
     expect(cur().kind, 'le 4 appende le choix « remettre ou abandonner »').toBe('tavern-pot-fold');
     render();
     ferme('pli dû', 'Abandon possible entre deux manches.');
@@ -414,9 +414,9 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
   /** Joue, comme le joueur, l'étape courante de la manche (jet, table, dé) puis « Suivant ». */
   const joueEtape = () => act(() => {
     const st = cur();
-    if (st.target != null && !st.result) get().cascadeRoll(st.id);
-    else if (st.table && !st.table.result) get().cascadeTableRoll(st.id);
-    else if (st.de && !st.de.result) get().cascadeDieRoll(st.id);
+    if (st.target != null && !st.result) get().jetRoll('cascade', st.id);
+    else if (st.table && !st.table.result) get().jetRoll('cascadeTirage', st.id);
+    else if (st.de && !st.de.result) get().jetRoll('cascadeTirage', st.id);
     get().cascadeNext();
   });
 
@@ -446,7 +446,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     act(() => { useGame.setState({ sequence: null, pendingCascade: null } as never); });
     act(() => { useGame.setState({ sequence: save.data.sequence, pendingCascade: save.data.pendingCascade } as never); });
     expect(get().sequence?.abandon, 'rechargée avec sa demande').toBe('abandon');
-    act(() => { get().cascadeRoll(cur().id); });
+    act(() => { get().jetRoll('cascade', cur().id); });
     expect(sequenceAbandonOf(get), 'pinte posée, manche de nouveau résolue : toujours aucune seconde demande').toBeNull();
     for (let i = 0; i < 10 && get().sequence; i++) {
       expect(get().sequence!.round, 'aucune manche suivante ne s’ouvre').toBe(manche);

@@ -11,10 +11,10 @@ import { EXEMPTIONS, bouclesPilotes, corpusMesure, regenerations, sitesDeBoucles
 import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import type { CascadeStep } from './pendings';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { cleDeFixture } from './noyau.testkit';
 
 const STOCK = 'scripts/guards/lib/piloteCascadeStock.mjs';
@@ -102,7 +102,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   });
 
   it('un homonyme LOCAL du kit, sans boucle, est un helper : la boucle qui l’appelle est un site', () => {
-    const homonyme = 'function avanceEtapeCascade(get: () => GameState) { const p = get().pendingCascade!; get().cascadeRoll(p.participants[p.cursor].id); get().cascadeNext(); }';
+    const homonyme = 'function avanceEtapeCascade(get: () => GameState) { const p = get().pendingCascade!; get().jetRoll(\'cascade\', p.participants[p.cursor].id); get().cascadeNext(); }';
     expect(refs(ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) avanceEtapeCascade(g);', homonyme))).toEqual(['it:morsure']);
   });
 
@@ -114,7 +114,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   it('le kit ET un choix joué à la main : un site, que le kit soit appelé directement ou par un helper', () => {
     expect(refs(ajoute(`for (let i = 0; i < 20; i++) { ${CHOIX_A_LA_MAIN} avanceEtapeCascade(g); }`, KIT))).toEqual(['it:morsure']);
     expect(refs(ajoute(`for (let i = 0; i < 20; i++) { ${CHOIX_A_LA_MAIN} avanceMorsure(); }`, PAR_HELPER))).toEqual(['it:morsure']);
-    expect(refs(ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) { g().cascadeTableRoll(\'s0\'); avanceMorsure(); }', PAR_HELPER))).toEqual(['it:morsure']);
+    expect(refs(ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) { g().jetRoll(\'cascadeTirage\', \'s0\'); avanceMorsure(); }', PAR_HELPER))).toEqual(['it:morsure']);
   });
 
   it('une boucle IMBRIQUÉE ne se compte qu’une fois : l’interne', () => {
@@ -123,7 +123,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   });
 
   it('une fonction dont une itération pilote ne prête rien : la boucle externe qui l’appelle n’est pas un site', () => {
-    const copie = 'function drainMorsure() { while (g().pendingCascade) { g().cascadeRoll(\'a\'); g().cascadeNext(); } }';
+    const copie = 'function drainMorsure() { while (g().pendingCascade) { g().jetRoll(\'cascade\', \'a\'); g().cascadeNext(); } }';
     expect(refs(ajoute('for (let s = 1; s <= 3 && g().pendingCascade; s++) { useGame.setState({ battle: null }); drainMorsure(); }', copie))).toEqual(['fn:drainMorsure']);
   });
 
@@ -145,7 +145,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
     const seul = ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) g().cascadeNext();');
     expect(refs(seul, [exemption])).toEqual([]);
     expect(refs(seul, [])).toEqual(['it:morsure']);
-    const second = ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) g().cascadeNext();\n  while (g().pendingCascade) { g().cascadeRoll(\'a\'); g().cascadeNext(); }');
+    const second = ajoute('for (let i = 0; i < 9 && g().pendingCascade; i++) g().cascadeNext();\n  while (g().pendingCascade) { g().jetRoll(\'cascade\', \'a\'); g().cascadeNext(); }');
     expect(refs(second, [exemption])).toEqual(['it:morsure', 'it:morsure']);
   });
 
@@ -191,7 +191,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   });
 
   it('un nom de bloc de test LIÉ dans une portée englobante n’en est pas un : son callback s’exécute dans la boucle', () => {
-    const local = `${cible().text}\nit('T2', () => { for (let i = 0; i < 9; i++) { const test = g().pendingCascade!; test.participants.forEach((s) => g().cascadeRoll(s.id)); } });\n`;
+    const local = `${cible().text}\nit('T2', () => { for (let i = 0; i < 9; i++) { const test = g().pendingCascade!; test.participants.forEach((s) => g().jetRoll('cascade', s.id)); } });\n`;
     expect(refs(local)).toEqual(['it:T2']);
     expect(refs(ajoute(`const it = (t: string, f: () => void) => f(); for (let i = 0; i < 9; i++) it('Q4b', () => { ${PILOTE} });`))).toEqual(['it:morsure']);
   });
@@ -228,7 +228,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   });
 
   it('le RECEVEUR d’un itérateur ne s’itère pas', () => {
-    const tire = 'const tireMorsure = () => { g().cascadeRoll(\'s0\'); return [1, 2]; };';
+    const tire = 'const tireMorsure = () => { g().jetRoll(\'cascade\', \'s0\'); return [1, 2]; };';
     expect(neuves(ajoute('tireMorsure().map(() => g().pendingCascade);', tire))).toEqual([]);
   });
 
@@ -244,8 +244,8 @@ describe('le kit LÈVE sur une étape qui porte à la fois une table et un dé n
   it('`avanceEtapeCascade` nomme l’étape à deux porteurs au lieu d’en jouer un', () => {
     const etape: CascadeStep = { id: 's0', kind: cleDeFixture('table'), table: { tableId: 't' }, de: {} };
     const rien = () => {};
-    const etat = { pendingCascade: cascadeDeTest([etape]), cascadeTableRoll: rien, cascadeDieRoll: rien, cascadeNext: rien };
-    expect(() => avanceEtapeCascade(() => etat as unknown as GameState)).toThrow(/« s0 ».*`table`.*`de`/);
+    const etat = { pendingCascade: cascadeDeTest([etape]), jetRoll: rien, jetSetForcedRoll: rien, cascadeNext: rien };
+    expect(() => avanceEtapeCascade(() => etat as unknown as Jeu)).toThrow(/« s0 ».*`table`.*`de`/);
   });
 });
 

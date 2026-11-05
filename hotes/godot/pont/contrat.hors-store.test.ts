@@ -10,7 +10,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
-import { CLICS_DU_CHAMP, plateauDeLaScene } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
@@ -79,7 +79,7 @@ describe('le pont avant sa partie', () => {
 describe('le pont et sa partie', () => {
   it('`demarrer` ouvre la partie une fois par page ; un second appel se refuse', { timeout: 120_000 }, () => {
     const { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
-    expect(suite.vue.projection.fenetre?.verbes.length, 'la vue nomme les verbes de la fenêtre ouverte').toBeGreaterThan(0);
+    expect(suite.vue.projection.fenetre?.gestes.length, 'la vue nomme les gestes de la fenêtre ouverte').toBeGreaterThan(0);
     const e = erreurDe(appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(e.categorie).toBe('validation');
     expect(e.message).toMatch(/une partie par page, déjà démarrée/);
@@ -96,8 +96,8 @@ describe('le pont et sa partie', () => {
     expect(plateau.infranchissables, 'un mur posé en (4, 3) : infranchissable').toContainEqual({ x: 4, y: 3 });
     expect(plateau.infranchissables, 'l’herbe voisine en (5, 3) : franchissable').not.toContainEqual({ x: 5, y: 3 });
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
-    expect(v.champ).toEqual(CLICS_DU_CHAMP);
-    for (const verbe of Object.values(v.champ)) expect(VERBES[verbe], verbe).toBeDefined();
+    expect(v.champ, 'l’ouverture du round tient la main : le champ ne se clique pas').toBeNull();
+    for (const verbe of Object.values(CLICS_DU_CHAMP)) expect(VERBES[verbe], verbe).toBeDefined();
   });
 
   it('un jeton inconnu se refuse en `validation`', () => {
@@ -115,12 +115,13 @@ describe('le pont et sa partie', () => {
     expect(appel('vue').ok, 'le lecteur rétabli, la vue se rend').toBe(true);
   });
 
-  it('un verbe inconnu nomme les verbes de la fenêtre qui tient la main ; un argument en trop se refuse', () => {
+  it('un verbe inconnu nomme les gestes de la fenêtre qui tient la main ; un argument en trop se refuse', () => {
     const fenetre = vue().projection.fenetre!;
     const e = erreurDe(appel('jouer', { type: 'confirmRound', args: [] }));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toContain(`verbe inconnu : confirmRound ; verbes de la fenêtre ${fenetre.cle} : ${fenetre.verbes.join(', ')}`);
-    expect(erreurDe(appel('jouer', { type: fenetre.verbes[0], args: [1] })).categorie).toBe('validation');
+    expect(e.message).toContain(`verbe inconnu : confirmRound ; gestes de la fenêtre ${fenetre.cle} : ${fenetre.gestes.map(cleDuGeste).join(', ')}`);
+    const g = fenetre.gestes[0];
+    expect(erreurDe(appel('jouer', { type: g.verbe, args: [...(g.flux ? [g.flux] : []), 1, 1, 1] })).categorie).toBe('validation');
     expect(erreurDe(appel('jouer', { offre: 'end-turn', type: 'x' })).message).toBe('jouer : type hors de l’entrée (clés : offre, ctx)');
   });
 

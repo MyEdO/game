@@ -1,8 +1,8 @@
-import { ICON_DEFS } from './icons';
-import type { IconIdInput } from './icons';
+import { ICON_DEFS } from '../data/icons';
+import type { IconIdInput } from '../data/icons';
 
 /* Primitive d'icône UI (LOT 4 — remplace les emojis d'affordance). Rend le fragment SVG du
-   registre src/ui/icons/ dans un viewBox 24×24 qui hérite la couleur du texte (currentColor).
+   registre src/data/icons/ dans un viewBox 24×24 qui hérite la couleur du texte (currentColor).
    SEAM des ids portés par la DONNÉE (`IconIdInput`) : les ids authorés en TS sont typés `IconId`
    (union générée) en amont ; ici on accepte aussi un `string` JSON, validé par le throw DEV. */
 
@@ -14,7 +14,7 @@ export function iconSvg(id: IconIdInput): string {
   const def = ICON_DEFS[id];
   if (!def) {
     // `?.` : import.meta.env n'existe pas sous tsx (scripts de galerie SSR).
-    if (import.meta.env?.DEV) throw new Error(`Icône inconnue : « ${id} » — déposer une def dans src/ui/icons/defs/ puis \`npm run gen\`.`);
+    if (import.meta.env?.DEV) throw new Error(`Icône inconnue : « ${id} » — déposer une def dans src/data/icons/defs/ puis \`npm run gen\`.`);
     return '';
   }
   return def.svg;
@@ -33,7 +33,7 @@ export function Icon({ id, size = 'md', className }: { id: IconIdInput; size?: n
   const def = ICON_DEFS[id];
   if (!def) {
     // `?.` : import.meta.env n'existe pas sous tsx (scripts de galerie SSR).
-    if (import.meta.env?.DEV) throw new Error(`Icône inconnue : « ${id} » — déposer une def dans src/ui/icons/defs/ puis \`npm run gen\`.`);
+    if (import.meta.env?.DEV) throw new Error(`Icône inconnue : « ${id} » — déposer une def dans src/data/icons/defs/ puis \`npm run gen\`.`);
     return null;
   }
   const px = typeof size === 'number' ? size : SIZES[size];

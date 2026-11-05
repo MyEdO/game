@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 const UI = 'src/ui';
 
@@ -56,12 +56,12 @@ export function shellsWithoutStake(src: string): string[] {
  * L2 (combat), L3 (activités), L4+ (multi d'équipage). Un flux ABSENT d'ici doit être doté.
  */
 const BASELINE: Record<string, string> = {
-  // COMBAT — mesuré en L2 par la FORME (target/roll), pas par grep de kind : le dataset `combat-stakes`
+  // COMBAT — mesuré en L2 par la FORME (target/roll), pas par grep de kind : la cascade `combat` de `stakes.json`
   // naît avec ce lot, ces coquilles s'y branchent d'un coup.
-  maneuver: 'L2 — combat-stakes',
-  grapple: 'L2 — combat-stakes',
-  handGate: 'L2 — combat-stakes',
-  approach: 'L2 — combat-stakes',
+  maneuver: 'L2 — stakes.json combat',
+  grapple: 'L2 — stakes.json combat',
+  handGate: 'L2 — stakes.json combat',
+  approach: 'L2 — stakes.json combat',
   // MAGIE — le renvoi vise la fiche du SORT (design §4), lot magie.
   cast: 'L2 — renvoi CodexRef vers la fiche du sort',
   focus: 'L2 — renvoi CodexRef vers la fiche du sort',
@@ -74,7 +74,7 @@ const BASELINE: Record<string, string> = {
   // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
   // Ubersreik 10 l.183 pose une procédure LOCALE divergente (Force +20), MSRC 7 n'en parle pas.
   // LA règle vit ailleurs : EDO 11 l.89-101 (« Portes »), extraction FR présente et citable — c'est
-  // la procédure que la modale joue déjà. Reste à curer sa fiche et son entrée `flow-stakes`.
+  // la procédure que la modale joue déjà. Reste à curer sa fiche et son entrée de modale dans `stakes.json`.
   forceDoor: 'L2 — passage instruit (EDO 11 l.89-101) ; fiche + entrée d’enjeu à curer',
 };
 
@@ -87,7 +87,7 @@ describe('cliquet — une modale de jet dit son ENJEU (#1117 L1b)', () => {
       }
     }
     const neufs = [...muets].filter(([k]) => !(k in BASELINE)).map(([k, fs]) => `${k} (${fs.join(', ')})`);
-    expect(neufs, ['Coquille de jet SANS enjeu — le joueur doit savoir ce que le jet met en jeu (`stake`, flow-stakes.json) :', ...neufs].join('\n')).toEqual([]);
+    expect(neufs, ['Coquille de jet SANS enjeu — le joueur doit savoir ce que le jet met en jeu (`stake`, stakes.json) :', ...neufs].join('\n')).toEqual([]);
 
     const perimees = Object.keys(BASELINE).filter((k) => !muets.has(k));
     expect(perimees, ['Baseline PÉRIMÉE : ces flux ont désormais leur enjeu — retirer leur ligne :', ...perimees].join('\n')).toEqual([]);

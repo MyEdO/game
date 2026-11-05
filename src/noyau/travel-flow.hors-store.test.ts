@@ -132,7 +132,7 @@ function passerLaMeteo(): void {
     // construction sur une saison RÉORDONNÉE (ce que le Codex permet) : la rangée trouvée doit rester
     // celle que la fourchette authorée désigne.
     for (const saison of weather) {
-      const desordre = [...saison.ranges].reverse();
+      const desordre = [...saison.entries].reverse();
       const rows = stageWeatherRows(desordre);
       for (let jet = 1; jet <= 100; jet++) {
         expect(findTableEntry(rows, jet).id, `saison ${saison.id}, jet ${jet}`).toBe(findTableEntry(desordre, jet).weather);
@@ -164,7 +164,7 @@ function passerLaMeteo(): void {
     expect(get().pendingCascade!.purpose).toBe('travelDay');
     passerLaMeteo();
     const batch = get().pendingCascade!.participants.find((s) => s.kind === 'stagePosteBatch')!;
-    get().cascadeBatchForceSuccess(batch.participants![0].id); // Résilience « Je ne faillirai pas ! » par rangée
+    get().jetForceSuccess('cascadeBatch', batch.participants![0].id); // Résilience « Je ne faillirai pas ! » par rangée
     const after = get().pendingCascade!.participants.find((s) => s.kind === 'stagePosteBatch')!;
     expect(after.participants![0].result?.success).toBe(true);
   });

@@ -15,14 +15,14 @@ import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../noyau/monde/expl
 import { isOutOfAction } from '../../engine/conditions';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsCombatant } from '../../noyau/netOwnership';
-import { outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement } from '../../noyau/combatFlow';
+import { resolveMovement } from '../../noyau/combatFlow';
 import { hoverTargeting, tilePreviewAt } from '../../noyau/targeting';
 import type { DifficultyShown } from '../../engine/combat';
 import { courseArmee } from '../../noyau/localIntent';
 import { modalBlocksMapHover } from '../../state/mapHover';
 import { detenteurDuCiblage, mapTargetingActive } from '../../noyau/targetingHolder';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
-import { CAST_MODE } from '../../noyau/targetingModes';
+import { ciblesHorsDeVue } from '../../noyau/targetingModes';
 import { marcheOuverte } from '../../noyau/marcheDuGroupe';
 
 export interface HoverAim {
@@ -72,18 +72,9 @@ export function useHoverTargeting(
   const effHover = combatCursor?.tile ?? hover;
   const effFocusId = combatCursor?.snappedId ?? hoverCombatantId;
 
-  // Grisage hors-LdV : ennemis que le héros actif ne peut PAS viser au tir faute de Ligne de Vue
-  // (LDB 13 l.114) → pion fantomatique. Distingue « hors LdV » de « hors de portée ». Actif pendant la
-  // visée — mode neutre ou catégorie Tir ouverte — tant que l'Action n'est pas consommée.
-  const ghostIds = useMemo<Set<string>>(() => {
-    if (mode !== 'battle' || !battle || battle.over) return new Set();
-    // Mode incantation : grisage hors-LdV du SORT (LDB 46 l.121), indépendant de l'arme portée. Le mode
-    // armé se lit au REGISTRE DES MODES (`CAST_MODE.id`), jamais à un id d'action recopié : l'entrée qui
-    // arme ce mode porte son propre id, distinct du mode qu'elle pose.
-    if (battle.action === CAST_MODE.id && battle.selectedSpellId) return castOutOfSightTargetIds(useGame.getState);
-    if (battle.acted || battle.action !== null) return new Set();
-    return outOfSightTargetIds(useGame.getState);
-  }, [scene, mode, battle]);
+  // Grisage hors-LdV (pion fantomatique) : le verdict du noyau (`ciblesHorsDeVue`), recalculé quand la
+  // scène, le mode ou le combat changent.
+  const ghostIds = useMemo<Set<string>>(() => ciblesHorsDeVue(useGame.getState), [scene, mode, battle]);
 
   // Ciblage du JOUEUR au survol — le verdict du mode courant (`hoverTargeting`) : réticule présent = clic valide.
   const hoverAim = useMemo<HoverAim | null>(() => {

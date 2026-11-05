@@ -49,8 +49,8 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
   ] satisfies [string, GesteDeLAgent][])('%s : %j', (categorie, geste) => {
     refuse(partie('dome', verbe('confirmRoundStart')), geste, categorie, /./);
   });
-  it('un verbe inconnu nomme les verbes de la fenêtre qui tient la main et ses voisins de nom', () => {
-    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; verbes de la fenêtre roundStart : confirmRoundStart, roundStartReady, roundStartPromote, armPreempt ; voisins : confirmRoundStart/);
+  it('un verbe inconnu nomme les gestes de la fenêtre qui tient la main et ses voisins de nom', () => {
+    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; gestes de la fenêtre roundStart : confirmRoundStart, roundStartReady, roundStartPromote, armPreempt ; voisins : confirmRoundStart/);
   });
 });
 

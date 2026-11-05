@@ -43,7 +43,7 @@ function drainCascade(): void {
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
     else get().cascadeNext();
   }
 }
@@ -51,7 +51,7 @@ function drainCascade(): void {
 const landMap: WorldMap = {
   id: 'm', label: 'Reikland',
   places: [
-    { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin', 'metal', 'commerce'] } },
+    { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } },
   ],
   routes: [],
 };
@@ -226,7 +226,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   });
 
   it('rumeur commerciale (l.180) : le bien se vend au DOUBLE au Lieu DÉSIGNÉ par la rumeur du board (#99)', () => {
-    const mkt = { taille: 4, richesse: 3, produits: ['vivres', 'commerce'] };
+    const mkt = { taille: 4, richesse: 3, produits: ['vivres', 'commerce-terre'] };
     const lot: CargoLot = { cargoId: 'vivres', enc: 100, basePriceGold: 1 };
     const rum = { placeId: 'A', biens: ['vivres'], mult: 2, text: 'Forte demande de vivres.', heardDay: 0 };
     setCarrierCargo([lot]);
@@ -246,7 +246,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   });
 
   it('rumeur commerciale : un bien NON visé n’est pas doublé — ni un Lieu NON désigné', () => {
-    const mkt = { taille: 4, richesse: 3, produits: ['vivres', 'commerce'] };
+    const mkt = { taille: 4, richesse: 3, produits: ['vivres', 'commerce-terre'] };
     const lot: CargoLot = { cargoId: 'metal', enc: 100, basePriceGold: 1 };
     const rums = [
       { placeId: 'A', biens: ['vivres'], mult: 2, text: 'Forte demande de vivres.', heardDay: 0 },

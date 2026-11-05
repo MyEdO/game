@@ -215,11 +215,11 @@ describe('moveCargo — co-localisation des porteurs de cargaison (`carriersColo
   it('hors carte, la cale du navire et la mule, tous deux avec le groupe, échangent leur vrac', () => {
     const h = heroDuDuel();
     const mule = { uid: 'pos-mule', ownerId: h.id, nature: 'bete', ref: { creatureId: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [], cargo: [] } as unknown as Possession;
-    const vessel = { vehicleId: 'barge', cargo: [{ cargoId: 'vin', enc: 10, basePriceGold: 1 }] } as unknown as EtatDeJeu['vessel'];
+    const vessel = { vehicleId: 'barge', cargo: [{ cargoId: 'vin-eau-de-vie', enc: 10, basePriceGold: 1 }] } as unknown as EtatDeJeu['vessel'];
     avecPartie({ ...etatInitialDuJeu(), party: [h], possessions: [mule], vessel, worldMap: null }, (partie) => {
-      partie.envoyer({ type: 'moveCargo', args: ['vessel', 'pos-mule', 'vin', 2] });
-      expect(partie.etat().vessel!.cargo).toEqual([{ cargoId: 'vin', enc: 8, basePriceGold: 1 }]);
-      expect(partie.etat().possessions[0].cargo).toEqual([{ cargoId: 'vin', enc: 2, basePriceGold: 1 }]);
+      partie.envoyer({ type: 'moveCargo', args: ['vessel', 'pos-mule', 'vin-eau-de-vie', 2] });
+      expect(partie.etat().vessel!.cargo).toEqual([{ cargoId: 'vin-eau-de-vie', enc: 8, basePriceGold: 1 }]);
+      expect(partie.etat().possessions[0].cargo).toEqual([{ cargoId: 'vin-eau-de-vie', enc: 2, basePriceGold: 1 }]);
     });
   });
 });

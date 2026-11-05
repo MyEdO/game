@@ -23,7 +23,7 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
     const h = heros({ skills: [cc('escrime', 20), cc('bagarre', 0)] });
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
     banc.getState().startForceDoor({ label: 'Porte de la cave', doorBE: 4, doorB: 10, heroIds: [h.id] });
-    banc.getState().forceDoorRoll(h.id);
+    banc.getState().jetRoll('forceDoor', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(40);
   });
 
@@ -34,7 +34,7 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
     banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 10, heroIds: [h.id] });
     banc.getState().forceDoorChoisirArme(h.id, 'hache');
-    banc.getState().forceDoorRoll(h.id);
+    banc.getState().jetRoll('forceDoor', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(50);
   });
 
@@ -66,9 +66,9 @@ describe('Lignes des jets de manœuvre', () => {
     expect([l.difficulty, l.target]).toEqual(['facile', 80]);
   });
 
-  it('Corps à corps brut : la valeur suit l’arme en main — rapière sans Escrime, Base +10 → cible 40', () => {
-    const rapiere = { ...unarmedWeapon(), unarmed: undefined, builtinId: undefined, qualities: [], uid: 'rap', label: 'Rapière', subType: 'escrime' } as Weapon;
-    const h = heros({ skills: [cc('base', 10)], weapons: [rapiere, unarmedWeapon()] });
+  it('Corps à corps brut : la valeur suit l’arme en main — hallebarde sans Armes d’hast, Base +10 → cible 40', () => {
+    const hallebarde = { ...unarmedWeapon(), unarmed: undefined, builtinId: undefined, qualities: [], uid: 'hal', label: 'Hallebarde', subType: 'armes-d-hast' } as Weapon;
+    const h = heros({ skills: [cc('base', 10)], weapons: [hallebarde, unarmedWeapon()] });
     expect(ligneDeCorpsACorpsBrut(h).target).toBe(40);
   });
 });

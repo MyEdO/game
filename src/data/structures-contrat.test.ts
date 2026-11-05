@@ -8,7 +8,7 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import {
   classerValeur,
@@ -38,7 +38,7 @@ import {
   signature,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
 import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
-import { CONTENU_A_SOURCER, SANS_LIVRE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
+import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
@@ -54,7 +54,7 @@ const GARDE = {
     'B — l’INVENTAIRE de ce qui reste à migrer (`scripts/guards/lib/inventaireDeDette.mts`), site par site, avec ses ' +
     'occurrences, hors de la porte des comptes (#3021). ' +
     'C — chaque site porte le LOT qui l’éteint, déduit du concept (L1a #1466 FK · L1b #1467 enveloppe · L1c #1468 ops · ' +
-    'L1d #1469 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et sort avec sa migration.',
+    'L1d #1463 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et sort avec sa migration.',
   primitive:
     '`scannerDonnees` / `scannerRedeclarations` (`scripts/docs/lib/structures-scan.mts`). Ce scan lit la DONNÉE JSON ' +
     'des deux racines (`src/data`, `src/scenes`) et l’AST des `src/data/schemas/defs/*.ts` — il ne passe donc PAS par ' +
@@ -286,7 +286,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual(lignes(courant));
   });
 
-  it('l’inventaire `STRUCTURES_ENVELOPPE` porte chaque divergence d’enveloppe MESURÉE, hors la `source` absente (volet `DETTE_ENVELOPPE`)', () => {
+  it('l’inventaire `STRUCTURES_ENVELOPPE` porte chaque divergence d’enveloppe MESURÉE, hors la `source` absente (refusée au parse)', () => {
     const enveloppe = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'STRUCTURES_ENVELOPPE')!;
     const divergence = (role: string, cle: string, motif: DivergenceEnveloppe['motif'], detail = ''): DivergenceEnveloppe => ({ role, cle, motif, detail, document: 'x.json', chemin: '(entrées)', entrees: 2 });
     const temoins = [
@@ -299,7 +299,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const mesure = enveloppe.mesure({ scan: { ...scan, enveloppe: [...temoins, divergence('source', 'source', 'clé absente')] }, defs: DEFS, declares: DECLARES });
     expect(mesure.map((l) => [l.site, l.lot, l.occurrences])).toEqual([
       ['identité | key | clé divergente | x.json › (entrées)', 'L1b #1467', 2],
-      ['source | source | type divergent (chaîne) | x.json › (entrées)', 'L1d #1469', 2],
+      ['source | source | type divergent (chaîne) | x.json › (entrées)', 'L1d #1463', 2],
       ['type | type | cible partielle | x.json › (entrées)', 'L1b #1467', 2],
       ['identité | id | clé absente | x.json › (entrées)', 'L1b #1467', 2],
       ['libellé | label | clé absente | x.json › (entrées)', 'L1b #1467', 2],
@@ -857,9 +857,8 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
   });
 
   /**
-   * Le rôle `source` se mesure selon `provenanceMesuree` (`src/data/schemas/grammaire/sans-livre.ts`) :
-   * un type cité EN PROFONDEUR ou définitivement SANS LIVRE n'est pas compté ; le CONTENU dont le
-   * sourçage reste dû (L1d #1469) l'est, bien que la fabrique l'exempte.
+   * Le rôle `source` se mesure selon `exigeSource` (`src/data/schemas/grammaire/sans-livre.ts`) :
+   * un type cité EN PROFONDEUR ou SANS LIVRE n'est pas compté.
    */
   it('le rôle `source` compte l’absence selon le régime mesuré du type', () => {
     const muet = (type: string | undefined) =>
@@ -871,11 +870,9 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
       ]).map((e) => `${e.role} | ${e.cle} | ${e.motif}`);
     const absente = ['source | source | clé absente'];
     const [enProfondeur] = Object.keys(SOURCE_EN_PROFONDEUR);
-    const definitif = Object.keys(SANS_LIVRE).find((t) => !(t in CONTENU_A_SOURCER));
-    const [aSourcer] = Object.keys(CONTENU_A_SOURCER);
+    const [sansLivre] = Object.keys(SANS_LIVRE_DEFINITIF);
     expect(muet(enProfondeur), 'EN PROFONDEUR : la racine ne porte jamais de source.').toEqual([]);
-    expect(muet(definitif), 'SANS LIVRE définitif : rien d’exigible.').toEqual([]);
-    expect(muet(aSourcer), 'contenu à sourcer : la dette L1d reste au dénominateur.').toEqual(absente);
+    expect(muet(sansLivre), 'SANS LIVRE : rien d’exigible.').toEqual([]);
     expect(muet('hors-regime'), 'hors régime : l’absence reste au dénominateur.').toEqual(absente);
     expect(muet(undefined), 'sans type : aucun régime ne s’applique.').toEqual(absente);
   });
@@ -1347,24 +1344,20 @@ const SONDE_DEF = [
 const SAISONS = (valeur: string) =>
   `z.strictObject({ printemps: ${valeur}, ete: ${valeur}, automne: ${valeur}, hiver: ${valeur} })`;
 
-/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`defs` = son dossier). */
-const reTape = (remplace: (source: string) => string) => (defs: string) => {
+/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`defs` = son dossier) : le
+ *  champ `cle` de la rangée marchande (`cargaisonMarchandeSchema`) re-déclaré au site. */
+const reTape = (cle: string, valeur: string) => (defs: string) => {
   for (const def of ['sea-cargo.ts', 'land-cargo.ts']) {
     const chemin = join(defs, def);
-    writeFileSync(chemin, remplace(readFileSync(chemin, 'utf8')), 'utf8');
+    writeFileSync(chemin, `${readFileSync(chemin, 'utf8')}\nexport const contrefacon = z.strictObject({ ${cle}: ${valeur} });\n`, 'utf8');
   }
 };
 
 /** Les trois mutations, chacune posée sur SA racine `apres`. La clé nomme le verdict. */
 const MUTATIONS: Record<string, (defs: string) => void> = {
   sonde: (defs) => writeFileSync(join(defs, 'sonde-mutation.ts'), SONDE_DEF, 'utf8'),
-  cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema,', `avail: ${SAISONS('plageSchema')},`)),
-  cfPrix: reTape((source) =>
-    source.replace(
-      'price: z.union([prixSaisonnierSchema, prixTireSchema]),',
-      `price: z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })]),`,
-    ),
-  ),
+  cfAvail: reTape('avail', SAISONS('plageSchema')),
+  cfPrix: reTape('price', `z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })])`),
 };
 
 /** Clé d'une redéclaration : ce que la comparaison `avant`/`apres` tient pour identique. */
@@ -1453,9 +1446,9 @@ describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-
     expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
     expect(diff.nees, 'un `price` re-tapé n’est PAS vu : les deux nœuds `prix` masqueraient la mesure.').toEqual([
       'land-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'land-cargo.ts | price | dice | prix | declaree | prixTireSchema',
+      'land-cargo.ts | price | dice | prix | declaree | tirageSchema',
       'sea-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'sea-cargo.ts | price | dice | prix | declaree | prixTireSchema',
+      'sea-cargo.ts | price | dice | prix | declaree | tirageSchema',
     ]);
   });
 });

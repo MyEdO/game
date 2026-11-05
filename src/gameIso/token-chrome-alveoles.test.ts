@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { TokenChromeMarks } from './TokenChromeMarks';
 import { CHROME_SLOTS, CHROME_ICON_MAX, tokenChrome } from './builders/tokenChrome';
 import { createHero } from '../engine/character';
-import type { IconId } from '../ui/icons';
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import { conditionIds } from '../data';
 

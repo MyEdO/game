@@ -15,10 +15,9 @@
  *   node scripts/docs/build-map-authoring.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import path from 'node:path'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes, noyauZod, proprietesZod as lireProprietesZod } from './lib/jsdocUnion.mjs'
+import { loadSource, jsdocRole, findAlias, aliasDoc, constanteImportee, indexerConstantes, noyauZod, proprietesZod as lireProprietesZod } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
@@ -133,16 +132,7 @@ function rendu() {
     const nu = (e) => (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression(e)) ? nu(e.expression) : e)
     if (ts.isObjectLiteralExpression(expr)) return expr
     if (!ts.isIdentifier(expr) || !entree) return undefined
-    let source
-    entree.sf.forEachChild((n) => {
-      const liens = ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) ? n.importClause?.namedBindings : undefined
-      const lien = liens && ts.isNamedImports(liens) && liens.elements.find((e) => e.name.text === expr.text)
-      if (lien) source = { module: n.moduleSpecifier.text, nom: lien.propertyName?.text ?? lien.name.text }
-    })
-    if (!source?.module.startsWith('.')) return undefined
-    const base = path.resolve(path.dirname(entree.chemin), source.module).replace(/\.(?:m?js)$/, '')
-    const fichier = ['.ts', '.mts', '.tsx'].map((x) => base + x).find((f) => existsSync(f))
-    const init = fichier && nu(indexerConstantes([path.relative(process.cwd(), fichier)]).get(source.nom)?.decl.initializer)
+    const init = nu(constanteImportee(expr.text, entree)?.decl.initializer)
     return init && ts.isObjectLiteralExpression(init) ? init : undefined
   }
 

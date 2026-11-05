@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
@@ -422,6 +422,31 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
     expect(isCapeItem(manteau)).toBe(true);
     expect(isCapeItem(itemFromTrappingById('justaucorps-de-cuir')!)).toBe(false);
     expect(equipConflicts(hero([cape, manteau]), manteau).map((i) => i.trappingId)).toEqual(['cape']);
+  });
+
+  it('emplacement couche × zone : la pièce portée de la couche, et les candidates qui couvrent la zone dans cette couche', () => {
+    const justau = { ...itemFromTrappingById('justaucorps-de-cuir')!, uid: 'justau', equipped: true }; // souple, Corps
+    const veste = { ...itemFromTrappingById('veste-de-cuir')!, uid: 'veste' }; // souple, Bras+Corps
+    const calotte = { ...itemFromTrappingById('calotte-de-cuir')!, uid: 'calotte' }; // souple, Tête
+    const maille = { ...itemFromTrappingById('chemise-de-mailles')!, uid: 'maille' }; // flexible, Corps
+    const items = [justau, veste, calotte, maille];
+    const corpsSouple = emplacementDArmure(items, ['corps'], 'souple');
+    expect(corpsSouple.porte?.uid).toBe('justau');
+    expect(corpsSouple.candidats.map((i) => i.uid)).toEqual(['veste']);
+    const brasSouple = emplacementDArmure(items, ['brasG', 'brasD'], 'souple');
+    expect(brasSouple.porte).toBeUndefined();
+    expect(brasSouple.candidats.map((i) => i.uid)).toEqual(['veste']);
+    expect(emplacementDArmure(items, ['corps'], 'flexible').candidats.map((i) => i.uid)).toEqual(['maille']);
+    expect(emplacementDArmure(items, ['corps'], 'rigide')).toEqual({ porte: undefined, candidats: [] });
+  });
+
+  it('emplacement Cape : la cape portée, et les autres capes ; jamais une armure', () => {
+    const cape = { ...itemFromTrappingById('cape')!, uid: 'cape', equipped: true };
+    const manteau = { ...itemFromTrappingById('manteau')!, uid: 'manteau' };
+    const justau = { ...itemFromTrappingById('justaucorps-de-cuir')!, uid: 'justau' };
+    const e = emplacementDeCape([cape, manteau, justau]);
+    expect(e.porte?.uid).toBe('cape');
+    expect(e.candidats.map((i) => i.uid)).toEqual(['manteau']);
   });
 
   it('buildInventory n’équipe qu’UNE pièce par couche × localisation (meilleure PA)', () => {

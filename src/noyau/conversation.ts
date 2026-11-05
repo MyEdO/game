@@ -17,7 +17,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 
 /** Applique une avancée de dialogue (transition vers un nœud, ou clôture) — point UNIQUE partagé par
- *  `chooseDialogue` (cas sans Test) et `resolveTest` (reprise après un Test suspendu par `choice.flow`). */
+ *  `chooseDialogue` (cas sans Test) et `jetConfirm('test')` (reprise après un Test suspendu par `choice.flow`). */
 function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): void {
   if (tr === 'close') {
     if (get().dialogue) get().advanceTime(TIME_COST.dialogue); // clôture (no-op si un Effect a déjà fermé)
@@ -76,7 +76,7 @@ export function creerActionsDeConversation(get: Get, set: Set) {
         const suspended = get().pendingTest;
         const issue = runFlow(get, set, choice.flow, speaker ?? 'Butin');
         // Le Flow a SUSPENDU sur un Test (`openSkillTest`) : l'avancée du dialogue est portée par le
-        // pending et appliquée par `resolveTest` — sinon le nœud suivant coexiste sous la modale de jet.
+        // pending et appliquée par `jetConfirm('test')` — sinon le nœud suivant coexiste sous la modale de jet.
         const pt = get().pendingTest;
         if (pt && pt !== suspended) { set({ pendingTest: { ...pt, dialogueNext: transition } }); jouerFlowEntier(issue); return; }
         // MÊME invariant pour un DÉ (#1508) : l'avancée du dialogue est une CLÔTURE — elle attend la

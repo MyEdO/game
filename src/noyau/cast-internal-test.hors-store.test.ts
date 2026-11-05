@@ -43,7 +43,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
   }
 
   /** Reproduit `castSpell` de façon DÉTERMINISTE, dans SON ordre : pose le `pendingCast` au résultat
-   *  figé, puis ouvre la cascade `cast` qui l'hôte (étape `jet:'cast'` au curseur 0), prêt à `castConfirm`. */
+   *  figé, puis ouvre la cascade `cast` qui l'hôte (étape `jet:'cast'` au curseur 0), prêt à `jetConfirm('cast')`. */
   function frozenCast(W: Combatant, target: Combatant) {
     banc.setState({
       pendingCast: {
@@ -73,7 +73,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     expect(casc0.participants).toHaveLength(1);
     expect(casc0.participants[0].jet).toBe('cast'); // l'étape d'incantation, curseur dessus
 
-    banc.getState().castConfirm(); // applique le Sort : le nœud `test` interne suspend
+    banc.getState().jetConfirm('cast'); // applique le Sort : le nœud `test` interne suspend
 
     const enriched = banc.getState().pendingCascade!;
     expect(enriched.purpose).toBe('combat');
@@ -93,7 +93,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     E.characteristics.dexterite = 1; // Dextérité ~imbattable à RATER → la branche échec (narration « l'objet tombe ») s'applique
     frozenCast(W, E);
 
-    banc.getState().castConfirm();
+    banc.getState().jetConfirm('cast');
 
     expect(banc.getState().pendingCascade).toBeNull();     // ennemi → jamais d'étape influençable
     const log = banc.getState().battle!.log.map((e) => e.text).join('\n');

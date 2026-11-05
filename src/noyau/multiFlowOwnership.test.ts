@@ -1,15 +1,18 @@
 /**
  * Garde STRUCTURELLE de la possession par PARTICIPANT (#942, ferme #949) : pour CHAQUE flux
  * `kind:'multi'` de `FLOW_VERBS` — énumération de la table, jamais une liste locale —
- *  (a) un flux à `pidIsActor:true` est `coop` et expose TOUS ses verbes dans `COMBAT_INTENTS` ;
+ *  (a) les verbes de jet (`jet<Verbe>(flux, …)`) sont exposés dans `COMBAT_INTENTS` et ROUTÉS, jamais laissés au
+ *      repli universel ;
  *  (b) un flux `pidIsActor:true` route le JET sur le PROPRIÉTAIRE du participant : le siège qui
  *      possède le héros est ACCEPTÉ, tout autre siège (hôte compris) est REFUSÉ — même quand la
  *      modale hôte dirait '*' (étape de groupe) ou désignerait un TIERS (le navire) ;
  *  (c) tout flux multi DÉCLARE sa politique `pidIsActor` (aucun trou silencieux) et un flux
- *      `pidIsActor:false` (`pid` = id d'étape/de Round) n'entre JAMAIS dans la dérivation.
+ *      `pidIsActor:false` (`pid` = id d'étape/de Round) ne prend JAMAIS son `pid` pour un acteur ;
+ *  (d) un verbe de fenêtre (`estVerbeDeFenetre` : annulation, clôture) n'appartient à aucune rangée : sa route
+ *      rend la décision au repli universel, le owner de la modale.
  */
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, participantOwnedIntents, flowActionName } from './flowVerbs';
+import { estVerbeDeFenetre, FLOW_VERBS, NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
 import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from './intentionsDeSiege';
 import type { Jeu } from './etat';
@@ -17,9 +20,12 @@ import { cascadeDeTest } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
 
-type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; pidIsActor?: boolean };
+type Entry = { kind: 'mono' | 'multi'; verbs: readonly RollVerb[]; pidIsActor?: boolean };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
 const MULTI = ENTRIES.filter(([, w]) => w.kind === 'multi');
+
+/** Les arguments du geste de jet `v` sur `flux`, la rangée `pid` posée (`VerbesDeJet`). */
+const argsDuGeste = (flux: string, v: RollVerb, pid: string): unknown[] => (v === 'setForcedRoll' ? [flux, 42, pid] : [flux, pid]);
 
 const H_OWNER = 'h2'; // héros du siège 1
 const H_HOST = 'h1'; // héros du siège 0 (hôte)
@@ -77,62 +83,48 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
     expect(sans, 'flux multi sans `pidIsActor` — trancher la politique dans FLOW_VERBS').toEqual([]);
   });
 
-  it('(c) un flux pidIsActor:false n’entre PAS dans la dérivation (pid = étape/Round, pas un acteur)', () => {
-    const derives = new Set(participantOwnedIntents());
+  it('(c) un flux pidIsActor:false ne prend pas son `pid` pour un acteur : un héros posé en rangée n’y donne aucune possession', () => {
+    const s = base({});
     const fuites: string[] = [];
-    for (const [prefix, w] of MULTI) {
+    for (const [flux, w] of MULTI) {
       if (w.pidIsActor) continue;
-      for (const v of w.verbs) if (derives.has(flowActionName(prefix, v))) fuites.push(flowActionName(prefix, v));
-    }
-    expect(fuites, 'intent d’un flux à pid NON-acteur dans la dérivation de possession').toEqual([]);
-  });
-
-  it('(a) tout flux multi à pid-acteur est coop : sans intent, le geste de l’invité s’exécute EN LOCAL', () => {
-    // `netFlow.interceptGuestActions` n'enrobe que `GUEST_INTENTS` : une rangée par participant
-    // pilotable sans intent → store invité divergent au lieu d'un refus (défaut #949).
-    const sans = MULTI.filter(([, w]) => w.pidIsActor && !w.coop).map(([k]) => k);
-    expect(sans, 'flux multi à rangées par propriétaire sans `coop` — surface invité manquante').toEqual([]);
-  });
-
-  it('(a) chaque flux multi coop expose TOUS ses verbes dans COMBAT_INTENTS', () => {
-    const manquants: string[] = [];
-    for (const [prefix, w] of MULTI) {
-      if (!w.coop) continue;
       for (const v of w.verbs) {
-        const intent = flowActionName(prefix, v);
-        if (!COMBAT_INTENTS.has(intent)) manquants.push(intent);
+        if (estVerbeDeFenetre(v)) continue;
+        if (intentAllowedFor(s, 1, NOM_DU_VERBE_DE_JET[v], argsDuGeste(flux, v, H_OWNER)) === true && intentAllowedFor(s, 0, NOM_DU_VERBE_DE_JET[v], argsDuGeste(flux, v, H_OWNER)) === false) fuites.push(`${NOM_DU_VERBE_DE_JET[v]}@${flux}`);
       }
     }
-    expect(manquants, 'verbe de flux multi coop sans intent — la surface invité ne converge pas chez l’hôte').toEqual([]);
+    expect(fuites, 'geste d’un flux à pid NON-acteur routé sur le propriétaire du héros posé en rangée').toEqual([]);
   });
 
-  /**
-   * `resist` (auto-succès du Talent Résistance (Menace)) DÉPENSE une ressource de son porteur : sur un
-   * flux multi il ne peut pas retomber sur le repli universel, qui rend le owner de la MODALE — `'*'`
-   * sur une étape partagée, donc TOUS les sièges. Tout `xResist` multi exposé porte donc une route
-   * (dérivée par participant, ou nominative sur l'acteur de l'étape). C'est la condition qui a levé le
-   * filtre historique `v !== 'resist'` de `coopFlowIntents` (#1050, angle mort #965).
-   */
-  it('(a) tout `resist` de flux multi exposé est ROUTÉ (jamais laissé au repli universel)', () => {
-    const exposes = MULTI.filter(([, w]) => w.coop && w.verbs.includes('resist')).map(([k]) => flowActionName(k, 'resist'));
-    expect(exposes, 'précondition : au moins un flux multi expose `resist`').not.toEqual([]);
-    const nus = exposes.filter((n) => !COMBAT_INTENTS.has(n) || !ROUTES.has(n));
-    expect(nus, '`resist` multi exposé sans route — n’importe quel siège brûlerait la Résistance d’autrui').toEqual([]);
+  it('(a) chaque verbe de jet est exposé dans COMBAT_INTENTS et ROUTÉ (jamais laissé au repli universel)', () => {
+    // `netFlow.interceptGuestActions` n'enrobe que `GUEST_INTENTS` : un geste sans intent s'exécuterait EN LOCAL
+    // chez l'invité (défaut #949) ; un geste au repli rendrait le owner de la MODALE — `'*'` sur une étape partagée,
+    // donc TOUS les sièges brûleraient la Résistance ou la Résilience d'autrui (#1050, angle mort #965).
+    const nus = Object.values(NOM_DU_VERBE_DE_JET).filter((n) => !COMBAT_INTENTS.has(n) || !ROUTES.has(n));
+    expect(nus, 'verbe de jet sans intent ou sans route').toEqual([]);
   });
 
-  it('exhaustivité : chaque flux multi coop à pid-acteur a sa fixture de possession', () => {
-    const sans = MULTI.filter(([k, w]) => w.coop && w.pidIsActor && !(k in FIXTURES)).map(([k]) => k);
-    expect(sans, 'flux multi coop sans fixture — la garde de possession ne le couvre pas').toEqual([]);
+  it('un flux inconnu, ou qui n’accepte pas le verbe, n’est possédé par AUCUN siège', () => {
+    const s = base(FIXTURES.counterspell);
+    for (const seat of [0, 1, 2]) {
+      expect(intentAllowedFor(s, seat, 'jetRoll', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetResist', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
+    }
   });
 
-  for (const [prefix, w] of MULTI) {
-    if (!w.coop || !w.pidIsActor) continue;
-    it(`(b) ${prefix} : le siège propriétaire du participant est ACCEPTÉ, tout autre siège REFUSÉ`, () => {
-      const s = base(FIXTURES[prefix]);
+  it('exhaustivité : chaque flux multi à pid-acteur a sa fixture de possession', () => {
+    const sans = MULTI.filter(([k, w]) => w.pidIsActor && !(k in FIXTURES)).map(([k]) => k);
+    expect(sans, 'flux multi sans fixture — la garde de possession ne le couvre pas').toEqual([]);
+  });
+
+  for (const [flux, w] of MULTI) {
+    if (!w.pidIsActor) continue;
+    it(`(b) ${flux} : le siège propriétaire du participant est ACCEPTÉ, tout autre siège REFUSÉ`, () => {
+      const s = base(FIXTURES[flux]);
       for (const v of w.verbs) {
-        if (v === 'cancel') continue;
-        const intent = flowActionName(prefix, v);
-        const args = (x: string) => (v === 'setForcedRoll' ? [x, 42] : [x]);
+        if (estVerbeDeFenetre(v)) continue;
+        const intent = NOM_DU_VERBE_DE_JET[v];
+        const args = (x: string) => argsDuGeste(flux, v, x);
         // Le participant du siège 1 : SON siège agit, l'hôte et le siège TIERS sont refusés.
         expect(intentAllowedFor(s, 1, intent, args(H_OWNER)), `${intent}(${H_OWNER}) siège propriétaire`).toBe(true);
         expect(intentAllowedFor(s, 2, intent, args(H_OWNER)), `${intent}(${H_OWNER}) siège TIERS`).toBe(false);
@@ -143,6 +135,21 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
       }
     });
   }
+
+  it('(d) l’annulation et la clôture d’un flux multi se rendent au repli universel, jamais à une rangée', () => {
+    const verdicts: string[] = [];
+    for (const [flux, w] of MULTI) {
+      if (!(flux in FIXTURES)) continue;
+      const s = base(FIXTURES[flux]);
+      for (const v of w.verbs.filter(estVerbeDeFenetre)) {
+        for (const seat of [0, 1, 2]) {
+          const verdict = ROUTES.get(NOM_DU_VERBE_DE_JET[v])!.rule(s, seat, [flux]);
+          if (verdict !== null) verdicts.push(`${NOM_DU_VERBE_DE_JET[v]}@${flux} siège ${seat} : ${verdict}`);
+        }
+      }
+    }
+    expect(verdicts, 'verbe de fenêtre tranché par une rangée au lieu du repli').toEqual([]);
+  });
 
   it('fallChoose : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
     const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<Jeu>);

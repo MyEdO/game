@@ -42,7 +42,7 @@ import { StateChips } from '../StateChips';
 import { LifeBar } from '../LifeBar';
 import { Icon } from '../Icon';
 import { ItemIcon } from '../ItemIcon';
-import type { IconIdInput } from '../icons';
+import type { IconIdInput } from '../../data/icons';
 
 /** Les zones adressables tiennent leur nombre de cases de `TAILLE_ZONE`. */
 const LEFT_CELLS = TAILLE_ZONE.arsenal; // travée gauche : 2×3 — les gestes déduits du set (§1a) puis les cases LIBRES

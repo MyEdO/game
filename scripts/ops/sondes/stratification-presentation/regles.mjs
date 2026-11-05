@@ -33,7 +33,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(\.testkit|\.fixture|\.bench|TestKit)\.tsx?$|^src/gameIso/stage/banc-volumique(\.test)?\.ts$`),
     categorie: 'outillage',
     raison: 'Soutien de test PARTAGÉ (kits, fixtures, bancs de mesure, harnais de banc) : servi à plusieurs sujets de plusieurs zones, outillage de développement ; les tests eux-mêmes suivent leur sujet.',
-    preuve: 'src/gameIso/stage/arete-dans-la-chaine.fixture.ts (tests et banc de src/gameIso/stage, src/state/devtools-ecran.test.tsx) ; src/state/combatDeTest.testkit.ts (tests de noyau, state, ui) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
+    preuve: 'src/gameIso/stage/arete-dans-la-chaine.fixture.ts (tests et banc de src/gameIso/stage, src/state/devtools-ecran.test.tsx) ; src/state/combatDeTest.testkit.ts (src/ui/etat-sur-les-modales.test.tsx ; sa part règle, src/noyau/combatDeTest.testkit.ts, sert les tests du noyau) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(devtools|devtoolsTimers|scenarioFlow|editorAutosave|editeurBridge|projectLibrary|mapQC|planDefects|validateScene)(\.|-)`),
@@ -108,11 +108,11 @@ export const REGLES = Object.freeze([
     preuve: 'src/state/store.ts (45 refs engine) ; src/noyau/combatFlow.ts (88) ; src/noyau/rollFlowSpecs.ts (23) ; src/noyau/monde/usable.ts:2 (importé par store.ts, combatSlice.ts, sceneRules.ts) ; src/noyau/gesteDArete.ts:2-4 (« Lu par l\'ACTION … et par l\'AFFICHAGE »)',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/(icons|backdrops)/|^src/ui/(Ornaments|WaxSeal|GlobalSvgDefs)[.-]`),
+    motif: new RegExp(String.raw`^src/ui/backdrops/|^src/ui/(Ornaments|WaxSeal|GlobalSvgDefs)[.-]`),
     categorie: 'douteux',
     famille: 'contenu-art',
-    raison: 'Contenu d\'art (defs SVG d\'icônes, décors, fleurons et sceau dessinés main) : à refaire dans le format d\'asset du moteur, ni mécanisme ni règle ; même classe que les defs de src/gameIso.',
-    preuve: 'src/ui/icons/index.ts:1 ; src/ui/Ornaments.tsx:1 ; src/ui/WaxSeal.tsx:1',
+    raison: 'Contenu d\'art (defs SVG de bandes d\'ambiance, fleurons et sceau dessinés main) : à refaire dans le format d\'asset du moteur, ni mécanisme ni règle ; même classe que les defs de src/gameIso.',
+    preuve: 'src/ui/backdrops/index.ts:1 ; src/ui/Ornaments.tsx:1 ; src/ui/WaxSeal.tsx:1',
   },
   {
     motif: new RegExp(String.raw`^src/ui/(Cadre|Planche|Band)[.-]|^src/ui/planche\.test`),
@@ -253,7 +253,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/gameIso/catalog/(decor|facades)/(.*defs/|_registry\.generated|index\.ts$)`),
     categorie: 'douteux',
     famille: 'contenu-art',
-    raison: 'CONTENU d\'art SVG des décors et façades, et leur registre id → def (même classe que src/ui/icons/index.ts).',
+    raison: 'CONTENU d\'art SVG des décors et façades, et leur registre id → def (même classe que src/ui/backdrops/index.ts).',
     preuve: 'src/gameIso/catalog/decor/defs/chaise.ts:1-20 ; src/gameIso/catalog/decor/index.ts:2 (« DÉRIVÉ du registre defs/ »)',
   },
   {

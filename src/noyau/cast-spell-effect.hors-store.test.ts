@@ -58,7 +58,7 @@ describe('Effet castSpell (#98)', () => {
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(E.id);
-      expect(pc!.result).not.toBeNull(); // IA : `castRoll` auto-roulé (même branche que `castSpell` direct, combatFlow)
+      expect(pc!.result).not.toBeNull(); // IA : `jetRoll('cast')` auto-roulé (même branche que `castSpell` direct, combatFlow)
     });
 
     it('mode "forceSuccess" EN COMBAT : applique les effets du sort SANS jet, aucun `pendingCast` ouvert', () => {

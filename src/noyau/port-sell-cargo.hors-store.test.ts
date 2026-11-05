@@ -30,7 +30,7 @@ async function drain(): Promise<void> {
     const p = get().pendingCascade;
     if (p) {
       const cur = p.participants[p.cursor];
-      if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+      if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
       get().cascadeNext();
     }
     await tick();
@@ -59,7 +59,7 @@ function setup(port: PortProfile, party: Combatant[], enc = 40): void {
     party, scene,
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois', enc, basePriceGold: 10 }], lastVoyageMilles: 0 },
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc, basePriceGold: 10 }], lastVoyageMilles: 0 },
     port: { placeId: 'P', label: 'Port', port: structuredClone(port), offers: [] },
     journal: [],
     pendingCascade: null,
@@ -72,7 +72,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
   beforeEach(() => setRule('test-auto-bands', 'off'));
 
   it('port producteur (Ragot requis), groupe VIDE → refus IMMÉDIAT (aucun candidat au Ragot), aucun jet', () => {
-    setup({ taille: 4, richesse: 4, production: ['bois'] }, []);
+    setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, []);
     get().portSellCargo(0);
     expect(get().pendingCascade).toBeNull();
     expect(get().journal.some((l) => /ne trouve pas de camelot/.test(l))).toBe(true);
@@ -82,7 +82,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
   it('port producteur, Ragot au plancher (skill 0) → le journal enchaîne exactement UN dénouement (succès ou échec du Ragot), jamais les deux', async () => {
     const hero = makePregens()[0];
     setSkill(hero, 'ragot', 0);
-    setup({ taille: 4, richesse: 4, production: ['bois'] }, [hero]);
+    setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, [hero]);
     get().portSellCargo(0);
     await drain();
     expect(get().pendingCascade).toBeNull();
@@ -124,7 +124,7 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().journal.some((l) => /la moitié \(20 Enc\) trouve preneur/.test(l))).toBe(true);
-    expect(get().vessel!.cargo).toEqual([{ cargoId: 'bois', enc: 20, basePriceGold: 10 }]); // moitié vendue
+    expect(get().vessel!.cargo).toEqual([{ cargoId: 'bois-mer', enc: 20, basePriceGold: 10 }]); // moitié vendue
   });
 
   it('port SANS relation au bien, marchandeur compétent (skill 90) → Marchandage joué, gain crédité et journalisé', async () => {
@@ -171,7 +171,7 @@ function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
-    port: { placeId: 'P', label: 'Port', port: structuredClone(port), offers: [{ cargoId: 'bois', label: 'Bois', enc: offerEnc, basePrice, surplus: false }] },
+    port: { placeId: 'P', label: 'Port', port: structuredClone(port), offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: offerEnc, basePrice, surplus: false }] },
     journal: [],
     pendingCascade: null,
   } as never);
@@ -184,7 +184,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
   it('groupe VIDE / sans bourse → refusé AVANT tout jet : la bourse ne couvre pas le prix plancher (MDG 15 l.335)', () => {
     // Sans marchandeur, le plancher est le prix plein : 10 Enc × 10 CO. Aucune bourse → refus du devis.
     setupBuy([]);
-    get().portBuyCargo('bois', 10);
+    get().portBuyCargo('bois-mer', 10);
     expect(get().pendingCascade).toBeNull(); // aucun Test de Marchandage ouvert
     expect(get().vessel!.cargo).toHaveLength(0);
     expect(get().journal).toContain(t('cargo.bourseSousPlancher', { plancher: 100 }));
@@ -194,7 +194,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
-    get().portBuyCargo('bois', 10);
+    get().portBuyCargo('bois-mer', 10);
     // Le Marchandage doit se résoudre dans la modale AVANT tout embarquement : cale intacte, cascade ouverte.
     expect(get().pendingCascade).not.toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0);
@@ -205,7 +205,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
     const before = partyMoneyTotal(get).gold;
-    get().portBuyCargo('bois', 10);
+    get().portBuyCargo('bois-mer', 10);
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(1);
@@ -217,14 +217,14 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
-    get().portBuyCargo('bois', 10);
+    get().portBuyCargo('bois-mer', 10);
     await drain();
     const spentA = 5000 - partyMoneyTotal(get).gold;
 
     const hero2 = makePregens()[0];
     setSkill(hero2, 'marchandage', 90);
     setupBuy([hero2]);
-    get().portBuyCargo('bois', 10);
+    get().portBuyCargo('bois-mer', 10);
     await drain();
     const spentB = 5000 - partyMoneyTotal(get).gold;
 
@@ -235,7 +235,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
 /** Étape de Marchandage portuaire POSÉE par la porte (`portBuyCargo` → `openRoll`), jet du héros rendu (`sl`). */
 function etapeMarchandage(hero: Combatant, kind: GenreDeCascade, sl: number, success: boolean, meta: CascadeStep['meta']): CascadeStep {
   setupBuy([hero]);
-  get().portBuyCargo('bois', 20);
+  get().portBuyCargo('bois-mer', 20);
   const posee = get().pendingCascade!.participants[0];
   set({ pendingCascade: null } as never);
   return { ...posee, id: kind, kind, meta, result: { roll: 50, target: 60, sl, success } };
@@ -251,7 +251,7 @@ describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.4
   it('achat : PJ Négociateur gagnant de 6 DR ou plus → remise de 30 %', () => {
     const hero = makePregens()[0];
     hero.talents = [...hero.talents, { talentId: 'negociateur', times: 1 }];
-    const step = etapeMarchandage(hero, 'port-buy-bargain', 9, true, { cargoId: 'bois', want: 20, basePrice: 10, merchantValue: 40, merchantNegotiator: false, sellerDR: 0 });
+    const step = etapeMarchandage(hero, 'port-buy-bargain', 9, true, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 40, merchantNegotiator: false, sellerDR: 0 });
     imposeD100(95); // le commerçant (40) rate : DR −5
     expect(ligneDe('port-buy-bargain', step, hero)).toMatch(/remise de 30 %/);
   });

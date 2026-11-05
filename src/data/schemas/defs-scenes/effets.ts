@@ -19,6 +19,7 @@ import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, noeudTest } from '../grammaire/mecanique';
+import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
@@ -120,14 +121,6 @@ export const scheduleShape = {
 
 export const setFlagSchema = nommerChamps(z.strictObject({ type: z.literal('setFlag'), flag: z.string(), value: z.boolean().optional() }), { type: { label: "type"  }, flag: { label: "drapeau" , texte: { regime: "technique"} }, value: { label: "valeur" } });
 
-/** Pose la VALEUR `valeur` (id déclaré) de l'état de campagne ÉNUMÉRÉ `etat` (`narratif.etats`, #2539) —
- *  EDO 01 l.241. Forme et valeur contrôlées au chargement (`fautesDUsageDEtat`). */
-export const poserEtatSchema = nommerChamps(z.strictObject({ type: z.literal('poserEtat'), etat: z.string(), valeur: z.string() }), { type: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, valeur: { label: "valeur" , texte: { regime: "technique"} } });
-
-/** Ouvre la DÉSIGNATION d'un héros vivant pour l'état de campagne `etat` de forme `heros` — choix du
- *  joueur, non annulable (EDO 02 l.91) ; `invite` = la prose que la modale affiche. */
-export const designerHerosSchema = proseNommee(nommerChamps(z.strictObject({ type: z.literal('designerHeros'), etat: z.string() }), { type: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} } }), 'designerHeros.invite');
-
 /** Pose/met à jour un OBJECTIF courant (surface « je fais quoi maintenant ? », #238) sur la pile
  *  `store.objectives`, keyé par `id` STABLE : re-poser le même `id` MET À JOUR sa prose (`desc`). Le HUD
  *  affiche le plus récent. Archivé aussi au journal. Échéance optionnelle (même `ScheduleSpec` que
@@ -218,18 +211,6 @@ export const startDialogueSchema = nommerChamps(z.strictObject({
 
 /** Ligne de journal : `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
 export const journalSchema = proseNommee(nommerChamps(z.strictObject({ type: z.literal('journal') }), { type: { label: "type"  } }), 'journal.desc');
-
-/** Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse
- *  du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). */
-export const documentSchema = nommerChamps(z.strictObject({ type: z.literal('document'), documentId: z.string() }), { type: { label: "type"  }, documentId: { label: "document" , texte: { regime: "technique"} } });
-
-/** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
- *  `campaignNarratif`. `stade` omis → `revealClue` (`noyau/monde/clues.ts`). */
-export const revealClueSchema = nommerChamps(z.strictObject({
-  type: z.literal('revealClue'),
-  indiceId: z.string(),
-  stade: z.string().optional(),
-}), { type: { label: "type"  }, indiceId: { label: "indice" , texte: { regime: "technique"} }, stade: { label: "stade" , texte: { regime: "technique"} } });
 
 /** Écarte un indice comme fausse piste (barré, relisible au carnet) — mécanique MAISON (#670). */
 export const discreditClueSchema = nommerChamps(z.strictObject({ type: z.literal('discreditClue'), indiceId: z.string() }), { type: { label: "type"  }, indiceId: { label: "indice" , texte: { regime: "technique"} } });

@@ -4350,7 +4350,7 @@ Notes : la **hache d'armes** choisit **Taille OU Empaleuse OU Assommante** (+ *D
 | (2M) Zweihänder | 10 CO | 3 | Limitée | Longue | +BF +5 | Dévastatrice, Taille |
 | (2M) Zweihänder flamberge | 30 CO | 3 | Exotique | Longue | +BF +5 | Dévastatrice, Taille, Taillade (2A) |
 
-**Épée bâtarde** : un combattant possédant **Corps à Corps (Base)** peut l'utiliser **à une main**, mais elle acquiert alors les Défauts **Épuisante** et **Lente** (en plus de perdre l'avantage des deux mains). La **zweihänder flamberge** (lame ondulée/dentelée) ajoute *Taillade (2A)* à la zweihänder standard. (`AA 08 l.339-364`)
+**Épée bâtarde** : un combattant possédant **Corps à Corps (Base)** peut l'utiliser **à une main**, mais elle acquiert alors les Défauts **Épuisante** et **Lente**. La **zweihänder flamberge** (lame ondulée/dentelée) ajoute *Taillade (2A)* à la zweihänder standard. (`AA 08 l.339-364`)
 
 ---
 
@@ -6304,7 +6304,6 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - AUCUNE erreur factuelle sur les valeurs/tables : toutes les stats du Tableau des Armes de Base (l.2852-2868), les textes verbatim des Atouts (Déséquilibrée l.2801, Déstabilisante l.2803-2805, Taillade l.2807, Tir de zone l.2809-2815, Protectrice l.2824), et la définition de l'État Hémorragique (l.2456-2460) sont conformes à la source AA.
 
 ### AA : armes de mêlée — tables et règles spéciales ⚠
-- Épée bâtarde (tableau Deux Mains) : la note "en plus de perdre l'avantage des deux mains" est un ajout éditorial absent du RAW (AA 08 l.343). La source dit uniquement qu'elle acquiert Épuisante et Lente ; l'énoncé n'est pas faux mais n'est pas dans le texte source.
 - La ref l.2878 pour la règle du Pavois pointe sur le titre de section ("## Les Boucliers") ; le texte du Pavois commence réellement à l.2881. Décalage mineur sans impact sur le contenu.
 - La ref l.2902 pour les armes de cavalerie pointe sur le titre de section ("## Les Armes de Cavalerie") ; le texte commence à l.2903. Décalage mineur identique.
 

@@ -72,9 +72,9 @@ const heros = (banc: Banc, heroId: string): Combatant => banc.getState().party.f
 
 /** Lance le jet ouvert, le pose (`success`, `sl`), puis le confirme. */
 function confirmer(banc: Banc, success: boolean, sl: number): void {
-  banc.actions.activityRoll();
+  banc.actions.jetRoll('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: success ? 10 : 95, success, sl } }));
-  banc.actions.activityConfirm();
+  banc.actions.jetConfirm('activity');
 }
 
 describe('Catalogue — aucune Activité d’interlude n’est muette', () => {
@@ -221,7 +221,7 @@ describe('Préparation de bataille', () => {
     banc.actions.massBattleActivity('inspire', heroId);
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le Discours s’ouvre').toBe('inspire');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 20, success: true, sl: 2 } }));
-    banc.actions.activityConfirm();
+    banc.actions.jetConfirm('activity');
     expect(banc.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
     expect(refuse(banc, () => banc.actions.massBattleActivity('inspire', heroId))).toEqual(['Déjà réalisée cette bataille (Activité non répétable).']);
   });

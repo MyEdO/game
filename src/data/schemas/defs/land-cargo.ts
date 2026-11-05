@@ -2,14 +2,13 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { refs } from '../grammaire/ref';
 import {
+  cargaisonMarchandeSchema,
   catalogueSaisonnier,
   difficultySchema,
-  dispoSaisonniereSchema,
   ecartsDeCouverture,
   plageSchema,
-  prixSaisonnierSchema,
-  prixTireSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 
@@ -34,47 +33,13 @@ const offerByRichesseSchema = z
   });
 
 
-const cargoMarchand = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  /** Discriminant du catalogue (`catalogueSaisonnier`) : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
-  echangeable: z.literal(true).optional(),
-
-  wine: z.boolean().optional(),
-  avail: dispoSaisonniereSchema,
-  price: z.union([prixSaisonnierSchema, prixTireSchema]),
-  source: sourceRefSchema,
-}), {
-  id: { label: 'identifiant' },
-  label: { label: 'libellé' },
-  echangeable: { label: 'échangeable' },
-  wine: { label: 'vin' },
-  avail: { label: 'disponibilité' },
-  price: { label: 'prix' },
-  source: { label: 'source' },
+/** MSRC 13 l.93-104 */
+const cargoMarchand = nommerChamps(z.strictObject({ ...cargaisonMarchandeSchema.shape, wine: z.boolean().optional() }), {
+  ...metaDesChamps(cargaisonMarchandeSchema, { exigees: true }),
+  wine: { label: 'Vin' },
 });
 
-/** MSRC 13 l.24-28. */
-const cargoMarqueur = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  echangeable: z.literal(false),
-  /** Qualificatif d'affichage ÉDITABLE (« plaque tournante » / « rien à échanger ») — cf. `CargoMarkerDef`. */
-  hint: z.string().optional(),
-  /** MSRC 13 l.24-28. */
-  tradeHub: z.literal(true).optional(),
-  source: sourceRefSchema,
-}), {
-  id: { label: 'identifiant' },
-  label: { label: 'libellé' },
-  echangeable: { label: 'échangeable' },
-  hint: { label: 'aide' },
-  tradeHub: { label: 'plaque tournante' },
-  source: { label: 'source' },
-});
-
-
-const cargoesSchema = catalogueSaisonnier(cargoMarchand, cargoMarqueur, { site: 'land-cargo.json › cargoes' });
+const cargoesSchema = catalogueSaisonnier(cargoMarchand, { site: 'land-cargo.json › cargoes' });
 
 const doc = document(
   'land-cargo',
@@ -129,7 +94,7 @@ const doc = document(
   rumours: z.array(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
-      biens: z.array(z.string()),
+      biens: refs('landCargo'),
       /** Prose de la rumeur — `desc`, la cible du rôle prose de l'enveloppe. Ces rangées n'ont pas de
        *  `label` : elles sortent du DÉNOMINATEUR du détecteur de structures, qui ne mesure que les
        *  entrées de racine. Une graphie divergente ne survit pas parce qu'elle est hors mesure — c'est

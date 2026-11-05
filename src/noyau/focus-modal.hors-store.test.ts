@@ -8,7 +8,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // Focalisation par modale (LDB — Test étendu).
 describe('Focalisation en modale (store)', () => {
-  it('battleFocusSpell ouvre pendingFocus sans tirer ; focusRoll tire ; focusConfirm cumule le DR + consomme l’Action', () => {
+  it('battleFocusSpell ouvre pendingFocus sans tirer ; jetRoll@focus tire ; jetConfirm@focus cumule le DR + consomme l’Action', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.characteristics['force-mentale'] = 80;
     hero.spells = ['arme-aethyrique'];
@@ -28,17 +28,17 @@ describe('Focalisation en modale (store)', () => {
     expect(banc.getState().pendingFocus).toBeTruthy();
     expect(banc.getState().pendingFocus!.result).toBeNull(); // pas encore lancé
 
-    banc.getState().focusRoll();
+    banc.getState().jetRoll('focus');
     expect(banc.getState().pendingFocus!.result).toBeTruthy(); // jet figé
 
-    banc.getState().focusConfirm();
+    banc.getState().jetConfirm('focus');
     st = banc.getState();
     expect(st.pendingFocus).toBeNull();
     expect(st.battle!.combatants.find((c) => c.id === heroC.id)!.focus?.spell).toBe('arme-aethyrique'); // DR cumulé (id stable)
     expect(st.battle!.acted).toBe(true); // la Focalisation consomme l'Action
   });
 
-  it('IA : un ennemi ACTIF peut focaliser pour lui-même ; focusConfirm pose le DR et reprend son tour', () => {
+  it('IA : un ennemi ACTIF peut focaliser pour lui-même ; jetConfirm@focus pose le DR et reprend son tour', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
     banc.setState({ party: [hero] });
     banc.getState().seedRng(7);
@@ -61,10 +61,10 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().battleFocusSpell('carreau'); // garde héros-only relâchée → autorisé pour l'IA active
     expect(banc.getState().pendingFocus).toBeTruthy();
 
-    banc.getState().focusRoll();
+    banc.getState().jetRoll('focus');
     expect(banc.getState().pendingFocus!.result).toBeTruthy();
 
-    banc.getState().focusConfirm();
+    banc.getState().jetConfirm('focus');
     st = banc.getState();
     expect(st.pendingFocus).toBeNull();
     const e2 = st.battle!.combatants.find((c) => c.id === enemy.id)!;

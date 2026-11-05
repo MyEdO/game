@@ -6,7 +6,7 @@ import { applierDe } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascade.testkit';
 import { composeRollLabel } from './rollSeam';
 import { t } from '../i18n';
-import { byId, refLabel, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles } from '../data';
+import { byId, refLabel, resolveStake, voyageStakeRef, STAKES, regles } from '../data';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -20,6 +20,8 @@ import type { Combatant, SkillInstance } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
 import type { MapRoute, MapRouteTrace, WorldMap } from './worldMap';
+
+const VOYAGE_STAKES = STAKES.filter((e) => e.cascade === 'voyage');
 
 /**
  * VOYAGE FLUVIAL (MSRC 7) — la descente du Reik en barge JOUÉE jour par jour. Depuis la Phase B, TOUS
@@ -277,7 +279,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     // #617/#618) — `partyCargoTotalEnc` la lit (#327).
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
-      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: cargoEnc > 0 ? [{ cargoId: 'vin', enc: cargoEnc, basePriceGold: 10 }] : [] },
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: cargoEnc > 0 ? [{ cargoId: 'vin-eau-de-vie', enc: cargoEnc, basePriceGold: 10 }] : [] },
     ];
     set({ possessions, travelPlan: plan, journal: [] });
     seedBattleRng(7);
@@ -311,7 +313,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     launch();
     const ownerId = get().party[0].id;
     const possessions: Possession[] = [
-      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ cargoId: 'vin', enc: 30, basePriceGold: 10 }] },
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
       id: 'river-peril-0', kind: 'riverPerilDetect' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
@@ -343,7 +345,7 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
     const cur = pc.participants[pc.cursor];
     expect(cur.target).not.toBeNull();
     // On force la réussite (forceSuccess) AVANT de rouler : l'API de cascade l'accepte (mécanisme partagé).
-    get().cascadeForceSuccess(cur.id);
+    get().jetForceSuccess('cascade', cur.id);
     const after = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(after.result?.success).toBe(true);
   });
@@ -739,7 +741,7 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
 /**
  * #1117 (arbitrage user : « Faudrait globaliser ça, histoire qu'on sache pourquoi on fait un jet ») —
  * chaque étape-jet de la journée fluviale porte son ENJEU, et cet enjeu vient de la DONNÉE ÉDITABLE
- * (`voyage-stakes.json`, gabarit par `kind`) : le flux n'apporte QUE les valeurs calculées.
+ * (`stakes.json`, gabarit par `cle`) : le flux n'apporte QUE les valeurs calculées.
  */
 describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117)', () => {
   it('les étapes du jour fluvial portent un enjeu, chacun issu du gabarit de sa `kind`', () => {
@@ -755,7 +757,7 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
       // Le gabarit de la donnée est la SOURCE : aucun trou non rempli ne sort à l'écran (le résolveur
       // UNIQUE jette sur un trou sans valeur — on vérifie ici le texte RENDU).
       expect(resolveStake(s.stake!).text).not.toMatch(/\{[a-zA-Z]+\}/);
-      expect(VOYAGE_STAKES.some((e) => e.kind === s.kind)).toBe(true);
+      expect(VOYAGE_STAKES.some((e) => e.cle === s.kind)).toBe(true);
     }
   });
 
@@ -784,13 +786,13 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
     expect(() => resolveStake(voyageStakeRef('riverNav'))).toThrow(/driftKm/);
     // FAIL-CLOSED à l'autre bout : demander l'enjeu d'un `kind` SANS gabarit JETTE — une étape muette
     // en silence est exactement ce que #1117 supprime.
-    expect(() => voyageStakeRef('kind-inexistant')).toThrow(/aucun gabarit d'enjeu/);
+    expect(() => voyageStakeRef('kind-inexistant')).toThrow(/aucune entrée d'enjeu/);
   });
 });
 
 /**
  * #1117 (arbitrage user, recette 4) — la RÈGLE d'une étape est à UN CLIC : le gabarit d'enjeu porte
- * sa fiche (`voyage-stakes.json` → `rule`), l'étape la transporte (`stakeRule`), et `CascadeModal`
+ * sa fiche (`stakes.json` → `rule`), l'étape la transporte (`stakeRule`), et `CascadeModal`
  * compose `CodexRef`. Les fiches de navigation sont créées AU VERBATIM (MSRC 7), taguées à leur source.
  */
 describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
@@ -817,7 +819,7 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
   it('les fiches créées portent leur SOURCE (livre + folio + ligne)', () => {
     // Périmètre STRUCTUREL : les fiches derrière les étapes FLUVIALES (`kind` river*), pas un préfixe
     // d'id — le catalogue d'enjeux sert aussi la mer, dont les fiches viennent d'un autre livre.
-    const ids = new Set(VOYAGE_STAKES.filter((s) => s.kind.startsWith('river')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
+    const ids = new Set(VOYAGE_STAKES.filter((s) => s.cle.startsWith('river')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
     expect(ids.size, 'des étapes fluviales portent bien une fiche').toBeGreaterThan(0);
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');

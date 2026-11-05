@@ -66,9 +66,9 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
     banc.getState().battleClickEntity(E.id, { confirm: true });
     seedBattleRng(3);
-    banc.getState().attackRoll();
-    banc.getState().attackForceSuccess();
-    banc.getState().attackSetForcedRoll(21);
+    banc.getState().jetRoll('attack');
+    banc.getState().jetForceSuccess('attack');
+    banc.getState().jetSetForcedRoll('attack', 21);
     expect(banc.getState().pendingAttack!.result!.critLocation, 'la touche relance la Localisation').toBeDefined();
     const choisie: HitLocation = banc.getState().pendingAttack!.result!.critLocation === 'jambeG' ? 'brasD' : 'jambeG';
     banc.getState().attackSetCritLocation(choisie);
@@ -78,7 +78,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
   it("'aa', cible déjà à 0 : la Localisation choisie survit à la dépense de +1 DR", () => {
     const choisie = forceEtChoisit();
     const slAvant = banc.getState().pendingAttack!.result!.netSL;
-    banc.getState().attackBonusSL();
+    banc.getState().jetBonusSL('attack');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.netSL, 'le +1 DR est bien dépensé').not.toBe(slAvant);
     expect(res.critLocation).toBe(choisie);
@@ -86,7 +86,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
 
   it("'aa', cible déjà à 0 : la Localisation choisie survit au changement du dé posé", () => {
     const choisie = forceEtChoisit();
-    banc.getState().attackSetForcedRoll(12);
+    banc.getState().jetSetForcedRoll('attack', 12);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll, 'le dé posé a changé').toBe(12);
     expect(res.critLocation).toBe(choisie);
@@ -100,12 +100,12 @@ describe('Localisation relancée — la défense dépense +1 DR puis la Chance (
       const { enemy, hero } = duel(seed);
       if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero)) continue;
       const g = banc.getState;
-      g().defenseRoll();
+      g().jetRoll('defense');
       const premier = g().pendingDefense!.result!.critLocation;
       if (!premier) continue;
-      g().defenseBonusSL();
+      g().jetBonusSL('defense');
       const apresBonus = g().pendingDefense!.result!;
-      g().defenseReroll();
+      g().jetReroll('defense');
       const apresChance = g().pendingDefense!.result!;
       if (!apresBonus.critLocation || !apresChance.critLocation) continue;
       vus++;
@@ -123,11 +123,11 @@ describe('Localisation relancée — défense pilotée, `openSurfacedDefense` (T
       const { enemy, hero } = duel(seed, 0);
       const g = banc.getState;
       openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-      g().attackRoll();
+      g().jetRoll('attack');
       const ouverture = g().pendingAttack?.result?.critLocation;
-      g().attackConfirm();
+      g().jetConfirm('attack');
       if (!ouverture || !g().pendingDefense) continue;
-      g().defenseRoll();
+      g().jetRoll('defense');
       const resolue = g().pendingDefense!.result!.critLocation;
       if (!resolue) continue;
       vus++;

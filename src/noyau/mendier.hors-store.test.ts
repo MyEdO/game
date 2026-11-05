@@ -199,9 +199,9 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
   it('les trois volets NOMMÉS par le livre sont tirables, et seuls les deux premiers marquent le héros', () => {
     const table = findEffectTableById('mendier-ennuis');
     expect(table.die).toBe('d10');
-    expect(table.rows.map((r) => `${r.min}-${r.max}`)).toEqual(['1-3', '4-7', '8-10']);
+    expect(table.entries.map((r) => `${r.min}-${r.max}`)).toEqual(['1-3', '4-7', '8-10']);
     setRule('mendier-amende-sous', 12);
-    for (const r of table.rows) {
+    for (const r of table.entries) {
       const h = heros(45);
       applyOps(h, [{ op: 'money', montant: { brass: 100 } }], { rng: makeRNG(1) });
       const pvAvant = h.wounds.current;
@@ -226,7 +226,7 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
    * fait tomber l'`expect` d'exclusivité.
    */
   it('le volet des GARDES prend une amende ÉDITABLE, bornée à zéro, et elle SEULE', () => {
-    const gardes = findEffectTableById('mendier-ennuis').rows.find((r) => r.min === 1)!;
+    const gardes = findEffectTableById('mendier-ennuis').entries.find((r) => r.min === 1)!;
     setRule('mendier-amende-sous', 30);
     const bourseNue = (soc: number, sous: number): Combatant => {
       const h = heros(soc);
@@ -323,9 +323,9 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   function joue(sl: number, success: boolean, roll = 1): void {
     banc.getState().interludeActivity(heroId(), 'mendier');
     expect(banc.getState().pendingActivity?.activityId).toBe('mendier');
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     draineCascade(banc.getState);
   }
 

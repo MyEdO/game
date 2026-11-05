@@ -44,7 +44,7 @@ import {
   type ForcedPaceAnimal, type ForcedPaceAnimalOutcome,
 } from '../engine/vehicle';
 import { bonus } from '../engine/characteristics';
-import { rollVehicleProblem, mountIncidentEffects } from '../engine/travelTables';
+import { rollVehicleProblem, mountIncidentEffects, VEHICLE_PROBLEM_DIE } from '../engine/travelTables';
 import { applyOps } from '../engine/ops';
 import { ouvrirChute, jouerFlowEntier, applyEffectsLoot } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
@@ -60,10 +60,10 @@ import { provisioningManifest } from '../engine/provisions';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { evalCondition } from '../engine/flowCore';
-import { d100 } from '../engine/dice';
+import { rollDice } from '../engine/dice';
 import { rule } from '../engine/policy';
 import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
-import { seasonOfMonth, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
+import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
 import { startCascade, type TableStepDef, type TableStepRow } from './cascade';
@@ -759,8 +759,8 @@ const stageWeatherTableId = (season: Season): string => `stage-weather-${season}
 
 /** Les rangées de la table d'une saison : la fourchette AUTHORÉE de `weather.json`, l'id stable étant
  *  la météo. Aucune borne n'est recalculée — c'est ce que `weatherFromRoll` lit pour la ligne montrée. */
-export const stageWeatherRows = (ranges: { min: number; max: number; weather: string }[]): TableStepRow[] =>
-  ranges.map((r) => ({ id: r.weather, min: r.min, max: r.max }));
+export const stageWeatherRows = (entries: { min: number; max: number; weather: string }[]): TableStepRow[] =>
+  entries.map((r) => ({ id: r.weather, min: r.min, max: r.max }));
 
 /** Les tables de météo par saison — FAMILLE dérivée de `weather` (#1692) : la Map se refait à la
  *  première lecture des tables qui suit une édition, donc une saison ajoutée au Codex a sa table et
@@ -769,8 +769,8 @@ export const stageWeatherRows = (ranges: { min: number; max: number; weather: st
 const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepDef>(
   weather.map((saison) => [stageWeatherTableId(saison.id as Season), {
     label: t('step.stageWeather'),
-    die: 100,
-    rows: stageWeatherRows(saison.ranges),
+    die: weatherDie(saison.id as Season).sides,
+    rows: stageWeatherRows(saison.entries),
     lines: (die) => [t('out.stageWeather', { weather: weatherCondition(weatherFromRoll(die, saison.id as Season)).label })],
   }]),
 ));
@@ -792,7 +792,7 @@ function buildTravelDayCascade(
     pousseSi(steps, tableStep({
       id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'travel/wave',
       label: t('step.stageWeather'),
-      table: { tableId: stageWeatherTableId(currentSeason(get)), spec: { n: 1, sides: 100 } },
+      table: { tableId: stageWeatherTableId(currentSeason(get)), spec: weatherDie(currentSeason(get)) },
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
     }));
   }
@@ -1143,7 +1143,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
 function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDayResult, 'lines' | 'entries'>): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false }; // garde : coque toujours créée en allure forcée
-  const roll = d100(battleRng());
+  const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
   let entry = rollVehicleProblem(roll);
   if (entry.id === 'incontrolable') {
     // EDOC 07 l.284, l.286 ; LDB 09 l.30.
@@ -1496,7 +1496,7 @@ export const TABLES = {
         finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false });
         return { consequences: freeCons(j) };
       }
-      const roll = d100(battleRng());
+      const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
       let entry = rollVehicleProblem(roll);
       if (entry.id === 'incontrolable') {
         j.push(t('tf.vehicleProblem', { label: entry.label }));

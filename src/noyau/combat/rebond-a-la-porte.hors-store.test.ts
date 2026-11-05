@@ -69,7 +69,7 @@ const etapeDe = (kind: string, actorId: string) =>
 function poserLeDe(actorId: string, n: number): void {
   const st = etapeDe('sauvegarde', actorId);
   expect(st, `aucune sauvegarde en vol sur ${actorId}`).toBeTruthy();
-  banc.getState().cascadeDieSetForcedRoll(st!.id, n);
+  banc.getState().jetSetForcedRoll('cascadeTirage', n, st!.id);
 }
 
 const lu = (): string => (banc.getState().battle?.log ?? []).map((e) => e.text).join(' | ');

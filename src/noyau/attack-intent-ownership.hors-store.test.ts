@@ -8,18 +8,17 @@
  * dépensait la Chance/la Résilience/le Pacte de l'ATTAQUANT). Miroir mesuré pendant l'étape
  * `jet:'attack'` : les verbes `defense*` étaient acceptés du siège de l'ATTAQUANT.
  *
- * Les intents HORS verbes de flux (`attackRoll`/`attackConfirm`/`defenseConfirm`,
- * `MANUAL_COMBAT_INTENTS`) ne passent pas par cette route : la fenêtre de Défense interposée (#989 :
- * `defenseConfirm` ré-entre dans `attackConfirm`) est inchangée — vérifié ci-dessous.
+ * La clôture (`jetConfirm`) suit le même porteur ; la fenêtre de Défense interposée (#989 : `jetConfirm('defense')`
+ * ré-entre dans `jetConfirm('attack')`) se joue de bout en bout — vérifié ci-dessous.
  */
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
 import { openAttackCascade, maybeOpenDefense } from './combatFlow';
-import { intentAllowedFor } from './netOwnership';
+import { intentAllowedFor, ROUTES } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
-import { jetOwnedIntents } from './flowVerbs';
-import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intentionsDeSiege';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET } from './flowVerbs';
+import { COMBAT_INTENTS } from './intentionsDeSiege';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -56,34 +55,39 @@ function setup(net: Record<string, unknown> = {}) {
 }
 
 const g = () => banc.getState();
-const ATTACK_VERBS = ['attackReroll', 'attackBonusSL', 'attackDarkPact', 'attackForceSuccess', 'attackSetForcedRoll', 'attackReverse'];
-const DEFENSE_VERBS = ['defenseReroll', 'defenseBonusSL', 'defenseDarkPact', 'defenseForceSuccess', 'defenseSetForcedRoll', 'defenseReverse'];
-const argsOf = (intent: string) => (intent.endsWith('SetForcedRoll') ? [42] : []);
-/** Verdict des 3 sièges pour un intent : [hôte, joueur du héros, MJ]. */
-const seats = (intent: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), seat, intent, argsOf(intent)));
+/** Les gestes d'influence d'un flux, par leur identité `verbe@flux` (`cleDuGeste`). */
+const influences = (flux: 'attack' | 'defense') => ['jetReroll', 'jetBonusSL', 'jetDarkPact', 'jetForceSuccess', 'jetSetForcedRoll', 'jetReverse'].map((v) => `${v}@${flux}`);
+const ATTACK_VERBS = influences('attack');
+const DEFENSE_VERBS = influences('defense');
+/** Le verbe et les arguments du geste `verbe@flux` (`VerbesDeJet`). */
+const gesteDe = (cle: string): [string, unknown[]] => {
+  const [verbe, flux] = cle.split('@');
+  return [verbe, verbe === 'jetSetForcedRoll' ? [flux, 42] : [flux]];
+};
+const permis = (seat: number, cle: string) => intentAllowedFor(g(), seat, ...gesteDe(cle));
+/** Verdict des 3 sièges pour un geste : [hôte, joueur du héros, MJ]. */
+const seats = (cle: string) => [0, 1, 2].map((seat) => permis(seat, cle));
 
 /** Attaque PILOTÉE par le siège MJ jusqu'à l'interposition de la défense SURFACÉE du héros (#989). */
 function playToDefenseWindow() {
   const { enemy, hero } = setup();
   openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  g().attackConfirm();
+  g().jetRoll('attack');
+  g().jetConfirm('attack');
   return { enemy, hero };
 }
 
 describe('#1013 — la table DÉRIVE les intents d’attaque/défense', () => {
-  it('les verbes d’influence des deux flux sont routés par porteur (sinon les gardes ne mesurent rien)', () => {
-    const map = jetOwnedIntents();
-    expect(map.attackForceSuccess).toEqual({ pending: 'pendingAttack', field: 'attackerId' });
-    expect(map.defenseForceSuccess).toEqual({ pending: 'pendingDefense', field: 'defenderId' });
-    for (const i of [...ATTACK_VERBS, ...DEFENSE_VERBS]) {
-      expect(map[i], `${i} routé par porteur`).toBeTruthy();
+  it('les verbes de jet sur les deux flux sont routés par porteur (sinon les gardes ne mesurent rien)', () => {
+    expect(FLOW_VERBS.attack.jetOwner).toEqual({ pending: 'pendingAttack', field: 'attackerId' });
+    expect(FLOW_VERBS.defense.jetOwner).toEqual({ pending: 'pendingDefense', field: 'defenderId' });
+    // `jetCancel('attack')` ferme la situation : il ne dépense rien, mais il est routé par le porteur comme les autres
+    // (#1017) — sur une fenêtre PARTAGÉE (`'*'`), le repli `modalOwnerOf` laissait n'importe quel siège fermer le jet
+    // d'autrui.
+    for (const i of Object.values(NOM_DU_VERBE_DE_JET)) {
+      expect(ROUTES.has(i), `${i} routé`).toBe(true);
       expect(COMBAT_INTENTS.has(i), `${i} exposé comme intent invité`).toBe(true);
     }
-    // `attackCancel` (verbe `cancel`) ferme la situation : il ne dépense rien, mais il est routé par
-    // le porteur comme les autres (#1017) — sur une fenêtre PARTAGÉE (`'*'`), le repli `modalOwnerOf`
-    // laissait n'importe quel siège fermer le jet d'autrui.
-    expect(map.attackCancel).toEqual({ pending: 'pendingAttack', field: 'attackerId' });
   });
 });
 
@@ -109,8 +113,8 @@ describe('#1013 — fenêtre de DÉFENSE ouverte : les verbes `attack*` n’appa
     const { enemy, hero } = setup();
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
     openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
-    g().attackConfirm();
+    g().jetRoll('attack');
+    g().jetConfirm('attack');
     expect(g().pendingDefense!.defenderId).toBe(enemy.id);
     for (const i of ATTACK_VERBS) expect(seats(i), i).toEqual([false, false, false]);
   });
@@ -120,7 +124,7 @@ describe('#1013 — symétrique : fenêtre d’ATTAQUE ouverte, les verbes `defe
   it('aucune défense n’est en jeu : les trois sièges sont refusés', () => {
     const { enemy, hero } = setup();
     openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
+    g().jetRoll('attack');
     expect(modalOwnerOf(g()), 'le owner de la fenêtre est l’ATTAQUANT').toBe(enemy.id);
     expect(g().pendingDefense).toBeNull();
     for (const i of DEFENSE_VERBS) expect(seats(i), `${i} : le siège de l’attaquant ne tient pas les verbes de défense`).toEqual([false, false, false]);
@@ -131,7 +135,7 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
   it('fenêtre d’attaque : seul le siège du porteur (MJ, qui conduit l’ennemi) dépense', () => {
     const { enemy, hero } = setup();
     openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
+    g().jetRoll('attack');
     for (const i of ATTACK_VERBS) expect(seats(i), i).toEqual([false, false, true]);
   });
 
@@ -139,7 +143,7 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
     const { enemy, hero } = setup();
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
     openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
+    g().jetRoll('attack');
     for (const i of ATTACK_VERBS) expect(seats(i), i).toEqual([false, true, false]);
   });
 
@@ -152,8 +156,8 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
     const { enemy, hero } = setup();
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
     openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
-    g().attackConfirm();
+    g().jetRoll('attack');
+    g().jetConfirm('attack');
     for (const i of DEFENSE_VERBS) expect(seats(i), i).toEqual([false, false, true]);
   });
 
@@ -161,33 +165,33 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
     const { enemy, hero } = setup({ mode: 'local', mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
     openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
-    for (const i of ATTACK_VERBS) expect(intentAllowedFor(g(), 0, i, argsOf(i)), i).toBe(true);
-    g().attackConfirm();
+    g().jetRoll('attack');
+    for (const i of ATTACK_VERBS) expect(permis(0, i), i).toBe(true);
+    g().jetConfirm('attack');
     expect(g().pendingDefense, 'l’ennemi conduit par le MJ local défend').toBeTruthy();
-    for (const i of DEFENSE_VERBS) expect(intentAllowedFor(g(), 0, i, argsOf(i)), i).toBe(true);
+    for (const i of DEFENSE_VERBS) expect(permis(0, i), i).toBe(true);
   });
 });
 
-describe('#1013 — NON-RÉGRESSION : le jet, l’application et la reprise d’attaque ne sont pas gatés par le porteur', () => {
-  it('`attackRoll`/`attackConfirm`/`defenseConfirm` restent des intents MANUELS (hors verbes de flux)', () => {
-    const map = jetOwnedIntents();
-    for (const i of ['attackRoll', 'attackConfirm', 'defenseConfirm']) {
-      expect(MANUAL_COMBAT_INTENTS).toContain(i);
-      expect(map[i], `${i} n’est pas routé par porteur`).toBeUndefined();
-    }
+describe('#1013/#2961/#3324 — le jet d’attaque suit l’attaquant, clôture comprise', () => {
+  it('`jetRoll(\'attack\')` et `jetConfirm(\'attack\')` sont routés par l’attaquant', () => {
+    const { enemy, hero } = setup();
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    expect(seats('jetRoll@attack'), 'seul le siège MJ, qui conduit l’attaquant, jette').toEqual([false, false, true]);
+    expect(seats('jetConfirm@attack'), 'la clôture suit le même porteur').toEqual([false, false, true]);
   });
 
   it('la fenêtre interposée se joue de bout en bout : le défenseur roule, applique, et le tour n’avance pas', () => {
     const { hero } = playToDefenseWindow();
     const turnBefore = g().battle!.turn;
-    expect(intentAllowedFor(g(), 1, 'defenseRoll'), 'le siège du défenseur roule SA défense').toBe(true);
-    expect(intentAllowedFor(g(), 2, 'defenseRoll'), 'le MJ ne roule pas la défense du héros').toBe(false);
-    expect(intentAllowedFor(g(), 1, 'defenseConfirm'), 'l’Appliquer reste au owner de la fenêtre').toBe(true);
-    g().defenseRoll();
-    g().defenseConfirm();
+    expect(permis(1, 'jetRoll@defense'), 'le siège du défenseur roule SA défense').toBe(true);
+    expect(permis(2, 'jetRoll@defense'), 'le MJ ne roule pas la défense du héros').toBe(false);
+    expect(permis(1, 'jetConfirm@defense'), 'le défenseur clôt SA défense').toBe(true);
+    expect(permis(2, 'jetConfirm@defense'), 'le MJ ne clôt pas la défense du héros').toBe(false);
+    g().jetRoll('defense');
+    g().jetConfirm('defense');
     expect(g().pendingDefense, 'la fenêtre est refermée').toBeNull();
-    expect(g().battle!.turn, 'la reprise `attackConfirm` n’a pas fait avancer le tour').toBe(turnBefore);
+    expect(g().battle!.turn, 'la reprise `jetConfirm(\'attack\')` n’a pas fait avancer le tour').toBe(turnBefore);
     expect(g().battle!.combatants.some((c) => c.id === hero.id)).toBe(true);
   });
 });

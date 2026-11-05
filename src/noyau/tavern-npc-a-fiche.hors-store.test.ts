@@ -210,7 +210,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
 /**
  * LE NOM VIENT DE L'ENTITÉ (L2 #1548) — un PNJ de taverne renommé par l'auteur joue et s'affiche sous
  * SON nom, jamais sous le libellé d'espèce de la fiche qu'il référence. Même invariant que l'infirmerie
- * (`arene-flow.test.ts` « Frère Anselm ») : la fiche donne les VALEURS, l'entité donne le NOM — et il
+ * (`scenarios/arene-flow.hors-store.test.ts` « Frère Anselm ») : la fiche donne les VALEURS, l'entité donne le NOM — et il
  * est résolu par la projection UNIQUE `sceneNpc`, pas recomposé au site.
  */
 describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {

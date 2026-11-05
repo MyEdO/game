@@ -142,7 +142,7 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
       const ligne = critTableRows('ldb', critTableKeyFor(etape.critSeverity!.location))
         .filter((e) => !e.lethal)
         .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
-      banc.getState().cascadeTableSetForcedRoll(etape.id, ligne.max - (etape.table?.mod ?? 0));
+      banc.getState().jetSetForcedRoll('cascadeTirage', ligne.max - (etape.table?.mod ?? 0), etape.id);
       const dev = devSteps()[0].deviation!;
       expect(dev.crit.entryId, 'le dé posé atteint la ligne choisie').toBe(ligne.id);
       resolveDeviation(banc.getState, banc.setState, dev, devier);
@@ -357,7 +357,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
 function tireLaSeverite() {
   const st = devSteps();
   expect(st, 'une seule étape porte le tirage ET la décision').toHaveLength(1);
-  banc.getState().cascadeTableRoll(st[0].id);
+  banc.getState().jetRoll('cascadeTirage', st[0].id);
   const apres = devSteps()[0];
   expect(stepInteraction(apres)).toBe('choix');
   expect(apres.deviation?.crit, 'le pli post-dé n’a pas posé le Critique').toBeTruthy();

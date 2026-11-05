@@ -14,6 +14,7 @@ import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre d'Au contact. */
 const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-roll', choice: 'au-contact-choice' };
@@ -30,14 +31,14 @@ const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll:
 export function AuContactModal() {
   const pd = useGame((s) => s.pendingAuContact);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.auContactRoll);
-  const reroll = useGame((s) => s.auContactReroll);
-  const bonusSL = useGame((s) => s.auContactBonusSL);
-  const darkPact = useGame((s) => s.auContactDarkPact);
-  const force = useGame((s) => s.auContactForceSuccess);
-  const confirm = useGame((s) => s.auContactConfirm);
+  const roll = useGesteDeJet('jetRoll', 'auContact');
+  const reroll = useGesteDeJet('jetReroll', 'auContact');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'auContact');
+  const darkPact = useGesteDeJet('jetDarkPact', 'auContact');
+  const force = useGesteDeJet('jetForceSuccess', 'auContact');
+  const confirm = useGesteDeJet('jetConfirm', 'auContact');
   const choose = useGame((s) => s.auContactChoose);
-  const cancel = useGame((s) => s.auContactCancel);
+  const cancel = useGesteDeJet('jetCancel', 'auContact');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
@@ -79,8 +80,6 @@ export function AuContactModal() {
     onForce: force,
   }, {
     rollLabel: t('verbe.roll'),
-    // Résilience AVANT le jet (LDB 17 l.68) : Corps à corps forcé à l'emporter.
-    preRollForce: () => { roll(); force(); },
   });
 
   const issue = pd.def
@@ -88,8 +87,8 @@ export function AuContactModal() {
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   if (pd.phase === 'choice') {

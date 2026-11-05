@@ -26,7 +26,7 @@ import { idsDuTest } from '../engine/skills';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
-import { specDeEtape, tableStepDef } from './cascade';
+import { maladresseCourante, specDeEtape, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import { APPRAISE_SKILL } from './merchantFlow';
 
@@ -45,7 +45,7 @@ export type LigneDeJet =
 export interface OppositionEnVue { gagnante: number | null; drNet: number }
 
 /** Les jets d'UN flux de la fenêtre (ou d'une étape de cascade), dans l'ordre où la fenêtre les range. */
-export interface JetEnVue { flux: FlowKey | 'fumble'; lignes: LigneDeJet[]; oppose: OppositionEnVue | null }
+export interface JetEnVue { flux: FlowKey; lignes: LigneDeJet[]; oppose: OppositionEnVue | null }
 
 /** Les Tests dont la Compétence ou la Caractéristique est fixée par la situation. */
 const TESTS_FIXES = {
@@ -225,7 +225,17 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   },
   cascade: (s) => {
     const cur = etapeCourante(s);
-    return cur && !cur.jet && !cur.participants ? lireEtape(s, cur, true)[0] ?? null : null;
+    return cur && !cur.jet && !cur.participants && !cur.table && !cur.de ? lireEtape(s, cur, true)[0] ?? null : null;
+  },
+  cascadeTirage: (s) => {
+    const cur = etapeCourante(s);
+    return cur && !cur.jet && (cur.table || cur.de) ? lireEtape(s, cur, true)[0] ?? null : null;
+  },
+  fumble: (s) => {
+    const m = maladresseCourante(s.pendingCascade);
+    if (!m) return null;
+    const r = m.fumble.result;
+    return vue('fumble', [{ genre: 'table', qui: m.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null }]);
   },
   cascadeBatch: (s) => {
     const cur = etapeCourante(s);
@@ -361,18 +371,12 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
  *  ouvre en son sein (`FENETRE_DU_JET`). */
 const fluxDeLEtape = (jet: HostJet): readonly FlowKey[] => {
   const { flux, reactives = [] } = FENETRE_DU_JET[jet];
-  return [...(flux ? [flux] : []), ...reactives.map((r) => r.flux)];
+  return [flux, ...reactives.map((r) => r.flux)];
 };
 
 function etapeCourante(s: Jeu): CascadeStep | undefined {
   const p = s.pendingCascade;
   return p ? p.participants[p.cursor] : undefined;
-}
-
-function lireMaladresse(step: CascadeStep): JetEnVue | null {
-  if (!step.fumble) return null;
-  const r = step.fumble.result;
-  return vue('fumble', [{ genre: 'table', qui: step.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null }]);
 }
 
 /** La ligne d'une rangée de bande (`BatchParticipant`). */
@@ -407,11 +411,11 @@ function lireEtape(s: Jeu, step: CascadeStep, courante: boolean): JetEnVue[] {
   }
   if (step.table) {
     const r = step.table.result;
-    return [vue('cascade', [{ genre: 'table', qui: step.actorId ?? null, table: libelleDeTable(step) ?? step.label ?? step.id, jet: r ? { d100: r.roll, effectif: r.die, ligne: r.lines[0] ?? '' } : null }])];
+    return [vue('cascadeTirage', [{ genre: 'table', qui: step.actorId ?? null, table: libelleDeTable(step) ?? step.label ?? step.id, jet: r ? { d100: r.roll, effectif: r.die, ligne: r.lines[0] ?? '' } : null }])];
   }
   if (step.de) {
     const r = step.de.result;
-    return [vue('cascade', [{ genre: 'de', qui: step.actorId ?? null, de: libelleDuDe(step), jet: r ? { naturel: r.roll, total: r.total, lecture: lectureDuTotal(step, r.total) } : null }])];
+    return [vue('cascadeTirage', [{ genre: 'de', qui: step.actorId ?? null, de: libelleDuDe(step), jet: r ? { naturel: r.roll, total: r.total, lecture: lectureDuTotal(step, r.total) } : null }])];
   }
   return [];
 }
@@ -423,10 +427,6 @@ function jetsDeLaCascade(s: Jeu): JetEnVue[] {
   const cur = p.participants[p.cursor];
   if (!cur) return [];
   if (!cur.jet) return lireEtape(s, cur, true);
-  if (cur.jet === 'fumble') {
-    const v = lireMaladresse(cur);
-    return v ? [v] : [];
-  }
   return fluxDeLEtape(cur.jet).flatMap((f) => {
     const v = LECTEURS[f](s);
     return v ? [v] : [];

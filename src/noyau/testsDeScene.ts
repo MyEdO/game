@@ -10,7 +10,7 @@ import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
 import { tablesPosees, type FragmentDeTables } from './tablesPosees';
-import { FLOWS, meetsRequiredSL } from './rollFlowSpecs';
+import { FLOWS, meetsRequiredSL, type CloturesDuJet } from './rollFlowSpecs';
 import { armeDEnfoncement, bilanDuRound } from './enfoncerUnePorte';
 import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
@@ -20,12 +20,13 @@ import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { garanti } from '../lib/garanti';
 import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
- *  (`extendedTestNext`) et par la fenêtre. LDB 12 l.170-185 */
+ *  (`jetConfirm('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
   return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
@@ -41,7 +42,78 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: opts.actorId }));
       if (steps.length) openSequence(get, set, { title: opts.label, icon: 'ui/key', purpose: 'test', steps });
     },
-    extendedTestNext: () => {
+    // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
+    startForceDoor: (opts) => {
+      set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
+        ...(opts.suite ? { suite: opts.suite } : {}),
+        participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
+      // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
+      // via l'étape `jet:'forceDoor'`). `pendingForceDoor` reste le porteur des données/participants ;
+      // ses résolveurs ferment LES DEUX quand la porte cède. `groupOwner` → l'arbitre coop met l'owner à
+      // '*' (action de GROUPE : chacun pilote ses héros), faute d'acteur unique sur l'étape.
+      // #1262 V2 L4 : par la PORTE (`hostStep`, forme de GROUPE) — l'étape n'est plus un littéral, et le
+      // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
+      const steps: BuiltCascadeStep[] = [];
+      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'forceDoor', groupOwner: true }));
+      if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
+    },
+    forceDoorChoisirArme: (heroId, armeUid) => {
+      const p = get().pendingForceDoor;
+      const part = p?.participants.find((x) => x.id === heroId);
+      const actor = part ? actorIn(get(), heroId) : undefined;
+      if (!p || !part || part.result || !actor || (armeUid && !armeDEnfoncement(actor, { armeUid }))) {
+        refuserGeste(get, set, t('store.armeDEnfoncementIndisponible'));
+        return;
+      }
+      const { armeUid: _ancienne, ...reste } = part;
+      set({ pendingForceDoor: { ...p, participants: p.participants.map((x) => (x.id === heroId ? { ...reste, ...(armeUid ? { armeUid } : {}) } : x)) } });
+    },
+    // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) sur un Test de scène (hors combat) — cycle
+    // UNIFIÉ par la fabrique rollFlow (les variantes combat attack/defense/cast vivent dans combatSlice).
+
+    /** Choix du lanceur (avant le jet) : re-cible le Test sur le candidat `id` du groupe. */
+    testSetActor: (id) => {
+      const pt = get().pendingTest;
+      if (!pt || pt.roll != null) return; // seulement AVANT le jet
+      const cand = pt.candidates?.find((c) => c.id === id);
+      if (!cand) return;
+      // La cascade-hôte porte l'`actorId` de l'étape (gating coop « chacun ses jets ») : re-cibler le
+      // lanceur le met à jour aussi, pour que la modale reste chez le bon propriétaire.
+      // Le PORTEUR de l'étape change : le curseur se re-pose par la porte du pilote (`curseurPose`), qui
+      // re-juge la surface du nouveau porteur — jamais un `cursor:` écrit à la main. Les DEUX porteurs
+      // (Test et étape) se publient dans le MÊME `set` : entre deux `set`, un abonné rendrait un état où
+      // la modale suit un porteur et l'étape l'autre.
+      const pc = get().pendingCascade;
+      const etape = pc ? curseurPose(get, { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, actorId: cand.id } : st)) }, pc.cursor) : null;
+      set({
+        pendingTest: { ...pt, actorId: cand.id, actorName: cand.label, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
+        ...(etape ? { pendingCascade: etape } : {}),
+      });
+    },
+  } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
+export const GENRES_HOTES = ['extendedJet', 'forceDoorStep'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
+     *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
+    testRateDeLActeur: (get, set, c) => {
+      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
+      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
+      if (fired.length) fired.forEach((l) => get().log(l));
+      set({ ...touchActors(get()) });
+    },
+  },
+} satisfies FragmentDeTables;
+
+/** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+export function cloturesDesTestsDeScene(get: Get, set: Set) {
+  return {
+    extendedTest: () => {
       const p = get().pendingExtendedTest;
       if (!p) return;
       const issue = issueDuRound(p);
@@ -74,28 +146,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
       set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
     },
-    // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
-    extendedTestCancel: () => {
-      const suite = get().pendingExtendedTest?.suite;
-      set({ pendingExtendedTest: null, pendingCascade: null });
-      reprendreLaSuite(get, set, suite);
-    },
-    // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
-    startForceDoor: (opts) => {
-      set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
-        ...(opts.suite ? { suite: opts.suite } : {}),
-        participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
-      // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
-      // via l'étape `jet:'forceDoor'`). `pendingForceDoor` reste le porteur des données/participants ;
-      // ses résolveurs ferment LES DEUX quand la porte cède. `groupOwner` → l'arbitre coop met l'owner à
-      // '*' (action de GROUPE : chacun pilote ses héros), faute d'acteur unique sur l'étape.
-      // #1262 V2 L4 : par la PORTE (`hostStep`, forme de GROUPE) — l'étape n'est plus un littéral, et le
-      // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
-      const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'forceDoor', groupOwner: true }));
-      if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
-    },
-    forceDoorConfirm: () => {
+    forceDoor: () => {
       const p = get().pendingForceDoor;
       if (!p) return;
       const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);
@@ -110,49 +161,11 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
         get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
       }
     },
-    forceDoorChoisirArme: (heroId, armeUid) => {
-      const p = get().pendingForceDoor;
-      const part = p?.participants.find((x) => x.id === heroId);
-      const actor = part ? actorIn(get(), heroId) : undefined;
-      if (!p || !part || part.result || !actor || (armeUid && !armeDEnfoncement(actor, { armeUid }))) {
-        refuserGeste(get, set, t('store.armeDEnfoncementIndisponible'));
-        return;
-      }
-      const { armeUid: _ancienne, ...reste } = part;
-      set({ pendingForceDoor: { ...p, participants: p.participants.map((x) => (x.id === heroId ? { ...reste, ...(armeUid ? { armeUid } : {}) } : x)) } });
-    },
-    // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
-    forceDoorCancel: () => {
-      const suite = get().pendingForceDoor?.suite;
-      set({ pendingForceDoor: null, pendingCascade: null });
-      reprendreLaSuite(get, set, suite);
-    },
-    // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) sur un Test de scène (hors combat) — cycle
-    // UNIFIÉ par la fabrique rollFlow (les variantes combat attack/defense/cast vivent dans combatSlice).
-
-    /** Choix du lanceur (avant le jet) : re-cible le Test sur le candidat `id` du groupe. */
-    testSetActor: (id) => {
-      const pt = get().pendingTest;
-      if (!pt || pt.roll != null) return; // seulement AVANT le jet
-      const cand = pt.candidates?.find((c) => c.id === id);
-      if (!cand) return;
-      // La cascade-hôte porte l'`actorId` de l'étape (gating coop « chacun ses jets ») : re-cibler le
-      // lanceur le met à jour aussi, pour que la modale reste chez le bon propriétaire.
-      // Le PORTEUR de l'étape change : le curseur se re-pose par la porte du pilote (`curseurPose`), qui
-      // re-juge la surface du nouveau porteur — jamais un `cursor:` écrit à la main. Les DEUX porteurs
-      // (Test et étape) se publient dans le MÊME `set` : entre deux `set`, un abonné rendrait un état où
-      // la modale suit un porteur et l'étape l'autre.
-      const pc = get().pendingCascade;
-      const etape = pc ? curseurPose(get, { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, actorId: cand.id } : st)) }, pc.cursor) : null;
-      set({
-        pendingTest: { ...pt, actorId: cand.id, actorName: cand.label, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
-        ...(etape ? { pendingCascade: etape } : {}),
-      });
-    },
     /** Acquitte un test de compétence : applique la branche réussite/échec. */
-    resolveTest: () => {
+    test: () => {
       const pt = get().pendingTest;
-      if (!pt || pt.roll == null) return; // pas d'acquittement avant le jet
+      if (!pt) return;
+      const lance = garanti(pt.roll, pt.actorId, 'jet du Test');
       // ACQUITTEMENT par le goulot (`FLOWS.test.apply`) : l'issue est déclarée AU FLUX (`spec.issue`),
       // journalisée là — ici on acquitte, avant de fermer (l'issue se lit sur le pending qui l'a produite).
       FLOWS.test.apply(get);
@@ -164,9 +177,9 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Pratique/Peu Fiable : ±1 DR sur un Test RATÉ (LDB 60 l.22/58). Ne repêche qu'un échec qui a
       // réussi le d100 mais manqué le seuil requireSL (jamais un roll > cible → on ne crée pas de réussite).
       const drDelta = tool ? craftTestDRAdjust(tool, pt.success) : 0;
-      const effSuccess = drDelta !== 0 ? pt.roll <= pt.target && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
+      const effSuccess = drDelta !== 0 ? lance <= pt.target && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
       // SEAM d'observation pure (recette navigateur, #514) — jamais lu par du code de règles.
-      bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: pt.roll, target: pt.target });
+      bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: lance, target: pt.target });
       // Bâclé : un outil Bâclé qui Maladresse (échec + double) se brise (LDB 60, généralisé hors combat).
       if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
         tool.destroyed = true;
@@ -203,22 +216,5 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
       cloturer(get, set, issue, clotures);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies Partial<CloturesDuJet>;
 }
-
-/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
-export const GENRES_HOTES = ['extendedJet', 'forceDoorStep'] as const;
-
-/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
-export const TABLES = {
-  clotures: {
-    /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
-     *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
-    testRateDeLActeur: (get, set, c) => {
-      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
-      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
-      if (fired.length) fired.forEach((l) => get().log(l));
-      set({ ...touchActors(get()) });
-    },
-  },
-} satisfies FragmentDeTables;

@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { creatures, skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
-import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
+import { parseSkillRef, parseTalentRef } from '../../data/refFormatLivre';
 import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
 
 const allerRetourSkills = (refs: SkillRef[]) => lignesEnRefs(refsEnLignes(refs, skillRefLabel), parseSkillRef);

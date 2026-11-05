@@ -6,24 +6,25 @@ import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
  * `RollShell` + `RollRow`). Chaque Artilleur tenu = une rangée (PJ influençable / marin témoin) ;
  * le bandeau somme les DR (essentiel ×2) + Moral → le **DR PARTAGÉ** qui s'applique à TOUTES les pièces du bord
- * (l.128). Pas de virage : `extra` montre la cible + les pièces qui tirent. « Feu ! » résout la volée (`shipBatteryConfirm`).
+ * (l.128). Pas de virage : `extra` montre la cible + les pièces qui tirent. « Feu ! » résout la volée (`jetConfirm('shipBattery')`).
  */
 export function ShipBatteryModal() {
   const p = useGame((s) => s.pendingShipBattery);
   const battle = useGame((s) => s.battle);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
-  const roll = useGame((s) => s.shipBatteryRoll);
-  const reroll = useGame((s) => s.shipBatteryReroll);
-  const bonus = useGame((s) => s.shipBatteryBonusSL);
-  const darkPact = useGame((s) => s.shipBatteryDarkPact);
-  const force = useGame((s) => s.shipBatteryForceSuccess);
-  const confirm = useGame((s) => s.shipBatteryConfirm);
-  const cancel = useGame((s) => s.shipBatteryCancel);
+  const roll = useGesteDeJet('jetRoll', 'shipBattery');
+  const reroll = useGesteDeJet('jetReroll', 'shipBattery');
+  const bonus = useGesteDeJet('jetBonusSL', 'shipBattery');
+  const darkPact = useGesteDeJet('jetDarkPact', 'shipBattery');
+  const force = useGesteDeJet('jetForceSuccess', 'shipBattery');
+  const confirm = useGesteDeJet('jetConfirm', 'shipBattery');
+  const cancel = useGesteDeJet('jetCancel', 'shipBattery');
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
   const target = battle.combatants.find((c) => c.id === p.targetId);
@@ -45,9 +46,9 @@ export function ShipBatteryModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, when: 'pre' as const }] : []),
-    { key: 'confirm', label: <><Icon id="fire/flame" size="sm" /> Feu !</>, onClick: confirm, when: 'always', disabled: !allRolled },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
+    { key: 'confirm', label: <><Icon id="fire/flame" size="sm" /> Feu !</>, onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

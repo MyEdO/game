@@ -8,7 +8,7 @@
  * On vérifie : (1) `actorAoe` est POSÉ pendant la phase de télégraphe (center + radius corrects, centre
  * couvrant le paquet de héros) ; (2) il est NETTOYÉ (null) après le `setTimeout(TEMPO.aimTelegraph)` et
  * la résolution de la ZdE est AMORCÉE (cascade d'incantation ouverte). La NON-RÉGRESSION de l'application
- * effective de la zone par le chemin PARTAGÉ `castConfirm` est couverte par `ai-zde-counterspell.hors-store.test.ts`.
+ * effective de la zone par le chemin PARTAGÉ `jetConfirm('cast')` est couverte par `ai-zde-counterspell.hors-store.test.ts`.
  * Le moteur (`src/engine`) n'est PAS touché.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -83,7 +83,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
     expect(banc.getState().pendingCascade).toBeNull();
 
     // Déclenche le setTimeout du télégraphe (TEMPO.aimTelegraph) → la callback nettoie actorAoe AVANT
-    // d'amorcer la résolution (castZoneSpell → castRoll → routeCounterspell → castConfirm, chemin PARTAGÉ).
+    // d'amorcer la résolution (castZoneSpell → jetRoll('cast') → routeCounterspell → jetConfirm('cast'), chemin PARTAGÉ).
     banc.reprendreLesEnAttente();
 
     // Télégraphe nettoyé : le disque de menace disparaît au moment où le sort part — c'est l'invariant

@@ -2,11 +2,20 @@
   "id": "localisation",
   "type": "localisation",
   "label": "Tables de Localisation (d100)",
-  "personnage": {
-    "source": {
+  "source": {
+    "book": "livre-de-base",
+    "page": 159,
+    "note": "LDB 13 l.137"
+  },
+  "alsoIn": [
+    {
       "book": "livre-de-base",
-      "page": 159
-    },
+      "page": 310,
+      "note": "LDB 76 l.25",
+      "quote": "LOCALISATIONS ALTERNATIVES"
+    }
+  ],
+  "personnage": {
     "shapes": {
       "humanoide": [
         {
@@ -74,7 +83,8 @@
   "navire": {
     "source": {
       "book": "mer-des-griffes",
-      "page": 123
+      "page": 115,
+      "note": "MDG 13 l.573"
     },
     "entries": [
       {
@@ -124,7 +134,8 @@
   "navire-fluvial": {
     "source": {
       "book": "mort-sur-le-reik-compagnon",
-      "page": 28
+      "page": 29,
+      "note": "MSRC 07 l.50"
     },
     "entries": [
       {

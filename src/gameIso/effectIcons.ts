@@ -4,7 +4,7 @@
  * Aucune règle ici : on lit `conditions[]` et `activeEffects[]` déjà gérés par le moteur.
  */
 import { CHAR_LABELS, DIFFICULTY_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
-import type { IconId } from '../ui/icons';
+import type { IconId } from '../data/icons';
 import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
@@ -24,7 +24,7 @@ export type FlagId = 'frenzied' | 'defensiveStance' | 'aiming' | 'focusDr' | 'hu
 
 export interface EffectChip {
   key: string;
-  /** Id d'icône du registre `src/ui/icons/` — rendu par `<Icon>` (HTML) ou `<IconG>` (SVG). */
+  /** Id d'icône du registre `src/data/icons/` — rendu par `<Icon>` (HTML) ou `<IconG>` (SVG). */
   icon: IconId;
   label: string;
   /** malus = État négatif ; buff = effet temporisé (activeEffects) ; state = état-drapeau (Frénésie…). */

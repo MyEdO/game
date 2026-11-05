@@ -1,14 +1,19 @@
 /**
  * LA FENÊTRE DE DÉFENSE EN DONNÉES (#2928) — ce que la fenêtre de la Défense surfacée montre autour de ses lignes de
- * jet, lu de l'état : qui attaque qui et avec quelle arme, le Test de la réaction choisie, et ses choix (la réaction,
- * l'arme de parade, la réaction de Porte-Bouclier, la Riposte), chacun nommant le verbe qui le règle (`reglages.ts`). Lecteur PUR, partagé par
- * l'écran web (`ui/jetProps/useDefenseJetProps.tsx`) et par tout hôte qui lit la partie sans écran.
+ * jet, lu de l'état : qui attaque qui et avec quelle arme, le Test de la réaction choisie et son jet avant le dé, ses
+ * choix (la réaction, l'arme de parade, la réaction de Porte-Bouclier, la Riposte), chacun nommant le verbe qui le
+ * règle (`reglages.ts`), et l'issue du coup. Lecteur PUR, partagé par l'écran web (`ui/jetProps/useDefenseJetProps.tsx`) et par tout hôte
+ * qui lit la partie sans écran.
  */
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import { inBattleId } from './monde/combatants';
-import { parryWeaponOf } from './rollFlowSpecs';
-import { DEFENSE_LABEL } from '../engine/combat';
+import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
+import { ligneDeDefense } from './combatFlow';
+import { defenseDodgeMods } from './mount';
+import { difficultyText } from './difficultyText';
+import type { RollLineParts } from './rollSeam';
+import { DEFENSE_LABEL, coupAApplique, issueAuJet } from '../engine/combat';
 import { combatSubstitute } from '../engine/skillCombatApps';
 import { isUnarmed } from '../engine/items';
 import { refLabel } from '../data';
@@ -32,12 +37,18 @@ export interface FenetreDeDefense {
   /** Les armes qui parent (hors Mains nues) et celle du jet (`parryWeaponOf`). */
   armesDeParade: Weapon[];
   parade: Weapon | undefined;
-  reaction: ChoixNomme;
+  /** La réaction et l'arme de parade se règlent avant le jet ; `null` une fois jeté. */
+  reaction: ChoixNomme | null;
   armeDeParade: ChoixNomme | null;
   /** AA 13 l.84 : son coût en Avantages dans son libellé. */
   porteBouclier: ChoixNomme<'damage' | 'push'> | null;
   /** LDB 10 l.1037 : aucune valeur retenue quand les Ripostes du Round sont portées. */
   riposte: ChoixNomme<boolean> | null;
+  /** Le jet de la réaction avant le dé, monté comme le flux le jette (`ligneDeDefense`), et le texte de sa
+   *  Difficulté (`difficultyText`) ; `null` une fois jeté. */
+  jet: (RollLineParts & { difficulte: string }) | null;
+  /** L'issue du coup une fois jeté (`issueAuJet`), son genre et sa ligne ; `null` avant le dé. */
+  issue: { genre: 'crit' | 'damage' | 'parry' | 'dodge'; ligne: string } | null;
 }
 
 /** Le libellé d'une arme de parade : la main secondaire se dit. */
@@ -80,6 +91,8 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const portees = contre ? contresEpuisees(defenseur, contre) : null;
   const plafond = contre?.plafond;
   const refusDeLaRiposte = portees != null && plafond != null ? t('defense.refus.ripostesPortees', { n: portees, plafond }) : null;
+  const coup = res ? issueAuJet(defenseur, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defenseur), pd.weapon, attaquant) : null;
+  const ligne = res ? null : ligneDeDefense(defenseur, { mode: pd.mode, parryWeapon: parade, vsWeapon: pd.weapon, dodgeMods: defenseDodgeMods(s, defenseur), socialBase: defenseSubOf(defenseur, pd)?.base });
   return {
     attaquantId: attaquant.id,
     defenseurId: defenseur.id,
@@ -89,8 +102,8 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     social,
     armesDeParade,
     parade,
-    reaction: choix('defenseSetMode', pd.mode, reactions),
-    armeDeParade: pd.mode === 'parade' && armesDeParade.length >= 2
+    reaction: res ? null : choix('defenseSetMode', pd.mode, reactions),
+    armeDeParade: !res && pd.mode === 'parade' && armesDeParade.length >= 2
       ? choix('defenseSetParryWeapon', pd.parryWeaponUid ?? parade?.uid ?? null, armesDeParade.map((w) => ({ valeur: w.uid!, libelle: libelleDeParade(w) })))
       : null,
     porteBouclier: coutDuBouclier > 0
@@ -105,5 +118,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
         { valeur: false, libelle: t('valeur.non'), refus: refusDeLaRiposte ?? (res ? jetLance : null) },
       ])
       : null,
+    jet: ligne && { ...ligne, difficulte: difficultyText(ligne.difficulty, ligne.difficultyCombined) },
+    issue: res && coup ? { genre: coup.compte.critiques.length ? 'crit' : res.hit ? 'damage' : pd.mode === 'parade' ? 'parry' : 'dodge', ligne: coup.ligne } : null,
   };
 }

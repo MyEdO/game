@@ -1,34 +1,35 @@
 /**
- * Garde-fou des Tables de Corruption (mutationTables.json) : chaque table d100 doit couvrir 1..100
- * SANS trou ni chevauchement, et chaque `mutation` référencée doit exister dans mutations.json (réf
- * par id stable). Protège la transcription des tables (LDB 19 + par Puissance du Chaos, EDOC 12).
+ * Garde-fou des Tables de Corruption (mutationTables.json) : chaque table doit couvrir son dé de tirage
+ * (`die`) SANS trou ni chevauchement, et chaque `mutation` référencée doit exister dans mutations.json
+ * (réf par id stable). Protège la transcription des tables (LDB 19 + par Puissance du Chaos, EDOC 12).
  */
 import { describe, it, expect } from 'vitest';
 import mutationTables from './mutationTables.json';
 import mutations from './mutations.json';
-import { rollMutation } from './mutations';
-import type { RNG } from '../engine/dice';
+import { rollMutation, type MutationTable } from './mutations';
+import { parseDiceRequired, totalDuDe, type RNG } from '../engine/dice';
 import { desEnSuite } from '../engine/dice.testkit';
 
 const IDS = new Set((mutations as { id: string }[]).map((m) => m.id));
 
-/** RNG scriptée : `int()` renvoie les valeurs fournies dans l'ordre (ignore min/max → d100 direct). */
+/** RNG scriptée : `int()` renvoie les valeurs fournies dans l'ordre (ignore min/max → jet direct). */
 const scripted = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 
-describe('mutationTables — tables de Corruption d100', () => {
-  for (const t of mutationTables as { id: string; ranges: { min: number; max: number; mutation: string }[] }[]) {
-    it(`${t.id} : couvre 1..100 sans trou ni chevauchement`, () => {
-      const sorted = [...t.ranges].sort((a, b) => a.min - b.min);
-      let expected = 1;
+describe('mutationTables — tables de Corruption', () => {
+  for (const t of mutationTables as MutationTable[]) {
+    it(`${t.id} : couvre son ${t.die} sans trou ni chevauchement`, () => {
+      const de = parseDiceRequired(t.die, `${t.id}.die`);
+      const sorted = [...t.entries].sort((a, b) => a.min - b.min);
+      let expected = totalDuDe(de, de.n);
       for (const r of sorted) {
         expect(r.min, `${t.id}: trou/chevauchement avant ${r.min}`).toBe(expected);
         expect(r.max).toBeGreaterThanOrEqual(r.min);
         expected = r.max + 1;
       }
-      expect(expected, `${t.id}: doit finir à 100`).toBe(101);
+      expect(expected, `${t.id}: doit finir au plus grand total du ${t.die}`).toBe(totalDuDe(de, de.n * de.sides) + 1);
     });
     it(`${t.id} : toutes les mutations référencées existent`, () => {
-      const bad = t.ranges.map((r) => r.mutation).filter((m) => !IDS.has(m));
+      const bad = t.entries.map((r) => r.mutation).filter((m) => !IDS.has(m));
       expect(bad, `${t.id}: réfs de mutation inconnues`).toEqual([]);
     });
   }

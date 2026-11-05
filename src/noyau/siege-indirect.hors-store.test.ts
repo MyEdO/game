@@ -208,8 +208,8 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
 
     // 3) RÉSOLUTION : le jet de tir (normal) puis l'Appliquer DÉTONENT sur la case → rayon blessé, hors rayon indemne.
     const w1 = e1.wounds.current, w2 = e2.wounds.current, wf = far.wounds.current;
-    banc.getState().attackRoll();
-    banc.getState().attackConfirm();
+    banc.getState().jetRoll('attack');
+    banc.getState().jetConfirm('attack');
     expect(e1.wounds.current).toBeLessThan(w1);
     expect(e2.wounds.current).toBeLessThan(w2);
     expect(far.wounds.current).toBe(wf);

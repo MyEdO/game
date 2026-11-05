@@ -93,7 +93,7 @@ function capter(): void {
 function poser(valeur: number): void {
   const st = etapeCourante()!;
   expect(st, 'aucune étape à jouer').toBeDefined();
-  banc.getState().cascadeDieSetForcedRoll(st.id, valeur);
+  banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st.id);
   banc.getState().cascadeNext();
   capter();
 }
@@ -461,7 +461,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
 
     // 3) Le joueur joue la fenêtre : d100 de sévérité DANS l'étape (patron `deviation-paths.hors-store.test.ts:356`),
     //    puis « Dévier » — et la reprise finale honore toujours la suite.
-    banc.getState().cascadeTableRoll(dev[0].id);
+    banc.getState().jetRoll('cascadeTirage', dev[0].id);
     const apres = etapesDeviation()[0];
     expect(apres.deviation?.mode === 'melee' ? apres.deviation.suite : undefined, 'le PLI post-dé reconduit la suite dans la `PendingDeviation`').toEqual({ deferAttackerAdvantage: true });
     resolveDeviation(banc.getState, banc.setState, apres.deviation!, true);
@@ -489,7 +489,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
   });
 });
 
-describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfirm`/`defenseConfirm`', () => {
+describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetConfirm(\'attack\')`/`jetConfirm(\'defense\')`', () => {
   // Ce que ces quatre contrats tiennent : ce qui DÉPEND de l'issue du coup ne se joue plus au retour de
   // l'appel (le dé n'est pas tombé) mais à la REPRISE, une fois — la suite voyage avec le coup.
   const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
@@ -519,7 +519,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     setBattle([heros, demon, sbire]);
     // Un coup qui TUE (40 PB perdus sur 30) : la Frappe Mortelle (LDB 14 l.9) n'enchaîne qu'en tuant.
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', result: { ...touche(), damage: 40, woundsLost: 40 } } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     sauvegardeEnCours(demon);
     expect(banc.getState().pendingCleave, 'le balayage ne s’arme pas sur une mort qui n’a pas encore eu lieu').toBeNull();
     poser(5); // sauvegarde RATÉE (< 8) : le coup porte, le démon tombe
@@ -535,7 +535,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
       const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), size: 'moyenne', traits: demoniaque } as never);
       setBattle([heros, demon]);
       banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', freeKind: 'caudale', result: touche() } as never });
-      banc.getState().attackConfirm();
+      banc.getState().jetConfirm('attack');
       return { heros, demon };
     };
     const aTerre = (c: Combatant): unknown => c.conditions.find((x) => x.id === 'a-terre');
@@ -560,7 +560,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     setBattle([heros, demon]);
     const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     sauvegardeEnCours(demon);
     expect(banc.getState().pendingDualStrike, 'aucune 2ᵉ frappe tant que le dé n’est pas tombé').toBeNull();
     poser(5); // < 8 : le coup porte, le Critique s'applique, SON étape est appendue
@@ -580,7 +580,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     setBattle([heros, demon, voisin]);
     const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(etapeCourante()?.kind).toBe('sauvegarde');
     poser(5); // < 8 : le coup porte — Coup Critique PUIS dépassement (LDB 18 l.17)
     const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
@@ -602,7 +602,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
       ...(critique || current === 0 ? { critLocation: 'corps' } : {}), // LDB 18 l.53, l.55 ; AA 07 l.25
     } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
     return { crits, jet: banc.getState().pendingDualStrike?.jet };
   }
@@ -631,7 +631,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     });
   }
 
-  it('(iv) `defenseConfirm` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
+  it('(iv) `jetConfirm(\'defense\')` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
     const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
     const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), traits: [{ id: 'protection', value: 6 }] } as never);
     const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
@@ -641,7 +641,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
       pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: touche(), suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never,
       pendingCascade: fenetreDeDefense(h1),
     });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     sauvegardeEnCours(h1);
     expect(h2.wounds.current, 'le maillon suivant attend le dé du maillon courant').toBe(30);
     poser(5); // < 6 : le coup porte sur h1, puis la chaîne PARQUÉE reprend
@@ -653,14 +653,14 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   it('(v) L’ENCHAÎNEMENT SE DÉCLARE : une frappe du Maniement de deux armes n’ouvre AUCUN balayage, même conduite par l’IA', () => {
     // Un héros conduit par l'IA (`aiControlled`) passe la garde `aiDriven` d'`autoCleave` ; sa frappe de
     // main directrice pose `res.cleave` (plus grand, LDB 85 l.362). C'est le SITE D'ORIGINE qui tranche :
-    // `attackConfirm` n'a jamais balayé sur cette branche — la queue partagée ne doit pas le faire à sa place.
+    // `jetConfirm('attack')` n'a jamais balayé sur cette branche — la queue partagée ne doit pas le faire à sa place.
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], size: 'enorme', aiControlled: true } as never);
     const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
     const e2 = mk('enemy', 'e2', { pos: { x: 0, y: 1 }, characteristics: nul() } as never);
     setBattle([heros, e1, e2]);
     const coup = { ...touche(), cleave: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', dualMode: true, result: coup } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe s’ouvre bien (la suite est jouée)').not.toBeNull();
     expect(banc.getState().pendingCleave, 'aucun balayage interactif n’est armé').toBeNull();
     const vu = (banc.getState().battle?.log ?? []).map((l) => l.text);
@@ -711,15 +711,15 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
       pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: rate, suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never,
       pendingCascade: fenetreDeDefense(h1),
     });
-    banc.getState().defenseConfirm();
+    banc.getState().jetConfirm('defense');
     sauvegardeEnCours(h1);
     poser(5); // < 6 : le coup porte sur h1 → Maladresse DUE, puis la chaîne parquée reprend
     const etapes = banc.getState().pendingCascade?.participants ?? [];
     expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
       `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
     // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
-    banc.getState().fumbleRoll();
-    banc.getState().fumbleConfirm();
+    banc.getState().jetRoll('fumble');
+    banc.getState().jetConfirm('fumble');
     const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
   });
@@ -733,12 +733,12 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     setBattle([heros, e1, demon]);
     banc.setState({ pendingCleave: null, pendingDualStrike: null, pendingDefense: null });
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne de la gratuite emporte sa restitution').toEqual({ prevActed: false });
     banc.getState().cleaveAttack(demon.id);
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: touche() } as never });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     return demon;
   };
 
@@ -787,7 +787,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     expect(pa?.interrupt, 'le tir d’interruption a bien ouvert sa cascade-hôte').toBe(true);
     banc.setState({ pendingAttack: { ...pa!, result: touche() } as never });
     const tourAvant = banc.getState().battle!.turn;
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     // Le coup a été SUSPENDU par la sauvegarde poussée DANS la cascade-hôte : refermer celle-ci d'office
     // l'aurait emportée avec le coup — le tir n'aurait JAMAIS été appliqué.
     expect(demon.wounds.current, 'le tir d’interruption s’applique, à travers sa sauvegarde').toBeLessThan(30);

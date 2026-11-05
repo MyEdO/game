@@ -26,13 +26,13 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Draine une cascade influençable (héros piloté-humain → modale, #274) — même patron que les autres
- *  suites (`cascadeRoll`+`cascadeNext`, ex. `river-voyage-flow.hors-store.test.ts`). */
+ *  suites (`jetRoll('cascade')`+`cascadeNext`, ex. `river-voyage-flow.hors-store.test.ts`). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
     else get().cascadeNext();
   }
 }
@@ -62,7 +62,7 @@ function trader(): Combatant {
 const convoi = (ownerId: string): Possession =>
   ({ uid: CARRIER_ID, ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] });
 
-const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce', 'vin'], ...extra });
+const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'], ...extra });
 
 function tradeMap(): WorldMap {
   return {
@@ -88,8 +88,8 @@ function launchAtA(): void {
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });
 }
 
-const lot: CargoLot = { cargoId: 'vin', enc: 40, basePriceGold: 10 };
-const rumourB: TradeRumour = { placeId: 'B', biens: ['vin'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
+const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
+const rumourB: TradeRumour = { placeId: 'B', biens: ['vin-eau-de-vie'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
 
 /** Vend le lot 0 à Altdorf (place B) avec le board donné et renvoie le gain en brass. */
 function sellAtB(board: TradeRumour[]): number {
@@ -107,7 +107,7 @@ function sellAtB(board: TradeRumour[]): number {
   let g = 0;
   while (get().pendingCascade && g++ < 5) {
     const p = get().pendingCascade!;
-    get().cascadeRoll(p.participants[p.cursor].id);
+    get().jetRoll('cascade', p.participants[p.cursor].id);
     get().cascadeNext();
     banc.reprendreLesEnAttente();
   }
@@ -125,11 +125,11 @@ describe('#99 — rumeur CROSS-LIEU appliquée à la vente au Lieu désigné (l.
   it('la rumeur N\'EST PAS consommée par la vente (« autant qu\'ils le souhaitent », l.180)', () => {
     sellAtB([rumourB]);
     expect(get().tradeRumours).toHaveLength(1);
-    expect(get().tradeRumours[0]).toMatchObject({ placeId: 'B', biens: ['vin'] });
+    expect(get().tradeRumours[0]).toMatchObject({ placeId: 'B', biens: ['vin-eau-de-vie'] });
   });
 
   it('une rumeur visant un AUTRE Lieu ne double PAS la vente ici', () => {
-    const other: TradeRumour = { placeId: 'C', biens: ['vin'], mult: 2, text: 'x', heardDay: 0 };
+    const other: TradeRumour = { placeId: 'C', biens: ['vin-eau-de-vie'], mult: 2, text: 'x', heardDay: 0 };
     expect(sellAtB([other])).toBe(sellAtB([]));
   });
 });
@@ -141,7 +141,7 @@ describe('#99 — génération au marché : la rumeur vise un AUTRE Lieu de la c
     openLandMarket(get, set);
     // #1426 : les dés de l'étal s'offrent d'abord en FENÊTRE DE LOT (un siège tient le monde) ; ce qui
     // SUIT l'étal — le Test de Ragot — n'ouvre qu'à la validation.
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     // #274 : le Test de Ragot est surfacé par la porte (`openRoll`, hero-test, héros piloté-humain →
     // modale) — drainer comme un jet joueur normal.
     drainCascade();

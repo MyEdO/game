@@ -145,7 +145,7 @@ export function applyTriggeredTestBranch(
  *  l'id quand elle diffère de la Compétence lancée : une branche peut APPENDRE à la même cascade un
  *  second Test de la MÊME Compétence sur le MÊME acteur (Surprise → Vigilance, deux Tests de
  *  Perception, LDB 13 l.67), et deux étapes homonymes rendraient la seconde inatteignable
- *  (`cascadeRoll(id)` retrouve la première, déjà résolue). */
+ *  (`jetRoll('cascade', id)` retrouve la première, déjà résolue). */
 function triggeredTestStepId(c: Combatant, label: string | undefined, skillLabel: string): string {
   return `triggeredTest-${c.id}-${label && label !== skillLabel ? `${label}-${skillLabel}` : skillLabel}`;
 }
@@ -192,7 +192,7 @@ export function simpleTriggeredTestStep(
     stake: ft.stake,
     meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...extraMeta },
     // Tag de DONNÉE (`FlowTest.menace` — Venin/lames empoisonnées : 'Poison') → l'étape offre
-    // l'auto-succès du talent Résistance (Menace) (LDB 10, verbe `cascadeResist`).
+    // l'auto-succès du talent Résistance (Menace) (LDB 10, verbe `jetResist('cascade')`).
     ...(ft.menace ? { menace: ft.menace } : {}),
   });
 }
@@ -703,7 +703,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
   // HORS COMBAT, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
   // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
-  // `noOwnTestFailed` tamponne la ré-entrance (resolveTest ne ré-émet pas).
+  // `noOwnTestFailed` tamponne la ré-entrance (jetConfirm('test') ne ré-émet pas).
   if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     if (flowTestGated(flow.test, target, cc)) return; // gate fermée → no-op (identique à la voie inline)

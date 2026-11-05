@@ -12,8 +12,8 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
-import { defDe, descendre, enfantsDe, ouverts } from './descente';
+import { deDeTirageSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
@@ -154,14 +154,15 @@ export interface OptionsDocument {
   /**
    * Schéma d'une RANGÉE du document — admissible dans TOUTE famille : la charge est orthogonale à
    * l'emballage du fichier. Même mécanique que `valeurRecord` : la fabrique pose
-   * `entries` sur l'entrée, en collection à clé `id` (`marquerCollection`, `grammaire/collection-cle.ts`),
-   * avec sa méta FR (`META_CHARGE`) — un def à rangées ne redéclare donc jamais sa charge, `die` compris
-   * (`options.deDeTirage`).
+   * `entries` sur l'entrée, avec sa méta FR (`META_CHARGE`) — un def à rangées ne redéclare donc jamais
+   * sa charge, `die` compris (`options.deDeTirage`). Une rangée qui déclare un `id` fait de `entries`
+   * une collection à clé `id` (`marquerCollection`, `grammaire/collection-cle.ts`) ; sans `id`, la
+   * rangée se désigne par sa fourchette (`findTableEntry`).
    */
-  readonly rangee?: z.ZodType<{ id: string }>;
+  readonly rangee?: z.ZodType<object>;
   /**
-   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis) avec sa méta FR
-   * (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
+   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis, `deDeTirageSchema`) avec sa
+   * méta FR (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
    * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (inventaire
    * `STRUCTURES_DEFAUT`, `scripts/guards/lib/inventaireDeDette.mts`). Exige `rangee`.
    */
@@ -265,10 +266,8 @@ export interface DocumentHandle<T extends string> {
   /**
    * Clés top-level de l'entrée (enveloppe + champs, plus la CHARGE posée par la fabrique),
    * relevées AVANT le sceau.
-   * Consommateurs mesurés : `variants-integrity.test.ts` (`SHAPE_BY_FILE`, où les TROIS defs à
-   * variantes lisent `cles` — plus aucun `element.shape`, le dernier est mort avec
-   * l'adoption de `spells`) et `scripts/guards/lib/fieldConsumerTargets.mjs` (`if (schema?.shape)` —
-   * sans cette liste, la garde dégrade en SILENCE à zéro champ).
+   * Consommateur mesuré : `variants-integrity.test.ts` (`SHAPE_BY_FILE`, où les TROIS defs à
+   * variantes lisent `cles`).
    */
   readonly cles: readonly string[];
   /** `type` du document, écrit dans le JSON et vérifié au parse. */
@@ -539,8 +538,8 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       : rangee
         ? marquerProduit(z.strictObject({
             ...complet.shape,
-            ...(deDeTirage ? { die: z.string().min(1) } : {}),
-            entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
+            ...(deDeTirage ? { die: deDeTirageSchema } : {}),
+            entries: pasDeDonnee(ouverts([rangee]), 'id').length ? marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')) : z.array(rangee),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
@@ -557,7 +556,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
   // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
-  // (`SANS_LIVRE` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme
+  // (`SANS_LIVRE_DEFINITIF` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme
   // ceux dont le livre est cité par SOUS-ENTRÉE — dans les deux cas rien n'est exigible à l'entrée de
   // racine. Refine PRÉ-sceau : `superRefine` rend un `ZodObject` encore extensible (mesuré zod
   // 4.4.3), donc `affinerEntree` reçoit bien un objet.

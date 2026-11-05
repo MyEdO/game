@@ -2,5 +2,5 @@
 {"type":"confirmRoundStart","args":[]}
 {"offre":"charge"}
 {"type":"battleClickEntity","args":["enemy-enc-dome-1"]}
-{"type":"attackRoll","args":[]}
-{"type":"attackSetForcedRoll","args":[11]}
+{"type":"jetRoll","args":["attack"]}
+{"type":"jetSetForcedRoll","args":["attack",11]}

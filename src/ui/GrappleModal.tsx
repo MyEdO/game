@@ -12,6 +12,7 @@ import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale « Empoignade » (LDB 14 l.161) — Test OPPOSÉ de FORCE sur `RollShell` (opposé = 2 rangées) :
@@ -24,15 +25,15 @@ import { t } from '../i18n';
 export function GrappleModal() {
   const pd = useGame((s) => s.pendingGrapple);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.grappleRoll);
-  const reroll = useGame((s) => s.grappleReroll);
-  const bonusSL = useGame((s) => s.grappleBonusSL);
-  const darkPact = useGame((s) => s.grappleDarkPact);
-  const force = useGame((s) => s.grappleForceSuccess);
+  const roll = useGesteDeJet('jetRoll', 'grapple');
+  const reroll = useGesteDeJet('jetReroll', 'grapple');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'grapple');
+  const darkPact = useGesteDeJet('jetDarkPact', 'grapple');
+  const force = useGesteDeJet('jetForceSuccess', 'grapple');
   const breakGrapple = useGame((s) => s.grappleBreak);
-  const confirm = useGame((s) => s.grappleConfirm);
+  const confirm = useGesteDeJet('jetConfirm', 'grapple');
   const choose = useGame((s) => s.grappleChoose);
-  const cancel = useGame((s) => s.grappleCancel);
+  const cancel = useGesteDeJet('jetCancel', 'grapple');
   if (!pd || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pd.actorId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
@@ -73,8 +74,6 @@ export function GrappleModal() {
     onForce: force,
   }, {
     rollLabel: 'Lancer (Force)',
-    // Résilience AVANT le jet (LDB 17 l.68) : Force forcée à l'emporter.
-    preRollForce: () => { roll(); force(); },
   });
 
   const issue = pd.def
@@ -112,12 +111,12 @@ export function GrappleModal() {
   }
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: breakGrapple, title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', when: 'pre' } as RollAction]
+      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: breakGrapple, title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
       : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

@@ -284,7 +284,7 @@ describe('validatePropCatalog — invariants de données du décor', () => {
 
   /**
    * PROVENANCE PAR CHAMP (#1680 ligne 5) — `props.json` est exempté de provenance au DATASET
-   * (`SANS_LIVRE` : c'est de l'art), mais trois de ses champs portent des concepts que le canon
+   * (`SANS_LIVRE_DEFINITIF` : c'est de l'art), mais trois de ses champs portent des concepts que le canon
    * chiffre : `light` (LDB 74 l.43/56/58), `cover` et `opaque` (LDB 14 l.72/81/86). Ce que ces
    * sondes mordent est l'ANGLE MORT que l'exemption ouvrait : une valeur de règle écrite sans dire
    * d'où elle vient, invisible de tout lecteur de provenance.

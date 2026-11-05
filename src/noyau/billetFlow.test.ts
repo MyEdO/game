@@ -13,7 +13,7 @@ const route: MapRoute = {
   billets: {
     diligence: {
       prix: { exterieur: 48, interieur: 96 }, depuis: 'A', maison: 'test',
-      marchandage: { presetId: 'vendeur', paliers: [{ drMin: 0, prix: { exterieur: 36, interieur: 72 } }] },
+      marchandage: { presetId: 'vendeur', paliers: [{ seuil: 0, prix: { exterieur: 36, interieur: 72 } }] },
     },
   },
 };
@@ -22,7 +22,7 @@ const carte: WorldMap = {
   places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: 'a' }, { id: 'B', label: 'B', pos: { x: 9, y: 0 }, scene: 'b' }],
   routes: [route],
 };
-/** L'état que `merchantFlow.bargainConfirm` écrit après un Marchandage du billet gagné au départ de A. */
+/** L'état que `jetConfirm('bargain')` écrit après un Marchandage du billet gagné au départ de A. */
 const gagneDepuisA = { [cleDeBillet('r', 'diligence', 'A')]: { won: true, drNet: 6, negotiator: true } };
 
 describe('#2534 M1 — route à double sens, billet d’auteur au départ de A, marchandé et gagné', () => {

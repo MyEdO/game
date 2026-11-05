@@ -37,7 +37,7 @@ function tavernMap(): WorldMap {
     id: 'm', label: 'Le Reik',
     places: [
       { id: 'A', label: 'Auberge du Cerf', pos: { x: 0, y: 0 }, scene: 'auberge-a' },
-      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'altdorf-b', market: { taille: 4, richesse: 4, produits: ['commerce'] } },
+      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'altdorf-b', market: { taille: 4, richesse: 4, produits: ['commerce-terre'] } },
     ],
     routes: [],
   };
@@ -59,7 +59,7 @@ function drainCascade(): void {
   while (get().pendingCascade && n++ < 20) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
     else get().cascadeNext();
   }
 }

@@ -71,25 +71,33 @@ export function fluxDerive(graine: number, ...segments: readonly (string | numbe
  */
 export const deMonde = (rng: RNG): number => d100(rng);
 
-/** Descripteur de jet de dés en DONNÉE (forme canonique partagée : « NdM(+P ») — `n`d`sides`+`plus`).
- *  Source UNIQUE réutilisée par la Formula `{dice}` (ops), les maladies (incubation/durée) et les
- *  Imparfaites (miscast). */
+/** Descripteur de jet de dés en DONNÉE (forme canonique partagée : « NdM(×F)(+P) » — `n`d`sides`,
+ *  multiplié par `fois`, plus `plus`). Source UNIQUE réutilisée par la Formula `{dice}` (ops), les
+ *  maladies (incubation/durée), les Imparfaites (miscast) et les détails de création (Âge, Taille). */
 export interface DiceSpec {
   n: number;
   sides: number;
+  /** Multiplicateur du total des dés, avant `plus` (NADJ 15 l.112). */
+  fois?: number;
   plus?: number;
 }
-/** Roule un `DiceSpec` (n dés à `sides` faces + `plus`). PUR (RNG injecté). */
-export const rollDice = (dc: DiceSpec, rng: RNG): number => roll(dc.n, dc.sides, rng) + (dc.plus ?? 0);
+/** Le résultat d'un `DiceSpec` pour un total NATUREL de ses dés : `naturel × fois + plus`. PUR. */
+export const totalDuDe = (dc: DiceSpec, naturel: number): number => naturel * (dc.fois ?? 1) + (dc.plus ?? 0);
+/** Roule un `DiceSpec` (n dés à `sides` faces, × `fois`, + `plus`). PUR (RNG injecté). */
+export const rollDice = (dc: DiceSpec, rng: RNG): number => totalDuDe(dc, roll(dc.n, dc.sides, rng));
 
-/** Écriture canonique d'un `DiceSpec` (« 1d10 », « 3d10+5 ») — formateur d'affichage/édition. */
-export const formatDice = (dc: DiceSpec): string => `${dc.n}d${dc.sides}${dc.plus ? (dc.plus > 0 ? `+${dc.plus}` : `${dc.plus}`) : ''}`;
-/** Inverse de `formatDice` : « NdM(+P) » → `DiceSpec` (N implicite = 1). null si non reconnu (authoring). */
+/** Écriture canonique d'un `DiceSpec` (« 1d10 », « 3d10+5 », « 1d10×2,5+100 ») — formateur
+ *  d'affichage/édition. */
+export const formatDice = (dc: DiceSpec): string =>
+  `${dc.n}d${dc.sides}${dc.fois !== undefined ? `×${String(dc.fois).replace('.', ',')}` : ''}${dc.plus ? (dc.plus > 0 ? `+${dc.plus}` : `${dc.plus}`) : ''}`;
+/** Inverse de `formatDice` : « NdM(×F)(+P) » → `DiceSpec` (N implicite = 1, F décimal à virgule ou
+ *  à point). null si non reconnu (authoring). */
 export function parseDice(s: string): DiceSpec | null {
-  const m = s.trim().match(/^(\d*)\s*d\s*(\d+)\s*([+-]\s*\d+)?$/i);
+  const m = s.trim().match(/^(\d*)\s*d\s*(\d+)\s*(?:×\s*(\d+(?:[.,]\d+)?)\s*)?([+-]\s*\d+)?$/i);
   if (!m) return null;
   const dc: DiceSpec = { n: m[1] ? parseInt(m[1], 10) : 1, sides: parseInt(m[2], 10) };
-  if (m[3]) dc.plus = parseInt(m[3].replace(/\s+/g, ''), 10);
+  if (m[3]) dc.fois = parseFloat(m[3].replace(',', '.'));
+  if (m[4]) dc.plus = parseInt(m[4].replace(/\s+/g, ''), 10);
   return dc;
 }
 
@@ -100,16 +108,17 @@ export function parseDiceRequired(s: string, champ: string): DiceSpec {
   return de;
 }
 
-/** Évalue une expression de dés signée (« 1d10+15 », « 2d10 », « d10 », « 15 », « 1d6-1 ») → total
- *  tiré. Termes additionnés ; « NdM » roule N dés à M faces (N implicite = 1). PUR (RNG injecté). */
-export function rollExpr(expr: string, rng: RNG): number {
-  let total = 0;
-  const re = /([+-]?)\s*(?:(\d*)d(\d+)|(\d+))/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(expr)) !== null) {
-    const sign = m[1] === '-' ? -1 : 1;
-    if (m[3] != null) total += sign * roll(m[2] ? parseInt(m[2], 10) : 1, parseInt(m[3], 10), rng);
-    else if (m[4] != null) total += sign * parseInt(m[4], 10);
-  }
-  return total;
-}
+/** Valeur authorée TIRÉE au dé (`tirageSchema`, `src/data/schemas/grammaire/valeurs.ts`). #1652 */
+export interface Tirage { dice: DiceSpec }
+/** Un nombre OU un tirage (`quantiteTireeSchema`). */
+export type QuantiteTiree = number | Tirage;
+/** La valeur d'une `QuantiteTiree` : le nombre tel quel, le tirage roulé (`rollDice`). PUR (RNG injecté). */
+export const tirer = (v: QuantiteTiree, rng: RNG): number => (typeof v === 'number' ? v : rollDice(v.dice, rng));
+
+/** Modificateur de dés SIGNÉ (`effetSigneSchema`) : `n` vaut 0 quand seul `plus` compte. */
+export interface EffetSigne { sign: 1 | -1; dice: DiceSpec }
+/** Le total signé d'un `EffetSigne` : `sign × rollDice(dice)`. PUR (RNG injecté). */
+export const tirerSigne = (e: EffetSigne, rng: RNG): number => e.sign * rollDice(e.dice, rng);
+/** Écriture d'un `EffetSigne` (« +2d10 », « −1d10 », « +2d10+5 », « +5 ») — affichage. */
+export const formatEffetSigne = (e: EffetSigne): string =>
+  `${e.sign > 0 ? '+' : '−'}${e.dice.n > 0 ? formatDice(e.dice) : String(e.dice.plus ?? 0)}`;

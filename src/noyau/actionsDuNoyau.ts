@@ -12,7 +12,7 @@ import type { MassBattleSpec } from '../engine/massBattle';
 import type { IndiceAffiché } from './monde/clues';
 import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
-import type { RollFlowActionsMap } from './rollFlowSpecs';
+import type { VerbesDeJet } from './rollFlowSpecs';
 import type { PossessionInput } from '../engine/possession';
 import type * as tavernFlow from './tavernFlow';
 import type { PendingDesignationHeros, PendingExtendedTest, CounterDeclaration } from './pendings';
@@ -31,7 +31,7 @@ import type { CiblesChoisies } from './verdictsDInterlude';
 import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
-export interface ActionsDuNoyau extends RollFlowActionsMap {
+export interface ActionsDuNoyau extends VerbesDeJet {
   faceToward: (id: IdDeCombattant, from?: Pt, to?: Pt) => void;
   faceFromPath: (id: IdDeCombattant, path?: Pt[] | null) => void;
   faceAtCombatStart: () => void;
@@ -106,7 +106,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  règle optionnelle `fortune-mid-session` en mode 'manual'). Réutilise l'Effet `restoreFortune`
    *  (logique partagée via `engine/fortune.restoreFortune`) — pas de duplication. */
   restoreFortuneNow: () => void;
-  activityConfirm: () => void;
   /** Amorce une bataille de masse et bascule sur sa vue. */
   startMassBattle: (spec: MassBattleSpec) => void;
   /** Passe de la phase pré-bataille (Discours/Planification) aux Rounds de bataille. */
@@ -278,27 +277,16 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   repairItem: (uid: IdDObjet, heroId: IdDeHeros) => void;
   /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   startBargain: (mode: 'buy' | 'sell') => void;
-  // bargain{Roll,Reroll,BonusSL,DarkPact} : générés (RollFlowActionsMap).
-  bargainConfirm: () => void;
-  bargainCancel: () => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
   appraiseItem: (uid: IdDObjet, heroId: IdDeHeros, mode?: 'evaluate' | 'detect') => void;
-  // appraise{Roll,Reroll,BonusSL,DarkPact} : générés (RollFlowActionsMap).
-  resolveAppraise: () => void;
-  appraiseCancel: () => void;
-  // test{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,Determine} : générés (RollFlowActionsMap).
   /** Choix du LANCEUR d'un Test de scène parmi les candidats du groupe (avant le jet) — au lieu
    *  d'une désignation automatique du meilleur. Re-cible valeur/cible/malus/outil. */
   testSetActor: (id: IdDeCombattant) => void;
-  resolveTest: () => void;
-  /** Exposition à une Influence corruptrice (LDB 19) : Lancer → Chance → Appliquer (gain selon DR).
-   *  Délégués `corruption{Roll,Reroll,BonusSL,DarkPact}` : générés (RollFlowActionsMap). */
   /** Choisit le Test de `influences-corruptrices` AVANT le jet d'exposition (LDB 19 l.29 : « ou … comme déterminé par le
    *  MJ » — RAW indéterminé pour le trait de créature ; le joueur tranche, comme la Défense). Le SEUIL
    *  (LDB 19 l.70) reste figé sur le Test de `corrompu` et ignore cet appel. */
   corruptionSetNature: (nature: NatureDInfluence) => void;
-  resolveCorruption: () => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
   remettreDocument: (doc: Omit<NonNullable<EtatDeJeu['document']>, 'remise'>) => void;
   /** Ferme le document et rejoue sa `suite` ; inerte chez l'invité. */
@@ -329,14 +317,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   medicSetWound: (idx: number) => void;
   /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
   openSurgeryPass: () => void;
-  // surgery{Roll,Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  /** « Appliquer » la passe : cumule le DR (Test étendu), 1d10 PB + Hémorragie ; cible atteinte → trauma
-   *  réparé + infection révélée ; sinon réouvre la passe suivante (calque extendedTestNext). */
-  surgeryNext: () => void;
-  /** Annule la passe posée avant son jet ; l'opération armée et son cumul restent. */
-  surgeryPassCancel: () => void;
   /** Annule la Chirurgie (cumul perdu ; jamais commencée → acte remboursé). */
-  surgeryCancel: () => void;
+  medicAbandonSurgery: () => void;
   closeMedic: () => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
@@ -349,33 +331,10 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** CONSEIL DE BORD (#229) : arrête la paie de la semaine, puis clôt le bilan de Moral. */
   councilPay: (decision: IdDeChoixDePaie) => void;
   councilClose: () => void;
-  // heal{Roll,Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  healConfirm: () => void;
-  healCancel: () => void;
   /** Recharger l'arme à distance (LDB 62 l.335) : OUVRE la modale de Test étendu de Projectiles. */
   battleReload: (weaponUid?: IdDObjet) => void;
-  // reload{Roll,Reroll,BonusSL,DarkPact} (Lancer/Chance/+1 DR/Pacte) : générés (RollFlowActionsMap).
-  /** « Appliquer » : cumule le DR (Test étendu), recharge si ≥ Indice, consomme l'Action. */
-  reloadConfirm: () => void;
-  /** Ferme la modale de rechargement sans coût (avant le jet). */
-  reloadCancel: () => void;
-  // handGate{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  /** « Appliquer » le Test de Dextérité de Main ensanglantée (AA 07 l.117) : RÉUSSITE → ouvre l'Action figée ;
-   *  ÉCHEC → l'objet glisse (op `disarm`) et l'Action est consommée. */
-  handGateConfirm: () => void;
-  /** Annule l'Action avant le jet de Main ensanglantée (défait une charge misclic comme `attackCancel`). */
-  handGateCancel: () => void;
   /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
   battleRecoverState: (state: string) => void;
-  // recover{Roll,Reroll,BonusSL,DarkPact} (Lancer/Chance/+1 DR/Pacte) : générés (RollFlowActionsMap).
-  /** « Appliquer » : retire 1 + DR pions de l'État, consomme l'Action. */
-  recoverConfirm: () => void;
-  /** Ferme la modale de récupération sans coût (avant le jet). */
-  recoverCancel: () => void;
-  // steamSave{Roll,Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  /** « Appliquer » la sauvegarde d'Initiative d'une « Fuite de vapeur » (MDG 12 l.328) : ÉCHEC →
-   *  ébouillanté (`scaldOps`) ; puis la boucle maritime reprend (`resolveSteamSave`). */
-  steamSaveConfirm: () => void;
   /** Sélectionne la munition à tirer (uid d'un item `kind 'ammo'`). */
   battleSelectAmmo: (uid: IdDObjet, weaponUid?: IdDObjet) => void;
   /** Détermination (Resolve, LDB 17 l.61) : retire un État de l'actif (+1 PB si À Terre).
@@ -397,9 +356,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   battleUseItem: (uid: IdDObjet) => void;
   /** HORS COMBAT : un héros utilise un consommable (bandages, potion) depuis sa fiche. */
   usePartyItem: (heroId: IdDeHeros, uid: IdDObjet) => void;
-  /** Incantation par modale : « Lancer » fige le jet, Chance le relance, « Appliquer » résout. */
-  castRoll: () => void;
-  // cast{Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
   /** Incantation CRITIQUE (LDB 46 l.26-32) : choix de l'effet bonus (modale). */
   castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => void;
   /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
@@ -421,36 +377,16 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Sort de ZONE (flux « jet puis pose », LDB 47 l.15/28) : bascule la POSE sur la carte
    *  (la modale s'efface, le gabarit final suit le curseur, clic-case = dépose). */
   castPlaceZone: (on: boolean) => void;
-  castConfirm: () => void;
-  castCancel: () => void;
-  /** Contre-sort à PLUSIEURS (flux multi `FLOWS.counterspell`) : chaque contre-lanceur a son
-   *  jet + son cycle Chance/+1 DR/Pacte/Résilience (ciblé par `pid`).
-   *  Délégués `counterspell{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}` : générés (RollFlowActionsMap, MULTI). */
-  /** Fait chanter d'un coup toutes les rangées jouables au siège local (verbe NULLAIRE du drive
-   *  d'auto-cadence, #1030 — cf. `STEP_WINDOW_AUTO` dans `combatAuto.ts`). */
-  counterspellRollAll: () => void;
   /** PHASE 1 — déclare la rangée `pid` : contrer seul / s'unir au Test Soutenu (LDB 46 l.162,
    *  transposé à la fenêtre réactive) / passer. Refusé hors éligibilité de Domaine (`soutenu`) et
    *  dès que la composition est FIGÉE (toutes les rangées ont déclaré). */
   counterspellDeclare: (pid: string, choice: CounterDeclaration) => void;
   /** Déclare « contrer seul » les rangées vierges de ce siège (verbe NULLAIRE du drive d'auto-cadence). */
   counterspellDeclareAll: () => void;
-  /** « Appliquer » : agrège (dissipé si UN gagne ; sinon le Sort se résout au meilleur DR net) → castConfirm. */
-  counterspellConfirm: () => void;
-  /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
-  counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
   startExtendedTest: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; char?: CharKey; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
-  // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
-  /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
-  extendedTestNext: () => void;
-  extendedTestCancel: () => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
   startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: IdDeHeros[]; flag?: string; suite?: Flow }) => void;
-  // forceDoor{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
-  /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
-  forceDoorConfirm: () => void;
-  forceDoorCancel: () => void;
   /** Avant son jet, le héros frappe avec une arme de `armesDEnfoncement` (`armeUid`) ou à mains nues (absent). EDO 11 l.93. */
   forceDoorChoisirArme: (heroId: IdDeHeros, armeUid?: string) => void;
   /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
@@ -459,32 +395,11 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
    *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
   designerHerosChoisir: (heroId?: IdDeHeros) => void;
-  /** LOT DE DÉS d'un étal (#1426) : valide le lot d'un bloc (rejoue le générateur avec les dés posés,
-   *  puis ouvre l'écran) / renonce (l'étal reste celui des dés naturels). */
-  etalLotConfirm: () => void;
-  etalLotCancel: () => void;
-  /** CASCADE séquentielle (`FLOWS.cascade`) : jet de l'étape courante + cycle Chance/+1 DR/Pacte/
-   *  Résilience (ciblé par `pid` = id d'étape). `Resist` = Résistance (Menace, LDB 10).
-   *  Délégués `cascade{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll,Resist}` : générés (RollFlowActionsMap, MULTI). */
-  /** « Choix » d'une étape de séquence (analogue de cascadeRoll côté jet) : pose l'option retenue. */
+  /** « Choix » d'une étape de séquence (analogue de jetRoll('cascade') côté jet) : pose l'option retenue. */
   cascadeChoose: (pid: IdDEtapeDeCascade, key: string) => void;
   /** « Quantité » d'une étape de séquence (jumeau de `cascadeChoose`) : pose le nombre saisi, ramené
    *  à la plage déclarée par l'étape. */
   cascadeAmount: (pid: IdDEtapeDeCascade, n: number) => void;
-  /** TIRAGE SUR TABLE d'une étape (analogue de `cascadeRoll` côté Test) : pose `table.result` via le
-   *  résolveur unique `rollTableStep`. */
-  cascadeTableRoll: (pid: IdDEtapeDeCascade) => void;
-  /** MODE TABLE (#942 L3) : POSE le dé NATUREL d'une étape à table — le champ « Fixer le dé » et le
-   *  clic sur une ligne (dé qui atteint la ligne, `mod` compris) écrivent tous deux ICI, puis l'étape
-   *  est tirée (re-posable tant que l'étape est courante). Délégué NU : l'affordance est armée côté
-   *  CLIENT par `canFixDie` (`ui/forcedDieRow.ts`), l'hôte ne re-juge pas le geste d'un invité. */
-  cascadeTableSetForcedRoll: (pid: IdDEtapeDeCascade, roll: number) => void;
-  /** TIRAGE d'un DÉ NU d'étape (#1508) — JUMEAU de `cascadeTableRoll` : même geste, même goulot
-   *  (`cascade.poseSurCourante`), lecture nue au lieu d'une lecture en table. */
-  cascadeDieRoll: (pid: IdDEtapeDeCascade) => void;
-  /** POSE du dé NATUREL d'une étape à DÉ NU (#1508) — JUMEAU de `cascadeTableSetForcedRoll`, mêmes
-   *  règles (délégué NU, affordance armée côté client par `canFixDie`, re-posable). */
-  cascadeDieSetForcedRoll: (pid: IdDEtapeDeCascade, roll: number) => void;
   /** « Étape suivante » : valide l'étape courante (conséquence + insertions), avance ; à la fin,
    *  finalise selon `purpose` (reprise de voyage…). */
   cascadeNext: () => void;
@@ -493,14 +408,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   cascadeResolveAll: () => void;
   /** « Terminer » du bilan : ferme la cascade et enchaîne la suite (reprise de voyage…). */
   cascadeFinish: () => void;
-  /** Incantation OPPOSÉE (`FLOWS.castOpposition`) : chaque CIBLE oppose son Test (FM/Int) — son jet
-   *  + cycle Chance/+1 DR/Pacte/Résilience (ciblé par `pid`). Cible IA = rangée témoin auto-roulée.
-   *  Délégués `opposition{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}` : générés (RollFlowActionsMap, MULTI). */
-  /** Fait jeter d'un coup toutes les rangées jouables au siège local (verbe NULLAIRE du drive
-   *  d'auto-cadence, #1030 — cf. `STEP_WINDOW_AUTO` dans `combatAuto.ts`). */
-  oppositionRollAll: () => void;
-  /** « Appliquer » : agrège les oppositions → `pendingCast.opposedOutcome` (résisté + marge par cible) → castConfirm. */
-  oppositionConfirm: () => void;
   /** Incantation HORS COMBAT (couture D) : un héros lanceur cible self/allié ; sorts non-offensifs. */
   oocCastSpell: (casterId: IdDeCombattant, spellId: string, targetId: IdDeCombattant, fromGrimoire?: boolean) => void;
   battleFocusSpell: (spellId: string) => void;
@@ -559,12 +466,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   attackSetGrapple: (v: boolean) => void;
   /** « Je ne faillirai pas ! » (RAW-2, LDB 17 l.68) : choisit la Localisation d'un Coup Critique forcé. */
   attackSetCritLocation: (loc: HitLocation) => void;
-  attackRoll: () => void;
-  // attack{Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll,Cancel} : générés (RollFlowActionsMap).
-  // `attackSetForcedRoll(roll)` (LDB 17 l.68 « vous choisissez le résultat ») : valeur du dé d'un succès
-  //  forcé (un double ≤ cible → Coup Critique, ex. Salundra l.75) ; re-dérive l'attaque, refusé si raté.
-  // `attackCancel()` : « Annuler » unifié (défaire-charge via `FLOWS.attack.onCancel`) — cf. RollFlowActionsMap.
-  attackConfirm: () => void;
   /** Pilonnage INDIRECT : dépose le point d'impact choisi (clic-case du placeur 'siege') et ouvre la modale
    *  de tir de la pièce indirecte servie (`pendingAttack` siège). Cf. `siegeAimCommit` (combatSlice). */
   siegeAimCommit: (pt: Pt) => void;
@@ -577,7 +478,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Termine le balayage en cours (le joueur renonce aux enchaînements restants). */
   cleaveEnd: () => void;
   /** Maniement de deux armes (LDB 10 l.767-773) : 2ᵉ frappe (main secondaire) contre la cible choisie. `skipGate`
-   *  interne : Test de Main ensanglantée déjà PASSÉ (reprise via `handGateConfirm`), ne pas re-tester. */
+   *  interne : Test de Main ensanglantée déjà PASSÉ (reprise via `jetConfirm('handGate')`), ne pas re-tester. */
   dualStrikeAttack: (targetId: IdDeCombattant, skipGate?: boolean) => void;
   /** Renonce à la 2ᵉ frappe (« peut viser » = optionnel) → pas de 2ᵉ attaque, pas d'Avantage. */
   dualStrikeSkip: () => void;
@@ -595,22 +496,11 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via `battementSetFoe`). */
   battleBattement: (foeId?: IdDeCombattant) => void;
   battementSetFoe: (foeId: IdDeCombattant) => void;
-  // battement{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  battementConfirm: () => void;
-  battementCancel: () => void;
   /** Distraire (LDB 10 l.364 / AA 13 l.51) : MOUVEMENT, Test opposé Athlétisme vs Calme. Sur victoire,
    *  le foe est distrait (ne gagne plus d'Avantage). `foeId` absent = 1er éligible en Ligne de vue
    *  (picker via `distraireSetFoe`). */
   battleDistraire: (foeId?: IdDeCombattant) => void;
   distraireSetFoe: (foeId: IdDeCombattant) => void;
-  // distraire{Roll,Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  distraireConfirm: () => void;
-  distraireCancel: () => void;
-  /** Manœuvre de créature par modale (LDB 85) : Lancer le jet d'ATTAQUANT (CC/CT), Chance/Pacte/
-   *  Résilience l'influencent, Appliquer roule les défenseurs et résout l'opposition au feed. */
-  // maneuver{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  maneuverConfirm: () => void;
-  maneuverCancel: () => void;
   /** Avantage dépensé par le Regard pétrifiant (variable, LDB 85 l.290) : 1..advantage → +N DR. */
   maneuverSetAvantage: (n: number) => void;
   /** Course (LDB 15 l.41) : ouvrir la modale, lancer le Test `course`, Chance/Résilience, appliquer (déplacement étendu). */
@@ -619,32 +509,18 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   battleShipManeuver: (crewId: IdDeCombattant) => void;
   /** Choix du virage (pré-jet OptionChooser) : crans d'octant (±1 = 45°, ±2 = 90°, 0 = tout droit). */
   shipManeuverSetTurn: (steps: number) => void;
-  shipManeuverConfirm: () => void;
-  shipManeuverCancel: () => void;
   /** Recharge d'un poste (MDG 12 l.462) : ouvre la modale du Test étendu de Projectiles du chef de pièce + Soutien. */
   battleShipReload: (shipId: IdDeCombattant, posteUid: string) => void;
   /** Bordée (« Tir de batterie », MDG 14 l.128) : ouvre la modale du Test d'équipage des Artilleurs sur `targetId`. */
   battleShipBattery: (shipId: IdDeCombattant, targetId: IdDeCombattant) => void;
-  shipBatteryConfirm: () => void;
-  shipBatteryCancel: () => void;
   /** Bordée HEADLESS (auto-pilote navire, couche Mer) : Test d'équipage des Artilleurs résolu sans modale → volée sur `targetId`. */
   shipAutoBattery: (shipId: IdDeCombattant, targetId: IdDeCombattant) => boolean;
-  // shipBattery{Roll,Reroll,BonusSL,ForceSuccess,DarkPact} : générés (RollFlowActionsMap, MULTI).
   /** Test d'équipage GÉNÉRIQUE (MDG 14) : ouvre la modale multi-jets du type `testTypeId` (Rude épreuve…). */
   battleCrewTest: (shipId: IdDeCombattant, testTypeId: string) => void;
-  crewTestConfirm: () => void;
-  crewTestCancel: () => void;
-  // crewTest{Roll,Reroll,BonusSL,ForceSuccess,DarkPact} : générés (RollFlowActionsMap, MULTI).
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
   battleSingShanty: (shipId: IdDeCombattant) => void;
   /** Choix de la chanson (pré-jet, parmi les specs CONNUES du Talent). */
   shantySetSong: (shantyId: IdDeChanson) => void;
-  shantyConfirm: () => void;
-  shantyCancel: () => void;
-  // shanty{Roll,Reroll,BonusSL,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
-  // run{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
-  runConfirm: () => void;
-  runCancel: () => void;
   /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
    *  `chute`). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
@@ -658,17 +534,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  `false` = chute PLEINE sans Test. Quand toutes les rangées sautent sans Test, l'étape se résout. */
   /** `suspendre` : l'axe hauteur (EDO 01 l.231), exigé quand `pendingFall.suspendu` est offert. */
   fallChoose: (pid: string, attempt: boolean, suspendre?: boolean) => void;
-  // fall{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
-  fallConfirm: () => void;
-  fallCancel: () => void;
-  /** Approche d'une source de Peur (LDB 21 l.27) : succès → l'intention différée est relancée. */
-  // approach{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
-  approachConfirm: () => void;
-  approachCancel: () => void;
-  /** Bénédiction de Protection (LDB 41 l.142) : Test de FM Accessible (+20) ; succès → l'attaque est relancée. */
-  // ward{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
-  wardConfirm: () => void;
-  wardCancel: () => void;
   /** Se relever d'À Terre (LDB 16 l.37) : consomme le Mouvement (pas l'Action) ; impossible à 0 PB (LDB 18 l.15). */
   battleStandUp: () => void;
   /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
@@ -683,13 +548,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** « Diriger l'équipe » (Commandant d'équipe, AA) : Test de Commandement (+0) pour aider une équipe d'Arme
    *  d'équipe à portée de voix — sur réussite, elle tire au score de Projectiles du commandant. Coûte l'Action. */
   battleAidTeam: () => void;
-  /** Focalisation par modale (Test étendu) : Lancer, Chance, Appliquer (cumule le DR). */
-  // focus{Roll,Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  focusConfirm: () => void;
-  focusCancel: () => void;
   battleDispelSpell: (spellId: string, spellCasterId: IdDeCombattant) => void;
-  dispelConfirm: () => void;
-  dispelCancel: () => void;
   /** Focalisation HORS COMBAT (couture D) : ouvre la modale de Focalisation pour un héros lanceur du groupe. */
   oocFocusSpell: (casterId: IdDeCombattant, spellId: string) => void;
   /** Dissipation de sort permanent HORS COMBAT (couture D, LDB 46 l.160-162, #461). */
@@ -698,15 +557,9 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   //  résolues par les handlers `cascade*`, applier 'combatPsych'.)
   /** Entrée en Frénésie d'un héros (LDB 21 l.31) : ouvrir la modale, lancer le Test de FM, Chance/Résilience, appliquer. */
   battleFrenzy: () => void;
-  // frenzy{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
   /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
    *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
   battleGainAdvantage: (skillId: string) => void;
-  frenzyConfirm: () => void;
-  frenzyCancel: () => void;
-  /** Maladresse (modale héros, LDB 14) : lancer sur le Tableau des Oups !, puis appliquer l'effet. */
-  fumbleRoll: () => void;
-  fumbleConfirm: () => void;
   /** Flux de défense réactive (héros attaqué par l'IA) : choisir Parade/Esquive, défendre,
    *  dépenser une Chance, appliquer. PAS de « Subir » : le RAW n'offre aucune non-défense volontaire
    *  (mêlée = Test opposé, LDB 13 l.123) ; la résolution non opposée est réservée aux cas imposés. */
@@ -717,8 +570,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   defenseSetShieldReaction: (kind: 'damage' | 'push' | null) => void;
   /** Déclare ou refuse la Riposte (LDB 10 l.1037) pour cette défense. */
   defenseSetRiposte: (riposte: boolean) => void;
-  // defense{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  defenseConfirm: () => void;
   /** « Je te renie ! » (LDB 17 l.67) : résout le choix (true = refuser la mutation, 1 Résilience). */
   renounceResolve: (renounce: boolean) => void;
   /** Peek du planificateur IA (déterministe, sans RNG ni mutation) : la meilleure action du combattant `id`
@@ -737,29 +588,14 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
   battleDisengage: () => void;
   disengageConfirmA: () => void; // Sacrifier l'Avantage
-  disengageRoll: () => void; // Esquiver (lance le Test opposé)
-  // disengage{Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll,Cancel} : générés (RollFlowActionsMap).
-  // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
-  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
-  disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
   disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Test `fuite` du fuyard)
-  // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
-  fleeConfirm: () => void; // Appliquer : coup dans le dos (applicateur canonique) + États Brisés + libération/Course
   /** « Au Contact » (LDB 62 l.176, Option « Longueur d'arme ») : Test opposé de Corps à corps + choix du vainqueur. */
   battleAuContact: (targetId: IdDeCombattant) => void;
-  auContactRoll: () => void; // Lancer le jet de Corps à corps du mover (Test opposé)
-  // auContact{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  auContactConfirm: () => void; // Appliquer : le mover gagne → phase de choix ; le foe gagne (IA) → choix auto ; égalité → statu quo
   auContactChoose: (mode: 'normal' | 'contact') => void; // le vainqueur HÉROS tranche
-  auContactCancel: () => void;
   /** Empoignade (LDB 14 l.161) : action à son tour entre deux Empoignés. */
   battleGrapple: (targetId: IdDeCombattant) => void;
   grappleBreak: () => void; // Briser l'Empoignade (gratuit, Avantage supérieur)
-  grappleRoll: () => void; // Lancer le Test opposé de Force de l'acteur
-  // grapple{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
-  grappleConfirm: () => void; // Appliquer : succès → phase d'options ; échec → +1 Avantage au foe ; égalité → statu quo
   grappleChoose: (mode: 'damage' | 'entangle' | 'free') => void; // le vainqueur choisit Dégâts / Empêtrer / Se libérer
-  grappleCancel: () => void;
   /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre,
    *  et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
   log: (msg: string | string[]) => void;
@@ -874,3 +710,5 @@ export interface GesteDuNoyau {
 /** Les clics du champ de bataille, par ce qu'ils désignent : un combattant (son id), une case (`Pt`). Un premier clic
  *  pose l'aperçu, le même clic le confirme (`battle.preview`). */
 export const CLICS_DU_CHAMP = { combattant: 'battleClickEntity', case: 'battleClickTile' } as const satisfies Record<string, keyof ActionsDuNoyau>;
+/** Le clic d'une case en exploration : le groupe y marche par son chemin à pied. */
+export const CLICS_DE_L_EXPLORATION = { case: 'marcherVers' } as const satisfies Record<string, keyof ActionsDuNoyau>;

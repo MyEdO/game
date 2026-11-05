@@ -134,14 +134,14 @@ describe('garde de classe #1801 — une structure d’analyse ne vit pas en port
     expect(liaisons({ 'src/syntax.test.ts': `${base} const session=syntaxProgram({});` })).toEqual(['src/syntax.test.ts#session initialisée']);
     expect(liaisons({ 'src/syntax.test.ts': `${base} let session; beforeAll(()=>session=syntaxProgram({})); afterAll(()=>session=undefined);` })).toEqual(['src/syntax.test.ts#session affectée']);
     expect(liaisons({ 'src/syntax.test.ts': `${base} let session; beforeAll(()=>session=syntaxProgram({})); afterAll(()=>{try{utiliser(session.program)}finally{session.dispose()}});` })).toEqual([]);
-    const detention = `import { syntaxProgram } from '../scripts/guards/lib/tsProgram.mjs'; import { detenteur } from './detenteur.testkit';`;
+    const detention = `import { syntaxProgram } from '../scripts/guards/lib/tsProgram.mjs'; import { detenteur } from './lib/detenteur.testkit';`;
     expect(liaisons({ 'src/syntax.test.ts': `${detention} const lire=detenteur(()=>syntaxProgram({}));` })).toEqual(['src/syntax.test.ts#lire initialisée']);
     expect(liaisons({ 'src/syntax.test.ts': `${detention} const lire=detenteur(()=>syntaxProgram({}),s=>s.dispose());` })).toEqual([]);
     expect(liaisons({ 'src/syntax.test.ts': `${base} export function lire(session){const program=session.program; return program}` })).toEqual([]);
   });
 
   it('un détenteur de session native exige un libérateur effectif', () => {
-    const base = `import { virtualProgram } from '../scripts/guards/lib/tsProgram.mjs'; import { detenteur } from './detenteur.testkit';`;
+    const base = `import { virtualProgram } from '../scripts/guards/lib/tsProgram.mjs'; import { detenteur } from './lib/detenteur.testkit';`;
     for (const liberateur of ['', ',s=>{}', ',s=>{if(false)s.dispose()}', ',s=>{return;s.dispose()}']) {
       expect(liaisons({ 'src/resource.test.ts': `${base} const lire=detenteur(()=>virtualProgram({})${liberateur});` })).toEqual(['src/resource.test.ts#lire initialisée']);
     }
@@ -149,7 +149,7 @@ describe('garde de classe #1801 — une structure d’analyse ne vit pas en port
   });
 
   it('les fabriques nommées et les returns propres conservent la qualité de ressource active', { timeout: 30_000 }, () => {
-    const base = `import {virtualProgram} from '../scripts/guards/lib/tsProgram.mjs'; import {detenteur} from './detenteur.testkit';`;
+    const base = `import {virtualProgram} from '../scripts/guards/lib/tsProgram.mjs'; import {detenteur} from './lib/detenteur.testkit';`;
     for (const fabrique of [
       `function creer(){return virtualProgram({})}`,
       `const creer=()=>virtualProgram({});`,
@@ -163,11 +163,11 @@ describe('garde de classe #1801 — une structure d’analyse ne vit pas en port
     }
     for (const liberateur of ['', ',s=>{}']) expect(liaisons({
       'scripts/guards/lib/creer-virtuel.mjs': `import {virtualProgram} from './tsProgram.mjs'; export function creer(){return virtualProgram({})}`,
-      'src/resource.test.ts': `import {detenteur} from './detenteur.testkit'; import {creer as faire} from '../scripts/guards/lib/creer-virtuel.mjs'; const lire=detenteur(faire${liberateur});`,
+      'src/resource.test.ts': `import {detenteur} from './lib/detenteur.testkit'; import {creer as faire} from '../scripts/guards/lib/creer-virtuel.mjs'; const lire=detenteur(faire${liberateur});`,
     })).toEqual(['src/resource.test.ts#lire initialisée']);
     expect(liaisons({
       'scripts/guards/lib/creer-virtuel.mjs': `import {virtualProgram} from './tsProgram.mjs'; export function creer(){return virtualProgram({})}`,
-      'src/resource.test.ts': `import {detenteur} from './detenteur.testkit'; import {creer as faire} from '../scripts/guards/lib/creer-virtuel.mjs'; const lire=detenteur(faire,s=>s.dispose());`,
+      'src/resource.test.ts': `import {detenteur} from './lib/detenteur.testkit'; import {creer as faire} from '../scripts/guards/lib/creer-virtuel.mjs'; const lire=detenteur(faire,s=>s.dispose());`,
     })).toEqual([]);
     for (const corps of ['if(true)return virtualProgram({})', 'try{return virtualProgram({})}finally{}']) {
       expect(liaisons({ 'src/resource.test.ts': `${base} const lire=detenteur(()=>{${corps}});` })).toEqual(['src/resource.test.ts#lire initialisée']);
@@ -181,8 +181,8 @@ describe('garde de classe #1801 — une structure d’analyse ne vit pas en port
       }
     }
     expect(liaisons({ 'src/resource.test.ts': `${base} function creer(){function interne(){return virtualProgram({})} return 1} const lire=detenteur(creer);` })).toEqual([]);
-    expect(liaisons({ 'src/resource.test.ts': `import {detenteur} from './detenteur.testkit'; import {ast} from '../scripts/guards/lib/dialecte.mjs'; function creer(){return ast({rel:'a.ts',text:''})} const lire=detenteur(creer);` })).toEqual([]);
-    expect(liaisons({ 'src/resource.test.ts': `import {detenteur} from './detenteur.testkit'; import {API as Metier} from './metier'; function creer(){return new Metier()} const lire=detenteur(creer);` })).toEqual([]);
+    expect(liaisons({ 'src/resource.test.ts': `import {detenteur} from './lib/detenteur.testkit'; import {ast} from '../scripts/guards/lib/dialecte.mjs'; function creer(){return ast({rel:'a.ts',text:''})} const lire=detenteur(creer);` })).toEqual([]);
+    expect(liaisons({ 'src/resource.test.ts': `import {detenteur} from './lib/detenteur.testkit'; import {API as Metier} from './metier'; function creer(){return new Metier()} const lire=detenteur(creer);` })).toEqual([]);
   });
   it('sessions et analyses natives aliasées gardent leurs valeurs et dérivés teints', () => {
     expect(liaisons({ 'src/native.test.ts': `import { API as Native } from 'typescript/unstable/sync';
@@ -430,7 +430,7 @@ describe('d', () => {
         'src/d.test.ts': `import { describe, it } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
-import { detenteur as tenir } from './detenteur.testkit';
+import { detenteur as tenir } from './lib/detenteur.testkit';
 const TEXTES = tenir(() => readCorpus(['src']).map((f) => f.text));
 describe('d', () => {
   const programme = tenir(() => programmeDuPerimetre('.'), s => s.dispose());
@@ -454,7 +454,7 @@ import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
 ${corps}`,
       'src/autre.test.ts': `${tete}import { detenteur } from './autre-detenteur';
 ${corps}`,
-      'src/production.ts': `${tete}import { detenteur } from './detenteur.testkit';
+      'src/production.ts': `${tete}import { detenteur } from './lib/detenteur.testkit';
 ${corps}`,
     });
     expect(r.sort()).toEqual([
@@ -471,7 +471,7 @@ ${corps}`,
     const tete = `import { beforeAll, it } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 const P = detenteur(() => programmeDuPerimetre('.'), s => s.dispose());
 `;
     const r = liaisons({
@@ -501,7 +501,7 @@ it('x', () => { x(); });
   it('un lecteur ou une fabrique ALIASÉ, ou rangé en propriété d’objet littéral, garde sa qualité', () => {
     const tete = `import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 `;
     expect(
       liaisons({
@@ -522,7 +522,7 @@ const p = f('.');
 
   it('un nom AFFECTÉ d’une fabrique, une fonction ou méthode d’objet littéral qui rend une valeur teinte : rouge', () => {
     const tete = `import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 `;
     expect(
       liaisons({
@@ -545,7 +545,7 @@ const c = K.P().getTypeChecker();
   it('leurs témoins libérés en `afterAll` restent verts', () => {
     const tete = `import { afterAll, beforeAll, it } from 'vitest';
 import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 `;
     const libere = (appel: string) => `let c;
 beforeAll(() => { c = ${appel}.getTypeChecker(); });
@@ -601,7 +601,7 @@ export const T = lireCorpus(['src']).map((f) => f.text);
   it('`detenteur` appelé dans un `it` ou un hook (hors collecte) suit la règle commune : rouge', () => {
     const tete = `import { beforeAll, it } from 'vitest';
 import { programmeDuPerimetre } from '../scripts/guards/lib/perimetre.mjs';
-import { detenteur } from './detenteur.testkit';
+import { detenteur } from './lib/detenteur.testkit';
 `;
     expect(
       liaisons({

@@ -44,7 +44,7 @@ describe('Approche sous Peur (store)', () => {
     let st = banc.getState();
     expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'tile', pt: { x: 11, y: 10 } } });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
-    banc.getState().approachCancel(); // renoncer avant le jet : aucune trace
+    banc.getState().jetCancel('approach'); // renoncer avant le jet : aucune trace
     // S'éloigner (9,10) : aucun Test.
     banc.getState().battleClickTile({ x: 9, y: 10 }, { confirm: true });
     st = banc.getState();
@@ -56,7 +56,7 @@ describe('Approche sous Peur (store)', () => {
     const { H } = setup();
     banc.getState().battleClickTile({ x: 11, y: 10 }, { confirm: true });
     banc.setState({ pendingApproach: { ...banc.getState().pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
-    banc.getState().approachConfirm();
+    banc.getState().jetConfirm('approach');
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 11, y: 10 }); // relancé
     expect(st.battle!.fearGate).toBe('passed');
@@ -71,7 +71,7 @@ describe('Approche sous Peur (store)', () => {
     const { H } = setup();
     banc.getState().battleClickTile({ x: 11, y: 10 }, { confirm: true });
     banc.setState({ pendingApproach: { ...banc.getState().pendingApproach!, result: { success: false, roll: 96, target: 50, sl: -4 } } });
-    banc.getState().approachConfirm();
+    banc.getState().jetConfirm('approach');
     let st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
     expect(st.battle!.fearGate).toBe('failed');
@@ -97,7 +97,7 @@ describe('Approche sous Peur (store)', () => {
     expect(st.pendingAttack).toBeNull(); // la charge attend le Test
     banc.setState({ pendingApproach: { ...st.pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();
-    banc.getState().approachConfirm();
+    banc.getState().jetConfirm('approach');
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) relancé → ouvre la frappe
     st = banc.getState();
     expect(st.pendingAttack?.fromCharge).toBe(true); // charge relancée après le succès

@@ -104,7 +104,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     monte('materials', m.id);
     const select = champ('Domaine')?.querySelector('select');
     expect(select, 'le champ discriminant n’est pas un choix borné').toBeTruthy();
-    expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief', 'Objet']);
+    expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief', 'Objet', 'Couleur']);
     expect(select!.value).toBe('roof');
   });
 
@@ -210,6 +210,9 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
     // #1795 (la charge par RÔLE à porteur unique).
     terrains: ['ascii', 'bordDuMonde', 'solidHeightM', 'matiere', 'absence'],
     materials: ['vueDeDessus'], // rôle à porteur UNIQUE : exactement une matière est le « plan vu du dessus » (#1795)
+    // #1681 : la cascade de combat devient éditable avec `stakes` — la mesure VOIT sa PAIRE `template`
+    // ⟺ `form` (`defs/stakes.ts`), même famille que `terrains` : une partition par PRÉSENCE.
+    stakes: ['template', 'form'],
   };
 
   it('le stock des catégories qui présentent un champ étranger est celui déclaré, et il DÉCROÎT', () => {

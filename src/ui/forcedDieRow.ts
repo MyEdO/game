@@ -1,7 +1,7 @@
 /**
  * COUTURE UNIQUE du sélecteur de dé d'une rangée de jet — dérivée, jamais recopiée par modale.
  *
- * `RollShell` porte déjà l'identité du flux (`flowKey`, = le PRÉFIXE des délégués de store, cf.
+ * `RollShell` porte déjà l'identité du flux (`flowKey`, premier argument des verbes de jet, cf.
  * `FLOW_VERBS`) et chaque rangée porte son acteur (`row.actor`) et, en multi, l'id de son slot
  * (`row.key`). Cela suffit à dériver le sélecteur pour TOUTE modale de jet : plus aucune modale ne
  * calcule son `forcedDie` (les six qui le faisaient — attaque/défense/incantation/cascade/coup dans
@@ -20,13 +20,13 @@
  * `step.table` selon sa LECTURE). Les deux dérivations vivent ICI ; une modale n'en compose JAMAIS
  * une à la main.
  *
- * L'écriture passe TOUJOURS par le délégué de store `<prefix>SetForcedRoll` (jamais
+ * L'écriture passe TOUJOURS par le verbe de jet `jetSetForcedRoll(flux, …)` (jamais
  * `FLOW_HANDLERS[k].setForcedRoll(get,set,…)` en direct) : c'est lui que le routage d'intents coop
  * intercepte côté invité.
  */
 import { useRef } from 'react';
 import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
-import { FLOW_VERBS } from '../noyau/flowVerbs';
+import { FLOW_VERBS, fluxAccepte } from '../noyau/flowVerbs';
 import type { FlowKey } from '../noyau/flowVerbs';
 import { canFixDie } from '../noyau/netOwnership';
 import { withPreRollFixedDie } from '../noyau/combatFlow';
@@ -93,9 +93,6 @@ export function useDieCommitRegistry(): DieCommitRegistry {
   return { handle, commitAll };
 }
 
-type SetForcedMono = (roll: number) => void;
-type SetForcedMulti = (pid: string, roll: number) => void;
-
 /** Le refus du slot `pid` par la poignée de son flux (`refusDuSlot`), `undefined` s'il se joue : la rangée le
  *  porte en `rollBlocked` et ferme tous ses gestes, comme tous les verbes du slot le disent. */
 export function refusDeRangee(s: GameState, flowKey: FlowKey | undefined, pid: string | undefined): string | undefined {
@@ -125,8 +122,7 @@ export function rowForcedDie(
   if (row.forcedRoll) return { forcedRoll: row.forcedRoll };
   if (!flowKey || row.noForcedDie || row.interactive === false) return {};
   const flow = FLOW_HANDLERS[flowKey];
-  const verbs = FLOW_VERBS[flowKey].verbs as readonly string[];
-  if (!flow || !verbs.includes('setForcedRoll')) return {};
+  if (!fluxAccepte(flowKey, 'setForcedRoll')) return {};
   // Un dé ne se SAISIT que là où le socle sait le RÉÉVALUER : `fixable` = l'ACCESSEUR DE DÉ du flux est
   // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`setForcedRoll`).
 
@@ -136,11 +132,7 @@ export function rowForcedDie(
   const slot = flow.slotOf(() => s, pid);
   if (!slot || refusDeRangee(s, flowKey, pid)) return {};
 
-  const delegate = (s as unknown as Record<string, unknown>)[`${flowKey}SetForcedRoll`];
-  if (typeof delegate !== 'function') return {};
-  const onSet = multi
-    ? (r: number) => (delegate as SetForcedMulti)(pid ?? '', r)
-    : (r: number) => (delegate as SetForcedMono)(r);
+  const onSet = (r: number) => s.jetSetForcedRoll(flowKey, r, pid);
 
   const isRolled = row.rolled ?? rolled;
   if (!flow.fixable || !flow.picker) return {};
@@ -152,7 +144,7 @@ export function rowForcedDie(
   if (slot.forced && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
   if (!canFixDie(s, row.actor?.id)) return { fixedMark: mark };
   if (isRolled) return pick ? { forcedRoll: { roll: pick.roll, target: pick.target, ...(pick.max != null ? { max: pick.max } : {}), onSet, fixed: true }, fixedMark: mark } : { fixedMark: mark };
-  // AVANT le jet : la saisie LANCE puis substitue — même geste que la Résilience pré-jet (`preRollForce`).
+  // AVANT le jet : la saisie LANCE puis substitue — même geste pré-armé que la Résilience pré-jet (`jetForceSuccess`).
   // Sans déclencheur de jet, la rangée n'a rien à substituer : aucun champ n'est offert. Le couple
   // (jet naturel, substitution) est ATOMIQUE côté moteur (`withPreRollFixedDie`, #1029) : aucun
   // consommateur aval ne voit le résultat provisoire d'entre-deux.

@@ -3,37 +3,17 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import {
+  cargaisonMarchandeSchema,
   catalogueSaisonnier,
   difficultySchema,
-  dispoSaisonniereSchema,
   ecartsDeCouverture,
   plageOuverteSchema,
-  prixSaisonnierSchema,
-  prixTireSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'sea-cargo.json';
 export const famille = 'config';
-
-/** Une CARGAISON ÉCHANGEABLE : disponibilité saisonnière + prix (tableau des cargaisons, l.406-434). */
-const cargoMarchand = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  /** Discriminant du catalogue (`catalogueSaisonnier`) : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
-  echangeable: z.literal(true).optional(),
-  avail: dispoSaisonniereSchema,
-  price: z.union([prixSaisonnierSchema, prixTireSchema]),
-  source: sourceRefSchema,
-}), {
-  id: { label: 'Identifiant' },
-  label: { label: 'Libellé' },
-  echangeable: { label: 'Échangeable' },
-  avail: { label: 'Disponibilité' },
-  price: { label: 'Prix' },
-  source: { label: 'Source' },
-});
 
 /**
  * BANDES DU PRIX D'OFFRE (l.378-383) — la colonne « Richesse + Taille + Demande du Lieu » est un SEUIL,
@@ -56,33 +36,14 @@ const offerPriceSchema = z
     }
   });
 
-/** MDG 15 l.321 */
-const cargoMarqueur = nommerChamps(z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  echangeable: z.literal(false),
-  /** Qualificatif d'affichage ÉDITABLE (« plaque tournante » / « rien à échanger ») — cf. `CargoMarkerDef`. */
-  hint: z.string().optional(),
-  /** MDG 15 l.321 */
-  tradeHub: z.literal(true).optional(),
-  source: sourceRefSchema,
-}), {
-  id: { label: 'Identifiant' },
-  label: { label: 'Libellé' },
-  echangeable: { label: 'Échangeable' },
-  hint: { label: 'Aide' },
-  tradeHub: { label: 'Centre de commerce' },
-  source: { label: 'Source' },
-});
-
 /**
  * CATALOGUE DES CARGAISONS (l.406-418) — la COUVERTURE du d100 est un invariant de la COLONNE
  * saisonnière, pas d'une entrée : sans ce verrou, un trou ouvert au Codex ne lèverait rien au parse, et
  * le tirage tomberait sur un ARRÊT au jet (`rollSeasonalCargo`, `src/engine/cargo.ts`) — la faute
  * étant, elle, dans la donnée. La règle est celle des DEUX livres : elle vit dans la grammaire
- * (`catalogueSaisonnier`), ce def n'en déclare que ses entrées et le site cité par le refus.
+ * (`catalogueSaisonnier`) avec ses rangées, ce def n'en déclare que le site cité par le refus.
  */
-const cargoesSchema = catalogueSaisonnier(cargoMarchand, cargoMarqueur, { site: 'sea-cargo.json › cargoes' });
+const cargoesSchema = catalogueSaisonnier(cargaisonMarchandeSchema, { site: 'sea-cargo.json › cargoes' });
 
 const doc = document(
   'sea-cargo',

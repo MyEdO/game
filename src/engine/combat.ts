@@ -23,6 +23,7 @@ import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
 import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
+import { maniementRetenu, speDeCorpsACorps } from './weaponGroup';
 import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
@@ -34,7 +35,7 @@ import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, q
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
-import { findPsychologyById, byId, testSkillLabel, type RangeeDeRegleData } from '../data';
+import { findPsychologyById, testSkillLabel, type RangeeDeRegleData } from '../data';
 import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
@@ -139,8 +140,11 @@ const ANY_RANGED_SPEC = '*';
  *  - Arbalète/Lancer utilisés avec N'IMPORTE QUELLE Spé de Tir → bonus intégral, Atouts perdus (l.184).
  *  - Ingénierie utilisée via Poudre noire → bonus intégral, Atouts perdus (l.188).
  *  - Poudre noire/Explosifs utilisés via Ingénierie → bonus intégral, SANS pénalité (l.192).
+ * Une arme maniée dans un autre Groupe le fait dans celui de `maniementRetenu` (AA 08 l.188 ; AA 08 l.343).
  */
-function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptance[] {
+function acceptableSpecs(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptance[] {
+  const maniement = kind === 'melee' ? maniementRetenu(c, weapon, weapon.hands) : undefined;
+  if (maniement) return [{ spec: maniement.groupe, mode: 'full' }];
   // `weaponGroup` PRIME sur `subType` : une arme de siège porte sa catégorie de catalogue (« armes-de-siege »)
   // en `subType` mais son vrai Groupe de Projectiles (Arbalète/Catapulte/Ingénierie/Poudre noire,
   // AA 10 l.178-193) en `weaponGroup` → c'est lui qui pilote la Spé de tir ET le décompte d'équipage. Pour toute
@@ -158,6 +162,11 @@ function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptan
   return [{ spec: gid, mode: 'full' }];
 }
 
+/** Compétence d'un Test d'Arme selon le mode d'attaque (Corps à corps / Projectiles). */
+export function weaponSkillId(kind: 'melee' | 'ranged'): 'corps-a-corps' | 'projectiles' {
+  return kind === 'melee' ? 'corps-a-corps' : 'projectiles';
+}
+
 /**
  * Spé du combattant qui couvre le Groupe de l'arme, avec son MODE (`SpecAcceptance`) — SOURCE UNIQUE
  * consommée par `combatValue` (le bonus de Test est TOUJOURS intégral, cf. LDB 62 l.184 « votre
@@ -165,16 +174,11 @@ function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptan
  * entrées EXPLICITES (`spec` réel) priment sur la sentinelle `ANY_RANGED_SPEC`, essayée en dernier
  * (meilleure Spé de Tir disponible, dégradée). `null` si aucune Spé du `skillId` de `kind` ne matche.
  */
-/** Compétence d'un Test d'Arme selon le mode d'attaque (Corps à corps / Projectiles). */
-export function weaponSkillId(kind: 'melee' | 'ranged'): 'corps-a-corps' | 'projectiles' {
-  return kind === 'melee' ? 'corps-a-corps' : 'projectiles';
-}
-
 function matchGroupSpec(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'): { advances: number; mode: 'full' | 'degraded'; spec?: string } | null {
   const skillId = weaponSkillId(kind);
   const matching = c.skills.filter((s) => s.id === skillId);
   if (!matching.length) return null;
-  const wanted = acceptableSpecs(weapon, kind);
+  const wanted = acceptableSpecs(c, weapon, kind);
   for (const w of wanted) {
     if (w.spec === ANY_RANGED_SPEC) continue; // essayée en dernier, cf. plus bas
     const sk = matching.find((s) => s.spec === w.spec);
@@ -273,7 +277,7 @@ export function combatValue(c: Combatant, kind: 'melee' | 'ranged', weapon?: Wea
  */
 export function attackTestOf(c: Combatant, weapon: Weapon | undefined, kind: 'melee' | 'ranged'): { skill: string; spec?: string } | { char: CharKey } {
   if (weapon?.resolveChar) return { char: weapon.resolveChar };
-  const spec = combatSkillPick(c, kind, weapon).spec ?? (weapon ? acceptableSpecs(weapon, kind)[0]?.spec : undefined);
+  const spec = combatSkillPick(c, kind, weapon).spec ?? (weapon ? acceptableSpecs(c, weapon, kind)[0]?.spec : undefined);
   return { skill: weaponSkillId(kind), ...(spec ? { spec } : {}) };
 }
 
@@ -894,11 +898,10 @@ export function crowdMod(group: number): ModLine | null {
   return ligneParSeuil('tirer-dans-le-tas', group);
 }
 
-/** Le défenseur possède-t-il une Spé de Corps à corps donnée (id de Groupe d'arme, ex. `'parade'`) ?
- *  « Compétence de Corps à corps » = compétence dont l'entrée déclare puiser ses spé dans les Groupes
- *  d'armes de mêlée (`specsSource`) — la garantie même que `spec` est comparable à un id de Groupe. */
-function hasMeleeSpec(c: Combatant, spec: string): boolean {
-  return (c.skills ?? []).some((s) => byId('skill', s.id)?.specsSource === 'weaponGroupsMelee' && (s.spec ?? '') === spec);
+/** Pénalité de main secondaire aux attaques de `c`, Ambidextre comprise : celle que l'attaque applique et
+ *  que la fiche affiche. LDB 14 l.78 ; LDB 10 */
+export function penaliteDeMainSecondaire(c: Combatant): number {
+  return offHandPenalty(c, modDeRegle('main-secondaire', 'main-secondaire'));
 }
 
 /** Pénalité à la PARADE avec l'arme `weapon` (LDB 62 l.151), depuis la pénalité de main secondaire `base` :
@@ -906,7 +909,7 @@ function hasMeleeSpec(c: Combatant, spec: string): boolean {
  *  `base` transformée par Ambidextre. */
 export function parryPenalty(defender: Combatant, weapon: Weapon | undefined, base: number): number {
   if (!weapon || weapon.hand !== 'off') return 0;
-  if (weapon.hands === 1 && hasQuality(weapon, 'defensive') && hasMeleeSpec(defender, 'parade')) return 0;
+  if (weapon.hands === 1 && hasQuality(weapon, 'defensive') && !!speDeCorpsACorps(defender, 'parade')) return 0;
   return offHandPenalty(defender, base);
 }
 

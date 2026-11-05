@@ -84,9 +84,9 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     expect(pa?.freeKind).toBe('tentacules');
     expect(pa?.weaponUid).toBe('nat-tentacule');
     expect(pa?.result).toBeNull(); // rien n'est tiré avant Lancer
-    banc.getState().attackRoll();
+    banc.getState().jetRoll('attack');
     expect(banc.getState().pendingAttack?.result).toBeTruthy();
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const st = banc.getState();
     const e2 = st.battle!.combatants.find((c) => c.id === E.id)!;
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;

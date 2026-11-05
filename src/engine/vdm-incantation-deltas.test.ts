@@ -92,7 +92,7 @@ describe('Tableaux des Incantations Imparfaites — `VDM 02 l.218-263`', () => {
     for (const d of domains.filter((x) => x.tables?.arcaneMark)) {
       const ops = rollMiscast('mineure', rngOn88(), 0, d.id).ops;
       expect(ops, `${d.id} : aucune op de tirage`).toContainEqual({ op: 'rollTable', tableId: d.tables!.arcaneMark });
-      expect(findEffectTableById(d.tables!.arcaneMark).rows).toHaveLength(10);
+      expect(findEffectTableById(d.tables!.arcaneMark).entries).toHaveLength(10);
     }
   });
 

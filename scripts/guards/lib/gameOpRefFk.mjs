@@ -92,6 +92,7 @@ export const GAMEOP_FIELD_TARGETS = {
   'giveTrapping.custom': { nonRef: 'objet CUSTOM (misc), défini par ce nom faute d\'entrée de catalogue (src/engine/items.ts › itemFromGive)' },
   'grantNaturalWeapon.uid': { nonRef: 'identité d\'INSTANCE de l\'arme injectée dans `c.weapons` (déduplication)' },
   'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le maniement (src/noyau/animation.ts) — espace de noms du geste, pas un registre de données' },
+  'rollTable.die': { nonRef: 'expression de dé (« d10 », « 2d10 »), validée au parse par `deDeTirageSchema` (src/data/schemas/grammaire/valeurs.ts) et lue en `DiceSpec` par `parseDiceRequired` (src/engine/ops.ts › applyOps, `case \'rollTable\'`)' },
   'transform.tag': { nonRef: 'étiquette de GROUPEMENT des effets posés, relue par `endTransform` (retrait atomique)' },
   'endTransform.tag': { nonRef: 'étiquette de groupement posée par `transform`' },
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },

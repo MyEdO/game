@@ -11,7 +11,7 @@ export const famille = 'config';
 const plage = metaDesChamps(plageSchema, { exigees: true });
 
 /** Une rangée du 2d10 : la référence du Groupe qu'elle désigne, à sa fourchette. EDOC 12 l.217, l.241. */
-export const obsessionEntrySchema = ref('groupe', {
+export const rangee = ref('groupe', {
   min: nommerNoeud(z.number(), { nom: plage.min.label }),
   max: nommerNoeud(z.number(), { nom: plage.max.label }),
 });
@@ -25,7 +25,7 @@ const doc = document(
     codex: { keys: ['obsessions'] },
     edit: { niche: { categories: { obsessions: 'entries' } } },
   },
-  { rangee: obsessionEntrySchema },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useGame, type SheetTab } from '../state/store';
+import { useGame } from '../state/store';
+import { TAB_LABELS, type SheetTab } from '../i18n/ongletsDeLaFiche';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { appraiseRefus } from '../noyau/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -9,7 +10,7 @@ import { Tabs } from './composites/Tabs';
 import { isWeaponActive, maxEncumbrance, totalEncumbrance, apparencesCandidates, choisirApparenceDObjet } from '../engine/items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { OptionChooser } from './OptionChooser';
-import { ItemInstance, Combatant, LOCALISATIONS_DE_COUP } from '../engine/types';
+import { ItemInstance, Combatant, LOCALISATIONS_DE_COUP, avecSigne } from '../engine/types';
 import { forceDuPorteur } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
@@ -22,7 +23,7 @@ import { refusEmplacementDeMain, refusAchatDeComposant, coutDuComposant } from '
 import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
 import { refusDInventaire, refusDuLanceurDeFiche } from '../noyau/verrousDeFiche';
-import { t, type MsgKey } from '../i18n';
+import { t } from '../i18n';
 import { actorHasSkill, skillBaseValue } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
@@ -47,14 +48,14 @@ import { BackgroundPanel } from './BackgroundPanel';
 import { Icon } from './Icon';
 import { EffectChips } from './EffectChips';
 import { combatantFlags } from '../gameIso/effectIcons';
-import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
+import { atterritSurEtat, empreinteDeFiche } from '../noyau/alarmesDeFiche';
 import { nomDIndividu } from '../noyau/monde/sceneNpc';
 import { EtatPanel, zoneAnchor, zoneAfflictions } from './EtatPanel';
 import { FigZoneBadges, type ZoneBadgeSpec } from './FigTile';
 import { LifeBar } from './LifeBar';
 import { woundsTone, encumbranceTone } from './gaugeTones';
 import { corruptionThresholdExceeded } from '../engine/corruption';
-import { locationLabel } from '../engine/combat';
+import { locationLabel, penaliteDeMainSecondaire } from '../engine/combat';
 import { CarrierInventory } from './CarrierInventory';
 import { Row } from './Layout';
 
@@ -97,17 +98,6 @@ function SheetActiveEffects({ hero }: { hero: Combatant }) {
   return <EffectChips conditions={hero.conditions} effects={hero.activeEffects} flags={combatantFlags(hero)} />;
 }
 
-/** Libellé d'un onglet de la fiche : sa clé de catalogue `sheet.tab.<onglet>` — un texte qui NOMME un
- *  onglet (scénario de test, aide) lit la même clé, et ne peut donc pas mentir sur son nom. */
-export const TAB_LABELS: Record<SheetTab, MsgKey> = {
-  etat: 'sheet.tab.etat',
-  possessions: 'sheet.tab.possessions',
-  competences: 'sheet.tab.competences',
-  magie: 'sheet.tab.magie',
-  avancement: 'sheet.tab.avancement',
-  histoire: 'sheet.tab.histoire',
-};
-
 export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: () => void }) {
   // EN COMBAT, lire la copie de bataille (qui porte les effets actifs vivants — buffs, métamorphose,
   // dégâts…) plutôt que l'original du groupe ; hors combat, le groupe. → la fiche reflète l'état réel.
@@ -126,15 +116,15 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   // cf. `CampaignView.tsx`/`PartyScreen.tsx` qui ne posent pas de `key`).
   useEffect(() => {
     if (!hero) return;
-    const alarms = sheetAlarms(hero, nomDIndividu(useGame.getState()));
-    if (alarms.length > 0 && alarmsFingerprint(alarms) !== useGame.getState().sheetAlarmsSeen[hero.id]) setSheetTab('etat');
+    const s = useGame.getState();
+    if (atterritSurEtat(hero, s.sheetAlarmsSeen[hero.id], nomDIndividu(s))) setSheetTab('etat');
   }, []);
 
   // Enregistre l'empreinte VUE dès que l'onglet État est affiché (atterrissage forcé OU visite
   // manuelle) — les prochaines ouvertures sans alarme nouvelle laissent le dernier onglet consulté.
   useEffect(() => {
     if (!hero || tab !== 'etat') return;
-    const fp = alarmsFingerprint(sheetAlarms(hero, nomDIndividu(useGame.getState())));
+    const fp = empreinteDeFiche(hero, nomDIndividu(useGame.getState()));
     if (useGame.getState().sheetAlarmsSeen[hero.id] !== fp) setSheetAlarmsSeen(hero.id, fp);
   }, [tab, hero?.id, setSheetAlarmsSeen]); // `hero` change lu via getState() (pas de re-render en boucle sur son objet muté)
 
@@ -480,9 +470,9 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
 }
 
 /** Contrôle compact « En main » d'une arme du Sac (façon Dragon Age / Pillars) : assigne l'arme à la
- *  Main principale ou secondaire du set ACTIF. Réutilise OptionChooser (seg). La main secondaire impose
- *  −20 (LDB 14 l.139) et n'accepte qu'une arme de mêlée à une main ou un pistolet (LDB 14 l.138). Cliquer
- *  l'option déjà active la retire. (Verrouillé en combat : la bascule de set passe par la barre d'action.) */
+ *  Main principale ou secondaire du set ACTIF. Réutilise OptionChooser (seg). La pénalité affichée est
+ *  `penaliteDeMainSecondaire`, l'éligibilité `refusEmplacementDeMain`. Cliquer l'option déjà active la
+ *  retire. LDB 14 l.78, l.138 */
 function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   const setLoadoutSlot = useGame((s) => s.setLoadoutSlot);
   const battle = useGame((s) => s.battle);
@@ -493,6 +483,7 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   // Verdict du noyau (`refusEmplacementDeMain`), celui que le geste applique au clic.
   const refusMain = refusEmplacementDeMain({ battle }, hero, lo.id, 'main', isMain ? null : it.uid);
   const refusOff = refusEmplacementDeMain({ battle }, hero, lo.id, 'off', isOff ? null : it.uid);
+  const malus = avecSigne(penaliteDeMainSecondaire(hero));
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">
     <OptionChooser
@@ -508,11 +499,11 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
         },
         {
           key: 'off',
-          label: <>2nde <em className="off-malus">−20</em></>,
+          label: <>2nde <em className="off-malus">{malus}</em></>,
           selected: isOff,
           // La RAISON du refus se lit au survol/focus/tap dans l'infobulle partagée (`refus`), jamais
           // par un `disabled` muet ; le `title` ne reste que pour l'option OFFERTE.
-          title: refusOff ? undefined : 'Main secondaire : −20 aux attaques de cette main',
+          title: refusOff ? undefined : `Main secondaire : ${malus} aux attaques de cette main`,
           refus: refusOff ?? undefined,
           onSelect: () => setLoadoutSlot(hero.id, lo.id, 'off', isOff ? null : it.uid),
         },

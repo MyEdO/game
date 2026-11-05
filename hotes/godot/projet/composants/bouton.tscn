@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/geste.gd" id="2_geste"]
+
+[node name="Bouton" type="VBoxContainer"]
+
+[node name="Presser" type="Button" parent="."]
+toggle_mode = true
+
+[node name="libelle" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="presse" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "presse"
+propriete = &"button_pressed"
+
+[node name="refus" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"disabled"
+
+[node name="Geste" type="Node" parent="Presser"]
+script = ExtResource("2_geste")
+
+[node name="infobulle" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"tooltip_text"

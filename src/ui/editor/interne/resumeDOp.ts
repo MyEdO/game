@@ -10,9 +10,10 @@ import { cibleDeRef, libelleDePsy } from '../../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../../engine/psych/opsPsy';
 import { findFallTable } from '../../../data/shipCriticals';
 import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, contexteDeTestSchema, deDeTableSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, contexteDeTestSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
 import { zoneShapeSchema } from '../../../data/schemas/grammaire/mecanique';
 import { CHAR_LABELS } from '../../../engine/types';
+import { formatDice, parseDiceRequired } from '../../../engine/dice';
 import { deElide } from '../../../i18n';
 import { giveTrappingLabel } from '../../../engine/items';
 import { formatWardSave, traitLisible } from '../../../engine/traits/dispatch';
@@ -42,7 +43,7 @@ export function formulaSummary(f: JsonFormula | undefined): string {
   if ('parTranche' in f) return `${formulaSummary(f.of)} ÷ ${f.parTranche}`;
   if ('sum' in f) return f.sum.map(formulaSummary).join(' + ');
   if ('times' in f) return `${formulaSummary(f.times.of)} × ${formulaSummary(f.times.factor)}`;
-  if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
+  if ('dice' in f) return formatDice(f.dice);
   throw new Error(`formulaSummary : terme de Formula hors grammaire (${JSON.stringify(f)})`);
 }
 
@@ -147,7 +148,7 @@ export function opSummary(o: GameOp): string {
     case 'loseTurn': return 'saute le tour';
     case 'removeShipPoste': return 'retire un poste de navire';
     case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
-    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${libelleDeValeur(deDeTableSchema, o.die)} → ${o.rows.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
+    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(parseDiceRequired(o.die, 'rollTable.die'))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
     case 'narrative': return o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)';
     default: return `${(o as GameOp).op}`;

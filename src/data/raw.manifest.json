@@ -74,13 +74,6 @@
     "bloque": "Réparation des Structures, aucun site ne la résout (train Corr-C) : Test de Métier (Charpentier) ou (Maçon) Accessible (+20) hors combat (AA 10 l.132) ; Test étendu Très Difficile (−30), 20 DR, en combat (AA 10 l.134)"
   },
   {
-    "id": "4e/combat#aa-01-tableau-des-armes-a-deux-mains",
-    "type": "raw.manifest",
-    "label": "[AA 01] Tableau des Armes à Deux Mains",
-    "ticket": "#1661",
-    "bloque": "Indice de Taillade du sabre selon la Compétence employée (AA 08 l.190) : aucune Condition ne lit la Compétence de l'attaque"
-  },
-  {
     "id": "4e/deplacement#option-attraper-froid",
     "type": "raw.manifest",
     "label": "Option « Attraper Froid »",
@@ -97,7 +90,7 @@
     "type": "raw.manifest",
     "label": "Navigation fluviale — Tests de Navigation (MSRC)",
     "ticket": "#2589",
-    "bloque": "Test d'Agilité du jour (MSRC 7 l.17) sans mécanique : le barreur-poste et le barreur sans Voile se modélisent au système de voyage sur l'eau unique (#2588 Q2/Q3). #2589 réécrit l'étape du jour et son applier `riverAgility` (facteur posé sur `river.dayAgilityFactor`), les facteurs d'échec et d'Échec spectaculaire, leur donnée `river-navigation.json › rowingAgility` et son schéma, l'enjeu `voyage-stakes.json › river-agility`, la fiche `regles.json › navigation-agilite-de-rame` et la section Codex de la Navigation fluviale"
+    "bloque": "Test d'Agilité du jour (MSRC 7 l.17) sans mécanique : le barreur-poste et le barreur sans Voile se modélisent au système de voyage sur l'eau unique (#2588 Q2/Q3). #2589 réécrit l'étape du jour et son applier `riverAgility` (facteur posé sur `river.dayAgilityFactor`), les facteurs d'échec et d'Échec spectaculaire, leur donnée `river-navigation.json › rowingAgility` et son schéma, l'enjeu `stakes.json › river-agility`, la fiche `regles.json › navigation-agilite-de-rame` et la section Codex de la Navigation fluviale"
   },
   {
     "id": "4e/deplacement#degats-infliges-aux-vehicules-edoc",

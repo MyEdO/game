@@ -118,7 +118,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
   it('contre-sort — voie 1 (store) : un jet RNG quelconque porte les mêmes modificateurs', () => {
     seedBattleRng(12345);
     openCounterspell();
-    st().counterspellRoll('A');
+    st().jetRoll('counterspell', 'A');
     const c = counterOf();
     const nu = evaluateTest(c.roll, VALEUR).sl;
     expect(c.sl, 'jet du store : DR autre que le Talent lié seul').toBe(c.roll <= VALEUR ? nu + TALENT : nu);
@@ -126,7 +126,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('contre-sort — voie 2 : le dé SAISI passe par la source', () => {
     openCounterspell({ dispelled: false, counter: { roll: 88, target: VALEUR, sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' });
-    st().counterspellSetForcedRoll('A', DE);
+    st().jetSetForcedRoll('counterspell', DE, 'A');
     const c = counterOf();
     expect(c.roll).toBe(DE);
     expect(c.sl, 'dé fixé : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
@@ -134,12 +134,12 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('contre-sort — voie 3 : la RÉSILIENCE passe par la source (dé par défaut, puis dé choisi)', () => {
     openCounterspell();
-    st().counterspellForceSuccess('A');
+    st().jetForceSuccess('counterspell', 'A');
     const c = counterOf();
     expect(c.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
     expect(c.sl, 'Résilience : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
 
-    st().counterspellSetForcedRoll('A', DE);
+    st().jetSetForcedRoll('counterspell', DE, 'A');
     expect(counterOf().sl, 'Résilience + dé choisi : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
   });
 
@@ -153,7 +153,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('incantation — voie 2 : le dé SAISI passe par la source', () => {
     openCast(88, VALEUR);
-    st().castSetForcedRoll(DE);
+    st().jetSetForcedRoll('cast', DE);
     const r = castOf();
     expect(r.roll).toBe(DE);
     expect(r.sl, 'dé fixé : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
@@ -161,12 +161,12 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('incantation — voie 3 : la RÉSILIENCE passe par la source (dé par défaut, puis dé choisi)', () => {
     openCast(88, VALEUR);
-    st().castForceSuccess();
+    st().jetForceSuccess('cast');
     const r = castOf();
     expect(r.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
     expect(r.sl, 'Résilience : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
 
-    st().castSetForcedRoll(DE);
+    st().jetSetForcedRoll('cast', DE);
     expect(castOf().sl, 'Résilience + dé choisi : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
   });
 });
@@ -284,13 +284,13 @@ describe('Focalisation — trois voies, même DR à dé égal (#948)', () => {
 
       // Voie 2 — dé SAISI (option « Dés fixés »).
       openFocus();
-      st().focusSetForcedRoll(DE);
+      st().jetSetForcedRoll('focus', DE);
       const saisi = focusOf();
       expect(saisi.roll, 'le dé saisi n’est pas celui appliqué').toBe(DE);
 
       // Voie 3 — RÉSILIENCE (dé par défaut = le meilleur, 01 en policy standard).
       poser(hero); openFocus();
-      st().focusForceSuccess();
+      st().jetForceSuccess('focus');
       const resil = focusOf();
       expect(resil.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
 
@@ -321,12 +321,12 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, 'langue', 'magick'), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
     setDesFixes(true);
-    st().counterspellSetForcedRoll('A', DE);
+    st().jetSetForcedRoll('counterspell', DE, 'A');
     const saisi = counterOf().sl;
     // Voie 3 — Résilience.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo' }] } });
-    st().counterspellForceSuccess('A');
+    st().jetForceSuccess('counterspell', 'A');
     const resil = counterOf().sl;
     return { naturel, saisi, resil };
   };
@@ -339,10 +339,10 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
       result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: '' } };
     poser(hero, { pendingCast: pending });
     setDesFixes(true);
-    st().castSetForcedRoll(DE);
+    st().jetSetForcedRoll('cast', DE);
     const saisi = castOf().sl;
     poser(hero, { pendingCast: pending });
-    st().castForceSuccess();
+    st().jetForceSuccess('cast');
     const resil = castOf().sl;
     return { naturel, saisi, resil };
   };

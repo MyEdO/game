@@ -3,9 +3,9 @@
  * (« une situation = une modale »).
  *
  * Part FACTUELLE, DÉRIVÉE à chaque génération :
- *  - le CYCLE : les membres de `RollVerb` (`src/noyau/flowVerbs.ts`) ;
- *  - le REGISTRE : chaque entrée de `FLOW_VERBS` (kind, verbes, porteur du jet ou `pidIsActor`/
- *    `coop`, actions de résolution), confrontée à `FLOWS` (`src/noyau/rollFlowSpecs.ts`) et au
+ *  - le CYCLE : les membres de `VERBES_DE_JET`, d'où `RollVerb` se dérive (`src/noyau/flowVerbs.ts`) ;
+ *  - le REGISTRE : chaque entrée de `FLOW_VERBS` (kind, verbes, porteur du jet ou `pidIsActor`,
+ *    actions de résolution), confrontée à `FLOWS` (`src/noyau/rollFlowSpecs.ts`) et au
  *    registre des modales (`src/noyau/modalArbiter.ts`) ;
  *  - les FABRIQUES et LENTILLES partagées à réutiliser, avec leur site réel ;
  *  - les ATOMES obligatoires, lus dans la garde anti-dérive elle-même ;
@@ -47,22 +47,24 @@ function rendu() {
   const { text: S_SRC, sf: S_SF } = loadSource(SPECS)
   const { text: F_SRC, sf: F_SF } = loadSource(FACTORY)
 
-  // ── Le CYCLE : `RollVerb` + son JSDoc ────────────────────────────────────────────────────────────
+  // ── Le CYCLE : `VERBES_DE_JET` (d'où `RollVerb` se dérive) + son JSDoc ─────────────────────────────
 
   const CYCLE = (() => {
-    let alias
+    let decl
     V_SF.forEachChild((n) => {
-      if (ts.isTypeAliasDeclaration(n) && n.name.text === 'RollVerb') alias = n
+      if (ts.isVariableStatement(n)) for (const d of n.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === 'VERBES_DE_JET') decl = { n, d }
     })
-    if (!alias || !ts.isUnionTypeNode(alias.type)) abandon(`\`RollVerb\` n'est plus une union nommée dans ${VERBS}`)
-    const doc = jsdocBody(V_SRC.slice(alias.getFullStart(), alias.getStart(V_SF)))
+    const init = decl?.d.initializer
+    const tuple = init && ts.isAsExpression(init) ? init.expression : init
+    if (!tuple || !ts.isArrayLiteralExpression(tuple)) abandon(`\`VERBES_DE_JET\` n'est plus un tuple littéral dans ${VERBS}`)
+    const doc = jsdocBody(V_SRC.slice(decl.n.getFullStart(), decl.n.getStart(V_SF)))
     return {
-      verbes: alias.type.types.filter((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)).map((t) => t.literal.text),
+      verbes: tuple.elements.filter(ts.isStringLiteral).map((t) => t.text),
       note: doc ? plat(firstSentence(doc)) : null,
-      l: ligne(V_SF, alias.name.getStart(V_SF)),
+      l: ligne(V_SF, decl.d.name.getStart(V_SF)),
     }
   })()
-  if (CYCLE.verbes.length < 5) abandon(`moins de 5 verbes lus dans \`RollVerb\` — le cycle a dérivé`)
+  if (CYCLE.verbes.length < 5) abandon(`moins de 5 verbes lus dans \`VERBES_DE_JET\` — le cycle a dérivé`)
 
   // ── Le REGISTRE : `FLOW_VERBS`, entrée par entrée ────────────────────────────────────────────────
 
@@ -104,8 +106,6 @@ function rendu() {
         return pend && champ ? `\`${pend}.${champ}\`` : null
       })(),
       pidIsActor: lire(/pidIsActor:\s*(\w+)/),
-      coop: /coop:\s*true/.test(src),
-      resolution: liste('resolution'),
       l: ligne(V_SF, p.getStart(V_SF)),
     }
   })
@@ -166,9 +166,7 @@ function rendu() {
     ['flatRollLens', SPECS, S_SRC, S_SF],
     ['resultRollLens', SPECS, S_SRC, S_SF],
     ['opposedBinaryFlow', SPECS, S_SRC, S_SF],
-    ['rollFlowActions', SPECS, S_SRC, S_SF],
-    ['rollFlowActionsMulti', SPECS, S_SRC, S_SF],
-    ['buildRollFlowActions', SPECS, S_SRC, S_SF],
+    ['creerVerbesDeJet', SPECS, S_SRC, S_SF],
   ]
     .map(([nom, chemin, text, sf]) => site(chemin, text, sf, nom))
     .filter(Boolean)
@@ -216,14 +214,14 @@ function rendu() {
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-flux-de-jet.mjs\` (\`npm run docs:flux-de-jet\`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : les ${CYCLE.verbes.length} membres de
-\`RollVerb\` (\`${VERBS}:${CYCLE.l}\`), les ${FLUX.length} entrées de \`FLOW_VERBS\` avec leur ligne,
-leur type, leurs verbes, leur porteur de jet et leurs actions de résolution, la confrontation au
+\`VERBES_DE_JET\` (\`${VERBS}:${CYCLE.l}\`), les ${FLUX.length} entrées de \`FLOW_VERBS\` avec leur ligne,
+leur type, leurs verbes et leur porteur de jet, la confrontation au
 registre des modales (\`${ARBITER}\`, ${MODAL_KEYS.size} clés déclarées), les ${PARTAGES.length}
 fabriques/lentilles partagées et les ${ATOMES.length} atomes obligatoires (lus dans la garde
 anti-dérive, jamais recopiés), et les ${GARDES_MESUREES.length} gardes avec l'intitulé de leur
 \`describe(...)\`. **Angles morts** : ce doc dit COMMENT poser un flux, pas d'où partent les jets
 existants (\`docs/registre-jets.md\`) ni comment chaque consommateur remplit la coquille
-(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`xConfirm\` applique) n'est
+(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`jetConfirm(flux)\` applique) n'est
 dérivable d'aucun registre — c'est la règle du jeu ; les interdits et l'ordre des étapes sont de
 l'ÉDITORIAL fixé dans le script.
 
@@ -233,21 +231,24 @@ FORME.
 
 ## 0. Le cycle de vie
 
-Les verbes du cycle sont l'union \`RollVerb\` (\`${VERBS}:${CYCLE.l}\`) :
+Les verbes du cycle sont ceux de \`VERBES_DE_JET\` (\`${VERBS}:${CYCLE.l}\`), d'où se dérive l'union \`RollVerb\` :
 
 ${CYCLE.verbes.map((v) => `\`${v}\``).join(' · ')}
 
 ${CYCLE.note ? `> ${CYCLE.note}\n` : ''}
 Source unique de la plomberie : \`makeRollFlow\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site}\`).
 Elle centralise gardes, dépense de points et re-rendu ; le flux ne fournit que sa forme.
-**« Appliquer » (\`<flux>Confirm\`) reste écrit à la main** — ses effets sont la règle métier, pas de
-la plomberie.
+**Le corps de la clôture reste écrit à la main** — ses effets sont la règle métier, pas de la plomberie ;
+le geste, lui, est le verbe de jet \`jetConfirm(flux)\`, jugé sur la fenêtre comme les autres.
 
 ## 1. Le registre des flux — \`FLOW_VERBS\`
 
 \`FLOW_VERBS\` (\`${VERBS}\`) est la **SOURCE UNIQUE** du câblage : elle porte, par flux, son type et
-le sous-ensemble de verbes exposés. Le type \`RollFlowActionsMap\` en est DÉRIVÉ et \`ActionsDuNoyau\`
-(\`src/noyau/actionsDuNoyau.ts\`) l'étend — ajouter ou retirer un verbe ici est **bidirectionnel** : l'oublier ailleurs casse \`tsc\`.
+le sous-ensemble de verbes qu'il accepte. Un geste de jet est UN verbe du noyau par verbe du cycle,
+\`jet<Verbe>(flux, …)\` (\`NOM_DU_VERBE_DE_JET\`, type \`VerbesDeJet\`, qu'\`ActionsDuNoyau\` étend) : le type
+de son premier argument se DÉRIVE de la table (\`FluxDuVerbe\`) — ajouter ou retirer un verbe d'un flux est
+**bidirectionnel** : un appel qui l'oublie casse \`tsc\`, une frontière (JSON d'un hôte, intention d'un siège) se
+le voit refuser, et le dit (\`creerVerbesDeJet\`).
 \`FLOW_HANDLERS\` (\`${SPECS}\`) y associe le handler, avec exhaustivité garantie
 (${CLES_FLOWS.size} entrées dans \`FLOWS\`, ${CLES_HANDLERS.size} dans \`FLOW_HANDLERS\`).
 
@@ -260,27 +261,29 @@ ${table(MONO, ['Flux', 'Déclaré', 'Porteur du jet', 'Verbes', 'Modale (`auto`)
 
 ### Flux MULTI (${MULTI.length})
 
-Un flux multi déclare \`pidIsActor\` (à qui appartient le 1ᵉʳ argument des délégués), son ouverture
-\`coop\` éventuelle, et ses actions de \`resolution\` (les actions manuscrites qui closent la fenêtre —
-elles sont DÉRIVÉES dans la surface invité, jamais recopiées).
+Un flux multi déclare \`pidIsActor\` (à qui appartient la rangée \`pid\` que vise un geste de jet).
 
-${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Coop', 'Résolution', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.coop ? 'oui' : '—'} | ${f.resolution.length ? f.resolution.map((r) => `\`${r}\``).join(', ') : '—'} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
+${table(MULTI, ['Flux', 'Déclaré', '`pidIsActor`', 'Verbes', 'Modale (`auto`)'], (f) => `| \`${f.cle}\` | \`${VERBS}:${f.l}\` | ${f.pidIsActor ?? '—'} | ${f.verbes.map((v) => `\`${v}\``).join(', ')} | ${MODAL_KEYS.has(f.cle) ? `\`${MODAL_KEYS.get(f.cle) ?? '?'}\`` : '—'} |`)}
 
 ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MODALE.map((k) => `\`${k}\``).join(', ')} — normal quand le flux est une ÉTAPE d'une cascade (l'entrée de cascade porte déjà la fenêtre), fautif sinon.` : 'Tous les flux ont une entrée dans `MODAL_DEFS`.'}
 
-## 2. La recette — 1 spec + 1 confirm
+## 2. La recette — 1 spec + 1 corps de clôture
 
 1. **Type du pending** : \`Pending<X> extends PendingBase\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site.split(':')[0]}\` porte
    \`PendingBase\` et ses champs hérités). Déclarer le slot dans \`EtatDeJeu\` (\`src/noyau/etat.ts\`).
 2. **Entrée dans \`FLOWS\`** (\`${SPECS}\`) : \`makeRollFlow({ key, rolled, actor, resolve, outcome, … })\`.
    **Réutiliser les fabriques partagées** (§3) plutôt que réécrire les branches à la main.
-3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes, et le porteur (\`jetOwner\`) ou
-   \`pidIsActor\`/\`resolution\`. Puis l'entrée jumelle dans \`FLOW_HANDLERS\` — l'exhaustivité est
+3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes (\`confirm\` compris), et le porteur
+   (\`jetOwner\`) ou \`pidIsActor\`. Puis l'entrée jumelle dans \`FLOW_HANDLERS\` — l'exhaustivité est
    forcée à la compilation.
-4. **\`<flux>Confirm\` / \`<flux>Cancel\` écrits à la main** dans la tranche de store du domaine : lire le
-   résultat, appliquer les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des
-   dégâts), nuller le pending, et faire avancer la cascade hôte si le jet en est une étape — jamais
-   une 2ᵉ fenêtre séparée.
+4. **Le corps de la clôture écrit à la main**, entrée du flux dans la table \`cloturesDe…(get, set)\` de son module
+   (\`satisfies Partial<CloturesDuJet>\`), composée dans \`src/noyau/fabriquesDuNoyau.ts\` (\`satisfies CloturesDuJet\` :
+   un flux sans clôture ne compile pas) — \`jetConfirm(flux)\` en est le seul appelant : lire le résultat, appliquer
+   les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des dégâts), nuller le pending, et
+   faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
+   le verbe de jet \`jetCancel(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
+   \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : \`RollFlowHandlers.fermetures\` en tire ce que
+   la coquille, les hôtes et les verbes de jet ouvrent ; un réglage manuscrit (\`<flux>Set*\`) passe par \`siOuvert\`.
 5. **Ouvrir le pending** depuis le site d'origine ; si le jet est une étape de combat, l'ouvrir comme
    une étape de cascade, pas comme une fenêtre isolée.
 6. **Registre des modales** (\`${ARBITER}\`) — SEULEMENT si le flux n'est pas une étape d'une cascade
@@ -293,13 +296,21 @@ ${table(PARTAGES, ['Primitive', 'Site', 'Rôle (JSDoc)'], (p) => `| \`${p.nom}\`
 Le résolveur d'un flux est **UN SEUL** \`resolve\` pour tous les cas : jet normal (RNG), réussite
 forcée par défaut, dé CHOISI par le joueur, et DR imposé par la Résistance. Un flux qui n'expose pas
 la capacité correspondante n'offre simplement pas l'influence — les branches sont alors inertes.
+La Résilience avant le jet (« au lieu de lancer les dés », LDB 17 l.68) est UN geste du verbe de jet \`jetForceSuccess\`
+(\`auJetDu\`, encadré par \`withPreRollFixedDie\`) : le résolveur forcé se passe du dé quand il le sait, sinon le
+jet du flux tombe d'abord puis il est forcé ; aucune modale ne compose ce geste. Un Test opposé déclare
+\`perdu\` : sa Résilience reste ouverte sur un jet propre réussi dont l'opposition est perdue.
 
 ## 4. La modale = \`RollShell\` paramétrée
 
 \`RollShell\` est LA coquille unique : contrôles en PROPS, métier en SLOTS. Écrire un hook
 \`use<Jet>JetProps\` (\`src/ui/jetProps/\`) qui lit le store et rend les props ; la modale ne fait que
 l'appeler. Quelles zones chaque consommateur remplit aujourd'hui : \`docs/usages-jets.md\` (généré).
-**Ne jamais réécrire un bouton « Lancer »/« Relancer » à la main** dans une modale.
+**Ne jamais réécrire un bouton « Lancer »/« Relancer » à la main** dans une modale. Une action de la
+barre qui joue un verbe du cycle le NOMME (\`RollAction.verbe\`, et \`flux\`/\`pid\` quand ce n'est pas
+le flux de la coquille) : elle ne se montre que tant que le noyau le laisse ouvert (\`fermeturesDuFlux\`,
+\`src/noyau/verbesOuverts.ts\`), comme les gestes d'un hôte (\`fermeturesDeLaFenetre\`) — jamais un
+« avant / après le jet » écrit au site.
 
 ## 5. Les atomes OBLIGATOIRES
 

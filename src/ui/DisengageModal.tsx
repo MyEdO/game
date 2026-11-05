@@ -24,6 +24,7 @@ import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { libelleDeTest, libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre du Désengagement. */
 const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'disengage-choice', esquive: 'disengage-esquive', fuir: 'disengage-fuir' };
@@ -33,29 +34,29 @@ const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice
  * - **'choice'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
  *   Fuir + Résilience pré-jet, rendu dans un `Modal` simple (RollShell ne fait pas les menus).
  * - **'esquive'** : `RollShell` opposé (2 rangées) — [0] Corps à corps du foe FIGÉ (témoin) vs
- *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `disengageConfirm`.
+ *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetConfirm('disengage')`.
  * - **'fuir'** : `RollShell` (flux MULTI `flee`, 2 slots) — [0] le coup dans le dos du FRAPPEUR,
  *   [1] le Test du FUYARD (fiche `fuite`, présent seulement si le coup a fait des Blessures). Chaque rangée
- *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `fleeConfirm`.
+ *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `jetConfirm('flee')`.
  */
 export function DisengageModal() {
   const pd = useGame((s) => s.pendingDisengage);
   const battle = useGame((s) => s.battle);
   const sacrifice = useGame((s) => s.disengageConfirmA);
-  const esquiver = useGame((s) => s.disengageRoll);
-  const reroll = useGame((s) => s.disengageReroll);
-  const bonusSL = useGame((s) => s.disengageBonusSL);
-  const darkPact = useGame((s) => s.disengageDarkPact);
-  const forceSuccess = useGame((s) => s.disengageForceSuccess);
-  const confirm = useGame((s) => s.disengageConfirm);
+  const esquiver = useGesteDeJet('jetRoll', 'disengage');
+  const reroll = useGesteDeJet('jetReroll', 'disengage');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'disengage');
+  const darkPact = useGesteDeJet('jetDarkPact', 'disengage');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'disengage');
+  const confirm = useGesteDeJet('jetConfirm', 'disengage');
   const flee = useGame((s) => s.disengageFlee);
-  const fleeRoll = useGame((s) => s.fleeRoll);
-  const fleeReroll = useGame((s) => s.fleeReroll);
-  const fleeBonusSL = useGame((s) => s.fleeBonusSL);
-  const fleeDarkPact = useGame((s) => s.fleeDarkPact);
-  const fleeForce = useGame((s) => s.fleeForceSuccess);
-  const fleeConfirm = useGame((s) => s.fleeConfirm);
-  const cancel = useGame((s) => s.disengageCancel);
+  const fleeRoll = useGesteDeJet('jetRoll', 'flee');
+  const fleeReroll = useGesteDeJet('jetReroll', 'flee');
+  const fleeBonusSL = useGesteDeJet('jetBonusSL', 'flee');
+  const fleeDarkPact = useGesteDeJet('jetDarkPact', 'flee');
+  const fleeForce = useGesteDeJet('jetForceSuccess', 'flee');
+  const fleeConfirm = useGesteDeJet('jetConfirm', 'flee');
+  const cancel = useGesteDeJet('jetCancel', 'disengage');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
@@ -162,7 +163,7 @@ export function DisengageModal() {
       : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
 
     const rolled = !!res && (!toucheDu || !!jet);
-    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, when: 'post' }];
+    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, verbe: 'confirm', flux: 'flee' }];
 
     return (
       <RollShell
@@ -218,7 +219,7 @@ export function DisengageModal() {
   }, { key: 'mover' });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

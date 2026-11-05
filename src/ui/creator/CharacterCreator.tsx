@@ -56,7 +56,7 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
@@ -67,13 +67,11 @@ import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../
 import { damageString, itemFromTrappingById, itemLabel } from '../../engine/items';
 import { skillBaseValue } from '../../engine/skills';
 import { effectiveChar } from '../../engine/characteristics';
-import { rangeSpecLabel, ammoRangeModLabel } from '../weaponStats';
+import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
 import { graineDEntropie } from '../../web/entropie';
-import { makeRNG } from '../../engine/dice';
-import { generateName } from '../../engine/names';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -131,13 +129,26 @@ import {
   careerCharKeys,
   careerSkillEntries,
   careerAdvTotal,
-  evenCareerSkillAdvances,
+  withEvenCareerSkillAdvances,
   careerTalentOptions,
   pettySpellQuota,
   draftWealth,
   draftStatus,
   rollDraftWealth,
-  rolledDetails,
+  rollDraftDetails,
+  rollDraftName,
+  withEtatCivil,
+  withSexeSuivant,
+  withTrappingChoice,
+  withCareerTalent,
+  withCareerTalentSpec,
+  withPettySpellToggled,
+  withSpeciesSkillDefaults,
+  withStar,
+  withStarTalentSpec,
+  withCharMode,
+  withAssignment,
+  withIgnoreRestrictions,
   validateStep,
   stepIds,
   type StepId,
@@ -740,7 +751,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
           type="button"
           className="chip"
           aria-pressed={d.ignoreRestrictions}
-          onClick={() => setD({ ...d, ignoreRestrictions: !d.ignoreRestrictions })}
+          onClick={() => setD(withIgnoreRestrictions(d, !d.ignoreRestrictions))}
         >
           Ignorer les restrictions de race
         </button>
@@ -947,7 +958,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
             key,
             label: <>{label} <em className="hint" style={{ fontStyle: 'normal' }}>+{charsXpDeLaMethode(d, mode)} PX</em></>,
             selected: d.charMode === mode,
-            onSelect: () => setD({ ...d, charMode: mode }),
+            onSelect: () => setD(withCharMode(d, mode)),
           }))}
         />
         <p className="hint" style={{ marginTop: 8 }}>
@@ -1029,11 +1040,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                         {d.charMode === 'reassigned' && revealed && (
                           <select
                             value={d.assignment[k]}
-                            onChange={(e) => {
-                              const idx = Number(e.target.value);
-                              const holder = CHAR_KEYS.find((kk) => d.assignment[kk] === idx)!; // échange → permutation garantie
-                              setD({ ...d, assignment: { ...d.assignment, [k]: idx, [holder]: d.assignment[k] } });
-                            }}
+                            onChange={(e) => setD(withAssignment(d, k, Number(e.target.value)))}
                           >
                             {rolls.map((r, j) => (
                               <option key={j} value={j}>
@@ -1192,7 +1199,7 @@ export function StarScreen({ d, setD }: StepProps) {
     setPendingKey(key);
     // Un seul destin ⇒ l'élection est immédiate ; plusieurs ⇒ RIEN n'est élu tant que le joueur n'a
     // pas choisi son destin (jamais un destin imposé d'office — agentivité, amendement #393).
-    setD({ ...d, star: pos.members.length === 1 ? pos.members[0].id : undefined });
+    setD(withStar(d, pos.members.length === 1 ? pos.members[0].id : undefined));
   };
 
   // Bande d'ACTION (slot requis de l'ossature) : la TOPBAR de la planche — titre+rubrique à gauche,
@@ -1279,7 +1286,7 @@ export function StarScreen({ d, setD }: StepProps) {
                   content={splitLabel(m.label).spec ?? m.label}
                   meta={m.sub && <span className="hint">{bandeAuDe('d10', m.sub.min, m.sub.max)}</span>}
                   selected={m.id === d.star}
-                  onClick={() => setD({ ...d, star: m.id })}
+                  onClick={() => setD(withStar(d, m.id))}
                 />
               ))}
             </PlaqueGrid>
@@ -1316,17 +1323,12 @@ export function StarScreen({ d, setD }: StepProps) {
                       options={grantOpts}
                       value={d.specChoices[adresseDeCreation.signe(grantChoice.k)] ?? ''}
                       vide="— au choix —"
-                      onChange={(spec) => {
-                        const specChoices = { ...d.specChoices };
-                        if (spec) specChoices[adresseDeCreation.signe(grantChoice.k)] = spec;
-                        else delete specChoices[adresseDeCreation.signe(grantChoice.k)];
-                        setD({ ...d, specChoices });
-                      }}
+                      onChange={(spec) => setD(withStarTalentSpec(d, grantChoice.k, spec))}
                     />
                   </label>
                 )}
                 {d.star && (
-                  <button className="btn small" onClick={() => { setPendingKey(null); setD({ ...d, star: undefined }); }}>
+                  <button className="btn small" onClick={() => { setPendingKey(null); setD(withStar(d, undefined)); }}>
                     Aucun signe
                   </button>
                 )}
@@ -1458,9 +1460,7 @@ function speciesSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, sp
         <button
           type="button"
           className={`dicewell${done ? ' done' : ' act emph'}`}
-          onClick={() =>
-            setD({ ...d, speciesPlus5: speciesSkillDefaults(sp).plus5, speciesPlus3: speciesSkillDefaults(sp).plus3 })
-          }
+          onClick={() => setD(withSpeciesSkillDefaults(d))}
         >
           <span className="dicewell-copy">
             <span className="dicewell-txt">Répartition par défaut</span>
@@ -1554,7 +1554,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
   return {
     action: (
       <StepHeader title="Compétences de carrière" sub="Un seul geste — l'école du métier">
-        <button type="button" className={`dicewell${done ? ' done' : ' act emph'}`} onClick={() => setD({ ...d, skillAdvances: evenCareerSkillAdvances(d) })}>
+        <button type="button" className={`dicewell${done ? ' done' : ' act emph'}`} onClick={() => setD(withEvenCareerSkillAdvances(d))}>
           <span className="dicewell-copy">
             <span className="dicewell-txt">+5 sur les huit</span>
             <span className="dicewell-sub">répartition simple, modifiable ensuite</span>
@@ -1748,7 +1748,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                   className="talent-options-grid"
                   count={enabledChoices.length}
                   activeIndex={activeCareerIdx}
-                  onActivate={(idx) => setD({ ...d, careerTalent: enabledChoices[idx].selected ?? undefined })}
+                  onActivate={(idx) => setD(withCareerTalent(d, enabledChoices[idx].selected))}
                 >
                 {careerChoices.map(({ ref, choices, selected, maxed }, n) => {
                   const isSel = memeRef(selected, d.careerTalent);
@@ -1768,7 +1768,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                       disabled={!selected || maxed}
                       tabIndex={enabled ? (enabledIdx === activeCareerIdx ? 0 : -1) : undefined}
                       className="talent-option-btn"
-                      onClick={() => selected && setD({ ...d, careerTalent: selected })}
+                      onClick={() => selected && setD(withCareerTalent(d, selected))}
                     >
                       <b>{selected ? refLabel('talents', selected) : advancementLabel('talents', ref)}</b>
                       {maxed && <em className="hint">Maxi atteint (déjà possédé)</em>}
@@ -1782,7 +1782,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                         options={choices.map((c) => c.spec ?? '')}
                         value={selected?.spec ?? ''}
                         vide="— choisir —"
-                        onChange={(spec) => setD({ ...d, careerTalent: spec ? { id: ref.id, spec } : isSel ? undefined : d.careerTalent })}
+                        onChange={(spec) => setD(withCareerTalentSpec(d, ref, spec))}
                       />
                     )}
                   </div>
@@ -1806,10 +1806,7 @@ export function PettySpellsSection({ d, setD }: StepProps) {
   if (!quota) return null;
   const admis = new Set(idsDeLaSousListe('spell', 'mineure'));
   const minors = allSpells.filter((s) => admis.has(s.id)).map((s) => effectiveEntry(s));
-  const toggle = (id: string) => {
-    if (d.pettySpells.includes(id)) setD({ ...d, pettySpells: d.pettySpells.filter((x) => x !== id) });
-    else if (d.pettySpells.length < quota) setD({ ...d, pettySpells: [...d.pettySpells, id] });
-  };
+  const toggle = (id: string) => setD(withPettySpellToggled(d, id));
   return (
     <Section
       title="Sorts de Magie mineure (inclus au Talent)"
@@ -2027,7 +2024,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
             <TrappingChoiceSlot
               emplacement={e}
               choices={d.trappingChoices ?? {}}
-              onChoicesChange={(adresse, v) => setD({ ...d, trappingChoices: { ...d.trappingChoices, [adresse]: v } })}
+              onChoicesChange={(adresse, v) => setD(withTrappingChoice(d, adresse, v))}
             />
             {arme && <p className="hint">{trappingMeta(arme)}</p>}
           </Band>
@@ -2073,8 +2070,8 @@ function IdentityField({ label, value, onChange, onClear }: {
 
 /** Champ IDENTITÉ NOMBRE du registre d'état civil (âge, taille) — la grandeur passe par la primitive
  *  partagée, jamais par un `<input type="number">` du site. `details.json` ne chiffre que le TIRAGE
- *  (`ageBase`/`ageRoll`, `heightBase`/`heightRoll`) : aucun plafond n'est authoré, seul le plancher
- *  structurel de la grandeur (un entier strictement positif) est posé. */
+ *  (`age`, `taille`) : aucun plafond n'est authoré, seul le plancher structurel de la grandeur (1)
+ *  est posé. */
 function IdentityNumberField({ label, value, onChange, onClear }: {
   label: string;
   value: number | undefined;
@@ -2097,7 +2094,7 @@ function IdentityNumberField({ label, value, onChange, onClear }: {
 //      (`PlaqueGrid`/`PlaqueRow` : `.idf` de la planche = la plaque, colonne de libellé gravée +
 //      valeur à la plume sur trait pointillé), puis bande Motivation & Ambitions (`BackgroundFields`,
 //      primitive PARTAGÉE avec l'onglet Background de la fiche) ; le Sexe se règle à la seule bascule
-//      de l'état civil. Tirage : `rolledDetails`.
+//      de l'état civil. Tirage : `rollDraftDetails`.
 export function DetailsScreen({ d, setD }: StepProps): ReactNode {
   const sp = draftSpecies(d);
   const stepIdx = stepIds().indexOf('details');
@@ -2107,10 +2104,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
     );
   }
   const physiqueRolled = !!(d.age || d.height || d.eyes || d.hair);
-  const { rolling, landed, trigger, skip } = useRollFrisson(() => {
-    const r = rolledDetails(d);
-    setD({ ...d, age: r.age, height: r.height, eyes: r.eyes, hair: r.hair });
-  });
+  const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftDetails(d)));
 
   // Bande d'ACTION (slot requis de l'ossature) : les GESTES de l'étape, à la topbar de la planche
   // (`.fam-topbar` : `.c-dhead` titre+sous-titre à gauche, plaque d'action + encrier à droite) —
@@ -2118,7 +2112,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
   const action = (
     <StepHeader title="Détails" sub="Le registre d'état civil du héros">
       <PlaqueRow
-        onClick={() => { const n = generateName(sp.refChar, d.apparence.sex, makeRNG(graineDEntropie())); if (n) setD({ ...d, label: n }); }}
+        onClick={() => setD(rollDraftName(d, graineDEntropie()))}
         content="Tirer le nom"
         meta={<em>au générateur</em>}
       />
@@ -2146,26 +2140,26 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
       <PlaqueGrid>
         <PlaqueRow
           label="Nom"
-          content={<input aria-label="Nom" value={d.label} onChange={(e) => setD({ ...d, label: e.target.value })} placeholder="Nom du personnage" />}
+          content={<input aria-label="Nom" value={d.label} onChange={(e) => setD(withEtatCivil(d, { label: e.target.value }))} placeholder="Nom du personnage" />}
         />
         <PlaqueRow
           label="Sexe"
           content={
-            <button type="button" className="btn small" onClick={() => setD({ ...d, apparence: { ...d.apparence, sex: sexeSchema.options[(sexeSchema.options.indexOf(d.apparence.sex) + 1) % sexeSchema.options.length] } })}>
+            <button type="button" className="btn small" onClick={() => setD(withSexeSuivant(d))}>
               <Icon id="ui/branch" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
             </button>
           }
         />
-        <IdentityNumberField label="Âge" value={d.age} onChange={(age) => setD({ ...d, age })} onClear={() => setD({ ...d, age: undefined })} />
-        <IdentityNumberField label="Taille (cm)" value={d.height} onChange={(height) => setD({ ...d, height })} onClear={() => setD({ ...d, height: undefined })} />
-        <IdentityField label="Yeux" value={d.eyes ?? ''} onChange={(v) => setD({ ...d, eyes: v })} onClear={() => setD({ ...d, eyes: undefined })} />
-        <IdentityField label="Cheveux" value={d.hair ?? ''} onChange={(v) => setD({ ...d, hair: v })} onClear={() => setD({ ...d, hair: undefined })} />
+        <IdentityNumberField label="Âge" value={d.age} onChange={(age) => setD(withEtatCivil(d, { age }))} onClear={() => setD(withEtatCivil(d, { age: undefined }))} />
+        <IdentityNumberField label="Taille (cm)" value={d.height} onChange={(height) => setD(withEtatCivil(d, { height }))} onClear={() => setD(withEtatCivil(d, { height: undefined }))} />
+        <IdentityField label="Yeux" value={d.eyes ?? ''} onChange={(eyes) => setD(withEtatCivil(d, { eyes }))} onClear={() => setD(withEtatCivil(d, { eyes: undefined }))} />
+        <IdentityField label="Cheveux" value={d.hair ?? ''} onChange={(hair) => setD(withEtatCivil(d, { hair }))} onClear={() => setD(withEtatCivil(d, { hair: undefined }))} />
       </PlaqueGrid>
 
       <Band title={<>Motivation &amp; Ambitions<small>recharge la Détermination · guide le rôle</small></>}>
         <BackgroundFields
           values={{ motivation: d.motivation, ambitionShort: d.ambitionShort, ambitionLong: d.ambitionLong }}
-          onChange={(patch) => setD({ ...d, ...patch })}
+          onChange={(patch) => setD(withEtatCivil(d, patch))}
         />
       </Band>
 

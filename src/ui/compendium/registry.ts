@@ -16,7 +16,7 @@ import {
   skillInstanceLabel, careersForSpecies, findCareerById, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
-  calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel, windsOfMagicTable,
+  calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
@@ -41,6 +41,7 @@ import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
+import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
@@ -71,7 +72,7 @@ import { isOptionalNote, type TraitList } from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import type { NomDIndividu } from '../../engine/psych/ciblage';
 import { damageString } from '../../engine/items';
-import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
+import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
 import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
@@ -87,7 +88,7 @@ import type { Porteur } from '../liage';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
@@ -443,8 +444,6 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
  */
 const valeurFR = (fichier: string, champ: string, valeur: string): string =>
   libelleDeValeur(noeudDuChamp(fichier, champ), valeur);
-/** Libellé d'un jet de dés (`{n,d,plus?}`) — « 1d10 », « 2d10+2 ». */
-const diceLabel = formatDice;
 
 /** Section « Issues par Degrés de Réussite » d'une Activité (bandes `OutcomeBand[]`) : une sous-tête par
  *  bande (issue + fourchette de DR + gate de bataille) puis note verbatim, résolveur, rendu, effets et
@@ -529,14 +528,14 @@ export function raceDetailSection(s: (typeof species)[number]): CodexSection {
   const hairColors = [...new Set(hairs.map((e) => e.color[ref]).filter(Boolean))];
   const rows: CodexRow[] = [
     { t: 'sub', label: 'Âge' },
-    { t: 'text', text: `${details.ageBase[ref] ?? details.ageBase.humain} + ${Math.round(details.ageRoll[ref] ?? 1)}d10 ans` },
+    { t: 'text', text: `${formatDice(details.age[ref])} ans` },
   ];
   // Les textes d'âge/taille/noms sont des champs de `details.json` — la fiche de Race les AFFICHE,
-  // elle ne les porte pas : le porteur nomme l'entrée réelle. Âge/taille FORMATÉS (`base + Nd10`) et
+  // elle ne les porte pas : le porteur nomme l'entrée réelle. Âge/taille FORMATÉS (`formatDice`) et
   // les couleurs JOINTES sont, eux, fabriqués : nus.
   const dTxt = (chemin: string) => ({ type: 'details', id: 'details', chemin });
   if (txt.age.bySpecies[ref]) rows.push({ t: 'text', text: txt.age.bySpecies[ref]!, porteur: dTxt(`texts.age.bySpecies.${ref}`) });
-  rows.push({ t: 'sub', label: 'Taille' }, { t: 'text', text: `${details.heightBase[ref] ?? details.heightBase.humain} + ${Math.round(details.heightRoll[ref] ?? 1)}d10 cm` });
+  rows.push({ t: 'sub', label: 'Taille' }, { t: 'text', text: `${formatDice(details.taille[ref])} cm` });
   const tailleChemin = txt.taille.bySpecies[ref] ? `texts.taille.bySpecies.${ref}` : 'texts.taille.all';
   const tailleTxt = txt.taille.bySpecies[ref] ?? txt.taille.all;
   if (tailleTxt) rows.push({ t: 'text', text: tailleTxt, porteur: dTxt(tailleChemin) });
@@ -742,7 +741,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
 function travelEntryItem(e: TravelTableEntry, occupantsTitle: string): CodexItem {
   return depuisEnveloppe(e, {
     sub: bandeAuDe('d100', e.min, e.max),
-    meta: facts(fact('Dégâts véhicule', e.vehicleWounds ?? null)),
+    meta: facts(fact('Dégâts véhicule', e.vehicleWounds ? formatDice(e.vehicleWounds.dice) : null)),
     sections: sections(passiveSection(e.occupantOps, occupantsTitle)),
   });
 }
@@ -768,7 +767,7 @@ function shipCritEntryItem(e: ShipCritEntry): CodexItem {
     desc: e.note,
     meta: facts(
       typeof e.shrapnel === 'number' ? fact('Éclats (Indice)', e.shrapnel) : null,
-      e.hullCrits ? fact('Critiques Coque suppl.', e.hullCrits) : null,
+      e.hullCrits ? fact('Critiques Coque suppl.', formatDice(e.hullCrits.dice)) : null,
     ),
     sections: sections(
       passiveSection(e.ops, 'Effet immédiat'),
@@ -794,12 +793,10 @@ function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
 }
 
 /** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157 suite) : effet signé
- *  (Nd10 + constante) appliqué UNE fois par navire. */
+ *  appliqué UNE fois par navire. */
 function manannFactorItem(f: ManannFactor): CodexItem {
-  const eff = f.effect;
-  const magnitude = eff.d10 > 0 ? diceLabel({ n: eff.d10, sides: 10, plus: eff.flat || undefined }) : String(eff.flat);
   return depuisEnveloppe(f, {
-    meta: facts(fact('Effet sur l’Humeur de Manann', `${eff.sign > 0 ? '+' : '−'}${magnitude}`)),
+    meta: facts(fact('Effet sur l’Humeur de Manann', formatEffetSigne(f.effect))),
   });
 }
 
@@ -901,10 +898,10 @@ function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): Code
   return { title: 'Ratios de Troc (donné : acquis)', layout: 'list', rows: rowsOut };
 }
 
-// ── LOT 3 #422 (FINAL) : les 3 dernières exemptions AUDIT — Empoignade (LDB 14, fiche de règle
+// ── LOT 3 #422 (FINAL) : exemptions AUDIT — Empoignade (LDB 14, fiche de règle
 //    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, DIALECTE compilé — PAS de vrais
 //    `GameOp`, cf. `MiscastRowEntry`/`engine/miscast.ts::JsonRow` — renderer DÉDIÉ ci-dessous, jamais
-//    `passiveSection`), enjeux de la cascade de nuit (`night-stakes.json`, catégorie-tableau simple). ──
+//    `passiveSection`). ──
 
 /** Libellé lisible d'un montant du DIALECTE miscast (nombre / dé / terme de Péché / somme —
  *  `JsonFormula`, `engine/miscast.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
@@ -1046,10 +1043,10 @@ function phenomenonSaturationFact(s: ArcanePhenomenon['saturation']): CodexFact 
   return fact('Saturation environnementale', value || null);
 }
 
-/** Rangées d'une table du chapitre (`ArcaneTable.rows`, plage d100/d10 → libellé), Domaine(s) liés
+/** Rangées d'une table du chapitre (`ArcaneTable.entries`, plage d100/d10 → libellé), Domaine(s) liés
  *  quand la rangée en désigne (Flux magique). */
 function arcaneTableRows(t: ArcaneTable): CodexRow[] {
-  return t.rows.map((r) => ({
+  return t.entries.map((r) => ({
     t: 'kv',
     k: fourchette(r.min, r.max, facesDuDe(t.die)),
     v: [r.label, r.domainIds?.length ? `(${r.domainIds.map((d) => refLabel('domains', { id: d })).join(', ')})` : undefined].filter(Boolean).join(' '),
@@ -1105,7 +1102,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             fact('Vent réfracté', p.singleWind ? 'un seul à la fois' : null),
             p.cancelsTraitId ? { label: 'Annule le Trait', value: refLabel('traits', { id: p.cancelsTraitId }), kref: { category: 'traits', id: p.cancelsTraitId, label: refLabel('traits', { id: p.cancelsTraitId }) } } : null,
             p.controlFlux ? fact('Contrôle du Flux', `Test de Focalisation ${DIFFICULTY_LABELS[p.controlFlux.difficulty as keyof typeof DIFFICULTY_LABELS] ?? p.controlFlux.difficulty}`) : null,
-            p.overcastPerSpell ? fact('Surincantation par Sort', p.overcastPerSpell.dice) : null,
+            p.overcastPerSpell ? fact('Surincantation par Sort', formatDice(p.overcastPerSpell.dice)) : null,
             p.stonePropertySlots ? fact('Propriétés de pierre gardienne', String(p.stonePropertySlots.max)) : null,
             p.draws ? fact('Tirages', String(p.draws)) : null,
           ),
@@ -1124,7 +1121,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: 'Tables', sub: `${t.rows.length} rangée(s) · ${t.die}`,
+          group: 'Tables', sub: `${t.entries.length} rangée(s) · ${t.die}`,
           sections: sections({ title: `Tirage (${t.die})`, layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
@@ -1244,7 +1241,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             rows: [
               { t: 'kv', k: 'Hors de contrôle', v: `${n.outOfControl.navPenalty} Navigation` } as CodexRow,
               { t: 'kv', k: 'S’échouer', v: `${n.echouage.hullDamage} Dégâts de coque` } as CodexRow,
-              { t: 'kv', k: 'Réparation temporaire', v: `${DIFFICULTY_LABELS[n.temporaryRepair.difficulty]} (Charpentier ${n.temporaryRepair.charpentierPenalty}, ${n.temporaryRepair.woundsPerRepair} Blessures)` } as CodexRow,
+              { t: 'kv', k: 'Réparation temporaire', v: `${DIFFICULTY_LABELS[n.temporaryRepair.difficulty]} (Charpentier ${n.temporaryRepair.charpentierPenalty}, ${formatDice(n.temporaryRepair.woundsPerRepair.dice)} Blessures)` } as CodexRow,
             ],
           },
         ),
@@ -1282,26 +1279,12 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => datasetArray('miscastWrath').map(miscastRowItem),
   },
   {
-    key: 'nightStakes', label: 'Enjeux — cascade de repos', group: 'Tables', sourceRef: 'LDB 18/09/20/21',
-    build: () => datasetArray('nightStakes').map((e) => depuisEnveloppe(e, { desc: e.stake, sections: sections(regleChips(e.rule)) })),
-  },
-  {
-    // Jumeau du précédent pour les cascades de VOYAGE (#1117) : le contenu est un GABARIT de descripteur
-    // mécanique (trous `{nom}` remplis par le flux), là où l'enjeu de nuit est un verbatim figé.
-    key: 'voyageStakes', label: 'Enjeux — cascade de voyage', group: 'Tables', sourceRef: 'MSRC 7 · MDG 12',
-    build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
-  },
-  {
-    // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par son `id`.
-    // Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
-    key: 'flowStakes', label: 'Enjeux — modales de jet', group: 'Tables', sourceRef: 'LDB 15/16/19/46/62 · MDG 09/12/14',
-    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
-  },
-  {
-    // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par
-    // le `kind` de son applier. Éditable comme ses jumeaux — descripteur mécanique lu à l'applier.
-    key: 'combatStakes', label: 'Enjeux — cascade de combat', group: 'Tables', sourceRef: 'LDB 16/19/20/47/85 · AA 07',
-    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template, sections: sections(regleChips(e.rule)) })),
+    // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade ; `sub` = la clé de
+    // consommation (le `kind` de l'étape servie, ou l'id du jet de modale).
+    key: 'stakes', label: 'Enjeux de jet', group: 'Tables', sourceRef: 'LDB 09/15/16/18/19/20/21/46/47/62/85 · AA 07 · MSRC 7 · MDG 09/12/13/14',
+    build: () => datasetArray('stakes').map((e) => depuisEnveloppe(e, {
+      group: valeurFR('stakes.json', 'cascade', e.cascade), sub: e.cle, desc: e.template, sections: sections(regleChips(e.rule)),
+    })),
   },
 
   {
@@ -1539,13 +1522,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'mutationTables', label: 'Tables de Corruption', group: 'Effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: `${t.ranges.length} plages d100`,
-      // Tirage d100 → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
+      sub: `${t.entries.length} plages ${t.die}`,
+      // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
-        title: 'Tirage (d100 → Mutation)', layout: 'list',
-        rows: t.ranges.map((r) => {
+        title: `Tirage (${t.die} → Mutation)`, layout: 'list',
+        rows: t.entries.map((r) => {
           const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow;
+          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(t.die)) } as CodexRow;
         }),
       }),
     })),
@@ -1555,7 +1538,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
-      sub: `${t.rows.length} rangée(s) · ${t.die}`,
+      sub: `${t.entries.length} rangée(s) · ${t.die}`,
       sections: sections({ title: `Tirage (${t.die} → effet)`, layout: 'list', rows: tableRows(t) }),
     })),
   },
@@ -1743,14 +1726,14 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'calendarPhases', label: 'Calendrier — Phases du jour', group: 'Tables', cluster: 'Calendrier',
     build: () => calendarPhases.map((p) => ({
-      id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/ui/icons), plus un glyphe affichable en préfixe
+      id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/data/icons), plus un glyphe affichable en préfixe
 
-      sub: `dès ${String(Math.floor(p.start / 60)).padStart(2, '0')}:${String(p.start % 60).padStart(2, '0')}`,
+      sub: `dès ${String(Math.floor(p.seuil / 60)).padStart(2, '0')}:${String(p.seuil % 60).padStart(2, '0')}`,
     })),
   },
   {
     key: 'weather', label: 'Météo de voyage', group: 'Tables', cluster: 'Voyage terrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: `${s.ranges.length} plages d100 (EDOC 8)` })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: `${s.entries.length} plages ${s.die} (EDOC 8)` })),
   },
   {
     key: 'weatherConditions', label: 'Conditions météo', group: 'Tables', cluster: 'Voyage terrestre',
@@ -1871,10 +1854,10 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => [{
       id: 'details', label: 'Détails de création',
       sections: sections({
-        title: 'Formules Âge & Taille (base + Nd10)', layout: 'list',
-        rows: (Object.keys(details.ageBase) as RaceKey[]).map((sp) => ({
+        title: 'Jets d’Âge & de Taille', layout: 'list',
+        rows: (Object.keys(details.age) as RaceKey[]).map((sp) => ({
           t: 'kv', k: sp,
-          v: `Âge ${details.ageBase[sp]}+${Math.round(details.ageRoll[sp] ?? 1)}d10 · Taille ${details.heightBase[sp]}+${Math.round(details.heightRoll[sp] ?? 1)}d10 cm`,
+          v: `Âge ${formatDice(details.age[sp])} · Taille ${formatDice(details.taille[sp])} cm`,
         } as CodexRow)),
       }),
     }],
@@ -2337,8 +2320,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             title: 'Réparations au port', layout: 'list',
             rows: [
               { t: 'kv', k: 'Coût au port', v: `${n.reparation.portCostGoldPerWound} po / Blessure` } as CodexRow,
-              { t: 'kv', k: 'Temps de Test', v: n.reparation.testHours } as CodexRow,
-              { t: 'kv', k: 'Blessures réparées / Test', v: n.reparation.woundsPerTest } as CodexRow,
+              { t: 'kv', k: 'Temps de Test', v: formatDice(n.reparation.testHours.dice) } as CodexRow,
+              { t: 'kv', k: 'Blessures réparées / Test', v: formatDice(n.reparation.woundsPerTest.dice) } as CodexRow,
             ],
           },
         ),
@@ -2427,8 +2410,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'montures', label: 'Montures (profils de voyage)', group: 'Monde',
-    build: () => MOUNT_PROFILES.map((p) => ({
-      id: p.id, label: p.label,
+    build: () => MOUNT_PROFILES.map((p) => depuisEnveloppe(p, {
       meta: facts(fact('Mouvement', p.m), fact('Endurance', p.e), fact('Trotte', p.trot ? 'oui' : 'non')),
       sections: sections(chips('Bêtes liées', p.creatureIds.map((id) => idRefRow('creatures', id)))),
     })),
@@ -2531,7 +2513,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'crewMoraleFactors', label: 'Moral d’équipage — Facteurs', group: 'Tables', cluster: 'Équipage & navire',
-    build: () => MORALE_FACTORS.map((f) => depuisEnveloppe(f, { desc: f.effect })),
+    build: () => MORALE_FACTORS.map((f) => depuisEnveloppe(f, { desc: formatEffetSigne(f.effect) })),
   },
   {
     key: 'crewMoraleBands', label: 'Moral d’équipage — Effets', group: 'Tables', cluster: 'Équipage & navire',

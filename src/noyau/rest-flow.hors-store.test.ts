@@ -58,8 +58,8 @@ function failCurrent(): void {
 function rollCurrent(): void {
   const p = banc.getState().pendingCascade!;
   const cur = p.participants[p.cursor];
-  if (cur.participants) { for (const r of cur.participants) if (!r.result) banc.getState().cascadeBatchRoll(r.id); }
-  else if (cur.target != null && !cur.result) banc.getState().cascadeRoll(cur.id);
+  if (cur.participants) { for (const r of cur.participants) if (!r.result) banc.getState().jetRoll('cascadeBatch', r.id); }
+  else if (cur.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
 }
 
 /** Déroule la cascade de nuit (lance + valide chaque étape) jusqu'à la fin ; renvoie les `kind` vus

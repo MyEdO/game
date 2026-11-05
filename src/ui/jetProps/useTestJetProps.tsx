@@ -13,12 +13,13 @@ import { rule } from '../../engine/policy';
 import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
  * (LDB 12). La situation « Test » est une cascade à une étape `jet:'test'`, rendue par `CascadeModal`
  * via ce hook (une seule fenêtre, comme l'attaque via `useAttackJetProps`). `pendingTest` reste le
- * porteur de données ; `resolveTest` (onConfirm) applique la branche réussite/échec ET ferme la cascade.
+ * porteur de données ; `jetConfirm('test')` (onConfirm) applique la branche réussite/échec ET ferme la cascade.
  *
  * Rendu calqué sur l'étape-jet de cascade : QUI tente le Test → PORTRAIT (jamais le nom en clair).
  *  - Plusieurs candidats : `PortraitPicker` (choix du lanceur par portrait, sélectionné mis en avant) ;
@@ -28,16 +29,16 @@ import { t } from '../../i18n';
 export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const pt = useGame((s) => s.pendingTest);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.testRoll);
-  const reroll = useGame((s) => s.testReroll);
-  const bonusSL = useGame((s) => s.testBonusSL);
-  const darkPact = useGame((s) => s.testDarkPact);
-  const determination = useGame((s) => s.testDetermine);
-  const forceSuccess = useGame((s) => s.testForceSuccess);
-  const reverseVerb = useGame((s) => s.testReverse);
+  const roll = useGesteDeJet('jetRoll', 'test');
+  const reroll = useGesteDeJet('jetReroll', 'test');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'test');
+  const darkPact = useGesteDeJet('jetDarkPact', 'test');
+  const determination = useGesteDeJet('jetDetermine', 'test');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
+  const reverseVerb = useGesteDeJet('jetReverse', 'test');
   const setActor = useGame((s) => s.testSetActor);
-  const resolve = useGame((s) => s.resolveTest);
-  const cancel = useGame((s) => s.testCancel);
+  const resolve = useGesteDeJet('jetConfirm', 'test');
+  const cancel = useGesteDeJet('jetCancel', 'test');
   if (!pt) return null;
   const rolled = pt.roll != null;
   const actor = party.find((c) => c.id === pt.actorId);
@@ -62,12 +63,14 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant — jamais un automatisme).
-  const reverseAvail = rolled && FLOWS.test.reverseAvailable(useGame.getState);
+  const reverseAvail = FLOWS.test.reverseAvailable(useGame.getState);
   const reversePreview = reverseAvail ? FLOWS.test.reversePreview(useGame.getState) : null;
-  // Barre : « Continuer » post-jet + « Annuler » pré-jet SI le test est annulable (action de COMBAT ;
-  // referme la cascade sans dépenser l'Action). Les tests de dialogue/scène n'ont pas `cancellable`.
-  const actions: RollAction[] = [{ key: 'confirm', label: 'Continuer', onClick: resolve, when: 'post' }];
-  if (pt.cancellable) actions.unshift({ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' });
+  // Barre : « Annuler » et « Continuer », que le flux `test` ouvre (un Test de COMBAT est annulable avant le jet,
+  // `FLOWS.test.fermetures(get).cancel` ; referme la cascade sans dépenser l'Action).
+  const actions: RollAction[] = [
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'confirm' },
+  ];
 
   return {
     flowKey: 'test',
@@ -126,7 +129,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
         resilience: actor?.resilience ?? 0,
         reverse: reverseAvail ? { onReverse: reverseVerb, preview: reversePreview } : undefined,
         /* Détermination (LDB 17 l.59) : AVANT le jet, si un malus psy social pèse, la dépense l'ignore. */
-        determination: !rolled && pt.psychMod ? { resolve: actor?.resolve ?? 0, onResolve: determination } : undefined,
+        determination: FLOWS.test.fermetures(useGame.getState).determine ? undefined : { resolve: actor?.resolve ?? 0, onResolve: determination },
       }),
     ],
     outcome: rolled ? [recapLineOfEvent(ev('info', describeTest(pt), pt.actorId), party)] : undefined,
@@ -145,7 +148,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
       </div>
     ) : undefined,
     actions,
-    /* Échap = Annuler, seulement si le test est annulable (pré-jet ; RollShell ne l'attache pas post-jet). */
-    onCancel: pt.cancellable ? cancel : undefined,
+    /* Échap = Annuler, tant que le flux `test` l'ouvre (RollShell le juge). */
+    onCancel: cancel,
   };
 }

@@ -214,7 +214,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
     // UNE fenêtre (#1426) : le d100 de sévérité se lance ICI, puis le Critique tiré s'affiche sous la
     // ligne de dé — c'est ce qui rend le choix éclairé, dans la MÊME étape.
     expect(dev!.table, 'la sévérité se tire dans cette fenêtre').toBeTruthy();
-    g().cascadeTableRoll(dev!.id);
+    g().jetRoll('cascadeTirage', dev!.id);
     expect(parKind('deviation')!.reveal, 'le Critique tiré est montré : le choix est éclairé').toBeTruthy();
     const apres = g().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.wounds.current, 'aucune Blessure appliquée avant la décision').toBe(40);

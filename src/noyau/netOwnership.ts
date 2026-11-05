@@ -12,17 +12,9 @@ import { seatOwns, jetSurfaced } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
-import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, type JetOwnerRef } from './flowVerbs';
+import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, VERBES_DE_JET, estVerbeDeFenetre, fluxAccepte, rangeeFacultative, type FlowVerbs, type JetOwnerRef, type RollVerb } from './flowVerbs';
 import type { PendingKey } from './stateFields';
 import { WORLD_STEP_OWNER } from './pendings';
-
-/** Intents de JET dont le 1ᵉʳ argument est l'id du combattant qui tient le slot — DÉRIVÉS de
- *  `FLOW_VERBS` (`kind:'multi'` + `pidIsActor`), jamais énumérés à la main. */
-const PARTICIPANT_OWNED_INTENTS: ReadonlySet<string> = new Set(participantOwnedIntents());
-
-/** Intents de JET dont la possession suit le PORTEUR du jet (`s[pending][field]`) — DÉRIVÉS de
- *  `FLOW_VERBS` (`kind:'mono'` + `jetOwner`), jamais énumérés à la main. */
-const JET_OWNED_INTENTS: Readonly<Record<string, JetOwnerRef>> = jetOwnedIntents();
 
 /** Intents adossés à une fenêtre HORS registre de modales (`HORS_MODAL`, #1016) — DÉRIVÉS de ce
  *  registre, jamais énumérés à la main. */
@@ -297,10 +289,8 @@ export function seatInfluences(s: Jeu, seat: number, ownerId: string | undefined
  * unique). Distinct de `ownsLocal` (vrai pour TOUS en solo : un gate bâti dessus laisse le joueur
  * dépenser la Résilience d'un ENNEMI) et de `rolledLocally` (calendrier de MASQUAGE, #990).
  * « Local » = le siège qui DÉCIDE maintenant (`decidingSeat`, patron `ownsLocal`) : pendant
- * l'application d'un intent, c'est le siège AGISSANT. Sans cela, une action de store bâtie dessus
- * (`rollAllOwnedRows` : les verbes NULLAIRES « tout lancer » du Contre-sort et de l'opposition)
- * roulait, chez l'hôte, SES rangées à lui au lieu de celles de l'invité émetteur — l'intent accepté
- * produisait le mauvais effet. Hors application d'intent (rendu), `actingSeat` est nul : inchangé.
+ * l'application d'un intent, c'est le siège AGISSANT : le jet sans rangée d'un flux multi (`rangeesALancer`) roule,
+ * chez l'hôte, les rangées de l'invité émetteur. Hors application d'intent (rendu), `actingSeat` est nul.
  */
 export function influencesLocally(s: Jeu, ownerId: string | undefined): boolean {
   return seatInfluences(s, decidingSeat(s), ownerId);
@@ -426,29 +416,15 @@ const PAUSE_DE_ROUND_PAR_ARG0: Route = {
 };
 
 /**
- * « Tout lancer » d'une fenêtre MULTI réactive (verbe NULLAIRE du drive d'auto-cadence, #1030) : il
- * roule les rangées que le siège ÉMETTEUR influence (`rollAllOwnedRows`). La possession est donc
- * « posséder au moins une rangée encore due » — le repli aurait rendu la fenêtre au owner de la
- * MODALE, c'est-à-dire au lanceur pour un Sort de héros : le siège d'une cible (ou le MJ pilotant une
- * rangée ennemie) voyait son drive refusé et sa fenêtre restait suspendue.
- */
-const routeRollAll = (rows: (s: Jeu) => readonly { id: string; interactive?: boolean; result: unknown }[] | undefined): Route => ({
-  rule: (s, seat) => (rows(s) ?? []).some((p) => !p.result && p.interactive && seatInfluences(s, seat, p.id)),
-});
-
-/**
  * Résistance (Menace) et inversion sur une étape de CASCADE : `pid` est l'id de l'ÉTAPE, pas un
  * combattant — mais ces verbes DÉPENSENT la ressource de l'acteur de cette étape (Talent, jeton
  * d'inversion), donc la possession le suit (même prédicat que l'affordance affichée, `seatInfluences`).
  * Le repli aurait rendu le owner de la MODALE, qui vaut `'*'` sur une étape de GROUPE : n'importe quel
  * siège aurait brûlé la ressource d'autrui (#1005).
  */
-const CASCADE_ACTEUR_D_ETAPE: Route = {
-  rule: (s, seat, args) => {
-    const pid = idArg(args[0]);
-    const step = s.pendingCascade?.participants.find((p) => p.id === pid);
-    return !!step && seatInfluences(s, seat, step.actorId); // étape inconnue/fermée → personne
-  },
+const acteurDEtape = (s: Jeu, seat: number, pid: string | undefined): boolean => {
+  const step = s.pendingCascade?.participants.find((p) => p.id === pid);
+  return !!step && seatInfluences(s, seat, step.actorId); // étape inconnue/fermée → personne
 };
 
 /**
@@ -466,6 +442,34 @@ const routeJet = (jet: JetOwnerRef): Route => ({
     const pending = (s as unknown as Record<string, Record<string, unknown> | null | undefined>)[jet.pending];
     const ownerId = pending && typeof pending[jet.field] === 'string' ? (pending[jet.field] as string) : undefined;
     return !!ownerId && seatInfluences(s, seat, ownerId); // jet fermé/inconnu → personne ne dépense
+  },
+});
+
+/** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetSetForcedRoll`). */
+const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
+
+/**
+ * Possession d'un geste de jet `verbe`, d'après le flux qu'il vise (1ᵉʳ argument) — un flux qui ne l'accepte pas :
+ * personne.
+ *  - flux MONO : le porteur du jet (`routeJet`) ;
+ *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
+ *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; le jet sans
+ *    rangée (« Tout lancer », `rangeeFacultative`) : tout siège, il ne lance que les rangées du siège qui agit
+ *    (`rangeesALancer`, `influencesLocally`) ; un verbe de
+ *    fenêtre (`estVerbeDeFenetre` : l'annulation et la clôture, qui agissent pour TOUS), et les flux dont la rangée n'a
+ *    pas d'acteur propre (Round, étape, dé) retombent sur le repli universel (le owner de LEUR modale).
+ */
+const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
+  rule: (s, seat, args) => {
+    const flux = args[0];
+    if (!fluxAccepte(flux, verbe)) return false;
+    const w: FlowVerbs = FLOW_VERBS[flux];
+    if (w.kind === 'mono') return routeJet(w.jetOwner).rule(s, seat, args);
+    if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
+    if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
+    const rangee = rangeeDuGeste(verbe, args);
+    if (rangee === undefined && rangeeFacultative(flux, verbe)) return true;
+    return seatOwns(s, seat, rangee);
   },
 });
 
@@ -546,9 +550,6 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['confirmRoundStart', { rule: (s, seat) => seatOwns(s, seat, undefined) }],
     ['armPreempt', PAUSE_DE_ROUND_PAR_ARG0],
     ['preemptRangedShot', PAUSE_DE_ROUND_PAR_ARG0],
-    // Fenêtres réactives de l'incantation : « tout lancer » appartient à qui possède une rangée due.
-    ['counterspellRollAll', routeRollAll((s) => s.pendingCounterspell?.participants)],
-    ['oppositionRollAll', routeRollAll((s) => s.pendingCastOpposition?.participants)],
     // DÉCLARATION de rangée (#1042/#1059) : le geste décide de l'engagement de la Dissipation du Round
     // de son porteur (consommée à l'engage) — même prédicat que l'affordance de la rangée
     // (`influencesLocally`), routé par l'id porté en 1ᵉʳ argument. Le verbe NULLAIRE « tout déclarer »
@@ -562,17 +563,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Bandages d'un soin (LDB 74 l.41) : seul le siège du héros qui les porte les engage ou les retire
     // (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`).
     ['healSetBandages', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0]) ?? s.pendingHeal?.bandagesDe ?? undefined) }],
-    // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
-    // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet, `counterspellCancel`
-    // dans `combatSlice`) ; phase close → `null`, le repli universel décide comme avant. Prédicat
-    // STRUCTUREL (une rangée sans `declared`) : `netOwnership` reste une feuille, sans import de flux.
-    ['counterspellCancel', { rule: (s) => ((s.pendingCounterspell?.participants ?? []).some((p) => !p.declared) ? false : null) }],
     ['counterspellDeclareAll', {
       rule: (s, seat) => (s.pendingCounterspell?.participants ?? []).some((p) => !p.declared && p.interactive && seatInfluences(s, seat, p.id)),
     }],
-    // Résistance (Menace) et inversion d'une étape de cascade : routées sur l'acteur de l'étape (cf. ci-dessus).
-    ['cascadeResist', CASCADE_ACTEUR_D_ETAPE],
-    ['cascadeReverse', CASCADE_ACTEUR_D_ETAPE],
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
@@ -583,12 +576,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
       }] as readonly [string, Route],
     ),
   ],
-  // Flux MULTI dont le slot porte SON acteur (`FLOW_VERBS.pidIsActor`) : le JET d'un participant est
-  // piloté par le propriétaire de CE combattant (1ᵉʳ arg = son id). Les décisions de GROUPE (Confirm/
-  // Cancel) restent ouvertes ('*' via le owner de la modale), et les flux à `pidIsActor:false`
-  // (`cascade`, `extendedTest` : args[0] = id d'étape/de Round) tombent sur le owner de LEUR modale.
-  [...PARTICIPANT_OWNED_INTENTS].map((a) => [a, PAR_ARG0] as const),
-  Object.entries(JET_OWNED_INTENTS).map(([a, jet]) => [a, routeJet(jet)] as const),
+  // Les gestes de jet, clôture comprise, routés par le flux qu'ils visent (`routeDuVerbeDeJet`).
+  VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),
   Object.entries(HORS_MODAL_OWNED_INTENTS).map(([a, def]) => [a, routeHorsModal(def)] as const),
 );
 

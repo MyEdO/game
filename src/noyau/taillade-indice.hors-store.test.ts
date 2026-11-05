@@ -16,9 +16,9 @@ import { emitCombatEvent } from './combatEvents';
 import { createHero } from '../engine/character';
 import { battleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { itemFromTrappingById, weaponFromItem } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
-import { applyAttackResult } from './combatFlow';
+import { applyAttackResult, firedWeapon } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { avanceEtapeCascade } from './cascade.testkit';
 
@@ -125,6 +125,28 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     repondre('yes');
     expect(hemorragies(cible(E.id))).toBe(2);
     expect(cible(H.id)!.advantage).toBe(1);
+  });
+
+  /** AA 08 l.190 : le sabre que le héros tient, à pied, avec la seule Spé de Corps à corps `spec`. */
+  function sabreAPied(H: Combatant, spec: string): Weapon {
+    H.items = [{ ...itemFromTrappingById('sabre')!, equipped: true }];
+    H.loadouts = [];
+    H.skills = [...H.skills.filter((s) => s.id !== 'corps-a-corps'), { id: 'corps-a-corps', characteristic: 'capacite-de-combat', spec, advances: 10 }];
+    recomputeLoadout(H);
+    return H.weapons[0];
+  }
+
+  it.each([
+    ['Base', 'base', 'Ouvrir la plaie (2 Av)'],
+    ['Escrime', 'escrime', 'Ouvrir la plaie (1 Av)'],
+  ])('sabre à pied avec Corps à Corps (%s) : l’arme tirée porte l’Indice du maniement', (_nom, spec, offre) => {
+    const { H, E } = setup();
+    H.advantage = 3;
+    const sabre = sabreAPied(H, spec);
+    porterUnCritique(H, E, firedWeapon(H, E, sabre.uid));
+
+    const pc = banc.getState().pendingCascade!;
+    expect(pc.participants[pc.cursor].options?.[0].label).toBe(offre);
   });
 
   it('Avantages INSUFFISANTS : l’option est refusée AVEC sa raison, et rien n’est dépensé', () => {

@@ -7,7 +7,13 @@
     {
       "id": "paie-genereuse",
       "label": "La paie est généreuse",
-      "effect": "+2d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "wageMul": 2,
       "source": {
         "book": "mer-des-griffes",
@@ -18,7 +24,13 @@
     {
       "id": "capitaine-competent",
       "label": "Le capitaine est compétent et/ou prend de bonnes décisions",
-      "effect": "+2d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -28,7 +40,13 @@
     {
       "id": "faveur-de-manann",
       "label": "Les circonstances à bord vont très certainement attirer la faveur de Manann",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -38,7 +56,13 @@
     {
       "id": "un-officier-pour-10",
       "label": "Un officier au moins pour 10 membres d'équipage",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -48,7 +72,13 @@
     {
       "id": "capitaine-vaillant",
       "label": "Le capitaine se montre vaillant face au danger",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -58,7 +88,13 @@
     {
       "id": "nourriture-au-dessus-des-rations",
       "label": "La nourriture ne se résume pas à de simples rations de base",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -68,7 +104,13 @@
     {
       "id": "bon-presage",
       "label": "Un bon présage a été vu",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -78,7 +120,13 @@
     {
       "id": "paie-reguliere",
       "label": "La paie est régulière",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "wageMul": 1,
       "recommendedPay": true,
       "source": {
@@ -90,7 +138,13 @@
     {
       "id": "relache-a-terre-accordee",
       "label": "Le navire a accosté dans un port et l'équipage a eu la permission de faire relâche à terre",
-      "effect": "+1d10",
+      "effect": {
+        "sign": 1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -100,7 +154,13 @@
     {
       "id": "manque-de-bras",
       "label": "L'équipage manque de bras",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -110,7 +170,13 @@
     {
       "id": "pas-de-port-depuis-une-semaine",
       "label": "Le navire n'a pas vu de port depuis une semaine",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -120,7 +186,13 @@
     {
       "id": "mauvais-presage",
       "label": "Un mauvais présage a été vu",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -130,7 +202,13 @@
     {
       "id": "paie-irreguliere",
       "label": "La paie est irrégulière",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -140,7 +218,13 @@
     {
       "id": "eaux-non-cartographiees",
       "label": "Le bateau navigue dans des eaux non cartographiées",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -150,7 +234,13 @@
     {
       "id": "monstre-marin-vu",
       "label": "Un monstre marin a été vu",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -160,7 +250,13 @@
     {
       "id": "nourriture-biscuits-de-mer",
       "label": "La nourriture est uniquement composée de biscuits de mer",
-      "effect": "-1d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -170,7 +266,13 @@
     {
       "id": "relache-a-terre-refusee",
       "label": "Le navire a accosté dans un port, mais l'équipage n'a pas eu la permission de faire relâche à terre",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -180,7 +282,13 @@
     {
       "id": "eaux-hostiles",
       "label": "Le bateau se trouve dans des eaux hostiles",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -190,7 +298,13 @@
     {
       "id": "moins-un-officier-pour-30",
       "label": "Moins d'un officier pour 30 membres d'équipage",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -200,7 +314,13 @@
     {
       "id": "deplaisir-de-manann",
       "label": "Les circonstances à bord vont très certainement susciter le déplaisir de Manann",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -210,7 +330,13 @@
     {
       "id": "nourriture-insuffisante",
       "label": "La nourriture n'est même pas suffisante pour constituer une ration de base",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -220,7 +346,13 @@
     {
       "id": "maladie-fait-rage",
       "label": "La maladie fait rage au sein de l'équipage",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -230,7 +362,13 @@
     {
       "id": "capitaine-lache",
       "label": "Le capitaine se montre lâche face au danger",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -240,7 +378,13 @@
     {
       "id": "capitaine-manque-de-respect",
       "label": "Le capitaine traite l'équipage avec un manque de respect manifeste",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -250,7 +394,13 @@
     {
       "id": "capitaine-incompetent",
       "label": "Le capitaine est incompétent et/ou prend de mauvaises décisions",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,
@@ -260,7 +410,13 @@
     {
       "id": "paie-chiche",
       "label": "La paie est chiche",
-      "effect": "-2d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "wageMul": 0.5,
       "source": {
         "book": "mer-des-griffes",
@@ -271,7 +427,13 @@
     {
       "id": "pas-de-paie",
       "label": "Pas de paie",
-      "effect": "-3d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 3,
+          "sides": 10
+        }
+      },
       "wageMul": 0,
       "source": {
         "book": "mer-des-griffes",
@@ -282,7 +444,13 @@
     {
       "id": "moins-un-officier-pour-50",
       "label": "Moins d'un officier pour 50 membres d'équipage",
-      "effect": "-3d10",
+      "effect": {
+        "sign": -1,
+        "dice": {
+          "n": 3,
+          "sides": 10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 124,

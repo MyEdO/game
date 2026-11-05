@@ -319,7 +319,7 @@ export interface ActivityDef extends TestSpec {
   /** id STABLE (slug). */
   id: string;
   label: string;
-  /** Icône du registre (`src/ui/icons`, id `famille/nom`) — affichée par les volets/boutons
+  /** Icône du registre (`src/data/icons`, id `famille/nom`) — affichée par les volets/boutons
    *  d'Activité. REQUIS ; icône ∈ registre validé par `data-wellformed.test.ts`. */
   icon: string;
   contexts: ActivityContext[];
@@ -434,7 +434,7 @@ export interface ActivityDef extends TestSpec {
    *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
    *  unique `resolveStake` (`src/data/index.ts`, dataset `activity`). */
   stake?: string;
-  /** FORME DÉCLARÉE du `stake` — même contrat que `night-stakes`/`flow-stakes` (garde de forme). */
+  /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
   stakeForm?: StakeForm;
   /** FOYER de la règle derrière le jet : l'ENTITÉ qui la porte. Absent = l'Activité elle-même
    *  (sa `desc` verbatim, catégorie Codex `activities`) — jamais une fiche `regles.json` doublon. */

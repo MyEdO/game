@@ -32,7 +32,7 @@ import { controlsActive } from '../../noyau/netOwnership';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw } from '../../state/stageYaw';
 import { accordsPan, getStagePan, poserPan } from '../../state/stagePan';
 import { battreStageFrames } from './stageFrames';
-import { combatantClickActs, intentionDuClicDeCase } from '../../noyau/combatOrParty';
+import { jouerLeClicDeCase, jouerLeClicDuCombattant } from '../../noyau/combatOrParty';
 import { hoverClickCommits } from '../../ui/pointerCaps';
 import { useLongPress } from '../../ui/useLongPress';
 import { type Dims } from '../../geometry/iso';
@@ -251,11 +251,11 @@ export function useStagePointer({
     deniveler: ({ verbe, args }) => { useGame.getState()[verbe](...args); bus.emit(EVT.SCENE_DIRTY); },
     // FRAPPER une structure : le MUR est un Combattant (`noyau/combatSlice.ts`, `cid`), son geste est
     // donc EXACTEMENT celui d'un jeton ennemi sous le rayon (`performClick` ci-dessous) — MÊME porte
-    // partagée (`noyau/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces). Elle
+    // partagée (`noyau/combatOrParty.ts:jouerLeClicDuCombattant`, source unique des clics de combattant). Elle
     // s'inspecte, comme un jeton, au geste SECONDAIRE (`ficheSous`). L'aperçu et le commit sont ceux du
     // flux de combat (`noyau/targetingModes.ts`, `samePreview`), celui que lit déjà le réticule de visée.
     frapper: (cid) => {
-      if (combatantClickActs(useGame.getState, { id: cid })) useGame.getState().battleClickEntity(cid, { confirm: hoverClickCommits() });
+      jouerLeClicDuCombattant(useGame.getState, cid, hoverClickCommits());
     },
   };
 
@@ -324,11 +324,9 @@ export function useStagePointer({
     if (v.nature === 'arete') { activerArete(v.arete); return; }
     if (st.mode === 'battle') {
       if (!controlsActive(st)) return; // coop : tour du héros d'un AUTRE joueur — clics inertes
-      // Ce que joue la case : `intentionDuClicDeCase`, la même que le commit du curseur. Desktop (survol) :
+      // Ce que joue la case : `jouerLeClicDeCase`, le même que le commit du curseur. Desktop (survol) :
       // la visée a déjà tout montré → un clic COMMET ; tactile : deux-taps (tap 1 = aperçu) — cf. pointerCaps.
-      const intention = intentionDuClicDeCase(useGame.getState, t);
-      if (intention?.kind === 'entity') st.battleClickEntity(intention.id, { confirm: hoverClickCommits() });
-      else if (intention) st.battleClickTile(intention.pt, { confirm: hoverClickCommits() });
+      jouerLeClicDeCase(useGame.getState, t, hoverClickCommits());
       return;
     }
     // Ce que joue la case hors combat : `intentionDuClicDExploration`, sur l'entité que le geste désigne ; le stage

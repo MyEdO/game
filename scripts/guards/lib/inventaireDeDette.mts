@@ -1,7 +1,7 @@
 /**
  * INVENTAIRE DE LA DETTE QUE LA DONNÉE RÉVÈLE (#2995) : les cases de référence en forme non cible ou sans slot
  * (une ligne par case), les formes de valeur historiques ou divergentes, les orphelines, les homonymes, les divergences
- * d'enveloppe hors `source` absente (celle-ci est le volet `DETTE_ENVELOPPE`) et les clés déclarées jamais portées,
+ * d'enveloppe hors `source` absente (celle-ci est refusée au parse, `exigeSource`) et les clés déclarées jamais portées,
  * mesurés sur la donnée des deux racines (`scanDuCorpus`, `scripts/docs/lib/structures-scan.mts`). HORS DE LA PORTE :
  * ni stock commis, ni règle de plage, ni refus — ajouter ou retirer une donnée change l'inventaire, jamais le verdict
  * d'une garde. La dette qu'un changement de CODE fait naître est jugée sous la porte (`SOUS_LA_PORTE`,
@@ -154,7 +154,7 @@ export const INVENTAIRE: readonly CollectionDInventaire[] = [
     mesure: ({ scan }) => scan.enveloppe.filter((e) => !(e.role === 'source' && e.motif === 'clé absente')).map((e) => ({
       site: `${e.role} | ${e.cle} | ${e.motif}${e.motif === 'type divergent' ? ` (${e.detail})` : ''} | ${e.document} › ${e.chemin}`,
       cible: `Porter le rôle \`${e.role}\` sous sa clé cible \`${e.cle}\`, de son type, sur chaque entrée (\`ROLES_ENVELOPPE\`, \`mesurerEnveloppe\`).`,
-      lot: e.role === 'source' ? 'L1d #1469' : 'L1b #1467',
+      lot: e.role === 'source' ? 'L1d #1463' : 'L1b #1467',
       occurrences: e.entrees,
     })),
   },

@@ -111,7 +111,7 @@ describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
   });
 
   it('opsMissingRefs descend dans les ops IMBRIQUÉES (rangée de table, différé)', () => {
-    const nested: GameOp = { op: 'rollTable', die: 'd10', rows: [{ min: 1, max: 5, ops: [newOp('summon')] }] };
+    const nested: GameOp = { op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 5, ops: [newOp('summon')] }] };
     expect(opsMissingRefs(nested)).toEqual(['Invoquer une créature : Créature à choisir']);
     expect(opsMissingRefs({ passive: [newOp('skillMod')] })).toHaveLength(1);
   });
@@ -151,7 +151,7 @@ describe('GameOpEditor — éditeur pour TOUTE op (dédié ou repli JSON)', () =
   it('rollTable a un éditeur STRUCTURÉ (dé + rangées récursives), jamais de repli JSON (#514)', () => {
     const ops: GameOp[] = [{
       op: 'rollTable', die: 'd10', addNegativeSL: true,
-      rows: [{ min: 1, max: 2, ops: [{ op: 'wounds', amount: 3 }] }],
+      entries: [{ min: 1, max: 2, ops: [{ op: 'wounds', amount: 3 }] }],
     }];
     const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
     expect(html).not.toContain('(JSON)'); // aucun repli JSON pour cette op

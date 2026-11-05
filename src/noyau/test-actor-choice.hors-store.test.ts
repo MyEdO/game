@@ -47,7 +47,7 @@ describe('Test de scène — choix du lanceur dans le groupe', () => {
   it('testSetActor refusé APRÈS le jet (le lanceur est figé)', () => {
     banc.setState({ party: [mk('h1', 'Alric', 55), mk('h2', 'Bri', 35)] });
     runFlow(banc.getState, banc.setState, testFlow({ characteristic: 'dexterite', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
-    banc.getState().testRoll();
+    banc.getState().jetRoll('test');
     banc.getState().testSetActor('h2'); // après le jet → no-op
     expect(banc.getState().pendingTest!.actorId).toBe('h1');
   });

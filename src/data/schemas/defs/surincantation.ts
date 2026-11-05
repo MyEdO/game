@@ -1,25 +1,26 @@
 import { nommerChamps } from '../grammaire/meta';
 /** VDM 02 l.205-215 ; VDM 02 l.198 */
 import { z } from 'zod';
-import { document, type DocumentARangees } from '../grammaire/document';
+import { document } from '../grammaire/document';
+import { palierSchema } from '../grammaire/valeurs';
 
 export const file = 'surincantation.json';
 export const famille = 'config';
 
-/** Un palier : des DR dépensés sur UNE colonne. */
-const palierSchema = nommerChamps(z.strictObject({
+/** Un palier (`palierSchema`) : `seuil` = DR dépensés sur UNE colonne. */
+export const rangee = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string().min(1),
-  dr: z.number().int().min(1),
+  ...palierSchema.shape,
   targets: z.number().int().min(0),
   damage: z.number().int().min(0),
   range: z.number().int().min(1),
   zone: z.number().int().min(1),
   duration: z.number().int().min(1),
-}), {
+}).refine((r) => r.seuil >= 1, { path: ['seuil'], message: 'un palier de Surincantation coûte au moins 1 DR' }), {
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
-  dr: { label: 'Degrés de Réussite' },
+  seuil: { label: 'Degrés de Réussite' },
   targets: { label: 'Cibles' },
   damage: { label: 'Dégâts' },
   range: { label: 'Portée' },
@@ -36,10 +37,9 @@ const doc = document(
     codex: { keys: ['surincantation'] },
     edit: { niche: { categories: { surincantation: 'entries' } } },
   },
-  { rangee: palierSchema },
+  { rangee },
 );
 
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SurincantationData = DocumentARangees<z.infer<typeof palierSchema>>;

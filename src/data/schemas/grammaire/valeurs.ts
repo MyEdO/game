@@ -10,10 +10,11 @@ import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
+import { parseDice } from '../../../engine/dice';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
-import { SLOTS } from '../../palette.types';
+import type { Slot } from '../../../lib/palette';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -94,10 +95,12 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 export const roleAmbiantSchema = enumNomme({ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
 
-/** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
- *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
-export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
-export type DeDeTable = z.infer<typeof deDeTableSchema>;
+/** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que
+ *  `parseDice` (`src/engine/dice.ts`) lit en `DiceSpec`. UNE déclaration pour la fabrique
+ *  (`options.deDeTirage`, `grammaire/document.ts`), les tables de `arcane-phenomena.json`, les porteurs
+ *  de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`) et l'op `rollTable`
+ *  (`grammaire/mecanique.ts`). #1669 */
+export const deDeTirageSchema = z.string().refine((s) => parseDice(s) !== null, { message: 'dé de tirage illisible : une expression « NdM » (ex. « d10 », « 2d10 »)' });
 
 /** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
  *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
@@ -207,9 +210,9 @@ export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'S
 export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
 
 /**
- * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des 6 defs
- * qui portent un enjeu (`night-stakes`, `flow-stakes`, `combat-stakes`, `activities`, `psychology`,
- * `maneuvers`). L'OPTIONALITÉ reste au site : elle se décide par def, pas ici.
+ * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des defs
+ * qui portent un enjeu (`stakes`, `activities`, `psychology`, `maneuvers`, `etats`). L'OPTIONALITÉ reste
+ * au site : elle se décide par def, pas ici.
  */
 export const stakeFormSchema = z.enum(STAKE_FORMS);
 
@@ -231,8 +234,8 @@ export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
 
 /**
  * FOYER de la règle derrière un jet, une action ou une étape : `{ id, type }` (#2820) — la fiche que le
- * ⓘ ouvre. UNE graphie pour les 7 porteurs (`actions`, `activities`, `combat-stakes`, `flow-stakes`,
- * `night-stakes`, `voyage-stakes`, `crew-test-types`), l'id résolu AU PARSE dans l'espace de son type.
+ * ⓘ ouvre. UNE graphie pour ses porteurs (`actions`, `activities`, `stakes`, `crew-test-types`), l'id
+ * résolu AU PARSE dans l'espace de son type.
  */
 export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
 export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
@@ -672,9 +675,18 @@ export const sizeCategorySchema = enumNomme({
  *  chaque surcharge de palette (#1903). */
 export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
 
-/** SURCHARGE de palette persistée : clés dans `SLOTS`, valeurs `couleurHexSchema` (#1903) — `colors`
- *  d'apparence et d'espèce, palette des matières d'objet. */
-export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
+/** Le libellé de chaque emplacement de palette (`SLOTS`, `src/lib/palette.ts`). */
+const LIBELLES_DES_SLOTS = {
+  peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Vêtement principal', vet2: 'Vêtement secondaire', cuir: 'Cuir', metal: 'Métal',
+  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume',
+} as const satisfies Readonly<Record<Slot, string>>;
+
+/** Un emplacement de palette. */
+export const slotSchema = enumNomme(LIBELLES_DES_SLOTS);
+
+/** Palette de couleurs persistée : clés dans `SLOTS`, valeurs `couleurHexSchema` (#1903) — palette des teintes d'objet
+ *  de `materials.json`. */
+export const surchargePaletteSchema = z.partialRecord(slotSchema, couleurHexSchema);
 
 /** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
  *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
@@ -701,8 +713,8 @@ export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silve
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
 export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
-/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, plus?}`, partagé par `CountSpec.roll` et `Formula.dice`. */
-export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, plus: { label: "ajout" } });
+/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
+export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
 
 /** `ShipSize` (`src/data/index.ts`) — les sept Tailles de bateau du tableau standard (`MDG 12 l.122-129`),
  *  dérivées de la LONGUEUR par `shipSizeOfLength` (`src/engine/shipBuild.ts`). Déclarées ICI une fois :
@@ -755,15 +767,22 @@ export const parSaison = <T extends z.ZodType>(valeur: T) =>
 export const prixSaisonnierSchema = parSaison(z.number());
 
 /**
- * PRIX TIRÉ AU DÉ — une case du tableau de prix porte un jet au lieu d'un nombre (MDG 15 l.429 : le Vin
- * maritime est à « 3d10 » aux quatre saisons, tiré une fois à l'achat et NOTÉ, l.436). Le dé est le
- * `DiceSpec` unique du projet, jamais une expression en chaîne.
- *
- * Les deux branches s'exportent SÉPARÉMENT : chaque site compose l'union qu'il admet — un porteur de
- * prix qui n'a pas de saisons (`trappings.price`) ne doit pas hériter des colonnes par une union
- * fourre-tout.
+ * TIRAGE — une valeur authorée TIRÉE au dé (`Tirage`, `src/engine/dice.ts`, lue par `tirer`) : prix du
+ * Vin maritime (MDG 15 l.429), Blessures d'une avarie, jours d'un événement de mer… Le dé est le
+ * `DiceSpec` unique du projet, jamais une expression en chaîne (`EXPRESSION_DE_DE`). #1652
  */
-export const prixTireSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
+export const tirageSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
+
+/** Un nombre OU un tirage (`QuantiteTiree`, `src/engine/dice.ts`). #1652 */
+export const quantiteTireeSchema = z.union([z.number(), tirageSchema]);
+
+/** Modificateur de dés SIGNÉ (`EffetSigne`, `src/engine/dice.ts`, lu par `tirerSigne`) : MDG 14 (Moral),
+ *  MDG 15 l.97-124 (Humeur de Manann). #1652 */
+export const effetSigneSchema = nommerChamps(z.strictObject({ sign: z.union([z.literal(1), z.literal(-1)]), dice: diceSpecSchema }), { sign: { label: "signe" }, dice: { label: "dés" } });
+
+/** Expression de dé écrite EN CHAÎNE (« 2d10 », « 1d10-4 », « 20+1d10 », « +2d10 ») : graphie hors
+ *  grammaire dans la donnée authorée, où seule la clé `die` d'une table la porte. #1652 */
+export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]\s*\d+)?\s*$/i;
 
 /** `{x,y}` en CASES de grille — position d'un poste de pont (`vehicles.json`) comme case d'ABORD
  *  d'une place assise (`props.json`). */
@@ -771,8 +790,8 @@ export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(),
 
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`
- * (#310). Clé de `species.json.refChar`, `hairs.json`/`eyes.json.color`, `details.json.ageBase`/
- * `ageRoll`/`heightBase`/`heightRoll` (#313 — ces 4 Record étaient label-keyés). `names.json` en
+ * (#310). Clé de `species.json.refChar`, `hairs.json`/`eyes.json.color`, `details.json.age`/
+ * `taille` (#313). `names.json` en
  * reste EXCLU par exception documentée (`defs/names.ts`) : le label EST la donnée affichée.
  */
 export const raceKeySchema = z.enum(['humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain']);
@@ -1073,6 +1092,19 @@ export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z
 export const plageOuverteSchema = nommerChamps(z.strictObject({ min: z.number().nullable(), max: z.number().nullable() }), metaDesChamps(plageSchema, { exigees: true }));
 
 /**
+ * PALIER d'une table à SEUILS — forme CANONIQUE du concept `palier`
+ * (`scripts/docs/lib/structures-lexique.mts`) : un seul nombre, le `seuil` à partir duquel la rangée
+ * vaut ; l'ordre total des seuils fait les bandes, et la rangée retenue est celle du plus haut seuil
+ * atteint. C'est exactement ce que lit `findTierEntry` (`src/engine/tables.ts`), primitive unique de ce
+ * lookup. Ni `plageSchema` ni `plageOuverteSchema` : aucune borne haute n'est écrite.
+ *
+ * La charge utile d'un palier s'ajoute par la SHAPE — `z.strictObject({ ...palierSchema.shape, … })`,
+ * comme une fourchette. Un seuil est un ENTIER (DR, minute du jour, effectif) ; la borne de son domaine
+ * appartient à la table qui le compose.
+ */
+export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int() }), { seuil: { label: 'Seuil', hint: 'Valeur à partir de laquelle le palier s’applique' } });
+
+/**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique
  * (`scripts/docs/lib/structures-lexique.mts`), DISTINCT de `plage` : aucune rangée n'est tirée ici,
  * rien ne traverse `findTableEntry` ; ce sont les bornes de SAISIE d'un paramètre éditable, qui
@@ -1173,39 +1205,74 @@ export const dispoSaisonniereSchema = parSaison(plageSchema);
 /** Les quatre colonnes, DÉRIVÉES du nœud : la liste des saisons n'est écrite qu'une fois (`parSaison`). */
 const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
 
-/** Ce qu'une entrée MARCHANDE doit porter pour que la couverture se mesure : un libellé (le refus est
- *  NOMINATIF) et les quatre colonnes — et son `id`, clé du catalogue ; `echangeable` : `CargoDef`
- *  (`src/engine/cargo.ts`). */
-type EntreeMarchande = { id: string; label: string; echangeable?: true; avail: z.infer<typeof dispoSaisonniereSchema> };
-/** Un MARQUEUR de colonne Production/Produits : reconnu à son CHAMP d'exclusion, comme le moteur le
- *  reconnaît (`isEchangeable`, `src/engine/cargo.ts`) ; son `id` est une clé du catalogue. */
-type EntreeMarqueur = { id: string; echangeable: false };
+/**
+ * CARGAISON ÉCHANGEABLE — rangée MARCHANDE du tableau des cargaisons des deux livres de commerce
+ * (MDG 15 l.406-434, MSRC 13 l.73-90), déclarée une fois. `echangeable` : `CargoDef` (`src/engine/cargo.ts`).
+ * Un def qui porte un champ de plus en reprend la `shape` (`wine` de `defs/land-cargo.ts`).
+ */
+export const cargaisonMarchandeSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  echangeable: z.literal(true).optional(),
+  avail: dispoSaisonniereSchema,
+  price: z.union([prixSaisonnierSchema, tirageSchema]),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  echangeable: { label: 'Échangeable' },
+  avail: { label: 'Disponibilité' },
+  price: { label: 'Prix' },
+  source: { label: 'Source' },
+});
+
+/**
+ * MARQUEUR de la colonne Production/Produits (MDG 15 l.321, MSRC 13 l.24-28) : `CargoMarkerDef`
+ * (`src/engine/cargo.ts`), reconnu à son CHAMP d'exclusion `echangeable: false` (`isEchangeable`).
+ */
+export const marqueurDeCargaisonSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  echangeable: z.literal(false),
+  hint: z.string().optional(),
+  tradeHub: z.literal(true).optional(),
+  source: sourceRefSchema,
+}), {
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  echangeable: { label: 'Échangeable' },
+  hint: { label: 'Aide' },
+  tradeHub: { label: 'Plaque tournante' },
+  source: { label: 'Source' },
+});
+
+type EntreeMarchande = z.infer<typeof cargaisonMarchandeSchema>;
+type EntreeMarqueur = z.infer<typeof marqueurDeCargaisonSchema>;
 
 /**
  * CATALOGUE DE CARGAISONS TIRÉ AU D100 — fabrique du tableau `cargoes` des deux livres de commerce
  * (maritime MDG 15 l.406-418, terrestre MSRC 13 l.73-78) : un tableau d'entrées MARCHANDES ou de
- * MARQUEURS, sous l'invariant que chacune des quatre colonnes saisonnières couvre 1 à 100 d'un seul
- * tenant. L'invariant porte sur la COLONNE, jamais sur une entrée — d'où sa place au TABLEAU.
+ * MARQUEURS (`marqueurDeCargaisonSchema`), sous l'invariant que chacune des quatre colonnes
+ * saisonnières couvre 1 à 100 d'un seul tenant. L'invariant porte sur la COLONNE, jamais sur une
+ * entrée — d'où sa place au TABLEAU.
  *
  * Pourquoi une fabrique et non deux refines jumeaux : les deux livres impriment la MÊME table à quatre
  * colonnes, et les deux defs en écrivaient le verrou à l'identique. Ce qui reste au site est ce qui
- * DIFFÈRE : les schémas d'entrée (le Vin terrestre porte `wine`) et le `site` cité par le refus.
+ * DIFFÈRE : la rangée marchande (le Vin terrestre porte `wine`) et le `site` cité par le refus.
  *
  * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
  * Ce champ DISCRIMINE l'élément : une rangée est l'une ou l'autre variante, jamais les deux.
  * Le catalogue est une collection à clé `id` et un ESPACE d'ids (`grammaire/collection-cle.ts`).
  *
- * @param marchand schéma d'une cargaison échangeable (doit porter `label`, `avail` et `echangeable?: true`)
- * @param marqueur schéma d'un marqueur de colonne Production/Produits (`echangeable: false`)
+ * @param marchand `cargaisonMarchandeSchema`, ou la rangée d'un def qui en reprend la `shape`
  * @param options `site` = le porteur cité en tête du refus (`'sea-cargo.json › cargoes'`)
  */
-export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeMarqueur>(
+export function catalogueSaisonnier<A extends EntreeMarchande>(
   marchand: z.ZodType<A> & z.core.$ZodTypeDiscriminable<'echangeable'>,
-  marqueur: z.ZodType<B> & z.core.$ZodTypeDiscriminable<'echangeable'>,
   options: { site: string },
-): z.ZodType<(A | B)[]> {
-  const catalogue = z.array(z.discriminatedUnion('echangeable', [marchand, marqueur])).superRefine((entrees: (A | B)[], ctx) => {
-    const marchandes = entrees.filter((e): e is A => !('echangeable' in e) || e.echangeable !== false);
+): z.ZodType<(A | EntreeMarqueur)[]> {
+  const catalogue = z.array(z.discriminatedUnion('echangeable', [marchand, marqueurDeCargaisonSchema])).superRefine((entrees: (A | EntreeMarqueur)[], ctx) => {
+    const marchandes = entrees.filter((e): e is A => e.echangeable !== false);
     for (const saison of SAISONS_DE_DISPO) {
       const ecarts = ecartsDeCouverture(
         marchandes.map((c) => ({ ...c.avail[saison], label: c.label })),

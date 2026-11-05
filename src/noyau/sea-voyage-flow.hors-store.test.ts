@@ -75,7 +75,7 @@ const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
   places: [
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
@@ -309,7 +309,7 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const muet = barreSansVoile();
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const step = driveToCrewStep('progression')!;
-    for (const r of step.participants!) if (r.id !== muet) get().cascadeBatchRoll(r.id);
+    for (const r of step.participants!) if (r.id !== muet) get().jetRoll('cascadeBatch', r.id);
     const p = get().pendingCascade!;
     const rolled = p.participants[p.cursor];
     const somme = rolled.participants!.filter((r) => r.id !== muet).reduce((t, r) => t + jete(r.result).sl * (r.essential ? 2 : 1), 0);
@@ -326,10 +326,10 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const points = { fortune: Math.max(1, avant.fortune ?? 0), resilience: Math.max(1, avant.resilience ?? 0) };
     Object.assign(avant, points);
     seedBattleRng(9);
-    get().cascadeBatchRoll(muet);
-    get().cascadeBatchForceSuccess(muet);
-    get().cascadeBatchBonusSL(muet);
-    get().cascadeBatchReroll(muet);
+    get().jetRoll('cascadeBatch', muet);
+    get().jetForceSuccess('cascadeBatch', muet);
+    get().jetBonusSL('cascadeBatch', muet);
+    get().jetReroll('cascadeBatch', muet);
     const p = get().pendingCascade!;
     expect(p.participants[p.cursor].participants!.find((r) => r.id === muet)!.result).toEqual(ECHEC_SANS_JET);
     const apres = get().party.find((h) => h.id === muet)!;
@@ -424,7 +424,7 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
   it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const plan = get().travelPlan!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: '3d10' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
     expect(driveDayCaptureExtermination()).toBe(-1);
   });
 
@@ -441,9 +441,9 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
     const seen = new Set<number>();
     for (let seed = 1; seed <= 60; seed++) {
       freshState();
-      set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois', enc: contenance, basePriceGold: 1 }] } });
+      set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois-mer', enc: contenance, basePriceGold: 1 }] } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: '3d10' } } } });
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
       const before = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);
       seedBattleRng(seed);
       continueSeaDayAfterCascade(get, set);
@@ -501,8 +501,8 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       if (cur?.kind === 'progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
       if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
-      else if (cur && !cur.result) get().cascadeRoll(cur.id);
+      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetRoll('cascadeBatch', part.id); }
+      else if (cur && !cur.result) get().jetRoll('cascade', cur.id);
       get().cascadeNext();
     }
     expect(phare).toBeTruthy(); // l'étape du phare a bien été atteinte (port à phare, km 1 → dans la portée dès le jour 1)
@@ -585,7 +585,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
 
   it('extermination : progression cumulée jusqu’à extermination complète (MDG 14 l.98-104)', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: '1d10' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: { dice: { n: 1, sides: 10 } } } } } });
     apply('extermination', 5, true);
     expect(get().travelPlan!.sea!.infestation).toBeUndefined();
   });
@@ -691,7 +691,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     id: 'm', label: 'Mer des Griffes',
     places: [
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
     ],
     routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est', ambush: { scene: 'ls-abordage', encounter: 'enc-abordage', at: 0.5 } }],
   };
@@ -941,7 +941,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {
     set({ vessel: {
       ...get().vessel!, manann: { score: -1000, applied: [] }, // dizaine −100 → résultat ≤ 0 quel que soit le d10/DR
-      wounds: { current: 50, max: 50 }, cargo: [{ cargoId: 'bois', enc: 100, basePriceGold: 1 }], criticals: [],
+      wounds: { current: 50, max: 50 }, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }], criticals: [],
     } });
     get().startTravel('r1', 'mer', { fast: true });
     driveFast();
@@ -955,7 +955,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
   it('palier PARFAIT (Humeur de Manann au zénith) : aucune conséquence négative', () => {
     set({ vessel: {
       ...get().vessel!, manann: { score: 1000, applied: [] }, // dizaine +100 → résultat ≥ 10 → Voyage parfait
-      wounds: { current: 50, max: 50 }, cargo: [{ cargoId: 'bois', enc: 100, basePriceGold: 1 }], criticals: [],
+      wounds: { current: 50, max: 50 }, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }], criticals: [],
     } });
     get().startTravel('r1', 'mer', { fast: true });
     driveFast();
@@ -972,7 +972,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     id: 'm', label: 'Mer des Griffes',
     places: [
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
     ],
     routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est', ambush: { scene: 'ls-abordage', encounter: 'enc-abordage', at: 0.5 } }],
   };
@@ -1158,7 +1158,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     runSeaDay(get, set);
     const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
     expect(etape.table!.mod ?? 0, 'Humeur de Manann neutre : le dé posé est le dé effectif').toBe(0);
-    get().cascadeTableSetForcedRoll(etape.id, 60);
+    get().jetSetForcedRoll('cascadeTirage', 60, etape.id);
     const tiree = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!.table!.result!;
     expect(tiree.id).toBe('navigation-ordinaire');
     expect(seaBoardEventById(tiree.id)!.kind).toBe('rien');
@@ -2431,7 +2431,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     runSeaDay(get, set);
     const st = soutenues().find((x) => x.kind === 'sea-force-pace')!;
     const attendu = st.target!;
-    get().cascadeRoll(st.id);
+    get().jetRoll('cascade', st.id);
     const roule = (get().pendingCascade!.participants.find((x) => x.id === st.id))!;
     expect(roule.result, 'le jet a bien eu lieu').toBeTruthy();
     expect(roule.result!.target, 'la cible ROULÉE est la cible soutenue').toBe(attendu);
@@ -2486,7 +2486,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
 /**
  * #1117 volet E — l'ENJEU d'un Test d'équipage disait la règle-cadre (« ce Test peut être remplacé
  * par un Test d'équipage »), qui n'apprend rien au joueur sur ce qu'il risque. Deux contrats :
- * l'enjeu AFFICHÉ décrit l'EFFET du jet (catalogue `voyage-stakes.json`), et le VERBATIM MDG 14 se
+ * l'enjeu AFFICHÉ décrit l'EFFET du jet (catalogue `stakes.json`), et le VERBATIM MDG 14 se
  * lit à un clic (fiche `regles.json` portée par le type). Et le choix ouvert par MDG 14 l.63
  * (« vous pouvez effectuer un Test d'équipage au lieu d'un Test de Navigation ») est POSÉ au joueur.
  */
@@ -2801,11 +2801,11 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
       avanceEtapeCascade(get);
     }
     expect(id, 'étape sea-salissures atteinte').toBeTruthy();
-    get().cascadeRoll(id!);
-    get().cascadeSetForcedRoll(id!, 96);
+    get().jetRoll('cascade', id!);
+    get().jetSetForcedRoll('cascade', 96, id!);
     const avant = get().party.map((h) => [h.resilience, h.fortune]);
-    get().cascadeForceSuccess(id!);
-    get().cascadeReroll(id!);
+    get().jetForceSuccess('cascade', id!);
+    get().jetReroll('cascade', id!);
     const st = get().pendingCascade!.participants.find((x) => x.id === id)!;
     expect(st.result?.success, 'l’échec du navire reste un échec').toBe(false);
     expect(get().party.map((h) => [h.resilience, h.fortune]), 'aucune ressource de héros dépensée').toEqual(avant);

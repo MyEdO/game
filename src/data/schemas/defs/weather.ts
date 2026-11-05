@@ -2,8 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** EDOC 8 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { charKeySchema, deDeTirageSchema, difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
+import { facesDuDe } from '../../../engine/tables';
+import { parseDice, totalDuDe } from '../../../engine/dice';
 
 export const file = 'weather.json';
 export const famille = 'config';
@@ -19,7 +21,8 @@ const doc = document(
     nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
-      ranges: z.array(
+      die: deDeTirageSchema,
+      entries: z.array(
         nommerChamps(z.strictObject({
           ...plageSchema.shape,
           weather: weatherIdSchema,
@@ -29,7 +32,8 @@ const doc = document(
     }), {
       id: { label: 'Identifiant' },
       label: { label: 'Libellé' },
-      ranges: { label: 'Plages' },
+      die: { label: 'Dé de tirage' },
+      entries: { label: 'Plages' },
       source: { label: 'Source' },
     }),
     'id',
@@ -83,7 +87,7 @@ const doc = document(
   ),
   },
   {
-    seasons: { label: 'Tirage saisonnier', hint: 'Table de tirage d100 de la météo, par saison' },
+    seasons: { label: 'Tirage saisonnier', hint: 'Table de tirage de la météo, par saison' },
     physicalTestChars: {
       label: 'Caractéristiques physiques',
       hint: 'Liste MAISON des Caractéristiques réputées « physiques » (non définie par la source)',
@@ -98,7 +102,7 @@ const doc = document(
     // BIJECTION alphabet ⇄ conditions — le z.enum ferme l'id INCONNU, `listeCle` l'id EN DOUBLE ; reste :
     //  - COMPLÉTUDE : une condition SUPPRIMÉE au Codex éteindrait le libellé et les effets d'une météo
     //    que la table saisonnière tire encore (`weatherCondition`, engine, ne lit que ce tableau).
-    // COUVERTURE du d100 par saison (`ecartsDeCouverture`, grammaire) : les deux bornes étant
+    // COUVERTURE du dé de chaque saison (`ecartsDeCouverture`, grammaire) : les deux bornes étant
     //    éditables au Codex, un trou ou un chevauchement passerait le z.number() — et le tirage
     //    tomberait sur la dernière rangée par REPLI de `findTableEntry`, sans un mot.
     // Refus NOMINATIF dans les deux cas, aux trois portes (CI `schema-contract`, boot `dev-validate`,
@@ -115,14 +119,16 @@ const doc = document(
           });
         }
 
-        const saisons = (v as { seasons?: { id?: string; ranges?: { min?: number; max?: number; weather?: string }[] }[] }).seasons ?? [];
+        const saisons = (v as { seasons: { id: string; die: string; entries: { min: number; max: number; weather: string }[] }[] }).seasons;
         for (const [i, s] of saisons.entries()) {
-          const ecarts = ecartsDeCouverture(s.ranges ?? [], 1, 100, (r) => `« ${r.weather} » (${r.min}-${r.max})`);
+          const de = parseDice(s.die);
+          if (!de) continue;
+          const ecarts = ecartsDeCouverture(s.entries, totalDuDe(de, de.n), facesDuDe(s.die), (r) => `« ${r.weather} » (${r.min}-${r.max})`);
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',
-              path: ['seasons', i, 'ranges'],
-              message: `weather.json › saison « ${s.id} » : le d100 n'est pas couvert EXACTEMENT une fois — ${ecarts.join(' ; ')}. Un trou fait tomber le tirage sur la DERNIÈRE rangée (repli de \`findTableEntry\`), un chevauchement rend la seconde rangée inatteignable : dans les deux cas la météo tirée ment sans un mot.`,
+              path: ['seasons', i, 'entries'],
+              message: `weather.json › saison « ${s.id} » : le ${s.die} n'est pas couvert EXACTEMENT une fois — ${ecarts.join(' ; ')}. Un trou fait tomber le tirage sur la DERNIÈRE rangée (repli de \`findTableEntry\`), un chevauchement rend la seconde rangée inatteignable : dans les deux cas la météo tirée ment sans un mot.`,
             });
           }
         }

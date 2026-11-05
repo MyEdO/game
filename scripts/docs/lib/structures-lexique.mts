@@ -18,10 +18,9 @@
 // `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
 
 import { basename } from 'node:path';
-import { SLOTS } from '../../../src/data/palette.types.ts';
 import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
-import { provenanceMesuree } from '../../../src/data/schemas/grammaire/sans-livre.ts';
+import { exigeSource } from '../../../src/data/schemas/grammaire/sans-livre.ts';
 
 /** Signature canonique d'un objet : ses clés triées, jointes par des virgules. */
 export const signature = (cles: readonly string[]): string => [...cles].sort().join(',');
@@ -90,7 +89,7 @@ export const CIBLE_COMPETENCE = 'skills.json';
  */
 export const lotDeForme = (concept: string, signature: string, cibles: readonly string[] = []): string =>
   concept === 'source'
-    ? 'L1d #1469'
+    ? 'L1d #1463'
     : concept === 'reference' || concept === 'refs'
       ? cibles.includes(CIBLE_COMPETENCE) || /skill/i.test(signature)
         ? 'L2 #1463'
@@ -107,14 +106,14 @@ export const LOT_CLE_RESERVEE: Readonly<Record<string, string>> = {
   price: 'L4 #1463',
   cost: 'L4 #1463',
   count: 'L4 #1463',
-  source: 'L1d #1469',
+  source: 'L1d #1463',
 };
 
 /** Les 9 lots d'extinction du chantier — un `lot` de stock ou d'inventaire hors de cette liste est une dérive.
  *  `L2 #1548` porte les graphies de RÉFÉRENCE du lot L2 (« une graphie par concept référencé ») ;
  *  `#1553` porte la CURATION des orphelines (contenu qui ne résout vers rien), qui n'est pas une
  *  forme d'enveloppe. */
-export const LOTS_CONNUS = ['L1a #1466', 'L1b #1467', 'L1c #1468', 'L1d #1469', 'L2 #1463', 'L2 #1548', 'L3 #1463', 'L4 #1463', '#1553'] as const;
+export const LOTS_CONNUS = ['L1a #1466', 'L1b #1467', 'L1c #1468', 'L1d #1463', 'L2 #1463', 'L2 #1548', 'L3 #1463', 'L4 #1463', '#1553'] as const;
 
 /**
  * ANGLES MORTS de la mesure — SOURCE UNIQUE, consommée par la garde
@@ -133,7 +132,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Quatre familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`, `etat`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534) ; `stade` (effet `revealClue`), dont la cible est un stade de l’indice que nomme son `indiceId`, résolu par `projetSchema` (#686).',
   'Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.',
   'La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/noyau/persistance/save.ts`).',
-  'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` partout, `label` sur les familles `entité`/`table`, `source` ou `maison` sur tout type dont la provenance se mesure — `provenanceMesuree`, `src/data/schemas/grammaire/sans-livre.ts`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
+  'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` partout, `label` sur les familles `entité`/`table`, `source` ou `maison` sur tout type dont la fabrique exige la provenance — `exigeSource`, `src/data/schemas/grammaire/sans-livre.ts`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
   'Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.',
   'Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).',
   'La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` en BORNE (nombre, ou `null` d’une bande ouverte, une au moins écrite) est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659, 2026-09-01 — les 5 `{min,max}` hors tableau des 2 racines entrent dans la mesure : `sea-events › params.impressed`, `› params.wrathful`, `tavernGames › pot.targetRange`, `› volley.libre`, `water-exposure › modifiers[].auto` ; #1595 — le `null` de `plageOuverteSchema`). Ce qui reste hors candidature est le TYPE : une borne ni numérique ni `null` n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.',
@@ -143,7 +142,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le classement est ORDONNÉ : une VALEUR (reconnue à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
   'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` des `src/data/schemas/defs/*.ts` : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni les defs hors de ce dossier. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
-  '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `prixTireSchema` (#1463 L-gram-3) à donnée, def et signature INCHANGÉS.',
+  '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
   'Les portes MOTEUR (`src/engine`, `src/state`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
   'Le concept `test` CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation` : clé de `CLES_IDENTITE`, ou clé en `RX_CLE_REFERENCE`) et passe APRÈS `plage` : 12 objets porteurs de `difficulty` restent classés `test` sans en être un — `tavernGames.json › volley.rows` 7 (rangées sans bornes authorées), `sea-events.json › params` 3 (le sujet du jet y vit sous `testType`) et `etats.json › difficultyBy` 2. Ce qui leur manque n’est pas TOUT discriminant structurel (`difficultyBy` porte `{cond, difficulty}`, et `cond` en est un) : c’est une clé de DÉSIGNATION, la seule que ce concept cède.',
   'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 148 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 71, `scene.ts` 53, `worldmap.ts` 15, `narratif.ts` 7, `communs.ts` 2) en sont HORS PÉRIMÈTRE — un seul d’entre eux serait classé par le lexique s’il y entrait (`wallClimbSchema` de `scene.ts`, concept `test` par le noyau `difficulty`). L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
@@ -410,7 +409,7 @@ export const CONCEPTS: readonly Concept[] = [
     champs: ['palette'],
     datasets: ['materials.json'],
     signatures: [
-      { sig: signature(SLOTS.filter((slot) => ['metal', 'cuir', 'accent'].includes(slot))), statut: 'cible' },
+      { sig: signature(['metal', 'cuir', 'accent']), statut: 'cible' },
     ],
   },
   {
@@ -461,6 +460,7 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [
       { sig: 'n,sides', statut: 'cible' },
       { sig: 'n,plus,sides', statut: 'cible' },
+      { sig: 'fois,n,plus,sides', statut: 'cible' },
     ],
     noyau: ['n', 'sides'],
   },
@@ -580,16 +580,22 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['fixed'],
   },
-  // Porte : `palierDeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). EDO 01 l.142.
-  // Noyau MESURÉ sur les 2 racines (2026-10-16) : `drMin` ne vit que sous `billets.*.marchandage.paliers[]`.
+  // Porte : `palierSchema` (`src/data/schemas/grammaire/valeurs.ts`), lu par `findTierEntry`
+  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-05) : `seuil` ne vit que sous
+  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]` et
+  // `billets.*.marchandage.paliers[]` (EDO 01 l.142).
   {
-    id: 'palier-de-billet',
-    label: 'palier d’un billet marchandé (`PalierDeBillet`)',
+    id: 'palier',
+    label: 'palier d’une table à seuils (seuil)',
     strate: 'Valeur',
-    signatures: [{ sig: 'drMin,prix', statut: 'cible' }],
-    noyau: ['drMin', 'prix'],
+    signatures: [
+      { sig: 'seuil', statut: 'cible' },
+      { sig: 'seuil+…', statut: 'cible', note: 'RANGÉE d’une table à paliers : la charge utile est INHÉRENTE — cible = `palierSchema` composé par sa shape + `findTierEntry` (src/engine/tables.ts). #1666.' },
+    ],
+    noyau: ['seuil'],
+    exigeCandidatureStructurelle: true,
   },
-  // Porte : `routeBilletSchema.marchandage` (`src/data/schemas/defs-scenes/worldmap.ts`) ; `presetId` est
+  // Porte : `marchandageDeBilletSchema` (`src/data/schemas/grammaire/route.ts`) ; `presetId` est
   // une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). EDO 01 l.142.
   {
     id: 'marchandage-de-billet',
@@ -617,7 +623,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'kind,valeurs', statut: 'cible', note: '`enum`, `valeurs` DÉCLARÉES' },
     ],
   },
-  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/defs-scenes/narratif.ts`),
+  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/grammaire/campagne.ts`),
   // sous la forme `heros` d'un état. Noyaux MESURÉS sur les 2 racines (2026-10-17) : ces clés ne vivent que
   // sous `narratif.etats[].forme.identite`. EDO 02 l.112-127.
   {
@@ -644,8 +650,8 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
     noyau: ['repere', 'valeur'],
   },
-  // APRÈS `palier-de-billet` (même clé `prix`, le palier porte `drMin`), et l'ordre décide. Porte :
-  // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
+  // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
+  // `routeBilletSchema` (`src/data/schemas/grammaire/route.ts`). Noyau MESURÉ sur les 2 racines
   // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
   // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.
   {
@@ -659,7 +665,7 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['prix'],
   },
-  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`), `source` OU `maison` ; déclaré
+  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/grammaire/route.ts`), `source` OU `maison` ; déclaré
   // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`).
   // SITE : la valeur qu'elle justifie sous `provenances` ; `coPresence` laisse au hors-strate le record
   // `speed` d'une route (`{diligence: 15}`), porté par la même clé. #2533.
@@ -675,7 +681,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'maison', statut: 'cible' },
     ],
   },
-  // Porte : `mapRouteSchema.provenances` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`) : chaque clé est
+  // Porte : `provenancesDeRouteSchema` de #2533 (`src/data/schemas/grammaire/route.ts`) : chaque clé est
   // OPTIONNELLE, les sept combinaisons sont la forme cible. #2533.
   {
     id: 'provenances-de-route',
@@ -712,7 +718,7 @@ export const CONCEPTS: readonly Concept[] = [
     noyauMin: 1,
     coPresence: ['flat', 'literal'],
   },
-  // Porte : `specialSchema` (`src/data/schemas/defs/tavernGames.ts`). Champ MESURÉ sur les 2 racines
+  // Porte : `specialSchema` (`src/data/schemas/grammaire/jeu-de-taverne.ts`). Champ MESURÉ sur les 2 racines
   // (2026-10-17) : `specials` ne vit que dans `tavernGames.json`. NADJ 16 l.82.
   {
     id: 'special-de-jeu',
@@ -783,7 +789,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'ouverture',
     label: 'ouverture cérémonielle de chapitre',
     strate: 'Document',
-    // Porte : `ouvertureSchema` (`src/data/schemas/defs-scenes/narratif.ts`), composée par
+    // Porte : `ouvertureSchema` (`src/data/schemas/grammaire/campagne.ts`), composée par
     // `formeNarratif` sous la clé OPTIONNELLE `ouverture`.
     signatures: [
       { sig: 'pitch,titre', statut: 'cible' },
@@ -795,7 +801,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'cloture',
     label: 'clôture de chapitre',
     strate: 'Document',
-    // Porte : `clotureSchema` (`src/data/schemas/defs-scenes/narratif.ts`), clé OPTIONNELLE `cloture`.
+    // Porte : `clotureSchema` (`src/data/schemas/grammaire/campagne.ts`), clé OPTIONNELLE `cloture`.
     signatures: [
       { sig: 'titre,when', statut: 'cible' },
       { sig: 'titre,when+…', statut: 'cible', note: '`sousTitre` est OPTIONNEL au schéma' },
@@ -834,7 +840,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'effet-d-etat',
     label: 'Effet qui ÉCRIT un état de campagne (`type` + `etat`)',
     strate: 'Document',
-    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) ;
+    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/grammaire/campagne.ts`) ;
     // `etat` est une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
     // (2026-10-16). EDO 02 l.91.
     signatures: [
@@ -851,7 +857,7 @@ export const CONCEPTS: readonly Concept[] = [
     id: 'effet-narratif',
     label: 'Effet qui REMET une entrée du narratif (`type` + `documentId` | `indiceId`)',
     strate: 'Document',
-    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/defs-scenes/effets.ts`) ; `documentId`,
+    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/grammaire/campagne.ts`) ; `documentId`,
     // `indiceId` et `stade` sont des RÉFÉRENCES SCOPÉES (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
     // (2026-10-17) : la co-présence de `type` écarte les stades d'indice `{id, documentId}`. EDO 02 l.89-95.
     signatures: [
@@ -907,7 +913,7 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * "route"` classé référence vers `terrains.json` à l'entrée du dataset des sols (#1690), le seul
  * remède eût été de renommer un point d'arrivée d'auteur pour contenter la MESURE.
  *
- * `suite` (`defs-scenes/worldmap.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
+ * `suite` (`grammaire/route.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
  * billet, des `id` de `worldMap.routes[]` du MÊME projet ; `worldMapSchema` en garde la résolution
  * (`parcoursDuBillet`).
  *
@@ -915,7 +921,7 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * source) nomment une entrée d'un registre du `narratif` du MÊME projet ; `projetSchema` en garde la
  * résolution (`refsNarrativesPendantes`, `raffineNarratif`, FK `presetId`).
  *
- * `stade` (`defs-scenes/effets.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
+ * `stade` (`grammaire/campagne.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
  * `indiceId` qui l'accompagne ; `projetSchema` en garde la résolution.
  */
 export const CLES_REFERENCE_SCOPEE: Readonly<Record<string, string>> = {
@@ -951,7 +957,7 @@ export type RoleEnveloppe = {
   requiseSurFamilles?: readonly string[];
   /**
    * Régime déclaré PAR TYPE de document : la mesure ne compte l'absence du rôle que sur les types pour
-   * lesquels ce prédicat est vrai. Le prédicat vit À CÔTÉ de celui de la fabrique (`provenanceMesuree`,
+   * lesquels ce prédicat est vrai. Le prédicat EST celui de la fabrique (`exigeSource`,
    * `src/data/schemas/grammaire/sans-livre.ts`), jamais une liste recopiée.
    */
   requiseSelon?: (type: string) => boolean;
@@ -996,10 +1002,8 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   'sous-titre': { cible: 'title', divergentes: [] },
   // `effect` et `hint` ne sont pas des divergentes (#1467 L1b V-P2) : le détecteur classe par TYPE,
   // pas par NOM de clé, et ces deux-là ne portent pas de prose.
-  //   `crew-morale.json › factors[].effect` = expression de dés lue par `rollExpr`
-  //     (`src/data/schemas/defs/crew-morale.ts`) ;
-  //   `sea-events.json › manann.factors[].effect` = objet `{sign, flat, d10}`
-  //     (`manannFactor` de `src/data/schemas/defs/sea-events.ts`) ;
+  //   `crew-morale.json › factors[].effect` et `sea-events.json › manann.factors[].effect` = effet de
+  //     dés signé `{sign, dice}` (`effetSigneSchema`, `src/data/schemas/grammaire/valeurs.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
   //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
   //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`).
@@ -1018,7 +1022,7 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   // `customStatblockSchema` de `defs-scenes/communs.ts` du statbloc) — d'où `entiere`, qui met les
   // portées embarquées au dénominateur.
   'type de document': { cible: 'type', divergentes: [], typeAttendu: 'string', requise: true, entiere: true },
-  source: { cible: 'source', divergentes: [], typeAttendu: 'object', requise: true, alternative: 'maison', requiseSelon: provenanceMesuree },
+  source: { cible: 'source', divergentes: [], typeAttendu: 'object', requise: true, alternative: 'maison', requiseSelon: exigeSource },
   maison: { cible: 'maison', divergentes: [], typeAttendu: 'string' },
   'méta libre': { cible: null, divergentes: ['_source', '_comment', '_doc', '__genere', '__lecture', '__livres'] },
 };

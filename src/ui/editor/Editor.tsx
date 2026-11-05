@@ -19,8 +19,9 @@ import { LogicDock, LogicTab } from './LogicDock';
 import { WorldMapEditor } from './WorldMapEditor';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { renommeRef, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
-import { OpenProjectModal, SaveProjectModal, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte } from './ProjectModals';
-import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
+import { OpenProjectModal, SaveProjectModal } from './ProjectModals';
+import { refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from '../../noyau/persistance/refusDeLaPorte';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { projectSave, projectsLoad, projetDeLEntree } from '../../state/projectLibrary';
 import { type EntreeListee } from '../../noyau/persistance/bibliotheque';
 import { downloadText } from '../../web/fileIo';
@@ -53,11 +54,8 @@ import { useLowerLayerOpacity, setLowerLayerOpacity, useLowerLayerMode, setLower
 import { useEditorLayers } from './editorLayers';
 import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
-import { z } from 'zod';
-import { dialoguesSchema, triggersSchema, encountersSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
-import { nommerChamps, metaDesChamps } from '../../data/schemas/grammaire/meta';
-import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
 import { idDEntropie } from '../../web/entropie';
+import { lireBlocsAvances } from '../../data/schemas/blocsAvances';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
  *  même mot que le contrôle cliqué — l'auteur retrouve SON geste en tête de la fenêtre. */
@@ -75,28 +73,6 @@ export function ouCaCasse(erreur: unknown): string {
   if (lc) return ` — ligne ${lc[1]}, colonne ${lc[2]}`;
   const pos = /position (\d+)/.exec(brut);
   return pos ? ` — caractère n° ${Number(pos[1]) + 1}` : '';
-}
-
-/** Les TROIS blocs de logique que la modale « Avancé » édite en masse. Les LISTES sont celles du
- *  schéma de Scène (`dialoguesSchema`/`triggersSchema`/`encountersSchema`, clé comprise), pas une
- *  redite : ce que l'auteur colle est tenu à la même exigence que ce que le document porte. Le
- *  conteneur est réécrit parce que `sceneSchema.pick()` est refusé par zod sur un objet PORTANT DES
- *  RAFFINEMENTS, et un sous-ensemble de trois clés n'en hérite aucun.
- *  La porte de cette modale est `lireBlocsAvances`, ci-dessous. */
-export const SCHEMA_BLOCS_AVANCES = nommerChamps(z.strictObject({
-  dialogues: dialoguesSchema.optional(),
-  triggers: triggersSchema.optional(),
-  encounters: encountersSchema.optional(),
-}), { dialogues: metaDesChamps(sceneSchema, { exigees: true }).dialogues, triggers: metaDesChamps(sceneSchema, { exigees: true }).triggers, encounters: metaDesChamps(sceneSchema, { exigees: true }).encounters });
-
-/** Porte de la modale « Avancé » (`saveAdvanced`), EXPORTÉE pour être mesurable hors montage : c'est
- *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le
- *  schéma prouve la forme disque, la valeur collée est relue sous sa vue TS, son texte gardé — patron
- *  de `parseProject`. */
-export function lireBlocsAvances(brut: unknown): { ok: true; lu: z.infer<typeof SCHEMA_BLOCS_AVANCES> } | { ok: false; rapport: string } {
-  const refus = validerFormeVivante(SCHEMA_BLOCS_AVANCES, brut);
-  if (refus) return { ok: false, rapport: rapportDeFautes('Blocs de logique', refus.fautes) };
-  return { ok: true, lu: brut as z.infer<typeof SCHEMA_BLOCS_AVANCES> };
 }
 
 export function architectureSelectionForWarning(warning: Warning): Warning['architectureRef'] | null {

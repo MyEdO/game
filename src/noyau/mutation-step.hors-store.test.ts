@@ -9,7 +9,7 @@ import {
   mutationKindFor, mutationNatureRows, attachMutation, mutationLimitExceeded, corruptionThresholdExceeded,
 } from '../engine/corruption';
 import {
-  mutationTableIds, mutationAt, mutationSubTableFor, mutationTableRows, rollMutation,
+  mutationTableIds, mutationAt, mutationSubTableFor, mutationTableDie, mutationTableRows, rollMutation,
 } from '../data/mutations';
 import { species } from '../data';
 import { createHero } from '../engine/character';
@@ -73,7 +73,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
       const def = tableStepDef(id)!;
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(mutationTableRows(id)); // par RÉFÉRENCE : zéro duplication de fourchettes
-      expect(def.die).toBe(100);
+      expect(def.die).toBe(mutationTableDie(id).sides); // le dé de la DONNÉE (`die`)
       // La ligne d'affichage est le libellé de la mutation atteinte par le dé (lookup moteur).
       const row = def.rows[0];
       expect(def.lines(row.min)[0]).toBe(mutationAt(id, row.min).label);
@@ -188,7 +188,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     applyMutation(banc.getState, banc.setState, hero);
     // Dé de NATURE posé sur « Corps » (Humain : 01-50) → la table PHYSIQUE est insérée.
     const nature = banc.getState().pendingCascade!.participants[0];
-    banc.getState().cascadeTableSetForcedRoll(nature.id, 12);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 12, nature.id);
     expect(banc.getState().pendingCascade!.participants[0].fixed).toBe(true);
     banc.getState().cascadeNext();
     const table = banc.getState().pendingCascade!.participants[1];
@@ -198,7 +198,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     expect(hero.mutations ?? []).toHaveLength(0); // toujours rien appliqué
     // LIGNE choisie dans la donnée, posée par son dé.
     const ligne = mutationTableRows('physique')[3];
-    banc.getState().cascadeTableSetForcedRoll(table.id, ligne.min);
+    banc.getState().jetSetForcedRoll('cascadeTirage', ligne.min, table.id);
     banc.getState().cascadeNext();
     const victime = banc.getState().party[0];
     expect(victime.mutations!.map((m) => m.id), 'la ligne posée n’est pas celle appliquée').toEqual([ligne.id]);
@@ -218,7 +218,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
       pendingCascade: { ...p, participants: p.participants.map((s, i) => (i === 0 ? { ...s, table: { ...s.table!, mod: 30 } } : s)) },
     });
     const nature = banc.getState().pendingCascade!.participants[0];
-    banc.getState().cascadeTableSetForcedRoll(nature.id, 30); // naturel 30 (Corps) → effectif 60 (Esprit)
+    banc.getState().jetSetForcedRoll('cascadeTirage', 30, nature.id); // naturel 30 (Corps) → effectif 60 (Esprit)
     const posee = banc.getState().pendingCascade!.participants[0];
     expect(posee.table!.result).toMatchObject({ roll: 30, die: 60, id: 'mentale' });
     banc.getState().cascadeNext();
@@ -233,12 +233,12 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     setDesFixes(true);
     applyMutation(banc.getState, banc.setState, hero, undefined, 'khorne');
     const nature = banc.getState().pendingCascade!.participants[0];
-    banc.getState().cascadeTableSetForcedRoll(nature.id, 12); // Corps
+    banc.getState().jetSetForcedRoll('cascadeTirage', 12, nature.id); // Corps
     banc.getState().cascadeNext();
     const table = banc.getState().pendingCascade!.participants[1];
     expect(table.table!.tableId).toBe('edoc-phys-khorne');
     const bestiale = mutationTableRows('edoc-phys-khorne').find((r) => r.id === 'tete-bestiale')!;
-    banc.getState().cascadeTableSetForcedRoll(table.id, bestiale.min);
+    banc.getState().jetSetForcedRoll('cascadeTirage', bestiale.min, table.id);
     banc.getState().cascadeNext();
     // Sous-table INSÉRÉE (pas appliquée d'office) : le 3e dé reste à poser.
     const sous = banc.getState().pendingCascade!.participants[2];
@@ -247,7 +247,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     expect(sous.table!.result).toBeUndefined();
     expect(banc.getState().party[0].mutations ?? []).toHaveLength(0);
     const animal = mutationTableRows('edoc-tete-bestiale-khorne')[2];
-    banc.getState().cascadeTableSetForcedRoll(sous.id, animal.min);
+    banc.getState().jetSetForcedRoll('cascadeTirage', animal.min, sous.id);
     banc.getState().cascadeNext();
     const victime = banc.getState().party[0];
     expect(victime.mutations!.map((m) => m.id)).toEqual([animal.id]);
@@ -261,10 +261,10 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     setDesFixes(true);
     applyMutation(banc.getState, banc.setState, hero);
     const nature = banc.getState().pendingCascade!.participants[0];
-    banc.getState().cascadeTableSetForcedRoll(nature.id, 12);
+    banc.getState().jetSetForcedRoll('cascadeTirage', 12, nature.id);
     banc.getState().cascadeNext();
     const table = banc.getState().pendingCascade!.participants[1];
-    banc.getState().cascadeTableSetForcedRoll(table.id, mutationTableRows('physique')[0].min);
+    banc.getState().jetSetForcedRoll('cascadeTirage', mutationTableRows('physique')[0].min, table.id);
     banc.getState().cascadeNext();
     const victime = banc.getState().party[0];
     expect(mutationLimitExceeded(victime)).toBe(true);

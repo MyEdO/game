@@ -34,7 +34,7 @@
 import seaNavJson from '../data/sea-navigation.json';
 import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, type RNG } from './dice';
+import { d10, type RNG, type Tirage } from './dice';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
 import { testValue } from './skills';
@@ -62,9 +62,9 @@ const DATA = seaNavJson as unknown as {
     lowMPenalty: { m: number; dr: number }[];
   };
   reparation: {
-    portCostGoldPerWound: number; testHours: string; woundsPerTest: string; charpentierPenalty: number;
+    portCostGoldPerWound: number; testHours: Tirage; woundsPerTest: Tirage; charpentierPenalty: number;
     lissageRepairSurcoutPct: number;
-    temporaire: { difficultyMin: Difficulty; difficultyMax: Difficulty; hoursPerRepair: number; woundsPerRepair: string; failDamage: string };
+    temporaire: { difficultyMin: Difficulty; difficultyMax: Difficulty; hoursPerRepair: number; woundsPerRepair: Tirage; failDamage: Tirage };
     entretienCrewTestDR: number;
   };
 };

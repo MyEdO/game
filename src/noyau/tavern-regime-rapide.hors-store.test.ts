@@ -40,11 +40,11 @@ function drain(): void {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (cur) {
-      if (cur.table && !cur.table.result) get().cascadeTableRoll(cur.id);
+      if (cur.table && !cur.table.result) get().jetRoll('cascadeTirage', cur.id);
       else if (cur.options && cur.chosen == null) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-      else if (cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+      else if (cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
       else if (cur.participants?.some((r) => r.interactive !== false && !r.result)) {
-        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().cascadeBatchRoll(r.id);
+        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetRoll('cascadeBatch', r.id);
       }
     }
     get().cascadeNext();

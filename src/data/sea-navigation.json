@@ -506,16 +506,37 @@
   },
   "reparation": {
     "portCostGoldPerWound": 1,
-    "testHours": "1d10",
-    "woundsPerTest": "1d10",
+    "testHours": {
+      "dice": {
+        "n": 1,
+        "sides": 10
+      }
+    },
+    "woundsPerTest": {
+      "dice": {
+        "n": 1,
+        "sides": 10
+      }
+    },
     "charpentierPenalty": -10,
     "lissageRepairSurcoutPct": 50,
     "temporaire": {
       "difficultyMin": "complexe",
       "difficultyMax": "tresDifficile",
       "hoursPerRepair": 1,
-      "woundsPerRepair": "1d10",
-      "failDamage": "1d10-4"
+      "woundsPerRepair": {
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
+      "failDamage": {
+        "dice": {
+          "n": 1,
+          "sides": 10,
+          "plus": -4
+        }
+      }
     },
     "entretienCrewTestDR": -2,
     "source": {

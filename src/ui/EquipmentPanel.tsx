@@ -1,13 +1,14 @@
 import { useGame } from '../state/store';
-import type { Combatant, HitLocation, ItemInstance } from '../engine/types';
-import { armourLayer, isCapeItem, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isUnarmed, setADeuxMains, paNette, type ArmourLayer } from '../engine/items';
+import { avecSigne, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
+import { emplacementDArmure, emplacementDeCape, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isUnarmed, setADeuxMains, paNette, type ArmourLayer } from '../engine/items';
+import { penaliteDeMainSecondaire } from '../engine/combat';
 import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
 import { ItemIcon } from './ItemIcon';
 import { MediaSelect, type MediaOption } from './MediaSelect';
 import { forceDuPorteur } from '../engine/characteristics';
 import { qualityRefLabel } from '../data';
-import { weaponStatParts } from './weaponStats';
+import { weaponStatParts } from '../engine/weaponStats';
 import { Icon } from './Icon';
 import { Band } from './Band';
 import { Grid } from './Layout';
@@ -176,9 +177,8 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const refusSets = refusDInventaire({ battle });
 
   const items = hero.items ?? [];
-  const armours = items.filter((i) => i.kind === 'armor' && (i.locs?.length ?? 0) > 0);
-  const capes = items.filter(isCapeItem);
-  const wornCape = capes.find((i) => i.equipped);
+  const cape = emplacementDeCape(items);
+  const wornCape = cape.porte;
   const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.destroyed);
   const force = forceDuPorteur(hero);
 
@@ -199,7 +199,6 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
         </div>
 
         {ZONES.map((z) => {
-          const covering = armours.filter((i) => (i.locs ?? []).some((l) => z.locs.includes(l)));
           const ap = hero.armour[z.apLoc];
           return (
             <div className="eq-loc-row" key={z.label}>
@@ -208,8 +207,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                 <span className="eq-loc-pa" data-pa={ap > 0 ? 'oui' : undefined} title="Points d'Armure de la zone (couches rigide + Flexible cumulées, mutations comprises)">PA {ap}</span>
               </span>
               {LAYERS.map((layer) => {
-                const worn = covering.find((i) => i.equipped && armourLayer(i) === layer.key);
-                const candidates = covering.filter((i) => !i.equipped && armourLayer(i) === layer.key);
+                const { porte: worn, candidats: candidates } = emplacementDArmure(items, z.locs, layer.key);
                 const netPa = worn ? paNette(worn) : undefined;
                 return (
                   <SlotCell
@@ -243,7 +241,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             value={wornCape?.uid ?? ''}
             refus={refusSets ?? undefined}
             desc="Équiper une cape"
-            options={[{ key: '', label: '— retirer —', disabled: !wornCape }, ...capes.filter((c) => !c.equipped).map(capeOpt)]}
+            options={[{ key: '', label: '— retirer —', disabled: !wornCape }, ...cape.candidats.map(capeOpt)]}
             onSelect={(v) => toggleEquip(hero.id, v || wornCape!.uid)}
           />
         </div>
@@ -297,7 +295,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       options={[{ key: '', label: mainTwoHanded ? '— (2 mains) —' : '— vide —' }, ...weapons.filter((w) => w.uid !== lo.main && !refusOff(w.uid)).map(weaponOpt)]}
                       onSelect={(v) => setLoadoutSlot(hero.id, lo.id, 'off', v || null)}
                     />
-                    <span className="set-slot-cap">2nde <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="off-malus">−20</CodexRef></span>
+                    <span className="set-slot-cap">2nde <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="off-malus">{avecSigne(penaliteDeMainSecondaire(hero))}</CodexRef></span>
                   </div>
                 </div>
                 <span className="set-card-actions">

@@ -21,19 +21,19 @@ export interface EffectTableRow {
   ops: GameOp[];
 }
 
-/** Une TABLE d'effets (`tables.json`) : `id` STABLE (langue-indépendant) + `die` (d10/d100) + rangées.
- *  `source` = citation RAW du Tableau. */
+/** Une TABLE d'effets (`tables.json`) : `id` STABLE (langue-indépendant) + `die` (dé de tirage,
+ *  `deDeTirageSchema`) + rangées. `source` = citation RAW du Tableau. */
 export interface EffectTable {
   id: string;
   type: 'tables';
   label: string;
-  die: 'd10' | 'd100';
-  rows: EffectTableRow[];
+  die: string;
+  entries: EffectTableRow[];
   source?: { book: string; page: number };
 }
 
-const TABLES: EffectTable[] = (effectTablesJson as unknown as (Omit<EffectTable, 'rows'> & { rows: (BandeOuverte & Omit<EffectTableRow, 'min' | 'max'>)[] })[])
-  .map((t) => ({ ...t, rows: tableOuverte(t.rows) }));
+const TABLES: EffectTable[] = (effectTablesJson as unknown as (Omit<EffectTable, 'entries'> & { entries: (BandeOuverte & Omit<EffectTableRow, 'min' | 'max'>)[] })[])
+  .map((t) => ({ ...t, entries: tableOuverte(t.entries) }));
 const BY_ID = new Map(TABLES.map((t) => [t.id, t]));
 
 /** Toutes les tables d'effets (Codex, éditeur). */

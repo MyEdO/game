@@ -1,7 +1,8 @@
 import artilleryMisfireJson from './artillery-misfire.json';
-import { parseDiceRequired } from '../engine/dice';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import type * as incidentsDeSalve from './schemas/defs/artillery-misfire';
 
-const de = parseDiceRequired(artilleryMisfireJson.die, 'artillery-misfire.die');
+const de = deDeTirageDe<typeof incidentsDeSalve>(artilleryMisfireJson);
 if (de.n !== 1 || (de.plus ?? 0) !== 0) throw new Error(`artillery-misfire.die exige un dé unique sans modificateur : ${artilleryMisfireJson.die}`);
 export const ARTILLERY_MISFIRE_DIE = de;
 
@@ -18,17 +19,6 @@ export const ARTILLERY_MISFIRE_DIE = de;
  *  - `strayFire` : ligne 10, « tir perdu » — pas de Dégâts directs à l'équipe, effet sur le terrain
  *    (journalisé verbatim en `note`, comme les effets sur les PERSONNES de `structure-criticals.json`).
  */
-export interface ArtilleryMisfireEntry {
-  min: number;
-  max: number;
-  /** id STABLE (slug) — toute réf passe par lui, jamais le `label`. */
-  id: string;
-  label: string;
-  location: 'brasPrincipal' | 'random';
-  perSalveIndex: boolean;
-  destroyed: boolean;
-  strayFire?: boolean;
-  note: string;
-}
+export type ArtilleryMisfireEntry = RangeeDe<typeof incidentsDeSalve>;
 
-export const ARTILLERY_MISFIRE = (artilleryMisfireJson as { entries: ArtilleryMisfireEntry[] }).entries;
+export const ARTILLERY_MISFIRE = rangeesDe<typeof incidentsDeSalve>(artilleryMisfireJson);

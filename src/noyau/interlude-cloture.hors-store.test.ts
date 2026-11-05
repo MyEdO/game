@@ -14,7 +14,7 @@ import { fromBrass, toBrass, type Money } from '../engine/money';
 import { makeRNG } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { hasCondition } from '../engine/conditions';
-import { devisDeCloture } from './verdictsDInterlude';
+import { devisDeCloture, refusDeClore } from './verdictsDInterlude';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
 
@@ -99,6 +99,22 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     banc.actions.interludeEnd();
     expect(banc.getState().journal.slice(journal)).toEqual(['L’hôte seul engage la bourse et la cale du groupe.']);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime])).toBe(avant);
+  });
+
+  it('les Événements encore à tirer : la clôture est refusée et dite, rien de changé (LDB 22 l.5)', () => {
+    const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, worldMap: ALTDORF } });
+    banc.actions.startInterlude(2);
+    expect(banc.getState().interlude?.phase, 'témoin : le tirage est ouvert').toBe('tirage');
+    expect(refusDeClore(banc.getState())).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
+    const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
+    const journal = banc.getState().journal.length;
+    banc.actions.interludeEnd();
+    expect(banc.getState().journal.slice(journal)).toEqual(['L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.']);
+    expect(JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime])).toBe(avant);
+  });
+
+  it('le tirage dénoué : la clôture est offerte à l’hôte', () => {
+    expect(refusDeClore(groupeDeTrois().getState())).toBeNull();
   });
 });
 

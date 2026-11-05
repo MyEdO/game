@@ -35,7 +35,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isValidFormula } from '../engine/ops';
-import { ICON_DEFS } from '../ui/icons';
+import { ICON_DEFS } from './icons';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, flowHasImpureOpOutsideTest, flowHasFreeAttack } from '../engine/flowCore';
 import type { Flow } from '../engine/flowCore';
 import { ruleDef } from '../engine/policy';
@@ -206,12 +206,12 @@ describe('Intégrité des données src/data/*.json', () => {
   it("8 — activities.json : chaque Activité porte une icône du registre (ActivityDef.icon ∈ ICON_DEFS)", () => {
     const activities = JSON.parse(readFileSync(join(DIR, 'activities.json'), 'utf8')) as { id: string; icon?: string }[];
     const bad = activities.filter((a) => typeof a.icon !== 'string' || !(a.icon in ICON_DEFS)).map((a) => `${a.id} → ${JSON.stringify(a.icon)}`);
-    expect(bad, `Activité(s) sans icône du registre (src/ui/icons) :\n  ${bad.join('\n  ')}`).toEqual([]);
+    expect(bad, `Activité(s) sans icône du registre (src/data/icons) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
   it("9 — actions.json : id unique, icône du registre (registre des actions, spec HUD zone 12)", () => {
     const actions = JSON.parse(readFileSync(join(DIR, 'actions.json'), 'utf8')) as { id: string; icon?: string }[];
     const badIcon = actions.filter((a) => typeof a.icon !== 'string' || !(a.icon in ICON_DEFS)).map((a) => `${a.id} → ${JSON.stringify(a.icon)}`);
-    expect(badIcon, `Action(s) sans icône du registre (src/ui/icons) :\n  ${badIcon.join('\n  ')}`).toEqual([]);
+    expect(badIcon, `Action(s) sans icône du registre (src/data/icons) :\n  ${badIcon.join('\n  ')}`).toEqual([]);
     const seen = new Set<string>();
     const dupes = actions.filter((a) => (seen.has(a.id) ? true : (seen.add(a.id), false))).map((a) => a.id);
     expect(dupes, `Id(s) d'action en double :\n  ${dupes.join('\n  ')}`).toEqual([]);

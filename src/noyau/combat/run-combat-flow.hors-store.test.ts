@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * runCombatFlow — exécuteur à PILE d'un Flow EN COMBAT, cadence-aware, qui porte la CONTINUATION `after`.
  * Sur un nœud `test` ENFOUI dans un `seq` :
  *  - HÉROS manuel → pousse une étape de cascade `triggeredTest` (influençable) dont le `meta.after` est
- *    le reste du `seq` (le `do` qui suivait) ; `cascadeRoll`+`cascadeNext` joue la BRANCHE puis le `do`
+ *    le reste du `seq` (le `do` qui suivait) ; `jetRoll('cascade')`+`cascadeNext` joue la BRANCHE puis le `do`
  *    de continuation (preuve que `after` est repris) ;
  *  - ENNEMI → jet INLINE + branche + `after`, SANS étape de cascade.
  * Jumeau de `run-flow.hors-store.test` (scène) et de `round-upkeep-cascade.hors-store.test` (cascade).
@@ -86,7 +86,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     expect(step.meta?.after).toBeTruthy();      // la continuation voyage dans le meta (sérialisable)
   });
 
-  it('HÉROS manuel : cascadeRoll+cascadeNext joue la BRANCHE puis la continuation (Force élevée → succès)', () => {
+  it('HÉROS manuel : jetRoll@cascade+cascadeNext joue la BRANCHE puis la continuation (Force élevée → succès)', () => {
     seedBattleRng(5);
     const { H } = setup();
     H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H); // Force élevée → Test réussi (branche success = −5)
@@ -94,7 +94,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
 
     runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
 
     // pre(3) + branche succès(5) + continuation after(7) = 15 ; l'échec(99) n'est PAS pris.
@@ -109,7 +109,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     banc.setState({ pendingLogQueue: [] });
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
 
     expect(banc.getState().pendingLogQueue).toEqual([]);
@@ -152,7 +152,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
    * `runCombatFlow` EN CONTEXTE D'INCANTATION (cascade `jet:'cast'` déjà OUVERTE par openCastCascade,
    * comme pendant un vrai `applyCast`). Le nœud `test` enfoui n'OUVRE PAS une seconde cascade : il
    * APPEND une étape `triggeredTest` à la MÊME cascade `cast` active (preuve « une seule cascade
-   * enrichie »), comme Critique/Maladresse de sort. Sa validation (cascadeRoll+cascadeNext) joue la
+   * enrichie »), comme Critique/Maladresse de sort. Sa validation (jetRoll('cascade')+cascadeNext) joue la
    * branche PUIS la continuation `after` (le `do` final). C'est la machinerie que le Lot 4 utilisera
    * quand un sort portera un nœud Flow `test` ; aucun sort n'en a ENCORE → la voie est juste prête. */
   it('CONTEXTE CAST : test enfoui APPEND à la cascade `cast` ouverte (une seule cascade enrichie)', () => {
@@ -190,14 +190,14 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     expect(step.result).toBeFalsy();        // pas encore lancé → influençable
     expect(step.meta?.after).toBeTruthy();  // la continuation voyage dans le meta (sérialisable, coop)
 
-    // castConfirm (combatSlice:1771-1777) avance le curseur AU-DELÀ de l'étape `jet:'cast'` quand des
+    // jetConfirm('cast') (combatSlice:1771-1777) avance le curseur AU-DELÀ de l'étape `jet:'cast'` quand des
     // conséquences se sont appendues (`participants.length > castStepIdx + 1`) → la cascade JOUE l'étape
-    // `triggeredTest`. On reproduit ce seul pas d'orchestration (le test bypass `castConfirm`).
+    // `triggeredTest`. On reproduit ce seul pas d'orchestration (le test bypass `jetConfirm('cast')`).
     expect(enriched.cursor).toBe(0); // curseur encore sur l'étape `cast` (résolue par CastModal, hors test)
-    banc.setState({ pendingCascade: { ...enriched, cursor: 1 } }); // = castConfirm : cursor → castStepIdx + 1
+    banc.setState({ pendingCascade: { ...enriched, cursor: 1 } }); // = jetConfirm('cast') : cursor → castStepIdx + 1
 
     // Validation : la branche succès (−5) PUIS la continuation after (−7) s'appliquent.
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
     expect(live(H.id).wounds.current).toBe(before - (3 + 5 + 7)); // pre + branche + continuation
     expect(banc.getState().pendingCascade).toBeNull();          // cascade enrichie close (toutes étapes jouées)

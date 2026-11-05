@@ -12,6 +12,7 @@ import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildP
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale du TEST D'ÉQUIPAGE GÉNÉRIQUE en COMBAT (MDG 14, « Types de Test d'équipage ») — JUMEAU de
@@ -27,13 +28,13 @@ export function CrewTestModal() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
-  const roll = useGame((s) => s.crewTestRoll);
-  const reroll = useGame((s) => s.crewTestReroll);
-  const bonus = useGame((s) => s.crewTestBonusSL);
-  const darkPact = useGame((s) => s.crewTestDarkPact);
-  const force = useGame((s) => s.crewTestForceSuccess);
-  const confirm = useGame((s) => s.crewTestConfirm);
-  const cancel = useGame((s) => s.crewTestCancel);
+  const roll = useGesteDeJet('jetRoll', 'crewTest');
+  const reroll = useGesteDeJet('jetReroll', 'crewTest');
+  const bonus = useGesteDeJet('jetBonusSL', 'crewTest');
+  const darkPact = useGesteDeJet('jetDarkPact', 'crewTest');
+  const force = useGesteDeJet('jetForceSuccess', 'crewTest');
+  const confirm = useGesteDeJet('jetConfirm', 'crewTest');
+  const cancel = useGesteDeJet('jetCancel', 'crewTest');
   if (!p) return null;
   return (
     <CrewTestModalView
@@ -80,9 +81,9 @@ export function CrewTestModalView({ p, battle, party, owns, roll, reroll, bonus,
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, when: 'pre' as const }] : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'always', disabled: !allRolled },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

@@ -266,13 +266,13 @@ export const AMORCE_TEST = ['rollTest', 'd100'];
 /**
  * AMORCE ÉLARGIE (#1508) — ce qui tire PHYSIQUEMENT un dé, Test ou pas : les primitives de
  * `src/engine/dice.ts` au complet. La garde d'exclusivité (#274) ne connaît que le forgeage d'un
- * Test ; elle est donc AVEUGLE à une magnitude (`rollDice`), à une dispersion (`d10`), à une
- * expression authorée (`rollExpr`) et au d100 d'environnement (`deMonde`) — 60 des 75 lignes de dé
+ * Test ; elle est donc AVEUGLE à une magnitude (`rollDice`), à une dispersion (`d10`), à un
+ * tirage authoré (`tirer`, `tirerSigne`) et au d100 d'environnement (`deMonde`) — 60 des 75 lignes de dé
  * de `src/state`+`src/ui` lui étaient invisibles au 2026-09-04. « Au complet » est gardé :
  * `roll-seam-exclusivity-guard.test.ts`, « AMORCE COMPLÈTE ».
  * @type {readonly string[]}
  */
-export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'rollExpr', 'deMonde'];
+export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'tirer', 'tirerSigne', 'deMonde'];
 
 /** PRÉ-FILTRE lexical de la garde sœur — strictement plus large que son critère AST (un appel
  *  `nom(` cite `nom` ; un `rng.int(` cite `int`). @type {RegExp} */
@@ -301,8 +301,8 @@ function estAppelDeDe(node) {
  * LA FRONTIÈRE EST L'EXPORT, pas le nombre de sauts. L'export compte s'il appelle une primitive de
  * dé (`AMORCE_DES`) ou un `.int(` DANS SON CORPS, **ou** s'il passe par un helper NON EXPORTÉ du
  * moteur qui, lui, tire : `merchantFlow.rollStock` → `fullStock` (module-local) → `rollDice`, ou
- * `creation.rollDetailFormula` (module-local) → `roll(n, 10, rng)` derrière `rollAge`/`rollEyes`/
- * `rollHair`/`rollHeight`. S'arrêter à UN SAUT rendait ces dés INVISIBLES : 10 sites réels manquaient,
+ * `creation.rollDetail` (module-local) → `roll(2, 10, rng)` derrière `rollEyes`/`rollHair`.
+ * S'arrêter à UN SAUT rendait ces dés INVISIBLES : 10 sites réels manquaient,
  * dont `merchantFlow.ts` en entier — que `ENGINE_DELEGATED_ROLL_STOCK` classait pourtant déjà en
  * dette. Deux stocks du même dé ne peuvent pas se contredire.
  *

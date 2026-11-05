@@ -49,9 +49,9 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   function hero() { return banc.getState().party[0]; }
   function st() { return banc.getState().interlude!.perHero[hero().id]; }
   const forceRoll = (roll: number, success: boolean, sl: number) => {
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
   };
 
   it('gate `where` : hors d’Altdorf (pas de place liée à la scène), la Pénitence est indisponible', () => {
@@ -240,7 +240,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     h.skills.push({ id: 'savoir', spec: 'magie', characteristic: 'intelligence', advances: 10 } as never);
     banc.getState().interludeActivity(h.id, 'identify', { itemUid: 'art1' }); // voie ADE II (Savoir Magie)
     expect(banc.getState().pendingActivity?.activityId).toBe('identify');
-    banc.getState().activityCancel();
+    banc.getState().jetCancel('activity');
     banc.getState().interludeActivity(h.id, 'tester-objets-magiques', { itemUid: 'art1' }); // voie ACE
     expect(banc.getState().pendingActivity?.kind).toBe('catalog');
   });

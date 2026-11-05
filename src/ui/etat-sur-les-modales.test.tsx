@@ -72,7 +72,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     nommeLEtat('avant', att);
-    act(() => { g().wardRoll(); });
+    act(() => { g().jetRoll('ward'); });
     expect(g().pendingWard!.result!.target).toBe(att);
     nommeLEtat('après', att);
   });
@@ -83,7 +83,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const att = cible(H, FM, 'intermediaire');
     act(() => root.render(createElement(FrenzyModal)));
     nommeLEtat('avant', att);
-    act(() => { g().frenzyRoll(); });
+    act(() => { g().jetRoll('frenzy'); });
     expect(g().pendingFrenzy!.result!.target).toBe(att);
     nommeLEtat('après', att);
   });
@@ -94,7 +94,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const att = cible(H, { char: 'dexterite' }, 'accessible');
     act(() => root.render(createElement(HandGateModal)));
     nommeLEtat('avant', att);
-    act(() => { g().handGateRoll(); });
+    act(() => { g().jetRoll('handGate'); });
     expect(g().pendingHandGate!.target).toBe(att);
     nommeLEtat('après', att);
   });
@@ -107,7 +107,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
     nommeLEtat('avant', att);
-    act(() => { g().approachRoll(); });
+    act(() => { g().jetRoll('approach'); });
     expect(g().pendingApproach!.result!.target).toBe(att);
     nommeLEtat('après', att);
   });
@@ -119,7 +119,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const att = cible(H, p.test, p.test.difficulty);
     act(() => root.render(createElement(RunModal)));
     nommeLEtat('avant', att, undefined, '−30 Exténué');
-    act(() => { g().runRoll(); });
+    act(() => { g().jetRoll('run'); });
     expect(g().pendingRun!.result!.target).toBe(att);
     nommeLEtat('après', att, undefined, '−30 Exténué');
   });
@@ -131,7 +131,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     useGame.setState({ party: [H], battle: null, pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', nature: 'physique', natureFixee: true, test } } as never);
     act(() => root.render(createElement(CorruptionModal)));
     nommeLEtat('avant', att);
-    act(() => { g().corruptionRoll(); });
+    act(() => { g().jetRoll('corruption'); });
     expect(g().pendingCorruption!.target).toBe(att);
     nommeLEtat('après', att);
   });
@@ -147,7 +147,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const lab = refLabel('skills', p.test.skill);
     act(() => root.render(createElement(FallModal)));
     nommeLEtat('avant', att, lab);
-    act(() => { g().fallRoll(hero.id); });
+    act(() => { g().jetRoll('fall', hero.id); });
     expect(g().pendingFall!.participants[0].result!.target).toBe(att);
     nommeLEtat('après', att, lab);
   });
@@ -165,7 +165,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const lab = refLabel('skills', test.skill);
     act(() => root.render(createElement(DisengageModal)));
     nommeLEtat('avant', att, lab);
-    act(() => { g().fleeRoll('Héros'); });
+    act(() => { g().jetRoll('flee', 'Héros'); });
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(att);
     nommeLEtat('après', att, lab);
   });

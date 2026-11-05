@@ -30,7 +30,7 @@ const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
   places: [
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
@@ -319,7 +319,7 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de {skill
         return;
       }
       const c = p.participants[p.cursor];
-      if (c && c.target != null && !c.result) get().cascadeRoll(c.id);
+      if (c && c.target != null && !c.result) get().jetRoll('cascade', c.id);
       else get().cascadeNext();
     }
   });

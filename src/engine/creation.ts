@@ -14,7 +14,7 @@
  *    Elfe 30+10d10 ; taille Humain 145+5d10 cm, Nain 130+3d10, Halfling 90+2d10,
  *    Elfe 180+2d10 ; yeux/cheveux : 2d10 sur les tables (eyes.json / hairs.json).
  */
-import { RNG, roll } from './dice';
+import { RNG, roll, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
@@ -118,24 +118,14 @@ export function rollInitialWealth(status: Status, rng: RNG): TirageDeRichesse {
   return { faces, montant: enPieces(unite, faces.reduce((a, f) => a + f, de.plus ?? 0)) };
 }
 
-/** Formule « base + N d10 » des tables de détails (details.json), colonne `refChar` (id `RaceKey`,
- *  #313) de l'espèce (repli : colonne humain). N non entier dans les données (Gnome 2,5) → arrondi
- *  au plus près. */
-function rollDetailFormula(base: Partial<Record<RaceKey, number>>, dice: Partial<Record<RaceKey, number>>, sp: SpeciesData, rng: RNG): number {
-  const b = base[sp.refChar] ?? base.humain ?? 0;
-  const n = Math.round(dice[sp.refChar] ?? dice.humain ?? 1);
-  return b + (n > 0 ? roll(n, 10, rng) : 0);
-}
-
-/** Âge (LDB 05 l.705-711, table par espèce — ex. Humain 15+1d10, Nain 15+10d10). */
+/** Âge, colonne `refChar` de l'espèce. LDB 05 l.711 ; NADJ 15 l.80 ; ADE II 02 l.278 */
 export function rollAge(sp: SpeciesData, rng: RNG): number {
-  return rollDetailFormula(detailTables.ageBase, detailTables.ageRoll, sp, rng);
+  return rollDice(detailTables.age[sp.refChar], rng);
 }
 
-/** Taille en cm (LDB 05 l.728 — ex. Humain 145+5d10, Halfling 90+2d10).
- *  (Le dé bonus humain sur un 10 — l.724 — n'est pas simulé.) */
+/** Taille en cm, colonne `refChar` de l'espèce. LDB 05 l.724, l.728 ; NADJ 15 l.112 ; ADE II 02 l.315 */
 export function rollHeight(sp: SpeciesData, rng: RNG): number {
-  return rollDetailFormula(detailTables.heightBase, detailTables.heightRoll, sp, rng);
+  return rollDice(detailTables.taille[sp.refChar], rng);
 }
 
 /** Couleur des yeux (2d10, table LDB 05 l.742-754) pour la colonne d'espèce (refChar). */

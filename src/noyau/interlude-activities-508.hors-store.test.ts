@@ -82,9 +82,9 @@ describe('Entraînement au Combat (LDB 23 l.205-209) — jeton d’inversion SCO
     const pa = banc.getState().pendingActivity!;
     expect(pa.activityId).toBe('entrainement-au-combat');
     expect(['corps-a-corps', 'projectiles']).toContain(pa.chosenSkill);
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(banc.getState().pendingActivity).toBeNull();
     const hero = banc.getState().party[0];
     expect(consumeReverseToken(hero, { skill: pa.chosenSkill! })).toBe(true);
@@ -98,9 +98,9 @@ describe('Réputation (LDB 23 l.228-234) — coût dépensé DANS TOUS LES CAS, 
     banc.getState().interludeActivity(heroId, 'reputation');
     const before = toBrass(partyMoneyTotal(banc.getState));
     expect(banc.getState().pendingActivity?.costBrass).toBeGreaterThan(0);
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     const hero = banc.getState().party[0];
     expect(banc.getState().interlude?.perHero[heroId].closeOps).toEqual([{ ops: [{ op: 'statusMod', amount: 1 }], ctx: { label: 'Réputation', source: { kind: 'activity', id: 'reputation' }, sl: 2 } }]);
     expect(hero.activeEffects?.some((e) => e.statusMod), 'posé avant la prochaine aventure').toBeFalsy();
@@ -115,17 +115,17 @@ describe('Semer la dissension (LDB 23 l.236-248) — DEUX Activités, la 2ᵉ ga
     expect(banc.getState().pendingActivity).toBeNull(); // gate : Repérage non encore réussi
 
     banc.getState().interludeActivity(heroId, 'semer-dissension-reperage');
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     const itl = banc.getState().interlude!;
     expect(itl.perHero[heroId].dissensionReady).toBe(true);
 
     banc.getState().interludeActivity(heroId, 'semer-dissension-emeute');
     expect(banc.getState().pendingActivity?.activityId).toBe('semer-dissension-emeute');
-    banc.getState().activityRoll();
+    banc.getState().jetRoll('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().activityConfirm();
+    banc.getState().jetConfirm('activity');
     expect(banc.getState().interlude!.perHero[heroId].dissensionReady).toBe(false); // consommé
   });
 });
@@ -134,8 +134,8 @@ describe('Remaniement du contremaître (AA 12 l.51-144) — tire ses TROIS table
   it('les 3 tables (Lieu/Objectif/Personnalité) sont enregistrées et couvrent 1..100', () => {
     for (const id of ['contremaitre-lieu', 'contremaitre-objectif', 'contremaitre-personnalite']) {
       const t = findEffectTableById(id);
-      expect(t.rows.length).toBeGreaterThan(0);
-      for (const roll of [1, 50, 100]) expect(findTableEntry(t.rows, roll)).toBeTruthy();
+      expect(t.entries.length).toBeGreaterThan(0);
+      for (const roll of [1, 50, 100]) expect(findTableEntry(t.entries, roll)).toBeTruthy();
     }
   });
 

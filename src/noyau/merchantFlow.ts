@@ -28,7 +28,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type TrappingData } from '../data/index';
 import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
 import { actorIn, ecrireActeur } from './monde/combatants';
@@ -866,11 +866,12 @@ export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
 
 /** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
  *  (LDB 59 l.43), ou le billet (`marchandagesDeBillet`, EDO 01 l.142). */
-export function bargainConfirm(get: Get, set: Set): void {
+function acquitterLeMarchandage(get: Get, set: Set): void {
   const pb = get().pendingBargain;
-  if (!pb || !pb.result) return; // pas d'acquittement avant le jet
-  const won = pb.result.attackerWins; // le joueur est l'attaquant
-  const drNet = pb.result.netSL;
+  if (!pb) return;
+  const res = garanti(pb.result, pb.playerId, 'jet du Marchandage');
+  const won = res.attackerWins; // le joueur est l'attaquant
+  const drNet = res.netSL;
   const outcome = { won, drNet, negotiator: pb.negotiator };
   // ACQUITTEMENT par le goulot (`FLOWS.bargain.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
@@ -1004,9 +1005,9 @@ function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: 
 
 /** Acquitte l'Évaluation (révèle `identified` + estimation, LDB 59 l.41) ou la Détection d'artefact
  *  (aura sentie + règles apprises par DR, LDB 10 l.336 ; tentative unique). */
-export function resolveAppraise(get: Get, set: Set): void {
+function acquitterLEvaluation(get: Get, set: Set): void {
   const pa = get().pendingAppraise;
-  if (!pa || pa.roll == null) return; // pas d'acquittement avant le jet
+  if (!pa) return;
   set({ pendingAppraise: null });
   if (pa.mode === 'detect') {
     // Qualités MAGIQUES de la cible : sur une ligne de butin on les connaît (effet) ; sur un objet
@@ -1067,15 +1068,18 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     confirmSell: () => confirmSell(get, set),
     repairItem: (uid, heroId) => repairItem(get, set, uid, heroId),
     startBargain: (mode) => startBargain(get, set, mode),
-    bargainConfirm: () => bargainConfirm(get, set),
-    bargainCancel: () => set({ pendingBargain: null }),
     appraiseItem: (uid, heroId, mode) => appraiseItem(get, set, uid, heroId, mode),
     appraiseGear: (scope, index, mode) => appraiseGear(get, set, scope, index, mode),
-    resolveAppraise: () => resolveAppraise(get, set),
-    appraiseCancel: () => set({ pendingAppraise: null }),
     barterExchange: (opts) => barterExchange(get, set, opts),
     setSellHalving: (uid, delta) => setSellHalving(get, set, uid, delta),
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+export function cloturesDuMarchand(get: Get, set: Set) {
+  return {
+    bargain: () => acquitterLeMarchandage(get, set),
+    appraise: () => acquitterLEvaluation(get, set),
+  } satisfies Partial<CloturesDuJet>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

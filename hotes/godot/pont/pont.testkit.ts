@@ -2,14 +2,14 @@
  * LA TABLE DE TEST DU PONT (#2928, `CONTRAT.md`) : le pont appelé comme Godot l'appelle (le nom d'une méthode et une
  * chaîne JSON, une chaîne JSON en retour), les jetons programmés rejoués sur l'horloge virtuelle du module commun
  * (`horlogeVirtuelle`, `src/noyau/horlogeVirtuelle.ts`), là où Godot arme ses minuteurs, et ce qu'il manque à une vue pour que
- * Godot dessine chaque verbe de sa fenêtre (`fautesDeLaFenetre`).
+ * Godot dessine la fenêtre qui tient la main (`fautesDeLaFenetre`).
  */
 import { expect } from 'vitest';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';
-import { horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
-import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
-import { VERBES } from '../../../src/hote/verbes.generated';
+import { cleDuGeste, horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
+import { parametresDuGeste } from '../../../src/hote/gestes';
+import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Saisie } from '../../../src/hote/elements';
 
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
@@ -27,7 +27,7 @@ export function table() {
 
 /** La suite d'une réponse réussie, ou l'échec qui dit la réponse. */
 export function suiteDe(r: Reponse): Suite {
-  if (!r.ok || !r.vue || !r.programmes || !r.journal) throw new Error(`réponse sans suite : ${JSON.stringify(r).slice(0, 400)}`);
+  if (!r.ok || !r.vue || !r.programmes || !r.journal || !r.zones) throw new Error(`réponse sans suite : ${JSON.stringify(r).slice(0, 400)}`);
   return r as unknown as Suite;
 }
 
@@ -38,64 +38,84 @@ export function erreurDe(r: Reponse): { categorie: CategorieDuPont; message: str
 }
 
 /** Rejoue tous les jetons d'une suite et de leurs reprises sur l'horloge virtuelle du noyau
- *  (`horlogeVirtuelle`), là où Godot arme ses minuteurs : la dernière suite, et toutes les lignes de journal, celles de
- *  `r` comprises. */
-export function drainer(appel: ReturnType<typeof table>['appel'], r: Reponse): { suite: Suite; journal: LigneDuJournal[] } {
+ *  (`horlogeVirtuelle`), là où Godot arme ses minuteurs : la dernière suite, toutes les lignes de journal et toutes
+ *  celles que le journal de l'écran ajoute, celles de `r` comprises. */
+export function drainer(appel: ReturnType<typeof table>['appel'], r: Reponse): { suite: Suite; journal: LigneDuJournal[]; lignes: Ligne[] } {
   let suite = suiteDe(r);
   const journal = [...suite.journal];
+  const lignes = [...suite.zones['journal.lignes']];
   horlogeVirtuelle((jeton) => {
     suite = suiteDe(appel('reprendre', { jeton }));
     journal.push(...suite.journal);
+    lignes.push(...suite.zones['journal.lignes']);
     return suite.programmes;
   }, suite.programmes).vider();
-  return { suite, journal };
+  return { suite, journal, lignes };
 }
 
-/** Ce qu'il manque à un argument saisi pour se dessiner : son libellé (jamais son nom), chaque valeur d'un choix nommée,
+/** Ce qu'il manque à une saisie pour se dessiner : son libellé (jamais son nom), chaque valeur d'un choix nommée,
  *  chaque champ d'un objet. */
-function fautesDeLArgument(ou: string, a: ArgumentDuGeste): string[] {
-  if (a.saisie === 'fixe') return [];
+function fautesDeLaSaisie(ou: string, s: Saisie): string[] {
+  if (s.type === 'fixe') return [];
   return [
-    ...(!a.libelle || a.libelle === a.nom ? [`${ou} : libellé ${String(a.libelle)}`] : []),
-    ...(a.saisie === 'choix' && (!a.valeurs?.length || a.valeurs.some((v) => !v.libelle)) ? [`${ou} : un choix sans valeur nommée`] : []),
-    ...(a.saisie === 'objet' ? (a.champs ?? []).flatMap((c) => fautesDeLArgument(`${ou}.${c.nom}`, c)) : []),
+    ...(!s.libelle || s.libelle === s.nom ? [`${ou} : libellé ${s.libelle}`] : []),
+    ...(s.type === 'saisieChoix' && (!s.valeurs.length || s.valeurs.some((v) => !v.libelle)) ? [`${ou} : un choix sans valeur nommée`] : []),
+    ...(s.type === 'saisieObjet' ? s.champs.flatMap((c) => fautesDeLaSaisie(`${ou}.${c.nom}`, c)) : []),
   ];
 }
 
-/** Ce qu'il manque à la vue pour dessiner chaque verbe de la fenêtre qui tient la main : son geste, son libellé (jamais
- *  son id), chacun de ses paramètres (`VERBES`) en argument, l'id désigné posé, chaque argument saisi nommé
- *  (`fautesDeLArgument`), et le titre de la fenêtre. */
+/** Ce qu'il manque à la vue pour dessiner la fenêtre qui tient la main : son titre (jamais un id), et chaque geste
+ *  ouvert en élément d'un de ses verbes (`cleDuGeste`), nommé, qui joue son verbe le flux d'un geste de jet et l'id
+ *  désigné posés à leur place parmi ses paramètres (`parametresDuGeste`) ; chaque valeur d'un choix nommée, chaque
+ *  saisie d'un formulaire nommée (`fautesDeLaSaisie`). Sans fenêtre, aucune zone de la fenêtre n'a d'élément. */
 export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   const f = vue.projection.fenetre;
-  if (!f) return vue.fenetre ? ['une fenêtre dessinée sans fenêtre qui tient la main'] : [];
-  if (!vue.fenetre) return [`la fenêtre ${f.cle} n’est pas dessinée`];
-  const ids = new Set([f.cle, ...f.verbes]);
-  const fautes = [
-    ...(ids.has(vue.fenetre.titre) ? [`titre ${vue.fenetre.titre} : un id`] : []),
-    ...(vue.fenetre.gestes.map((g) => g.verbe).join() === f.verbes.join() ? [] : [`gestes ${vue.fenetre.gestes.map((g) => g.verbe).join()} ≠ verbes ${f.verbes.join()}`]),
-  ];
-  for (const g of vue.fenetre.gestes) {
-    const parametres = VERBES[g.verbe] ?? [];
-    if (!g.libelle || ids.has(g.libelle)) fautes.push(`${g.verbe} : libellé ${g.libelle}`);
-    if (g.arguments.map((a) => a.nom).join() !== parametres.map((p) => p.nom).join()) fautes.push(`${g.verbe} : arguments ${g.arguments.map((a) => a.nom).join()} ≠ paramètres ${parametres.map((p) => p.nom).join()}`);
-    for (const a of g.arguments) {
-      if (a.saisie === 'fixe' && a.valeur !== f.pid) fautes.push(`${g.verbe}.${a.nom} : posé à ${String(a.valeur)}, la fenêtre désigne ${String(f.pid)}`);
-      fautes.push(...fautesDeLArgument(`${g.verbe}.${a.nom}`, a));
-      if (a.saisie === 'choix' && (g.rendu === 'bouton' || ((g.rendu === 'choix' || g.rendu === 'liste') && g.aChoisir !== a.nom))) fautes.push(`${g.verbe}.${a.nom} : des valeurs nommées que le rendu ${g.rendu} ne fait pas dire`);
+  const z = vue.zones;
+  const dessinee = [z['fenetre.titre'], z['fenetre.etape'], z['fenetre.corps'], z['fenetre.reglages'], z['fenetre.gestes']].some((l) => l.length);
+  if (!f) return dessinee ? ['une fenêtre dessinée sans fenêtre qui tient la main'] : [];
+  const [titre] = z['fenetre.titre'];
+  if (!titre) return [`la fenêtre ${f.cle} n’est pas dessinée`];
+  const gestes = new Map(f.gestes.map((g) => [cleDuGeste(g), g]));
+  const ids = new Set([f.cle, ...gestes.keys(), ...f.gestes.map((g) => g.verbe)]);
+  const fautes = ids.has(titre.texte) ? [`titre ${titre.texte} : un id`] : [];
+  for (const e of gestesDessines(vue)) {
+    const geste = gestes.get(e.id);
+    if (!geste) { fautes.push(`${e.id} : aucun geste de la fenêtre`); continue; }
+    if (!e.libelle || ids.has(e.libelle)) fautes.push(`${e.id} : libellé ${e.libelle}`);
+    const parametres = parametresDuGeste(geste).map((p) => p.nom);
+    const pose = (nom: string) => (nom === 'flux' ? geste.flux : f.pid);
+    const fautesDuJeu = (ou: string, jeu: Jeu) => {
+      if (!('type' in jeu) || jeu.type !== geste.verbe) return [`${ou} : joue ${JSON.stringify(jeu)}, pas ${geste.verbe}`];
+      return parametres.flatMap((p, i) => ((p === 'flux' || p === 'pid') && jeu.args[i] !== pose(p) ? [`${ou}.${p} : posé à ${String(jeu.args[i])}, la fenêtre désigne ${String(pose(p))}`] : []));
+    };
+    switch (e.type) {
+      case 'bouton': fautes.push(...fautesDuJeu(e.id, e.jeu)); break;
+      case 'choix':
+      case 'liste':
+        if (!e.valeurs.length) fautes.push(`${e.id} : un choix sans valeur`);
+        for (const v of e.valeurs) fautes.push(...(v.libelle ? [] : [`${v.id} : une valeur sans nom`]), ...fautesDuJeu(v.id, v.jeu));
+        break;
+      case 'formulaire':
+        if (e.verbe !== geste.verbe) fautes.push(`${e.id} : verbe ${e.verbe}, pas ${geste.verbe}`);
+        if (e.champs.map((c) => c.nom).join() !== parametres.join()) fautes.push(`${e.id} : saisies ${e.champs.map((c) => c.nom).join()} ≠ paramètres ${parametres.join()}`);
+        for (const c of e.champs) {
+          if (c.type === 'fixe' && c.valeur !== pose(c.nom)) fautes.push(`${e.id}.${c.nom} : posé à ${String(c.valeur)}, la fenêtre désigne ${String(pose(c.nom))}`);
+          fautes.push(...fautesDeLaSaisie(`${e.id}.${c.nom}`, c));
+        }
     }
   }
   return fautes;
 }
 
-/** Le geste du verbe `verbe` dans la fenêtre dessinée, ou l'échec qui la dit. */
-export function gesteDe(vue: VueDuPont, verbe: string): GesteDeLaFenetre {
-  const g = vue.fenetre?.gestes.find((x) => x.verbe === verbe);
-  if (!g) throw new Error(`aucun geste ${verbe} dans ${JSON.stringify(vue.fenetre?.gestes.map((x) => x.verbe))}`);
+/** Les gestes dessinés de la fenêtre : ses réglages, puis ses gestes. */
+export const gestesDessines = (vue: VueDuPont): (Bouton | Choix | Formulaire)[] => [...vue.zones['fenetre.reglages'], ...vue.zones['fenetre.gestes']];
+
+/** Le geste d'identité `cle` (`cleDuGeste`) parmi les gestes dessinés de la fenêtre, ou l'échec qui la dit. */
+export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulaire {
+  const g = gestesDessines(vue).find((x) => x.id === cle);
+  if (!g) throw new Error(`aucun geste ${cle} dans ${JSON.stringify(gestesDessines(vue).map((x) => x.id))}`);
   return g;
 }
 
-/** Les arguments d'un geste comme Godot les envoie : l'id posé par la fenêtre, puis les valeurs saisies, dans l'ordre. */
-export function argsDe(g: GesteDeLaFenetre, ...saisies: unknown[]): unknown[] {
-  const reste = [...saisies];
-  return g.arguments.flatMap((a) => (a.saisie === 'fixe' ? [a.valeur] : reste.length ? [reste.shift()] : []));
-}
+/** L'élément d'id `id` du corps de la fenêtre, `undefined` sans lui. */
+export const corpsDe = (vue: VueDuPont, id: string): Element | undefined => vue.zones['fenetre.corps'].find((e) => e.id === id);

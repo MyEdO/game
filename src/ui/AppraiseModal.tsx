@@ -13,6 +13,7 @@ import { ev } from '../noyau/combatLog';
 import { describeAppraise } from '../noyau/flowOutcomes';
 import { libelleDEvaluation } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
 const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };
@@ -72,8 +73,8 @@ export function AppraiseModalView({
 
   const actions: RollAction[] = owned
     ? [
-        { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, when: 'pre' },
-        { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, when: 'post' },
+        { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
+        { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
       ]
     : [];
 
@@ -101,12 +102,12 @@ export function AppraiseModalView({
 export function AppraiseModal() {
   const pa = useGame((s) => s.pendingAppraise);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.appraiseRoll);
-  const reroll = useGame((s) => s.appraiseReroll);
-  const bonusSL = useGame((s) => s.appraiseBonusSL);
-  const darkPact = useGame((s) => s.appraiseDarkPact);
-  const confirm = useGame((s) => s.resolveAppraise);
-  const cancel = useGame((s) => s.appraiseCancel);
+  const roll = useGesteDeJet('jetRoll', 'appraise');
+  const reroll = useGesteDeJet('jetReroll', 'appraise');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'appraise');
+  const darkPact = useGesteDeJet('jetDarkPact', 'appraise');
+  const confirm = useGesteDeJet('jetConfirm', 'appraise');
+  const cancel = useGesteDeJet('jetCancel', 'appraise');
   // COOP (#1017) : ABONNEMENT à `net` AVANT le retour anticipé — une ré-attribution de siège en cours
   // de fenêtre re-rend la modale (sinon `owned` reste figé sur le 1er rendu).
   useGame((s) => s.net);

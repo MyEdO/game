@@ -59,7 +59,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     return { H: actorIn(banc.getState(), H.id)!, E };
   }
 
-  /** Pose le dé de la rangée du héros (champ que `cascadeBatchRoll` écrit). */
+  /** Pose le dé de la rangée du héros (champ que `jetRoll('cascadeBatch')` écrit). */
   function jet(id: string, sl: number, success: boolean) {
     const pc = banc.getState().pendingCascade!;
     const participants = band().participants!.map((p) => (p.id === id ? { ...p, result: { roll: success ? 1 : 99, target: p.target, sl, success } } : p));
@@ -110,7 +110,7 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
     const pr = banc.getState().pendingReload!;
     expect(pr.reload).toBe(6);
     banc.setState({ pendingReload: { ...pr, roll: 20, sl: 2, success: true } });
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const apres = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
     expect(apres.loaded).toBe(true);
   });
@@ -125,7 +125,7 @@ describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l
     const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'hero', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur], order: ['t'], turn: 0, round: 1, acted: false, log: [] } as never, party: [tireur], scene: null as never,
       pendingReload: { actorId: 't', actorName: 'Tireur', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
-    banc.getState().reloadConfirm();
+    banc.getState().jetConfirm('reload');
     const w = banc.getState().battle!.combatants[0].weapons.find((x) => x.uid === 'arb')!;
     expect(w.reloadProgress).toBe(1);
   });
@@ -137,7 +137,7 @@ describe('Focalisation — Test étendu, un échec cumule son DR négatif (LDB 4
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 3 };
     banc.setState({ party: [w] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: false, sl: -2, isCritical: false, isFumble: false, roll: 87, target: 65, log: 'échec' } } });
-    banc.getState().focusConfirm();
+    banc.getState().jetConfirm('focus');
     expect(banc.getState().party.find((h) => h.id === w.id)!.focus).toEqual({ spell: 'manifestation-de-demon-mineur', dr: 1 });
   });
 });

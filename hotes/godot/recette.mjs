@@ -8,26 +8,32 @@
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
-//   partie, et chaque bouton se trouve par le texte que la vue lui donne.
+//   partie, et chaque bouton se trouve par l'élément de la vue qu'il dessine (`vue.zones`). Le jet tombé, la fenêtre
+//   ne redessine ni son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
+// - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
+//   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
-//   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
-//   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
-//   l'élément monté puis démonté (« vide ») ; si une surface de `--element` porte `blason: true` (#3111), deux emblèmes
-//   posés tour à tour à la prise `main`, chacun sans erreur publiée, puis « vide » et le premier reposé, ces quatre choix
-//   sans requête du GLB de l'élément (`performance`, page) ni appel `composer` de Godot (`wfrpPont.appeler` enveloppé,
-//   témoins : le GLB requis au montage, `modeles` appelé au premier « Recharger ») ; puis « vide » : l'emblème effacé
-//   au démontage, l'élément remonté sans emblème (le défaut de la composition), le premier reposé avant « Recharger » (sans
-//   surface `blason`, une ligne du journal dit la preuve non jouée) ; un
-//   clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée), sa vitesse réglée ; puis
-//   `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la référence revalidé contre
-//   elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste
-//   réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est gardé.
-// - `composition` : Soldat, manquants et copie validée côté Node ; pièce skinnée montée et démontée, courtaud,
-//   corpulence aux bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
+//   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
+//   « Recharger les modèles » : l'élément offert par la liste des seuls points dont l'os porte sa lame (`osDesRigides`
+//   du listage) ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
+//   `blason: true` (#3111), deux emblèmes posés tour à tour à la prise `main`, chacun sans erreur publiée, puis
+//   « Aucun » et le premier reposé, ces quatre choix sans requête du GLB de l'élément (`performance`, page) ni appel
+//   `composer` de Godot (`wfrpPont.appeler` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
+//   rechargement) ; puis « Aucun » : l'emblème effacé au démontage, l'élément remonté sans emblème (le défaut de la
+//   composition), le premier reposé avant le rechargement (sans surface `blason`, une ligne du journal dit la preuve non
+//   jouée) ; à l'onglet Animation, un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée),
+//   sa vitesse réglée ; puis `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la
+//   référence revalidé contre elle et laissé en place, « Recharger les modèles » sans relancer la page : l'empreinte
+//   publiée devient celle du manifeste réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est
+//   gardé.
+// - `composition` : Soldat, manquants et copie validée côté Node ; une couleur changée à l'onglet Couleurs, posée dans
+//   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
+//   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
+//   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -48,7 +54,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|exploration|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -68,25 +74,41 @@ const attendreLaVue = (condition, timeoutMs = 30000) =>
 const marquer = () => evaluate(session, '(globalThis.wfrpEcran && (wfrpEcran.vu = true), true)')
 const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs })
 const actif = (v) => v.projection.combat?.actif
-const nomDe = (v, id) => v.projection.combat.voisins.liste.find((c) => c.id === id)?.nom
-/** Le libellé du geste que la fenêtre attend. */
-const attendu = (v) => {
-  const gestes = v.fenetre?.gestes.filter((g) => g.attendu) ?? []
-  assert.equal(gestes.length, 1, `un geste attendu dans ${JSON.stringify(v.fenetre?.gestes.map((g) => g.libelle))}`)
-  return gestes[0].libelle
+/** Les éléments que la vue montre dans la zone `zone` (`vue.zones`, `CONTRAT.md`). */
+const zone = (v, z) => v.zones[z]
+/** L'élément d'id `id` de la zone `z`. */
+const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
+/** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
+const offre = (v, id) => zone(v, 'combat.offres').flatMap((e) => e.valeurs).find((e) => e.id === id)
+/** Les gestes que la fenêtre dessine : ses réglages, puis ses gestes. */
+const dessines = (v) => [...zone(v, 'fenetre.reglages'), ...zone(v, 'fenetre.gestes')]
+/** Les gestes que la fenêtre dessine, par leur identité. */
+const ouverts = (v) => dessines(v).map((g) => g.id)
+/** Le geste en focus : celui que la fenêtre joue à l'Entrée. */
+const enFocus = (v) => {
+  const gestes = dessines(v).filter((g) => g.focus)
+  assert.equal(gestes.length, 1, `un geste en focus dans ${JSON.stringify(ouverts(v))}`)
+  return gestes[0]
 }
+/** Le texte de chaque élément du corps de la fenêtre. */
+const corps = (v) => zone(v, 'fenetre.corps').map((e) => e.texte ?? [e.qui, e.libelle, e.resultat, e.verdict].filter(Boolean).join(' ')).join(' / ')
+/** L'étape de cascade que la fenêtre tient. */
+const etape = (v) => v.projection.fenetre?.etape?.genre
 
 async function cliquerPoint(x, y) {
   await marquer()
   await geste(session, { surface: 'canvas', x, y }, { qui: `clic (${Math.round(x)}, ${Math.round(y)})` }, clic())
   await nouvelEcran()
 }
-/** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }`, dont la clé vaut `cle` ; `undefined` hors de l'écran. */
-const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : x.cle === quoi.cle))
+/** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }` ou `{ element }`, dont la clé ou l'élément dessiné
+ *  vaut celui-ci ; `undefined` hors de l'écran. */
+const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : x.cle === quoi.cle))
+/** Le bouton publié qui dessine le bouton `b` de la vue. */
+const bouton = (b) => ({ element: `bouton/${b.id}` })
 async function cliquerBouton(quoi) {
   const { boutons } = await ecran()
   const b = trouver(boutons, quoi)
-  if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.cle ?? x.texte).join(' | ')}`)
+  if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.element ?? x.cle ?? x.texte).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
 }
 async function cliquerCase({ x, y }) {
@@ -98,9 +120,9 @@ async function capturer(nom) {
   noter(`capture ${await shot(session, nom, o.captures)}`)
 }
 async function finirLeTour() {
-  await cliquerBouton((await vue()).panneau.offres['end-turn'])
+  await cliquerBouton({ element: 'bouton/end-turn' })
   const v = await vue()
-  if (v.projection.combat.finDeTourArmee) await cliquerBouton(v.panneau.offres['end-turn'])
+  if (v.projection.combat.finDeTourArmee) await cliquerBouton({ element: 'bouton/end-turn' })
 }
 
 async function parcoursCombat() {
@@ -108,7 +130,7 @@ async function parcoursCombat() {
   noter('menu : bouton « Combat » cliqué')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
-  assert.ok(v.fenetre, 'la fenêtre du round tient la main')
+  assert.ok(v.projection.fenetre, 'la fenêtre du round tient la main')
   assert.equal(v.projection.combat.round, 1)
   await capturer('2928-6c-1-round')
   await marquer()
@@ -116,38 +138,50 @@ async function parcoursCombat() {
   await nouvelEcran()
   v = await vue()
   const heros = actif(v)
-  assert.equal(v.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
+  assert.equal(v.projection.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
+  assert.deepEqual(zone(v, 'fenetre.titre'), [], 'sans fenêtre, la zone du titre est vide')
   assert.equal(heros?.camp, 'hero', 'un héros est actif')
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
+  assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
-  await cliquerBouton(v.panneau.offres.charge)
+  const charge = offre(v, 'charge')
+  await cliquerBouton(bouton(charge))
   v = await vue()
   assert.equal(v.projection.combat.intention, 'charge', 'l’offre arme son intention')
+  assert.equal(offre(v, 'charge').presse, true, 'l’offre armée est pressée')
   const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
   assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
-  noter(`offre ${v.panneau.offres.charge} : intention charge, ${v.cases.length} cases peintes`)
+  noter(`offre ${charge.libelle} : intention charge, ${v.cases.length} cases peintes`)
   await cliquerCase({ x: proche.pos[0], y: proche.pos[1] })
-  await attendreLaVue('v.attaque && v.fenetre')
+  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'attackJet'")
   v = await vue()
-  assert.deepEqual([v.attaque.attaquantId, v.attaque.cibleId, v.attaque.jete], [heros.id, proche.id, false], 'la charge ouvre l’attaque du héros sur sa cible')
-  noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${v.fenetre.titre} » ouverte ; ${v.fenetre.corps.join(' / ')}`)
-  const localiser = v.fenetre.gestes.find((g) => g.verbe === v.attaque.localisation.verbe)
-  const lieu = localiser.arguments.find((a) => a.saisie === 'choix').valeurs.find((x) => x.valeur !== null)
-  await cliquerBouton(lieu.libelle)
+  assert.equal(element(v, 'fenetre.corps', 'jet')?.qui, heros.nom, 'la charge ouvre l’attaque du héros')
+  assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
+  assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
+  noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
+  const localiser = element(v, 'fenetre.reglages', 'attackSetLocation')
+  const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
+  await cliquerBouton(bouton(lieu))
   v = await vue()
-  assert.equal(v.attaque.localisation.choisie, lieu.valeur, 'la Localisation cliquée est retenue')
-  noter(`Localisation « ${lieu.libelle} » ; ${v.fenetre.corps.find((l) => l.includes('à atteindre'))}`)
+  assert.equal(element(v, 'fenetre.reglages', localiser.id).valeurs.find((x) => x.presse)?.id, lieu.id, 'la Localisation cliquée est retenue')
+  noter(`Localisation « ${lieu.libelle} » ; ${element(v, 'fenetre.corps', 'jet').cible}`)
   await capturer('2928-6c-2-attaque-apercu')
-  await cliquerBouton(attendu(v))
+  const jetDAttaque = enFocus(v).id
+  noter(`gestes dessinés avant le jet : ${ouverts(v).join(', ')}`)
+  await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.equal(v.attaque.jete, true, 'le jet tombe')
-  assert.ok(v.attaque.issue, 'le jet tombé dit son issue')
-  noter(`jet : ${v.attaque.issue.ligne}`)
+  assert.ok(element(v, 'fenetre.corps', 'jet').verdict, 'le jet tombe')
+  assert.ok(!ouverts(v).includes(jetDAttaque) && !ouverts(v).includes(localiser.id), 'le jet tombé, ni le jet ni la Localisation ne se redessinent (#2936)')
+  assert.ok(ouverts(v).includes(enFocus(v).id), 'le jet tombé, sa clôture se dessine')
+  noter(`gestes dessinés après le jet : ${ouverts(v).join(', ')}`)
+  const issue = element(v, 'fenetre.corps', 'issue')
+  assert.ok(issue, 'le jet tombé dit son issue')
+  noter(`jet : ${issue.texte}`)
   await capturer('2928-6c-3-attaque-jet')
   const pbAvant = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
-  await cliquerBouton(attendu(v))
+  await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.equal(v.attaque, null, 'confirmée, la fenêtre d’attaque se ferme')
+  assert.notEqual(etape(v), 'attackJet', 'confirmée, la fenêtre d’attaque se ferme')
   const pbApres = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
   noter(`confirmée : fenêtre fermée ; ${proche.nom} ${pbAvant} → ${pbApres} Blessures`)
   await finirLeTour()
@@ -160,29 +194,38 @@ async function parcoursCombat() {
   await cliquerCase(vers)
   v = await vue()
   assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
-  assert.ok(v.panneau.apercu, 'le panneau dit ce que l’aperçu coûte')
-  noter(`premier clic sur (${vers.x}, ${vers.y}) : ${v.panneau.apercu}`)
+  const apercu = element(v, 'combat.apercu', 'apercu')
+  assert.ok(apercu, 'l’aperçu dit ce qu’il coûte, près de sa case')
+  noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
   await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
   v = await vue()
   assert.deepEqual(actif(v).pos, [vers.x, vers.y], 'le second clic déplace le héros')
   noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
-  await attendreLaVue('v.defense && v.fenetre', 60000)
+  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'defenseJet'", 60000)
   v = await vue()
   const adversaire = actif(v)
   assert.equal(adversaire.camp, 'enemy', 'les jetons repris, le noyau joue l’adversaire')
-  assert.equal(v.defense.attaquantId, adversaire.id, 'la Défense répond à l’adversaire actif')
-  assert.deepEqual(v.fenetre.proprietaire, { genre: 'porteur', nom: nomDe(v, v.defense.defenseurId) }, 'la Défense est au héros visé')
-  noter(`Défense ouverte par les minuteurs : ${v.fenetre.corps.join(' / ')} ; à ${v.fenetre.proprietaire.nom}`)
+  assert.ok(element(v, 'fenetre.corps', 'defense/qui')?.texte.includes(adversaire.nom), 'la Défense répond à l’adversaire actif')
+  const defenseur = v.projection.fenetre.proprietaire
+  assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
+  assert.ok(zone(v, 'fenetre.etape')[0]?.texte.includes(defenseur.nom), 'l’étape nomme le héros qui se défend')
+  noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
-  await cliquerBouton(attendu(v))
+  const [jetDeDefense, reagir] = [enFocus(v).id, 'defenseSetMode']
+  assert.ok(ouverts(v).includes(reagir), 'avant le jet, la réaction se dessine')
+  noter(`gestes dessinés avant la Défense : ${ouverts(v).join(', ')}`)
+  await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.equal(v.defense.jete, true, 'le jet de Défense tombe')
-  await cliquerBouton(attendu(v))
-  await attendreLaVue('!v.defense && v.projection.combat.round === 2', 60000)
+  assert.ok(zone(v, 'fenetre.corps').some((e) => e.type === 'jet' && e.verdict), 'le jet de Défense tombe')
+  assert.ok([jetDeDefense, reagir].every((id) => !ouverts(v).includes(id)), 'le jet de Défense tombé, ni le jet ni la réaction ne se redessinent (#2936)')
+  noter(`gestes dessinés après la Défense : ${ouverts(v).join(', ')}`)
+  await capturer('2928-6c-5b-defense-jet')
+  await cliquerBouton(bouton(enFocus(v)))
+  await attendreLaVue("v.projection.fenetre?.etape?.genre !== 'defenseJet' && v.projection.combat.round === 2", 60000)
   v = await vue()
-  noter(`Défense confirmée : fenêtre « ${v.fenetre?.titre ?? 'aucune'} », round ${v.projection.combat.round}`)
+  noter(`Défense confirmée : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte ?? 'aucune'} », round ${v.projection.combat.round}`)
   await capturer('2928-6c-6-apres-defense')
 }
 
@@ -190,7 +233,42 @@ const IMPORTER = fileURLToPath(new URL('./importer.mjs', import.meta.url))
 /** Le point du panneau de l'atelier où tourne la molette : sur les lignes des points. */
 const PANNEAU = { x: 60, y: 400 }
 const CRANS = 150
+/** Les textes du panneau de l'atelier (`projet/scripts/atelier.gd`, `projet/scenes/Atelier.tscn`) : le choix vide d'une
+ *  liste d'emplacement, d'axe ou d'emblème, celui d'une liste de couleur, et deux boutons. */
+const AUCUN = 'Aucun'
+const PAR_DEFAUT = 'Par défaut'
+const RECHARGER = 'Recharger les modèles'
+const COPIER = 'Copier la composition'
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
+async function parcoursExploration() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  assert.equal(etape(v), 'sceneEntry', 'l’entrée de la scène tient la main')
+  assert.deepEqual(zone(v, 'exploration.gestes'), [], 'une fenêtre tient la main : aucun geste d’exploration')
+  await capturer('3328-e1-1-entree')
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const x = v.projection.exploration
+  assert.ok(x, 'hors combat, la vue est celle de l’exploration')
+  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => x.groupe), 'chaque héros se tient à la case du groupe')
+  noter(`Entrée : l’entrée de la scène poursuivie ; groupe en ${x.groupe}, gestes ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
+  await capturer('3328-e1-2-exploration')
+  const porte = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.type === 'actionnerLaPorte'))
+  assert.ok(porte, 'la porte fermée s’ouvre par un bouton')
+  await cliquerBouton(bouton(porte))
+  noter(`bouton « ${porte.libelle} » cliqué`)
+  const reduit = { x: 4, y: 1 }
+  await cliquerCase(reduit)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${reduit.x},${reduit.y}'`)
+  noter(`clic sur la case ${reduit.x},${reduit.y} : le groupe y marche`)
+  await capturer('3328-e1-3-reduit')
+}
+
 const atelier = async () => (await ecran()).atelier
 /** Attend que l'atelier publié vérifie `condition` (une expression sur `a`, et `b`, les boutons publiés). */
 const attendreLAtelier = (condition, timeoutMs = 60000) =>
@@ -242,20 +320,32 @@ async function tournerJusquAuBout(sens, relever = () => {}) {
   }
   throw new Error(`panneau encore en mouvement après ${CRANS} crans de molette`)
 }
-/** Les clés des boutons d'emplacement par point, relevées du haut au bas du panneau, triées ; le panneau revient en haut.
- *  Un point sans clé dit « aucun élément ». */
-async function clesDuPanneau() {
+/** Les articles de chaque liste déroulante de l'onglet courant, par clé, relevés du haut au bas du panneau ; le
+ *  panneau revient en haut. */
+async function listesDuPanneau() {
   await tournerJusquAuBout(-1)
-  const cles = new Set()
-  await tournerJusquAuBout(1, (boutons) => boutons.forEach((b) => b.cle && cles.add(b.cle)))
+  const listes = {}
+  await tournerJusquAuBout(1, (boutons) => boutons.forEach((b) => b.cle && b.choix && (listes[b.cle] = b.choix)))
   await tournerJusquAuBout(-1)
-  const parPoint = {}
-  for (const cle of [...cles].sort()) (parPoint[cle.split('/')[0]] ??= []).push(cle)
-  return parPoint
+  return listes
 }
 async function cliquerAmene(quoi, sens, ou) {
   await amener(quoi, sens, ou)
   await cliquerBouton(quoi)
+}
+/** L'article `texte` choisi dans la liste déroulante de clé `cle`, amenée à l'écran dans le sens `sens` : la liste
+ *  ouverte au clic, puis l'article atteint au clavier, chaque flèche descendant d'un article depuis le haut, et retenu
+ *  à l'Entrée. */
+async function choisirDansLaListe(cle, texte, sens = 1) {
+  const liste = await amener({ cle }, sens)
+  const rang = liste.choix.indexOf(texte)
+  assert.ok(rang >= 0, `« ${texte} » offert par la liste ${cle} : ${liste.choix.join(', ')}`)
+  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: `liste ${cle}` }, clic())
+  await sleep(400)
+  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
 }
 
 /** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appeler` enveloppé, que
@@ -275,37 +365,38 @@ const requetesDuGlb = (id) =>
 /** Les requêtes du GLB de `elementId` et les appels `composer` relevés. */
 const releve = async (elementId) => ({ glb: await requetesDuGlb(elementId), composer: await appels('composer') })
 
-/** L'emblème `id` choisi au clic à la prise `main` (« vide » pour aucun), l'état publié qui le porte, ou une erreur,
- *  attendu ; aucune erreur publiée. */
-async function choisirLEmbleme(id) {
-  await cliquerAmene({ cle: `main/embleme/${id}` }, 1)
-  await attendreLAtelier(`a.erreurs.length > 0 || ${id === 'vide' ? '!("main" in a.emblemes)' : `a.emblemes.main === ${JSON.stringify(id)}`}`)
-  assert.deepEqual((await atelier()).erreurs, [], `l’emblème « ${id} » posé sans erreur`)
+/** L'emblème de libellé `texte` choisi dans la liste de la prise `main` (« Aucun » pour aucun), l'état publié qui le
+ *  porte, ou une erreur, attendu ; aucune erreur publiée. L'id de l'emblème posé, `undefined` sous « Aucun ». */
+async function choisirLEmbleme(texte) {
+  await choisirDansLaListe('main/embleme', texte)
+  await attendreLAtelier(`a.erreurs.length > 0 || ${texte === AUCUN ? '!("main" in a.emblemes)' : '"main" in a.emblemes'}`)
+  const { erreurs, emblemes } = await atelier()
+  assert.deepEqual(erreurs, [], `l’emblème « ${texte} » posé sans erreur`)
+  return emblemes.main
 }
-/** À la prise `main`, où l'élément `elementId` monté porte une surface `blason` : la rangée des emblèmes relevée, le
- *  premier puis le second posés et capturés, puis « vide » ; le premier reposé, ces quatre choix sans requête du GLB ni
- *  appel `composer`. Les ids des emblèmes offerts, triés. */
+/** À la prise `main`, où l'élément `elementId` monté porte une surface `blason` : la liste des emblèmes relevée, le
+ *  premier puis le second posés et capturés, puis « Aucun » ; le premier reposé, ces quatre choix sans requête du GLB
+ *  ni appel `composer`. Les libellés des emblèmes offerts. */
 async function poserLesEmblemes(elementId) {
-  const prefixe = 'main/embleme/'
-  await attendreLAtelier(`b.some((x) => x.cle === ${JSON.stringify(`${prefixe}vide`)})`)
+  await attendreLAtelier('b.some((x) => x.cle === "main/embleme")')
   assert.deepEqual((await atelier()).emblemes, {}, 'monté sans emblème')
-  const offerts = (await clesDuPanneau()).main.filter((c) => c.startsWith(prefixe) && c !== `${prefixe}vide`).map((c) => c.slice(prefixe.length))
+  const offerts = (await listesDuPanneau())['main/embleme'].filter((texte) => texte !== AUCUN)
   assert.ok(offerts.length >= 2, `deux emblèmes offerts au moins : ${offerts.join(', ')}`)
   const [a, b] = offerts
   const avant = await releve(elementId)
   await choisirLEmbleme(a)
   noter(`emblème « ${a} » posé à la prise « main »`)
   await capturer('3111-1-embleme-a')
-  await choisirLEmbleme(b)
-  assert.deepEqual((await atelier()).emblemes, { main: b }, 'le second emblème remplace le premier')
+  const idB = await choisirLEmbleme(b)
+  assert.deepEqual((await atelier()).emblemes, { main: idB }, 'le second emblème remplace le premier')
   noter(`emblème « ${b} » posé à sa place`)
   await capturer('3111-2-embleme-b')
-  await choisirLEmbleme('vide')
-  noter('emblème « vide » : la surface rendue à son matériau')
+  await choisirLEmbleme(AUCUN)
+  noter('emblème « Aucun » : la surface rendue à son matériau')
   await choisirLEmbleme(a)
   const apres = await releve(elementId)
   const delta = { glb: apres.glb - avant.glb, composer: apres.composer - avant.composer }
-  noter(`emblèmes « ${a} », « ${b} », « vide », « ${a} » : GLB de « ${elementId} » requis ${avant.glb} → ${apres.glb}, \`composer\` appelé ${avant.composer} → ${apres.composer}`)
+  noter(`emblèmes « ${a} », « ${b} », « Aucun », « ${a} » : GLB de « ${elementId} » requis ${avant.glb} → ${apres.glb}, \`composer\` appelé ${avant.composer} → ${apres.composer}`)
   assert.deepEqual(delta, { glb: 0, composer: 0 }, 'un changement d’emblème seul ne recharge pas le GLB et ne compose pas')
   return offerts
 }
@@ -319,32 +410,39 @@ async function parcoursAtelier() {
   await cliquerBouton('Atelier')
   noter('menu : bouton « Atelier » cliqué')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
+  await cliquerBouton('Outils')
   await cliquerAmene(base, 1)
   let a = await atelier()
   assert.deepEqual([a.base, a.empreinte, a.erreurs], [base, p0.model_sha256, []], 'la base choisie, à l’empreinte de son import, sans erreur')
-  assert.deepEqual((await ecran()).boutons.filter((b) => b.cle), [], 'sans élément indexé, aucun point n’offre de choix')
-  noter(`base « ${base} » choisie, empreinte ${a.empreinte.slice(0, 12)} ; ses points disent « aucun élément »`)
+  await cliquerBouton('Équipement')
+  assert.deepEqual((await ecran()).boutons.filter((b) => b.cle), [], 'sans élément indexé, aucun emplacement n’a de liste')
+  noter(`base « ${base} » choisie, empreinte ${a.empreinte.slice(0, 12)} ; aucun emplacement à l’onglet Équipement`)
   await capturer('3086-a1-1-base-sans-element')
 
   importer(o.element, elementId)
   await evaluate(session, SONDER_LA_PAGE)
-  await cliquerAmene('Recharger', 1)
-  await attendreLAtelier(`b.some((x) => x.cle?.endsWith(${JSON.stringify(`/${elementId}`)}))`)
+  await cliquerBouton('Outils')
+  await cliquerAmene(RECHARGER, 1)
+  await cliquerBouton('Équipement')
+  await attendreLAtelier('b.some((x) => x.cle === "main")')
   const { osDesRigides } = await (await fetch(`${srv.url}modeles/`)).json()
   const porteurs = Object.entries({ ...p0.manifeste.emplacements, ...p0.manifeste.prises }).filter(([, attache]) => osDesRigides[elementId].includes(attache.os)).map(([point]) => point)
   const listages = await appels('modeles')
   assert.ok(listages > 0, 'témoin : l’appel `modeles` de Godot au pont relevé par l’enveloppe')
   assert.ok(porteurs.includes('main'), `l’os de la prise « main » porte la lame (${osDesRigides[elementId].join(', ')})`)
-  const choix = await clesDuPanneau()
-  assert.deepEqual(choix, tableTotale(porteurs, (p) => [`${p}/${elementId}`, `${p}/vide`].sort()), `« ${elementId} » listé aux seuls points de l’os qui porte la lame`)
-  noter(`« Recharger » : « ${elementId} » listé aux points ${porteurs.join(', ')} (os ${osDesRigides[elementId].join(', ')}) ; les autres disent « aucun élément »`)
+  const listes = await listesDuPanneau()
+  const libelle = listes.main[1]
+  const desPoints = Object.fromEntries(Object.entries(listes).filter(([cle]) => !cle.includes('/')))
+  assert.deepEqual(desPoints, tableTotale(porteurs, () => [AUCUN, libelle]), `« ${elementId} » offert aux seuls points de l’os qui porte la lame`)
+  noter(`« ${RECHARGER} » : « ${elementId} » (« ${libelle} ») offert aux points ${porteurs.join(', ')} (os ${osDesRigides[elementId].join(', ')}) ; les autres n’ont pas de rangée`)
+  await cliquerBouton('Outils')
   for (const aide of ['Os', 'Prises']) await cliquerAmene(aide, 1)
   a = await atelier()
   assert.deepEqual(a.aides, { os: true, emplacements: false, prises: true }, 'les aides cochées sont montrées')
 
-  const monter = { cle: `main/${elementId}` }
+  await cliquerBouton('Équipement')
   const avantLeMontage = await requetesDuGlb(elementId)
-  await cliquerAmene(monter, 1)
+  await choisirDansLaListe('main', libelle)
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   const auMontage = await requetesDuGlb(elementId)
   assert.ok(auMontage > avantLeMontage, `témoin : le GLB de « ${elementId} » requis au montage relevé par la page (${avantLeMontage} → ${auMontage})`)
@@ -353,22 +451,22 @@ async function parcoursAtelier() {
   const blason = element.manifeste.surfaces.some((s) => s.blason === true)
   if (!blason) noter(`« ${elementId} » sans surface \`blason\` : preuve des emblèmes non jouée`)
   const emblemes = blason ? await poserLesEmblemes(elementId) : []
-  await cliquerAmene({ cle: 'main/vide' }, -1)
+  await choisirDansLaListe('main', AUCUN, -1)
   await attendreLAtelier('!("main" in a.montes)')
   assert.deepEqual((await atelier()).emblemes, {}, 'démonter efface l’emblème')
-  noter('« vide » : la prise « main » démontée, sans emblème')
-  await cliquerBouton(monter)
+  noter('« Aucun » : la prise « main » démontée, sans emblème')
+  await choisirDansLaListe('main', libelle, -1)
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   if (emblemes.length) {
-    await attendreLAtelier('b.some((x) => x.cle === "main/embleme/vide")')
+    await attendreLAtelier('b.some((x) => x.cle === "main/embleme")')
     assert.deepEqual((await atelier()).emblemes, {}, 'remonté sans emblème')
     noter(`« ${elementId} » remonté sans emblème`)
     await choisirLEmbleme(emblemes[0])
-    noter(`« ${emblemes[0]} » reposé avant « Recharger »`)
+    noter(`« ${emblemes[0]} » reposé avant « ${RECHARGER} »`)
   }
 
-  const premier = await amener('A_TPose', 1)
-  await cliquerAmene(o.clip, 1, { x: premier.x, y: premier.y })
+  await cliquerBouton('Animation')
+  await choisirDansLaListe('clip', o.clip)
   await attendreLAtelier(`a.clip === ${JSON.stringify(o.clip)} && a.lecture`)
   await cliquerAmene('Pause', 1)
   await attendreLAtelier('a.lecture === false')
@@ -406,14 +504,15 @@ async function parcoursAtelier() {
   importer(o.reexport, base, ['--remplacer'])
   noter(`« ${base} » remplacée par sa réexportation (--remplacer) : « ${elementId} », qui la référence, revalidé contre elle et laissé en place`)
   await evaluate(session, '(globalThis.recetteSansRelance = true)')
-  await cliquerAmene('Recharger', -1)
+  await cliquerBouton('Outils')
+  await cliquerAmene(RECHARGER, -1)
   await attendreLAtelier(`a.empreinte === ${JSON.stringify(p1.model_sha256)} && a.montes.main === ${JSON.stringify(elementId)} && a.clip !== null`, 120000)
   const apres = await atelier()
   assert.equal(await evaluate(session, 'globalThis.recetteSansRelance === true'), true, 'la page n’a pas été relancée')
   assert.ok(Math.abs(apres.instant - avant.instant) < 1e-6, `l’instant gardé : ${avant.instant} → ${apres.instant}`)
   const etat = ({ base: b, clip, lecture, vitesse, montes, emblemes: e, aides, erreurs }) => ({ b, clip, lecture, vitesse, montes, e, aides, erreurs })
   assert.deepEqual(etat(apres), etat(avant), 'clip, pause, vitesse, montés, emblèmes, aides gardés')
-  noter(`« Recharger » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, emblèmes ${JSON.stringify(apres.emblemes)}, aides ${JSON.stringify(apres.aides)}`)
+  noter(`« ${RECHARGER} » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, emblèmes ${JSON.stringify(apres.emblemes)}, aides ${JSON.stringify(apres.aides)}`)
   await capturer('3086-a1-4-reexport-recharge')
 }
 
@@ -423,17 +522,32 @@ const horizontal = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2])
 async function choisirAxe(catalogues, champ, id) {
   const axe = catalogues.axes.find((x) => x.champ === champ)
   assert.ok(axe && axe.forme !== 'plage', `sélecteur ${champ} publié`)
-  const rang = id === null ? 0 : catalogues[axe.liste].findIndex((x) => x.id === id) + 1
-  assert.ok(id === null || rang > 0, `${id} offert sur ${champ}`)
-  const b = await amener({ cle: `axe/${champ}` }, -1)
-  await geste(session, { surface: 'canvas', x: b.x, y: b.y }, { qui: `liste ${champ}` }, clic())
-  await sleep(400)
-  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
-  await marquer()
-  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-  await nouvelEcran()
+  const offert = id === null ? undefined : catalogues[axe.liste].find((x) => x.id === id)
+  assert.ok(id === null || offert, `${id} offert sur ${champ}`)
+  await choisirDansLaListe(`axe/${champ}`, offert?.label ?? AUCUN, -1)
   const courante = (await atelier()).composition.courante[champ]
   assert.equal(courante?.id ?? courante ?? null, id, `axe ${champ} choisi au clavier`)
+}
+
+/** À l'onglet Couleurs, l'emplacement de palette de la première surface de la pièce `piece` montée à la ligne `ligne`
+ *  coloré de la dernière couleur du nuancier : la composition courante le porte et le matériau de cette surface la prend
+ *  (`couleurs` de l'atelier publié) ; puis « Par défaut » l'en retire et rend à la surface le matériau du GLB. */
+async function colorerLaPiece(catalogues, ligne, piece) {
+  const { nom, palette } = piece.manifeste.surfaces[0]
+  const couleur = catalogues.nuancier.at(-1)
+  const emplacement = `ligne/${ligne}`
+  await cliquerBouton('Couleurs')
+  await choisirDansLaListe(`couleur/${palette}`, couleur.label)
+  await attendreLAtelier(`a.couleurs[${JSON.stringify(emplacement)}]?.[${JSON.stringify(nom)}] === ${JSON.stringify(couleur.couleur)}`)
+  let a = await atelier()
+  assert.deepEqual([a.composition.courante.couleurs[palette], a.composition.palette[palette], a.erreurs], [{ id: couleur.id }, couleur.couleur, []], `couleur « ${couleur.label} » posée à « ${palette} »`)
+  noter(`« ${couleur.label} » à « ${palette} » : la surface « ${nom} » de « ${ligne} » en ${couleur.couleur}`)
+  await capturer('3086-r1-1c-couleur')
+  await choisirDansLaListe(`couleur/${palette}`, PAR_DEFAUT, -1)
+  await attendreLAtelier(`a.couleurs[${JSON.stringify(emplacement)}]?.[${JSON.stringify(nom)}] === undefined`)
+  a = await atelier()
+  assert.ok(!(palette in (a.composition.courante.couleurs ?? {})), `« ${PAR_DEFAUT} » retire « ${palette} » de la composition`)
+  noter(`« ${PAR_DEFAUT} » à « ${palette} » : la surface « ${nom} » rendue au matériau du GLB`)
 }
 
 const OS_DU_TORSE = ['spine_01', 'spine_02', 'spine_03', 'clavicle_l', 'clavicle_r']
@@ -564,18 +678,19 @@ async function parcoursComposition() {
   importer(o.base, base)
   await cliquerBouton('Atelier')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
+  await cliquerBouton('Outils')
   await cliquerBouton(base)
   const reposDeLaBase = await atelier()
   assert.deepEqual([reposDeLaBase.empreinte, reposDeLaBase.erreurs], [p.model_sha256, []])
   assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [null, false], 'référence native de la base sans clip engagé')
   assert.deepEqual(Object.keys(reposDeLaBase.os).sort(), [...p.manifeste.os].sort(), 'tous les os natifs de la base sont présents dans la référence')
-  await cliquerBouton('Composition')
+  await cliquerBouton('Personnage')
   const catalogues = JSON.parse(await evaluate(session, "wfrpPont.appeler('catalogues')"))
   assert.equal((await atelier()).composition.copie, '', 'avant Copier : aucune entrée copiée')
   const plageInitiale = catalogues.axes.find((x) => x.forme === 'plage')
   await cliquerAmene({ cle: `axe/${plageInitiale.champ}/neutre` }, 1)
   await attendreLAtelier('a.composition.refus !== null')
-  await cliquerAmene('Copier', 1)
+  await cliquerAmene(COPIER, 1)
   await attendreLAtelier('a.erreurs.some((x) => x.includes("presetDeComposition"))')
   assert.equal((await atelier()).composition.copie, '', 'Copier refusé : aucune entrée copiée')
   noter('Copier avant toute copie et après refus : entrée vide')
@@ -593,9 +708,9 @@ async function parcoursComposition() {
     assert.ok((await atelier()).plages[axe.champ], `plage ${axe.champ} publiée`)
   }
   noter(`Soldat : ${JSON.stringify(a.composition)}`)
-  await amener('Copier', 1)
+  await amener(COPIER, 1)
   await capturer('3086-r1-1-soldat-manquants')
-  await cliquerAmene('Copier', 1)
+  await cliquerAmene(COPIER, 1)
   await attendreLAtelier('a.composition.copie !== ""')
   const copie = (await atelier()).composition.copie
   noter(`Copier publié : ${copie}`)
@@ -610,17 +725,19 @@ async function parcoursComposition() {
   assert.deepEqual(entree, soldat, 'Copier restitue exactement l’entrée Soldat app-owned')
 
   importer(o.piece, pieceId)
-  await cliquerBouton('Montage')
-  await cliquerAmene('Recharger', -1)
+  await cliquerBouton('Outils')
+  await cliquerAmene(RECHARGER, -1)
+  await cliquerBouton('Équipement')
   const cle = { cle: `ligne/${ligne}` }
   await cliquerAmene(cle, 1)
   await attendreLAtelier(`a.lignes[${JSON.stringify(ligne)}] === ${JSON.stringify(pieceId)}`, 120000)
   await cliquerAmene(cle, 1)
   await attendreLAtelier(`!(${JSON.stringify(ligne)} in a.lignes)`)
-  assert.ok(!(`ligne/${ligne}` in (await atelier()).peaux), 'vide : peau démontée')
+  assert.ok(!(`ligne/${ligne}` in (await atelier()).peaux), 'démontée : sa peau retirée')
   await cliquerBouton(cle)
   await attendreLAtelier(`a.lignes[${JSON.stringify(ligne)}] === ${JSON.stringify(pieceId)}`)
-  await cliquerBouton('Composition')
+  await colorerLaPiece(catalogues, ligne, piece)
+  await cliquerBouton('Personnage')
   await choisirAxe(catalogues, 'gabarit', 'courtaud')
   await attendreLAtelier('!!a.gabarit.image')
   a = await atelier()
@@ -645,12 +762,12 @@ async function parcoursComposition() {
     await realKeyUp(session, touche)
   }
   await attendreLAtelier('!a.lecture && a.instant === 0')
-  await cliquerBouton('Montage')
-  await cliquerAmene('A_TPose', 1)
+  await cliquerBouton('Animation')
+  await choisirDansLaListe('clip', 'A_TPose')
   await attendreLAtelier('a.clip === "A_TPose" && a.lecture')
   await cliquerAmene('Pause', 1)
   await attendreLAtelier('a.lecture === false')
-  await cliquerBouton('Composition')
+  await cliquerBouton('Personnage')
   const corpulence = catalogues.axes.find((x) => x.champ === 'build' && x.forme === 'plage')
   assert.ok(corpulence, 'axe de corpulence borné')
   for (const [bord, valeur] of [['gauche', corpulence.min], ['droite', corpulence.max]]) {
@@ -674,7 +791,7 @@ async function parcoursComposition() {
   await choisirAxe(catalogues, 'gabarit', null)
   await cliquerAmene({ cle: 'axe/build/neutre' }, 1)
   await choisirAxe(catalogues, 'sex', 'M')
-  await cliquerBouton('Montage')
+  await cliquerBouton('Animation')
   await cliquerAmene('×2', 1)
   proche((await atelier()).vitesse, 2, 1e-4, 'marche au cran ×2')
   // #3104 — vérification du couplage limitée au corps neutre.
@@ -729,7 +846,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, exploration: parcoursExploration, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

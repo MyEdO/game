@@ -5,7 +5,7 @@ import { fenetreDeDefense } from '../../noyau/fenetreDeDefense';
 import { libelleDuJet } from '../../noyau/libelles';
 import { t } from '../../i18n';
 import { defenseDodgeMods } from '../../noyau/mount';
-import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
+import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, type DefenseMode } from '../../engine/combat';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';
 import { opposedResponded } from '../opposedFrozen';
@@ -18,6 +18,7 @@ import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import { CodexRef } from '../compendium/CodexRef';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /** Le titre d'une réaction de Défense, au survol de son option. */
 function titreDeLaReaction(mode: DefenseMode, libelle: string): string {
@@ -42,13 +43,13 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const setParry = useGame((s) => s.defenseSetParryWeapon);
   const setShieldReaction = useGame((s) => s.defenseSetShieldReaction);
   const setRiposte = useGame((s) => s.defenseSetRiposte);
-  const roll = useGame((s) => s.defenseRoll);
-  const reroll = useGame((s) => s.defenseReroll);
-  const bonusSL = useGame((s) => s.defenseBonusSL);
-  const darkPact = useGame((s) => s.defenseDarkPact);
-  const forceSuccess = useGame((s) => s.defenseForceSuccess);
-  const reverseVerb = useGame((s) => s.defenseReverse);
-  const confirm = useGame((s) => s.defenseConfirm);
+  const roll = useGesteDeJet('jetRoll', 'defense');
+  const reroll = useGesteDeJet('jetReroll', 'defense');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'defense');
+  const darkPact = useGesteDeJet('jetDarkPact', 'defense');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'defense');
+  const reverseVerb = useGesteDeJet('jetReverse', 'defense');
+  const confirm = useGesteDeJet('jetConfirm', 'defense');
   const spendResolve = useGame((s) => s.spendResolveCondition);
   const vue = pd && battle ? fenetreDeDefense(useGame.getState()) : null;
   if (!pd || !battle || !vue) return null;
@@ -56,7 +57,6 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const defender = battle.combatants.find((c) => c.id === vue.defenseurId);
   if (!attacker || !defender) return null;
   const res = pd.result;
-  const issue = res ? issueAuJet(defender, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defender), pd.weapon, attacker) : null;
   const rolled = !!res;
   // Armes pouvant parer et arme de parade du jet : la fenêtre de Défense du noyau (`fenetreDeDefense`).
   const chosenParry = vue.parade;
@@ -82,7 +82,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant).
-  const reverseAvail = rolled && FLOWS.defense.reverseAvailable(useGame.getState);
+  const reverseAvail = FLOWS.defense.reverseAvailable(useGame.getState);
   const reversePreview = reverseAvail ? FLOWS.defense.reversePreview(useGame.getState) : null;
 
   // Porte-Bouclier et Riposte : la fenêtre de Défense du noyau (`fenetreDeDefense`), chaque option avec sa raison de refus.
@@ -148,12 +148,11 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
     rollFrisson: true,
     fortune: defender.fortune ?? 0,
     resilience: defender.resilience ?? 0,
-    preRollForce: () => { roll(); forceSuccess(); },
     reverse: reverseAvail ? { onReverse: reverseVerb, preview: reversePreview } : undefined,
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return {
@@ -168,14 +167,16 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
       <>
         <div className="rm-options">
           {/* Réaction : segmented control PARTAGÉ — chaque option affiche SA valeur effective (mods compris). */}
-          <OptionChooser
-            layout="seg"
-            groupLabel={vue.reaction.libelle}
-            options={vue.reaction.options.map((o) => {
-              const mode = o.valeur as DefenseMode;
-              return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode) };
-            })}
-          />
+          {vue.reaction && (
+            <OptionChooser
+              layout="seg"
+              groupLabel={vue.reaction.libelle}
+              options={vue.reaction.options.map((o) => {
+                const mode = o.valeur as DefenseMode;
+                return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode) };
+              })}
+            />
+          )}
           {vue.armeDeParade && (
             <div className="rm-loc-inline">
               <span className="mini-title">{vue.armeDeParade.libelle}</span>
@@ -200,9 +201,9 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
     rows: [attackerRow, defenderRow],
     winnerIndex: res?.defenderDetail ? (res.hit ? 0 : 1) : undefined,
     netSL: res?.defenderDetail ? res.netSL : undefined,
-    outcome: res
+    outcome: vue.issue
       ? [recapLineOfEvent(
-          ev(issue?.compte.critiques.length ? 'crit' : res.hit ? 'damage' : pd.mode === 'parade' ? 'parry' : 'dodge', issue?.ligne ?? res.log, attacker.id, defender.id),
+          ev(vue.issue.genre, vue.issue.ligne, attacker.id, defender.id),
           battle.combatants,
         )]
       : undefined,

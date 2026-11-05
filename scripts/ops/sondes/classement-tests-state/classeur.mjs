@@ -107,7 +107,7 @@ export function lireUnTest(rel, sourceFile, diagnostics) {
 export function arcsDuTest(lecture, { racine, existe, alias }) {
   const arcs = []
   for (const site of lecture.sites) {
-    const cible = resolveImport(`${racine}/${lecture.rel}`, site.spec, existe, alias, site.nature)
+    const cible = resolveImport(`${racine}/${lecture.rel}`, site.spec, existe, alias, site.nature, racine)
     if (!cible) continue
     const rel = posix.relative(racine, cible)
     arcs.push({ cible: rel, zone: zoneDe(rel), typeSeul: site.typeSeul, importes: site.importes })

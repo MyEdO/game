@@ -47,7 +47,7 @@ describe('partyCarriers — couture d’état des porteurs (#327 lot B)', () => 
 
   it('une bête de bât (Possession) expose encPortee comme capacité et lit sa cargaison propre', () => {
     const h = hero('nel');
-    const mule = beastPossession('m1', 'nel', 'mule', [lot('vin', 6)]); // poney-ane-ou-mule → encPortee 14
+    const mule = beastPossession('m1', 'nel', 'mule', [lot('vin-eau-de-vie', 6)]); // poney-ane-ou-mule → encPortee 14
     const carriers = partyCarriers(slice({ party: [h], possessions: [mule] }));
     const mc = carriers.find((c) => c.id === 'm1')!;
     expect(mc).toMatchObject({ hull: 'jambes', capacity: 14 });
@@ -63,7 +63,7 @@ describe('partyCarriers — couture d’état des porteurs (#327 lot B)', () => 
   });
 
   it('le navire de campagne : Contenance navale + cale = vessel.cargo (source unique, verrou 1)', () => {
-    const cargo = [lot('vin', 50)];
+    const cargo = [lot('vin-eau-de-vie', 50)];
     const vessel = { vehicleId: 'barge', label: 'Le Cormoran', cargo } as CarrierStateSlice['vessel'];
     const vc = carrierById(slice({ vessel }), CAMPAIGN_VESSEL_CARRIER_ID)!;
     expect(vc).toMatchObject({ hull: 'coque', capacity: 300, label: 'Le Cormoran' }); // barge ship.capacity 300
@@ -92,7 +92,7 @@ describe('primaryCargoCarrier / bulkCargoRefs / persist (#327 lot C)', () => {
 
   it('bulkCargoRefs liste les lots de tous les porteurs de vrac (hors héros) ; partyCargoTotalEnc les somme', () => {
     const h = hero('nel');
-    const mule = beastPossession('m1', 'nel', 'mule', [lot('vin', 6)]);
+    const mule = beastPossession('m1', 'nel', 'mule', [lot('vin-eau-de-vie', 6)]);
     const cart = vehiclePossession('v1', 'nel', 'charrette', [lot('sel', 10)]);
     const s = slice({ party: [h], possessions: [mule, cart] });
     const refs = bulkCargoRefs(s);
@@ -102,8 +102,8 @@ describe('primaryCargoCarrier / bulkCargoRefs / persist (#327 lot C)', () => {
 
   it('persistCarriersCargo réécrit le cargo sur la source unique (Possession.cargo)', () => {
     const h = hero('nel');
-    const mule = beastPossession('m1', 'nel', 'mule', [lot('vin', 6)]);
-    const patch = persistCarriersCargo(slice({ party: [h], possessions: [mule] }), [{ carrierId: 'm1', cargo: [lot('vin', 2)] }]);
-    expect(patch.possessions![0].cargo).toEqual([lot('vin', 2)]);
+    const mule = beastPossession('m1', 'nel', 'mule', [lot('vin-eau-de-vie', 6)]);
+    const patch = persistCarriersCargo(slice({ party: [h], possessions: [mule] }), [{ carrierId: 'm1', cargo: [lot('vin-eau-de-vie', 2)] }]);
+    expect(patch.possessions![0].cargo).toEqual([lot('vin-eau-de-vie', 2)]);
   });
 });

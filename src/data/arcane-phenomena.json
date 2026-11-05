@@ -985,7 +985,10 @@
         "desc": "Une Tempête de Magie augmente instantanément la Saturation environnementale de la région d'un niveau (page 189)."
       },
       "overcastPerSpell": {
-        "dice": "2d10",
+        "dice": {
+          "n": 2,
+          "sides": 10
+        },
         "source": {
           "book": "vents-de-la-magie",
           "page": 192
@@ -1272,7 +1275,7 @@
         "page": 191
       },
       "desc": "Lancez deux fois les dés dans le Tableau de Corruption chaotique lorsqu'une zone est corrompue. Les lanceurs de sorts qui se servent de la Magie du Chaos ont un bonus de +1 DR à leurs Tests d'Incantation et de Focalisation.",
-      "rows": [
+      "entries": [
         {
           "min": 1,
           "max": 5,
@@ -1384,7 +1387,7 @@
         "page": 191
       },
       "desc": "Jetez deux fois les dés dans le Tableau de Corruption nécromantique quand une région est corrompue. Les lanceurs de sorts qui emploient la Magie noire reçoivent un bonus de +1 DR à leurs Tests d'Incantation et de Focalisation. Les morts qui n'ont pas été bénis par Morr se relèvent sous forme de zombies et de squelettes.",
-      "rows": [
+      "entries": [
         {
           "min": 1,
           "max": 5,
@@ -1496,7 +1499,7 @@
         "page": 192
       },
       "desc": "Pendant une Tempête de Magie, les Tests d'Incantation sont améliorés avec +2 DR (qui s'ajoutent à d'autres bonus). Lors de chaque Round, lancez un dé dans le tableau cidessous pour déterminer le Flux magique. Les Sorts du Domaine indiqué bénéficient automatiquement d'une Incantation Critique (page 20), sous réserve que le Test d'Incantation soit réussi. Les sorciers qui contrôlent un appui arcanique peuvent essayer un Test de **Focalisation Difficile (−20)** afin de choisir un Flux magique pour l'ensemble de la région.",
-      "rows": [
+      "entries": [
         {
           "min": 1,
           "max": 1,

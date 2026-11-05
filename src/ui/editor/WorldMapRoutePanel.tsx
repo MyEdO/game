@@ -22,7 +22,7 @@ import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
 import { Row } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
-import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
 
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
   route: MapRoute;
@@ -317,8 +317,8 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
                 <div key={clesDesPaliers[i]} className="wme-peril">
                   <label className="ed-field">Palier {i + 1} — DR net minimal
                     <NumberField
-                      variant="nu" label={`${vehicule.label} — palier ${i + 1}, DR net minimal`} min={0} value={pa.drMin}
-                      onChange={(drMin) => poserPaliers(paliers.map((x, j) => (j === i ? { ...x, drMin } : x)))}
+                      variant="nu" label={`${vehicule.label} — palier ${i + 1}, DR net minimal`} min={0} value={pa.seuil}
+                      onChange={(seuil) => poserPaliers(paliers.map((x, j) => (j === i ? { ...x, seuil } : x)))}
                     />
                   </label>
                   {prixDe(pa.prix, (prix) => poserPaliers(paliers.map((x, j) => (j === i ? { ...x, prix } : x))), `palier ${i + 1}`)}
@@ -327,7 +327,7 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
                   </button>
                 </div>
               ))}
-              <button className="btn small" onClick={() => poserPaliers([...paliers, { drMin: 0, prix: {} }])}>+ Palier</button>
+              <button className="btn small" onClick={() => poserPaliers([...paliers, { seuil: 0, prix: {} }])}>+ Palier</button>
             </>
           )}
           <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/billets/${v}`} sujet={`du billet ${vehicule.label}`} value={billet} onChange={patch} /></div>

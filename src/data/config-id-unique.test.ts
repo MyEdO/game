@@ -9,7 +9,7 @@ import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
  *
  * Les documents de famille `config` portent depuis ce lot leur ENVELOPPE (`id`/`type`/`label`), et
  * leur `id` est AUTHORÉ — jamais dérivé du `type` : la dérivation a été RÉFUTÉE à la mesure, le type
- * `water-exposure` collisionnant avec l'entrée `water-exposure` de `combat-stakes.json`. Un id
+ * `water-exposure` collisionnant avec l'entrée `water-exposure` de `stakes.json`. Un id
  * authoré n'est libre que s'il est UNIQUE, faute de quoi deux documents se répondraient sous le même
  * nom au premier index qui les réunit.
  *
@@ -64,9 +64,9 @@ const FLIPPES_V_FLIP_CONFIG = [
   'progression-schemas.derived', 'river-navigation', 'river-perils', 'sea-cargo', 'sea-events',
   'sea-navigation', 'sea-perils', 'sea-weather', 'ship-construction', 'sizes', 'speciesRace', 'water-exposure',
   'weather',
-  // #1467 L1b V-FLIP-TABLE (2026-08-28) — 14 racines-objet UNIQUES : l'instrument de mesure les classe
+  // #1467 L1b V-FLIP-TABLE (2026-08-28) — 13 racines-objet UNIQUES : l'instrument de mesure les classe
   // `config`, la famille déclarée les suit.
-  'artillery-misfire', 'driving-mishap', 'drunkenness', 'incidents-monture', 'montures',
+  'artillery-misfire', 'driving-mishap', 'drunkenness', 'incidents-monture',
   'naval-progression', 'obsessions', 'problemes-vehicule', 'rencontres-edoc', 'river-criticals',
   'ship-criticals', 'structure-criticals', 'surincantation', 'vents-tourbillonnants',
 ];

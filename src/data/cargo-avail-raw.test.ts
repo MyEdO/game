@@ -45,11 +45,11 @@ const SAISONS_IMPRIMEES = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.
 const MER: Record<string, CelluleAvail[]> = {
   cereales: [[1, 5], [1, 9], [1, 18], [1, 9]],
   armes: [[6, 8], [10, 12], [19, 21], [10, 12]],
-  'produits-de-luxe': [[9, 13], [13, 16], [22, 25], [13, 16]],
+  'produits-de-luxe-mer': [[9, 13], [13, 16], [22, 25], [13, 16]],
   metaux: [[14, 19], [17, 22], [26, 30], [17, 25]],
-  bois: [[20, 28], [23, 44], [31, 46], [26, 36]],
+  'bois-mer': [[20, 28], [23, 44], [31, 46], [26, 36]],
   vin: [[29, 33], [45, 56], [47, 60], [37, 56]],
-  laine: [[34, 50], [57, 62], [61, 65], [57, 60]],
+  'laine-mer': [[34, 50], [57, 62], [61, 65], [57, 60]],
   sel: [[51, 60], [63, 75], [66, 72], [61, 64]],
   huile: [[61, 70], [76, 82], [73, 83], [65, 81]],
   'poisson-sale': [[71, 90], [83, 90], [84, 90], [82, 90]],
@@ -71,7 +71,7 @@ const TERRE_PAR_SAISON: Record<string, CelluleAvail[]> = {
   hiver: [[1, 19], [20, 23], [24, 29], [30, 44], [45, 60], [61, 95], [96, 100]],
 };
 /** Les ids de `land-cargo.json` dans l'ordre des colonnes imprimées (l.73). */
-const TERRE_COLONNES = ['vivres', 'armement', 'produits-de-luxe', 'metal', 'bois', 'vin', 'laine'];
+const TERRE_COLONNES = ['vivres', 'armement', 'produits-de-luxe-terre', 'metal', 'bois-terre', 'vin-eau-de-vie', 'laine-terre'];
 
 /** La table terrestre, RETOURNÉE dans l'axe du document (une entrée par bien) — l'inversion est faite
  *  ICI, une fois, pour que la transcription reste celle du livre. */

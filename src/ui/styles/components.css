@@ -12,7 +12,7 @@
      .listrow            rangée de liste : nom + méta (sous le nom si la place manque) + action
      .chip               badge/pastille (alias de .tag) ; .count = pastille numérique
      .btn-ghost / .rm-influence  bouton discret ; rangée « influencer le jet » (le cadre de modale : modal.css)
-     .icon               icône SVG maison (primitive <Icon> — src/ui/Icon.tsx, registre src/ui/icons/)
+     .icon               icône SVG maison (primitive <Icon> — src/ui/Icon.tsx, registre src/data/icons/)
      .clamp              texte tronqué à N lignes (`--clamp`, défaut 3)
      .cart-step/.btn-step  stepper de quantité [−][centre][+] — primitive QtyStepper.tsx
      .trade-table        table de négoce (colonnes+prix+action+groupes) — primitive TradeTable.tsx
@@ -652,7 +652,7 @@ button.chip:hover {
   }
 }
 
-/* ── ICÔNE (primitive <Icon> — src/ui/Icon.tsx, registre src/ui/icons/) ── */
+/* ── ICÔNE (primitive <Icon> — src/ui/Icon.tsx, registre src/data/icons/) ── */
 .icon {
   display: inline-block;
   vertical-align: -0.18em; /* cale l'icône sur la ligne de base du texte adjacent */

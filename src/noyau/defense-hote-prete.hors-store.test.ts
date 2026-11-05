@@ -51,9 +51,9 @@ function setup(seed: number) {
 function jusquALaChaineDestabilisee(seed: number): boolean {
   const { tireur, ours } = setup(seed);
   if (!maybeOpenDefense(g, banc.setState, ours, tireur, undefined, undefined, ours.chargedThisTurn)) return false;
-  g().defenseRoll();
+  g().jetRoll('defense');
   if (!g().pendingDefense?.result?.hit) return false;
-  g().defenseConfirm();
+  g().jetConfirm('defense');
   const s = g();
   if (s.pendingDefense?.suite.mode !== 'machine' || s.pendingDefense.suite.coup.enchainement?.mode !== 'chaine') return false;
   return (s.pendingCascade?.participants ?? []).some((p) => p.kind === 'triggeredTest');
@@ -102,11 +102,11 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       if (!jusquALaChaineDestabilisee(seed)) continue;
       const avant = etapeCourante();
       if (avant?.jet === 'defense') continue;
-      g().defenseRoll();
+      g().jetRoll('defense');
       const pd = g().pendingDefense;
       if (!pd?.result) continue;
       mesures++;
-      g().defenseConfirm();
+      g().jetConfirm('defense');
       expect(g().pendingDefense, `graine ${seed} : la défense du maillon vit encore`).toBe(pd);
       expect(etapeCourante(), `graine ${seed} : le curseur n’a pas bougé`).toBe(avant);
       const c = g().pendingCascade!;

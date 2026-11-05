@@ -57,16 +57,15 @@ function deroule(main: boolean, pilote = main): Issue {
     if (s.pendingRoundStart) { g().confirmRoundStart(); continue; }
     if (main) {
       const surDef = !s.pendingCascade || s.pendingCascade.participants[s.pendingCascade.cursor]?.jet === 'defense';
-      if (surDef && pd && !pd.result) { g().defenseRoll(); continue; }
-      if (surDef && pd?.result) { g().defenseConfirm(); continue; }
+      if (surDef && pd && !pd.result) { g().jetRoll('defense'); continue; }
+      if (surDef && pd?.result) { g().jetConfirm('defense'); continue; }
       if (s.pendingFateSave) { g().fateNegate(); if (g().pendingFateSave) g().fateSurvive(); continue; }
       const c = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
       if (c?.kind === 'hero' && !ouverts().length && s.battle.turn >= 0) { g().battleEndTurn(); banc.avancer(100); continue; }
     }
     if (pilote && s.pendingCascade && s.pendingCascade.participants[s.pendingCascade.cursor]?.jet !== 'defense') {
       const c = s.pendingCascade; const cur = c.participants[c.cursor];
-      if (cur?.jet === 'fumble') { g().fumbleRoll(); g().fumbleConfirm(); }
-      else if (cur?.jet !== 'attack') avanceEtapeCascade(g);
+      if (cur?.jet !== 'attack') avanceEtapeCascade(g);
       banc.avancer(50);
       if (g().pendingCascade !== c) continue;
     }

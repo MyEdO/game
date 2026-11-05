@@ -1,6 +1,7 @@
-## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), chaque combattant à sa case (`voisins`), les
-## surbrillances des cases que la vue peint (`vue.cases`), des cibles et de l'aperçu du premier clic, et la case sous le
-## pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
+## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), ses murs et ses portes fermées, chaque combattant à sa case (`voisins`) ou, en
+## exploration, le meneur du groupe à la case du groupe et chaque entité de la scène nommée à sa case, les
+## surbrillances des cases que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la
+## case sous le pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
 ## cliquée.
 class_name Plateau
 extends Node3D
@@ -17,15 +18,20 @@ const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 
 @export var scene_combattant: PackedScene
+@export var mesh_mur: BoxMesh
+@export var mesh_porte: BoxMesh
 
 @onready var _sol: GridMap = $Sol
 @onready var _surbrillance: GridMap = $Surbrillance
 @onready var _combattants: Node3D = $Combattants
+@onready var _aretes: Node3D = $Aretes
 @onready var _pivot: Node3D = $Pivot
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 
 var _bornes := Rect2i()
 var _modeles: Dictionary = {}
+var _entites: Dictionary = {}
+var _aretes_posees: Array = []
 var _vue: Dictionary = {}
 var _survol: Variant = null
 var _lacet := 0.0
@@ -42,9 +48,18 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if not _bornes.has_area() and vue.plateau != null:
 		_poser_le_sol(vue.plateau)
+	if vue.plateau != null:
+		_poser_les_aretes(vue.plateau.aretes)
 	var combat: Variant = vue.projection.combat
+	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
-	for c in ([] if combat == null else combat.voisins.liste):
+	var dessines: Array = []
+	if combat != null:
+		dessines = combat.voisins.liste
+	elif exploration != null:
+		dessines = exploration.heros.slice(0, 1)
+		_nommer_les_entites(exploration.entites.liste)
+	for c in dessines:
 		if c.pos == null:
 			continue
 		var lieu := _monde(Vector2i(int(c.pos[0]), int(c.pos[1])))
@@ -60,6 +75,55 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_modeles[e.actorId].agir_vers(_modeles[e.targetId].position)
 			_modeles[e.targetId].subir()
 	_peindre()
+
+
+## Chaque mur et chaque porte fermée sur le côté de sa case ; une porte ouverte laisse le passage vide.
+func _poser_les_aretes(aretes: Array) -> void:
+	if aretes == _aretes_posees:
+		return
+	_aretes_posees = aretes
+	for n in _aretes.get_children():
+		n.queue_free()
+	for a in aretes:
+		if a.ouverte:
+			continue
+		var arete := MeshInstance3D.new()
+		arete.mesh = mesh_porte if a.porte else mesh_mur
+		var sens := Vector2(a.sens.x, a.sens.y)
+		arete.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), arete.mesh.size.y)
+		arete.rotation.y = MiseEnPage.lacet_d_arete(sens)
+		arete.scale.x = MiseEnPage.longueur_d_arete(sens)
+		_aretes.add_child(arete)
+
+
+## Chaque entité de la scène nommée au-dessus de sa case.
+func _nommer_les_entites(entites: Array) -> void:
+	for e in entites:
+		if _entites.has(e.id) or e.nom == null:
+			continue
+		var nom := Label3D.new()
+		nom.text = e.nom
+		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		nom.no_depth_test = true
+		nom.position = MiseEnPage.au_dessus_de_la_case(Vector2i(int(e.pos[0]), int(e.pos[1])))
+		_entites[e.id] = nom
+		add_child(nom)
+
+
+## Le point de l'écran de la case de l'aperçu du premier clic (sa case, ou celle du combattant qu'il vise), `null` sans
+## aperçu.
+func point_de_l_apercu() -> Variant:
+	var combat: Variant = _vue.get("projection", {}).get("combat")
+	var apercu: Variant = null if combat == null else combat.apercu
+	if apercu == null:
+		return null
+	var case: Variant = apercu.case
+	for c in combat.voisins.liste:
+		if c.id == apercu.cible:
+			case = c.pos
+	if case == null:
+		return null
+	return _camera.unproject_position(_monde(Vector2i(int(case[0]), int(case[1]))))
 
 
 ## Le point de l'écran de chaque case du plateau, par sa clé `x,y`.
@@ -86,7 +150,7 @@ func _monde(case: Vector2i) -> Vector3:
 	return MiseEnPage.centre_de_case(case)
 
 
-## Les cases peintes : celles de la vue, les cibles, l'aperçu, puis la case sous le pointeur.
+## Les cases peintes : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis la case sous le pointeur.
 func _peindre() -> void:
 	_surbrillance.clear()
 	for c in _vue.get("cases", []):
@@ -102,6 +166,11 @@ func _peindre() -> void:
 				_surligner(Vector2i(int(c.pos[0]), int(c.pos[1])), ITEM_SURVOL if apercu != null and apercu.cible == c.id else ITEM_CIBLE)
 		if apercu != null and apercu.case != null:
 			_surligner(Vector2i(int(apercu.case[0]), int(apercu.case[1])), ITEM_SURVOL)
+	var exploration: Variant = _vue.get("projection", {}).get("exploration")
+	if exploration != null:
+		for e in exploration.entites.liste:
+			if e.nom != null:
+				_surligner(Vector2i(int(e.pos[0]), int(e.pos[1])), ITEM_CIBLE)
 	if _survol != null:
 		_surligner(_survol, ITEM_SURVOL)
 

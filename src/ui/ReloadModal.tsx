@@ -12,6 +12,7 @@ import { describeReload } from '../noyau/flowOutcomes';
 import { progresDeRecharge } from '../noyau/progresEtendu';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Vue pure de la modale de rechargement (testable sans store). */
 export function ReloadModalView({
@@ -62,8 +63,8 @@ export function ReloadModalView({
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
   ];
 
   return (
@@ -91,12 +92,12 @@ export function ReloadModalView({
 export function ReloadModal() {
   const pr = useGame((s) => s.pendingReload);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.reloadRoll);
-  const reroll = useGame((s) => s.reloadReroll);
-  const bonusSL = useGame((s) => s.reloadBonusSL);
-  const darkPact = useGame((s) => s.reloadDarkPact);
-  const confirm = useGame((s) => s.reloadConfirm);
-  const cancel = useGame((s) => s.reloadCancel);
+  const roll = useGesteDeJet('jetRoll', 'reload');
+  const reroll = useGesteDeJet('jetReroll', 'reload');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'reload');
+  const darkPact = useGesteDeJet('jetDarkPact', 'reload');
+  const confirm = useGesteDeJet('jetConfirm', 'reload');
+  const cancel = useGesteDeJet('jetCancel', 'reload');
   if (!pr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pr.actorId);
   return (

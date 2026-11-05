@@ -9,7 +9,7 @@ import { nommerNoeud } from '../grammaire/meta';
  * couverture de référence du type et les ornements d'identité que le rendu pose en billboard
  * (`gameIso/builders/props.ts`).
  *
- * PROVENANCE — `buildings` est déclaré `SANS_LIVRE` (aucun folio n'imprime de catalogue de
+ * PROVENANCE — `buildings` est déclaré `SANS_LIVRE_DEFINITIF` (aucun folio n'imprime de catalogue de
  * bâtiments) ET chaque entrée EXIGE son `maison` (`exiges`), comme les 25 sols de `terrains.json` :
  * l'exemption couvre le DOCUMENT, elle ne dispense pas chaque bâtiment de dire ce qu'il arbitre.
  */

@@ -8,7 +8,8 @@
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
 //  - `survit` : la zone survit à la bascule vers Godot (#2794) — elle ne charge aucun paquet de l'hôte web
-//    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ;
+//    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ; ses
+//    suites et bancs n'atteignent aucune zone qui ne survit pas, même pour un type (`fermeAuxInstruments`, #3058) ;
 //  - `outillage` : pour un outillage de la zone (lancé par Node à la construction, à la recette ou par les tests,
 //    jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
 //  - `paquetsDOutillage` : pour un outillage de la zone, les seuls paquets de l'hôte web que ses modules chargent
@@ -120,6 +121,10 @@ export function fermeture(de, vers, typeSeul) {
   if ((zone.types ?? []).includes(vers)) return typeSeul ? null : 'execution';
   return 'type';
 }
+
+/** La zone `de` d'un instrument (`estFichierVitest`) ferme-t-elle la zone `vers` : `de` survit à la bascule (`survit`)
+ *  et `vers`, zone de la table, n'y survit pas (#3058) ? Une cible hors de la table ne ferme rien. PURE. */
+export const fermeAuxInstruments = (de, vers) => estZone(de) && COUCHES[de].survit === true && estZone(vers) && COUCHES[vers].survit !== true;
 
 /** La clé d'outillage `cle` couvre-t-elle le chemin `rel` (relatif à la racine) : finie par `/`, `rel` est sous ce
  *  dossier ; sinon, `rel` est ce fichier. PURE. */

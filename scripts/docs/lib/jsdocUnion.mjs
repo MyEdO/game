@@ -8,7 +8,7 @@ import { contexteImports, estAppelDeclare } from '../../guards/lib/canonUnique.m
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
 import * as ts from 'typescript/unstable/ast'
 import { TypeFlags, SymbolFlags } from 'typescript/unstable/sync'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { VIRTUAL_ROOT, virtualProgram, repoProgram, libererSessions } from '../../guards/lib/tsProgram.mjs'
@@ -153,7 +153,7 @@ export function readUnionMembers(sf, text, alias, discriminant, tool, opts = {})
     prevEnd = member.getEnd()
   }
 
-  // Fusion des formes en double (ex. `setTime` : `phase` OU `hour`+`minute?` ; `rollTable` : `rows`
+  // Fusion des formes en double (ex. `setTime` : `phase` OU `hour`+`minute?` ; `rollTable` : `entries`
   // INLINE OU `tableId`) en UNE ligne.
   const merged = []
   const byName = new Map()
@@ -388,8 +388,29 @@ function declarationReelle(entree, programmes) {
 }
 
 /**
+ * La constante `nom` que le fichier de `entree` IMPORTE par nom depuis un module relatif : son entrée dans
+ * l'index de ce module (`indexerConstantes`, mémorisé dans `index` s'il est donné) ; `undefined` au-delà.
+ */
+export function constanteImportee(nom, entree, index = new Map()) {
+  let source
+  entree.sf.forEachChild((n) => {
+    const liens = ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) ? n.importClause?.namedBindings : undefined
+    const lien = liens && ts.isNamedImports(liens) && liens.elements.find((e) => e.name.text === nom)
+    if (lien) source = { module: n.moduleSpecifier.text, nom: lien.propertyName?.text ?? lien.name.text }
+  })
+  if (!source?.module.startsWith('.')) return undefined
+  const base = path.resolve(path.dirname(entree.chemin), source.module).replace(/\.(?:m?js)$/, '')
+  const fichier = ['.ts', '.mts', '.tsx'].map((x) => base + x).find((f) => existsSync(f))
+  if (!fichier) return undefined
+  const rel = path.relative(process.cwd(), fichier)
+  if (!index.has(rel)) index.set(rel, indexerConstantes([rel]))
+  return index.get(rel).get(source.nom)
+}
+
+/**
  * Membres d'un `z.discriminatedUnion(discriminant, [ … ])` déclaré sous le nom `alias`.
- * `index` vient d'`indexerConstantes` (le socle des fichiers où vivent les schémas de membre).
+ * `index` vient d'`indexerConstantes` (le socle des fichiers où vivent les schémas de membre) ; un membre
+ * qu'il ne porte pas se suit à son import dans le fichier de l'union (`constanteImportee`).
  * Rend `{ rows, rawCount }` — même forme que `readUnionMembers`.
  */
 export function readZodUnionMembers(index, alias, discriminant, tool, opts = {}) {
@@ -405,6 +426,7 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
   }
   const membres = appel.arguments[1].elements
   const programmes = new Map()
+  const importes = new Map()
   const erreurs = []
   try {
 
@@ -413,8 +435,8 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
       if (!ts.isIdentifier(m)) {
         throw new Error(`${tool} — membre de « ${alias} » qui n'est pas un identifiant de schéma (kind ${ts.SyntaxKind[m.kind]})`)
       }
-      const entree = index.get(m.text)
-      const cible = entree && declarationReelle(entree, programmes)
+      const membre = index.get(m.text) ?? constanteImportee(m.text, entree, importes)
+      const cible = membre && declarationReelle(membre, programmes)
       if (!cible) {
         throw new Error(`${tool} — membre « ${m.text} » de « ${alias} » : schéma introuvable dans les fichiers indexés`)
       }

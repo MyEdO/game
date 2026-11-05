@@ -10,7 +10,7 @@
       "note": "LDB 09 l.97"
     },
     "die": "d10",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 3,
@@ -66,7 +66,7 @@
     "type": "tables",
     "label": "Allure démoniaque — Nurgle (EDOC)",
     "die": "d10",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -211,7 +211,7 @@
     "type": "tables",
     "label": "Allure démoniaque — Slaanesh (EDOC)",
     "die": "d10",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -356,7 +356,7 @@
     "type": "tables",
     "label": "Allure démoniaque — Tzeentch (EDOC)",
     "die": "d10",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -501,7 +501,7 @@
     "type": "tables",
     "label": "Allure démoniaque — Indivisible (EDOC)",
     "die": "d10",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -649,7 +649,7 @@
     "type": "tables",
     "label": "Remaniement du contremaître — Lieu (AA Annexe II)",
     "die": "d100",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -781,7 +781,7 @@
     "type": "tables",
     "label": "Remaniement du contremaître — Objectif (AA Annexe II)",
     "die": "d100",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -913,7 +913,7 @@
     "type": "tables",
     "label": "Remaniement du contremaître — Personnalité (AA Annexe II)",
     "die": "d100",
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -1049,7 +1049,7 @@
       "book": "vents-de-la-magie",
       "page": 214
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 5,
@@ -1248,7 +1248,7 @@
       "book": "vents-de-la-magie",
       "page": 214
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 2,
@@ -1310,7 +1310,7 @@
       "book": "vents-de-la-magie",
       "page": 58
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -1465,7 +1465,7 @@
       "book": "vents-de-la-magie",
       "page": 70
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -1655,7 +1655,7 @@
       "book": "vents-de-la-magie",
       "page": 82
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -1801,7 +1801,7 @@
       "book": "vents-de-la-magie",
       "page": 94
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -1954,7 +1954,7 @@
       "book": "vents-de-la-magie",
       "page": 106
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -2152,7 +2152,7 @@
       "book": "vents-de-la-magie",
       "page": 118
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -2298,7 +2298,7 @@
       "book": "vents-de-la-magie",
       "page": 130
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -2433,7 +2433,7 @@
       "book": "vents-de-la-magie",
       "page": 142
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,
@@ -2573,7 +2573,7 @@
       "book": "vents-de-la-magie",
       "page": 172
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 2,
@@ -2640,7 +2640,7 @@
       "book": "vents-de-la-magie",
       "page": 161
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 3,
@@ -2799,7 +2799,7 @@
       "page": 45,
       "note": "VDM 03 « TABLEAU DES SYMBOLES »"
     },
-    "rows": [
+    "entries": [
       {
         "min": 1,
         "max": 1,

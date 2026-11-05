@@ -16,7 +16,7 @@ import { toBrass } from '../engine/money';
 import { ReadyRow } from './ReadyRow';
 import { ownsLocal } from '../noyau/netOwnership';
 import { Icon } from './Icon';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Row } from './Layout';

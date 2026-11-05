@@ -2,6 +2,20 @@
   "id": "sizes",
   "type": "sizes",
   "label": "Barèmes par Taille",
+  "source": {
+    "book": "livre-de-base",
+    "page": 162,
+    "note": "LDB 14 l.118"
+  },
+  "alsoIn": [
+    {
+      "book": "mer-des-griffes",
+      "page": 92,
+      "note": "MDG 12 l.25",
+      "quote": "Le tableau qui suit indique la quantité approximative d'espace que prend un Personnage sur un bateau"
+    }
+  ],
+  "maison": "côté d'empreinte (`footprintSide`) : LDB 15 l.12 dit seulement « 2, 4 ou même plus de cases » selon la Taille, sans barème — la barre par Taille est un arbitrage maison",
   "rangedMod": {
     "minuscule": -30,
     "tresPetite": -20,

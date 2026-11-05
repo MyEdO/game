@@ -31,10 +31,10 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
       const p = banc.getState().pendingExtendedTest!;
       expect(p.total).toBe(prevTotal); // le total reporté du Round précédent (dépendance séquentielle)
       const cur = p.rounds[p.rounds.length - 1];
-      banc.getState().extendedTestRoll(cur.id);
+      banc.getState().jetRoll('extendedTest', cur.id);
       const rr = banc.getState().pendingExtendedTest!.rounds;
       expect(rr[rr.length - 1].result).toBeTruthy(); // chaque Round a SON jet
-      banc.getState().extendedTestNext();
+      banc.getState().jetConfirm('extendedTest');
       prevTotal = banc.getState().pendingExtendedTest?.total ?? prevTotal;
     }
     expect(banc.getState().pendingExtendedTest).toBeNull(); // la porte a cédé
@@ -47,7 +47,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
     const p = banc.getState().pendingExtendedTest!;
     // total à 5, Round raté à DR -8 → total clampé à 0 (« recommencer depuis le début »).
     banc.setState({ pendingExtendedTest: { ...p, total: 5, rounds: [{ id: 'round-1', interactive: true, result: { roll: 95, sl: -8, success: false } }] } });
-    banc.getState().extendedTestNext();
+    banc.getState().jetConfirm('extendedTest');
     const after = banc.getState().pendingExtendedTest!;
     expect(after.total).toBe(0);
     expect(after.rounds).toHaveLength(2); // un nouveau Round s'ouvre (la tâche continue)
@@ -64,7 +64,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
     const p = banc.getState().pendingExtendedTest!;
     // un Round réussi à DR +2 → atteint le NI 2 → dissipation.
     banc.setState({ pendingExtendedTest: { ...p, rounds: [{ id: 'round-1', interactive: true, result: { roll: 10, sl: 2, success: true } }] } });
-    banc.getState().extendedTestNext();
+    banc.getState().jetConfirm('extendedTest');
     expect(banc.getState().pendingExtendedTest).toBeNull(); // réussi
     const t = banc.getState().battle!.combatants.find((c) => c.id === 'cible')!;
     expect((t.activeEffects ?? []).some((e) => e.spell?.spellId === 'ecorce')).toBe(false); // effets du sort retirés
@@ -75,11 +75,11 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
     banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
     const p = banc.getState().pendingExtendedTest!;
     banc.setState({ pendingExtendedTest: { ...p, rounds: [{ id: 'round-1', interactive: true, result: { roll: 88, sl: -5, success: false }, rerolled: false }] } });
-    banc.getState().extendedTestReroll('round-1'); // Chance : relance le Round propre raté
+    banc.getState().jetReroll('extendedTest', 'round-1'); // Chance : relance le Round propre raté
     expect(banc.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
     // Résilience (nouveau flux) : Round garanti réussi.
     banc.getState().startExtendedTest({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 30, targetDR: 50 });
-    banc.getState().extendedTestForceSuccess('round-1');
+    banc.getState().jetForceSuccess('extendedTest', 'round-1');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0); // 1 Point de Résilience dépensé
   });
@@ -98,19 +98,19 @@ describe('Test Étendu — règle « DR 0 = ±1 minimum » (LDB 12 l.185)', () =
 
   it('défaut : un Round réussi à DR 0 ne change pas le total', () => {
     setRound(4, 0, true);
-    banc.getState().extendedTestNext();
+    banc.getState().jetConfirm('extendedTest');
     expect(banc.getState().pendingExtendedTest!.total).toBe(4);
   });
   it('règle ON : un Round réussi à DR 0 ajoute +1', () => {
     setRound(4, 0, true);
     setRule('test-extended-min-sl', true);
-    banc.getState().extendedTestNext();
+    banc.getState().jetConfirm('extendedTest');
     expect(banc.getState().pendingExtendedTest!.total).toBe(5);
   });
   it('règle ON : un Round raté à DR 0 retire 1 (puis clamp ≥ 0)', () => {
     setRound(4, 0, false);
     setRule('test-extended-min-sl', true);
-    banc.getState().extendedTestNext();
+    banc.getState().jetConfirm('extendedTest');
     expect(banc.getState().pendingExtendedTest!.total).toBe(3);
   });
 });

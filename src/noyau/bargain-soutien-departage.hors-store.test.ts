@@ -58,8 +58,8 @@ function setupPort(party: Combatant[]): void {
     party, scene,
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port: PORT }], routes: [] },
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
-    port: { placeId: 'P', label: 'Port', port: structuredClone(PORT), offers: [{ cargoId: 'bois', label: 'Bois', enc: 40, basePrice: 10, surplus: false }] },
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
+    port: { placeId: 'P', label: 'Port', port: structuredClone(PORT), offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 40, basePrice: 10, surplus: false }] },
     journal: [],
     pendingCascade: null,
   } as never);
@@ -109,7 +109,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
   it('CÂBLAGE : la porte du seam pose la Compétence NUE en `step.base`, le Soutien en ligne de mod', () => {
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
-    get().portBuyCargo('bois', 20);
+    get().portBuyCargo('bois-mer', 20);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
     expect(step.kind).toBe('port-buy-bargain');
     expect(step.base).toBe(45); // Niveau de Compétence NU (LDB 09 l.17) — la grandeur du départage (l.160)
@@ -121,7 +121,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
-    const step = soutenuStep('port-buy-bargain', leader.id, helper.id, sl, { cargoId: 'bois', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
+    const step = soutenuStep('port-buy-bargain', leader.id, helper.id, sl, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
     const out = applierDe('port-buy-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/surcoût de \d+ %/);
@@ -196,7 +196,7 @@ function setupLand(nue: number): Combatant {
     worldMap: null, possessions: [convoiPossession(leader.id)],
     landMarket: {
       placeId: 'L', label: 'Grünburg', market: { taille: 10, richesse: 4, produits: [] },
-      offers: [{ cargoId: 'vin', label: 'Vin', enc: 40, basePrice: 10, wine: false }],
+      offers: [{ cargoId: 'vin-eau-de-vie', label: 'Vin', enc: 40, basePrice: 10, wine: false }],
     },
     journal: [],
     pendingCascade: null,
@@ -217,7 +217,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
     const leader = setupLand(nue);
     expect(testValue(leader, 'marchandage')).toBe(nue);
     seedBattleRng(seed);
-    landBuyCargo(get, set, 'vin', 40);
+    landBuyCargo(get, set, 'vin-eau-de-vie', 40);
     expect(bargainLineOf()).toMatch(/surcoût de \d+ %/);
     expect(bargainLineOf()).not.toMatch(/remise/);
   });
@@ -227,7 +227,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
     expect(nue).toBeLessThan(merchant);
     expect(nue + SOUTIEN_TERRESTRE).toBeGreaterThan(merchant);
     expect(testValue(setupLand(nue), 'marchandage')).toBe(nue);
-    set(persistCarriersCargo(get(), [{ carrierId: LAND_CARRIER, cargo: [{ cargoId: 'vin', enc: 40, basePriceGold: 10 }] }]));
+    set(persistCarriersCargo(get(), [{ carrierId: LAND_CARRIER, cargo: [{ cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 }] }]));
     seedBattleRng(seed);
     vendLotTerrestre();
     expect(bargainLineOf()).toMatch(/Marchandage \(.*\) : -\d+ %/);
@@ -250,7 +250,7 @@ function marchanderEgalite(): void {
   setupAmbulant([leader, helper]);
   get().startBargain('buy');
   imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
-  get().bargainRoll();
+  get().jetRoll('bargain');
 }
 
 describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {
@@ -280,7 +280,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
 
   it('CONSÉQUENCE : le marchandage conclu est PERDU — la visite ne porte aucune remise', () => {
     marchanderEgalite();
-    get().bargainConfirm();
+    get().jetConfirm('bargain');
     expect(get().merchant!.bargainBuy!.won).toBe(false);
   });
 });

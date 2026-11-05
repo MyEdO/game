@@ -64,9 +64,9 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
   const g = useGame.getState;
   seedBattleRng(3);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (atkDie != null) g().attackSetForcedRoll(atkDie);
-  g().attackConfirm();
+  g().jetRoll('attack');
+  if (atkDie != null) g().jetSetForcedRoll('attack', atkDie);
+  g().jetConfirm('attack');
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -213,7 +213,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
 
   it('Riposte déclarée : le choix reste visible après le jet, figé, Oui pressé', () => {
     openDefense(RAPIERE, riposteur(0), 90);
-    act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(5); });
+    act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 5); });
     expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
     const oui = segment('Riposte', 'Oui')!;
     expect(oui.getAttribute('aria-pressed')).toBe('true');
@@ -240,7 +240,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 5);
       act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
-      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(97); });
+      act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 97); });
       expect(useGame.getState().pendingDefense!.result!.hit).toBe(true);
       const degats = segment('Porte-bouclier', 'Dégâts')!;
       expect(degats.getAttribute('aria-pressed')).toBe('true');
@@ -253,7 +253,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 90);
       act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
-      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(5); });
+      act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 5); });
       expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
       const degats = segment('Porte-bouclier', 'Dégâts')!;
       expect(degats.getAttribute('aria-pressed')).toBe('true');
@@ -266,7 +266,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       openDefense(undefined, porteBouclier, 30);
       act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
       // LDB 12 l.160 ; LDB 62 l.240
-      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(75); });
+      act(() => { useGame.getState().jetRoll('defense'); useGame.getState().jetSetForcedRoll('defense', 75); });
       const res = useGame.getState().pendingDefense!.result!;
       expect(res.hit).toBe(false);
       expect(res.advantageTo).toBeNull();
@@ -311,7 +311,7 @@ describe('Défense : une cible écrêtée nomme son plafond ou son plancher, jam
     const [, maLigne] = blocs();
     expect(calcul(maLigne), 'pré-jet : la cible annoncée est celle que le dé affrontera').toBe('10 −9 = 1');
     expect(chips(maLigne)).toEqual(['−30 Sonné', '+21 plancher 1']);
-    act(() => { useGame.getState().defenseRoll(); });
+    act(() => { useGame.getState().jetRoll('defense'); });
     const [temoin, resolue] = blocs();
     expect(chips(temoin)).toEqual(['+70 Avantage', '−16 plafond 99']);
     expect(chips(resolue)).toEqual(['−30 Sonné', '+21 plancher 1']);
@@ -341,9 +341,9 @@ describe('Défense : un dé choisi sur une cible écrêtée nomme son plafond ou
   };
   const choisir = (resilience: boolean, de: number) => act(() => {
     useGame.getState().defenseSetMode('esquive');
-    useGame.getState().defenseRoll();
-    if (resilience) useGame.getState().defenseForceSuccess();
-    useGame.getState().defenseSetForcedRoll(de);
+    useGame.getState().jetRoll('defense');
+    if (resilience) useGame.getState().jetForceSuccess('defense');
+    useGame.getState().jetSetForcedRoll('defense', de);
   });
 
   for (const resilience of [false, true]) {

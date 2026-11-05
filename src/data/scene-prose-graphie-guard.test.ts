@@ -31,7 +31,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 
 /** Racines d'AUTHORING balayées — le code qui PRODUIT des documents de scène. */
 const RACINES = ['src', 'scripts'];

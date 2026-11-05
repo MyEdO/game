@@ -99,7 +99,7 @@ const PERIMETRE_FABRIQUES = ['src/data/schemas/grammaire'];
  * `grammaire/descente.ts`) : chaque nœud `object` rencontré donne le jeu de ses clés, nommé par les symboles
  * exportés qui le portent. Aucune liste de clés n'est écrite à la main.
  *
- * Un même jeu de clés est porté par PLUSIEURS schémas (`{n,plus,sides}` → 4 candidats,
+ * Un même jeu de clés est porté par PLUSIEURS schémas (`{fois,n,plus,sides}` → 7 candidats,
  * `{id,spec}` → 2) : le `nom` d'une signature est donc la liste TRIÉE de TOUS ses porteurs, jointe
  * par `|`. Retenir un seul candidat rendrait le `detail` du stock tributaire de l'ordre des exports
  * (un `Map` premier-arrivé), et retenir le premier ALPHABÉTIQUE désignerait un canon FAUX
@@ -235,7 +235,7 @@ describe('vocabulaire de la grammaire — DÉRIVÉ des schémas, jamais recopié
   it('l’introspection VOIT les formes canoniques (une dérivation muette rendrait la garde vacueuse)', () => {
     expect(signatures.length).toBeGreaterThan(10);
     const parCles = new Set(signatures.map((s) => s.cles.slice().sort().join(',')));
-    for (const attendue of ['id,spec', 'book,note,page', 'n,plus,sides', 'x,y'])
+    for (const attendue of ['id,spec', 'book,note,page', 'fois,n,plus,sides', 'x,y'])
       expect(parCles, `signature canonique « ${attendue} » perdue par l’introspection.`).toContain(attendue);
   });
 
@@ -276,7 +276,7 @@ describe('rejeu des migrations — le verdict VOIT le fichier NEUF (#1466 T3bis-
  * imprime entre parenthèses est une MAGNITUDE (`AA 08 l.87` « Taillade (XA) », l.136 « Taillade (1A) »),
  * pas une spécialisation : elle vit en `value`, et sa FORME d'affichage est déclarée par la qualité
  * (`QualityData.indice.unite`). La clé `spec` était une seconde graphie de la même chose ; le verrou est
- * ICI, au parse, pour qu'aucune donnée ne puisse la reposer en silence (#1661).
+ * ICI, au parse, pour qu'aucune donnée ne puisse la reposer en silence.
  */
 describe('`qualityRefSchema` — `{id, value?}` : la MAGNITUDE est une valeur, jamais une `spec`', () => {
   it('`spec` est REFUSÉE au parse, et le refus NOMME la clé', () => {

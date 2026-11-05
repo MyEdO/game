@@ -33,7 +33,8 @@ import { NumberField } from '../../NumberField';
 import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
-import { PlageField, type PlageValue } from '../../PlageField';
+import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
+import { formatDice, parseDice, totalDuDe } from '../../../engine/dice';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
 import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
@@ -67,7 +68,7 @@ import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
-import { parseSkillRef, parseTalentRef } from '../refFormatLivre';
+import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
 import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
@@ -169,13 +170,13 @@ function refIdsIn(v: unknown): string[] {
 /** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau — hors de portée de
  *  `REF_LIST_DATASET`, qui ne regarde QUE les champs top-level de `entry`) : même garantie de
  *  résolvabilité, décrite par un accesseur PUR `entry → (id|undefined)[]`. #173 : `mutationTables.
- *  ranges[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
+ *  entries[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
  *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`noyau/combatFlow.ts::
  *  domainCastBonus` au runtime) — ajouter une réf nichée = ajouter SON accesseur ici. `weather.json`
- *  partage la forme `ranges[]` mais sa clé est `.weather` (union fermée, pas une réf de dataset) :
+ *  partage la forme `entries[]` mais sa clé est `.weather` (union fermée, pas une réf de dataset) :
  *  l'accesseur `mutation` y est simplement `undefined`, filtré plus bas — aucun faux positif. */
 const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (string | undefined)[] }[] = [
-  { key: 'ranges[].mutation', ds: 'mutations', get: (e) => ((e.ranges as { mutation?: string }[] | undefined) ?? []).map((r) => r.mutation) },
+  { key: 'entries[].mutation', ds: 'mutations', get: (e) => ((e.entries as { mutation?: string }[] | undefined) ?? []).map((r) => r.mutation) },
   { key: 'castBonus.perCondition', ds: 'etats', get: (e) => [(e.castBonus as { perCondition?: string } | undefined)?.perCondition] },
   { key: 'prosthesis[].trappingId', ds: 'trappings', get: (e) => ((e.prosthesis as { trappingId?: string }[] | undefined) ?? []).map((p) => p.trappingId) },
 ];
@@ -299,7 +300,9 @@ const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'advantageCost', 'advantage
 /** Le document de la catégorie porte-t-il `alsoIn` (clé d'enveloppe, `CLES_ENVELOPPE` de `grammaire/document.ts`) ? */
 const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
-  return ds !== undefined && noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
+  if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
+  const objet = editableObjectDataset(categoryKey);
+  return objet?.mode === 'single' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**
@@ -323,7 +326,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
-  if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('ranges');
+  if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
   // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
@@ -511,9 +514,9 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isSymptom = categoryKey === 'symptoms';
   // Règle optionnelle : sa valeur par défaut (et le `when` de son action) sont typées par son `kind`.
   const isOptionalRule = categoryKey === 'reglesOptionnelles';
-  // Table de Corruption : ses `ranges` (plages d100 → réf mutation) ont leur éditeur dédié.
+  // Table de Corruption : ses `entries` (plages de son dé → réf mutation) ont leur éditeur dédié.
   const isMutationTable = categoryKey === 'mutationTables';
-  // Météo : ses `ranges` (plages d100 → type de météo) ont leur éditeur dédié.
+  // Météo : ses `entries` (plages de son dé → type de météo) ont leur éditeur dédié.
   const isWeather = categoryKey === 'weather';
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
@@ -751,8 +754,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isTriggered && <TriggeredEffectsField noeud={noeudDe('effects')} value={entry.effects as TriggeredEffect[] | undefined} onChange={(v) => edit('effects', v)} />}
         {hasConsumable && <TriggeredEffectsField noeud={noeudDe('onHitEffects')} label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
-        {isMutationTable && <MutationTableField value={entry.ranges as MutationRange[] | undefined} onChange={(v) => edit('ranges', v)} />}
-        {isWeather && <WeatherRangesField value={entry.ranges as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('ranges', v)} />}
+        {isMutationTable && <MutationTableField domaine={domaineDuDe(entry.die)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
+        {isWeather && <WeatherRangesField domaine={domaineDuDe(entry.die)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
         {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as Weapon | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
         {hasConsumable && (
           <div className="ed-field">
@@ -1593,29 +1596,31 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
   );
 }
 
-/** Une plage d100 d'une Table de Corruption : [min,max] → mutation référencée PAR ID (`mutations.ts` :
+/** Une plage d'une Table de Corruption : [min,max] → mutation référencée PAR ID (`mutations.ts` :
  *  `BY_ID.get(range.mutation)`). */
 interface MutationRange { min: number; max: number; mutation: string; }
 
-/** Éditeur des PLAGES d'une Table de Corruption (`mutationTables.json`) : chaque rangée = un intervalle d100
- *  → une mutation (sélecteur id→label, #173 — PAS le datalist par label : la donnée est un id). La table
- *  renvoie la mutation dont l'intervalle contient le jet (`findTableEntry`). DÉCOUPLÉ de la mutation :
- *  plusieurs tables (une par dieu du Chaos, Compagnon T1) peuvent pointer la même mutation à des plages
- *  différentes. */
-/** Éditeur des PLAGES de Météo d'une saison (`weather.json`) : chaque rangée = un intervalle d100
+/** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun tant
+ *  que la chaîne en cours d'édition ne se lit pas (le schéma la refuse à l'enregistrement). */
+function domaineDuDe(die: unknown): PlageDomaine {
+  const spec = typeof die === 'string' ? parseDice(die) : null;
+  return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};
+}
+
+/** Éditeur des PLAGES de Météo d'une saison (`weather.json`) : chaque rangée = un intervalle du dé
  *  `{min, max}` bornes incluses → une Météo (parmi les types connus). La table renvoie la météo dont
  *  l'intervalle CONTIENT le jet (`findTableEntry`) — les deux bornes s'éditent, comme la source les
  *  imprime (EDOC 08 l.52-59), et l'ordre des rangées ne décide plus du tirage. */
-function WeatherRangesField({ value, onChange }: { value: { min: number; max: number; weather: string }[] | undefined; onChange: (v: { min: number; max: number; weather: string }[]) => void }) {
+function WeatherRangesField({ domaine, value, onChange }: { domaine: PlageDomaine; value: { min: number; max: number; weather: string }[] | undefined; onChange: (v: { min: number; max: number; weather: string }[]) => void }) {
   const list = value ?? [];
   const set = (i: number, patch: Partial<{ min: number; max: number; weather: string }>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
     <div className="ed-field">
-      <span>plages d100 → météo (bornes incluses ; la table renvoie la météo dont l'intervalle contient le jet)</span>
+      <span>plages {domaine.nom ?? 'du dé'} → météo (bornes incluses ; la table renvoie la météo dont l'intervalle contient le jet)</span>
       {list.map((r, i) => (
         <div className="ed-subfield" key={i}>
           <div className="tf-row">
-            <label className="dr">d100&nbsp;<NumberField variant="nu" label="Plage d100 — borne basse" min={1} max={100} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage d100 — borne haute" min={1} max={100} value={r.max} onChange={(max) => set(i, { max })} /></label>
+            <label className="dr">{domaine.nom}&nbsp;<NumberField variant="nu" label="Plage — borne basse" min={domaine.min} max={domaine.max} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage — borne haute" min={domaine.min} max={domaine.max} value={r.max} onChange={(max) => set(i, { max })} /></label>
             <select value={r.weather} onChange={(e) => set(i, { weather: e.target.value })}>
               {/* ÉNUMÉRATION depuis la DÉCLARATION (patron `RACE_KEYS`) — jamais depuis `weatherConditions`,
                   qui est la donnée en cours d'édition : une fiche supprimée dans l'onglet voisin ne doit pas
@@ -1626,22 +1631,27 @@ function WeatherRangesField({ value, onChange }: { value: { min: number; max: nu
           </div>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 100, weather: 'beau' }])}>+ Plage d100</button>
+      <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.max ?? 1, weather: 'beau' }])}>+ Plage</button>
     </div>
   );
 }
 
-function MutationTableField({ value, onChange }: { value: MutationRange[] | undefined; onChange: (v: MutationRange[]) => void }) {
+/** Éditeur des PLAGES d'une Table de Corruption (`mutationTables.json`) : chaque rangée = un intervalle du dé
+ *  → une mutation (sélecteur id→label, #173 — PAS le datalist par label : la donnée est un id). La table
+ *  renvoie la mutation dont l'intervalle contient le jet (`findTableEntry`). DÉCOUPLÉ de la mutation :
+ *  plusieurs tables (une par dieu du Chaos, Compagnon T1) peuvent pointer la même mutation à des plages
+ *  différentes. */
+function MutationTableField({ domaine, value, onChange }: { domaine: PlageDomaine; value: MutationRange[] | undefined; onChange: (v: MutationRange[]) => void }) {
   const list = value ?? [];
   const mutationOpts = datasetArray('mutations') as { id: string; label: string }[];
   const set = (i: number, patch: Partial<MutationRange>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
     <div className="ed-field">
-      <span>plages d100 → mutation (la table renvoie la mutation dont l'intervalle contient le jet)</span>
+      <span>plages {domaine.nom ?? 'du dé'} → mutation (la table renvoie la mutation dont l'intervalle contient le jet)</span>
       {list.map((r, i) => (
         <div className="ed-subfield" key={i}>
           <div className="tf-row">
-            <label className="dr">d100&nbsp;<NumberField variant="nu" label="Plage d100 — borne basse" min={1} max={100} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage d100 — borne haute" min={1} max={100} value={r.max} onChange={(max) => set(i, { max })} /></label>
+            <label className="dr">{domaine.nom}&nbsp;<NumberField variant="nu" label="Plage — borne basse" min={domaine.min} max={domaine.max} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage — borne haute" min={domaine.min} max={domaine.max} value={r.max} onChange={(max) => set(i, { max })} /></label>
             <select value={r.mutation} onChange={(e) => set(i, { mutation: e.target.value })}>
               <option value="">— (choisir une mutation) —</option>
               {mutationOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
@@ -1650,7 +1660,7 @@ function MutationTableField({ value, onChange }: { value: MutationRange[] | unde
           </div>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 1, mutation: '' }])}>+ Plage d100</button>
+      <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.min ?? 1, mutation: '' }])}>+ Plage</button>
     </div>
   );
 }

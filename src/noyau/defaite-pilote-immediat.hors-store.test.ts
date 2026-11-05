@@ -41,7 +41,7 @@ const seaMap: WorldMap = {
   id: 'm', label: 'Mer',
   places: [
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 } as never;
@@ -107,7 +107,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never, { cadence: 'commande' })!, party: aTerre(get().party) });
     const h = get().party[0];
     set({ pendingSteamSave: { actorId: h.id, actorName: h.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
-    get().steamSaveConfirm();
+    get().jetConfirm('steamSave');
     expect(issue()).toEqual(DEFAITE);
     expect(get().party.flatMap((x) => x.diseases ?? []), 'la clôture du jour s’est jouée avant la défaite').toEqual([]);
   });

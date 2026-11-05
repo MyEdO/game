@@ -40731,14 +40731,14 @@
        "presetId": "edo-gunnar-et-hultz",
        "paliers": [
         {
-         "drMin": 0,
+         "seuil": 0,
          "prix": {
           "exterieur": 36,
           "interieur": 72
          }
         },
         {
-         "drMin": 6,
+         "seuil": 6,
          "prix": {
           "exterieur": 24,
           "interieur": 48

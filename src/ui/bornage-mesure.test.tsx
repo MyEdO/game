@@ -72,7 +72,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
   it('Course jetée (`runFromTest`) : plafond nommé', () => {
     const H = heroCoureur();
     act(() => root.render(createElement(RunModal)));
-    act(() => { g().runRoll(); });
+    act(() => { g().jetRoll('run'); });
     const p = g().pendingRun!;
     porteLaMesure(p.result, cibleDuTest(valeurDuTest(H, p.test), p.test.difficulty));
     nommeLEcretage('plafond', p.result!.target);
@@ -81,7 +81,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
   it('Course forcée AVANT le jet (Résilience) : plafond nommé', () => {
     const H = heroCoureur();
     act(() => root.render(createElement(RunModal)));
-    act(() => { g().runForceSuccess(); });
+    act(() => { g().jetForceSuccess('run'); });
     const p = g().pendingRun!;
     porteLaMesure(p.result, cibleDuTest(valeurDuTest(H, p.test), p.test.difficulty));
     nommeLEcretage('plafond', p.result!.target);
@@ -96,7 +96,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
     } as never);
     act(() => root.render(createElement(ApproachModal)));
-    act(() => { g().approachRoll(); });
+    act(() => { g().jetRoll('approach'); });
     porteLaMesure(g().pendingApproach!.result, cibleDuTest(valeurDuTest(H, test), test.difficulty));
     nommeLEcretage('plancher', 1);
   });
@@ -107,7 +107,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     const test = testDeRegle('influences-corruptrices', 'physique');
     useGame.setState({ party: [H], battle: null, pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', nature: 'physique', natureFixee: true, test } } as never);
     act(() => root.render(createElement(CorruptionModal)));
-    act(() => { g().corruptionRoll(); });
+    act(() => { g().jetRoll('corruption'); });
     porteLaMesure(g().pendingCorruption, cibleDuTest(valeurDuTest(H, test), test.difficulty));
     nommeLEcretage('plancher', 1);
   });
@@ -117,10 +117,10 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     useGame.setState({ battle: { combatants: [H], log: [], order: ['H'], turn: 0, round: 1 },
       pendingStateRecovery: { actorId: 'H', actorName: 'H', state: 'en-flammes', skillLabel: 'Athlétisme', skillValue: 5, skillBase: 5, difficulty: 'tresDifficile', stacks: 1, roll: null, opponentRoll: null, netSL: 0, success: false } } as never);
     act(() => root.render(createElement(StateRecoveryModal)));
-    act(() => { g().recoverRoll(); });
+    act(() => { g().jetRoll('recover'); });
     porteLaMesure(g().pendingStateRecovery!.roll, cibleDuTest(5, 'tresDifficile'));
     nommeLEcretage('plancher', 1);
-    act(() => { g().recoverForceSuccess(); });
+    act(() => { g().jetForceSuccess('recover'); });
     porteLaMesure(g().pendingStateRecovery!.roll, cibleDuTest(5, 'tresDifficile'));
     nommeLEcretage('plancher', 1);
   });
@@ -139,7 +139,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     const A = combattantDeModale('A'); A.resilience = 2;
     useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
-    forceAvantLeJet(() => g().wardForceSuccess());
+    forceAvantLeJet(() => g().jetForceSuccess('ward'));
     porteLaMesure(g().pendingWard!.result, cibleDuTest(valeurDuTest(A, { char: 'force-mentale' }), 'accessible'));
   });
 
@@ -150,7 +150,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'enemy')], log: [] },
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
-    forceAvantLeJet(() => g().approachForceSuccess());
+    forceAvantLeJet(() => g().jetForceSuccess('approach'));
     porteLaMesure(g().pendingApproach!.result, cibleDuTest(valeurDuTest(H, test), test.difficulty));
   });
 });
@@ -169,7 +169,7 @@ describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré
     expect(rangee().target).toBe(clampTarget(cibleDuTest(valeurDuTest(H, { skill: { id: 'resistance' } }))).target);
     act(() => root.render(createElement(CascadeBody)));
     nommeLEcretage('plafond', 99);
-    act(() => { g().cascadeBatchRoll('H'); });
+    act(() => { g().jetRoll('cascadeBatch', 'H'); });
     nommeLEcretage('plafond', 99);
     // Bilan (« Tout lancer ») : la rangée témoin du pas validé garde sa mesure.
     act(() => { g().cascadeResolveAll(); });
@@ -194,7 +194,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
   it('Marchandage forcé AVANT le jet : la cible du joueur est bornée et mesurée', () => {
     const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, items: [] });
     useGame.setState({ party: [hero], pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: 125, merchantRoll: { roll: 20, target: 50, sl: 3, success: true, isDouble: false }, roll: null } } as never);
-    g().bargainForceSuccess();
+    g().jetForceSuccess('bargain');
     porteLaMesure(g().pendingBargain!.roll, cibleDuTest(125));
   });
 
@@ -205,7 +205,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
     g().fallChoose(hero.id, true);
-    g().fallForceSuccess(hero.id);
+    g().jetForceSuccess('fall', hero.id);
     const p = g().pendingFall!;
     porteLaMesure(p.participants.find((x) => x.id === hero.id)!.result, cibleDuTest(valeurDuTest(hero, p.test), p.test.difficulty));
   });

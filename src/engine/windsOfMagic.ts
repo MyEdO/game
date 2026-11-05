@@ -2,7 +2,7 @@
  * Option : Vents Tourbillonnants (LDB 46 l.179-190) — « Avant chaque scène – ou même à chaque Round
  * dans des zones de turbulences magiques –, le MJ peut effectuer un lancer concernant la force des
  * Vents relatifs à la scène […]. Le modificateur peut être ajouté à vos Tests d'Incantation et de
- * Focalisation. » Table verbatim (l.183-190), tirage 1d10, lookup `findTableEntry`.
+ * Focalisation. » Table verbatim (l.183-190), tirage au dé du document (`die`), lookup `findTableEntry`.
  *
  * « Si vous possédez le Talent Seconde vue, un Test de Perception Facile (+40) repérera de telles
  * perturbations. » (l.181) — le prédicat `hasSecondeVue` compare l'id du Talent DIRECTEMENT (patron
@@ -14,20 +14,21 @@
  * `src/noyau/combatFlow.ts` (`windsOfMagicAtCombatStart`) et `src/noyau/combat/roundHooks.ts`.
  */
 import type { RNG } from './dice';
-import { d10 } from './dice';
+import { rollDice } from './dice';
 import { findTableEntry } from './tables';
 import type { Combatant } from './types';
 import type { ModLine } from './combat';
 import ventsJson from '../data/vents-tourbillonnants.json';
+import { deDeTirageDe, rangeesDe } from '../data/rangees';
+import type * as vents from '../data/schemas/defs/vents-tourbillonnants';
 
-/** `id`/`label` = affichage (Codex `ventsTourbillonnants`, `src/ui/compendium/registry.ts`) ; le
- *  lookup n'utilise que `min`/`max`/`mod` (`findTableEntry`). */
-interface WindsEntry { id: string; min: number; max: number; mod: number; label: string }
-const WINDS_TABLE = (ventsJson as { entries: WindsEntry[] }).entries;
+/** Le Tableau VIVANT — la collection que le Codex expose et édite (`ventsTourbillonnants`,
+ *  `data/overrides.ts`, `src/ui/compendium/registry.ts`) ; le lookup n'en lit que `min`/`max`/`mod`. */
+export const windsOfMagicTable = rangeesDe<typeof vents>(ventsJson);
 
-/** Modificateur (LDB 46 l.183-190) pour un jet 1d10 donné — lecture LIVE de la donnée éditable. */
+/** Modificateur (LDB 46 l.183-190) pour un jet donné — lecture LIVE de la donnée éditable. */
 export function windsModFromRoll(roll: number): number {
-  return findTableEntry(WINDS_TABLE, roll).mod;
+  return findTableEntry(windsOfMagicTable, roll).mod;
 }
 
 export interface WindsRoll { roll: number; mod: number }
@@ -38,13 +39,13 @@ export interface WindsRoll { roll: number; mod: number }
  *  aucun Vent n'est tiré ou que la force est neutre (rien à afficher). */
 export function windsModLine(winds: WindsRoll | null | undefined): ModLine | null {
   if (!winds?.mod) return null;
-  const e = findTableEntry(WINDS_TABLE, winds.roll);
+  const e = findTableEntry(windsOfMagicTable, winds.roll);
   return { label: e.label, value: winds.mod, famille: 'jet', ref: { category: 'ventsTourbillonnants', id: e.id } };
 }
 
-/** Tirage de la force des Vents (1d10 sur le Tableau, LDB 46 l.183-190). */
+/** Tirage de la force des Vents (LDB 46 l.183-190). */
 export function rollWindsOfMagic(rng: RNG): WindsRoll {
-  const roll = d10(rng);
+  const roll = rollDice(deDeTirageDe<typeof vents>(ventsJson), rng);
   return { roll, mod: windsModFromRoll(roll) };
 }
 

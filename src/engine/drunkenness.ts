@@ -6,7 +6,7 @@
  *    à vos CC, CT, Ag, Dex et Int, jusqu'à un maximum de −30 par Caractéristique. » → `drunkCharPenalties`
  *    (−10 × min(3, échecs), kind `ivresse`, sommé LDB 14 l.95).
  *  - « Si vous échouez à un nombre de Tests égal à votre Bonus d'Endurance, vous êtes Ivre. » → seuil
- *    `alcoholFailures(c) >= BE` ⇒ 1d10 sur le Tableau d'Ivresse (`drunkenness.json`).
+ *    `alcoholFailures(c) >= BE` ⇒ un jet sur le Tableau d'Ivresse (`drunkenness.json`, son dé `die`).
  *  - « Après une heure passée sans boire, effectuez un Test de Résistance à l'alcool Intermédiaire (+0).
  *    Les effets de l'ivresse se dissiperont après 10 − DR heures … Une fois tous les effets dissipés,
  *    effectuez un nouveau Test … Vous avez à présent la gueule de bois, qui correspond à l'État Exténué
@@ -23,11 +23,13 @@
  * d'Endurance sont passés par l'appelant (comme `provisions.ts`).
  */
 import type { Combatant, CharKey } from './types';
-import { RNG, d10 } from './dice';
+import { RNG, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import type { GameOp } from './ops';
 import { addClockCondition, removeActiveEffects } from './conditions'; // cycle runtime (conditions→characteristics→trauma→drunkenness) : appelés au dessoûlage, jamais à l'init
 import drunkennessJson from '../data/drunkenness.json';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
+import type * as ivresse from '../data/schemas/defs/drunkenness';
 import { t } from '../i18n';
 
 // La MÉCANIQUE d'un résultat d'Ivresse (Bravoure/meilleur ami/belligérant) est RENDUE en `GameOp[]`
@@ -47,10 +49,10 @@ export interface DrunkState {
   result?: string;
 }
 
-/** Entrée du Tableau d'Ivresse — MÊME schéma que `drunkenness.json::entries` (exportée pour l'exposition
- *  Codex, #422 : `data/overrides.ts` la réutilise pour typer la table live). */
-export interface DrunkEntry { id: string; min: number; max: number; label: string; outcome: string; desc: string; ops?: GameOp[] }
-const DRUNK_TABLE = (drunkennessJson as { entries: DrunkEntry[] }).entries;
+/** Entrée du Tableau d'Ivresse. */
+type DrunkEntry = RangeeDe<typeof ivresse>;
+/** Le Tableau d'Ivresse VIVANT — la collection que le Codex édite (`drunkenness`, `data/overrides.ts`). */
+export const DRUNK_TABLE = rangeesDe<typeof ivresse>(drunkennessJson);
 
 /** Nombre d'échecs de Résistance à l'alcool accumulés. */
 export function alcoholFailures(c: Combatant): number {
@@ -79,7 +81,7 @@ export function drunkCharPenalties(c: Combatant, key: CharKey): number[] {
  * Applique le résultat d'UN Test de Résistance à l'alcool consécutif à une boisson (l.475). Sur un
  * échec : +1 échec (donc −10 supplémentaire aux DRUNK_CARACS, plafond géré par `drunkPenalty`). Si le
  * nombre d'échecs atteint le Bonus d'Endurance `be` et que le personnage n'était pas déjà Ivre : il
- * devient Ivre → tirage 1d10 sur le Tableau d'Ivresse (effet appliqué par `applyDrunkResult`). Mute `c`.
+ * devient Ivre → tirage sur le Tableau d'Ivresse (effet appliqué par `applyDrunkResult`). Mute `c`.
  */
 export function applyAlcoholTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: string[]; becameDrunk?: DrunkEntry; drunkOps?: GameOp[] } {
   const s: DrunkState = c.drunk ?? { failedTests: 0 };
@@ -96,13 +98,13 @@ export function applyAlcoholTest(c: Combatant, success: boolean, be: number, rng
   return { log };
 }
 
-/** Passe le personnage Ivre : tire 1d10 sur le Tableau d'Ivresse et enregistre le résultat (`c.drunk`).
+/** Passe le personnage Ivre : tire le dé du Tableau d'Ivresse (`die`) et enregistre le résultat (`c.drunk`).
  *  La MÉCANIQUE (Bravoure → +20 Calme ; « meilleur ami » → ignore Préjugés/Animosités ; « tous » →
  *  Animosité (Tout le monde)) est `entry.ops` (`GameOp[]` de `drunkenness.json`) — RENDUE, pas exécutée
  *  ici (cf. en-tête) ; c'est `applyAlcoholTest`/l'appelant qui la joue via `applyOps`. La gueule de bois
  *  et le risque d'Empoisonné du résultat « blackout » restent résolus au dessoûlage (`soberUpDissipate`, `soberUpHangover`). Mute `c`. */
 export function applyDrunkResult(c: Combatant, rng: RNG): DrunkEntry {
-  const roll = d10(rng);
+  const roll = rollDice(deDeTirageDe<typeof ivresse>(drunkennessJson), rng);
   const entry = findTableEntry(DRUNK_TABLE, roll);
   const s = c.drunk ?? { failedTests: 0 };
   s.drunk = true;

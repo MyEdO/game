@@ -157,7 +157,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       expect(table).toBeTruthy();
       const rows = opRows([{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }]);
       const subs = rows.filter((r) => r.t === 'sub');
-      expect(subs).toHaveLength(table!.rows.length);
+      expect(subs).toHaveLength(table!.entries.length);
       // Rangée 1 → Trait « Grand » (grantTrait, ancré catégorie traits).
       const firstOpRow = rows[1];
       expect(firstOpRow.t).toBe('ref');
@@ -184,7 +184,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       const nested: import('../../engine/ops').GameOp = {
         op: 'rollTable',
         die: 'd10',
-        rows: [{ min: 1, max: 10, ops: [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }] }],
+        entries: [{ min: 1, max: 10, ops: [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }] }],
       };
       const rows = opRows([nested]);
       // 1 sous-titre (rangée de tête) + 1 chip ref vers la table imbriquée — PAS ses 10 sous-rangées.

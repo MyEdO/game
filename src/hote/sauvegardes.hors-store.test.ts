@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  AUTO_SLOT, ecrireLaSauvegarde, lireLaSauvegarde, listerLesSauvegardes, prendreLesRetraitsDeSauvegardes,
+  AUTO_SLOT, cleDEmplacement, ecrireLaSauvegarde, lireLaSauvegarde, listerLesSauvegardes, prendreLesRetraitsDeSauvegardes,
   retirerLaSauvegarde,
 } from './sauvegardes';
 import { etatInitialDuJeu, snapshotSave, type SaveGame } from '../noyau/index';
@@ -16,7 +16,6 @@ import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 const plein: Stockage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
 
 /** La clé persistée de l'emplacement `slot` : le format du stockage d'un joueur. */
-const cleDEmplacement = (slot: number | typeof AUTO_SLOT): string => `wfrp4.save.${slot}`;
 
 const save = (): SaveGame => snapshotSave(etatInitialDuJeu(), '2026-10-27T00:00:00.000Z');
 const autreFormat = (): string => JSON.stringify({ ...save(), version: 'autre-format' });

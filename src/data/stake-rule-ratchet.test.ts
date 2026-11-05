@@ -1,16 +1,16 @@
 /**
  * CLIQUET NOMINATIF « un enjeu porte sa RÈGLE » (#1117 L0b) — jumeau du cliquet « une étape dit son
- * enjeu » (`state/cascade-step-stake-guard`), à l'étage de la DONNÉE : chaque entrée d'un dataset
- * d'enjeux doit renvoyer vers une fiche de `regles.json`, pour que la règle soit à UN CLIC.
+ * enjeu » (`state/cascade-step-stake-guard`), à l'étage de la DONNÉE : chaque entrée de `stakes.json`
+ * doit renvoyer vers la fiche de sa règle, pour que la règle soit à UN CLIC.
  *
- * Le stock RESTANT est ÉNUMÉRÉ nominativement et DÉCROISSANT : chaque lot de curation (patron L0a)
- * retire ses ids d'ici. Fail-closed : une entrée NEUVE sans règle échoue ; un renvoi MORT casse au parse
- * (`foyerDeRegleSchema`, `src/data/schemas/grammaire/valeurs.ts`).
- * La nuit est SOLDÉE (15/15 depuis L0a) — aucune tolérance n'y est ouverte.
+ * Le schéma EXIGE cette porte de toute cascade sauf le voyage (`schemas/defs/stakes.ts`) ; le stock
+ * VOYAGE restant est ÉNUMÉRÉ nominativement et DÉCROISSANT : chaque lot de curation (patron L0a)
+ * retire ses ids d'ici. Un renvoi MORT casse au parse (`foyerDeRegleSchema`,
+ * `src/data/schemas/grammaire/valeurs.ts`).
  */
 import { describe, it, expect } from 'vitest';
 import {
-  NIGHT_STAKES, VOYAGE_STAKES, FLOW_STAKES, COMBAT_STAKES,
+  STAKES,
   regles, skills, symptoms, etats, talents, qualities, spells,
   psychologies, seaShanties, crewTestTypes, maladies, maneuvers, resolveStake,
   mutations, mutationTables, interludeEvents, trappings, traits, creatures, ACTIVITY_STAKES,
@@ -19,12 +19,15 @@ import { CATEGORY_BY_SOURCE_KIND } from '../engine/types';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
+import { rangeesDe } from './rangees';
+import type * as imparfaites from './schemas/defs/miscast';
 
 
 /** Entrées d'enjeu de VOYAGE encore sans fiche — chacune attend SA curation verbatim (patron L0a).
  *  Mesuré le 2026-08-06 : 12 sur 33 ; 11 sur 41 depuis que l'Exposition renvoie à SA fiche (#1262 V2
  *  L6b — EDOC 08 l.90 convoque le Test de LDB p181 : UNE entrée sert la nuit ET l'Étape terrestre).
  *  Retirer un id d'ici est le geste de solde. */
+const VOYAGE_STAKES = STAKES.filter((e) => e.cascade === 'voyage');
 const VOYAGE_SANS_REGLE = [
   // Fluvial — périls de rivière (MSRC 7 : tables de dangers).
   'river-peril-nav',
@@ -53,11 +56,6 @@ const PROBE_ID: Record<string, string> = {
 };
 
 describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
-  it('la cascade de NUIT est soldée : chaque entrée renvoie vers une fiche', () => {
-    const sans = NIGHT_STAKES.filter((e) => !e.rule).map((e) => e.id);
-    expect(sans, 'entrée de nuit sans règle — la nuit est soldée depuis L0a').toEqual([]);
-  });
-
   it('le stock VOYAGE sans règle est EXACTEMENT celui énuméré (ni plus — ni périmé)', () => {
     const sans = VOYAGE_STAKES.filter((e) => !e.rule).map((e) => e.id).sort();
     const attendu = [...VOYAGE_SANS_REGLE].sort();
@@ -73,10 +71,9 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
   });
 
   /**
-   * Fiches curées en L1a pour les MODALES MONO : leur consommateur (`flow-stakes`, id de jet
-   * {flow, phase}) est né en L1b — le stock d'attente est SOLDÉ. L'assertion reste, INVERSÉE : chaque
-   * fiche curée pour un jet DOIT désormais être référencée par un dataset d'enjeu. Une fiche qui
-   * perdrait son référent (câblage retiré) rougit — c'est la dette muette que l'amendement A combat.
+   * Fiches curées en L1a pour les MODALES MONO : chaque fiche curée pour un jet est référencée par un
+   * enjeu de `stakes.json`. Une fiche qui perdrait son référent (câblage retiré) rougit — c'est la dette
+   * muette que l'amendement A combat.
    */
   const FICHES_L1A_CABLEES = [
     'course', 'desengagement', 'fuite', 'chute',
@@ -88,7 +85,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     expect(absentes, 'fiche annoncée par L1a mais absente du catalogue').toEqual([]);
 
     const referencees = new Set(
-      [...NIGHT_STAKES, ...VOYAGE_STAKES, ...FLOW_STAKES].flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])),
+      STAKES.flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])),
     );
     const orphelines = FICHES_L1A_CABLEES.filter((id) => !referencees.has(id));
     expect(orphelines, 'fiche L1a SANS référent : son jet ne la cite plus (câblage L1b perdu)').toEqual([]);
@@ -125,7 +122,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     const sansForme = psychologies.filter((p) => p.stake && !p.stakeForm).map((p) => p.id);
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
-    const gabarit = COMBAT_STAKES.find((e) => e.kind === 'combatPsych')!.template;
+    const gabarit = STAKES.find((e) => e.cascade === 'combat' && e.cle === 'combatPsych')!.template;
     for (const p of psychologies.filter((x) => x.stake)) {
       const r = resolveStake({ key: { dataset: 'combat', kind: 'combatPsych', entryId: p.id }, values: { indice: 2 } });
       expect(r.text, `${p.id} : l’étape rend le gabarit du kind au lieu de l’enjeu de l’entrée`).not.toBe(gabarit);
@@ -150,7 +147,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     const sansForme = maneuvers.filter((m) => m.stake && !m.stakeForm).map((m) => m.id);
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
-    const gabarit = COMBAT_STAKES.find((e) => e.kind === 'maneuverDefense')!.template;
+    const gabarit = STAKES.find((e) => e.cascade === 'combat' && e.cle === 'maneuverDefense')!.template;
     // Les trous d'un enjeu (`{regleDuType}` du Souffle) reçoivent les valeurs de la composition (`ManeuverDef.enjeu`).
     const remplir = (texte: string) => texte.replace(/\{(\w+)\}/g, (_m, nom: string) => `«${nom}»`);
     for (const m of maneuvers) {
@@ -174,26 +171,37 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
       mutations, mutationTables, interludeEvents,
       artilleryMisfire: ARTILLERY_MISFIRE,
       structureCriticals: STRUCTURE_CRITICALS,
-      miscastWrath: (miscastRawJson as unknown as { id: string; entries: { id: string }[] }[]).find((d) => d.id === 'miscast-colere')!.entries,
+      miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
     };
     const muettes: string[] = [];
-    for (const [dataset, e] of [
-      ...FLOW_STAKES.map((x) => ['flow' as const, x] as const),
-      ...COMBAT_STAKES.map((x) => ['combat' as const, x] as const),
-    ]) {
+    for (const e of STAKES) {
       if (!e.entryCategory) continue;
       const pool = POOLS[e.entryCategory];
       if (!pool?.length) { muettes.push(`${e.id} → catégorie « ${e.entryCategory} » inconnue du test`); continue; }
       const entryId = pool[0].id;
-      const kind = 'kind' in e ? e.kind : e.id;
       // Les TROUS du gabarit sont remplis d'une valeur sonde : `resolveStake` est fail-closed sur un
       // trou vide, et ce test-ci mesure le RENVOI, pas le texte (la valeur réelle vient du producteur).
       const values = Object.fromEntries([...(e.template ?? '').matchAll(/\{(\w+)\}/g)].map((m) => [m[1], '·']));
-      const rule = resolveStake({ key: { dataset, kind, entryId }, values }).rule;
+      const rule = resolveStake({ key: { dataset: e.cascade, kind: e.cle, entryId }, values }).rule;
       if (rule?.category !== e.entryCategory || rule.id !== entryId) {
         muettes.push(`${e.id} → attendu ${e.entryCategory}:${entryId}, obtenu ${rule ? `${rule.category}:${rule.id}` : 'aucun renvoi'}`);
       }
     }
     expect(muettes, 'entryCategory sans pool dans le résolveur : le renvoi replie en silence sur le kind').toEqual([]);
+  });
+
+  /** #1681 — la clé de consommation `cle` vit DANS sa cascade (`exposure` sert la nuit ET le voyage) :
+   *  chaque entrée se résout à `{ dataset: cascade, kind: cle }` en SON gabarit et SON foyer. */
+  it('chaque enjeu de `stakes.json` se résout à SA clé, dans SA cascade', () => {
+    const ecarts: string[] = [];
+    for (const e of STAKES) {
+      const values = Object.fromEntries([...(e.template ?? '').matchAll(/\{(\w+)\}/g)].map((m) => [m[1], '·']));
+      const r = resolveStake({ key: { dataset: e.cascade, kind: e.cle }, values });
+      const attendu = e.template?.replace(/\{\w+\}/g, '·');
+      if (r.text !== attendu || r.rule?.id !== e.rule?.id) {
+        ecarts.push(`${e.cascade}/${e.cle} (${e.id}) → texte ${r.text === attendu ? 'tenu' : 'ÉTRANGER'}, foyer ${r.rule?.id ?? 'aucun'} ≠ ${e.rule?.id ?? 'aucun'}`);
+      }
+    }
+    expect(ecarts, 'une clé résolue hors de sa cascade sert l’enjeu d’une autre entrée').toEqual([]);
   });
 });

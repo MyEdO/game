@@ -110,7 +110,7 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
       const foe = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
       foe.kind = 'hero'; // acteur PILOTÉ : le flux différé (pending) est celui du joueur
       banc.getState().battleRecoverState('empetre');
-      banc.getState().recoverRoll();
+      banc.getState().jetRoll('recover');
       return banc.getState().pendingStateRecovery!;
     })();
     expect([nominal.difficulty, nominal.roll!.target, nominal.opponentRoll!.target]).toEqual(['intermediaire', 30, 40]);
@@ -120,7 +120,7 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
       const foe = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
       foe.kind = 'hero';
       banc.getState().battleRecoverState('empetre');
-      banc.getState().recoverRoll();
+      banc.getState().jetRoll('recover');
       return banc.getState().pendingStateRecovery!;
     });
     expect(devie.difficulty).toBe('difficile');
@@ -147,7 +147,7 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
       setBattle('e');
       banc.getState().battle!.combatants.find((c) => c.id === 'e')!.kind = 'hero';
       banc.getState().battleRecoverState('empetre');
-      banc.getState().recoverRoll();
+      banc.getState().jetRoll('recover');
       return banc.getState().pendingStateRecovery!;
     });
     expect(joueur.opponentRoll!.target, 'voie joueur : entrave 40 + Difficile').toBe(20);

@@ -45,7 +45,7 @@ describe('le serveur MCP de l’hôte texte', () => {
       expect(charge.isError, charge.content[0].text).toBeFalsy();
       expect(readFileSync(join(dossier, 'combat.jsonl'), 'utf8').trimEnd().split('\n'), 'la Charge appliquée n’est pas écrite').toHaveLength(lignes + 1);
 
-      const horsSchema = await appeler(premier, 'jouer', { partie: 'combat', gestes: [{ verbe: 'attackRoll', cible: 'x' }] });
+      const horsSchema = await appeler(premier, 'jouer', { partie: 'combat', gestes: [{ verbe: 'jetRoll', cible: 'x' }] });
       expect(horsSchema.isError).toBe(true);
       expect(horsSchema.content[0].text).toMatch(/Input validation error/);
 

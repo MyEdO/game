@@ -20,28 +20,32 @@ import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
-import type { DeDeTable } from '../data/schemas/grammaire/valeurs';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, roll as rollDice, type RNG } from './dice';
+import { d10, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
-import { type CargoDef, type CargoEntry, isEchangeable, isTradeHubColumn, rollSeasonalCargo } from './cargo';
+import { type CargoDef, type CargoEntry, entreeDeCargaison, isEchangeable, isTradeHubColumn, marchandiseDeCargaison, rollSeasonalCargo } from './cargo';
 export { type CargoDef, type CargoEntry, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoBasePrice } from './cargo';
 
 // ── Types de la donnée ───────────────────────────────────────────────────────────────────────────
 
-export interface ManannFactor { id: string; label: string; effect: { sign: 1 | -1; flat: number; d10: number } }
+export interface ManannFactor { id: string; label: string; effect: EffetSigne }
+
+/** Feuille d'un paramètre d'événement (`feuilleDeParam`, `src/data/schemas/defs/sea-events.ts`). */
+type FeuilleDeParam = QuantiteTiree | boolean | string;
+/** Valeur de `SeaEventDef.params`, lue par clé selon le `kind`. */
+export type ParamDEvenement = FeuilleDeParam | FeuilleDeParam[] | Record<string, FeuilleDeParam>;
 
 export interface SeaEventDef extends BandeOuverte {
   id: string;
   label: string;
   desc: string;
   kind: string;
-  params?: Record<string, unknown>;
+  params?: Record<string, ParamDEvenement>;
 }
 
 /** Palier du VOYAGE RAPIDE (l.33-37) : cran du d10, conséquences en % + Coups Critiques. */
@@ -97,7 +101,7 @@ export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
  *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
 export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(EVENTS.boardEvents));
 /** Dé du tableau des événements de bord, MDG 15 l.182. */
-export const DE_DES_EVENEMENTS_DE_BORD: DeDeTable = 'd100';
+export const DE_DES_EVENEMENTS_DE_BORD = 'd100';
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
 const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
 /** Le catalogue COMPLET tel qu'il est authoré : marchandises ET marqueurs de l'Index (MDG 15 l.321) —
@@ -111,9 +115,9 @@ export const OPPORTUNITE = CARGO.opportunite;
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
 const OFFER_PRICE_LOOKUP = tableOuverte(CARGO.sell.offerPrice);
 /** Résout une MARCHANDISE (les marqueurs ne sont ni achetables ni vendables). */
-export const findCargoById = (id: string): CargoDef | undefined => cargoes().find((c) => c.id === id);
+export const findCargoById = (id: string): CargoDef | undefined => marchandiseDeCargaison(CARGO_ENTRIES, id);
 /** Résout une entrée QUELCONQUE de la colonne Production, marqueur compris (libellé d'affichage). */
-export const findCargoEntryById = (id: string): CargoEntry | undefined => CARGO_ENTRIES.find((c) => c.id === id);
+export const findCargoEntryById = (id: string): CargoEntry | undefined => entreeDeCargaison(CARGO_ENTRIES, id);
 /** La colonne Production d'un PORT le désigne-t-elle comme plaque tournante (l.321) ? Lit le champ
  *  `tradeHub` de l'entrée marqueur du catalogue maritime (SSOT `isTradeHubEntry`). PUR. */
 export const isSeaTradeHub = (production: readonly string[] | undefined): boolean =>
@@ -182,7 +186,7 @@ export const MANANN_BASE: ManannMood = { score: EVENTS.manann.base, applied: [] 
 export function applyManannFactor(mood: ManannMood, factorId: string, rng: RNG): { mood: ManannMood; delta: number; label?: string } {
   const f = findManannFactor(factorId);
   if (!f || mood.applied.includes(factorId)) return { mood, delta: 0 };
-  const delta = f.effect.sign * (f.effect.flat + (f.effect.d10 > 0 ? rollDice(f.effect.d10, 10, rng) : 0));
+  const delta = tirerSigne(f.effect, rng);
   return { mood: { score: mood.score + delta, applied: [...mood.applied, factorId] }, delta, label: f.label };
 }
 
@@ -232,13 +236,13 @@ export function resolveFastVoyage(
 // ── Commerce maritime (l.309-436) ────────────────────────────────────────────────────────────────
 
 /** Profil COMMERCIAL d'un port (Index des ports, l.439-506) — porté par le LIEU de la carte du monde
- *  (`MapPlace.port`, donnée d'auteur). `production` : ids de cargaison, ou `'commerce'`/`'minimum-vital'`. */
+ *  (`MapPlace.port`, donnée d'auteur). `production` : ids de cargaison, ou `'commerce-mer'`/`'minimum-vital'`. */
 export interface PortProfile {
   /** Taille du Lieu (1-4). */
   taille: number;
   /** Richesse du Lieu. */
   richesse: number;
-  /** Colonne Production : ids de cargaison + éventuellement 'commerce' / 'minimum-vital'. */
+  /** Colonne Production : ids de cargaison + éventuellement 'commerce-mer' / 'minimum-vital'. */
   production: string[];
   /** Colonne Surplus : id → indice (+1, +2). */
   surplus?: Record<string, number>;

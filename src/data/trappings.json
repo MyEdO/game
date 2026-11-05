@@ -740,6 +740,11 @@
     },
     "rangement": {
       "id": "dos"
+    },
+    "manieAussi": {
+      "deux-mains": {
+        "aPied": true
+      }
     }
   },
   {
@@ -781,7 +786,20 @@
     "rangement": {
       "id": "dos"
     },
-    "bladed": true
+    "bladed": true,
+    "manieAussi": {
+      "base": {
+        "qualites": [
+          {
+            "id": "epuisante"
+          },
+          {
+            "id": "lente"
+          }
+        ],
+        "mains": 1
+      }
+    }
   },
   {
     "id": "grande-hache",
@@ -1203,7 +1221,14 @@
     "rangement": {
       "id": "ceinture_d"
     },
-    "bladed": true
+    "bladed": true,
+    "manieAussi": {
+      "base": {
+        "retire": [
+          "defensive"
+        ]
+      }
+    }
   },
   {
     "id": "arbalete",
@@ -9125,7 +9150,21 @@
     "rangement": {
       "id": "ceinture_g"
     },
-    "bladed": true
+    "bladed": true,
+    "manieAussi": {
+      "base": {
+        "qualites": [
+          {
+            "id": "taillade",
+            "value": 2
+          }
+        ],
+        "aPied": true
+      },
+      "escrime": {
+        "aPied": true
+      }
+    }
   },
   {
     "id": "epee-de-cour",

@@ -3,22 +3,22 @@
  *
  * CONTRAT : après une édition au Codex (`setDataset`, la porte de `CodexEdit.save`), chaque accesseur
  * sert l'entrée ÉDITÉE et voit une entrée NEUVE — aucun lecteur ne peut tenir un index figé à l'import.
- * Ces cas ne sont pas théoriques : `traits`, `trappings`, `characteristics` et `props` sont tous édités par l'atelier
+ * Ces cas ne sont pas théoriques : `traits`, `trappings` et `characteristics` sont tous édités par l'atelier
  * (`exposition.edit` de leur def).
  *
  * Restauration `afterEach` par le seam lui-même : aucun test ne touche un dataset autrement.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import {
-  traits, trappings, characteristics, props, etats, weather, vehicles,
-  findTraitById, findTrappingById, findPropById, charAbr,
+  traits, trappings, characteristics, etats, weather, vehicles,
+  findTraitById, findTrappingById, charAbr,
 } from './index';
-import { parseTraitInstance } from '../ui/editor/refFormatLivre';
+import { parseTraitInstance } from './refFormatLivre';
 import { travelVehicles, travelModeLabels } from '../engine/travel';
 import { consolidateAmputations, traumaById, type TraumaFiche } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from './mutations';
-import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from '../engine/miscast';
+import { rollMiscast, miscastRowAt, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { tableStepDef, tableStepIds } from '../noyau/cascade';
@@ -38,20 +38,16 @@ import {
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
-import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
-import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
+import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
-import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
-import { worldBakeDeps } from '../gameIso/backends/webgl/sceneMeshes';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
 const POSSESSIONS_LIVREES = [...trappings];
 const CARACS_LIVREES = [...characteristics];
-const DECORS_LIVRES = [...props];
 const ETATS_LIVRES = [...etats];
 const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
@@ -60,9 +56,9 @@ const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationT
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
-  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'flowStakes', 'combatStakes', 'seaBoardEvents'] as const,
+  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
   (k) => structuredClone(datasetArray(k)),
-) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'flowStakes' | 'combatStakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
@@ -79,7 +75,6 @@ afterEach(() => {
   setDataset('traits', TRAITS_LIVRES);
   setDataset('trappings', POSSESSIONS_LIVREES);
   setDataset('characteristics', CARACS_LIVREES);
-  setDataset('props', DECORS_LIVRES);
   setDataset('etats', ETATS_LIVRES);
 });
 
@@ -109,45 +104,6 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     expect(charAbr('capacite-de-combat')).toBe('ZZ');
   });
 
-  it('un décor ÉDITÉ : `findPropById` rend la NOUVELLE entrée ET le READ-SET du bake porte une dep NEUVE', () => {
-    // La scène pose un décor VOLUMIQUE : `worldBakeDeps` y lit sa RECETTE (`propRecipeDeps`), donc la
-    // fraîcheur se MESURE sur la dep elle-même — pas seulement sur l'identité rendue par l'accesseur.
-    // L'édition porte donc sur ce qui CUIT (la recette) : un libellé seul ne recuit rien, par dessein.
-    const scene = emptyScene('scene-test', 6, 6);
-    scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
-    const mpt = sceneMetresPerTile(scene);
-    const depsAvant = worldBakeDeps(scene, mpt);
-    const avant = findPropById('tonneau')!;
-    expect(depsAvant).toContain(avant.volume); // la recette du tonneau EST une dep du bake
-
-    setDataset('props', props.map((p) => (p.id === 'tonneau' ? { ...p, label: 'Tonneau ébréché', volume: { ...p.volume! } } : p)));
-    const apres = findPropById('tonneau')!;
-    expect(apres.label).toBe('Tonneau ébréché');
-    expect(apres).not.toBe(avant);
-
-    const depsApres = worldBakeDeps(scene, mpt);
-    expect(depsApres.length).toBe(depsAvant.length);
-    expect(depsApres.some((d, i) => d !== depsAvant[i]), 'aucune dep du bake n’a bougé : le monde resterait cuit sur l’ancien décor').toBe(true);
-    expect(depsApres).toContain(apres.volume);
-  });
-
-  it('ISOLANT : un décor édité HORS de sa recette ne fait bouger AUCUNE dep du bake', () => {
-    // Contrepartie du cas précédent : il assère qu'une dep CHANGE, ce qui ne vaut que si toute
-    // édition ne les fait pas toutes changer. Ici l'édition ne touche QUE le libellé — la recette
-    // (`volume`) garde son identité —, et le read-set doit être identique élément par élément.
-    const scene = emptyScene('scene-test', 6, 6);
-    scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
-    const mpt = sceneMetresPerTile(scene);
-    const depsAvant = worldBakeDeps(scene, mpt);
-
-    setDataset('props', props.map((p) => (p.id === 'tonneau' ? { ...p, label: 'Tonneau signé' } : p)));
-    expect(findPropById('tonneau')!.label).toBe('Tonneau signé');
-
-    const depsApres = worldBakeDeps(scene, mpt);
-    expect(depsApres.length).toBe(depsAvant.length);
-    expect(depsApres.filter((d, i) => d !== depsAvant[i]), 'le bake se déclencherait sur une édition qui ne cuit rien').toEqual([]);
-  });
-
   it('un État RENOMMÉ : le journal reconnaît le NOUVEAU libellé, et son importance suit l’id', () => {
     expect(conditionIdInText('Grim est Sonné')).toBe('sonne');
     setDataset('etats', etats.map((e) => (e.id === 'sonne' ? { ...e, label: 'Assommé' } : e)));
@@ -170,7 +126,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // fenêtre de pose) qu'après le passage du site qui ouvrait l'étape.
     const saison = weather[weather.length - 1];
     const id = `stage-weather-${saison.id}`;
-    expect(tableStepDef(id)!.rows).toEqual(stageWeatherRows(saison.ranges));
+    expect(tableStepDef(id)!.rows).toEqual(stageWeatherRows(saison.entries));
     expect(tableStepIds()).toContain(id);
 
     setDataset('weather', weather.filter((s) => s.id !== saison.id));
@@ -194,7 +150,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
-        ? { ...t, label: 'physique révisée QC (LDB)', ranges: [{ ...t.ranges[0], max: 99 }, ...t.ranges.slice(1)] }
+        ? { ...t, label: 'physique révisée QC (LDB)', entries: [{ ...t.entries[0], max: 99 }, ...t.entries.slice(1)] }
         : t)),
       neuve,
     ]);
@@ -214,9 +170,10 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une rangée d’Incantation Imparfaite ÉDITÉE : `rollMiscast` joue la NOUVELLE, comme `miscastRowAt`', () => {
     // `RUNTIME_ROWS` dépliait les rangées (ops closées, Tests) une fois à l'import : `rollMiscast`
     // servait le libellé d'AVANT pendant que `miscastRowAt` servait déjà le nouveau.
-    const rangees = MISCAST_TABLES.find((t) => t.id === 'miscast-mineure')!.entries;
+    const rangees = datasetArray('miscastMinor');
     const premiere = rangees[0];
     const de = premiere.min;
+    if (de === null) throw new Error('miscast-mineure : la première rangée a une borne basse ouverte');
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe(premiere.label);
 
     setDataset('miscastMinor', rangees.map((r) => (r.id === premiere.id ? { ...r, label: 'Contrecoup révisé QC' } : r)));
@@ -356,11 +313,10 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(dawnMinute()).toBe(300);
     expect(isTravelDaylight(330)).toBe(true);
     setDataset('calendarPhases', datasetArray('calendarPhases').map((p) => (
-      p.id === 'aube' ? { ...p, start: 360 } : p.id === 'crepuscule' ? { ...p, start: 1140 } : p)));
+      p.id === 'aube' ? { ...p, seuil: 360 } : p.id === 'crepuscule' ? { ...p, seuil: 1140 } : p)));
     expect(dawnMinute()).toBe(360);
     expect(duskMinute()).toBe(1140);
     expect(isTravelDaylight(330)).toBe(false);
-    expect(sunJeuHalfArcMin()).toBe(12 * 60 - 360);
   });
 
   it('un jour intercalaire AJOUTÉ : `daysPerYear` le compte', () => {
@@ -376,19 +332,19 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(daysPerYear()).toBe(avant + 3);
   });
 
-  it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `flowStakes`', () => {
+  it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const chanson = seaShanties[0].id;
     const ref = () => resolveStake(flowStakeRef('shanty-roll', { entryId: chanson })).rule;
     expect(ref()).toEqual({ category: 'seaShanties', id: chanson });
-    setDataset('flowStakes', FLOW_STAKES.map((e) => (e.id === 'shanty-roll' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.id === 'shanty-roll' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toEqual({ category: 'talents', id: 'chanson-de-marin' });
   });
 
-  it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `combatStakes`', () => {
+  it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const maladie = maladies[0].id;
     const ref = () => resolveStake(combatStakeRef('combatEndDisease', { entryId: maladie })).rule;
     expect(ref()).toEqual({ category: 'maladies', id: maladie });
-    setDataset('combatStakes', COMBAT_STAKES.map((e) => (e.kind === 'combatEndDisease' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.cascade === 'combat' && e.cle === 'combatEndDisease' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toBeUndefined();
   });
 

@@ -26,7 +26,7 @@ import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
 import { traitAdmet, type TraitPose } from '../../../data/schemas/grammaire/reference';
 import { formatTrait, optionalLabel, traitLisible } from '../../../engine/traits/dispatch';
-import { relireTrait } from '../refFormatLivre';
+import { relireTrait } from '../../../data/refFormatLivre';
 import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
 import { AlsoInField } from '../../AlsoInField';
 import { useClesDeRangees } from '../../useClesDeRangees';
@@ -954,7 +954,7 @@ export function RuleActionField({ rule, value, onChange }: {
       <label className="ed-subfield">Libellé du bouton
         <input value={value.label} onChange={(e) => set({ label: e.target.value })} />
       </label>
-      <label className="ed-subfield">Icône (id du registre src/ui/icons/)
+      <label className="ed-subfield">Icône (id du registre src/data/icons/)
         <input value={value.icon} onChange={(e) => set({ icon: e.target.value })} />
       </label>
       <label className="ed-subfield">Action du store à déclencher

@@ -2,7 +2,7 @@
  * MATIÈRES DU MONDE (#1686 lot 2) — vue TS de `materials.json`, dataset UNIQUE des matières de rendu.
  *
  * L'identité d'une matière est le couple (`domain`, `id`) ; l'id reste unique sur tout le périmètre
- * (`src/data/materials-identite.test.ts`), si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
+ * (`src/gameIso/catalog/materials-identite.test.ts`), si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
  * `toit-ardoise`) plutôt que de compter sur son domaine pour être séparable.
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/materials.ts` : toutes les clés de charge
@@ -16,7 +16,7 @@
  * vertical entre deux surfaces, que `PARTS_RELIEF` compose et que le noyau lit pour le déplacement
  * (`gradeBetween`, `src/noyau/monde/relief.ts`).
  */
-import type { Slot } from './palette.types';
+import type { Slot } from '../lib/palette';
 
 /**
  * Recette de DÉTAIL de surface — appareillage de pierre, bardeaux, colombage,
@@ -106,12 +106,13 @@ export const PARTS_RELIEF = ['cliff', 'ramp', 'deck', 'pilier'] as const satisfi
 export type PartRelief = (typeof PARTS_RELIEF)[number];
 
 /**
- * Domaines du catalogue des matières : sous-ensemble des domaines de `MaterialRef`, plus `objet`,
+ * Domaines du catalogue des matières : sous-ensemble des domaines de `MaterialRef`, plus `objet` et `couleur`,
  * vérifié par `satisfies`. `terrain` et `structure` gardent leurs datasets propres
  * (`terrains.json` et `structureAppearance.json`).
- * `objet` vit hors du pivot de rendu du sol ; `hotes/godot/pont/equipement.ts` lit sa palette par l’id `teinte`.
+ * `objet` et `couleur` vivent hors du pivot de rendu du sol : `hotes/godot/pont/equipement.ts` lit la palette d’un objet
+ * par l’id `teinte`, et la palette d’une composition nomme une `couleur` par emplacement (`presets-de-personnage.json`).
  */
-export const DOMAINES_MATIERE = ['prop', 'roof', 'relief', 'objet'] as const satisfies readonly (MaterialRef['domain'] | 'objet')[];
+export const DOMAINES_MATIERE = ['prop', 'roof', 'relief', 'objet', 'couleur'] as const satisfies readonly (MaterialRef['domain'] | 'objet' | 'couleur')[];
 export type MaterialDomain = (typeof DOMAINES_MATIERE)[number];
 
 /** Enveloppe commune à toute matière — la CHARGE commune est vide : chaque domaine peint autre chose. */
@@ -210,8 +211,14 @@ export interface TeinteDObjet extends MatiereBase {
   palette: Partial<Record<Slot, string>>;
 }
 
+/** Une couleur nommée du nuancier, résolue par son id (`findCouleurById`). */
+export interface CouleurNommee extends MatiereBase {
+  domain: 'couleur';
+  color: string;
+}
+
 /** UNE entrée de `materials.json`, discriminée par `domain`. */
-export type MaterialEntry = PropMaterialData | RoofMaterialDef | ReliefMaterialDef | TeinteDObjet;
+export type MaterialEntry = PropMaterialData | RoofMaterialDef | ReliefMaterialDef | TeinteDObjet | CouleurNommee;
 
 /** L'entrée d'un domaine donné — `MatiereDe<'roof'>` = `RoofMaterialDef`. */
 export type MatiereDe<D extends MaterialDomain> = Extract<MaterialEntry, { domain: D }>;

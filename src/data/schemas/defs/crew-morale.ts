@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ecartsDeCouverture, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { ecartsDeCouverture, effetSigneSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'crew-morale.json';
@@ -17,8 +17,7 @@ const doc = document(
     nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
-      /** Dés signés texte (ex. « +2d10 », « -3d10 ») — lu par `rollExpr` (`src/engine/dice.ts`). */
-      effect: z.string(),
+      effect: effetSigneSchema,
       /** MDG 14. */
       wageMul: z.number().optional(),
       /** MDG 14. */

@@ -22,24 +22,22 @@ import {
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
   WATER_EXPOSURE, navalPorts,
-  navalProgression, seaNavigation, seaPerils, seaWeather, shipConstruction,
+  seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation,
-  GRAPPLE, NIGHT_STAKES, VOYAGE_STAKES, FLOW_STAKES, COMBAT_STAKES,
-  windsOfMagicTable, regles,
+  GRAPPLE, STAKES,
+  regles,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
-import type { RefDesignee } from './schemas/grammaire/ref';
-import type { CharKey } from '../engine/types';
 import type { TraumaFiche } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
 import { TAVERN_GAMES } from '../engine/tavernGame';
-import { OBSESSIONS, type ObsessionEntry } from './obsessions';
+import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { LAND_CARGO_ENTRIES, type LandCargoEntry } from '../engine/landCargo';
 import { CARGO_ENTRIES, type CargoEntry, MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
@@ -57,22 +55,19 @@ import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.g
 import { bumperDataset, memoParVersion } from './versionDataset';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
-import type { SourceRef } from './schemas/grammaire/valeurs';
 import traumasRawJson from './traumas.json';
 // #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
-// Conduite d'attelage (09) et Ivresse (09) NICHÉS dans un objet `{table,source}` (même patron que
-// `incidents-monture.json`/`problemes-vehicule.json`), Surchargé par palier (61).
+// Conduite d'attelage (09) et Ivresse (09), Surchargé par palier (61).
 import advancementCostsRawJson from './advancementCosts.json';
-import drivingMishapRawJson from './driving-mishap.json';
-import drunkennessRawJson from './drunkenness.json';
 import encumbranceTiersRawJson from './encumbranceTiers.json';
-import type { MishapEntry } from '../engine/drivingMishap';
-import type { DrunkEntry } from '../engine/drunkenness';
+import { MISHAP_TABLE } from '../engine/drivingMishap';
+import { DRUNK_TABLE } from '../engine/drunkenness';
 // #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
-// 3 tables NICHÉES dans `miscast.json`, même patron que `criticalsTete`/`aaCriticalsTete`), enjeux de
-// la cascade de nuit (`night-stakes.json`, tableau RACINE, nom de fichier kebab-case divergent).
+// 3 tables NICHÉES dans `miscast.json`, même patron que `criticalsTete`/`aaCriticalsTete`).
 import miscastRawJson from './miscast.json';
+import { rangeesDe, type RangeeDe } from './rangees';
+import type * as imparfaites from './schemas/defs/miscast';
 // Tailles (`sizes.json`) : ses 3 tables sont lues par `engine/size.ts` (dont deux via une référence
 // capturée sur la table NICHÉE) — d'où la fusion EN PLACE récursive de `setObjectDataset`.
 import sizesRawJson from './sizes.json';
@@ -82,34 +77,21 @@ import sizesRawJson from './sizes.json';
 // `engine/magicEnvironment.ts`) importe le MÊME module JSON singleton, sans index précalculé — une
 // édition Compendium reste visible en direct, sans rechargement de page.
 import arcanePhenomenaRawJson from './arcane-phenomena.json';
-import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable } from './arcanePhenomena';
+import type { ArcaneData } from './arcanePhenomena';
 // V9 #1318 : registre des règles optionnelles (`engine/policy.ts`, tableau RACINE) et Tableau de
 // Surincantation (VDM 02, tableau NICHÉ dans `{source,ref,table}`) — importés comme les autres
 // datasets migrés du CODE en donnée, MÊME module JSON singleton que leur lecteur moteur.
 import { OPTIONAL_RULES } from '../engine/policy';
-import surincantationRawJson from './surincantation.json';
+import { VDM_OVERCAST } from '../engine/overcast';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
+import { windsOfMagicTable } from '../engine/windsOfMagic';
+import { NAVAL_PROGRESSION } from '../engine/shipNavigation';
 
 /** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) — DIALECTE compilé (PAS
  *  des `GameOp` standard, cf. `engine/miscast.ts::JsonRow`) : `ops`/`test` restent au format JSON brut
  *  du dialecte (sin-paramétrage), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`,
  *  qui suppose de vrais `GameOp`). */
-export interface MiscastRowEntry {
-  id: string; min: number; max: number | null; label: string;
-  ops?: Record<string, unknown>[];
-  test?: { skill?: RefDesignee; characteristic?: CharKey; difficulty: string; onFail: Record<string, unknown>[]; onFailHard?: { dr: number; ops: Record<string, unknown>[] } };
-  reroll?: 'majeure' | 'mineure-x2';
-  source?: SourceRef;
-}
-/** Les DOCUMENTS de `miscast.json` (un par tableau tirable). */
-const miscastRoot = miscastRawJson as unknown as { id: string; entries: MiscastRowEntry[] }[];
-/** Rangées LIVE d'UN tableau, par id de DOCUMENT — FAIL-FAST : un id absent laisserait une catégorie
- *  Codex sur un tableau vide, sans un mot. */
-function miscastEntries(tableId: string): MiscastRowEntry[] {
-  const doc = miscastRoot.find((d) => d.id === tableId);
-  if (!doc) throw new Error(`miscastEntries : tableau « ${tableId} » absent de miscast.json (ids : ${miscastRoot.map((d) => d.id).join(', ')}).`);
-  return doc.entries;
-}
+export type MiscastRowEntry = RangeeDe<typeof imparfaites>;
 
 const traumas = traumasRawJson as TraumaFiche[];
 
@@ -120,7 +102,7 @@ const traumas = traumasRawJson as TraumaFiche[];
  *  le Codex ne pouvait pas voir ce que le moteur joue. */
 export type CritTableEntry = CritEntry;
 // Les 8 documents-tables de `criticals.json` (4 Localisations × 2 jeux) — rangées LIVE par id de
-// DOCUMENT (`critiqueEntries`, même référence que le moteur, patron `miscastEntries`).
+// DOCUMENT (`critiqueEntries`, même référence que le moteur, patron `rangeesDe`).
 const criticalsTete = critiqueEntries('criticals-ldb-tete');
 const criticalsBras = critiqueEntries('criticals-ldb-bras');
 const criticalsCorps = critiqueEntries('criticals-ldb-corps');
@@ -176,7 +158,7 @@ const ARRAYS = {
   // #157 : catalogues de CONTENU app-owned (façade `index.ts` ou module dédié), exposés au Codex.
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, navalTraits: NAVAL_TRAITS,
   montures: MOUNT_PROFILES, incidentsMonture: MOUNT_INCIDENTS, problemesVehicule: VEHICLE_PROBLEMS,
-  tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS as ObsessionEntry[],
+  tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS,
   structureCriticals: STRUCTURE_CRITICALS, traumas,
   // Catalogues de cargaison : le dataset éditable est le tableau BRUT du JSON (marchandises ET
   // marqueurs de l'Index), pas la vue filtrée `cargoes`/`landCargoes` — sinon une réécriture du
@@ -206,30 +188,25 @@ const ARRAYS = {
   // #422 : Ports (MDG 15), Progression de navire (MDG 13), Construction navale (MDG 12) — les 4
   // derniers NICHÉS dans leur document, dont la racine vivante est réécrite au save.
   navalPorts,
-  navalProgression: navalProgression.entries,
+  navalProgression: NAVAL_PROGRESSION,
   shipHullSizes: shipConstruction.standard,
   shipSpeedTraits: shipConstruction.speedTraits,
   shipConstructionTraits: shipConstruction.constructionTraits,
   // #422 : famille RÈGLES LDB — Coût des Augmentations (tableau RACINE) ; Accidents de Conduite
-  // d'attelage / Ivresse (tableaux NICHÉS sous `entries`, MÊME référence que le moteur — accès de
-  // propriété, jamais une copie) ; Surchargé par palier (tableau RACINE).
+  // d'attelage / Ivresse (tableaux NICHÉS sous `entries`, le binding VIVANT du moteur, jamais une
+  // copie) ; Surchargé par palier (tableau RACINE).
   advancementCosts: advancementCostsRawJson,
-  drivingMishap: drivingMishapRawJson.entries as MishapEntry[],
-  drunkenness: drunkennessRawJson.entries as DrunkEntry[],
+  drivingMishap: MISHAP_TABLE,
+  drunkenness: DRUNK_TABLE,
   encumbranceTiers: encumbranceTiersRawJson,
   // #422 (FINAL) : Incantations Imparfaites Mineures/Majeures (LDB 46) + Colère des dieux (LDB 40)
   // — les rangées de 3 des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b).
-  miscastMinor: miscastEntries('miscast-mineure'),
-  miscastMajor: miscastEntries('miscast-majeure'),
-  miscastWrath: miscastEntries('miscast-colere'),
-  // #422 (FINAL) : enjeux des cascades — chaque binding écrit EST la racine de son fichier
-  // (tableau RACINE, pas un tableau niché sous une enveloppe). Le fichier disque ne se déduit pas de
-  // la clé JS : il est DÉRIVÉ de l'`exposition.edit` du def (`nightStakes` → `night-stakes.json`) ;
-  // les trois autres sont `edit:{none}` (lecture seule au Codex), donc sans fichier de sauvegarde.
-  nightStakes: NIGHT_STAKES,
-  voyageStakes: VOYAGE_STAKES,
-  flowStakes: FLOW_STAKES,
-  combatStakes: COMBAT_STAKES,
+  miscastMinor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure'),
+  miscastMajor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure'),
+  miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
+  // Enjeux des cascades (`stakes.json`, tableau RACINE, #1681) : le fichier disque est DÉRIVÉ de
+  // l'`exposition.edit` du def.
+  stakes: STAKES,
   // Fiches de règle (`regles.json`, tableau RACINE) : leurs `rangees` et `tests` sont lus par le moteur
   // (`engine/reglesChiffrees.ts`), dont l'index se reconstruit à chaque écriture au seam (#1173) ; en
   // lecture seule au Codex, c'est l'espace que le sélecteur du foyer de règle (`refTypee`, `cfgDuType`)
@@ -240,7 +217,7 @@ const ARRAYS = {
   // Surincantation (VDM 02) NICHÉ dans `surincantation.json` (sous `entries`, même patron que
   // `drivingMishap`/`drunkenness`), MÊME référence que celle lue par `engine/overcast.ts`.
   reglesOptionnelles: OPTIONAL_RULES,
-  surincantation: surincantationRawJson.entries,
+  surincantation: VDM_OVERCAST,
   // #1467 L1b V-FLIP-TABLE : deux tableaux déjà EXPOSÉS au Codex (`artilleryMisfire`,
   // `ventsTourbillonnants`) qui n'étaient pas ÉDITABLES — même couture que leurs 13 frères, aucun
   // régime à part. MÊME référence que le moteur (`engine/artilleryMisfire.ts`, `engine/windsOfMagic.ts`).
@@ -251,12 +228,8 @@ const ARRAYS = {
 export type DatasetKey = keyof typeof ARRAYS;
 export const DATASET_KEYS = Object.keys(ARRAYS) as DatasetKey[];
 
-/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS — mêmes types que `data/arcanePhenomena.ts`. */
-interface ArcanePhenomenaFile {
-  saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
-  phenomena: ArcanePhenomenon[]; tables: ArcaneTable[];
-}
-const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcanePhenomenaFile;
+/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS. */
+const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcaneData;
 
 /** Datasets-OBJETS uniques : pas un tableau d'entités mais UN objet de config (`details`) ou une fiche
  *  de règle UNIQUE (`waterExposure`, MSRC 16). Mutés EN PLACE (mêmes garanties que les tableaux) →

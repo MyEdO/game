@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { influencesLocally } from '../noyau/netOwnership';
-import { overcastTargetCandidates, castOvercastAxes, effectiveSpellOf, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../noyau/combatFlow';
+import { overcastTargetCandidates, castOvercastAxes, effectiveSpellOf, previewCast, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor } from '../noyau/combatFlow';
 import type { CounterDeclaration } from '../noyau/pendings';
 import { findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
@@ -10,7 +10,7 @@ import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { clampTarget } from '../engine/tests';
 import { castingValue, castingNumberOf, spellTargetCount, castOvercastBudget, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastStepCost } from '../engine/overcast';
-import { availableResistance, resistanceImproves } from '../engine/menace';
+import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { rule } from '../engine/policy';
 import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
@@ -28,6 +28,7 @@ import { resultLine, freeCons } from '../noyau/rollSeam';
 import { QtyStepper } from './QtyStepper';
 import { Row, Stack, grow } from './Layout';
 import { libelleDeTest, libelleDIncantation, libelleDOppositionDeSort } from '../noyau/jetsEnVue';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /** Marque du pluriel FR, accordée sur la VALEUR (patron `plural(n)` des modales de navire) : le
  *  raccourci « (s) » du code laissait l'écran écrire « 1 pas … RESTANT(S) ». */
@@ -48,10 +49,10 @@ export function CastModal() {
   const pc = useGame((s) => s.pendingCast);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.castRoll);
-  const reroll = useGame((s) => s.castReroll);
-  const bonusSL = useGame((s) => s.castBonusSL);
-  const darkPact = useGame((s) => s.castDarkPact);
+  const roll = useGesteDeJet('jetRoll', 'cast');
+  const reroll = useGesteDeJet('jetReroll', 'cast');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'cast');
+  const darkPact = useGesteDeJet('jetDarkPact', 'cast');
   const setCritChoice = useGame((s) => s.castSetCritChoice);
   const setConjureForm = useGame((s) => s.castSetConjureForm);
   const setDiscreet = useGame((s) => s.castSetDiscreet);
@@ -60,31 +61,31 @@ export function CastModal() {
   const toggleExtraTarget = useGame((s) => s.castToggleExtraTarget);
   const pickTargets = useGame((s) => s.castPickTargets);
   const placeZone = useGame((s) => s.castPlaceZone);
-  const forceSuccess = useGame((s) => s.castForceSuccess);
-  const confirm = useGame((s) => s.castConfirm);
-  const cancel = useGame((s) => s.castCancel);
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'cast');
+  const confirm = useGesteDeJet('jetConfirm', 'cast');
+  const cancel = useGesteDeJet('jetCancel', 'cast');
   // Opposition de la cible (multijet DANS cette modale) : chaque cible oppose son Test (FM/Int/Bagarre).
   const pcs = useGame((s) => s.pendingCastOpposition);
-  const oppRoll = useGame((s) => s.oppositionRoll);
-  const oppReroll = useGame((s) => s.oppositionReroll);
-  const oppBonusSL = useGame((s) => s.oppositionBonusSL);
-  const oppDarkPact = useGame((s) => s.oppositionDarkPact);
-  const oppForce = useGame((s) => s.oppositionForceSuccess);
-  const oppResist = useGame((s) => s.oppositionResist); // Résistance (Menace : Magie) — auto-succès du talent (LDB 10)
-  const oppConfirm = useGame((s) => s.oppositionConfirm);
+  const oppRoll = useGesteDeJet('jetRoll', 'opposition');
+  const oppReroll = useGesteDeJet('jetReroll', 'opposition');
+  const oppBonusSL = useGesteDeJet('jetBonusSL', 'opposition');
+  const oppDarkPact = useGesteDeJet('jetDarkPact', 'opposition');
+  const oppForce = useGesteDeJet('jetForceSuccess', 'opposition');
+  const oppResist = useGesteDeJet('jetResist', 'opposition'); // Résistance (Menace : Magie) — auto-succès du talent (LDB 10)
+  const oppConfirm = useGesteDeJet('jetConfirm', 'opposition');
   // Contre-sort (Dissipation) : RÉACTION au Sort figé dans `pendingCast` — plus de modale
   // séparée (« le contre-sort, c'est le lancement d'un sort qui peut être opposé »). Chaque
   // contre-lanceur a SA rangée (`RollRow`), DANS cette modale d'incantation, exactement comme
-  // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `counterspellConfirm`.
+  // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `jetConfirm('counterspell')`.
   const csp = useGame((s) => s.pendingCounterspell);
-  const cspRoll = useGame((s) => s.counterspellRoll);
-  const cspReroll = useGame((s) => s.counterspellReroll);
-  const cspBonusSL = useGame((s) => s.counterspellBonusSL);
-  const cspDarkPact = useGame((s) => s.counterspellDarkPact);
-  const cspForce = useGame((s) => s.counterspellForceSuccess);
+  const cspRoll = useGesteDeJet('jetRoll', 'counterspell');
+  const cspReroll = useGesteDeJet('jetReroll', 'counterspell');
+  const cspBonusSL = useGesteDeJet('jetBonusSL', 'counterspell');
+  const cspDarkPact = useGesteDeJet('jetDarkPact', 'counterspell');
+  const cspForce = useGesteDeJet('jetForceSuccess', 'counterspell');
   const cspDeclare = useGame((s) => s.counterspellDeclare);
-  const cspConfirm = useGame((s) => s.counterspellConfirm);
-  const cspCancel = useGame((s) => s.counterspellCancel);
+  const cspConfirm = useGesteDeJet('jetConfirm', 'counterspell');
+  const cspCancel = useGesteDeJet('jetCancel', 'counterspell');
   if (!pc) return null;
   const pool = battle?.combatants ?? party; // même modale en combat (file) et hors combat (groupe)
   const caster = pool.find((c) => c.id === pc.casterId);
@@ -154,7 +155,7 @@ export function CastModal() {
   const winds = battle?.windsOfMagic ?? null;
   // CONTEXTE du jet dans l'aperçu (#1064) : le pré-jet annonce la cible RÉELLE — protection de la
   // victime (LDB 42), attribut et environnement de Domaine y sont des chips nommés, plus un écart
-  // muet entre la cible annoncée et celle que `castRoll` applique. Zone non posée = pas de cible.
+  // muet entre la cible annoncée et celle que `jetRoll('cast')` applique. Zone non posée = pas de cible.
   const castCtx = { s: useGame.getState(), target, skipWard: !!pc.zone && !pc.zone.center };
   const preview = previewCast(caster, spell, { missile: pc.missile, focused: pc.focused, winds: winds?.revealed ? winds : null, ctx: castCtx });
   // POST-jet : les Vents sont révélés par le jet lui-même (LDB 46 l.179-190) — même aperçu, winds inclus.
@@ -186,33 +187,21 @@ export function CastModal() {
     interactive: influencesLocally(useGame.getState(), pc.casterId),
     fortune: caster.fortune ?? 0,
     resilience: caster.resilience ?? 0,
-    // Résilience PRÉ-JET : même geste en deux temps que le dé fixé pré-armé — rendu ATOMIQUE (#1029),
-    // sinon le routage du Contre-sort déciderait sur le jet naturel, avant la réussite forcée.
-    preRollForce: () => withPreRollFixedDie(useGame.getState, useGame.setState, roll, forceSuccess),
   }));
 
   const issue = res && castRevealed && outcome
     ? [recapLineOfEvent(ev(res.isCritical ? 'crit' : 'cast', outcome, caster.id, selfTarget ? undefined : target.id), pool)]
     : undefined;
 
-  // Rangée d'opposition interactive encore à lancer : `oppositionConfirm` REFUSE d'agréger (la cible
-  // subirait sans avoir opposé) — l'action le DIT au lieu de rester cliquable pour rien.
-  const oppPending = !!pcs && pcs.participants.some((part) => part.interactive && !part.result);
-  // Incantation CRITIQUE d'un Sort : l'effet retenu est un CHOIX du lanceur (LDB 46 l.28-32) — tant
-  // qu'il n'est pas ÉCRIT, « Appliquer » reste gris (la même garde tient dans `castConfirm`), car de
-  // ce choix dépend la dissipabilité. Une Prière n'a pas cette table de choix.
-  const critChoicePending = !!res?.isCritical && !isPrayer && !pc.critChoice && influencesLocally(useGame.getState(), pc.casterId);
   const actions: RollAction[] = [
-    // Renoncer (héros lanceur) : pré-jet uniquement. « Laisser passer » (Contre-sort) vit APRÈS le jet
-    // d'incantation — la fenêtre naît du jet : sans cette action, décliner la Dissipation serait
-    // inatteignable (Échap est neutralisé une fois lancé). Il décline la fenêtre ENTIÈRE : dès qu'une
-    // rangée a chanté, le choix n'existe plus (l'issue s'applique par « Appliquer », qui agrège).
+    // Renoncer (héros lanceur), ou « Laisser passer » le Contre-sort : la fenêtre naît du jet d'incantation, et sans
+    // cette action décliner la Dissipation serait inatteignable (Échap est neutralisé une fois lancé). Il décline la
+    // fenêtre ENTIÈRE : le flux `counterspell` le ferme dès qu'une rangée a chanté (l'issue s'applique par
+    // « Appliquer », qui agrège).
     ...(csp
-      ? counterspellChanted(csp)
-        ? []
-        : [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, when: 'post' } as RollAction]
+      ? [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, verbe: 'cancel', flux: 'counterspell' } as RollAction]
       : caster.kind !== 'enemy'
-        ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' } as RollAction]
+        ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' } as RollAction]
         : []),
     {
       key: 'confirm',
@@ -220,9 +209,8 @@ export function CastModal() {
       label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="map-tool/pin" size="sm" /> Poser la zone</> : 'Appliquer',
       title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
       onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => placeZone(true) : confirm,
-      when: 'post',
-      refus: oppPending ? 'Une cible n’a pas encore opposé son Test'
-        : critChoicePending ? 'Choisis l’effet de ton Incantation Critique' : undefined,
+      verbe: 'confirm',
+      flux: csp ? 'counterspell' : pcs ? 'opposition' : 'cast',
     },
   ];
 
@@ -456,12 +444,8 @@ export function CastModal() {
                     onBonusSL={() => oppBonusSL(part.id)}
                     onDarkPact={() => oppDarkPact(part.id)}
                     onForce={() => oppForce(part.id)}
-                    /* Résistance (Menace : Magie), LDB 10 l.1020 : auto-succès du Test qui résiste au
-                       Sort, à DR = Bonus d'Endurance. MÊME fenêtre que le verbe `resist` de la fabrique
-                       (`resistanceImproves`) : une opposition GAGNÉE à DR inférieur laisse une marge que
-                       le talent réduit encore — c'est le « DR requis important » du texte. */
-                    resist={pcs.menace != null && availableResistance(actor, pcs.menace) != null
-                      && resistanceImproves(actor, r ? { won: r.resisted, sl: r.oppose.sl } : null)
+                    /* Résistance (Menace : Magie), LDB 10 l.1020 : la fenêtre est le verbe `resist` du flux. */
+                    resist={pcs.menace != null && !fermeturesDuFlux(useGame.getState(), 'opposition', part.id).resist
                       ? { menace: pcs.menace, onResist: () => oppResist(part.id) } : undefined}
                   />
                 );
@@ -471,7 +455,7 @@ export function CastModal() {
           {/* CONTRE-SORT (Dissipation, LDB 46 l.156) : le Sort est figé (révélé ci-dessus), les
               contre-lanceurs éligibles ont chacun leur rangée DANS cette même modale d'incantation
               (plus de modale séparée : un contre-sort EST un lancement de sort opposé).
-              PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `counterspellConfirm`,
+              PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `jetConfirm('counterspell')`,
               src/noyau/combatSlice.ts) ; la COMPOSITION (contrer seul / s'unir / s'abstenir) se fige
               au premier jet de la fenêtre (#1059) — au-delà, seules les rangées déclarées agissent.
               COOP : chaque rangée est pilotée par le siège qui POSSÈDE son porteur — héros du siège,

@@ -115,7 +115,7 @@ export function exposureTarget(c: Combatant, resVal: number): number {
 }
 
 /** Caractéristiques DU PREMIER échec d'Exposition (`FIRST_FAIL`), en libellés du catalogue — SOURCE
- *  du descripteur d'enjeu de l'étape (`voyage-stakes.json`, gabarit `exposure`) : chaque terme est
+ *  du descripteur d'enjeu de l'étape (`stakes.json`, `voyage-exposure`) : chaque terme est
  *  l'effet que `applyExposureFailure` applique RÉELLEMENT, jamais une explication rédigée. PUR. */
 export function exposureFirstFailChars(kind: ExposureKind = 'froid'): string {
   return FIRST_FAIL[kind].map((k) => CHAR_LABELS[k]).join('/');

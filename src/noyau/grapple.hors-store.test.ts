@@ -137,7 +137,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
       def: { roll: 30, target: 40, success: true, sl: 2, isDouble: false },
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
       result: 'success' } });
-    banc.getState().grappleConfirm();
+    banc.getState().jetConfirm('grapple');
     expect(banc.getState().pendingGrapple?.phase).toBe('options');
     const before = live(E.id).wounds.current;
     banc.getState().grappleChoose('damage');
@@ -156,7 +156,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.getState().battleGrapple(E.id);
     const pd = banc.getState().pendingGrapple!;
     banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'success', phase: 'roll' } });
-    banc.getState().grappleConfirm();
+    banc.getState().jetConfirm('grapple');
     banc.getState().grappleChoose('entangle');
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
   });
@@ -176,9 +176,30 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
       def: { roll: 30, target: 40, success: true, sl: 1, isDouble: false },
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
       result: 'success', phase: 'roll' } });
-    banc.getState().grappleConfirm();
+    banc.getState().jetConfirm('grapple');
     banc.getState().grappleChoose('free');
     expect(stacks(live(H.id), COND.empetre)).toBe(1); // 3 − (1 + DR 1) = 1
+  });
+
+  /** LDB 14 l.161 : le Test opposé de Force EST l'Action — avant le jet on y renonce, après il se joue. */
+  it('renoncer avant le jet ferme la fenêtre sans rien consommer ; après le jet, le refus est dit et rien ne bouge', () => {
+    const { H, enemies } = setup();
+    const E = enemies[0];
+    enemies.slice(1).forEach((e) => (e.dead = true));
+    activate(H, E);
+    setGrapple(live(H.id), live(E.id));
+    banc.getState().battleGrapple(E.id);
+    banc.getState().jetCancel('grapple');
+    expect(banc.getState().pendingGrapple).toBeNull();
+    expect(banc.getState().battle!.acted).toBe(false);
+
+    banc.getState().battleGrapple(E.id);
+    banc.getState().jetRoll('grapple');
+    const lance = banc.getState().pendingGrapple;
+    expect(lance?.result).toBeTruthy();
+    banc.getState().jetCancel('grapple');
+    expect(banc.getState().pendingGrapple).toBe(lance);
+    expect(banc.getState().refus?.texte).toBe(`Renoncement refusé : ${H.label} a déjà engagé son action, elle se joue jusqu’au bout.`);
   });
 
   it('Test de Force PERDU → l’adversaire gagne +1 Avantage', () => {
@@ -192,7 +213,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.getState().battleGrapple(E.id);
     const pd = banc.getState().pendingGrapple!;
     banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'failure' } });
-    banc.getState().grappleConfirm();
+    banc.getState().jetConfirm('grapple');
     expect(live(E.id).advantage).toBe(2); // +1 Avantage (l.161)
     expect(banc.getState().pendingGrapple).toBeNull();
     expect(banc.getState().battle!.acted).toBe(true);

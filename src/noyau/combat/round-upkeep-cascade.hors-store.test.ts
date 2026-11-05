@@ -57,7 +57,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(H.id);
 
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(stacks(h, COND.brise)).toBeLessThan(2); // au moins 1 Brisé retiré
@@ -112,7 +112,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     const step = c.participants.find((s) => s.kind === 'triggeredTest')!;
     expect(step).toBeTruthy();
 
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(hasCondition(h, COND.empoisonne)).toBe(false); // poison surmonté (branche success de la donnée : retire 1+DR)
@@ -128,7 +128,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     openRoundEndCascade(banc.getState, banc.setState);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     expect(step).toBeTruthy();
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(hasCondition(h, COND.sonne)).toBe(false);  // 1+DR retiré → vidé
@@ -191,7 +191,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
       // Cadence manuelle → l'étape existe (le hook a sauté le héros) ; en auto → aucune étape (hook inline).
       expect(!!step).toBe(cad === 'manuel');
       if (step) {
-        banc.getState().cascadeRoll(step.id);
+        banc.getState().jetRoll('cascade', step.id);
         banc.getState().cascadeNext();
       }
       const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;

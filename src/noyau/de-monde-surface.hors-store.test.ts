@@ -220,8 +220,8 @@ function skill(c: Combatant, skillId: string, advances: number): void {
 }
 
 const CARRIER_ID = 'convoi-1';
-const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce', 'vin'], ...extra });
-const lot: CargoLot = { cargoId: 'vin', enc: 40, basePriceGold: 10 };
+const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'], ...extra });
+const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
 const marche = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
 
 function carte(): WorldMap {
@@ -588,7 +588,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     openLandMarket(get, set);
     expect(get().pendingEtalLot, 'la fenêtre suit la SURFACE du monde, pas l’option de confort').toBeTruthy();
     expect(canFixDie(get(), WORLD_STEP_OWNER), 'option OFF : la pose n’est pas offerte').toBe(false);
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     expect(get().landMarket, 'l’étal existe après validation').toBeTruthy();
   });
 
@@ -616,7 +616,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
       const lot = get().pendingEtalLot;
       expect(lot, 'la fenêtre de lot s’ouvre AVANT l’écran').toBeTruthy();
       expect(lot!.participants.length, 'un lot vide n’aurait rien à poser').toBeGreaterThan(0);
-      get().etalLotConfirm();
+      get().jetConfirm('etalLot');
       expect(get().pendingEtalLot, 'la validation referme la fenêtre').toBeNull();
       expect(etal(), `option ${option ? 'ON' : 'OFF'} : la fenêtre ne change RIEN par sa seule existence`).toEqual(sansFenetre);
     }
@@ -632,11 +632,11 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     const parts0 = get().pendingEtalLot!.participants;
     const dernier = parts0[parts0.length - 1];
     const neuf = dernier.value === dernier.max ? dernier.min : dernier.max;
-    get().etalLotSetForcedRoll(dernier.id, neuf);
+    get().jetSetForcedRoll('etalLot', neuf, dernier.id);
     const apres = get().pendingEtalLot!.participants.map((r) => r.value);
     expect(apres[apres.length - 1], 'la valeur saisie est la valeur posée').toBe(neuf);
     expect(apres.slice(0, -1), 'aucun autre dé n’a bougé').toEqual(avant.slice(0, -1));
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     expect(get().landMarket, 'l’étal est ouvert après validation').toBeTruthy();
   });
 
@@ -648,7 +648,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     // Il faut deux dés de valeurs DIFFÉRENTES pour que la permutation se voie.
     const paire = lot.participants.findIndex((r, i) => i > 0 && r.value !== lot.participants[i - 1].value);
     if (paire < 1) return; // graine dégénérée : rien à permuter, le cas ne dit rien
-    get().etalLotConfirm();
+    get().jetConfirm('etalLot');
     const direct = etal();
 
     halle();
@@ -657,9 +657,9 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     const l2 = get().pendingEtalLot!;
     const a = l2.participants[paire - 1];
     const b = l2.participants[paire];
-    get().etalLotSetForcedRoll(a.id, b.value);
-    get().etalLotSetForcedRoll(b.id, a.value);
-    get().etalLotConfirm();
+    get().jetSetForcedRoll('etalLot', b.value, a.id);
+    get().jetSetForcedRoll('etalLot', a.value, b.id);
+    get().jetConfirm('etalLot');
     expect(etal(), 'deux dés permutés ne peuvent pas rendre le même étal').not.toEqual(direct);
   });
 
@@ -702,7 +702,7 @@ const carteMer: WorldMap = {
   id: 'cmer', label: 'Mer des Griffes',
   places: [
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'monde-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'monde-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'monde-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'rmer', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
@@ -972,7 +972,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     const avant = get().pendingCascade;
     get().cascadeNext();
     expect(get().pendingCascade, 'aucune avancée tant que la table n’est pas tirée').toBe(avant);
-    get().cascadeTableSetForcedRoll(meteo.id, 7);
+    get().jetSetForcedRoll('cascadeTirage', 7, meteo.id);
     expect(etapeCourante()!.table!.result!.roll).toBe(7);
     get().cascadeNext();
     expect(get().pendingCascade!.cursor, 'la pose débloque la séquence').toBeGreaterThan(0);

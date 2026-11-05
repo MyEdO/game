@@ -29,7 +29,12 @@
       "max": 95,
       "id": "casse",
       "label": "Cassé",
-      "vehicleWounds": "1d10",
+      "vehicleWounds": {
+        "dice": {
+          "n": 1,
+          "sides": 10
+        }
+      },
       "desc": "Un élément essentiel se brise : un harnais, une roue ou un essieu. Si le véhicule est tiré par un attelage d'animaux, ceux-ci peuvent s'être détachés : le conducteur doit réussir un Test d'Athlétisme Intermédiaire (+0) pour lâcher les rênes et éviter d'être arraché de son siège. Un échec indique une Chute et peut-être d'être Traîné au sol, selon le problème rencontré. Le véhicule subit immédiatement 1d10 points de Dégâts, modifiés avec le Bonus d'Endurance jusqu'à un minimum de 1. Le véhicule ne peut plus être conduit tant qu'il n'a pas été réparé avec une Compétence Métier appropriée, comme Métier (Charpentier) ou Métier (Charron). Toute personne se trouvant dans le véhicule subit immédiatement une Blessure, non modifiée par le Bonus d'Endurance ou les Points d'Armure. Si le véhicule se déplaçait plus vite que la marche, traitez ce résultat comme un Accident.",
       "occupantOps": [
         {
@@ -45,13 +50,21 @@
       "max": 100,
       "id": "accident",
       "label": "Accident",
-      "vehicleWounds": "2d10",
+      "vehicleWounds": {
+        "dice": {
+          "n": 2,
+          "sides": 10
+        }
+      },
       "desc": "Le véhicule entre en collision avec quelque chose à grande vitesse. Les occupants subissent 2d10 Blessures modifiées par le Bonus d'Endurance et les Points d'Armure, avec un minimum de 1. Le véhicule subit immédiatement 2d10 Blessures, modifiés par le Bonus d'Endurance, minimum 1. Les véhicules accidentés doivent être réparés par quelqu'un possédant une Compétence appropriée, comme Métier (Charpentier) ou Métier (Charron) avant de pouvoir être conduits à nouveau.",
       "occupantOps": [
         {
           "op": "wounds",
           "amount": {
-            "dice": "2d10"
+            "dice": {
+              "n": 2,
+              "sides": 10
+            }
           },
           "ignoreTB": false,
           "ignoreAP": false,

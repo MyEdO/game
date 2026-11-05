@@ -8,7 +8,7 @@ import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, W
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised, effectiveWeaponRange } from './weaponDamage';
-import { groupeAPoudre } from './weaponGroup';
+import { groupeAPoudre, maniementRetenu, type ManiementRetenu } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
@@ -140,6 +140,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   minRangeBand: true,
   sizeFor: true,
   requiresMastery: true,
+  manieAussi: true,
   shield: true,
   unarmed: true,
   derivedWeapon: false,
@@ -515,28 +516,39 @@ export function emptyArmour(ap = 0): ArmourPoints {
  *  `itemFromTrapping` sur l'ItemInstance. Repli pour les armes BRUTES sans `hands` typé (statblocs
  *  d'ennemis, armes synthétiques) : Groupe « Deux-mains » typé (`subType==='deux-mains'`). Aucun parse
  *  de chaîne d'affichage. */
-/** Contexte de MANIEMENT d'une arme : son porteur est-il monté (`weaponHands`, LDB 62 l.143). */
-export interface ContexteDeManiement { mounted?: boolean }
+/** Contexte de MANIEMENT d'une arme : son porteur est-il monté (LDB 62 l.143), et le maniement alternatif
+ *  retenu (`maniementRetenu`), qui peut la tenir à une main (AA 08 l.343) — lus par `weaponHands`. */
+export interface ContexteDeManiement { mounted?: boolean; maniement?: ManiementRetenu }
 
 export function weaponHands(it: { hands?: 1 | 2; subType?: string }, ctx?: ContexteDeManiement): 1 | 2 {
   // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe
   // d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains. » La donnée porte `hands:2`.
   if (ctx?.mounted && it.subType === 'cavalerie' && it.hands === 2) return 1;
+  if (ctx?.maniement?.mains) return ctx.maniement.mains; // AA 08 l.343
   if (it.hands === 1 || it.hands === 2) return it.hands;
   if (it.subType === 'deux-mains') return 2; // Groupe « Deux-mains » (id stable, donnée typée)
   return 1;
 }
 
-/** Mains qu'occupe l'arme `it` tenue par `c` : le fait monté du porteur (`c.mountId`) entre dans
- *  `weaponHands` (LDB 62 l.143). */
-export function mainsDuPorteur(c: Combatant, it: { hands?: 1 | 2; subType?: string }): 1 | 2 {
-  return weaponHands(it, { mounted: !!c.mountId });
+/** Arme portée par `c` : ses mains (`hands`), ses Groupes (`manieAussi`, `weaponGroup`, `subType`). */
+type ArmePortee = Pick<ItemInstance, 'hands' | 'subType' | 'manieAussi' | 'weaponGroup'>;
+
+/** Contexte de maniement de l'arme `it` tenue par `c` : son fait monté (`c.mountId`) et le maniement
+ *  retenu ; `uneSeuleMain` : une seule main peut la tenir (l'autre occupée ou perdue). */
+function contexteDuPorteur(c: Combatant, it: ArmePortee, uneSeuleMain = false): ContexteDeManiement {
+  return { mounted: !!c.mountId, maniement: maniementRetenu(c, it, uneSeuleMain ? 1 : undefined) };
 }
 
-/** La main principale du set `lo` tient une arme à deux mains pour son porteur `c` (plus de main secondaire). */
+/** Mains qu'occupe l'arme `it` tenue par `c` (`contexteDuPorteur`). LDB 62 l.143 ; AA 08 l.343 */
+export function mainsDuPorteur(c: Combatant, it: ArmePortee, uneSeuleMain = false): 1 | 2 {
+  return weaponHands(it, contexteDuPorteur(c, it, uneSeuleMain));
+}
+
+/** La main principale du set `lo` tient, pour son porteur `c`, une arme qu'aucun maniement ne tient à une
+ *  main (plus de main secondaire). */
 export function setADeuxMains(c: Combatant, lo: WeaponLoadout): boolean {
   const main = lo.main ? (c.items ?? []).find((i) => i.uid === lo.main) : undefined;
-  return !!main && mainsDuPorteur(c, main) === 2;
+  return !!main && mainsDuPorteur(c, main, true) === 2;
 }
 
 /** Arme éligible à la MAIN SECONDAIRE (LDB 14 l.138 : « une arme de combat rapproché à une main OU un
@@ -552,8 +564,8 @@ export function isOffHandEligible(it: ItemInstance): boolean {
 }
 
 /** Couche de PORT d'une pièce d'armure (LDB 63) : le « Cuir souple » « peut être porté sans pénalité
- *  sous n'importe quelle autre Armure » (l.93) ; une armure Flexible « peut être portée sous une
- *  couche d'armure non Flexible » (l.105-106) ; le reste forme la couche extérieure rigide.
+ *  sous n'importe quelle autre Armure » (l.60) ; une armure Flexible « peut être portée sous une
+ *  couche d'armure non Flexible » (l.74) ; le reste forme la couche extérieure rigide.
  *  Une seule pièce par couche et par localisation. */
 export type ArmourLayer = 'souple' | 'flexible' | 'rigide';
 export function armourLayer(it: ItemInstance): ArmourLayer {
@@ -791,10 +803,11 @@ export function recomputeLoadout(c: Combatant): void {
     if (slotDead(lo.main)) lo.main = undefined;
     if (slotDead(lo.off)) lo.off = undefined;
   }
-  const toWeapon = (it: ItemInstance, hand: 'main' | 'off'): Weapon | null => {
-    const mounted = !!c.mountId; // Cavalerie (2M) à pied → vraies 2 mains (LDB 62 l.142-143)
-    if (mainsDuPorteur(c, it) === 2 && cannotWieldTwoHanded(c)) return null; // amputation : pas d'arme à 2 mains (LDB 18 l.263)
-    return weaponFromItem(it, hand, { mounted });
+  // `uneSeuleMain` : l'autre main tient un objet ; l'amputation (LDB 18 l.263) en laisse une seule aussi.
+  const toWeapon = (it: ItemInstance, hand: 'main' | 'off', uneSeuleMain = false): Weapon | null => {
+    const ctx = contexteDuPorteur(c, it, uneSeuleMain || cannotWieldTwoHanded(c));
+    if (weaponHands(it, ctx) === 2 && cannotWieldTwoHanded(c)) return null; // LDB 18 l.263
+    return weaponFromItem(it, hand, ctx);
   };
 
   // UN SEUL modèle : tout combattant porteur d'armes passe par un loadout (auto-généré si absent — plus de
@@ -810,14 +823,12 @@ export function recomputeLoadout(c: Combatant): void {
     const mainLost = handAmputated(c, 'main');
     const offLost = handAmputated(c, 'off');
     const mainIt = !(mainLost && offLost) ? objetDeSlot(c, lo.main) : undefined;
-    const mainW = mainIt ? toWeapon(mainIt, 'main') : null;
+    const offIt = !mainLost && !offLost ? objetDeSlot(c, lo.off) : undefined;
+    const mainW = mainIt ? toWeapon(mainIt, 'main', !!offIt) : null;
     if (mainW) weapons.push(mainW);
     const mainTwoHanded = mainW?.hands === 2;
-    if (!mainTwoHanded && !mainLost && !offLost && lo.off) {
-      const offIt = objetDeSlot(c, lo.off);
-      const offW = offIt ? toWeapon(offIt, 'off') : null;
-      if (offW) weapons.push(offW);
-    }
+    const offW = !mainTwoHanded && offIt ? toWeapon(offIt, 'off') : null;
+    if (offW) weapons.push(offW);
     // Pas de resync `it.equipped` sur les ARMES : « équipé » d'une arme = « tenue dans ce set actif », ce que
     // `c.weapons` (dérivé ici) exprime déjà → les lecteurs passent par `isWeaponActive`. `it.equipped` sert
     // seulement pour l'armure (port) et de seed du loadout par défaut (ensureDefaultLoadout).
@@ -1018,6 +1029,26 @@ export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
 /** PA d'une pièce d'armure, nette des dégâts subis. LDB 63 l.19 */
 export function paNette(it: ItemInstance): number {
   return Math.max(0, (it.pa ?? 0) - (it.damageTaken ?? 0));
+}
+
+/** Un emplacement de la fiche : la pièce qui l'occupe, et celles qui peuvent l'occuper. */
+export interface EmplacementPorte {
+  porte?: ItemInstance;
+  candidats: ItemInstance[];
+}
+
+const emplacementDe = (pieces: ItemInstance[]): EmplacementPorte =>
+  ({ porte: pieces.find((i) => i.equipped), candidats: pieces.filter((i) => !i.equipped) });
+
+/** L'emplacement d'armure de la couche `couche` sur les localisations `locs` : les armures de `items`
+ *  qui couvrent l'une d'elles dans cette couche. LDB 63 l.60, l.74 */
+export function emplacementDArmure(items: ItemInstance[], locs: readonly HitLocation[], couche: ArmourLayer): EmplacementPorte {
+  return emplacementDe(items.filter((i) => i.kind === 'armor' && (i.locs ?? []).some((l) => locs.includes(l)) && armourLayer(i) === couche));
+}
+
+/** L'emplacement Cape : une seule cape portée à la fois (`isCapeItem`). */
+export function emplacementDeCape(items: ItemInstance[]): EmplacementPorte {
+  return emplacementDe(items.filter(isCapeItem));
 }
 
 /**

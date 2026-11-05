@@ -5,6 +5,7 @@
 // LIMITE : garde LEXICALE — un identifiant recomposé (`'carrure_' + sens`) lui échappe.
 
 import { basename } from 'node:path';
+import { estFichierVitest } from './fichierVitest.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
 
 /** Le SOCLE : le seul fichier où les identifiants s'écrivent. */
@@ -15,10 +16,11 @@ export const RACINES = Object.freeze(['scripts/personnage-3d', 'hotes/godot']);
 
 const EXTENSIONS = ['.py', '.ts', '.mts', '.mjs', '.js', '.gd'];
 
-/** Le corpus balayé : le code des `RACINES`, testkits compris, hors tests (Vitest et `test_*.py`) et hors
- *  `SOCLE`. */
+/** Le corpus balayé : le code des `RACINES`, testkits compris (un kit qui écrit un identifiant le redéclare
+ *  comme le code), hors instruments Vitest (`estFichierVitest`), hors `test_*.py` et hors `SOCLE`. */
 export const corpusDesSilhouettes = () =>
-  readCorpus([...RACINES], { exts: EXTENSIONS }).filter((f) => f.rel !== SOCLE && !basename(f.rel).startsWith('test_'));
+  readCorpus([...RACINES], { exts: EXTENSIONS, tests: true })
+    .filter((f) => f.rel !== SOCLE && !estFichierVitest(f.rel) && !basename(f.rel).startsWith('test_'));
 
 /** Les littéraux de `noms` (entre guillemets simples ou doubles) écrits dans `texte` : `[{ ligne, texte }]`,
  *  un par littéral, dans l'ordre du texte. PURE.

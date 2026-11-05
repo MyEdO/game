@@ -7,13 +7,15 @@
  */
 import { estUneCle, t } from '../i18n';
 import { HIT_LOCATION_LABELS } from '../engine/types';
-import { FLOW_VERBS } from './flowVerbs';
+import { FLOW_VERBS, verbeDeJetDe } from './flowVerbs';
+import type { GesteDuJeu } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
+import type { FermetureDuJet } from './rollFlowFactory';
 
 /** Les préfixes des flux de jet, du plus long au plus court : `cascadeBatch` avant `cascade`. */
 const PREFIXES = Object.keys(FLOW_VERBS).sort((a, b) => b.length - a.length);
 
-/** Le suffixe d'un verbe `<flux><Suffixe>` (`flowActionName`), son initiale en minuscule ; `null` hors d'un flux. */
+/** Le suffixe d'un verbe manuscrit `<flux><Suffixe>` (`attackSetWeapon`), son initiale en minuscule ; `null` hors d'un flux. */
 function suffixeDuFlux(verbe: string): string | null {
   const prefixe = PREFIXES.find((p) => verbe.startsWith(p) && /^[A-Z]/.test(verbe.slice(p.length)));
   return prefixe ? `${verbe.charAt(prefixe.length).toLowerCase()}${verbe.slice(prefixe.length + 1)}` : null;
@@ -26,6 +28,13 @@ const texte = (cle: string): string | null => (estUneCle(cle) ? t(cle) : null);
 export function libelleDuVerbe(verbe: string): string | null {
   const suffixe = suffixeDuFlux(verbe);
   return texte(`verbe.${verbe}`) ?? (suffixe ? texte(`verbe.${suffixe}`) : null);
+}
+
+/** Le libellé d'un geste : pour un verbe de jet, la clé propre à son flux (`verbe.<flux>.<verbe>`), sinon celle du
+ *  verbe (`verbe.<verbe>`) ; tout autre geste, celui de son verbe (`libelleDuVerbe`). */
+export function libelleDuGeste(g: GesteDuJeu): string | null {
+  const deJet = verbeDeJetDe(g.verbe);
+  return deJet && g.flux ? texte(`verbe.${g.flux}.${deJet}`) ?? texte(`verbe.${deJet}`) : libelleDuVerbe(g.verbe);
 }
 
 const estLocalisation = (v: string): v is keyof typeof HIT_LOCATION_LABELS => Object.prototype.hasOwnProperty.call(HIT_LOCATION_LABELS, v);
@@ -49,3 +58,6 @@ export const libelleDeLaFenetre = (cle: string): string | null => texte(`fenetre
 
 /** Le titre d'une étape-jet de la séquence, par son `jet`. */
 export const libelleDuJet = (jet: HostJet): string => t(`jet.${jet}`);
+
+/** Ce qui ferme un verbe du cycle de jet (`FermetureDuJet`), en mots du joueur. */
+export const libelleDeLaFermeture = (f: FermetureDuJet): string => t(`jet.ferme.${f}`);

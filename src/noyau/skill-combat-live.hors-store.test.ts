@@ -46,7 +46,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     seedBattleRng(1);
     setDefense(H, E);
     banc.getState().defenseSetMode('social');
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');
     expect(dd.label).toBe('Intimidation');
@@ -60,7 +60,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     seedBattleRng(1);
     setDefense(H, E);
     banc.getState().defenseSetMode('parade');
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('parade');
     expect(dd.base).toBe(combatValue(H, 'melee', H.weapons[0]));
@@ -78,7 +78,7 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
     const pt = banc.getState().pendingTest!;
     expect(pt.combatAdvantage).toEqual({ combatantId: H.id, cap });
     banc.setState({ pendingTest: { ...pt, roll: 5, success: true, sl: 2 } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.advantage).toBe(1);
     expect(b.acted).toBe(true);
@@ -89,7 +89,7 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
     banc.getState().battleGainAdvantage('intuition');
     const pt = banc.getState().pendingTest!;
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
-    banc.getState().resolveTest();
+    banc.getState().jetConfirm('test');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.advantage).toBe(0);
     expect(b.acted).toBe(true);

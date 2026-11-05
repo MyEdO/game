@@ -10,6 +10,7 @@ import { describeApproach } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale d'APPROCHE d'une source de Peur (LDB 21 l.27) : Test SEC de `pendingApproach.test` qui diffère le
@@ -19,13 +20,13 @@ import { t } from '../i18n';
 export function ApproachModal() {
   const pa = useGame((s) => s.pendingApproach);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.approachRoll);
-  const reroll = useGame((s) => s.approachReroll);
-  const darkPact = useGame((s) => s.approachDarkPact);
-  const force = useGame((s) => s.approachForceSuccess);
-  const reverse = useGame((s) => s.approachReverse); // Inversion (LDB 12 l.42)
-  const confirm = useGame((s) => s.approachConfirm);
-  const cancel = useGame((s) => s.approachCancel);
+  const roll = useGesteDeJet('jetRoll', 'approach');
+  const reroll = useGesteDeJet('jetReroll', 'approach');
+  const darkPact = useGesteDeJet('jetDarkPact', 'approach');
+  const force = useGesteDeJet('jetForceSuccess', 'approach');
+  const reverse = useGesteDeJet('jetReverse', 'approach'); // Inversion (LDB 12 l.42)
+  const confirm = useGesteDeJet('jetConfirm', 'approach');
+  const cancel = useGesteDeJet('jetCancel', 'approach');
   if (!pa || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pa.combatantId);
   if (!c) return null;
@@ -54,8 +55,8 @@ export function ApproachModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

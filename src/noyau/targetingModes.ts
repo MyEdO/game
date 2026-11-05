@@ -11,9 +11,9 @@
  * FAISABLE — une affordance `ok` porte le réticule et la carte de jet, une affordance `invalid` ne
  * rend RIEN. L'INFAISABLE SE DIT AU CLIC, par `refuserGeste` (`noyau/refusVisible`), au point du geste.
  *
- * Module FEUILLE : importe combatFlow/targeting-helpers, n'est importé par AUCUN d'eux côté
- * combatFlow (zéro cycle d'exécution via le moteur de combat) — consommé par targeting.ts,
- * combatSlice.ts, combatCursor.ts, combatOrParty.ts.
+ * Importe combatFlow, qui l'atteint en retour par combatOrParty (`touchActors`…) : un cycle de modules
+ * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
+ * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
@@ -57,7 +57,7 @@ import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 import { chebyshev } from '../engine/grid';
 import {
-  attackPlan, previewAttack, previewCast, firedAttackBlock, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
+  attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
 import { captureMoveSnapshot } from './monde/combatGeometry';
@@ -190,7 +190,7 @@ const HARMFUL_TARGET_OPS = new Set<string>([
  *  Les ops DUAL-SIGNE (`testMod`/`skillMod`/`attrMod`/`charDRBonus`/`sinMod`/`maxWeaponHands`… — la
  *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'any'
  *  est le comportement voulu, jamais 'ally' pour un malus déguisé (Malédiction de malchance, testMod
- *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.test.ts). */
+ *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.hors-store.test.ts). */
 const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
   'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'augmentWeapon', 'giveTrapping', 'freeReroll',
@@ -607,7 +607,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     // Charge (LDB 15 l.35-37) : se ruer au contact (portée de Course) puis attaquer — manœuvre
     // PLEINE (consomme tout le Mouvement). Combat monté : empreinte/Course de la MONTURE.
     // Undo PRÉ-JET (retour playtest) : capture l'état d'AVANT la charge pour pouvoir Annuler un misclic
-    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`attackCancel`) — positions, orientation,
+    // tant qu'aucun dé n'est lancé et que la cible n'a pas répondu (`jetCancel('attack')`) — positions, orientation,
     // Mouvement, Avantage, chargé.
     const chargeUndo = {
       pos: Object.fromEntries(battle.combatants.filter((c) => c.pos).map((c) => [c.id, { ...c.pos! }])),
@@ -914,6 +914,20 @@ export const targetingModeConsigne = (modeId: string): PlayerText | undefined =>
   const cle = TARGETING_MODES.find((m) => m.id === modeId)?.consigne;
   return cle ? t(cle) : undefined;
 };
+
+/**
+ * Ennemis GRISÉS hors Ligne de Vue du héros actif (LDB 13 l.114 ; sort : LDB 46 l.121), la source unique
+ * du grisage que lit le survol (`gameIso/stage/useHoverTargeting.ts`). Le mode incantation armé se lit au
+ * REGISTRE (`CAST_MODE.id`), jamais à un id d'action recopié. Vide hors combat, combat fini, ou une fois
+ * l'Action engagée (`acted`) ou un autre geste armé (`action`).
+ */
+export function ciblesHorsDeVue(get: Get): globalThis.Set<string> {
+  const { mode, battle } = get();
+  if (mode !== 'battle' || !battle || battle.over) return new Set<string>();
+  if (battle.action === CAST_MODE.id && battle.selectedSpellId) return castOutOfSightTargetIds(get);
+  if (battle.acted || battle.action !== null) return new Set<string>();
+  return outOfSightTargetIds(get);
+}
 
 /**
  * Aiguilleur UNIQUE — extrait factuellement des priorités de `battleClickEntity`/`hoverAim` :

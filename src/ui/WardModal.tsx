@@ -11,6 +11,7 @@ import { describeWard } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de la Bénédiction de Protection (LDB 41 l.142) : le Test du HÉROS attaquant DIFFÈRE la
@@ -19,12 +20,12 @@ import { t } from '../i18n';
 export function WardModal() {
   const pw = useGame((s) => s.pendingWard);
   const battle = useGame((s) => s.battle);
-  const roll = useGame((s) => s.wardRoll);
-  const reroll = useGame((s) => s.wardReroll);
-  const darkPact = useGame((s) => s.wardDarkPact);
-  const force = useGame((s) => s.wardForceSuccess);
-  const confirm = useGame((s) => s.wardConfirm);
-  const cancel = useGame((s) => s.wardCancel);
+  const roll = useGesteDeJet('jetRoll', 'ward');
+  const reroll = useGesteDeJet('jetReroll', 'ward');
+  const darkPact = useGesteDeJet('jetDarkPact', 'ward');
+  const force = useGesteDeJet('jetForceSuccess', 'ward');
+  const confirm = useGesteDeJet('jetConfirm', 'ward');
+  const cancel = useGesteDeJet('jetCancel', 'ward');
   if (!pw || !battle) return null;
   const attacker = battle.combatants.find((x) => x.id === pw.attackerId);
   if (!attacker) return null;
@@ -47,8 +48,8 @@ export function WardModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

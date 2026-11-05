@@ -1,8 +1,9 @@
 import { nouvelEntete, ouvrirLaPartie, scenarioDeTest } from '../../../src/hote/partie';
 import { projeter, type CombattantProjete } from '../../../src/hote/projection';
+import { zonesDeLEcran } from '../../../src/hote/ecran';
 import { modelesDesCombattants } from '../pont/equipement';
 import type { VueDuPont } from '../pont/pont';
-import { CLICS_DU_CHAMP, equipementDEntite, objetDuNarratif } from '../../../src/noyau/index';
+import { equipementDEntite, objetDuNarratif } from '../../../src/noyau/index';
 import { porteurDObjetDeCampagne } from '../../../src/scenes/fixtures/objetDeCampagne';
 import { lancementDuScenario } from '../../../src/scenes/test-scenarios/_shared';
 
@@ -34,7 +35,7 @@ export function figerVueDEquipement(): VueDuPont {
     ];
     projection.combat.voisins = { liste: cas, enPlus: 0 };
     projection.combat.actif = null;
-    return { projection, ...modelesDesCombattants(cas), fenetre: null, attaque: null, defense: null, panneau: null, cases: [], plateau: null, champ: CLICS_DU_CHAMP };
+    return { projection, ...modelesDesCombattants(cas), disposition: null, zones: zonesDeLEcran(etat, projection, null), cases: [], plateau: null, champ: null, occupants: {} };
   } finally {
     ouverte.partie.fermer();
   }

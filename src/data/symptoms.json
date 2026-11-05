@@ -547,7 +547,7 @@
                 "op": "rollTable",
                 "die": "d10",
                 "addNegativeSL": true,
-                "rows": [
+                "entries": [
                   {
                     "min": 1,
                     "max": 2,

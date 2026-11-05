@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLICS_DU_CHAMP } from '../noyau/index';
+import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLICS_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { nouvelEntete } from '../hote/partie';
 import type { Geste } from '../hote/geste';
@@ -64,38 +64,40 @@ describe('la projection lit les lecteurs du jeu', () => {
 });
 
 describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque étape de cascade', () => {
-  it('l’étape de déviation sur table (`cascade-dome.jsonl`) : cascadeTableRoll, cascadeTableSetForcedRoll, le pid de l’étape', { timeout: 120_000 }, () => {
+  it('l’étape de déviation sur table (`cascade-dome.jsonl`) : les verbes de jet du flux `cascadeTirage`, le pid de l’étape', { timeout: 120_000 }, () => {
     aLaFixture('cascade-dome.jsonl', (r) => {
       const f = projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!;
       expect(f.etape?.interaction, 'témoin : l’étape courante est un tirage sur table').toBe('table');
       expect(f.pid).toBe(f.etape!.id);
-      expect(f.verbes).toEqual(expect.arrayContaining(['cascadeTableRoll', 'cascadeTableSetForcedRoll', 'cascadeNext']));
+      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeTirage', 'jetSetForcedRoll@cascadeTirage', 'cascadeNext']));
       // La vue replie une ligne trop large en continuations indentées de deux espaces (`BORNES.largeur`).
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll(pid: id d’étape de cascade) · cascadeTableSetForcedRoll(pid: id d’étape de cascade, roll: nombre)`);
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascade : \S+ .+ à tirer$/m);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetRoll(flux: "cascadeTirage", pid?: chaine) · jetSetForcedRoll(flux: "cascadeTirage", roll: nombre, pid?: chaine)`);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascadeTirage : \S+ .+ à tirer$/m);
     });
   });
   it('l’étape-jet d’un Test déclenché (`test-declenche-dome.jsonl`) : la vue rend TOUS ses verbes par leur signature, repliés à la largeur', { timeout: 240_000 }, () => {
     aLaFixture('test-declenche-dome.jsonl', (r) => {
       const p = projeter(r.partie.etat(), r.gestes.length, r.journal.length);
       const f = p.fenetre!;
-      expect(f.verbes.length, 'témoin : une étape aux verbes nombreux').toBeGreaterThan(8);
+      expect(f.gestes.length, 'témoin : une étape aux gestes nombreux').toBeGreaterThan(8);
       const vue = rendreLaVue(p);
       expect(vue.some((l) => l.endsWith('…')), 'une ligne de la vue est coupée').toBe(false);
       expect(Math.max(...vue.map((l) => l.length))).toBeLessThanOrEqual(BORNES.largeur);
-      const lus = vue.join(' ').split(/[\s,:·(]+/);
-      expect(f.verbes.filter((v) => !lus.includes(v)), 'des verbes de la fenêtre manquent à la vue').toEqual([]);
+      const lus = vue.join(' ').split(/[\s,:·()]+/);
+      // Un geste ouvert se lit par sa signature (son verbe, son flux en valeur), un geste fermé par son identité.
+      const lu = (g: GesteDuJeu) => lus.includes(cleDuGeste(g)) || (lus.includes(g.verbe) && (!g.flux || lus.includes(`"${g.flux}"`)));
+      expect(f.gestes.filter((g) => !lu(g)).map(cleDuGeste), 'des gestes de la fenêtre manquent à la vue').toEqual([]);
     });
   });
-  it('l’étape-jet d’attaque nomme la pose du dé de son flux (`attackSetForcedRoll`)', { timeout: 120_000 }, () => {
+  it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetSetForcedRoll` sur `attack`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
-      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.verbes).toEqual(expect.arrayContaining(['attackRoll', 'attackConfirm', 'attackSetForcedRoll']));
+      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@attack', 'jetConfirm@attack', 'jetSetForcedRoll@attack']));
     }, { offre: 'charge' }, { type: 'battleClickEntity', args: ['enemy-enc-dome-1'] });
   });
 });
 
 describe('le jet se lit avant sa confirmation', () => {
-  it('après `attackRoll`, la vue rend les rangées du jet (d100, cible, DR), la gagnante et le DR net, ceux de `pendingAttack.result`', { timeout: 120_000 }, () => {
+  it('après `jetRoll@attack`, la vue rend les rangées du jet (d100, cible, DR), la gagnante et le DR net, ceux de `pendingAttack.result`', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
       const res = r.partie.etat().pendingAttack!.result!;
       const p = projeter(r.partie.etat(), r.gestes.length, r.journal.length);
@@ -104,7 +106,7 @@ describe('le jet se lit avant sa confirmation', () => {
       expect(jet.lignes[0]).toMatchObject({ genre: 'test', jet: { d100: res.attackerDetail!.roll, dr: res.attackerDetail!.sl, reussi: res.attackerDetail!.success } });
       expect(jet.lignes).toHaveLength(res.defenderDetail ? 2 : 1);
       expect(rendreLaVue(p).join('\n')).toMatch(/^jet attack : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
-    }, { offre: 'charge' }, { type: 'battleClickEntity', args: ['enemy-enc-dome-1'] }, { type: 'attackRoll', args: [] });
+    }, { offre: 'charge' }, { type: 'battleClickEntity', args: ['enemy-enc-dome-1'] }, { type: 'jetRoll', args: ['attack'] });
   });
 });
 

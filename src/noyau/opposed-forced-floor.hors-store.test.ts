@@ -25,8 +25,8 @@ function bargainForcedSL(merchantSL: number): number {
       merchantRoll: TR(20, 50, merchantSL, merchantSL >= 0), roll: TR(45, 45, 0),
     },
   } as never);
-  banc.getState().bargainForceSuccess();
-  banc.getState().bargainSetForcedRoll(41);
+  banc.getState().jetForceSuccess('bargain');
+  banc.getState().jetSetForcedRoll('bargain', 41);
   return banc.getState().pendingBargain!.roll!.sl;
 }
 
@@ -55,8 +55,8 @@ describe('Victoire IMPOSÉE : le critère de départage la NOMME (`decidedBy: fo
         merchantRoll: TR(20, 50, merchantSL, merchantSL >= 0), roll: TR(45, 45, 0),
       },
     } as never);
-    banc.getState().bargainForceSuccess();
-    if (chooseDie) banc.getState().bargainSetForcedRoll(41);
+    banc.getState().jetForceSuccess('bargain');
+    if (chooseDie) banc.getState().jetSetForcedRoll('bargain', 41);
     return banc.getState().pendingBargain!.result!.decidedBy;
   }
 

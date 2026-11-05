@@ -12,6 +12,7 @@ import { activityStakeRef, hasActivityStake } from '../data';
 import { libelleDePuissance } from '../noyau/jetsEnVue';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Jet d'Activité (LDB 23 interlude / ADE II 8 BATAILLE de masse) : même coquille `RollShell` que
@@ -26,13 +27,13 @@ export function ActivityModal() {
   const pa = useGame((s) => s.pendingActivity);
   const party = useGame((s) => s.party);
   const massBattle = useGame((s) => s.massBattle);
-  const roll = useGame((s) => s.activityRoll);
-  const reroll = useGame((s) => s.activityReroll);
-  const bonusSL = useGame((s) => s.activityBonusSL);
-  const darkPact = useGame((s) => s.activityDarkPact);
-  const reverse = useGame((s) => s.activityReverse); // Inversion (LDB 12 l.42)
-  const cancel = useGame((s) => s.activityCancel);
-  const confirm = useGame((s) => s.activityConfirm);
+  const roll = useGesteDeJet('jetRoll', 'activity');
+  const reroll = useGesteDeJet('jetReroll', 'activity');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'activity');
+  const darkPact = useGesteDeJet('jetDarkPact', 'activity');
+  const reverse = useGesteDeJet('jetReverse', 'activity'); // Inversion (LDB 12 l.42)
+  const cancel = useGesteDeJet('jetCancel', 'activity');
+  const confirm = useGesteDeJet('jetConfirm', 'activity');
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;
@@ -120,8 +121,8 @@ export function ActivityModal() {
   const issue = rolled ? describeActivity(pa) : '';
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

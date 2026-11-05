@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *
  * Depuis le refactor, la fabrique DÉRIVE le gating de la Chance/Pacte/Résistance de l'issue unique :
  * `failed = !outcome(slot).won`. Ce test PILOTE, flux par flux (catalogue-dérivé de `FLOW_VERBS`), le
- * verbe RÉELLEMENT gaté par ce `failed` — la RELANCE de Chance (`<prefix>Reroll`) — et prouve qu'il :
+ * verbe RÉELLEMENT gaté par ce `failed` — la RELANCE de Chance (`jetReroll(flux, …)`) — et prouve qu'il :
  *   (a) est DISPONIBLE sur un résultat PERDANT (dépense 1 Point de Chance) ;
  *   (b) est un NO-OP sur un résultat GAGNANT (aucune dépense).
  * Un flux dont l'`outcome.won` NE reflète PAS son issue réelle fait donc échouer (a) ou (b).
@@ -190,6 +190,8 @@ const FIXTURES: Record<string, Fix> = {
 /** Flux NON couverts par une fixture minimale — justifiés (leur `outcome` est trivial + partagé). */
 const SKIP: Record<string, string> = {
   etalLot: 'Lot de dés d’étal (#1426) — le flux n’a NI Chance NI Résilience (`verbs: [setForcedRoll]`) : il n’y a pas d’issue à gater. Un dé d’étal ne réussit ni n’échoue, il tombe ; son `outcome` est scellé neutre sur sa valeur, et `failed` n’a aucun consommateur.',
+  cascadeTirage: 'Dé d’étape de cascade (table, dé nu) — le flux n’a NI Chance NI Résilience (`verbs: [roll, setForcedRoll]`) : un dé de table tombe sans réussir ni échouer, son `outcome` est scellé neutre sur sa valeur.',
+  fumble: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
   shipManeuver: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
   shipBattery: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
   crewTest: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
@@ -212,26 +214,28 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
     expect(uncovered, 'flux ni couvert ni justifié').toEqual([]);
   });
 
+  /** La relance de Chance (`jetReroll`) sur le flux `flux`, la rangée `pid` posée sur un flux multi. */
+  const relancer = (flux: string, pid?: string): void =>
+    (banc.getState().jetReroll as (flux: string, pid?: string) => void)(flux, pid);
   for (const prefix of Object.keys(FLOW_VERBS)) {
     const fx = FIXTURES[prefix];
     if (!fx) {
       it.skip(`${prefix} — non piloté (${SKIP[prefix] ?? 'à couvrir'})`, () => {});
       continue;
     }
-    const rerollFn = `${prefix}Reroll`;
     it(`${prefix} : reroll DISPONIBLE sur un perdant, NO-OP sur un gagnant`, () => {
       // (a) PERDANT → outcome.won=false → failed=true → la Chance se dépense.
       seedBattleRng(9);
       banc.setState({ battle: null } as never);
       banc.setState(fx.make(false) as never);
-      (banc.getState() as unknown as Record<string, (pid?: string) => void>)[rerollFn](fx.pid);
+      relancer(prefix, fx.pid);
       expect(fortuneOfA(), `${prefix} perdant : la relance de Chance doit être DISPONIBLE (1 Point dépensé)`).toBe(0);
 
       // (b) GAGNANT → outcome.won=true → failed=false → aucune relance possible (no-op).
       seedBattleRng(9);
       banc.setState({ battle: null } as never);
       banc.setState(fx.make(true) as never);
-      (banc.getState() as unknown as Record<string, (pid?: string) => void>)[rerollFn](fx.pid);
+      relancer(prefix, fx.pid);
       expect(fortuneOfA(), `${prefix} gagnant : la relance de Chance doit être un NO-OP (Point conservé)`).toBe(1);
     });
   }

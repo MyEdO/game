@@ -78,9 +78,9 @@ describe('op rollTable — variante tableId (tables.json)', () => {
     expect(eff[0].grantedTrait!.value).toBe(3);
   });
 
-  it('la forme inline `rows` reste fonctionnelle (rétro-compatibilité)', () => {
+  it('la forme inline `entries` tire sur ses rangées', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'rollTable', die: 'd10', rows: [{ min: 1, max: 10, ops: [{ op: 'wounds', amount: 4 }] }] }], { rng: fixed(3) });
+    applyOps(c, [{ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'wounds', amount: 4 }] }] }], { rng: fixed(3) });
     expect(c.wounds.current).toBe(16);
   });
 });

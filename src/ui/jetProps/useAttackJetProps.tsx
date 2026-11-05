@@ -13,13 +13,14 @@ import { VsHeader } from '../VsHeader';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../icons';
+import type { IconIdInput } from '../../data/icons';
 import { Row } from '../Layout';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, when: 'post' };
+  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, verbe: 'confirm' };
 }
 
 /**
@@ -37,14 +38,14 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const setLocation = useGame((s) => s.attackSetLocation);
   const setWeapon = useGame((s) => s.attackSetWeapon);
   const setDualMode = useGame((s) => s.attackSetDualMode);
-  const roll = useGame((s) => s.attackRoll);
-  const reroll = useGame((s) => s.attackReroll);
-  const bonusSL = useGame((s) => s.attackBonusSL);
-  const darkPact = useGame((s) => s.attackDarkPact);
-  const forceSuccess = useGame((s) => s.attackForceSuccess);
-  const reverseVerb = useGame((s) => s.attackReverse);
-  const confirm = useGame((s) => s.attackConfirm);
-  const cancel = useGame((s) => s.attackCancel);
+  const roll = useGesteDeJet('jetRoll', 'attack');
+  const reroll = useGesteDeJet('jetReroll', 'attack');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'attack');
+  const darkPact = useGesteDeJet('jetDarkPact', 'attack');
+  const forceSuccess = useGesteDeJet('jetForceSuccess', 'attack');
+  const reverseVerb = useGesteDeJet('jetReverse', 'attack');
+  const confirm = useGesteDeJet('jetConfirm', 'attack');
+  const cancel = useGesteDeJet('jetCancel', 'attack');
   const setHarpoonRopeCut = useGame((s) => s.attackSetHarpoonRopeCut);
   const setWithhold = useGame((s) => s.attackSetWithhold);
   const setGrapple = useGame((s) => s.attackSetGrapple);
@@ -73,7 +74,6 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     rollFrisson: true,
     fortune: attacker.fortune ?? 0,
     resilience: attacker.resilience ?? 0,
-    preRollForce: () => { roll(); forceSuccess(); },
     noForcedDie: influences.sansDeForce,
     reverse: influences.inversion ? { onReverse: reverseVerb, preview: influences.inversion.apercu } : undefined,
   });
@@ -95,9 +95,9 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     flowKey: 'attack',
     title: vue.intitule,
     subtitle: vue.sousTitre,
-    extra: <VsHeader actor={attacker} target={target} label={vue.enTete} />,
+    extra: <VsHeader actor={attacker} target={target} label={vue.degats === null ? vue.arme : `${vue.arme} · ${t('attaque.degats', { dmg: vue.degats })}`} />,
     rolled: vue.jete,
-    onCancel: vue.annulation ? undefined : cancel,
+    onCancel: cancel,
     /* Options d'attaque + aperçu de la défense adverse + bouton Détermination (retirer un État), pré-jet. */
     setup: (
       <>
@@ -183,7 +183,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     postRollExtra: vue.attente ? <p className="rm-note" data-ton="attente">{vue.attente}</p> : undefined,
     forcedExtra: vue.critiqueALocaliser ? <CritLocationPicker current={vue.critiqueALocaliser.choisie} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
-      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
+      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
       confirmerLeCoup(vue.defenseAttendue, confirm),
     ],
   };

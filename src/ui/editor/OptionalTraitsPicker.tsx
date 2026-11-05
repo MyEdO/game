@@ -10,7 +10,7 @@
 import { CreatureData, charAbr, memoParVersion, traits } from '../../data';
 import { CHAR_KEYS, type CharKey } from '../../engine/types';
 import { traitLabels, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
-import { parseTraitInstance, relireTrait } from './refFormatLivre';
+import { parseTraitInstance, relireTrait } from '../../data/refFormatLivre';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { isOptionalNote, type OptionalEntry } from '../../engine/statEntry';

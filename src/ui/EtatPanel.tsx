@@ -9,7 +9,7 @@
  * `CodexRef` — survol = aperçu popover, CLIC = ouverture de la fiche Codex ; la `PlaqueRow` hôte reste
  * NON cliquable pour ne pas nicher deux actions —, chips d'effet net en `fx` SOUS le nom via
  * `GameOpChips`, valeur DISCRÈTE — `sheet.css`) ; AUCUNE prose inline. Bandes de section
- * ancrées (`ETAT_ANCHOR_*`, `sheetAlarms.ts`) — une bande SANS contenu N'EXISTE PAS. Grammaire de
+ * ancrées (`ETAT_ANCHOR_*`) — une bande SANS contenu N'EXISTE PAS. Grammaire de
  * carte (liseré de gravité `data-tone`, icône, sous-ligne petites capitales) affinée au lot #492
  * « chevet » — les tokens/primitives existants restent l'autorité.
  *
@@ -36,7 +36,6 @@ import { chipNom, summarizeEffects } from '../gameIso/effectIcons';
 import { fortuneMax, resolveMax } from '../engine/talentEffects';
 import { diseaseLabel, findPsychologyById, psychologyLabel, symptomLabel, symptomInstanceLabel, mutationLabel } from '../data';
 import { datasetArray } from '../data/overrides';
-import { ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
 import { useGame } from '../state/store';
 import { individuDe, libelleDePsy } from '../engine/psych/ciblage';
 import { useNomDIndividu } from './useNomDIndividu';
@@ -45,12 +44,20 @@ import { EntityRef } from './EntityChip';
 import { GameOpChips } from './GameOpChips';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
 import { Icon } from './Icon';
-import type { IconIdInput } from './icons';
+import type { IconIdInput } from '../data/icons';
 import { PlaqueRow } from './PlaqueRow';
 import { Band } from './Band';
 
-/** Icône de repli quand aucune icône du registre ne porte la famille (jamais d'emoji), à l'égal de
- *  `sheetAlarms.ts`. */
+/** ids STABLES des rubriques de l'onglet État — ancres de scroll de ses bandes de section.
+ *  (La Corruption est une jauge de la bande Constitution, pas une Section : elle n'en reçoit pas.) */
+export const ETAT_ANCHOR_CRITIQUES = 'etat-critiques';
+export const ETAT_ANCHOR_MALADIES = 'etat-maladies';
+export const ETAT_ANCHOR_MUTATIONS = 'etat-mutations';
+export const ETAT_ANCHOR_TRAUMAS = 'etat-traumas';
+export const ETAT_ANCHOR_PSYCHOLOGIE = 'etat-psychologie';
+export const ETAT_ANCHOR_ENCOMBREMENT = 'etat-encombrement';
+
+/** Icône de repli quand aucune icône du registre ne porte la famille (jamais d'emoji). */
 const FALLBACK_ICON: IconIdInput = 'ui/warning';
 
 /** Taille FIXE d'un cran (px) des jauges à PEU de crans du registre (Seuils, Corruption) — `NotchGauge`

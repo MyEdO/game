@@ -9,6 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { useGame } from '../state/store';
 import type { PendingCrewTest } from '../noyau/pendings';
 import type { BattleState } from '../noyau/etat';
 import { CrewTestModalView } from './CrewTestModal';
@@ -19,14 +20,21 @@ const pending = (over: Partial<PendingCrewTest>): PendingCrewTest => ({
   shipId: 'ship1', testTypeId: 'progression', moraleScore: 0, participants: [], ...over,
 });
 
-const render = (p: PendingCrewTest, battle: BattleState | null) =>
-  renderToStaticMarkup(
+/** La vue de `p`, que la coquille juge sur le Test d'équipage en attente (`fermeturesDuFlux`). */
+const render = (p: PendingCrewTest, battle: BattleState | null) => {
+  useGame.setState({ pendingCrewTest: p });
+  try {
+    return renderToStaticMarkup(
     <CrewTestModalView
       p={p} battle={battle} party={[]} owns={() => true}
       roll={noop} reroll={noop} bonus={noop} darkPact={noop} force={noop}
       confirm={noop} cancel={noop}
     />
-  );
+    );
+  } finally {
+    useGame.setState({ pendingCrewTest: null });
+  }
+};
 
 describe('CrewTestModal — Test d’équipage de COMBAT (#211, #275 Ronde 2 cran 3)', () => {
   it('rend le Test de COMBAT avec « Annuler » (Action défaisable)', () => {

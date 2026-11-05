@@ -5,7 +5,8 @@
  * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (provenance :
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
-import { activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt } from '../noyau/index';
+import { garanti } from '../lib/garanti';
+import { activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -33,11 +34,15 @@ export interface EntiteProjetee {
   pos: [x: number, y: number];
 }
 
-/** Une offre ouverte de la vue : l'action, ses candidats ouverts comptés, son coût. */
+/** Une offre de la vue : l'action, ses candidats ouverts comptés, son coût en mots, la part de l'économie du tour
+ *  qu'elle prend (`ActionDef.coutAction`, son id), et pourquoi elle est fermée quand aucun candidat ne l'ouvre (`refus`,
+ *  la raison de son premier candidat ; `null` : ouverte). */
 export interface OffreEnVue {
   id: string;
   n: number;
   cout: string | null;
+  economie: Offre['def']['coutAction'];
+  refus: string | null;
 }
 
 /** Les éléments au plus de chaque liste de la projection, le reste compté (`enPlus`) : les combattants après l'actif et
@@ -55,14 +60,17 @@ export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
   scene: { id: string; nom: string } | null;
-  /** La fenêtre qui tient la main, en combat comme hors combat, ses verbes et l'id que ses verbes prennent en premier
-   *  argument (`pid`) ; pour la cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
-  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+  /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
+   *  ceux qui sont fermés maintenant avec leur raison, par l'identité du geste (`cleDuGeste`, `fermeturesDeLaFenetre`),
+   *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
+   *  (`stepInteraction`, les clés d'un choix). */
+  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; gestes: GesteDuJeu[]; fermes: Record<string, string>; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
   /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), jetés ou à jeter, et le DR net d'un Test opposé tranché. */
   jets: JetEnVue[];
   combat: null | {
     round: number;
-    tour: number;
+    /** Le rang du tour dans le round, `null` avant le premier. */
+    tour: number | null;
     tours: number;
     fin: NonNullable<Jeu['battle']>['over'];
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
@@ -83,7 +91,8 @@ export interface Projection {
     groupe: [x: number, y: number];
     etage: number | null;
     cap: string | null;
-    heros: string[];
+    /** Les héros du groupe, le meneur d'abord, chacun à la case du groupe. */
+    heros: CombattantProjete[];
     /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
     gestes: { liste: GesteDExploration[]; enPlus: number };
     /** Les entités de la scène (`scene.entities`) : décors, PNJ, objets. */
@@ -139,6 +148,11 @@ export function combattantsTries(etat: Jeu): CombattantProjete[] {
   return b.combatants.map((c) => combattant(c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
 }
 
+/** Les gestes de la fenêtre que son jet ferme maintenant (`fermeturesDeLaFenetre`), par leur identité (`cleDuGeste`),
+ *  chacun avec sa raison en mots du joueur. */
+const fermesDe = (etat: Jeu, f: NonNullable<ReturnType<typeof fenetreDuJeu>>): Record<string, string> =>
+  Object.fromEntries([...fermeturesDeLaFenetre(etat, f)].flatMap(([cle, fermeture]) => (fermeture ? [[cle, libelleDeLaFermeture(fermeture)]] : [])));
+
 /** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix. */
 const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
   f.etape ? { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key) } } : {};
@@ -147,13 +161,16 @@ const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
   offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
 
-/** Les offres ouvertes, une par action, ses candidats comptés, dans l'ordre du registre. */
+/** Les offres, une par action, dans l'ordre du registre : ses candidats ouverts comptés ; fermée quand aucun ne
+ *  l'ouvre, avec la raison de son premier candidat (loi du refus visible, `offresDeLActif`). */
 function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
   const parId = new Map<string, OffreEnVue>();
   for (const o of offres) {
-    if (!o.gate.ok) continue;
-    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost };
-    vue.n++;
+    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction, refus: o.gate.ok ? null : garanti(o.gate.reason, o.actionId, 'raison du refus de l’offre') };
+    if (o.gate.ok) {
+      vue.n++;
+      vue.refus = null;
+    }
     parId.set(o.actionId, vue);
   }
   return [...parId.values()];
@@ -202,12 +219,12 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
-    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
+    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes: [...fenetre.gestes], fermes: fermesDe(etat, fenetre), pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
     jets: jetsEnVue(etat),
     combat: b
       ? {
           round: b.round,
-          tour: b.turn + 1,
+          tour: b.turn < 0 ? null : b.turn + 1,
           tours: b.order.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
@@ -226,7 +243,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           groupe: [etat.partyPos.x, etat.partyPos.y],
           etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
           cap: capDuGroupe(etat),
-          heros: etat.party.map((h) => h.label),
+          heros: etat.party.map((h) => ({ ...combattant(h, undefined), pos: [etat.partyPos.x, etat.partyPos.y] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
           entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y] })), bornes.entites),
         },

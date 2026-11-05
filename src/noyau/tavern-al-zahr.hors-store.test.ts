@@ -4,7 +4,7 @@
  * déroule via `drain()`, qui pose les dés des tours du héros (étape à TABLE, 2d10) et tranche ses
  * choix. Les tours des habitués se résolvent sans fenêtre, côté monde.
  *
- * Les dés du héros sont POSÉS (`cascadeTableSetForcedRoll`, le mode « dés fixés » du dépôt) : c'est
+ * Les dés du héros sont POSÉS (`jetSetForcedRoll('cascadeTirage')`, le mode « dés fixés » du dépôt) : c'est
  * le seul moyen d'exercer une PLAGE précise (2 = éliminé, 20 = rafle) sans dépendre d'une graine.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -204,7 +204,7 @@ describe('Al-zahr — la partie au store', () => {
     get().cascadeNext();
     expect(cur().table && !cur().table!.result && cur().actorId, 'tour du challenger, dé non posé').toBe(a.id);
     fermeEntreDeuxManches('tour non lancé du challenger');
-    get().cascadeTableSetForcedRoll(cur().id, 4);
+    get().jetSetForcedRoll('cascadeTirage', 4, cur().id);
     get().cascadeNext();
     expect(cur().kind, 'le 4 appende « remettre ou abandonner »').toBe('tavern-pot-fold');
     expect(cur().defaultChoice, 'aucune demande ne fait du pli un défaut').toBe('remise');
@@ -249,7 +249,7 @@ describe('Al-zahr — la partie au store', () => {
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().cascadeChoose(cur().id, '7');
     get().cascadeNext();
-    get().cascadeTableSetForcedRoll(cur().id, 20);
+    get().jetSetForcedRoll('cascadeTirage', 20, cur().id);
     get().cascadeNext();
     expect((get().sequence!.payload as { manche: number }).manche).toBe(2);
     expect(cur().kind, 'ouverture de la manche 2').toBe('tavern-pot-target');
@@ -406,7 +406,7 @@ describe('Al-zahr — la partie au store', () => {
     // 2) son lancer POSÉ à 7 atteint la cible : l'encart le dit AVANT le commit.
     const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(tour.kind).toBe('tavern-pot-turn');
-    get().cascadeTableSetForcedRoll(tour.id, 7);
+    get().jetSetForcedRoll('cascadeTirage', 7, tour.id);
     const pose = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(pose.table!.result!.lines[0], 'la rafle est annoncée à l’écran du jet').toBe('la manche est remportée, le pot est raflé');
     // 3) même vérité que le journal : la ligne de récit dit la même issue.
@@ -422,7 +422,7 @@ describe('Al-zahr — la partie au store', () => {
     get().cascadeChoose(cibleStep.id, '7');
     get().cascadeNext();
     const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    get().cascadeTableSetForcedRoll(tour.id, 12); // même fourchette 7-15, cible NON atteinte
+    get().jetSetForcedRoll('cascadeTirage', 12, tour.id); // même fourchette 7-15, cible NON atteinte
     const pose = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(pose.table!.result!.lines[0]).toBe('raté : 12 devient le nombre cible du suivant');
   });

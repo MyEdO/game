@@ -46,7 +46,6 @@ export type SiteDeDetteDOp = { readonly op: string; readonly motif: string };
 export const MOTIF_NON_TYPEE: string;
 export function motifAPlat(cle: string): string;
 export const DETTE_OPS: VoletSousLaPorte;
-export const DETTE_ENVELOPPE: VoletSousLaPorte;
 export const FEUILLES_D_ID: VoletSousLaPorte & { readonly plancher: NonNullable<VoletSousLaPorte['plancher']> };
 /** Une entrée mesurée du volet `STRUCTURES_LOCALES` : entrée de site, classe et empreinte hors clé. */
 export type EntreeDeStructure = EntreeDeSite & ChampsDeStructure;

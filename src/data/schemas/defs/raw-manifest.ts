@@ -5,7 +5,7 @@
  * (`<coeur>/<fiche>`), dont l'entrée couvre alors tout topic sans entrée propre — l'Atlas est
  * PARTITIONNÉ par cœur, et l'`id` le porte. Le `label` (clé d'ENVELOPPE) est le titre
  * VERBATIM que l'`id` adresse — accord gardé par `scripts/raw/build-implemente.test.mjs` (`libelleDe`).
- * Vocabulaire app-interne (tooling), pas une donnée RAW — cf. `EXEMPT_DATASETS` (citationCoverage.mjs).
+ * Vocabulaire app-interne (tooling), pas une donnée RAW — cf. `SANS_LIVRE_DEFINITIF` (`grammaire/sans-livre.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

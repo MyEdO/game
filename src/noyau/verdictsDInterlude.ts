@@ -29,7 +29,7 @@ import {
 import { outOfTradeReason } from '../engine/disponibilite';
 import { memeSpecialisation, refCouvre } from '../data/schemas/grammaire/ref';
 import type { Jeu } from './etat';
-import { refusDeBourse } from './bourseFlow';
+import { refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { refusDePx } from './depenseDePx';
 import { currentPlaceId } from './worldMap';
 import { bourseOf } from '../engine/bourse';
@@ -58,6 +58,12 @@ const nomDuHeros = (s: EtatDInterlude, heroId: string): string =>
  *  UNIQUE des gestes qui ne consomment pas d'Activité (engager un Artisanat, retirer une planque). LDB 22 l.5 */
 export function refusDuTirage(s: EtatDInterlude, heroId: string): string | null {
   return interludeDrawPending(s) ? t('if.drawPending', { name: nomDuHeros(s, heroId) }) : null;
+}
+
+/** Refus de clore l'interlude : geste du groupe (`refusDeGesteSurLeGroupe`), puis Événements de la période
+ *  encore à tirer. Verdict UNIQUE de `interludeEnd` et de l'écran. LDB 22 l.5 */
+export function refusDeClore(s: Parameters<typeof refusDeGesteSurLeGroupe>[0] & Pick<Jeu, 'interlude'>): string | null {
+  return refusDeGesteSurLeGroupe(s) ?? (interludeDrawPending(s) ? t('if.closeDrawPending') : null);
 }
 
 /** Refus d'un geste qui CONSOMME une Activité d'interlude : tirage en attente, puis plus d'Activité
@@ -433,7 +439,7 @@ export interface ConfirmationDActivite { heroId: string; success?: boolean; tale
 /** Refus d'appliquer le jet d'Activité confirmé : Activité, Talent à apprendre (et, sur un succès, les PX
  *  de son achat : avec la liste du volet, les deux refus de `buyTalent`), puis ce que la confirmation
  *  débite (tuteur d'Apprentissage, dépense de Réputation) hors de la bourse. Verdict UNIQUE de
- *  `confirmActivity`, avant tout débit. LDB 23 l.66-72, l.228-234 */
+ *  `jetConfirm('activity')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
 export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDActivite): string | null {
   const refus = refusDActivite(s, pa.heroId);
   const h = herosDe(s, pa.heroId);

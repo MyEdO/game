@@ -7,12 +7,13 @@ import { Icon } from '../Icon';
 import { resultLines, freeCons } from '../../noyau/rollSeam';
 import { issueDuRound } from '../../noyau/testsDeScene';
 import { FLOWS } from '../../noyau/rollFlowSpecs';
+import { useGesteDeJet } from '../useGesteDeJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test ÉTENDU (LDB 12 l.170-186).
  * La situation « Test étendu » est une cascade à une étape `jet:'extended'`, rendue par `CascadeModal`
  * via ce hook (une seule fenêtre, comme l'attaque). `pendingExtendedTest` reste le porteur de données
- * (les Rounds y vivent) ; « Round suivant » (`extendedTestNext`) CUMULE le DR et ouvre le Round
+ * (les Rounds y vivent) ; « Round suivant » (`jetConfirm('extendedTest')`) CUMULE le DR et ouvre le Round
  * suivant, ou ferme la cascade à la réussite (total ≥ cible). Total < 0 → recommence à 0.
  *
  * QUI lance → portrait dans la ligne de jet (`RollRow.row.combatant`) ; la progression = barre de DR de
@@ -23,14 +24,14 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingExtendedTest);
-  const roll = useGame((s) => s.extendedTestRoll);
-  const reroll = useGame((s) => s.extendedTestReroll);
-  const bonusSL = useGame((s) => s.extendedTestBonusSL);
-  const darkPact = useGame((s) => s.extendedTestDarkPact);
-  const force = useGame((s) => s.extendedTestForceSuccess);
-  const reverse = useGame((s) => s.extendedTestReverse); // Inversion (LDB 12 l.42)
-  const next = useGame((s) => s.extendedTestNext);
-  const cancel = useGame((s) => s.extendedTestCancel);
+  const roll = useGesteDeJet('jetRoll', 'extendedTest');
+  const reroll = useGesteDeJet('jetReroll', 'extendedTest');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'extendedTest');
+  const darkPact = useGesteDeJet('jetDarkPact', 'extendedTest');
+  const force = useGesteDeJet('jetForceSuccess', 'extendedTest');
+  const reverse = useGesteDeJet('jetReverse', 'extendedTest'); // Inversion (LDB 12 l.42)
+  const next = useGesteDeJet('jetConfirm', 'extendedTest');
+  const cancel = useGesteDeJet('jetCancel', 'extendedTest');
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const actor = pool.find((c) => c.id === p.actorId);
@@ -74,10 +75,10 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
        que ce qu'aucune des deux ne dit : la remise à zéro portée par `willReset`. */
     outcome: willReset ? resultLines(freeCons(['Le total repart de zéro !'])) : undefined,
     /* « Round suivant » cumule + ouvre le Round suivant ; à la réussite, ferme la cascade.
-       « Renoncer » disponible aussi APRÈS le jet (when:'always'). */
+       « Renoncer » ouvert aussi APRÈS le jet (`clotures.cancel` du flux `extendedTest`). */
     actions: [
-      { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'always' },
-      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), when: 'post' },
+      { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'confirm' },
     ],
     onCancel: cancel,
   };

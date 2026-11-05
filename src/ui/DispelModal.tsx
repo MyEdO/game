@@ -10,6 +10,7 @@ import { resultLine, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { progresDeDissipation } from '../noyau/progresEtendu';
 import { t } from '../i18n';
+import { useGesteDeJet } from './useGesteDeJet';
 
 /**
  * Modale de Dissipation permanente (LDB 46 l.158-162 : Test étendu de Langue (Magick) → NI). « Lancer »
@@ -20,13 +21,13 @@ export function DispelModal() {
   const pd = useGame((s) => s.pendingDispel);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGame((s) => s.dispelRoll);
-  const reroll = useGame((s) => s.dispelReroll);
-  const bonusSL = useGame((s) => s.dispelBonusSL);
-  const darkPact = useGame((s) => s.dispelDarkPact);
-  const force = useGame((s) => s.dispelForceSuccess);
-  const confirm = useGame((s) => s.dispelConfirm);
-  const cancel = useGame((s) => s.dispelCancel);
+  const roll = useGesteDeJet('jetRoll', 'dispel');
+  const reroll = useGesteDeJet('jetReroll', 'dispel');
+  const bonusSL = useGesteDeJet('jetBonusSL', 'dispel');
+  const darkPact = useGesteDeJet('jetDarkPact', 'dispel');
+  const force = useGesteDeJet('jetForceSuccess', 'dispel');
+  const confirm = useGesteDeJet('jetConfirm', 'dispel');
+  const cancel = useGesteDeJet('jetCancel', 'dispel');
   if (!pd) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pd.casterId);
   if (!caster) return null;
@@ -58,8 +59,8 @@ export function DispelModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
 
   return (

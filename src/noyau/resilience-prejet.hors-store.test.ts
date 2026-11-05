@@ -22,10 +22,10 @@ function setPendingTest(over: Partial<any> = {}) {
   });
 }
 
-describe('testForceSuccess — Résilience AVANT le jet', () => {
+describe('jetForceSuccess@test — Résilience AVANT le jet', () => {
   it('avant le jet (roll==null) : réussite garantie, DR ≥ 1, dé choisi, 1 Résilience dépensée', () => {
     setPendingTest();
-    banc.getState().testForceSuccess();
+    banc.getState().jetForceSuccess('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.success).toBe(true);
     expect(pt.sl).toBeGreaterThanOrEqual(1);
@@ -36,13 +36,13 @@ describe('testForceSuccess — Résilience AVANT le jet', () => {
 
   it('respecte le DR requis (Test étendu) : DR ≥ requireSL', () => {
     setPendingTest({ requireSL: 3 });
-    banc.getState().testForceSuccess();
+    banc.getState().jetForceSuccess('test');
     expect(banc.getState().pendingTest!.sl).toBeGreaterThanOrEqual(3);
   });
 
   it('APRÈS un Test échoué (RAW l.73 « vous choisissez le résultat ») : dé CHOISI 01 → DR max', () => {
     setPendingTest({ roll: 88, success: false, sl: -2 });
-    banc.getState().testForceSuccess();
+    banc.getState().jetForceSuccess('test');
     const pt = banc.getState().pendingTest!;
     expect(pt.success).toBe(true);
     expect(pt.roll).toBe(1); // sans enjeu de double, le choix rationnel est le score le plus bas
@@ -53,14 +53,14 @@ describe('testForceSuccess — Résilience AVANT le jet', () => {
 
   it('Test déjà réussi : no-op (pas de gaspillage de Résilience)', () => {
     setPendingTest({ roll: 12, success: true, sl: 2 });
-    banc.getState().testForceSuccess();
+    banc.getState().jetForceSuccess('test');
     expect(banc.getState().party[0].resilience).toBe(2);
   });
 
   it('sans Résilience : no-op', () => {
     setPendingTest();
     banc.setState({ party: [combattantDeTest({ id: 'h1', label: 'Héros', resilience: 0 })] });
-    banc.getState().testForceSuccess();
+    banc.getState().jetForceSuccess('test');
     expect(banc.getState().pendingTest!.success).toBe(false);
   });
 });
@@ -72,7 +72,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
       battle: null,
       pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
     });
-    banc.getState().healForceSuccess();
+    banc.getState().jetForceSuccess('heal');
     const ph = banc.getState().pendingHeal!;
     expect(ph.success).toBe(true);
     expect(ph.roll).toBe(1);
@@ -85,7 +85,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
       battle: { combatants: [brute] } as any,
       pendingFrenzy: { combatantId: 'e1', result: null } as any,
     });
-    banc.getState().frenzyForceSuccess();
+    banc.getState().jetForceSuccess('frenzy');
     expect(banc.getState().pendingFrenzy!.result!.success).toBe(true);
     expect(banc.getState().battle!.combatants[0].resilience).toBe(0);
   });

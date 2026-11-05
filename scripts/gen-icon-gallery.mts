@@ -1,5 +1,5 @@
 /**
- * Galerie QC des ICÔNES UI (registre src/ui/icons/ — primitive <Icon>, LOT 4 anti-emoji) :
+ * Galerie QC des ICÔNES UI (registre src/data/icons/ — primitive <Icon>, LOT 4 anti-emoji) :
  * chaque icône rendue aux 3 tailles canon (sm 14 / md 18 / lg 24) + une loupe 48px, groupée
  * par famille. Vérifie que CHAQUE icône reste lisible à 14px et respecte la charte (currentColor).
  * Lancer : npx tsx scripts/gen-icon-gallery.mts
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { Icon } from '../src/ui/Icon';
-import { ICON_FAMILIES } from '../src/ui/icons/_registry.generated';
+import { ICON_FAMILIES } from '../src/data/icons/_registry.generated';
 
 const ALL = ICON_FAMILIES.flat();
 const families = [...new Set(ALL.map((d) => d.id.split('/')[0]))];
@@ -48,9 +48,9 @@ return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="ic
 </style></head>
 <body>
 <a href="galeries.html">← Galeries</a>
-<h1>Icônes UI (registre src/ui/icons/) — ${ALL.length} icônes, ${families.length} familles</h1>
+<h1>Icônes UI (registre src/data/icons/) — ${ALL.length} icônes, ${families.length} familles</h1>
 <p class="sub">Primitive <b>&lt;Icon&gt;</b> : SVG maison 24×24 en <code>currentColor</code>, trait 1.8 « dessiné main ».
-Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/ui/icons/icons.test.ts.</p>
+Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.ts.</p>
 ${sections}
 </body></html>`;
 }

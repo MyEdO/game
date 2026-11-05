@@ -460,7 +460,7 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   /** LIBELLÉ du choix — rôle libellé de l'enveloppe (`label`), pas de la prose : c'est l'étiquette
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
-  /** Icône d'affordance (registre `src/ui/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
+  /** Icône d'affordance (registre `src/data/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
    *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (couture UI hors de
    *  `src/state`, cf. AGENTS.md : la logique reste pure, `<Icon>` valide l'id au rendu). */
   icon: z.string().optional(),

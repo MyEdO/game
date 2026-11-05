@@ -60,7 +60,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
    *  d'AFFICHAGE `bladeTrapResult` empilée par la conséquence — la note « lame brisée/arrachée » du paradigme
    *  cascade (une étape propre, comme un Coup Critique, qui garde la cascade ouverte jusqu'à acquittement). */
   function resolveTestOutcome(stepId: string): import('../recapLine').RecapLine[] {
-    banc.getState().cascadeRoll(stepId);
+    banc.getState().jetRoll('cascade', stepId);
     banc.getState().cascadeNext(); // valide le Test → applier → empile l'étape `bladeTrapResult`
     const res = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'bladeTrapResult');
     return res?.outcome ?? [];
@@ -102,7 +102,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     const aT = step.meta!.opposed!.aT;
 
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const o = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false });
     expect(o.winner).not.toBe('attacker'); // le défenseur l’emporte (Force écrasante)
@@ -183,7 +183,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     // Le camp que le RAW nomme « vous » est DÉCLARÉ sur l'opposition figée, il ne se devine pas au kind.
     expect(step.meta?.opposed?.defenderMustWin, 'Piège-lame : le jeteur doit REMPORTER').toBe(true);
 
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
     expect(rolled.success, 'égalité ≠ victoire du piégeur : la branche `breakBlade` n’est pas prise').toBe(false);
@@ -206,7 +206,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     openTrapChoice(H, A, weapon, 0);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     const aT = step.meta!.opposed!.aT;
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner).toBe('attacker');
     banc.getState().cascadeNext();
@@ -232,7 +232,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
         if (!p.committed && p.meta?.apresSuite?.length) suites.push({ porteur: p.actorId, suite: p.meta.apresSuite.map((c) => (c.verbe === 'reprendreFlowDeCombat' ? { cible: c.cibleId, lanceur: c.ctx.casterId } : c.verbe)) });
       }
     });
-    banc.getState().cascadeRoll(step.id);
+    banc.getState().jetRoll('cascade', step.id);
     banc.getState().cascadeNext();
     desabonne();
     expect(suites[0], 'le dé de Sauvegarde de l’attaquant porte la suite, qui garde le PIÉGEUR pour cible')

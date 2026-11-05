@@ -21,6 +21,7 @@ import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import { battleRng } from './battleRng';
+import type { CloturesDuJet } from './rollFlowSpecs';
 import { zoneCovers } from './monde/zones';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { recomputeLoadout } from '../engine/items';
@@ -34,7 +35,7 @@ import {
   type Mutation,
 } from '../engine/corruption';
 import {
-  mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTablePlayerLabel, mutationTableRows,
+  mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTableDie, mutationTablePlayerLabel, mutationTableRows,
 } from '../data/mutations';
 import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
 import { findTableEntry } from '../engine/tables';
@@ -186,7 +187,7 @@ const tablesDeMutation = memoParVersion(['mutationTables', 'mutations'], () => {
     const rows = mutationTableRows(id);
     tables.set(id, {
       label: mutationTablePlayerLabel(id),
-      die: 100,
+      die: mutationTableDie(id).sides,
       rows,
       lines: (die) => [mutationAt(id, die).label],
       entryCategory: 'mutations', // la ligne tirée EST la mutation : sa fiche est le foyer de l'enjeu
@@ -224,7 +225,7 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
     id: `mutation-table-${tableId}-${hero.id}`,
     kind: 'mutationTable', actorId: hero.id, icon: 'nav/mutation',
     label: stepDetail(t('step.mutation'), mutationTablePlayerLabel(tableId)),
-    table: { tableId, spec: { n: 1, sides: 100 } },
+    table: { tableId, spec: mutationTableDie(tableId) },
     mutation: { ...ctx, tableId },
     stake: combatStakeRef('mutationTable'),
   });
@@ -369,17 +370,6 @@ export function creerActionsDeCorruption(get: Get, set: Set) {
       if (!pc || pc.roll != null || pc.kind === 'seuil' || pc.natureFixee) return;
       set({ pendingCorruption: { ...pc, ...testDExposition(nature) } });
     },
-    /** Acquitte l'exposition (Points selon niveau + DR, puis seuil) OU le Test du SEUIL
-     *  (kind 'seuil', LDB 19 l.70) : dénouement chez `corruptionFlow`, puis le slot LIBÉRÉ revient au
-     *  seuil suivant en attente (`corruptionQueue`) — la fenêtre suivante s'ouvre, aucun Test ne se
-     *  résout en silence faute de place. */
-    resolveCorruption: () => {
-      const pc = get().pendingCorruption;
-      if (!pc || pc.roll == null) return;
-      set({ pendingCorruption: null });
-      resolveCorruptionPending(get, set, pc);
-      releaseCorruptionSlot(get, set);
-    },
   } satisfies Partial<ActionsDuNoyau>;
 }
 
@@ -421,3 +411,20 @@ export const TABLES = {
     tablesDeMutation,
   ],
 } satisfies FragmentDeTables;
+
+/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+export function cloturesDeCorruption(get: Get, set: Set) {
+  return {
+    /** Acquitte l'exposition (Points selon niveau + DR, puis seuil) OU le Test du SEUIL
+     *  (kind 'seuil', LDB 19 l.70) : dénouement chez `corruptionFlow`, puis le slot LIBÉRÉ revient au
+     *  seuil suivant en attente (`corruptionQueue`) — la fenêtre suivante s'ouvre, aucun Test ne se
+     *  résout en silence faute de place. */
+    corruption: () => {
+      const pc = get().pendingCorruption;
+      if (!pc) return;
+      set({ pendingCorruption: null });
+      resolveCorruptionPending(get, set, pc);
+      releaseCorruptionSlot(get, set);
+    },
+  } satisfies Partial<CloturesDuJet>;
+}

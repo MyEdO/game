@@ -361,7 +361,7 @@ describe('__wfrp — autres commandes de recette', () => {
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
-    useGame.getState().resolveTest();
+    useGame.getState().jetConfirm('test');
     expect(buildApi().lastRoll()).toEqual({ actorId: hero.id, success: true, sl: 1, roll: 42, target: 50 });
   });
 
@@ -600,8 +600,8 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const ici = combattant().pos!;
     for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
     g().battleRun({ x: ici.x + 3, y: ici.y });
-    g().runRoll();
-    g().runConfirm();
+    g().jetRoll('run');
+    g().jetConfirm('run');
     expect(g().battle!.runBudget, 'la Course a posé son budget').toBeGreaterThan(0);
     expect(api.turn(heroId)).toMatch(/^✓/);
     const b = g().battle!;
@@ -1037,7 +1037,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
     id: 'm', label: 'Mer des Griffes',
     places: [
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois'] } },
+      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
     ],
     routes: [{ id: 'r1', a: 'A', b: 'B', km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
   };

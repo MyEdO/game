@@ -1,16 +1,16 @@
 /**
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
  * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
- * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et le choix
- * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ;
- * une clé bien formée se résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau). Chaque surface nomme
- * un matériau du GLB ; une surface `blason: true` reçoit au montage l'emblème choisi (#3111) et porte l'UV `TEXCOORD_0`.
+ * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et si un mesh
+ * rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ; une clé bien formée se résout contre la donnée
+ * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
  * (`emplacementsNonOfferts`, `indexerModeles`).
  */
 import { estObjet } from '../../../src/hote/formes';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, SLOTS, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
+import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
+import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -37,24 +37,23 @@ interface RegleDeCategorie {
   readonly chaines: boolean;
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
-  readonly couleur: 'palette' | 'teinte';
   /** Un mesh rigide de l'élément peut rester à la racine de la scène (non tenu). */
   readonly racine: boolean;
 }
 
 const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, couleur: 'teinte', racine: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, racine: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
-  corps: { ...SKINNE, cle: ['partie', 'forme'], couleur: 'palette' },
-  tete: { ...SKINNE, cle: ['tete'], couleur: 'palette' },
-  pilosite: { ...SKINNE, cle: ['coiffure'], couleur: 'palette' },
-  vetement: { ...SKINNE, cle: ['piece'], emplacements: true, couleur: 'palette' },
-  armure: { ...SKINNE, cle: ['piece'], couches: ['armure'], emplacements: true, couleur: 'teinte' },
-  accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel', couleur: 'teinte' },
+  corps: { ...SKINNE, cle: ['partie', 'forme'] },
+  tete: { ...SKINNE, cle: ['tete'] },
+  pilosite: { ...SKINNE, cle: ['coiffure'] },
+  vetement: { ...SKINNE, cle: ['piece'], emplacements: true },
+  armure: { ...SKINNE, cle: ['piece'], couches: ['armure'], emplacements: true },
+  accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel' },
   rigide: { ...RIGIDE, cle: ['apparence'] },
-  trait: { ...SKINNE, cle: ['trait'], couleur: 'palette' },
+  trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], racine: true },
   vehicule: { ...RIGIDE, cle: ['definition'], racine: true },
 } as const satisfies Record<string, RegleDeCategorie>;
@@ -63,14 +62,10 @@ type Regles = typeof REGLES_DES_CATEGORIES;
 export type CategorieDElement = keyof Regles;
 export const CATEGORIES_D_ELEMENT = Object.keys(REGLES_DES_CATEGORIES) as readonly CategorieDElement[];
 
-type Slot = (typeof SLOTS)[number];
 type Rien = Record<never, never>;
 type Liste = readonly string[];
 
 type Selon<P, Requis, Optionnel> = P extends 'requis' ? Requis : P extends 'optionnel' ? Optionnel : Rien;
-type SurfaceDe<C extends CategorieDElement> = { readonly nom: string; readonly blason?: true } & (Regles[C]['couleur'] extends 'palette'
-  ? { readonly palette: Slot }
-  : { readonly teinte: true });
 
 type ChampsDe<C extends CategorieDElement> = (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
   & Selon<Regles[C]['couvre'], { readonly couvre: Liste }, { readonly couvre?: Liste }>
@@ -85,7 +80,7 @@ export type ManifesteDElement = {
     readonly categorie: C;
     readonly cle: { readonly [K in Regles[C]['cle'][number]]: string };
     readonly liaison: { readonly mode: Regles[C]['liaisons'][number] };
-    readonly surfaces: readonly SurfaceDe<C>[];
+    readonly surfaces: readonly Surface[];
     readonly glb: { readonly sha256: string; readonly octets: number };
   } & ChampsDe<C>;
 }[CategorieDElement];
@@ -108,10 +103,7 @@ export type CodeDEcartDElement =
   | 'emplacement-sur-os-absent'
   | 'emplacement-inconnu'
   | 'silhouette-absente'
-  | 'surface-hors-categorie'
-  | 'palette-inconnue'
-  | 'surface-absente'
-  | 'uv-absente'
+  | CodeDEcartDeSurface
   | 'glb-different'
   | 'rigide-sans-mesh'
   | 'rigide-sur-os-absent'
@@ -128,7 +120,6 @@ export type VerdictDElement = { readonly ok: true; readonly manifeste: Manifeste
 
 const CHAMPS_COMMUNS = ['schema', 'base', 'categorie', 'cle', 'liaison', 'surfaces', 'glb'] as const;
 const estCategorie = (v: unknown): v is CategorieDElement => typeof v === 'string' && Object.prototype.hasOwnProperty.call(REGLES_DES_CATEGORIES, v);
-const estSlot = (v: unknown): v is Slot => (SLOTS as readonly unknown[]).includes(v);
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');
 
 /** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme et le GLB `octets`, lu en `glb` (`lireGlb`). */
@@ -202,24 +193,8 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   }
 
   if (brut.surfaces !== undefined) {
-    if (!Array.isArray(brut.surfaces)) refus('forme', 'surfaces', 'liste attendue');
-    else {
-      const noms = new Set<string>();
-      brut.surfaces.forEach((s: unknown, i) => {
-        const ou = `surfaces.${i}`;
-        const couleur = estObjet(s) ? Object.keys(s).length - (s.blason === undefined ? 0 : 1) : 0;
-        if (!estObjet(s) || typeof s.nom !== 'string' || s.nom === '' || couleur !== 2) return refus('forme', ou, '`{ nom, palette }` ou `{ nom, teinte: true }` attendu, `blason: true` en option');
-        if (s.blason !== undefined && s.blason !== true) refus('forme', `${ou}.blason`, `${String(s.blason)} : \`true\` ou absent attendu`);
-        if (noms.has(s.nom)) refus('forme', `${ou}.nom`, `${s.nom} nommée deux fois`);
-        noms.add(s.nom);
-        if (!glb.materiaux.has(s.nom)) refus('surface-absente', `${ou}.nom`, `${s.nom} n’est le nom d’aucun matériau du GLB`);
-        else if (s.blason === true && glb.materiauxSansUv.has(s.nom)) refus('uv-absente', `${ou}.blason`, `une primitive du matériau ${s.nom} n’a pas d’attribut \`TEXCOORD_0\` où poser l’emblème`);
-        if (regle.couleur === 'teinte') {
-          if (s.teinte !== true) refus('surface-hors-categorie', ou, `un élément \`${categorie}\` prend la teinte de l’objet : \`teinte: true\` attendu`);
-        } else if (s.palette === undefined) refus('surface-hors-categorie', ou, `un élément \`${categorie}\` prend la palette du combattant : \`palette\` attendue`);
-        else if (!estSlot(s.palette)) refus('palette-inconnue', `${ou}.palette`, `${String(s.palette)} : ${liste(SLOTS)} attendue`);
-      });
-    }
+    const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, true);
+    for (const e of [...deForme, ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
   }
 
   if (brut.glb !== undefined) {

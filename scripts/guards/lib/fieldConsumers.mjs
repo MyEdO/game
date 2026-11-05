@@ -5,7 +5,7 @@
 //
 // Le détecteur travaille au VÉRIFICATEUR DE TYPES (`ts.Program`/`TypeChecker`, #1620) — pas au
 // texte des annotations. IDENTITÉ PAR SYMBOLE de bout en bout, AUCUN nom n'entre dans un crédit :
-// la cible est la DÉCLARATION de type `T` trouvée dans son `home` (`fieldConsumerTargets.mjs`), et
+// la cible est la DÉCLARATION de type `T` trouvée dans son `home` (cibles de `build-field-consumers.mts`), et
 // un homonyme d'un autre module n'est jamais la même déclaration.
 //
 // DÉFINITION D'UNE LECTURE — un champ `F` du type `T` est LU en un site (`a.F`, `a['F']`, ou un
@@ -28,7 +28,7 @@
 // son renommage). Corollaire : un « 0 » sur un champ HÉRITÉ est tautologique et ne se lit pas comme
 // une absence de lecteur — d'où `fieldOwnership` (plus bas), qui donne l'ÉTAT du champ.
 //
-// ANGLES MORTS, MESURÉS sur le corpus (1 952 fichiers de `src/`, 2026-09-01) :
+// ANGLES MORTS, MESURÉS sur le corpus (1 952 fichiers de `src/`, 2026-09-01, sur les 23 cibles d'alors) :
 //   - REDÉCLARATION STRUCTURELLE du type cible à un site : un paramètre annoté d'un littéral de
 //     même forme que `T` (`(r: { id: string; spec?: string }) => r.spec` face à un `Ref` de même
 //     forme) porte SES déclarations de propriété et ne crédite RIEN — condition (1). C'est un défaut
@@ -39,9 +39,8 @@
 //     production, 22 046 sont CANDIDATS (nom ∈ les 126 champs des 23 cibles) et 5 205 d'entre eux
 //     ont un porteur dont le type AU SITE est un littéral anonyme (`symbol.name === '__type'`) —
 //     ceux dont la forme ne vient d'aucun type nommé n'entrent dans aucune ligne du rapport ;
-//   - champ du SCHÉMA ABSENT du type TS (`AdvancementRef.table`, 6 champs de `PropData`) : il n'y a
-//     rien à lire, et ce n'est pas une mesure de lecture — état `absent` de `fieldOwnership`,
-//     jamais un « 0 lecteur » ;
+//   - champ du SCHÉMA ABSENT du type TS : il n'y a rien à lire, et ce n'est pas une mesure de
+//     lecture — état `absent` de `fieldOwnership`, jamais un « 0 lecteur » ;
 //   - un spread (`{ ...ref }`) ne cite aucun champ nommé et ne compte AUCUNE lecture — correct pour
 //     ce détecteur, mais un tel site peut légitimement consommer tous les champs en aval ;
 //   - un accès par clé DYNAMIQUE (`ref[k]`, `Object.entries(ref)`) n'a pas de symbole de propriété
@@ -170,15 +169,15 @@ function declarationDeType(sf, nom) {
 /**
  * CONTEXTE de scan (Program, checker, index des accès par nom de champ) porté par la MAP fournie
  * par l'APPELANT — patron de `closureOf`/`importGraph.mjs` : il naît et meurt avec son appel, rien
- * n'est retenu par le module. Un rapport complet mesure 23 types sur le MÊME corpus : le Program
- * (~6 s, ~1,3 Go) et l'index des accès (~0,4 s) sont donc bâtis UNE fois pour les 23, et libérés au
- * retour de l'appelant.
+ * n'est retenu par le module. Un rapport complet mesure toutes ses cibles sur le MÊME corpus : le
+ * Program et l'index des accès sont donc bâtis UNE fois pour toutes, et libérés au retour de
+ * l'appelant.
  */
 function contexteDe(cache, files, rootDir, programme = null) {
   // CLÉ = le Program lui-même quand il est INJECTÉ (fixtures de `virtualProgram`) : deux Programs
   // qui partagent un `cache` sont deux contextes, et le second n'obtient jamais l'index du premier.
   // Sans injection, le Program est bâti sur `files` et le contexte est unique par cache — un
-  // rapport, un corpus (les 23 cibles le partagent, c'est son objet).
+  // rapport, un corpus (toutes ses cibles le partagent, c'est son objet).
   const cle = programme ?? '#contexte'
   let ctx = cache.get(cle)
   if (ctx) return ctx
@@ -332,7 +331,7 @@ function symboleEnglobant(node) {
 }
 
 /**
- * Sites de lecture de `fields` sur la cible `{ type, home }` (`fieldConsumerTargets.mjs`), à travers
+ * Sites de lecture de `fields` sur la cible `{ type, home }` (cibles de `build-field-consumers.mts`), à travers
  * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole, auDeclarant }]` — `file`
  * relatif à `rootDir` ; `auDeclarant` : le site est DANS la déclaration qui déclare la propriété (le
  * `superRefine` du schéma qui valide son propre champ, identité par nœud). Le `cache` porte le Program et l'index : le fournir une fois pour toutes les cibles
@@ -384,8 +383,7 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, progra
  * ÉTAT de chaque champ VIS-À-VIS DU TYPE, indépendamment de toute lecture — un « 0 » ne dit pas la
  * même chose selon l'état, et deux d'entre eux ne sont pas des mesures de lecture :
  *   - `absent` : le champ du SCHÉMA n'existe pas sur le type TS (divergence schéma↔type — ni lu ni
- *     lisible ; `AdvancementRef.table`, les 6 champs de `PropData` que `props.types.ts` ne déclare
- *     pas) ;
+ *     lisible) ;
  *   - `herite` : la propriété est déclarée par un ANCÊTRE (`declarant`), pas par la cible — un « 0 »
  *     y est TAUTOLOGIQUE (aucun porteur déclaré de la cible), le champ vit sous son déclarant ;
  *   - `propre` : la cible la déclare — un « 0 » y est une vraie absence de lecteur.

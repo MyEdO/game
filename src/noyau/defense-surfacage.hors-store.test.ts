@@ -80,8 +80,8 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     const s = banc.getState();
     expect(s.pendingDefense!.defenderId).toBe(hero.id);
-    expect(intentAllowedFor(s, 1, 'defenseRoll'), 'le siège 1 (propriétaire du héros) roule').toBe(true);
-    expect(intentAllowedFor(s, 0, 'defenseRoll'), 'l’hôte ne roule pas le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRoll', ['defense']), 'le siège 1 (propriétaire du héros) roule').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRoll', ['defense']), 'l’hôte ne roule pas le héros d’un autre').toBe(false);
   });
 
   it('E — héros `aiControlled` : PAS de fenêtre, mais le repli `bestRangedDefense` reste (aucune amputation)', () => {
@@ -96,22 +96,22 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
 });
 
 describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’interpose sans avancer le tour', () => {
-  it('gmSeat mêlée sur héros : attackRoll→attackConfirm interpose la fenêtre ; defenseConfirm ne fait PAS avancer le tour', () => {
+  it('gmSeat mêlée sur héros : jetRoll@attack→jetConfirm@attack interpose la fenêtre ; jetConfirm@defense ne fait PAS avancer le tour', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     const g = banc.getState;
     openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
     expect(g().pendingAttack, 'la cascade d’attaque est ouverte').toBeTruthy();
-    g().attackRoll();
+    g().jetRoll('attack');
     expect(g().pendingAttack!.result!.defenderDetail, 'aucune défense roulée en silence au jet d’attaque').toBeUndefined();
     const turnBefore = g().battle!.turn;
-    g().attackConfirm();
+    g().jetConfirm('attack');
     const pd = g().pendingDefense;
     expect(pd, 'la fenêtre de défense s’interpose').toBeTruthy();
     expect(pd!.defenderId).toBe(hero.id);
     expect(g().pendingCascade!.participants[g().pendingCascade!.cursor].jet, 'le curseur est SUR l’étape défense').toBe('defense');
-    expect(intentAllowedFor(g(), 0, 'defenseRoll'), 'le siège du héros roule sa défense').toBe(true);
-    g().defenseRoll();
-    g().defenseConfirm();
+    expect(intentAllowedFor(g(), 0, 'jetRoll', ['defense']), 'le siège du héros roule sa défense').toBe(true);
+    g().jetRoll('defense');
+    g().jetConfirm('defense');
     expect(g().pendingDefense).toBeNull();
     expect(g().battle!.turn, 'le tour du MJ n’a PAS avancé').toBe(turnBefore);
   });
@@ -121,12 +121,12 @@ describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’int
     const g = banc.getState;
     banc.setState({ battle: { ...g().battle!, turn: 1 } }); // tour du héros
     openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
-    g().attackConfirm();
+    g().jetRoll('attack');
+    g().jetConfirm('attack');
     const pd = g().pendingDefense;
     expect(pd, 'l’ennemi conduit par le MJ défend lui-même').toBeTruthy();
     expect(pd!.defenderId).toBe(enemy.id);
-    expect(intentAllowedFor(g(), 0, 'defenseRoll'), 'le siège MJ tient le jet de défense de l’ennemi').toBe(true);
+    expect(intentAllowedFor(g(), 0, 'jetRoll', ['defense']), 'le siège MJ tient le jet de défense de l’ennemi').toBe(true);
   });
 });
 
@@ -147,14 +147,14 @@ describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ co
     hero.characteristics['capacite-de-combat'] = 25; // Esquive (Agilité 40) = sa meilleure défense
     const g = banc.getState as unknown as () => Record<string, (...a: unknown[]) => void>;
     openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll();
-    g().attackSetForcedRoll(21); // DR 3 côté attaque (cible 55)
-    g().attackConfirm();
+    g().jetRoll('attack');
+    g().jetSetForcedRoll('attack', 21); // DR 3 côté attaque (cible 55)
+    g().jetConfirm('attack');
     const parked = banc.getState().pendingDefense!;
     expect(parked.atk.base, 'le jet d’attaque PARQUÉ garde sa valeur nue').toBe(45);
     expect(parked.mode).toBe('esquive');
-    g().defenseRoll();
-    g().defenseSetForcedRoll(12); // DR 3 côté défense (cible 40) → DR ÉGAUX
+    g().jetRoll('defense');
+    g().jetSetForcedRoll('defense', 12); // DR 3 côté défense (cible 40) → DR ÉGAUX
     const pd = banc.getState().pendingDefense!;
     expect(pd.def!.sl, 'précondition : les DR sont égaux, seul le départage peut trancher').toBe(parked.atk.sl);
     expect(pd.def!.base, 'le dé POSÉ ne dépouille pas le jet de sa valeur nue').toBe(40);
@@ -191,10 +191,10 @@ function playWindow(seed: number, pa: Partial<PendingAttack>, opts?: { force?: b
   if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forceSuccess` est un no-op
   seedBattleRng(seed);
   openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (opts?.force) g().attackForceSuccess();
-  g().attackConfirm();
-  g().defenseRoll();
+  // « au lieu de lancer les dés pour un Test, vous choisissez le résultat » (LDB 17 l.68)
+  if (opts?.force) g().jetForceSuccess('attack'); else g().jetRoll('attack');
+  g().jetConfirm('attack');
+  g().jetRoll('defense');
   return g().pendingDefense!.result!;
 }
 
@@ -217,12 +217,12 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
     const g = banc.getState;
     seedBattleRng(seed);
     openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attack');
-    g().attackRoll();
+    g().jetRoll('attack');
     const passif = g().pendingAttack!.result!;
     if (x > 1) return passif;
-    g().attackConfirm();
-    g().defenseRoll();
-    g().defenseSetForcedRoll(97); // LDB 18 l.53
+    g().jetConfirm('attack');
+    g().jetRoll('defense');
+    g().jetSetForcedRoll('defense', 97); // LDB 18 l.53
     return g().pendingDefense!.result!;
   }
 
@@ -286,9 +286,9 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
     const g = banc.getState;
     seedBattleRng(seed);
     openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    g().attackRoll(); g().attackConfirm(); g().defenseRoll();
+    g().jetRoll('attack'); g().jetConfirm('attack'); g().jetRoll('defense');
     const res = g().pendingDefense!.result!;
-    return { hero, res, confirm: () => g().defenseConfirm(), state: g };
+    return { hero, res, confirm: () => g().jetConfirm('defense'), state: g };
   }
 
   // Graine DÉTERMINISTE : défense RATÉE sur un double (Maladresse, LDB 14 l.13) ET touche qui blesse.
@@ -340,11 +340,11 @@ describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manue
     const s0 = banc.getState();
     expect(modalOwnerOf(s0), 'la fenêtre est celle de l’ennemi').toBe(enemy.id);
     expect(ownsLocal(s0, enemy.id), 'l’HÔTE ne rend pas la fenêtre du MJ (bandeau spectateur)').toBe(false);
-    expect(intentAllowedFor(s0, 0, 'defenseRoll'), 'et il ne peut pas agir non plus').toBe(false);
+    expect(intentAllowedFor(s0, 0, 'jetRoll', ['defense']), 'et il ne peut pas agir non plus').toBe(false);
     banc.setState({ net: { ...s0.net, mySeat: 1 } }); // on se place au siège MJ
     const s1 = banc.getState();
     expect(ownsLocal(s1, enemy.id), 'le MJ VOIT sa fenêtre').toBe(true);
-    expect(intentAllowedFor(s1, 1, 'defenseRoll'), 'afficher et agir répondent pareil').toBe(true);
+    expect(intentAllowedFor(s1, 1, 'jetRoll', ['defense']), 'afficher et agir répondent pareil').toBe(true);
   });
 
   it('héros d’un autre siège : inchangé (le gate d’affichage reste l’ownership)', () => {
@@ -376,11 +376,10 @@ function playForcings(seed: number, opts: { atk?: boolean; def?: boolean }) {
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(seed);
   openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (opts.atk) g().attackForceSuccess();
-  g().attackConfirm();
-  g().defenseRoll();
-  if (opts.def) g().defenseForceSuccess();
+  // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
+  if (opts.atk) g().jetForceSuccess('attack'); else g().jetRoll('attack');
+  g().jetConfirm('attack');
+  if (opts.def) g().jetForceSuccess('defense'); else g().jetRoll('defense');
   const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
   return { pd: g().pendingDefense!, atkResilience: resilienceOf('e'), defResilience: resilienceOf('h') };
 }
@@ -395,18 +394,17 @@ function playPosed(opts: { forceAtk?: boolean; forceDef?: boolean; atkDie?: numb
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(opts.seed ?? 3);
   openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (opts.forceAtk) g().attackForceSuccess();
+  // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
+  if (opts.forceAtk) g().jetForceSuccess('attack'); else g().jetRoll('attack');
   // « pire » = la réussite la MOINS bonne (DR naturel minimal) : sans garantie, ce dé perd l'opposition.
   const atkTarget = g().pendingAttack!.result!.attackerDetail!.target;
   const atkDie = opts.atkDie === 'pire' ? maxForcedRoll(atkTarget) : opts.atkDie;
-  if (atkDie != null) g().attackSetForcedRoll(atkDie);
-  g().attackConfirm();
-  g().defenseRoll();
+  if (atkDie != null) g().jetSetForcedRoll('attack', atkDie);
+  g().jetConfirm('attack');
+  if (opts.forceDef) g().jetForceSuccess('defense'); else g().jetRoll('defense');
   const target = g().pendingDefense!.def!.target;
   const defDie = opts.defDie === 'pire' ? maxForcedRoll(target) : opts.defDie;
-  if (opts.forceDef) g().defenseForceSuccess();
-  if (defDie != null) g().defenseSetForcedRoll(defDie);
+  if (defDie != null) g().jetSetForcedRoll('defense', defDie);
   const pd = g().pendingDefense!;
   const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
   return {
@@ -496,7 +494,7 @@ describe('#989 B3 — Maladresse de défense d’un héros d’un AUTRE siège (
       const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], net);
       seedBattleRng(sd);
       if (!maybeOpenDefense(banc.getState, banc.setState, enemy, hero)) continue;
-      banc.getState().defenseRoll();
+      banc.getState().jetRoll('defense');
       const pd = banc.getState().pendingDefense!;
       if (defenderFumbled(pd.result!, hero.weapons[0], hero)) seed = sd;
     }
@@ -504,8 +502,8 @@ describe('#989 B3 — Maladresse de défense d’un héros d’un AUTRE siège (
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], net);
     seedBattleRng(seed);
     maybeOpenDefense(banc.getState, banc.setState, enemy, hero);
-    banc.getState().defenseRoll();
-    banc.getState().defenseConfirm();
+    banc.getState().jetRoll('defense');
+    banc.getState().jetConfirm('defense');
     const c = banc.getState().pendingCascade;
     expect(c?.participants.some((s) => s.jet === 'fumble' && s.actorId === hero.id),
       'le héros d’un autre siège joue SA Maladresse (surfaçage, pas affordance locale)').toBe(true);

@@ -5,7 +5,7 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
 
 /**
  * Garde-fou anti-emoji (LOT 4) : les AFFORDANCES de l'UI passent par le registre d'icônes
- * (`src/ui/icons/` + `<Icon id>` / `<IconG id>`), plus jamais par un emoji dans le code ou la
+ * (`src/data/icons/` + `<Icon id>` / `<IconG id>`), plus jamais par un emoji dans le code ou la
  * donnée — et un emoji de LOG/journal/prose se retire tout autant (texte affiché à l'utilisateur).
  * Couverture EXHAUSTIVE par défaut : ce test de BUILD balaie TOUT `src/` (walk récursif, .ts/.tsx/
  * .json) ; il n'y a PAS de liste opt-in de dossiers (tout nouveau dossier naît couvert). Seules des
@@ -36,6 +36,6 @@ describe('garde-fou anti-emoji (affordances → registre d’icônes)', () => {
       const hits = emojisIn(text);
       if (hits.length) offenders.push(`${rel} → ${hits.join(' ')}`);
     }
-    expect(offenders, 'Emoji détecté — affordance : <Icon id> (src/ui/icons/) ; log/prose/donnée : texte nu').toEqual([]);
+    expect(offenders, 'Emoji détecté — affordance : <Icon id> (src/data/icons/) ; log/prose/donnée : texte nu').toEqual([]);
   });
 });

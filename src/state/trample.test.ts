@@ -63,9 +63,9 @@ describe('Piétinement en combat (store)', () => {
     const pa = useGame.getState().pendingAttack;
     expect(pa?.freeKind, 'Entrée ouvre le jet du Piétinement').toBe('pietinement');
     expect(useGame.getState().pendingCascade, 'la modale s’ouvre').toBeTruthy();
-    useGame.getState().attackRoll();
+    useGame.getState().jetRoll('attack');
     expect(useGame.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    useGame.getState().attackConfirm();
+    useGame.getState().jetConfirm('attack');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
@@ -78,7 +78,7 @@ describe('Piétinement en combat (store)', () => {
     E.pos = { x: 13, y: 10 };
     pietinerAuClavier();
     expect(advDe(H.id), 'le coût est débité au commit').toBe(2);
-    useGame.getState().attackCancel();
+    useGame.getState().jetCancel('attack');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.advantage).toBe(3);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(true);

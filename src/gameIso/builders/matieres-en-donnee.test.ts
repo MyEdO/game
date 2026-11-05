@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { codeSeul as sansCommentaires } from '../../../scripts/guards/lib/commentPoison.mjs';
 import { materials, semencesDeScene, terrains } from '../../data';
-import { detenteur } from '../../detenteur.testkit';
+import { detenteur } from '../../lib/detenteur.testkit';
 
 /**
  * GARDE DÉRIVÉE (#1691, élargie #1715, #1716, #1789) — aucune couche ÉMETTRICE du monde ne NOMME une
@@ -16,7 +16,7 @@ import { detenteur } from '../../detenteur.testkit';
  * matières, `NEUTRALISEURS_TERRAIN` pour les sols, chacun NOMMÉ, chacun tenu par un test de vie qui
  * le rend ROUGE dès qu'aucun site du périmètre ne l'exerce plus — au grain du CHAMP, une entrée par
  * champ (`neutraliseursDeChamp`), pour qu'un homonyme qui meurt rougisse SEUL. Un homonyme se
- * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `cargoId:`, `weather:`, `part:`, `scope:`), par le
+ * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `weather:`, `part:`, `scope:`), par le
  * VOCABULAIRE d'union déclaré dans le fichier ou par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
  * champ) — jamais par un nom de fichier, jamais par un site toléré.
  *
@@ -184,6 +184,9 @@ function codeSeul(src: string, sauf?: string): string {
 
 /** Un id CITÉ en littéral (la mesure commune des trois bras). */
 const citeId = (id: string) => new RegExp(`(['"\`])${id}\\1`);
+/** Une ligne qui CITE en littéral l'id d'une matière, en une seule expression compilée une fois. */
+const citeUneMatiere = (ligne: string) => CITE_UNE_MATIERE.test(ligne);
+const CITE_UNE_MATIERE = new RegExp(`(['"\`])(?:${materials.map((m) => m.id).join('|')})\\1`);
 
 /** Les MEMBRES littéraux d'une UNION, déclarée (`type X = 'a' | 'b'`) comme écrite en place. */
 const membresDUnion = (union: string): string[] => [...union.matchAll(/(['"`])([^'"`\n]*)\1/g)].map((m) => m[2]);
@@ -233,7 +236,7 @@ const vocabulaireDUnion = (src: string): Set<string> => {
  *    `vocabulaireDUnion`, et la ligne reste comptée ;
  *  - UNE entrée par CHAMP dont le vocabulaire n'est pas celui des sols (`neutraliseursDeChamp`, la
  *    même fabrique que le bras des matières) — `key` (clé de récap / d'IU), `kind` (type de
- *    SÉLECTION d'un éditeur, `route`), `cargoId` (cargaison, `bois`), `weather` (météo, `neige`) :
+ *    SÉLECTION d'un éditeur, `route`), `weather` (météo, `neige`) :
  *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt.
  */
 const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mots: Set<string>) => string }[] = [
@@ -250,7 +253,6 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mo
   ...neutraliseursDeChamp({
     key: 'clé de récap / d’IU',
     kind: 'type de sélection d’un éditeur',
-    cargoId: 'cargaison',
     weather: 'météo',
   }),
 ];
@@ -287,7 +289,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     for (const f of fichiers().filter((x) => duStore(x.rel))) {
       const sansCommentaires = codeNu(f.code);
       sansCommentaires.forEach((l, i) => {
-        if (materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l)))
+        if (citeUneMatiere(l))
           nus.push({ rel: f.rel, ligne: i + 1, texte: l });
       });
     }
@@ -308,13 +310,12 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * différence = exemption morte, à re-trier — pas à garder « au cas où ».
    */
   it('chaque NEUTRALISEUR est exercé par un site du périmètre (aucune exemption morte)', () => {
-    const cite = (l: string) => materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l));
     for (const n of NEUTRALISEURS) {
       const exerce = fichiers().some((f) => {
         const avec = codeSeul(f.code).split('\n');
         return codeSeul(f.code, n.nom)
           .split('\n')
-          .some((l, i) => cite(l) && !cite(avec[i]));
+          .some((l, i) => citeUneMatiere(l) && !citeUneMatiere(avec[i]));
       });
       expect(exerce, `neutraliseur mort : « ${n.nom} » ne blanchit plus aucun site du périmètre — re-trier l’exemption.`).toBe(true);
     }

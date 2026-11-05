@@ -1,8 +1,9 @@
 /**
  * Brouillard de guerre — couche STORE : assemble les `Viewer`/sources de lumière depuis l'état (groupe
  * en exploration, alliés vivants en combat) et délègue au moteur PUR `vision.ts`. Accumule l'ensemble
- * EXPLORÉ par scène (`explored[sceneId]`, persistant). `visible` est DÉRIVÉ au bord rendu (memo
- * d'IsoStage via `computeStateVisible`) — pas stocké, donc rien à invalider pendant la marche.
+ * EXPLORÉ par scène (`explored[sceneId]`, persistant). `visible` est DÉRIVÉ, jamais stocké : au rendu par
+ * `computeStateVisibleAndLight` (memo de `gameIso/stage/MondeDeCampagne.tsx`), au noyau par
+ * `computeStateVisible` — rien à invalider pendant la marche.
  */
 import { Scene, sceneMetresPerTile } from './monde/scene';
 import { Pt } from './monde/path';

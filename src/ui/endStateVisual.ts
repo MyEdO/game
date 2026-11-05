@@ -1,5 +1,5 @@
 import type { EndState } from '../engine/conditions';
-import type { IconId } from './icons';
+import type { IconId } from '../data/icons';
 
 /** Langage visuel d'un état de fin (#237) : icône du registre (jamais un émoji), classe de teinte
  *  (portrait-tile.css `.end-mark.es-*`, gameIso/anim.css `.token-endmark.es-*`), libellé FR pour

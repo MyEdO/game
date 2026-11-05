@@ -1,0 +1,54 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+[ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="2_titre"]
+
+[node name="Cadre" type="PanelContainer"]
+visible = false
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -8.0
+offset_right = 448.0
+offset_bottom = -8.0
+grow_vertical = 0
+theme_type_variation = &"Fenetre"
+
+[node name="Colonne" type="VBoxContainer" parent="."]
+
+[node name="Titre" type="VBoxContainer" parent="Colonne"]
+theme = ExtResource("2_titre")
+
+[node name="Zone" type="Node" parent="Colonne/Titre" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.titre"
+masque = NodePath("../../..")
+
+[node name="Etape" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Etape"]
+script = ExtResource("1_zone")
+source = "fenetre.etape"
+
+[node name="Separation" type="HSeparator" parent="Colonne"]
+
+[node name="Corps" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Corps" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+masque = NodePath("../../Separation")
+
+[node name="Reglages" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Reglages"]
+script = ExtResource("1_zone")
+source = "fenetre.reglages"
+
+[node name="Pied" type="HSeparator" parent="Colonne"]
+
+[node name="Gestes" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Gestes"]
+script = ExtResource("1_zone")
+source = "fenetre.gestes"

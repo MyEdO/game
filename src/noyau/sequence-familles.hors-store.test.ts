@@ -4,7 +4,7 @@
  *  · (2) table de score par plage de DR — `findTableEntry` sur `params.table` ;
  *  · (4) effets par manche — `applyOps` DÉCLENCHÉ par le socle sur les porteurs que le verdict NOMME ;
  *  · (6) phases (mi-temps) — le découpage déclaré, et la BORNE qui en découle.
- * Le cumul (1) et les formules de camp (3) sont mesurés par `sequence-socle-naval.test.ts`.
+ * Le cumul (1) et les formules de camp (3) sont mesurés par `sequence-socle-naval.hors-store.test.ts`.
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';

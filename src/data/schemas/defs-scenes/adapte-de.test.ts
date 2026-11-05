@@ -5,7 +5,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { z } from 'zod';
-import { documentNarratifSchema, indiceStadeSchema, ouvertureSchema, presetPnjSchema } from './narratif';
+import { documentNarratifSchema, indiceStadeSchema, presetPnjSchema } from './narratif';
+import { ouvertureSchema } from '../grammaire/campagne';
 import { dialogueNodeSchema } from './scene';
 import { journalSchema } from './effets';
 import { projetSchema } from './projet';

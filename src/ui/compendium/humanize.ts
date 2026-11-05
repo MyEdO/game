@@ -28,6 +28,7 @@ import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney } from '../../engine/money';
+import { formatDice } from '../../engine/dice';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
@@ -130,7 +131,7 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if (typeof f !== 'object' || f === null) return String(f) === INDICE_TEMPLATE ? "l'Indice" : String(f);
   if ('bonusOf' in f) return `le Bonus de ${CHAR_LABELS[f.bonusOf]}`;
   if ('charOf' in f) return `la ${CHAR_LABELS[f.charOf]}`;
-  if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
+  if ('dice' in f) return formatDice(f.dice);
   if ('rolled' in f) return 'le résultat du dé';
   if ('indiceOf' in f) return "l'Indice de l'attaque";
   if ('stacks' in f) return "le nombre de pions de l'État";

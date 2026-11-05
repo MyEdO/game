@@ -147,7 +147,7 @@ export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: Atta
   return ecart == null || !!cibleDEcartDeTaille(battle, c, ecart, target.id);
 }
 
-/** Icône par type de manœuvre (id du registre `src/ui/icons/` — la hotbar rend `<Icon id>`).
+/** Icône par type de manœuvre (id du registre `src/data/icons/` — la hotbar rend `<Icon id>`).
  *  Typé par l'union GÉNÉRÉE `IconId` (`src/data/icones.generated.ts`, hors de `ui`). */
 export const MANEUVER_ICON: Record<AttackKind, IconId> = {
   arme: 'action/attack', morsure: 'creature/bite', caudale: 'creature/tail', cornes: 'creature/horns',
@@ -172,7 +172,7 @@ export interface AttackOption {
   id: string;
   kind?: AttackKind;
   label: string;
-  /** Id d'icône du registre `src/ui/icons/` (la hotbar rend `<Icon id>`). */
+  /** Id d'icône du registre `src/data/icons/` (la hotbar rend `<Icon id>`). */
   icon: IconId;
   targeting: 'melee' | 'zone' | 'aucontact' | 'grapple';
   reach?: number;
@@ -710,7 +710,7 @@ export function distraireFoes(mover: Combatant, battle: BattleState): Combatant[
 }
 
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps
- *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`battementRoll`). */
+ *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetRoll('battement')`). */
 export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: Combatant): void {
   set({ pendingBattement: { attackerId: attacker.id, foeId: foe.id, result: null } });
 }

@@ -58,7 +58,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
   it('le jet INVERSÉ de la main directrice est tranché à l’ouverture, puis joué tel quel (34 → 43)', () => {
     setupBattle();
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 34, attackerDetail: { roll: 34, target: 50, success: true, sl: 1 } } as never), dualMode: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike!.jet).toBe(reverseRoll(34));
     banc.getState().dualStrikeAttack('f2');
     expect(banc.getState().pendingAttack?.result?.attackerRoll).toBe(43);
@@ -68,7 +68,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
     const { f1 } = setupBattle();
     f1.important = true; // LDB 18 l.44 : hors Mort subite
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ critical: true, critLocation: 'corps' }), dualMode: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     for (let i = 0; i < 20 && !banc.getState().pendingDualStrike; i++) avanceEtapeCascade(banc.getState, undefined, () => 'subir');
     const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
     expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
@@ -145,7 +145,7 @@ describe('chaînage de l’Action « des deux armes »', () => {
   it('main touche → pendingDualStrike ouvert + −10 défense posé ; dualStrikeAttack → 2ᵉ frappe pré-résolue ; confirm → fermé', () => {
     setupBattle(DEUX_ARMES);
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const ds = banc.getState().pendingDualStrike;
     expect(ds).not.toBeNull();
     expect(ds!.offWeaponUid).toBe('o');
@@ -156,14 +156,14 @@ describe('chaînage de l’Action « des deux armes »', () => {
     expect(pa?.dualSecond).toBe(true);
     expect(pa?.result).not.toBeNull();
 
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
 
   it('main MANQUE → pas de 2ᵉ frappe (pendingDualStrike reste null), mais −10 défense quand même posé', () => {
     setupBattle(DEUX_ARMES);
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defender' }), dualMode: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
   });
@@ -173,7 +173,7 @@ describe('chaînage de l’Action « des deux armes »', () => {
     f2.pos = { x: 7, y: 3 }; // hors d'Allonge de la main secondaire
     f1.wounds.current = 8; // dépassement : Mort Subite du figurant (LDB 18 l.46)
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 9, woundsLost: 9 }), dualMode: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     draineCascade(banc.getState); // Blessure Critique du dépassement, Déviation comprise : LDB 18 l.17, LDB 63 l.30
     expect(isOutOfAction(banc.getState().battle!.combatants.find((c) => c.id === 'f1')!), 'pré-requis : la 1re frappe a tué').toBe(true);
     expect(banc.getState().pendingDualStrike).toBeNull();
@@ -191,7 +191,7 @@ describe('Avantage : +1 UNIQUE et seulement si les DEUX frappes touchent (LDB 10
       pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any,
       pendingAttack: { attackerId: 'h', targetId: 'f2', location: 'corps', result: hitRes(), dualSecond: true, weaponUid: 'o' } as any,
     });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.advantage).toBe(1);
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
@@ -203,7 +203,7 @@ describe('Avantage : +1 UNIQUE et seulement si les DEUX frappes touchent (LDB 10
       pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any,
       pendingAttack: { attackerId: 'h', targetId: 'f2', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defender' }), dualSecond: true, weaponUid: 'o' } as any,
     });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.advantage).toBe(0);
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
@@ -214,13 +214,13 @@ describe('bornage : jamais sur une attaque gratuite / enchaînée (LDB 10 l.767-
     setupBattle({ talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] as any });
     // Une attaque de balayage (cleave) n'a JAMAIS dualMode (le toggle est masqué si pa.cleave).
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), cleave: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
   it('attaque normale (sans dualMode) avec le talent : pas de pendingDualStrike', () => {
     setupBattle({ talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] as any });
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes() } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike).toBeNull();
   });
 });
@@ -251,7 +251,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
     banc.getState().dualStrikeAttack('f2');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: pg.target, success: true, sl: 0 } });
-    banc.getState().handGateConfirm();
+    banc.getState().jetConfirm('handGate');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack?.dualSecond).toBe(true);
@@ -264,7 +264,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
     banc.getState().dualStrikeAttack('f2');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
-    banc.getState().handGateConfirm();
+    banc.getState().jetConfirm('handGate');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeNull();
@@ -302,18 +302,18 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
   it('siège MJ : 2ᵉ frappe résolue en attaquant seul, la fenêtre s’interpose, la fermeture l’applique', () => {
     setupBattle();
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
-    // La 1ʳᵉ frappe revient de SA fenêtre (`pa.defended`, posé par `defenseConfirm`) : elle touche.
+    // La 1ʳᵉ frappe revient de SA fenêtre (`pa.defended`, posé par `jetConfirm('defense')`) : elle touche.
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect(banc.getState().pendingDualStrike).not.toBeNull();
     banc.getState().dualStrikeAttack('f2');
     expect(banc.getState().pendingAttack?.result?.defenderDetail, 'aucun jet de défense roulé en silence').toBeUndefined();
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     const pd = banc.getState().pendingDefense;
     expect(pd?.defenderId, 'la fenêtre de f2 s’interpose').toBe('f2');
     expect(pd?.suite.mode === 'pilotee' && pd.suite.pa.dualSecond, 'la 2ᵉ frappe voyage sur la fenêtre').toBe(true);
-    banc.getState().defenseRoll();
-    banc.getState().defenseConfirm();
+    banc.getState().jetRoll('defense');
+    banc.getState().jetConfirm('defense');
     expect(banc.getState().pendingDefense).toBeNull();
     expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe est appliquée').toBeNull();
   });
@@ -328,13 +328,13 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     setupBattle();
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     banc.setState({ pendingDualStrike: { ...banc.getState().pendingDualStrike!, jet: 56 } });
     banc.getState().dualStrikeAttack('f2');
     expect(banc.getState().pendingAttack?.result?.attackerDetail?.roll, 'la 2ᵉ frappe prend le jet tranché').toBe(56);
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     expect((banc.getState().pendingDefense as any)?.atk?.roll, 'le jet figé voyage sur la fenêtre').toBe(56);
-    banc.getState().defenseRoll();
+    banc.getState().jetRoll('defense');
     expect(banc.getState().pendingDefense?.result?.attackerDetail?.roll, 'l’opposition garde le jet de l’attaquant').toBe(56);
   });
 
@@ -346,12 +346,12 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     setupBattle();
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 43, attackerDetail: { roll: 43, target: 50, success: true, sl: 0 } } as any), dualMode: true, defended: true } as any });
-    banc.getState().attackConfirm();
+    banc.getState().jetConfirm('attack');
     banc.setState({ pendingDualStrike: { ...banc.getState().pendingDualStrike!, jet: reverseRoll(34) } });
     banc.getState().dualStrikeAttack('f2');
-    banc.getState().attackConfirm();
-    banc.getState().defenseRoll();
-    banc.getState().defenseSetForcedRoll(deDefense);
+    banc.getState().jetConfirm('attack');
+    banc.getState().jetRoll('defense');
+    banc.getState().jetSetForcedRoll('defense', deDefense);
     expect(banc.getState().pendingDefense?.result?.netSL).toBe(inline.netSL);
   });
 });

@@ -72,7 +72,7 @@ persistance — chaque combat spawn une coque fraîche.
 - `billets[véhicule]` (`RouteBillet`) — BILLET d'auteur d'un passage payant, posé sur la PREMIÈRE route du
   trajet : `prix` par classe du véhicule (sous par place, forfait du trajet), `suite` (routes suivantes
   couvertes, contiguës, dans le mode), `depuis` (exigé si la route n'a pas de `from`), `marchandage`
-  (`presetId` du vendeur au narratif, `paliers` `{ drMin, prix }` du Test gagné), provenance `source` ∨
+  (`presetId` du vendeur au narratif, `paliers` `{ seuil, prix }` (`palierSchema`) du Test gagné), provenance `source` ∨
   `maison`. Payé une fois au départ (`src/noyau/billetFlow.ts`), il couvre sa suite sans débit et
   s'abandonne si le groupe part ailleurs ou autrement. Sans billet d'auteur, le passage se paie au km
   de la classe (`billetImplicite`, LDB 51 l.178). Validation au chargement : `worldmap.ts`.

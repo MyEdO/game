@@ -2,26 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildFieldConsumersMd } from '../../scripts/docs/build-field-consumers.mjs';
-import { TARGETS, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
+import { CIBLES_DE_GRAMMAIRE, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../../scripts/guards/lib/fieldConsumers.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
-import { mesurerChampsDeSchema } from '../../scripts/guards/lib/schemaFieldConsumers.mjs';
+import { ciblesDeCatalogue, mesurerChampsDeSchema } from '../../scripts/guards/lib/schemaFieldConsumers.mjs';
 import { z } from 'zod';
 import { variantOf } from './schemas/grammaire/valeurs';
 import { nommerChamps } from './schemas/grammaire/meta';
-import { detenteur } from '../detenteur.testkit';
+import { detenteur } from '../lib/detenteur.testkit';
 import { markSchema } from './schemas/defs/progression-schemas-derived';
 
 /**
  * Garde du rapport « consommateurs par champ » (#903 — `scripts/docs/build-field-consumers.mts`,
- * `docs/consommateurs-de-champs.md`), en six blocs : la MORSURE du diagnostic d'écart (`ecartDoc`,
- * qui nomme la divergence dont vit le bloc DÉTERMINISME) ; le PÉRIMÈTRE de `TARGETS`, où aucune
- * cible ne rend zéro champ ; le cas FONDATEUR (`TrappingRef.spec`, #903) en CONTRAT POSITIF
+ * `docs/consommateurs-de-champs.md`), en sept blocs : la MORSURE du diagnostic d'écart (`ecartDoc`,
+ * qui nomme la divergence dont vit le bloc DÉTERMINISME) ; le PÉRIMÈTRE des cibles, où aucune cible
+ * ne rend zéro champ ; la DÉRIVATION des cibles de catalogue (`ciblesDeCatalogue`), mordue sur
+ * fixtures ; le cas FONDATEUR (`TrappingRef.spec`, #903) en CONTRAT POSITIF
  * `fichier:ligne` sur le dépôt RÉEL ; le DÉTERMINISME cross-OS (ordre total de la liste des racines,
  * et `.md` byte-identique sur le corpus inversé) ; le CONTRAT POSITIF des champs dont le détecteur
- * au `TypeChecker` (#1620) a recouvré les lecteurs, chacun nommé avec son site, avec le CLIQUET
- * NOMINATIF des « 0 lecteur » (un zéro apparu comme un zéro disparu est rouge, et une ligne ne se
- * retire qu'avec le lecteur qui l'annule) ; et la MORSURE du détecteur sur des fixtures en mémoire
+ * au `TypeChecker` (#1620) a recouvré les lecteurs, chacun nommé avec son site, avec les CLIQUETS
+ * NOMINATIFS des « 0 lecteur » et des champs absents du type TS (une entrée apparue comme une entrée
+ * disparue est rouge) ; et la MORSURE du détecteur sur des fixtures en mémoire
  * (dernier `describe`), où chaque verdict REFUSÉ est asserté autant que chaque verdict accordé.
  */
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -183,20 +184,105 @@ describe('MORSURE du diagnostic d’écart — chaque écart se dit en clair', (
  * CONTRAT POSITIF sur le PÉRIMÈTRE lui-même. `fieldsOf` rend `[]` — sans lever — pour un nœud qui
  * n'expose ni `.shape` ni `.options` : un export de schéma renommé/supprimé laisse la cible pointer
  * `undefined`, le rapport perd le type EN SILENCE et le test de fraîcheur reste VERT (le doc régénéré
- * et le doc committé s'accordent sur la même table vide).
+ * et le doc committé s'accordent sur la même table vide). Le cas d'école de la dérivation : les champs
+ * de l'entrée de `trappings.json` qu'aucune cible écrite à la main ne portait.
  */
-describe('périmètre de TARGETS — aucune cible ne rend zéro champ', () => {
+describe('périmètre des cibles — aucune cible ne rend zéro champ', () => {
   it('chaque cible expose au moins un champ (une cible muette = un type perdu du rapport)', () => {
-    const cibles = TARGETS as readonly { schema?: unknown; cles?: readonly string[]; type: string }[];
-    const muettes = cibles.filter((t) => fieldsOf(t.schema ?? t.cles).length === 0).map((t) => t.type);
+    const muettes = rapport().cibles.filter((t) => t.champs.length === 0).map((t) => t.type);
     expect(
       muettes,
-      'cible(s) sans champ : le schéma visé a disparu/changé de forme, ou le nœud est scellé (fournir `cles:`)',
+      'cible(s) sans champ : le schéma visé a disparu ou changé de forme',
     ).toEqual([]);
-  });
+  }, 240_000);
 
   it('la garde n’est pas vacante — une cible au schéma disparu est DÉTECTÉE (contre-épreuve)', () => {
     expect(fieldsOf(undefined)).toEqual([]);
+  });
+
+  it('l’entrée de `trappings.json` est DÉRIVÉE : `TrappingData` porte les champs de son schéma', () => {
+    const trappings = rapport().cibles.find((c) => c.type === 'TrappingData');
+    expect(trappings, 'TrappingData absent des cibles dérivées').toMatchObject({ home: 'src/data/index.ts', catalogues: ['trappings.json'] });
+    expect(trappings!.champs).toEqual(expect.arrayContaining(['service', 'formChoices', 'prosthesisTraining']));
+  }, 240_000);
+});
+
+/**
+ * DÉRIVATION des cibles de catalogue (`ciblesDeCatalogue`) sur des sources EN MÉMOIRE : un def chargé
+ * sous un type nommé ENTRE sans qu'aucune liste change, le même def sans chargement typé SORT avec sa
+ * raison, et chaque forme de type non nommé dit SA raison.
+ */
+describe('DÉRIVATION des cibles de catalogue — entrée par la jointure, sortie par raison émise', () => {
+  const schema = z.array(z.object({ id: z.string(), poids: z.number() }));
+  const deriver = (lecteur: string, definitions: { file: string; schema: unknown }[] = [{ file: 'a.json', schema }]) => {
+    const sources = { 'src/data/a.json': '[{"id":"a","poids":1}]', 'src/data/types.ts': 'export interface AData { id: string; poids: number }', 'src/lecteur.ts': lecteur };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      return ciblesDeCatalogue(VIRTUAL_ROOT, session, Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)), definitions);
+    } finally { session.dispose(); }
+  };
+
+  it('un chargement TYPÉ fait entrer le type de l’entrée, domicilié à sa déclaration, aux clés du schéma', () => {
+    expect(deriver(`import a from './data/a.json'; import type { AData } from './data/types'; export const tout = a as AData[];`)).toEqual({
+      cibles: [{ type: 'AData', home: 'src/data/types.ts', cles: ['id', 'poids'], files: ['a.json'] }],
+      sorties: [],
+    });
+  });
+
+  it('le MÊME def sans chargement typé SORT, avec la raison mesurée', () => {
+    expect(deriver(`import a from './data/a.json'; export const n = a.length;`)).toEqual({
+      cibles: [],
+      sorties: [{ file: 'a.json', raison: 'aucun chargement typé (cast, annotation ou porte `rangeesDe`)' }],
+    });
+  });
+
+  it('un littéral inline, une intersection et `unknown` disent chacun leur raison', () => {
+    const raison = (lecteur: string) => deriver(`import a from './data/a.json'; import type { AData } from './data/types'; ${lecteur}`).sorties.map((x) => x.raison);
+    expect(raison('export const v = a as { id: string; poids: number }[];')).toEqual(['littéral anonyme `{…}` au chargement src/lecteur.ts:1']);
+    expect(raison('export const v = a as (AData & { x?: 1 })[];')).toEqual(['intersection anonyme au chargement src/lecteur.ts:1']);
+    expect(raison('export const v = a as unknown[];')).toEqual(['type `unknown` au chargement src/lecteur.ts:1']);
+  });
+
+  it('une vue de sous-chemin seule ne nomme pas l’entrée : sortie, chemin et site nommés', () => {
+    const objet = z.object({ table: z.array(z.object({ id: z.string() })) });
+    const sources = `import a from './data/a.json'; export const t = a.table as { id: string }[];`;
+    expect(deriver(sources, [{ file: 'a.json', schema: objet }]).sorties).toEqual([
+      { file: 'a.json', raison: "aucune vue typée de l'entrée — vues de sous-chemins seulement : `table` (src/lecteur.ts:1)" },
+    ]);
+  });
+
+  it('CLIQUETS : un catalogue neuf aux seules clés d’enveloppe ne les bouge pas, un champ hors enveloppe jamais lu les bouge', () => {
+    const sources = {
+      'src/data/a.json': '[]',
+      'src/data/types.ts': 'export interface AData { id: string; poids: number; neuf?: string }',
+      'src/lecteur.ts': `import a from './data/a.json'; import type { AData } from './data/types';
+export const tout = a as AData[]; export const poids = (x: AData) => x.poids;`,
+    };
+    const fichiers = Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p));
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      const cliquets = (entree: z.ZodRawShape) => {
+        const r = buildFieldConsumersMd(fichiers, { racine: VIRTUAL_ROOT, programme: session, definitions: [{ file: 'a.json', schema: z.array(z.object(entree)) }], grammaire: [] });
+        return { cibles: r.cibles.map((c) => c.type), zeros: r.zeros, absents: r.absents };
+      };
+      // `id` jamais lu, `type`/`label`/`source` absents de `AData` : toutes clés d'ENVELOPPE.
+      const enveloppe = { id: z.string(), type: z.string(), label: z.string(), source: z.string(), poids: z.number() };
+      expect(cliquets(enveloppe)).toEqual({ cibles: ['AData'], zeros: [], absents: [] });
+      expect(cliquets({ ...enveloppe, neuf: z.string(), extra: z.string() })).toEqual({ cibles: ['AData'], zeros: ['AData.neuf'], absents: ['AData.extra'] });
+    } finally { session.dispose(); }
+  });
+
+  it('un type atteint par DEUX defs est UNE cible, à l’union de leurs clés', () => {
+    const b = z.array(z.object({ id: z.string(), teinte: z.string() }));
+    const lecteur = `import a from './data/a.json'; import b from './data/b.json'; import type { AData } from './data/types';
+export const x = a as AData[]; export const y = b as unknown as AData[];`;
+    const sources = { 'src/data/a.json': '[]', 'src/data/b.json': '[]', 'src/data/types.ts': 'export interface AData { id: string; poids: number }', 'src/lecteur.ts': lecteur };
+    const session = virtualProgram(sources, { resolveJsonModule: true, allowSyntheticDefaultImports: true });
+    try {
+      expect(ciblesDeCatalogue(VIRTUAL_ROOT, session, Object.keys(sources).map((p) => join(VIRTUAL_ROOT, p)), [{ file: 'a.json', schema }, { file: 'b.json', schema: b }]).cibles).toEqual([
+        { type: 'AData', home: 'src/data/types.ts', cles: ['id', 'poids', 'teinte'], files: ['a.json', 'b.json'] },
+      ]);
+    } finally { session.dispose(); }
   });
 });
 
@@ -213,8 +299,8 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
    * (`src/data/dotations-catalogue.test.ts`, `src/engine/integration-creation.test.ts`).
    */
   it('`TrappingRef.spec` : DEUX lecteurs, résolution et matérialisation — aucun dans le rendu', () => {
-    const target = TARGETS.find((t) => t.type === 'TrappingRef');
-    expect(target, 'TrappingRef absent de TARGETS — le cas fondateur a perdu sa surface').toBeTruthy();
+    const target = CIBLES_DE_GRAMMAIRE.find((t) => t.type === 'TrappingRef');
+    expect(target, 'TrappingRef absent de CIBLES_DE_GRAMMAIRE — le cas fondateur a perdu sa surface').toBeTruthy();
     const byField = rapport().byType.get('TrappingRef');
     expect(byField, 'TrappingRef absent du rapport mesuré').toBeTruthy();
     // `fichier @symbole` (ancre de `Hit`, `scripts/docs/build-field-consumers.mts`) : le fichier seul
@@ -286,18 +372,73 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
 ];
 
 /**
- * CLIQUET des « 0 lecteur » : la liste des champs PROPRES sans aucun lecteur, écrite NOMINATIVEMENT
- * et comparée à l'identique. Une ligne sort quand le champ disparaît ou retrouve un lecteur ;
- * un zéro NOUVEAU (champ dont le dernier lecteur disparaît) est rouge sous
- * son nom, jamais avalé par un plafond. Ne sont ici ni les champs HÉRITÉS (leur « 0 » est
- * tautologique) ni les champs ABSENTS du type TS — ce ne sont pas des mesures de lecture.
+ * CLIQUET des « 0 lecteur » : les champs PROPRES sans aucun lecteur, HORS clés d'enveloppe de
+ * `document()` (`CLES_ENVELOPPE`, classe structurelle que le rapport émet à part), écrits NOMINATIVEMENT
+ * par type et comparés à l'identique. Une ligne sort quand le champ disparaît ou retrouve un lecteur ; un zéro
+ * NOUVEAU (champ dont le dernier lecteur disparaît, champ de schéma neuf jamais lu) est rouge sous son
+ * nom, jamais avalé par un plafond. Ne sont ici ni les champs HÉRITÉS (leur « 0 » est tautologique)
+ * ni les champs ABSENTS du type TS, qui ont leur cliquet (`ABSENTS`). Un zéro dont la lecture passe
+ * hors du type de l'entrée le dit par sa raison (`RAISONS_DES_ZEROS`) ; il reste au rapport.
  */
-const ZEROS = [
-  'CastingNumberMod.desc',
-  'CastingNumberMod.maison',
-  'CastingNumberMod.source',
-  'PropData.type',
-];
+const ZEROS: Readonly<Record<string, readonly string[]>> = {
+  ActionDef: ['blocked'],
+  ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
+  ActivityStakeEntry: ['stakeForm'],
+  AdvanceCostBand: ['max', 'min'],
+  DetailColorData: ['randByRace'],
+  DomainData: ['grantGroups'],
+  EtatData: ['severity'],
+  GodData: ['grantGroups'],
+  InterludeEvent: ['atelierNote'],
+  LocationData: ['prefix', 'suffix'],
+  ManeuverDef: ['stakeForm'],
+  MiscastTableDef: ['die'],
+  PresetDePersonnage: ['build', 'couleurs', 'sex'],
+  PsychologyData: ['stakeForm'],
+  QualityData: ['aspect'],
+  RaceAppearanceData: ['scale'],
+  ReseauRoutierData: [
+    'effectifMax', 'effectifMin', 'effectifRouteReculeeMax', 'effectifRouteReculeeMin', 'espacementKm',
+    'espacementKmMax', 'espacementKmMin', 'etapeChevalJours', 'etapeDiligenceJours', 'etapePiedJours',
+    'facteurGrandsTroublesMax', 'facteurGrandsTroublesMin', 'facteurZoneDangereuse', 'kind', 'largeurMaxM',
+    'largeurMinM', 'prixSurcotePct', 'tarifBrassMax', 'tarifBrassMin',
+  ],
+  SeaPerilsData: ['hazardsWeightNote', 'tourbillonSwim'],
+  SeaWeatherData: ['encalmine'],
+  SkillData: ['specsOpen'],
+  StakeEntry: ['entryFromSource', 'form'],
+  StarData: ['classique'],
+  StructureData: ['enc', 'encLimit'],
+  TalentData: ['codexOnly', 'grantSpecGroups', 'specsOpen'],
+  TraitData: ['difficulte', 'grantSpecGroups', 'specsOpen'],
+  TrappingData: [
+    'bladed', 'consumableDuration', 'container', 'defaultAmmo', 'indirect', 'minRangeBand', 'onHitEffects',
+    'organicProjectile', 'requiresMastery', 'service', 'sizeFor', 'soloSimple',
+  ],
+  VehicleData: ['deck'],
+};
+
+/** Raison d'un zéro LU hors du type de l'entrée, mesurée par la jointure (lecture reliée au dataset sous
+ *  une autre vue) ou par clé dynamique. Les clés d'ENVELOPPE sans lecteur, elles, sont classées par le
+ *  rapport (`CLES_ENVELOPPE`). */
+const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
+  'MiscastTableDef.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
+  'TrappingData.service': 'lu par clé dynamique : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`)',
+};
+
+/** CLIQUET des champs du SCHÉMA ABSENTS du type TS de leur cible (divergence schéma↔type), hors clés
+ *  d'enveloppe et nominatif par type comme `ZEROS`. Une vue étroite (`ActivityStakeEntry`) y porte tout ce qu'elle ne déclare pas. */
+const ABSENTS: Readonly<Record<string, readonly string[]>> = {
+  ActivityStakeEntry: [
+    'assisted', 'blocked', 'char', 'classGate', 'combined', 'contexts', 'difficulty', 'difficultyFrom',
+    'encounter', 'extended', 'failExtenue', 'freeSkill', 'generalDownOn', 'grantsFlag', 'hold', 'minInvest',
+    'onSuccess', 'outcomes', 'requires', 'resolver', 'rounds', 'sceneKind', 'skills', 'stageOutcome',
+    'testModFrom', 'testMods', 'threat', 'unavailableIfExtenue', 'weatherMod', 'where', 'worldRolls',
+  ],
+};
+
+const aplatir = (parType: Readonly<Record<string, readonly string[]>>) =>
+  Object.entries(parType).flatMap(([type, champs]) => champs.map((c) => `${type}.${c}`)).sort();
 
 describe('contrat POSITIF des champs recouvrés + cliquet des « 0 lecteur »', () => {
   it('chaque champ recouvré a son lecteur MESURÉ au site nommé', () => {
@@ -319,15 +460,23 @@ describe('contrat POSITIF des champs recouvrés + cliquet des « 0 lecteur »', 
     expect(
       [...rapport().zeros].sort(),
       'zéro apparu (régression : un champ a perdu son dernier lecteur) ou zéro disparu (retirer sa ligne de ZEROS)',
-    ).toEqual(ZEROS);
+    ).toEqual(aplatir(ZEROS));
+    expect(Object.keys(RAISONS_DES_ZEROS).filter((c) => !rapport().zeros.includes(c)), 'raison d’un zéro qui n’en est plus un').toEqual([]);
     // RECOUPEMENT : le cardinal RENDU dans la Synthèse — ce qu'un humain lit — contre la liste
     // nommée. (`totalUnread` et `zeros` sont incrémentés côte à côte dans le générateur : les
     // comparer l'un à l'autre ne mesurerait rien.)
-    const rendu = /\*\*(\d+) avec « 0 lecteur » mesuré\*\*/.exec(rapport().md);
+    const rendu = /\*\*(\d+) « 0 lecteur »\*\* et \*\*(\d+) absents\*\* sont sous CLIQUET/.exec(rapport().md);
     expect(
-      rendu?.[1],
-      'la Synthèse du rapport ne publie plus son cardinal « 0 lecteur » sous la forme attendue',
-    ).toBe(String(ZEROS.length));
+      rendu?.slice(1),
+      'la Synthèse du rapport ne publie plus ses cardinaux sous cliquet sous la forme attendue',
+    ).toEqual([String(aplatir(ZEROS).length), String(aplatir(ABSENTS).length)]);
+  }, 150_000);
+
+  it('les champs ABSENTS du type TS sont EXACTEMENT ceux de la liste — cliquet nominatif', () => {
+    expect(
+      [...rapport().absents].sort(),
+      'divergence schéma↔type apparue (déclarer le champ sur le type) ou disparue (retirer sa ligne d’ABSENTS)',
+    ).toEqual(aplatir(ABSENTS));
   }, 150_000);
 });
 
@@ -554,5 +703,34 @@ export const etranger = (r: Pick<Autre, 'spec'>) => r.spec;
       expect(etats.get('fantome')).toEqual({ etat: 'absent' });
 
     } finally { programme.dispose(); }
+  });
+
+  it('DÉCLARANT d’un champ à DEUX déclarations : le premier en (fichier, position), quel que soit l’ordre du type', () => {
+    // `Zeta` est le PREMIER constituant de l'union, `Alpha` le premier en ordre de fichier : le déclarant
+    // imprimé suit l'ordre total (`premiereDeclaration`), jamais l'ordre que le `TypeChecker` rend.
+    const fixtures = {
+      'src/a-alpha.ts': 'export interface Alpha { note?: string }',
+      'src/b-zeta.ts': 'export interface Zeta { note?: string }',
+      'src/u.ts': `import type { Alpha } from './a-alpha';
+import type { Zeta } from './b-zeta';
+export type Les2 = Zeta | Alpha;
+export type Les2Inverse = Alpha | Zeta;
+`,
+    };
+    const programme = virtualProgram(fixtures);
+    const fichiers = Object.keys(fixtures).map((rel) => join(VIRTUAL_ROOT, rel));
+    try {
+      for (const type of ['Les2', 'Les2Inverse']) {
+        expect(fieldOwnership({ type, home: 'src/u.ts' }, ['note'], fichiers, VIRTUAL_ROOT, new Map(), programme).get('note')).toEqual({ etat: 'herite', declarant: 'Alpha' });
+      }
+    } finally { programme.dispose(); }
+  });
+
+  it('la CASSE du `home` n’est pas repliée : un chemin de casse divergente est une cible non résoluble', () => {
+    // Les deux côtés de la comparaison viennent du MÊME Program : une casse divergente est une erreur
+    // d'écriture de la cible, levée, jamais un fichier trouvé par repli sur un système insensible.
+    expect(() => sites('TrappingRef', 'src/Types.ts', 'spec')).toThrowError(
+      'fieldConsumers : type `TrappingRef` introuvable dans src/Types.ts — cible non résoluble',
+    );
   });
 });

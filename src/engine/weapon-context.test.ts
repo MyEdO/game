@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveWeapon, effectiveWeaponDamage } from './weaponDamage';
-import { resolveMelee, hasWeaponGroupSkill, combatValue } from './combat';
-import { weaponHands, recomputeLoadout, itemFromTrappingById, weaponFromItem } from './items';
+import { resolveMelee, hasWeaponGroupSkill, combatValue, attackTestOf } from './combat';
+import { weaponHands, recomputeLoadout, itemFromTrappingById, weaponFromItem, setADeuxMains, loadoutSetSlot, activeLoadout } from './items';
+import { maniementRetenu } from './weaponGroup';
+import { resolveQualities } from './qualities/dispatch';
 import { dangerousNine, hasQuality } from './qualities/dispatch';
 import { makeRNG } from './dice';
-import type { Weapon, Combatant } from './types';
+import type { Weapon, Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Règles d'arme CONTEXTUELLES de Groupe (Issue #43.1, LDB 62) :
@@ -155,5 +157,173 @@ describe('43.1a — Cavalerie (2M) à pied → Deux Mains (LDB 62 l.142-143)', (
     const mounted = combatant({ mountId: 'horse', items: [{ ...marteau, equipped: true }] });
     recomputeLoadout(mounted);
     expect(mounted.weapons.find((w) => w.label.includes('bec-de-corbin'))?.hands).toBe(1);
+  });
+});
+
+/** AA 08 l.188 ; AA 08 l.190 */
+const cac = (spec: string, advances: number): SkillInstance => ({ id: 'corps-a-corps', characteristic: 'capacite-de-combat', spec, advances });
+/** Qualités de `w` maniée par `c` (`maniementRetenu` aux mains qui la tiennent), Groupe compris. */
+const qualitesManiees = (c: Combatant, w: Weapon) => resolveQualities(effectiveWeapon(w, { maniement: maniementRetenu(c, w, w.hands) })).map((q) => q.id).sort();
+
+describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts du maniement', () => {
+  const sabre = (): Weapon => weaponFromItem(itemFromTrappingById('sabre')!);
+  const marteau = (): Weapon => weaponFromItem(itemFromTrappingById('marteau-a-bec-de-corbin')!);
+  const taillade = (c: Combatant, w: Weapon) =>
+    effectiveWeapon(w, { maniement: maniementRetenu(c, w, w.hands) }).qualities.find((q) => q.id === 'taillade')?.value;
+
+  it('sabre à pied avec Corps à Corps (Base) : Test de Base, Taillade (2A)', () => {
+    const c = combatant({ skills: [cac('base', 10)] });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(2);
+  });
+
+  it('sabre à pied avec Corps à Corps (Escrime) : Test d’Escrime, Taillade (1A)', () => {
+    const c = combatant({ skills: [cac('escrime', 10)] });
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'escrime' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(1);
+  });
+
+  it('sabre monté : Test de Cavalerie, Taillade (1A), aucun maniement à pied', () => {
+    const c = combatant({ mountId: 'cheval', skills: [cac('cavalerie', 10), cac('base', 20)] });
+    expect(maniementRetenu(c, sabre())).toBeUndefined();
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(1);
+  });
+
+  it('à pied avec la seule Spé de Cavalerie : Test de Cavalerie, Taillade (1A)', () => {
+    const c = combatant({ skills: [cac('cavalerie', 10)] });
+    expect(maniementRetenu(c, sabre())).toBeUndefined();
+    expect(attackTestOf(c, sabre(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(combatValue(c, 'melee', sabre())).toBe(65);
+    expect(taillade(c, sabre())).toBe(1);
+  });
+
+  it('à pied sans aucune de ces Spés : Caractéristique brute', () => {
+    const c = combatant({ skills: [cac('armes-d-hast', 10)] });
+    expect(combatValue(c, 'melee', sabre())).toBe(55);
+    expect(hasWeaponGroupSkill(c, sabre(), 'melee')).toBe(false);
+  });
+
+  it.each([
+    ['Base plus haute', [cac('base', 20), cac('escrime', 10), cac('cavalerie', 5)], 'base', 2],
+    ['Escrime plus haute', [cac('base', 10), cac('escrime', 20)], 'escrime', 1],
+    ['Cavalerie plus haute', [cac('base', 10), cac('cavalerie', 20)], undefined, 1],
+    ['Base et Escrime à égalité : le maniement qui garde Taillade (1A)', [cac('base', 10), cac('escrime', 10)], 'escrime', 1],
+    ['Base et Cavalerie à égalité : le Groupe de l’arme', [cac('base', 10), cac('cavalerie', 10)], undefined, 1],
+  ])('plusieurs Spés à pied, %s', (_cas, skills, groupe, indice) => {
+    const c = combatant({ skills });
+    expect(maniementRetenu(c, sabre())?.groupe).toBe(groupe);
+    expect(taillade(c, sabre())).toBe(indice);
+  });
+
+  it('marteau à bec-de-corbin : Corps à Corps (Deux mains) à pied, Cavalerie monté', () => {
+    const skills = [cac('deux-mains', 10), cac('cavalerie', 5)];
+    const aPied = combatant({ skills });
+    expect(attackTestOf(aPied, marteau(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+    expect(combatValue(aPied, 'melee', marteau())).toBe(65);
+    const monte = combatant({ mountId: 'cheval', skills });
+    expect(attackTestOf(monte, marteau(), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'cavalerie' });
+    expect(combatValue(monte, 'melee', marteau())).toBe(60);
+  });
+});
+
+/** AA 08 l.343 */
+describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et Lente', () => {
+  const porteur = (skills: SkillInstance[], ids = ['epee-batarde', 'bouclier']): Combatant => {
+    const c = combatant({ skills, items: ids.map((id) => ({ ...itemFromTrappingById(id)!, equipped: true })) });
+    recomputeLoadout(c);
+    return c;
+  };
+  const batarde = (c: Combatant) => c.weapons.find((w) => w.trappingId === 'epee-batarde')!;
+  const tenirLeBouclier = (c: Combatant) => {
+    const lo = activeLoadout(c)!;
+    loadoutSetSlot(c, lo.id, 'off', c.items!.find((i) => i.trappingId === 'bouclier')!.uid);
+    recomputeLoadout(c);
+  };
+
+  it('bouclier en main secondaire : Test de Base, une main, Épuisante et Lente acquises', () => {
+    const c = porteur([cac('base', 10), cac('deux-mains', 20)]);
+    expect(batarde(c).hands).toBe(2);
+    expect(setADeuxMains(c, activeLoadout(c)!)).toBe(false);
+    tenirLeBouclier(c);
+    expect(batarde(c).hands).toBe(1);
+    expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(combatValue(c, 'melee', batarde(c))).toBe(65);
+    expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice', 'epuisante', 'lente']);
+  });
+
+  it('main secondaire libre, Deux mains plus haute : Test de Deux mains, sans ces Défauts', () => {
+    const c = porteur([cac('base', 10), cac('deux-mains', 20)], ['epee-batarde']);
+    expect(batarde(c).hands).toBe(2);
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+    expect(combatValue(c, 'melee', batarde(c))).toBe(75);
+    expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice']);
+  });
+
+  it('Base et Deux mains à égalité, main secondaire libre : le maniement qui garde les qualités', () => {
+    const c = porteur([cac('base', 10), cac('deux-mains', 10)], ['epee-batarde']);
+    expect(batarde(c).hands).toBe(2);
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'deux-mains' });
+  });
+
+  it('la seule Spé de Base : à une main, et le set par défaut lui donne le bouclier', () => {
+    const c = porteur([cac('base', 10)]);
+    expect(batarde(c).hands).toBe(1);
+    expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
+    expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+  });
+
+  it('sans Corps à Corps (Base) : deux mains, la main secondaire est refusée', () => {
+    const c = porteur([cac('deux-mains', 10)]);
+    expect(setADeuxMains(c, activeLoadout(c)!)).toBe(true);
+    activeLoadout(c)!.off = c.items!.find((i) => i.trappingId === 'bouclier')!.uid;
+    recomputeLoadout(c);
+    expect(batarde(c).hands).toBe(2);
+    expect(c.weapons.some((w) => w.hand === 'off')).toBe(false);
+    expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice']);
+  });
+
+  it('hors de tout porteur, l’arme de catalogue reste à deux mains et dans son Groupe', () => {
+    const w = weaponFromItem(itemFromTrappingById('epee-batarde')!);
+    expect(w.hands).toBe(2);
+    expect(maniementRetenu(combatant({ skills: [cac('base', 10)] }), w, w.hands)).toBeUndefined();
+  });
+});
+
+/** AA 08 l.194 ; AA 08 l.314 */
+describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () => {
+  const arme = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id)!);
+
+  it.each([
+    ['la seule Base : Test de Base, qualités de la rapière', [cac('base', 10)], 'base'],
+    ['Escrime : Test d’Escrime', [cac('escrime', 10)], 'escrime'],
+    ['Base et Escrime à égalité : Escrime', [cac('base', 10), cac('escrime', 10)], 'escrime'],
+  ])('rapière, %s', (_cas, skills, spec) => {
+    const c = combatant({ skills });
+    expect(attackTestOf(c, arme('rapiere'), 'melee')).toEqual({ skill: 'corps-a-corps', spec });
+    expect(combatValue(c, 'melee', arme('rapiere'))).toBe(65);
+    expect(qualitesManiees(c, arme('rapiere'))).toEqual(['empaleuse', 'rapide']);
+  });
+
+  it('toute arme du Groupe Escrime, sans ligne par arme : le fleuret en Base', () => {
+    const c = combatant({ skills: [cac('base', 10)] });
+    expect(itemFromTrappingById('fleuret')!.manieAussi).toBeUndefined();
+    expect(attackTestOf(c, arme('fleuret'), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+  });
+
+  it('main gauche sans Parade : Test de Base, Défensive perdue', () => {
+    const c = combatant({ skills: [cac('base', 10)] });
+    expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'base' });
+    expect(qualitesManiees(c, arme('main-gauche'))).toEqual([]);
+  });
+
+  it('main gauche avec Parade : Test de Parade, Défensive gardée', () => {
+    const c = combatant({ skills: [cac('base', 10), cac('parade', 10)] });
+    expect(attackTestOf(c, arme('main-gauche'), 'melee')).toEqual({ skill: 'corps-a-corps', spec: 'parade' });
+    expect(qualitesManiees(c, arme('main-gauche'))).toEqual(['defensive']);
   });
 });

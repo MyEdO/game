@@ -36,8 +36,8 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
   places: [
-    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['bois'], surplus: { 'produits-de-luxe': 1 } } },
-    { id: 'B', label: 'Marienburg', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 4, richesse: 5, production: ['commerce'], demande: { bois: 1 }, cosmopolite: true } },
+    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['bois-mer'], surplus: { 'produits-de-luxe-mer': 1 } } },
+    { id: 'B', label: 'Marienburg', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 4, richesse: 5, production: ['commerce-mer'], demande: { 'bois-mer': 1 }, cosmopolite: true } },
   ],
   routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
@@ -66,7 +66,7 @@ function freshState() {
 /** Déroule la journée maritime jusqu'à une SUSPENSION (halte, Activités en mer) — la journée est
  *  désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO
  *  (Forcer le rythme/Prière) soit À PARTICIPANTS (batch, Tests d'équipage MDG
- *  ch.14 — `cascadeBatchRoll` par contributeur). Garde-fou 40 pas (crises/événements possibles).
+ *  ch.14 — `jetRoll('cascadeBatch')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
  *  `await tick()` reprend le jeton de reprise (`programmer`, 0 ms) d'un applier surfacé isolément
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = async (): Promise<void> => { banc.avancer(0); };
@@ -94,8 +94,8 @@ async function runSeaActivities() {
     // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
-      if (!cur.result) get().extendedTestRoll(cur.id);
-      get().extendedTestNext();
+      if (!cur.result) get().jetRoll('extendedTest', cur.id);
+      get().jetConfirm('extendedTest');
       await tick();
       continue;
     }
@@ -302,17 +302,17 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
   });
 
   it('#243 — headroom nominal vs plafond dur de surcharge (Cogue : Contenance 300, dur 450)', () => {
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 290, basePriceGold: 1 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 290, basePriceGold: 1 }] } });
     expect(encLibreNominale(get().vessel)).toBe(10); // 300 − 290 (nominal)
     expect(vesselMaxLoadEnc(get)).toBe(160); // 450 − 290 (surcharge possible)
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 440, basePriceGold: 1 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 440, basePriceGold: 1 }] } });
     expect(encLibreNominale(get().vessel)).toBe(0); // au-delà de la Contenance : plus de headroom nominal
     expect(vesselMaxLoadEnc(get)).toBe(10); // 450 − 440
   });
 
   it('#243 — l’achat au-delà de la Contenance surcharge (jusqu’à 150 %) et l’avertit ; jamais au-delà du plafond dur', async () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 290, basePriceGold: 1 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 290, basePriceGold: 1 }] } });
     fund(get().party[0].id, { gold: 100000, silver: 0, brass: 0 }); // bourse large pour l'achat en surcharge
     get().openPort();
     const offer = get().port!.offers[0]; // production/surplus copieux (Taille 4 + Richesse 4 × d10 × 10)
@@ -326,7 +326,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
 
   it('portDumpCargo brade à ¼ du prix de base dans un port « commerce »', () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 100, basePriceGold: 2 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] } });
     set({ scene: { ...emptyScene('port-b', 2, 2), label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
     get().openPort();
     const before = partyMoneyTotal(get).gold;

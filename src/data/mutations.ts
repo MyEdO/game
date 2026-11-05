@@ -2,7 +2,8 @@
  * Mutations & Tableaux de Corruption — Livre de base, chapitre 19 (p.184-185), VERBATIM.
  *
  * DÉCOUPLÉ : la MUTATION (identité + effets) vit dans `mutations.json` (entité éditable, SANS plage de
- * tirage) ; les TABLES de Corruption vivent dans `mutationTables.json` — des plages d100 qui RÉFÉRENCENT
+ * tirage) ; les TABLES de Corruption vivent dans `mutationTables.json` — des plages de leur dé de
+ * tirage (`die`) qui RÉFÉRENCENT
  * des mutations par id, et sont elles-mêmes indexées par leur propre `id` (physique/mentale/khorne…).
  * Plusieurs tables peuvent pointer la même mutation SANS collision (LDB : physique/mentale ; Compagnon
  * T1 : une table par dieu du Chaos rejoue les mêmes mutations à d'autres plages). Ce module = TYPES +
@@ -11,9 +12,11 @@
  * (carac), `ap` (armure naturelle), `grantNaturalWeapon` (arme), `grantTrait`/`grantPsychTrait` (traits) ;
  * descriptif non modélisable en `note`.
  */
-import { RNG, deMonde } from '../engine/dice';
+import { RNG, rollDice, type DiceSpec } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import type { Mutation } from '../engine/corruption';
+import type * as tablesDeCorruption from './schemas/defs/mutationTables';
+import { deDeTirageDe, type RangeeDe } from './rangees';
 import mutationsJson from './mutations.json';
 import mutationTablesJson from './mutationTables.json';
 import { stripBookMarker } from './bookMarker';
@@ -23,13 +26,14 @@ import type { PlayerText } from '../i18n/playerText';
 /** Une MUTATION (entité, `mutations.json`) : identité + effets, INDÉPENDANTE de toute table de tirage. */
 export type MutationData = Omit<Mutation, 'roll' | 'talentsAcquis'> & { type: 'mutations' };
 
-/** Une TABLE de Corruption (`mutationTables.json`) : plages d100 → référence de mutation par id.
- *  `id` STABLE (langue-indépendant — 'physique'/'mentale'/'khorne'…) ; `label` = affichage. */
+/** Une TABLE de Corruption (`mutationTables.json`) : plages de son dé de tirage `die` → référence de
+ *  mutation par id. `id` STABLE (langue-indépendant — 'physique'/'mentale'/'khorne'…) ; `label` = affichage. */
 export interface MutationTable {
   id: string;
   type: 'mutationTables';
   label: string;
-  ranges: { min: number; max: number; mutation: string }[];
+  die: string;
+  entries: RangeeDe<typeof tablesDeCorruption>[];
 }
 
 const MUTATIONS = mutationsJson as MutationData[];
@@ -37,7 +41,7 @@ const TABLES = mutationTablesJson as MutationTable[];
 const mutationParId = indexParId('mutations', MUTATIONS);
 const tableParId = indexParId('mutationTables', TABLES);
 
-/** Une LIGNE d'étape d'une table de Corruption : la fourchette d100 de `mutationTables.json` projetée
+/** Une LIGNE d'étape d'une table de Corruption : la fourchette de `mutationTables.json` projetée
  *  sur l'**id** STABLE de la mutation référencée, plus son `label` (AFFICHAGE seul — picker de lignes).
  *  Forme compatible `TableStepRow` (`noyau/cascade.ts`) : la DONNÉE reste la seule source des plages. */
 export interface MutationTableRow {
@@ -86,7 +90,7 @@ export function mutationTableRows(table: string): MutationTableRow[] {
   const cache = lignesParTable();
   const connu = cache.get(table);
   if (connu) return connu;
-  const rows = tableOf(table).ranges.map((r) => ({ min: r.min, max: r.max, id: r.mutation, label: mutationParId(r.mutation)?.label }));
+  const rows = tableOf(table).entries.map((r) => ({ min: r.min, max: r.max, id: r.mutation, label: mutationParId(r.mutation)?.label }));
   cache.set(table, rows);
   return rows;
 }
@@ -100,15 +104,20 @@ export function mutationOfRow(id: string, roll: number): Mutation {
   return { ...m, roll };
 }
 
+/** Le DÉ DE TIRAGE de la table `table` (`die`), lu VIVANT à l'appel (`deDeTirageDe`). */
+export function mutationTableDie(table: string): DiceSpec {
+  return deDeTirageDe<typeof tablesDeCorruption>(TABLES, table);
+}
+
 function mutationOfRange(table: string, roll: number, range: { mutation: string } | undefined): Mutation {
-  if (!range) throw new Error(`mutations : plage d100=${roll} hors table « ${table} »`);
+  if (!range) throw new Error(`mutations : jet ${roll} hors table « ${table} »`);
   return mutationOfRow(range.mutation, roll);
 }
 
-/** LOOKUP d'une table par un d100 DÉJÀ tiré : aucun dé consommé, aucune récursion — le site de
+/** LOOKUP d'une table par un jet DÉJÀ tiré : aucun dé consommé, aucune récursion — le site de
  *  résolution d'UN niveau, partagé par `rollMutation` et par l'étape à table du flux de Corruption. */
 export function mutationAt(table: string, roll: number): Mutation {
-  return mutationOfRange(table, roll, findTableEntry(tableOf(table).ranges, roll));
+  return mutationOfRange(table, roll, findTableEntry(tableOf(table).entries, roll));
 }
 
 /** SOUS-TABLE d'une mutation tirée sur `table` (ex. « Tête bestiale » EDOC) : `${subTable}${suffixe}`,
@@ -120,17 +129,19 @@ export function mutationSubTableFor(table: string, m: { subTable?: string }): st
   return tableParId(m.subTable + suffix) ? m.subTable + suffix : null;
 }
 
-/** Tire une mutation sur la TABLE d'`id` `table` (LDB : 'physique'/'mentale' ; Compagnon T1 : 'khorne'…), d100 seedable.
+/** Tire une mutation sur la TABLE d'`id` `table` (LDB : 'physique'/'mentale' ; Compagnon T1 : 'khorne'…), à son dé
+ *  de tirage (`mutationTableDie`), RNG seedable.
  *  Les plages référencent les mutations par **id** (plus de label).
  *
- *  `forcedRoll` = d100 IMPOSÉ (dé posé, test) : il résout la ligne de CETTE table et le tirage S'ARRÊTE
+ *  `forcedRoll` = jet IMPOSÉ (dé posé, test) : il résout la ligne de CETTE table et le tirage S'ARRÊTE
  *  là — une ligne à sous-table rend la mutation de la ligne, dont la sous-table est un SECOND tirage,
  *  injectable à son tour (`mutationSubTableFor` + un nouvel appel) : la descente devient pilotable
  *  niveau par niveau. Sans `forcedRoll`, la sous-table est ré-tirée dans la foulée. */
 export function rollMutation(table: string, rng: RNG, forcedRoll?: number): Mutation {
   if (forcedRoll != null) return mutationAt(table, forcedRoll); // dé POSÉ : aucun dé consommé, arrêt AVANT la sous-table
-  const roll = deMonde(rng); // porte du dé de monde (`engine/dice`) : la fenêtre de pose vit chez l'appelant (`corruptionFlow`, étape à table)
-  const m = mutationOfRange(table, roll, findTableEntry(tableOf(table).ranges, roll));
+  const { entries } = tableOf(table);
+  const roll = rollDice(mutationTableDie(table), rng); // la fenêtre de pose vit chez l'appelant (`corruptionFlow`, étape à table)
+  const m = mutationOfRange(table, roll, findTableEntry(entries, roll));
   const sub = mutationSubTableFor(table, m);
   return sub ? rollMutation(sub, rng) : m;
 }
