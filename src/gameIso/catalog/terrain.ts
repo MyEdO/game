@@ -3,18 +3,7 @@
  *  document : ici on n'expose que ce que le rendu lit. */
 import { terrainEntree } from '../../noyau/monde/terrain';
 import { type TerrainDef } from '../../data/terrains.types';
-import type { TerrainStops } from '../../data/terrains.types';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './missing';
-
-/**
- * Arrêts d'une rampe de terrain, ORDONNÉS par offset croissant — source UNIQUE des émetteurs de
- * `<linearGradient>` (`gameIso/sprites.ts`, `gameIso/authoring/detailSvg.ts`). SVG lit les `<stop>`
- * dans l'ordre d'ÉMISSION et clampe un offset qui recule sur son prédécesseur : un arrêt émis hors
- * ordre est inerte, sans un mot. L'ordre est aussi exigé au PARSE (`schemas/defs/terrains.ts`) ; le
- * tri ici rend l'émission indépendante de l'ordre des clés du Record.
- */
-export const terrainStopsOrdonnes = (stops: TerrainStops): [string, string][] =>
-  Object.entries(stops).sort((a, b) => Number.parseInt(a[0], 10) - Number.parseInt(b[0], 10));
 
 /**
  * Id du `<linearGradient>` d'un terrain — DÉRIVÉ de son id, jamais une donnée : aucun partage de

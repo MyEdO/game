@@ -638,7 +638,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;
                             `src/audio/` garde le registre et la lecture.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
-                            de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
+                            de la partie passé à `presetDuNarratif`).
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions
                             d'adaptateur (vue, caméra/zoom, fiche, coop, saves) ; il étale les actions
                             du noyau (`creerActionsDuNoyau`), branche le jeu (`brancherLeJeu`), ensemence le

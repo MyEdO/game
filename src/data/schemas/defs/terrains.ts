@@ -156,7 +156,7 @@ const doc = document(
     // Les `<stop>` d'un `<linearGradient>` se lisent DANS L'ORDRE D'ÉMISSION : SVG clampe un offset
     // qui recule sur son prédécesseur, et l'arrêt devient inerte sans un mot. L'ordre est donc une
     // contrainte de la DONNÉE, pas une convention d'écriture — les émetteurs trient en plus
-    // (`terrainStopsOrdonnes`, `src/gameIso/catalog/terrain.ts`).
+    // (`terrainStopsOrdonnes`, `src/noyau/monde/terrain/index.ts`).
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { id?: unknown; stops?: unknown; solidHeightM?: unknown; matiere?: unknown };

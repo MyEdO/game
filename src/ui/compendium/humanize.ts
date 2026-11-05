@@ -36,7 +36,7 @@ import {
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
 import { deElide } from '../../i18n';
-import { etatsDeLaCampagne } from '../../state/campaignData';
+import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { libelleDEtat } from './libellesNarratifs';
 
 function assertNever(x: never): never {
@@ -245,11 +245,12 @@ function dedupSubjects(parts: string[]): string[] {
 }
 
 /** Condition en clause NATURELLE. `neg` porte la négation (poussée dans la feuille — « ne possède pas … »,
- *  De Morgan sur `all`/`any` — au lieu d'un « NON( … ) » d'atelier). SOURCE UNIQUE joueur des Conditions. */
-export function humanizeCondition(c: Condition, neg = false): string {
+ *  De Morgan sur `all`/`any` — au lieu d'un « NON( … ) » d'atelier). SOURCE UNIQUE joueur des Conditions.
+ *  `etats` : les états de campagne qui libellent `etat` et `who: { etat }` (#2539), fournis par l'appelant. */
+export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], neg = false): string {
   const who = (r: ActorRef) => whoLabel(r);
   const sujetDuGroupe = (w: PartySelector | undefined): string =>
-    w === 'all' ? 'tout le groupe' : typeof w === 'object' ? `le héros désigné par « ${libelleDEtat(etatsDeLaCampagne(), w.etat)} »` : 'un héros';
+    w === 'all' ? 'tout le groupe' : typeof w === 'object' ? `le héros désigné par « ${libelleDEtat(etats, w.etat)} »` : 'un héros';
   switch (c.kind) {
     case 'always': return neg ? 'jamais' : 'toujours';
     case 'flag': return `${neg ? 'sauf si ' : 'si '}la condition de scénario « ${c.expr} » est ${neg ? 'fausse' : 'remplie'}`;
@@ -264,7 +265,6 @@ export function humanizeCondition(c: Condition, neg = false): string {
       return c.who === 'all' ? "le groupe n'est pas entièrement mort" : c.who === 'any' ? "aucun héros n'est mort" : `${sujetDuGroupe(c.who)} n'est pas mort`;
     }
     case 'etat': {
-      const etats = etatsDeLaCampagne();
       const nom = libelleDEtat(etats, c.etat);
       return c.value === undefined
         ? `l'état de campagne « ${nom} » ${neg ? "n'est pas" : 'est'} défini`
@@ -314,9 +314,9 @@ export function humanizeCondition(c: Condition, neg = false): string {
       return `${subj} a un Statut ${neg ? 'inférieur à' : 'au moins'} « ${c.atLeast} »`;
     }
     // De Morgan : NON(A ET B) = (NON A) OU (NON B) ; NON(A OU B) = (NON A) ET (NON B).
-    case 'all': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, neg))).join(neg ? ' ou ' : ' et ') : (neg ? 'jamais' : 'toujours');
-    case 'any': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, neg))).join(neg ? ' et ' : ' ou ') : (neg ? 'toujours' : 'jamais');
-    case 'not': return humanizeCondition(c.of, !neg);
+    case 'all': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, etats, neg))).join(neg ? ' ou ' : ' et ') : (neg ? 'jamais' : 'toujours');
+    case 'any': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, etats, neg))).join(neg ? ' et ' : ' ou ') : (neg ? 'toujours' : 'jamais');
+    case 'not': return humanizeCondition(c.of, etats, !neg);
   }
   return assertNever(c);
 }
@@ -556,35 +556,35 @@ const cap = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) :
 
 /** Effet MÉCANIQUE d'un Flow en prose JOUEUR — « Si {condition}, {conséquence}. » / « Jet de … : en cas
  *  de réussite … ». Switch EXHAUSTIF sur les 5 kinds de Flow (never en default). SOURCE UNIQUE joueur. */
-export function humanizeFlow(f: Flow): string {
+export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
   switch (f.kind) {
     case 'do': {
       const e = f.effect as EffectOp;
       if (e && e.type === 'ops') return e.ops.map(humanizeOp).filter(Boolean).join(' ; ');
       return (f.effect as { type?: string }).type ?? '';
     }
-    case 'seq': return f.steps.map(humanizeFlow).filter(Boolean).join(' ; ');
+    case 'seq': return f.steps.map((s) => humanizeFlow(s, etats)).filter(Boolean).join(' ; ');
     case 'if': {
-      const then = humanizeFlow(f.then);
-      const base = `Si ${humanizeCondition(f.cond)}, ${then}`;
-      return f.else ? `${base} ; sinon ${humanizeFlow(f.else)}` : base;
+      const then = humanizeFlow(f.then, etats);
+      const base = `Si ${humanizeCondition(f.cond, etats)}, ${then}`;
+      return f.else ? `${base} ; sinon ${humanizeFlow(f.else, etats)}` : base;
     }
     case 'test': {
       const who = testSkillLabel({ skill: f.test.skill, char: f.test.characteristic }) ?? 'un Test';
       const opp = f.test.opposed ? ' opposé' : '';
-      return `Jet${opp} ${deElide(who)} : en cas de réussite, ${humanizeFlow(f.success)} ; en cas d'échec, ${humanizeFlow(f.fail)}`;
+      return `Jet${opp} ${deElide(who)} : en cas de réussite, ${humanizeFlow(f.success, etats)} ; en cas d'échec, ${humanizeFlow(f.fail, etats)}`;
     }
     case 'choice': {
       const cout = coutAvantageTexte(f.advantageCost);
-      return `Au choix${cout ? ` (${cout} Avantage)` : ''} « ${f.prompt} » : si oui, ${humanizeFlow(f.yes)}${flowMuet(f.no) ? '' : ` ; sinon ${humanizeFlow(f.no!)}`}`;
+      return `Au choix${cout ? ` (${cout} Avantage)` : ''} « ${f.prompt} » : si oui, ${humanizeFlow(f.yes, etats)}${flowMuet(f.no) ? '' : ` ; sinon ${humanizeFlow(f.no!, etats)}`}`;
     }
   }
   return assertNever(f);
 }
 
 /** Wrapper : effet de Flow rendu comme UNE phrase (majuscule initiale). Utilisé par `describe`. */
-export function humanizeFlowSentence(f: Flow): string {
-  return cap(humanizeFlow(f));
+export function humanizeFlowSentence(f: Flow, etats: readonly EtatDeclare[]): string {
+  return cap(humanizeFlow(f, etats));
 }
 
 /** Bonus d'incantation d'un Domaine (`castBonus`) en français JOUEUR — « +10 par cible affectée par En
