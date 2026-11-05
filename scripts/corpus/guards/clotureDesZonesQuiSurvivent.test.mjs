@@ -1,9 +1,11 @@
-// MUR DE CLÔTURE DES INSTRUMENTS QUI SURVIVENT (#3058) : la clôture d'imports (`clotureDImports`, arcs de valeur et de
+// MUR DE CLÔTURE DES ZONES QUI SURVIVENT (#3058, #3337) : la clôture d'imports (`clotureDImports`, arcs de valeur et de
 // type, `import()`, `require` et ses liaisons `createRequire(…)`, chargeurs de Vitest, motifs d'`import.meta.glob`,
-// spécificateurs relatifs, alias et `/…`) des suites et bancs (`estFichierVitest`) de chaque zone qui survit (`survit`,
-// `couches.mjs`) ne compte aucun module d'une zone que la table leur ferme (`fermeAuxInstruments`), par un module hors
-// des zones compris, que `murs/tests-survivants` (`couchesLint.mjs`) ouvre ; et aucun de ses membres ne charge un paquet
-// de l'hôte web que la zone ferme (`paquetFerme`). Mesuré sur l'arbre de travail, rouge sur des transits forgés.
+// spécificateurs relatifs, alias et `/…`) de chaque module, production, suites et bancs, d'une zone qui survit
+// (`survit`, `couches.mjs`) ne compte aucun module d'une zone qui n'y survit pas (`fermeParLaSurvie`), par un module
+// hors des zones compris : celui qu'ouvre `murs/tests-survivants` à un instrument, ou l'`outillage` déclaré
+// (`horsZoneOuvert`) à la production, qui ouvre un module hors des zones, jamais une zone qui ne survit pas ; et aucun
+// de ses membres ne charge un paquet de l'hôte web que la zone ferme (`paquetFerme`). Mesuré sur l'arbre de travail,
+// rouge sur des transits forgés.
 // Hors de la lecture : l'acquisition calculée d'un membre hors des zones (aujourd'hui `scripts/docs/build-all.mjs:216`
 // et `scripts/guards/lib/structuresLocales.mts:249`), reste de #3058 ; le chargement par un appel qui n'est pas une
 // forme d'import (`tsImport`, `new Worker(new URL(…))`).
@@ -13,29 +15,28 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, estZone, fermeAuxInstruments, paquetFerme, zoneDe } from '../../guards/lib/couches.mjs'
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, estZone, fermeParLaSurvie, paquetFerme, zoneDe } from '../../guards/lib/couches.mjs'
 import { paquetDe } from '../../guards/lib/couchesLint.mjs'
 import { cibleLexicale } from '../../guards/lib/interneLint.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-import { estFichierVitest } from '../../guards/lib/fichierVitest.mjs'
 import { TRAVAIL, depotDe, listerImage } from '../../guards/lib/gitPorte.mjs'
-import { arbreDuDisque, clotureDImports, grapheInverse } from '../../guards/lib/importGraph.mjs'
+import { arbreDuDisque, clotureDImports, estModule, grapheInverse } from '../../guards/lib/importGraph.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
 
 /**
- * Les TRANSITS des instruments de `fichiers` (chemins relatifs à `racine`, l'ensemble que la marche lit) : par zone
- * qui survit, la clôture de ses instruments, chaque membre dont la zone leur est fermée, avec ses importeurs de la
- * clôture, chaque paquet de l'hôte web qu'un membre charge et que la zone ferme à l'instrument (`paquetFerme`, sous
- * l'outillage de l'instrument, `surSites`).
+ * Les TRANSITS des zones qui survivent dans `fichiers` (chemins relatifs à `racine`, l'ensemble que la marche lit) : par
+ * zone qui survit, la clôture de ses modules, chaque membre dont la zone n'y survit pas, avec ses importeurs de la
+ * clôture, chaque paquet de l'hôte web qu'un membre charge et que la zone ferme au module (`paquetFerme`, sous
+ * l'outillage du module, `surSites`).
  * @param {string} racine @param {readonly string[]} fichiers
  * @returns {{ cloture: Set<string>, transits: string[] }}
  */
-function transitsDesInstruments(racine, fichiers) {
-  const instruments = fichiers.filter((rel) => estFichierVitest(rel) && estZone(zoneDe(rel)) && COUCHES[zoneDe(rel)].survit === true)
-  // Par zone, et par paquets que l'outillage de l'instrument lui ouvre (`paquetsDOutillage`).
+function transitsDesZonesQuiSurvivent(racine, fichiers) {
+  const modules = fichiers.filter((rel) => estModule(rel) && estZone(zoneDe(rel)) && COUCHES[zoneDe(rel)].survit === true)
+  // Par zone, et par paquets que l'outillage du module lui ouvre (`paquetsDOutillage`).
   const ouverts = (rel) => PAQUETS_DE_L_HOTE_WEB.filter((p) => !paquetFerme(zoneDe(rel), p, rel)).join(',')
-  const parGroupe = Map.groupBy(instruments, (rel) => `${zoneDe(rel)}|${ouverts(rel)}`)
+  const parGroupe = Map.groupBy(modules, (rel) => `${zoneDe(rel)}|${ouverts(rel)}`)
   const arbre = arbreDuDisque(fichiers.map((rel) => join(racine, rel).split('\\').join('/')))
   const cache = new Map()
   const cloture = new Set()
@@ -51,7 +52,7 @@ function transitsDesInstruments(racine, fichiers) {
     const membres = clotureDImports(racines, { racine, cache, arbre, surSites })
     for (const rel of membres) cloture.add(rel)
     const inverse = grapheInverse(cache)
-    for (const rel of [...membres].filter((m) => fermeAuxInstruments(de, zoneDe(m))).sort()) {
+    for (const rel of [...membres].filter((m) => fermeParLaSurvie(de, zoneDe(m))).sort()) {
       const importeurs = (inverse.get(join(racine, rel).split('\\').join('/')) ?? [])
         .map((a) => relative(racine, a.importeur).split('\\').join('/')).filter((i) => membres.has(i))
       transits.push(`${de} : ${rel} ← ${[...new Set(importeurs)].sort().join(', ')}`)
@@ -62,22 +63,22 @@ function transitsDesInstruments(racine, fichiers) {
   return { cloture, transits }
 }
 
-test('CLÔTURE : aucun instrument d’une zone qui survit n’atteint, de proche en proche, une zone qui n’y survit pas', () => {
-  const { cloture, transits } = transitsDesInstruments(RACINE, listerImage(depotDe(RACINE), TRAVAIL))
-  assert.deepEqual(transits, [], 'transit vers une zone fermée aux instruments (`fermeAuxInstruments`) : chaque ligne nomme la zone de l’instrument, le module atteint et ses importeurs')
-  // Témoin de MESURE : la marche traverse un module hors des zones, ce que `murs/tests-survivants` ne suit pas.
+test('CLÔTURE : aucun module d’une zone qui survit, production comprise, n’atteint, de proche en proche, une zone qui n’y survit pas', () => {
+  const { cloture, transits } = transitsDesZonesQuiSurvivent(RACINE, listerImage(depotDe(RACINE), TRAVAIL))
+  assert.deepEqual(transits, [], 'transit vers une zone qui ne survit pas (`fermeParLaSurvie`) : chaque ligne nomme la zone du module racine, le module atteint et ses importeurs')
+  // Témoin de MESURE : la marche traverse un module hors des zones, ce que `murs/tests-survivants` et `murs/purete-imports` ne suivent pas.
   assert.ok([...cloture].some((rel) => zoneDe(rel) === null), 'la clôture ne traverse aucun module hors des zones : le mur ne mesure plus le transit')
 })
 
 /** Les transits d'un arbre forgé (chemin → texte), jeté après. */
 function forger(fichiers) {
-  const racine = mkdtempSync(join(tmpdir(), 'cloture-instruments-'))
+  const racine = mkdtempSync(join(tmpdir(), 'cloture-zones-survivantes-'))
   try {
     for (const [rel, code] of Object.entries(fichiers)) {
       mkdirSync(dirname(join(racine, rel)), { recursive: true })
       writeFileSync(join(racine, rel), code)
     }
-    return transitsDesInstruments(racine, Object.keys(fichiers)).transits
+    return transitsDesZonesQuiSurvivent(racine, Object.keys(fichiers)).transits
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -114,5 +115,17 @@ test('CLÔTURE : un transit forgé par un module hors des zones est rouge sous c
     'scripts/neutre.mjs': "export { z as y } from '../src/noyau/z.ts';\n",
     'src/noyau/z.ts': 'export const z = 1;\n',
     'src/ui/u.ts': 'export const u = 1;\n',
+  }), [])
+})
+
+test('CLÔTURE : un module de PRODUCTION d’une zone qui survit qui atteint une zone qui n’y survit pas par un pont hors des zones est rouge ; le même pont vers une zone qui survit passe', () => {
+  const hote = { 'hotes/x.mjs': "import { y } from '../scripts/pont.mjs';\nexport const x = y;\n" }
+  assert.deepEqual(forger({ ...hote,
+    'scripts/pont.mjs': "export { e as y } from '../src/state/e.ts';\n",
+    'src/state/e.ts': 'export const e = 1;\n',
+  }), ['hotes : src/state/e.ts ← scripts/pont.mjs'])
+  assert.deepEqual(forger({ ...hote,
+    'scripts/pont.mjs': "export { e as y } from '../src/lib/e.ts';\n",
+    'src/lib/e.ts': 'export const e = 1;\n',
   }), [])
 })

@@ -36,7 +36,7 @@ export const REGLES = Object.freeze([
     preuve: 'src/gameIso/stage/arete-dans-la-chaine.fixture.ts (tests et banc de src/gameIso/stage, src/state/devtools-ecran.test.tsx) ; src/state/combatDeTest.testkit.ts (src/ui/etat-sur-les-modales.test.tsx ; sa part règle, src/noyau/combatDeTest.testkit.ts, sert les tests du noyau) ; src/gameIso/stage/banc-volumique.ts:2 (« importé UNIQUEMENT par des fichiers .test. ») ; src/gameIso/stage/versionDataset.bench.ts:2 (« BANC »)',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(devtools|devtoolsTimers|scenarioFlow|editorAutosave|editeurBridge|projectLibrary|mapQC|planDefects|validateScene)(\.|-)`),
+    motif: new RegExp(String.raw`^src/state/(devtools|scenarioFlow|editorAutosave|editeurBridge|projectLibrary|mapQC|planDefects|validateScene)(\.|-)`),
     categorie: 'outillage',
     raison: 'devtools/__wfrp, lancement de scénario de test, outils d\'éditeur (autosave, pont clavier, bibliothèque de projets), QC de carte, validation de scène pour l\'éditeur',
     preuve: 'src/state/scenarioFlow.ts:1-4 ; src/state/editorAutosave.ts:1-5 ; src/noyau/planDefects.ts:1-6 ; src/noyau/mapQC.ts:2 (« Harnais QC de cartes »)',
