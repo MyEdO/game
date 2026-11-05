@@ -31,7 +31,8 @@ import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, Set } from '../noyau/flowTypes';
 import { initialNet, type NetState } from '../noyau/etat';
-import { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ } from '../noyau/sieges';
+import { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros, refusDuSiegeMJ } from '../noyau/sieges';
+import { refuserGesteDuSiege } from '../noyau/refusVisible';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 
@@ -248,24 +249,32 @@ export function netSeatClosed(get: Get, set: Set, seat: number): void {
   get().log(t('coop.seatClosed'));
 }
 
-/** Pose `net` s'il diffère du réseau courant : un réducteur qui refuse rend `net` inchangé. */
-function poserLeReseau(get: Get, set: Set, net: NetState): void {
+/** Pose le réseau `apres(net)`, sauf si `refus` tombe : le refus se dit alors au siège qui décide
+ *  (`refuserGesteDuSiege`) et `net` reste inchangé. */
+function poserLeReseau(get: Get, set: Set, refus: string | null, apres: (net: NetState) => NetState): void {
+  if (refus !== null) {
+    refuserGesteDuSiege(get, set, refus);
+    return;
+  }
+  const net = apres(get().net);
   if (net !== get().net) set({ net });
 }
 
-/** `attribuerLeHeros` (`noyau/sieges.ts`). */
+/** `attribuerLeHeros` (`noyau/sieges.ts`), refusé par `refusDAttribuerLeHeros`. */
 export function netAssign(get: Get, set: Set, heroId: string, seat: number): void {
-  poserLeReseau(get, set, attribuerLeHeros(get().net, heroId, seat));
+  const { net, party } = get();
+  poserLeReseau(get, set, refusDAttribuerLeHeros(net, party, heroId, seat), (n) => attribuerLeHeros(n, party, heroId, seat));
 }
 
-/** `poserLeSiegeMJ` (`noyau/sieges.ts`). */
+/** `poserLeSiegeMJ` (`noyau/sieges.ts`), refusé par `refusDuSiegeMJ`. */
 export function setGmSeat(get: Get, set: Set, seat: number | null): void {
-  poserLeReseau(get, set, poserLeSiegeMJ(get().net, seat));
+  poserLeReseau(get, set, refusDuSiegeMJ(get().net, seat), (n) => poserLeSiegeMJ(n, seat));
 }
 
-/** `attribuerLEmplacement` (`noyau/sieges.ts`). */
+/** `attribuerLEmplacement` (`noyau/sieges.ts`), refusé par `refusDAttribuerLEmplacement`. */
 export function netAssignSlot(get: Get, set: Set, slot: number, seat: number): void {
-  poserLeReseau(get, set, attribuerLEmplacement(get().net, slot, seat));
+  const { net, party } = get();
+  poserLeReseau(get, set, refusDAttribuerLEmplacement(net, party, slot, seat), (n) => attribuerLEmplacement(n, party, slot, seat));
 }
 
 /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. */
