@@ -119,13 +119,10 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
-      # Le cache des GLB épinglés (`CACHE_DES_MODELES`) précède `test:noyau`, dont « les modèles commités »
-      # (`asset.hors-store.test.ts`) le lit, puis `godot:sonde`.
+      # Les caches de la chaîne 3D précèdent `test:noyau`, dont « les modèles commités » (`asset.hors-store.test.ts`)
+      # lit les GLB épinglés (`CACHE_DES_MODELES`), puis `godot:sonde`, qui lit aussi l'éditeur.
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/wfrp-modeles-3d
-          key: modeles-3d-${{ hashFiles('hotes/godot/projet/modeles/*.provenance.json') }}
+        uses: ./.github/actions/caches-3d
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:noyau
       # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
@@ -141,11 +138,6 @@ jobs:
         run: npm run typecheck
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run pont:godot
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/wfrp-godot
-          key: godot-${{ hashFiles('hotes/godot/construire.mjs') }}
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde

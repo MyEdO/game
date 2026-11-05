@@ -1,0 +1,53 @@
+name: Caches
+
+# Un cache d'Actions ne se lit que depuis la ref qui l'a sauvé ou depuis la branche par défaut. `ci.yml` ne joue
+# jamais sur `main` (son en-tête) : sans ce workflow, chaque branche neuve et chaque entrée de file retire de la
+# Release les GLB épinglés et l'éditeur Godot (#3412, #3401). Il remplit, sur `main`, les caches que
+# `.github/actions/caches-3d` restaure, et ne joue `godot:sonde` (le geste qui les télécharge) que s'il en manque un.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: caches
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  caches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - id: caches
+        uses: ./.github/actions/caches-3d
+      - if: ${{ steps.caches.outputs.complets != 'true' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: npm
+      - if: ${{ steps.caches.outputs.complets != 'true' }}
+        run: npm ci
+      - if: ${{ steps.caches.outputs.complets != 'true' }}
+        run: npm run godot:sonde
+
+      # Ce workflow n'a pas de porte : il se NOMME en rougissant — registre scripts/gates/workflowsDuDepot.mjs
+      # (#1779). Le signaleur est posé par `actions/checkout` et n'importe que `node:*`.
+      - name: Se nommer en rougissant
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          STATUT: ${{ job.status }}
+        run: |
+          RAPPORT="$RUNNER_TEMP/caches-rapport.md"
+          echo "Run $RUN_URL : job \`$STATUT\`" > "$RAPPORT"
+          node scripts/ops/signaler-rouge.mjs \
+            --titre "Caches de main rouges" \
+            --label canari \
+            --corps "$RAPPORT" \
+            --verdict "$([ "$STATUT" = success ] && echo vert || echo rouge)"

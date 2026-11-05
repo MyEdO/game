@@ -23,7 +23,7 @@ import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
 import { bonus, bonusDeForce, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
-import { refusActionDepensee, refusHorsDEtatDAgir } from './refusDuTour';
+import { refusActionDepensee, refusHorsDEtatDAgir, refusPriereImposee } from './refusDuTour';
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
@@ -181,6 +181,7 @@ export type TileClickOpts = { confirm?: boolean; courseArmee?: boolean };
 const HARMFUL_TARGET_OPS = new Set<string>([
   'condition', 'wounds', 'corruption', 'lifeSteal', 'suffocate', 'senseLoss', 'loseTurn',
   'breakBlade', 'damageArmour', 'damageWornGear', 'armourPierce', 'reduceToZero', 'castPenalty', 'suppressTalents',
+  'deityBan', 'prayerForAction',
 ]);
 /** Ops « cible » BÉNÉFIQUES-SANS-AMBIGUÏTÉ → buff sur allié/soi. Liste tenue EXHAUSTIVE au même titre
  *  que HARMFUL_TARGET_OPS (recensement du catalogue `GameOp`, engine/ops.ts) POUR LES OPS DONT LE SIGNE
@@ -348,11 +349,11 @@ export type RefusDAttaque = { reason: Extract<HoverTargeting, { kind: 'invalid' 
  * Verdict UNIQUE de l'attaque du mode ATTAQUE : `attackAffordance` le rend en `invalid`, `attackClickCommit`
  * le lit en tête. `plan` = celui de l'approche-puis-frappe (`attackPlan`), `null` pour une option qui ne
  * frappe pas (zone, Au contact, Empoignade). `approche` = verdict d'armement de la Charge (`BattleClickOpts`).
- * LDB 16 l.52 ; LDB 16 l.125 ; LDB 21 l.33 ; LDB 85 l.237 ; spec HUD § 2026-08-19.
+ * LDB 16 l.52 ; LDB 16 l.125 ; LDB 21 l.33 ; LDB 40 l.74 ; LDB 85 l.237 ; spec HUD § 2026-08-19.
  */
 export function refusDAttaque(get: Get, active: Combatant, target: Combatant, option: AttackOption, plan: AttackPlan | null, { approche }: { approche: boolean }): RefusDAttaque | null {
   const battle = get().battle!;
-  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active);
+  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active) ?? (option.cost.action ? refusPriereImposee(active) : null);
   if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
   const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
   if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }) };

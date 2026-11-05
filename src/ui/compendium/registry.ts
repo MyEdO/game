@@ -911,7 +911,7 @@ function miscastAmountLabel(a: unknown): string {
 }
 
 /** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`, cf.
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`, cf.
  *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
@@ -955,6 +955,10 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       const qui = o.pick === 'all' ? 'toutes' : 'une, tirée au hasard';
       return { t: 'kv', k: 'Compétences associées au dieu', v: `${o.mod as number} (${qui} ; ${dur})` };
     }
+    case 'deityBan':
+      return { t: 'kv', k: 'Bénédictions et Miracles du dieu', v: `échouent (${miscastAmountLabel(o.durationDays)} jour(s))` };
+    case 'prayerForAction':
+      return { t: 'kv', k: 'Action', v: `Test de Prière imposé (${miscastAmountLabel(o.durationRounds)} Round(s))` };
     default:
       return { t: 'text', text: String(o.op) };
   }
@@ -981,6 +985,7 @@ function miscastRowItem(e: MiscastRowEntry): CodexItem {
     meta: facts(e.reroll ? fact('Relance', e.reroll === 'majeure' ? 'Cascade → Tableau Majeur' : 'Multiplication (2 tirages Mineurs)') : null),
     sections: sections(
       e.ops?.length ? { title: 'Effet immédiat', layout: 'list', rows: replieCausesPersistantes(e.ops).map(miscastOpRow) } : null,
+      e.targetOps?.length ? { title: 'Effet sur les cibles', layout: 'list', rows: replieCausesPersistantes(e.targetOps).map(miscastOpRow) } : null,
       e.test ? miscastTestSection(e.test) : null,
     ),
   });

@@ -11,7 +11,7 @@ export const famille = 'entite';
 
 /**
  * `JsonOp` (`engine/miscast.ts`) — miroir aplati du `GameOp` runtime (`op:'condition'|'wounds'|
- * 'corruption'|'reduceToZero'|'castPenalty'|'suppressTalents'|'deitySkillMod'`, seuls op observés dans la donnée), en `JsonFormula`.
+ * 'corruption'|'reduceToZero'|'castPenalty'|'suppressTalents'|'deitySkillMod'|'deityBan'|'prayerForAction'`, seuls op observés dans la donnée), en `JsonFormula`.
  * `escapeStrength` porte la `Formula` générale (`formulaSchema`) : `expandOp` la recopie telle quelle
  * dans le `GameOp`, que `applyOps` résout par `resolveFormula` (`engine/ops.ts`).
  */
@@ -50,6 +50,8 @@ const jsonOpSchema = nommerChamps(z.strictObject({
   if (v.op === 'deitySkillMod' && (v.durationHours === undefined) === (v.durationDays === undefined)) {
     ctx.addIssue({ code: 'custom', path: ['durationHours'], message: MESSAGE_DUREE_DE_DIVINITE });
   }
+  if (v.op === 'deityBan' && v.durationDays === undefined) ctx.addIssue({ code: 'custom', path: ['durationDays'], message: '`deityBan` exige sa durée en jours (LDB 40 l.64).' });
+  if (v.op === 'prayerForAction' && v.durationRounds === undefined) ctx.addIssue({ code: 'custom', path: ['durationRounds'], message: '`prayerForAction` exige sa durée en Rounds (LDB 40 l.74).' });
 }), {
   op: { label: 'opération' },
   id: { label: 'identifiant' },
@@ -98,6 +100,8 @@ export const rangee = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   ops: z.array(jsonOpSchema).optional(),
+  /** Ops appliqués aux CIBLES de l'incantation qui a déclenché le tirage. LDB 40 l.64. */
+  targetOps: z.array(jsonOpSchema).optional(),
   test: jsonNestedTestSchema.optional(),
   reroll: z.enum(['majeure', 'mineure-x2']).optional(),
   /** VDM 02 l.238. */
@@ -108,6 +112,7 @@ export const rangee = nommerChamps(z.strictObject({
   id: { label: 'identifiant' },
   label: { label: 'libellé' },
   ops: { label: 'opérations' },
+  targetOps: { label: 'opérations sur les cibles' },
   test: { label: 'Test' },
   reroll: { label: 'relance' },
   domainTable: { label: 'table du domaine' },

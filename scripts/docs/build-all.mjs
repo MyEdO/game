@@ -210,10 +210,17 @@ function generateurParmi(cible, generateurs) {
   return generateurs.find((g) => g.targets.some((motif) => correspondGlob(cible, motif)))
 }
 
-/** Le module d'un générateur, chargé comme son `runner` le lance : `tsx` par `tsImport` (`tsx/esm/api`). */
+/** La racine du dépôt, d'où se lit le `script` d'un générateur. */
+const RACINE_DU_DEPOT = fileURLToPath(new URL('../../', import.meta.url))
+
+/** Le module d'un générateur de `GENERATORS`, chargé comme son `runner` le lance : `tsx` par `tsImport`
+ *  (`tsx/esm/api`). Le module se lit dans le registre gelé, que le mur de clôture suit (`valeursDAcquisition`). LÈVE
+ *  sur un générateur hors de `GENERATORS`. */
 export async function chargerGenerateur(g) {
-  const url = pathToFileURL(fileURLToPath(new URL(`../../${g.script}`, import.meta.url))).href
-  if (g.runner !== 'tsx') return import(url)
+  const connu = GENERATORS.find((x) => x.script === g.script)
+  if (!connu) throw new Error(`chargerGenerateur : ${g.script} n'est pas un générateur de GENERATORS`)
+  const url = pathToFileURL(path.join(RACINE_DU_DEPOT, connu.script)).href
+  if (connu.runner !== 'tsx') return import(url)
   const { tsImport } = await import('tsx/esm/api')
   return tsImport(url, import.meta.url)
 }
@@ -230,8 +237,8 @@ export function renduDe(g) {
  * Le TEXTE d'une cible de `GENERATORS`, par `rendre()` de son générateur : ni lu sur disque, ni écrit.
  * `cible` = chemin relatif POSIX. LÈVE sur une cible qu'aucun générateur n'écrit, ou qu'il ne rend pas.
  */
-export async function rendreCible(cible, generateurs = GENERATORS) {
-  const g = generateurDe(cible, generateurs)
+export async function rendreCible(cible) {
+  const g = generateurDe(cible)
   if (!g) throw new Error(`rendreCible : ${cible} n'est la cible d'aucun générateur de GENERATORS`)
   const texte = (await renduDe(g)).get(cible)
   if (texte === undefined) throw new Error(`rendreCible : ${g.script} ne rend pas ${cible}`)
@@ -293,8 +300,8 @@ export function mesurerEnRendu(scripts, { cwd, generateurs = GENERATORS }) {
 
 /** `cible` est-elle PRODUITE par son générateur : une clé de son rendu, jamais un chemin que son
  *  motif atteint. `false` hors de `GENERATORS`. */
-export async function cibleProduite(cible, generateurs = GENERATORS) {
-  const g = generateurDe(cible, generateurs)
+export async function cibleProduite(cible) {
+  const g = generateurDe(cible)
   return g !== undefined && (await renduDe(g)).has(cible)
 }
 
