@@ -14,10 +14,11 @@ import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits.ts
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
-/** La PORTE des rangées d'un document à `rangee` (`src/data/rangees.ts`) : un appel lit `entries` de la
- *  racine JSON qu'il reçoit (et, par id de document, d'un fichier qui en porte plusieurs), au type dérivé du schéma. */
-const MODULE_DE_LA_PORTE = 'src/data/rangees.ts'
-const FONCTION_DE_LA_PORTE = 'rangeesDe'
+/** Les PORTES d'un document-table (`src/data/rangees.ts`) : un appel lit son champ de la racine JSON qu'il
+ *  reçoit (et, par id de document, d'un fichier qui en porte plusieurs). `rangeesDe` rend `entries` au type
+ *  dérivé du schéma ; `deDeTirageDe` lit `die` et rend un `DiceSpec`, jamais une valeur JSON. */
+const MODULE_DES_PORTES = 'src/data/rangees.ts'
+const CHAMP_DE_LA_PORTE = { rangeesDe: 'entries', deDeTirageDe: 'die' }
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {
   if (key === '[]') return checker.isArrayType(t) || checker.isTupleType(t) ? checker.getTypeArguments(t) : checker.getIndexInfosOfType(t).filter(i => i.keyType.flags & TypeFlags.NumberLike).map(i => i.valueType)
@@ -78,10 +79,10 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     }
     collect(program.getSourceFile(file))
   }
-  // Noms sous lesquels la porte peut être appelée : le sien, et ceux que lui donnent les `import`/`export
+  // Noms sous lesquels une porte peut être appelée : le sien, et ceux que lui donnent les `import`/`export
   // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
   // demandé qu'aux appels qui portent l'un de ces noms.
-  const nomsDeLaPorte = new Set([FONCTION_DE_LA_PORTE])
+  const nomsDeLaPorte = new Set(Object.keys(CHAMP_DE_LA_PORTE))
   const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
     .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
     .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
@@ -140,12 +141,13 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     const fn = declaration?.initializer ?? declaration
     return fn && (ts.isArrowFunction(fn) || ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) ? fn : null
   }
-  const porteDesRangees = call => {
+  const porteDuDocument = call => {
     const nom = !ts.isCallExpression(call) ? null : ts.isIdentifier(call.expression) ? call.expression.text : ts.isPropertyAccessExpression(call.expression) ? call.expression.name.text : null
     const fn = nomsDeLaPorte.has(nom) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
-    if (!fn || !ts.isFunctionDeclaration(fn) || fn.name?.text !== FONCTION_DE_LA_PORTE || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, MODULE_DE_LA_PORTE))) return null
+    const champ = fn && ts.isFunctionDeclaration(fn) && Object.hasOwn(CHAMP_DE_LA_PORTE, fn.name?.text) ? CHAMP_DE_LA_PORTE[fn.name.text] : null
+    if (!champ || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, MODULE_DES_PORTES))) return null
     const racine = origin(call.arguments[0])
-    return racine && { ...racine, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', 'entries'] : ['entries'])] }
+    return racine && { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: champ === CHAMP_DE_LA_PORTE.rangeesDe }
   }
   const originCache = new Map()
   const origin = (node, seen = new Set()) => {
@@ -225,8 +227,8 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
       }
     }
     if (ts.isCallExpression(node)) {
-      const porte = porteDesRangees(node)
-      if (porte) return porte
+      const porte = porteDuDocument(node)
+      if (porte) return porte.rendJson ? { file: porte.file, path: porte.path } : null
       const fn = functionOf(node.expression)
       const body = fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
       const bindings = new Map((fn?.parameters ?? []).map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
@@ -253,10 +255,11 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
           const o = origin(node.initializer)
           if (o) claims.push({ ...o, type: checker.getTypeFromTypeNode(node.type), node })
         }
-        const porte = porteDesRangees(node)
+        const porte = porteDuDocument(node)
         if (porte) {
-          claims.push({ ...porte, type: checker.getTypeAtLocation(node), node })
-          reads.push(porte)
+          const lu = { file: porte.file, path: porte.path }
+          if (porte.rendJson) claims.push({ ...lu, type: checker.getTypeAtLocation(node), node })
+          reads.push(lu)
         }
         if (ts.isCallExpression(node) && node.typeArguments?.length) {
           const fn = functionOf(node.expression)

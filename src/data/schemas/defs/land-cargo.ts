@@ -9,7 +9,7 @@ import {
   ecartsDeCouverture,
   plageSchema,
   prixSaisonnierSchema,
-  prixTireSchema,
+  tirageSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 
@@ -42,7 +42,7 @@ const cargoMarchand = nommerChamps(z.strictObject({
 
   wine: z.boolean().optional(),
   avail: dispoSaisonniereSchema,
-  price: z.union([prixSaisonnierSchema, prixTireSchema]),
+  price: z.union([prixSaisonnierSchema, tirageSchema]),
   source: sourceRefSchema,
 }), {
   id: { label: 'identifiant' },

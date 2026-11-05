@@ -61,3 +61,17 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
   });
 
 });
+
+/** AA 08 l.194 */
+describe('weaponGroups.json — un Groupe d’arme manié aussi dans un autre Groupe de Corps à corps', () => {
+  it.each([
+    ['inventé', 'base-de-fantaisie', /« base-de-fantaisie » est hors de la sous-liste « melee »/],
+    ['de Projectiles', 'arc', /« arc » est hors de la sous-liste « melee »/],
+  ])('un Groupe %s est refusé, nommément', (_cas, groupe, motif) => {
+    expect(refus(avec({ ...ARME, manieAussi: { [groupe]: {} } }))).toMatch(motif);
+  });
+
+  it('`manieAussi` hors d’un Groupe d’arme est refusé', () => {
+    expect(refus(avec({ ...ARMURE, manieAussi: { base: {} } }))).toContain('« manieAussi » n’appartient qu’au(x) cas kind « weapon »');
+  });
+});

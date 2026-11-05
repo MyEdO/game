@@ -79,6 +79,9 @@
       }
     ],
     "maniement": "escrime",
+    "manieAussi": {
+      "base": {}
+    },
     "source": {
       "book": "livre-de-base",
       "page": 296,

@@ -306,7 +306,7 @@ describe('enveloppe — les `.json` de `src/data`, partitionnés SANS reste', ()
     }
     // Et trois témoins de la partition OBJET, celle qu'un filtre `Array.isArray` excluait en silence.
     const objets = OBJETS.map(([f]) => f);
-    for (const f of ['weather.json', 'montures.json', 'donnees.manifest.json']) {
+    for (const f of ['weather.json', 'incidents-monture.json', 'donnees.manifest.json']) {
       expect(objets, `${f} hors de la partition « racine objet »`).toContain(f);
     }
   });

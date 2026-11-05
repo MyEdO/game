@@ -7,7 +7,7 @@
  * calcule rien.
  */
 import { describe, it, expect } from 'vitest';
-import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, table, type Reponse } from './pont.testkit';
+import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Ligne } from '../../../src/hote/elements';
 
@@ -42,8 +42,8 @@ const bouton = (s: Suite, cle: string): Bouton => {
 
 /** L'identité du geste qui a le focus : celui que la fenêtre joue à l'Entrée. */
 const attendu = (s: Suite): string => {
-  const g = s.vue.zones['fenetre.gestes'].filter((x) => 'focus' in x && x.focus);
-  expect(g.length, `un seul geste en focus dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((x) => x.id))}`).toBe(1);
+  const g = gestesDessines(s.vue).filter((x) => 'focus' in x && x.focus);
+  expect(g.length, `un seul geste en focus dans ${JSON.stringify(gestesDessines(s.vue).map((x) => x.id))}`).toBe(1);
   return g[0].id;
 };
 
@@ -81,8 +81,11 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouer({ type: suite.vue.champ!.combattant, args: [cible] }));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
+    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('attackSetLocation');
+    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetRoll@attack');
+    expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
-    expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, resultat: 'à lancer', verdict: null });
+    expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, cible: expect.stringMatching(/\d+$/), resultat: null, verdict: null, detail: expect.stringMatching(/^base \d+/) });
     expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');
 
     const localiser = () => {

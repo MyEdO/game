@@ -1236,10 +1236,11 @@ export interface TrappingData {
    *  maîtrise (`Combatant.masteredWeapons`) pour être maniée avec la Compétence du Groupe. Flag
    *  d'AUTEUR (artefacts uniques : « le couteau de lancer de Harald L'Infâme ») — éditable au Codex. */
   requiresMastery?: boolean;
-  /** Par Groupe de Corps à corps (`WeaponGroupData.id`) qui manie AUSSI l'arme quand son porteur n'est pas
-   *  monté, en plus de `subType` : les qualités qui y remplacent celles de même id (`[]` : aucune). Choix
-   *  du Groupe : `usageAPiedRetenu` (`engine/combat.ts`). AA 08 l.188 ; AA 08 l.190 */
-  usagesAPied?: Record<string, QualityRef[]>;
+  /** Maniements de l'arme dans d'autres Groupes de Corps à corps que `subType`, par id de Groupe
+   *  (`WeaponGroupData.id`) ; ils s'ajoutent à ceux de son Groupe (`GroupeDArme.manieAussi`), et l'emportent
+   *  sur eux à Groupe égal. Choix : `maniementRetenu` (`engine/weaponGroup.ts`). AA 08 l.188 ; AA 08 l.190 ;
+   *  AA 08 l.314 ; AA 08 l.343 */
+  manieAussi?: Record<string, ManiementAlternatif>;
   /** PROTHÈSE (LDB 73) : ses PALIERS d'entraînement, achetés dans l'ordre déclaré. `cost` = PX ;
    *  `label` = libellé JOUEUR du palier (éditable — aucun texte de palier en dur à l'écran) ;
    *  `reduces` = points de pénalité rachetés par ce palier (`ItemInstance.prosthesisReduced`, cumulés) ;
@@ -1353,6 +1354,19 @@ export interface GroupeDArme extends GroupeDObjet {
   combat?: 'melee' | 'ranged';
   maniement: Maniement;
   poudre?: true;
+  /** Maniements de TOUTE arme du Groupe dans d'autres Groupes de Corps à corps (`TrappingData.manieAussi`).
+   *  AA 08 l.194 */
+  manieAussi?: Record<string, ManiementAlternatif>;
+}
+/** Maniement d'une arme dans un autre Groupe de Corps à corps que le sien, ouvert au porteur qui en possède
+ *  la Spé. `qualites` y remplacent celles de même id de l'arme, `retire` y ôte les qualités nommées (de
+ *  l'arme ou de son Groupe) ; `aPied` : seulement quand le porteur n'est pas monté ; `mains` : l'arme y est
+ *  tenue à une main. */
+export interface ManiementAlternatif {
+  qualites?: QualityRef[];
+  retire?: string[];
+  aPied?: true;
+  mains?: 1;
 }
 export interface GroupeDeMunition extends GroupeDObjet {
   kind: 'ammo';

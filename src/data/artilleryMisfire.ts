@@ -1,9 +1,8 @@
 import artilleryMisfireJson from './artillery-misfire.json';
-import { parseDiceRequired } from '../engine/dice';
-import { rangeesDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import type * as incidentsDeSalve from './schemas/defs/artillery-misfire';
 
-const de = parseDiceRequired(artilleryMisfireJson.die, 'artillery-misfire.die');
+const de = deDeTirageDe<typeof incidentsDeSalve>(artilleryMisfireJson);
 if (de.n !== 1 || (de.plus ?? 0) !== 0) throw new Error(`artillery-misfire.die exige un dé unique sans modificateur : ${artilleryMisfireJson.die}`);
 export const ARTILLERY_MISFIRE_DIE = de;
 

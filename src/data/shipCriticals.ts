@@ -1,5 +1,5 @@
 import shipCriticalsJson from './ship-criticals.json';
-import { parseDiceRequired, type DiceSpec } from '../engine/dice';
+import { parseDiceRequired, type DiceSpec, type Tirage } from '../engine/dice';
 import riverCriticalsJson from './river-criticals.json';
 import type { ShipLocation } from '../engine/combat';
 import type { GameOp, Formula } from '../engine/ops';
@@ -33,7 +33,7 @@ export interface ShipCrewHit {
  *  - `shrapnel` : Éclats (Indice) → un nb de membres d'équipage = Indice subissent 9 Dégâts ;
  *  - `leak`     : Voie d'eau (Indice) → cumul qui coule le navire à Endurance ;
  *  - `fire`     : nb d'États En flammes infligés à la Localisation ;
- *  - `hullCrits`: Critiques SUPPLÉMENTAIRES sur la Coque (notation de dés, ex. « 1d10 »).
+ *  - `hullCrits`: Critiques SUPPLÉMENTAIRES sur la Coque (tirage).
  * `note` = effets LONG TERME / narratifs verbatim (réductions de Man/Mouvement, réparations, chutes
  * du gréement…), journalisés mais arbitrés/câblés au combat naval. L'Équipage touché suit les
  * Critiques de personnage EXISTANTS (LDB/AA) — aucune table dupliquée.
@@ -49,8 +49,8 @@ export interface ShipCritEntry {
   ops?: GameOp[];
   /** Éclats (Indice) — `shrapnel` membres d'équipage subissent 9 Dégâts (MDG 13). */
   shrapnel?: number;
-  /** Critiques supplémentaires sur la Coque (notation de dés). */
-  hullCrits?: string;
+  /** Critiques supplémentaires sur la Coque. */
+  hullCrits?: Tirage;
   /** « Canon détaché » (MDG 13 l.763-764) : le coup encaissé par l'ÉQUIPAGE (le canon RESTE à bord —
    *  ≠ « Canon perdu », qui utilise l'op `removeShipPoste` dans `ops`, appliquée à la COQUE). */
   crewHit?: ShipCrewHit;

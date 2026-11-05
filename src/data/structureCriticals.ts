@@ -1,9 +1,8 @@
 import structureCriticalsJson from './structure-criticals.json';
-import { parseDiceRequired } from '../engine/dice';
-import { rangeesDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import type * as critiquesDeStructure from './schemas/defs/structure-criticals';
 
-export const STRUCTURE_CRITICALS_DIE = parseDiceRequired(structureCriticalsJson.die, 'structure-criticals.die');
+export const STRUCTURE_CRITICALS_DIE = deDeTirageDe<typeof critiquesDeStructure>(structureCriticalsJson);
 
 /**
  * Blessures critiques sur une STRUCTURE — Aux Armes « Tableau des Blessures critiques sur une Structure »

@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** MSRC 7 l.119-166 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { sourceRefSchema } from '../grammaire/valeurs';
+import { sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 import { marquerCollection, marqueDeListe } from '../grammaire/collection-cle';
 
 export const file = 'river-perils.json';
@@ -20,9 +20,9 @@ const doc = document(
         kind: z.enum(['navTest', 'obstacle', 'detect']),
         /** Débris (l.125) : Test de Navigation raté → `hullHits` coups à la coque. */
         onFail: nommerChamps(z.strictObject({ hullHits: z.number(), damagePerHit: z.number() }), { hullHits: { label: 'Coups à la coque' }, damagePerHit: { label: 'Dégâts par coup' } }).optional(),
-        /** Barrage (l.128) : Endurance/Blessures d'expression dé (`1d10`…), bélier +`ramDamage`. */
+        /** Barrage (l.128) : Endurance/Blessures tirées, bélier +`ramDamage`. */
         obstacle: nommerChamps(z
-          .strictObject({ endurance: z.string(), enduranceMult: z.number(), wounds: z.string(), ramDamage: z.number() }), {
+          .strictObject({ endurance: tirageSchema, enduranceMult: z.number(), wounds: tirageSchema, ramDamage: z.number() }), {
           endurance: { label: 'Endurance' },
           enduranceMult: { label: 'Multiplicateur d’Endurance' },
           wounds: { label: 'Blessures' },
@@ -31,7 +31,7 @@ const doc = document(
           .optional(),
         /** MSRC 7 l.128 */
         clear: nommerChamps(z
-          .strictObject({ objects: z.string(), encPerObject: z.string(), encPerHour: z.number() }), {
+          .strictObject({ objects: tirageSchema, encPerObject: tirageSchema, encPerHour: z.number() }), {
           objects: { label: 'Objets' },
           encPerObject: { label: 'Encombrement par objet' },
           encPerHour: { label: 'Encombrement par heure' },

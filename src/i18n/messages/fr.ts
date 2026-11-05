@@ -372,18 +372,21 @@ export const fr = {
   // Le corps de la fenêtre qui tient la main (`src/hote/ecran.ts`) : qui agit contre qui, chaque partie de ses jets.
   'ecran.attaque.cible': 'Cible : {cible}',
   'ecran.jet.base': 'base {base}',
-  'ecran.jet.cible': 'à atteindre {cible}',
+  'ecran.jet.cible': '≤ {cible}',
+  'ecran.jet.part': '{libelle} {valeur}',
   'ecran.jet.dr': 'DR {dr}',
-  'ecran.jet.aLancer': 'à lancer',
-  'ecran.jet.aTirer': 'à tirer',
   'ecran.jet.cache': 'jet caché',
+  'ecran.jet.plafond': 'plafond {cible} ({ecart})',
+  'ecran.jet.plancher': 'plancher {cible} ({ecart})',
+  'ecran.degats': 'Dégâts',
+  'ecran.attaque.inversion': 'Dé inversé : {d100}, DR {dr}, {verdict}',
   'ecran.jet.reussite': 'réussite',
   'ecran.jet.echec': 'échec',
   'ecran.defense.qui': '{attaquant} attaque {defenseur} avec {arme}',
   'ecran.defense.test': 'Réaction : {test}',
   'ecran.drNet': 'DR net {dr}',
   // Fenêtre d'attaque — libellés lus par `fenetreDAttaque` (`noyau/fenetreDAttaque.ts`), le web et tout hôte.
-  // Dégâts d'arme avant le DR du jet : en-tête de la fenêtre et réticule du stage (`gameIso/stage/AimOverlay.tsx`).
+  // Dégâts d'arme avant le DR du jet : en-tête de la fenêtre web et réticule du stage (`gameIso/stage/AimOverlay.tsx`).
   'attaque.degats': 'Dégâts +{dmg}',
   'attaque.armeSecondaire': '{arme} (2nde {penalite})',
   'attaque.auHasard': 'Au hasard',

@@ -2,21 +2,17 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ecartsDeCouverture, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { EXPRESSION_DE_DE, ecartsDeCouverture, effetSigneSchema, plageOuverteSchema, quantiteTireeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'sea-events.json';
 export const famille = 'config';
 
-/** `ManannFactor.effect` (`src/engine/seaVoyage.ts`) : signe fixe (1|-1) + décompte flat/d10. */
+/** `ManannFactor` (`src/engine/seaVoyage.ts`). */
 const manannFactor = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
-  effect: nommerChamps(z.strictObject({
-    sign: z.union([z.literal(1), z.literal(-1)]),
-    flat: z.number(),
-    d10: z.number(),
-  }), { sign: { label: 'Signe' }, flat: { label: 'Valeur fixe' }, d10: { label: 'Dés à dix faces' } }),
+  effect: effetSigneSchema,
   source: sourceRefSchema,
 }), {
   id: { label: 'Identifiant' },
@@ -25,6 +21,14 @@ const manannFactor = nommerChamps(z.strictObject({
   source: { label: 'Source' },
 });
 
+/** Feuille d'un paramètre d'événement (`ParamDEvenement`, `src/engine/seaVoyage.ts`) : un dé s'y écrit
+ *  en tirage, jamais en chaîne (`EXPRESSION_DE_DE`). #1652 */
+const feuilleDeParam = z.union([
+  quantiteTireeSchema,
+  z.boolean(),
+  z.string().refine((s) => !EXPRESSION_DE_DE.test(s), { message: 'dé en chaîne : un tirage s’écrit `{ "dice": { "n", "sides", "plus"? } }`' }),
+]);
+
 /** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `params` = sac hétérogène PAR `kind`, lu par clé. */
 const seaEventDef = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
@@ -32,7 +36,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   label: z.string(),
   desc: z.string(),
   kind: z.string(),
-  params: z.record(z.string(), z.unknown()),
+  params: z.record(z.string(), z.union([feuilleDeParam, z.array(feuilleDeParam), z.record(z.string(), feuilleDeParam)])),
   source: sourceRefSchema,
 }), {
   ...metaDesChamps(plageOuverteSchema, { exigees: true }),

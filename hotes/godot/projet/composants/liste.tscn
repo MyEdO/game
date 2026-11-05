@@ -16,15 +16,6 @@ script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Refus" type="Label" parent="."]
-theme_type_variation = &"alerte"
-autowrap_mode = 3
-
-[node name="refus" type="Node" parent="Refus"]
-script = ExtResource("1_liaison")
-champ = "refus"
-cacher_si_nul = true
-
 [node name="Valeurs" type="OptionButton" parent="."]
 
 [node name="valeurs" type="Node" parent="Valeurs"]
@@ -38,3 +29,8 @@ propriete = &"disabled"
 
 [node name="Geste" type="Node" parent="Valeurs"]
 script = ExtResource("2_geste")
+
+[node name="infobulle" type="Node" parent="Valeurs"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"tooltip_text"

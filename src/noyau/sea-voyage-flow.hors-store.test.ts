@@ -424,7 +424,7 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
   it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const plan = get().travelPlan!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: '3d10' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
     expect(driveDayCaptureExtermination()).toBe(-1);
   });
 
@@ -443,7 +443,7 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
       freshState();
       set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois', enc: contenance, basePriceGold: 1 }] } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: '3d10' } } } });
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
       const before = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);
       seedBattleRng(seed);
       continueSeaDayAfterCascade(get, set);
@@ -585,7 +585,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
 
   it('extermination : progression cumulée jusqu’à extermination complète (MDG 14 l.98-104)', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: '1d10' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: { dice: { n: 1, sides: 10 } } } } } });
     apply('extermination', 5, true);
     expect(get().travelPlan!.sea!.infestation).toBeUndefined();
   });

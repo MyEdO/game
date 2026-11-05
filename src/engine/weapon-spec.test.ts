@@ -33,7 +33,7 @@ describe('combatValue — Spécialisation de Corps à corps (LDB 09 l.44)', () =
 
   it('sans la bonne Spé, on teste sur la Caractéristique brute (Sigrid)', () => {
     const c = hero({ skills: [sk('base', 20)] }); // entraîné en Base seulement
-    expect(combatValue(c, 'melee', wpn('escrime'))).toBe(40); // CC 40, +20 ne s’applique PAS
+    expect(combatValue(c, 'melee', wpn('armes-d-hast'))).toBe(40); // CC 40, +20 ne s’applique PAS
   });
 
   it('Groupe d’arme « Deux-mains » ↔ Spé « À deux mains » (l.144)', () => {

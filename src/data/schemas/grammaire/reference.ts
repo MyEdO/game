@@ -8,7 +8,7 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
 import { z } from 'zod';
 import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, ref, refMorte, refusDeSpec } from './ref';
+import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refMorte, refs, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -214,6 +214,20 @@ export const navalTraitRefSchema = refIndicee('navalTrait');
  *  MAGNITUDE, portée par `value` et déclarée par la qualité (`QualityData.indice`) ; `spec` y était une
  *  seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */
 export const qualityRefSchema = refIndicee('quality');
+
+/** `ManiementAlternatif` (`src/data/index.ts`), keyé par les Groupes de Corps à corps qui manient aussi
+ *  l'arme : `TrappingData.manieAussi`, `GroupeDArme.manieAussi`. AA 08 l.188 ; AA 08 l.194 ; AA 08 l.343 */
+export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictObject({
+  qualites: z.array(qualityRefSchema).optional(),
+  retire: refs('quality').optional(),
+  aPied: z.literal(true).optional(),
+  mains: z.literal(1).optional(),
+}), {
+  qualites: { label: 'Atouts et Défauts', hint: 'Remplacent ceux de même id de l’arme' },
+  retire: { label: 'Atouts et Défauts ôtés', hint: 'Ôtés de l’arme et de son Groupe' },
+  aPied: { label: 'À pied seulement', hint: 'Ouvert seulement quand le porteur n’est pas monté' },
+  mains: { label: 'Tenue à une main', hint: 'L’arme y est tenue à une main' },
+}), 'melee');
 
 
 /** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`

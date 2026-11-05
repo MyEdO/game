@@ -31,7 +31,7 @@ import shipConstructionJson from '../data/ship-construction.json';
 import steamBreakdownJson from '../data/steam-breakdown.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll as rollDice, type RNG } from './dice';
+import { roll as rollDice, type RNG, type Tirage } from './dice';
 import { rollTest } from './tests';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -315,11 +315,11 @@ export interface SteamBreakdownEntry {
   desc: string;
   mMod?: number;
   mSet?: number;
-  durationRounds?: string;
+  durationRounds?: Tirage;
   /** Refroidissement obligatoire avant réparation (Rupture du réservoir, MDG 12 l.344) : « attendre
    *  20+1d10 minutes » — minutes d'horloge d'immobilisation du moteur. */
-  coolMinutes?: string;
-  failDamage?: string;
+  coolMinutes?: Tirage;
+  failDamage?: Tirage;
   engineDestroyed?: boolean;
   hullCritical?: boolean;
   compartmentDamage?: number;

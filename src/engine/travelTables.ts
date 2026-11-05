@@ -4,13 +4,13 @@
  * Le tirage du d100 et l'application des effets restent à l'appelant (boucle de voyage).
  */
 import { findTableEntry } from './tables';
-import { parseDiceRequired } from './dice';
+import { parseDiceRequired, type Tirage } from './dice';
 import type { StageOutcome } from './activities';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import incidentsMonteJson from '../data/incidents-monture.json';
 import problemesVehiculeJson from '../data/problemes-vehicule.json';
-import { rangeesDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as incidentsDeMonte from '../data/schemas/defs/incidents-monture';
 import type * as problemesDeVehicule from '../data/schemas/defs/problemes-vehicule';
 import rencontresJson from '../data/rencontres-edoc.json';
@@ -40,7 +40,7 @@ export interface MountIncidentEffects {
 
 /** Entrée d'une table de voyage : fourchette d100 `[min,max]` (00 = 100) + libellé/texte RAW.
  *  `stageOutcome` : effet de portée Étape (cf. `StageOutcome`). `vehicleWounds` : Dégâts au VÉHICULE
- *  (`Combatant` à coque) en notation de dés (« 1d10 »/« 2d10 ») — premier crochet du véhicule-à-PV. */
+ *  (`Combatant` à coque), tirés — premier crochet du véhicule-à-PV. */
 export interface TravelTableEntry {
   min: number;
   max: number;
@@ -50,7 +50,7 @@ export interface TravelTableEntry {
   /** Incidents de MONTE seuls : la séquelle et le risque déclarés par l'entrée. */
   mount?: MountIncidentEffects;
   stageOutcome?: StageOutcome;
-  vehicleWounds?: string | null;
+  vehicleWounds?: Tirage | null;
   /** Dégâts aux OCCUPANTS du véhicule, en langue unique `GameOp` (EDOC 07 : Cassé = 1 Blessure ignorant
    *  BE et PA ; Accident = 2d10 Blessures modifiées par BE et PA, min 1). Appliqués par le flux de voyage. */
   occupantOps?: import('./ops').GameOp[];
@@ -62,9 +62,9 @@ export const MOUNT_INCIDENTS: TravelTableEntry[] = rangeesDe<typeof incidentsDeM
 export const VEHICLE_PROBLEMS: TravelTableEntry[] = rangeesDe<typeof problemesDeVehicule>(problemesVehiculeJson);
 
 /** Dé AUTHORÉ des Incidents de monte (`incidents-monture.json`, `die`). */
-export const MOUNT_INCIDENT_DIE = parseDiceRequired(incidentsMonteJson.die, 'incidents-monture.die');
+export const MOUNT_INCIDENT_DIE = deDeTirageDe<typeof incidentsDeMonte>(incidentsMonteJson);
 /** Dé AUTHORÉ des Problèmes de véhicule (`problemes-vehicule.json`, `die`). */
-export const VEHICLE_PROBLEM_DIE = parseDiceRequired(problemesVehiculeJson.die, 'problemes-vehicule.die');
+export const VEHICLE_PROBLEM_DIE = deDeTirageDe<typeof problemesDeVehicule>(problemesVehiculeJson);
 
 export function rollMountIncident(roll: number): TravelTableEntry {
   return findTableEntry(MOUNT_INCIDENTS, roll);

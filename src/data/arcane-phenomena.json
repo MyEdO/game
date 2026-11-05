@@ -985,7 +985,10 @@
         "desc": "Une Tempête de Magie augmente instantanément la Saturation environnementale de la région d'un niveau (page 189)."
       },
       "overcastPerSpell": {
-        "dice": "2d10",
+        "dice": {
+          "n": 2,
+          "sides": 10
+        },
         "source": {
           "book": "vents-de-la-magie",
           "page": 192

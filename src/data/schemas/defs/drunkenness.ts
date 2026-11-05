@@ -43,7 +43,7 @@ const doc = document(
     codex: { keys: ['drunkenness'] },
     edit: { niche: { categories: { drunkenness: 'entries' } } },
   },
-  { rangee },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

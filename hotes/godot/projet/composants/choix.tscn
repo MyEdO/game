@@ -3,7 +3,8 @@
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
-[node name="Choix" type="VBoxContainer"]
+[node name="Choix" type="HBoxContainer"]
+theme_override_constants/separation = 10
 
 [node name="Libelle" type="Label" parent="."]
 
@@ -16,16 +17,8 @@ script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Refus" type="Label" parent="."]
-theme_type_variation = &"alerte"
-autowrap_mode = 3
-
-[node name="refus" type="Node" parent="Refus"]
-script = ExtResource("1_liaison")
-champ = "refus"
-cacher_si_nul = true
-
 [node name="Valeurs" type="HFlowContainer" parent="."]
+size_flags_horizontal = 3
 
 [node name="Zone" type="Node" parent="Valeurs"]
 script = ExtResource("2_zone")

@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.39-351 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 
 export const file = 'sea-navigation.json';
 export const famille = 'config';
@@ -163,9 +163,8 @@ const champs = {
   }),
   reparation: nommerChamps(z.strictObject({
     portCostGoldPerWound: z.number(),
-    /** Expression de dés texte (ex. « 1d10 ») — lue par `rollExpr`/`rollDice`. */
-    testHours: z.string(),
-    woundsPerTest: z.string(),
+    testHours: tirageSchema,
+    woundsPerTest: tirageSchema,
     charpentierPenalty: z.number(),
     lissageRepairSurcoutPct: z.number(),
     source: sourceRefSchema,
@@ -173,8 +172,8 @@ const champs = {
       difficultyMin: difficultySchema,
       difficultyMax: difficultySchema,
       hoursPerRepair: z.number(),
-      woundsPerRepair: z.string(),
-      failDamage: z.string(),
+      woundsPerRepair: tirageSchema,
+      failDamage: tirageSchema,
     }), {
       difficultyMin: { label: 'Difficulté minimale' },
       difficultyMax: { label: 'Difficulté maximale' },

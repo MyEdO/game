@@ -22,7 +22,8 @@ import { findTableEntry } from './tables';
 import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
-import { effectiveWeaponDamage, effectiveWeapon, type UsageAPied } from './weaponDamage';
+import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
+import { maniementRetenu, speDeCorpsACorps } from './weaponGroup';
 import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
@@ -34,7 +35,7 @@ import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, q
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
-import { findPsychologyById, byId, testSkillLabel, type RangeeDeRegleData } from '../data';
+import { findPsychologyById, testSkillLabel, type RangeeDeRegleData } from '../data';
 import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
@@ -139,11 +140,11 @@ const ANY_RANGED_SPEC = '*';
  *  - Arbalète/Lancer utilisés avec N'IMPORTE QUELLE Spé de Tir → bonus intégral, Atouts perdus (l.184).
  *  - Ingénierie utilisée via Poudre noire → bonus intégral, Atouts perdus (l.188).
  *  - Poudre noire/Explosifs utilisés via Ingénierie → bonus intégral, SANS pénalité (l.192).
- * Une arme maniée à pied le fait dans le Groupe de `usageAPiedRetenu` (AA 08 l.188 ; AA 08 l.190).
+ * Une arme maniée dans un autre Groupe le fait dans celui de `maniementRetenu` (AA 08 l.188 ; AA 08 l.343).
  */
 function acceptableSpecs(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptance[] {
-  const aPied = kind === 'melee' ? usageAPiedRetenu(c, weapon) : undefined;
-  if (aPied) return [{ spec: aPied.groupe, mode: 'full' }];
+  const maniement = kind === 'melee' ? maniementRetenu(c, weapon, weapon.hands) : undefined;
+  if (maniement) return [{ spec: maniement.groupe, mode: 'full' }];
   // `weaponGroup` PRIME sur `subType` : une arme de siège porte sa catégorie de catalogue (« armes-de-siege »)
   // en `subType` mais son vrai Groupe de Projectiles (Arbalète/Catapulte/Ingénierie/Poudre noire,
   // AA 10 l.178-193) en `weaponGroup` → c'est lui qui pilote la Spé de tir ET le décompte d'équipage. Pour toute
@@ -164,20 +165,6 @@ function acceptableSpecs(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged')
 /** Compétence d'un Test d'Arme selon le mode d'attaque (Corps à corps / Projectiles). */
 export function weaponSkillId(kind: 'melee' | 'ranged'): 'corps-a-corps' | 'projectiles' {
   return kind === 'melee' ? 'corps-a-corps' : 'projectiles';
-}
-
-/** Maniement à pied (`Weapon.usagesAPied`) retenu pour `weapon` tenue par `c` ; absent quand `c` est monté,
- *  que l'arme n'en déclare pas, ou que son propre Groupe l'emporte. Arbitrage (règle 7, la source laisse le
- *  choix au porteur) : parmi le Groupe de l'arme et ceux de ses maniements à pied, la Spé de Corps à corps
- *  du porteur aux Augmentations les plus hautes ; à égalité, celui qui garde les qualités de l'arme, puis le
- *  Groupe de l'arme, puis l'ordre déclaré. Lu par `acceptableSpecs` (Compétence) et `effectiveWeapon`
- *  (qualités, `WeaponContext.usageAPied`). LDB 62 l.142-143 ; AA 08 l.188 ; AA 08 l.190 */
-export function usageAPiedRetenu(c: Combatant, weapon: Pick<Weapon, 'usagesAPied' | 'weaponGroup' | 'subType'>): UsageAPied | undefined {
-  if (c.mountId || !weapon.usagesAPied) return undefined;
-  const augmentations = (groupe?: string) => c.skills.find((s) => s.id === weaponSkillId('melee') && s.spec === groupe)?.advances ?? -1;
-  // `undefined` = le Groupe de l'arme elle-même, candidat en tête.
-  const candidats = [undefined, ...Object.entries(weapon.usagesAPied).map(([groupe, qualities]): UsageAPied => ({ groupe, qualities }))];
-  return maxBy(candidats, (u) => 2 * augmentations(u ? u.groupe : weapon.weaponGroup ?? weapon.subType) + (u?.qualities.length ? 0 : 1))?.item;
 }
 
 /**
@@ -911,13 +898,6 @@ export function crowdMod(group: number): ModLine | null {
   return ligneParSeuil('tirer-dans-le-tas', group);
 }
 
-/** Le défenseur possède-t-il une Spé de Corps à corps donnée (id de Groupe d'arme, ex. `'parade'`) ?
- *  « Compétence de Corps à corps » = compétence dont l'entrée déclare puiser ses spé dans les Groupes
- *  d'armes de mêlée (`specsSource`) — la garantie même que `spec` est comparable à un id de Groupe. */
-function hasMeleeSpec(c: Combatant, spec: string): boolean {
-  return (c.skills ?? []).some((s) => byId('skill', s.id)?.specsSource === 'weaponGroupsMelee' && (s.spec ?? '') === spec);
-}
-
 /** Pénalité de main secondaire aux attaques de `c`, Ambidextre comprise : celle que l'attaque applique et
  *  que la fiche affiche. LDB 14 l.78 ; LDB 10 */
 export function penaliteDeMainSecondaire(c: Combatant): number {
@@ -929,7 +909,7 @@ export function penaliteDeMainSecondaire(c: Combatant): number {
  *  `base` transformée par Ambidextre. */
 export function parryPenalty(defender: Combatant, weapon: Weapon | undefined, base: number): number {
   if (!weapon || weapon.hand !== 'off') return 0;
-  if (weapon.hands === 1 && hasQuality(weapon, 'defensive') && hasMeleeSpec(defender, 'parade')) return 0;
+  if (weapon.hands === 1 && hasQuality(weapon, 'defensive') && !!speDeCorpsACorps(defender, 'parade')) return 0;
   return offHandPenalty(defender, base);
 }
 

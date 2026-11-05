@@ -13,27 +13,29 @@ export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
 /** Une ligne de texte. */
 export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string }
 
-/** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). */
-export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null }
+/** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). `detail` : ce qu'elle
+ *  change, montré à la demande. */
+export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null }
 
 /** Une jauge : sa valeur courante sur son maximum, et ce qu'elle dit. */
 export interface Jauge { type: 'jauge'; id: string; ton: Ton; libelle: string; courant: number; max: number; texte: string }
 
-/** Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet) ; le ton dit
- *  le verdict. */
+/** Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet, `resultat`
+ *  avant le dé) ; le ton dit le verdict. À l'écran, le nombre à atteindre, le dé et ses modificateurs ; `detail` : la
+ *  composition de la cible (base, Difficulté et ses paliers, écrêtage) et ce que le dé deviendrait, montrés à la
+ *  demande, une ligne par part. */
 export interface Jet {
   type: 'jet';
   id: string;
   ton: Ton;
   qui: string | null;
   libelle: string;
-  base: string | null;
-  difficulte: string | null;
   cible: string | null;
   resultat: string | null;
   dr: string | null;
   verdict: string | null;
   modificateurs: Puce[];
+  detail: string | null;
 }
 
 /** Une entité de jeu et ce qui la décrit. */
