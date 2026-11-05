@@ -175,16 +175,16 @@ describe('#1318 E4/C4-δ3 — parité des champs déclarés de la couche activit
   it('CARGAISONS — `tradeHub` : exactement le marqueur « Commerce » des DEUX catalogues, et les deux commerces le lisent', () => {
     // Le concept « plaque tournante » vivait sur 6 sites `production.includes('commerce')` : il est
     // désormais DÉCLARÉ sur l'entrée marqueur, lu par `isTradeHubEntry` (`engine/cargo.ts`).
-    expect(LAND_CARGO_ENTRIES.filter(isTradeHubEntry).map((e) => e.id)).toEqual(['commerce']);
-    expect(CARGO_ENTRIES.filter(isTradeHubEntry).map((e) => e.id)).toEqual(['commerce']);
+    expect(LAND_CARGO_ENTRIES.filter(isTradeHubEntry).map((e) => e.id)).toEqual(['commerce-terre']);
+    expect(CARGO_ENTRIES.filter(isTradeHubEntry).map((e) => e.id)).toEqual(['commerce-mer']);
     // Les autres marqueurs (« Subsistance », « Minimum vital ») ne le portent PAS.
     expect(LAND_CARGO_ENTRIES.filter((e) => !isEchangeable(e) && !isTradeHubEntry(e)).map((e) => e.id)).toEqual(['subsistance']);
     expect(CARGO_ENTRIES.filter((e) => !isEchangeable(e) && !isTradeHubEntry(e)).map((e) => e.id)).toEqual(['minimum-vital']);
     // …et les deux prédicats de colonne le lisent, chacun sur SON catalogue.
-    expect(isLandTradeHub(['commerce', 'vin'])).toBe(true);
-    expect(isLandTradeHub(['subsistance', 'vin'])).toBe(false);
+    expect(isLandTradeHub(['commerce-terre', 'vin-eau-de-vie'])).toBe(true);
+    expect(isLandTradeHub(['subsistance', 'vin-eau-de-vie'])).toBe(false);
     expect(isLandTradeHub(undefined)).toBe(false);
-    expect(isSeaTradeHub(['commerce'])).toBe(true);
+    expect(isSeaTradeHub(['commerce-mer'])).toBe(true);
     expect(isSeaTradeHub(['minimum-vital'])).toBe(false);
   });
 });

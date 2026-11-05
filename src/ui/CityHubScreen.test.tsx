@@ -13,14 +13,14 @@ import type { LandMarketProfile } from '../engine/landCargo';
  * lit trappings.json — source unique partagée avec `restCost`, cf. rest-lodging-price-source.test).
  */
 
-const market: LandMarketProfile = { taille: 3, richesse: 2, produits: ['commerce'] };
+const market: LandMarketProfile = { taille: 3, richesse: 2, produits: ['commerce-terre'] };
 
 const place = (over: Partial<MapPlace> = {}): MapPlace => ({
   id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: 'sc-bogen', ...over,
 });
 
 const townPlace = (): MapPlace => place({
-  port: { taille: 4, richesse: 3, production: ['commerce'] } as MapPlace['port'],
+  port: { taille: 4, richesse: 3, production: ['commerce-mer'] } as MapPlace['port'],
   market,
   services: [{ kind: 'auberge', rest: { auberge: true, camp: true } }],
 });
@@ -81,7 +81,7 @@ describe('poiIcon — résolution GÉNÉRALE de l’icône d’un marqueur de pl
   // Un lieu de type ville : le service `temple` (catalogue) porte l'icône `faith/church`, le port
   // `travel/anchor` — la résolution les DÉRIVE de la cible sans que le POI ne redéclare son icône.
   const services = placeServices(place({
-    port: { taille: 4, richesse: 3, production: ['commerce'] } as MapPlace['port'],
+    port: { taille: 4, richesse: 3, production: ['commerce-mer'] } as MapPlace['port'],
     services: [{ kind: 'temple' }],
   }));
 

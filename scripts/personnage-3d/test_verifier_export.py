@@ -11,7 +11,7 @@ import bpy
 import numpy as np
 
 import animation
-from glb import CHUNK_BIN, CHUNK_JSON, MAGIE_GLB, lire_glb
+from glb import ecrire_glb, lire_glb
 from verifier_export import controles_glb, verify
 
 MODELES = Path(__file__).resolve().parents[2] / 'hotes' / 'godot' / 'projet' / 'modeles'
@@ -79,15 +79,6 @@ def construire(chemin, prop=None, uv=True, blend=False, clip_fixe=False):
     bone.keyframe_insert('location', frame=10)
     bpy.ops.export_scene.gltf(filepath=str(chemin), export_format='GLB', export_animation_mode='ACTIONS')
     return chemin
-
-
-def ecrire_glb(chemin, document, binary):
-    texte = json.dumps(document).encode('utf-8')
-    texte += b' ' * (-len(texte) % 4)
-    binary = bytes(binary) + b'\0' * (-len(binary) % 4)
-    total = 12 + 8 + len(texte) + 8 + len(binary)
-    chemin.write_bytes(struct.pack('<III', MAGIE_GLB, 2, total) + struct.pack('<II', len(texte), CHUNK_JSON) + texte
-                       + struct.pack('<II', len(binary), CHUNK_BIN) + binary)
 
 
 def ecrire_nan(document, binary, accessor_index):

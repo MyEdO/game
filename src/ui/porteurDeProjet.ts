@@ -8,7 +8,7 @@
  */
 import type { GameState } from '../state/store';
 import type { CleDeRegistreNarratif } from '../data/schemas/defs-scenes/registres-narratifs';
-import type { Porteur } from './liage';
+import type { Porteur } from '../noyau/codex/porteur';
 
 /** Ce que lisent les porteurs de projet : le document de la partie. */
 export type EtatDuProjet = Pick<GameState, 'campaignDoc'>;

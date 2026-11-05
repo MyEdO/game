@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { Vector3, type Mesh } from 'three';
 import { ecrireGlb } from '../../glb.ts';
-import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poidsDuGabarit } from '../../gabarit.ts';
+import { nomDeCleDuGabarit, poidsDuGabarit } from '../../gabarit.ts';
+import { FACTEURS_NEUTRES } from '../../facteursDuGabarit.ts';
 import type { TableDeGabarit } from '../../manifesteDeBase.ts';
 import { meshesDuCorps } from '../corps.ts';
 import { chargerScene } from '../chargement.ts';
@@ -250,9 +251,10 @@ describe('gardeSuiviDuCorps : état de la scène', () => {
 });
 
 const TABLE: TableDeGabarit = { legs: ['jambe'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } };
+const APPUIS = { pieds: ['racine'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'racine', poids: 1 }], deltas: {} }], vitessesAuSol: {} };
 
 describe('gardeSuiviDuCorps : le chemin réel de la peau', () => {
-  /** Le plus grand |(v′ − b′) − (v − b)| de l'élément sur `monter`, `poserFormes`, `appliquerGabarit` sans replacer. */
+  /** Le plus grand |(v′ − b′) − (v − b)| de l'élément sur `monter`, `poserFormes`, `appliquerGabarit`. */
   async function ecartReel(element: Piece, legs: number): Promise<number> {
     const { b, e } = await monte(corps(), element);
     const os = meshesDuCorps(b);
@@ -262,7 +264,7 @@ describe('gardeSuiviDuCorps : le chemin réel de la peau', () => {
     const lies = lierAuCorps(v, os, repos);
     const facteurs = { ...FACTEURS_NEUTRES, legs };
     poserFormes(b.scene, poidsDuGabarit(facteurs, TABLE.bornes, {}));
-    appliquerGabarit(b.scene, facteurs, { gabarit: TABLE }, b.squelette ?? undefined, false);
+    appliquerGabarit(b.scene, facteurs, { gabarit: TABLE, appuis: APPUIS }, b.squelette ?? undefined);
     const apres = poseDeRepos(b.scene, os);
     const vApres = poseDeRepos(b.scene, [peau]).positions.get(peau) as Float32Array;
     return Math.max(...lies.map((lie, i) => {

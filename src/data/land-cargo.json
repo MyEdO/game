@@ -70,7 +70,7 @@
       }
     },
     {
-      "id": "produits-de-luxe",
+      "id": "produits-de-luxe-terre",
       "label": "Produits de luxe",
       "avail": {
         "printemps": {
@@ -136,7 +136,7 @@
       }
     },
     {
-      "id": "bois",
+      "id": "bois-terre",
       "label": "Bois",
       "avail": {
         "printemps": {
@@ -169,7 +169,7 @@
       }
     },
     {
-      "id": "vin",
+      "id": "vin-eau-de-vie",
       "label": "Vin/Eau-de-vie",
       "wine": true,
       "avail": {
@@ -203,7 +203,7 @@
       }
     },
     {
-      "id": "laine",
+      "id": "laine-terre",
       "label": "Laine",
       "avail": {
         "printemps": {
@@ -236,7 +236,7 @@
       }
     },
     {
-      "id": "commerce",
+      "id": "commerce-terre",
       "label": "Commerce",
       "echangeable": false,
       "hint": "plaque tournante",
@@ -400,8 +400,8 @@
       "min": 1,
       "max": 5,
       "biens": [
-        "produits-de-luxe",
-        "vin",
+        "produits-de-luxe-terre",
+        "vin-eau-de-vie",
         "vivres"
       ],
       "desc": "C'est un sacré mariage qu'ils ont prévu, n'est-ce pas ? Les plus snobinards du Reikland sont conviés, mais on dit que les heureux élus ne se sont jamais rencontrés ! Ils sont bizarres les nobles, n'est-ce pas ?",
@@ -430,7 +430,7 @@
       "biens": [
         "vivres",
         "metal",
-        "bois"
+        "bois-terre"
       ],
       "desc": "Apparemment, il y a eu un incendie dans un entrepôt de céréales. Des boisseaux et des boisseaux réduits en cendres. Cette saison, on va avoir faim",
       "source": {
@@ -443,8 +443,8 @@
       "min": 16,
       "max": 20,
       "biens": [
-        "bois",
-        "produits-de-luxe"
+        "bois-terre",
+        "produits-de-luxe-terre"
       ],
       "desc": "Vous êtes au courant ? Un nouveau temple de Sigmar vient d'être mis en chantier. Cela a coûté beaucoup d'argent à l'Empereur, et malgré tout il paraît que les locaux ne sont pas tous ravis",
       "source": {
@@ -458,7 +458,7 @@
       "max": 25,
       "biens": [
         "vivres",
-        "laine"
+        "laine-terre"
       ],
       "desc": "La Vérole bleue a emporté des troupeaux entiers de bétail la saison dernière. Les bouviers s'en remettent à peine à l'heure qu'il est.",
       "source": {
@@ -499,8 +499,8 @@
       "max": 40,
       "biens": [
         "metal",
-        "bois",
-        "produits-de-luxe"
+        "bois-terre",
+        "produits-de-luxe-terre"
       ],
       "desc": "Vous êtes au courant ? Un sorcier est parti s'installer en amont du fleuve ! D'un Collège d'Altdorf, qu'ils disent. Ils sont bizarres, mais ils ont de l'or. Il paye la moitié de la ville pour construire une grande tour. C'est logique, non ? Les sorciers ont forcément une tour.",
       "source": {
@@ -528,7 +528,7 @@
       "max": 50,
       "biens": [
         "vivres",
-        "bois"
+        "bois-terre"
       ],
       "desc": "Vous savez, on raconte que les bois sont hantés par là ne riez pas ! Plus aucun bûcheron ne veut y travailler, et même les braconniers ne vont pas chercher les cerfs dans ces forêts.",
       "source": {
@@ -541,8 +541,8 @@
       "min": 51,
       "max": 55,
       "biens": [
-        "produits-de-luxe",
-        "vin"
+        "produits-de-luxe-terre",
+        "vin-eau-de-vie"
       ],
       "desc": "Une drôle de communauté s'est installée dans le coin. Ils ont des noms et des mœurs étranges. On raconte qu'ils dansent nus sous Morrsleib ! Mais ils ont quand même beaucoup de couronnes à dépenser pour que les gens regardent ailleurs. Un bon répurgateur leur ferait le plus grand bien",
       "source": {
@@ -555,7 +555,7 @@
       "min": 56,
       "max": 60,
       "biens": [
-        "bois",
+        "bois-terre",
         "metal"
       ],
       "desc": "Vous avez entendu parler de l'elfe qui se trouve un peu plus loin ? À ce qu'on raconte, il est venu d'Ulthuan pour trouver de vieux os elfiques, ou des ruines, et il paye bien quiconque a le dos assez solide pour les déterrer. Ça m'étonnerait qu'il trouve quoi que ce soit. C'est l'Empire, ici, pas une forêt elfique !",
@@ -569,7 +569,7 @@
       "min": 61,
       "max": 65,
       "biens": [
-        "bois",
+        "bois-terre",
         "metal"
       ],
       "desc": "Vous êtes au courant ? Il y a un répurgateur dans les parages. Ils ont brûlé la moitié de la ville en essayant d'allumer un bûcher pour brûler une chèvre dont on racontait qu'elle prédisait l'avenir ; sauf qu'il s'est avéré qu'elle avait tout faux, alors ils ont laissé tomber.",
@@ -585,7 +585,7 @@
       "biens": [
         "armement",
         "vivres",
-        "laine"
+        "laine-terre"
       ],
       "desc": "On raconte qu'une famine se prépare. De mauvaises récoltes Et des sortes de gros rats se sont introduits dans les magasins. Ils ont dû appeler une bande de ratiers de trois villes différentes pour s'en occuper. Ça devait être de gros rats, hein ?",
       "source": {
@@ -598,8 +598,8 @@
       "min": 71,
       "max": 75,
       "biens": [
-        "produits-de-luxe",
-        "vin"
+        "produits-de-luxe-terre",
+        "vin-eau-de-vie"
       ],
       "desc": "Un « artiste » s'est retiré en amont du fleuve. Il va organiser une grande exposition de ses œuvres et a invité la moitié de la province ! Pourtant, on raconte que cet art a un effet étrange sur les personnes qui le regardent. Heureusement que je suis borgne !",
       "source": {
@@ -613,8 +613,8 @@
       "max": 80,
       "biens": [
         "metal",
-        "bois",
-        "vin"
+        "bois-terre",
+        "vin-eau-de-vie"
       ],
       "desc": "Un groupe de nains fraîchement débarqués des montagnes s'est installé en aval du fleuve. Ils disent qu'ils se sont battus dans une auberge lors de leur première nuit et qu'ils ont maintenant une dette à vie envers le propriétaire ! Quoi qu'il en soit, ils refont toute l'auberge pour lui en guise d'excuses, mais on verra bien une fois que ce sera fini.",
       "source": {
@@ -670,10 +670,10 @@
       "biens": [
         "armement",
         "vivres",
-        "produits-de-luxe",
-        "bois",
-        "vin",
-        "laine"
+        "produits-de-luxe-terre",
+        "bois-terre",
+        "vin-eau-de-vie",
+        "laine-terre"
       ],
       "desc": "Vous êtes au courant ? Une bande de puînés et de gaspilleurs déshérités se préparent pour un voyage vers les Principautés frontalières. On dit qu'ils remplissent à ras-bord leurs chariots de marchandises.",
       "source": {

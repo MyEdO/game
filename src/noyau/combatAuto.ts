@@ -29,7 +29,7 @@ import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
 import { sequence } from '../engine/sequences';
-import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
+import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, REGLAGES_DE_L_INCANTATION, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -66,7 +66,7 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
   fumble: { flux: 'fumble', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.fumble.result }]; } },
   cast: {
     flux: 'cast',
-    reglages: ['castSetCritChoice', 'castSetConjureForm', 'castSetDiscreet', 'castSetChosenTableRolls'],
+    reglages: REGLAGES_DE_L_INCANTATION,
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
@@ -167,7 +167,8 @@ export interface FenetreDuJeu {
  *  (`gestesDeLaFenetre`) et l'id de sa rangée due (`rangees`) ; pour la cascade, ceux de l'étape courante : l'étape-jet
  *  de combat, `gestesDuJet` et la rangée due de sa fenêtre réactive ou de son flux (`FENETRE_DU_JET`) ;
  *  toute autre étape et le bilan, les gestes de son interaction (`VERBES_D_INTERACTION`) puis les clôtures de la
- *  cascade (`NAVIGATION_DE_CASCADE`) ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
+ *  cascade (`NAVIGATION_DE_CASCADE`), et pour une interaction jouée par un flux de jet le drive « le jet, puis valider
+ *  l'étape » ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
  *  qui tient la main, avec ses gestes déclarés. L'étape de cascade courante est rendue avec la cascade.
  *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
@@ -185,7 +186,8 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
       return { cle, proprietaire, gestes: gestesDuJet(etape.jet, reactive), flux: [...(reactive ? [reactive.flux] : []), flux], ...avecPid(idDeLaRangeeDue(reactive ? reactive.rangees(s) : rangees?.(s))), drive: reactive?.drive ?? gestesDuDrive(JET_AUTO[etape.jet]), etape };
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
-    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...nommes(NAVIGATION_DE_CASCADE)]), flux: parInteraction?.flux ? [parInteraction.flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(etape ? { etape } : {}) };
+    const flux = parInteraction?.flux;
+    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...nommes(NAVIGATION_DE_CASCADE)]), flux: flux ? [flux] : [], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, { verbe: 'cascadeNext' }] } : {}), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   return hors ? { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] } : null;

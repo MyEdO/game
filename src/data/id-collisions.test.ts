@@ -2,6 +2,10 @@
  * Collisions d'identifiants ENTRE catalogues — l'unicité DANS un catalogue est refusée au parse
  * (collection à clé, `schemas/grammaire/collection-cle.ts`).
  *
+ * Les deux catalogues de cargaisons (MDG 15, MSRC 13) y entrent : une colonne Production/Produits se
+ * résout dans l'un puis l'autre (`produitsDuProfil`, `src/noyau/worldMap.ts`), un id partagé y ferait
+ * lire la cargaison de l'autre livre.
+ *
  * Un même id peut exister dans deux catalogues distincts. Les
  *     lookups étant SCOPÉS par catégorie (`findTraitById`/`findTalentById`/`findManeuverById`/…),
  *     ces collisions sont inoffensives à l'exécution, MAIS sources de confusion. On VERROUILLE
@@ -51,13 +55,20 @@
  *           folio 138, qui la RENVOIE), chute (les Dégâts de chute, LDB 15 l.78 folio 166, vs le Sort
  *           d'Arcane « Chute », LDB 47 l.380 folio 243), mouvement (le Mouvement au cours d'un combat,
  *           LDB 15 l.14 folio 165, vs l'Attribut « Mouvement (M) », LDB 05 l.447 folio 35).
+ *       • cargaison↔trapping : pieces-detachees-de-navire — la possession de bord (MDG 14 l.255, l.281)
+ *           vs la cargaison en vrac du tableau des cargaisons (MDG 15 l.418, l.434).
  *       • caractéristique↔trait : corruption — le compteur de Points de Corruption (LDB 19 l.7 folio
  *           182) vs le Trait de créature « Corruption (Degré) » (LDB 85 l.85 folio 338).
  */
 import { describe, it, expect } from 'vitest';
 import { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics } from './index';
+import seaCargo from './sea-cargo.json';
+import landCargo from './land-cargo.json';
 
-const CATEGORIES: Record<string, { id: string }[]> = { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics };
+const CATEGORIES: Record<string, { id: string }[]> = {
+  traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics,
+  seaCargo: seaCargo.cargoes, landCargo: landCargo.cargoes,
+};
 
 /** Ensemble VOULU des ids partagés entre ≥ 2 catalogues (cf. familles documentées ci-dessus). */
 const KNOWN_CROSS = [
@@ -65,7 +76,7 @@ const KNOWN_CROSS = [
   'cornes', 'corruption', 'effrayant', 'etreinte-glaciale',
   'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'fuite', 'haine', 'hurlement-de-la-bete-indomptable',
   'hurlement-fantomatique', 'infecte', 'langue-prehensile', 'magique', 'marmite', 'maudit', 'mauvais-oeil',
-  'morsure', 'mouvement', 'ogre', 'perturbant', 'pistolet', 'poudre-impregnee-d-aqshy',
+  'morsure', 'mouvement', 'ogre', 'perturbant', 'pieces-detachees-de-navire', 'pistolet', 'poudre-impregnee-d-aqshy',
   'poulet', 'protection', 'rapide', 'regard-petrifiant', 'regeneration', 'resistance', 'resistance-a-la-magie',
   'rocher', 'sang-corrosif', 'siege', 'silence', 'singe', 'souffle', 'taille', 'tente', 'tentacules', 'toile', 'tonneau', 'vers',
   'vision-nocturne', 'vomissement',

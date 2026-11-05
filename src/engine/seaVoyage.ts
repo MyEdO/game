@@ -28,7 +28,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
-import { type CargoDef, type CargoEntry, isEchangeable, isTradeHubColumn, rollSeasonalCargo } from './cargo';
+import { type CargoDef, type CargoEntry, entreeDeCargaison, isEchangeable, isTradeHubColumn, marchandiseDeCargaison, rollSeasonalCargo } from './cargo';
 export { type CargoDef, type CargoEntry, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoBasePrice } from './cargo';
 
 // ── Types de la donnée ───────────────────────────────────────────────────────────────────────────
@@ -115,9 +115,9 @@ export const OPPORTUNITE = CARGO.opportunite;
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
 const OFFER_PRICE_LOOKUP = tableOuverte(CARGO.sell.offerPrice);
 /** Résout une MARCHANDISE (les marqueurs ne sont ni achetables ni vendables). */
-export const findCargoById = (id: string): CargoDef | undefined => cargoes().find((c) => c.id === id);
+export const findCargoById = (id: string): CargoDef | undefined => marchandiseDeCargaison(CARGO_ENTRIES, id);
 /** Résout une entrée QUELCONQUE de la colonne Production, marqueur compris (libellé d'affichage). */
-export const findCargoEntryById = (id: string): CargoEntry | undefined => CARGO_ENTRIES.find((c) => c.id === id);
+export const findCargoEntryById = (id: string): CargoEntry | undefined => entreeDeCargaison(CARGO_ENTRIES, id);
 /** La colonne Production d'un PORT le désigne-t-elle comme plaque tournante (l.321) ? Lit le champ
  *  `tradeHub` de l'entrée marqueur du catalogue maritime (SSOT `isTradeHubEntry`). PUR. */
 export const isSeaTradeHub = (production: readonly string[] | undefined): boolean =>
@@ -236,13 +236,13 @@ export function resolveFastVoyage(
 // ── Commerce maritime (l.309-436) ────────────────────────────────────────────────────────────────
 
 /** Profil COMMERCIAL d'un port (Index des ports, l.439-506) — porté par le LIEU de la carte du monde
- *  (`MapPlace.port`, donnée d'auteur). `production` : ids de cargaison, ou `'commerce'`/`'minimum-vital'`. */
+ *  (`MapPlace.port`, donnée d'auteur). `production` : ids de cargaison, ou `'commerce-mer'`/`'minimum-vital'`. */
 export interface PortProfile {
   /** Taille du Lieu (1-4). */
   taille: number;
   /** Richesse du Lieu. */
   richesse: number;
-  /** Colonne Production : ids de cargaison + éventuellement 'commerce' / 'minimum-vital'. */
+  /** Colonne Production : ids de cargaison + éventuellement 'commerce-mer' / 'minimum-vital'. */
   production: string[];
   /** Colonne Surplus : id → indice (+1, +2). */
   surplus?: Record<string, number>;

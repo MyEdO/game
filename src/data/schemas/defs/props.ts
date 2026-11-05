@@ -93,13 +93,13 @@ export const propSeatSlotSchema = nommerChamps(z.strictObject({
 
 /** `PropData` (`src/data/props.types.ts`) — type de décor app-owned : vérité UNIQUE de l'empreinte,
  *  de la physique, de la recette volumique et des places assises. Entrée de `props.json`, et contrat
- *  partagé par `src/state` (walkability, LdV, lumière) et `src/gameIso` (rendu).
- *  Le `label` de l'enveloppe est le MIROIR du `label` de la def d'ART du même id
- *  (`src/gameIso/catalog/decor/defs/<id>.ts`) — parité gardée par `src/data/props-label-parite.test.ts`. */
+ *  partagé par `src/state` (walkability, LdV, lumière) et `src/gameIso` (rendu). Le `label` de
+ *  l'enveloppe est la seule source du libellé du décor. */
 const doc = document(
   'props',
   famille,
   {
+    searchable: z.boolean().optional(),
     solid: z.boolean().optional(),
     opaque: z.boolean().optional(),
     cover: deckCoverSchema.optional(),
@@ -111,6 +111,7 @@ const doc = document(
     seatSlots: z.array(propSeatSlotSchema).optional(),
   },
   {
+    searchable: { label: 'Fouillable', hint: 'L’éditeur pré-arme l’action « fouiller » à la pose du décor' },
     solid: { label: 'Bloque le passage', hint: 'Empêche de marcher sur la case (combat et exploration)' },
     opaque: { label: 'Bloque la vue', hint: 'Coupe la ligne de vue (LdV)' },
     cover: { label: 'Couvert', hint: 'Degré de couvert offert (imparfaite/moyenne/totale)' },

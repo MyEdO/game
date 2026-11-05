@@ -2302,7 +2302,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
     case 'epave-cargaison': {
       if (!vessel) break;
       const enc = rollDice(event.kind === 'epave-cargaison' ? 2 : 1, 100, rng);
-      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { cargoId: 'bois', enc, basePriceGold: 0 }] } });
+      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { cargoId: 'bois-mer', enc, basePriceGold: 0 }] } });
       tell(get, set, [t('sv.cargoFished', { enc })]);
       break;
     }

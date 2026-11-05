@@ -178,7 +178,7 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
     // Libellé ET qualificatif viennent du catalogue (`land-cargo.json` : `label` + `hint`) — plus
     // aucun texte par id ni suffixe codé dans le panneau.
     click(checkbox('Commerce (plaque tournante)'));
-    expect(lastMap!.places[0].market!.produits).toContain('commerce');
+    expect(lastMap!.places[0].market!.produits).toContain('commerce-terre');
   });
 
   it('active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare', () => {

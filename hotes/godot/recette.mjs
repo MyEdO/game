@@ -10,6 +10,9 @@
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
 //   partie, et chaque bouton se trouve par l'élément de la vue qu'il dessine (`vue.zones`). Le jet tombé, la fenêtre
 //   ne redessine ni son geste ni ses réglages d'avant le jet (#2936, `ouvert`).
+// - `critique` : la fenêtre du round à l'Entrée, puis le combat joué en joueur pressé (chaque fenêtre à l'Entrée, chaque
+//   tour une charge ou une attaque cliquée sur la première cible, sinon la fin du tour) jusqu'au premier Coup Critique,
+//   dont la fenêtre dit la localisation et les effets.
 // - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
 //   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
@@ -54,7 +57,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|exploration|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|exploration|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (['atelier', 'composition'].includes(o.parcours) && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -240,6 +243,33 @@ const PAR_DEFAUT = 'Par défaut'
 const RECHARGER = 'Recharger les modèles'
 const COPIER = 'Copier la composition'
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
+async function parcoursCritique() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  for (let pas = 0; etape(v) !== 'critical'; pas++) {
+    const c = v.projection.combat
+    assert.ok(pas < 300 && !c.fin, `aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`)
+    const offres = zone(v, 'combat.offres').flatMap((e) => e.valeurs).filter((b) => !b.refus)
+    if (v.projection.fenetre) {
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    } else if (c.intention && c.cibles.liste.length) {
+      const cible = c.voisins.liste.find((x) => x.id === c.cibles.liste[0])
+      await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+    } else if (c.barre.forme === 'ouverte') await cliquerBouton(bouton(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')))
+    else {
+      await marquer()
+      await nouvelEcran()
+    }
+    v = await vue()
+  }
+  assert.ok(element(v, 'fenetre.corps', 'critique/localisation'), 'la fenêtre dit la localisation du Coup Critique')
+  noter(`Coup Critique : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.valeur ?? e.texte).join(' / ')}`)
+  await capturer('3328-f1-coup-critique')
+}
+
 async function parcoursExploration() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
@@ -663,10 +693,11 @@ async function parcoursComposition() {
   const assets = await chargerAssets([
     "export { schema as schemaDesPresets } from '/src/data/schemas/defs/presets-de-personnage.ts';",
     "export { validateDocument } from '/src/data/schemas/validate.ts';",
+    "export { FEMININ, CORPULENCE } from '/hotes/godot/asset/silhouettes.ts';",
     "export { evaluer } from '/hotes/godot/asset/evaluateur/evaluer.ts';",
     "export { SOL_TOLERANCE_M } from '/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts';",
   ])
-  const { schemaDesPresets, validateDocument } = assets
+  const { schemaDesPresets, validateDocument, FEMININ, CORPULENCE } = assets
   const p = production(o.base)
   const piece = production(o.piece)
   const base = p.manifeste.base
@@ -698,7 +729,7 @@ async function parcoursComposition() {
   let a = await atelier()
   assert.equal(a.composition.refus, null)
   assert.equal(a.composition.courante.sex, 'F', 'Soldat féminin')
-  verifierLeMorphe(a, 'feminin', 1)
+  verifierLeMorphe(a, FEMININ, 1)
   assert.deepEqual(a.erreurs, [])
   assert.ok(a.composition.montes.length > 0, 'emplacements de composition publiés')
   assert.ok(a.composition.manquants.every((m) => m.ligne && m.id && m.label), 'manquants identifiés et libellés')
@@ -778,12 +809,12 @@ async function parcoursComposition() {
     a = await atelier()
     assert.equal(a.composition.courante.build, valeur)
     verifierLaPeau(a, ligne)
-    const attendu = a.composition.morphes.corpulence
+    const attendu = a.composition.morphes[CORPULENCE]
     assert.ok(Number.isFinite(attendu), 'poids corpulence retourné par composer')
     if (bord === 'droite') assert.ok(attendu > 0, 'corpulence non nulle à droite')
-    verifierLeMorphe(a, 'corpulence', attendu)
-    verifierLeMorphe(a, 'corpulence', attendu, `ligne/${ligne}`)
-    verifierLeMorphe(a, 'feminin', 1)
+    verifierLeMorphe(a, CORPULENCE, attendu)
+    verifierLeMorphe(a, CORPULENCE, attendu, `ligne/${ligne}`)
+    verifierLeMorphe(a, FEMININ, 1)
     await capturer(`3086-r1-3-corpulence-${valeur}`)
   }
 
@@ -798,7 +829,7 @@ async function parcoursComposition() {
   proche(repos.cadre, 1, 1e-4, 'marche au corps neutre')
   const poidsNeutres = Object.values(repos.composition.morphes)
   assert.ok(poidsNeutres.length > 0 && poidsNeutres.every((poids) => poids === 0), 'couplage : tous les poids de silhouette sont nuls')
-  verifierLeMorphe(repos, 'feminin', 0)
+  verifierLeMorphe(repos, FEMININ, 0)
   const racine = p.manifeste.gabarit.racine
   const images = []
   try {
@@ -845,7 +876,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, exploration: parcoursExploration, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, exploration: parcoursExploration, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

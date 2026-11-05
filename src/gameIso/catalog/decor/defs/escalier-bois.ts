@@ -6,6 +6,5 @@ import { woodStairSvg } from '../woodwork';
 // l'escalier de loge, mais rampe et pommeaux EN BOIS, sans la moindre dorure. Ancré aux pieds.
 export const prop: PropViz = {
   id: 'escalier-bois',
-  label: 'Escalier en bois',
   render: () => woodStairSvg({ railColor: P.boisMoyen21, knobColor: P.boisFonce12 }),
 };

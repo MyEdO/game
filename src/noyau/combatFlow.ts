@@ -870,6 +870,15 @@ export function dualStrikeTargets(battle: BattleState, attacker: Combatant, offW
   });
 }
 
+/** Les cibles que la 2ᵉ frappe en attente (`pendingDualStrike`) peut viser (`dualStrikeTargets`) : celles que
+ *  `dualStrikeAttack` accepte. */
+export function ciblesDeLaDoubleFrappe(s: Jeu): Combatant[] {
+  const ds = s.pendingDualStrike;
+  const attaquant = ds && s.battle ? inBattleId(s.battle, ds.attackerId) : undefined;
+  const secondaire = attaquant?.weapons.find((w) => w.uid === ds?.offWeaponUid);
+  return s.battle && attaquant && secondaire ? dualStrikeTargets(s.battle, attaquant, secondaire) : [];
+}
+
 /** Aperçu d'attaque (R4) : la valeur de toucher (cible du d100) et sa décomposition de modificateurs, SANS
  *  tirer le dé. Rejoue le MÊME `attackEnv` + `attackModifiers` que la résolution → l'aperçu ne ment jamais.
  *  `inRange` = cible atteignable (mêlée : Allonge ; tir : dans une bande de portée) ; `blocked` = tir sans LdV. */
@@ -3766,6 +3775,15 @@ export function cleaveTargets(battle: BattleState, attacker: Combatant, hitIds: 
     if (!attacker.pos || !c.pos) return true;
     return combatDistance(attacker, c) <= 1;
   });
+}
+
+/** Les cibles que le balayage en attente (`pendingCleave`) peut frapper maintenant (`cleaveTargets`), aucune passé ses
+ *  BCC enchaînements (LDB 14 l.9) : celles que `cleaveAttack` accepte. */
+export function ciblesDuBalayage(s: Jeu): Combatant[] {
+  const pc = s.pendingCleave;
+  const attaquant = pc && s.battle ? inBattleId(s.battle, pc.attackerId) : undefined;
+  if (!pc || !s.battle || !attaquant || pc.count >= bonus(effectiveChar(attaquant, 'capacite-de-combat'))) return [];
+  return cleaveTargets(s.battle, attaquant, pc.hitIds);
 }
 
 /** Poursuit la chaîne de balayage. Chaque enchaînement passe par la MÊME couture d'ouverture que l'attaque

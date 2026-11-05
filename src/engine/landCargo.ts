@@ -19,7 +19,7 @@ import { findTableEntry, findTableEntryIndex } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
-import { type CargoDef, type CargoMarkerDef, isEchangeable, isTradeHubColumn, rollSeasonalCargo, cargoBasePrice } from './cargo';
+import { type CargoDef, type CargoMarkerDef, entreeDeCargaison, isEchangeable, isTradeHubColumn, marchandiseDeCargaison, rollSeasonalCargo, cargoBasePrice } from './cargo';
 
 /** Un type de cargaison terrestre = `CargoDef` + éventuel marqueur `wine` (prix par table de qualité, non
  *  par la colonne saisonnière). */
@@ -59,9 +59,9 @@ export const landCargoes = memoParVersion('landCargo', (): readonly LandCargoDef
  *  `scripts/migrations/2026-09-01-1463-gram-seuils-prix-offre.mjs`. */
 export const LAND_RICHESSE_ROWS: readonly OfferRow[] = LAND.sell.offerByRichesse;
 /** Résout une MARCHANDISE terrestre (les marqueurs ne sont ni achetables ni vendables). */
-export const findLandCargoById = (id: string): LandCargoDef | undefined => landCargoes().find((c) => c.id === id);
+export const findLandCargoById = (id: string): LandCargoDef | undefined => marchandiseDeCargaison(LAND_CARGO_ENTRIES, id);
 /** Résout une entrée QUELCONQUE de la colonne Produits, marqueur compris (libellé d'affichage). */
-export const findLandCargoEntryById = (id: string): LandCargoEntry | undefined => LAND_CARGO_ENTRIES.find((c) => c.id === id);
+export const findLandCargoEntryById = (id: string): LandCargoEntry | undefined => entreeDeCargaison(LAND_CARGO_ENTRIES, id);
 
 /** Profil COMMERCIAL d'un Lieu terrestre/fluvial (Index géographique, l.183-278) — porté par le LIEU de
  *  la carte du monde (`MapPlace.market`, donnée d'auteur). Reproduit les colonnes de l'Index. */

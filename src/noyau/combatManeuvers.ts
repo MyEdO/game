@@ -709,6 +709,22 @@ export function distraireFoes(mover: Combatant, battle: BattleState): Combatant[
   return battle.combatants.filter((c) => distraireEligible(mover, c) && !!c.pos);
 }
 
+/** Les adversaires que le Battement en attente (`pendingBattement`) peut viser (`battementFoes`) : ceux que
+ *  `battementSetFoe` accepte. */
+export function adversairesDuBattement(s: Jeu): Combatant[] {
+  const pb = s.pendingBattement;
+  const attaquant = pb && s.battle ? inBattleId(s.battle, pb.attackerId) : undefined;
+  return s.battle && attaquant ? battementFoes(attaquant, s.battle) : [];
+}
+
+/** Les adversaires que le Distraire en attente (`pendingDistraire`) peut viser (`distraireFoes`) : ceux que
+ *  `distraireSetFoe` accepte. */
+export function adversairesADistraire(s: Jeu): Combatant[] {
+  const pd = s.pendingDistraire;
+  const mover = pd && s.battle ? inBattleId(s.battle, pd.moverId) : undefined;
+  return s.battle && mover?.pos ? distraireFoes(mover, s.battle) : [];
+}
+
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps
  *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetRoll('battement')`). */
 export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: Combatant): void {

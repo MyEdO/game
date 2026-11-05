@@ -6,8 +6,6 @@ import { P } from '../../decorPalette';
 // maquillent). Cf. plan officiel NADJ 08 folio 38, image (coiffeuses contre le mur des vestiaires 11/12/13).
 export const prop: PropViz = {
   id: 'coiffeuse',
-  label: 'Coiffeuse',
-  searchable: true,
   render: () =>
     `<g><ellipse cx="60" cy="147" rx="34" ry="8" fill="${P.ombre}" opacity="0.22"/>` +
     // pieds + caisson à tiroirs
