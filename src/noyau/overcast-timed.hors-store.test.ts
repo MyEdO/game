@@ -127,17 +127,17 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
 });
 
 describe('Surincantation (LDB 47 l.28-31)', () => {
-  it('castAllocOvercast respecte le budget (+2 DR par allocation, au-delà du NI)', () => {
+  it('les pas de Surincantation respectent le budget (+2 DR par allocation, au-delà du NI)', () => {
     const { priest, ally } = pair();
     const wiz = pregen(PREGEN.sorcier);
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
     // Armure Aethyrique : NI 2 ; DR 6 → surplus 4 → budget 2 allocations.
     banc.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: { ...okRes(6), niRequired: 2 } } }); // NI figé au jet (`evaluateCasting`)
-    banc.getState().castAllocOvercast('duration', 1);
-    banc.getState().castAllocOvercast('duration', 1);
-    banc.getState().castAllocOvercast('duration', 1); // refusé : budget épuisé
+    banc.getState().jetRegler('cast', 'surincantationDuree', 3); // refusé : budget épuisé
+    expect(banc.getState().pendingCast!.overcast).toBeUndefined();
+    banc.getState().jetRegler('cast', 'surincantationDuree', 2);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 2, targets: 0, damage: 0 });
-    banc.getState().castAllocOvercast('duration', -1); // reset : rend un pas
+    banc.getState().jetRegler('cast', 'surincantationDuree', 1); // rend un pas
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 1, targets: 0, damage: 0 });
   });
 
@@ -145,11 +145,11 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const { priest, ally } = pair();
     banc.setState({ party: [priest, ally] as Combatant[] });
     banc.setState({ pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-bataille', missile: false, focused: false, result: okRes(4) } });
-    banc.getState().castAllocOvercast('duration', 1);
-    banc.getState().castAllocOvercast('targets', 1);
-    banc.getState().castAllocOvercast('targets', 1); // refusé : budget 2 épuisé
+    banc.getState().jetRegler('cast', 'surincantationDuree', 1);
+    banc.getState().jetRegler('cast', 'surincantationCibles', 2); // refusé : budget 2 épuisé
+    banc.getState().jetRegler('cast', 'surincantationCibles', 1);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 1, targets: 1, damage: 0 });
-    banc.getState().castAllocOvercast('zone', 1); // refusé : la ZdE n'existe pas pour une Bénédiction
+    banc.getState().jetRegler('cast', 'surincantationZone', 1); // refusé : la ZdE n'existe pas pour une Bénédiction
     expect(banc.getState().pendingCast!.overcast!.zone).toBe(0);
   });
 

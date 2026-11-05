@@ -16,6 +16,7 @@ import { ev } from '../noyau/combatLog';
 import { describeCorruption } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
+import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
@@ -33,7 +34,8 @@ export function CorruptionModal() {
   const party = useGame((s) => s.party);
   const battle = useGame((s) => s.battle);
   const roll = useGesteDeJet('jetRoll', 'corruption');
-  const setNature = useGame((s) => s.corruptionSetNature);
+  const regler = useGame((s) => s.jetRegler);
+  const setNature = (v: ReglagesDuJet['corruption']['nature']) => regler('corruption', 'nature', v);
   const reroll = useGesteDeJet('jetReroll', 'corruption');
   const bonusSL = useGesteDeJet('jetBonusSL', 'corruption');
   const darkPact = useGesteDeJet('jetDarkPact', 'corruption');

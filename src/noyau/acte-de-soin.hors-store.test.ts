@@ -126,8 +126,8 @@ describe('medicAct lit refusDActeDeSoin', () => {
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
     banc.getState().medicAct('wounds');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
-    banc.getState().healSetMode('bleed');
-    banc.getState().healSetMode('surgery');
+    banc.getState().jetRegler('heal', 'mode', 'bleed');
+    banc.getState().jetRegler('heal', 'mode', 'surgery');
     expect(banc.getState().pendingHeal?.mode).toBe('wounds');
     expect(dernierRefus()).toBe('À l’infirmerie, l’acte se choisit avant le jet.');
   });

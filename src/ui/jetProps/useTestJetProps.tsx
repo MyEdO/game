@@ -14,6 +14,7 @@ import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
 import { useGesteDeJet } from '../useGesteDeJet';
+import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
@@ -36,7 +37,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const determination = useGesteDeJet('jetDetermine', 'test');
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'test');
   const reverseVerb = useGesteDeJet('jetReverse', 'test');
-  const setActor = useGame((s) => s.testSetActor);
+  const regler = useGame((s) => s.jetRegler);
+  const setActor = (v: ReglagesDuJet['test']['testeur']) => regler('test', 'testeur', v);
   const resolve = useGesteDeJet('jetConfirm', 'test');
   const cancel = useGesteDeJet('jetCancel', 'test');
   if (!pt) return null;

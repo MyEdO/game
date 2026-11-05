@@ -90,17 +90,10 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   climbAcross: 'invité',
   // Enjambement d'une croisée (capacité `fenetre`, #700) : même possession (l'actif), aucun jet.
   windowAcross: 'invité',
-  // attaque : paramètres de la modale différée
-  attackSetLocation: 'invité', attackSetWeapon: 'invité', attackSetDualMode: 'invité',
-  attackSetWithhold: 'invité', attackSetHarpoonRopeCut: 'invité', attackSetGrapple: 'invité',
-  attackSetCritLocation: 'invité',
-  // défense réactive : choix de mode/arme/réaction de bouclier
-  defenseSetMode: 'invité', defenseSetParryWeapon: 'invité', defenseSetShieldReaction: 'invité',
-  defenseSetRiposte: 'invité',
-  // incantation / prière : options d'incantation
-  castSetCritChoice: 'invité', castSetConjureForm: 'invité',
-  castSetDiscreet: 'invité',
-  castAllocOvercast: 'invité', castSetChosenTableRolls: 'invité', castToggleExtraTarget: 'invité',
+  // Le réglage d'un jet en attente (`jetRegler`, `REGLAGES_DU_JET`) : routé par le porteur de son jet, ou par celui de
+  // sa rangée ou de sa valeur quand le réglage le déclare, `netOwnership.ROUTES`.
+  jetRegler: 'invité',
+  // incantation : ciblage carte des cibles supplémentaires et pose de zone
   castPickTargets: 'invité',
   castPlaceZone: 'invité',
   // PHASE 1 du Contre-sort (#1042/#1059) : chaque candidat DÉCLARE depuis SA RANGÉE (contrer seul /
@@ -125,33 +118,23 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   grappleChoose: 'invité',
   // combat monté
   mountTargetSelect: 'invité',
-  // manœuvre de créature : réglage pré-jet
-  maneuverSetAvantage: 'invité',
   // Tour de NAVIRE (couche Mer, MDG 13-14) : le contrôleur de la coque OUVRE ; CHAQUE participant
   // (héros à un rôle) roule SA rangée, routée par la possession de son id (cf. `intentAllowedFor`,
   // primitive multi `RollParticipant`).
-  battleShipManeuver: 'invité', shipManeuverSetTurn: 'invité',
+  battleShipManeuver: 'invité',
   battleShipBattery: 'invité',
   battleCrewTest: 'invité',
-  healSetMode: 'invité', healSetTest: 'invité', healSetBandages: 'invité',
-  // Corruption (LDB 19 l.29) : choix de la nature de l'Influence AVANT le jet (le jet et son influence sont dérivés).
-  corruptionSetNature: 'invité',
-  // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR + paramètre pré-jet ; le jet et
-  // ses verbes d'influence sont dérivés de `FLOW_VERBS` (mono → routés par le porteur).
-  battleBattement: 'invité', battementSetFoe: 'invité',
-  battleDistraire: 'invité', distraireSetFoe: 'invité',
+  // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR ; le jet et ses verbes d'influence sont dérivés de
+  // `FLOW_VERBS` (mono → routés par le porteur).
+  battleBattement: 'invité',
+  battleDistraire: 'invité',
   // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
   // du tombant, `netOwnership`).
   fallAcross: 'invité', fallChoose: 'invité',
-  // Enfoncer une porte : choix de l'arme d'une rangée, routé par le siège de son héros (`netOwnership`).
-  forceDoorChoisirArme: 'invité',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse).
   battleDispelSpell: 'invité',
-  // Chanson de marin (MDG 09) : OUVREUR + choix de la chanson.
-  battleSingShanty: 'invité', shantySetSong: 'invité',
-  // Test de scène/compétence (`pendingTest`) : choix du LANCEUR parmi les candidats. L'ouverture reste
-  // interne (`openSkillTest`, jamais une action de store).
-  testSetActor: 'invité',
+  // Chanson de marin (MDG 09) : OUVREUR.
+  battleSingShanty: 'invité',
   // Infirmerie (hors combat) : patients / actes / chirurgie — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, medicAbandonSurgery l'opération.

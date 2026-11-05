@@ -5,7 +5,7 @@
  * (`FermetureDuJet`). Le duel est celui de `combatDeTest.testkit.ts`, ses pendings posés comme `jetsEnVue`.
  */
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, fermeturesDeLaFenetre, fenetreDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
+import { VERBE_DE_REGLAGE, creerPartie, etatInitialDuJeu, fermeturesDeLaFenetre, fenetreDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { rollOups } from '../engine/oups';
 import { makeRNG } from '../engine/dice';
@@ -68,15 +68,16 @@ function reserves(r: { resilience?: number; resolve?: number }): Partial<Jeu> {
   return { battle: { ...BASE.battle!, combatants: BASE.battle!.combatants.map((c) => (c.id === H.id ? { ...c, ...r } : c)) } };
 }
 
-/** Les verbes de la fenêtre qui tient la main, ouverts puis fermés avec ce qui les ferme. */
-function verbes(patch: Partial<Jeu>): { ouverts: string[]; fermes: Record<string, FermetureDuJet> } {
+/** Les gestes de la fenêtre qui tient la main, ouverts puis fermés avec ce qui les ferme : ses verbes de jet, ou ses
+ *  réglages (`jetRegler`). */
+function verbes(patch: Partial<Jeu>, reglages = false): { ouverts: string[]; fermes: Record<string, FermetureDuJet> } {
   const s = { ...BASE, ...patch } as Jeu;
   const f = fenetreDuJeu(s);
   expect(f, 'aucune fenêtre ne tient la main').not.toBeNull();
-  const juges = fermeturesDeLaFenetre(s, f);
+  const juges = [...fermeturesDeLaFenetre(s, f)].filter(([v]) => v.startsWith(`${VERBE_DE_REGLAGE}@`) === reglages);
   const fermes: Record<string, FermetureDuJet> = {};
   for (const [v, raison] of juges) if (raison) fermes[v] = raison;
-  return { ouverts: [...juges].filter(([, r]) => r === null).map(([v]) => v).sort(), fermes };
+  return { ouverts: juges.filter(([, r]) => r === null).map(([v]) => v).sort(), fermes };
 }
 
 /** L'étape-jet `jet` de la cascade, son pending posé. */
@@ -125,6 +126,19 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
     const apres = verbes(enEtape('cast', { pendingCast: incantation(true) }));
     expect(apres.ouverts).toEqual(['jetBonusSL@cast', 'jetConfirm@cast', 'jetDarkPact@cast', 'jetSetForcedRoll@cast']);
     expect(apres.fermes).toMatchObject({ 'jetRoll@cast': 'jetLance', 'jetReroll@cast': 'jetReussi', 'jetForceSuccess@cast': 'jetReussi' });
+  });
+
+  it('un réglage se joue dans sa phase (`REGLAGES_DU_JET`) : avant le dé, ou une fois le dé tombé', () => {
+    const avantLeJet = ['arme', 'deuxArmes', 'empoigner', 'localisation', 'retenirSesCoups', 'sansLaCorde'].map((r) => `jetRegler@attack#${r}`);
+    const avant = verbes(enEtape('attack', { pendingAttack: attaque() }), true);
+    expect(avant.ouverts).toEqual(avantLeJet);
+    expect(avant.fermes).toEqual({ 'jetRegler@attack#localisationDuCritique': 'jetNonLance' });
+    const apres = verbes(enEtape('attack', { pendingAttack: attaque(COUP) }), true);
+    expect(apres.ouverts).toEqual(['jetRegler@attack#localisationDuCritique']);
+    expect(apres.fermes).toEqual(Object.fromEntries(avantLeJet.map((g) => [g, 'jetLance'])));
+    const lance = verbes(enEtape('cast', { pendingCast: incantation(true) }), true);
+    expect(lance.ouverts, 'LDB 46 l.26-32 ; LDB 47 l.15-17').toEqual(expect.arrayContaining(['jetRegler@cast#effetCritique', 'jetRegler@cast#surincantationDuree', 'jetRegler@cast#ciblesSupplementaires']));
+    expect(lance.fermes).toMatchObject({ 'jetRegler@cast#discret': 'jetLance', 'jetRegler@cast#formeConjuree': 'jetLance' });
   });
 
   it('sans l’option « Dés fixés », aucun dé ne se fixe après le jet', () => {

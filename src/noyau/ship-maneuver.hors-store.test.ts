@@ -376,7 +376,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     const p = banc.getState().pendingShipManeuver!;
     expect(p.shipId).toBe('ship');
     expect(p.participants.some((x) => x.id === 'helm')).toBe(true); // le Timonier (helm) est contributeur
-    banc.getState().shipManeuverSetTurn(2); // tribord 90° (virage ⟂ jet)
+    banc.getState().jetRegler('shipManeuver', 'virage', 2); // tribord 90° (virage ⟂ jet)
     expect(banc.getState().pendingShipManeuver!.turnSteps).toBe(2);
     banc.getState().jetRoll('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
     expect(banc.getState().pendingShipManeuver!.participants.every((x) => x.result)).toBe(true);

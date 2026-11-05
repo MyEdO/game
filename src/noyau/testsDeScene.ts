@@ -24,6 +24,7 @@ import { garanti } from '../lib/garanti';
 import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { CorpsDesReglages } from './reglagesDuJet';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
  *  (`jetConfirm('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
@@ -57,40 +58,48 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'forceDoor', groupOwner: true }));
       if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
     },
-    forceDoorChoisirArme: (heroId, armeUid) => {
-      const p = get().pendingForceDoor;
-      const part = p?.participants.find((x) => x.id === heroId);
-      const actor = part ? actorIn(get(), heroId) : undefined;
-      if (!p || !part || part.result || !actor || (armeUid && !armeDEnfoncement(actor, { armeUid }))) {
-        refuserGeste(get, set, t('store.armeDEnfoncementIndisponible'));
-        return;
-      }
-      const { armeUid: _ancienne, ...reste } = part;
-      set({ pendingForceDoor: { ...p, participants: p.participants.map((x) => (x.id === heroId ? { ...reste, ...(armeUid ? { armeUid } : {}) } : x)) } });
-    },
-    // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) sur un Test de scène (hors combat) — cycle
-    // UNIFIÉ par la fabrique rollFlow (les variantes combat attack/defense/cast vivent dans combatSlice).
-
-    /** Choix du lanceur (avant le jet) : re-cible le Test sur le candidat `id` du groupe. */
-    testSetActor: (id) => {
-      const pt = get().pendingTest;
-      if (!pt || pt.roll != null) return; // seulement AVANT le jet
-      const cand = pt.candidates?.find((c) => c.id === id);
-      if (!cand) return;
-      // La cascade-hôte porte l'`actorId` de l'étape (gating coop « chacun ses jets ») : re-cibler le
-      // lanceur le met à jour aussi, pour que la modale reste chez le bon propriétaire.
-      // Le PORTEUR de l'étape change : le curseur se re-pose par la porte du pilote (`curseurPose`), qui
-      // re-juge la surface du nouveau porteur — jamais un `cursor:` écrit à la main. Les DEUX porteurs
-      // (Test et étape) se publient dans le MÊME `set` : entre deux `set`, un abonné rendrait un état où
-      // la modale suit un porteur et l'étape l'autre.
-      const pc = get().pendingCascade;
-      const etape = pc ? curseurPose(get, { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, actorId: cand.id } : st)) }, pc.cursor) : null;
-      set({
-        pendingTest: { ...pt, actorId: cand.id, actorName: cand.label, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
-        ...(etape ? { pendingCascade: etape } : {}),
-      });
-    },
   } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Les réglages des Tests de scène (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase. */
+export function reglagesDesTestsDeScene(get: Get, set: Set): Pick<CorpsDesReglages, 'forceDoor' | 'test'> {
+  return {
+    forceDoor: {
+      /** L'arme de la rangée `heroId`, parmi `armesDEnfoncement`, ou ses mains nues (`null`). EDO 11 l.93 */
+      arme: (armeUid, heroId) => {
+        const p = get().pendingForceDoor;
+        const part = p?.participants.find((x) => x.id === heroId);
+        const actor = part ? actorIn(get(), part.id) : undefined;
+        if (!p || !part || !actor || (armeUid && !armeDEnfoncement(actor, { armeUid }))) {
+          refuserGeste(get, set, t('store.armeDEnfoncementIndisponible'));
+          return;
+        }
+        const { armeUid: _ancienne, ...reste } = part;
+        set({ pendingForceDoor: { ...p, participants: p.participants.map((x) => (x.id === part.id ? { ...reste, ...(armeUid ? { armeUid } : {}) } : x)) } });
+      },
+    },
+    test: {
+      /** Re-cible le Test sur le candidat `id` du groupe. */
+      testeur: (id) => {
+        const pt = get().pendingTest;
+        if (!pt) return;
+        const cand = pt.candidates?.find((c) => c.id === id);
+        if (!cand) return;
+        // La cascade-hôte porte l'`actorId` de l'étape (gating coop « chacun ses jets ») : re-cibler le
+        // lanceur le met à jour aussi, pour que la modale reste chez le bon propriétaire.
+        // Le PORTEUR de l'étape change : le curseur se re-pose par la porte du pilote (`curseurPose`), qui
+        // re-juge la surface du nouveau porteur — jamais un `cursor:` écrit à la main. Les DEUX porteurs
+        // (Test et étape) se publient dans le MÊME `set` : entre deux `set`, un abonné rendrait un état où
+        // la modale suit un porteur et l'étape l'autre.
+        const pc = get().pendingCascade;
+        const etape = pc ? curseurPose(get, { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, actorId: cand.id } : st)) }, pc.cursor) : null;
+        set({
+          pendingTest: { ...pt, actorId: cand.id, actorName: cand.label, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
+          ...(etape ? { pendingCascade: etape } : {}),
+        });
+      },
+    },
+  };
 }
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */

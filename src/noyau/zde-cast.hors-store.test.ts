@@ -91,7 +91,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     banc.getState().battleClickTile({ x: 9, y: 9 });
     let pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(ni + 2) as never } }); // surplus 2 → 1 allocation
-    banc.getState().castAllocOvercast('zone', 1);
+    banc.getState().jetRegler('cast', 'surincantationZone', 1);
     pc = banc.getState().pendingCast!;
     expect(pc.overcast?.zone).toBe(1);
     expect(pc.zone!.radius).toBe(2); // r0m 2 m → ×2 = 4 m → 2 cases

@@ -119,7 +119,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     expect(banc.getState().pendingCast, 'l’incantation attend le choix').toBeTruthy();
     expect(banc.getState().pendingCast!.critChoice).toBeUndefined();
     expect(E.dispelledThisRound, 'aucune Dissipation tant que le choix n’est pas écrit').toBeFalsy();
-    banc.getState().castSetCritChoice('puissance'); // choix tranché → dissipable (l.31)
+    banc.getState().jetRegler('cast', 'effetCritique', 'puissance'); // choix tranché → dissipable (l.31)
     banc.getState().jetConfirm('cast');
     // Contre-lanceur ENNEMI sans siège MJ : pas de fenêtre, c'est le chant INLINE — mais il a bien
     // lieu, et APRÈS le choix : le moment du Contre-sort suit la résolution du Critique.
@@ -232,7 +232,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     expect(E.dispelledThisRound, 'aucun chant inline sur le jet naturel').toBeFalsy();
     expect(pc.counterspellRouted, 'le moment reste DÛ : le choix d’effet décide de la dissipabilité').toBeFalsy();
     // Choix tranché → l'aiguilleur s'exécute sur le résultat FINAL.
-    banc.getState().castSetCritChoice('puissance');
+    banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
     banc.getState().jetConfirm('cast');
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound,
       'la Dissipation se joue une fois le Critique tranché').toBe(true);

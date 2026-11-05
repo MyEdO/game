@@ -152,7 +152,7 @@
     "label": "fermeturesDuFlux / fermeturesDeLaFenetre",
     "fichier": "src/noyau/verbesOuverts.ts",
     "concept": "ce qui ferme MAINTENANT chaque verbe du cycle d'un flux de jet (`FermetureDuJet`, libellé `libelleDeLaFermeture`), le prédicat même que gardent ses ops (`RollFlowHandlers.fermetures` : Résilience `fermetureDuForcage`, clôtures `cloture`/`jetPose`/`jetImpose`, annulation `annulation`, issue perdue `perdu` du spec), et chaque verbe de la fenêtre qui tient la main qu'un de ses flux joue ; une fermeture qui attend une décision du joueur (`FERMETURES_DITES`) se montre refusée avec sa raison ; aucun site ne date un verbe « avant » ou « après » le jet",
-    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages manuscrits du store (`siOuvert`)",
+    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), réglages des jets (`jetRegler`, `fermetureDuReglage`)",
     "verrou": "verbesOuverts.hors-store.test.ts, gestes-a-l-etat.hors-store.test.ts"
   },
   {

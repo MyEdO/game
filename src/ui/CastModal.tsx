@@ -29,6 +29,7 @@ import { QtyStepper } from './QtyStepper';
 import { Row, Stack, grow } from './Layout';
 import { libelleDeTest, libelleDIncantation, libelleDOppositionDeSort } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
+import { REGLAGE_DE_L_AXE, ciblesBasculees, type ReglagesDuJet } from '../noyau/reglagesDuJet';
 
 /** Marque du pluriel FR, accordée sur la VALEUR (patron `plural(n)` des modales de navire) : le
  *  raccourci « (s) » du code laissait l'écran écrire « 1 pas … RESTANT(S) ». */
@@ -53,12 +54,11 @@ export function CastModal() {
   const reroll = useGesteDeJet('jetReroll', 'cast');
   const bonusSL = useGesteDeJet('jetBonusSL', 'cast');
   const darkPact = useGesteDeJet('jetDarkPact', 'cast');
-  const setCritChoice = useGame((s) => s.castSetCritChoice);
-  const setConjureForm = useGame((s) => s.castSetConjureForm);
-  const setDiscreet = useGame((s) => s.castSetDiscreet);
-  const allocOvercast = useGame((s) => s.castAllocOvercast);
-  const setChosenTableRolls = useGame((s) => s.castSetChosenTableRolls);
-  const toggleExtraTarget = useGame((s) => s.castToggleExtraTarget);
+  const regler = useGame((s) => s.jetRegler);
+  const setCritChoice = (v: ReglagesDuJet['cast']['effetCritique']) => regler('cast', 'effetCritique', v);
+  const setConjureForm = (v: ReglagesDuJet['cast']['formeConjuree']) => regler('cast', 'formeConjuree', v);
+  const setDiscreet = (v: ReglagesDuJet['cast']['discret']) => regler('cast', 'discret', v);
+  const setChosenTableRolls = (v: ReglagesDuJet['cast']['jetsDeTable']) => regler('cast', 'jetsDeTable', v);
   const pickTargets = useGame((s) => s.castPickTargets);
   const placeZone = useGame((s) => s.castPlaceZone);
   const forceSuccess = useGesteDeJet('jetForceSuccess', 'cast');
@@ -276,7 +276,7 @@ export function CastModal() {
                     className="btn small"
                     aria-pressed={selectedForm?.weapon === f.weapon}
                     title={`Corps à corps (${f.group}) — l'arme prend la forme : ${f.weapon}`}
-                    onClick={() => setConjureForm(f)}
+                    onClick={() => setConjureForm(f.weapon)}
                   >
                     {f.weapon} · {f.group}
                   </button>
@@ -322,8 +322,8 @@ export function CastModal() {
                       </span>
                       <QtyStepper
                         center={<strong>{oc[a]}</strong>}
-                        onDec={() => allocOvercast(a, -1)}
-                        onInc={() => allocOvercast(a, 1)}
+                        onDec={() => regler('cast', REGLAGE_DE_L_AXE[a], oc[a] - 1)}
+                        onInc={() => regler('cast', REGLAGE_DE_L_AXE[a], oc[a] + 1)}
                         decLabel={`Rendre un pas de ${META[a][1]}`}
                         incLabel={`Allouer un pas de ${META[a][1]} (+${stepCost} DR)`}
                         refus={{
@@ -347,7 +347,7 @@ export function CastModal() {
                 ) : (
                   <div className="rm-loc-grid">
                     {candidates.map((m) => (
-                      <CharFrame key={m.id} c={m} variant="vital" size="sm" selected={(pc.extraTargetIds ?? []).includes(m.id)} onClick={() => toggleExtraTarget(m.id)} />
+                      <CharFrame key={m.id} c={m} variant="vital" size="sm" selected={(pc.extraTargetIds ?? []).includes(m.id)} onClick={() => regler('cast', 'ciblesSupplementaires', ciblesBasculees(pc.extraTargetIds, m.id))} />
                     ))}
                   </div>
                 ))}
