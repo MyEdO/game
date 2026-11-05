@@ -12,8 +12,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from porte_gabarit import normaliser, verifier_gabarit  # noqa: E402
-from glb import lire_accesseur  # noqa: E402
-from test_verifier_export import ecrire_glb  # noqa: E402
+from glb import ecrire_glb, lire_accesseur  # noqa: E402
 
 
 class PorteGabarit(unittest.TestCase):

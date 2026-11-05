@@ -35,6 +35,7 @@ from seuils import TOLERANCE_JUMEAUX_POSITION_M
 import numpy as np  # noqa: E402
 from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
+from glb import souder_les_normales_des_cibles  # noqa: E402
 
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
@@ -393,6 +394,8 @@ def construire(args):
                               export_animation_mode='ACTIONS', export_force_sampling=False,
                               export_optimize_animation_size=False, export_extras=True,
                               export_morph_normal=True)
+    print('NORMALES_DES_CIBLES soudées aux coutures, écart corrigé', round(souder_les_normales_des_cibles(args.sortie), 2),
+          '°', flush=True)
     verifier_gabarit(args.sortie, reference)
     print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
           'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', formes, 'ST', bornes,
