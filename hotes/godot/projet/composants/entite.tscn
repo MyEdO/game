@@ -4,8 +4,10 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
 [node name="Entite" type="VBoxContainer"]
+theme_override_constants/separation = 6
 
 [node name="Nom" type="Label" parent="."]
+theme_override_font_sizes/font_size = 20
 
 [node name="nom" type="Node" parent="Nom"]
 script = ExtResource("1_liaison")
@@ -16,7 +18,8 @@ script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Elements" type="VBoxContainer" parent="."]
+[node name="Elements" type="HFlowContainer" parent="."]
+theme_override_constants/v_separation = 6
 
 [node name="Zone" type="Node" parent="Elements"]
 script = ExtResource("2_zone")

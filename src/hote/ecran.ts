@@ -157,14 +157,15 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   ];
 }
 
-/** L'actif du combat : son nom, ses Blessures, son Avantage, son Mouvement, son Action, chacun de ses États. */
+/** L'actif du combat : son nom, ses Blessures et son Mouvement en jauges, puis son Avantage, son Action et chacun de
+ *  ses États en puces. */
 const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   type: 'entite', id: actif.id, ton: 'neutre', nom: actif.nom,
   elements: [
     { type: 'jauge', id: 'blessures', ton: 'neutre', libelle: t('ecran.jauge.blessures'), courant: actif.pb[0], max: actif.pb[1], texte: t('ecran.jauge', { courant: actif.pb[0], max: actif.pb[1] }) },
-    ligne('avantage', t('ecran.avantage', { n: actif.avantage })),
     { type: 'jauge', id: 'mouvement', ton: 'neutre', libelle: t('ecran.jauge.mouvement'), courant: actif.mouvement[0], max: actif.mouvement[1], texte: t('ecran.jauge', { courant: actif.mouvement[0], max: actif.mouvement[1] }) },
-    ligne('action', t('ecran.action', { etat: t(`ecran.action.${actif.action}`) })),
+    puce('avantage', t('ecran.avantage'), String(actif.avantage)),
+    puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
     ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
   ],
 });

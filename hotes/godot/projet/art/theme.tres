@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=6 format=3]
+[gd_resource type="Theme" load_steps=8 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -52,6 +52,20 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="Fond_de_jauge"]
+bg_color = Color(0.16, 0.14, 0.12, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Plein_de_jauge"]
+bg_color = Color(0.58, 0.45, 0.26, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
 [resource]
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
 Panneau/base_type = &"PanelContainer"
@@ -70,3 +84,5 @@ Discret/base_type = &"Label"
 Discret/colors/font_color = Color(0.7, 0.66, 0.6, 1)
 TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
 TooltipLabel/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+ProgressBar/styles/background = SubResource("Fond_de_jauge")
+ProgressBar/styles/fill = SubResource("Plein_de_jauge")
