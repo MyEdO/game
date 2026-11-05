@@ -75,12 +75,23 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Panneau"
 
-[node name="Offres" type="HFlowContainer" parent="Interface/Bas"]
-alignment = 1
+[node name="Rangee" type="HBoxContainer" parent="Interface/Bas"]
+theme_override_constants/separation = 16
 
-[node name="Zone" type="Node" parent="Interface/Bas/Offres"]
+[node name="Offres" type="VBoxContainer" parent="Interface/Bas/Rangee"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Interface/Bas/Rangee/Offres"]
 script = ExtResource("1_zone")
 source = "combat.offres"
+
+[node name="Fin" type="VBoxContainer" parent="Interface/Bas/Rangee"]
+alignment = 1
+
+[node name="Zone" type="Node" parent="Interface/Bas/Rangee/Fin"]
+script = ExtResource("1_zone")
+source = "combat.offres"
+ids = PackedStringArray("end-turn")
 
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5
