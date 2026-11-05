@@ -125,12 +125,12 @@ describe('billet de la diligence — chemin du joueur', () => {
     get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
     expect(get().billetEnMain?.routesRestantes).toEqual([T2]);
     draineCascade(get);
-    if (get().travelRecap) get().dismissTravelRecap();
+    if (get().travelRecap) get().fenetreFermer('recitDeVoyage');
     poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     get().designerHerosChoisir(get().party[0].id);
     // EDO 02 l.93-95 : les Documents 3 et 4 se lisent, puis la fouille reprend sa suite.
-    while (get().document) get().closeDocument();
+    while (get().document) get().fenetreFermer('document');
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
 
     await act(async () => { root.render(<WorldMapView initialRouteId={T2} />); });

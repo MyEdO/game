@@ -233,7 +233,7 @@ chaîne de nom dupliquée dans la donnée.
   « on se reconnaît »). Voir `src/scenes/test-scenarios/dialogue-multi.ts` (patron complet, alternance +
   reprise).
 - **Coop** — un dialogue est une décision de GROUPE (jeton d'exploration unique) : `chooseDialogue`/
-  `closeDialogue`/`interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
+  `interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
   autres sièges LISENT. Un Test social DÉCLENCHÉ depuis un choix reste arbitré normalement par le
   propriétaire du héros testeur (`openSkillTest`→`pendingTest`→`modalArbiter`).
 - **Ce que la réponse ANNONCE est DÉRIVÉ, jamais écrit** (#1869) — la fenêtre rend
@@ -352,7 +352,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 - **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
   `narratif.documents` ; `apply` la résout (`documentDuNarratif`) et ouvre la modale `DocumentModal`
   (`store.document`, qui porte `documentId` : sa prose est nommée par les identités, § 9). L'Effet est
-  SUSPENSIF : la suite du Flow attend la fermeture (`closeDocument`), si bien que deux documents remis
+  SUSPENSIF : la suite du Flow attend la fermeture (`fenetreFermer('document')`), si bien que deux documents remis
   à la suite se lisent l'un après l'autre (EDO 02 l.89-95). Toute remise passe par `remettreDocument`, qui
   l'estampille (`document.remise`) ; le document traverse les scènes jusqu'à sa fermeture. En coop, seul
   l'hôte ferme et rejoue la suite ; l'invité masque cette remise. Un id inconnu n'ouvre rien

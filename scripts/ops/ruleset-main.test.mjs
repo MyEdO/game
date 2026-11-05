@@ -14,7 +14,7 @@ import {
   REQUETE_DE_FILE, corpsDuRuleset, ciALaRef, entreesDeFile, executer, refDe, refusDeFile, refusDeFileOccupee, refusDeRefLocale, refusGh,
 } from './ruleset-main.mjs'
 import {
-  TIMEOUT_JOB_MINUTES, blocsDeJobs, contextesDuJob, contextesRequis, jobsCi, jobsRequis, matriceDe,
+  JOB_DE_BRANCHE, SI_DE_COURSE, TIMEOUT_JOB_MINUTES, blocsDeJobs, contextesDuJob, contextesRequis, jobsCi, jobsRequis, matriceDe,
 } from '../gates/gatesDeCi.mjs'
 import { declencheursDe, stepsDu } from '../gates/workflowsDuDepot.mjs'
 import { gabaritDeDepot } from '../guards/lib/depotGabarit.mjs'
@@ -214,6 +214,29 @@ test('aucun job de `ci.yml` n’est sautable : ni `if:` ni `needs:` de niveau jo
   const sautables = JOBS
     .flatMap((b) => ['if', 'needs'].filter((c) => c in b.cles).map((c) => `${b.job} porte \`${c}: ${b.cles[c]}\``))
   assert.deepEqual(sautables, [], 'un check requis SAUTÉ rend « Success » et laisse entrer un rouge')
+})
+
+// #3412 : un job saute ses gates hors de sa course parce que son checkout et son prologue y sont sautés.
+// Une condition fausse sur l'un d'eux rend des checks requis VERTS VIDES, sur la file ou sur la branche.
+const ecartsDeCourse = (jobs) => jobs.flatMap(({ job, texte }) => {
+  const attendue = SI_DE_COURSE[job === JOB_DE_BRANCHE ? 'branche' : 'file']
+  const [checkout, prologue] = stepsDu(texte)
+  return [['checkout', checkout], ['prologue', prologue]]
+    .filter(([, step]) => step?.si !== attendue)
+    .map(([nom, step]) => `${job} / ${nom} : \`if: ${step?.si ?? '(absent)'}\``)
+})
+
+test('le checkout et le prologue de chaque job de `ci.yml` portent EXACTEMENT la condition de sa course (`SI_DE_COURSE`)', () => {
+  assert.ok(JOBS.some((b) => b.job === JOB_DE_BRANCHE), `le job de branche « ${JOB_DE_BRANCHE} » est absent de ci.yml`)
+  assert.deepEqual(ecartsDeCourse(JOBS), [])
+})
+
+test('une course INVERSÉE sur un job de file, ou une condition absente, est un écart nommé', () => {
+  const texte = readFileSync(join(RACINE, '.github/workflows/ci.yml'), 'utf8')
+  const inverse = texte.replace(/(\n {2}docs:\n[\s\S]*?)merge_group/, '$1push')
+  assert.deepEqual(ecartsDeCourse(blocsDeJobs({ texte: inverse })), [`docs / checkout : \`if: ${SI_DE_COURSE.branche}\``])
+  const sans = texte.replace(`      - id: prologue\n        if: ${SI_DE_COURSE.branche}\n`, '      - id: prologue\n')
+  assert.deepEqual(ecartsDeCourse(blocsDeJobs({ texte: sans })), [`${JOB_DE_BRANCHE} / prologue : \`if: (absent)\``])
 })
 
 test(`chaque job de ci.yml porte \`timeout-minutes: ${TIMEOUT_JOB_MINUTES}\` au niveau JOB`, () => {

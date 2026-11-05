@@ -248,7 +248,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
   it('le CADRE l’efface : le combat SUIVANT ne s’ouvre pas sur le refus du précédent', () => {
     setup();
     refuserGeste(get, banc.setState, 'Hors de portée.');
-    banc.setState({ battle: null, mode: 'exploration' }); // fin de combat (patron `dismissVictory`)
+    banc.setState({ battle: null, mode: 'exploration' }); // fin de combat (patron de la sortie de la victoire)
     get().startCombat('enc-mutants');
     expect(get().battle, 'témoin : le combat suivant ne s’est pas ouvert').not.toBeNull();
     expect(get().refus, 'le refus du combat précédent ouvre le suivant').toBeNull();

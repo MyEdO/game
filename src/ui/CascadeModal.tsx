@@ -144,7 +144,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const tirerLeDe = useGesteDeJet('jetRoll', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
   const poserLeDe = useGesteDeJet('jetSetForcedRoll', 'cascadeTirage'); // POSE le dé (champ, ou ligne de table)
   const resolveAll = useGame((s) => s.cascadeResolveAll); // « Tout lancer » → bilan
-  const finish = useGame((s) => s.cascadeFinish); // « Terminer » du bilan
+  const fermer = useGame((s) => s.fenetreFermer);
+  const finish = () => fermer('cascade'); // « Terminer » du bilan
   const attackProps = useAttackJetProps(); // étape-jet d'attaque : rendue dans CETTE coquille (une fenêtre)
   const defenseProps = useDefenseJetProps(); // étape-jet de défense réactive : défense + son Critique dans UNE fenêtre
   const fumbleProps = useFumbleJetProps(); // étape-jet de Maladresse : Tableau des Oups ! dans la MÊME fenêtre
@@ -312,7 +313,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         subtitle={<>{totalJets} jet{totalJets > 1 ? 's' : ''}</>}
         rolled
         rows={p.participants.flatMap(stepWitnessRows)}
-        actions={[{ key: 'finish', label: t('verbe.cascadeFinish'), onClick: () => finish() }]}
+        actions={[{ key: 'finish', label: t('verbe.cascade.fermer'), onClick: () => finish() }]}
         embedded={embedded} etape={etape}
       />
     );
@@ -454,7 +455,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
   // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
   const continueAction: RollAction = {
-    key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(),
+    key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascadeNext'), onClick: () => next(),
     ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
   };
 
@@ -892,7 +893,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
     ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
-    { key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), verbe: 'confirm', flux: 'cascade', pid: cur.id },
+    { key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascadeNext'), onClick: () => next(), verbe: 'confirm', flux: 'cascade', pid: cur.id },
   ];
 
   return (

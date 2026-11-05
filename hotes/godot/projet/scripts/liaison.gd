@@ -39,13 +39,15 @@ func poser(element: Dictionary) -> void:
 
 
 ## `liste` remplie des `valeurs` : chacune son libellé, désactivée si elle porte un refus et le disant à son survol, la
-## valeur pressée choisie.
+## valeur pressée choisie, aucune sans valeur pressée (la première ajoutée se choisirait d'elle-même, et la choisir ne
+## jouerait rien).
 static func _remplir(liste: OptionButton, valeurs: Array) -> void:
 	liste.clear()
-	liste.select(-1)
+	var choisie := -1
 	for i in valeurs.size():
 		liste.add_item(str(valeurs[i].libelle))
 		liste.set_item_disabled(i, valeurs[i].refus != null)
 		liste.set_item_tooltip(i, "" if valeurs[i].refus == null else str(valeurs[i].refus))
 		if valeurs[i].presse:
-			liste.select(i)
+			choisie = i
+	liste.select(choisie)

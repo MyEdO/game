@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RefField, cfgDeLaFeuille, refusDuNoeud, type RefFieldCfg } from './RefField';
-import { inferFields } from '../editFields';
+import { inferFields } from '../../../noyau/codex/editFields';
 import { declarationDeFeuilleDId, idsDeLaSousListe } from '../../../data/schemas/grammaire/ref';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../../data/schemas/exposition-derivee';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';

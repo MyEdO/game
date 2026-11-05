@@ -94,11 +94,11 @@ import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
-import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
+import { humanizeCastBonus, causePersistante, replieCausesPersistantes } from '../../noyau/codex/humanize';
 import { reverseGroups, bookContents } from '../../noyau/codex/relations';
-import { formatManeuverMeasure } from './maneuverMeasure';
+import { formatManeuverMeasure } from '../../noyau/codex/maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
-import { libelleDuChamp } from './editFields';
+import { libelleDuChamp } from '../../noyau/codex/editFields';
 // Ordre des arrêts d'une rampe de terrain : SOURCE UNIQUE partagée avec les émetteurs SVG — la fiche
 // Codex lit la rampe dans l'ordre où le rendu la peint, jamais dans l'ordre des clés du Record.
 import { terrainStopsOrdonnes } from '../../noyau/monde/terrain';
@@ -911,7 +911,7 @@ function miscastAmountLabel(a: unknown): string {
 }
 
 /** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`, cf.
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`, cf.
  *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
@@ -922,7 +922,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       const dur = o.durationRounds != null ? `${miscastAmountLabel(o.durationRounds)} Round(s)` : undefined;
       // CAUSE PERSISTANTE (`LDB 16 l.117`) : la rangée pose UN État et le MAINTIENT — la persistance se
       // dit au BADGE de SA chip, du mot du journal et de la même forme que l'autre lecteur (`opRows`).
-      const badge = [estCausePersistante(o) ? CAUSE_PERSISTANTE : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
+      const badge = [estCausePersistante(o) ? causePersistante() : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
       const show = value && value !== '1' ? `${value} × ${label}` : label;
       return { t: 'ref', category: 'etats', id, label, show, badge };
     }
@@ -955,6 +955,10 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       const qui = o.pick === 'all' ? 'toutes' : 'une, tirée au hasard';
       return { t: 'kv', k: 'Compétences associées au dieu', v: `${o.mod as number} (${qui} ; ${dur})` };
     }
+    case 'deityBan':
+      return { t: 'kv', k: 'Bénédictions et Miracles du dieu', v: `échouent (${miscastAmountLabel(o.durationDays)} jour(s))` };
+    case 'prayerForAction':
+      return { t: 'kv', k: 'Action', v: `Test de Prière imposé (${miscastAmountLabel(o.durationRounds)} Round(s))` };
     default:
       return { t: 'text', text: String(o.op) };
   }
@@ -981,6 +985,7 @@ function miscastRowItem(e: MiscastRowEntry): CodexItem {
     meta: facts(e.reroll ? fact('Relance', e.reroll === 'majeure' ? 'Cascade → Tableau Majeur' : 'Multiplication (2 tirages Mineurs)') : null),
     sections: sections(
       e.ops?.length ? { title: 'Effet immédiat', layout: 'list', rows: replieCausesPersistantes(e.ops).map(miscastOpRow) } : null,
+      e.targetOps?.length ? { title: 'Effet sur les cibles', layout: 'list', rows: replieCausesPersistantes(e.targetOps).map(miscastOpRow) } : null,
       e.test ? miscastTestSection(e.test) : null,
     ),
   });

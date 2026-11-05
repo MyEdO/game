@@ -29,8 +29,9 @@ import { DESTINATIONS, SORTIES_PAR_CLE, remplacerCleJson } from '../agents/compa
 /** Période des sondes de la PR et des courses, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
 
-/** Éjections de la file qu'un lot reprend (FUSION d'`origin/main`, finalisation, push, nouvelle demande de
- *  fusion) avant de rendre la main : au-delà, la cause n'est pas le tronc. */
+/** Reprises qu'un lot tente avant de rendre la main — FUSION d'`origin/main` d'une PR en conflit, ou nouvelle
+ *  demande de fusion après une course de file annulée ou une sortie de file sans course en échec : au-delà, la
+ *  cause n'est pas le tronc. */
 export const BORNE_EJECTIONS = 1
 
 /** Marque d'IDEMPOTENCE du pilotage : elle porte le commit de fusion publié. */
@@ -154,8 +155,8 @@ const salesDuTrain = (ctx, chemins = ctx.questions.cheminsSales()) => partitionS
 export const MOTIF_MIROIRS = 'miroirs de configuration produits par les hooks'
 
 /** Motif de la fusion d'`origin/main` qui REPREND une PR que le serveur ne fusionne pas : en conflit
- *  avec la base, refusée à la demande, ou éjectée de la file. */
-export const MOTIF_EJECTION = 'fusion d’origin/main : reprise d’une PR que la file de fusion refuse'
+ *  avec la base. */
+export const MOTIF_REPRISE = 'fusion d’origin/main : reprise d’une PR que la file de fusion refuse'
 
 /** Motif du commit des stocks de sites régénérés après une fusion du tronc. */
 export const MOTIF_STOCKS = 'stocks de sites régénérés au point fixe après fusion du tronc'
@@ -326,12 +327,14 @@ function issueDeBranche(ci, pr, tete) {
 /**
  * Une PR mise en file y est encore, ou en a été ÉJECTÉE (`merge-queue-reject.md`, « will be removed
  * from the queue »). La course de branche et le CONFLIT avec la base se jugent en tête de l'étape
- * `file`. Une course de file rouge ATTRIBUÉE à la PR se REPREND (#2525) : la file n'admet qu'une tête
- * dont la course de branche est verte. Elle n'est attribuée que si `G^1`, le premier parent de son
- * commit de file, est dans `origin/main` ; sinon GitHub reconstruit l'entrée (`managing-a-merge-queue.md`
- * l.104-109) et on attend. Des jobs illisibles se NOMMENT. Une course de file ANNULÉE se redemande sur la
- * même tête (#2392) ; `ecartees` : les courses terminées avant la demande (`coursesDeFileTerminees`).
- * @returns {{attendre:true, dit:string}|{redemander:true, raison:string}|{reprendre:boolean, raison:string}}
+ * `file`. Une course de file rouge ATTRIBUÉE à la PR est un ROUGE nommé, ses jobs et son URL : la course
+ * de branche ne joue qu'un sous-ensemble des gates (#3412, en-tête de `ci.yml`), donc ce rouge est d'abord
+ * celui de la PR, et une fusion d'`origin/main` rejouerait le même arbre en file. Elle n'est attribuée que
+ * si `G^1`, le premier parent de son commit de file, est dans `origin/main` ; sinon GitHub reconstruit
+ * l'entrée (`managing-a-merge-queue.md` l.104-109) et on attend. Des jobs illisibles se NOMMENT. Une course
+ * de file ANNULÉE se redemande sur la même tête (#2392) ; `ecartees` : les courses terminées avant la
+ * demande (`coursesDeFileTerminees`).
+ * @returns {{attendre:true, dit:string}|{redemander:true, raison:string}|{rouge:true, raison:string}}
  */
 function causeDEjection(ctx, pr, tete, ecartees, enFile) {
   const vues = ctx.coursesDeFile()
@@ -349,10 +352,10 @@ function causeDEjection(ctx, pr, tete, ecartees, enFile) {
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
     return { attendre: true, dit: `course de file ${etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
   const juge = verdictJuge([course], course.headSha, ctx.jobsEnEchec)
-  if (juge.jobsIllisibles) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${juge.jobsIllisibles}` }
+  if (juge.jobsIllisibles) return { rouge: true, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${juge.jobsIllisibles}` }
   const jobs = phraseDesJobs(juge) || 'aucun job nommé'
   if (juge.etat === 'annulee') return { redemander: true, raison: `PR #${pr.numero} éjectée par la course ${url} ANNULÉE — ${jobs}` }
-  return { reprendre: true, raison: `PR #${pr.numero} éjectée par la course ${url} — ${jobs}` }
+  return { rouge: true, raison: `PR #${pr.numero} éjectée par la course ${url} — ${jobs}` }
 }
 
 /** Le refus d'une reprise au-delà de `BORNE_EJECTIONS`, ou `null`. PUR. */
@@ -362,7 +365,7 @@ const ejectionHorsBorne = (journal, cause) => (journal.ejections ?? 0) >= BORNE_
 
 /**
  * Reprise BORNÉE d'une PR que le serveur ne fusionne pas (#2178, design v3 ; #2525) : en conflit avec la
- * base, refusée à la demande, ou éjectée. FUSION d'`origin/main` dans la branche — jamais un rebase —,
+ * base, relue avant ou après la demande. FUSION d'`origin/main` dans la branche — jamais un rebase —,
  * puis finalisation des stocks et miroirs, `push-branche`, `pr` et `file` se rejouent.
  * Un conflit dont TOUS les chemins sont des cibles PURES (`estCiblePure`) se conclut en les retirant
  * de l'index, puis les cibles de code se produisent (`post-merge` ne joue pas sur un `git commit`) ;
@@ -372,7 +375,7 @@ const ejectionHorsBorne = (journal, cause) => (journal.ejections ?? 0) >= BORNE_
 function fusionnerDansTrain(ctx, journal, cause, de = TRONC.suivi) {
   const numeros = numerosDeLaPlage(ctx.questions)
   if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-  const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${de} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
+  const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${de} dans ${ctx.branche}`, numeros, motif: MOTIF_REPRISE })
   const vu = ctx.fusionner({ message, ...(de === TRONC.suivi ? {} : { de }) })
   if (!reussi(vu)) {
     // #2203
@@ -396,7 +399,7 @@ function fusionnerDansTrain(ctx, journal, cause, de = TRONC.suivi) {
   return { ok: true, dit: `${cause.raison} — ${de} fusionné (tête ${journal.tete.slice(0, 9)})` }
 }
 
-function reprendreApresEjection(ctx, journal, cause) {
+function reprendreEnConflit(ctx, journal, cause) {
   const horsBorne = ejectionHorsBorne(journal, cause)
   if (horsBorne) return { ok: false, raison: `${horsBorne} : la cause n’est pas le tronc` }
   const vuTronc = ctx.tronc()
@@ -487,7 +490,7 @@ export const ETAPES = [
         return { ok: false, raison: `push de la branche REFUSÉ :\n${refusDeGit(vu)}` }
       journal.publication.bail = journal.tete
       journal.publication.publie = journal.tete
-      return { ok: true, dit: `${journal.tete.slice(0, 9)} poussé sur ${ctx.branche} — la CI de la branche juge` }
+      return { ok: true, dit: `${journal.tete.slice(0, 9)} poussé sur ${ctx.branche} — la course de branche juge` }
     },
   },
   {
@@ -520,12 +523,12 @@ export const ETAPES = [
       const etat = etatDeLaPr(pr, journal.tete)
       if (etat === 'fusionnee') return { ok: true, detail: { pr: pr.numero }, dit: `PR #${pr.numero} déjà fusionnée` }
       if (etat !== 'ouverte') return { ok: false, raison: `PR #${pr.numero} : ${etat}, tête publiée ${journal.tete}` }
-      if (pr.conflit === true) return reprendreApresEjection(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` })
+      if (pr.conflit === true) return reprendreEnConflit(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` })
       const issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
       if (!issue.ok) {
         const relu = ctx.lirePr()
         const courante = relu.ok ? prDeLaBranche(relu.prs, journal.tete) : null
-        if (courante?.conflit === true) return reprendreApresEjection(ctx, journal, { raison: `PR #${courante.numero} en CONFLIT avec la base` })
+        if (courante?.conflit === true) return reprendreEnConflit(ctx, journal, { raison: `PR #${courante.numero} en CONFLIT avec la base` })
         return { ok: false, raison: `armement de la PR #${pr.numero} REFUSÉ : ${issue.raison}` }
       }
       return { ok: true, detail: { pr: pr.numero, armement: issue.statut }, dit: `PR #${pr.numero} : ${issue.statut} sur ${journal.tete.slice(0, 9)}` }
@@ -583,7 +586,7 @@ export const ETAPES = [
           if (branche?.raison) return attendu({ ok: false, detail: { pr: pr.numero }, raison: branche.raison })
           if (branche) ctx.journaliser(`[publier] file — ${branche.dit}\n`)
           // #2525
-          if (pr.conflit === true) return attendu(reprendreApresEjection(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` }))
+          if (pr.conflit === true) return attendu(reprendreEnConflit(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` }))
           if (refus) {
             if (pr.conflit === false) return attendu({ ok: false, detail: { pr: refus.pr }, raison: refus.raison })
             ctx.journaliser(`[publier] file — PR #${pr.numero} : demande refusée, conflit avec la base pas encore jugé par GitHub\n`)
@@ -621,8 +624,7 @@ export const ETAPES = [
               ctx.journaliser(`[publier] file — ${cause.raison} : nouvelle demande de fusion sur ${journal.tete.slice(0, 9)}\n`)
               demande = null
               continue
-            } else if (!cause.reprendre) return attendu({ ok: false, detail: { pr: pr.numero }, raison: cause.raison })
-            else return attendu(reprendreApresEjection(ctx, journal, cause))
+            } else return attendu({ ok: false, detail: { pr: pr.numero }, raison: cause.raison })
           }
         }
         patienter()

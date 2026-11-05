@@ -69,6 +69,12 @@ export const WORKFLOWS = Object.freeze({
       'le step « Se nommer en rougissant » (`if: ${{ !cancelled() }}`) nomme le run et son ' +
       `\`job.status\` par \`${SIGNALEUR}\` : un rouge AVANT \`npm run deps:report\` a son canal`,
   },
+  'caches.yml': {
+    etat: 'autosignale',
+    raison:
+      'le step « Se nommer en rougissant » (`if: ${{ !cancelled() }}`) nomme le run et son ' +
+      `\`job.status\` par \`${SIGNALEUR}\` : un cache de \`main\` qui ne se remplit plus a son canal`,
+  },
   'deploy.yml': {
     etat: 'manuel',
     raison:

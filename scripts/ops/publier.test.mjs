@@ -46,7 +46,7 @@ import { ECHEANCE_SANS_RUN_MS, RACINE, borneDeVeilleMin, identiteDuTrain, transi
 import {
   BORNE_EJECTIONS,
   ETAPES,
-  MOTIF_EJECTION,
+  MOTIF_REPRISE,
   MOTIF_MIROIRS,
   MOTIF_STOCKS,
   PERIODE_SONDE_MS,
@@ -804,7 +804,7 @@ test('messageDuTrain : un SUJET que la règle du dépôt accepte, le motif au CO
   const douze = Array.from({ length: 12 }, (_, i) => String(1700 + i))
   const formes = [
     { portee: 'chore(config)', titre: 'miroirs de configuration', motif: MOTIF_MIROIRS },
-    { portee: 'chore(merge)', titre: 'fusion de origin/main dans chantier/2178', motif: MOTIF_EJECTION },
+    { portee: 'chore(merge)', titre: 'fusion de origin/main dans chantier/2178', motif: MOTIF_REPRISE },
   ]
   for (const forme of formes)
     for (const numeros of [['1751'], ['1736', '1384'], douze]) {
@@ -1247,7 +1247,7 @@ test('push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui
   const vu = etapeBranche.jouer(ctx, journalPush())
   assert.deepEqual(vus, { vers: 'refs/heads/chantier/1776', bail: 'b'.repeat(40) })
   assert.equal(vu.ok, true)
-  assert.match(vu.dit, /poussé sur chantier\/1776 — la CI de la branche juge/)
+  assert.match(vu.dit, /poussé sur chantier\/1776 — la course de branche juge/)
 })
 
 test('#2285 push-branche : écrivain injecté, diagnostic complet après classification', () => {
@@ -1673,13 +1673,15 @@ test('file : une course de file rouge sur un GROUPE (G^1 hors d’origin/main) n
   }
 })
 
-test('file #2525 : une course de file rouge dont G^1 est ANCÊTRE d’origin/main est attribuée à la PR et se REPREND, quels que soient ses jobs', () => {
+test('file #3412 : une course de file rouge dont G^1 est ANCÊTRE d’origin/main est attribuée à la PR : un rouge NOMMÉ, ses jobs et son URL, sans fusion d’origin/main ni relance', () => {
   for (const jobs of [['suite'], ['docs']]) {
     const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs, parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
-    const vu = etapeFile.jouer(ctx, journalPush())
-    assert.deepEqual([vu.ok, vu.relancer], [true, ['push-branche', 'pr', 'file']], `jobs=${jobs}`)
-    assert.ok(vu.dit.startsWith(`PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : ${jobs[0]} — origin/main fusionné`), vu.dit)
-    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'tronc', 'fusionner'])
+    const journal = journalPush()
+    const vu = etapeFile.jouer(ctx, journal)
+    assert.deepEqual([vu.ok, vu.relancer], [false, undefined], `jobs=${jobs}`)
+    assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : ${jobs[0]}`)
+    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'])
+    assert.equal(journal.ejections ?? 0, 0)
   }
 })
 
@@ -1830,7 +1832,7 @@ test('file #2525 : une PR en CONFLIT avant la demande — reprise BORNÉE sans d
     assert.deepEqual(vu.relancer, ['push-branche', 'pr', 'file'])
     assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner'], 'aucune demande de fusion')
     assert.match(gestes[1][1], /^chore\(merge\): refs #2178 — fusion de origin\/main dans chantier\/2178\n/)
-    assert.ok(gestes[1][1].includes(MOTIF_EJECTION))
+    assert.ok(gestes[1][1].includes(MOTIF_REPRISE))
     assert.deepEqual([journal.ejections, journal.tete], [1, 'nnnnnnnnn'])
   }
 })

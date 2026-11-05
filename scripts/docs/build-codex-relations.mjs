@@ -30,7 +30,7 @@ function rendu() {
   const RELATIONS = 'src/noyau/codex/relations.ts'
   const REGISTRY = 'src/ui/compendium/registry.ts'
   const DESCRIBE = 'src/ui/compendium/describe.ts'
-  const HUMANIZE = 'src/ui/compendium/humanize.ts'
+  const HUMANIZE = 'src/noyau/codex/humanize.ts'
   const CONTRATS = ['src/data/schemas/exposition-contrats.test.ts', 'src/ui/compendium/codex-exposition-contrats.test.ts']
   const CONTRATS_CITES = CONTRATS.map((c) => `\`${c}\``).join(' et ')
 
@@ -237,7 +237,7 @@ function rendu() {
   const TESTS = [
     'src/noyau/codex/relations.test.ts',
     'src/ui/compendium/registry.test.ts',
-    'src/ui/compendium/humanize.test.ts',
+    'src/noyau/codex/humanize.test.ts',
     ...CONTRATS,
     'src/data/serialize.test.ts',
   ].map((t) => {

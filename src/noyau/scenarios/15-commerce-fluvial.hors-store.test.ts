@@ -111,7 +111,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     expect(spent).toBeGreaterThan(0);
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1);
     expect(primaryCargoCarrier(get())!.cargo[0].cargoId).toBe(offer.cargoId);
-    get().closeLandMarket();
+    get().fenetreFermer('marcheDeTerre');
 
     // ── DESCENTE du Reik en BARGE (le convoi voyage avec le groupe) ──
     bargeTo('r-grunburg-altdorf', 'quai-altdorf');
