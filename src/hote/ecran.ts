@@ -3,7 +3,8 @@
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
  * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
- * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche, et la fiche ouverte.
+ * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche, et la fiche ouverte ;
+ * la création d'un héros (`creation.ts`).
  * À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
@@ -14,13 +15,14 @@ import {
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import type { Projection } from './projection';
 import type { FenetreADessiner } from './gestes';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
+import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Ton } from './elements';
 
-/** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre. Une zone vide n'a rien à montrer. */
-export interface ZonesDeLEcran {
+/** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise. Une zone vide n'a
+ *  rien à montrer. */
+export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'fenetre.titre': Ligne[];
   'fenetre.etape': Ligne[];
   'fenetre.corps': Element[];
@@ -305,12 +307,6 @@ const herosDeLaFiche = (f: FicheDuPorteur): Entite => ({
   ],
 });
 
-/** Les caractères au plus d'une description au détail d'une puce : son premier paragraphe, coupé au mot. */
-const DESCRIPTION_AU_DETAIL = 300;
-
-/** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
-const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
-
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
@@ -396,9 +392,9 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
   };
 }
 
-/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre` et de la
- *  fiche que l'hôte montre `fiche`. */
-export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null): ZonesDeLEcran {
+/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre`, de la
+ *  fiche que l'hôte montre `fiche` et de la création qu'il tient `creation` (`zonesDeLaCreation`). */
+export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null, creation: CreationOuverte | null): ZonesDeLEcran {
   const c = p.combat;
   const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
   const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
@@ -421,6 +417,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
     'groupe.heros': herosDuGroupe(etat, fiche),
     ...zonesDeLaFiche(etat, fiche),
+    ...zonesDeLaCreation(etat, creation),
   };
 }
 

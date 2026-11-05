@@ -1,7 +1,7 @@
 /**
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
- * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
@@ -50,7 +50,7 @@ export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
-export { gestesDeLObjet, type GesteAChoix, type GestesDeLObjet } from './gestesDeLObjet';
+export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuGeste, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
@@ -64,8 +64,9 @@ export { objetDuNarratif } from './monde/resolveursDuNarratif';
 export { equipementDessine, equipementDEntite } from './equipementDessine';
 export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
-export { engagement, refusDEngagement } from './creation/engagement';
+export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
 export type { CreatorDraft } from './creation/brouillon';
+export { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, refusDeLaPage, rubriquesDeLaPage, type GesteDuBrouillon, type PageDeCreation, type RubriqueDeCreation } from './creation/vueDeLaCreation';
 export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
 export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';

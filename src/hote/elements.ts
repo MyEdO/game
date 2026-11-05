@@ -4,8 +4,9 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { ValeurDuReglage } from '../noyau/index';
+import type { CreatorDraft, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 /** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
 export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
@@ -52,10 +53,18 @@ export const ONGLETS_DE_LA_FICHE = ['caracteristiques', 'competences', 'talents'
  *  partie. */
 export interface FicheOuverte { heros: string; onglet: (typeof ONGLETS_DE_LA_FICHE)[number]; objet?: string }
 
+/** La création d'un héros qu'un hôte tient : son brouillon et la page ouverte. Un état de l'hôte, jamais de la partie. */
+export interface CreationOuverte { brouillon: CreatorDraft; page: PageDeCreation }
+
+/** Un geste de la création : l'ouvrir sur un brouillon neuf, jouer un geste de son brouillon, aller à une page,
+ *  engager le héros dans le groupe. */
+export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engager'; args: [] } | { geste: 'page'; args: [PageDeCreation] } | GesteDuBrouillon;
+
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, une offre de l'actif, une suite de verbes
- *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), ou la fiche que l'hôte
- *  montre (`null` : aucune), qui ne touche pas la partie. */
-export type Jeu = Appel | { offre: string } | { suite: Appel[] } | { fiche: FicheOuverte | null };
+ *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
+ *  montre (`null` : aucune), qui ne touche pas la partie, ou un geste de la création d'un héros (`null` : la
+ *  ferme). */
+export type Jeu = Appel | { offre: string } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
@@ -89,6 +98,12 @@ export type Element = Ligne | Puce | Jauge | Jet | Entite | Bouton | Choix | For
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */
 const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
+
+/** Les caractères au plus d'une description au détail d'un élément : son premier paragraphe, coupé au mot. */
+const DESCRIPTION_AU_DETAIL = 300;
+
+/** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
+export const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
 
 /** Une ligne. */
 export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail });
