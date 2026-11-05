@@ -2,8 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { TAB_LABELS, type SheetTab } from '../i18n/ongletsDeLaFiche';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { appraiseRefus } from '../noyau/merchantFlow';
-import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './composites/Tabs';
@@ -15,14 +13,14 @@ import { forceDuPorteur } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
 import { buildAdvancementView } from '../noyau/monde/advancement';
-import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusEmplacementDeMain, refusAchatDeComposant, coutDuComposant } from '../noyau/partyFlow';
+import { refusAchatDeComposant, coutDuComposant } from '../noyau/partyFlow';
+import type { GestesDeLObjet } from '../noyau/gestesDeLObjet';
 import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
-import { refusDInventaire, refusDuLanceurDeFiche } from '../noyau/verrousDeFiche';
+import { refusDuLanceurDeFiche } from '../noyau/verrousDeFiche';
 import { t } from '../i18n';
 import { actorHasSkill, skillBaseValue } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
@@ -473,16 +471,9 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
  *  Main principale ou secondaire du set ACTIF. Réutilise OptionChooser (seg). La pénalité affichée est
  *  `penaliteDeMainSecondaire`, l'éligibilité `refusEmplacementDeMain`. Cliquer l'option déjà active la
  *  retire. LDB 14 l.78, l.138 */
-function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
+function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; mains: NonNullable<GestesDeLObjet['mains']> }) {
   const setLoadoutSlot = useGame((s) => s.setLoadoutSlot);
-  const battle = useGame((s) => s.battle);
-  const lo = (hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0];
-  if (!lo) return null;
-  const isMain = lo.main === it.uid;
-  const isOff = lo.off === it.uid;
-  // Verdict du noyau (`refusEmplacementDeMain`), celui que le geste applique au clic.
-  const refusMain = refusEmplacementDeMain({ battle }, hero, lo.id, 'main', isMain ? null : it.uid);
-  const refusOff = refusEmplacementDeMain({ battle }, hero, lo.id, 'off', isOff ? null : it.uid);
+  const { set: loId, main: { tenue: isMain, refus: refusMain }, off: { tenue: isOff, refus: refusOff } } = mains;
   const malus = avecSigne(penaliteDeMainSecondaire(hero));
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">
@@ -495,7 +486,7 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
           selected: isMain,
           title: refusMain ? undefined : 'Tenir dans la main principale',
           refus: refusMain ?? undefined,
-          onSelect: () => setLoadoutSlot(hero.id, lo.id, 'main', isMain ? null : it.uid),
+          onSelect: () => setLoadoutSlot(hero.id, loId, 'main', isMain ? null : it.uid),
         },
         {
           key: 'off',
@@ -505,7 +496,7 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
           // par un `disabled` muet ; le `title` ne reste que pour l'option OFFERTE.
           title: refusOff ? undefined : `Main secondaire : ${malus} aux attaques de cette main`,
           refus: refusOff ?? undefined,
-          onSelect: () => setLoadoutSlot(hero.id, lo.id, 'off', isOff ? null : it.uid),
+          onSelect: () => setLoadoutSlot(hero.id, loId, 'off', isOff ? null : it.uid),
         },
       ]}
     />
@@ -540,15 +531,7 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
 function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' }) {
   const usePartyItem = useGame((s) => s.usePartyItem);
   const appraiseItem = useGame((s) => s.appraiseItem);
-  const battle = useGame((s) => s.battle);
-  // Verdict du noyau (`refusDInventaire`), celui que rendent les gestes d'objet de la fiche.
-  const refusObjet = refusDInventaire({ battle });
   const items = hero.items ?? [];
-  const party = useGame((s) => s.party);
-  const refusEval = refusObjet ?? appraiseRefus(party);
-  const refusDetect = refusObjet ?? appraiseRefus(party, 'detect');
-  // Verrou d'Évaluation : un échec bloque la re-tentative jusqu'au lendemain (LDB 12 l.94).
-  const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
 
   return (
     <>
@@ -560,7 +543,6 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
         <CarrierInventory
           carrierId={hero.id}
           items={items}
-          party={party}
           force={forceDuPorteur(hero)}
           weaponHighlighted={(it) => isWeaponActive(hero, it.uid)}
           weaponHandLabel={(it) => {
@@ -569,55 +551,47 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
             const activeLo = (hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0];
             return activeLo?.main === it.uid ? 'Main principale' : activeLo?.off === it.uid ? 'Main secondaire' : null;
           }}
-          rowExtra={(it) => {
-            const isWeaponItem = it.kind === 'melee' || it.kind === 'ranged';
-            const consumable = isConsumable(it);
-            return (
+          rowExtra={(it, gestes) => (
               <>
-                {it.identified === false && (
-                  <>
-                    {it.appraiseTriedDay !== today && (
-                      <GatedAction
-                        id={`sheet-eval-${it.uid}`}
-                        label="Évaluer"
-                        enabled={!refusEval}
-                        {...raisonSi(refusEval)}
-                        descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
-                        onClick={() => appraiseItem(it.uid, hero.id)}
-                        primary={false}
-                        btnClassName="small"
-                      />
-                    )}
-                    {!it.detectTried && (
-                      <GatedAction
-                        id={`sheet-detect-${it.uid}`}
-                        label="Détecter"
-                        enabled={!refusDetect}
-                        {...raisonSi(refusDetect)}
-                        descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
-                        onClick={() => appraiseItem(it.uid, hero.id, 'detect')}
-                        primary={false}
-                        btnClassName="small"
-                      />
-                    )}
-                  </>
+                {gestes.evaluer && (
+                  <GatedAction
+                    id={`sheet-eval-${it.uid}`}
+                    label="Évaluer"
+                    enabled={!gestes.evaluer.refus}
+                    {...raisonSi(gestes.evaluer.refus)}
+                    descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
+                    onClick={() => appraiseItem(it.uid, hero.id)}
+                    primary={false}
+                    btnClassName="small"
+                  />
+                )}
+                {gestes.detecter && (
+                  <GatedAction
+                    id={`sheet-detect-${it.uid}`}
+                    label="Détecter"
+                    enabled={!gestes.detecter.refus}
+                    {...raisonSi(gestes.detecter.refus)}
+                    descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
+                    onClick={() => appraiseItem(it.uid, hero.id, 'detect')}
+                    primary={false}
+                    btnClassName="small"
+                  />
                 )}
                 <ApparencePicker hero={hero} it={it} />
-                {isWeaponItem && <HandPicker hero={hero} it={it} />}
-                {consumable && (
+                {gestes.mains && <HandPicker hero={hero} it={it} mains={gestes.mains} />}
+                {gestes.utiliser && (
                   <GatedAction
                     id={`sheet-use-${it.uid}`}
                     label="Utiliser"
-                    enabled={!refusObjet}
-                    {...raisonSi(refusObjet)}
+                    enabled={!gestes.utiliser.refus}
+                    {...raisonSi(gestes.utiliser.refus)}
                     onClick={() => usePartyItem(hero.id, it.uid)}
                     primary={false}
                     btnClassName="small"
                   />
                 )}
               </>
-            );
-          }}
+          )}
         />
       )}
     </>

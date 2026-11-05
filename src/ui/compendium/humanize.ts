@@ -445,6 +445,8 @@ export function humanizeOp(o: GameOp): string {
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'deitySkillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${o.pick === 'all' ? 'aux Compétences associées à sa divinité' : 'à une Compétence associée à sa divinité, tirée au hasard'}${pendant(o)}`;
     case 'suppressTalents': return `perd les Talents ${o.talents.map((x) => refLabel('talents', x)).join(', ')}${pendant(o)}`;
+    case 'deityBan': return `ne peut plus être l'objet des Bénédictions ni des Miracles de la divinité du lanceur${pendant(o)}`;
+    case 'prayerForAction': return `doit effectuer des Tests de Prière pour son Action${pendant(o)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
     case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', o.talent)} à ses carrières`;
     case 'augmentWeapon': return `voit son arme enchantée${o.addQualities?.length ? ` (${o.addQualities.map((id) => qualityRefLabel({ id })).join(', ')})` : ''}${o.damageBonus != null ? ` +${humanizeFormula(o.damageBonus)} Dégâts` : ''}`;

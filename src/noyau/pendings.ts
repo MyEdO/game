@@ -1200,6 +1200,9 @@ export interface PendingMiscastStep {
   sorceryCorruption?: boolean;
   suppressReveal?: boolean;
   rerollHigh?: boolean;
+  /** CIBLES de l'incantation qui a déclenché le tirage : elles reçoivent les `targetOps` de la ligne
+   *  (« vos cibles », LDB 40 l.64). Absent : tirage sans incantation ciblée. */
+  targetIds?: string[];
 }
 /** « Je te renie ! » (LDB 17 l.67) : le héros a échoué au Test `corrompu` du seuil de Corruption —
  *  il choisit entre SUBIR la mutation et la REFUSER (1 Point de Résilience ; il ne perd alors aucun

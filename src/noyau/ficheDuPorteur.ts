@@ -11,7 +11,7 @@ import { effectiveChar } from '../engine/characteristics';
 import { effectiveSkillCharKey, valeurDuTest } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { effectiveEntry } from '../engine/variants';
-import { itemLabel } from '../engine/items';
+import { isWeaponActive, itemLabel } from '../engine/items';
 import { formatMoney } from '../engine/money';
 import { charAbr, findTalentById, skillInstanceLabel, talentConcrete } from '../data';
 
@@ -26,10 +26,11 @@ export interface CompetenceDeLaFiche { libelle: string; valeur: number; caracter
  *  (`effectiveEntry`), `null` sans description. */
 export interface TalentDeLaFiche { libelle: string; fois: number; desc: string | null }
 
-/** Une possession : son nom (`itemLabel`), si elle est équipée, combien en sont portées, et l'argent qu'elle tient
- *  (`formatMoney`, `null` sans argent). Les possessions de même nom, équipées de même et sans argent, se comptent
- *  ensemble. */
-export interface PossessionDeLaFiche { libelle: string; equipee: boolean; nombre: number; argent: string | null }
+/** Une possession : l'objet qui la désigne (`uid`, le premier de celles comptées ensemble), son nom (`itemLabel`), si
+ *  elle est équipée (une arme : tenue dans le set actif, `isWeaponActive`), combien en sont portées, l'argent qu'elle
+ *  tient (`formatMoney`, `null` sans argent) et le contenant où elle est rangée (`null` : en vrac). Les possessions de
+ *  même nom, équipées de même, rangées au même endroit et sans argent, se comptent ensemble. */
+export interface PossessionDeLaFiche { uid: string; libelle: string; equipee: boolean; nombre: number; argent: string | null; contenant: string | null }
 
 /** La fiche d'un porteur. */
 export interface FicheDuPorteur {
@@ -52,13 +53,17 @@ export interface FicheDuPorteur {
 export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
   const c = porteurParId(s, id);
   if (!c) return null;
+  const items = c.items ?? [];
   const possessions: PossessionDeLaFiche[] = [];
-  for (const it of c.items ?? []) {
+  for (const it of items) {
     const libelle = itemLabel(it);
     const argent = it.money ? formatMoney(it.money) : null;
-    const meme = argent === null ? possessions.find((p) => p.libelle === libelle && p.equipee === it.equipped && p.argent === null) : undefined;
+    const equipee = it.kind === 'melee' || it.kind === 'ranged' ? isWeaponActive(c, it.uid) : it.equipped;
+    const sac = it.inside ? items.find((i) => i.uid === it.inside) : undefined;
+    const contenant = sac ? itemLabel(sac) : null;
+    const meme = argent === null ? possessions.find((p) => p.libelle === libelle && p.equipee === equipee && items.find((i) => i.uid === p.uid)?.inside === it.inside && p.argent === null) : undefined;
     if (meme) meme.nombre += it.qty ?? 1;
-    else possessions.push({ libelle, equipee: it.equipped, nombre: it.qty ?? 1, argent });
+    else possessions.push({ uid: it.uid, libelle, equipee, nombre: it.qty ?? 1, argent, contenant });
   }
   return {
     id: c.id,
