@@ -383,6 +383,7 @@ export const fr = {
   'ecran.jet.plafond': 'plafond {cible} ({ecart})',
   'ecran.jet.plancher': 'plancher {cible} ({ecart})',
   'ecran.degats': 'Dégâts',
+  'ecran.critique.localisation': 'Localisation',
   'ecran.attaque.inversion': 'Dé inversé : {d100}, DR {dr}, {verdict}',
   'ecran.jet.reussite': 'réussite',
   'ecran.jet.echec': 'échec',

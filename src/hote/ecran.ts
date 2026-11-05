@@ -157,6 +157,23 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     })] : []),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
+    ...critiqueDeLEtape(etat),
+  ];
+}
+
+/** Le Coup Critique que l'étape courante de la cascade révèle : sa localisation, les Blessures perdues s'il en coûte et
+ *  chaque État infligé en puces, puis chacun de ses effets, son explication au détail ; sur un héros en `echec`, sur un adversaire
+ *  en `reussite`. Ses lignes vont aussi au journal, où ses effets ne se lisent qu'au survol. */
+function critiqueDeLEtape(etat: Jeu): Element[] {
+  const pc = etat.pendingCascade;
+  const r = pc?.participants[pc.cursor]?.reveal;
+  if (r?.kind !== 'critical' || !r.crit) return [];
+  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
+  return [
+    puce('critique/localisation', t('ecran.critique.localisation'), r.crit.location, null, ton),
+    ...(r.crit.woundsLost ? [puce('critique/blessures', t('ecran.jauge.blessures'), avecSigne(-r.crit.woundsLost), null, ton)] : []),
+    ...(r.crit.conditions ?? []).map((c) => puce(`critique/etat/${c.id}`, conditionLabel(c.id), String(c.value), null, ton)),
+    ...(r.details ?? []).map((d, i) => ligne(`critique/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
 }
 
