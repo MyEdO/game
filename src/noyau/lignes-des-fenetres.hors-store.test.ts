@@ -66,9 +66,9 @@ describe('Lignes des jets de manœuvre', () => {
     expect([l.difficulty, l.target]).toEqual(['facile', 80]);
   });
 
-  it('Corps à corps brut : la valeur suit l’arme en main — rapière sans Escrime, Base +10 → cible 40', () => {
-    const rapiere = { ...unarmedWeapon(), unarmed: undefined, builtinId: undefined, qualities: [], uid: 'rap', label: 'Rapière', subType: 'escrime' } as Weapon;
-    const h = heros({ skills: [cc('base', 10)], weapons: [rapiere, unarmedWeapon()] });
+  it('Corps à corps brut : la valeur suit l’arme en main — hallebarde sans Armes d’hast, Base +10 → cible 40', () => {
+    const hallebarde = { ...unarmedWeapon(), unarmed: undefined, builtinId: undefined, qualities: [], uid: 'hal', label: 'Hallebarde', subType: 'armes-d-hast' } as Weapon;
+    const h = heros({ skills: [cc('base', 10)], weapons: [hallebarde, unarmedWeapon()] });
     expect(ligneDeCorpsACorpsBrut(h).target).toBe(40);
   });
 });

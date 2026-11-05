@@ -298,7 +298,7 @@ function rendu() {
   // --- (X) dés hors porte ---
   out += `## (X) Tout dé tiré HORS PORTE\n\n`
   out += `Les trois familles ci-dessus ne voient que le **forgeage d'un Test** (\`rollTest\`/\`d100\`/\`TestOutcome.seal\`).\n`
-  out += `Une magnitude (\`rollDice\`), une dispersion (\`d10\`), une expression authorée (\`rollExpr\`), le d100\n`
+  out += `Une magnitude (\`rollDice\`), une dispersion (\`d10\`), un tirage authoré (\`tirer\`, \`tirerSigne\`), le d100\n`
   out += `d'environnement (\`deMonde\`) et une désignation (\`rng.int\`) leur sont invisibles PAR CONSTRUCTION.\n`
   out += `La doctrine ne laisse aucune classe de dé dehors : tout dé passe par le point d’entrée unique des jets\n`
   out += `(\`user-arbitrage-de-de-monde-affiche-comme-un-critique\`, #1508). Ce qui suit est donc une\n`

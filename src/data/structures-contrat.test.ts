@@ -1358,7 +1358,7 @@ const MUTATIONS: Record<string, (defs: string) => void> = {
   cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema,', `avail: ${SAISONS('plageSchema')},`)),
   cfPrix: reTape((source) =>
     source.replace(
-      'price: z.union([prixSaisonnierSchema, prixTireSchema]),',
+      'price: z.union([prixSaisonnierSchema, tirageSchema]),',
       `price: z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })]),`,
     ),
   ),
@@ -1450,9 +1450,9 @@ describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-
     expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
     expect(diff.nees, 'un `price` re-tapé n’est PAS vu : les deux nœuds `prix` masqueraient la mesure.').toEqual([
       'land-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'land-cargo.ts | price | dice | prix | declaree | prixTireSchema',
+      'land-cargo.ts | price | dice | prix | declaree | tirageSchema',
       'sea-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'sea-cargo.ts | price | dice | prix | declaree | prixTireSchema',
+      'sea-cargo.ts | price | dice | prix | declaree | tirageSchema',
     ]);
   });
 });

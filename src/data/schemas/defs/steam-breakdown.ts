@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** MDG 12 l.313-352 */
 import { z } from 'zod';
-import { charKeySchema, difficultySchema, plageSchema } from '../grammaire/valeurs';
+import { charKeySchema, difficultySchema, plageSchema, tirageSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -14,13 +14,13 @@ const doc = document(
   {
     ...plageSchema.shape,
     mMod: z.number().optional(),
-    durationRounds: z.string().optional(),
-    failDamage: z.string().optional(),
+    durationRounds: tirageSchema.optional(),
+    failDamage: tirageSchema.optional(),
     engineDestroyed: z.boolean().optional(),
     hullCritical: z.boolean().optional(),
     compartmentDamage: z.number().optional(),
     mSet: z.number().optional(),
-    coolMinutes: z.string().optional(),
+    coolMinutes: tirageSchema.optional(),
     restart: z
       .array(
         nommerChamps(z.strictObject({
@@ -41,15 +41,15 @@ const doc = document(
     min: { label: 'Borne basse', hint: 'Borne basse de la fourchette de tirage de Panne de Vapeur' },
     max: { label: 'Borne haute', hint: 'Borne haute de la fourchette de tirage de Panne de Vapeur' },
     mMod: { label: 'Modificateur de Mouvement', hint: 'Malus de Mouvement infligé par la panne' },
-    durationRounds: { label: 'Durée (Rounds)', hint: 'Expression de dés de la durée de la panne' },
-    failDamage: { label: 'Dégâts à l’échec', hint: 'Expression de dés des Dégâts infligés en cas d’échec' },
+    durationRounds: { label: 'Durée (Rounds)', hint: 'Dés de la durée de la panne' },
+    failDamage: { label: 'Dégâts à l’échec', hint: 'Dés des Dégâts infligés en cas d’échec' },
     engineDestroyed: { label: 'Moteur détruit', hint: 'La panne détruit le moteur à vapeur' },
     hullCritical: { label: 'Critique de coque', hint: 'La panne déclenche un Critique de coque' },
     compartmentDamage: { label: 'Dégâts au compartiment', hint: 'Dégâts infligés au compartiment moteur' },
     mSet: { label: 'Mouvement imposé', hint: 'Valeur de Mouvement imposée par la panne (remplace le calcul normal)' },
     coolMinutes: {
       label: 'Minutes de refroidissement',
-      hint: 'Expression de dés du délai avant de pouvoir relancer le moteur',
+      hint: 'Dés du délai avant de pouvoir relancer le moteur',
     },
     restart: {
       label: 'Relance du moteur',

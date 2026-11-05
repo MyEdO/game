@@ -10,6 +10,7 @@ import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
+import { parseDice } from '../../../engine/dice';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -94,10 +95,12 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 export const roleAmbiantSchema = enumNomme({ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
 
-/** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
- *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
-export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
-export type DeDeTable = z.infer<typeof deDeTableSchema>;
+/** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que
+ *  `parseDice` (`src/engine/dice.ts`) lit en `DiceSpec`. UNE déclaration pour la fabrique
+ *  (`options.deDeTirage`, `grammaire/document.ts`), les tables de `arcane-phenomena.json`, les porteurs
+ *  de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`) et l'op `rollTable`
+ *  (`grammaire/mecanique.ts`). #1669 */
+export const deDeTirageSchema = z.string().refine((s) => parseDice(s) !== null, { message: 'dé de tirage illisible : une expression « NdM » (ex. « d10 », « 2d10 »)' });
 
 /** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
  *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
@@ -764,15 +767,22 @@ export const parSaison = <T extends z.ZodType>(valeur: T) =>
 export const prixSaisonnierSchema = parSaison(z.number());
 
 /**
- * PRIX TIRÉ AU DÉ — une case du tableau de prix porte un jet au lieu d'un nombre (MDG 15 l.429 : le Vin
- * maritime est à « 3d10 » aux quatre saisons, tiré une fois à l'achat et NOTÉ, l.436). Le dé est le
- * `DiceSpec` unique du projet, jamais une expression en chaîne.
- *
- * Les deux branches s'exportent SÉPARÉMENT : chaque site compose l'union qu'il admet — un porteur de
- * prix qui n'a pas de saisons (`trappings.price`) ne doit pas hériter des colonnes par une union
- * fourre-tout.
+ * TIRAGE — une valeur authorée TIRÉE au dé (`Tirage`, `src/engine/dice.ts`, lue par `tirer`) : prix du
+ * Vin maritime (MDG 15 l.429), Blessures d'une avarie, jours d'un événement de mer… Le dé est le
+ * `DiceSpec` unique du projet, jamais une expression en chaîne (`EXPRESSION_DE_DE`). #1652
  */
-export const prixTireSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
+export const tirageSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
+
+/** Un nombre OU un tirage (`QuantiteTiree`, `src/engine/dice.ts`). #1652 */
+export const quantiteTireeSchema = z.union([z.number(), tirageSchema]);
+
+/** Modificateur de dés SIGNÉ (`EffetSigne`, `src/engine/dice.ts`, lu par `tirerSigne`) : MDG 14 (Moral),
+ *  MDG 15 l.97-124 (Humeur de Manann). #1652 */
+export const effetSigneSchema = nommerChamps(z.strictObject({ sign: z.union([z.literal(1), z.literal(-1)]), dice: diceSpecSchema }), { sign: { label: "signe" }, dice: { label: "dés" } });
+
+/** Expression de dé écrite EN CHAÎNE (« 2d10 », « 1d10-4 », « 20+1d10 », « +2d10 ») : graphie hors
+ *  grammaire dans la donnée authorée, où seule la clé `die` d'une table la porte. #1652 */
+export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]\s*\d+)?\s*$/i;
 
 /** `{x,y}` en CASES de grille — position d'un poste de pont (`vehicles.json`) comme case d'ABORD
  *  d'une place assise (`props.json`). */
@@ -1080,6 +1090,19 @@ export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z
  * couverture d'une suite de telles bandes se vérifie par `ecartsDeCouverture(…, 'ouverte')` ci-dessous.
  */
 export const plageOuverteSchema = nommerChamps(z.strictObject({ min: z.number().nullable(), max: z.number().nullable() }), metaDesChamps(plageSchema, { exigees: true }));
+
+/**
+ * PALIER d'une table à SEUILS — forme CANONIQUE du concept `palier`
+ * (`scripts/docs/lib/structures-lexique.mts`) : un seul nombre, le `seuil` à partir duquel la rangée
+ * vaut ; l'ordre total des seuils fait les bandes, et la rangée retenue est celle du plus haut seuil
+ * atteint. C'est exactement ce que lit `findTierEntry` (`src/engine/tables.ts`), primitive unique de ce
+ * lookup. Ni `plageSchema` ni `plageOuverteSchema` : aucune borne haute n'est écrite.
+ *
+ * La charge utile d'un palier s'ajoute par la SHAPE — `z.strictObject({ ...palierSchema.shape, … })`,
+ * comme une fourchette. Un seuil est un ENTIER (DR, minute du jour, effectif) ; la borne de son domaine
+ * appartient à la table qui le compose.
+ */
+export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int() }), { seuil: { label: 'Seuil', hint: 'Valeur à partir de laquelle le palier s’applique' } });
 
 /**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique

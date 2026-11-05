@@ -2,6 +2,7 @@
   "id": "obsessions",
   "type": "obsessions",
   "label": "Obsessions",
+  "die": "2d10",
   "source": {
     "book": "ennemi-dans-l-ombre-compagnon",
     "page": 69,

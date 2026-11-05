@@ -829,9 +829,9 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const rng = battleRng();
       // Trois tirages de MONDE par la porte du canal (`deMonde`, `engine/dice`) : ils sont la
       // CONSÉQUENCE du Test de Ragot déjà joué et surfacé (`pa`), pas une occasion de pose de plus.
-      const lieu = findTableEntry(findEffectTableById('contremaitre-lieu').rows, deMonde(rng));
-      const objectif = findTableEntry(findEffectTableById('contremaitre-objectif').rows, deMonde(rng));
-      const perso = findTableEntry(findEffectTableById('contremaitre-personnalite').rows, deMonde(rng));
+      const lieu = findTableEntry(findEffectTableById('contremaitre-lieu').entries, deMonde(rng));
+      const objectif = findTableEntry(findEffectTableById('contremaitre-objectif').entries, deMonde(rng));
+      const perso = findTableEntry(findEffectTableById('contremaitre-personnalite').entries, deMonde(rng));
       return {
         lines: [
           msg('if.contremaitreOk', { name: h.label, lieu: ligneNommee(lieu, 'contremaitre-lieu'), objectif: ligneNommee(objectif, 'contremaitre-objectif'), perso: ligneNommee(perso, 'contremaitre-personnalite') }),

@@ -16,7 +16,7 @@ import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from 
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, contexteDeTestSchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
@@ -391,29 +391,29 @@ const DECLARATIONS_D_OPS = {
     ops: executeesDe(z.lazy(() => gameOpSchema)),
     morphRef: idDe('creature').optional(),
   }), { op: { label: "opération"  }, tag: { label: "marque" , texte: { regime: "technique"} }, ops: { label: "opérations" }, morphRef: { label: "forme transformée" , texte: { regime: "technique"} } }),
-  /** Table INLINE (`rows`) OU RÉFÉRENCÉE (`tableId`), exclusives (`engine/ops.ts`, union `rollTable`). */
+  /** Table INLINE (`entries`) OU RÉFÉRENCÉE (`tableId`), exclusives (`engine/ops.ts`, union `rollTable`). */
   rollTable: z.union([
     nommerChamps(z.strictObject({
       op: z.literal('rollTable'),
-      die: deDeTableSchema,
+      die: deDeTirageSchema,
       mod: z.number().optional(),
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
-      rows: z.array(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: executeesDe(z.lazy(() => gameOpSchema)) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } })),
-    }), { op: { label: "opération"  }, die: { label: "dé de tirage"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, rows: { label: "rangées" } }),
+      entries: z.array(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: executeesDe(z.lazy(() => gameOpSchema)) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } })),
+    }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, entries: { label: "rangées" } }),
     nommerChamps(z.strictObject({
       op: z.literal('rollTable'),
-      die: deDeTableSchema.optional(),
+      die: deDeTirageSchema.optional(),
       mod: z.number().optional(),
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
       tableId: idDe('table'),
-    }), { op: { label: "opération"  }, die: { label: "dé de tirage"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
+    }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { rows?: unknown; tableId?: unknown };
-      return (v.rows === undefined) === (v.tableId === undefined)
-        ? 'table EXCLUSIVE : « rows » (rangées inline) OU « tableId » (tables.json) — exactement une des deux.'
+      const v = (iss.input ?? {}) as { entries?: unknown; tableId?: unknown };
+      return (v.entries === undefined) === (v.tableId === undefined)
+        ? 'table EXCLUSIVE : « entries » (rangées inline) OU « tableId » (tables.json) — exactement une des deux.'
         : undefined;
     },
   }),
@@ -1231,7 +1231,7 @@ function construire(regimes: Regimes) {
     label: z.string(),
     desc: z.string(),
     stageOutcome: stageOutcomeSchema.optional(),
-    vehicleWounds: z.string().nullable().optional(),
+    vehicleWounds: tirageSchema.nullable().optional(),
     occupantOps: executeesDe(gameOp).optional(),
     /** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174), miroir de
      *  `MountIncidentEffects` (`src/engine/travelTables.ts`) : elle est DÉCLARÉE par l'entrée, jamais
@@ -1292,7 +1292,7 @@ function construire(regimes: Regimes) {
     label: z.string(),
     ops: executeesDe(gameOp).optional(),
     shrapnel: z.number().optional(),
-    hullCrits: z.string().optional(),
+    hullCrits: tirageSchema.optional(),
     crewHit: shipCrewHit.optional(),
     note: z.string(),
   }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque"  , texte: { regime: "technique"} }, crewHit: { label: "coup à l’équipage" }, note: { label: "note"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/ship-criticals.ts:schema"}} } }), 'construire', 'shipCritEntry');

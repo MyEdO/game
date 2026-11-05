@@ -39,6 +39,6 @@ describe('bandes ouvertes — la valeur extrême tombe dans la bande extrême', 
   });
 
   it('Table d’effets (VDM 12 l.435, « 11+ ») : 50 → « Grosse explosion ! »', () => {
-    expect(findTableEntry(findEffectTableById('vdm-catastrophes-de-brassage').rows, 50).label).toBe('Grosse explosion !');
+    expect(findTableEntry(findEffectTableById('vdm-catastrophes-de-brassage').entries, 50).label).toBe('Grosse explosion !');
   });
 });

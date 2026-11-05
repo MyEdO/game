@@ -1,5 +1,4 @@
-import { deDeTableSchema, type DeDeTable } from '../data/schemas/grammaire/valeurs';
-import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { formatDice, parseDiceRequired, totalDuDe } from './dice';
 
 /**
  * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
@@ -10,6 +9,18 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
  */
 export function findTableEntry<T extends { min: number; max: number }>(table: T[], roll: number): T {
   return table.find((e) => roll >= e.min && roll <= e.max) ?? table[table.length - 1];
+}
+
+/**
+ * Lookup PARTAGÉ d'une table à PALIERS (`palierSchema`, `src/data/schemas/grammaire/valeurs.ts`) —
+ * SOURCE UNIQUE du « plus haut palier atteint » : la rangée de plus grand `seuil` ≤ `valeur`,
+ * indépendante de l'ordre d'authoring. `undefined` sous le plus bas palier : le repli est celui de
+ * l'appelant, qui le nomme. PUR.
+ */
+export function findTierEntry<T extends { seuil: number }>(table: readonly T[], valeur: number): T | undefined {
+  let atteint: T | undefined;
+  for (const r of table) if (r.seuil <= valeur && (atteint === undefined || r.seuil > atteint.seuil)) atteint = r;
+  return atteint;
 }
 
 /**
@@ -51,16 +62,18 @@ export function fourchette(min: number | null, max: number | null, dieMax = 0): 
   return bas < 0 || haut < 0 ? `${borne(bas)} à ${borne(haut)}` : `${borne(bas)}–${borne(haut)}`;
 }
 
-/** SOURCE UNIQUE du nombre de faces d'un dé de table : `d10` → 10, `d100` → 100. PUR. */
-export function facesDuDe(die: DeDeTable): number {
-  return Number(die.slice(1));
+/** SOURCE UNIQUE du plus grand total d'un dé de tirage (`deDeTirageSchema`) : `d10` → 10, `d100` → 100,
+ *  `2d10` → 20. PUR. */
+export function facesDuDe(die: string): number {
+  const de = parseDiceRequired(die, 'die');
+  return totalDuDe(de, de.n * de.sides);
 }
 
 /** GRAPHIE UNIQUE d'une bande précédée de son dé (« 1d100 01–35 », « 1d10 9–10 ») : libellé du dé
- *  par `deDeTableSchema`, bande par `fourchette` cadrée sur `facesDuDe`. docs/charte-ui.md,
+ *  par `formatDice`, bande par `fourchette` cadrée sur `facesDuDe`. docs/charte-ui.md,
  *  « Bande de table ». PUR. */
-export function bandeAuDe(die: DeDeTable, min: number | null, max: number | null): string {
-  return `${libelleDeValeur(deDeTableSchema, die)} ${fourchette(min, max, facesDuDe(die))}`;
+export function bandeAuDe(die: string, min: number | null, max: number | null): string {
+  return `${formatDice(parseDiceRequired(die, 'die'))} ${fourchette(min, max, facesDuDe(die))}`;
 }
 
 /** Variante INDEX de `findTableEntry` — pour les appelants qui doivent ensuite décaler l'entrée

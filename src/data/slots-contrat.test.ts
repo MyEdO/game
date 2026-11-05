@@ -160,7 +160,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('PAYLOAD D’OP : une référence validée par le `superRefine` de `gameOpSchema` est un slot (`tables.json › of`, joint)', () => {
-    expect(new Set(slotsAuPath('tables.json', '[].rows[].ops[].montant.brass.times.of.rule').map((s) => s.type))).toEqual(new Set(['regleOptionnelle']));
+    expect(new Set(slotsAuPath('tables.json', '[].entries[].ops[].montant.brass.times.of.rule').map((s) => s.type))).toEqual(new Set(['regleOptionnelle']));
     const c = couple('tables.json', 'of')!;
     expect(c.atteintes).toBe(c.occurrences);
   });

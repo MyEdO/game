@@ -142,7 +142,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le classement est ORDONNÉ : une VALEUR (reconnue à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
   'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` des `src/data/schemas/defs/*.ts` : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni les defs hors de ce dossier. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
-  '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `prixTireSchema` (#1463 L-gram-3) à donnée, def et signature INCHANGÉS.',
+  '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
   'Les portes MOTEUR (`src/engine`, `src/state`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
   'Le concept `test` CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation` : clé de `CLES_IDENTITE`, ou clé en `RX_CLE_REFERENCE`) et passe APRÈS `plage` : 12 objets porteurs de `difficulty` restent classés `test` sans en être un — `tavernGames.json › volley.rows` 7 (rangées sans bornes authorées), `sea-events.json › params` 3 (le sujet du jet y vit sous `testType`) et `etats.json › difficultyBy` 2. Ce qui leur manque n’est pas TOUT discriminant structurel (`difficultyBy` porte `{cond, difficulty}`, et `cond` en est un) : c’est une clé de DÉSIGNATION, la seule que ce concept cède.',
   'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 148 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 71, `scene.ts` 53, `worldmap.ts` 15, `narratif.ts` 7, `communs.ts` 2) en sont HORS PÉRIMÈTRE — un seul d’entre eux serait classé par le lexique s’il y entrait (`wallClimbSchema` de `scene.ts`, concept `test` par le noyau `difficulty`). L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
@@ -580,14 +580,20 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['fixed'],
   },
-  // Porte : `palierDeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). EDO 01 l.142.
-  // Noyau MESURÉ sur les 2 racines (2026-10-16) : `drMin` ne vit que sous `billets.*.marchandage.paliers[]`.
+  // Porte : `palierSchema` (`src/data/schemas/grammaire/valeurs.ts`), lu par `findTierEntry`
+  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-05) : `seuil` ne vit que sous
+  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]` et
+  // `billets.*.marchandage.paliers[]` (EDO 01 l.142).
   {
-    id: 'palier-de-billet',
-    label: 'palier d’un billet marchandé (`PalierDeBillet`)',
+    id: 'palier',
+    label: 'palier d’une table à seuils (seuil)',
     strate: 'Valeur',
-    signatures: [{ sig: 'drMin,prix', statut: 'cible' }],
-    noyau: ['drMin', 'prix'],
+    signatures: [
+      { sig: 'seuil', statut: 'cible' },
+      { sig: 'seuil+…', statut: 'cible', note: 'RANGÉE d’une table à paliers : la charge utile est INHÉRENTE — cible = `palierSchema` composé par sa shape + `findTierEntry` (src/engine/tables.ts). #1666.' },
+    ],
+    noyau: ['seuil'],
+    exigeCandidatureStructurelle: true,
   },
   // Porte : `routeBilletSchema.marchandage` (`src/data/schemas/defs-scenes/worldmap.ts`) ; `presetId` est
   // une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). EDO 01 l.142.
@@ -644,7 +650,7 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
     noyau: ['repere', 'valeur'],
   },
-  // APRÈS `palier-de-billet` (même clé `prix`, le palier porte `drMin`), et l'ordre décide. Porte :
+  // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
   // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
   // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
   // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.
@@ -996,10 +1002,8 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   'sous-titre': { cible: 'title', divergentes: [] },
   // `effect` et `hint` ne sont pas des divergentes (#1467 L1b V-P2) : le détecteur classe par TYPE,
   // pas par NOM de clé, et ces deux-là ne portent pas de prose.
-  //   `crew-morale.json › factors[].effect` = expression de dés lue par `rollExpr`
-  //     (`src/data/schemas/defs/crew-morale.ts`) ;
-  //   `sea-events.json › manann.factors[].effect` = objet `{sign, flat, d10}`
-  //     (`manannFactor` de `src/data/schemas/defs/sea-events.ts`) ;
+  //   `crew-morale.json › factors[].effect` et `sea-events.json › manann.factors[].effect` = effet de
+  //     dés signé `{sign, dice}` (`effetSigneSchema`, `src/data/schemas/grammaire/valeurs.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
   //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
   //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`).

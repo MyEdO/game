@@ -25,7 +25,7 @@ describe('Blessures critiques sur un navire (MDG 13)', () => {
     // Cargaison : 3-4 → En flammes 1 ; 9-10 → 3 En flammes + 1d10 Critiques Coque.
     expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 3).ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 1 }]);
     expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 10).ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 3 }]);
-    expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 10).hullCrits).toBe('1d10');
+    expect(findTableEntry(SHIP_CRITICAL_TABLES.cargaison, 10).hullCrits).toEqual({ dice: { n: 1, sides: 10 } });
     // Gréement : 10 → Mât brisé (réf par id), Éclats 10.
     expect(findTableEntry(SHIP_CRITICAL_TABLES.greement, 10).id).toBe('mat-brise');
     expect(findTableEntry(SHIP_CRITICAL_TABLES.greement, 10).shrapnel).toBe(10);

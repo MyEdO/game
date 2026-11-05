@@ -5,6 +5,7 @@
  */
 import arcaneJson from './arcane-phenomena.json';
 import type { CastingNumberMod } from '../engine/castingNumber';
+import type { DiceSpec } from '../engine/dice';
 
 /** Tests qu'un phénomène peut modifier — surensemble de `WindTest` (`engine/domainAttributes.ts`). */
 export type PhenomenonTest = 'incantation' | 'focalisation' | 'dissipation';
@@ -87,7 +88,7 @@ export interface ArcanePhenomenon {
   stonePropertySlots?: { max: number; source: { book: string; page: number }; desc: string };
   fluxTableId?: string;
   controlFlux?: { difficulty: string; source: { book: string; page: number }; desc: string };
-  overcastPerSpell?: { dice: string; source: { book: string; page: number }; desc: string };
+  overcastPerSpell?: { dice: DiceSpec; source: { book: string; page: number }; desc: string };
   tableId?: string;
   draws?: number;
   source: { book: string; page: number };
@@ -110,13 +111,13 @@ export interface ArcaneTableRow {
 export interface ArcaneTable {
   id: string;
   label: string;
-  die: 'd10' | 'd100';
-  rows: ArcaneTableRow[];
+  die: string;
+  entries: ArcaneTableRow[];
   source: { book: string; page: number };
   desc: string;
 }
 
-interface ArcaneData {
+export interface ArcaneData {
   saturationLevels: SaturationLevel[];
   windSaturationEffects: WindSaturationEffects[];
   phenomena: ArcanePhenomenon[];

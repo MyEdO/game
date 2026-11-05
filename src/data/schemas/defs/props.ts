@@ -166,7 +166,3 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-/** Clés top-level de l'ENTRÉE (enveloppe + champs), relevées AVANT le sceau — le nœud rendu par la
- *  fabrique n'a plus de `.shape`. Consommée par `scripts/guards/lib/fieldConsumerTargets.mjs`, qui
- *  dégraderait SILENCIEUSEMENT à zéro champ sur un nœud scellé. */
-export const cles = doc.cles;

@@ -1,21 +1,13 @@
 /**
- * Accidents de Conduite d'attelage EN SCÈNE (Livre de base, Compétences, LDB 09 l.140-149). « Un Échec
- * Stupéfiant à un Test de Conduite d'attelage signifie que quelque chose de grave s'est produit. Faites
- * un lancer sur le tableau suivant » — 1d10 :
- *   1-2 Harnais cassé · 3-5 Cahots (1 PB aux passagers) · 6-8 Roue brisée (2 roues → Accidenté auto)
- *   · 9-10 Essieu cassé (Accidenté). « Accident : les occupants … subissent généralement 2d10 Points de
- *   Blessure modifiées par le Bonus d'Endurance et les PA, sauf si le véhicule roulait doucement. »
+ * Accidents de Conduite d'attelage EN SCÈNE — LDB 09 l.140-149, table `driving-mishap.json` (dé `die`).
  *
- * DISTINCT du sous-système EDOC « Problèmes de véhicule » (`data/problemes-vehicule.json`, table d100
- * déclenchée par un ALLURE FORCÉE en VOYAGE longue distance) : ici c'est le fiasco EN SCÈNE d'une
- * Conduite d'attelage ratée de façon spectaculaire (poursuite, manœuvre, terrain — LDB 09), avec sa
- * propre table 1d10. Aucune duplication : deux axes RAW (in-scene vs voyage) et deux tables sources.
- * PUR : RNG injecté ; ne mute rien.
+ * DISTINCT des « Problèmes de véhicule » de VOYAGE (`data/problemes-vehicule.json`, EDOC) : deux axes
+ * RAW et deux tables sources. PUR : RNG injecté ; ne mute rien.
  */
-import { RNG, d10 } from './dice';
+import { RNG, d10, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import drivingMishapJson from '../data/driving-mishap.json';
-import { rangeesDe, type RangeeDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
 import type * as accidents from '../data/schemas/defs/driving-mishap';
 
 /** Entrée du Tableau des accidents de Conduite d'attelage. */
@@ -24,9 +16,9 @@ export type DrivingMishapOutcome = MishapEntry['outcome'];
 /** Le Tableau VIVANT — la collection que le Codex édite (`drivingMishap`, `data/overrides.ts`). */
 export const MISHAP_TABLE = rangeesDe<typeof accidents>(drivingMishapJson);
 
-/** 1d10 sur le Tableau des accidents de Conduite d'attelage (LDB 09 l.142). Renvoie l'entrée + le dé. */
+/** Tirage sur le Tableau des accidents de Conduite d'attelage (LDB 09 l.142). Renvoie l'entrée + le dé. */
 export function rollDrivingMishap(rng: RNG): { roll: number; entry: MishapEntry } {
-  const roll = d10(rng);
+  const roll = rollDice(deDeTirageDe<typeof accidents>(drivingMishapJson), rng);
   return { roll, entry: findTableEntry(MISHAP_TABLE, roll) };
 }
 

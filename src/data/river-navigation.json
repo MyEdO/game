@@ -190,7 +190,12 @@
   "temporaryRepair": {
     "difficulty": "complexe",
     "charpentierPenalty": -10,
-    "woundsPerRepair": "1d10",
+    "woundsPerRepair": {
+      "dice": {
+        "n": 1,
+        "sides": 10
+      }
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 30,

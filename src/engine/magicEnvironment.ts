@@ -139,5 +139,5 @@ export function environmentWidensCrit(env: MagicEnvironment = {}): boolean {
 
 /** Tirage sur une table du chapitre (`findTableEntry` — jamais un lookup recodé). */
 export function rollArcaneTable(tableId: string, roll: number): ArcaneTableRow {
-  return findTableEntry(findArcaneTableById(tableId).rows, roll);
+  return findTableEntry(findArcaneTableById(tableId).entries, roll);
 }

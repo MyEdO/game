@@ -11,13 +11,13 @@
  * Le **Test d'équipage** (MDG 14) est un mécanisme PROPRE : « le total cumulé de ces Tests individuels »
  * (somme des DR de chaque contributeur, le DR du rôle ESSENTIEL étant DOUBLÉ) — ce n'est PAS le Test Soutenu
  * du LDB (+10 par soutien à UN seul jet) : on le résout donc avec son propre additionneur, en réutilisant
- * `rollTest` (un jet par contributeur) et la bande de Moral (`crewTestDR`). `rollExpr` évalue les
- * modificateurs de Moral (dés signés « +2d10 »/« -3d10 ») ; `findTableEntry` classe le score dans sa bande.
+ * `rollTest` (un jet par contributeur) et la bande de Moral (`crewTestDR`). `tirerSigne` roule les
+ * modificateurs de Moral ; `findTableEntry` classe le score dans sa bande.
  */
 import crewMoraleJson from '../data/crew-morale.json';
 import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { rollExpr, type RNG } from './dice';
+import { tirerSigne, type EffetSigne, type RNG } from './dice';
 import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
 import { bestForSkills, refusNePeutTenter } from './skills';
 import type { PlayerText } from '../i18n/playerText';
@@ -32,12 +32,12 @@ import type { ModLine } from './combat';
 import type { PairedSense } from './ops';
 import { precipitationTestMods } from './seaWeather';
 
-/** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14) — `effect` = dés signés (« +2d10 », « -3d10 »). */
+/** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14). */
 export interface MoraleFactor {
   /** id STABLE (slug) — toute réf passe par lui, jamais le `label`. */
   id: string;
   label: string;
-  effect: string;
+  effect: EffetSigne;
   /** Multiplicateur de SOLDE si ce facteur est un CHOIX de paie du Conseil de bord (donnée MAISON,
    *  cf. `payChoices`). Absent = facteur circonstanciel, pas un choix offert au capitaine. */
   wageMul?: number;
@@ -63,7 +63,7 @@ export interface MoraleBand extends BandeOuverte {
 
 /** Moral de départ d'un nouvel équipage / nouveau capitaine (MDG 14). */
 export const MORALE_BASE: number = crewMoraleJson.base;
-export const MORALE_FACTORS: MoraleFactor[] = crewMoraleJson.factors;
+export const MORALE_FACTORS: MoraleFactor[] = crewMoraleJson.factors as MoraleFactor[];
 export const MORALE_BANDS: MoraleBand[] = crewMoraleJson.bands as MoraleBand[];
 
 /** Les bandes telles que `findTableEntry` les lit (`tableOuverte`) : « 101 ou plus » et « 50 ou moins »
@@ -97,7 +97,7 @@ export function recalcMorale(current: number, activeFactorIds: string[], rng: RN
   for (const id of activeFactorIds) {
     const f = findMoraleFactor(id);
     if (!f) continue;
-    const rolled = rollExpr(f.effect, rng);
+    const rolled = tirerSigne(f.effect, rng);
     delta += rolled;
     rolls.push({ id: f.id, label: f.label, rolled });
     lines.push(`${f.label} : ${rolled >= 0 ? '+' : ''}${rolled} Moral.`);

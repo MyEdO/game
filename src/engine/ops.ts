@@ -13,7 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
-import { RNG, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
+import { RNG, parseDiceRequired, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
@@ -21,7 +21,7 @@ import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTra
 import { MINUTES_PER_DAY } from './clock';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
-import { facesDuDe, findTableEntry } from './tables';
+import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
@@ -901,9 +901,9 @@ export type GameOp =
    *  1d`sides` UNE fois, applique les `ops` de CHAQUE palier dont `atLeast` est atteint (cumulatif).
    *  Les ops de palier voient `{rolled}` = la valeur du dé. UN seul jet partagé (≠ jets indépendants). */
   | { op: 'rollThreshold'; sides: number; thresholds: { atLeast: number; ops: GameOp[] }[] }
-  /** Tirage sur TABLE (`die` = d10/d100) : lookup par fourchette `[min,max]` (`findTableEntry`, source
+  /** Tirage sur TABLE (`die` = dé de tirage, `deDeTirageSchema`) : lookup par fourchette `[min,max]` (`findTableEntry`, source
    *  unique), les `ops` de la rangée touchée sont appliquées avec le MÊME ctx. DEUX formes exclusives de
-   *  la table : `rows` INLINE (authorées sur l'op) OU `tableId` = référence à `tables.json`
+   *  la table : `entries` INLINE (authorées sur l'op) OU `tableId` = référence à `tables.json`
    *  (`findEffectTableById`, fail-fast) — jamais les deux (membres stricts d'`OP_DEFS.rollTable`). `mod` = modificateur
    *  CONSTANT ajouté au jet (Haute Alchimie « lancez 1d10 + 3 », VDM 03 l.698) — se cumule avec
    *  `addNegativeSL` (le RAW enchaîne les deux : « lancez 1d10 + 3. Ajoutez les degrés d'échec »).
@@ -913,8 +913,8 @@ export type GameOp =
    *  LDB 47 l.13-17 / EDOC 13 l.230+270-276 : « pour chaque +2 DR […] vous POUVEZ à la fois prolonger
    *  la durée et refaire un jet sur le Tableau » — déclinable ; la durée se prolonge sur TOUS les pas
    *  alloués quel que soit le choix). Généralise tout « lancez 1dN [+ modif], consultez le tableau ». */
-  | { op: 'rollTable'; die: 'd10' | 'd100'; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; rows: { min: number; max: number; ops: GameOp[] }[] }
-  | { op: 'rollTable'; die?: 'd10' | 'd100'; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
+  | { op: 'rollTable'; die: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
+  | { op: 'rollTable'; die?: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
   /** Tirage d'une MUTATION sur une table de Corruption (`mutationTables.json`, par id `table`) —
    *  réutilise `rollMutation()` + `attachMutation()` (`corruption.ts`/`mutations.ts`). DURÉE identique à
    *  `grantTrait` (EDOC 13 l.276-277 « appliquez […] pour toute la durée du Sort ») : durée du contexte
@@ -2658,10 +2658,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'rollTable': {
-        // Table INLINE (`rows`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
+        // Table INLINE (`entries`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
         const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
-        const rows: { min: number; max: number; ops: GameOp[] }[] = table.rows;
-        const sides = facesDuDe(table.die);
+        const rows: { min: number; max: number; ops: GameOp[] }[] = table.entries;
+        const de = parseDiceRequired(table.die, 'rollTable.die');
         // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
         // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
         const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
@@ -2672,7 +2672,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const chosenSteps = Math.min(ctx.chosenTableRolls ?? allocatedSteps, allocatedSteps);
         const times = 1 + (o.extraRollsPerStep ? chosenSteps * o.extraRollsPerStep : 0);
         for (let i = 0; i < times; i++) {
-          const die = roll(1, sides, rng);
+          const die = rollDice(de, rng);
           const entry = findTableEntry(rows, die + modifier);
           lines.push(...applyOps(target, entry.ops, imbrique({ rolled: die })));
         }

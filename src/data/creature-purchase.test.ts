@@ -137,9 +137,9 @@ describe('chien LDB vs chien de trait EDOC (#673)', () => {
   });
 
   it('la table de mouvement/charge (EDOC 07 folio 24) route vers le chien de trait, jamais le chien LDB', () => {
-    const cibles = monturesJson.entries.flatMap((e) => e.creatureIds);
+    const cibles = monturesJson.flatMap((e) => e.creatureIds);
     expect(cibles).toContain('chien-de-trait');
     expect(cibles).not.toContain('chien');
-    expect(monturesJson.entries.find((e) => e.id === 'chien')!.encPortee).toBe(8);
+    expect(monturesJson.find((e) => e.id === 'chien')!.encPortee).toBe(8);
   });
 });

@@ -323,6 +323,11 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     rangeesConfig: document('config-table-jouet', 'config', {}, {}, EXPOSITION, {
       rangee: z.strictObject({ id: z.string(), min: z.number(), max: z.number(), label: z.string() }),
     }),
+    // Réplique d'une table à rangées SANS `id` (`tables.json`) : la rangée se désigne par sa fourchette.
+    rangeesSansId: document('table-sans-id-jouet', 'entite', {}, {}, EXPOSITION, {
+      rangee: z.strictObject({ min: z.number(), max: z.number(), label: z.string() }),
+      deDeTirage: true,
+    }),
   };
   const ENV = (type: string) => ({ id: 'x', type, label: 'X', source: SOURCE_REELLE });
 
@@ -369,6 +374,16 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     const double = schema.safeParse([{ ...t, entries: [...t.entries, { ...t.entries[0], min: 11, max: 20 }] }]);
     expect(double.success).toBe(false);
     expect(double.error?.issues.map((i) => i.message)).toContain('« rien » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.');
+    // Le dé se lit en `DiceSpec` (`deDeTirageSchema`) : 2d10 passe, une expression illisible est refusée.
+    expect(schema.safeParse([{ ...t, die: '2d10' }]).success).toBe(true);
+    expect(schema.safeParse([{ ...t, die: 'un dé' }]).success).toBe(false);
+  });
+
+  it('document à `rangee` SANS `id` : `entries` est une liste ordonnée, chaque rangée validée', () => {
+    const { schema } = REPLIQUES.rangeesSansId;
+    const rangee = { min: 1, max: 10, label: 'Rien' };
+    expect(schema.safeParse([{ ...ENV('table-sans-id-jouet'), die: 'd10', entries: [rangee, { ...rangee, min: 11, max: 20 }] }]).success).toBe(true);
+    expect(schema.safeParse([{ ...ENV('table-sans-id-jouet'), die: 'd10', entries: [{ ...rangee, id: 'rien' }] }]).success).toBe(false);
   });
 
   it('`rangee` en famille `config` : le document EST son fichier, et porte sa charge', () => {
@@ -701,7 +716,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures devient un dataset.
     //   #3114 : `garde-robe` naît SCELLÉ (83 → 84) — la garde-robe des éléments 3D devient un dataset.
     //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 85, mesures: 0 });
+    //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 86, mesures: 0 });
   });
 
 });

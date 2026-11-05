@@ -7,47 +7,44 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe } from '../grammaire/mecanique';
-import { deDeTableSchema, ecartsDeCouverture, plageOuverteSchema, type DeDeTable } from '../grammaire/valeurs';
+import { ecartsDeCouverture, plageOuverteSchema } from '../grammaire/valeurs';
 import { facesDuDe } from '../../../engine/tables';
+import { parseDice, totalDuDe } from '../../../engine/dice';
 
 export const file = 'tables.json';
 export const famille = 'entite';
 
+const rangee = nommerChamps(z.strictObject({
+  ...plageOuverteSchema.shape,
+  label: z.string().optional(),
+  ops: executeesDe(),
+}), { ...metaDesChamps(plageOuverteSchema, { exigees: true }), label: { label: 'Libellé' }, ops: { label: 'Opérations' } });
+
 const doc = document(
   'tables',
   famille,
-  {
-    die: deDeTableSchema,
-    rows: z.array(
-      nommerChamps(z.strictObject({
-        ...plageOuverteSchema.shape,
-        label: z.string().optional(),
-        ops: executeesDe(),
-      }), { ...metaDesChamps(plageOuverteSchema, { exigees: true }), label: { label: 'Libellé' }, ops: { label: 'Opérations' } }),
-    ),
-  },
-  {
-    die: { label: 'Type de dé' },
-    rows: { label: 'Rangées de la table', hint: 'Tirées par l’op rollTable variante tableId' },
-  },
+  {},
+  {},
   {
     codex: { keys: ['effectTables'] },
     edit: { none: 'exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier' },
   },
   {
+    rangee,
+    deDeTirage: true,
     // VDM 12 l.435 ; patron `structure-criticals.ts`.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        type Bande = { min?: number | null; max?: number | null };
-        for (const [i, t] of (v as { id?: string; die: DeDeTable; rows?: Bande[] }[]).entries()) {
-          const rows = t.rows ?? [];
-          const jusqua = rows.some((r) => r.max === null) ? 'ouverte' : facesDuDe(t.die);
-          const ecarts = ecartsDeCouverture(rows, 1, jusqua, (r) => `la rangée n° ${rows.indexOf(r) + 1}`);
+        for (const [i, t] of (v as { id: string; die: string; entries: z.output<typeof rangee>[] }[]).entries()) {
+          const de = parseDice(t.die);
+          if (!de) continue;
+          const jusqua = t.entries.some((r) => r.max === null) ? 'ouverte' : facesDuDe(t.die);
+          const ecarts = ecartsDeCouverture(t.entries, totalDuDe(de, de.n), jusqua, (r) => `la rangée n° ${t.entries.indexOf(r) + 1}`);
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',
-              path: [i, 'rows'],
-              message: `tables.json › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant depuis 1 — ${ecarts.join(' ; ')}.`,
+              path: [i, 'entries'],
+              message: `tables.json › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant depuis ${totalDuDe(de, de.n)} — ${ecarts.join(' ; ')}.`,
             });
           }
         }

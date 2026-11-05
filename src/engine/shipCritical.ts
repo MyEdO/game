@@ -13,7 +13,7 @@
  * Les Éclats (Indice → équipage) et les Critiques de Coque supplémentaires sont RENDUS (l'équipage et la
  * récursion de Coque relèvent de la boucle de combat naval, qui connaît l'équipage du navire).
  */
-import { d100, rollDice, parseDice, type RNG } from './dice';
+import { d100, rollDice, tirer, type RNG } from './dice';
 import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
@@ -79,7 +79,7 @@ export interface ShipCriticalResolved {
   /** Éclats (Indice) : `shrapnel` membres d'équipage subissent l'effet Éclats du jeu (`set.shrapnelHit` — 9
    *  Dégâts en mer MDG, +5 en fleuve MSRC) — appliqué par la boucle de combat. Seul l'Indice est per-entry. */
   shrapnel: number;
-  /** Critiques de Coque SUPPLÉMENTAIRES (déjà tirés depuis `hullCrits`, ex. « 1d10 » → un nombre). */
+  /** Critiques de Coque SUPPLÉMENTAIRES (déjà tirés depuis `hullCrits`). */
   extraHullCrits: number;
   /** « Canon détaché » : ce que la rangée fait à l'ÉQUIPAGE (DATA — cible, épreuve ou ops certaines). */
   crewHit?: ShipCrewHit;
@@ -100,7 +100,7 @@ export function rollShipCritical(location: ShipCritKey, rng: RNG, forcedRoll?: n
   const entry = structuredClone(roll === null ? table[0] : findTableEntry(table, roll)); // #2097
   // Effets « État » : AUTHORÉS en donnée (`entry.ops`, GameOp) — le résolveur n'a plus aucun couplage nom-d'État.
   const ops: GameOp[] = entry.ops ?? [];
-  const extraHullCrits = entry.hullCrits ? rollDice(parseDice(entry.hullCrits)!, rng) : 0;
+  const extraHullCrits = entry.hullCrits ? tirer(entry.hullCrits, rng) : 0;
   return {
     location,
     id: entry.id,

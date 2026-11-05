@@ -108,16 +108,17 @@ export function parseDiceRequired(s: string, champ: string): DiceSpec {
   return de;
 }
 
-/** Évalue une expression de dés signée (« 1d10+15 », « 2d10 », « d10 », « 15 », « 1d6-1 ») → total
- *  tiré. Termes additionnés ; « NdM » roule N dés à M faces (N implicite = 1). PUR (RNG injecté). */
-export function rollExpr(expr: string, rng: RNG): number {
-  let total = 0;
-  const re = /([+-]?)\s*(?:(\d*)d(\d+)|(\d+))/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(expr)) !== null) {
-    const sign = m[1] === '-' ? -1 : 1;
-    if (m[3] != null) total += sign * roll(m[2] ? parseInt(m[2], 10) : 1, parseInt(m[3], 10), rng);
-    else if (m[4] != null) total += sign * parseInt(m[4], 10);
-  }
-  return total;
-}
+/** Valeur authorée TIRÉE au dé (`tirageSchema`, `src/data/schemas/grammaire/valeurs.ts`). #1652 */
+export interface Tirage { dice: DiceSpec }
+/** Un nombre OU un tirage (`quantiteTireeSchema`). */
+export type QuantiteTiree = number | Tirage;
+/** La valeur d'une `QuantiteTiree` : le nombre tel quel, le tirage roulé (`rollDice`). PUR (RNG injecté). */
+export const tirer = (v: QuantiteTiree, rng: RNG): number => (typeof v === 'number' ? v : rollDice(v.dice, rng));
+
+/** Modificateur de dés SIGNÉ (`effetSigneSchema`) : `n` vaut 0 quand seul `plus` compte. */
+export interface EffetSigne { sign: 1 | -1; dice: DiceSpec }
+/** Le total signé d'un `EffetSigne` : `sign × rollDice(dice)`. PUR (RNG injecté). */
+export const tirerSigne = (e: EffetSigne, rng: RNG): number => e.sign * rollDice(e.dice, rng);
+/** Écriture d'un `EffetSigne` (« +2d10 », « −1d10 », « +2d10+5 », « +5 ») — affichage. */
+export const formatEffetSigne = (e: EffetSigne): string =>
+  `${e.sign > 0 ? '+' : '−'}${e.dice.n > 0 ? formatDice(e.dice) : String(e.dice.plus ?? 0)}`;

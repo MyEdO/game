@@ -134,8 +134,8 @@ describe('Remaniement du contremaître (AA 12 l.51-144) — tire ses TROIS table
   it('les 3 tables (Lieu/Objectif/Personnalité) sont enregistrées et couvrent 1..100', () => {
     for (const id of ['contremaitre-lieu', 'contremaitre-objectif', 'contremaitre-personnalite']) {
       const t = findEffectTableById(id);
-      expect(t.rows.length).toBeGreaterThan(0);
-      for (const roll of [1, 50, 100]) expect(findTableEntry(t.rows, roll)).toBeTruthy();
+      expect(t.entries.length).toBeGreaterThan(0);
+      for (const roll of [1, 50, 100]) expect(findTableEntry(t.entries, roll)).toBeTruthy();
     }
   });
 

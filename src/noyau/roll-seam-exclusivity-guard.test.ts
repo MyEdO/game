@@ -994,8 +994,8 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
 
 /**
  * GARDE SŒUR (#1508) — TOUT DÉ TIRÉ HORS PORTE. Le garde d'exclusivité (#274) ne connaît que le
- * FORGEAGE d'un Test ; une magnitude (`rollDice`), une dispersion (`d10`), une expression authorée
- * (`rollExpr`), un d100 d'environnement (`deMonde`) et une désignation (`rng.int`) lui sont
+ * FORGEAGE d'un Test ; une magnitude (`rollDice`), une dispersion (`d10`), un tirage authoré
+ * (`tirer`), un d100 d'environnement (`deMonde`) et une désignation (`rng.int`) lui sont
  * INVISIBLES par construction — c'est ce trou que la sonde de morsure a mesuré (0 site vu sur cinq
  * cas synthétiques, un seul reconnu).
  *
@@ -1023,15 +1023,15 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
       ['d100', "import { d100 } from '../engine/dice';\nexport function f(rng) { return d100(rng); }\n"],
       ['d10', "import { d10 } from '../engine/dice';\nexport function f(rng) { return d10(rng); }\n"],
       ['rollDice', "import { rollDice } from '../engine/dice';\nexport function f(rng) { return rollDice({ n: 2, sides: 10 }, rng); }\n"],
-      ['rollExpr', "import { rollExpr } from '../engine/dice';\nexport function f(rng) { return rollExpr('2d10+3', rng); }\n"],
+      ['tirer', "import { tirer } from '../engine/dice';\nexport function f(rng) { return tirer({ dice: { n: 2, sides: 10, plus: 3 } }, rng); }\n"],
       ['deMonde', "import { deMonde } from '../engine/dice';\nexport function f(rng) { return deMonde(rng); }\n"],
     ];
     const vus = cas.map(([nom, src]) => [nom, scanDesHorsPorte('src/state/faux.ts', src, desRollers()).length] as const);
-    expect(vus, 'chaque primitive de dé compte pour UN site').toEqual([['d100', 1], ['d10', 1], ['rollDice', 1], ['rollExpr', 1], ['deMonde', 1]]);
+    expect(vus, 'chaque primitive de dé compte pour UN site').toEqual([['d100', 1], ['d10', 1], ['rollDice', 1], ['tirer', 1], ['deMonde', 1]]);
     // Le garde d'exclusivité, lui, est aveugle à quatre des cinq (et blanchit même le `d100` nu, qui
     // n'est ni consommé en seuil ni en table ici : il le compte comme forgeage de Test).
     const exclusivite = cas.map(([nom, src]) => [nom, scanRollSeamExclusivity('src/state/faux.ts', src).length] as const);
-    expect(exclusivite).toEqual([['d100', 1], ['d10', 0], ['rollDice', 0], ['rollExpr', 0], ['deMonde', 0]]);
+    expect(exclusivite).toEqual([['d100', 1], ['d10', 0], ['rollDice', 0], ['tirer', 0], ['deMonde', 0]]);
   });
 
   it('AMORCE COMPLÈTE : tout export de `src/engine/dice.ts` qui tire un dé est une primitive de `AMORCE_DES`', () => {

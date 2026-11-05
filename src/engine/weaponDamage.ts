@@ -4,7 +4,8 @@
  * (l.310) exempte de tout dégât/corrosion/destruction. Réparation = hors combat (Jalon 5).
  */
 import { Weapon, WeaponEnchant, ArmourBypass, WeaponRangeSpec, AmmoRangeMod } from './types';
-import { findTrappingById, qualityInstance, type QualityRef, type TrappingData } from '../data';
+import { findTrappingById, qualityInstance, type TrappingData } from '../data';
+import type { ManiementRetenu } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import type { OpPassive } from './ops';
 import { isAtoutQuality, isUnbreakable, qualityIndice, resolveQualities } from './qualities/dispatch';
@@ -135,13 +136,6 @@ export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = 
   };
 }
 
-/** Un maniement à pied retenu (`usageAPiedRetenu`) : son Groupe de Corps à corps et les qualités qui y
- *  remplacent celles de même id (`Weapon.usagesAPied`). */
-export interface UsageAPied {
-  groupe: string;
-  qualities: QualityRef[];
-}
-
 /** Contexte d'usage d'une arme — règles d'arme CONTEXTUELLES de Groupe (LDB 62), dérivé de l'attaquant
  *  au moment où l'arme est liée à l'attaque (cf. `firedWeapon`). */
 export interface WeaponContext {
@@ -167,12 +161,13 @@ export interface WeaponContext {
    *  perte de l'Atout Immobilisante). MODE DE TIR choisi par le joueur au moment de l'attaque (arbitrage
    *  user #476), pas un événement subi — posé par le funnel (`weaponContextOf`) depuis le choix courant. */
   harpoonRopeCut?: boolean;
-  /** Maniement à pied retenu (`usageAPiedRetenu`) : ses `qualities` remplacent celles de même id de l'arme.
-   *  Posé par le funnel (`weaponContextOf`). AA 08 l.190 */
-  usageAPied?: UsageAPied;
+  /** Maniement alternatif retenu (`maniementRetenu`) : ses `qualites` remplacent celles de même id de
+   *  l'arme, il en ôte `retire`. Posé par le funnel (`weaponContextOf`). AA 08 l.190 ; AA 08 l.314 ;
+   *  AA 08 l.343 */
+  maniement?: ManiementRetenu;
 }
 
-/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; ADE II 02 l.677 */
+/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; AA 08 l.314 ; AA 08 l.343 ; ADE II 02 l.677 */
 export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
   if (isImprovised(w)) return improvisedProfile(w); // LDB 62 l.135
   if (ctx?.charged === false && w.capabilities?.improvisedWithoutCharge) return improvisedProfile(w); // LDB 62 l.58 ; AA 08 l.212
@@ -181,10 +176,15 @@ export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
   if (ctx?.improvised) return improvisedProfile(w); // ADE II 8 l.249
   // ADE II 02 l.677
   if (ctx?.harpoonRopeCut) return { ...w, range: 60, qualities: w.qualities.filter((q) => q.id !== 'immobilisante') };
-  // AA 08 l.190
-  const remplacees = ctx?.usageAPied?.qualities ?? [];
-  const manie = remplacees.length
-    ? { ...w, qualities: [...w.qualities.filter((q) => !remplacees.some((r) => r.id === q.id)), ...remplacees.map(qualityInstance)] }
+  // AA 08 l.190 ; AA 08 l.314 ; AA 08 l.343
+  const remplacees = ctx?.maniement?.qualites ?? [];
+  const otees = ctx?.maniement?.retire ?? [];
+  const manie = remplacees.length || otees.length
+    ? {
+        ...w,
+        qualities: [...w.qualities.filter((q) => !remplacees.some((r) => r.id === q.id)), ...remplacees.map(qualityInstance)],
+        ...(otees.length ? { removedQualities: [...(w.removedQualities ?? []), ...otees] } : {}),
+      }
     : w;
 
   // LDB 62 l.146-147

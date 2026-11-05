@@ -153,7 +153,7 @@ export function readUnionMembers(sf, text, alias, discriminant, tool, opts = {})
     prevEnd = member.getEnd()
   }
 
-  // Fusion des formes en double (ex. `setTime` : `phase` OU `hour`+`minute?` ; `rollTable` : `rows`
+  // Fusion des formes en double (ex. `setTime` : `phase` OU `hour`+`minute?` ; `rollTable` : `entries`
   // INLINE OU `tableId`) en UNE ligne.
   const merged = []
   const byName = new Map()
