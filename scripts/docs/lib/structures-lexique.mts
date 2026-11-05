@@ -117,8 +117,8 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` des `src/data/schemas/defs/*.ts` : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni les defs hors de ce dossier. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
   '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
   'Les portes MOTEUR (`src/engine`, `src/state`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
-  'Le concept `test` CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation` : clé de `CLES_IDENTITE`, ou clé en `RX_CLE_REFERENCE`) et passe APRÈS `plage` : 12 objets porteurs de `difficulty` restent classés `test` sans en être un — `tavernGames.json › volley.rows` 7 (rangées sans bornes authorées), `sea-events.json › params` 3 (le sujet du jet y vit sous `testType`) et `etats.json › difficultyBy` 2. Ce qui leur manque n’est pas TOUT discriminant structurel (`difficultyBy` porte `{cond, difficulty}`, et `cond` en est un) : c’est une clé de DÉSIGNATION, la seule que ce concept cède.',
-  'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 148 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 71, `scene.ts` 53, `worldmap.ts` 15, `narratif.ts` 7, `communs.ts` 2) en sont HORS PÉRIMÈTRE — un seul d’entre eux serait classé par le lexique s’il y entrait (`wallClimbSchema` de `scene.ts`, concept `test` par le noyau `difficulty`). L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
+  'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill`, `characteristic` ou `char`), l’invariant de `flowTestSchema` (#1657 B3-3), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`criticals › amputation`, `land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`critical.ts`, `landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
+  'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 155 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 69, `scene.ts` 56, `worldmap.ts` 16, `narratif.ts` 11, `communs.ts` 2, `projet.ts` 1) en sont HORS PÉRIMÈTRE — mesuré le 2026-11-05, 15 lignes y naîtraient s’il y entrait (`reference` 5, `effet-narratif` 1, `narratif` 1, hors lexique 8), aucune au concept `test` : `wallClimbSchema` et `wallSecretSchema` (`scene.ts`) portent `difficulty` sans sujet. L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
   'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de MÊME signature exacte — deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`, 482 après ce lot, 487 à `9739ee1f4`) bouge.',
 ];
 
@@ -676,27 +676,22 @@ export const CONCEPTS: readonly Concept[] = [
   },
   // DERNIER concept de la strate, et le RANG décide (patron `bornes` avant `plage`) : `difficulty`
   // est une VALEUR de Difficulté (`difficultySchema`, `src/data/schemas/grammaire/valeurs.ts`) qu'un
-  // porteur pose À CÔTÉ d'autre chose aussi souvent qu'un jet la porte. Deux discriminants :
+  // porteur pose À CÔTÉ d'autre chose aussi souvent qu'un jet la porte. Trois discriminants :
   //   (1) le RANG, après `plage` : une rangée de table à bornes NUMÉRIQUES reste une rangée, même
   //       quand elle porte la Difficulté de sa ligne ;
-  //   (2) `horsDesignation` : un objet qui DÉSIGNE une entité (clé de `CLES_IDENTITE`, ou clé en
+  //   (2) `coPresence` : le Test NOMME son sujet, invariant de `flowTestSchema`
+  //       (`src/data/schemas/grammaire/mecanique.ts`, #1657 B3-3). Un porteur de `difficulty` sans
+  //       `skill`, `characteristic` ni `char` sert un Test dont le sujet vit AILLEURS : au code (paramètre
+  //       de règle, `critical.ts`, `landMarketFlow.ts`), sous une autre clé (`sea-events › params`,
+  //       `testType`) ou sur le Test parent (`etats › difficultyBy`, `tavernGames › volley.rows`) ;
+  //   (3) `horsDesignation` : un objet qui DÉSIGNE une entité (clé de `CLES_IDENTITE`, ou clé en
   //       `RX_CLE_REFERENCE`) EST cette entité ou sa référence — jamais le jet.
-  // Non-recouvrement MESURÉ sur les 2 racines (2026-09-01, 302 objets porteurs de `difficulty`) :
-  // 15 sont des rangées à bornes numériques (`tavernGames › volley.rows` 7, `sea-navigation › table`
-  // 5 et `› voirLaLumiere` 3), 57 portent une clé d'IDENTITÉ (les 51 entrées de racine
-  // d'`activities.json`, ses 2 réfs de Compétence sous `skills`, les 4 températures de
-  // `sea-weather.json`), 9 une clé de RÉFÉRENCE (`maladies › symptoms` 8, `› dailyTest` 1) ; les
-  // trois intersections sont VIDES, et 221 objets ne portent AUCUNE des trois — ce sont les jets.
-  // COLLATÉRAL nommé : `maladies › dailyTest` (1, EDOC 08 l.104) est un jet qui porte l'id du
-  // symptôme infligé ; la désignation gagne et il est compté RÉFÉRENCE.
-  // ANGLE MORT du discriminant, nommé : 12 des 221 ne sont pas le jet mais son PORTEUR, qui étale la
-  // Difficulté à côté — `tavernGames › volley.rows` 7 (rangées sans bornes authorées : la candidature
-  // `plage` est STRUCTURELLE, angle mort déjà déclaré), `sea-events › params` 3 (le sujet du jet y
-  // vit sous `testType`) et `etats › difficultyBy` 2. Ce qui manque à ces 12 n'est pas TOUT
-  // discriminant structurel — `etats › difficultyBy` porte `{cond, difficulty}`, et `cond` EN EST un
-  // (c'est le sous-schéma `flowTestSchema.difficultyBy`, une table Condition → Difficulté) — c'est une
-  // clé de DÉSIGNATION, la seule que ce concept cède. Ils restent divergents à l'inventaire, sous le
-  // concept qui les fera migrer.
+  // Partition MESURÉE sur les 2 racines (2026-11-05, 329 porteurs de `difficulty`) : plage 15,
+  // identité 62, référence 8, sans sujet 54, et 190 Tests. La prémisse est rejouée par une marche
+  // brute (`src/data/structures-contrat.test.ts`, volet (c)), sans cardinal écrit.
+  // POSE : les signatures `+…` sont CIBLES sur la seule pose `test` (au patron de `reference-chiffree`) ;
+  // le `+…` d'un Test posé ne replie que des clés de `flowTestSchema`, strict. Un objet classé par son
+  // noyau, et non par sa pose, reste divergent.
   // Aucun concept ne revendique les 3 jeux à manches de `tavernGames.json` — `boules`
   // (`drCap`, `volley`), `torchon` (`table`, `throwerPenalty`), `pierres` (`target`, `phases`) : ce sont
   // trois RÈGLES, pas une forme. Un noyau qui les réunirait (leurs 10 clés, deux suffisant à classer)
@@ -712,8 +707,16 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'characteristic,difficulty', statut: 'cible', note: 'Test de caractéristique de `flowTestSchema` (#2779)' },
       { sig: 'skill', statut: 'cible', note: '`difficulty` est OPTIONNELLE à `flowTestSchema`' },
       { sig: 'characteristic', statut: 'cible', note: 'idem' },
+      { sig: 'skill+…', statut: 'cible', pose: 'test', note: 'le `+…` ne replie que des clés de `flowTestSchema`, strict' },
+      { sig: 'characteristic+…', statut: 'cible', pose: 'test', note: 'idem' },
+      { sig: 'characteristic,skill+…', statut: 'cible', pose: 'test', note: 'idem' },
+      { sig: 'difficulty,skill+…', statut: 'cible', pose: 'test', note: 'idem' },
+      { sig: 'characteristic,difficulty+…', statut: 'cible', pose: 'test', note: 'idem' },
+      { sig: 'characteristic,difficulty,skill+…', statut: 'cible', pose: 'test', note: 'idem' },
+      { sig: 'characteristic,difficulty,skill', statut: 'cible', pose: 'test', note: '`skill` et `characteristic` coexistent à `flowTestSchema` (#1657 B3-3)' },
     ],
     noyau: ['difficulty'],
+    coPresence: ['skill', 'characteristic', 'char'],
     horsDesignation: true,
   },
   // ---------------------------------------------------------------------------------------------

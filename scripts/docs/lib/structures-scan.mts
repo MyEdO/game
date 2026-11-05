@@ -270,8 +270,8 @@ export function classerValeur(sig: string, cles: readonly string[], contexte: Co
     // (porteur hors concept : `plusBF` des `grantNaturalWeapon` sans `flat`, écarté de `degats-arme`).
     if (c.coPresence && !c.coPresence.some((k) => set.has(k))) continue;
     // `horsDesignation` DÉCLARÉE : un objet qui DÉSIGNE une entité n'est pas la valeur du concept
-    // (`test` cède ainsi les 66 objets qui portent `difficulty` en champ d'une entité ou d'une
-    // référence, mesuré au lexique). Le concept suivant, puis la résolution vers l'index, en décident.
+    // (`test` cède ainsi les objets qui portent `difficulty` en champ d'une entité ou d'une
+    // référence, partition mesurée au lexique). Le concept suivant, puis la résolution vers l'index, en décident.
     if (c.horsDesignation && !contexte.malgreDesignation && designeUneEntite(cles)) continue;
     if (parChamp || parNoyau) return statutDe(c, projeteValeur(c.id, cles) || sig, contexte.poses);
   }
