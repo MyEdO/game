@@ -2,8 +2,8 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses
-## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, et le point où se dit le nom de ce qui
-## occupe une case. Seul script où
+## pieds au sol, un vecteur rapporté à un repère, le coin d'une bulle au-dessus d'un point, le point où se dit le nom de ce
+## qui occupe une case, et la pose d'une arête (mur ou porte) sur le côté de sa case. Seul script où
 ## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
 ## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -22,6 +22,11 @@ const TANGAGE_MAXIMAL := 0.2
 const ECART_DE_BULLE := 12.0
 ## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
+## Par côté d'arête (`N`, `E`, `\\`, `/`, dans cet ordre) : son lacet, la longueur qu'elle couvre en cases, et le centre
+## de son tracé dans sa case.
+const LACETS_D_ARETE := [0.0, -QUART_DE_TOUR, -PI / 4.0, PI / 4.0]
+const LONGUEURS_D_ARETE := [1.0, 1.0, sqrt(2.0), sqrt(2.0)]
+const CENTRES_D_ARETE := [Vector2(DEMI_CASE, 0.0), Vector2(1.0, DEMI_CASE), Vector2(DEMI_CASE, DEMI_CASE), Vector2(DEMI_CASE, DEMI_CASE)]
 
 
 ## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
@@ -32,6 +37,22 @@ static func diametre(rayon: float) -> float:
 ## Le point, au-dessus du centre de la case `case`, où se dit le nom de ce qui l'occupe.
 static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
+
+
+## Le centre d'une arête de `hauteur` posée au côté de rang `cote` de la case `case` (`LACETS_D_ARETE`).
+static func centre_d_arete(case: Vector2i, cote: int, hauteur: float) -> Vector3:
+	var centre: Vector2 = CENTRES_D_ARETE[cote]
+	return Vector3(case.x + centre.x, hauteur / 2.0, case.y + centre.y)
+
+
+## Le lacet d'une arête au côté de rang `cote`.
+static func lacet_d_arete(cote: int) -> float:
+	return LACETS_D_ARETE[cote]
+
+
+## La longueur, en cases, d'une arête au côté de rang `cote`.
+static func longueur_d_arete(cote: int) -> float:
+	return LONGUEURS_D_ARETE[cote]
 
 
 ## Le centre de la case `case` sur le sol (y = 0).

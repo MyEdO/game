@@ -1,11 +1,11 @@
 /**
  * L'EXPLORATION PAR LE PONT (#3328) : « La porte close » jouée comme Godot la joue. L'entrée de la scène poursuivie par
  * son geste en focus, le groupe projeté à sa case, les gestes d'exploration en boutons qui portent leur suite de verbes, le clic d'une case qui fait marcher
- * le groupe.
+ * le groupe, la porte dessinée sur le plateau, fermée puis ouverte.
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, type AreteDuPlateau } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -31,7 +31,12 @@ describe('l’exploration par le pont', () => {
     expect(boutons.map((b) => b.libelle), 'chaque geste d’exploration est un bouton qui le nomme').toEqual(exploration.gestes.liste.map((g) => g.libelle));
     const porte = boutons.find((b) => 'suite' in b.jeu && b.jeu.suite.some((a) => a.type === 'actionnerLaPorte'));
     expect(porte, 'la porte fermée s’ouvre par un bouton').toBeDefined();
-    drainer(appel, appel('jouer', porte!.jeu));
+    const porteDuPlateau = (aretes: AreteDuPlateau[]) => aretes.find((a) => a.porte);
+    expect(porteDuPlateau(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, entre ses deux murs')
+      .toEqual({ x: 2, y: 1, side: 'E', porte: true, ouverte: false });
+    expect(suite.vue.plateau!.aretes.filter((a) => !a.porte).map((a) => [a.y, a.ouverte]), 'les murs pleins').toEqual([[0, false], [2, false]]);
+    ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
+    expect(porteDuPlateau(suite.vue.plateau!.aretes)?.ouverte, 'la porte ouverte, le plateau la dessine ouverte').toBe(true);
 
     const reduit = { x: 4, y: 1 };
     ({ suite } = drainer(appel, appel('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [reduit] })));

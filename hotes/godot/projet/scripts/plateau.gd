@@ -1,4 +1,4 @@
-## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), chaque combattant à sa case (`voisins`) ou, en
+## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), ses murs et ses portes fermées, chaque combattant à sa case (`voisins`) ou, en
 ## exploration, le meneur du groupe à la case du groupe et chaque entité de la scène nommée à sa case, les
 ## surbrillances des cases que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la
 ## case sous le pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
@@ -16,18 +16,24 @@ const ITEM_SURVOL := 4
 const DUREE_QUART_S := 0.25
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
+## Le rang de chaque côté d'arête dans la mise en page (`MiseEnPage.LACETS_D_ARETE`).
+const COTES := {"N": 0, "E": 1, "\\": 2, "/": 3}
 
 @export var scene_combattant: PackedScene
+@export var mesh_mur: BoxMesh
+@export var mesh_porte: BoxMesh
 
 @onready var _sol: GridMap = $Sol
 @onready var _surbrillance: GridMap = $Surbrillance
 @onready var _combattants: Node3D = $Combattants
+@onready var _aretes: Node3D = $Aretes
 @onready var _pivot: Node3D = $Pivot
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 
 var _bornes := Rect2i()
 var _modeles: Dictionary = {}
 var _entites: Dictionary = {}
+var _aretes_posees: Array = []
 var _vue: Dictionary = {}
 var _survol: Variant = null
 var _lacet := 0.0
@@ -44,6 +50,8 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if not _bornes.has_area() and vue.plateau != null:
 		_poser_le_sol(vue.plateau)
+	if vue.plateau != null:
+		_poser_les_aretes(vue.plateau.aretes)
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
@@ -69,6 +77,25 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_modeles[e.actorId].agir_vers(_modeles[e.targetId].position)
 			_modeles[e.targetId].subir()
 	_peindre()
+
+
+## Chaque mur et chaque porte fermée sur le côté de sa case ; une porte ouverte laisse le passage vide.
+func _poser_les_aretes(aretes: Array) -> void:
+	if aretes == _aretes_posees:
+		return
+	_aretes_posees = aretes
+	for n in _aretes.get_children():
+		n.queue_free()
+	for a in aretes:
+		if a.ouverte:
+			continue
+		var arete := MeshInstance3D.new()
+		arete.mesh = mesh_porte if a.porte else mesh_mur
+		var cote: int = COTES[a.side]
+		arete.position = MiseEnPage.centre_d_arete(Vector2i(int(a.x), int(a.y)), cote, arete.mesh.size.y)
+		arete.rotation.y = MiseEnPage.lacet_d_arete(cote)
+		arete.scale.x = MiseEnPage.longueur_d_arete(cote)
+		_aretes.add_child(arete)
 
 
 ## Chaque entité de la scène nommée au-dessus de sa case.

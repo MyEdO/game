@@ -472,13 +472,19 @@ export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: Rea
   return terrainWalkable(t) || (swim !== undefined && swim.has(t));
 }
 
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, et les cases de sa couche de base que nul ne
- *  franchit à pied (`isWalkable`), ligne par ligne. */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; infranchissables: Pt[] } {
+/** Une arête de la couche de base telle qu'un hôte la dessine : sa case, son côté, si elle est une porte en jeu
+ *  (`porteEnJeu`) et si elle est ouverte (`wallIsOpen`). */
+export interface AreteDuPlateau { x: number; y: number; side: WallSide; porte: boolean; ouverte: boolean }
+
+/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les cases de sa couche de base que nul ne
+ *  franchit à pied (`isWalkable`), ligne par ligne, et les arêtes de cette couche. */
+export function plateauDeLaScene(scene: Scene): { w: number; h: number; infranchissables: Pt[]; aretes: AreteDuPlateau[] } {
   const { w, h } = scene.dimensions;
   const infranchissables: Pt[] = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!isWalkable(scene, x, y)) infranchissables.push({ x, y });
-  return { w, h, infranchissables };
+  const aretes = (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === 0)
+    .map((seg) => ({ x: seg.x, y: seg.y, side: seg.side, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) }));
+  return { w, h, infranchissables, aretes };
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.
