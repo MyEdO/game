@@ -75,26 +75,28 @@ def region_locale(aretes, masque, anneaux, n):
     return dans
 
 
-def raboter(champ, noeud, aretes, facteur, mesurer, passes_max):
-    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), rabotés passe après
-    passe jusqu'à ce que `mesurer` (champs complets, rabot cumulé de chaque sommet et clé (sommets, clés) -> (champs
-    mesurés, masque booléen (arêtes, clés))) ne marque plus aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des silhouettes, s'y
-    applique avant le rabot suivant. Une passe multiplie chaque clé marquée par `RABOT` sur les nœuds `noeud` de ses
-    arêtes `aretes` marquées (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne un anneau de
-    voisins dès que le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une passe. Un
-    sommet de `facteur` nul reste nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs mesurés de la dernière passe et le nombre
-    de passes. Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucune passe ne change, ou une arête
-    marquée au-delà de `passes_max` passes, arrête la construction."""
+def raboter(champ, noeud, aretes, facteur, mesurer, passes_max, cumul=None):
+    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,) et par le rabot cumulé
+    `cumul` (sommets, clés) d'un rabot précédent (par défaut 1), rabotés passe après passe jusqu'à ce que `mesurer`
+    (champs complets, rabot cumulé de chaque sommet et clé -> (champs mesurés, masque booléen (arêtes, clés))) ne
+    marque plus aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des
+    silhouettes, s'y applique avant le rabot suivant. Une passe multiplie chaque clé marquée par `RABOT` sur les nœuds
+    `noeud` de ses arêtes `aretes` marquées (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne
+    un anneau de voisins dès que le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une
+    passe. Un sommet de `facteur` nul reste nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs
+    mesurés de la dernière passe, le nombre de passes et le rabot cumulé. Une arête marquée dont les deux extrémités
+    ont un `facteur` nul, qu'aucune passe ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la
+    construction."""
     libre = (facteur > 0)[:, None, None]
-    valeur = aux_noeuds(champ * facteur[:, None, None], noeud)
+    cumul = aux_noeuds(numpy.ones(champ.shape[:2]) if cumul is None else cumul, noeud)
+    valeur = aux_noeuds(champ * facteur[:, None, None], noeud) * cumul[:, :, None]
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
-    cumul = numpy.ones(valeur.shape[:2])
     rabotees = {}
     for passe in range(passes_max + 1):
         mesures, marquees = mesurer(valeur[noeud] * libre, cumul[noeud])
         marquees = numpy.asarray(marquees)
         if not marquees.any():
-            return mesures, passe
+            return mesures, passe, cumul[noeud]
         tenues = marquees & (facteur[aretes] == 0).all(axis=1)[:, None]
         if tenues.any():
             raise RuntimeError(f'{int(tenues.any(axis=1).sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '

@@ -320,13 +320,14 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
-def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors):
+def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, rabot=None):
     """#3104 ; #3101 issuecomment-6489583109. Les champs `bruts` (nom -> (champ au repère du mesh, rapport de
     `correction` ou `None`)) rabotés ensemble (`formes.raboter`, nœuds `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à
     ce que leur correction (`corriger`, repère monde `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête
     que marque `hors` (nom -> champ corrigé au repère du mesh) ; rend, par nom, le champ corrigé au repère du mesh. La
     correction de chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que
-    le rabot leur ôte."""
+    le rabot leur ôte. Le rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la
+    construction ; rend aussi le rabot cumulé de ce tour."""
     inverse = numpy.linalg.inv(vers_le_monde)
     noms = list(bruts)
 
@@ -345,10 +346,11 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
                for k, nom in enumerate(noms)}, flush=True)
         return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
-    pile, passes = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
-                           PASSES_DE_RABOT)
+    depart = None if rabot is None else numpy.stack([rabot[nom] for nom in noms], axis=1)
+    pile, passes, cumul = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
+                                  PASSES_DE_RABOT, depart)
     print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sondes[-1], flush=True)
-    return {nom: pile[:, k] for k, nom in enumerate(noms)}
+    return {nom: pile[:, k] for k, nom in enumerate(noms)}, {nom: cumul[:, k] for k, nom in enumerate(noms)}
 
 
 def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None):
@@ -394,8 +396,8 @@ def refuser_les_inertes(finis):
             f'{nom} {v:.4f} m <= {SOL_TOLERANCE_M} m' for nom, v in inertes.items()))
 
 
-def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, etats_des_clips):
-    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »."""
+def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, etats_des_clips, rabot=None):
+    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » ; `rabot`, le rabot cumulé du tour précédent, rendu à jour."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     groupe = jumeaux(x)
@@ -424,8 +426,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
                   round(float(r.max()), 3), flush=True)
         corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
         derivees = cuisson_des_champs(squelette, corps, table)
-        finis = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
-                                        mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees))
+        finis, rabot = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
+                                               mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees), rabot)
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',
@@ -436,3 +438,4 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
     refuser_les_inertes(finis)
     for peau in secondaires:
         transferer_les_cles(corps, peau, cles)
+    return rabot

@@ -289,15 +289,18 @@ class LissageSousCorrection(unittest.TestCase):
         brut[:, 1] = 0.1 * numpy.sin(5 * self.x[:, 2])
         return brut
 
-    def finir(self, bruts, bornes=BORNES, vers_le_monde=None):
-        """`raboter_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté dans ce repère par
-        l'inverse de `vers_le_monde` (par défaut l'identité)."""
+    def finir(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+        """Les champs finis de `raboter_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté
+        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité), depuis le rabot cumulé `rabot`."""
+        return self.finir_et_raboter(bruts, bornes, vers_le_monde, rabot)[0]
+
+    def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
         vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
         repos = self.x @ numpy.linalg.inv(vers_le_monde)
         with contextlib.redirect_stdout(io.StringIO()):
             return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
                                           lambda champs: {nom: hors_de(rapports(repos, d, self.aretes), bornes)
-                                                          for nom, d in champs.items()})
+                                                          for nom, d in champs.items()}, rabot)
 
     def hors(self, champ, bornes=BORNES):
         return int(hors_de(rapports(self.x, champ, self.aretes), bornes).sum())
@@ -308,6 +311,18 @@ class LissageSousCorrection(unittest.TestCase):
         self.assertTrue(numpy.array_equal(fini, corrige))
         self.assertEqual(self.hors(fini), 0)
         self.assertEqual(numpy.abs(fini[self.libre == 0]).max(), 0.0)
+
+    def test_le_tour_suivant_repart_du_rabot_cumule_et_ne_rabote_plus_les_memes_cles(self):
+        brut = numpy.zeros_like(self.x)
+        brut[:, 1] = 0.3 * numpy.sin(25 * self.x[:, 2])
+        bruts = {'k': (brut, None)}
+        fini, rabot = self.finir_et_raboter(bruts)
+        self.assertLess(rabot['k'].min(), 1.0)
+        vus = len(self.vus)
+        repris, rabot_repris = self.finir_et_raboter(bruts, rabot=rabot)
+        self.assertEqual(len(self.vus), vus + 1)
+        self.assertLess(numpy.abs(repris['k'] - fini['k']).max(), TOLERANCE)
+        numpy.testing.assert_array_equal(rabot_repris['k'], rabot['k'])
 
     def test_le_rabot_se_mesure_sur_le_champ_corrige(self):
         """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
@@ -366,9 +381,9 @@ class Rabot(unittest.TestCase):
 
     def raboter(self, champ, facteur=None, hors=None):
         mesure = hors or self.hors
-        resultat, passes = raboter(champ[:, None], self.noeud, self.aretes,
-                                   self.facteur if facteur is None else facteur,
-                                   lambda pile, _: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
+        resultat, passes, _ = raboter(champ[:, None], self.noeud, self.aretes,
+                                      self.facteur if facteur is None else facteur,
+                                      lambda pile, _: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
         return resultat[:, 0], passes
 
     def test_une_arete_hors_bornes_aux_deux_extremites_tenues_leve(self):
@@ -426,7 +441,7 @@ class Rabot(unittest.TestCase):
             pile[premier[self.noeud]] = champ[premier[self.noeud]][:, None]
             return pile, next(marques)[:, None]
 
-        resultat, passes = raboter(champ[:, None], self.noeud, self.aretes, self.facteur, rendre, PASSES_MAX)
+        resultat, passes, _ = raboter(champ[:, None], self.noeud, self.aretes, self.facteur, rendre, PASSES_MAX)
         self.assertEqual(passes, 2)
         self.assertTrue(numpy.allclose(resultat[self.noeud == voisin, 0], RABOT * champ[self.noeud == voisin]))
 
@@ -510,8 +525,8 @@ class DomaineDesSilhouettes(unittest.TestCase):
                               anneaux(self.p, NIVEAUX_DES_ANNEAUX))
         mesure = self.mesure()
         with contextlib.redirect_stdout(io.StringIO()):
-            finis = raboter_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), mesure)
+            finis, _ = raboter_sous_correction({n: (d, None) for n, d in self.champs.items()}, self.noeud, self.aretes,
+                                              libre, corriger, numpy.eye(3), mesure)
         self.assertFalse(any(m.any() for m in self.mesure()(finis).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
@@ -548,8 +563,8 @@ class DomaineDesSilhouettes(unittest.TestCase):
             return {**marques, 'temoin': numpy.zeros(len(self.aretes), dtype=bool)}
 
         with contextlib.redirect_stdout(io.StringIO()):
-            finis = raboter_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
-                                           libre, corriger, numpy.eye(3), hors)
+            finis, _ = raboter_sous_correction({n: (d, None) for n, d in champs.items()}, self.noeud, self.aretes,
+                                              libre, corriger, numpy.eye(3), hors)
         numpy.testing.assert_allclose(finis['temoin'], temoin, rtol=0, atol=TOLERANCE)
         self.assertTrue(all(numpy.abs(finis[n] - champs[n]).max() > 0 for n in self.champs))
         self.assertFalse(any(m.any() for m in hors(finis).values()))

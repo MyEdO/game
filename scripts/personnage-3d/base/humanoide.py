@@ -243,7 +243,10 @@ def construire(args):
     marches = json.loads(DECLARATION.read_text(encoding='utf-8'))['clipsDeMarche']
     noms = [b.name for b in squelette.data.bones]
 
+    rabot = None
+
     def poser_les_silhouettes():
+        nonlocal rabot
         clear_animation(squelette)
         bpy.context.view_layer.update()
         for action in clips:
@@ -251,8 +254,8 @@ def construire(args):
         ajouter_feminin_et_carrure(squelette, corps, squelette_f, corps_f, bornes)
         ajouter_corpulence(squelette, corps, args.mpfb)
         neutres = etats_aux_facteurs_neutres(table, silhouettes(peaux))
-        finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)), clips,
-                              neutres)
+        rabot = finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)),
+                                      clips, neutres, rabot)
         return neutres
 
     def poser_les_clips():
