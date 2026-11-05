@@ -24,7 +24,7 @@ export interface CompetenceDeLaFiche { libelle: string; valeur: number; caracter
 
 /** Un Talent effectif (`effectiveTalents`) : son nom, son niveau, sa description sous les règles actives
  *  (`effectiveEntry`), `null` sans description. */
-export interface TalentDeLaFiche { libelle: string; fois: number; description: string | null }
+export interface TalentDeLaFiche { libelle: string; fois: number; desc: string | null }
 
 /** Une possession : son nom (`itemLabel`), si elle est équipée, combien en sont portées, et l'argent qu'elle tient
  *  (`formatMoney`, `null` sans argent). Les possessions de même nom, équipées de même et sans argent, se comptent
@@ -74,7 +74,7 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
       libelle: skillInstanceLabel(sk), valeur: valeurDuTest(c, { skill: { id: sk.id, spec: sk.spec } }),
       caracteristique: effectiveSkillCharKey(c, sk.id, { spec: sk.spec }), avances: sk.advances,
     })),
-    talents: effectiveTalents(c).map((tt) => ({ libelle: talentConcrete(tt), fois: tt.times, description: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),
+    talents: effectiveTalents(c).map((tt) => ({ libelle: talentConcrete(tt), fois: tt.times, desc: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),
     possessions,
   };
 }

@@ -306,7 +306,7 @@ const herosDeLaFiche = (f: FicheDuPorteur): Entite => ({
 const DESCRIPTION_AU_DETAIL = 300;
 
 /** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
-const resume = (description: string | null): string | null => description && coupeAuMot(description.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
+const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
 
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
@@ -327,7 +327,7 @@ function corpsDeLaFiche(f: FicheDuPorteur, onglet: FicheOuverte['onglet']): Puce
         })
         .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
     }
-    case 'talents': return f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.description)));
+    case 'talents': return f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc)));
     case 'possessions': return f.possessions
       .map((p, i) => ({ p, i }))
       .sort((a, b) => Number(b.p.equipee) - Number(a.p.equipee))
