@@ -13,8 +13,8 @@
  * src/data/symptoms.json.
  *
  * FORME ASSERTÉE SUR LE RÉSULTAT, par fichier : chaque table porte `entries` et aucune ne porte plus
- * `rows` ; le cardinal mesuré le 2026-11-05 (`ATTENDU`, 21 + 3 + 3 + 1) est un PLANCHER, qu'un ajout de
- * donnée ne fait pas payer (#1812). Vrai sur l'arbre d'avant comme au rejeu (no-op byte-identique). Tout
+ * `rows`. Aucun cardinal : un renommage vaut pour toute table présente, qu'une donnée en ajoute (#1812)
+ * ou en retire (#3080). Vrai sur l'arbre d'avant comme au rejeu (no-op byte-identique). Tout
  * écart, toute table portant les deux clés ou tout document non canonique est un ARRÊT nominatif
  * (exit 1), AUCUNE écriture.
  */
@@ -33,8 +33,6 @@ const TABLES_DE = {
   'symptoms.json': (doc) => opsRollTableEnLigne(doc),
 };
 
-/** Plancher du résultat : tables à `entries` par fichier, mesurées le 2026-11-05. */
-const ATTENDU = { 'tables.json': 21, 'arcane-phenomena.json': 3, 'spells.json': 3, 'symptoms.json': 1 };
 
 /** Les ops `rollTable` à table EN LIGNE (sans `tableId`) du document, à toute profondeur. */
 function opsRollTableEnLigne(noeud, chemin = '', acc = []) {
@@ -55,7 +53,7 @@ function renommer(table) {
 
 const arrets = [];
 const ecritures = [];
-for (const [fichier, attendu] of Object.entries(ATTENDU)) {
+for (const fichier of Object.keys(TABLES_DE)) {
   const chemin = join(ROOT, 'src/data', fichier);
   const brut = readFileSync(chemin, 'utf8');
   const doc = JSON.parse(brut);
@@ -66,7 +64,6 @@ for (const [fichier, attendu] of Object.entries(ATTENDU)) {
     else if ('rows' in t) renommer(t);
   }
   for (const [t, ou] of tables) if (!Array.isArray(t.entries)) arrets.push(`${fichier} ${ou} : aucune rangée sous \`entries\``);
-  if (tables.length < attendu) arrets.push(`${fichier} : ${tables.length} table(s), au moins ${attendu} attendue(s)`);
   const out = serializeDataset(doc);
   if (out !== brut) ecritures.push([chemin, fichier, out]);
 }
