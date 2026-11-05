@@ -46,7 +46,7 @@ const presetPnjById = (id: string) => presetDuNarratif(get().campaignNarratif)(i
 /** Une entité de scène `personnage` à statbloc AUTHORÉ. `CustomStatblock.skills` porte la valeur de
  *  Test FINALE (`SkillRef`) ; les avances s'en dérivent au spawn (valeur − Caractéristique) — c'est donc
  *  bien une FICHE que l'on pose, pas un nombre de Test posé à la main sur la partie. */
-function pnjDeScene(id: string, label: string, pariFinal: number, offre?: { gameId: string; stakeBrass?: number }) {
+function pnjDeScene(id: string, label: string, pariFinal: number, offre?: { id: string; stakeBrass?: number }) {
   return {
     id, kind: 'personnage' as const, pos: { x: 2, y: 2 }, label,
     statblock: {
@@ -107,7 +107,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
 
   it('la SCÈNE décide : `tavernGame` sur l’entité déclare le jeu et la mise de départ (patron `NADJ 04 l.72`)', () => {
     poseScene([
-      pnjDeScene('pnj-plantule', 'Plantule', 55, { gameId: 'dominos', stakeBrass: 12 }),
+      pnjDeScene('pnj-plantule', 'Plantule', 55, { id: 'dominos', stakeBrass: 12 }),
       pnjDeScene('pnj-muet', 'Un buveur', 35),
     ]);
 
@@ -216,13 +216,13 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
 describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
   
   /** Entité renommée : le statbloc porte le libellé d'ESPÈCE, l'entité le nom de l'AUTEUR. */
-  function pnjRenomme(id: string, nom: string, espece: string, offre?: { gameId: string; stakeBrass?: number }) {
+  function pnjRenomme(id: string, nom: string, espece: string, offre?: { id: string; stakeBrass?: number }) {
     const e = pnjDeScene(id, espece, 45, offre);
     return { ...e, label: nom };
   }
 
   it('l’offre de la salle porte le nom de l’ENTITÉ, pas le libellé de sa fiche', () => {
-    poseScene([pnjRenomme('pnj-gerta', 'Gerta la Rusée', 'Batelière', { gameId: 'dominos', stakeBrass: 12 })]);
+    poseScene([pnjRenomme('pnj-gerta', 'Gerta la Rusée', 'Batelière', { id: 'dominos', stakeBrass: 12 })]);
 
     expect(sceneNpc(get().scene, 'pnj-gerta', presetPnjById)!.label).toBe('Gerta la Rusée');
     expect(tavernNpcOffers(get().scene, presetPnjById)[0]).toMatchObject({ id: 'pnj-gerta', label: 'Gerta la Rusée' });
@@ -270,7 +270,7 @@ describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
   afterAll(() => { resetRule('tavern-games'); });
 
   it('l’Effet de dialogue du proposeur PASSE son id : la modale s’ouvre pré-sélectionnée sur lui', () => {
-    poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55, { gameId: 'dominos', stakeBrass: 12 })]);
+    poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55, { id: 'dominos', stakeBrass: 12 })]);
     set({ dialogue: { dialogue: { id: 'd', start: 'n1', nodes: [] }, nodeId: 'n1', speakerId: 'pnj-plantule' } as never });
 
     applyEffects(get, set, [{ type: 'openTavernGames' }]);
@@ -280,7 +280,7 @@ describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
   });
 
   it('hors dialogue (affordance du lieu), l’ouverture reste GÉNÉRIQUE : aucun PNJ imposé', () => {
-    poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55, { gameId: 'dominos' })]);
+    poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55, { id: 'dominos' })]);
     set({ dialogue: null });
 
     applyEffects(get, set, [{ type: 'openTavernGames' }]);
@@ -304,8 +304,8 @@ describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
 describe('#1882 — la salle ne propose que des adversaires À FICHE', () => {
   
   it('un proposeur sans porteur de fiche est exclu de l’offre ; le proposeur à fiche reste', () => {
-    const { statblock: _sansFiche, ...sansFiche } = pnjDeScene('pnj-vide', 'Sans fiche', 40, { gameId: 'dominos' });
-    poseScene([pnjDeScene('pnj-gerta', 'Gerta', 45, { gameId: 'dominos' }), sansFiche as ReturnType<typeof pnjDeScene>]);
+    const { statblock: _sansFiche, ...sansFiche } = pnjDeScene('pnj-vide', 'Sans fiche', 40, { id: 'dominos' });
+    poseScene([pnjDeScene('pnj-gerta', 'Gerta', 45, { id: 'dominos' }), sansFiche as ReturnType<typeof pnjDeScene>]);
     expect(tavernNpcOffers(get().scene, presetPnjById).map((o) => o.id)).toEqual(['pnj-gerta']);
   });
 });
