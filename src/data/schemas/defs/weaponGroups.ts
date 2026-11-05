@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, maniementSchema, matiereDArmureSchema } from '../grammaire/valeurs';
-import { qualityRefSchema } from '../grammaire/reference';
+import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { tableTotale } from '../../../lib/tableTotale';
 
 export const file = 'weaponGroups.json';
@@ -18,7 +18,7 @@ type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'palierPA'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre'] : kind === 'ammo' ? ['poudre'] : [],
+  kind === 'armour' ? ['material', 'couche', 'palierPA'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
 );
 /** Clés EXIGÉES de la charge (`espace.requisesParDiscriminant`). */
 const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
@@ -45,6 +45,8 @@ const doc = document(
     maniement: maniementSchema.optional(),
     /** LDB 62 l.99 ; LDB 62 l.129 */
     poudre: z.literal(true).optional(),
+    /** AA 08 l.194 */
+    manieAussi: manieAussiSchema.optional(),
   },
   {
     kind: {
@@ -64,6 +66,7 @@ const doc = document(
     palierPA: { label: 'Palier de PA (armure)', hint: 'PA à partir desquels une armure de statbloc portée se dessine dans cette matière — vide : jamais' },
     maniement: { label: 'Maniement (arme)', hint: 'Animation d’une arme du Groupe dont la forme ne déclare pas de maniement' },
     poudre: { label: 'À poudre', hint: 'Arme ou munition à Poudre noire et d’Ingénierie' },
+    manieAussi: { label: 'Armes aussi maniées en', hint: 'Par Groupe de Corps à corps qui manie aussi toute arme du Groupe : ses Atouts et Défauts, ses mains, à pied seulement' },
   },
   {
     codex: { keys: ['weaponGroups'] },
