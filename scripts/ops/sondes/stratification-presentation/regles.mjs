@@ -140,11 +140,11 @@ export const REGLES = Object.freeze([
     preuve: 'src/ui/ChanceButtons.tsx:2 ; 32 importeurs de CodexRef hors compendium (tests exclus)',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/compendium/(registry|relations)[.-]`),
+    motif: new RegExp(String.raw`^src/ui/compendium/registry[.-]`),
     categorie: 'douteux',
     famille: 'codex-en-jeu',
-    raison: 'Compendium=outillage, mais ces deux modules servent aussi en jeu (liage Codex dans Prose) : deux catégories tiennent.',
-    preuve: 'src/ui/Prose.tsx imports ./compendium/relations',
+    raison: 'Compendium=outillage, mais le registre sert aussi en jeu (fiches et jets) : deux catégories tiennent.',
+    preuve: 'src/ui/InspectPanel.tsx:10 et src/ui/RollLine.tsx:9 importent ./compendium/registry',
   },
   {
     motif: new RegExp(String.raw`^src/ui/styles/(base|components|layout|tabs|frames|modal|cadre|ornaments|band|infobulle|boite-ancree|screen-shell|planche|gauges|media-select)\.css$|^src/ui/styles\.css$`),

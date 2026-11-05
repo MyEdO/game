@@ -12,7 +12,7 @@
  * de liage dupliquée, ni HTML brut injecté (`dangerouslySetInnerHTML` proscrit ici).
  *
  * CONTRAT DU LIAGE (#1392 Lot E) : l'appariement de libellé n'a lieu QUE si l'appelant dit CE QU'IL
- * REND — la prop `porteur` (`{ type, id, chemin }`, `liage.ts`), c'est-à-dire le champ
+ * REND — la prop `porteur` (`{ type, id, chemin }`, `src/noyau/codex/porteur.ts`), c'est-à-dire le champ
  * d'entrée d'où sort ce texte, VERBATIM. Sans `porteur`, le markdown est rendu tel quel : aucune
  * mention n'est liée. Deux états, aucun intermédiaire.
  */
@@ -22,8 +22,8 @@ import { cellulesDe, estSeparateur } from '../data/source/decoupe';
 import remarkGfm from 'remark-gfm';
 import { CodexRef } from './compendium/CodexRef';
 import { ParchmentCard } from './ParchmentCard';
-import { tokenizeLinks } from './compendium/relations';
-import type { Porteur } from './liage';
+import { tokenizeLinks } from '../noyau/codex/relations';
+import type { Porteur } from '../noyau/codex/porteur';
 import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
 import { decodeString } from 'micromark-util-decode-string';
@@ -99,7 +99,7 @@ function autolink(tree: HastNode, selfCategory: string, selfId: string): void {
     const next: HastNode[] = [];
     for (const child of node.children) {
       if (child.type === 'text' && typeof child.value === 'string') {
-        const tokens = tokenizeLinks(child.value, undefined, selfCategory, selfId);
+        const tokens = tokenizeLinks(child.value, selfCategory, selfId);
         if (tokens.length === 1 && typeof tokens[0] === 'string') {
           next.push(child);
         } else {

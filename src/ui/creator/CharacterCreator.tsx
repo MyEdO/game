@@ -97,7 +97,7 @@ import { DiceRoll, DieFace } from '../DiceRoll';
 import { d100Faces, d10Face } from '../Dice';
 import { CelestialWheel } from './CelestialWheel';
 import { DetailFrame } from '../DetailFrame';
-import type { Porteur } from '../liage';
+import type { Porteur } from '../../noyau/codex/porteur';
 import { WaxSeal } from '../WaxSeal';
 import { GroupedPickGrid, type PickGridSection } from '../GroupedPickGrid';
 import { MetalStatus } from '../MetalStatus';
