@@ -5,6 +5,8 @@ import { coupleDIdentite } from './monde/identites';
 import { reprendreLaSuite } from './combatEffects';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
+import { garanti } from '../lib/garanti';
 
 export function creerActionsDeCampagne(get: Get, set: Set) {
   return {
@@ -40,12 +42,16 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
       reprendreLaSuite(get, set, p.suite);
     },
     remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
-    // COOP : l'hôte ferme (patron `acquitterOuverture`) ; chez l'invité, la suite ne se joue jamais.
-    closeDocument: () => {
-      const doc = get().document;
-      if (!doc || get().net.mode === 'guest') return;
+  } satisfies Partial<ActionsDuNoyau>;
+}
+
+/** Le document se ferme et rejoue sa `suite` ; sa sortie est à l'hôte (`SURFACES_HORS_PENDING`). */
+export function sortiesDeCampagne(get: Get, set: Set) {
+  return {
+    document: () => {
+      const doc = garanti(get().document, 'document', 'document ouvert');
       set({ document: null });
       reprendreLaSuite(get, set, doc.suite);
     },
-  } satisfies Partial<ActionsDuNoyau>;
+  } satisfies Partial<SortiesDeFenetre>;
 }

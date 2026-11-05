@@ -25,6 +25,8 @@ const doc = document(
     chaosSpells: refs('spell').optional(),
     /** MDG 11 l.148. */
     sinLocks: nommerChamps(z.strictObject({ beni: z.number().optional(), invocation: z.number().optional() }), { beni: { label: 'Béni' }, invocation: { label: 'Invocation' } }).optional(),
+    /** LDB 40 l.61, l.70 : liste maison, sa raison au `maison` de l'entrée. */
+    associatedSkills: refs('skill', { min: 1 }).optional(),
   },
   {
     grantGroups: { label: 'Groupes accordés' },
@@ -35,6 +37,10 @@ const doc = document(
     sinLocks: {
       label: 'Verrou de Péché',
       hint: 'Seuil de Points de Péché à partir duquel le dieu retire l’usage d’un Talent de Prière',
+    },
+    associatedSkills: {
+      label: 'Compétences associées',
+      hint: 'Compétences que la Colère du dieu pénalise (liste maison : le livre laisse le choix au MJ)',
     },
   },
   {

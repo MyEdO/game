@@ -31,7 +31,7 @@ export function checkPartyWiped(get: Get, set: Set): boolean {
     // vol (#1508 : le reste d'un lot que le dé d'une chute faisait attendre) part avec eux, et c'est
     // l'issue juste : le groupe est anéanti, il n'y a plus personne à qui appliquer une suite. La
     // VICTOIRE, elle, ne purge pas — elle reprend par la couture universelle (`resumeSuspendedCascade`,
-    // `store.dismissVictory`).
+    // sortie de la victoire, `sortiesDIssueDeCombat`).
     pendingRest: null,
     pendingCascade: null,
     suspendedCascades: [],

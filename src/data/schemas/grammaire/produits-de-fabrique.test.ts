@@ -19,6 +19,7 @@ import { proseAdressable, proseNommee } from './prose';
 import { descendre } from './descente';
 import { nommerChamps, nommerNoeud } from './meta';
 import { document, type Exposition } from './document';
+import { sceneFlowSchema } from '../defs-scenes/effets';
 
 const LITTERAUX_D_OBJET = new Set(['object', 'strictObject', 'looseObject']);
 const DERIVATIONS = new Set(['extend', 'safeExtend', 'partial', 'required', 'pick', 'omit', 'merge', 'catchall', 'strict', 'strip', 'loose', 'passthrough']);
@@ -216,11 +217,21 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
 
   it('la branche `choice` du flux est le produit de `proseNommee`', () => {
     expect(lus(famille.flow)).toEqual([
-      'construire flow.seq {}',
-      'construire flow.do {}',
-      'construire flow.if {}',
+      'arbreDeFlow flow.seq {}',
+      'arbreDeFlow flow.do {}',
+      'arbreDeFlow flow.if {}',
       'noeudTest test {}',
       'proseNommee flow.choice.prompt {"advantageCost":"optional<:union<|0:number,|1:literal[\\"$indice\\"]>>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","no":"optional<:lazy>","yes":"lazy"}',
+    ]);
+  });
+
+  it('le flux de scène est le produit de la même fabrique, de coût de `choice` littéral', () => {
+    expect(lus(sceneFlowSchema)).toEqual([
+      'arbreDeFlow flow.seq {}',
+      'arbreDeFlow flow.do {}',
+      'arbreDeFlow flow.if {}',
+      'noeudTest test {}',
+      'proseNommee flow.choice.prompt {"advantageCost":"optional<:number>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","no":"optional<:lazy>","yes":"lazy"}',
     ]);
   });
 

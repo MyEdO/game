@@ -16,9 +16,8 @@
 //    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`), et ne
 //    charge rien que la lecture des arcs ne suive (`surCalcule` de `visiteurDArcs`) : spécificateur ou motif calculé,
 //    chargeur renommé, lié comme valeur ou lu par un accès calculé. Une cible hors des zones s'ouvre : sa clôture est
-//    le mur `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`, qui ne suit pas l'acquisition calculée d'un module
-//    hors des zones (`scripts/docs/build-all.mjs:216`, `scripts/guards/lib/structuresLocales.mts:249` ; reste de
-//    #3058). `purete-imports` et ce mur se partagent les
+//    le mur `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`, qui suit l'acquisition calculée d'un membre en
+//    forme fermée (`valeursDAcquisition`, #3058). `purete-imports` et ce mur se partagent les
 //    fichiers des zones, sans trou ni recouvrement, et un seul jugeur d'arcs (`jugeurDArcs`).
 //  - `murs/reexportation` (#2817 D2) : le fichier ne réexporte rien — ni `export … from` sous aucune forme
 //    d'arc, ni `export { … }` d'une liaison importée ; la config le borne.

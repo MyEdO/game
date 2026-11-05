@@ -40,6 +40,7 @@
  * libre, `ferme` quand il n'admet que des valeurs closes (enum, littéral, nombre…), `libre` sinon. Le plancher cède sur
  * tout chemin `idDe` qui ne l'est plus à la tête, `ferme` compris.
  */
+import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
@@ -242,11 +243,11 @@ function empreinteConjointe(noeuds: readonly object[]): string {
 }
 
 /** Les exports zod de chaque module de `grammaire/` (hors tests). */
-const GRAMMAIRE = new URL('../../../src/data/schemas/grammaire/', import.meta.url);
+const GRAMMAIRE = fileURLToPath(new URL('../../../src/data/schemas/grammaire/', import.meta.url));
 const EXPORTS_DE_GRAMMAIRE: readonly unknown[] = (await Promise.all(
-  listerEntrees(fileURLToPath(GRAMMAIRE)).entrees
+  listerEntrees(GRAMMAIRE).entrees
     .filter((f) => f.nature === 'file' && /\.ts$/.test(f.nom) && !/\.d\.ts$/.test(f.nom) && !estFichierVitest(f.nom) && !estKitDeTest(f.nom))
-    .map(async (f) => Object.values(await import(pathToFileURL(fileURLToPath(new URL(f.nom, GRAMMAIRE))).href) as Record<string, unknown>)),
+    .map(async (f) => Object.values(await import(pathToFileURL(join(GRAMMAIRE, f.nom)).href) as Record<string, unknown>)),
 )).flat().filter(estNoeud);
 
 /** Le chemin de schéma où `document()` pose l'enveloppe : l'entrée d'un document `entite`, sinon la racine. */

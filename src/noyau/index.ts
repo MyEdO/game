@@ -1,7 +1,7 @@
 /**
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
- * la fenêtre d'attaque en données, l'exploration, le plateau de la scène, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
@@ -50,6 +50,7 @@ export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
+export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuGeste, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';

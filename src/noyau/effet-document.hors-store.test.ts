@@ -2,7 +2,7 @@
  * Effect `document { documentId }` (#679) — `apply` résout l'entrée au registre `narratif.documents` de
  * la campagne chargée (`documentDuNarratif`) et pose la surface EXISTANTE `document` de l'état (titre, prose, origine) ; un
  * id inconnu n'ouvre rien et le dit en console (patron `revealClue`). Le document SUSPEND la suite jusqu'à
- * sa fermeture (`closeDocument`, EDO 02 l.89-95, #686).
+ * sa fermeture (`fenetreFermer('document')`, EDO 02 l.89-95, #686).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -68,10 +68,10 @@ describe('Effect `document` — chaque document se lit avant la suite', () => {
   it('`seq [3, 4]` : le 3 s’affiche ; le 4 après sa fermeture ; la suite après le 4', () => {
     runFlow(get, banc.setState, { kind: 'seq', steps: [remettre('doc-heritage'), remettre('doc-affidavit'), { kind: 'do', effect: { type: 'setFlag', flag: 'lus' } }] });
     expect(get().document?.title).toBe('Document 3 : L’héritage');
-    get().closeDocument();
+    get().fenetreFermer('document');
     expect(get().document?.title).toBe('Document 4 : L’affidavit');
     expect(get().flags.lus).toBeUndefined();
-    get().closeDocument();
+    get().fenetreFermer('document');
     expect(get().document).toBeNull();
     expect(get().flags.lus).toBe(true);
   });
@@ -79,14 +79,14 @@ describe('Effect `document` — chaque document se lit avant la suite', () => {
   it('`applyEffects` : le reste du LOT attend la fermeture', () => {
     applyEffects(get, banc.setState, [{ type: 'document', documentId: 'doc-heritage' }, { type: 'setFlag', flag: 'reste-du-lot' }]);
     expect(get().flags['reste-du-lot']).toBeUndefined();
-    get().closeDocument();
+    get().fenetreFermer('document');
     expect(get().flags['reste-du-lot']).toBe(true);
   });
 
   it('chez l’invité, fermer ne rejoue rien : l’hôte tient le Flow', () => {
     runFlow(get, banc.setState, { kind: 'seq', steps: [remettre('doc-heritage'), { kind: 'do', effect: { type: 'setFlag', flag: 'suite' } }] });
     banc.setState({ net: { ...get().net, mode: 'guest' } });
-    get().closeDocument();
+    get().fenetreFermer('document');
     expect(get().document?.title).toBe('Document 3 : L’héritage');
     expect(get().flags.suite).toBeUndefined();
   });

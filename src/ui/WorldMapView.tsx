@@ -85,7 +85,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const gameTime = useGame((s) => s.gameTime);
   const travelPlan = useGame((s) => s.travelPlan);
-  const close = useGame((s) => s.closeWorldMap);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const close = () => fermer('carteDuMonde');
   const startTravel = useGame((s) => s.startTravel);
   const startBilletBargain = useGame((s) => s.startBilletBargain);
   // Abonnements du devis et du refus de départ, lus dans l'état (`devisDeTrajet`, `refusDeDepart`).
@@ -96,7 +97,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
   const departWaitDawn = useGame((s) => s.departWaitDawn);
-  const departCancel = useGame((s) => s.departCancel);
+  const rester = () => fermer('departure');
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
   const isGuest = useGame((s) => s.net.mode) === 'guest';
@@ -743,7 +744,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
             })}</p>
           )}
           <Row justify="end">
-            <button type="button" className="btn" onClick={departCancel}>{t('wm.annuler')}</button>
+            <button type="button" className="btn" onClick={rester}>{t('wm.annuler')}</button>
             <button type="button" className="btn btn-primary" onClick={departWaitDawn}>{t('wm.attendreAube')}</button>
           </Row>
         </div>

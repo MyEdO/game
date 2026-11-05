@@ -35,6 +35,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -528,12 +529,6 @@ export function chansonsDuChanteur(s: Jeu): string[] {
   return chanteur ? knownShanties(chanteur).flatMap((id) => findSeaShantyById(id)?.id ?? []) : [];
 }
 
-/** Clôt le Conseil de bord (phase bilan) — le recalcul a déjà été appliqué à la validation de la paie. #229 */
-export function councilClose(get: Get, set: SetFn): void {
-  if (get().pendingCouncil?.phase !== 'bilan') return;
-  set({ pendingCouncil: null });
-}
-
 /**
  * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (Embrigadement — MDG 15 l.245 : perte de
  * 2d10 membres d'équipage, recouvrable par Ragot puis rançon/Discrétion) : PERSISTE sur
@@ -575,11 +570,16 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   return [t('crew.desertion', { n: deserters }), ...applyVesselCrewLoss(get, set, deserters)];
 }
 
+/** Le Conseil de bord se lève au bilan (`MODAL_DEFS.council.sortieFermee`) : le recalcul a déjà été appliqué à la
+ *  validation de la paie. #229 */
+export function sortiesDeLEquipage(_get: Get, set: SetFn) {
+  return { council: () => set({ pendingCouncil: null }) } satisfies Partial<SortiesDeFenetre>;
+}
+
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
     // Conseil de bord : paie hebdomadaire et Moral.
     councilPay: (decision) => councilPay(get, set, decision),
-    councilClose: () => councilClose(get, set),
     setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
     setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
     setPosteAmmo: (shipId, posteUid, ammoUid) => {

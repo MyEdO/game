@@ -60,6 +60,7 @@ import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
 function careerCtx(hero: Combatant) {
@@ -817,6 +818,10 @@ export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combat
 }
 
 
+export function sortiesDuGroupe(_get: Get, set: Set) {
+  return { finDeSeance: () => set({ sessionEndOpen: false }) } satisfies Partial<SortiesDeFenetre>;
+}
+
 export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
     partyAddHero: (hero, wealth) => partyAddHero(get, set, hero, wealth),
@@ -851,7 +856,6 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
     endSession: (rewards) => endSession(get, set, rewards),
     openSessionEnd: () => set({ sessionEndOpen: true }),
-    closeSessionEnd: () => set({ sessionEndOpen: false }),
     trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
     changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
     setParty: (p) => set({ party: p }),
