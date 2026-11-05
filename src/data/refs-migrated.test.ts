@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
+import { z } from 'zod';
 import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
 import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
 import {
@@ -17,6 +18,7 @@ import {
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
+import type { SchemaDef } from './schemas/types';
 import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
@@ -666,18 +668,16 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     expect(parDocument, 'le stock HORS_PARSE est EXACT : un compte qui baisse se reporte au stock').toEqual(HORS_PARSE);
   });
 
-  // Conteneur OPAQUE : `seaEventDef.params`, `z.record(z.string(), z.unknown())` (`schemas/defs/sea-events.ts`).
+  // Conteneur OPAQUE de fixture : un `z.record(z.string(), z.unknown())`, que le parse ne descend pas.
   it('une op typée sous un conteneur que le parse ne descend pas est vue du corpus, absente du parse, nommée hors parse (fixture)', () => {
-    const def = DEFS.find((d) => d.file === 'sea-events.json');
-    expect(def, 'def de sea-events.json introuvable').toBeTruthy();
-    const document = structuredClone(CORPUS.brutParNom.get('sea-events.json')) as { boardEvents: { params: Record<string, unknown> }[] };
+    const def: SchemaDef = { file: 'opaque.json', root: 'src/data', famille: 'config', schema: z.strictObject({ params: z.record(z.string(), z.unknown()) }) };
     const op = { op: 'domeWard', trait: { id: IDS_PAR_ESPACE['traits.json'][0], value: 1 } };
-    document.boardEvents[0].params.ops = [op];
-    const noeuds = scanGameOpRefs({ sources: [{ file: 'sea-events.json', data: document }], resolvers, champsASlot: CHAMPS_A_SLOT }).noeudsDOp;
+    const document = { params: { ops: [op] } };
+    const noeuds = scanGameOpRefs({ sources: [{ file: def.file, data: document }], resolvers, champsASlot: CHAMPS_A_SLOT }).noeudsDOp;
     expect(noeuds.map((n) => n.noeud)).toEqual([op]);
-    const atteintes = opsDuParse({ brutParNom: new Map<string, unknown>([['sea-events.json', document]]) }, [def!]);
+    const atteintes = opsDuParse({ brutParNom: new Map<string, unknown>([[def.file, document]]) }, [def]);
     expect(atteintes.has(op)).toBe(false);
-    expect(horsDuParse(noeuds, atteintes).map(ligneHorsParse)).toEqual(['sea-events.json.boardEvents[0].params.ops[0] : domeWard']);
+    expect(horsDuParse(noeuds, atteintes).map(ligneHorsParse)).toEqual(['opaque.json.params.ops[0] : domeWard']);
   });
 
   // Le stock HORS_PARSE n'a pas de parse d'op : chaque chaîne de ses champs d'op à slot est une CASE

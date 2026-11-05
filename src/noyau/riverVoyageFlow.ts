@@ -43,7 +43,7 @@ import { rollTest, ECHEC_SANS_JET, type TestResult } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue } from '../engine/skills';
-import { deMonde, rollExpr, type RNG } from '../engine/dice';
+import { deMonde, tirer, type RNG } from '../engine/dice';
 import { strandingPenaltyLine } from '../engine/seaPerils';
 import { effectiveChar } from '../engine/characteristics';
 import {
@@ -687,7 +687,7 @@ function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => v
     tell([t('rv.holeInline', { min: minutes, diff: DIFFICULTY_LABELS[TEMPORARY_REPAIR.difficulty], roll: res.roll, target: res.target, issue: t(res.success ? 'rv.holeSealed' : 'rv.holeFailed') })]);
     if (res.success) {
       // Réparation temporaire (l.116) : restaure 1d10 Blessures de coque.
-      const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, rollExpr(TEMPORARY_REPAIR.woundsPerRepair, rng));
+      const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, tirer(TEMPORARY_REPAIR.woundsPerRepair, rng));
       healVesselHull(get, set, plan.vehicle!, healed);
       set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, holed: false } } });
       tell([t('rv.hullHolds', { n: healed })]);
@@ -1049,7 +1049,7 @@ export const TABLES = {
       const plan = get().travelPlan!;
       const name = garanti(hero, step.actorId, 'charpentier').label;
       if (step.result.success) {
-        const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, rollExpr(TEMPORARY_REPAIR.woundsPerRepair, battleRng()));
+        const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, tirer(TEMPORARY_REPAIR.woundsPerRepair, battleRng()));
         healVesselHull(get, set, plan.vehicle!, healed);
         set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, holed: false } } });
         return { consequences: freeCons([{ text: t('rv.holeRepairOk', { name, n: healed }), tone: 'ok' }]) };

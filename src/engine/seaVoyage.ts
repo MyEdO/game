@@ -22,7 +22,7 @@ import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
 import type { DeDeTable } from '../data/schemas/grammaire/valeurs';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, roll as rollDice, type RNG } from './dice';
+import { d10, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -34,14 +34,19 @@ export { type CargoDef, type CargoEntry, type CargoLot, isEchangeable, cargoTota
 
 // ── Types de la donnée ───────────────────────────────────────────────────────────────────────────
 
-export interface ManannFactor { id: string; label: string; effect: { sign: 1 | -1; flat: number; d10: number } }
+export interface ManannFactor { id: string; label: string; effect: EffetSigne }
+
+/** Feuille d'un paramètre d'événement (`feuilleDeParam`, `src/data/schemas/defs/sea-events.ts`). */
+type FeuilleDeParam = QuantiteTiree | boolean | string;
+/** Valeur de `SeaEventDef.params`, lue par clé selon le `kind`. */
+export type ParamDEvenement = FeuilleDeParam | FeuilleDeParam[] | Record<string, FeuilleDeParam>;
 
 export interface SeaEventDef extends BandeOuverte {
   id: string;
   label: string;
   desc: string;
   kind: string;
-  params?: Record<string, unknown>;
+  params?: Record<string, ParamDEvenement>;
 }
 
 /** Palier du VOYAGE RAPIDE (l.33-37) : cran du d10, conséquences en % + Coups Critiques. */
@@ -182,7 +187,7 @@ export const MANANN_BASE: ManannMood = { score: EVENTS.manann.base, applied: [] 
 export function applyManannFactor(mood: ManannMood, factorId: string, rng: RNG): { mood: ManannMood; delta: number; label?: string } {
   const f = findManannFactor(factorId);
   if (!f || mood.applied.includes(factorId)) return { mood, delta: 0 };
-  const delta = f.effect.sign * (f.effect.flat + (f.effect.d10 > 0 ? rollDice(f.effect.d10, 10, rng) : 0));
+  const delta = tirerSigne(f.effect, rng);
   return { mood: { score: mood.score + delta, applied: [...mood.applied, factorId] }, delta, label: f.label };
 }
 

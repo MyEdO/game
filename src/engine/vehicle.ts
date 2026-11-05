@@ -15,7 +15,7 @@
  */
 import { Combatant, VehicleData, type Difficulty, type ModLine } from './types';
 import { ligneDeRegle } from './reglesChiffrees';
-import { RNG, parseDice, d10 } from './dice';
+import { RNG, d10 } from './dice';
 import { applyOps } from './ops';
 import { inanimateCombatant } from './inanimate';
 import { rollVehicleProblem, type TravelTableEntry } from './travelTables';
@@ -43,14 +43,11 @@ export interface VehicleProblemResult {
 }
 
 /** Tire un Problème de véhicule (d100) et APPLIQUE ses Dégâts à la coque (`applyOps`), si la cellule en
- *  porte (`vehicleWounds`, ex. « 1d10 »/« 2d10 »). RAW : modifiés par le Bonus d'Endurance, minimum 1. */
+ *  porte (`vehicleWounds`). EDOC 07 l.259-264. */
 export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG): VehicleProblemResult {
   const entry = rollVehicleProblem(roll);
   const lines = [`Problème de véhicule — ${entry.label}.`];
-  if (entry.vehicleWounds) {
-    const dice = parseDice(entry.vehicleWounds);
-    if (dice) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: { dice }, ignoreTB: false, ignoreAP: true, min: 1 }], { rng }));
-  }
+  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng }));
   return { entry, lines };
 }
 

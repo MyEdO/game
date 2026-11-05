@@ -15,14 +15,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { diceSpecSchema } from './schemas/grammaire/valeurs';
+import { EXPRESSION_DE_DE, diceSpecSchema } from './schemas/grammaire/valeurs';
 
 const ROOT = process.cwd();
 const RACINES = ['src/data', 'src/scenes'];
 /** Les seules clés d'un `DiceSpec` (`src/engine/dice.ts`), lues à son schéma. */
 const CANON = Object.keys(diceSpecSchema.shape);
-/** Expression de dé écrite EN CHAÎNE (`3d10`, `1d10+15`, `d10`) — la graphie que `rollExpr` accepte. */
-const EXPRESSION_DE_DE = /^\s*\d*\s*d\s*\d+/i;
 
 function fichiers(): { chemin: string; doc: unknown }[] {
   return RACINES.flatMap((r) =>
@@ -67,24 +65,16 @@ describe('dé — forme UNIQUE dans la donnée authorée (#1463)', () => {
     ).toBeGreaterThanOrEqual(134);
   });
 
-  // Le PRIX est le premier porteur soldé du dé-en-CHAÎNE (#1652) : `sea-cargo.json` écrivait
-  // `price: { dice: "3d10" }` (MDG 15 l.429), lu par `rollExpr` — une seconde grammaire de dé, hors
-  // `DiceSpec`, invisible à `rollDice`/`formatDice` et au volet ci-dessus (qui exige `n` ET `sides`).
-  // `prixTireSchema` (`schemas/grammaire/valeurs.ts`) ferme la porte au schéma ; cette sonde la ferme
-  // sur la DONNÉE des 2 racines, à ZÉRO (1 porteur à la veille du lot).
-  it('aucun `price` ne porte un dé en CHAÎNE', () => {
+  // Le dé EN CHAÎNE (« 2d10 », « 20+1d10 », « +2d10 ») est une seconde grammaire de dé, invisible à
+  // `rollDice`/`formatDice` et au volet ci-dessus (qui exige `n` ET `sides`) : une valeur tirée est un
+  // `Tirage` (`tirageSchema`), un modificateur signé un `EffetSigne` (`effetSigneSchema`). Seule la clé
+  // `die` d'une table — le dé de son tirage, concept propre — garde sa chaîne. #1652
+  it('aucune valeur ne porte un dé en CHAÎNE hors la clé `die`', () => {
     const porteurs: string[] = [];
     for (const { chemin, doc } of FICHIERS) marcherObjets(doc, (o) => {
-      const prix = o.price;
-      if (prix == null) return;
-      // Un prix EN CHAÎNE n'est pas forcément un dé : la colonne Prix du livre imprime aussi la marque
-      // « ND » (`trappings.json`, admise à `priceToMoney`). Seule l'EXPRESSION de dé est en cause.
-      if (typeof prix === 'string') { if (EXPRESSION_DE_DE.test(prix)) porteurs.push(`${chemin} price: "${prix}"`); return; }
-      if (typeof prix !== 'object') return;
-      const de = (prix as Record<string, unknown>).dice;
-      if (typeof de === 'string') porteurs.push(`${chemin} price.dice: "${de}"`);
+      for (const [k, v] of Object.entries(o)) if (k !== 'die' && typeof v === 'string' && EXPRESSION_DE_DE.test(v)) porteurs.push(`${chemin} ${k}: "${v}"`);
     });
 
-    expect(porteurs, 'prix portant un dé en CHAÎNE — le dé authoré est un `DiceSpec` `{n, sides, plus?}`').toEqual([]);
+    expect(porteurs, 'dé(s) en CHAÎNE — un tirage s’écrit `{ dice: { n, sides, plus? } }`').toEqual([]);
   });
 });

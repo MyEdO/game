@@ -11,8 +11,10 @@
         "label": "Vaincre ou contrer des suivants de Stromfels",
         "effect": {
           "sign": 1,
-          "flat": 0,
-          "d10": 3
+          "dice": {
+            "n": 3,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -25,8 +27,11 @@
         "label": "Grand sacrifice à Manann (une vache entière, la moitié des provisions du navire, un canot)",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 2
+          "dice": {
+            "n": 2,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -39,8 +44,10 @@
         "label": "Un membre de l'équipage possède une coiffe de naissance (une membrane de placenta préservée)",
         "effect": {
           "sign": 1,
-          "flat": 0,
-          "d10": 2
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -53,8 +60,11 @@
         "label": "Sacrifice moyen à Manann (un gros poisson comestible ou un lapin, une gemme, un objet auquel son propriétaire tient ou tout autre équivalent)",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -67,8 +77,11 @@
         "label": "Un prêtre de Manann est à bord (et n'a pas de Point de Péché)",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -81,8 +94,10 @@
         "label": "Les Personnages prient Manann à chaque quart et jouent ce qu'ils lui disent précisément",
         "effect": {
           "sign": 1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -95,8 +110,10 @@
         "label": "Mannslieb est pleine",
         "effect": {
           "sign": 1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -109,8 +126,10 @@
         "label": "Le chat du navire est en bonne santé, heureux et bien traité",
         "effect": {
           "sign": 1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -123,8 +142,11 @@
         "label": "Petit sacrifice à Manann (une pièce, un petit poisson ou quelque chose de similaire)",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -137,8 +159,11 @@
         "label": "Les Personnages prient Manann à chaque quart",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -151,8 +176,11 @@
         "label": "Un prêtre de Manann est à bord (et a 1-3 Points de Péché)",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -165,8 +193,11 @@
         "label": "Un membre de l'équipage est né en mer",
         "effect": {
           "sign": 1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -179,8 +210,11 @@
         "label": "Le navire vogue vers un ciel rouge",
         "effect": {
           "sign": -1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -193,8 +227,11 @@
         "label": "Mannslieb est décroissante",
         "effect": {
           "sign": -1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -207,8 +244,11 @@
         "label": "Un membre d'équipage perd son chapeau par-dessus bord",
         "effect": {
           "sign": -1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -221,8 +261,11 @@
         "label": "Un membre d'équipage utilise les mots « se noyer » ou « au revoir »",
         "effect": {
           "sign": -1,
-          "flat": 5,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -235,8 +278,10 @@
         "label": "Le voyage a commencé un Festag",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -249,8 +294,10 @@
         "label": "Le nom du bateau a changé",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -263,8 +310,10 @@
         "label": "Le chat du navire est malade, mal traité ou tué",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -277,8 +326,10 @@
         "label": "La cargaison inclut des bananes",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -291,8 +342,11 @@
         "label": "Un prêtre de Manann est à bord (et a 6 Points de Péché ou plus)",
         "effect": {
           "sign": -1,
-          "flat": 10,
-          "d10": 0
+          "dice": {
+            "n": 0,
+            "sides": 10,
+            "plus": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -305,8 +359,11 @@
         "label": "Invoquer des dieux autre que Manann en mer",
         "effect": {
           "sign": -1,
-          "flat": 5,
-          "d10": 1
+          "dice": {
+            "n": 1,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -319,8 +376,10 @@
         "label": "Le voyage a commencé le treizième jour du mois",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 2
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -333,8 +392,10 @@
         "label": "Un membre de l'équipage insulte la mer",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 2
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -347,8 +408,11 @@
         "label": "Tuer un albatros",
         "effect": {
           "sign": -1,
-          "flat": 5,
-          "d10": 2
+          "dice": {
+            "n": 2,
+            "sides": 10,
+            "plus": 5
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -361,8 +425,10 @@
         "label": "Invoquer les Puissances de la Ruine ou Stromfels",
         "effect": {
           "sign": -1,
-          "flat": 0,
-          "d10": 5
+          "dice": {
+            "n": 5,
+            "sides": 10
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -386,7 +452,12 @@
       "desc": "Triton ! Manann ne supporte plus que le vaisseau vogue sur sa mer et envoie Triton pour le détruire. La créature apparaît et fait tout son possible pour détruire le navire. Si l'équipage parvient à vaincre Triton, lancez 1d10. Sur 1-5, Manann est impressionné que le bateau ait réussi à l'emporter sur son avatar ; ajoutez 2d10 à son Humeur. Sur 6-10, Manann est courroucé par cette humiliation de son champion ; soustrayez 2d10 à son Humeur.",
       "kind": "triton",
       "params": {
-        "victoryRoll": "1d10",
+        "victoryRoll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "impressed": {
           "min": 1,
           "max": 5,
@@ -426,7 +497,12 @@
       "desc": "Puissant monstre marin. Un monstre marin attaque le bateau. Lancez 1d10 pour savoir lequel (1-3 : hydre d'os, 4-5 : sangsue des abysses, 6-9 : gargantuan ou 10 : léviathan noir). La créature peut être repoussée si elle tombe à la moitié de ses Blessures de départ.",
       "kind": "monstre-puissant",
       "params": {
-        "roll": "1d10",
+        "roll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "creatures": [
           "1-3 : hydre d'os",
           "4-5 : sangsue des abysses",
@@ -530,8 +606,18 @@
       "desc": "Culte de la personnalité. Un membre de l'équipage suit un credo extrême et considère le reste des gens à bord comme des recrues potentielles. Lancez 1d10 pour déterminer l'allégeance de ce zélote et un deuxième d10 pour savoir combien d'initiés sensibles à ses paroles il a rassemblés. 1 à 3 : une opinion politique révolutionnaire comme le nouveau millénarisme (voir page 140 de Middenheim) ou le kloszowskisme (voir page 34 d'Altdorf) ; 4 à 6 : une entreprise criminelle, comme la contrebande ; 7 à 9 : le culte de Stromfels ; 10 : le culte de Tzeentch.",
       "kind": "culte",
       "params": {
-        "allegianceRoll": "1d10",
-        "initiatesRoll": "1d10"
+        "allegianceRoll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
+        "initiatesRoll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -550,9 +636,19 @@
         "testType": "extermination-nuisibles",
         "difficulty": "complexe",
         "totalDR": 25,
-        "spoilEncPerNight": "3d10",
+        "spoilEncPerNight": {
+          "dice": {
+            "n": 3,
+            "sides": 10
+          }
+        },
         "diseaseChancePct": 30,
-        "ratAttacks": "1d10",
+        "ratAttacks": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "ratCC": 35,
         "ratWeapon": 5
       },
@@ -570,7 +666,12 @@
       "desc": "Monstre marin. Un monstre marin attaque le vaisseau. Lancez 1d10 pour déterminer son espèce (1-3 : kharibde, 4-5 : nuée d'anguilles mâcheprises, 6-9 : 3 syrènes bleues ou 10 : wyrm des mers). La ou les créatures peuvent être repoussées si elles tombent à la moitié de leurs Blessures de départ.",
       "kind": "monstre-puissant",
       "params": {
-        "roll": "1d10",
+        "roll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "creatures": [
           "1-3 : kharibde",
           "4-5 : nuée d'anguilles mâcheprises",
@@ -631,9 +732,19 @@
         "testType": "extermination-nuisibles",
         "difficulty": "intermediaire",
         "totalDR": 10,
-        "spoilEncPerNight": "1d10",
+        "spoilEncPerNight": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "diseaseChancePct": 15,
-        "ratAttacks": "1d10",
+        "ratAttacks": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "ratCC": 25,
         "ratWeapon": 4
       },
@@ -716,7 +827,12 @@
       "desc": "Calme plat. Les vents vous abandonnent pour les prochains 1d10 jours.",
       "kind": "calme-plat",
       "params": {
-        "days": "1d10"
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -732,10 +848,30 @@
       "desc": "Vaisseau de pestiférés. Vous repérez une cogue apparemment abandonnée dérivant sur les flots. Si vous l'abordez, elle contient du butin composé de 2d10 caisses d'une cargaison choisie au hasard, d'1d100 jours de rations de biscuits de mer, de 2d10 tonneaux d'eau et de 3d10 CO. Quelques membres d'équipage sont également encore présents à bord, mais ils ne sont qu'à moitié conscients, car ils subissent un stade avancé de la peste noire (voir page 187 de WFJDR). Quiconque monte à bord du bateau est mordu par des puces et doit effectuer un Test de Résistance Accessible (+20) pour éviter de contracter la maladie.",
       "kind": "vaisseau-pestifere",
       "params": {
-        "cargoCrates": "2d10",
-        "biscuitDays": "1d100",
-        "waterBarrels": "2d10",
-        "co": "3d10",
+        "cargoCrates": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        },
+        "biscuitDays": {
+          "dice": {
+            "n": 1,
+            "sides": 100
+          }
+        },
+        "waterBarrels": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        },
+        "co": {
+          "dice": {
+            "n": 3,
+            "sides": 10
+          }
+        },
         "resistDifficulty": "accessible"
       },
       "source": {
@@ -752,7 +888,12 @@
       "desc": "Vents inhabituels. Les vents soufflent de manière étrange. Les vents dominants normaux changent de direction et soufflent à l'opposé de leur flux normal, ce qui affecte le Mouvement de votre vaisseau pendant 1d10 jours.",
       "kind": "vents-inhabituels",
       "params": {
-        "days": "1d10"
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -786,7 +927,12 @@
       "desc": "Bruine. Une brume humide enveloppe la mer. Pendant les 1d10 prochains jours, la Visibilité est celle d'une Brume et les Précipitations sont Légères.",
       "kind": "bruine",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "visibilite": "brume",
         "precipitations": "legeres"
       },
@@ -804,7 +950,12 @@
       "desc": "Usure. Le bateau subit 1d10 Blessures à cause de l'usure générale du voyage.",
       "kind": "usure",
       "params": {
-        "wounds": "1d10"
+        "wounds": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -862,7 +1013,12 @@
       "desc": "Débris marins. Vous apercevez des caisses qui flottent dans l'eau. Si vous les repêchez, elles contiennent 1d100 points d'Encombrement d'une cargaison choisie au hasard.",
       "kind": "debris-cargaison",
       "params": {
-        "cargoEnc": "1d100"
+        "cargoEnc": {
+          "dice": {
+            "n": 1,
+            "sides": 100
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -878,7 +1034,12 @@
       "desc": "Rafale de Ghyran. Le Vent de Ghyran est concentré sur cette partie de l'océan. Pendant les 1d10 prochains jours, les Tests de Focalisation (Ghyran), de Guérison et de Résistance bénéficient de +2 DR.",
       "kind": "rafale-ghyran",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "drBonus": 2,
         "skills": [
           "focalisation",
@@ -900,7 +1061,12 @@
       "desc": "Canot de sauvetage. Vous voyez une petite embarcation flottant sur l'océan. Si vous la récupérez, lancez 1d10 pour déterminer ce qu'elle contient (1 à 3 : deux Marins ; 4 à 6 : un Marin ; 7 : un Officier ; 8 : un Nautonier ; 9 : un Médecin de bord ; 10 : un chat de navire). Ces rescapés venant d'un vaisseau qui a sombré seront très reconnaissants s'ils sont sauvés. Ils serviront parmi l'équipage gratuitement jusqu'à ce que le bateau arrive au prochain port, après quoi ils seront prêts à rejoindre l'équipage pour une paie normale (ou en échange d'un petit poisson et d'une soucoupe d'eau douce une fois par jour dans le cas du chat).",
       "kind": "canot-sauvetage",
       "params": {
-        "roll": "1d10",
+        "roll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "contents": [
           "1 à 3 : deux Marins",
           "4 à 6 : un Marin",
@@ -924,7 +1090,12 @@
       "desc": "Beau temps. Pendant les 1d10 prochains jours, la Température est Médiane.",
       "kind": "beau-temps",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "temperature": "mediane"
       },
       "source": {
@@ -971,7 +1142,12 @@
       "desc": "Vaisseau fantôme (figurativement). Vous apercevez un bateau qui dérive sans aucun signe de vie à bord. À vous de choisir si vous voulez monter à bord ou non. Vous y trouverez 2d100 points d'Encombrement d'une cargaison choisie au hasard.",
       "kind": "epave-cargaison",
       "params": {
-        "cargoEnc": "2d100"
+        "cargoEnc": {
+          "dice": {
+            "n": 2,
+            "sides": 100
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -987,7 +1163,12 @@
       "desc": "Ciel dégagé. Les nuages s'écartent et le brouillard se lève. Pendant les 1d10 prochains jours, la Visibilité est toujours celle d'un ciel Dégagé et vous ne subissez Aucune Précipitation.",
       "kind": "ciel-degage",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "visibilite": "degage",
         "precipitations": "aucune"
       },
@@ -1021,7 +1202,12 @@
       "desc": "Marsouin amical. Pendant les 1d10 prochains jours, un marsouin suit votre bateau. Il évite soigneusement tout danger comme les rochers ou les bancs de sable.",
       "kind": "marsouin",
       "params": {
-        "days": "1d10"
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -1055,7 +1241,12 @@
       "desc": "Chance du navigateur. Manann semble accorder sa faveur à ce vaisseau. Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours.",
       "kind": "chance-navigateur",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "talent": "chanceux"
       },
       "source": {
@@ -1088,11 +1279,26 @@
       "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
       "kind": "embrigadement",
       "params": {
-        "lostCrew": "2d10",
+        "lostCrew": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        },
         "gossipDifficulty": "intermediaire",
-        "ransomCO": "2d10",
+        "ransomCO": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        },
         "stealthDifficulty": "complexe",
-        "failExtraLostCrew": "1d10"
+        "failExtraLostCrew": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -1108,7 +1314,12 @@
       "desc": "Prêtre de Manann. Un Prêtre de Manann s'avance vers votre vaisseau et s'exclame haut et fort que vous avez courroucé Manann par votre impiété et que votre bateau doit être purifié. Vous pouvez soit payer 1d10 CO plus la Taille du navire en pistoles pour une bénédiction, soit réduire l'Humeur de Manann de 4d10.",
       "kind": "pretre-manann",
       "params": {
-        "blessingCO": "1d10",
+        "blessingCO": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "blessingSilverPerSize": 1,
         "manannD10": -4
       },
@@ -1128,7 +1339,12 @@
       "params": {
         "taxPct": 10,
         "bribeDifficulty": "difficile",
-        "bribeCO": "2d10"
+        "bribeCO": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -1144,12 +1360,22 @@
       "desc": "Tempête. Une tempête s'abat sur le port. Vous ne pouvez plus repartir sans risque avant 1d10 jours. Si vous partez plus tôt, le climat est considéré comme suit jusqu'à ce que les 1d10 jours soient écoulés : Précipitations : Abondantes, Vents : Vent violent, Visibilité : Brouillard. La Température n'est pas affectée. Pour chaque matin de tempête, lancez 1d10. Sur un 8 ou plus, les Vents deviennent une Violente tempête.",
       "kind": "tempete",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "precipitations": "abondantes",
         "vents": "vent-violent",
         "visibilite": "brouillard",
         "escalation": {
-          "roll": "1d10",
+          "roll": {
+            "dice": {
+              "n": 1,
+              "sides": 10
+            }
+          },
           "min": 8,
           "vents": "violente-tempete"
         }
@@ -1185,7 +1411,12 @@
       "desc": "Gangs des quais. Les dockers locaux font beaucoup de contrebande. Si vous avez de la cargaison à faire décharger ici, 2d10 Enc disparaissent.",
       "kind": "gangs-des-quais",
       "params": {
-        "lostEnc": "2d10"
+        "lostEnc": {
+          "dice": {
+            "n": 2,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -1248,7 +1479,12 @@
           "constructeur-de-navires": 68,
           "tailleur": 63
         },
-        "daysPerJob": "1d10"
+        "daysPerJob": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",
@@ -1281,7 +1517,12 @@
       "desc": "Beau temps. Le temps est clément pendant les 1d10 prochains jours. Précipitations : Aucune, Température : Médiane, Vents : Brise fraîche, Visibilité : Dégagé.",
       "kind": "beau-temps",
       "params": {
-        "days": "1d10",
+        "days": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "precipitations": "aucune",
         "temperature": "mediane",
         "vents": "brise-fraiche",
@@ -1302,8 +1543,18 @@
       "kind": "passager-clandestin",
       "params": {
         "perceptionDifficulty": "complexe",
-        "discoverDays": "1d10",
-        "roll": "1d10",
+        "discoverDays": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
+        "roll": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "contents": [
           "1 à 3 : Mousse",
           "4 à 6 : Marin",
@@ -1329,7 +1580,13 @@
       "params": {
         "gossipDifficulty": "accessible",
         "demandBonus": 2,
-        "days": "10+2d10"
+        "days": {
+          "dice": {
+            "n": 2,
+            "sides": 10,
+            "plus": 10
+          }
+        }
       },
       "source": {
         "book": "mer-des-griffes",

@@ -764,15 +764,22 @@ export const parSaison = <T extends z.ZodType>(valeur: T) =>
 export const prixSaisonnierSchema = parSaison(z.number());
 
 /**
- * PRIX TIRÉ AU DÉ — une case du tableau de prix porte un jet au lieu d'un nombre (MDG 15 l.429 : le Vin
- * maritime est à « 3d10 » aux quatre saisons, tiré une fois à l'achat et NOTÉ, l.436). Le dé est le
- * `DiceSpec` unique du projet, jamais une expression en chaîne.
- *
- * Les deux branches s'exportent SÉPARÉMENT : chaque site compose l'union qu'il admet — un porteur de
- * prix qui n'a pas de saisons (`trappings.price`) ne doit pas hériter des colonnes par une union
- * fourre-tout.
+ * TIRAGE — une valeur authorée TIRÉE au dé (`Tirage`, `src/engine/dice.ts`, lue par `tirer`) : prix du
+ * Vin maritime (MDG 15 l.429), Blessures d'une avarie, jours d'un événement de mer… Le dé est le
+ * `DiceSpec` unique du projet, jamais une expression en chaîne (`EXPRESSION_DE_DE`). #1652
  */
-export const prixTireSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
+export const tirageSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
+
+/** Un nombre OU un tirage (`QuantiteTiree`, `src/engine/dice.ts`). #1652 */
+export const quantiteTireeSchema = z.union([z.number(), tirageSchema]);
+
+/** Modificateur de dés SIGNÉ (`EffetSigne`, `src/engine/dice.ts`, lu par `tirerSigne`) : MDG 14 (Moral),
+ *  MDG 15 l.97-124 (Humeur de Manann). #1652 */
+export const effetSigneSchema = nommerChamps(z.strictObject({ sign: z.union([z.literal(1), z.literal(-1)]), dice: diceSpecSchema }), { sign: { label: "signe" }, dice: { label: "dés" } });
+
+/** Expression de dé écrite EN CHAÎNE (« 2d10 », « 1d10-4 », « 20+1d10 », « +2d10 ») : graphie hors
+ *  grammaire dans la donnée authorée, où seule la clé `die` d'une table la porte. #1652 */
+export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]\s*\d+)?\s*$/i;
 
 /** `{x,y}` en CASES de grille — position d'un poste de pont (`vehicles.json`) comme case d'ABORD
  *  d'une place assise (`props.json`). */

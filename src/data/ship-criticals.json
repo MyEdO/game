@@ -124,7 +124,12 @@
             "value": 3
           }
         ],
-        "hullCrits": "1d10",
+        "hullCrits": {
+          "dice": {
+            "n": 1,
+            "sides": 10
+          }
+        },
         "note": "Un incendie éclate dans la réserve de poudre noire et de munitions du navire. La Localisation Cargaison subit trois États En flammes et le bateau subit 1d10 Critiques sur la Coque. Si le vaisseau n'a pas besoin de dépôt de munitions et ne transporte pas de réserve de poudre noire, un énorme incendie éclate à la place. La Localisation Cargaison subit trois États En flammes."
       }
     ],

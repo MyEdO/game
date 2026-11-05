@@ -32,13 +32,13 @@ describe('tables de voyage EDOC (data-driven, JSON)', () => {
     expect(rollVehicleProblem(80).id).toBe('casse');
     expect(rollVehicleProblem(96).id).toBe('accident');
     // Le crochet véhicule-à-PV : Cassé inflige 1d10, Accident 2d10 ; Incontrôlable/Endommagé n'endommagent pas.
-    expect(rollVehicleProblem(80).vehicleWounds).toBe('1d10');
-    expect(rollVehicleProblem(96).vehicleWounds).toBe('2d10');
+    expect(rollVehicleProblem(80).vehicleWounds).toEqual({ dice: { n: 1, sides: 10 } });
+    expect(rollVehicleProblem(96).vehicleWounds).toEqual({ dice: { n: 2, sides: 10 } });
     expect(rollVehicleProblem(1).vehicleWounds).toBeNull();
     // Dégâts aux OCCUPANTS en GameOp : Cassé = 1 Blessure ignorant BE et PA (EDOC 07 l.259-264) ;
     // Accident = 2d10 modifiées par BE et PA, min 1 (verbatim EDOC 7). Mitigation DÉCLARÉE des deux côtés.
     expect(rollVehicleProblem(80).occupantOps).toEqual([{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }]);
-    expect(rollVehicleProblem(96).occupantOps).toEqual([{ op: 'wounds', amount: { dice: '2d10' }, ignoreTB: false, ignoreAP: false, min: 1 }]);
+    expect(rollVehicleProblem(96).occupantOps).toEqual([{ op: 'wounds', amount: { dice: { n: 2, sides: 10 } }, ignoreTB: false, ignoreAP: false, min: 1 }]);
     expect(rollVehicleProblem(1).occupantOps).toBeUndefined();
   });
 

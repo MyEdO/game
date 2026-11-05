@@ -4,7 +4,7 @@
  * Le tirage du d100 et l'application des effets restent à l'appelant (boucle de voyage).
  */
 import { findTableEntry } from './tables';
-import { parseDiceRequired } from './dice';
+import { parseDiceRequired, type Tirage } from './dice';
 import type { StageOutcome } from './activities';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -40,7 +40,7 @@ export interface MountIncidentEffects {
 
 /** Entrée d'une table de voyage : fourchette d100 `[min,max]` (00 = 100) + libellé/texte RAW.
  *  `stageOutcome` : effet de portée Étape (cf. `StageOutcome`). `vehicleWounds` : Dégâts au VÉHICULE
- *  (`Combatant` à coque) en notation de dés (« 1d10 »/« 2d10 ») — premier crochet du véhicule-à-PV. */
+ *  (`Combatant` à coque), tirés — premier crochet du véhicule-à-PV. */
 export interface TravelTableEntry {
   min: number;
   max: number;
@@ -50,7 +50,7 @@ export interface TravelTableEntry {
   /** Incidents de MONTE seuls : la séquelle et le risque déclarés par l'entrée. */
   mount?: MountIncidentEffects;
   stageOutcome?: StageOutcome;
-  vehicleWounds?: string | null;
+  vehicleWounds?: Tirage | null;
   /** Dégâts aux OCCUPANTS du véhicule, en langue unique `GameOp` (EDOC 07 : Cassé = 1 Blessure ignorant
    *  BE et PA ; Accident = 2d10 Blessures modifiées par BE et PA, min 1). Appliqués par le flux de voyage. */
   occupantOps?: import('./ops').GameOp[];

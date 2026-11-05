@@ -53,7 +53,7 @@ import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, find
 import { profilNavalDe } from '../engine/coque';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
-import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
+import { d10, deMonde, roll as rollDice, tirer, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -199,7 +199,7 @@ export interface SeaVoyageState {
   /** M modifié par événement (Vents favorables +1 — appliqué au jour). */
   eventMMod?: number;
   /** Infestation de rats ACTIVE (Test étendu d'Extermination, MDG 14 l.98 + événements ch.15). */
-  infestation?: { label: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: string };
+  infestation?: { label: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: Tirage };
   /** ÉCHOUÉ sur un péril (Rocher/Bas-fonds, MDG 13 l.471-473/497/499, #444) : le navire s'arrête net,
    *  aucune Progression tant qu'un Test de Force (pénalité = `strandingPenalty`) ne l'a pas dégagé. */
   stranded?: { hazardId: string; label: string };
@@ -1509,7 +1509,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
   if (sea.infestation) {
     const vessel = get().vessel;
     if (vessel?.cargo?.length) {
-      const spoil = rollDiceExpr(sea.infestation.spoilPerNight, rng);
+      const spoil = tirer(sea.infestation.spoilPerNight, rng);
       const first = vessel.cargo[0];
       const r = removeCargo(vessel.cargo, first.cargoId, spoil);
       set({ vessel: { ...vessel, cargo: r.lots } });
@@ -1824,14 +1824,6 @@ export function engineerOf(party: Combatant[]): Combatant | undefined {
   return partyBest(apt, STEAM_SKILL.id, undefined, undefined, STEAM_SKILL.spec)?.actor ?? apt[0];
 }
 
-/** Total d'une expression de dés « C+AdB » / « AdB » / « AdB-C » (params de la table Panne de Vapeur —
- *  « 1d10 », « 20+1d10 », « 1d10-5 »). PUR (RNG injecté). */
-function rollDiceExpr(expr: string, rng: RNG): number {
-  const m = /^(?:(\d+)\+)?(\d+)d(\d+)([+-]\d+)?$/.exec(expr.replace(/\s/g, ''));
-  if (!m) { const n = parseInt(expr, 10); return isNaN(n) ? 0 : n; }
-  return (m[1] ? parseInt(m[1], 10) : 0) + rollDice(parseInt(m[2], 10), parseInt(m[3], 10), rng) + (m[4] ? parseInt(m[4], 10) : 0);
-}
-
 /** Exécute les Tests de REDÉMARRAGE d'une panne (MDG 12 l.329-348) via la personne au moteur — Test
  *  étendu de Force (`extendedDR`) puis Test(s) de Métier (Ingénieur). Retourne le DR du DERNIER Test de
  *  redémarrage (« 5 − DR Rounds » de mise en pression, l.333). Tests d'AMBIANCE de voyage (« jusqu'à ce
@@ -1891,8 +1883,8 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   // IMMOBILISATION du moteur : fenêtre à vitesse réduite (`mMod`) ou nulle (`mSet:0`) → fraction perdue.
   const secPerRound = Number(rule('combat-round-seconds')); // LDB 13 l.13 (MJ décide, valeur maison)
   let windowMin = 0;
-  if (b.durationRounds) windowMin += rollDiceExpr(b.durationRounds, rng) * secPerRound / 60; // « les 1d10 prochains Rounds »
-  if (b.coolMinutes) windowMin += rollDiceExpr(b.coolMinutes, rng); // « attendre 20+1d10 minutes »
+  if (b.durationRounds) windowMin += tirer(b.durationRounds, rng) * secPerRound / 60; // « les 1d10 prochains Rounds »
+  if (b.coolMinutes) windowMin += tirer(b.coolMinutes, rng); // « attendre 20+1d10 minutes »
   if (b.restart && eng) windowMin += Math.max(0, 5 - runRestart(get, set, eng, b.restart, rng)) * secPerRound / 60; // « 5 − DR Rounds » de mise en pression
   if (windowMin > 0) {
     const miles0 = get().travelPlan?.sea?.milesToday ?? 0;
@@ -1909,10 +1901,10 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
 /** Ouvre la sauvegarde d'Initiative INFLUENÇABLE d'une « Fuite de vapeur » (MDG 12 l.326-328) sur la
  *  personne au moteur — dégâts d'ébouillantage roulés d'avance (« 1d10–5 Dégâts (1 minimum) », ignorent
  *  l'Armure). Aucun équipage → rien à ébouillanter (la boucle reprend normalement). */
-function openSteamSave(get: Get, set: Set, failDamage: string, rng: RNG): void {
+function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   const eng = engineerOf(get().party);
   if (!eng) return;
-  const dmg = Math.max(1, rollDiceExpr(failDamage, rng)); // « (1 minimum) » sur les Dégâts
+  const dmg = Math.max(1, tirer(failDamage, rng)); // « (1 minimum) » sur les Dégâts
   const value = testValue(eng, undefined, 'initiative'); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
   set({
     pendingSteamSave: {
@@ -2120,14 +2112,11 @@ function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): vo
 
 // ── Événements de bord (ch.15 l.132-236) — application MÉCANIQUE par `kind` ─────────────────────
 
-/** Lit un paramètre de `SeaEventDef.params` : nombre direct, ou dé « NdM » roulé (ex. "2d10") — PARTAGÉ
- *  par les événements de BORD (`resolveBoardEvent`) et de PORT (`resolvePortArrival`), même format de
- *  donnée (`sea-events.json`). PUR (hors le jet lui-même, via `rng` injecté). */
-function eventParam(event: SeaEventDef, k: string, rng: RNG, dflt = 0): number {
-  const v = (event.params ?? {})[k];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'string') { const d = /(\d+)d10/.exec(v); if (d) return rollDice(parseInt(d[1], 10), 10, rng); const n = parseInt(v, 10); if (!isNaN(n)) return n; }
-  return dflt;
+/** Valeur d'un paramètre de `SeaEventDef.params` (`tirer`), `dflt` s'il est absent — PARTAGÉ par les
+ *  événements de BORD (`resolveBoardEvent`) et de PORT (`resolvePortArrival`). */
+function paramTire(event: SeaEventDef, k: string, rng: RNG, dflt = 0): number {
+  const v = event.params?.[k];
+  return v === undefined ? dflt : tirer(v as QuantiteTiree, rng);
 }
 
 /** Applique un événement de bord et REND la ligne qui le raconte (titre + texte verbatim de
@@ -2135,7 +2124,7 @@ function eventParam(event: SeaEventDef, k: string, rng: RNG, dflt = 0): number {
  *  `log` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
 function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, roll?: number): string {
-  const num = (k: string, dflt = 0): number => eventParam(event, k, rng, dflt);
+  const num = (k: string, dflt = 0): number => paramTire(event, k, rng, dflt);
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
   const vessel = get().vessel;
   const ship = get().travelPlan?.vehicle;
@@ -2168,7 +2157,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       patchSea(get, set, {
         infestation: {
           label: event.label, difficulty, need, progress: 0,
-          spoilPerNight: String((event.params as Record<string, unknown> | undefined)?.spoilEncPerNight ?? '1d10'),
+          spoilPerNight: structuredClone((event.params?.spoilEncPerNight as Tirage | undefined) ?? { dice: { n: 1, sides: 10 } }), // #2097
         },
       });
       break;
@@ -2542,9 +2531,9 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       // recouvrement (Ragot Intermédiaire → rançon 2d10 CO OU Discrétion Complexe ; échec → 1d10 de
       // plus) — cascade influençable dans `embrigadementFlow`. Difficultés en donnée (`sea-events.json`).
       openEmbrigadementRecovery(get, set, {
-        lost: eventParam(event, 'lostCrew', rng, 0),
-        ransomCO: eventParam(event, 'ransomCO', rng, 0),
-        extraLoss: eventParam(event, 'failExtraLostCrew', rng, 0),
+        lost: paramTire(event, 'lostCrew', rng),
+        ransomCO: paramTire(event, 'ransomCO', rng),
+        extraLoss: paramTire(event, 'failExtraLostCrew', rng),
         gossipDiff: (event.params?.gossipDifficulty as Difficulty | undefined) ?? 'intermediaire',
         stealthDiff: (event.params?.stealthDifficulty as Difficulty | undefined) ?? 'complexe',
       });
