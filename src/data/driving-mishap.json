@@ -2,6 +2,7 @@
   "id": "accidents-conduite-attelage",
   "type": "driving-mishap",
   "label": "Accidents de Conduite d'attelage",
+  "die": "d10",
   "entries": [
     {
       "id": "harnais-casse",

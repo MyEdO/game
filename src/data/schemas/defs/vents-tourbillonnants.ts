@@ -29,7 +29,7 @@ const doc = document(
     codex: { keys: ['ventsTourbillonnants'] },
     edit: { niche: { categories: { ventsTourbillonnants: 'entries' } } },
   },
-  { rangee },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

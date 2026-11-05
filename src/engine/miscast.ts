@@ -4,7 +4,7 @@
  * p.235, LDB 46 l.34-80) et « Les prières » (Tableau de la Colère des dieux
  * p.221, LDB 40 l.52-89).
  *
- * Conception : table-driven et FIDÈLE. Le moteur tire la bonne table (d100, +10
+ * Conception : table-driven et FIDÈLE. Le moteur tire la bonne table (au dé de son document, +10
  * par Point de Péché pour la Colère, relances « cascade » et « multiplication »),
  * puis émet des `GameOp` (engine/ops) — États nommés, Blessures ignorant BE+PA,
  * Points de Corruption, pénalités/blocages d'incantation temporisés, réduction à 0
@@ -18,7 +18,7 @@
  * La DONNÉE vit dans `src/data/miscast.json` (éditable) ; ce module = types +
  * chargement + résolution. Ajouter/régler une entrée = éditer le JSON, jamais ce fichier.
  */
-import { RNG, d100 } from './dice';
+import { RNG, rollDice, type DiceSpec } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
@@ -31,6 +31,8 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // AUCUNE dépendance runtime au store : les tables restent du moteur pur (`rollMiscast` testable seul).
 import { poserEnjeu, type Flow, type FlowTest } from './flowCore';
 import miscastJson from '../data/miscast.json';
+import { deDeTirageDe } from '../data/rangees';
+import type * as miscastDef from '../data/schemas/defs/miscast';
 import { memoParVersion } from '../data/versionDataset';
 
 export type MiscastSeverity = 'mineure' | 'majeure' | 'colere';
@@ -60,7 +62,7 @@ export interface MiscastResult {
    *  un appelant qui a déjà tiré ce dé par le résolveur d'étape y compare l'id qu'il a AFFICHÉ, et
    *  refuse d'appliquer autre chose que la ligne montrée. */
   rowId: string;
-  /** Nombre de d100 JETÉS sur un Tableau (relances comprises, y compris les résultats 91-00
+  /** Nombre de jets sur un Tableau (relances comprises, y compris les résultats 91-00
    *  relancés d'une Multiplication d'infortune). SOURCE UNIQUE du compte de jets — LDB 49 l.5 :
    *  « À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations
    *  Imparfaites, il gagne 1 Point de Corruption. » */
@@ -293,6 +295,8 @@ function buildRow(jr: JsonRow & { max: number }): Row {
 export interface MiscastTableDef {
   id: string;
   label: string;
+  /** Dé de tirage du document (`options.deDeTirage`), lu par `miscastDie`. */
+  die: string;
   /** Catégorie Codex des LIGNES de cette table (`entryCategory` de l'étape). Absente = aucune
    *  exposition Codex de ses lignes (un renvoi vers une catégorie qui ne les contient pas serait mort). */
   codexCategory?: string;
@@ -336,6 +340,11 @@ const runtimeRows = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrat
  *  révisée par VDM : la même table dans les deux jeux. */
 export function miscastTableId(severity: MiscastSeverity): string {
   return (rule('magic-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB)[severity];
+}
+
+/** Le dé de tirage d'une table déclarée — le `die` VIVANT de son document. */
+export function miscastDie(tableId: string): DiceSpec {
+  return deDeTirageDe<typeof miscastDef>(miscastJson, tableId);
 }
 
 /** ENTITÉ SOURCE des effets posés par une rangée tirée (`OpsCtx.source` → `ActiveEffect.source`) : la
@@ -478,7 +487,7 @@ function rowOps(row: Row, sin: number, domainId?: string): GameOp[] {
 export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, domainId?: string, forcedRoll?: number): MiscastResult {
   const tables = miscastTables();
   const table = tables[severity];
-  const base = forcedRoll ?? d100(rng);
+  const base = forcedRoll ?? rollDice(miscastDie(miscastTableId(severity)), rng);
   const roll = severity === 'colere' ? base + sinPoints * 10 : base;
   const row = pick(table, roll);
 
@@ -507,11 +516,12 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
     const labels: string[] = [];
     let tableRolls = 1;
     for (let i = 0; i < 2; i++) {
-      let r = d100(rng);
+      const deMineure = miscastDie(miscastTableId('mineure'));
+      let r = rollDice(deMineure, rng);
       tableRolls++;
       // « en relançant tous les résultats entre 91-00 » (LDB 46 l.54) : une relance EST un jet sur le
       // Tableau — elle compte au même titre (LDB 49 l.5, Corruption de Sorcellerie par jet).
-      while (r > 90) { r = d100(rng); tableRolls++; }
+      while (r > 90) { r = rollDice(deMineure, rng); tableRolls++; }
       const sub = pick(tables.mineure, r);
       rolls.push(r);
       if (domainRowTable(sub, domainId) === null) {

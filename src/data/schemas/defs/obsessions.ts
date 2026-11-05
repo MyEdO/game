@@ -25,7 +25,7 @@ const doc = document(
     codex: { keys: ['obsessions'] },
     edit: { niche: { categories: { obsessions: 'entries' } } },
   },
-  { rangee },
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;
