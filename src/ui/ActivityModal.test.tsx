@@ -75,3 +75,29 @@ describe('ActivityModal — rangée de l’ennemi d’une Scène « Tenez votre 
     try { expect(() => renderWith(pa)).toThrow('sans bataille de masse ouverte'); } finally { console.error = err; }
   });
 });
+
+describe('ActivityModal — l’issue d’un Test simple est celle du flux (LDB 12 l.25-28)', () => {
+  it('03 contre une cible sous 1 est une réussite : la Résilience n’est pas offerte (LDB 17 l.68)', () => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+    hero.resilience = 1;
+    useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
+    const txt = renderWith({
+      heroId: hero.id, kind: 'catalog', label: 'Revenus', skillLabel: 'Métier', skillValue: 10, difficulty: 'tresDifficile',
+      ligne: { base: 10, mods: [], target: -20, difficulty: 'tresDifficile' }, mod: 0,
+      roll: 3, target: -20, sl: 1, success: true,
+    } as PendingActivity);
+    expect(txt).not.toContain('Résilience');
+  });
+
+  it('97 contre une cible au-delà de 99 est un échec : la Résilience est offerte (LDB 17 l.68)', () => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+    hero.resilience = 1;
+    useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
+    const txt = renderWith({
+      heroId: hero.id, kind: 'catalog', label: 'Revenus', skillLabel: 'Métier', skillValue: 90, difficulty: 'facile',
+      ligne: { base: 90, mods: [], target: 130, difficulty: 'facile' }, mod: 0,
+      roll: 97, target: 130, sl: -1, success: false,
+    } as PendingActivity);
+    expect(txt).toContain('Résilience');
+  });
+});

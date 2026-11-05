@@ -153,6 +153,9 @@ describe('strayShotVictim — tir dévié vers un allié (LDB 14 l.116)', () => 
     expect(victimes.every((id) => ['A1', 'A2', 'A3'].includes(id!))).toBe(true);
     expect(new Set(victimes).size).toBeGreaterThan(1);
   });
+  it('97 contre une cible+20 au-delà de 99 : raté de toute façon (bande 96-00, LDB 12 l.25-28) → pas de redirection', () => {
+    expect(strayShotVictim(miss(97, 85), att, tgt, battle, makeRNG(1))).toBeNull();
+  });
   it('jet > cible+20 (aurait raté de toute façon) → pas de redirection', () => {
     expect(strayShotVictim(miss(60, 30), att, tgt, battle, makeRNG(1))).toBeNull();
   });

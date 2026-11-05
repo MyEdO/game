@@ -55,7 +55,7 @@ import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLeng
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { d10, deMonde, roll as rollDice, tirer, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
-import { rollTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
+import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
@@ -2790,7 +2790,7 @@ export const TABLES = {
       const rng = battleRng();
       if (hull && seaRig(hull).mode === 'vapeur') {
         const triggered = (step.participants ?? []).some((x) => estJete(x.result)
-          && steamBreakdownTriggered({ success: x.result.roll <= x.result.target, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
+          && steamBreakdownTriggered({ success: evaluateTest(x.result.roll, x.result.target).success, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
         if (triggered) {
           // Tirage POST-POSE de la table de panne : l'étape `progression` est déjà posée, ce dé en est la
           // conséquence — porte du canal (`deMonde`), même position RNG qu'inline (MDG 12 l.313).

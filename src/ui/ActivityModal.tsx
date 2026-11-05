@@ -31,6 +31,7 @@ export function ActivityModal() {
   const reroll = useGesteDeJet('jetReroll', 'activity');
   const bonusSL = useGesteDeJet('jetBonusSL', 'activity');
   const darkPact = useGesteDeJet('jetDarkPact', 'activity');
+  const force = useGesteDeJet('jetForceSuccess', 'activity'); // Résilience (LDB 17 l.68)
   const reverse = useGesteDeJet('jetReverse', 'activity'); // Inversion (LDB 12 l.42)
   const cancel = useGesteDeJet('jetCancel', 'activity');
   const confirm = useGesteDeJet('jetConfirm', 'activity');
@@ -43,14 +44,9 @@ export function ActivityModal() {
   // modificateur de situation compris).
   const { base, mods: extraMods } = pa.ligne;
 
-  // « Échec » CANONIQUE (gate des relances Chance/Pacte), aligné sur le `failed` du flux `activity` : un
-  // Test combiné non-`full` (un `partial` = échec global RAW) OU une tenue perdue (opposition) OU un jet
-  // simple raté (d100 > cible). Sans quoi Chance serait mal offerte quand skill-1 passe mais le combiné échoue.
-  const failed = pa.combinedLevel != null
-    ? pa.combinedLevel !== 'full'
-    : pa.enemyValue != null
-      ? !pa.success
-      : (pa.roll ?? 0) > pa.target;
+  // « Échec » CANONIQUE : l'issue du flux `activity` (`FLOWS.activity.outcomeOf`), dont dérive aussi le
+  // gating Chance/Pacte/Résilience du noyau.
+  const failed = rolled && !FLOWS.activity.outcomeOf(useGame.getState)?.won;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
@@ -67,6 +63,7 @@ export function ActivityModal() {
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
+    onForce: force,
   }, {
     key: 'actor',
     fortune: actor?.fortune ?? 0,
