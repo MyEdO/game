@@ -29,7 +29,7 @@ function fautes(f: Fenetre): string[] {
     ...(f.gestes.length === 0 && !aucunDeclare ? ['aucun verbe déclaré (`verbes`, `flux`, `drive`, `intents`) ni `AUCUN_VERBE_DE_JOUEUR`'] : []),
     ...(aucunDeclare && f.gestes.length ? [`déclarée sans verbe de joueur, elle en nomme : ${f.gestes.map(cleDuGeste).join(', ')}`] : []),
     ...f.gestes.filter((g) => typeof Reflect.get(ETAT, g.verbe) !== 'function').map((g) => `« ${g.verbe} » n'est pas une action de la partie`),
-    ...f.gestes.filter((g) => libelleDuGeste(g) === null).map((g) => `« ${cleDuGeste(g)} » n'a pas de libellé (\`verbe.${g.flux ? `${g.flux}.` : ''}${g.verbe}\` ni \`verbe.${g.verbe}\`)`),
+    ...f.gestes.filter((g) => libelleDuGeste(g) === null).map((g) => `« ${cleDuGeste(g)} » n'a pas de libellé (\`${g.fenetre ? `verbe.${g.fenetre}.fermer` : `verbe.${g.flux ? `${g.flux}.` : ''}${g.verbe}\` ni \`verbe.${g.verbe}`}\`)`),
     ...(f.pid ? [] : ['ses verbes désignent une rangée par son id, et la fenêtre ne déclare pas de quoi rendre ce `pid` (`rangees`)']),
   ];
 }
@@ -60,7 +60,7 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(destin).toMatchObject({ cle: 'fateSave', proprietaire: 'h1' });
     expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fateNegate', 'fateSurvive', 'fateAccept']));
     const depart = fenetreDuJeu({ ...ETAT, pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } } as unknown as Jeu);
-    expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'departWaitDawn' }, { verbe: 'departCancel' }] });
+    expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'departWaitDawn' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
   });
 
   it('`fenetreDuJeu` rend le `pid` de la rangée due : la chute à deux tombants, l’étape-bande de cascade', () => {

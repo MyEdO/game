@@ -59,6 +59,7 @@ import { estAbsent } from '../noyau/monde/terrain';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
+import { refusDeLaSortie } from '../noyau/sortieDeFenetre';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { routeDistanceLabel } from '../engine/travel';
 import { inscrireEnBataille } from '../noyau/summonFlow';
@@ -71,7 +72,7 @@ import { aiDriven } from '../noyau/netOwnership';
 import { fluxAccepte, NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from '../noyau/sceneEdit';
+import { canonEdge } from '../noyau/sceneEditLecture';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
@@ -422,7 +423,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
     type TimeoutSetter = (cb: (...a: unknown[]) => void, ms?: number, ...a: unknown[]) => unknown;
     const real = (globalThis as unknown as { setTimeout: TimeoutSetter }).setTimeout;
     let n = 0;
-    let seenTravelDays = 0; // cascades `purpose:'travelDay'` intégralement résolues (BILAN + `cascadeFinish`)
+    let seenTravelDays = 0; // cascades `purpose:'travelDay'` intégralement résolues (BILAN + sa sortie)
     let sawVoyage = false;
     const tick = () => {
       try {
@@ -469,7 +470,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
             real(tick, 0); return;
           }
           if (p.purpose === 'travelDay') seenTravelDays++;
-          useGame.getState().cascadeFinish();
+          useGame.getState().fenetreFermer('cascade');
           real(tick, 0); return;
         }
         if (s.pendingRest) {
@@ -1249,7 +1250,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (seed != null) s.seedRng(seed);
       s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
-      lancerCampagne(g, lancee, sceneId);
+      const refus = lancerCampagne(g, lancee, sceneId);
+      if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
       s.setScreen('campaign');
       const after = useGame.getState();
       return `✓ campagne « ${c.label} » chargée (${after.party.length} héros, scène « ${after.scene?.id} »)`;
@@ -1560,7 +1562,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
       for (let guard = 0; useGame.getState().pendingCascade && !useGame.getState().battle?.over && guard < 8; guard++) {
         useGame.getState().cascadeResolveAll();
-        useGame.getState().cascadeFinish();
+        if (!refusDeLaSortie(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
         if (!useGame.getState().battle?.over) checkBattleOver(() => useGame.getState(), useGame.setState);
       }
       let lootNote = '';

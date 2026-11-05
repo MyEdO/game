@@ -452,7 +452,7 @@ export interface RollBreakdown {
   modifier: number;
   /** Détail étiqueté des modificateurs (somme = `modifier` quand renseigné). */
   mods?: ModLine[];
-  /** Valeur cible effective (= base + modificateurs) : on réussit si jet ≤ cible. */
+  /** Valeur cible effective (= base + modificateurs) ; le verdict est `evaluateTest` (LDB 12 l.25-28). */
   target: number;
   /** ÉCRÊTAGE réellement subi par la cible (`TestResult.clamped`) — la seule source qui autorise la
    *  chip « plafond/plancher » : sans elle, une cible à 99 par coïncidence serait mal nommée. */

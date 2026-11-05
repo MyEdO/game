@@ -30,7 +30,7 @@ function heros(label: string, seed: number): Combatant {
 
 const NET_DE_L_HOTE = (invite: string): NetState => ({
   mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0],
+  connection: 'ok', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 /** L'hôte (banc du noyau) d'un interlude ouvert, ses Activités ouvertes, et l'invité du siège 1 qui possède `invite`. */

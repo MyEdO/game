@@ -100,6 +100,14 @@ export function opSummary(o: GameOp): string {
     case 'removeTrait': return traitLisible(o.trait);
     case 'grantPsychTrait': return [libelleDuTraitOctroye(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'grantTalent': return `${refLabel('talents', o.talent)}`;
+    case 'deitySkillMod': return [
+      `${o.mod >= 0 ? '+' : ''}${o.mod} ${o.pick === 'all' ? 'toutes Compétences du dieu' : '1 Compétence du dieu au hasard'}`,
+      o.durationHours != null ? `${formulaSummary(o.durationHours)} heure(s)` : undefined,
+      o.durationDays != null ? `${formulaSummary(o.durationDays)} jour(s)` : undefined,
+    ].filter(Boolean).join(', ');
+    case 'suppressTalents': return `${o.talents.map((x) => refLabel('talents', x)).join(', ')} suspendus ${formulaSummary(o.durationDays)} jour(s)`;
+    case 'deityBan': return `${formulaSummary(o.durationDays)} jour(s)`;
+    case 'prayerForAction': return `${formulaSummary(o.durationRounds)} Round(s)`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
     case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
     case 'augmentWeapon': return `${[

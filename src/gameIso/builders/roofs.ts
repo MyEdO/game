@@ -990,7 +990,7 @@ const shelterOfScene = memoByRef((scene: Scene): ReadonlyMap<string, ShelterColu
  *  (`resolveNappes`, la source unique des hauteurs de toit), mémoïsé par scène. Il ne dépend NI de la
  *  vue NI du dégagement : une nappe levée par le cutaway reste un toit, et il n'y pleut pas dessous.
  *  La mémoïsation est PAR RÉFÉRENCE de scène : tout plan modifié — l'éditeur qui retire une masse
- *  (`ui/editor/editorState.ts`) — recalcule son couvert. Aucun mécanisme de PARTIE n'abat de masse :
+ *  (`noyau/sceneEdit.ts`) — recalcule son couvert. Aucun mécanisme de PARTIE n'abat de masse :
  *  `structureDown` (`noyau/monde/scene.ts`) porte sur les arêtes de mur. */
 export function shelterField(scene: Scene): ReadonlyMap<string, ShelterColumn> {
   return shelterOfScene(scene);

@@ -107,9 +107,12 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // s'unir / passer) — contribution de table routée par la possession de son porteur (patron #1050) ;
   // `counterspellDeclareAll` est le verbe NULLAIRE du drive d'auto-cadence.
   counterspellDeclare: 'invité', counterspellDeclareAll: 'invité',
+  // La sortie d'une fenêtre (`fenetreFermer`) : routée sur la fenêtre de son 1ᵉʳ argument, par le siège que son
+  // registre déclare (`sortie` : son propriétaire, ou l'hôte seul), `netOwnership.ROUTES`.
+  fenetreFermer: 'invité',
   // Cascade séquentielle (jets de nuit / voyage influençables) : choix / SAISIE d'une quantité
-  // (#1279 Sf, jumeau du choix) / navigation (valider l'étape, tout résoudre, terminer le bilan).
-  cascadeNext: 'invité', cascadeResolveAll: 'invité', cascadeFinish: 'invité',
+  // (#1279 Sf, jumeau du choix) / navigation (valider l'étape, tout résoudre).
+  cascadeNext: 'invité', cascadeResolveAll: 'invité',
   cascadeChoose: 'invité', cascadeAmount: 'invité',
   // désengagement : Sacrifier l'Avantage, fuir
   disengageConfirmA: 'invité',
@@ -121,7 +124,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   battleGrapple: 'invité', grappleBreak: 'invité',
   grappleChoose: 'invité',
   // combat monté
-  mountTargetSelect: 'invité', mountTargetCancel: 'invité',
+  mountTargetSelect: 'invité',
   // manœuvre de créature : réglage pré-jet
   maneuverSetAvantage: 'invité',
   // Tour de NAVIRE (couche Mer, MDG 13-14) : le contrôleur de la coque OUVRE ; CHAQUE participant
@@ -149,10 +152,10 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Test de scène/compétence (`pendingTest`) : choix du LANCEUR parmi les candidats. L'ouverture reste
   // interne (`openSkillTest`, jamais une action de store).
   testSetActor: 'invité',
-  // Infirmerie (hors combat) : patients / actes / chirurgie + fermeture — l'hôte valide.
+  // Infirmerie (hors combat) : patients / actes / chirurgie — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, medicAbandonSurgery l'opération.
-  medicSelectPatient: 'invité', medicAct: 'invité', medicSetWound: 'invité', closeMedic: 'invité',
+  medicSelectPatient: 'invité', medicAct: 'invité', medicSetWound: 'invité',
   openSurgeryPass: 'invité', medicAbandonSurgery: 'invité',
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument) + ready-check.
   restSet: 'invité', restReady: 'invité',
@@ -188,11 +191,10 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // `netFlow.emettreIntentInvite` le joue dans le store de l'émetteur et n'envoie aucun intent ; le
   // COMMIT, lui (`battleDispelSpell`), est exposé. Voyager le ferait naître chez l'HÔTE.
   dispelSelectCarrier: 'local',
-  closeDocument: 'hôte',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
-  openWorldMap: 'hôte', closeWorldMap: 'hôte', startTravel: 'hôte',
-  startBilletBargain: 'hôte', resumeTravel: 'hôte', departWaitDawn: 'hôte', departCancel: 'hôte',
-  dismissTravelRecap: 'hôte', setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
+  openWorldMap: 'hôte', startTravel: 'hôte',
+  startBilletBargain: 'hôte', resumeTravel: 'hôte', departWaitDawn: 'hôte',
+  setVoyageCadence: 'hôte', transitionTo: 'hôte', fouillerLaPiece: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   buyCharAdvance: 'hôte', buySkillAdvance: 'hôte', buyTalent: 'hôte', buySpell: 'hôte',
   changeCareer: 'hôte', designateCareerSlot: 'hôte', trainProsthesis: 'hôte', buySpellComponent: 'hôte',
@@ -209,36 +211,35 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   addToSellCart: 'hôte', removeFromSellCart: 'hôte', clearSellCart: 'hôte', confirmSell: 'hôte',
   setSellHalving: 'hôte', assignDistribution: 'hôte', confirmDistribution: 'hôte',
   barterExchange: 'hôte', repairItem: 'hôte', searchAvailability: 'hôte', startBargain: 'hôte',
-  refuseBargain: 'hôte', closeMerchant: 'hôte', openPlaceMerchant: 'hôte', openLandMarket: 'hôte',
-  closeLandMarket: 'hôte', landBuyCargo: 'hôte', landSellCargo: 'hôte', landDumpCargo: 'hôte',
-  landEvalWine: 'hôte', moveCargo: 'hôte', openPort: 'hôte', closePort: 'hôte', portBuyCargo: 'hôte',
+  refuseBargain: 'hôte', openPlaceMerchant: 'hôte', openLandMarket: 'hôte',
+  landBuyCargo: 'hôte', landSellCargo: 'hôte', landDumpCargo: 'hôte',
+  landEvalWine: 'hôte', moveCargo: 'hôte', openPort: 'hôte', portBuyCargo: 'hôte',
   portSellCargo: 'hôte', portDumpCargo: 'hôte', portRepair: 'hôte', portCareen: 'hôte',
   portInstallUpgrade: 'hôte', portHireCrew: 'hôte', portDismissCrew: 'hôte', gatherInnInfo: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   setShipRole: 'hôte', setShipStation: 'hôte', setTravelRole: 'hôte', setPosteAmmo: 'hôte',
-  councilPay: 'hôte', councilClose: 'hôte',
+  councilPay: 'hôte',
   // ── Décisions de GROUPE (mer, taverne, poursuite, séance) ─────────────────────────────────────
   seaActivitiesConfirm: 'hôte', resolveShoreLeave: 'hôte', resolveManannPriest: 'hôte',
-  playTavernGame: 'hôte', closeTavernGames: 'hôte', openTavernGames: 'hôte', sequenceAbandon: 'hôte',
-  endSession: 'hôte', closeSessionEnd: 'hôte',
+  playTavernGame: 'hôte', openTavernGames: 'hôte', sequenceAbandon: 'hôte',
+  endSession: 'hôte',
   // Cadre de campagne (#717) : l'invité VOIT les deux écrans (la cérémonie et la chronique se partagent
   // à la table) mais leurs GESTES sont à l'hôte, comme la fin de séance qu'ils enchaînent — l'ouverture
   // n'est pas une décision (rien à trancher), la clôture applique la même séance. Un ready-check de
   // table serait un autre ticket. Le refus est EFFECTIF, pas seulement classé : les actions sont
-  // inertes chez l'invité (`noyau/chapitreRecap.ts`, garde `s.net.mode === 'guest'`, contrat
+  // inertes chez l'invité (`noyau/chapitreRecap.ts`, garde `s.net.mode === 'guest'` ; la sortie du récap,
+  // `refusDeLaSortie`, contrat
   // `chapitre-recap.hors-store.test.ts` « les trois gestes du cadre sont INERTES ») et les boutons portent leur
   // raison (`GatedAction`, contrats de `CampaignOpeningScreen.test.tsx`/`ChapterRecapScreen.test.tsx`).
-  acquitterOuverture: 'hôte', cloreChapitre: 'hôte', ajournerChapterRecap: 'hôte',
+  acquitterOuverture: 'hôte', cloreChapitre: 'hôte',
   chooseDialogue: 'hôte', designerHerosChoisir: 'hôte',
   // ── Interlude : ouverture/clôture et bataille de masse ────────────────────────────────────────
   interludeEnd: 'hôte',
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
-  massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte', endMassBattle: 'hôte',
+  massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
   // `restSleep` : l'HÔTE dort pour le groupe, l'invité passe par `restSet`/`restReady`.
-  // `dismissVictory` : l'invité passe par `victoryReady`, l'hôte ferme à l'unanimité.
-  openRest: 'hôte', restSleep: 'hôte', restCancel: 'hôte', assignLootGear: 'hôte', dismissLoot: 'hôte',
-  dismissVictory: 'hôte', harvestCreature: 'hôte', dismissDefeat: 'hôte',
+  openRest: 'hôte', restSleep: 'hôte', assignLootGear: 'hôte', harvestCreature: 'hôte',
   // ── Campagne ──────────────────────────────────────────────────────────────────────────────────
   loadProject: 'hôte', setPendingCampaign: 'hôte',
   // ═══ interne : aucun écran ne l'émet ═══
@@ -251,9 +252,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   resumeCadence: 'interne', moveParty: 'interne', marcherVers: 'interne', stepPartyRelative: 'interne',
   sauter: 'interne', actionnerLaPorte: 'interne',
   pivotParty: 'interne', restParty: 'interne', setPendingInteract: 'interne', jouerAction: 'interne',
-  interactEntity: 'interne', closeDialogue: 'interne', designerHerosOuvrir: 'interne', remettreDocument: 'interne',
+  interactEntity: 'interne', designerHerosOuvrir: 'interne', remettreDocument: 'interne',
   startCombat: 'interne', faceAtCombatStart: 'interne', faceFromPath: 'interne', faceToward: 'interne',
-  aiWouldCast: 'interne', restoreFortuneNow: 'interne', siegeAimCommit: 'interne', siegeAimCancel: 'interne',
+  aiWouldCast: 'interne', restoreFortuneNow: 'interne', siegeAimCommit: 'interne',
   startExtendedTest: 'interne', startForceDoor: 'interne', startInterlude: 'interne', startMassBattle: 'interne',
   massBattleBegin: 'interne', openSessionEnd: 'interne', grantXp: 'interne', favorGrant: 'interne',
   openMerchant: 'interne', addPossession: 'interne', transferPossession: 'interne',

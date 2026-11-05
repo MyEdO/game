@@ -24,7 +24,8 @@ export function CouncilModal() {
   const p = useGame((s) => s.pendingCouncil);
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
   const councilPay = useGame((s) => s.councilPay);
-  const councilClose = useGame((s) => s.councilClose);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const lever = () => fermer('council');
   const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDeChoixDePaie(s, factorId)]))));
   if (!p) return null;
 
@@ -37,8 +38,8 @@ export function CouncilModal() {
     const delta = p.delta ?? 0;
     const chosen = p.decision ? findMoraleFactor(p.decision) : undefined;
     return (
-      <Modal title={title} className="council-modal" onClose={councilClose} etape={p.phase}
-        footer={<button className="btn btn-primary" onClick={() => councilClose()}>Clore le conseil</button>}
+      <Modal title={title} className="council-modal" onClose={lever} etape={p.phase}
+        footer={<button className="btn btn-primary" onClick={lever}>Clore le conseil</button>}
       >
         {chosen && <p className="port-hint">Paie de la semaine : <b>{chosen.label}</b>.</p>}
         <MultiRollList entries={p.results ?? []} />

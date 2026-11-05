@@ -16,7 +16,7 @@ import { canMove, defenseDodgeMods } from '../mount';
 import type { Jeu } from '../etat';
 import { defenseTargetMods, defenseValue, defenseValueModParts } from '../../engine/combat';
 import { rollLine, type RollLineParts } from '../rollSeam';
-import { refusActionDepensee, refusHorsDEtatDAgir } from '../refusDuTour';
+import { refusActionDepensee, refusHorsDEtatDAgir, refusPriereImposee } from '../refusDuTour';
 
 /** Le porteur et son combat. */
 export interface CtxDeDesengagement {
@@ -54,9 +54,9 @@ export function peutSacrifierLAvantage(ctx: CtxDeDesengagement): boolean {
   return voieDAvantage(ctx) !== null;
 }
 
-/** Option « Utiliser l'Esquive » : LDB 15 l.49 ; LDB 16 l.125. `null` = ouverte, sinon la raison. */
+/** Option « Utiliser l'Esquive » : LDB 15 l.49 ; LDB 16 l.125 ; LDB 40 l.74. `null` = ouverte, sinon la raison. */
 export function refusDEsquiveDeDesengagement({ active, battle }: CtxDeDesengagement): string | null {
-  return refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active);
+  return refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active) ?? refusPriereImposee(active);
 }
 
 /** La Fuite : LDB 15 l.61 ; LDB 16 l.125. Ouverte tant que `canMove`. */

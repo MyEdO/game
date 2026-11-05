@@ -2,9 +2,10 @@
  * LE PONT DE L'HÔTE GODOT (#2928, contrat `CONTRAT.md`) : le transport JSON entre Godot et le noyau. Une méthode reçoit
  * au plus une chaîne JSON et rend toujours une chaîne JSON, `{ ok: true, … }` ou `{ ok: false, erreur }` ; elle ne lève
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
- * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
+ * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
+ * l'écran montre est un état du pont, que la méthode `fiche` pose, jamais de la partie.
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, cataloguesDeComposition, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, cataloguesDeComposition, ficheDuPorteur, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -15,6 +16,7 @@ import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran
 import { modelesDeLAtelier, type ModelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
+import { ONGLETS_DE_LA_FICHE, type FicheOuverte } from '../../../src/hote/elements';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -32,7 +34,8 @@ interface ErreurGlobale {
 }
 
 /** La vue : la projection commune (`projeter`), la disposition de la fenêtre qui tient la main
- *  (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses éléments (`zonesDeLEcran`), les cases
+ *  (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses éléments (`zonesDeLEcran`, la
+ *  fiche posée par `fiche` comprise), les cases
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
  *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` la barre de l'actif ouverte, `CLICS_DE_L_EXPLORATION` en exploration
  *  quand rien ne tient la main ; `null` sinon), et l'id du
@@ -92,7 +95,7 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { pas: number; lignes: number }) | null = null;
+  let ouverte: (PartieOuverte & { pas: number; lignes: number; fiche: FicheOuverte | null }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` lit. */
   let atelier: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
@@ -111,7 +114,7 @@ export function creerPont() {
       projection,
       ...modelesDesCombattants(combat?.voisins.liste ?? projection.exploration?.heros ?? []),
       disposition: fenetre?.disposition ?? null,
-      zones: zonesDeLEcran(etat, projection, fenetre),
+      zones: zonesDeLEcran(etat, projection, fenetre, o.fiche),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
       champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
@@ -141,7 +144,7 @@ export function creerPont() {
       valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
       valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
       const o = ouvrirLaPartie(nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined }), sansRoster);
-      ouverte = { ...o, pas: 0, lignes: 0 };
+      ouverte = { ...o, pas: 0, lignes: 0, fiche: null };
       return suite(ouverte, o.lancement);
     },
     vue(json) {
@@ -160,6 +163,21 @@ export function creerPont() {
         resultats.push(jouerUnGeste(o, g));
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
+    },
+    fiche(json) {
+      const o = demarree();
+      const e = entreeDe('fiche', json, ['fiche']);
+      const f = e.fiche as Record<string, unknown> | null | undefined;
+      const etat = o.partie.etat();
+      const heros = etat.party.map((h) => h.id);
+      valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'heros' || k === 'onglet' || k === 'objet') && heros.includes(f.heros as string) && ONGLETS_DE_LA_FICHE.includes(f.onglet as FicheOuverte['onglet'])),
+        `fiche : fiche, null ou { heros, onglet, objet? } : l’id d’un héros du groupe (${heros.join(', ')}) et un onglet (${ONGLETS_DE_LA_FICHE.join(', ')})`);
+      if (f && f.objet !== undefined) {
+        const objets = f.onglet === 'possessions' ? ficheDuPorteur(etat, f.heros as string)!.possessions.map((p) => p.uid) : [];
+        valider(objets.includes(f.objet as string), `fiche : objet, sous l’onglet possessions, l’uid d’une possession de la fiche (${objets.join(', ') || 'aucune'})`);
+      }
+      o.fiche = f === null ? null : { heros: f!.heros as string, onglet: f!.onglet as FicheOuverte['onglet'], ...(f!.objet === undefined ? {} : { objet: f!.objet as string }) };
+      return { vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } } satisfies Suite;
     },
     reprendre(json) {
       const o = demarree();

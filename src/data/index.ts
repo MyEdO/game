@@ -1598,6 +1598,8 @@ export interface SemencesDeSceneData {
   terrain: Terrain;
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
+  /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
+  facade: string;
 }
 /**
  * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
@@ -2925,6 +2927,12 @@ export interface GodData {
   chaosSpells?: string[];
   desc?: string;
   source?: SourceRef;
+  /** Compétences associées au culte (ids de `skills.json`), liste MAISON : LDB 40 l.61, l.70 laisse le choix
+   *  au MJ. Lue par `deitySkills` (engine/magic). */
+  associatedSkills?: string[];
+  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`) : la raison de
+   *  `associatedSkills`. Jamais lu par le moteur. */
+  maison?: string;
   /** VERROU de Péché du culte (MDG 11 l.148, Stromfels : « retire à un suivant la capacité d'utiliser le
    *  Talent *Invocation* s'il possède au moins deux Points de Péché et celle d'utiliser le Talent *Béni*
    *  s'il possède au moins cinq Points de Péché ») — seuil de Points de Péché à partir duquel le dieu

@@ -1,65 +1,14 @@
-/** Fondation pure de l’éditeur : outils, calques, sélection et mutations de scène. */
-import { Scene, SceneEntity, SceneEffectZone, WallSide, ZoneArea } from '../../noyau/monde/scene';
-import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
-import type { Pt as ScenePt } from '../../noyau/monde/path';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import { walkFlow } from '../../engine/flowCore';
-import { nextEntityId } from '../../lib/entityId';
-import { findCreatureById, findPropById } from '../../data';
-import { propRefPatch } from './propDefaults';
-import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { entityKindSchema, type Terrain } from '../../data/schemas/defs-scenes/scene';
-import { type Rect, type Pt, type EffectZoneSeed, canonEdge, edgeWallState, rectFrom, entityAt, addEntity, editEntity, moveEntityTo, removeEntity } from '../../noyau/sceneEdit';
-
-export {
-  addArchitectureBody,
-  addArchitectureStorey,
-  addArchitecturePart,
-  addFacadeSection,
-  addBuildingMass,
-  rectFrom,
-  paintTiles,
-  fillTerrainRect,
-  addLayer,
-  removeLayer,
-  canonEdge,
-  edgeWallState,
-  setEdgeWall,
-  toggleEdgeWall,
-  toggleDiagonalWall,
-  patchWall,
-  paintHeight,
-  paintCrenellated,
-  placeEmplacement,
-  setPosteCrew,
-  setPosteSide,
-  setPosteEngine,
-  pasteEntity,
-  placeEntry,
-  renameEntry,
-  addTrigger,
-  addRestZone,
-  addEffectZone,
-  renameEffectZone,
-  addMember,
-  removeMember,
-  patchMember,
-  addEnemyMember,
-  eraseAt,
-  setMetresPerTile,
-  setAmbientLight,
-  setNorthDeg,
-  setEnvironment,
-  setSceneFlags,
-  entityAt,
-  editEntity,
-  editEntityCombat,
-} from '../../noyau/sceneEdit';
-export type { Rect, Pt, EffectZoneSeed } from '../../noyau/sceneEdit';
-import type { CellSide } from '../../noyau/monde/scene';
-export type { CellSide } from '../../noyau/monde/scene';
-export { planStairFlight, applyStairFlight, minFlightCells } from '../../noyau/stairFlight';
-export type { StairCell, StairStep, StairFlightPlan } from '../../noyau/stairFlight';
+/**
+ * LECTURES de l'édition de scène — outil actif, calques, sélection, picking et emprise du pinceau. PURES,
+ * Node-safe, sans `ui` ni `gameIso` : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
+ * Les ÉCRIVAINS vivent dans `./sceneEdit`, le `BRIDGE_PATH` de `scripts/guards/lib/sceneFieldEditability.mjs`.
+ */
+import { type Scene, type SceneEntity, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
+import { walkFlow } from '../engine/flowCore';
+import { decorEnCaseEtage } from './monde/decorIndex';
+import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -117,9 +66,6 @@ export type WallPaint = 'wall' | 'door' | 'diagBack' | 'diagFwd';
  *  reçoit un effet ne change pas de calque, donc ne disparaît pas. Ce qui distingue les deux natures
  *  est leur ENCRE (`zoneInk`, EditorCanvas) : la pièce n'a qu'un liseré, le piège porte l'aplat. */
 export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entries: boolean; rest: boolean; zones: boolean };
-// Tout ce que la scène porte est VISIBLE et cliquable à l'ouverture : un calque éteint cache
-// l'élément ET bloque son clic, et rien à l'écran ne dit qu'une case à cocher le retient.
-export const DEFAULT_LAYERS: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
@@ -164,74 +110,57 @@ export function effectZoneArea(kind: ZoneArea['kind'], r: Rect): ZoneArea {
   return { kind: 'disc', cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2), radius };
 }
 
-/** Clé d'appartenance d'une case à une emprise — (x,y) seuls : l'étage est celui de la ZONE. */
-const tileKey = (p: Pt) => `${p.x},${p.y}`;
-
-/** Case de l'emprise, à l'étage de la zone (`z` omis au rez, comme `zoneAreaTiles`). */
-const carveTile = (p: Pt, z?: number): ScenePt => (z ? { x: p.x, y: p.y, z } : { x: p.x, y: p.y });
-
-/** Emprise NORMALISÉE : `tiles` disparaît dès que la découpe couvre TOUTE l'aire (« pleine » n'a
- *  qu'une seule représentation) et se matérialise sinon, triée pour un document stable. */
-function withCarve(zone: SceneEffectZone, tiles: ScenePt[]): SceneEffectZone {
-  const full = zoneAreaTiles(zone.area, zone.z);
-  const next = { ...zone };
-  if (tiles.length >= full.length) delete next.tiles;
-  else next.tiles = [...tiles].sort((a, b) => a.y - b.y || a.x - b.x);
-  return next;
+/** La case `p` est-elle sur la carte ? La garde de bornes de tout geste à la case. */
+export function dansLaCarte(scene: Scene, p: Pt): boolean {
+  return p.x >= 0 && p.y >= 0 && p.x < scene.dimensions.w && p.y < scene.dimensions.h;
 }
 
-/** Boîte englobant la boîte de `area` ET la case `p` — support d'une emprise peinte HORS de l'aire. */
-function areaCovering(area: ZoneArea, p: Pt): ZoneArea {
-  const r = effectZoneRect(area);
-  const x = Math.min(r.x, p.x);
-  const y = Math.min(r.y, p.y);
-  return { kind: 'rect', x, y, w: Math.max(r.x + r.w, p.x + 1) - x, h: Math.max(r.y + r.h, p.y + 1) - y };
+/** Entité posée à `p` sur la couche `z` (défaut 0) — prédicat UNIQUE de picking/gomme/collision
+ *  d'entités. Source unique remplaçant les comparaisons dupliquées `pos.x===p.x && pos.y===p.y`
+ *  qui omettaient le filtre de couche (#835 FU-3) : `hitAt`/`eraseAt`/`addEnemyMember` et la pose
+ *  directe (`entity`/`emplacement`) le partagent tous.
+ *
+ *  Un décor répond sur TOUTE son EMPREINTE (`noyau/monde/decorIndex.ts`, la même lecture que le picking du
+ *  jeu, `gameIso/stage/pickResolve.ts`) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
+ *  seconde case d'une table 2×1 ne se sélectionnait, ne s'effaçait et ne se déplaçait pas au canevas
+ *  d'authoring, et un clic y posait une entité DANS le meuble. La pose EXACTE garde la priorité —
+ *  un corps debout sur une case d'empreinte se désigne lui-même, pas le meuble sous ses pieds. */
+export function entityAt(scene: Scene, p: Pt, z = 0): SceneEntity | undefined {
+  return scene.entities.find((e) => e.pos.x === p.x && e.pos.y === p.y && (e.z ?? 0) === z)
+    ?? decorEnCaseEtage(scene, p.x, p.y, z);
 }
 
-/** PINCEAU d'emprise : met la case `p` DANS la zone (`add`) ou l'en SORT (`remove`), sans jamais
- *  basculer — repasser sur une case déjà peinte au glissé la laisse telle quelle. Peindre hors de la
- *  boîte de l'aire l'ÉTEND à la boîte englobante et matérialise l'emprise : la boîte n'est alors
- *  qu'un cadre, `sceneZoneTiles` reste exactement ce qui est peint (un disque peint au-delà de son rayon
- *  devient donc une emprise explicite dans une boîte rect). */
-export function paintEffectZoneTile(zone: SceneEffectZone, p: Pt, paint: 'add' | 'remove'): SceneEffectZone {
-  const cur = sceneZoneTiles(zone);
-  const key = tileKey(p);
-  const inside = cur.some((t) => tileKey(t) === key);
-  if (inside === (paint === 'add')) return zone;
-  if (paint === 'remove') return withCarve(zone, cur.filter((t) => tileKey(t) !== key));
-  const full = zoneAreaTiles(zone.area, zone.z);
-  const area = full.some((t) => tileKey(t) === key) ? zone.area : areaCovering(zone.area, p);
-  return withCarve({ ...zone, area }, [...cur, carveTile(p, zone.z)]);
+/** Arête (case, side N/E/S/O) → forme CANONIQUE (case, N|E). */
+export function canonEdge(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
+  if (side === 'S') return { x, y: y + 1, side: 'N' };
+  if (side === 'O') return { x: x - 1, y, side: 'E' };
+  return { x, y, side };
 }
 
-/** Peint l'emprise de la zone d'id STABLE `zoneId` — couture de l'outil `zoneTiles` du canevas. */
-export function paintEffectZone(scene: Scene, zoneId: string, p: Pt, paint: 'add' | 'remove'): Scene {
-  const zones = scene.effectZones ?? [];
-  if (!zones.some((z) => z.id === zoneId)) return scene;
-  return { ...scene, effectZones: zones.map((z) => (z.id === zoneId ? paintEffectZoneTile(z, p, paint) : z)) };
+/** État d'une arête : 'none' | 'wall' (pleine) | 'door' (franchissable), sur l'étage `z`. */
+export function edgeWallState(scene: Scene, x: number, y: number, side: CellSide, z = 0): 'none' | 'wall' | 'door' {
+  const e = canonEdge(x, y, side);
+  const w = (scene.walls ?? []).find((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z);
+  return !w ? 'none' : porteAuteur(w) ? 'door' : 'wall';
 }
 
-/** Rétablit l'emprise PLEINE (la zone occupe toute son aire) — retire la découpe. */
-export function clearEffectZoneCarve(zone: SceneEffectZone): SceneEffectZone {
-  const next = { ...zone };
-  delete next.tiles;
-  return next;
-}
-
-/** Change l'AIRE d'une zone en emportant sa découpe : les cases retenues SUIVENT la boîte (translation)
- *  puis sont ROGNÉES à la nouvelle aire. Sans ce recalage, déplacer ou redimensionner une zone découpée
- *  laisserait une emprise qui ne correspond plus à rien. */
-export function setEffectZoneArea(zone: SceneEffectZone, area: ZoneArea): SceneEffectZone {
-  if (!zone.tiles) return { ...zone, area };
-  const from = effectZoneRect(zone.area);
-  const to = effectZoneRect(area);
-  const moved = zone.tiles.map((t) => carveTile({ x: t.x + (to.x - from.x), y: t.y + (to.y - from.y) }, zone.z));
-  const inside = new Set(zoneAreaTiles(area, zone.z).map(tileKey));
-  return withCarve({ ...zone, area }, moved.filter((t) => inside.has(tileKey(t))));
+/** EMPRISE du pinceau : le carré de côté `taille` centré sur `p`, rogné à la carte ; vide si `p` est hors
+ *  carte. Source UNIQUE des peintres de case (`paintTiles`, `paintHeight`, `paintCrenellated`) et de
+ *  l'aperçu du trait du canevas. */
+export function empriseDuPinceau(dimensions: { w: number; h: number }, p: Pt, taille: number): Pt[] {
+  const { w, h } = dimensions;
+  if (p.x < 0 || p.y < 0 || p.x >= w || p.y >= h) return [];
+  const r = Math.floor((taille - 1) / 2);
+  const cases: Pt[] = [];
+  for (let dy = -r; dy <= r; dy++)
+    for (let dx = -r; dx <= r; dx++) {
+      const x = p.x + dx, y = p.y + dy;
+      if (x >= 0 && y >= 0 && x < w && y < h) cases.push({ x, y });
+    }
+  return cases;
 }
 
 const inRect = (p: Pt, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
-const clamp = (v: number, max: number) => Math.max(0, Math.min(max - 1, v));
 
 /** Deux sélections désignent-elles le même élément ? */
 export function sameSel(a: Sel, b: Sel): boolean {
@@ -344,162 +273,6 @@ export function selPos(scene: Scene, sel: Sel): Pt | null {
   return r ? { x: r.x, y: r.y } : null;
 }
 
-/** Déplace la sélection vers `to` (clampée dans la carte). Scene inchangée si sélection invalide. */
-export function moveSel(scene: Scene, sel: Sel, to: Pt): Scene {
-  const { w, h } = scene.dimensions;
-  if (sel?.type === 'entity') return moveEntityTo(scene, sel.id, { x: clamp(to.x, w), y: clamp(to.y, h) });
-  if (sel?.type === 'entry') {
-    const pos = scene.entryPoints?.[sel.id];
-    if (!pos) return scene;
-    return { ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...pos, x: clamp(to.x, w), y: clamp(to.y, h) } } };
-  }
-  if (sel?.type === 'trigger')
-    return {
-      ...scene,
-      triggers: scene.triggers.map((t) =>
-        t.id === sel.id ? { ...t, rect: { ...t.rect, x: clamp(to.x, w - t.rect.w + 1), y: clamp(to.y, h - t.rect.h + 1) } } : t,
-      ),
-    };
-  if (sel?.type === 'restZone')
-    return {
-      ...scene,
-      restZones: (scene.restZones ?? []).map((z, i) =>
-        i === sel.idx ? { ...z, rect: { ...z.rect, x: clamp(to.x, w - z.rect.w + 1), y: clamp(to.y, h - z.rect.h + 1) } } : z,
-      ),
-    };
-  if (sel?.type === 'effectZone')
-    return {
-      ...scene,
-      effectZones: (scene.effectZones ?? []).map((z, i) => {
-        if (i !== sel.idx) return z;
-        const r = effectZoneRect(z.area);
-        const moved = { x: clamp(to.x, w - r.w + 1), y: clamp(to.y, h - r.h + 1), w: r.w, h: r.h };
-        return setEffectZoneArea(z, effectZoneArea(z.area.kind, moved));
-      }),
-    };
-  if (sel?.type === 'architecturePart')
-    return {
-      ...scene,
-      architecture: scene.architecture?.map((body) => body.id !== sel.bodyId ? body : {
-        ...body,
-        storeys: body.storeys.map((storey) => storey.id !== sel.storeyId ? storey : {
-          ...storey,
-          parts: storey.parts.map((part) => part.id === sel.id ? { ...part, foot: { ...part.foot, x: clamp(to.x, w - part.foot.w + 1), y: clamp(to.y, h - part.foot.h + 1) } } : part),
-        }),
-      }),
-    };
-  if (sel?.type === 'roofSection')
-    return {
-      ...scene,
-      architecture: scene.architecture?.map((body) => body.id !== sel.bodyId ? body : {
-        ...body,
-        masses: body.masses.map((mass) => {
-          if (mass.id !== sel.id || mass.footprint.length === 0) return mass;
-          const minX = Math.min(...mass.footprint.map((part) => part.x));
-          const minY = Math.min(...mass.footprint.map((part) => part.y));
-          const maxX = Math.max(...mass.footprint.map((part) => part.x + part.w));
-          const maxY = Math.max(...mass.footprint.map((part) => part.y + part.h));
-          const dx = clamp(to.x, w - (maxX - minX) + 1) - minX;
-          const dy = clamp(to.y, h - (maxY - minY) + 1) - minY;
-          return { ...mass, footprint: mass.footprint.map((part) => ({ ...part, x: part.x + dx, y: part.y + dy })) };
-        }),
-      }),
-    };
-  return scene;
-}
-
-/** Redimensionne le rect de la sélection (trigger/zone repos) : coin NW fixe, coin SE = `to` (≥ NW, clampé). */
-export function resizeSel(scene: Scene, sel: Sel, to: Pt): Scene {
-  const r = selRect(scene, sel);
-  if (!r) return scene;
-  const { w, h } = scene.dimensions;
-  const next = rectFrom({ x: r.x, y: r.y }, { x: Math.max(r.x, clamp(to.x, w)), y: Math.max(r.y, clamp(to.y, h)) });
-  if (sel?.type === 'trigger') return { ...scene, triggers: scene.triggers.map((t) => (t.id === sel.id ? { ...t, rect: { ...next, ...(t.rect.z ? { z: t.rect.z } : {}) } } : t)) };
-  if (sel?.type === 'restZone') return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === sel.idx ? { ...z, rect: { ...next, ...(z.rect.z ? { z: z.rect.z } : {}) } } : z)) };
-  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).map((z, i) => (i === sel.idx ? setEffectZoneArea(z, effectZoneArea(z.area.kind, next)) : z)) };
-  if (sel?.type === 'architecturePart') return {
-    ...scene,
-    architecture: scene.architecture?.map((body) => body.id !== sel.bodyId ? body : {
-      ...body,
-      storeys: body.storeys.map((storey) => storey.id !== sel.storeyId ? storey : { ...storey, parts: storey.parts.map((part) => part.id === sel.id ? { ...part, foot: next } : part) }),
-    }),
-  };
-  if (sel?.type === 'roofSection') {
-    const mass = scene.architecture?.find((body) => body.id === sel.bodyId)?.masses.find((candidate) => candidate.id === sel.id);
-    // Section à UNE seule partie : le geste n'est pas ambigu, la poignée redimensionne cette partie.
-    // Masse MULTI-parties : quelle partie redimensionner ? Ambigu — no-op explicite (#837), jamais une devinette.
-    if (!mass || mass.footprint.length !== 1) return scene;
-    return {
-      ...scene,
-      architecture: scene.architecture?.map((body) => body.id !== sel.bodyId ? body : {
-        ...body,
-        masses: body.masses.map((candidate) => candidate.id !== sel.id ? candidate : { ...candidate, footprint: [next] }),
-      }),
-    };
-  }
-  return scene;
-}
-
-/** Supprime l'élément sélectionné. Scene inchangée si rien/introuvable. Supprimer une entité retire
- *  aussi ses rattachements de rencontre (membre + toute monture qui la chevauchait). */
-export function deleteSel(scene: Scene, sel: Sel): Scene {
-  if (sel?.type === 'entity') {
-    const encounters = scene.encounters.map((e) => {
-      const members = (e.members ?? []).filter((m) => m.entityId !== sel.id);
-      if (members.length === (e.members ?? []).length) return e;
-      return { ...e, members: members.map((m) => (m.ridesEntityId === sel.id ? { ...m, ridesEntityId: undefined } : m)) };
-    });
-    return { ...removeEntity({ ...scene, encounters }, sel.id) };
-  }
-  if (sel?.type === 'trigger') return { ...scene, triggers: scene.triggers.filter((t) => t.id !== sel.id) };
-  // #841 FU-C : les CONTENEURS (corps/étage) étaient inatteignables (audit #835 les avait
-  // signalés « feuilles seules ») — le corps entier disparaît avec ses étages/parties/façades/masses ;
-  // l'étage protège le DERNIER de son corps (mirroir de `removeLayer` protégeant la base de la scène).
-  if (sel?.type === 'architectureBody') return { ...scene, architecture: scene.architecture?.filter((body) => body.id !== sel.id) };
-  if (sel?.type === 'architectureStorey') return {
-    ...scene,
-    architecture: scene.architecture?.map((body) => {
-      if (body.id !== sel.bodyId || body.storeys.length <= 1) return body;
-      return { ...body, storeys: body.storeys.filter((storey) => storey.id !== sel.id) };
-    }),
-  };
-  if (sel?.type === 'facadeSection') return {
-    ...scene,
-    architecture: scene.architecture?.map((body) => body.id === sel.bodyId ? { ...body, facades: body.facades.filter((facade) => facade.id !== sel.id) } : body),
-  };
-  if (sel?.type === 'roofSection') return {
-    ...scene,
-    architecture: scene.architecture?.map((body) => body.id === sel.bodyId ? { ...body, masses: body.masses.filter((mass) => mass.id !== sel.id) } : body),
-  };
-  if (sel?.type === 'architecturePart') return {
-    ...scene,
-    architecture: scene.architecture?.map((body) => body.id !== sel.bodyId ? body : {
-      ...body,
-      storeys: body.storeys.map((storey) => storey.id === sel.storeyId ? { ...storey, parts: storey.parts.filter((part) => part.id !== sel.id) } : storey),
-    }),
-  };
-  if (sel?.type === 'restZone') return { ...scene, restZones: (scene.restZones ?? []).filter((_, i) => i !== sel.idx) };
-  if (sel?.type === 'effectZone') return { ...scene, effectZones: (scene.effectZones ?? []).filter((_, i) => i !== sel.idx) };
-  if (sel?.type === 'wall') {
-    const others = (scene.walls ?? []).filter((w) => !(w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z));
-    return { ...scene, walls: others.length ? others : undefined };
-  }
-  if (sel?.type === 'entry') {
-    const entries = { ...scene.entryPoints };
-    delete entries[sel.id];
-    return { ...scene, entryPoints: Object.keys(entries).length ? entries : undefined };
-  }
-  return scene;
-}
-
-/** Change le TYPE de décor d'une entité `prop` (avec ses défauts de pose et son cap admis,
- *  `propRefPatch`) et traverse le seam d'assise : le nouveau type n'offre pas les places de l'ancien, elles tombent dans la MÊME
- *  mutation. */
-export function changePropRef(scene: Scene, propId: string, ref: string): Scene {
-  const ent = scene.entities.find((e) => e.id === propId && e.kind === 'prop');
-  return ent ? editEntity(scene, propId, propRefPatch(ref, ent)) : scene;
-}
-
 /** Arête la plus proche du centre de la case, depuis l'offset (ox,oy) ∈ [-0.5,0.5] du pointeur. */
 export function nearestEdge(ox: number, oy: number): CellSide {
   const d: Record<CellSide, number> = { N: 0.5 + oy, S: 0.5 - oy, O: 0.5 + ox, E: 0.5 - ox };
@@ -540,21 +313,3 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 /** L'outil d'ENTITÉ seul — ce que `placeEntity` demande, dérivé de `Tool` pour qu'aucun site ne
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
-
-/** Pose une entité à p (id frais) depuis l'OUTIL tel que la palette le porte — il tient déjà le décor
- *  ou la fiche élue : aucun cas muet ne subsiste ici. Les props appliquent leurs défauts de catalogue
- *  (empreinte, interactif si fouillable) ; un personnage porte sa fiche en `ref` et le libellé de la
- *  fiche, son apparence se dérive du record (#1882). Une fiche absente du bestiaire lève. */
-export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0): { scene: Scene; id: string } {
-  const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
-  const base: SceneEntity = { id, kind: outil.kind, pos: { ...p } };
-  if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
-    throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
-  // #1463 S3 · #1882 : `nomDEntite`.
-  const ent: SceneEntity = outil.kind === 'prop'
-    ? { ...base, ...propRefPatch(outil.ref, undefined), label: findPropById(outil.ref)?.label }
-    : outil.kind === 'personnage'
-      ? { ...base, ref: outil.ref }
-      : { ...base, label: libelleDeValeur(entityKindSchema, outil.kind) };
-  return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
-}

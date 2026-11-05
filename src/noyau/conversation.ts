@@ -86,10 +86,6 @@ export function creerActionsDeConversation(get: Get, set: Set) {
       }
       applyDialogueTransition(get, set, transition);
     },
-    closeDialogue: () => {
-      if (get().dialogue) get().advanceTime(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
-      set({ dialogue: null });
-    },
   } satisfies Partial<ActionsDuNoyau>;
 }
 

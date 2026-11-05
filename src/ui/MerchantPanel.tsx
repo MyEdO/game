@@ -700,7 +700,8 @@ export function MerchantPanel() {
   const repairItem = useGame((s) => s.repairItem);
   const startBargain = useGame((s) => s.startBargain);
   const appraiseItem = useGame((s) => s.appraiseItem);
-  const closeMerchant = useGame((s) => s.closeMerchant);
+  const fermer = useGame((s) => s.fenetreFermer);
+  const quitter = () => fermer('marche');
   const setSellHalving = useGame((s) => s.setSellHalving);
   const barterExchange = useGame((s) => s.barterExchange);
   const searchAvailability = useGame((s) => s.searchAvailability);
@@ -714,7 +715,7 @@ export function MerchantPanel() {
       onAddToCart={addToCart} onDecCart={decFromCart} onRemoveCart={removeFromCart} onClearCart={clearCart} onRefuse={refuseBargain} onPay={payCart}
       onAssignDist={assignDistribution} onConfirmDist={confirmDistribution}
       onAddToSellCart={addToSellCart} onRemoveSellCart={removeFromSellCart} onClearSellCart={clearSellCart} onConfirmSell={confirmSell}
-      onRepair={repairItem} onBargain={startBargain} onAppraise={appraiseItem} onClose={closeMerchant}
+      onRepair={repairItem} onBargain={startBargain} onAppraise={appraiseItem} onClose={quitter}
       onSellHalving={setSellHalving} onBarter={barterExchange} onSearchAvailability={searchAvailability}
     />
   );

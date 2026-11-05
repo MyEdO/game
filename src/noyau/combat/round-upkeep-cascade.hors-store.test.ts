@@ -222,7 +222,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     banc.setState({ pendingCascade: { ...merged, maneuverResume: { attackerId: E.id, free: true } } });
 
     banc.getState().cascadeResolveAll();
-    banc.getState().cascadeFinish(); // « Terminer » → dispatchCascadeDone
+    banc.getState().fenetreFermer('cascade'); // « Terminer » → dispatchCascadeDone
 
     // La reprise de tour a joué : la machinerie de tours est RÉ-ARMÉE (jeton d'avance posé) et la pause
     // de début de Round n'a PAS gelé le combat. Précédence `maneuverResume` > `roundBoundary` (#942 L1,

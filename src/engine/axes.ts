@@ -48,6 +48,7 @@ import { skillBaseValue } from './skills';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { possesses } from './skills';
 import type { AxisData } from '../data';
+import { effectiveTalents } from './talentEffects';
 
 const SKILL_VALUE_MIN = 15;
 const SKILL_VALUE_SPAN = 55;
@@ -67,7 +68,7 @@ function skillContribution(hero: Combatant, ref: RefDesignee): number {
 
 function talentContribution(hero: Combatant, ref: RefDesignee): number {
   let best = 0;
-  for (const t of hero.talents) {
+  for (const t of effectiveTalents(hero)) {
     if (!refCouvre(ref, { id: t.talentId, spec: t.spec })) continue;
     best = Math.max(best, Math.min(1, TALENT_BASE + TALENT_STEP * (Math.max(1, t.times) - 1)));
   }
@@ -94,15 +95,20 @@ export function axesProfile(hero: Combatant, axes: AxisData[]): AxisValue[] {
   return axes.map((a) => ({ id: a.id, label: a.label, value: axisScore(hero, a) }));
 }
 
-/** Couverture de GROUPE : agrégat MAX par axe (le rail de composition ne demande pas « la moyenne
- *  couvre-t-elle l'axe » mais « quelqu'un dans le groupe couvre-t-il l'axe »). #417 consomme ceci
- *  pour le rail de composition — AUCUN placement en jeu dans ce lot. Vitrine « forces marquées » :
- *  une alvéole ne s'allume QUE si le meilleur porteur franchit `AXIS_QUALIFY_MIN` (sous le seuil,
- *  agrégat ramené à 0 — « à pourvoir », pas une fausse couverture par Caractéristique nue). */
-export function partyCoverage(members: Combatant[], axes: AxisData[]): AxisValue[] {
+/** Couverture de GROUPE par axe : agrégat MAX (le rail de composition ne demande pas « la moyenne couvre-t-elle
+ *  l'axe » mais « quelqu'un dans le groupe couvre-t-il l'axe »), et son PORTEUR, le premier meilleur à égalité.
+ *  Vitrine « forces marquées » : une alvéole ne s'allume QUE si le meilleur porteur franchit `AXIS_QUALIFY_MIN` ;
+ *  sous le seuil, agrégat ramené à 0 et aucun porteur — « à pourvoir », pas une fausse couverture par
+ *  Caractéristique nue (réfutation utilisateur 2026-07-15). */
+export function partyCoverage(members: Combatant[], axes: AxisData[]): (AxisValue & { porteurId?: string })[] {
   return axes.map((a) => {
-    const best = members.reduce((b, m) => Math.max(b, axisScore(m, a)), 0);
-    return { id: a.id, label: a.label, value: best >= AXIS_QUALIFY_MIN ? best : 0 };
+    let best = 0;
+    let porteurId: string | undefined;
+    for (const m of members) {
+      const v = axisScore(m, a);
+      if (v > best) { best = v; porteurId = m.id; }
+    }
+    return best >= AXIS_QUALIFY_MIN ? { id: a.id, label: a.label, value: best, porteurId } : { id: a.id, label: a.label, value: 0 };
   });
 }
 

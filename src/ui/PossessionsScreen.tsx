@@ -253,7 +253,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
           }
         />
       ) : tab === 'inventaire' ? (
-        <CarrierInventory carrierId={selected.uid} items={selected.items} party={party} />
+        <CarrierInventory carrierId={selected.uid} items={selected.items} />
       ) : tab === 'soute' ? (
         <>
           <NotchGauge label="Cale" value={cargoTotalEnc(selected.cargo ?? [])} max={selectedCapacity!} stacked />

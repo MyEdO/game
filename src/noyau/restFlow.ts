@@ -152,6 +152,7 @@ import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import { decidingSeat, quorumAtteint } from './netOwnership';
@@ -632,12 +633,6 @@ export function restReady(get: Get, set: Set): void {
   set({ pendingRest: { ...p, readyBySeat: { ...(p.readyBySeat ?? {}), [decidingSeat(get())]: true } } });
 }
 
-export function restCancel(get: Get, set: Set): void {
-  const p = get().pendingRest;
-  if (!p || p.phase !== 'setup') return;
-  set({ pendingRest: null });
-}
-
 /** Les bourses du groupe couvrent-elles la note de la halte réglée (`restCost`) ? Vrai sans halte. LDB 66 */
 export function noteDAubergeCouverte(s: Pick<Jeu, 'pendingRest' | 'party'>): boolean {
   return !s.pendingRest || toBrass(restCost(s.pendingRest, s.party)) <= toBrass(totalDesBourses(s.party));
@@ -740,13 +735,17 @@ export function continueRestNights(get: Get, set: Set, ctx: { p: PendingRest; ni
   openRestNight(get, set, ctx.p, ctx.nightsLeft, []);
 }
 
+/** Le repos se renonce hors halte de voyage (`MODAL_DEFS.rest.sortieFermee`). */
+export function sortiesDuRepos(_get: Get, set: Set) {
+  return { rest: () => set({ pendingRest: null }) } satisfies Partial<SortiesDeFenetre>;
+}
+
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
     openRest: (opts) => openRest(get, set, opts),
     restSet: (heroId, patch) => restSet(get, set, heroId, patch),
     restReady: () => restReady(get, set),
     restSleep: () => restSleep(get, set),
-    restCancel: () => restCancel(get, set),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
     restParty: (days = 1) => { sleepParty(get, set, days); },
   } satisfies Partial<ActionsDuNoyau>;

@@ -175,6 +175,8 @@ const NOMMES = [
   // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
   'metal|leather|chaos|peau',
   'disc|wall',
+  // `deitySkillPickSchema` (#1653) : les Compétences du dieu que frappe `deitySkillMod`, dialecte miscast compris.
+  'all|random',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).

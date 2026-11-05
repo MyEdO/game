@@ -223,7 +223,7 @@ function opIsBeneficial(op: GameOp): boolean {
     case 'domeWard': case 'attackWardFM': case 'martyr': case 'giveTrapping':
       return true;
     case 'charMod': return op.mod > 0;
-    case 'skillMod': return op.mod > 0;
+    case 'skillMod': case 'deitySkillMod': return op.mod > 0;
     default: return false;
   }
 }
@@ -235,10 +235,10 @@ function opIsHostileControl(op: GameOp): boolean {
     case 'condition': return true;
     case 'corruption': return op.amount > 0;
     case 'suffocate': case 'exposeDisease': case 'contractDisease': case 'castPenalty':
-    case 'damageArmour': case 'damageWornGear':
+    case 'damageArmour': case 'damageWornGear': case 'deityBan': case 'prayerForAction':
       return true;
     case 'charMod': return op.mod < 0;
-    case 'skillMod': return op.mod < 0;
+    case 'skillMod': case 'deitySkillMod': return op.mod < 0;
     case 'testMod': return op.amount < 0;
     default: return false;
   }
