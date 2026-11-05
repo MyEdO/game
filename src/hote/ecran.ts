@@ -8,8 +8,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId,
-  type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
+  type CombatEvent, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -228,7 +228,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.corps': fenetre ? corpsDeLaFenetre(etat) : [],
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
-    'combat.tour': c ? [ligne('tour', t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
+    'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
@@ -242,10 +242,28 @@ export interface ZonesDeLaSuite {
   'journal.lignes': Ligne[];
 }
 
-/** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites ; un événement de combat
- *  sans texte n'en écrit aucune. */
-export const lignesDuJournal = (avant: number, journal: readonly LigneDuJournal[]): Ligne[] =>
-  journal.flatMap((l, i) => {
+/** Le ton d'un événement du journal de combat : le début d'un round en alerte ; un coup grave (Critique, mort) dit le
+ *  camp qu'il frappe, un héros en échec, un adversaire en réussite. */
+const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
+  if (e.kind === 'round') return 'alerte';
+  if (toneOf(e.kind) !== 'grave') return 'neutre';
+  const frappe = e.targetId ?? e.actorId;
+  return frappe && porteurParId(etat, frappe)?.kind === 'hero' ? 'echec' : 'reussite';
+};
+
+/** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites : une par événement, son
+ *  ton dit ce qu'il pèse ; les sous-lignes d'un événement (`detail`) vont au détail de la ligne qui les précède dans
+ *  l'appel, montré à la demande. Un événement sans texte n'en écrit aucune. */
+export const lignesDuJournal = (etat: Jeu, avant: number, journal: readonly LigneDuJournal[]): Ligne[] =>
+  journal.reduce<Ligne[]>((lignes, l, i) => {
     const texte = l.de === 'journal' ? l.texte : l.evenement.text;
-    return texte ? [ligne(`journal/${avant + i}`, texte)] : [];
-  });
+    if (!texte) return lignes;
+    const id = `journal/${avant + i}`;
+    if (l.de === 'journal') return [...lignes, ligne(id, texte)];
+    const precedente = lignes[lignes.length - 1] as Ligne | undefined;
+    if (l.evenement.kind === 'detail' && precedente) {
+      const sous = texte.replace(/^\s*↳\s*/, '');
+      return [...lignes.slice(0, -1), { ...precedente, detail: precedente.detail === null ? sous : `${precedente.detail}\n${sous}` }];
+    }
+    return [...lignes, ligne(id, texte, tonDeLEvenement(etat, l.evenement))];
+  }, []);

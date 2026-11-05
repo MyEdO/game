@@ -10,8 +10,8 @@ import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 /** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
 export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
 
-/** Une ligne de texte. */
-export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string }
+/** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande. */
+export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null }
 
 /** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). `detail` : ce qu'elle
  *  change, montré à la demande. */
@@ -78,7 +78,7 @@ export type Element = Ligne | Puce | Jauge | Jet | Entite | Bouton | Choix | For
 const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
 
 /** Une ligne. */
-export const ligne = (id: string, texte: string, ton: Ton = 'neutre'): Ligne => ({ type: 'ligne', id, ton, texte });
+export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail });
 
 /** Les arguments du geste `g`, l'argument `nom` valant `valeur` : chaque argument posé par la fenêtre, puis la valeur
  *  courante de chaque argument requis ; un argument optionnel sans valeur clôt la liste. */

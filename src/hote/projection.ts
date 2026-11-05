@@ -69,7 +69,8 @@ export interface Projection {
   jets: JetEnVue[];
   combat: null | {
     round: number;
-    tour: number;
+    /** Le rang du tour dans le round, `null` avant le premier. */
+    tour: number | null;
     tours: number;
     fin: NonNullable<Jeu['battle']>['over'];
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
@@ -222,7 +223,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     combat: b
       ? {
           round: b.round,
-          tour: b.turn + 1,
+          tour: b.turn < 0 ? null : b.turn + 1,
           tours: b.order.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,

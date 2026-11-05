@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
@@ -6,11 +6,15 @@
 [sub_resource type="Theme" id="Avis"]
 Label/font_sizes/font_size = 18
 
+[sub_resource type="Theme" id="Journal"]
+Label/font_sizes/font_size = 14
+
 [node name="Ecran" type="Node"]
 
 [node name="Interface" type="CanvasLayer" parent="."]
 
 [node name="Gauche" type="PanelContainer" parent="Interface"]
+visible = false
 custom_minimum_size = Vector2(300, 0)
 theme_type_variation = &"Panneau"
 
@@ -18,15 +22,17 @@ theme_type_variation = &"Panneau"
 
 [node name="Actif" type="VBoxContainer" parent="Interface/Gauche/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Gauche/Pile/Actif"]
+[node name="Zone" type="Node" parent="Interface/Gauche/Pile/Actif" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.actif"
+masque = NodePath("../../..")
 
 [node name="Avis" type="VBoxContainer" parent="Interface/Gauche/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Gauche/Pile/Avis"]
+[node name="Zone" type="Node" parent="Interface/Gauche/Pile/Avis" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.avis"
+masque = NodePath("../../..")
 
 [node name="Droite" type="PanelContainer" parent="Interface"]
 custom_minimum_size = Vector2(300, 0)
@@ -50,9 +56,11 @@ source = "journal.titre"
 [node name="Defilement" type="ScrollContainer" parent="Interface/Droite/Pile"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+theme = SubResource("Journal")
 
 [node name="Lignes" type="VBoxContainer" parent="Interface/Droite/Pile/Defilement"]
 size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Interface/Droite/Pile/Defilement/Lignes"]
 script = ExtResource("1_zone")

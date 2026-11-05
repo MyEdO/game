@@ -40,6 +40,7 @@ export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLICS_DU_CHAMP } from './actionsDuNoyau';
 export { capDuGroupe, porteurParId } from './monde/combatants';
+export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export { plateauDeLaScene, type Scene } from './monde/scene';
 export { registerScene } from './monde/registreDesScenes';
