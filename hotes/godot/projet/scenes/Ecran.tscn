@@ -16,12 +16,6 @@ theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Gauche"]
 
-[node name="Tour" type="VBoxContainer" parent="Interface/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Gauche/Pile/Tour"]
-script = ExtResource("1_zone")
-source = "combat.tour"
-
 [node name="Actif" type="VBoxContainer" parent="Interface/Gauche/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Gauche/Pile/Actif"]
@@ -75,28 +69,42 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Panneau"
 
-[node name="Rangee" type="HBoxContainer" parent="Interface/Bas"]
-theme_override_constants/separation = 16
+[node name="Offres" type="VBoxContainer" parent="Interface/Bas"]
 
-[node name="Offres" type="VBoxContainer" parent="Interface/Bas/Rangee"]
-size_flags_horizontal = 3
-
-[node name="Zone" type="Node" parent="Interface/Bas/Rangee/Offres"]
+[node name="Zone" type="Node" parent="Interface/Bas/Offres"]
 script = ExtResource("1_zone")
 source = "combat.offres"
 
-[node name="Fin" type="VBoxContainer" parent="Interface/Bas/Rangee"]
-alignment = 1
+[node name="Haut" type="PanelContainer" parent="Interface"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 8.0
+grow_horizontal = 2
+theme_type_variation = &"Panneau"
 
-[node name="Zone" type="Node" parent="Interface/Bas/Rangee/Fin"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Haut"]
+
+[node name="Tour" type="VBoxContainer" parent="Interface/Haut/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Haut/Pile/Tour" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
-source = "combat.offres"
-ids = PackedStringArray("end-turn")
+source = "combat.tour"
+masque = NodePath("../../..")
+
+[node name="Ordre" type="HBoxContainer" parent="Interface/Haut/Pile"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Haut/Pile/Ordre"]
+script = ExtResource("1_zone")
+source = "combat.ordre"
 
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
+offset_top = 72.0
 grow_horizontal = 2
 theme = SubResource("Avis")
 

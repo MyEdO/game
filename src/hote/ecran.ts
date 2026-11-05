@@ -2,7 +2,7 @@
  * L'ÉCRAN D'UN HÔTE QUI DESSINE LA PARTIE (#2928, #3328), commun aux hôtes qui la montrent au joueur : chaque zone de
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
- * combat (le round et le tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
+ * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
  * le journal. À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
@@ -25,9 +25,10 @@ export interface ZonesDeLEcran {
   'fenetre.reglages': (Bouton | Choix | Formulaire)[];
   'fenetre.gestes': (Bouton | Choix | Formulaire)[];
   'combat.tour': Ligne[];
+  'combat.ordre': Puce[];
   'combat.actif': Entite[];
   'combat.avis': Ligne[];
-  'combat.offres': (Bouton | Choix)[];
+  'combat.offres': Choix[];
   'journal.titre': Ligne[];
 }
 
@@ -179,20 +180,27 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres ouvertes de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise ;
- *  rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui la nomme une fois. Une offre
- *  qui n'en prend aucune (la fin du tour) reste un bouton seul, après elles. */
-function offresDuCombat(c: Combat): (Bouton | Choix)[] {
+/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand l'actif la vise, refusée avec sa
+ *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
+ *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. */
+function offresDuCombat(c: Combat): Choix[] {
   const offres = c.offres?.liste ?? [];
   const bouton = (o: (typeof offres)[number]): Bouton => ({
-    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: null,
+    type: 'bouton', id: o.id, libelle: garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre'), jeu: { offre: o.id }, presse: c.intention === o.id, focus: false, refus: o.refus,
   });
-  const parts = [...new Set(offres.map((o) => o.economie))].filter((e) => e !== 'aucun');
-  return [
-    ...parts.map((e): Choix => ({ type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton) })),
-    ...offres.filter((o) => o.economie === 'aucun').map(bouton),
-  ];
+  return [...new Set(offres.map((o) => o.economie))].map((e): Choix => ({
+    type: 'choix', id: `economie/${e}`, ton: 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: offres.filter((o) => o.economie === e).map(bouton),
+  }));
 }
+
+/** L'ordre du tour (`battle.order`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en alerte,
+ *  un ennemi en échec. */
+const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
+  (etat.battle?.order ?? []).flatMap((id) => {
+    const x = porteurParId(etat, id);
+    if (!x) return [];
+    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'enemy' ? 'echec' : 'neutre')];
+  });
 
 /** Le ton de chaque issue du combat. */
 const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
@@ -221,6 +229,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
     'combat.tour': c ? [ligne('tour', t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
+    'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
     'combat.offres': c ? offresDuCombat(c) : [],

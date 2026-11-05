@@ -5,6 +5,7 @@
  * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (provenance :
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
+import { garanti } from '../lib/garanti';
 import { activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
@@ -33,13 +34,15 @@ export interface EntiteProjetee {
   pos: [x: number, y: number];
 }
 
-/** Une offre ouverte de la vue : l'action, ses candidats ouverts comptés, son coût en mots, et la part de l'économie
- *  du tour qu'elle prend (`ActionDef.coutAction`, son id). */
+/** Une offre de la vue : l'action, ses candidats ouverts comptés, son coût en mots, la part de l'économie du tour
+ *  qu'elle prend (`ActionDef.coutAction`, son id), et pourquoi elle est fermée quand aucun candidat ne l'ouvre (`refus`,
+ *  la raison de son premier candidat ; `null` : ouverte). */
 export interface OffreEnVue {
   id: string;
   n: number;
   cout: string | null;
   economie: Offre['def']['coutAction'];
+  refus: string | null;
 }
 
 /** Les éléments au plus de chaque liste de la projection, le reste compté (`enPlus`) : les combattants après l'actif et
@@ -156,13 +159,16 @@ const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
   offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
 
-/** Les offres ouvertes, une par action, ses candidats comptés, dans l'ordre du registre. */
+/** Les offres, une par action, dans l'ordre du registre : ses candidats ouverts comptés ; fermée quand aucun ne
+ *  l'ouvre, avec la raison de son premier candidat (loi du refus visible, `offresDeLActif`). */
 function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
   const parId = new Map<string, OffreEnVue>();
   for (const o of offres) {
-    if (!o.gate.ok) continue;
-    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction };
-    vue.n++;
+    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction, refus: o.gate.ok ? null : garanti(o.gate.reason, o.actionId, 'raison du refus de l’offre') };
+    if (o.gate.ok) {
+      vue.n++;
+      vue.refus = null;
+    }
     parId.set(o.actionId, vue);
   }
   return [...parId.values()];

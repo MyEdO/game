@@ -363,6 +363,7 @@ export const fr = {
   'ecran.economie.action': 'Action',
   'ecran.economie.mouvement': 'Mouvement',
   'ecran.economie.gratuit': 'Gratuit',
+  'ecran.economie.aucun': 'Tour',
   'ecran.apercu': 'Coût : {cout} de Mouvement',
   'ecran.apercu.cible': 'Cible : {cible}',
   'ecran.separateur': ' · ',
