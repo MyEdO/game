@@ -8,7 +8,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, difficultyText, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, conditionLabel, difficultyText, formatMoney, fenetreDAttaque, fenetreDeDefense, jetsEnVue, porteurParId, toneOf,
   type CombatEvent, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -141,14 +141,16 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];
 
-/** Le corps de la fenêtre qui tient la main : la fenêtre d'attaque quand une attaque est en attente
- *  (`fenetreDAttaque`), sinon qui attaque qui quand une Défense l'est (`fenetreDeDefense`) et le jet de sa réaction
- *  avant le dé, puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle
- *  et le Sauvetage par le Destin en attente. */
+/** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
+ *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
+ *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle, le
+ *  Sauvetage par le Destin et la victoire en attente. */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
-  const attaque = fenetreDAttaque(etat);
+  const pc = etat.pendingCascade;
+  const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
+  const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
   if (attaque) return corpsDeLAttaque(etat, attaque);
-  const defense = fenetreDeDefense(etat);
+  const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
     ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
@@ -160,6 +162,21 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
     ...destinEnJeu(etat),
+    ...victoire(etat),
+  ];
+}
+
+/** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque
+ *  message de la rencontre ; l'équipement s'attribue par les réglages de la fenêtre (`fenetreDuButin`). */
+function victoire(etat: Jeu): Element[] {
+  const v = etat.pendingVictory;
+  if (!v) return [];
+  const argent = formatMoney(v.gold);
+  return [
+    ...(v.xp ? [puce('victoire/xp', t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
+    ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce('victoire/argent', t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
+    ...v.defeated.map((d, i) => ligne(`victoire/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
+    ...(v.messages ?? []).map((m, i) => ligne(`victoire/message/${i}`, m)),
   ];
 }
 

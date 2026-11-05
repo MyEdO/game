@@ -84,7 +84,7 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       expect(lignes(argumentDe(victoire, 'appraiseGear', 'index'))).toEqual(nommees);
       expect(lignes(argumentDe(victoire, 'appraiseGear', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
-      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.verbe), 'sans ligne, rien à attribuer ni à évaluer').toEqual(['assignVictoryGear', 'appraiseGear']);
+      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.verbe), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['assignVictoryGear', 'harvestCreature', 'appraiseGear']);
     });
   });
 
