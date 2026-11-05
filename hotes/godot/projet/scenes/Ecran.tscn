@@ -16,12 +16,6 @@ theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Gauche"]
 
-[node name="Tour" type="VBoxContainer" parent="Interface/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Gauche/Pile/Tour"]
-script = ExtResource("1_zone")
-source = "combat.tour"
-
 [node name="Actif" type="VBoxContainer" parent="Interface/Gauche/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Gauche/Pile/Actif"]
@@ -81,10 +75,36 @@ theme_type_variation = &"Panneau"
 script = ExtResource("1_zone")
 source = "combat.offres"
 
+[node name="Haut" type="PanelContainer" parent="Interface"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 8.0
+grow_horizontal = 2
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Haut"]
+
+[node name="Tour" type="VBoxContainer" parent="Interface/Haut/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Haut/Pile/Tour" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.tour"
+masque = NodePath("../../..")
+
+[node name="Ordre" type="HBoxContainer" parent="Interface/Haut/Pile"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Haut/Pile/Ordre"]
+script = ExtResource("1_zone")
+source = "combat.ordre"
+
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
+offset_top = 72.0
 grow_horizontal = 2
 theme = SubResource("Avis")
 
