@@ -10,7 +10,8 @@ import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
 import { itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import { findCreatureById, findGroupeDArmureById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups } from '../../data';
+import { findCreatureById, findGroupeDArmureById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findTierEntry } from '../../engine/tables';
 import { resetData, setDataset } from '../../data/overrides';
 import { localisationsDeLoc } from '../../engine/classementDeTrait';
 import { spawnEnemy } from '../monde/spawn';
@@ -118,7 +119,7 @@ describe('porteeDuCombattant', () => {
     expect(c.items?.some((i) => i.equipped && i.kind === 'armor')).toBeFalsy();
     const locs = (Object.keys(c.armour) as (keyof typeof c.armour)[]).filter((l) => c.armour[l] > 0);
     expect(locs.length).toBeGreaterThan(0);
-    const palier = weaponGroups.filter((g) => g.kind === 'armour' && g.palierPA !== null && g.palierPA <= c.armour.corps).sort((a, b) => (b as { palierPA: number }).palierPA - (a as { palierPA: number }).palierPA)[0];
+    const palier = findTierEntry(weaponGroups.filter((g): g is GroupeDArmure & { seuil: number } => g.kind === 'armour' && g.seuil !== undefined), c.armour.corps)!;
     teindreLesGroupes({ [palier.id]: 'ardente-de-rhuin' });
     expect(pieces(c)).toEqual(piecesCouvrant(locs).map((piece) => ({ piece, par: undefined, teinte: 'ardente-de-rhuin' })));
   });
