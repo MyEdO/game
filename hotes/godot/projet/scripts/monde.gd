@@ -2,9 +2,9 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et la caméra pivotante (Q/E, par quart de tour) et zoomable (molette) centrée sur lui. Il rend la case du triangle que
 ## le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
-## surbrillance que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes (`KIT`) que
-## l'arête nomme, l'arête choisie et le calque de référence de l'éditeur ; tout autre chose posée sur le monde appartient
-## à qui l'instancie.
+## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
+## (`KIT`) que l'arête nomme, l'arête choisie et le calque de référence de l'éditeur ; tout autre chose posée sur le monde
+## appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -43,6 +43,7 @@ const KIT := "res://kit/kit.glb"
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 @onready var _surbrillance: Node3D = $Surbrillance
 @onready var _aretes: Node3D = $Aretes
+@onready var _etiquettes: Node3D = $Etiquettes
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
 
@@ -58,6 +59,8 @@ var _couche_des_aretes := 0
 var _matieres := {}
 ## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
 var _kit: Node3D
+## Les noms posés (`etiqueter`), par case `x,y,z`.
+var _noms := {}
 ## Les mètres d'une case du dernier monde posé.
 var _metres_par_case := 1.0
 var _pivotement: Tween
@@ -173,6 +176,28 @@ func peindre(plaques: Dictionary) -> void:
 		plaque.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		plaque.transform = surbrillances.get_item_mesh_transform(item).translated(lieu(Vector2i(c.x, c.y), c.z))
 		_surbrillance.add_child(plaque)
+
+
+## Les noms `noms` (par case `Vector3i(x, y, z)`, le texte), chacun au-dessus du sol de sa case, toujours devant la scène,
+## à la place des précédents.
+func etiqueter(noms: Dictionary) -> void:
+	for etiquette in _etiquettes.get_children():
+		_etiquettes.remove_child(etiquette)
+		etiquette.free()
+	_noms.clear()
+	for c: Vector3i in noms:
+		var nom := Label3D.new()
+		nom.text = noms[c]
+		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		nom.no_depth_test = true
+		nom.position = MiseEnPage.au_dessus_de_la_case(Vector2i(c.x, c.y), sol(Vector2i(c.x, c.y), c.z))
+		_etiquettes.add_child(nom)
+		_noms["%d,%d,%d" % [c.x, c.y, c.z]] = noms[c]
+
+
+## Les noms posés sur le monde, par case `x,y,z`.
+func noms() -> Dictionary:
+	return _noms
 
 
 ## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau ») de la couche `z`, chacune sur le côté de sa case, posée sur

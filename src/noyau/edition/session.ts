@@ -1,16 +1,17 @@
 /**
  * LA SESSION D'ÉDITION D'UNE CARTE (#3508), sans hôte : le projet ouvert, l'historique de la scène éditée, l'outil, la
  * couche, le pinceau, la sélection, le geste du pointeur en cours, le tracé d'une volée, le brouillon de l'arête
- * sélectionnée, l'enregistrement au dépôt et les calques de référence, et le seul réducteur qui les fait avancer
+ * sélectionnée, l'entité copiée, l'enregistrement au dépôt et les calques de référence, et le seul réducteur qui les fait avancer
  * (`editer`) sur une union fermée de gestes. Chaque geste délègue au pointeur (`./pointeur`), à l'historique
  * (`./historique`), aux écrivains de `../sceneEdit`, à la volée (`../stairFlight`) et au calque (`./calque`) ; aucun
  * n'écrit de règle de scène. L'éditeur Godot la reçoit par le pont.
  */
-import type { Scene, WallSecret, WallSeg } from '../monde/scene';
+import type { Scene, SceneEntity, WallSecret, WallSeg } from '../monde/scene';
+import type { Dir8 } from '../../geometry/dir8';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addLayer, deleteSel, patchWall, removeLayer, type Pt } from '../sceneEdit';
-import { etageSuivant, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
+import { addLayer, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchWall, propRefPatch, removeLayer, renameEntry, type Pt } from '../sceneEdit';
+import { entiteDeLaSelection, etageSuivant, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { annuler, historiqueDe, poser, retablir, type Historique } from './historique';
@@ -34,10 +35,17 @@ export const HAUTEURS = [
 const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 /** Les outils que l'éditeur offre. */
-export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'erase' }>;
+export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'entry' | 'erase' }>;
 
 /** Ce que l'inspecteur écrit sur l'arête sélectionnée (`patchWall`) : chaque champ posé, `null` le retire. */
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
+
+/** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche. */
+export interface PatchDEntite {
+  ref?: string;
+  facing?: Dir8;
+  z?: number;
+}
 
 /** Ce que l'arête sélectionnée attend de l'auteur avant de s'écrire entière (`wallSegSchema`) : la porte secrète
  *  sans sa difficulté ou sa face, la croisée franchissable sans son allège. La scène reste valide, l'état incomplet
@@ -65,6 +73,8 @@ export interface SessionDEdition {
   brouillon: BrouillonDArete | null;
   /** La dernière case qu'un appui a visée, sur la couche `z` de cet appui. */
   pointee: (Pt & { z: number }) | null;
+  /** L'entité copiée, que coller pose sur la case pointée ; `null` avant toute copie. */
+  presse: SceneEntity | null;
   /** Le dépôt d'où le projet s'est ouvert : la scène éditée telle qu'il la porte, et celle qu'un enregistrement en
    *  cours lui écrit. `null` : le projet vient du jeu, il ne s'enregistre pas. */
   depot: { enregistree: Scene; enCours: Scene | null } | null;
@@ -81,7 +91,9 @@ export interface SessionDEdition {
 /** Un geste de l'éditeur : choisir l'outil, la taille du pinceau, le rectangle du pinceau de terrain, la couche
  *  éditée ; ajouter une couche au-dessus de la plus haute, retirer la couche éditée ; appuyer, glisser, relâcher
  *  sur un point de la carte ; poser la volée tracée, effacer son tracé ; écrire sur l'arête sélectionnée, ou poser
- *  son brouillon ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
+ *  son brouillon ; écrire sur l'entité sélectionnée ; nommer l'entité ou l'entrée sélectionnée (`nom` absent : l'entité
+ *  reprend le nom de sa fiche) ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
+ *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer. */
 export type GesteDEdition =
@@ -94,6 +106,12 @@ export type GesteDEdition =
   | { geste: 'appui' | 'glisse' | 'relache'; point: PointDeCarte }
   | { geste: 'poserVolee' }
   | { geste: 'arete'; patch?: PatchDArete; brouillon?: BrouillonDArete | null }
+  | { geste: 'entite'; patch: PatchDEntite }
+  | { geste: 'nommer'; nom?: string }
+  | { geste: 'entree'; z: number }
+  | { geste: 'copier' }
+  | { geste: 'coller' }
+  | { geste: 'dupliquer' }
   | { geste: 'supprimer' }
   | { geste: 'effacerVolee' }
   | { geste: 'annuler' }
@@ -116,7 +134,7 @@ export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: bool
   const scene = projet.scenes[0];
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
-    projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'select' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null,
+    projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'select' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistree: scene, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null,
   };
@@ -183,8 +201,25 @@ function porter(s: SessionDEdition, effet: EffetDuPointeur): SessionDEdition {
   };
 }
 
-/** La scène `scene` écrite sur un cran neuf, la sélection et son brouillon levés. */
-const ecrire = (s: SessionDEdition, scene: Scene): SessionDEdition => ({ ...s, historique: poser(s.historique, scene, true), sel: null, brouillon: null });
+/** La scène `scene` écrite sur un cran neuf, la sélection et son brouillon levés, ou `sel` sélectionnée. */
+const ecrire = (s: SessionDEdition, scene: Scene, sel: Sel = null): SessionDEdition => ({ ...s, historique: poser(s.historique, scene, true), sel, brouillon: null });
+
+/** La session `s` où la scène `scene` s'écrit sur un cran neuf si ce que `lire` y lit de la sélection change : sinon,
+ *  `s` telle quelle. La sélection reste. */
+function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Scene) => T): SessionDEdition {
+  return jsonCanonique(lire(scene)) === jsonCanonique(lire(sceneEditee(s))) ? s : { ...s, historique: poser(s.historique, scene, true) };
+}
+
+/** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
+ *  (`propRefPatch`), la couche 0 comme son absence. */
+function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
+  const { ref, z, ...reste } = patch;
+  return {
+    ...reste,
+    ...(ref === undefined ? {} : ent.kind === 'prop' ? propRefPatch(ref, ent) : { ref }),
+    ...(z === undefined ? {} : { z: z || undefined }),
+  };
+}
 
 /** Le patch `patch` de l'inspecteur en patch de segment : chaque `null` retire son champ. */
 const enPatchDeSegment = (patch: PatchDArete): Partial<WallSeg> =>
@@ -200,8 +235,11 @@ function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
 /** La session après le geste `g`, sur la couche éditée. Changer de couche efface le tracé de la volée, qui est celui de
  *  sa couche. Écrire sur l'arête sélectionnée la garde sélectionnée, sans cran quand l'arête n'en change pas. Pendant
  *  le calage, l'appui cale le calque et le glissé n'ouvre aucun geste ; demander une planche l'abandonne, cacher le
- *  calque aussi. Un geste sans objet (retirer la couche 0, une couche absente, poser une volée que son plan refuse,
- *  écrire sans arête sélectionnée, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
+ *  calque aussi. Écrire sur l'entité ou l'entrée sélectionnée la garde sélectionnée, l'entrée sous son nouveau nom ;
+ *  coller ou dupliquer sélectionne l'entité posée. Un geste sans objet (retirer la couche 0, une couche absente, poser
+ *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, renommer une entrée d'un nom vide
+ *  ou déjà pris, copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
+ *  dupliquer sans entité sélectionnée, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, demander une planche pendant un chargement, régler ou retirer un calque
  *  absent) la rend telle quelle. */
 function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
@@ -243,8 +281,38 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const seg = segmentDeLaSelection(scene, s.sel);
       if (!seg) return s;
       const patchee = g.patch ? patchWall(scene, seg.x, seg.y, seg.side, seg.z ?? 0, enPatchDeSegment(g.patch)) : scene;
-      const ecrite = jsonCanonique(segmentDeLaSelection(patchee, s.sel)) === jsonCanonique(seg) ? s : { ...s, historique: poser(s.historique, patchee, true) };
+      const ecrite = ecrireSurLaSelection(s, patchee, (sc) => segmentDeLaSelection(sc, s.sel));
       return g.brouillon === undefined ? ecrite : { ...ecrite, brouillon: g.brouillon };
+    }
+    case 'entite': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      return ent ? ecrireSurLaSelection(s, editEntity(scene, ent.id, enPatchDEntite(ent, g.patch)), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+    }
+    case 'nommer': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      if (ent) return ecrireSurLaSelection(s, editEntity(scene, ent.id, { label: g.nom || undefined }), (sc) => entiteDeLaSelection(sc, s.sel));
+      if (s.sel?.type !== 'entry' || g.nom === undefined) return s;
+      const renommee = renameEntry(scene, s.sel.id, g.nom);
+      return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });
+    }
+    case 'entree': {
+      const sel = s.sel;
+      return sel?.type === 'entry' ? ecrireSurLaSelection(s, editEntry(scene, sel.id, { z: g.z }), (sc) => sc.entryPoints?.[sel.id]) : s;
+    }
+    case 'copier': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      return ent ? { ...s, presse: ent } : s;
+    }
+    case 'coller': {
+      if (!s.presse || s.pointee?.z !== s.z) return s;
+      const out = pasteEntity(scene, s.presse, s.pointee, s.z);
+      return ecrire(s, out.scene, { type: 'entity', id: out.id });
+    }
+    case 'dupliquer': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      if (!ent) return s;
+      const out = dupliquerLEntite(scene, ent);
+      return ecrire(s, out.scene, { type: 'entity', id: out.id });
     }
     case 'supprimer':
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;

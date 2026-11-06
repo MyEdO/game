@@ -786,6 +786,11 @@ export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { sc
   return { scene: addEntity(scene, ent, z), id };
 }
 
+/** Colle une copie de l'entité `ent` sur la case voisine au sud-est de la sienne (`pasteEntity`), sur sa couche. */
+export function dupliquerLEntite(scene: Scene, ent: SceneEntity): { scene: Scene; id: string } {
+  return pasteEntity(scene, ent, { x: ent.pos.x + 1, y: ent.pos.y + 1 }, ent.z ?? 0);
+}
+
 /** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
  *  `editEntry` (`borneALaCarte`), sur l'étage `z` (défaut 0). Les transitions et la carte du monde le
  *  référencent par son id (#835 FU-5). */

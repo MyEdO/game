@@ -17,7 +17,6 @@ signal habille
 @onready var _combattants: Node3D = $Combattants
 
 var _modeles: Dictionary = {}
-var _entites: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
 
@@ -60,19 +59,13 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_peindre()
 
 
-## Chaque entité de la scène nommée au-dessus de sa case.
+## Chaque entité de la scène nommée au-dessus de sa case (`Monde.etiqueter`).
 func _nommer_les_entites(entites: Array) -> void:
+	var noms := {}
 	for e in entites:
-		if _entites.has(e.id) or e.nom == null:
-			continue
-		var nom := Label3D.new()
-		nom.text = e.nom
-		nom.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		nom.no_depth_test = true
-		var case := Vector2i(int(e.pos[0]), int(e.pos[1]))
-		nom.position = MiseEnPage.au_dessus_de_la_case(case, _monde.sol(case))
-		_entites[e.id] = nom
-		add_child(nom)
+		if e.nom != null:
+			noms[Vector3i(int(e.pos[0]), int(e.pos[1]), 0)] = e.nom
+	_monde.etiqueter(noms)
 
 
 ## Par id de combattant dessiné, ce que porte son corps (`Combattant.corps`).
