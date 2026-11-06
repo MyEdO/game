@@ -52,13 +52,13 @@ describe('talentTestSLBonus — règle LDB 10 universelle (matcher structuré te
 describe('Intégrité des talent.test.matches (garde de curation)', () => {
   const skillIds = new Set(skills.map((s) => s.id));
   const CHARS = new Set(['capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite', 'intelligence', 'force-mentale', 'sociabilite']);
-  it('chaque match a skill XOR char, et l’id/la Caractéristique résout', () => {
+  it('chaque match a skill XOR characteristic, et l’id/la Caractéristique résout', () => {
     const bad: string[] = [];
     for (const t of talents) {
       for (const m of t.test?.matches ?? []) {
-        if ((m.skill != null) === (m.char != null)) bad.push(`${t.id}: match doit avoir skill XOR char`);
+        if ((m.skill != null) === (m.characteristic != null)) bad.push(`${t.id}: match doit avoir skill XOR characteristic`);
         if (m.skill != null && !skillIds.has(m.skill.id)) bad.push(`${t.id}: skill '${m.skill.id}' inconnu`);
-        if (m.char != null && !CHARS.has(m.char)) bad.push(`${t.id}: char '${m.char}' inconnu`);
+        if (m.characteristic != null && !CHARS.has(m.characteristic)) bad.push(`${t.id}: characteristic '${m.characteristic}' inconnu`);
       }
     }
     expect(bad).toEqual([]);

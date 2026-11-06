@@ -23,7 +23,7 @@ import {
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
   WATER_EXPOSURE, navalPorts,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
-  disponibilite, riverNavigation,
+  disponibilite, riverNavigation, seaCargo, landCargo,
   GRAPPLE, STAKES,
   regles,
 } from './index';
@@ -247,6 +247,8 @@ const OBJECTS = {
   disponibilite,
   // #422 : Navigation fluviale (MSRC 7) — fiche de règle UNIQUE, même patron.
   riverNavigation,
+  // #3433 : règles de négoce maritime (MDG 15) et terrestre (MSRC 13) — fiches de règle UNIQUES, même patron.
+  seaCargo, landCargo,
   // #422 (FINAL) : Empoignade (LDB 14) — fiche de règle UNIQUE, même patron.
   grapple: GRAPPLE,
   // Barres par catégorie de Taille (mod de tir LDB 14, Enc à bord MDG 12, empreinte de grille MAISON) —

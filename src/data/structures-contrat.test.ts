@@ -48,7 +48,7 @@ import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
 
 import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
-import { jetSchema } from './schemas/grammaire/mecanique';
+import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -184,7 +184,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   });
 
   /**
-   * SPREADS : la grammaire les résout pour signer ses communs (`profilDeVoileSchema` = `crew,m,spec`) ; un
+   * SPREADS : la grammaire les résout pour signer ses communs (`jetSchema` = `characteristic,difficulty,skill`) ; un
    * littéral de def ne s'apparie que sur ses clés PROPRES. Grammaire réelle copiée ; seul le module de def est posé.
    */
   it('redéclarations : un commun de la grammaire se signe spreads résolus, un littéral de def sur ses seules clés propres', () => {
@@ -195,16 +195,16 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       writeFileSync(
         join(dossier, 'src/data/schemas/defs/fixture.ts'),
         [
-          'const voile = z.strictObject({ m: z.number(), crew: z.number(), spec: s });',
+          'const jet = z.strictObject({ skill: s, characteristic: c, difficulty: d });',
           'const evasion = z.strictObject({ difficulty: d, ...plageSchema.shape });',
           'const rangee = z.strictObject({ ...plageSchema.shape, extra: z.number() });',
-          'const recompose = z.strictObject({ ...profilDePropulsionSchema.shape, spec: s });',
+          'const recompose = z.strictObject({ ...sujetDuJetSchema.shape, difficulty: d });',
         ].join('\n'),
       );
       expect(
         scannerRedeclarations(dossier).redeclarations.filter((r) => r.def === 'fixture.ts').map((r) => `${r.def}:${r.ligne} | ${r.signature} | ${r.commun}`),
-        'la voile re-tapée redéclare `profilDeVoileSchema` ; `{ difficulty, ...X.shape }` et `{ ...plage, extra }` composent ; le re-tapage réparti est l’angle mort déclaré.',
-      ).toEqual(['fixture.ts:1 | crew,m,spec | profilDeVoileSchema']);
+        'le jet re-tapé redéclare `jetSchema` ; `{ difficulty, ...X.shape }` et `{ ...plage, extra }` composent ; le re-tapage réparti est l’angle mort déclaré.',
+      ).toEqual(['fixture.ts:1 | characteristic,difficulty,skill | jetSchema']);
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
@@ -647,12 +647,12 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
   it('les porteurs de `difficulty` se PARTITIONNENT en plage / identité / référence / sans sujet / sujet nommé, et « sujet nommé » EST le concept `test`', () => {
     const ID = new Set(CLES_IDENTITE as readonly string[]);
     // Le SUJET du Test : les clés que l'invariant de `flowTestSchema` exige (#1657 B3-3), lues au nœud
-    // canonique ; le lexique les DÉCLARE en `coPresence`, avec la graphie historique `char`.
+    // canonique `sujetDuJetSchema` ; le lexique les DÉCLARE en `coPresence`, aucune autre graphie.
     const sujets = CONCEPTS.find((c) => c.id === 'test')?.coPresence ?? [];
     expect(
-      Object.keys(jetSchema.shape).filter((k) => k !== 'difficulty').filter((k) => !sujets.includes(k)),
-      'une clé de SUJET du nœud canonique manque à la `coPresence` du concept `test`.',
-    ).toEqual([]);
+      [...sujets].sort(),
+      'la `coPresence` du concept `test` est exactement le SUJET du nœud canonique.',
+    ).toEqual(Object.keys(sujetDuJetSchema.shape).sort());
     const porteurs: { site: string; famille: string }[] = [];
     const intersections: Record<string, number> = { 'plage∩identité': 0, 'plage∩référence': 0, 'identité∩référence': 0 };
     const marche = (v: unknown, dataset: string, champ: string): void => {

@@ -3,9 +3,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
-import { executeesDe, exigerDuTest, flowTestSchema, jetSchema } from '../grammaire/mecanique';
+import { executeesDe, exigerDuTest, flowTestSchema, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
-import { refOuSpec } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
 
 export const file = 'tavernGames.json';
@@ -26,13 +25,12 @@ const doc = document(
     ...jetSchema.shape,
     /** NADJ 16 l.11 */
     fastSkill: nommerChamps(z.strictObject({
-      skill: refOuSpec('skill').optional(),
-      char: charKeySchema.optional(),
+      ...sujetDuJetSchema.shape,
       /** Tag MAISON obligatoire : cet override n'est pas dans la source. */
       maison: maisonSchema,
     }), {
       skill: { label: 'Compétence' },
-      char: { label: 'Caractéristique' },
+      characteristic: { label: 'Caractéristique' },
       maison: { label: 'Arbitrage maison' },
     }).optional(),
     /** Absent quand le jeu ne se résout pas au Test : l'Al-zahr est un jeu de MISE (`pot`). */
@@ -134,10 +132,7 @@ const doc = document(
     }).optional(),
     /** NADJ 16 l.90 */
     combined: nommerChamps(z.strictObject({
-      second: nommerChamps(z.strictObject({
-        skill: refOuSpec('skill').optional(),
-        char: charKeySchema.optional(),
-      }), { skill: { label: 'Compétence' }, char: { label: 'Caractéristique' } }),
+      second: sujetDuJetSchema,
       failEvery: z.number().optional(),
       eraseEvery: z.number().optional(),
       ops: executeesDe().optional(),
