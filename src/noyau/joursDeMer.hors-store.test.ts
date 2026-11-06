@@ -37,6 +37,7 @@ function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, u
     party: makePregens().slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     worldMap: carte,
+    lieu: 'A',
     gameTime: 8 * 60,
     vessel: { ...navire, morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   }, entrees);

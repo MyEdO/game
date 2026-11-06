@@ -44,7 +44,7 @@ import { faceSurface } from './faceColors';
 import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
 import { coursesPeriodM, groundPeriodM, roofCourseStepM, variantOf, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/facades';
+import { facadeStructureAppearance } from '../../catalog/structures';
 import { FASCIA_THICK_M, roofMaterial } from '../../catalog/roofs';
 import { wallPartRelief } from '../../catalog/structures';
 import { WALL_PARTS } from '../../../data/structureAppearance.types';

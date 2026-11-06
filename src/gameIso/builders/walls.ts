@@ -18,7 +18,7 @@ import { viewedBuilder, type Viewed } from '../../noyau/monde/volume/viewTruth';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { structureAppearance } from '../catalog/structures';
 import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
-import { facadeWallFeatureAppearance } from '../catalog/facades';
+import { edgeKey, facadeEdges, facadeWallFeatureAppearance, type FacadeEdge } from '../../noyau/monde/facades';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../../noyau/monde/relief';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
@@ -26,8 +26,7 @@ import type { WallEl } from './types';
 import type { Face, GP } from '../../noyau/monde/volume/types';
 import type { FloorView } from '../../noyau/monde/volume/floors';
 import {
-  closureAppearance, edgeAppearance, edgeKey, facadeEdges, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes,
-  WALL_NB, type FacadeEdge, type RoofField,
+  closureAppearance, edgeAppearance, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes, WALL_NB, type RoofField,
 } from './roofs';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 

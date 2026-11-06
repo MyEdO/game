@@ -333,6 +333,9 @@ export function entiteDeLaSelection(scene: Scene, sel: Sel): SceneEntity | undef
 /** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
 export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;
 
+/** La lumière que l'entité `ent` prend quand l'auteur l'allume : la sienne, ou un rayon de 6 m. */
+export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light']> => ({ ...ent.light, radiusM: ent.light?.radiusM ?? 6 });
+
 /** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
  *  (`capDecorAdmis`). */
 export function capsOfferts(ent: SceneEntity): Dir8[] {

@@ -78,6 +78,7 @@ const NOMMES = [
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
   'clair|pluie|brouillard|neige|tempete',
+  'colombage|pierre|cloture',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
   'heroStart|personnage|prop',

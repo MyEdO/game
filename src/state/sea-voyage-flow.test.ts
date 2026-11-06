@@ -25,7 +25,7 @@ const seaMap: WorldMap = {
 describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-divergence)', () => {
   beforeEach(() => {
     set({
-      party: makePregens().slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap,
+      party: makePregens().slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap, lieu: 'A',
       travelPlan: null, pendingRest: null, pendingCascade: null, gameTime: 8 * 60,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);

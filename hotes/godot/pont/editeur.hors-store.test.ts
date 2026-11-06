@@ -135,7 +135,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, porte: true, ouverte: true }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -193,6 +193,58 @@ describe('l’éditeur de carte par le pont, les entités', () => {
     expect(renommee.surcouche.reperes.find((r) => r.choisi)).toMatchObject({ sorte: 'entree', nom: 'cour-des-coches', x: 1, y: 1 });
     expect(renommee.vue.zones['editeur.pointee'].map((l) => l.texte)).toContain('Entrée « cour-des-coches » · case 1, 1 · couche 0');
     expect(nom).not.toBe('cour-des-coches');
+  });
+});
+
+describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
+  it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(ouverte, 'outil/personnage'));
+    const pnj = jouer({ geste: 'appui', point: point(1, 1) });
+    jouer({ geste: 'relache', point: point(1, 1) });
+    const pnjId = pnj.surcouche.reperes.find((r) => r.choisi)!.id;
+    const enrole = presser(boutonDe(pnj, 'rencontre/neuve'));
+    const choixDeRencontre = enrole.vue.zones['editeur.inspecteur'].find((el) => el.type === 'choix' && el.id.startsWith('rencontre/') && el.valeurs.some((v) => v.id.endsWith('/enrole') && v.presse)) as Choix;
+    const enc = choixDeRencontre.id;
+    const allie = presser(boutonDe(enrole, `${enc}/allie`));
+    expect(boutonDe(presser(boutonDe(allie, `${enc}/ia`)), `${enc}/ia`).presse).toBe(true);
+
+    const engins = presser(boutonDe(allie, 'outil/emplacement'));
+    const engin = valeursDe(engins, 'engins')[1];
+    presser(engin);
+    const pose = jouer({ geste: 'appui', point: point(3, 3) });
+    jouer({ geste: 'relache', point: point(3, 3) });
+    expect(boutonDe(pose, `poste/engin/${engin.id.slice('engin/'.length)}`).presse).toBe(true);
+    const tribord = presser(boutonDe(pose, 'poste/arc/tribord'));
+    expect([boutonDe(tribord, 'poste/arc/tribord').presse, boutonDe(tribord, 'poste/arc/omni').presse]).toEqual([true, false]);
+    const servi = presser(boutonDe(tribord, `poste/servants/${pnjId}`));
+    expect(boutonDe(servi, `poste/chef/${pnjId}`).presse).toBe(true);
+    expect(boutonDe(servi, `equipage/${pnjId}`).presse, 'l’équipage exposé est une autre liste').toBe(false);
+  });
+
+  it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const decors = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/prop'));
+    presser(valeursDe(decors, 'decors').find((b) => b.id === 'prop/table-ronde-4-tabourets')!);
+    const pose = jouer({ geste: 'appui', point: point(5, 5) });
+    jouer({ geste: 'relache', point: point(5, 5) });
+    const texte = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id && el.type === 'ligne') as Ligne | undefined;
+    expect(texte(pose, 'lumiere/rayon'), 'éteinte, pas de rayon').toBeUndefined();
+    const allumee = presser(boutonDe(pose, 'lumiere'));
+    expect(texte(allumee, 'lumiere/rayon')?.texte).toBe('Rayon d’éclairage : 6 m');
+    const plus = presser(boutonDe(allumee, 'lumiere/plus'));
+    expect(texte(plus, 'lumiere/rayon')?.texte).toBe('Rayon d’éclairage : 7 m');
+    expect(boutonDe(presser(boutonDe(plus, 'lumiere/ton/lanterne')), 'lumiere/ton/lanterne').presse).toBe(true);
+    expect(boutonDe(presser(boutonDe(plus, 'assise')), 'assise').presse).toBe(true);
+    const place = pose.vue.zones['editeur.inspecteur'].find((el) => el.type === 'liste' && el.id.startsWith('place/')) as Choix;
+    expect(boutonDe(pose, `${place.id}/personne`).presse).toBe(true);
+    const tenue = presser(boutonDe(pose, `${place.id}/heros-1`));
+    expect([boutonDe(tenue, `${place.id}/heros-1`).presse, boutonDe(tenue, `${place.id}/personne`).presse]).toEqual([true, false]);
   });
 });
 

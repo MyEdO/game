@@ -8,9 +8,11 @@
  */
 import type { Scene, SceneEntity, WallSecret, WallSeg } from '../monde/scene';
 import type { Dir8 } from '../../geometry/dir8';
+import type { FireArc } from '../../engine/types';
+import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addLayer, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchWall, propRefPatch, removeLayer, renameEntry, type Pt } from '../sceneEdit';
+import { addLayer, addMember, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, propRefPatch, removeLayer, removeMember, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, segmentDeLaSelection, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -35,16 +37,38 @@ export const HAUTEURS = [
 const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 
 /** Les outils que l'éditeur offre. */
-export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'entry' | 'erase' }>;
+export type OutilDeLEditeur = Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'erase' }>;
 
 /** Ce que l'inspecteur écrit sur l'arête sélectionnée (`patchWall`) : chaque champ posé, `null` le retire. */
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
 
-/** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche. */
+/** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
+ *  d'un décor (`null` l'éteint), son assise ; l'embuscade d'un personnage ; l'équipage exposé à bord. */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
   z?: number;
+  light?: NonNullable<SceneEntity['light']> | null;
+  assise?: boolean;
+  embusque?: boolean;
+  crewIds?: string[];
+}
+
+/** Ce que l'inspecteur écrit sur le poste d'un emplacement de siège : son engin, son arc (`null` : omni), ses servants,
+ *  le chef de pièce en tête. */
+export interface PatchDePoste {
+  engin?: string;
+  arc?: FireArc | null;
+  servants?: string[];
+}
+
+/** Ce que l'inspecteur écrit sur l'appartenance du personnage sélectionné à la rencontre `rencontre` (`null` : une
+ *  rencontre neuve) : enrôlé ou non, son camp, son pilotage par l'IA s'il est allié. */
+export interface PatchDeMembre {
+  rencontre: string | null;
+  enrole?: boolean;
+  camp?: 'enemy' | 'ally';
+  ia?: boolean;
 }
 
 /** Ce que l'arête sélectionnée attend de l'auteur avant de s'écrire entière (`wallSegSchema`) : la porte secrète
@@ -91,7 +115,8 @@ export interface SessionDEdition {
 /** Un geste de l'éditeur : choisir l'outil, la taille du pinceau, le rectangle du pinceau de terrain, la couche
  *  éditée ; ajouter une couche au-dessus de la plus haute, retirer la couche éditée ; appuyer, glisser, relâcher
  *  sur un point de la carte ; poser la volée tracée, effacer son tracé ; écrire sur l'arête sélectionnée, ou poser
- *  son brouillon ; écrire sur l'entité sélectionnée ; nommer l'entité ou l'entrée sélectionnée (`nom` absent : l'entité
+ *  son brouillon ; écrire sur l'entité sélectionnée, le poste de l'emplacement de siège sélectionné, une place du décor
+ *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; nommer l'entité ou l'entrée sélectionnée (`nom` absent : l'entité
  *  reprend le nom de sa fiche) ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
@@ -107,6 +132,9 @@ export type GesteDEdition =
   | { geste: 'poserVolee' }
   | { geste: 'arete'; patch?: PatchDArete; brouillon?: BrouillonDArete | null }
   | { geste: 'entite'; patch: PatchDEntite }
+  | { geste: 'poste'; patch: PatchDePoste }
+  | { geste: 'place'; place: string; occupant: SeatOccupant | null }
+  | { geste: 'membre'; patch: PatchDeMembre }
   | { geste: 'nommer'; nom?: string }
   | { geste: 'entree'; z: number }
   | { geste: 'copier' }
@@ -213,12 +241,37 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
  *  (`propRefPatch`), la couche 0 comme son absence. */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, ...reste } = patch;
+  const { ref, z, light, assise, embusque, crewIds, ...reste } = patch;
+  const usable = { ...ent.usable, assise: assise || undefined };
   return {
     ...reste,
     ...(ref === undefined ? {} : ent.kind === 'prop' ? propRefPatch(ref, ent) : { ref }),
     ...(z === undefined ? {} : { z: z || undefined }),
+    ...(light === undefined ? {} : { light: light ?? undefined }),
+    ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
+    ...(embusque === undefined ? {} : { combat: { ...ent.combat, hiddenUntilCombat: embusque || undefined } }),
+    ...(crewIds === undefined ? {} : { crewIds: crewIds.length ? crewIds : undefined }),
   };
+}
+
+/** Le poste de l'emplacement `id` de `scene` patché de `patch` : l'engin, l'arc, les servants. */
+function posteePatche(scene: Scene, id: string, patch: PatchDePoste): Scene {
+  const engin = patch.engin === undefined ? scene : setPosteEngine(scene, id, patch.engin);
+  const arc = patch.arc === undefined ? engin : setPosteSide(engin, id, patch.arc ?? undefined);
+  return patch.servants === undefined ? arc : setPosteCrew(arc, id, patch.servants);
+}
+
+/** L'appartenance du personnage `id` de `scene` patchée de `patch` : enrôlé dans la rencontre (neuve si `null`) ou
+ *  retiré ; allié, avec son pilotage par l'IA, ou ennemi. */
+function membrePatche(scene: Scene, id: string, patch: PatchDeMembre): Scene {
+  if (patch.enrole === false) return patch.rencontre === null ? scene : removeMember(scene, patch.rencontre, id);
+  const enrole = patch.enrole ? addMember(scene, patch.rencontre ?? '', id) : { scene, encId: patch.rencontre };
+  if (enrole.encId === null) return scene;
+  const m = enrole.scene.encounters.find((e) => e.id === enrole.encId)?.members?.find((mm) => mm.entityId === id);
+  if (!m) return scene;
+  const allie = patch.camp === undefined ? m.side === 'ally' : patch.camp === 'ally';
+  const ia = allie && (patch.ia ?? m.ai);
+  return patch.camp === undefined && patch.ia === undefined ? enrole.scene : patchMember(enrole.scene, enrole.encId, id, { side: allie ? 'ally' : undefined, ai: ia || undefined });
 }
 
 /** Le patch `patch` de l'inspecteur en patch de segment : chaque `null` retire son champ. */
@@ -287,6 +340,19 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'entite': {
       const ent = entiteDeLaSelection(scene, s.sel);
       return ent ? ecrireSurLaSelection(s, editEntity(scene, ent.id, enPatchDEntite(ent, g.patch)), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+    }
+    case 'poste': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      return ent?.postes?.length ? ecrireSurLaSelection(s, posteePatche(scene, ent.id, g.patch), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+    }
+    case 'place': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      const res = ent?.kind === 'prop' ? assoirALaPlace(scene, ent.id, g.place, g.occupant) : null;
+      return res?.ok ? ecrireSurLaSelection(s, res.scene, (sc) => [sc.seatAssignments, sc.entities.map((e) => e.pos)]) : s;
+    }
+    case 'membre': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      return ent?.kind === 'personnage' ? ecrireSurLaSelection(s, membrePatche(scene, ent.id, g.patch), (sc) => sc.encounters) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);

@@ -2,6 +2,7 @@ import type { StructureAppearanceDef, WallPart } from '../../../data/structureAp
 import type { WallSeg } from '../../../noyau/monde/scene';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../shade';
+import { apparenceDuSegment, facadeAppearance } from '../../../noyau/monde/facades';
 import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../../../noyau/monde/volume/missing';
 
 const MAP: Record<string, StructureAppearanceDef> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
@@ -13,6 +14,7 @@ const MISSING: StructureAppearanceDef = {
   label: 'Apparence absente du catalogue',
   face: MISSING_TONE,
   post: MISSING_TONE_DARK,
+  kit: 'colombage',
 };
 
 /** Apparence d'une structure par id. `id` absent = INTENTIONNEL (aucune structure posée) → mur nu.
@@ -26,11 +28,15 @@ export function structureAppearance(id?: string): StructureAppearanceDef {
 /** Apparence d'un mur d'arête — SOURCE UNIQUE iso + POV : override visuel, puis structure, sinon mur
  *  nu. L'apparence est une DONNÉE de la carte ; la hauteur n'y entre pas (#1180). */
 export function wallApp(seg: WallSeg): StructureAppearanceDef {
-  return seg.appearance
-    ? structureAppearance(seg.appearance)
-    : seg.structure
-      ? structureAppearance(seg.structure)
-      : structureAppearance('plain');
+  return structureAppearance(apparenceDuSegment(seg));
+}
+
+/** Apparence de la façade authorée `id` (`noyau/monde/facades`) : celle de son mur, sous l'id de la façade ; une
+ *  apparence de structure si `id` n'est pas une façade. */
+export function facadeStructureAppearance(id?: string): StructureAppearanceDef {
+  const definition = facadeAppearance(id);
+  if (!definition) return structureAppearance(id);
+  return { ...structureAppearance(definition.wallAppearance), id: definition.id };
 }
 
 /** Croisée de repli (def SANS bloc `window`) = celle de `plain` (DONNÉE JSON : verre froid + ambre allumé) —

@@ -5,7 +5,7 @@
  * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
  * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
  * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
- * (`suivisHorsRelease`). Les textures du sol y vivent de même (`./textures.ts`, #3476).
+ * (`suivisHorsRelease`). Les textures du sol et le kit des arêtes y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
@@ -45,8 +45,9 @@ export async function enCacheOuTire(chemin: string, attendue: string, nom: strin
   ecrireTexteAtomique(chemin, octets);
 }
 
-/** L'extension d'un fichier de la Release. */
-type ExtensionDAsset = 'glb' | 'blend' | 'jpg';
+/** Les extensions d'un fichier de la Release. */
+export const EXTENSIONS_D_ASSET = ['glb', 'blend', 'jpg'] as const;
+type ExtensionDAsset = (typeof EXTENSIONS_D_ASSET)[number];
 
 /** Le nom, dans la Release, du fichier d'empreinte `empreinte`. */
 export const nomDAsset = (empreinte: string, extension: ExtensionDAsset): string => `${empreinte}.${extension}`;

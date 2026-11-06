@@ -19,7 +19,7 @@ import {
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
-import { recupererTextures, texturesAPublier } from './textures.ts';
+import { epinglesAPublier, recupererEpingles } from './epingles.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -626,50 +626,58 @@ describe('modelesEpingles', () => {
   });
 });
 
-describe('recupererTextures', () => {
+describe('recupererEpingles', () => {
   const COULEUR = new Uint8Array(Buffer.from('couleur de l’herbe'));
-  const NORMALE = new Uint8Array(Buffer.from('relief de l’herbe'));
-  const urlDe = (octets: Uint8Array) => urlDAsset(nomDAsset(sha256(octets), 'jpg'));
-  /** Un dossier de textures dont la provenance épingle l'herbe, ses deux faces. */
-  const dossierDeTextures = (normale: unknown = { sha256: sha256(NORMALE) }) => {
+  const KIT = new Uint8Array(Buffer.from('le kit des arêtes'));
+  const urlDe = (octets: Uint8Array, extension: 'jpg' | 'glb') => urlDAsset(nomDAsset(sha256(octets), extension));
+  /** Un dossier épinglé dont la provenance porte `provenance`. */
+  const dossierEpingle = (provenance: unknown) => {
     const d = temporaire();
-    writeFileSync(join(d, 'provenance.json'), JSON.stringify({ 'terrain--herbe': { licence: 'CC0-1.0', couleur: { sha256: sha256(COULEUR) }, normale } }));
+    writeFileSync(join(d, 'provenance.json'), JSON.stringify(provenance));
     return d;
   };
-  it('tire de la Release chaque face absente, la dépose sous le nom de sa matière ; le cache sert l’appel suivant', async () => {
-    const dossier = dossierDeTextures();
+  /** Le dossier des textures, qui épingle l'herbe, et celui du kit. */
+  const dossiers = () => [
+    dossierEpingle({ 'terrain--herbe.jpg': { sha256: sha256(COULEUR), licence: 'CC0-1.0' } }),
+    dossierEpingle({ 'kit.glb': { sha256: sha256(KIT), licence: 'CC0-1.0' } }),
+  ];
+  const release = () => serveur({ [urlDe(COULEUR, 'jpg')]: COULEUR, [urlDe(KIT, 'glb')]: KIT });
+  it('tire de la Release chaque fichier absent de chaque dossier, le dépose sous son nom ; le cache sert l’appel suivant', async () => {
+    const [textures, kit] = dossiers();
     const cache = temporaire();
-    const { demandes, telecharger } = serveur({ [urlDe(COULEUR)]: COULEUR, [urlDe(NORMALE)]: NORMALE });
-    await recupererTextures({ dossier, cache, telecharger, journal: muet });
-    expect(readFileSync(join(dossier, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
-    expect(readFileSync(join(dossier, 'terrain--herbe.normale.jpg'))).toEqual(Buffer.from(NORMALE));
-    rmSync(join(dossier, 'terrain--herbe.jpg'));
-    await recupererTextures({ dossier, cache, telecharger, journal: muet });
-    expect(demandes).toEqual([urlDe(COULEUR), urlDe(NORMALE)]);
+    const { demandes, telecharger } = release();
+    await recupererEpingles({ dossiers: [textures, kit], cache, telecharger, journal: muet });
+    expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
+    expect(readFileSync(join(kit, 'kit.glb'))).toEqual(Buffer.from(KIT));
+    rmSync(join(kit, 'kit.glb'));
+    await recupererEpingles({ dossiers: [textures, kit], cache, telecharger, journal: muet });
+    expect(demandes).toEqual([urlDe(COULEUR, 'jpg'), urlDe(KIT, 'glb')]);
   });
-  it('garde hors ligne une face du projet à la somme épinglée', async () => {
-    const dossier = dossierDeTextures();
-    writeFileSync(join(dossier, 'terrain--herbe.jpg'), COULEUR);
-    writeFileSync(join(dossier, 'terrain--herbe.normale.jpg'), NORMALE);
+  it('garde hors ligne un fichier du projet à la somme épinglée', async () => {
+    const [textures] = dossiers();
+    writeFileSync(join(textures, 'terrain--herbe.jpg'), COULEUR);
     const { demandes, telecharger } = serveur({});
-    await recupererTextures({ dossier, cache: temporaire(), telecharger, journal: muet });
+    await recupererEpingles({ dossiers: [textures], cache: temporaire(), telecharger, journal: muet });
     expect(demandes).toEqual([]);
   });
-  it('remplace une face périmée du projet, et lève sur une face absente de la Release', async () => {
-    const dossier = dossierDeTextures();
-    writeFileSync(join(dossier, 'terrain--herbe.jpg'), 'ancienne herbe');
-    await recupererTextures({ dossier, cache: temporaire(), telecharger: serveur({ [urlDe(COULEUR)]: COULEUR, [urlDe(NORMALE)]: NORMALE }).telecharger, journal: muet });
-    expect(readFileSync(join(dossier, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
-    await expect(recupererTextures({ dossier: dossierDeTextures(), cache: temporaire(), telecharger: serveur({ [urlDe(COULEUR)]: COULEUR }).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
+  it('remplace un fichier périmé du projet, et lève sur un fichier absent de la Release', async () => {
+    const [textures, kit] = dossiers();
+    writeFileSync(join(textures, 'terrain--herbe.jpg'), 'ancienne herbe');
+    await recupererEpingles({ dossiers: [textures], cache: temporaire(), telecharger: release().telecharger, journal: muet });
+    expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
+    await expect(recupererEpingles({ dossiers: [kit], cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
   });
-  it('refuse une provenance dont une face n’épingle pas de SHA-256', () => {
-    expect(() => texturesAPublier(dossierDeTextures({}))).toThrow('provenance.json : terrain--herbe.normale.sha256 « undefined » n\'est pas un SHA-256');
+  it.each<[string, unknown, string]>([
+    ['un fichier sans SHA-256', { 'kit.glb': { licence: 'CC0-1.0' } }, 'kit.glb.sha256 « undefined » n\'est pas un SHA-256'],
+    ['une extension que la Release ne porte pas', { 'kit.png': { sha256: sha256(KIT) } }, 'kit.png n\'a pas une extension de la Release'],
+  ])('refuse %s', (_, provenance, motif) => {
+    expect(() => epinglesAPublier([dossierEpingle(provenance)])).toThrow(motif);
   });
-  it('nomme chaque face à verser par son empreinte', () => {
-    const dossier = dossierDeTextures();
-    expect(texturesAPublier(dossier)).toEqual([
-      { chemin: join(dossier, 'terrain--herbe.jpg'), nom: nomDAsset(sha256(COULEUR), 'jpg') },
-      { chemin: join(dossier, 'terrain--herbe.normale.jpg'), nom: nomDAsset(sha256(NORMALE), 'jpg') },
+  it('nomme chaque fichier à verser par son empreinte', () => {
+    const [textures, kit] = dossiers();
+    expect(epinglesAPublier([textures, kit])).toEqual([
+      { chemin: join(textures, 'terrain--herbe.jpg'), nom: nomDAsset(sha256(COULEUR), 'jpg') },
+      { chemin: join(kit, 'kit.glb'), nom: nomDAsset(sha256(KIT), 'glb') },
     ]);
   });
 });
