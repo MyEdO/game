@@ -3,7 +3,10 @@ import type { FlowTestNode } from '../engine/flowCore';
 import type { Formula, GameOp, OpPassive } from '../engine/ops';
 import type { CibleEtendue, SourceRef } from './schemas/grammaire/valeurs';
 import type { DocumentARangees } from './schemas/grammaire/document';
+import type { DiceSpec } from '../engine/dice';
 import criticalsJson from './criticals.json';
+import { deDeTirageDe } from './rangees';
+import type * as critiquesDef from './schemas/defs/criticals';
 
 /**
  * Tables de Blessures critiques par Localisation — LES DEUX systèmes (#1657 B2a, #1682) : le Livre de
@@ -11,7 +14,7 @@ import criticalsJson from './criticals.json';
  * facultative `combat-aa-blessures` vaut `aa`.
  *
  * La DONNÉE vit dans `criticals.json` (éditable au Compendium) : 8 documents-tables, un par
- * (`jeu` × `localisation`), chacun avec SON espace de tirage d100. Ce module n'est que le TYPE + le
+ * (`jeu` × `localisation`), chacun avec SON dé de tirage (`die`). Ce module n'est que le TYPE + le
  * chargement + la projection des Localisations. Ajouter/régler un Critique = éditer le JSON ; ajouter
  * un 9ᵉ tableau = ajouter un document, sans une ligne de moteur.
  *
@@ -143,10 +146,12 @@ export interface CritEscalation {
 }
 export type CritTable = CritEntry[];
 
-/** Un document-table de `criticals.json` : l'ENVELOPPE de la fabrique (identité, `source`…) et ses
- *  rangées (`DocumentARangees`, `grammaire/document.ts`), plus SON jeu et SA Localisation. */
+/** Un document-table de `criticals.json` : l'ENVELOPPE de la fabrique (identité, `source`…), ses
+ *  rangées (`DocumentARangees`, `grammaire/document.ts`) et son dé de tirage (`die`), plus SON jeu et
+ *  SA Localisation. */
 export interface CritDoc extends DocumentARangees<CritEntry> {
   type: 'criticals';
+  die: string;
   jeu: JeuDeCritique;
   localisation: CritTableKey;
 }
@@ -188,6 +193,12 @@ export function critiqueDoc(jeu: JeuDeCritique, key: CritTableKey): CritDoc {
   const doc = CRITIQUE_DOCS.find((d) => d.jeu === jeu && d.localisation === key);
   if (!doc) throw new Error(`critiqueDoc : aucun tableau « ${jeu} » pour la Localisation « ${key} » dans criticals.json.`);
   return doc;
+}
+
+/** Le DÉ DE TIRAGE du tableau d'un (`jeu`, `localisation`) : le `die` VIVANT de son document
+ *  (`deDeTirageDe`), lu à l'appel. */
+export function critiqueDie(jeu: JeuDeCritique, key: CritTableKey): DiceSpec {
+  return deDeTirageDe<typeof critiquesDef>(criticalsJson, critiqueDoc(jeu, key).id);
 }
 
 /**

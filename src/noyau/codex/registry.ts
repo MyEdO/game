@@ -71,7 +71,7 @@ import { traumaLabelOf } from '../../engine/trauma';
 import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
-import { CRIT_TABLE_LOCATION, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
+import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
@@ -722,7 +722,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
   const amputation = noeudAmputation(e, jeu, CRIT_TABLE_LOCATION[table]);
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
-    sub: bandeAuDe('d100', e.min, e.max),
+    sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
     meta: facts(
       e.lethal ? fact(tr('codex.fiche.letal'), tr('codex.fiche.oui')) : null,
       !e.lethal && !(e.ops ?? []).some((o) => o.op === 'wounds') ? fact(tr('codex.fiche.type'), tr('codex.fiche.trivialeT')) : null,

@@ -18,7 +18,6 @@ const LECTEURS_DE_DE = new Set(['bandeAuDe', 'facesDuDe']);
 
 const SANS_DE = 'aucun `die` en donnée (#1667, trains (a)–(e))';
 const RAS = new Map<string, { document: string; why: string }>([
-  ["src/noyau/codex/registry.ts :: critEntryItem.sub :: sub: bandeAuDe('d100', e.min, e.max),", { document: 'src/data/criticals.json', why: SANS_DE }],
   ["src/noyau/codex/registry.ts :: CODEX_SPECS.riverNavigation.build.sections.rows.k :: rows: n.windForces.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe('d10')), v: f.label } as CodexRow)),", { document: 'src/data/river-navigation.json', why: SANS_DE }],
   ["src/noyau/codex/registry.ts :: CODEX_SPECS.riverNavigation.build.sections.rows.k :: rows: n.windDirections.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe('d10')), v: d.label } as CodexRow)),", { document: 'src/data/river-navigation.json', why: SANS_DE }],
   ["src/noyau/codex/registry.ts :: CODEX_SPECS.oups.build.range :: const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');", { document: 'src/data/oups.json', why: SANS_DE }],

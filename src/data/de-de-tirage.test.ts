@@ -69,6 +69,14 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'edoc-mental-nurgle': { die: '1d100', ref: 'EDOC 12 l.204' },
   'edoc-mental-slaanesh': { die: '1d100', ref: 'EDOC 12 l.204' },
   'edoc-mental-tzeentch': { die: '1d100', ref: 'EDOC 12 l.204' },
+  'criticals-ldb-tete': { die: '1d100', ref: 'LDB 18 l.53' },
+  'criticals-ldb-bras': { die: '1d100', ref: 'LDB 18 l.53' },
+  'criticals-ldb-corps': { die: '1d100', ref: 'LDB 18 l.53' },
+  'criticals-ldb-jambe': { die: '1d100', ref: 'LDB 18 l.53' },
+  'criticals-aa-tete': { die: '1d100', ref: 'AA 07 l.32' },
+  'criticals-aa-bras': { die: '1d100', ref: 'AA 07 l.32' },
+  'criticals-aa-corps': { die: '1d100', ref: 'AA 07 l.32' },
+  'criticals-aa-jambe': { die: '1d100', ref: 'AA 07 l.32' },
 };
 
 /** Le dé IMPRIMÉ par le livre pour chaque saison de `weather.json` (table imbriquée, hors fabrique). */
