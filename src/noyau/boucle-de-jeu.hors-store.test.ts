@@ -3107,10 +3107,10 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
       gameTime: campaignStart(), screen: 'campaign',
       dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'adieu', label: 'Adieu' }] }] }, nodeId: 'n' } as any,
     });
-    banc.getState().chooseDialogue('adieu');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'adieu');
     expect(banc.getState().dialogue).toBeNull();
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.dialogue);
-    banc.getState().chooseDialogue('adieu');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'adieu');
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.dialogue);
   });
 

@@ -21,10 +21,10 @@ import { presetPnjById } from '../state/campaignData';
 export function DialogueBox() {
   const dialogue = useGame((s) => s.dialogue);
   // Le dialogue est une DÉCISION DE GROUPE : un seul siège répond (`ownsGroupDecision`, même routage
-  // que l'intent `chooseDialogue`). Les autres LISENT — leurs réponses sont inertes, donc fermées.
+  // que le choix `dialogue.reponse`). Les autres LISENT — leurs réponses sont inertes, donc fermées.
   const owns = useOwnsGroupDecision();
   const scene = useGame((s) => s.scene);
-  const choose = useGame((s) => s.chooseDialogue);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const net = useGame((s) => s.net);
   const meneur = nomDuSiege(net, groupDecisionSeat(useGame.getState()));
   // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-choice-N` (`noyau/dialogue.ts`).
@@ -83,7 +83,7 @@ export function DialogueBox() {
             ariaLabel={[num, tag, r.label, r.cost && spellMoney(r.cost)].filter(Boolean).join(' ')}
             enabled={r.enabled}
             {...raisonSi(r.refus)}
-            onClick={() => choose(r.id)}
+            onClick={() => choisir('dialogue', 'reponse', r.id)}
             primary={false}
             btnClassName="dlg-choice"
           />

@@ -126,8 +126,9 @@ export const MODAL_DEFS = [
   // le sentinel `WORLD_STEP_OWNER` (siège MJ s'il existe, hôte sinon), comme toute étape de monde.
   { key: 'etalLot', when: (s) => !!s.pendingEtalLot, owner: () => WORLD_STEP_OWNER, auto: { mode: 'self', drive: [{ verbe: 'jetConfirm', flux: 'etalLot' }] }, covers: ['pendingEtalLot'], flux: ['etalLot'], rangees: (s) => s.pendingEtalLot?.participants },
   // DÉSIGNATION d'un héros pour un état de campagne (EDO 02 l.91) : décision de GROUPE, au siège du
-  // MONDE (`WORLD_STEP_OWNER` — celui de `ownsGroupDecision`, comme le dialogue) ; jamais auto-résolue.
-  { key: 'designationHeros', when: (s) => !!s.pendingDesignationHeros, owner: () => WORLD_STEP_OWNER, auto: { mode: 'hostOnly' }, covers: ['pendingDesignationHeros'], verbes: ['designerHerosChoisir'] },
+  // MONDE (`WORLD_STEP_OWNER` — celui de `ownsGroupDecision`, comme le dialogue) ; jamais auto-résolue. Elle se
+  // clôt sans choix une fois aucun héros vivant à désigner.
+  { key: 'designationHeros', when: (s) => !!s.pendingDesignationHeros, owner: () => WORLD_STEP_OWNER, auto: { mode: 'hostOnly' }, covers: ['pendingDesignationHeros'], sortie: 'proprietaire', sortieFermee: (s) => (s.party?.some((h) => !h.dead) ? 'herosADesigner' : null) },
   { key: 'renounce', when: (s) => !!s.pendingRenounce, owner: (s) => s.pendingRenounce?.heroId, auto: { mode: 'choice' }, covers: ['pendingRenounce'] },
   // Battement (LDB 10 l.103) : jet PROPRE de CC (non opposé) → 'self' (Lancer puis Appliquer).
   { key: 'battement', when: (s) => !!s.pendingBattement, owner: (s) => s.pendingBattement?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'battement' }, { verbe: 'jetConfirm', flux: 'battement' }] }, covers: ['pendingBattement'], flux: ['battement'] },
@@ -173,7 +174,7 @@ export const MODAL_DEFS = [
   // L'infirmerie CÈDE le devant à une CASCADE en cours (`!s.pendingCascade`) — le Test d'infection
   // post-opératoire (LDB 10 l.184) est un jet INFLUENÇABLE qui doit passer AU-DESSUS du panneau ; à sa
   // clôture l'infirmerie RÉAPPARAÎT (même patron que `heal` cédant à `medic`).
-  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicSetWound', 'medicAct', 'openSurgeryPass'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
+  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicAct', 'openSurgeryPass'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
   // Repos (nuit) : chacun règle SES héros et se dit prêt, l'hôte dort au quorum — modale chez tous.
   { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], verbes: ['restSet'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
   // Conseil de bord (paie hebdomadaire + Moral, #229) : décision de bourse PARTAGÉE → l'hôte seul (comme
@@ -368,6 +369,10 @@ export function horsModalByPending(): Record<string, HorsModalDef> {
 export interface SurfaceHorsPendingDef {
   key: string;
   tientLaMain: (s: ArbiterState) => boolean;
+  /** La surface est ouverte sans tenir la main (la conversation, que la scène porte) ; sans elle : `tientLaMain`. */
+  ouverte?: (s: ArbiterState) => boolean;
+  /** Qui la possède, pour un choix de son propriétaire ; sans lui : aucun siège. */
+  owner?: (s: ArbiterState) => string | undefined;
   /** La surface se ferme (`fenetreFermer`), par l'hôte : aucun siège ne la possède. */
   sortie?: 'hote';
   /** La surface se valide (`fenetreValider`), par l'hôte. */
@@ -389,6 +394,9 @@ export const SURFACES_HORS_PENDING = [
   // Le récit de voyage attend la conversation et la carte (`ui/CampaignView`) ; la fin de séance, la conversation.
   { key: 'recitDeVoyage', tientLaMain: (s) => !!s.travelRecap && s.mode === 'exploration' && !s.dialogue && !s.worldMapOpen, sortie: 'hote' },
   { key: 'finDeSeance', tientLaMain: (s) => !!s.sessionEndOpen && !s.dialogue, sortie: 'hote' },
+  // La conversation (#1262) : la scène la porte, elle ne tient pas la main ; sa réponse est une décision de groupe, au
+  // siège du MONDE (`ownsGroupDecision`).
+  { key: 'dialogue', tientLaMain: () => false, ouverte: (s) => !!s.dialogue, owner: () => WORLD_STEP_OWNER },
   // L'anéantissement du groupe hors combat (`partyWiped`) ; la défaite d'un combat, repli dans le combat d'une
   // bataille de masse (ADE II 08), sinon défaite.
   { key: 'aneantissement', tientLaMain: (s) => !!s.partyWiped, sortie: 'hote' },
@@ -445,7 +453,7 @@ export type ValidationDeLaFenetre = GesteDeFenetreDeclare<QuiValideLaFenetre>;
 const ENTREES_DES_REGISTRES: readonly (readonly [{ key: string; sortie?: QuiFermeLaFenetre; validation?: QuiValideLaFenetre }, FenetreDuRegistre])[] = [
   ...(MODAL_DEFS as readonly ModalDef[]).map((d) => [d, { ouverte: d.when, proprietaire: d.owner, marques: d.covers[0] }] as const),
   ...(HORS_MODAL as readonly HorsModalDef[]).map((d) => [d, { ouverte: (s: ArbiterState) => pendingOuvert((s as Record<string, unknown>)[d.pendingKey]), proprietaire: d.owner, marques: d.pendingKey }] as const),
-  ...(SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).map((d) => [d, { ouverte: d.tientLaMain, proprietaire: () => undefined }] as const),
+  ...(SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).map((d) => [d, { ouverte: d.ouverte ?? d.tientLaMain, proprietaire: d.owner ?? (() => undefined) }] as const),
 ];
 const FENETRES_DU_REGISTRE: ReadonlyMap<string, FenetreDuRegistre> = new Map(ENTREES_DES_REGISTRES.map(([d, f]) => [d.key, f]));
 

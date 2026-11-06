@@ -1268,7 +1268,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'designerHeros', etat: '' }),
     suspensif: true,
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
-    // par `designerHerosChoisir`, qui rejoue la suite ; sans héros vivant, rien à désigner.
+    // par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent la suite.
     apply: (e, env, suite) => (env.get().designerHerosOuvrir({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {

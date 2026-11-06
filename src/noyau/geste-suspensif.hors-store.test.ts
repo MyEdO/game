@@ -32,7 +32,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
     runFlow(get, banc.setState, puis({ type: 'designerHeros', etat: 'sosie' }, 'apres-designation'));
     expect(get().pendingDesignationHeros?.etat).toBe('sosie');
     expect(get().flags['apres-designation']).toBeUndefined();
-    get().designerHerosChoisir('h-2');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-2');
     expect(get().etats.sosie).toBe('h-2');
     expect(get().flags['apres-designation']).toBe(true);
   });
@@ -43,7 +43,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
       { kind: 'if', cond: { kind: 'etat', etat: 'sosie' }, then: apres('sosie-designe'), else: apres('sosie-absent') },
     ] });
     expect(get().flags['sosie-absent'], 'la branche ne s’évalue pas avant la désignation').toBeUndefined();
-    get().designerHerosChoisir('h-1');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-1');
     expect(get().flags['sosie-designe']).toBe(true);
     expect(get().flags['sosie-absent']).toBeUndefined();
   });
@@ -51,7 +51,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
   it('`applyEffects` : le reste du LOT est la suite', () => {
     applyEffects(get, banc.setState, [{ type: 'designerHeros', etat: 'sosie' }, { type: 'setFlag', flag: 'reste-du-lot' }]);
     expect(get().flags['reste-du-lot']).toBeUndefined();
-    get().designerHerosChoisir('h-1');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-1');
     expect(get().flags['reste-du-lot']).toBe(true);
   });
 
@@ -62,10 +62,10 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
 
   it('plus aucun héros vivant pendant la désignation : elle se clôt SANS choix et la suite se joue', () => {
     runFlow(get, banc.setState, puis({ type: 'designerHeros', etat: 'sosie' }, 'apres-designation'));
-    get().designerHerosChoisir();
+    get().fenetreFermer('designationHeros');
     expect(get().pendingDesignationHeros, 'un vivant reste : la clôture sans choix est refusée').not.toBeNull();
     banc.setState({ party: get().party.map((h) => ({ ...h, dead: true })) });
-    get().designerHerosChoisir();
+    get().fenetreFermer('designationHeros');
     expect(get().pendingDesignationHeros).toBeNull();
     expect(get().etats.sosie).toBeUndefined();
     expect(get().flags['apres-designation']).toBe(true);

@@ -122,7 +122,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Chirurgie : openSurgeryPass POSE la passe, les verbes de jet sur `surgery` l'influencent,
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, `fenetreChoisir('medic', 'abandon', true)`
   // l'opération.
-  medicAct: 'invité', medicSetWound: 'invité', openSurgeryPass: 'invité',
+  medicAct: 'invité', openSurgeryPass: 'invité',
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument), et se dit prêt (`fenetreValider('rest')`).
   restSet: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les verbes de jet de la cascade.)
@@ -186,7 +186,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   seaActivitiesConfirm: 'hôte',
   playTavernGame: 'hôte', openTavernGames: 'hôte',
   endSession: 'hôte',
-  chooseDialogue: 'hôte', designerHerosChoisir: 'hôte',
   // ── Interlude : bataille de masse ─────────────────────────────────────────────────────────────
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
   massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte',

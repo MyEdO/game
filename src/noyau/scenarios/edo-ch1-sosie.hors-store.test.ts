@@ -39,7 +39,7 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
     expect(pickActiveModalKey(get())).toBe('designationHeros');
     expect(get().etats[SOSIE]).toBeUndefined();
     expect(get().flags['edo-ch1-corps-kastor-fouille'], 'EDO 02 l.89-91 : la suite de la fouille attend la désignation').toBeUndefined();
-    get().designerHerosChoisir('h-1');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-1');
     expect(get().flags['edo-ch1-corps-kastor-fouille'], 'EDO 02 l.93-95 : les deux documents se lisent avant').toBeUndefined();
     get().fenetreFermer('document');
     get().fenetreFermer('document');
@@ -47,13 +47,13 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
   });
 
   it('un héros MORT n’est pas proposable : son choix ne pose rien et la désignation reste ouverte', () => {
-    get().designerHerosChoisir('h-2');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-2');
     expect(get().etats[SOSIE]).toBeUndefined();
     expect(get().pendingDesignationHeros?.etat).toBe(SOSIE);
   });
 
   it('le choix d’un héros vivant pose l’état à son id et referme la désignation', () => {
-    get().designerHerosChoisir('h-1');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-1');
     expect(get().etats[SOSIE]).toBe('h-1');
     expect(get().pendingDesignationHeros).toBeNull();
     expect(evalCondition({ kind: 'species', id: 'humains-reiklander', who: { etat: SOSIE } }, condCtx(get))).toBe(true);
@@ -66,7 +66,7 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
   });
 
   it('sauvegarde puis reprise : l’état désigné est conservé', () => {
-    get().designerHerosChoisir('h-3');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-3');
     const texte = sauverLeBanc(banc);
     banc.setState({ etats: {} });
     chargerSurLeBanc(banc, texte);
@@ -84,7 +84,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
     get().transitionTo('route-principale-virage');
     poserLeGroupe(get, banc.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
-    get().designerHerosChoisir('h-9');
+    get().fenetreChoisir('designationHeros', 'heros', 'h-9');
   });
 
   it('naine désignée : son identité se fige, le Document 3 lui est remis ; fermé, le Document 4', () => {

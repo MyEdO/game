@@ -1,6 +1,6 @@
 /**
  * LE VERBE VALIDE (#1869 correctif 1), côté web : le `when` de la touche `dialogue-choice-N` dit la MÊME chose que le
- * verbe (`conversationRepond`, prédicat unique). Les gardes du verbe `chooseDialogue` se jouent au banc du noyau
+ * verbe (`conversationRepond`, prédicat unique). Les gardes du verbe le choix `dialogue.reponse` se jouent au banc du noyau
  * (`src/noyau/dialogue-verbe-garde.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -42,10 +42,10 @@ function monter(over: Partial<GameState> = {}) {
 
 beforeEach(() => monter());
 
-describe('chooseDialogue — la fenêtre de jet SUSPEND la conversation', () => {
+describe('dialogue.reponse — la fenêtre de jet SUSPEND la conversation', () => {
   it('la TOUCHE dit la même chose que le verbe : fermée sous la modale, ouverte sans elle', () => {
     expect(touche(1).when(useGame.getState())).toBe(true);
-    useGame.getState().chooseDialogue('tenter');
+    useGame.getState().fenetreChoisir('dialogue', 'reponse', 'tenter');
     expect(touche(1).when(useGame.getState()), 'la fenêtre de jet tient la main : la touche se tait').toBe(false);
     expect(conversationRepond(useGame.getState())).toBe(false);
   });

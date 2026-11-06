@@ -153,7 +153,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
 /**
  * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
  * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)` (`ROUTES` :
- * `chooseDialogue`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
+ * le choix `dialogue.reponse`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
  * sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il existe, l'hôte sinon). Le prédicat
  * DÉLÈGUE donc au même routage au lieu de recopier la formule : afficher le choix, l'exécuter au
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
@@ -642,15 +642,13 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
       const registre = fenetreDuRegistre(fenetre);
       return qui && registre ? { ...registre, qui } : undefined;
     })],
-    // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
-    // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
-    // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
-    ...(['chooseDialogue', 'cliquerLaCase', 'designerHerosChoisir'] as const).map(
-      (a) => [a, {
-        rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `cliquerLaCase` useStagePointer, `designerHerosChoisir` DesignationHerosModal)',
-      }] as readonly [string, Route],
-    ),
+    // #669 — la marche d'exploration est une décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) ;
+    // la réponse d'un dialogue et la désignation d'un héros sont des choix de fenêtre (`fenetreChoisir`), au siège du
+    // MONDE que leur registre déclare.
+    ['cliquerLaCase', {
+      rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
+      horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteur mesuré : `cliquerLaCase` useStagePointer)',
+    }],
   ],
   // Les gestes de jet, clôture comprise, routés par le flux qu'ils visent (`routeDuVerbeDeJet`).
   VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),
