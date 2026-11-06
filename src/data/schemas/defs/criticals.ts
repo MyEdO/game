@@ -90,7 +90,7 @@ export const amputationSchema = nommerChamps(z.strictObject({
   loss: { label: 'perte' },
 });
 
-const critEntrySchema = nommerChamps(z.strictObject({
+export const rangee = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -148,7 +148,8 @@ const doc = document(
       },
     },
   },
-  { rangee: critEntrySchema },
+  // LDB 18 l.53 ; AA 07 l.32.
+  { rangee, deDeTirage: true },
 );
 
 export const schema = doc.schema;

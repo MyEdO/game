@@ -894,7 +894,7 @@ export function openSkillTest(
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
     const social = socialMod ? socialMod(actor) : 0;
-    const value = testValue(actor, spec.skill?.id, spec.characteristic, spec.skill?.spec, spec.sense) + social + sout;
+    const value = testValue(actor, spec, spec.sense) + social + sout;
     // Objet catalogué → match par `trappingId` STABLE (id, jamais le libellé).
     const tool = spec.tool ? actor.items?.find((i) => i.trappingId === spec.tool && !i.destroyed) : undefined;
     // Ligne montée par le MONTEUR CANONIQUE (`rollSeam.rollStep`) : la valeur FONDUE se déclare avec ses
@@ -1672,7 +1672,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const lines: string[] = [];
       for (const c of heroes) {
         if (isWeatherWarded(c)) { lines.push(t('eff.weatherWarded', { name: c.label, what: t(kind === 'froid' ? 'eff.wardFroid' : 'eff.wardChaleur') })); continue; }
-        const resVal = testValue(c, 'resistance', 'endurance');
+        const resVal = testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
         const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
         // et ressort en chip nommée) — une autre arithmétique que celle du monteur, à ne pas refaire.
@@ -2219,7 +2219,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
     npc: {
       id: e.entityId,
       label: npc.label,
-      skill: { id: HEAL_SKILL, value: testValue(npc, HEAL_SKILL) },
+      skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
       intBonus: bonus(effectiveChar(npc, 'intelligence')),
       acts,
     },

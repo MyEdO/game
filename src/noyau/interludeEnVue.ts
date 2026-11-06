@@ -43,11 +43,12 @@ export interface OuvrageAEngager { geste: GesteDuNoyau; refus: string | null; ou
  *  et le montant que la bourse couvre au plus, en sous de cuivre, par pas d'une pistole. */
 export interface DepotAFaire { geste: GesteDuNoyau; refus: string | null; genres: ValeurDInterlude[]; max: number; pas: number }
 
-/** Un héros de l'interlude : ses Activités restantes sur celles qu'il a reçues, l'Événement de sa période (`null` tant
+/** Un héros de l'interlude : ses Activités restantes sur celles qu'il a reçues, ses PX et sa bourse, que coûtent ses
+ *  cibles, l'Événement de sa période (`null` tant
  *  que son dé n'est pas tombé), ses Activités, l'ouvrage qu'il peut engager (`null` : le sien est en cours) et son
  *  dépôt en banque. */
 export interface HerosDInterlude {
-  id: string; nom: string; restantes: number; recues: number; evenement: string | null; activites: ActiviteEnVue[];
+  id: string; nom: string; restantes: number; recues: number; px: number; bourse: string; evenement: string | null; activites: ActiviteEnVue[];
   ouvrage: OuvrageAEngager | null; depot: DepotAFaire;
 }
 
@@ -55,6 +56,9 @@ export interface HerosDInterlude {
 export interface InterludeEnVue { semaines: number; heros: HerosDInterlude[]; depots: GesteDInterlude[] }
 
 type Etat = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'scene' | 'worldMap' | 'massBattle' | 'favors'>;
+
+/** Ce qu'une cible coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
+const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });
 
 const activite = (id: string): ActivityDef => garanti(activityById(id), id, 'Activité d’interlude');
 
@@ -87,14 +91,14 @@ function activitesDuHeros(s: Etat, h: Combatant): ActiviteEnVue[] {
     simple(revenus.id, revenus.label, { verbe: 'interludeActivity', args: [h.id, revenus.id] }, refusDOuvertureDActivite(s, h.id, revenus)),
     ...(h.craft ? [simple('craft', activite('craft').label, { verbe: 'interludeActivity', args: [h.id, 'craft'] }, refusDOuvertureDActivite(s, h.id, activite('craft')))] : []),
     parCible(learn.id, learn.label, learnableTalents(h).map((o) => ({
-      libelle: o.label, geste: { verbe: 'interludeActivity', args: [h.id, learn.id, { talentId: o.id }] }, refus: refusDOuvertureDActivite(s, h.id, learn, { talentId: o.id }),
+      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'interludeActivity', args: [h.id, learn.id, { talentId: o.id }] }, refus: refusDOuvertureDActivite(s, h.id, learn, { talentId: o.id }),
     }))),
     parCible('order', t('interlude.commande'), orderCatalog().map((o) => ({
-      libelle: o.label, geste: { verbe: 'interludeOrder', args: [h.id, o.id] }, refus: refusDeCommande(s, h.id, o.id),
+      libelle: auPrix(o.label, formatMoney(fromBrass(o.priceBrass))), geste: { verbe: 'interludeOrder', args: [h.id, o.id] }, refus: refusDeCommande(s, h.id, o.id),
     }))),
     { id: identify.id, libelle: identify.label, refus: ferme, ...gestesDuCatalogue(s, h, identify) },
     parCible('entrainement', activite('entrainement').label, entrainementOptions(h).map((o) => ({
-      libelle: o.label, geste: { verbe: 'interludeEntrainement', args: o.spec === undefined ? [h.id, o.kind, o.id] : [h.id, o.kind, o.id, o.spec] }, refus: refusDEntrainement(s, h.id, o.kind, o.id, o.spec),
+      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'interludeEntrainement', args: o.spec === undefined ? [h.id, o.kind, o.id] : [h.id, o.kind, o.id, o.spec] }, refus: refusDEntrainement(s, h.id, o.kind, o.id, o.spec),
     }))),
     ...(favors.length ? [parCible('faveur', t('interlude.faveur'), favors.map((f) => ({
       libelle: f.owedTo, geste: { verbe: 'favorSettle', args: [h.id, f.id] }, refus: refusDAcquitterUneFaveur(s, h.id, f.id),
@@ -114,7 +118,7 @@ function ouvrageDuHeros(s: Etat, h: Combatant, catalogue: readonly CraftOption[]
   const { atouts, defauts } = qualitesDArtisanat();
   return {
     geste: { verbe: 'interludeCraftStart', args: [h.id] }, refus,
-    ouvrages: refus ? [] : catalogue.map((o) => ({ libelle: t('interlude.ouvrage', { label: o.label, materiaux: formatMoney(fromBrass(o.materialsBrass)) }), valeur: o.id, refus: refusDArtisanat(s, h.id, o.id) })),
+    ouvrages: refus ? [] : catalogue.map((o) => ({ libelle: auPrix(o.label, formatMoney(fromBrass(o.materialsBrass))), valeur: o.id, refus: refusDArtisanat(s, h.id, o.id) })),
     atouts: refus ? [] : atouts.map(qualite),
     defauts: refus ? [] : defauts.map(qualite),
   };
@@ -159,7 +163,7 @@ export function interludeEnVue(s: Jeu): InterludeEnVue | null {
     heros: s.party.filter((h) => !h.dead && itl.perHero[h.id]).map((h) => {
       const st = itl.perHero[h.id];
       return {
-        id: h.id, nom: h.label, restantes: st.left, recues: st.granted, evenement: st.eventRoll == null ? null : eventLabelOf(st), activites: activitesDuHeros(s, h),
+        id: h.id, nom: h.label, restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st), activites: activitesDuHeros(s, h),
         ouvrage: ouvrageDuHeros(s, h, catalogue), depot: depotDuHeros(s, h),
       };
     }),

@@ -37,7 +37,7 @@ import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel } from 
 import { resultLine, buildBand, rollLine } from './rollSeam';
 import { t } from '../i18n';
 import { checkBattleOver } from './combatFlow';
-import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
+import { BOARD_EVENTS, PORT_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
 import type { RecapEvent } from './recapLine';
 import { SEA_HAZARDS, findSeaHazard } from '../engine/seaPerils';
 import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
@@ -428,7 +428,7 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
   it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const plan = get().travelPlan!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', testType: 'extermination-nuisibles', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
     expect(driveDayCaptureExtermination()).toBe(-1);
   });
 
@@ -447,7 +447,7 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
       freshState();
       set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois-mer', enc: contenance, basePriceGold: 1 }] } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', testType: 'extermination-nuisibles', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
       const before = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);
       seedBattleRng(seed);
       continueSeaDayAfterCascade(get, set);
@@ -589,7 +589,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
 
   it('extermination : progression cumulée jusqu’à extermination complète (MDG 14 l.98-104)', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: { dice: { n: 1, sides: 10 } } } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', testType: 'extermination-nuisibles', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: { dice: { n: 1, sides: 10 } } } } } });
     apply('extermination', 5, true);
     expect(get().travelPlan!.sea!.infestation).toBeUndefined();
   });
@@ -1291,6 +1291,68 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
   });
 });
 
+describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.132-263)', () => {
+  beforeEach(freshState);
+  afterEach(() => resetData());
+
+  const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
+  const deBord = (id: string, params: object) =>
+    setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
+  const dEscale = (id: string, params: object) =>
+    setDataset('seaPortEvents', PORT_EVENTS.map((e) => (e.id === id ? { ...e, params: { ...e.params, ...params } } : e)) as never);
+  function affalerRate(): void {
+    applierDe('sea-ouragan-affaler')!(get, set, {
+      id: 'x', kind: 'sea-ouragan-affaler', label: fixtureText('x'),
+      result: { roll: 99, target: 40, sl: -6, success: false }, meta: { evenement: 'ouragan' },
+    }, undefined, { steps: [], index: 0 });
+  }
+  function jourForce(id: string): void {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: id } } });
+    runSeaDay(get, set);
+  }
+
+  it('Ouragan raté : `failCrits` Coups Critiques (MDG 15 l.145 « 3 Coups Critiques au Gréement »)', () => {
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });
+    affalerRate();
+    expect(get().vessel!.criticals).toHaveLength(3);
+    set({ vessel: { ...get().vessel!, criticals: [] } });
+    deBord('ouragan', { failCrits: 1 });
+    affalerRate();
+    expect(get().vessel!.criticals).toHaveLength(1);
+  });
+
+  it('Débris marins : `cargoEnc` Enc d’une cargaison tirée, à son prix de base (MDG 15 l.209-210 « une cargaison choisie au hasard »)', () => {
+    deBord('debris-marins', { cargoEnc: 37 });
+    jourForce('debris-marins');
+    const cargo = get().vessel!.cargo!;
+    const lot = cargo[cargo.length - 1];
+    expect(lot.enc).toBe(37);
+    expect(lot.basePriceGold).toBeGreaterThan(0);
+  });
+
+  it('Bonne humeur : le Moral bouge de `moral` (MDG 15 l.220 « Gagnez 2d10 Moral »)', () => {
+    deBord('bonne-humeur', { moral: { sign: 1, dice: { n: 0, sides: 10, plus: 4 } } });
+    jourForce('bonne-humeur');
+    expect(get().vessel!.morale.score).toBe(75 + 4);
+  });
+
+  it('Rafale de Ghyran : `drBonus` DR aux Tests de `skills`, la Focalisation à sa spécialisation (MDG 15 l.211-212)', () => {
+    deBord('rafale-de-ghyran', { drBonus: 3 });
+    jourForce('rafale-de-ghyran');
+    expect(get().journal.some((l) => l.includes('+3 DR aux Tests de Focalisation ('))).toBe(true);
+  });
+
+  it('Contrôle à quai : les droits valent `taxPct` %de la valeur de la cargaison (MDG 15 l.247)', () => {
+    creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'vin', enc: 10, basePriceGold: 10 }] } });
+    dEscale('controle-a-quai', { taxPct: 25 });
+    // 2d10 = 1+2 = 3 → « Contrôle à quai » (Humeur neutre) ; 2d10 d'heures sans effet.
+    resolvePortArrival(get, set, undefined, seq(1, 2, 1, 1));
+    expect(partyMoneyTotal(get)).toEqual({ gold: 75, silver: 0, brass: 0 });
+  });
+});
+
 describe('Port désert & Embrigadement — #150 (resolvePortArrival appelé APRÈS purge de travelPlan)', () => {
   beforeEach(freshState);
 
@@ -1300,9 +1362,14 @@ describe('Port désert & Embrigadement — #150 (resolvePortArrival appelé APR�
     expect(get().travelPlan).toBeNull(); // reproduit exactement le contexte du bug : plan déjà purgé
     // Humeur de Manann neutre (mod 0) : 2d10 = 2+3 = 5 → « Port désert ». Puis 2d10 = 1+1 (heures, sans
     // effet ici). Puis 1d10 = 6 → delta d'Humeur −6 (MDG 15 l.249 : « le Moral diminue d'1d10 »).
-    resolvePortArrival(get, set, undefined, seq(2, 3, 1, 1, 6));
+    resolvePortArrival(get, set, { taille: 2, richesse: 1, production: [] }, seq(2, 3, 1, 1, 6));
     expect(get().vessel!.morale.score).toBe(75 - 6);
     expect(get().journal.some((l) => l.includes('Moral de l’équipage') || l.includes("Moral de l'équipage"))).toBe(true);
+  });
+
+  it('Port désert : un port plus grand que `maxSize` n’est pas désert (MDG 15 l.249 « Taille 1 ou 2 »)', () => {
+    resolvePortArrival(get, set, { taille: 3, richesse: 1, production: [] }, seq(2, 3, 1, 1, 6));
+    expect(get().vessel!.morale.score).toBe(75);
   });
 
   it('Embrigadement (min 1 max 1) réduit l’effectif d’équipage de 2d10 (MDG 15 l.245)', () => {
@@ -2476,7 +2543,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     seaDay({ forcePace: 1, milesToday: 50, effMToday: 12 });
     set({ party: get().party.map((h) => ({ ...h, conditions: [{ id: 'empoisonne', value: 1 }] })) } as never);
     const porteur = get().party[0]!;
-    expect(testValue(porteur, 'resistance', 'endurance'), 'l’État mord les jets du PJ').toBeLessThan(skillBaseValue(porteur, 'resistance', undefined, 'endurance'));
+    expect(testValue(porteur, { skill: { id: 'resistance' }, characteristic: 'endurance' }), 'l’État mord les jets du PJ').toBeLessThan(skillBaseValue(porteur, 'resistance', undefined, 'endurance'));
 
     const st = buildOverspeedSteps(get)[0];
     const hullE = effectiveChar(get().travelPlan!.vehicle!, 'endurance');
@@ -2638,12 +2705,13 @@ describe('#1341 (site maritime) — `engineerOf` demande la spec Métier par ID,
 
   it('testValue trouve la spécialisation par son ID — le LIBELLÉ perd les avances (contre-preuve)', () => {
     const h = ingenieur();
-    const parId = testValue(h, 'metier', undefined, 'ingenieur');
-    const parLabel = testValue(h, 'metier', undefined, 'Ingénieur');
+    const parId = testValue(h, { skill: { id: 'metier', spec: 'ingenieur' } });
+    const libelle = byId('skill', 'metier')?.specs?.find((s) => s.id === 'ingenieur')?.label;
+    const parLabel = testValue(h, { skill: { id: 'metier', spec: libelle } });
     expect(parId, 'par id : les avances comptent').toBeGreaterThan(parLabel);
     // …et le libellé rend EXACTEMENT ce que rend une demande SANS compétence : la compétence est
     // réputée absente, les 25 avances tombent en silence (33 sur cette fixture, passifs compris).
-    expect(parLabel, 'par libellé : la compétence est réputée absente').toBe(testValue(h, 'metier', undefined, 'inconnue-xyz'));
+    expect(parLabel, 'par libellé : la compétence est réputée absente').toBe(testValue(h, { skill: { id: 'metier', spec: 'inconnue-xyz' } }));
   });
 
   it('LE SITE — `engineerOf` élit bien l’INGÉNIEUR, là où la demande par libellé n’élit personne', () => {

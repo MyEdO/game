@@ -46,7 +46,7 @@ import { actorIn } from './monde/combatants';
 import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
 import { rule } from '../engine/policy';
 import { rollTest } from '../engine/tests';
-import { valeurDuTest } from '../engine/skills';
+import { testValue } from '../engine/skills';
 import { pushReveal } from './combatEffects';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
@@ -128,7 +128,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
-  const tst = rollTest(valeurDuTest(hero, test), test.difficulty, rng);
+  const tst = rollTest(testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
     lines.push(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
     return lines;

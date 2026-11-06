@@ -179,7 +179,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     get().jetConfirm('cascade');
     const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'tavern-drink')!;
     expect(pinte.base).toBe(76);
-    expect(pinte.target).toBe(testValue(party[0], 'resistance-a-l-alcool'));
+    expect(pinte.target).toBe(testValue(party[0], { skill: { id: 'resistance-a-l-alcool' } }));
   });
 
   it('RATÉ : la pinte s’ouvre dans la MÊME fenêtre, et l’échec coûte 1 point à l’équipe (l.111)', () => {

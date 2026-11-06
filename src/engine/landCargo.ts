@@ -15,7 +15,7 @@
  */
 import landCargoJson from '../data/land-cargo.json';
 import type { LandCargoData } from '../data/schemas/defs/land-cargo';
-import { d10, d100, roll as rollDice, type RNG } from './dice';
+import { d100, parseDiceRequired, roll, rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
@@ -25,11 +25,11 @@ import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasona
 export const VOIE_TERRESTRE: Voie = 'terre';
 
 /** Rangée du Tableau des rumeurs commerciales (l.281-303). */
-export type RumourRow = LandCargoData['rumours'][number];
+export type RumourRow = LandCargoData['rumours']['entries'][number];
 
 const LAND = landCargoJson as LandCargoData;
 
-export const WINE_QUALITY = LAND.wineQuality;
+export const WINE_QUALITY = LAND.wineQuality.entries;
 /** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de
  *  marché. Pourcentages de MSRC 13 l.150-156 ; libellés de l'échelle des indices l.52-60 (1 Pauvre …
  *  5 Florissant), que l'exemple l.174 confirme contre la colonne Description de l.150-156, décalée
@@ -114,15 +114,17 @@ export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
   return rollSeasonalCargo([...marchandisesDe(VOIE_TERRESTRE)], season, rng);
 }
 
-/** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie (l.93-104) : 1d10 → qualité → prix de base
- *  (CO par 10 Enc). `bonusEchelons` (Kemperbad, l.95) monte le résultat de N crans dans le tableau. PUR. */
+/** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie (l.93-104) : le dé de la table (l.97) →
+ *  qualité → prix de base (CO par 10 Enc). `bonusEchelons` (Kemperbad, l.95) monte le résultat de N crans
+ *  dans le tableau. PUR. */
 export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
-  const roll = d10(rng);
-  let idx = findTableEntryIndex(LAND.wineQuality, roll);
+  const { die, entries } = LAND.wineQuality;
+  const tirage = rollDice(parseDiceRequired(die, 'land-cargo › wineQuality.die'), rng);
+  let idx = findTableEntryIndex(entries, tirage);
   if (idx < 0) idx = 0;
-  idx = Math.min(LAND.wineQuality.length - 1, idx + Math.max(0, bonusEchelons));
-  const tier = LAND.wineQuality[idx];
-  return { roll, label: tier.label, price: tier.price };
+  idx = Math.min(entries.length - 1, idx + Math.max(0, bonusEchelons));
+  const tier = entries[idx];
+  return { roll: tirage, label: tier.label, price: tier.price };
 }
 
 /** Prix de BASE terrestre (CO par 10 Enc) : le Vin/Eau-de-vie passe par la table de qualité SECRÈTE
@@ -163,7 +165,7 @@ export const minCargoEnc = (): number => LAND.buy.minEnc;
 
 /** Compétence Marchandage d'un petit marchand pris au hasard (l.129) : 2d10 + 30 (≈ 32-50). PUR. */
 export function rollMerchantSkill(rng: RNG): number {
-  return rollDice(LAND.buy.merchantSkill.d10, 10, rng) + LAND.buy.merchantSkill.plus;
+  return roll(LAND.buy.merchantSkill.d10, 10, rng) + LAND.buy.merchantSkill.plus;
 }
 
 /** Nombre visé du d100 « trouver un acheteur » à la VENTE (l.146) : Taille × 10, +30 si le Lieu a le
@@ -194,10 +196,11 @@ export function landDumpingPct(place: LandMarketProfile): number | null {
 /** Difficulté du Test de Ragot pour dénicher une rumeur commerciale (l.180) : Ragot Complexe (−10). */
 export const gossipRule = LAND.gossip;
 
-/** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : d100 → une rumeur pointant les biens très
- *  demandés à un Emplacement. PUR. */
+/** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : le dé de la table (l.283) → une rumeur
+ *  pointant les biens très demandés à un Emplacement. PUR. */
 export function rollTradeRumour(rng: RNG): RumourRow {
-  return structuredClone(findTableEntry(LAND.rumours, d100(rng))); // #2097
+  const { die, entries } = LAND.rumours;
+  return structuredClone(findTableEntry(entries, rollDice(parseDiceRequired(die, 'land-cargo › rumours.die'), rng))); // #2097
 }
 
 /** La cargaison `cargoId` correspond-elle à une rumeur (l.180 : « ils peuvent en vendre autant qu'ils le

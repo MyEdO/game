@@ -50,7 +50,7 @@ export function BargainModalView({
   // renvois Codex tirés de la DONNÉE). La CIBLE ne bouge pas : elle reste `pb.playerSkill`, la valeur
   // que le résolveur a roulée — et `base + Σ mods` la retrouve exactement (invariant du décomposeur).
   const soutien = soutienMod(pb.support);
-  const playerMods = [...(soutien ? [soutien] : []), ...(actor ? testValueParts(actor, 'marchandage', 'sociabilite') : [])];
+  const playerMods = [...(soutien ? [soutien] : []), ...(actor ? testValueParts(actor, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }) : [])];
   // Jet OPPOSÉ de Marchandage rendu façon Défense : 2 lignes à portrait (joueur + marchand), vainqueur
   // accentué, Difficulté DÉCLARÉE UNE fois pour l'opposition (LDB 12 l.166). Le Marchandage du marchand
   // reste OPAQUE → `mask:'value'` (portrait + dé + DR, sans base/cible).

@@ -64,7 +64,7 @@ describe('AppraiseModal (#2e)', () => {
     const evaluateur = hero();
     addCondition(evaluateur, COND.empoisonne);
     // La valeur JETÉE est celle que le flux roule (`partyAssisted` → `testValue`), jamais un nombre forgé.
-    const skillValue = testValue(evaluateur, 'evaluation', 'intelligence');
+    const skillValue = testValue(evaluateur, { skill: { id: 'evaluation' }, characteristic: 'intelligence' });
     const pa: PendingAppraise = { ...base, ligne: ligneDEvaluation(skillValue, evaluateur), target: skillValue };
     const html = renderToStaticMarkup(
       <AppraiseModalView pa={pa} actor={evaluateur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
@@ -79,7 +79,7 @@ describe('AppraiseModal (#2e)', () => {
 
   it('#1178 — contrôle NÉGATIF : évaluateur sans État, aucune chip nouvelle', () => {
     const sain = hero();
-    const skillValue = testValue(sain, 'evaluation', 'intelligence');
+    const skillValue = testValue(sain, { skill: { id: 'evaluation' }, characteristic: 'intelligence' });
     const html = renderToStaticMarkup(
       <AppraiseModalView pa={{ ...base, ligne: ligneDEvaluation(skillValue, sain), target: skillValue }} actor={sain} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );

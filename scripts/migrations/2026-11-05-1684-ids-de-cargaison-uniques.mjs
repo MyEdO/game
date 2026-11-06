@@ -65,11 +65,16 @@ function renommerCatalogue(table, doc, fichier, arrets) {
   }
 }
 
+/** Les rumeurs de `land-cargo.json` : le tableau à l'écriture de cette migration, `rumours.entries` sous
+ *  la forme que `2026-11-06-1667-tables-tirees-nichees.mjs` pose — une migration ANTÉRIEURE dans l'ordre
+ *  lexical reconnaît la forme qu'une POSTÉRIEURE produit. */
+const rumeursDe = (doc) => (Array.isArray(doc.rumours) ? doc.rumours : doc.rumours.entries);
+
 const DOCUMENTS = {
   'sea-cargo.json': (doc, f, arrets) => renommerCatalogue(MER, doc, f, arrets),
   'land-cargo.json': (doc, f, arrets) => {
     renommerCatalogue(TERRE, doc, f, arrets);
-    for (const r of doc.rumours) r.biens = r.biens.map((id) => renomme(TERRE, id));
+    for (const r of rumeursDe(doc)) r.biens = r.biens.map((id) => renomme(TERRE, id));
   },
   'naval-ports.json': (ports) => {
     for (const p of ports) {
@@ -85,7 +90,7 @@ const RESTES = {
   'sea-cargo.json': (doc) => (doc.cargoes ?? []).filter((c) => MER.has(c.id)).map((c) => `cargoes › ${c.id}`),
   'land-cargo.json': (doc) => [
     ...(doc.cargoes ?? []).filter((c) => TERRE.has(c.id)).map((c) => `cargoes › ${c.id}`),
-    ...doc.rumours.flatMap((r, i) => r.biens.filter((id) => TERRE.has(id)).map((id) => `rumours[${i}].biens › ${id}`)),
+    ...rumeursDe(doc).flatMap((r, i) => r.biens.filter((id) => TERRE.has(id)).map((id) => `rumours[${i}].biens › ${id}`)),
   ],
   'naval-ports.json': (ports) => ports.flatMap((p) => [
     ...(p.production ?? []).filter((id) => MER.has(id)).map((id) => `${p.id}.production › ${id}`),

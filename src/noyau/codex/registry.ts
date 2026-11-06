@@ -71,7 +71,7 @@ import { traumaLabelOf } from '../../engine/trauma';
 import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
-import { CRIT_TABLE_LOCATION, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
+import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
@@ -722,7 +722,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
   const amputation = noeudAmputation(e, jeu, CRIT_TABLE_LOCATION[table]);
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
-    sub: bandeAuDe('d100', e.min, e.max),
+    sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
     meta: facts(
       e.lethal ? fact(tr('codex.fiche.letal'), tr('codex.fiche.oui')) : null,
       !e.lethal && !(e.ops ?? []).some((o) => o.op === 'wounds') ? fact(tr('codex.fiche.type'), tr('codex.fiche.trivialeT')) : null,
@@ -1226,8 +1226,8 @@ const CODEX_SPECS = {
     label: 'codex.fiche.navigationFluvialeVentChavirageEchouage', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 7',
     build: () => {
       const n = datasetObject('riverNavigation');
-      const forceLabel = new Map(n.windForces.map((f) => [f.id, f.label]));
-      const dirLabel = new Map(n.windDirections.map((d) => [d.id, d.label]));
+      const forceLabel = new Map(n.windForces.entries.map((f) => [f.id, f.label]));
+      const dirLabel = new Map(n.windDirections.entries.map((d) => [d.id, d.label]));
       const effectText = (e: { pct?: number; drift?: boolean; tack?: boolean; capsizeRisk?: boolean; riggingRisk?: boolean } | undefined): string => {
         if (!e) return '—';
         const parts: string[] = [];
@@ -1248,15 +1248,15 @@ const CODEX_SPECS = {
         sections: sections(
           {
             title: tr('codex.fiche.forceDuVent1d10'), layout: 'list',
-            rows: n.windForces.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe('d10')), v: f.label } as CodexRow)),
+            rows: n.windForces.entries.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe(n.windForces.die)), v: f.label } as CodexRow)),
           },
           {
             title: tr('codex.fiche.directionDuVent1d10RelativeAu'), layout: 'list',
-            rows: n.windDirections.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe('d10')), v: d.label } as CodexRow)),
+            rows: n.windDirections.entries.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe(n.windDirections.die)), v: d.label } as CodexRow)),
           },
           {
             title: tr('codex.fiche.effetDuVentForceDirection'), layout: 'list',
-            rows: n.windForces.flatMap((f) => n.windDirections.map((d) => ({
+            rows: n.windForces.entries.flatMap((f) => n.windDirections.entries.map((d) => ({
               t: 'kv', k: `${forceLabel.get(f.id)} · ${dirLabel.get(d.id)}`, v: effectText(n.windEffect[f.id]?.[d.id as 'arriere' | 'cote' | 'contraire']),
             } as CodexRow))),
           },
@@ -2224,9 +2224,9 @@ const CODEX_SPECS = {
           waterModifiersSection(w.modifiers),
           {
             title: tr('codex.fiche.maladiesJetD100ApresEchecDu'), layout: 'list',
-            rows: w.diseases.map((d) => {
+            rows: w.diseases.entries.map((d) => {
               const label = maladies.find((m) => m.id === d.disease)?.label ?? d.disease;
-              return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${fourchette(d.min, d.max, facesDuDe('d100'))}${d.rerollUnlessWounded ? tr('codex.fiche.relanceSiIndemne') : ''}` } as CodexRow;
+              return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${fourchette(d.min, d.max, facesDuDe(w.diseases.die))}${d.rerollUnlessWounded ? tr('codex.fiche.relanceSiIndemne') : ''}` } as CodexRow;
             }),
           },
         ),
@@ -2331,7 +2331,7 @@ const CODEX_SPECS = {
           },
           {
             title: tr('codex.fiche.changementDeCap1d10', { v: derive ? tr('codex.fiche.aDr', { driftMajorBonus: n.orientation.driftMajorBonus, v: fourchette(derive.min, derive.max) }) : '' }), layout: 'list',
-            rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe('d10')), v: r.desc } as CodexRow)),
+            rows: n.orientation.changementDeCap.entries.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe(n.orientation.changementDeCap.die)), v: r.desc } as CodexRow)),
           },
           {
             title: composeRollLabel(undefined, tr('codex.fiche.pharesClochers'), { skill: 'perception' }), layout: 'list',
@@ -2513,7 +2513,7 @@ const CODEX_SPECS = {
         sections: sections(
           {
             title: tr('codex.fiche.qualiteDuVin1d10'), layout: 'list',
-            rows: c.wineQuality.map((q) => ({ t: 'kv', k: fourchette(q.min, q.max, facesDuDe('d10')), v: tr('codex.fiche.qualitePrixCo', { label: q.label, price: q.price }) } as CodexRow)),
+            rows: c.wineQuality.entries.map((q) => ({ t: 'kv', k: fourchette(q.min, q.max, facesDuDe(c.wineQuality.die)), v: tr('codex.fiche.qualitePrixCo', { label: q.label, price: q.price }) } as CodexRow)),
           },
           {
             title: tr('codex.fiche.achat'), layout: 'list',
@@ -2539,8 +2539,8 @@ const CODEX_SPECS = {
           },
           {
             title: tr('codex.fiche.rumeursCommerciales1d100'), layout: 'list',
-            rows: c.rumours.flatMap((r) => [
-              { t: 'sub', label: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow,
+            rows: c.rumours.entries.flatMap((r) => [
+              { t: 'sub', label: fourchette(r.min, r.max, facesDuDe(c.rumours.die)) } as CodexRow,
               { t: 'text', text: r.desc } as CodexRow,
               ...r.biens.map((id) => portCargoRow(id)),
             ]),

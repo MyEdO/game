@@ -2,98 +2,104 @@
   "id": "river-navigation",
   "type": "river-navigation",
   "label": "Navigation fluviale",
-  "windForces": [
-    {
-      "id": "calme",
-      "label": "Calme",
-      "min": 1,
-      "max": 2,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+  "windForces": {
+    "die": "d10",
+    "entries": [
+      {
+        "id": "calme",
+        "label": "Calme",
+        "min": 1,
+        "max": 2,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+        }
+      },
+      {
+        "id": "leger",
+        "label": "Léger",
+        "min": 3,
+        "max": 4,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+        }
+      },
+      {
+        "id": "modere",
+        "label": "Modéré",
+        "min": 5,
+        "max": 6,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+        }
+      },
+      {
+        "id": "fort",
+        "label": "Fort",
+        "min": 7,
+        "max": 8,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+        }
+      },
+      {
+        "id": "tres-fort",
+        "label": "Très fort",
+        "min": 9,
+        "max": 10,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+        }
       }
-    },
-    {
-      "id": "leger",
-      "label": "Léger",
-      "min": 3,
-      "max": 4,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
+    ]
+  },
+  "windDirections": {
+    "die": "d10",
+    "entries": [
+      {
+        "id": "arriere",
+        "label": "Vent arrière",
+        "min": 1,
+        "max": 3,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Direction (l.23-33)."
+        }
+      },
+      {
+        "id": "cote",
+        "label": "Vent de côté",
+        "min": 4,
+        "max": 7,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Direction (l.23-33)."
+        }
+      },
+      {
+        "id": "contraire",
+        "label": "Vent contraire",
+        "min": 8,
+        "max": 10,
+        "source": {
+          "book": "mort-sur-le-reik-compagnon",
+          "page": 29,
+          "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Direction (l.23-33)."
+        }
       }
-    },
-    {
-      "id": "modere",
-      "label": "Modéré",
-      "min": 5,
-      "max": 6,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
-      }
-    },
-    {
-      "id": "fort",
-      "label": "Fort",
-      "min": 7,
-      "max": 8,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
-      }
-    },
-    {
-      "id": "tres-fort",
-      "label": "Très fort",
-      "min": 9,
-      "max": 10,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Force (l.23-33)."
-      }
-    }
-  ],
-  "windDirections": [
-    {
-      "id": "arriere",
-      "label": "Vent arrière",
-      "min": 1,
-      "max": 3,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Direction (l.23-33)."
-      }
-    },
-    {
-      "id": "cote",
-      "label": "Vent de côté",
-      "min": 4,
-      "max": 7,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Direction (l.23-33)."
-      }
-    },
-    {
-      "id": "contraire",
-      "label": "Vent contraire",
-      "min": 8,
-      "max": 10,
-      "source": {
-        "book": "mort-sur-le-reik-compagnon",
-        "page": 29,
-        "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, colonne Direction (l.23-33)."
-      }
-    }
-  ],
+    ]
+  },
   "windTickThreshold": 1,
   "windTicksPerDay": 4,
   "windEffect": {

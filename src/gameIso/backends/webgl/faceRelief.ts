@@ -30,7 +30,7 @@ import type { Face } from '../../../noyau/monde/volume/types';
  *  Seule la planche de rive (`roof:fascia`), verticale et de morphologie de plinthe, prend un volume. */
 export function faceDepthM(face: Face): number | undefined {
   const { domain, id, part } = face.material;
-  // Un DÉCOR volumique arrive déjà fermé (`builders/propVolumes.ts` en compile toutes les faces) : lui
+  // Un DÉCOR volumique arrive déjà fermé (`noyau/monde/volume/propVolumes.ts` en compile toutes les faces) : lui
   // donner une épaisseur d'arête doublerait sa matière.
   if (domain === 'prop') return undefined;
   if (!part) return undefined;

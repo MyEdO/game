@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForTests, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
+import { testValue, testValueParts, testValueSplit, rawCombatTestBase, partyBest, partyAssisted, skillCharKeyById, bestForTests, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
 import { Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
@@ -12,14 +12,26 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
 
 describe('skills — testValue / partyBest / skillCharKeyById', () => {
   it('caractéristique fournie → valeur de la caractéristique', () => {
-    expect(testValue(mk({ sociabilite: 55 }), undefined, 'sociabilite')).toBe(55);
+    expect(testValue(mk({ sociabilite: 55 }), { characteristic: 'sociabilite' })).toBe(55);
   });
   it('compétence (inconnue de la base) → repli sur Dextérité + avances de la compétence portée', () => {
     const c = mk({ dexterite: 40 }, [{ id: 'bidouille', advances: 7 }]);
-    expect(testValue(c, 'bidouille')).toBe(47);
+    expect(testValue(c, { skill: { id: 'bidouille' } })).toBe(47);
   });
   it('compétence sans avances → caractéristique de repli seule', () => {
-    expect(testValue(mk({ dexterite: 33 }), 'inexistante')).toBe(33);
+    expect(testValue(mk({ dexterite: 33 }), { skill: { id: 'inexistante' } })).toBe(33);
+  });
+  it('le sujet du Test se DÉSIGNE (`SujetDuJet`) : aucun argument positionnel Compétence/Spécialisation (#3012)', () => {
+    const c = mk({ dexterite: 40 }, [{ id: 'bidouille', advances: 7, spec: 'fine' }]);
+    expect(testValue(c, { skill: { id: 'bidouille', spec: 'fine' } })).toBe(47);
+    // @ts-expect-error — une Compétence se désigne `{ skill: { id, spec } }`.
+    expect(testValue(c, 'bidouille', undefined, 'fine')).toBe(0);
+    // @ts-expect-error — idem pour ses composantes.
+    expect(testValueParts(c, 'bidouille')).toEqual([]);
+    // @ts-expect-error — idem pour la valeur brute de combat.
+    expect(rawCombatTestBase(c, 'bidouille')).toBe(0);
+    // @ts-expect-error — la décomposition reçoit le sujet sous `sujet`.
+    expect(testValueSplit(c, 47, { skill: 'bidouille' }).exact).toBe(true);
   });
   it('partyBest renvoie le meilleur membre du groupe', () => {
     const a = mk({ sociabilite: 40 });
@@ -54,9 +66,9 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
       ...mk({ initiative: 40 }),
       traumas: [{ label: 'Surdité', traumaId: 'surdite', location: 'tete', ops: [{ op: 'skillMod', skill: { id: 'perception' }, mod: -20, sense: 'ouie' }] }],
     } as Combatant);
-    expect(testValue(deaf(), 'perception')).toBe(20); // sens inconnu : pénalité appliquée par défaut
-    expect(testValue(deaf(), 'perception', undefined, undefined, 'ouie')).toBe(20); // Test auditif : pénalisé
-    expect(testValue(deaf(), 'perception', undefined, undefined, 'vue')).toBe(40); // Test visuel : exempté
+    expect(testValue(deaf(), { skill: { id: 'perception' } })).toBe(20); // sens inconnu : pénalité appliquée par défaut
+    expect(testValue(deaf(), { skill: { id: 'perception' } }, 'ouie')).toBe(20); // Test auditif : pénalisé
+    expect(testValue(deaf(), { skill: { id: 'perception' } }, 'vue')).toBe(40); // Test visuel : exempté
   });
   it('partyAssisted — compétence : seuls les membres QUI LA POSSÈDENT soutiennent', () => {
     const a = { ...mk({ dexterite: 50 }, [{ id: 'escamotage', advances: 20 }]), id: 'a' }; // 70, possède
@@ -194,7 +206,7 @@ describe('Spécialisation de Voile du navire (LDB 09 l.30, l.571 ; MDG 13 l.18)'
 
   it('la Spécialisation sœur se teste sur la Caractéristique nue ; la sienne, avec ses Augmentations', () => {
     expect(skillBaseValue(caravelle, 'voile', 'chaland')).toBe(40);
-    expect(testValue(caravelle, 'voile', undefined, 'chaland')).toBe(40);
+    expect(testValue(caravelle, { skill: { id: 'voile', spec: 'chaland' } })).toBe(40);
     expect(skillBaseValue(caravelle, 'voile', 'caravelle')).toBe(60);
   });
 
