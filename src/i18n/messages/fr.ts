@@ -465,6 +465,13 @@ export const fr = {
   'ecran.jet.echec': 'échec',
   'ecran.defense.qui': '{attaquant} attaque {defenseur} avec {arme}',
   'ecran.drNet': 'DR net {dr}',
+  'ecran.incantation.sort': '{sort} sur {cible}',
+  'ecran.incantation.surSoi': 'soi-même',
+  'ecran.incantation.zone': 'Zone',
+  'ecran.incantation.cote': '{cote} × {cote} cases',
+  'ecran.incantation.surincantation': 'Surincantation',
+  'ecran.incantation.pas': '{restant} pas sur {budget}',
+  'ecran.incantation.cibles': 'Cibles supplémentaires : {designees} / {capacite}, à cliquer sur la carte',
   // Fenêtre d'attaque — libellés lus par `fenetreDAttaque` (`noyau/fenetreDAttaque.ts`), le web et tout hôte.
   // Dégâts d'arme avant le DR du jet : en-tête de la fenêtre web et réticule du stage (`gameIso/stage/AimOverlay.tsx`).
   'attaque.degats': 'Dégâts +{dmg}',

@@ -21,6 +21,12 @@
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
+// - `document` (`--scenario documents-edo`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à côté de la
+//   liasse, son offre cliquée, « Chapitre 1 » puis « Lire » : le document se lit au centre ; « Refermer » rend la
+//   conversation à la liasse.
+// - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
+//   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
+//   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -446,6 +452,25 @@ async function parcoursIncantation() {
   v = await vue()
   noter(`clic sur ${cible.nom} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
   await capturer('3328-j1-3-incantation')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  const portee = zone(v, 'fenetre.reglages').find((c) => c.libelle === 'Surincantation : Portée')
+  assert.ok(portee, `le jet tombé ouvre la Surincantation : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
+  noter(`jet à l'Entrée : ${corps(v)}`)
+  await capturer('3328-j1-4-jet')
+  await cliquerBouton(bouton(portee.valeurs[1]))
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'surincantation')?.valeur === '0 pas sur 1'")
+  noter('un pas alloué à la Portée : 0 pas sur 1')
+  await capturer('3328-j1-5-surincantation')
+  assert.equal(enFocus(await vue()).libelle, 'Appliquer', 'l’Entrée applique l’incantation')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await attendreLaVue("v.zones['fenetre.titre'][0]?.texte !== 'Incantation'")
+  noter('« Appliquer » : la fenêtre d’incantation se referme')
+  await capturer('3328-j1-6-appliquee')
 }
 
 async function parcoursFiche() {

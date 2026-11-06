@@ -269,7 +269,14 @@ export function creerPont() {
     }
   }
 
-  return { appeler };
+  /** Ferme la partie ouverte : le noyau n'en tient qu'une par processus, et un hôte sans page à recharger (la sonde qui
+   *  fige un scénario après l'autre) la rend avant d'en démarrer une autre sur un pont neuf. */
+  function fermer(): void {
+    demarree().partie.fermer();
+    ouverte = null;
+  }
+
+  return { appeler, fermer };
 }
 
 /** Le pont que la page expose à Godot. */

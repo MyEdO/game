@@ -10,8 +10,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
+  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -134,6 +134,28 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   return elements.filter((e): e is Element => e !== null);
 }
 
+/** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le Sort et sa cible, son NI et sa Zone d'Effet, la
+ *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
+ *  sur la carte, l'issue. */
+function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
+  const lanceur = porteurParId(etat, f.lanceurId)?.label ?? null;
+  const cible = f.surSoi ? t('ecran.incantation.surSoi') : porteurParId(etat, f.cibleId)?.label ?? '';
+  const l = f.ligne;
+  const s = f.surincantation;
+  const elements: (Element | null)[] = [
+    ligne('sort', t('ecran.incantation.sort', { sort: f.sort, cible })),
+    f.zone ? puce('zone', t('ecran.incantation.zone'), t('ecran.incantation.cote', { cote: f.zone.cote }), null, f.zone.aPoser ? 'alerte' : 'neutre') : null,
+    jet('jet', {
+      qui: lanceur, libelle: l.label, cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }), modificateurs: puces('jet', l.mods),
+      ...(l.jet ? { resultat: String(l.jet.roll), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.sl) }), ...verdictDuTest(l.jet.success) } : {}),
+    }),
+    s ? puce('surincantation', t('ecran.incantation.surincantation'), t('ecran.incantation.pas', { restant: s.restant, budget: s.budget })) : null,
+    s?.cibles?.surLaCarte ? ligne('cibles', t('ecran.incantation.cibles', { designees: s.cibles.designees, capacite: s.cibles.capacite })) : null,
+    f.issue ? ligne('issue', f.issue) : null,
+  ];
+  return elements.filter((e): e is Element => e !== null);
+}
+
 /** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé : le dé
  *  et son verdict, ou ce que la table ou le dé lit. */
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
@@ -162,6 +184,8 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
   const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
   if (attaque) return corpsDeLAttaque(etat, attaque);
+  const incantation = jetDeLEtape === 'cast' ? fenetreDIncantation(etat) : null;
+  if (incantation) return corpsDeLIncantation(etat, incantation);
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
