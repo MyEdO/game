@@ -600,8 +600,6 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // nouveauté vue par le siège qui l'émet, lu au transport (`decidingSeat`).
     ['toggleCluePin', TOUJOURS],
     ['markCluesSeen', TOUJOURS],
-    // Butin de victoire : un siège n'attribue qu'à SES héros (le bénéficiaire est le 2ᵉ argument).
-    ['assignVictoryGear', PAR_ARG1],
     // Composition du groupe : tranchée par le geste, une fois — l'ajout par `refusDAjoutAuGroupe`, le retrait et le
     // remplacement par `refusDeComposerLeHeros` (`partyFlow.ts`).
     ['partyAddHero', TOUJOURS],

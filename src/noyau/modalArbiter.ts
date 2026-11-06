@@ -176,7 +176,7 @@ export const MODAL_DEFS = [
   // clôture l'infirmerie RÉAPPARAÎT (même patron que `heal` cédant à `medic`).
   { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicAct', 'openSurgeryPass'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
   // Repos (nuit) : chacun règle SES héros et se dit prêt, l'hôte dort au quorum — modale chez tous.
-  { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], verbes: ['restSet'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
+  { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
   // Conseil de bord (paie hebdomadaire + Moral, #229) : décision de bourse PARTAGÉE → l'hôte seul (comme
   // les autres actions à l'argent du groupe, `CHOIX_DES_FENETRES.council`) ; hors-combat, jamais auto (la cadence
   // auto ne l'ouvre pas).
@@ -327,8 +327,8 @@ export interface HorsModalDef {
 export const HORS_MODAL = [
   { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId, flux: ['bargain'] }, // Marchandage (écran Marché, billet de la carte du monde)
   { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId, flux: ['appraise'] }, // Évaluation/Détection (écran Marché/Compendium)
-  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['assignLootGear', 'appraiseGear'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
-  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['assignVictoryGear', 'harvestCreature', 'appraiseGear'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
+  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['appraiseGear'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
+  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['harvestCreature', 'appraiseGear'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
   { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
   { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['roundStartPromote', 'armPreempt', 'cliquerLaCase'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)

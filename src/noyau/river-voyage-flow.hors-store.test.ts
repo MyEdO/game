@@ -433,7 +433,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().startTravel('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) get().restSet(h.id, { food: 'repas' });
+    for (const h of get().party) get().fenetreChoisir('rest', 'pitance', 'repas', h.id);
     get().fenetreValider('rest');
     draineCascade(get);
     for (const h of get().party) {
@@ -449,7 +449,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().startTravel('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) get().restSet(h.id, { lodging: 'dehors', food: 'rien' });
+    for (const h of get().party) { get().fenetreChoisir('rest', 'couchage', 'dehors', h.id); get().fenetreChoisir('rest', 'pitance', 'rien', h.id); }
     get().fenetreValider('rest');
     draineCascade(get);
     for (const h of get().party) expect(h.hunger?.days ?? 0).toBe(1);

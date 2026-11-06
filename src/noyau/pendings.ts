@@ -34,6 +34,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
+import type { IdDeLigneDeButin } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -41,8 +42,10 @@ export type CrewRoleRoll = { roll: number; target: number; sl: number; sansJet?:
 
 /** Une ligne de butin d'équipement (giveTrapping) ATTRIBUABLE par portrait — partagée entre
  *  l'écran de victoire et la fenêtre de loot (fouille/Test/dialogue). `magic` = qualités cachées
- *  ou ajoutées, révélables par Évaluation. L'Effet d'origine est conservé tel quel. */
+ *  ou ajoutées, révélables par Évaluation. L'Effet d'origine est conservé tel quel. Elle se désigne par son `uid`,
+ *  posé à sa création (`gearFromEffects`). */
 export interface LootGear {
+  uid: IdDeLigneDeButin;
   label: string;
   magic: boolean;
   effect: Extract<Effect, { type: 'giveTrapping' }>;
@@ -351,7 +354,7 @@ export interface PendingAppraise {
   /** Objet d'un héros (uid d'inventaire)… */
   itemUid?: string;
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
-  gear?: { scope: 'loot' | 'victory'; index: number };
+  gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin };
   itemName: string;
   /** 'evaluate' (défaut) = Évaluation marchande ; 'detect' = Détection d'artefact (Intuition). */
   mode?: 'evaluate' | 'detect';

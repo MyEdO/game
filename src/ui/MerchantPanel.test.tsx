@@ -96,7 +96,7 @@ describe('MerchantPanel (#2 — panier)', () => {
     const party = [stubHero('h1', 'Anna'), stubHero('h2', 'Bruno')];
     const bought = { uid: 'b1', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false } as ItemInstance;
     const html = renderToStaticMarkup(
-      <MerchantPanelView merchant={{ ...base, pendingDistribution: [{ item: bought, heroId: 'h1' }] }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} />,
+      <MerchantPanelView merchant={{ ...base, pendingDistribution: [{ uid: 'd1', item: bought, heroId: 'h1' }] }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} />,
     );
     expect(html).toContain('Répartition');
     expect(html).toContain('qui récupère / possède quoi');

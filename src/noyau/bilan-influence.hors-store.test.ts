@@ -58,8 +58,8 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     const b = hero({ id: 'B', label: 'Repue', items: [ration('r1')] }); // B mange sa ration → aucun jet
     banc.setState({ party: [a, b] });
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().restSet('A', { food: 'rien' });
-    banc.getState().restSet('B', { food: 'ration' });
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'B');
     banc.getState().fenetreValider('rest');
 
     // 1. Le jet est une ÉTAPE, PAS pré-résolu : hunger.tests/failures encore vierges tant que non validé.
@@ -94,8 +94,8 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     const b = hero({ id: 'B', label: 'Sain', fortune: 2 });
     banc.setState({ party: [a, b] });
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().restSet('A', { food: 'rien' });
-    banc.getState().restSet('B', { food: 'rien' });
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'B');
     banc.getState().fenetreValider('rest');
 
     const cont = stepOfKind('contagion');
@@ -194,7 +194,7 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
     const a = hero({ id: 'A', label: 'Transi', fortune: 2 });
     banc.setState({ party: [a], scene: sc });
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().restSet('A', { lodging: 'dehors', food: 'rien' });
+    banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'A'); banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
     banc.getState().fenetreValider('rest');
 
     // L'abri de fortune (Survie en extérieur) ouvre la séquence ; son échec INSÈRE les jets d'Exposition.

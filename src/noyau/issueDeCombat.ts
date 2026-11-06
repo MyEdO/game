@@ -1,5 +1,5 @@
 /** Issue d'un combat : victoire, défaite, butin, vol de cargaison (#327). */
-import { applyEffects, confierLaSuite, cloturer, jouerFlowEntier, assignGearAt, harvestVictoryCreature } from './combatEffects';
+import { applyEffects, confierLaSuite, cloturer, jouerFlowEntier, attribuerLaLigne, harvestVictoryCreature } from './combatEffects';
 import * as massBattleFlow from './massBattleFlow';
 import { resumeSuspendedCascade } from './cascade';
 import { applyLandCargoRaid } from './carriers';
@@ -8,6 +8,7 @@ import { flowFromEffects } from './monde/flow';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables } from './tablesPosees';
 
 export function creerActionsDIssueDeCombat(get: Get, set: Set) {
@@ -24,11 +25,16 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
         get().log(t('store.cargoRaidNothing'));
       }
     },
-    assignLootGear: (index, heroId) => assignGearAt(get, set, 'pendingLoot', index, heroId),
-    /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/teinte conservées). */
-    assignVictoryGear: (index, heroId) => assignGearAt(get, set, 'pendingVictory', index, heroId),
     harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
   } satisfies FabriqueDuNoyau;
+}
+
+/** Les choix des fenêtres de butin (`CorpsDesChoix`) : la ligne que prend le héros de la rangée (`attribuerLaLigne`). */
+export function choixDuButin(get: Get, set: Set) {
+  return {
+    loot: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingLoot', uid, heroId) },
+    victory: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingVictory', uid, heroId) },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 /** Les sorties des fenêtres de fin de combat : la victoire, la défaite, le butin. */

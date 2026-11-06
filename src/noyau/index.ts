@@ -75,7 +75,7 @@ export { lieuEnVue } from './lieuEnVue';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
-export { reposEnVue, REGLAGES_DU_REPOS } from './reposEnVue';
+export { reposEnVue } from './reposEnVue';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { libelleDuGeste, libelleDuReglage, libelleDuChoix, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';

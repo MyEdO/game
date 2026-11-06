@@ -23,17 +23,17 @@ import { GatedAction, raisonSi } from './GatedAction';
 import { Row } from './Layout';
 
 const LODGING_META: Record<RestLodging, { icon: IconIdInput; labelKey: MsgKey }> = {
-  privee: { icon: 'rest/bed', labelKey: 'valeur.lodging.privee' },
-  commune: { icon: 'rest/couch', labelKey: 'valeur.lodging.commune' },
-  maison: { icon: 'rest/home', labelKey: 'valeur.lodging.maison' },
-  dehors: { icon: 'rest/camp', labelKey: 'valeur.lodging.dehors' },
-  bord: { icon: 'travel/sail-ship', labelKey: 'valeur.lodging.bord' },
+  privee: { icon: 'rest/bed', labelKey: 'valeur.couchage.privee' },
+  commune: { icon: 'rest/couch', labelKey: 'valeur.couchage.commune' },
+  maison: { icon: 'rest/home', labelKey: 'valeur.couchage.maison' },
+  dehors: { icon: 'rest/camp', labelKey: 'valeur.couchage.dehors' },
+  bord: { icon: 'travel/sail-ship', labelKey: 'valeur.couchage.bord' },
 };
 const FOOD_META: Record<RestFood, { icon: IconIdInput; labelKey: MsgKey }> = {
-  repas: { icon: 'rest/stew', labelKey: 'valeur.food.repas' },
-  maison: { icon: 'rest/feast', labelKey: 'valeur.food.maison' },
-  ration: { icon: 'item/misc', labelKey: 'valeur.food.ration' },
-  rien: { icon: 'ui/forbidden', labelKey: 'valeur.food.rien' },
+  repas: { icon: 'rest/stew', labelKey: 'valeur.pitance.repas' },
+  maison: { icon: 'rest/feast', labelKey: 'valeur.pitance.maison' },
+  ration: { icon: 'item/misc', labelKey: 'valeur.pitance.ration' },
+  rien: { icon: 'ui/forbidden', labelKey: 'valeur.pitance.rien' },
 };
 
 /** Avertissements de la ligne d'un héros (info de DÉCISION, pas de texte tuto). */
@@ -60,7 +60,11 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
   const net = useGame((s) => s.net);
-  const restSet = useGame((s) => s.restSet);
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const regler = (heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => {
+    if (patch.lodging) choisir('rest', 'couchage', patch.lodging, heroId);
+    if (patch.food) choisir('rest', 'pitance', patch.food, heroId);
+  };
   const valider = useGame((s) => s.fenetreValider);
   const fermer = useGame((s) => s.fenetreFermer);
   const renoncer = () => fermer('rest');
@@ -97,7 +101,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const commonFood = followers.length && followers.every((h) => cfgOf(h).food === cfgOf(followers[0]).food) ? cfgOf(followers[0]).food : undefined;
   // Menu de troupe : Couchage = l'offre du lieu (identique pour tous) ; Nourriture = `nourrituresDeTroupe`.
   const masterFood = nourrituresDeTroupe(p.places);
-  const applyTroupe = (patch: Partial<{ lodging: RestLodging; food: RestFood }>) => { for (const h of followers) restSet(h.id, patch); };
+  const applyTroupe = (patch: Partial<{ lodging: RestLodging; food: RestFood }>) => { for (const h of followers) regler(h.id, patch); };
   // Part de chaque héros dans la note (`partsDuRepos`, dont `restCost` est la somme).
   const parts = partsDuRepos(p, party);
 
@@ -153,7 +157,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                 <span className="rest-hero-cost">{toBrass(share) > 0 ? <Coins money={share} /> : '—'}</span>
                 {mine && (
                   isOpen
-                    ? <button type="button" className="btn small btn-ghost rest-hero-toggle" onClick={() => { restSet(h.id, { lodging: commonLodging ?? cfg.lodging, food: commonFood ?? cfg.food }); setExpanded((s) => { const n = new Set(s); n.delete(h.id); return n; }); }} title="Revenir au choix de la troupe">↺ Troupe</button>
+                    ? <button type="button" className="btn small btn-ghost rest-hero-toggle" onClick={() => { regler(h.id, { lodging: commonLodging ?? cfg.lodging, food: commonFood ?? cfg.food }); setExpanded((s) => { const n = new Set(s); n.delete(h.id); return n; }); }} title="Revenir au choix de la troupe">↺ Troupe</button>
                     : <button type="button" className="btn small btn-ghost rest-hero-toggle" onClick={() => setExpanded((s) => new Set(s).add(h.id))} title="Régler ce héros à part">≠ Personnaliser</button>
                 )}
               </div>
@@ -162,12 +166,12 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                   <OptionChooser
                     layout="seg"
                     groupLabel="Couchage"
-                    options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: cfg.lodging === l, onSelect: () => restSet(h.id, { lodging: l }) }))}
+                    options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: cfg.lodging === l, onSelect: () => regler(h.id, { lodging: l }) }))}
                   />
                   <OptionChooser
                     layout="seg"
                     groupLabel="Nourriture"
-                    options={foodOptions(p.places, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => restSet(h.id, { food: f }) }))}
+                    options={foodOptions(p.places, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => regler(h.id, { food: f }) }))}
                   />
                 </Row>
               )}

@@ -18,7 +18,7 @@ const VICTORY_REVEAL_MS = 950;
 
 /**
  * Écran de VICTOIRE plein écran (demande utilisateur) : récapitulatif de fin de combat — XP gagnée, or
- * récupéré, ennemis vaincus, et butin d'ÉQUIPEMENT assignable à un héros (`assignVictoryGear` applique
+ * récupéré, ennemis vaincus, et butin d'ÉQUIPEMENT assignable à un héros (`fenetreChoisir('victory', 'ligne', …)` applique
  * le `giveTrapping` de la rencontre sur le portrait choisi, qualités préservées).
  * « Continuer » revient à l'exploration. Ne s'affiche que sur `battle.over === 'victory'`.
  * COOP : écran SYNCHRONISÉ — chacun n'attribue le butin qu'à SES héros ; « Continuer » = ✓ de son
@@ -29,7 +29,7 @@ export function VictoryScreen() {
   const pv = useGame((s) => s.pendingVictory);
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
-  const assignGear = useGame((s) => s.assignVictoryGear);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const harvest = useGame((s) => s.harvestCreature);
   const appraiseGear = useGame((s) => s.appraiseGear);
   const fermer = useGame((s) => s.fenetreFermer);
@@ -70,7 +70,7 @@ export function VictoryScreen() {
         <GearAssignList
           gear={gear}
           assignable={assignable}
-          onAssign={assignGear}
+          onAssign={(uid, heroId) => choisir('victory', 'ligne', uid, heroId)}
           onAppraise={net.mode === 'guest' ? undefined : (i, mode) => appraiseGear('victory', i, mode)}
         />
       ),

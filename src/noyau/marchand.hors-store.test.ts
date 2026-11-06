@@ -51,7 +51,7 @@ function ligneDansLeStatut(partie: Partie, budget: number): string {
 
 /** Ajoute `id` au panier puis paie par les gestes du noyau ; rend le devis vu avant paiement et le débit. */
 function acheter(partie: Partie, id: string): { devis: ReturnType<typeof devisDuPanier>; unitaire: ReturnType<typeof prixDeLigne>; debit: number } {
-  partie.envoyer({ type: 'addToCart', args: [id] });
+  partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterAuPanier', id] });
   const s = partie.etat();
   const ent = s.scene!.entities.find((e) => e.id === 'pnj');
   const devis = devisDuPanier(s.merchant!, { ent, party: s.party, bourse: s.party.reduce((acc, h) => moneyAdd(acc, bourseOf(h)), fromBrass(0)), refusHote: null });
@@ -137,9 +137,8 @@ describe('#3059 — vente au panier : le crédit est le total du devis de l’é
     const b = { ...itemFromTrappingById('hallebarde')!, uid: 'v2', equipped: false };
     const { partie } = ouvrir(false, [a, b]);
     try {
-      const heros = partie.etat().party[0];
-      partie.envoyer({ type: 'addToSellCart', args: ['v1', heros.id] });
-      partie.envoyer({ type: 'addToSellCart', args: ['v2', heros.id] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'v1'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'v2'] });
       const s = partie.etat();
       const devis = devisDeVente(s.merchant!, s.party);
       const somme = s.party[0].items!.filter((i) => i.uid === 'v1' || i.uid === 'v2').reduce((n, i) => n + toBrass(sellGain(i, s.merchant!)), 0);
@@ -168,11 +167,11 @@ describe('#3059 — siège invité : l’invité compose le panier, l’encaisse
         const prix = toBrass(priceToMoney(catalogEntryOf(l.id)?.price ?? null));
         return l.qty > 0 && prix > 0 && prix * MAJORATION <= 50 * 240 && !(catalogEntryOf(l.id)?.qualities ?? []).length;
       })!;
-      partie.envoyer({ type: 'addToCart', args: [ligne.id] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterAuPanier', ligne.id] });
       expect(partie.etat().merchant!.cart).toEqual([{ id: ligne.id, qty: 1 }]);
       partie.envoyer({ type: 'payCart', args: [] });
       partie.envoyer({ type: 'repairItem', args: ['abimee', heros.id] });
-      partie.envoyer({ type: 'addToSellCart', args: ['avendre', heros.id] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'avendre'] });
       partie.envoyer({ type: 'confirmSell', args: [] });
       partie.envoyer({ type: 'barterExchange', args: [{ giveHeroId: heros.id, giveTrappingId: 'hallebarde', getStockId: ligne.id, getCount: 1 }] });
       const apres = partie.etat();

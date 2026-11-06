@@ -207,4 +207,91 @@ describe('fenetreChoisir', () => {
       expect(banc.getState().pendingSeaActivities, 'la semaine reste ouverte').not.toBeNull();
     });
   });
+
+  describe('le butin, l’échoppe et la nuit (#3371) : chaque axe au siège que sa déclaration nomme', () => {
+    /** Le butin de victoire et hors combat, l'échoppe et la nuit ouverts ensemble, une ligne de chaque. */
+    function tout(banc: Banc): { a: string; b: string } {
+      const { a, b } = hoteEtUnInvite(banc);
+      const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }];
+      banc.setState({
+        pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] },
+        pendingLoot: { title: 'Coffre', gear },
+        pendingRest: { places: { camp: true }, lieu: 'x', quality: 'normale', days: 1, perHero: { [a]: { lodging: 'dehors', food: 'rien' }, [b]: { lodging: 'dehors', food: 'rien' } }, phase: 'setup' },
+        merchant: {
+          entityId: 'm', archetype: 'x', settlement: 'village', resaleRate: 0.5, stock: [{ id: 'corde', qty: 3 }], cart: [{ id: 'corde', qty: 1 }], bargainLocked: false,
+          pendingDistribution: [{ uid: 'D0', item: { uid: 'u2', label: 'Corde', kind: 'misc', qualities: [], enc: 0 }, heroId: a }],
+        },
+      } as never);
+      return { a, b };
+    }
+    const admis = (banc: Banc, args: ArgumentsDuChoix) => [0, 1].filter((x) => intentAllowedFor(banc.getState(), x, 'fenetreChoisir', args));
+
+    it('la ligne de victoire se prend au siège du héros qui la prend ; l’hôte ne la donne pas au héros de l’invité', () => {
+      const banc = ouvrirLeBanc();
+      const { a, b } = tout(banc);
+      expect(admis(banc, ['victory', 'ligne', 'L0', a]), 'le héros de l’hôte').toEqual([0]);
+      expect(admis(banc, ['victory', 'ligne', 'L0', b]), 'le héros de l’invité').toEqual([1]);
+      banc.getState().fenetreChoisir('victory', 'ligne', 'L0', b);
+      expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.autreSiege'));
+      banc.getState().fenetreChoisir('victory', 'ligne', 'L0', a);
+      expect(banc.getState().pendingVictory?.gear, 'la ligne a quitté la fenêtre').toEqual([]);
+    });
+
+    it('chaque dormeur règle sa nuit à son siège', () => {
+      const banc = ouvrirLeBanc();
+      const { a, b } = tout(banc);
+      expect(admis(banc, ['rest', 'couchage', 'dehors', a]), 'le héros de l’hôte').toEqual([0]);
+      expect(admis(banc, ['rest', 'pitance', 'rien', b]), 'le héros de l’invité').toEqual([1]);
+    });
+
+    it('le butin hors combat et la répartition sont à l’hôte : refusés au siège et dans l’état d’un invité', () => {
+      const banc = ouvrirLeBanc();
+      const { b } = tout(banc);
+      const deLHote: readonly ArgumentsDuChoix[] = [['loot', 'ligne', 'L0', b], ['marchand', 'repartition', 'D0', b]];
+      for (const args of deLHote) expect(admis(banc, args), `${args[0]}.${args[1]}`).toEqual([0]);
+      banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+      for (const args of deLHote) {
+        banc.getState().fenetreChoisir(...args);
+        expect(banc.getState().journal.slice(-1)[0], `${args[0]}.${args[1]}`).toBe(t('choix.refus.hoteSeul'));
+      }
+    });
+
+    it('l’article se désigne par son id, la ligne par son uid : un libellé, un rang, refusés et dits', () => {
+      const banc = ouvrirLeBanc();
+      const { a } = tout(banc);
+      banc.getState().fenetreChoisir('marchand', 'retirerDuPanier', 'Corde');
+      expect(banc.getState().journal.slice(-1)[0], 'le libellé de l’article').toBe(t('choix.refus.valeur'));
+      expect(banc.getState().merchant?.cart).toEqual([{ id: 'corde', qty: 1 }]);
+      banc.getState().fenetreChoisir(...(['loot', 'ligne', 0, a] as unknown as ArgumentsDuChoix));
+      expect(banc.getState().journal.slice(-1)[0], 'le rang de la ligne').toBe(t('choix.refus.valeur'));
+      expect(banc.getState().pendingLoot?.gear).toHaveLength(1);
+    });
+
+    it('l’évaluation en cours suit sa ligne quand une autre ligne part avant elle', () => {
+      const banc = ouvrirLeBanc();
+      const { a } = tout(banc);
+      const ligne = (uid: string, trappingId: string) => ({ uid, label: trappingId, magic: true, effect: { type: 'giveTrapping', trappingId, identified: false } });
+      banc.setState({ pendingVictory: null, merchant: null, pendingRest: null, pendingLoot: { title: 'Coffre', gear: [ligne('L0', 'epee'), ligne('L1', 'dague')] } } as never);
+      banc.getState().appraiseGear('loot', 'L1');
+      const pa = banc.getState().pendingAppraise!;
+      expect(pa.gear).toEqual({ scope: 'loot', uid: 'L1' });
+      banc.getState().fenetreChoisir('loot', 'ligne', 'L0', a);
+      banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
+      banc.getState().jetConfirm('appraise');
+      expect(banc.getState().pendingLoot?.gear.map((g) => [g.uid, g.effect.identified]), 'la dague, révélée').toEqual([['L1', undefined]]);
+    });
+
+    it('le panier et la vente sont au siège de l’hôte, et se composent dans l’état d’un invité (#3059)', () => {
+      const banc = ouvrirLeBanc();
+      tout(banc);
+      const duPanier: readonly ArgumentsDuChoix[] = [
+        ['marchand', 'ajouterAuPanier', 'corde'], ['marchand', 'oterDuPanier', 'corde'], ['marchand', 'retirerDuPanier', 'corde'],
+        ['marchand', 'viderLePanier', true], ['marchand', 'ajouterALaVente', 'u2'],
+      ];
+      for (const args of duPanier) expect(admis(banc, args), `${args[0]}.${args[1]}`).toEqual([0]);
+      banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+      banc.getState().fenetreChoisir('marchand', 'oterDuPanier', 'corde');
+      expect(banc.getState().merchant?.cart, 'le panier de l’invité se compose chez lui').toEqual([]);
+    });
+  });
 });

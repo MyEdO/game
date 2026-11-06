@@ -196,7 +196,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     setBourseBrass(a, 0);
     banc.setState({ party: [a] });
     ouvrir({ auberge: true });
-    get().restSet(a.id, { lodging: 'privee' });
+    get().fenetreChoisir('rest', 'couchage', 'privee', a.id);
     expect(toBrass(restCost(get().pendingRest!, get().party)), 'témoin : la chambre a un prix').toBeGreaterThan(0);
     expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.noteNonCouverte'));
   });

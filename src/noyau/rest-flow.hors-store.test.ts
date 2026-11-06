@@ -113,8 +113,8 @@ describe('openRest / choix par héros', () => {
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
     const p = banc.getState().pendingRest!;
     expect(p.perHero['h1'].lodging).toBe('privee'); // défaut auberge
-    banc.getState().restSet('h2', { lodging: 'dehors' });
-    banc.getState().restSet('h2', { food: 'ration' }); // manger sa ration et dormir à la belle étoile
+    banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'h2');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'h2'); // manger sa ration et dormir à la belle étoile
     const cfg = banc.getState().pendingRest!.perHero;
     expect(cfg['h2']).toEqual({ lodging: 'dehors', food: 'ration' });
     // Coût : 1 chambre privée (couvre 2, ici 1 occupant) 10 pa + 1 repas 1 pa = 132 sc.
@@ -133,9 +133,9 @@ describe('openRest / choix par héros', () => {
 
   it('chambres regroupées par 2 (RAW : « convient à 2 invités ») : 2 héros en privée = 1 chambre (10 pa)', () => {
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
-    banc.getState().restSet('h2', { lodging: 'privee' });
-    banc.getState().restSet('h1', { food: 'rien' });
-    banc.getState().restSet('h2', { food: 'rien' });
+    banc.getState().fenetreChoisir('rest', 'couchage', 'privee', 'h2');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h1');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h2');
     banc.getState().fenetreValider('rest');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(480 - 120); // 1 chambre, 0 repas
   });
@@ -146,8 +146,8 @@ describe('openRest / choix par héros', () => {
     banc.getState().fenetreValider('rest'); // refus (privée + repas impayables)
     expect(banc.getState().pendingRest?.phase).toBe('setup');
     for (const id of ['h1', 'h2']) {
-      banc.getState().restSet(id, { lodging: 'dehors' });
-      banc.getState().restSet(id, { food: 'rien' });
+      banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', id);
+      banc.getState().fenetreChoisir('rest', 'pitance', 'rien', id);
     }
     banc.getState().fenetreValider('rest'); // gratuit → dort (cascade, plus de bilan)
     expect(banc.getState().pendingRest).toBeNull();
@@ -237,8 +237,8 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(1);
 
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().restSet('h1', { lodging: 'dehors' });
-    banc.getState().restSet('h1', { food: 'ration' }); // mange sa ration : jamais affamé, la récupération s'applique
+    banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'h1');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'h1'); // mange sa ration : jamais affamé, la récupération s'applique
     banc.getState().fenetreValider('rest');
 
     // Les gages ont bien été prélevés cette nuit-là (le débit CLONE l'objet héros — `withBourseMoney`).
@@ -304,7 +304,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 1, tests: 0, failures: 0 } });
     banc.setState({ party: [starving], scene: emptyScene('scene-test', 10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 }); // days>1 → repos multi-jours authoré (op `rest`)
-    banc.getState().restSet('h1', { food: 'rien' });
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h1');
     banc.getState().fenetreValider('rest');
 
     // Nuit 1 (jour 1→2) : le Test de Faim tombe (l.417 : tous les 2 jours) — étape NON pré-résolue.
@@ -334,7 +334,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 0, tests: 0, failures: 0 } });
     banc.setState({ party: [starving], scene: emptyScene('scene-test', 10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
     banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 });
-    banc.getState().restSet('h1', { food: 'rien' });
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h1');
     banc.getState().fenetreValider('rest');
     walkNightChain();
 

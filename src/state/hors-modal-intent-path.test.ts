@@ -51,7 +51,6 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
   raiseHand: { parUI: true },
   lowerHand: { interne: 'actionRegistry.OFFRES_PAR_RUN.raiseHand — le relais baisse la main levée de son siège', dans: 'src/noyau/actionRegistry.ts' },
-  assignVictoryGear: { parUI: true },
   // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
   toggleCluePin: { parUI: true },
   markCluesSeen: { parUI: true },

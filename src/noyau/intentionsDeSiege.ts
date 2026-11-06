@@ -98,8 +98,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // `jetConfirm('surgery')` applique, `jetCancel('surgery')` annule la passe, `fenetreChoisir('medic', 'abandon', true)`
   // l'opération.
   medicAct: 'invité', openSurgeryPass: 'invité',
-  // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument), et se dit prêt (`fenetreValider('rest')`).
-  restSet: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les verbes de jet de la cascade.)
   roundStartPromote: 'invité',
   // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
@@ -108,7 +106,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   armPreempt: 'invité',
   // Demande de pause au prochain Round : POSER et RETIRER passent par le même chemin (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
-  assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
+  raiseHand: 'invité', lowerHand: 'invité',
   // ═══ invité : GROUPE — composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet
   // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   partyAddHero: 'invité', partyRemoveHero: 'invité', partyReplaceHero: 'invité', toggleCluePin: 'invité',
@@ -145,9 +143,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   abandonPossession: 'hôte', renamePossession: 'hôte', retrievePossession: 'hôte',
   stablePossession: 'hôte', embark: 'hôte', disembark: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
-  addToCart: 'hôte', decFromCart: 'hôte', removeFromCart: 'hôte', clearCart: 'hôte', payCart: 'hôte',
-  addToSellCart: 'hôte', removeFromSellCart: 'hôte', clearSellCart: 'hôte', confirmSell: 'hôte',
-  setSellHalving: 'hôte', assignDistribution: 'hôte',
+  payCart: 'hôte', confirmSell: 'hôte',
   barterExchange: 'hôte', repairItem: 'hôte', searchAvailability: 'hôte', startBargain: 'hôte',
   refuseBargain: 'hôte', openPlaceMerchant: 'hôte', openLandMarket: 'hôte',
   landBuyCargo: 'hôte', landSellCargo: 'hôte', landDumpCargo: 'hôte',
@@ -162,7 +158,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
   massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
-  openRest: 'hôte', assignLootGear: 'hôte', harvestCreature: 'hôte',
+  openRest: 'hôte', harvestCreature: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
   restoreFortuneNow: 'hôte', ouvrirLaFinDeSeance: 'hôte',
   // Armement d'intention au clavier (registre `state/clavier/keybindings.ts`) : n'écrit que `localIntent`.

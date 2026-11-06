@@ -25,10 +25,10 @@ describe('Panier de vente (#22b)', () => {
 
   it('ajoute des instances puis vend tout : bourse créditée, objets retirés, panier vidé', () => {
     const { heroId, a, b } = setup();
-    banc.getState().addToSellCart(a.uid, heroId);
-    banc.getState().addToSellCart(b.uid, heroId);
-    banc.getState().addToSellCart(a.uid, heroId); // doublon ignoré (instance unique)
-    expect(banc.getState().merchant!.sellCart).toHaveLength(2);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', a.uid);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', b.uid);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', a.uid); // doublon refusé : l'instance est déjà en vente
+    expect(banc.getState().merchant!.sellCart, 'chaque objet, chez son porteur').toEqual([{ uid: a.uid, heroId }, { uid: b.uid, heroId }]);
 
     banc.getState().confirmSell();
     const s = banc.getState();
@@ -38,9 +38,9 @@ describe('Panier de vente (#22b)', () => {
   });
 
   it('retirer du panier de vente n’altère pas l’inventaire', () => {
-    const { heroId, a } = setup();
-    banc.getState().addToSellCart(a.uid, heroId);
-    banc.getState().removeFromSellCart(a.uid);
+    const { a } = setup();
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', a.uid);
+    banc.getState().fenetreChoisir('marchand', 'retirerDeLaVente', a.uid);
     expect(banc.getState().merchant!.sellCart).toHaveLength(0);
     expect(banc.getState().party[0].items).toHaveLength(2); // rien vendu
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(0);

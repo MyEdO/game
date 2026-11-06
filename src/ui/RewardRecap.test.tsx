@@ -116,7 +116,7 @@ describe('Modal — le cadre que le récapitulatif habite', () => {
 
 describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', () => {
   const heros = () => [hero('h1', 'Magnus'), hero('h2', 'Elsa')];
-  const gear = (label: string) => ({ label, magic: false, effect: { type: 'giveTrapping' as const, custom: label } });
+  const gear = (label: string) => ({ uid: label, label, magic: false, effect: { type: 'giveTrapping' as const, custom: label } });
 
   /** Une frappe d'Entrée telle que le document la reçoit. `Modal` laisse un BOUTON focalisé à son
    *  activation native (il ne l'empêche pas) : jsdom n'active pas un bouton sur `keydown`, le banc

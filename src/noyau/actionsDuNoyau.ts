@@ -12,11 +12,10 @@ import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
 import type { MedicNpc } from './medicFlow';
 import type * as restFlow from './restFlow';
-import type { RestLodging, RestFood } from './restFlow';
 import type { Pt } from './monde/path';
 import type {
   IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre,
+  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre, IdDeLigneDeButin,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
@@ -60,15 +59,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
   armPreempt: (heroId: IdDeTireurRapide | null) => void;
-  /** Attribue un objet d'équipement (giveTrapping) du butin de victoire au héros choisi. */
-  assignVictoryGear: (index: number, heroId: IdDeHeros) => void;
   /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
   harvestCreature: (creatureId: IdDeCreatureADepecer) => void;
-  /** Attribue une ligne de la fenêtre de loot au héros choisi. */
-  assignLootGear: (index: number, heroId: IdDeHeros) => void;
   /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
    *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
-  appraiseGear: (scope: 'loot' | 'victory', index: number, mode?: 'evaluate' | 'detect') => void;
+  appraiseGear: (scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode?: 'evaluate' | 'detect') => void;
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
@@ -196,27 +191,13 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   playTavernGame: (opts: { gameId: string; challengerId: IdDeHeros; opponent: tavernFlow.TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number }) => void;
   /** Troc (LDB 59 l.64-76) : céder N exemplaires d'un objet contre M exemplaires du stock, sans argent. */
   barterExchange: (opts: { giveHeroId: IdDeHeros; giveTrappingId: string; getStockId: string; getCount?: number }) => void;
-  /** « Baisse des prix » (LDB 59 l.60) : (dé)cale d'un cran le nombre de divisions de moitié consenties
-   *  à la vente d'une instance (améliore la Disponibilité de l'acheteur, réduit le gain). */
-  setSellHalving: (uid: IdDObjet, delta: number) => void;
-  /** Panier (#2) : ajoute / retire / vide. L'achat passe par le panier → `payCart` (UI). */
-  addToCart: (label: string) => void;
-  decFromCart: (label: string) => void;
-  removeFromCart: (label: string) => void;
-  clearCart: () => void;
   /** Refuse un marché NÉGOCIÉ (achat ou vente) : annule la négociation de ce côté + pose le VERROU PARTAGÉ
    *  (plus aucune négociation, achat NI vente, jusqu'au réassort). L'achat vide aussi le panier. */
   refuseBargain: (mode: 'buy' | 'sell') => void;
-  /** Paye le panier : débite le Total (prix listés × Marchandage), retire du stock, et met les objets
-   *  achetés EN ATTENTE DE RÉPARTITION (`pendingDistribution`) — « qui récupère quoi ». */
+  /** Paye le panier (`fenetreChoisir('marchand', …)`) : débite le Total (prix listés × Marchandage), retire du stock,
+   *  et met les objets achetés EN ATTENTE DE RÉPARTITION (`pendingDistribution`) — « qui récupère quoi ». */
   payCart: () => void;
-  /** Répartition : affecte l'objet acheté n°`index` à un héros, puis la validation de l'échoppe
-   *  (`fenetreValider('marchand')`) les range. */
-  assignDistribution: (index: number, heroId: IdDeHeros) => void;
-  /** Panier de VENTE (#22b, parité achat) : ajoute / retire / vide / conclut toute la vente d'un coup. */
-  addToSellCart: (uid: IdDObjet, heroId: IdDeHeros) => void;
-  removeFromSellCart: (uid: IdDObjet) => void;
-  clearSellCart: () => void;
+  /** Conclut d'un coup la vente du panier de VENTE (#22b, `fenetreChoisir('marchand', …)`). */
   confirmSell: () => void;
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
@@ -234,10 +215,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   medicAct: (act: HealMode) => void;
   /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
   openSurgeryPass: () => void;
-  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
+  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('rest', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
-  restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   battleClearPreview: () => void;
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre

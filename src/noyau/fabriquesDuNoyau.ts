@@ -30,12 +30,12 @@ import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { choixDeConversation } from './conversation';
-import { cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
+import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
-import { creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
+import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
 import { choixDuMedecin, cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
-import { creerActionsDuRepos, sortiesDuRepos, validationsDuRepos } from './restFlow';
+import { choixDuRepos, creerActionsDuRepos, sortiesDuRepos, validationsDuRepos } from './restFlow';
 import { choixDeLEquipage, creerActionsDeLEquipage, sortiesDeLEquipage } from './shipCrew';
 import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsDeScene } from './testsDeScene';
 import { cloturesDuLotDEtal } from './etalLotFlow';
@@ -75,27 +75,25 @@ type NomDeVerbe = ActionDuLexique | `${ActionDuLexique}${Majuscule}${string}`
 
 /** Les verbes vivants hors lexique, chacun renommé par un lot de #3371 (§4). */
 type NomEnAttente =
-  'abandonPossession' | 'addToCart' | 'addToSellCart' | 'appraiseGear' | 'appraiseItem' | 'armPreempt'
-  | 'assignDistribution' | 'assignLootGear' | 'assignVictoryGear' | 'barterExchange' | 'battleArmIntent'
-  | 'battleClearPreview' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell'
-  | 'buySpellComponent' | 'buyTalent' | 'changeCareer' | 'choisirApparence' | 'clearCart' | 'clearSellCart'
-  | 'climbAcross' | 'confirmSell' | 'createLoadout' | 'decFromCart' | 'deleteLoadout' | 'designateCareerSlot'
-  | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'fallAcross' | 'favorBreak' | 'favorSettle' | 'gatherInnInfo'
-  | 'harvestCreature' | 'interludeActivity' | 'interludeBank' | 'interludeCraftStart' | 'interludeEntrainement'
-  | 'interludeOrder' | 'interludeWithdraw' | 'jetBonusSL' | 'jetCancel' | 'jetConfirm' | 'jetDarkPact'
-  | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll' | 'jetResist' | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll'
-  | 'landBuyCargo' | 'landDumpCargo' | 'landEvalWine' | 'landSellCargo' | 'lowerHand' | 'markCluesSeen'
-  | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash' | 'massBattleHazard' | 'massBattleRally'
-  | 'massBattleScene' | 'medicAct' | 'moveCargo' | 'openLandMarket' | 'openMedic' | 'openPlaceMerchant' | 'openPort'
-  | 'openRest' | 'openSurgeryPass' | 'openTavernGames' | 'openWorldMap' | 'partyAddHero' | 'partyRemoveHero'
-  | 'partyReplaceHero' | 'payCart' | 'pivotParty' | 'playTavernGame' | 'portBuyCargo' | 'portCareen'
-  | 'portDismissCrew' | 'portDumpCargo' | 'portHireCrew' | 'portInstallUpgrade' | 'portRepair' | 'portSellCargo'
-  | 'raiseHand' | 'refuseBargain' | 'removeFromCart' | 'removeFromSellCart' | 'removeSpellComponent'
-  | 'renamePossession' | 'repairItem' | 'restSet' | 'restoreFortuneNow' | 'resumeTravel' | 'retrievePossession'
+  'abandonPossession' | 'appraiseGear' | 'appraiseItem' | 'armPreempt' | 'barterExchange' | 'battleArmIntent'
+  | 'battleClearPreview' | 'buyCharAdvance' | 'buySkillAdvance' | 'buySpell' | 'buySpellComponent' | 'buyTalent'
+  | 'changeCareer' | 'choisirApparence' | 'climbAcross' | 'confirmSell' | 'createLoadout' | 'deleteLoadout'
+  | 'designateCareerSlot' | 'disembark' | 'dispelSelectCarrier' | 'embark' | 'fallAcross' | 'favorBreak'
+  | 'favorSettle' | 'gatherInnInfo' | 'harvestCreature' | 'interludeActivity' | 'interludeBank'
+  | 'interludeCraftStart' | 'interludeEntrainement' | 'interludeOrder' | 'interludeWithdraw' | 'jetBonusSL'
+  | 'jetCancel' | 'jetConfirm' | 'jetDarkPact' | 'jetDetermine' | 'jetForceSuccess' | 'jetReroll' | 'jetResist'
+  | 'jetReverse' | 'jetRoll' | 'jetSetForcedRoll' | 'landBuyCargo' | 'landDumpCargo' | 'landEvalWine'
+  | 'landSellCargo' | 'lowerHand' | 'markCluesSeen' | 'massBattleActivity' | 'massBattleAdvance' | 'massBattleClash'
+  | 'massBattleHazard' | 'massBattleRally' | 'massBattleScene' | 'medicAct' | 'moveCargo' | 'openLandMarket'
+  | 'openMedic' | 'openPlaceMerchant' | 'openPort' | 'openRest' | 'openSurgeryPass' | 'openTavernGames'
+  | 'openWorldMap' | 'partyAddHero' | 'partyRemoveHero' | 'partyReplaceHero' | 'payCart' | 'pivotParty'
+  | 'playTavernGame' | 'portBuyCargo' | 'portCareen' | 'portDismissCrew' | 'portDumpCargo' | 'portHireCrew'
+  | 'portInstallUpgrade' | 'portRepair' | 'portSellCargo' | 'raiseHand' | 'refuseBargain' | 'removeSpellComponent'
+  | 'renamePossession' | 'repairItem' | 'restoreFortuneNow' | 'resumeTravel' | 'retrievePossession'
   | 'roundStartPromote' | 'searchAvailability' | 'setHeroBackground' | 'setLoadoutSlot' | 'setMassBattleHero'
-  | 'setPosteAmmo' | 'setSellHalving' | 'setShipRole' | 'setShipStation' | 'setTravelRole' | 'setVoyageCadence'
-  | 'stablePossession' | 'startBargain' | 'startBilletBargain' | 'startTravel' | 'stepPartyRelative' | 'stowItem'
-  | 'toggleCluePin' | 'toggleEquip' | 'trainProsthesis' | 'transferItem' | 'transitionTo' | 'windowAcross';
+  | 'setPosteAmmo' | 'setShipRole' | 'setShipStation' | 'setTravelRole' | 'setVoyageCadence' | 'stablePossession'
+  | 'startBargain' | 'startBilletBargain' | 'startTravel' | 'stepPartyRelative' | 'stowItem' | 'toggleCluePin'
+  | 'toggleEquip' | 'trainProsthesis' | 'transferItem' | 'transitionTo' | 'windowAcross';
 
 /** Un nom de `Noms` ni du lexique ni en attente. */
 type HorsLexique<Noms extends string> = Exclude<Noms, NomDeVerbe | NomEnAttente>;
@@ -147,6 +145,9 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDuVoyageEnMer(get, set),
     ...choixDeLaSemaineEnMer(get, set),
     ...choixDeLaFinDeSeance(get, set),
+    ...choixDuMarchand(get, set),
+    ...choixDuButin(get, set),
+    ...choixDuRepos(get, set),
   } satisfies CorpsDesChoix;
 }
 
