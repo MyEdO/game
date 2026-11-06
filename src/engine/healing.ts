@@ -29,7 +29,7 @@ export type TestDeSoin = 'guerison' | 'dexterite';
 export const TESTS_DE_SOIN: readonly TestDeSoin[] = ['guerison', 'dexterite'];
 
 /** Les ids testés par chaque Test de soin. */
-export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: HEAL_SKILL }, dexterite: { char: 'dexterite' } };
+export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: HEAL_SKILL }, dexterite: { characteristic: 'dexterite' } };
 
 /** Ce que le soigneur déclare avant le jet, lu à l'identique par l'annonce et par le résolveur. */
 export interface ParametresDeSoin { test: TestDeSoin; bandages: boolean }

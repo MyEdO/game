@@ -739,7 +739,7 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
       const st = monoStep({
         id: `${step.id}-detect`, kind: 'riverPerilDetect', actor: pilot, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.detection')),
         rollLabel: t('char.agilite'), difficulty: 'intermediaire',
-        ligne: { test: { char: 'agilite' } },
+        ligne: { test: { characteristic: 'agilite' } },
         stake: voyageStakeRef('riverPerilDetect', { damage: peril.onHit.hullDamage }),
         meta: { perilId: peril.id },
       });
@@ -802,7 +802,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   const st = monoStep({
     id: `${idPrefix}-echouage`, kind: 'riverEchouageForce', actor: force.actor, icon: 'travel/repair',
     label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
+    ligne: { test: { characteristic: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('riverEchouageForce'),
   });
   return st ? [st] : [];

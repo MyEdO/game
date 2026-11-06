@@ -140,7 +140,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     forceAvantLeJet(() => g().jetForceSuccess('ward'));
-    porteLaMesure(g().pendingWard!.result, cibleDuTest(valeurDuTest(A, { char: 'force-mentale' }), 'accessible'));
+    porteLaMesure(g().pendingWard!.result, cibleDuTest(valeurDuTest(A, { characteristic: 'force-mentale' }), 'accessible'));
   });
 
   for (const fiche of ['reelle', 'posee'] as const) it(`Approche (fiche ${fiche === 'posee' ? 'posée au seam' : 'réelle'})`, () => {

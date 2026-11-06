@@ -456,7 +456,7 @@ const withStake = (p: PendingRoll, activityId: string): PendingRoll =>
 function PuceDuTest({ test }: { test: TestDesigne }) {
   return 'skill' in test
     ? <SkillChip skillId={test.skill.id} show={test.skill.spec ? skillInstanceLabel(test.skill) : undefined} />
-    : <b>{CHAR_LABELS[test.char]}</b>;
+    : <b>{CHAR_LABELS[test.characteristic]}</b>;
 }
 
 /** Pré-jet d'une Activité monté dans son volet : la ligne du Test que pose son geste (`preJetDActivite`). */

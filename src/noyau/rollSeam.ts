@@ -82,7 +82,7 @@ export interface RollRequest {
    *  requête : son jet se déclare par `monoStep` (porteur `monde`) ou `worldStep`. */
   side:
     | { actorId: string }
-    | { partyBest: { skill?: string; char?: CharKey; assisted?: boolean } }
+    | { partyBest: { skill?: string; characteristic?: CharKey; assisted?: boolean } }
     | { participants: BatchParticipant[] };
   /** Le NOM DE L'ACTION SEUL (« Forcer le rythme », « Prière », « Désertion »…) — CHAMP STRUCTURÉ
    *  DISTINCT de `test` (fix de classe #352 : l'ancien `test.label` texte-libre pouvait se confondre
@@ -91,11 +91,11 @@ export interface RollRequest {
   actionLabel: string;
   /** Le TEST déclaré — SEULE source des ids compétence/carac (réf structurée, passe telle quelle à
    *  `testValue`). AUCUN champ de texte ici : le libellé de compétence affiché est TOUJOURS DÉRIVÉ de
-   *  `skill`/`spec`/`char` par `testSkillLabel` (`data`) — insurchargeable,
+   *  `skill`/`spec`/`characteristic` par `testSkillLabel` (`data`) — insurchargeable,
    *  un call-site ne peut plus injecter de texte en position de compétence. */
   /** `noSupport` : Test de résistance (maladie/poison/peur/danger…) — coupe le Soutien du côté
    *  `partyBest` (LDB 12 l.197), pour éviter qu'un futur appelant câble un Soutien interdit. */
-  test: { skill?: string; char?: CharKey; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean };
+  test: { skill?: string; characteristic?: CharKey; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean };
   difficulty: Difficulty;
   /** Requis pour un côté `participants` ; défaut `summed-dr` (Test d'équipage, MDG 14). */
   aggregate?: RollAggregate;
@@ -109,7 +109,7 @@ export interface RollRequest {
 /** Trois surfaces (Décision 3) : Modale influençable / Visible-lançable MJ / Inline-PV. */
 type Surface = 'M' | 'V' | 'I';
 
-/** Cible EFFECTIVE d'un Test skill/char AVEC l'écrêtage RÉELLEMENT subi — même arithmétique que
+/** Cible EFFECTIVE d'un Test skill/characteristic AVEC l'écrêtage RÉELLEMENT subi — même arithmétique que
  *  `rollTest`, par la primitive PARTAGÉE `clampTarget` (`engine/tests.ts`, plus de `clamp` recopié
  *  ici). L'écrêtage est RENDU, pas jeté : une base SOUTENUE peut franchir le plafond, et l'écart
  *  doit se NOMMER sur la ligne (« plafond 99 ») au lieu d'être avoué « autres » (#1117).
@@ -117,7 +117,7 @@ type Surface = 'M' | 'V' | 'I';
  *  de table d'un adversaire abstrait, `tavernFlow.combinedSecondTarget`) : un acteur désigné calcule
  *  TOUJOURS `testValue` ICI. */
 export function effectiveTargetClamped(actor: Combatant | undefined, test: RollRequest['test'], difficulty: Difficulty, baseOverride?: number): { target: number; clamped?: number } {
-  const value = baseOverride ?? (actor ? testValue(actor, test.skill, test.char, test.spec, test.sense) : 0);
+  const value = baseOverride ?? (actor ? testValue(actor, test.skill, test.characteristic, test.spec, test.sense) : 0);
   return clampTarget(cibleDuTest(value, difficulty));
 }
 
@@ -305,7 +305,7 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
     return { actorId: req.side.actorId, actor: porteurParId(get(), req.side.actorId) };
   }
   if ('partyBest' in req.side) {
-    const { skill, char, assisted } = req.side.partyBest;
+    const { skill, characteristic, assisted } = req.side.partyBest;
     // La SPÉCIALISATION et le SENS déclarés sur le Test entrent dans le choix du meneur ET dans sa
     // valeur : sans eux, `partyBest`/`partyAssisted` liraient une AUTRE instance de la compétence
     // (Métier (Charpentier) vs Métier (Serrurier)) et la valeur du meneur divergerait de celle que
@@ -313,10 +313,10 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
     // `noSupport` (LDB 12 l.197) : Test de résistance déclaré sur le spec → jamais de Soutien, même si
     // `assisted` n'a pas été mis à `false` au call-site.
     if (assisted === false || req.test.noSupport) {
-      const solo = partyBest(get().party, skill, char, undefined, req.test.spec, req.test.sense);
+      const solo = partyBest(get().party, skill, characteristic, undefined, req.test.spec, req.test.sense);
       return solo ? { actorId: solo.actor.id, actor: solo.actor, baseValue: solo.value } : {};
     }
-    const picked = partyAssisted(get().party, skill, char, undefined, req.test.spec);
+    const picked = partyAssisted(get().party, skill, characteristic, undefined, req.test.spec);
     if (!picked) return {};
     // Le DÉTAIL du Soutien remonte avec la valeur : la porte le pose sur l'étape (`buildMonoStep`),
     // la modale l'affiche en ligne de mod — un Soutien fondu sans détail est un bonus invisible.
@@ -637,7 +637,7 @@ interface RollLineBase {
   /** Le jeteur. Absent (côté MONDE : seuil d100 posé par l'appelant) ⇒ `valeur` tient lieu de base. */
   actor?: Combatant;
   /** Ids du Test — MÊME forme que `RollRequest['test']` (aucun texte : la ligne se NOMME depuis le catalogue). */
-  test?: { skill?: string; char?: CharKey; spec?: string; sense?: PairedSense };
+  test?: { skill?: string; characteristic?: CharKey; spec?: string; sense?: PairedSense };
   difficulty: Difficulty;
   /** Modificateurs NOMMÉS qui s'ajoutent À LA CIBLE et que la valeur ne contient PAS (dérive MSRC 7
    *  l.38, hors de contrôle l.41, −5 cumulatif du redressement l.40, km déjà au pas de course EDOC 7
@@ -752,7 +752,7 @@ export interface RollLineParts {
  *  Le découpage positionnel est VÉRIFIÉ par l'oracle du canal (`rawCombatTestBase`), jamais supposé. */
 function partsHorsEtats(actor: Combatant, t: RollLineBase['test'] = {}): ModLine[] {
   const etats = testStatePenaltyParts(actor, t.skill, { sense: t.sense }).filter((p) => p.value !== 0).length;
-  return testValueParts(actor, t.skill, t.char, t.spec, t.sense).slice(etats);
+  return testValueParts(actor, t.skill, t.characteristic, t.spec, t.sense).slice(etats);
 }
 
 /** DÉFAIT une valeur de COMBAT en base NUE + composantes NOMMÉES — jumeau de `testValueSplit` pour le
@@ -771,7 +771,7 @@ function combatValueSplit(
   if (!actor) return { ...sup, exact: true };
   const charLines = canal.kind === 'test' ? [] : volatileCharLines(actor, combatCharKey(canal.kind, canal.weapon));
   const nue = canal.kind === 'test'
-    ? skillBaseValue(actor, t?.skill, t?.spec, t?.char)
+    ? skillBaseValue(actor, t?.skill, t?.spec, t?.characteristic)
     : combatBaseValue(actor, canal.kind, canal.weapon) - charLines.reduce((s, l) => s + l.value, 0);
   const parts = canal.kind === 'test'
     ? [...partsHorsEtats(actor, t), ...conditionModLines(actor, { skill: t?.skill, sense: t?.sense })]
@@ -789,7 +789,7 @@ function combatChannelValue(actor: Combatant | undefined, canal: RollLineCombat,
   // de la pénalité d'États hors combat). Sans cela, un Test de combat sense-scopé (Surdité, LDB 18)
   // verrait sa valeur et ses composantes diverger, et l'oracle THROW sur un site pourtant correct.
   return canal.kind === 'test'
-    ? testValue(actor, t?.skill, t?.char, t?.spec, t?.sense) - testStatePenalty(actor, t?.skill, { sense: t?.sense })
+    ? testValue(actor, t?.skill, t?.characteristic, t?.spec, t?.sense) - testStatePenalty(actor, t?.skill, { sense: t?.sense })
       + conditionModLines(actor, { skill: t?.skill, sense: t?.sense }).reduce((s, m) => s + m.value, 0)
     : combatBaseValue(actor, canal.kind, canal.weapon) + combatValueModParts(actor, canal.kind, canal.weapon).reduce((s, m) => s + m.value, 0);
 }
@@ -856,22 +856,22 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
   // Un ACTEUR jette forcément QUELQUE CHOSE : sans valeur posée (`valeur`), sans canal de combat et
   // sans ids, `testValue` rendrait 0 et la ligne annoncerait une cible qui n'est la valeur de
   // personne — auto-échec MUET (#1657 B3-3). Le producteur nomme son Test, ou pose sa valeur.
-  if (spec.actor && spec.valeur === undefined && !spec.combat && !t.skill && !t.char) {
+  if (spec.actor && spec.valeur === undefined && !spec.combat && !t.skill && !t.characteristic) {
     throw new Error(`rollLine : Test de « ${spec.actor.label} » sans compétence ni caractéristique et sans valeur posée `
-      + '— la porte le jouerait sur 0 (auto-échec muet). Nommer `test.skill`/`test.char`, ou passer `valeur`.');
+      + '— la porte le jouerait sur 0 (auto-échec muet). Nommer `test.skill`/`test.characteristic`, ou passer `valeur`.');
   }
   const value = spec.valeur ?? (spec.combat
     ? combatChannelValue(spec.actor, spec.combat, t)
-    : (spec.actor ? testValue(spec.actor, t.skill, t.char, t.spec, t.sense) : 0));
+    : (spec.actor ? testValue(spec.actor, t.skill, t.characteristic, t.spec, t.sense) : 0));
   const split = spec.combat
     ? combatValueSplit(spec.actor, spec.combat, t, value, spec.soutien, fusedSum)
     : testValueSplit(spec.actor, value, {
-      support: spec.soutien, skill: t.skill, characteristic: t.char, spec: t.spec, sense: t.sense, fused: fusedSum,
+      support: spec.soutien, skill: t.skill, characteristic: t.characteristic, spec: t.spec, sense: t.sense, fused: fusedSum,
     });
   if (!split.exact && !spec.valeurEtrangere) {
     const formule = spec.combat ? (spec.combat.kind === 'test' ? 'la valeur de Test de combat brute' : 'la valeur de combat NUE') : 'le Niveau de Compétence';
     const msg = `[seam] rollLine : la valeur (${value}) ne se reconstruit pas depuis ${formule} `
-      + `(${t.skill ?? t.char ?? spec.combat?.kind ?? '?'} ${spec.actor ? `de « ${spec.actor.label} »` : 'sans acteur'}) + ses composantes + ${fusedSum} déclaré(s) `
+      + `(${t.skill ?? t.characteristic ?? spec.combat?.kind ?? '?'} ${spec.actor ? `de « ${spec.actor.label} »` : 'sans acteur'}) + ses composantes + ${fusedSum} déclaré(s) `
       + '— une poche est mal remplie (modificateur non fondu, ou fondu ET redéclaré). La base affichée serait FAUSSE.';
     console.error(msg);
     if (import.meta.env?.DEV) throw new Error(msg);
@@ -926,7 +926,7 @@ function competenceDuTest(test: { skill?: string; spec?: string } | undefined): 
   return { ...(test?.skill ? { skillId: test.skill } : {}), ...(test?.skill && test.spec ? { spec: test.spec } : {}) };
 }
 
-/** Résout un test skill/char SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
+/** Résout un test skill/characteristic SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
 function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {
@@ -1024,15 +1024,15 @@ function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): Cas
  */
 export function openPartyTest(
   get: Get, set: Set,
-  spec: { skill: string; char?: CharKey; assisted?: boolean; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
+  spec: { skill: string; characteristic?: CharKey; assisted?: boolean; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
   kind: GenreDEtape,
   meta?: CascadeStepMeta,
 ): void {
-  const { skill, char, assisted, spec: specName, sense, menace, noSupport, actionLabel, difficulty, stake } = spec;
+  const { skill, characteristic, assisted, spec: specName, sense, menace, noSupport, actionLabel, difficulty, stake } = spec;
   openRoll(get, set, {
-    side: { partyBest: { skill, char, assisted } },
+    side: { partyBest: { skill, characteristic, assisted } },
     actionLabel,
-    test: { skill, char, spec: specName, sense, menace, noSupport },
+    test: { skill, characteristic, spec: specName, sense, menace, noSupport },
     difficulty,
     ...(stake ? { stake } : {}),
   }, kind, meta);

@@ -366,13 +366,13 @@ export function isMagicMissile(spell: SpellLike): boolean {
 }
 
 /** Un `TestMatch` (donnée `talent.test.matches`) s'applique-t-il au Test interrogé ? PUR : le matching
- *  id/spec/char vit dans le moteur ; l'évaluation du contexte `when` (Condition, couche state) est
+ *  id/spec/characteristic vit dans le moteur ; l'évaluation du contexte `when` (Condition, couche state) est
  *  INJECTÉE par `whenHolds` (le moteur reste pur — règle 3). `manual` (contexte narratif) = jamais auto.
  *  Spec : `specFromInstance` → la spec CHOISIE du talent (Métier (Au choix)) ; sinon `spec` fixe ; aucune
  *  → toute spec. */
 function matchApplies(
   m: TestMatch, inst: { spec?: string },
-  q: { skill?: string; char?: CharKey; spec?: string },
+  q: { skill?: string; characteristic?: CharKey; spec?: string },
   whenHolds: (cond: import('./flowCore').Condition) => boolean,
 ): boolean {
   if (m.manual) return false;
@@ -382,7 +382,7 @@ function matchApplies(
     if (wantSpec != null && wantSpec !== q.spec) return false;
     if (m.exceptSpec != null && m.exceptSpec === q.spec) return false; // Linguistique : toute Langue SAUF Magick
   } else if (m.characteristic != null) {
-    if (m.characteristic !== q.char) return false;
+    if (m.characteristic !== q.characteristic) return false;
   } else return false;
   return m.when ? whenHolds(m.when) : true;
 }
@@ -392,13 +392,13 @@ function matchApplies(
  * pour toute utilisation RÉUSSIE de la Compétence liée au Talent. » SOURCE UNIQUE du bonus de DR de Talent
  * (incantation ET Tests de compétence) : Σ des acquisitions des Talents dont un `TestMatch` structuré
  * (`talent.test.matches`, lu sur l'entrée EFFECTIVE — la variante réglée active peut republier la ligne
- * « Tests » du Talent, #563/#564) correspond au Test `{ skill|char, spec }`. Plus AUCUN match par libellé.
+ * « Tests » du Talent, #563/#564) correspond au Test `{ skill|characteristic, spec }`. Plus AUCUN match par libellé.
  * `whenHolds` évalue les contextes `when` (injecté par la couche state ; défaut conservateur = un `when`
  * non vérifiable ne s'applique pas — p.ex. au casting, sans vue de combat).
  */
 export function talentTestSLBonus(
   c: Combatant,
-  q: { skill?: string; char?: CharKey; spec?: string },
+  q: { skill?: string; characteristic?: CharKey; spec?: string },
   whenHolds: (cond: import('./flowCore').Condition) => boolean = () => false,
 ): number {
   let n = 0;

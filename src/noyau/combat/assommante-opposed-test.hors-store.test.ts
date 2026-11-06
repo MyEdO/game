@@ -71,7 +71,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(typeof step.meta?.opposed?.aT.roll).toBe('number');
     // Le côté attaquant voyage en STRUCTURE (le rendu en écrit le libellé) : la donnée de l'Atout ne
     // porte aucun libellé pré-composé, elle nomme la Caractéristique jetée.
-    expect(step.meta?.opposed?.test).toEqual({ char: 'force' });
+    expect(step.meta?.opposed?.test).toEqual({ characteristic: 'force' });
     expect(step.meta?.opposed?.attackerLabel, 'aucun libellé authoré : « Force » se dérive').toBeUndefined();
   });
 
