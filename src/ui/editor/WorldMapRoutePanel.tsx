@@ -12,7 +12,7 @@ import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Scene } from '../../noyau/monde/scene';
 import { type WorldMap, type MapRoute, type RouteBillet, placeById } from '../../noyau/worldMap';
-import type { PatchDeRoute } from '../../noyau/worldMapEdit';
+import { peripetieNeuve, type PatchDeRoute } from '../../noyau/worldMapEdit';
 import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import type { VehicleData } from '../../engine/types';
 import { ProvenanceDeValeur } from './ProvenanceDeValeur';
@@ -216,7 +216,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
           ))}
           <button
             className="btn small"
-            onClick={() => updRoute(route.id, { perils: [...(route.perils ?? []), { label: 'Péripétie', chancePct: 10, effects: [] }] })}
+            onClick={() => updRoute(route.id, { perils: [...(route.perils ?? []), peripetieNeuve()] })}
           >
             + Péripétie d'auteur
           </button>
