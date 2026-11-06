@@ -671,7 +671,7 @@ export function openMassBattleRally(get: Get, set: Set): void {
   if (!def) return;
   const hero = heroDuRassemblement(mb, get().party)!;
   openBattlePending(set, {
-    actor: hero, battle: 'round', def, skillValue: testValue(hero, 'resistance'), skillId: 'resistance',
+    actor: hero, battle: 'round', def, skillValue: testValue(hero, { skill: { id: 'resistance' } }), skillId: 'resistance',
     difficulty: 'intermediaire', label: t('mbf.rallyLabel'), heroIds: [hero.id],
   });
 }

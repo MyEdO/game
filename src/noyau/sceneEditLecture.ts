@@ -3,11 +3,16 @@
  * Node-safe, sans `ui` ni `gameIso` : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
  * Les ÉCRIVAINS vivent dans `./sceneEdit`, le `BRIDGE_PATH` de `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { type Scene, type SceneEntity, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { type FaceDArete, type Scene, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import type { Terrain } from '../data/schemas/defs-scenes/scene';
+import { faceDAreteSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
+import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
+import type { StructureData } from '../engine/types';
+import { structures } from '../data';
 import { decorEnCaseEtage } from './monde/decorIndex';
+import { aretesA } from './monde/wallIndex';
 import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
@@ -60,6 +65,16 @@ export const EFFECT_ZONE_SEEDS: Record<'room' | 'effect', EffectZoneSeed> = {
 
 /** Sous-mode de l'outil MURS : cloison pleine, porte (arête franchissable), ou diagonale en travers. */
 export type WallPaint = 'wall' | 'door' | 'diagBack' | 'diagFwd';
+
+/** Les faces d'où se découvre une porte secrète, `[valeur, libellé]` (`faceDAreteSchema`, EDO 07 l.263). */
+export const FACES_D_ARETE = optionsDuNoeud(faceDAreteSchema) as [FaceDArete, string][];
+
+/** Les structures que l'outil murs pose au sous-mode `paint` : un mur sur une cloison, une fermeture sur une porte,
+ *  aucune sur une diagonale (#830). */
+export function structuresDeLArete(paint: WallPaint): StructureData[] {
+  if (paint === 'wall') return structures.filter(isWallEdgeStructure);
+  return paint === 'door' ? structures.filter(isDoorEdgeStructure) : [];
+}
 
 /** Calques masquables du canvas (masquer débloque le clic sur ce qu'il y a dessous). `zones` porte
  *  TOUTE zone d'effet, descriptive (nom de pièce) comme mécanique (piège/barrière) — une zone qui
@@ -298,6 +313,14 @@ export function pickWallEdge(scene: Scene, fx: number, fy: number, z: number): {
   if (dist[side] > EDGE_PICK) return null;
   const e = canonEdge(px, py, side);
   return edgeWallState(scene, e.x, e.y, e.side, z) === 'none' ? null : e;
+}
+
+/** Le libellé de la structure `id` du catalogue, `undefined` sans structure. */
+export const libelleDeStructure = (id: string | undefined): string | undefined => structures.find((st) => st.id === id)?.label;
+
+/** Le segment de l'arête que la sélection `sel` désigne, `undefined` hors d'une arête sélectionnée. */
+export function segmentDeLaSelection(scene: Scene, sel: Sel): WallSeg | undefined {
+  return sel?.type === 'wall' ? aretesA(scene, sel.x, sel.y, sel.side, sel.z)[0] : undefined;
 }
 
 export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: number): Extract<Sel, { type: 'facadeSection' }> | null {

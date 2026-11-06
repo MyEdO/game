@@ -91,7 +91,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
 
     const r = rangee(tick!, 'h1');
     const nue = skillBaseValue(h, undefined, undefined, 'endurance');
-    const jetee = testValue(h, undefined, 'endurance');
+    const jetee = testValue(h, { characteristic: 'endurance' });
     // Le témoin qui rend le test PROBANT : sans pénalité, base et valeur jetée seraient égales. Deux
     // sources pèsent ici, et la porte les compte TOUTES DEUX — les 2 États Sonné (−20, LDB 16 l.125) et
     // le passif du ver lui-même (−10 « à tous les Tests », MSRC 16 l.86).
@@ -116,7 +116,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
 
     const r = rangee(tick!, 'h1');
     expect(r.base, 'base = Niveau de Compétence NU de Résistance (LDB 09 l.17)').toBe(skillBaseValue(h, 'resistance'));
-    expect(r.target).toBe(clampTarget(testValue(h, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire).target);
+    expect(r.target).toBe(clampTarget(testValue(h, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire).target);
     // La Résistance (E + 12 avances) DIFFÈRE de l'Endurance nue : sans cette séparation, les deux
     // nœuds seraient indiscernables et le test ne prouverait pas que la donnée est lue.
     expect(skillBaseValue(h, 'resistance')).not.toBe(skillBaseValue(h, undefined, undefined, 'endurance'));
@@ -170,7 +170,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     const target = Number(lignesDeJet[lignesDeJet.length - 1].match(/(\d+)\/(\d+)/)![2]);
     const h = banc.getState().party[0];
     expect(target, 'la cible rendue est celle que la porte a montée')
-      .toBe(clampTarget(testValue(h, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire).target);
+      .toBe(clampTarget(testValue(h, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire).target);
   });
 
   it('sommeil MULTI-JOURS sous un slot DÉJÀ vivant : chaque nuit se déroule — le pilote n’est interrompu que par un slot qu’IL a écrit', () => {

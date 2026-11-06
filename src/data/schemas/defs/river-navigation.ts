@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 7 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 
 export const file = 'river-navigation.json';
@@ -9,7 +9,7 @@ export const famille = 'config';
 
 const riverWindDirId = z.enum(['arriere', 'cote', 'contraire']);
 
-/** `BandRow` (`src/engine/riverNavigation.ts`) — table de tirage par fourchette d10. */
+/** `BandRow` (`src/engine/riverNavigation.ts`) — rangée d'une table de tirage par fourchette. */
 const bandRow = nommerChamps(z.strictObject({ ...plageSchema.shape, id: z.string(), label: z.string() }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: 'Identifiant' }, label: { label: 'Libellé' } });
 
 /** `RiverWindEffect` (`src/engine/riverNavigation.ts`). */
@@ -28,8 +28,10 @@ const riverWindEffect = nommerChamps(z.strictObject({
 });
 
 const champs = {
-  windForces: z.array(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
-  windDirections: z.array(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
+  /** MSRC 7 l.27 */
+  windForces: tableTiree(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
+  /** MSRC 7 l.25 */
+  windDirections: tableTiree(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
   windTickThreshold: z.number(),
   windTicksPerDay: z.number(),
   windEffect: z.record(z.string(), z.record(riverWindDirId, riverWindEffect)),
@@ -69,8 +71,8 @@ const doc = document(
   famille,
   champs,
   {
-    windForces: { label: 'Forces de vent', hint: 'Table de tirage d10 des forces de vent fluviales' },
-    windDirections: { label: 'Vent relatif', hint: 'Table de tirage d10 du vent relatif au bateau' },
+    windForces: { label: 'Forces de vent', hint: 'Table de tirage des forces de vent fluviales' },
+    windDirections: { label: 'Vent relatif', hint: 'Table de tirage du vent relatif au bateau' },
     windTickThreshold: {
       label: 'Résultat de bascule du vent',
       hint: 'Résultat exact du d10 qui fait changer la FORCE du vent d’un cran (la direction n’est tirée qu’au départ)',

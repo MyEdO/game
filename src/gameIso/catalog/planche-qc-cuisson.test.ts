@@ -27,7 +27,7 @@ import {
   type Pt3,
   type VuePlanche,
 } from '../../../scripts/qc/lib/plancheVolumique';
-import { buildPropVolumes } from '../builders/propVolumes';
+import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { fanTriangles, orienterPoly, polyNormal, shadeFamily, type Vec3 } from '../../noyau/monde/volume/worldTris';
 import { affineScales } from '../backends/webgl/cameras';
 import { findPropById } from '../../data';

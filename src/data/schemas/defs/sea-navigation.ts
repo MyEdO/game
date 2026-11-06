@@ -1,8 +1,10 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.39-351 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { facesDuDe } from '../../../engine/tables';
+import { parseDice, totalDuDe } from '../../../engine/dice';
 
 export const file = 'sea-navigation.json';
 export const famille = 'config';
@@ -91,7 +93,8 @@ const champs = {
     ),
     driftMajorBonus: z.number(),
     driftSide: nommerChamps(z.strictObject({ tribordMax: z.number() }), { tribordMax: { label: 'Maximum vers tribord' } }),
-    changementDeCap: z.array(
+    /** MDG 13 l.326 */
+    changementDeCap: tableTiree(
       nommerChamps(tableRange.extend({
         /** ISSUE tirée du Changement de cap — même graphie que `reperes.outcome` ci-dessus, qui est
          *  déjà la forme du dépôt pour une issue de table. */
@@ -221,12 +224,14 @@ const doc = document(
       dataset.superRefine((v, ctx) => {
         type Bande = { min?: number | null; max?: number | null };
         const d = v as Partial<SeaNavigationData>;
+        const cap = d.orientation?.changementDeCap;
+        const deDuCap = cap ? parseDice(cap.die) : null;
         const tables: [string[], Bande[], number | 'ouverte', number | 'ouverte'][] = [
           [['vitesseMax', 'table'], d.vitesseMax?.table ?? [], (d.vitesseMax?.safeBonus ?? 0) + 1, 'ouverte'],
           [['orientation', 'reperes'], d.orientation?.reperes ?? [], 'ouverte', 'ouverte'],
-          [['orientation', 'changementDeCap'], d.orientation?.changementDeCap ?? [], 1, 10 + (d.orientation?.driftMajorBonus ?? 0)],
           [['poursuite', 'drDeltas'], d.poursuite?.drDeltas ?? [], 'ouverte', 'ouverte'],
           [['phares', 'voirLaLumiere'], d.phares?.voirLaLumiere ?? [], 'ouverte', 15],
+          ...(cap && deDuCap ? [[['orientation', 'changementDeCap', 'entries'], cap.entries, totalDuDe(deDuCap, deDuCap.n), facesDuDe(deDuCap) + (d.orientation?.driftMajorBonus ?? 0)] as [string[], Bande[], number, number]] : []),
         ];
         for (const [path, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la rangée n° ${bandes.indexOf(b) + 1}`);

@@ -86,8 +86,8 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     const nueDef = skillBaseValue(def, 'resistance');
     const nueAtt = skillBaseValue(att, undefined, undefined, 'force');
     expect(nueDef, 'sonde inerte : sans nues distinctes, aucun départage ne se joue').toBeGreaterThan(nueAtt);
-    expect(testValue(def, 'resistance'), 'les CIBLES doivent s’inverser, sinon le test ne discrimine rien')
-      .toBeLessThan(testValue(att, undefined, 'force'));
+    expect(testValue(def, { skill: { id: 'resistance' } }), 'les CIBLES doivent s’inverser, sinon le test ne discrimine rien')
+      .toBeLessThan(testValue(att, { characteristic: 'force' }));
 
     const avant = REPLIS_DEUX_CIBLES.count;
     let joue = false;
@@ -111,7 +111,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     const avant = REPLIS_DEUX_CIBLES.count;
     // Freeze fabriqué HORS `rollFrozenOpposedAttacker` (producteur tiers, sauvegarde d'une version
     // antérieure) : il ne porte aucune nue.
-    const externe: TestResult = evaluateTest(41, testValue(att, undefined, 'force'));
+    const externe: TestResult = evaluateTest(41, testValue(att, { characteristic: 'force' }));
     expect(externe.base).toBeUndefined();
     const row = frozenOpposedBatchStep([def], FT_OPP, BRANCHES, EMPTY_FLOW, 'intermediaire', att, externe)!.participants![0];
     const roll = rollBatchParticipant(row, makeRNG(9), { aT: externe });
@@ -151,7 +151,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     H.characteristics.endurance += 55 - skillBaseValue(H, 'resistance');
     H.conditions.push({ id: 'extenue', value: 2 } as never);
     expect(skillBaseValue(H, 'resistance')).toBe(55);
-    expect(testValue(H, 'resistance')).toBeLessThan(testValue(wielder, undefined, 'force'));
+    expect(testValue(H, { skill: { id: 'resistance' } })).toBeLessThan(testValue(wielder, { characteristic: 'force' }));
 
     const avant = REPLIS_DEUX_CIBLES.count;
     let joue = false;
@@ -198,7 +198,7 @@ describe('G4 — producteurs de Tests SIMPLES : leur base est la NUE, aucun dép
     // L'enjeu vient du PORTEUR, comme en production (#1262 V2 L6d) : `MonoSpec.stake` est requis.
     const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'condition', id: 'empoisonne' });
     const nue = skillBaseValue(c, 'resistance');
-    expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, 'resistance'));
+    expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, { skill: { id: 'resistance' } }));
     expect(simpleTriggeredTestStep(c, ft, BRANCHES, EMPTY_FLOW, 'intermediaire')!.base).toBe(nue);
     expect(simpleBatchTestStep([c], ft, BRANCHES, EMPTY_FLOW, 'intermediaire', 'bande')!.participants![0].base).toBe(nue);
   });

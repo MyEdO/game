@@ -89,7 +89,7 @@ const NORMALE_HORIZONTALE = 1e-6;
  *  d'ombrage) comme à l'INSTRUMENT DE QC (`scripts/qc/lib/plancheVolumique.ts`, qui en tire son
  *  cull et sa teinte). Deux régimes, selon ce que la face DÉCLARE (`Face.oriented`) :
  *   - `oriented` : le sens de parcours PORTE déjà le dehors du volume (coquilles closes du décor
- *     volumique `builders/propVolumes.ts`, boîtes de mur) — il se propage tel quel ;
+ *     volumique `noyau/monde/volume/propVolumes.ts`, boîtes de mur) — il se propage tel quel ;
  *   - surface OUVERTE (sol, mur nu, toit, montant) : vers le HAUT si horizontale, vers l'EXTÉRIEUR de
  *     la carte si verticale.
  *  Un rendu en `DoubleSide` se moque du sens de parcours, mais la CARTE D'OMBRE non : le décalage de

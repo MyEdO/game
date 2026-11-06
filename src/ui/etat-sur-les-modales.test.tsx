@@ -2,7 +2,7 @@
 /**
  * Un porteur d'État sur chaque modale de Test : AVANT et APRÈS le jet, la ligne nomme la pénalité
  * d'État (LDB 16 l.125), la somme des termes du calcul égale sa cible, et cette cible est celle de la
- * valeur de Test (`valeurDuTest`, bornée par `clampTarget`) que le jet affronte.
+ * valeur de Test (`testValue`, bornée par `clampTarget`) que le jet affronte.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act, createElement } from 'react';
@@ -23,7 +23,7 @@ import { HandGateModal } from './HandGateModal';
 import { ANONYMES } from './RollLine';
 import { testBreakdown } from './breakdown';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { valeurDuTest, type TestDesigne } from '../engine/skills';
+import { testValue, type TestDesigne } from '../engine/skills';
 import { effectiveChar } from '../engine/characteristics';
 import { cibleDuTest, clampTarget } from '../engine/tests';
 import { refLabel } from '../data';
@@ -61,7 +61,7 @@ function nommeLEtat(quand: string, attendue: number, label?: string, chip = '−
   expect(ANONYMES.count, `${quand} : ${l.chips.join(' | ')}`).toBe(0);
 }
 const sonne = <T extends Combatant>(c: T): T => { c.conditions = [{ id: 'sonne', value: 3 }]; return c; };
-const cible = (c: Combatant, test: TestDesigne, d: Difficulty) => clampTarget(cibleDuTest(valeurDuTest(c, test), d)).target;
+const cible = (c: Combatant, test: TestDesigne, d: Difficulty) => clampTarget(cibleDuTest(testValue(c, test), d)).target;
 const FM: TestDesigne = { characteristic: 'force-mentale' };
 
 describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16 l.125)', () => {

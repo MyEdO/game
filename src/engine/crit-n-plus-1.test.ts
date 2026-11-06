@@ -38,6 +38,7 @@ const NEUVIEME: CritDoc = {
   label: 'Critiques — Tête (tableau de morsure)',
   jeu: JEU_NEUF,
   localisation: 'tete',
+  die: 'd100',
   entries: [
     {
       id: 'morsure-tete-01', min: 1, max: 100, label: 'Entaille de morsure',

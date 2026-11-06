@@ -19,8 +19,8 @@ function spawnPreset(presetId: string): Combatant {
 describe('Presets EDO — specs de Compétence keyées par ID (MSRC 7 l.13)', () => {
   it('Josef Quartjin : Savoir (Voies fluviales) est INTERROGEABLE par son id', () => {
     const josef = spawnPreset('edo-josef-quartjin');
-    expect(testValue(josef, 'savoir', undefined, 'voies-fluviales'))
-      .not.toBe(testValue(josef, 'savoir', undefined, 'zzz-inexistant'));
+    expect(testValue(josef, { skill: { id: 'savoir', spec: 'voies-fluviales' } }))
+      .not.toBe(testValue(josef, { skill: { id: 'savoir', spec: 'zzz-inexistant' } }));
   });
 
   it('Josef Quartjin : le +1 DR de Navigation fluviale part (MSRC 7 l.13)', () => {
@@ -30,7 +30,7 @@ describe('Presets EDO — specs de Compétence keyées par ID (MSRC 7 l.13)', ()
 
   it('Phillipe Descartes : Projectiles (Poudre noire) est interrogeable par son id', () => {
     const phillipe = spawnPreset('edo-phillipe-descartes');
-    expect(testValue(phillipe, 'projectiles', undefined, 'poudre-noire'))
-      .not.toBe(testValue(phillipe, 'projectiles', undefined, 'zzz-inexistant'));
+    expect(testValue(phillipe, { skill: { id: 'projectiles', spec: 'poudre-noire' } }))
+      .not.toBe(testValue(phillipe, { skill: { id: 'projectiles', spec: 'zzz-inexistant' } }));
   });
 });

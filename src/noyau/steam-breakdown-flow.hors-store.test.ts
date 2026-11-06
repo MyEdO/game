@@ -112,7 +112,7 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
 
   it('« Feu éteint » : le Test étendu de Force cumule ses DR NÉGATIFS (LDB 12 l.170-185), par `extendedTestStep`', () => {
     const force = entry('feu-eteint').restart![0];
-    const valeur = testValue(engineerOf(get().party)!, undefined, force.test.characteristic);
+    const valeur = testValue(engineerOf(get().party)!, { characteristic: force.test.characteristic });
     const issue = (seed: number, pas: (total: number, r: TestResult) => number) => {
       const rng = makeRNG(seed);
       let total = 0;

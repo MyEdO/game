@@ -36,8 +36,8 @@ function rollIntimidation(c: Combatant, seed: number) {
   banc.setState({
     pendingTest: {
       actorId: c.id, actorName: c.label, label: 'Test d’Intimidation', skillId: 'intimidation',
-      skillValue: testValue(c, 'intimidation'), difficulty: 'intermediaire', requireSL: 0,
-      target: testValue(c, 'intimidation'), roll: null, success: false, sl: 0,
+      skillValue: testValue(c, { skill: { id: 'intimidation' } }), difficulty: 'intermediaire', requireSL: 0,
+      target: testValue(c, { skill: { id: 'intimidation' } }), roll: null, success: false, sl: 0,
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
     } as never,
   });
@@ -56,8 +56,8 @@ beforeEach(() => {
 describe('Cicatrice impressionnante (LDB 18 l.61) — le bonus vit au DR, pas à la valeur du Test', () => {
   it('la valeur du Test d’Intimidation est inchangée (35), le DR vaut +1', () => {
     const c = hero('cicatrice-spectaculaire');
-    expect(testValue(c, 'intimidation')).toBe(35);
-    expect(testValue(hero(), 'intimidation')).toBe(35);
+    expect(testValue(c, { skill: { id: 'intimidation' } })).toBe(35);
+    expect(testValue(hero(), { skill: { id: 'intimidation' } })).toBe(35);
     expect(skillDRBonus(c, 'intimidation')).toBe(1);
     expect(skillDRBonus(c, 'charme')).toBe(0); // hors du périmètre arbitré
     expect(skillDRBonus(hero(), 'intimidation')).toBe(0);
@@ -88,8 +88,8 @@ describe('Nez cassé (LDB 18 l.72) — DR +1 / −1 selon le périmètre arbitr�
     const c = hero('cicatrice-nez-casse');
     expect(skillDRBonus(c, 'intimidation')).toBe(1);
     expect(skillDRBonus(c, 'charme')).toBe(-1);
-    expect(testValue(c, 'intimidation')).toBe(35);
-    expect(testValue(c, 'charme')).toBe(35);
+    expect(testValue(c, { skill: { id: 'intimidation' } })).toBe(35);
+    expect(testValue(c, { skill: { id: 'charme' } })).toBe(35);
   });
 });
 

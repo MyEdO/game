@@ -72,7 +72,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const ancien = {
       id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actorId: hero.id,
       label: composeRollLabel(hero, 'Cartographie', test), difficulty, rollLabel: 'Métier (Cartographe)',
-      base: testValue(hero, 'metier', undefined, 'cartographe'), target: effectiveTarget(hero, test, difficulty),
+      base: testValue(hero, { skill: { id: 'metier', spec: 'cartographe' } }), target: effectiveTarget(hero, test, difficulty),
       result: null, meta: { stashGold: 7 },
     };
 

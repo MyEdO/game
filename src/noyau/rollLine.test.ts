@@ -38,7 +38,7 @@ describe('rollLine — base NUE et cible dérivée de la valeur FONDUE (sonde 1 
     const p = rollLine({ actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire' });
     expect(p.base).toBe(skillBaseValue(c, 'ramer'));
     expect(p.mods).toEqual([]);
-    expect(p.target).toBe(testValue(c, 'ramer') + DIFFICULTY_MODIFIERS.intermediaire);
+    expect(p.target).toBe(testValue(c, { skill: { id: 'ramer' } }) + DIFFICULTY_MODIFIERS.intermediaire);
   });
 
   it('B. modificateur DE CIBLE (`surLaCible`) : chip nommée ET comprise dans la cible, base intacte', () => {
@@ -47,7 +47,7 @@ describe('rollLine — base NUE et cible dérivée de la valeur FONDUE (sonde 1 
     const p = rollLine({ actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire', surLaCible: [derive] });
     expect(p.base).toBe(skillBaseValue(c, 'ramer'));
     expect(p.mods).toEqual([derive]);
-    expect(p.target).toBe(testValue(c, 'ramer') - 10 + DIFFICULTY_MODIFIERS.intermediaire);
+    expect(p.target).toBe(testValue(c, { skill: { id: 'ramer' } }) - 10 + DIFFICULTY_MODIFIERS.intermediaire);
   });
 
   it('E. modificateur DÉJÀ FONDU (`dansLaValeur`) : il SORT de la base et devient chip — base nue', () => {
@@ -55,26 +55,26 @@ describe('rollLine — base NUE et cible dérivée de la valeur FONDUE (sonde 1 
     const charpentier = { label: 'Charpentier', value: -10, famille: 'jet' as const };
     const p = rollLine({
       actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire',
-      valeur: testValue(c, 'ramer') - 10, dansLaValeur: [charpentier],
+      valeur: testValue(c, { skill: { id: 'ramer' } }) - 10, dansLaValeur: [charpentier],
     });
     expect(p.base).toBe(skillBaseValue(c, 'ramer'));
     expect(p.mods).toEqual([charpentier]);
-    expect(p.target).toBe(testValue(c, 'ramer') - 10 + DIFFICULTY_MODIFIERS.intermediaire);
+    expect(p.target).toBe(testValue(c, { skill: { id: 'ramer' } }) - 10 + DIFFICULTY_MODIFIERS.intermediaire);
   });
 
   it('l’État est NOMMÉ et la base ne bouge pas (aucune chip « autres »)', () => {
     const c = hero({ conditions: [{ id: 'empoisonne', value: 1 }] as never });
-    expect(testValue(c, 'ramer')).toBeLessThan(skillBaseValue(c, 'ramer')); // l'État mord bien le jet
+    expect(testValue(c, { skill: { id: 'ramer' } })).toBeLessThan(skillBaseValue(c, 'ramer')); // l'État mord bien le jet
     const p = rollLine({ actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire' });
     expect(p.base).toBe(skillBaseValue(c, 'ramer'));
-    expect(sum(p.mods)).toBe(testValue(c, 'ramer') - skillBaseValue(c, 'ramer'));
+    expect(sum(p.mods)).toBe(testValue(c, { skill: { id: 'ramer' } }) - skillBaseValue(c, 'ramer'));
     expect(p.mods.every((m) => m.label.length > 0)).toBe(true);
   });
 
   it('ÉCRÊTAGE : la cible est bornée par la MÊME primitive que `rollTest`, et l’écart est MESURÉ', () => {
     const c = hero({}, 65); // Force 30 + 65 Augmentations = 95 : la cible franchit le plafond
     const p = rollLine({ actor: c, test: { skill: 'ramer' }, difficulty: 'accessible', surLaCible: [{ label: 'Bonus', value: 30, famille: 'circonstance' }] });
-    const attendu = clampTarget(testValue(c, 'ramer') + DIFFICULTY_MODIFIERS.accessible + 30);
+    const attendu = clampTarget(testValue(c, { skill: { id: 'ramer' } }) + DIFFICULTY_MODIFIERS.accessible + 30);
     expect(p.target).toBe(attendu.target);
     expect(p.clamped).toBe(attendu.clamped);
   });
@@ -92,7 +92,7 @@ describe('rollLine — GARDE D’EXACTITUDE : une poche mal remplie est REFUSÉE
     const c = hero();
     expect(() => rollLine({
       actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire',
-      valeur: testValue(c, 'ramer'), dansLaValeur: [{ label: 'Dérive', value: -10, famille: 'jet' }],
+      valeur: testValue(c, { skill: { id: 'ramer' } }), dansLaValeur: [{ label: 'Dérive', value: -10, famille: 'jet' }],
     })).toThrow(/ne se reconstruit pas/);
   });
 
@@ -100,7 +100,7 @@ describe('rollLine — GARDE D’EXACTITUDE : une poche mal remplie est REFUSÉE
     const c = hero();
     expect(() => rollLine({
       actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire',
-      valeur: testValue(c, 'ramer') - 10, surLaCible: [{ label: 'Dérive', value: -10, famille: 'jet' }],
+      valeur: testValue(c, { skill: { id: 'ramer' } }) - 10, surLaCible: [{ label: 'Dérive', value: -10, famille: 'jet' }],
     })).toThrow(/ne se reconstruit pas/);
   });
 
@@ -119,8 +119,8 @@ describe('rollLine — GARDE D’EXACTITUDE : une poche mal remplie est REFUSÉE
 
   it('`testValueSplit` DIT si la reconstruction a tenu (`exact`) — sans quoi la garde est aveugle', () => {
     const c = hero();
-    expect(testValueSplit(c, testValue(c, 'ramer'), { skill: 'ramer' }).exact).toBe(true);
-    expect(testValueSplit(c, testValue(c, 'ramer') + 7, { skill: 'ramer' }).exact).toBe(false);
+    expect(testValueSplit(c, testValue(c, { skill: { id: 'ramer' } }), { sujet: { skill: { id: 'ramer' } } }).exact).toBe(true);
+    expect(testValueSplit(c, testValue(c, { skill: { id: 'ramer' } }) + 7, { sujet: { skill: { id: 'ramer' } } }).exact).toBe(false);
   });
 });
 
@@ -136,12 +136,12 @@ describe('rollLine — GRILLE D’INVARIANCE : la cible ne bouge pas d’un poin
   const colosse = hero({ id: 'E', label: 'E' }, 90, 'ragot');
 
   const cas: { nom: string; spec: RollLineSpec; valeur: number }[] = [
-    { nom: 'acteur seul, Intermédiaire', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'intermediaire' }, valeur: testValue(solo, 'ragot') },
-    { nom: 'acteur seul, Difficile', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'difficile' }, valeur: testValue(solo, 'ragot') },
-    { nom: 'acteur sous État', spec: { actor: malade, test: { skill: 'ragot' }, difficulty: 'intermediaire' }, valeur: testValue(malade, 'ragot') },
-    { nom: 'caractéristique pure', spec: { actor: solo, test: { characteristic: 'sociabilite' }, difficulty: 'facile' }, valeur: testValue(solo, undefined, 'sociabilite') },
+    { nom: 'acteur seul, Intermédiaire', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'intermediaire' }, valeur: testValue(solo, { skill: { id: 'ragot' } }) },
+    { nom: 'acteur seul, Difficile', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'difficile' }, valeur: testValue(solo, { skill: { id: 'ragot' } }) },
+    { nom: 'acteur sous État', spec: { actor: malade, test: { skill: 'ragot' }, difficulty: 'intermediaire' }, valeur: testValue(malade, { skill: { id: 'ragot' } }) },
+    { nom: 'caractéristique pure', spec: { actor: solo, test: { characteristic: 'sociabilite' }, difficulty: 'facile' }, valeur: testValue(solo, { characteristic: 'sociabilite' }) },
     { nom: 'côté monde (seuil)', spec: { difficulty: 'intermediaire', valeur: 55 }, valeur: 55 },
-    { nom: 'malus de cible nommé', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'intermediaire', surLaCible: [{ label: 'Hors de contrôle', value: -20, famille: 'jet' }] }, valeur: testValue(solo, 'ragot') },
+    { nom: 'malus de cible nommé', spec: { actor: solo, test: { skill: 'ragot' }, difficulty: 'intermediaire', surLaCible: [{ label: 'Hors de contrôle', value: -20, famille: 'jet' }] }, valeur: testValue(solo, { skill: { id: 'ragot' } }) },
   ];
 
   for (const c of cas) {

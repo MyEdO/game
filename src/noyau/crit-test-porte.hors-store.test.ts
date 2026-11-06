@@ -220,7 +220,7 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
     expect(st!.difficulty).toBe('accessible');
     // Endurance 35 → Niveau de Résistance 35 ; 2× Sonné = −20 ⇒ 15 (LDB 16 l.125). Une valeur calculée
     // hors de la porte (Endurance + Avances) rendrait 35 : elle ne voit aucun État.
-    expect(testValue(hero, 'resistance')).toBe(15);
+    expect(testValue(hero, { skill: { id: 'resistance' } })).toBe(15);
     expect(st!.target, 'la cible ignore les États : la valeur maison est revenue').toBe(15 + 20);
     expect(hero.traumas, 'ni plaie ni séquelle avant le jet').toEqual([]);
   });

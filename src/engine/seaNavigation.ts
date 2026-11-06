@@ -34,7 +34,7 @@
 import seaNavJson from '../data/sea-navigation.json';
 import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, type RNG, type Tirage } from './dice';
+import { d10, parseDiceRequired, rollDice, type RNG, type Tirage } from './dice';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
 import { testValue } from './skills';
@@ -51,7 +51,7 @@ const DATA = seaNavJson as unknown as {
     reperes: (BandeOuverte & { outcome: OrientationOutcome; desc: string })[];
     driftMajorBonus: number;
     driftSide: { tribordMax: number };
-    changementDeCap: (BandeOuverte & { outcome: CourseChangeOutcome; delayPct?: number; desc: string })[];
+    changementDeCap: { die: string; entries: (BandeOuverte & { outcome: CourseChangeOutcome; delayPct?: number; desc: string })[] };
   };
   phares: { voirLaLumiere: (BandeOuverte & { difficulty: Difficulty })[]; perilSpotBonus: number; clocher: { orientationDR: number; distanceDiviseur: number } };
   longsVoyages: { millesParJourParM: number; sansVoguerDeNuitDiviseur: number; progressionPctParDR: number };
@@ -74,7 +74,7 @@ const DATA = seaNavJson as unknown as {
 const tables = memoParVersion('seaNavigation', () => ({
   vitesseMax: tableOuverte(DATA.vitesseMax.table),
   reperes: tableOuverte(DATA.orientation.reperes),
-  changementDeCap: tableOuverte(DATA.orientation.changementDeCap),
+  changementDeCap: tableOuverte(DATA.orientation.changementDeCap.entries),
   voirLaLumiere: tableOuverte(DATA.phares.voirLaLumiere),
   drDeltas: tableOuverte(DATA.poursuite.drDeltas),
 }));
@@ -88,7 +88,7 @@ export const REPARATION = DATA.reparation;
 export function savoirOceansBonus(c: Combatant): number {
   const adv = (c.skills ?? []).find((s) => s.id === 'savoir' && s.spec === 'oceans')?.advances ?? 0;
   if (adv <= 0) return 0;
-  return Math.floor(testValue(c, 'savoir', undefined, 'oceans') / 10);
+  return Math.floor(testValue(c, { skill: { id: 'savoir', spec: 'oceans' } }) / 10);
 }
 
 // ── Forcer le rythme & Épuisement (MDG 13 l.95-111) ─────────────────────────────────────────────────────
@@ -173,10 +173,10 @@ export interface CourseChangeResult {
   desc: string;
 }
 
-/** Tirage du tableau CHANGEMENT DE CAP (MDG 13 l.324-331) + côté de dérive (MDG 13 l.322 : « 1-5 tribord,
- *  6-10 bâbord »). `bonus` = +2 d'une dérive majeure. PUR (RNG injecté). */
+/** Tirage du tableau CHANGEMENT DE CAP au dé de sa table (MDG 13 l.324-331) + côté de dérive (MDG 13 l.322 :
+ *  « 1-5 tribord, 6-10 bâbord »). `bonus` = +2 d'une dérive majeure. PUR (RNG injecté). */
 export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
-  const roll = d10(rng) + bonus;
+  const roll = rollDice(parseDiceRequired(DATA.orientation.changementDeCap.die, 'sea-navigation › orientation.changementDeCap.die'), rng) + bonus;
   const row = findTableEntry(tables().changementDeCap, roll);
   return {
     roll,

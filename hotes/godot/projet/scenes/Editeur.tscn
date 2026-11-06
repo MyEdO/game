@@ -70,6 +70,12 @@ source = "editeur.fichier"
 script = ExtResource("3_zone")
 source = "editeur.pointee"
 
+[node name="Inspecteur" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+script = ExtResource("3_zone")
+source = "editeur.inspecteur"
+
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5
 anchor_left = 0.5

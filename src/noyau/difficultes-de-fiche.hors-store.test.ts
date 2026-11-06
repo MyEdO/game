@@ -37,7 +37,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 const cible = (c: Combatant, regle: keyof typeof FICHE_DE_TEST, cle: string) => {
   const [skill, d] = (FICHE_DE_TEST[regle] as Record<string, [string, Difficulty]>)[cle];
-  return clampTarget(testValue(c, skill) + DIFFICULTY_MODIFIERS[d]).target;
+  return clampTarget(testValue(c, { skill: { id: skill } }) + DIFFICULTY_MODIFIERS[d]).target;
 };
 
 let banc: Banc;
@@ -260,7 +260,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     for (let graine = 1; graine <= 30; graine++) {
       const enemy = C('enemy', 'e', 2);
       const input: EnemyTurnInput = { enemy, heroes: [C('hero', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
-      const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, s), x, 4, makeRNG(graine)).bonusCases;
+      const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, { skill: { id: s } }), x, 4, makeRNG(graine)).bonusCases;
       expect(aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(graine)).ran?.budget, `graine ${graine}`).toBe(budget(skill, d));
       if (budget(jeuSkill, d) !== budget(skill, d)) ecarts.competence++;
       if (budget(skill, jeuDiff) !== budget(skill, d)) ecarts.difficulte++;
@@ -281,7 +281,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     E.characteristics.endurance = 85;
     const [jeuSkill, jeuDiff] = testDuJeu('corrompu', 'contenir');
     const [skill, d] = FICHE_DE_TEST.corrompu.contenir;
-    const reussit = (graine: number, s: string, x: Difficulty) => rollTest(testValue(E, s), x, makeRNG(graine)).success;
+    const reussit = (graine: number, s: string, x: Difficulty) => rollTest(testValue(E, { skill: { id: s } }), x, makeRNG(graine)).success;
     const ecarts = { competence: 0, difficulte: 0 };
     for (let graine = 1; graine <= 60; graine++) {
       E.corruption = 99;

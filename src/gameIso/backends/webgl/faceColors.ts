@@ -30,8 +30,7 @@ import { roofMaterial } from '../../catalog/roofs';
 import { facadeStructureAppearance } from '../../catalog/facades';
 import { wallPartColor } from '../../catalog/structures';
 import type { WallPart } from '../../../data/structureAppearance.types';
-import { propMaterial } from '../../catalog/propMaterials';
-import { couleurDuSol, recetteDuSol } from '../../../noyau/monde/volume/matieres';
+import { couleurDeMatiere, propMaterial, recetteDeMatiere } from '../../../noyau/monde/volume/matieres';
 import { MISSING_TONE } from '../../../noyau/monde/volume/missing';
 import { coursesPeriodM, groundPeriodM } from '../../detail/courses';
 import { hash32 } from '../../../data/hash';
@@ -86,11 +85,10 @@ function faceRecipe(face: Face): DetailRecipe | undefined {
       return facadeStructureAppearance(id).detail;
     case 'relief':
     case 'terrain':
-      return recetteDuSol({ domain, id });
+    case 'prop':
+      return recetteDeMatiere({ domain, id });
     case 'roof':
       return roofMaterial(id).detail;
-    case 'prop':
-      return undefined;
   }
 }
 
@@ -101,11 +99,10 @@ function faceBaseColor(face: Face): string {
       return wallPartColor(facadeStructureAppearance(id), part as WallPart);
     case 'relief':
     case 'terrain':
-      return couleurDuSol({ domain, id, part });
+    case 'prop':
+      return couleurDeMatiere({ domain, id, part });
     case 'roof':
       return roofColor(id, part);
-    case 'prop':
-      return propMaterial(id).color;
   }
 }
 

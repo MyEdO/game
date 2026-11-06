@@ -162,13 +162,13 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     ['artillery-misfire.json', artilleryMisfire],
     ['crew-morale.json', crewMorale, ['bands']],
     ['driving-mishap.json', drivingMishap],
-    // Deux tables de tirage distinctes : la qualité SECRÈTE du vin (d100 de prix) et les rumeurs
-    // commerciales (d100 de prose) — la seconde ne serait jamais atteinte sans descente.
+    // Deux tables de tirage distinctes : la qualité SECRÈTE du vin (MSRC 13 l.97) et les rumeurs
+    // commerciales (MSRC 13 l.283) — la seconde ne serait jamais atteinte sans descente.
     ['land-cargo.json', landCargo, ['wineQuality']],
     ['land-cargo.json', landCargo, ['rumours']],
     ['mass-battle.json', massBattle, ['hazards']],
     ['naval-progression.json', navalProgression],
-    // Les deux tables d10 du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
+    // Les deux tables du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
     // se mesure, une composition débranchée ne pouvant se cacher derrière la première rencontrée.
     ['river-navigation.json', riverNavigation, ['windForces']],
     ['river-navigation.json', riverNavigation, ['windDirections']],

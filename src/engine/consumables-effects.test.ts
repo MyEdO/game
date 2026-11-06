@@ -173,12 +173,12 @@ describe('mystracine (LDB 71 l.33) — testMod char-qualifiés (ext. I) appliqu�
   it('« +10 aux Tests d\'Endurance et de Force Mentale, mais une pénalité de -10 aux Tests d\'Agilité, d\'Initiative et d\'Intelligence »', () => {
     const c = makeTarget();
     drinkPure(c, 'mystracine');
-    expect(testValue(c, undefined, 'endurance')).toBe(35 + 10);
-    expect(testValue(c, undefined, 'force-mentale')).toBe(30 + 10);
-    expect(testValue(c, undefined, 'agilite')).toBe(30 - 10);
-    expect(testValue(c, undefined, 'initiative')).toBe(30 - 10);
-    expect(testValue(c, undefined, 'intelligence')).toBe(30 - 10);
-    expect(testValue(c, undefined, 'force')).toBe(30); // les autres caracs ne bougent pas
+    expect(testValue(c, { characteristic: 'endurance' })).toBe(35 + 10);
+    expect(testValue(c, { characteristic: 'force-mentale' })).toBe(30 + 10);
+    expect(testValue(c, { characteristic: 'agilite' })).toBe(30 - 10);
+    expect(testValue(c, { characteristic: 'initiative' })).toBe(30 - 10);
+    expect(testValue(c, { characteristic: 'intelligence' })).toBe(30 - 10);
+    expect(testValue(c, { characteristic: 'force' })).toBe(30); // les autres caracs ne bougent pas
   });
   it('Durée « 1d10 x 10 minutes » (Formula times)', () => {
     expect(itemFromTrappingById('mystracine')!.consumableDuration).toEqual({ minutes: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } } });
@@ -191,8 +191,8 @@ describe("testMod.movementOnly — portée « Tests impliquant cette jambe » (#
   it('pénalise un Test de déplacement (Athlétisme, movement:true) mais pas un autre Test d’Agilité (Discrétion)', () => {
     const c = makeTarget();
     c.activeEffects = [{ label: 'Genou démis (récupération)', bonus: 0, duration: { scale: 'permanent' }, testMod: -10, testModChar: 'agilite', testModMovementOnly: true }];
-    expect(testValue(c, 'athletisme', 'agilite')).toBe(30 - 10);
-    expect(testValue(c, 'discretion', 'agilite')).toBe(30); // Discrétion n'est pas classée « déplacement »
+    expect(testValue(c, { skill: { id: 'athletisme' }, characteristic: 'agilite' })).toBe(30 - 10);
+    expect(testValue(c, { skill: { id: 'discretion' }, characteristic: 'agilite' })).toBe(30); // Discrétion n'est pas classée « déplacement »
   });
 });
 

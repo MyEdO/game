@@ -46,7 +46,7 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
 
   it('`testValue` calcule la spécialisation hors pool comme n\'importe quelle autre', () => {
     const c = hero([{ id: HORS_POOL.skillId, spec: HORS_POOL.specId, advances: 12 }]);
-    expect(testValue(c, HORS_POOL.skillId, undefined, HORS_POOL.specId)).toBe(52);
+    expect(testValue(c, { skill: { id: HORS_POOL.skillId, spec: HORS_POOL.specId } })).toBe(52);
   });
 
   it('un héros créé sur « Savoir (Local) » stocke l\'id de la spécialisation', () => {

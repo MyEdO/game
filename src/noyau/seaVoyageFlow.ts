@@ -54,14 +54,14 @@ import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, find
 import { profilNavalDe } from '../engine/coque';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
-import { d10, deMonde, roll as rollDice, tirer, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
+import { deMonde, formatEffetSigne, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { buildWeapon } from '../engine/items';
-import { applyOps, type PairedSense } from '../engine/ops';
+import { applyOps, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
 import { isRation } from '../engine/provisions';
@@ -85,7 +85,8 @@ import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, de
 import {
   evenementsDeBord, DE_DES_EVENEMENTS_DE_BORD, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
+  evenementDeBord, seulEvenementDeBord, seulEvenementDePort, rollRandomCargo, cargoBasePrice,
+  type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
@@ -200,7 +201,7 @@ export interface SeaVoyageState {
   /** M modifié par événement (Vents favorables +1 — appliqué au jour). */
   eventMMod?: number;
   /** Infestation de rats ACTIVE (Test étendu d'Extermination, MDG 14 l.98 + événements ch.15). */
-  infestation?: { label: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: Tirage };
+  infestation?: { label: string; testType: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: QuantiteTiree };
   /** ÉCHOUÉ sur un péril (Rocher/Bas-fonds, MDG 13 l.471-473/497/499, #444) : le navire s'arrête net,
    *  aucune Progression tant qu'un Test de Force (pénalité = `strandingPenalty`) ne l'a pas dégagé. */
   stranded?: { hazardId: string; label: string };
@@ -558,7 +559,9 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const overloadM = cargoOverload(cargoTotalEnc(vessel?.cargo ?? []), vd?.capacity ?? 0).mMod;
   // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de M tant que non dégagé.
   const entangleM = sea.entangled?.mMod ?? 0;
-  const baseM = croisiere + fouling.mMod + (sea.eventMMod ?? 0) + (vessel?.crabs ? -1 : 0) + pace + overloadM + entangleM;
+  // MDG 15 l.184-185
+  const crabesM = vessel?.crabs ? seulEvenementDeBord('crabes-boxeurs').params.mMod : 0;
+  const baseM = croisiere + fouling.mMod + (sea.eventMMod ?? 0) + crabesM + pace + overloadM + entangleM;
   const aspect = windAspect(sea.heading, sea.windFrom);
   // Gréement de course (MSRC 12 l.137) « inclut un clinfoc … les avantages des deux ne sont pas cumulables »
   // → il PRIME sur le Clinfoc quand les deux sont présents.
@@ -581,7 +584,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
  *  cf. `sea-ouragan-affaler`) pour ne jamais retomber dans la routine auto-résolue (`KINDS_SOUS_ORDRES`
  *  est indexée par `kind`, pas `testTypeId`). */
 
-function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; icon?: string; contexte?: ContexteDeTest } = {}): BuiltCascadeStep | undefined {
+function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; difficulty?: Difficulty; icon?: string; contexte?: ContexteDeTest } = {}): BuiltCascadeStep | undefined {
   const plan = get().travelPlan;
   const ship = plan?.vehicle;
   if (!ship) return undefined;
@@ -635,7 +638,9 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
   const traitDR = navalTestTypeDR(hullNavalTraits(ship), testTypeId);
   // « Bouteur »/« Gréement de course » modifient le Test de Navigation POUR DIRIGER (MSRC 12 l.66/140) —
   // seul le Test d'équipage de manœuvre (steering) le reçoit, converti en DR (`navalNavTestDR`, ÷10).
-  const navDirDR = testType?.steering ? navalNavTestDR(hullNavalTraits(ship)) : 0;
+  // MDG 15 l.184-185
+  const crabesDR = get().vessel?.crabs ? seulEvenementDeBord('crabes-boxeurs').params.manDR : 0;
+  const navDirDR = testType?.steering ? navalNavTestDR(hullNavalTraits(ship)) + crabesDR : 0;
   // MANQUE DE BRAS (MDG 14 l.55) — s'applique à TOUT Test d'équipage, voyage compris : −2 DR par tranche de
   // 10 % manquante ET plafond au Succès Minime. En campagne l'attrition vient des pertes d'équipage
   // (`vessel.crewLost`, MDG 15 l.245) — MÊME couture que le combat (`shipUndercrew`).
@@ -643,7 +648,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, op
   // Le naval verse ses paramètres de formule DÉJÀ chiffrés en `meta` NEUTRE (bande de Moral + sabotage +
   // traits + Manque de bras, et son plafond) et l'ID de son prédicat de succès (`crew-test` →
   // `crewTestSuccess`, MDG 14 l.13) : l'agrégat générique ne connaît aucun seuil naval.
-  const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + undercrew.dr;
+  const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + (opts.difficulty ? DIFFICULTY_MODIFIERS[opts.difficulty] / 10 : 0) + undercrew.dr;
   // ENJEU = ce que CE jet change (effet réel), jamais la règle-cadre « ce Test peut être remplacé par
   // un Test d'équipage » (MDG 14 l.63), qui ne dit rien de l'enjeu. La FICHE se dérive de la MÊME
   // entrée au rendu (`resolveStake`) : le flux ne la nomme plus (elle avait deux sources divergentes).
@@ -910,8 +915,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   // de l'événement (posée à `resolveBoardEvent`, `sea-events.json#params.difficulty`) descend en DR
   // plat sur l'agrégat (même canal que l'Ouragan → Affaler, `case 'ouragan'` ci-dessus).
   if (sea.infestation) {
-    const extraDR = DIFFICULTY_MODIFIERS[sea.infestation.difficulty] / 10;
-    const st = buildVoyageCrewStep(get, 'extermination-nuisibles', 'extermination', extraDR ? { extraDR } : {});
+    const st = buildVoyageCrewStep(get, sea.infestation.testType, 'extermination', { difficulty: sea.infestation.difficulty });
     pousseSi(out, st);
   }
   // 9a. Coque endommagée → Test d'équipage d'ENTRETIEN (remplace le Métier à −2 DR, MDG 14 l.116-124).
@@ -1181,11 +1185,7 @@ function applyFastPalier(get: Get, set: Set, palierId?: string): void {
       tell(get, set, [t('sv.hullLostPct', { ship: nomDuNavire(vessel2), n: Math.min(lost, cur), pct: palier.hullLostPct })]);
     }
   }
-  const locs: ShipCritKey[] = ['greement', 'coque', 'avirons', 'equipements', 'cargaison'];
-  for (let i = 0; i < palier.criticals; i++) {
-    const crit = rollShipCritical(locs[rng.int(0, locs.length - 1)], rng);
-    applyVesselCritical(get, set, crit);
-  }
+  for (let i = 0; i < palier.criticals; i++) applyVesselCritical(get, set, rollShipCritical(localisationAleatoire(rng), rng));
 }
 
 /** Achève une traversée rapide (RÉ-ENTRANT) : une embuscade ANCRÉE (#212) non déclenchée INTERROMPT
@@ -1357,12 +1357,6 @@ function noteManieurs(get: Get, set: Set, step: CascadeStep): void {
   const ids = step.meta?.manieurs;
   if (!ids?.length) return;
   patchSea(get, set, { manieursToday: [...new Set([...(get().travelPlan?.sea?.manieursToday ?? []), ...ids])] });
-}
-
-/** Compte SIGNÉ de d10 d'un présage, tel que le joueur le lit (« +2d10 » / « −1d10 ») — le signe EST
- *  le sens du présage (favorable / funeste), il ne se perd pas dans un texte d'enjeu. */
-function signedD10(n: number): string {
-  return `${n < 0 ? '−' : '+'}${Math.abs(n)}d10`;
 }
 
 /** Applique les MILLES du jour depuis le total du Test de Progression (±10 %/DR, ch.15 l.78). Renvoie
@@ -1585,7 +1579,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
         tell(get, set, [t('sv.wardedExposure', { name: h.label, what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
         continue;
       }
-      const resVal = testValue(h, 'resistance', 'endurance');
+      const resVal = testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
       // FROID : l'absence de manteau est DÉJÀ fondue dans la valeur jetée (`exposureTarget`) — elle se
       // déclare donc en `dansLaValeur` pour redevenir la chip NOMMÉE que `exposureCoatMods` produit.
       // PLANCHER : `exposureTarget` borne la valeur à 0 ; quand ce plancher MORD, la valeur ne vient
@@ -1749,9 +1743,18 @@ export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void
 // ── Appliers des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
 //    câblé par `buildSeaDayCascade`/`buildPostProgressionSteps`/`runSeaDay`) ────────────────────
 
-/** Conséquence PARTAGÉE d'Affaler (ch.13 l.288-294) : échec → Critique au Gréement (MDG 14 l.92-96).
- *  Appelée par l'applier de la CASCADE DU JOUR (`'affaler'`, routine) ET par l'événement Ouragan
- *  (`'sea-ouragan-affaler'`, jamais routine, extraDR −2) — MÊME conséquence RAW, deux déclencheurs. */
+/** Les ops d'un événement posées sur `cibles` pour ses jours tirés (MDG 15 l.212, l.233). */
+function effetsDeJours(get: Get, set: Set, cibles: Combatant[], event: Extract<EvenementDeBord, { kind: 'rafale-ghyran' | 'chance-navigateur' }>, ops: GameOp[], rng: RNG): { lignes: string[]; jours: number } {
+  const jours = tirer(event.params.days, rng);
+  const until = get().gameTime + jours * 24 * 60;
+  const lignes = cibles.flatMap((h) => applyOps(h, ops, { label: event.label, rng, defaultUntilTime: until }));
+  set({ party: [...get().party] });
+  return { lignes, jours };
+}
+
+/** Conséquence d'Affaler (ch.13 l.288-294) : échec → Critique au Gréement (MDG 14 l.92-96). Appelée par
+ *  l'applier de la CASCADE DU JOUR (`'affaler'`, routine) ; l'Ouragan (`'sea-ouragan-affaler'`, jamais
+ *  routine) n'en garde que la réussite, son échec coûte les Critiques de l'événement (MDG 15 l.145). */
 function affalerConsequence(get: Get, set: Set, step: CascadeStep): Consequence[] {
   if (!step.result) return [];
   // MDG 13 l.292
@@ -1834,7 +1837,7 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
   let lastDR = 0;
   for (const step of restart) {
     const { skill, characteristic, difficulty } = step.test;
-    const value = testValue(eng, skill?.id, characteristic, skill?.spec);
+    const value = testValue(eng, { skill, characteristic });
     const label = testSkillLabel({ skill, characteristic }) ?? '';
     if (step.targetDR != null) {
       let etape = { total: 0, done: step.targetDR <= 0 };
@@ -1907,7 +1910,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   const eng = engineerOf(get().party);
   if (!eng) return;
   const dmg = Math.max(1, tirer(failDamage, rng)); // « (1 minimum) » sur les Dégâts
-  const value = testValue(eng, undefined, 'initiative'); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
+  const value = testValue(eng, { characteristic: 'initiative' }); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
   set({
     pendingSteamSave: {
       actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
@@ -2031,15 +2034,11 @@ function startSeaPursuit(get: Get, set: Set, info: { label: string; desc: string
   tell(get, set, [t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt })]);
 }
 
-/** Descripteur d'abordage DÉRIVÉ d'un événement de navire hostile — `undefined` si l'événement ne nomme
- *  ni coque (`ship`) ni équipage type (`crewRef`) : la Némésis (bateau fétiche d'un boss) est authorée,
- *  pas simulable (retour `undefined` = repli honnête de `startChaseBoarding`). */
-function seaBoardingFromEvent(event: SeaEventDef): SeaBoarding | undefined {
-  const p = event.params ?? {};
-  const shipRef = typeof p.ship === 'string' ? p.ship : undefined;
-  const crewRef = typeof p.crewRef === 'string' ? p.crewRef : undefined;
-  if (!shipRef || !crewRef) return undefined;
-  return { shipRef, crewRef, chefRef: typeof p.chefRef === 'string' ? p.chefRef : undefined, label: event.label };
+/** Descripteur d'abordage DÉRIVÉ d'un événement de navire hostile : sa coque et son équipage type. La
+ *  Némésis (bateau fétiche d'un boss) n'en a pas, elle est authorée. */
+function seaBoardingFromEvent(event: Extract<EvenementDeBord, { kind: 'navire-hostile' }>): SeaBoarding {
+  const p = event.params;
+  return { shipRef: p.ship, crewRef: p.crewRef, chefRef: p.chefRef, label: event.label };
 }
 
 /** PORTEUR d'une décision de BORD (interpellation pirate, tribut) : celui qui mènerait la manœuvre —
@@ -2065,7 +2064,7 @@ function lireCrise(meta: CascadeStepMeta | undefined): CrisePirate {
  *  d'une SEULE étape de CHOIX — fuir / combattre / se soumettre. L'applier `sea-pirate-hail` reprend
  *  `runSeaDay` à la fermeture. Le pillage (`piratePillagePct`) et le tribut à Stromfels sont RAW-mués
  *  (MDG 15 l.171-173 décrit l'extorsion sans la chiffrer) → paramètre maison + choix joueur. */
-function openPirateHail(get: Get, set: Set, event: SeaEventDef): void {
+function openPirateHail(get: Get, set: Set, event: Extract<EvenementDeBord, { kind: 'navire-hostile' }>): void {
   const pillage = Number(rule('piratePillagePct'));
   patchSea(get, set, { boarding: seaBoardingFromEvent(event) });
   openChoice(get, set, {
@@ -2114,62 +2113,60 @@ function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): vo
 
 // ── Événements de bord (ch.15 l.132-236) — application MÉCANIQUE par `kind` ─────────────────────
 
-/** Valeur d'un paramètre de `SeaEventDef.params` (`tirer`), `dflt` s'il est absent — PARTAGÉ par les
- *  événements de BORD (`resolveBoardEvent`) et de PORT (`resolvePortArrival`). */
-function paramTire(event: SeaEventDef, k: string, rng: RNG, dflt = 0): number {
-  const v = event.params?.[k];
-  return v === undefined ? dflt : tirer(v as QuantiteTiree, rng);
+/** Localisation TIRÉE d'un Coup Critique de coque (MDG 15 l.153, MDG 15 l.33-37). */
+function localisationAleatoire(rng: RNG): ShipCritKey {
+  const locs: ShipCritKey[] = ['greement', 'coque', 'avirons', 'equipements', 'cargaison'];
+  return locs[rng.int(0, locs.length - 1)];
 }
 
 /** Applique un événement de bord et REND la ligne qui le raconte (titre + texte verbatim de
  *  `sea-events.json`) — son écriture appartient à l'appelant : conséquence d'étape sous cascade,
  *  `log` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
-function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, roll?: number): string {
-  const num = (k: string, dflt = 0): number => paramTire(event, k, rng, dflt);
+function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG, roll?: number): string {
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
   const vessel = get().vessel;
   const ship = get().travelPlan?.vehicle;
   switch (event.kind) {
     case 'usure': {
       if (!ship) break;
-      const w = event.params?.wounds != null ? num('wounds') : rollDice(1, 10, rng);
+      const w = tirer(event.params.wounds, rng);
       damageVesselHull(get, set, ship, w);
       tell(get, set, [`${ship.label} perd ${w} Blessures (usure).`]);
       break;
     }
     case 'coup-critique': {
-      const locs: ShipCritKey[] = ['greement', 'coque', 'avirons', 'equipements', 'cargaison'];
-      const crit = rollShipCritical(locs[rng.int(0, locs.length - 1)] as ShipCritKey, rng);
-      applyVesselCritical(get, set, crit);
+      const { crits, critLocation } = event.params;
+      for (let i = 0; i < crits; i++) {
+        applyVesselCritical(get, set, rollShipCritical(critLocation === 'aleatoire' ? localisationAleatoire(rng) : critLocation, rng));
+      }
       break;
     }
     case 'ouragan': {
-      // Test d'équipage d'Affaler Difficile (−20 → −2 DR plats) sinon 3 Critiques au Gréement. Kind
-      // DISTINCT `sea-ouragan-affaler` (jamais `KINDS_SOUS_ORDRES` — une URGENCE interrompt TOUJOURS,
-      // `voyageCadence.ts`), toujours en cascade INTERACTIVE (jamais l'auto-pilote).
-      const st = buildVoyageCrewStep(get, 'affaler', 'sea-ouragan-affaler', { extraDR: -2, icon: 'nautical/wind' });
-      if (st) startCascade(get, set, { title: 'Ouragan — Affaler !', icon: 'nautical/wind', purpose: 'test', steps: [st] });
-      else for (let i = 0; i < 3; i++) applyVesselCritical(get, set, rollShipCritical('greement', rng));
+      // Kind d'étape DISTINCT `sea-ouragan-affaler` (jamais `KINDS_SOUS_ORDRES` — une URGENCE interrompt
+      // TOUJOURS, `voyageCadence.ts`), toujours en cascade INTERACTIVE (jamais l'auto-pilote) ; l'étape
+      // nomme l'événement, son applier en relit les Critiques.
+      const p = event.params;
+      const st = buildVoyageCrewStep(get, p.testType, 'sea-ouragan-affaler', { difficulty: p.difficulty, icon: 'nautical/wind' });
+      if (st) startCascade(get, set, { title: 'Ouragan — Affaler !', icon: 'nautical/wind', purpose: 'test', steps: [{ ...st, meta: { ...st.meta, evenement: event.id } }] });
+      else critiquesDOuragan(get, set, event, rng);
       break;
     }
     case 'infestation': {
-      const need = num('targetDR', 10);
-      const difficulty = (event.params?.difficulty as Difficulty | undefined) ?? 'intermediaire';
+      const p = event.params;
       patchSea(get, set, {
         infestation: {
-          label: event.label, difficulty, need, progress: 0,
-          spoilPerNight: structuredClone((event.params?.spoilEncPerNight as Tirage | undefined) ?? { dice: { n: 1, sides: 10 } }), // #2097
+          label: event.label, testType: p.testType, difficulty: p.difficulty, need: p.targetDR, progress: 0,
+          spoilPerNight: structuredClone(p.spoilEncPerNight), // #2097
         },
       });
       break;
     }
     case 'penurie-nourriture': {
-      // « La moitié des provisions à bord sont gâtées. »
       let spoiled = 0;
       for (const h of get().party) {
         const rations = (h.items ?? []).filter(isRation);
-        const toSpoil = Math.floor(rations.length / 2);
+        const toSpoil = Math.floor(rations.length * event.params.spoilPct / 100);
         for (let i = 0; i < toSpoil; i++) { const idx = h.items!.findIndex(isRation); if (idx >= 0) { h.items!.splice(idx, 1); spoiled++; } }
       }
       set({ party: [...get().party] });
@@ -2177,11 +2174,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       break;
     }
     case 'presage': {
-      // params : `manannD10` / `moraleD10` = compte SIGNÉ de d10 à rouler (ch.15 : Figure de proue
-      // prophétique −1d10 Moral ; Présages divins ±2d10 Humeur ±1d10 Moral, gatés par un Test de Prière).
-      const manannD = typeof (event.params?.manannD10) === 'number' ? (event.params!.manannD10 as number) : 0;
-      const moraleD = typeof (event.params?.moraleD10) === 'number' ? (event.params!.moraleD10 as number) : 0;
-      const pd = event.params?.prayerDifficulty as Difficulty | undefined;
+      const { manann, moral, prayerDifficulty: pd } = event.params;
       // Garde IDENTIQUE à l'ancienne (« un prêtre existe-t-il ? ») — la porte résoudra ELLE-MÊME
       // l'acteur/la valeur soutenue via `partyBest` ; ce simple test d'existence ne duplique pas ce
       // calcul (mandat coordinateur : le call-site ne calcule plus la VALEUR, juste la CONDITION RAW).
@@ -2196,40 +2189,30 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
           difficulty: pd,
           // Le SIGNE des dés dit de quel présage il s'agit : favorable, il ne s'obtient qu'en
           // réussissant ; funeste, il ne s'évite qu'ainsi (applier `sea-priere`).
-          stake: voyageStakeRef('sea-priere', { manann: signedD10(manannD), moral: signedD10(moraleD) }),
-        }, 'sea-priere', { manannD, moraleD });
+          stake: voyageStakeRef('sea-priere', { manann: manann ? formatEffetSigne(manann) : '', moral: moral ? formatEffetSigne(moral) : '' }),
+        }, 'sea-priere', { evenement: event.id });
         return ligne;
       }
       // Pas de Test de Prière requis, ou aucun prêtre : bon/mauvais présage s'applique d'office
       // (MDG 15 l.197-198 / l.231-232 : « sauf si … réussit un Test de Prière »).
-      if (manannD) tellManann(get, set, manannD);
-      if (moraleD && ship) {
-        const delta = Math.sign(moraleD) * rollDice(Math.abs(moraleD), 10, rng);
-        for (const l of applyShipMoraleDelta(get, set, ship, delta)) tell(get, set, [l]);
-      }
+      appliquerPresage(get, set, event, rng);
       break;
     }
     case 'bonne-humeur': {
-      if (ship) for (const l of applyShipMoraleDelta(get, set, ship, rollDice(2, 10, rng))) tell(get, set, [l]);
+      if (ship) for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(event.params.moral, rng))) tell(get, set, [l]);
       break;
     }
     case 'calme-plat':
-      patchSea(get, set, { weatherLock: { days: num('days', d10(rng)), weather: { vent: 'calme-plat' } } });
-      break;
     case 'bruine':
-      patchSea(get, set, { weatherLock: { days: num('days', d10(rng)), weather: { visibilite: 'brume', precipitations: 'legeres' } } });
-      break;
     case 'beau-temps':
-      patchSea(get, set, { weatherLock: { days: num('days', d10(rng)), weather: { temperature: 'mediane' } } });
-      break;
     case 'ciel-degage':
-      patchSea(get, set, { weatherLock: { days: num('days', d10(rng)), weather: { visibilite: 'degage', precipitations: 'aucune' } } });
+      patchSea(get, set, { weatherLock: { days: tirer(event.params.days, rng), weather: { ...event.params.weather } } });
       break;
     case 'vents-inhabituels':
-      patchSea(get, set, { reversedWinds: num('days', d10(rng)) });
+      patchSea(get, set, { reversedWinds: tirer(event.params.days, rng) });
       break;
     case 'vents-favorables':
-      patchSea(get, set, { eventMMod: (get().travelPlan?.sea?.eventMMod ?? 0) + 1 });
+      patchSea(get, set, { eventMMod: (get().travelPlan?.sea?.eventMMod ?? 0) + event.params.mMod });
       break;
     case 'crabes-boxeurs':
       if (vessel) set({ vessel: { ...vessel, crabs: true } });
@@ -2302,34 +2285,28 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       break;
     case 'debris-cargaison':
     case 'epave-cargaison': {
+      // MDG 15 l.210, l.225
       if (!vessel) break;
-      const enc = rollDice(event.kind === 'epave-cargaison' ? 2 : 1, 100, rng);
-      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { cargoId: 'bois-mer', enc, basePriceGold: 0 }] } });
-      tell(get, set, [t('sv.cargoFished', { enc })]);
+      const enc = tirer(event.params.cargoEnc, rng);
+      const season = seasonOfMonth(toDate(get().gameTime).month);
+      const cargo = rollRandomCargo(season, rng);
+      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, rng) }] } });
+      tell(get, set, [t('sv.cargoFished', { enc, cargo: cargo.label })]);
       break;
     }
     case 'chance-navigateur': {
       // MDG 15 l.233
       const captain = partyAssisted(get().party, 'commandement');
-      if (captain) {
-        const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
-        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
-        set({ party: [...get().party] });
-      }
+      if (captain) tell(get, set, effetsDeJours(get, set, [captain.actor], event, [{ op: 'grantTalent', talent: { id: event.params.talent } }], rng).lignes);
       break;
     }
     case 'rafale-ghyran': {
-      const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
-      for (const h of get().party) {
-        if (h.dead) continue;
-        applyOps(h, [
-          { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 },
-          { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 },
-          { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 },
-        ], { label: event.label, rng, defaultUntilTime: until });
-      }
-      set({ party: [...get().party] });
-      tell(get, set, [t('sv.ghyranBlessing')]);
+      // MDG 15 l.212
+      const { skills, specs, drBonus } = event.params;
+      const refs = skills.map((id) => (specs[id] ? { id, spec: specs[id] } : { id }));
+      const ops: GameOp[] = refs.map((skill) => ({ op: 'skillDRBonus', skill, bonus: drBonus }));
+      const { jours } = effetsDeJours(get, set, get().party.filter((h) => !h.dead), event, ops, rng);
+      tell(get, set, [t('sv.ghyranBlessing', { bonus: drBonus, competences: refs.map((r) => refLabel('skills', r)).join(', '), jours })]);
       break;
     }
     default:
@@ -2338,11 +2315,23 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
   return ligne;
 }
 
-function tellManann(get: Get, set: Set, deltaD10: number): void {
-  const rng = battleRng();
+/** Présage (MDG 15 l.180, l.198, l.231-232) : son effet sur l'Humeur de Manann et le Moral. */
+function appliquerPresage(get: Get, set: Set, event: Extract<EvenementDeBord, { kind: 'presage' }>, rng: RNG): void {
+  const { manann, moral } = event.params;
+  if (manann) tellManann(get, set, manann);
+  const ship = get().travelPlan?.vehicle;
+  if (moral && ship) for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(moral, rng))) tell(get, set, [l]);
+}
+
+/** Échec d'Affaler sous l'Ouragan (MDG 15 l.145) : les Critiques que l'événement chiffre. */
+function critiquesDOuragan(get: Get, set: Set, event: Extract<EvenementDeBord, { kind: 'ouragan' }>, rng: RNG): void {
+  for (let i = 0; i < event.params.failCrits; i++) applyVesselCritical(get, set, rollShipCritical(event.params.critLocation, rng));
+}
+
+function tellManann(get: Get, set: Set, effet: EffetSigne): void {
   const vessel = get().vessel;
   if (!vessel) return;
-  const delta = Math.sign(deltaD10) * rollDice(Math.abs(deltaD10), 10, rng);
+  const delta = tirerSigne(effet, battleRng());
   set({ vessel: { ...vessel, manann: addManann(vesselManann(vessel), delta) } });
   tell(get, set, [t('sv.manannMood', { delta: `${delta >= 0 ? '+' : ''}${delta}`, score: vesselManann(get().vessel).score })]);
 }
@@ -2511,19 +2500,22 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       // MDG 15 l.260 : le bonus d'Humeur suppose la relâche autorisée ET l'équipage sincèrement
       // joint aux festivités — modélisé par la même permission que l'Embrigadement (l.245).
       if (!shoreLeave) { log(get, set, [t('sv.shoreLeaveRefusedManann')]); break; }
-      if (vessel) set({ vessel: { ...vessel, manann: addManann(mood, rollDice(2, 10, rng)) } });
+      if (vessel) set({ vessel: { ...vessel, manann: addManann(mood, tirerSigne(event.params.manann, rng)) } });
       break;
     case 'pretre-manann': {
       // MDG 15 l.246 : choix du joueur entre payer et réduire l'Humeur — `fenetreChoisir('manannPriest', 'payer', …)`.
       if (vessel) {
+        // MDG 15 l.246 ; MDG 12 l.54
         const lengthM = findVehicleById(vessel.vehicleId)?.ship?.lengthM ?? 0;
-        const cost = toMoney({ gold: rollDice(1, 10, rng), silver: lengthM });
+        const cost = toMoney({ gold: tirer(event.params.blessingCO, rng), silver: lengthM * event.params.blessingSilverPerSize });
         set({ pendingManannPriest: { cost } });
       }
       break;
     }
     case 'port-desert':
-      if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(1, 10, rng))) log(get, set, [l]);
+      // MDG 15 l.249
+      if (!ship || !port || port.taille > event.params.maxSize) break;
+      for (const l of applyShipMoraleDelta(get, set, ship, tirerSigne(event.params.moral, rng))) log(get, set, [l]);
       break;
     case 'embrigadement': {
       // « Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement
@@ -2532,12 +2524,13 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       // « Vous perdez 2d10 membres d'équipage » (MDG 15 l.245) : perte PERSISTÉE puis SÉQUENCE de
       // recouvrement (Ragot Intermédiaire → rançon 2d10 CO OU Discrétion Complexe ; échec → 1d10 de
       // plus) — cascade influençable dans `embrigadementFlow`. Difficultés en donnée (`sea-events.json`).
+      const p = event.params;
       openEmbrigadementRecovery(get, set, {
-        lost: paramTire(event, 'lostCrew', rng),
-        ransomCO: paramTire(event, 'ransomCO', rng),
-        extraLoss: paramTire(event, 'failExtraLostCrew', rng),
-        gossipDiff: (event.params?.gossipDifficulty as Difficulty | undefined) ?? 'intermediaire',
-        stealthDiff: (event.params?.stealthDifficulty as Difficulty | undefined) ?? 'complexe',
+        lost: tirer(p.lostCrew, rng),
+        ransomCO: tirer(p.ransomCO, rng),
+        extraLoss: tirer(p.failExtraLostCrew, rng),
+        gossipDiff: p.gossipDifficulty,
+        stealthDiff: p.stealthDifficulty,
       });
       break;
     }
@@ -2545,7 +2538,7 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
       // « Les droits de douane sont évalués à 10 % de la valeur de toute la cargaison … Si vous ne payez
       // pas, votre cargaison est saisie. »
       const cargo = vessel?.cargo ?? [];
-      const tax = Math.ceil(cargo.reduce((s, l) => s + l.enc * l.basePriceGold, 0) * 0.1);
+      const tax = Math.ceil(cargo.reduce((s, l) => s + l.enc * l.basePriceGold, 0) * event.params.taxPct / 100);
       if (tax > 0 && payFromGroup(get, set, toMoney({ gold: tax }), { purpose: 'douane' })) {
         log(get, set, [t('sv.customsPaid', { tax })]);
       } else if (tax > 0 && vessel) {
@@ -2557,7 +2550,6 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
     default:
       break; // narratif / à jouer en scène — le verbatim au journal
   }
-  void port;
 }
 
 /** Refus de payer la bénédiction du Prêtre de Manann (MDG 15 l.246) : la bourse ne couvre pas son prix ; `null` sinon.
@@ -2578,7 +2570,7 @@ function trancherLePretreDeManann(get: Get, set: Set, pay: boolean): void {
     log(get, set, [t('sv.purificationPaid', { gold: p.cost.gold, silver: p.cost.silver })]);
     return;
   }
-  tellManann(get, set, -4);
+  tellManann(get, set, seulEvenementDePort('pretre-manann').params.manann);
 }
 
 /** Résout le choix « Relâche à terre » (MDG 15 l.245) posé à l'accostage, AVANT le tirage de
@@ -2698,20 +2690,12 @@ export const TABLES = {
      *  la fermeture est portée par `dispatchCascadeDone` (purpose `test` en mer → `runSeaDay`), pas ici. */
     'sea-priere': (get, set, step) => {
       if (!step.result) return;
-      const manannD = Number(step.meta?.manannD ?? 0);
-      const moraleD = Number(step.meta?.moraleD ?? 0);
+      const event = evenementDeBord(String(step.meta?.evenement), 'presage');
       const success = step.result.success;
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const j = [t('sv.stepIssue', { label: String(step.label), issue: success ? t('sv.prayerOk') : t('sv.prayerKo') })];
-      const apply = manannD >= 0 ? success : !success;
-      if (apply) {
-        if (manannD) tellManann(get, set, manannD);
-        const ship = get().travelPlan?.vehicle;
-        if (moraleD && ship) {
-          const delta = Math.sign(moraleD) * rollDice(Math.abs(moraleD), 10, battleRng());
-          for (const l of applyShipMoraleDelta(get, set, ship, delta)) tell(get, set, [l]);
-        }
-      }
+      const favorable = (event.params.manann ?? event.params.moral)?.sign !== -1;
+      if (favorable ? success : !success) appliquerPresage(get, set, event, battleRng());
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
@@ -2842,7 +2826,11 @@ export const TABLES = {
     affaler: (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
     // Ouragan : cascade AUTONOME (`purpose:'test'`) ouverte AVANT la construction du jour
     // (`resolveSeaDayEvent`) — sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`.
-    'sea-ouragan-affaler': (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
+    'sea-ouragan-affaler': (get, set, step) => {
+      if (!step.result || step.result.success) return { consequences: affalerConsequence(get, set, step) };
+      critiquesDOuragan(get, set, evenementDeBord(String(step.meta?.evenement), 'ouragan'), battleRng());
+      return {};
+    },
     /** Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311) → Repères / Changement de cap. */
     orientation: (get, set, step) => {
       if (!step.result) return;

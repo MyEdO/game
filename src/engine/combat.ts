@@ -1855,7 +1855,7 @@ export function initiativeOrder(combatants: Combatant[], rng: RNG): Combatant[] 
   const groupSize = new Map<string, number>();
   for (const c of combatants) groupSize.set(groupKey(c), (groupSize.get(groupKey(c)) ?? 0) + 1);
   // Roulé dans l'ordre d'ENTRÉE, uniquement pour les égalités exactes → consommation RNG minimale et déterministe.
-  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, undefined, 'agilite'), 'intermediaire', rng));
+  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, { characteristic: 'agilite' }), 'intermediaire', rng));
   return [...combatants].sort((a, b) => {
     const ia = initOf(a), ib = initOf(b);
     if (ib !== ia) return ib - ia;

@@ -29,7 +29,7 @@ import { battleRng } from './battleRng';
 import { tickCampaignVesselWeek } from './shipCrew';
 import { dayIndex } from '../engine/clock';
 import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provisions';
-import { testValue } from '../engine/skills';
+import { testValue, sujetDesIds } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
 import { type CharKey, type Difficulty, type UpkeepDeferTest, type NightTestKind } from '../engine/types';
@@ -186,19 +186,19 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
           });
         };
       // 1. Nourriture (LDB 18 l.337-343).
-      const r = dailyFoodUpkeep(h, testValue(h, 'resistance', 'endurance'), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
+      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (r.rationConsumed) rations++;
       if (r.damage > 0) loseWounds(h, r.damage);
       lines.push(...r.log);
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
-      const w = dailyWaterUpkeep(h, hasWater, testValue(h, 'resistance', 'endurance'), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
+      const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (w.damage > 0) loseWounds(h, w.damage);
       lines.push(...w.log);
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
         const alcool = { skill: 'resistance-a-l-alcool', characteristic: 'endurance' } as const;
-        const alc = testValue(h, alcool.skill, alcool.characteristic);
+        const alc = testValue(h, sujetDesIds(alcool));
         // DIFFÉRÉ comme ses voisins (faim/soif) : le Test de Résistance à l'alcool est une étape de
         // cascade, jamais un jet roulé ici (sinon pré-résolu).
         defer({ kind: 'dessoulage', label: t('upkeep.sobering'), base: alc, test: alcool, difficulty: 'intermediaire' });

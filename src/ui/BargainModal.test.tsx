@@ -93,7 +93,7 @@ describe('BargainModal (#2c)', () => {
     } as unknown as Combatant;
     // Compétence NUE 55 (Soc 40 + 15 avances) ; Empoisonné −10 + Visage inversé −20 → Test 25 ; Soutien +10 → 35.
     expect(skillBaseValue(negociateur, 'marchandage')).toBe(55);
-    expect(testValue(negociateur, 'marchandage')).toBe(25);
+    expect(testValue(negociateur, { skill: { id: 'marchandage' } })).toBe(25);
     const pb: PendingBargain = {
       ...base, playerSkill: 35, playerBase: 55, support: { count: 1, bonus: 10, ids: ['h2'] },
       roll: { roll: 20, target: 35, success: true, sl: 3, isDouble: false },
