@@ -138,7 +138,7 @@ export function TavernGameModal() {
   const opt = !rapide ? game?.options?.[0] : undefined;
   const testAffiche = {
     skill: opt?.test.skill ?? game?.skill,
-    char: opt?.test.characteristic ?? (opt?.test.skill ? undefined : game?.characteristic),
+    characteristic: opt?.test.characteristic ?? (opt?.test.skill ? undefined : game?.characteristic),
   };
   const difficulteAffichee: Difficulty | undefined = game && difficulteDuJoueur(difficulteDeBase(game), specialsApplicables(game, challenger));
   const nomDuTest = testSkillLabel(testAffiche) ?? refLabel('skills', { id: 'pari' });

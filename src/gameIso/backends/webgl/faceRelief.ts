@@ -9,11 +9,12 @@
  * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
  */
 import { facadeStructureAppearance } from '../../catalog/facades';
-import { uprightCrossM, wallMatterM, wallPartDepthM } from '../../catalog/structures';
+import { wallPartDepthM } from '../../catalog/structures';
+import { largeurDUnMontant, wallMatterM } from '../../../noyau/monde/volume/montants';
 import type { WallPart } from '../../../data/structureAppearance.types';
 import { roofFasciaThickM, roofMaterial } from '../../catalog/roofs';
-import type { FaceDepth } from './worldTris';
-import type { Face } from '../../builders/types';
+import type { FaceDepth } from '../../../noyau/monde/volume/worldTris';
+import type { Face } from '../../../noyau/monde/volume/types';
 
 /** Épaisseur MONDE (m) du volume d'une face, ou `undefined` quand la face reste un PLAN.
  *
@@ -23,7 +24,7 @@ import type { Face } from '../../builders/types';
  *  Restent PLATS, et c'est leur morphologie qui le dit — pas une dette :
  *  — `roof:soffite` (`builders/roofs.ts`) : plan OBLIQUE **coplanaire au pan** qu'il prolonge ; lui
  *    donner une épaisseur le décollerait de la couverture qu'il continue ;
- *  — `terrain:wedge` (`builders/floors.ts`) : plan HORIZONTAL de raccord entre deux nappes — aucun
+ *  — `terrain:wedge` (`noyau/monde/volume/floors.ts`) : plan HORIZONTAL de raccord entre deux nappes — aucun
  *    chant à éclairer, et `faceQuadsOriented` ne volumise que les plans VERTICAUX ;
  *  — les PANS de toit (`N`/`E`/`S`/`O`) et les nappes de sol, pour la même raison.
  *  Seule la planche de rive (`roof:fascia`), verticale et de morphologie de plinthe, prend un volume. */
@@ -34,7 +35,8 @@ export function faceDepthM(face: Face): number | undefined {
   if (domain === 'prop') return undefined;
   if (!part) return undefined;
   const app = domain === 'structure' ? facadeStructureAppearance(id) : undefined;
-  if (face.poly.length === 2) return uprightCrossM(part, wallMatterM(app));
+  const montant = largeurDUnMontant(face, wallMatterM(app));
+  if (montant !== undefined) return montant;
   if (domain === 'structure') return wallPartDepthM(app!, part as WallPart, wallMatterM(app));
   if (domain === 'roof' && part === 'fascia') return roofFasciaThickM(roofMaterial(id));
   return undefined;

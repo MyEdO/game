@@ -313,14 +313,14 @@ export type TestDOption = Pick<FlowTest, 'difficulty'> & ({ skill: RefDesignee; 
 
 /** Ce que désigne le Test d'une option : sa Compétence, sinon sa Caractéristique. PUR. */
 export function designeDe(test: TestDOption): TestDesigne {
-  return test.skill ? { skill: test.skill } : { char: test.characteristic };
+  return test.skill ? { skill: test.skill } : { characteristic: test.characteristic };
 }
 
 /** Difficulté que `def` déclare pour le Test `test` : celle de l'option qui le couvre (`refCouvre` — une
  *  option sans Spécialisation couvre toutes les siennes), sinon celle de l'Activité. Sert la voie qu'un
  *  résolveur DÉRIVE du héros (Savoir de la recherche, arme de l'entraînement). PUR. */
 function difficulteDeclaree(def: Pick<ActivityDef, 'tests' | 'difficulty'>, test: TestDesigne): Difficulty | undefined {
-  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.char));
+  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.characteristic));
   return option ? option.difficulty : def.difficulty;
 }
 

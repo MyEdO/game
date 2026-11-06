@@ -3,19 +3,20 @@
  * arguments, pour un hôte qui les donne prêts à jouer. Les arêtes qu'il borde (`aretesUtilisables`, offertes comme à
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
  * `triggersEnJeu`), les offres des entités à sa portée (`offresDExploration` : parler, commercer, s'asseoir, une action
- * authorée), refusées avec leur raison, puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
+ * authorée), refusées avec leur raison, la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`openWorldMap`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.
  */
 import { aretesUtilisables } from './aretes';
 import { aretesOffertes, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
-import { cheminMarchable, porteActionnable } from './marcheDuGroupe';
+import { cheminMarchable, marcheOuverte } from './marcheDuGroupe';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { offresDExploration } from './interactionsDExploration';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
 import { atterrissagesDeSaut, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
+import { placeOfScene } from './worldMap';
 import { flowEffects } from '../engine/flowCore';
 import { t } from '../i18n';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
@@ -29,9 +30,10 @@ export interface GesteDExploration {
   refus?: string;
 }
 
-/** La marche du groupe jusqu'à `vers` (`cliquerLaCase`) et son nombre de pas, `null` sans chemin à pied qui y finisse. */
+/** La marche du groupe jusqu'à `vers` (`cliquerLaCase`) et son nombre de pas, `null` la marche fermée (`marcheOuverte`)
+ *  ou sans chemin à pied qui y finisse. */
 function marcheVers(s: Jeu, vers: Pt): { gestes: GesteDuNoyau[]; pas: number } | null {
-  const plan = s.scene && exploreMovePlan(s.scene, s.partyPos, vers, optionsDeCheminDuGroupe(s.party));
+  const plan = marcheOuverte(s) && s.scene ? exploreMovePlan(s.scene, s.partyPos, vers, optionsDeCheminDuGroupe(s.party)) : null;
   const fin = plan?.path[plan.path.length - 1];
   return plan && fin && plan.path.length > 1 && memeCase(fin, vers) && cheminMarchable(s.scene!, plan.path) ? { gestes: [{ verbe: 'cliquerLaCase', args: [vers] }], pas: plan.path.length - 1 } : null;
 }
@@ -45,14 +47,12 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   const visible = computeStateVisible(s);
   const out: GesteDExploration[] = [];
   for (const arete of aretesOffertes(aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: partyPos.z ?? 0 }), gestesDeplacantsOuverts(s))) {
-    const geste = gesteDeLArete(arete);
+    const geste = gesteDeLArete(s, arete);
     if (!geste) continue;
-    if (arete.portail && !porteActionnable(s.mode, arete.portail)) {
-      const marche = marcheVers(s, arete.portail.to);
-      if (marche) out.push({ libelle: arete.libelle, gestes: marche.gestes });
-    } else out.push({ libelle: arete.libelle, gestes: [geste] });
+    const marche = geste.verbe === 'cliquerLaCase' ? marcheVers(s, geste.args[0]) : { gestes: [geste] };
+    if (marche) out.push({ libelle: arete.libelle, gestes: marche.gestes });
   }
-  for (const a of atterrissagesDeSaut(scene, partyPos, optionsDeCheminDuGroupe(s.party))) {
+  for (const a of marcheOuverte(s) ? atterrissagesDeSaut(scene, partyPos, optionsDeCheminDuGroupe(s.party)) : []) {
     out.push({ libelle: t('exploration.saut', { x: a.x, y: a.y }), gestes: [{ verbe: 'cliquerLaCase', args: [a] }] });
   }
   for (const trig of triggersEnJeu(scene, () => visible)) {
@@ -71,6 +71,7 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
       });
     }
   }
+  if (s.worldMap && (placeOfScene(s.worldMap, scene.id) || s.travelPlan)) out.push({ libelle: t('exploration.carte'), gestes: [{ verbe: 'openWorldMap', args: [] }] });
   if (!gestesDeplacantsOuverts(s)) return out;
   const z = partyPos.z ?? 0;
   const bordees = new Set(aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: z }).map((a) => a.cle));

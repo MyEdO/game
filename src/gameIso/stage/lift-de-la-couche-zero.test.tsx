@@ -8,7 +8,7 @@ import { aretesUtilisables, type ContexteAretes } from '../../noyau/aretes';
 import { piece } from '../../noyau/pieces.fixture';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
-import { buildFloors } from '../builders/floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { buildHighlights, type HighlightsView } from '../builders/highlights';
 import { highlightMatrix, highlightSlot, slotLiftM } from '../backends/webgl/highlightMeshes';
 import { buildDynamicMarkMesh, dynSlotLiftM } from '../backends/webgl/dynamicMarkMeshes';
@@ -121,7 +121,7 @@ describe('Le relief de la COUCHE 0 porte le lift — socle unique, une seule hau
 });
 
 /** Le SOL que le monde volumique BÂTIT sur cette case : la hauteur métrique du losange de sol produit
- *  par `builders/floors.ts` — la référence contre laquelle toute marque posée dessus se mesure. */
+ *  par `noyau/monde/volume/floors.ts` — la référence contre laquelle toute marque posée dessus se mesure. */
 function solBâti(scene: Scene, x: number, y: number, z = 0): number {
   const el = buildFloors(scene).find((e) => e.key === `floor:${x},${y},${z}`);
   const dalle = el?.faces.find((f) => f.material.domain === 'terrain' && !f.material.part);

@@ -16,7 +16,8 @@ import { facadeStructureAppearance } from '../catalog/facades';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
-import type { Face, GP, WallEl } from '../builders/types';
+import type { WallEl } from '../builders/types';
+import type { Face, GP } from '../../noyau/monde/volume/types';
 import type { WallSide } from '../../noyau/monde/scene';
 import { projGP, type Pt2 } from './project';
 

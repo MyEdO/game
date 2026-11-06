@@ -681,7 +681,7 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
 describe('reprise du pilote immédiat : le contexte de lancement voyage avec la séquence parquée', () => {
   const g = () => banc.getState();
   const s: Banc['setState'] = (p) => banc.setState(p);
-  const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
+  const ligne = { test: { skill: 'resistance', characteristic: 'endurance' } } as const;
   const appliers: Record<string, CascadeApplier> = {
     repriseNeutre: () => {},
     repriseCombat: (_get, set) => { set({ battle: {} as never }); },

@@ -12,7 +12,7 @@ import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
 import { entiteFootTiles } from '../../noyau/monde/spawn';
-import { buildFloors } from '../../gameIso/builders/floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { floorSvg } from '../../gameIso/authoring/floorsSvg';
 import { buildRoofs } from '../../gameIso/builders/roofs';
 import { roofDepth, roofSvg } from '../../gameIso/authoring/roofsSvg';

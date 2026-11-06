@@ -33,6 +33,7 @@ import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalSt
 import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
+import { effectifAuContact } from './combat/surnombre';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
@@ -747,7 +748,7 @@ export function attackEnv(
   // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
   // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
-  const onm = outnumberMod(battle.combatants.filter((c) => c.kind === attacker.kind && !isOutOfAction(c) && c.pos && combatDistance(c, target) <= 1).length);
+  const onm = outnumberMod(effectifAuContact(battle, target, attacker.kind));
   if (onm) env.push(onm);
   env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // LDB 14 l.180/181
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };
@@ -3677,7 +3678,7 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
  *  valeur de Test (`testValue`, LDB 16 l.125) ; cible montée par le MONTEUR, bornée et mesurée comme au jet
  *  (`FLOWS.handGate`). Mint UNIQUE de `pendingHandGate` : `openAttackCascade` et la 2ᵉ frappe « des deux armes ». */
 export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: 'main' | 'off', pa: PendingAttack, title: string, icon: string): void {
-  const ligne = rollLine({ actor: attacker, test: { char: 'dexterite' }, difficulty: 'accessible' });
+  const ligne = rollLine({ actor: attacker, test: { characteristic: 'dexterite' }, difficulty: 'accessible' });
   set({ pendingHandGate: {
     attackerId: attacker.id, actorName: attacker.label, hand, ligne, ...cibleMesuree(ligne),
     roll: null, sl: 0, success: false, pa, title, icon,
@@ -5193,7 +5194,7 @@ export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, target
  *  Compétence déclarée, sinon la Caractéristique. */
 function testDOppositionDeSort(spellId: string, opposed: NonNullable<SpellData['opposed']>): TestDesigne {
   if (opposed.kind === 'contact') return { skill: { id: 'corps-a-corps', spec: 'bagarre' } };
-  return opposed.skill ? { skill: opposed.skill } : { char: garanti(opposed.characteristic, spellId, 'opposition de sort') };
+  return opposed.skill ? { skill: opposed.skill } : { characteristic: garanti(opposed.characteristic, spellId, 'opposition de sort') };
 }
 
 /** Cibles SUPPLÉMENTAIRES d'une incantation figée (Surincantation, LDB 47 l.28-31) ; ZdE : toutes les

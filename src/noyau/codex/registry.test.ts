@@ -383,6 +383,43 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
   });
 });
 
+describe('Codex registry — règles de négoce (#3433, MDG 15 et MSRC 13)', () => {
+  it('les fiches « Commerce maritime » et « Commerce terrestre et fluvial » sont exposées et ÉDITABLES au Codex', () => {
+    for (const key of ['seaCargo', 'landCargo']) {
+      expect(categoryByKey(key)!.items, key).toHaveLength(1);
+      expect(isEditableCategory(key), key).toBe(true);
+    }
+  });
+
+  it('la fiche maritime projette chaque barème de `sea-cargo.json`, issues du Commerce d’opportunité nommées', () => {
+    const c = datasetObject('seaCargo');
+    const item = categoryByKey('seaCargo')!.items[0];
+    expect(item.label).toBe(c.label);
+    expect(item.source?.book).toBe('MDG');
+    const titres = item.sections!.map((s) => s.title);
+    expect(titres).toEqual(['Achat', 'Prix d’offre (Richesse + Taille + Demande)', 'Vente', 'Surcharge de la cale', 'Commerce d’opportunité']);
+    const offre = item.sections!.find((s) => s.title.startsWith('Prix d’offre'))!;
+    expect(offre.rows.map((r) => r.t === 'kv' && r.k)).toEqual(['1', '2', '3', '4+']);
+    const opportunite = item.sections!.find((s) => s.title === 'Commerce d’opportunité')!;
+    const cles = opportunite.rows.flatMap((r) => (r.t === 'kv' ? [r.k] : []));
+    expect(cles).toContain('Échec · manque ≥ 6 DR');
+    expect(cles).toContain('Succès · +6 DR ou plus');
+    expect(cles.some((k) => /success|failure/.test(k))).toBe(false);
+  });
+
+  it('la fiche terrestre projette la qualité du vin, la mise à prix par Richesse et les rumeurs liées aux cargaisons', () => {
+    const c = datasetObject('landCargo');
+    const item = categoryByKey('landCargo')!.items[0];
+    expect(item.label).toBe(c.label);
+    expect(item.source?.book).toBe('MSRC');
+    const vin = item.sections!.find((s) => s.title === 'Qualité du vin (1d10)')!;
+    expect(vin.rows).toHaveLength(c.wineQuality.length);
+    const rumeurs = item.sections!.find((s) => s.title === 'Rumeurs commerciales (1d100)')!;
+    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumours.length);
+    expect(rumeurs.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
+  });
+});
+
 describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Navigation, Périls, Météo, Construction navale)', () => {
   it('les 8 nouvelles catégories navales sont exposées, peuplées et ÉDITABLES au Codex', () => {
     const keys = [

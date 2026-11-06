@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { buildFloors } from '../builders/floors';
-import type { FloorEl } from '../builders/types';
+import { buildFloors } from '../../noyau/monde/volume/floors';
+import type { FloorEl } from '../../noyau/monde/volume/types';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { floorSvg, floorDepth } from './floorsSvg';
 import { depth, diamondPath, tileCenter, type Dims } from '../../geometry/iso';
 import { terrainGradientId } from '../catalog/terrain';
 
 /**
- * Peintre SVG d'authoring des sols : projette les éléments `floor` du pivot (builders/floors) via la
+ * Peintre SVG d'authoring des sols : projette les éléments `floor` du pivot (`noyau/monde/volume/floors`) via la
  * projection partagée (iso.ts). On vérifie le DESSIN (classes, gradients, profondeur) et que la
  * rotation caméra — qui vit 100 % ici — oriente correctement les faces (wedges, éclairage).
  */

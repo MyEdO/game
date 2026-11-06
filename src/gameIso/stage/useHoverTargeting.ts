@@ -166,8 +166,8 @@ export function useHoverTargeting(
     };
   }, [effHover, mode, battle, myTurn, hoverMovementResolution]);
 
-  // Aperçu de DÉPLACEMENT au SURVOL hors combat : même calcul que le clic (moveAlong) — pathTo avec la
-  // portée de saut du GROUPE. Memoïsé sur (hover, partyPos, scene) → le BFS ne tourne PAS à la frame.
+  // Aperçu de DÉPLACEMENT au SURVOL hors combat : le plan du clic (`exploreMovePlan`), à la portée de saut
+  // du GROUPE. Memoïsé sur (hover, partyPos, scene) → le BFS ne tourne PAS à la frame.
   const explorePlan = useMemo(() => {
     const tile = hoveredPortal?.to ?? hover;
     if (!marcheOuverte({ mode, dialogue }) || !scene || !tile) return null;

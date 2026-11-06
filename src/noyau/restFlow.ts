@@ -432,7 +432,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     const st = monoStep({ id: `march-${id}`, kind: 'forcedMarch', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('forcedMarch'),
-      ligne: { test: { skill: 'resistance', char: 'endurance' } } });
+      ligne: { test: { skill: 'resistance', characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
@@ -547,15 +547,18 @@ export function lodgingOptions(places: RestPlaces): RestLodging[] {
   return out;
 }
 
-/** Pitances proposées (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
+/** Pitances qu'offre le lieu (repas d'auberge, table de la maison), communes à toute la troupe. */
+const pitancesDuLieu = (places: RestPlaces): RestFood[] => [...(places.auberge ? ['repas' as const] : []), ...(places.maison ? ['maison' as const] : [])];
+
+/** Pitances proposées à un héros (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
  *  « ration » seulement si le héros en a une. */
 export function foodOptions(places: RestPlaces, hero: Combatant): RestFood[] {
-  const out: RestFood[] = [];
-  if (places.auberge) out.push('repas');
-  if (places.maison) out.push('maison');
-  if ((hero.items ?? []).some(isRation)) out.push('ration');
-  out.push('rien');
-  return out;
+  return [...pitancesDuLieu(places), ...((hero.items ?? []).some(isRation) ? ['ration' as const] : []), 'rien'];
+}
+
+/** Pitances du choix « pour toute la troupe » : celles du lieu, sans la ration, qui dépend du sac de chacun. */
+export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
+  return [...pitancesDuLieu(places), 'rien'];
 }
 
 /** Coût total du repos (chambres regroupées par 2, repas par convive), par nuit × days. */
@@ -803,7 +806,7 @@ export const TABLES = {
       // (patron `insert`, re-bandée par la fabrique) : plus AUCUN jet silencieux (#253), et la gueule de bois
       // est due par TOUTE rangée du dessoûlage, pas seulement par les perdantes.
       const d = soberUpDissipate(hero, row.result!.sl);
-      const alcool = { skill: 'resistance-a-l-alcool', char: 'endurance' } as const;
+      const alcool = { skill: 'resistance-a-l-alcool', characteristic: 'endurance' } as const;
       const hangover = monoStep({
         id: `dessoulageHangover-${hero.id}`, kind: 'dessoulageHangover', actor: hero, icon: 'time/night',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',

@@ -259,7 +259,7 @@ export function raisonDuRefusDAchatDeCargaison(refus: RefusDAchatDeCargaison): s
 
 /** Prix d'un lot en CO (MSRC 13 l.127-131) : `pct` = effet du Marchandage, `partiel` = lot partiel. */
 export function prixDuLotDeCargaison(enc: number, basePrice: number, partiel: boolean, pct: number): number {
-  return Math.max(0, Math.round(enc * basePrice * (1 + (pct + (partiel ? partialSurchargePct : 0)) / 100)));
+  return Math.max(0, Math.round(enc * basePrice * (1 + (pct + (partiel ? partialSurchargePct() : 0)) / 100)));
 }
 
 /** Devis d'achat d'un lot : `enc` retenu (défaut : l'offre entière dans la place libre du porteur),
@@ -284,7 +284,7 @@ export function devisDAchatDeCargaison(s: CarrierStateSlice & Pick<Jeu, 'landMar
   const base = { enc: want, partiel, estimationGold: prixDuLotDeCargaison(want, offre.basePrice, partiel, 0), plancherGold, offre, porteur };
   if (refusDeGesteSurLeGroupe(s)) return { ...base, refus: { motif: 'invite' } };
   if (want <= 0) return { ...base, refus: { motif: 'rien' } };
-  if (want < minCargoEnc) return { ...base, refus: { motif: 'lot-minimal', min: minCargoEnc } };
+  if (want < minCargoEnc()) return { ...base, refus: { motif: 'lot-minimal', min: minCargoEnc() } };
   if (!porteur) return { ...base, refus: { motif: 'sans-porteur' } };
   if (!carrierCanLoad(porteur, want)) return { ...base, refus: { motif: 'contenance', porteur: porteur.label, libre, capacite: porteur.capacity } };
   if (!canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold }))) return { ...base, refus: { motif: 'bourse', plancher: plancherGold } };

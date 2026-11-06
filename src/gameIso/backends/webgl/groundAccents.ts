@@ -26,7 +26,7 @@ import { hash32, seedStream } from '../../../data/hash';
 import type { DetailRecipe } from '../../../data/materials.types';
 import { terrainDetail } from '../../../noyau/monde/terrain';
 import type { LectureDArete, Scene } from '../../../noyau/monde/scene';
-import type { Vec3 } from './worldTris';
+import type { Vec3 } from '../../../noyau/monde/volume/worldTris';
 import type { SceneEl } from '../../builders/types';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';
 

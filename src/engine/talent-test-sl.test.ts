@@ -38,7 +38,7 @@ describe('talentTestSLBonus — règle LDB 10 universelle (matcher structuré te
   });
 
   it('manual (contexte narratif) : Haine ne s’applique JAMAIS automatiquement', () => {
-    expect(talentTestSLBonus(c([{ talentId: 'haine', times: 3 }]), { char: 'force-mentale' })).toBe(0);
+    expect(talentTestSLBonus(c([{ talentId: 'haine', times: 3 }]), { characteristic: 'force-mentale' })).toBe(0);
   });
 
   it('when : Vigilance ne booste Perception que si le contexte (whenHolds) est vrai', () => {

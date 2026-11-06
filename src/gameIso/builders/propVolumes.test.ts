@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { DIR4_ORDER, type Dir4, type Dir8 } from '../../geometry/dir8';
 import { findPropById } from '../../data';
 import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../data/props.types';
-import { polyNormal } from '../backends/webgl/worldTris';
+import { polyNormal } from '../../noyau/monde/volume/worldTris';
 import { buildPropVolumes, type AncrageVolume } from './propVolumes';
-import type { Face } from './types';
+import type { Face } from '../../noyau/monde/volume/types';
 
 /**
  * COMPILATION VOLUMIQUE — ce qu'un type de décor à recette produit comme géométrie MONDE, aux HUIT

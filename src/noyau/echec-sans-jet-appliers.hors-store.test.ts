@@ -54,7 +54,7 @@ const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: 'ragot' });
 const ragotSansJet = (kind: GenreDEtape, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
   monoStep({
     id: kind, kind, label, actor: hero, difficulty: 'intermediaire', stake: combatStakeRef(kind),
-    ligne: { test: { skill: 'ragot', char: 'sociabilite' }, refus: refusRagot(hero) },
+    ligne: { test: { skill: 'ragot', characteristic: 'sociabilite' }, refus: refusRagot(hero) },
     meta,
   })!;
 

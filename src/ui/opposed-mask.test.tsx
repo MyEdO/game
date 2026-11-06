@@ -125,7 +125,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
       party: [A],
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false,
         result: { cast: false, roll: 45, target: 50, sl: 0, isCritical: false, isFumble: false, log: '' } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: 'A', interactive: true, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
 
@@ -145,7 +145,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     useGame.setState({
       party: [A, B],
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: 'A', interactive: true, ligne: LIGNE_OPPOSITION, result: null }, { id: 'B', interactive: true, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
 
@@ -172,7 +172,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
       party: [A],
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false,
         result: { cast, roll: cast ? 20 : 45, target: 50, sl: cast ? 3 : 0, isCritical: false, isFumble: false, log: '' } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: 'A', interactive: true, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
     act(() => { root.render(<CastModal />); });
@@ -198,7 +198,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
       party: [H],
       pendingCast: { casterId: 'H', targetId: 'T', spellId: 'drain', missile: false, focused: false,
         result: { cast: false, roll: 45, target: 50, sl: 0, isCritical: false, isFumble: false, log: '' } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: 'T', interactive: false, ligne: LIGNE_OPPOSITION, result: null }] } as never,
     });
     act(() => { root.render(<CastModal />); });

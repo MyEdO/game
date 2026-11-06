@@ -84,7 +84,7 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
           {recap.days.map((d, i) => (
             <li key={i}>
               <span className="travel-recap-day">
-                Jour {i + 1} — {routeDistanceLabel(d.kmTo - d.kmFrom, sea)} en {Math.round(d.hours)} h de route
+                {t('trm.jour', { n: i + 1, distance: routeDistanceLabel(d.kmTo - d.kmFrom, sea), heures: Math.round(d.hours) })}
               </span>
               <TravelDayBody day={d} />
             </li>
@@ -92,9 +92,9 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
         </ol>
       )}
       {ambush ? (
-        <p className="travel-recap-foot">{t('trm.piedEmbuscade')} <Icon id="nav/campaign" size="sm" />.)</p>
+        <p className="travel-recap-foot">{t('trm.piedEmbuscade')}</p>
       ) : recap.status === 'interrupted' ? (
-        <p className="travel-recap-foot">{t('trm.piedInterrompu')} (<Icon id="nav/campaign" size="sm" />).</p>
+        <p className="travel-recap-foot">{t('trm.piedInterrompu')}</p>
       ) : recap.status === 'stalled' ? (
         <p className="travel-recap-foot">{t('trm.piedSurcharge')}</p>
       ) : null}

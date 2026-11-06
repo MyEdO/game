@@ -32,7 +32,7 @@ import { bus, EVT } from './bus';
 import { refuserGeste } from './refusVisible';
 import { hasAutoClimb, hasClimbFullSpeed } from '../engine/traits/dispatch';
 import { planClimb } from './monde/climbMove';
-import { poserLeGroupe } from './marcheDuGroupe';
+import { gesteDuPortail, poserLeGroupe, type GesteDuPortail } from './marcheDuGroupe';
 import { climbMovementCost } from '../engine/movement';
 import { ev } from './combatLog';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -40,7 +40,7 @@ import { rule } from '../engine/policy';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { effectiveTalents } from '../engine/talentEffects';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau, GesteDuNoyau } from './actionsDuNoyau';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat —, et le verbe de chacune : il va
@@ -57,12 +57,12 @@ const estDeplacant = (c: CapaciteArete): c is GesteDeplacant => Object.prototype
 export const gesteDeDenivele = (a: AreteUtilisable): GesteDeDenivele | null =>
   estDeplacant(a.capacite) ? { verbe: VERBE_DU_GESTE_DEPLACANT[a.capacite], args: [a.ancrage, caseOpposee(a)] } : null;
 
-/** Le geste qu'une arête offre, en verbe du noyau : un dénivelé (`gesteDeDenivele`), l'accès qu'on actionne
- *  (`actionnerLaPorte`), la structure qu'on frappe par le clic de son Combattant (`battleClickEntity`). */
-export function gesteDeLArete(a: AreteUtilisable): GesteDuNoyau | null {
+/** Le geste qu'une arête offre, en verbe du noyau : un dénivelé (`gesteDeDenivele`), le geste de l'accès
+ *  (`gesteDuPortail`), la structure qu'on frappe par le clic de son Combattant (`battleClickEntity`). */
+export function gesteDeLArete(s: Jeu, a: AreteUtilisable): GesteDeDenivele | GesteDuPortail | { verbe: 'battleClickEntity'; args: [string] } | null {
   const denivele = gesteDeDenivele(a);
   if (denivele) return denivele;
-  if (a.portail) return { verbe: 'actionnerLaPorte', args: [a.portail] };
+  if (a.portail) return gesteDuPortail(s, a.portail);
   return a.cid ? { verbe: 'battleClickEntity', args: [a.cid] } : null;
 }
 

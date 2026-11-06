@@ -94,17 +94,17 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
 
 /** Ce qu'un Test désigne : sa Compétence (`TestNomme` d'une fiche, `RefDesignee` d'une donnée) ou sa
  *  seule Caractéristique. */
-export type TestDesigne = { readonly skill: RefDesignee } | { readonly char: CharKey };
+export type TestDesigne = { readonly skill: RefDesignee } | { readonly characteristic: CharKey };
 
 /** Le `testValue` d'un Test désigné (Compétence et spécialité, ou Caractéristique) : la valeur jetée. */
 export function valeurDuTest(c: Combatant, test: TestDesigne): number {
-  return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.char);
+  return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.characteristic);
 }
 
-/** Les ids À PLAT d'un Test désigné (`{ skill, spec }` ou `{ char }`) : la forme que nomment une ligne de
+/** Les ids À PLAT d'un Test désigné (`{ skill, spec }` ou `{ characteristic }`) : la forme que nomment une ligne de
  *  jet (`rollLine`), un libellé de Test (`testSkillLabel`) et un pending. */
-export function idsDuTest(test: TestDesigne): { skill: string; spec?: string; char?: never } | { char: CharKey; skill?: never; spec?: never } {
-  return 'skill' in test ? { skill: test.skill.id, ...(test.skill.spec ? { spec: test.skill.spec } : {}) } : { char: test.char };
+export function idsDuTest(test: TestDesigne): { skill: string; spec?: string; characteristic?: never } | { characteristic: CharKey; skill?: never; spec?: never } {
+  return 'skill' in test ? { skill: test.skill.id, ...(test.skill.spec ? { spec: test.skill.spec } : {}) } : { characteristic: test.characteristic };
 }
 
 /** `valeurDuTest` DÉCOMPOSÉE pour sa ligne de jet (`testValueSplit`) : base nue et composantes nommées
@@ -112,7 +112,7 @@ export function idsDuTest(test: TestDesigne): { skill: string; spec?: string; ch
 export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: number; mods: ModLine[] } {
   const { base, mods } = 'skill' in test
     ? testValueSplit(c, valeurDuTest(c, test), { skill: test.skill.id, spec: test.skill.spec })
-    : testValueSplit(c, valeurDuTest(c, test), { characteristic: test.char });
+    : testValueSplit(c, valeurDuTest(c, test), { characteristic: test.characteristic });
   return { base, mods };
 }
 
@@ -121,7 +121,7 @@ export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: numbe
  * hors combat, et la garantie que l'écran annonce ce que le moteur calcule. INVARIANT vérifié par la
  * garde `test-value-parts.test.ts` :
  *
- *     testValue(c, skill, char, spec, sense) === skillBaseValue(c, skill, spec, char) + Σ testValueParts(…)
+ *     testValue(c, skill, characteristic, spec, sense) === skillBaseValue(c, skill, spec, characteristic) + Σ testValueParts(…)
  *
  * Un poste AJOUTÉ à `testValue` sans son producteur de parts casse cette garde — c'est ELLE qui
  * interdit la dérive, pas ce commentaire. Chaque part tire son libellé de la DONNÉE (le `src` du
@@ -213,7 +213,7 @@ export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean
 }
 
 /** Ce que nomme un refus : le Test d'une Compétence (spécialisation comprise) ou d'une Caractéristique, ou une action. */
-type QuoiRefuse = { skill: string; spec?: string } | { char: CharKey } | { action: string };
+type QuoiRefuse = { skill: string; spec?: string } | { characteristic: CharKey } | { action: string };
 function quoiRefuse(quoi: QuoiRefuse): PlayerText {
   return 'action' in quoi ? t('refus.quoiAction', { action: quoi.action }) : t('refus.quoiTest', { de: deElide(testSkillLabel(quoi)) });
 }
@@ -325,7 +325,7 @@ export function bestForTests(
   // concourt que si le groupe fournit un porteur (`partyBest` null ⇒ groupe vide ⇒ résultat null).
   const perTest = tests.flatMap((test) => {
     const ids = idsDuTest(test);
-    const best = partyBest(party, ids.skill, ids.char, undefined, ids.spec, sense);
+    const best = partyBest(party, ids.skill, ids.characteristic, undefined, ids.spec, sense);
     return best ? [{ test, best }] : [];
   });
   const r = maxBy(perTest, (x) => x.best.value);
@@ -528,8 +528,8 @@ export function bestAssistedOption(
   const perTest = tests.flatMap((test) => {
     const ids = idsDuTest(test);
     const res = meneur
-      ? soutenuPar(crew, partyBest([meneur], ids.skill, ids.char, undefined, ids.spec), ids.skill, ids.char, ids.spec)
-      : partyAssisted(crew, ids.skill, ids.char, undefined, ids.spec);
+      ? soutenuPar(crew, partyBest([meneur], ids.skill, ids.characteristic, undefined, ids.spec), ids.skill, ids.characteristic, ids.spec)
+      : partyAssisted(crew, ids.skill, ids.characteristic, undefined, ids.spec);
     return res ? [{ test, res }] : [];
   });
   const r = maxBy(perTest, (x) => x.res.value);

@@ -154,6 +154,8 @@ const NOMMES = [
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
   'success|failure|fumble',
+  // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
+  'success|failure',
   'test|combat|threat|hold|rally',
   'any|all',
   'group|talent|trait|psych|immunity',
@@ -186,7 +188,7 @@ const NOMMES = [
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
   'tete|coiffure|tenue|emplacement|piece|variante|ensemble|embleme',
   'vetement|armure|accessoire',
-  'trapping|apparence|tenue',
+  'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
   'main|off',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
@@ -298,7 +300,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'sort|rituel',
   'source|group|any',
   'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
-  'success|failure',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

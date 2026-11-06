@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, toneOf,
+  ACTIONS, avecSigne, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, jetsEnVue, porteurParId, recitEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -195,12 +195,52 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
       detail: detailDuJet({ ...defense.jet, paliers: defense.jet.difficultyParts }),
     })] : []),
     ...patientDuSoin(etat),
+    ...trajetsDeLaCarte(etat),
+    ...recitDuVoyage(etat),
     ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
     ...destinEnJeu(etat),
     ...victoire(etat),
     ...texteDuDocument(etat),
+  ];
+}
+
+/** La carte du monde ouverte (`carteEnVue`) : d'où part le groupe, la reprise d'un voyage interrompu, puis chaque trajet
+ *  en entité, sa destination et sa longueur, et ses modes de voyage en choix, chacun avec ses jours de route et fermé
+ *  avec sa raison. */
+function trajetsDeLaCarte(etat: Jeu): Element[] {
+  const c = carteEnVue(etat);
+  if (!c) return [];
+  const bouton = (id: string, libelle: string, g: { verbe: string; args: unknown[] }, refus: string | null): Bouton => ({ type: 'bouton', id, libelle, jeu: { type: g.verbe, args: g.args }, presse: false, focus: false, refus });
+  return [
+    ligne('carte/ici', t('ecran.carte.ici', { lieu: c.ici })),
+    ...(c.reprendre ? [bouton('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
+    ...c.trajets.map((tr): Entite => ({
+      type: 'entite', id: `carte/${tr.route}`, ton: 'neutre', nom: tr.vers,
+      elements: [
+        puce('distance', tr.distance, null),
+        { type: 'choix', id: 'modes', ton: 'neutre', libelle: t('ecran.carte.modes'), focus: false, refus: null,
+          valeurs: tr.modes.map((m) => bouton(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)) },
+      ],
+    })),
+  ];
+}
+
+/** Le ton de chaque issue d'un récit de voyage. */
+const TON_DU_RECIT = { arrivee: 'reussite', interruption: 'alerte', arret: 'alerte', embuscade: 'echec' } as const satisfies Record<NonNullable<ReturnType<typeof recitEnVue>>['issue'], Ton>;
+
+/** Le récit du trajet que le groupe vient de faire (`recitEnVue`) : son issue au ton de l'issue, la route faite, puis la
+ *  durée du voyage arrivé, ou chaque journée en entité avec ce qui s'y est passé, et ce qui permet de repartir. */
+function recitDuVoyage(etat: Jeu): Element[] {
+  const r = recitEnVue(etat);
+  if (!r) return [];
+  return [
+    ligne('recit/issue', r.titre, TON_DU_RECIT[r.issue]),
+    ligne('recit/route', r.route),
+    ...(r.duree ? [ligne('recit/duree', r.duree)] : []),
+    ...r.journees.map((j, i): Entite => ({ type: 'entite', id: `recit/jour/${i}`, ton: 'neutre', nom: j.libelle, elements: j.lignes.map((l, k) => ligne(String(k), l)) })),
+    ...(r.suite ? [ligne('recit/suite', r.suite)] : []),
   ];
 }
 

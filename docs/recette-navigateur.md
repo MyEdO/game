@@ -1917,7 +1917,7 @@ Fiche du héros → panneau d'équipement (`src/ui/EquipmentPanel.tsx`) :
   « — vide — », « — (2 mains) — » ou « — retirer — » selon l'emplacement. Une cellule vide sans candidat
   est refusée (« Rien à porter à cet emplacement (…). »).
 - **Après « Activer »**, les cartes de sets gardent l'ordre de `hero.loadouts` (`loadoutSetActive`,
-  `src/engine/items.ts:896`, ne touche que `activeLoadoutId`), mais le bouton CHANGE de carte : seul un
+  `src/engine/items.ts:994`, ne touche que `activeLoadoutId`), mais le bouton CHANGE de carte : seul un
   set INACTIF porte « Activer », l'actif porte la puce « Actif ». « Le premier Activer » désigne donc
   une autre carte après le geste : viser par la carte, `clickButtonByText(session, 'Activer', { rangee:
   '<libellé du set>' })`.

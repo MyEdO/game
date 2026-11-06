@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from './monde/scene';
 import { propFootTiles } from './monde/footprint';
-import { entityAt, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
+import { entityAt, etageSuivant, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
 import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve } from './sceneEdit';
 import { TOUS_CALQUES } from './sceneEdit.testkit';
 import { validateScene } from './validateScene';
@@ -306,6 +306,13 @@ describe('édition de scène — couches (multi-niveaux)', () => {
     expect(addLayer(s1, 1)).toBe(s1); // no-op si déjà présente
     // insérée dans l'ordre des z même posée à l'envers
     expect(addLayer(addLayer(emptyScene('scene-test', 4, 4), 2), 1).layers.map((l) => l.z)).toEqual([0, 1, 2]);
+  });
+  it('etageSuivant : un cran au-dessus de la plus haute couche, z non contigus compris ; le rez sur un plan sans couche', () => {
+    const rez = emptyScene('scene-test', 4, 4);
+    expect(etageSuivant(rez)).toBe(1);
+    expect(etageSuivant(addLayer(rez, 1))).toBe(2);
+    expect(etageSuivant(addLayer(addLayer(rez, 3), 1))).toBe(4);
+    expect(etageSuivant({ layers: [] })).toBe(0);
   });
   it('removeLayer retire une couche mais protège le sol (z=0) et la dernière couche', () => {
     const s = addLayer(emptyScene('scene-test', 4, 4), 1);

@@ -1,11 +1,11 @@
-## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
+## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
-## d'une arête (mur ou porte) sur le côté de sa case, l'échelle métrique d'un modèle sur le plateau et la hauteur d'un
-## point du corps à son gabarit. Seul script où l'arithmétique et la mesure sont permises
+## d'une arête (mur ou porte) sur le côté de sa case, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
+## la hauteur d'un point du corps à son gabarit. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -29,7 +29,7 @@ const TANGAGE_MAXIMAL := 0.2
 const ECART_DE_BULLE := 12.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
 const LARGEUR_DE_BULLE := 420.0
-## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
+## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
 
 
@@ -44,9 +44,9 @@ static func diametre(rayon: float) -> float:
 	return 2.0 * rayon
 
 
-## Le point, au-dessus du centre de la case `case`, où se dit le nom de ce qui l'occupe.
-static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
-	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
+## Le point, au-dessus du centre de la case `case` dont le sol est à `sol`, où se dit le nom de ce qui l'occupe.
+static func au_dessus_de_la_case(case: Vector2i, sol: float) -> Vector3:
+	return Vector3(case.x + DEMI_CASE, sol + HAUTEUR_DU_NOM, case.y + DEMI_CASE)
 
 
 ## Le centre d'une arête de `hauteur` dont le milieu est `milieu`, en coins de grille (`plateauDeLaScene`).
@@ -69,25 +69,25 @@ static func echelle_metrique(metres_par_case: float) -> float:
 	return 1.0 / metres_par_case
 
 
+## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
+static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
+	return hauteur * echelle_metrique(metres_par_case)
+
+
 ## La hauteur `hauteur` d'un point du corps neutre portée au gabarit dont le sommet des os est à `sommet`, celui du corps
 ## neutre à `sommet_neutre`.
 static func hauteur_au_gabarit(hauteur: float, sommet: float, sommet_neutre: float) -> float:
 	return hauteur * echelle_de_cadrage(sommet, sommet_neutre)
 
 
-## Le centre de la case `case` sur le sol (y = 0).
-static func centre_de_case(case: Vector2i) -> Vector3:
-	return Vector3(case.x + DEMI_CASE, 0.0, case.y + DEMI_CASE)
+## Le centre de la case `case` sur son sol, à `sol` au-dessus du plan du plateau.
+static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
+	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
 
 
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
 	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
-
-
-## La case qui porte le point `sol` du sol.
-static func case_du_point(sol: Vector3) -> Vector2i:
-	return Vector2i(floori(sol.x), floori(sol.z))
 
 
 ## Le lacet de la caméra tourné d'un quart de tour dans le sens `sens` (1 ou -1).

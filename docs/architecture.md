@@ -117,11 +117,11 @@ qui le rend inutile.
 - **Gel structurel de `ui` et `gameIso`** : ces deux zones seront remplacées. On n'y investit aucune
   restructuration, et les gardes de #2724 dont tout le périmètre y est restent en l'état jusqu'à la
   bascule, où elles partent avec leur code. Le gel porte sur la structure, pas sur le jeu.
-- **Question reportée : les outils d'auteur.** Le Compendium, l'atelier de cartes et les galeries de
-  contrôle restent-ils web après la bascule ? laurent a choisi « Plus tard » sur une carte le 2026-10-21,
-  conséquence affichée : « On migre d'abord l'écran de jeu, et on tranche quand le premier écran Godot
-  tourne. » D'ici là, ce qui ne sert que l'atelier reste dans `src/ui/editor/` (le calage du calque,
-  `traceCalibration.ts`).
+- **Les outils d'auteur passent en Godot.** Le Compendium, l'atelier de cartes et les galeries de
+  contrôle suivent l'écran de jeu dans la bascule : laurent, 2026-11-06, « Tout passe en Godot. »
+  Leur version web entre dans le gel de `ui` : on n'y corrige rien de structurel, et ses défauts
+  s'inventorient au sujet global #3006 pour être soldés dans la version Godot. Ce qui ne sert que
+  l'atelier reste d'ici là dans `src/ui/editor/` (le calage du calque, `traceCalibration.ts`).
 
 ## Arborescence
 

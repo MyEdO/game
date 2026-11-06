@@ -27,7 +27,7 @@ import type { ambianceSchema, sceneSchema, ReliefDefaults, SceneRoofDefaults, Te
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
-import { emplacementsDesPieces } from '../engine/classementDeTrait';
+import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
@@ -112,7 +112,7 @@ import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import { cleDHabille, type EmplacementId, type EnsembleDef, type GardeRobeEntree, type HabilleDEnsemble } from './schemas/defs/garde-robe';
+import { cleDHabille, type EmplacementId, type EnsembleDef, type GardeRobeEntree, type HabilleDEnsemble, type PieceId, type TenueDeGardeRobe } from './schemas/defs/garde-robe';
 import presetsDePersonnageJson from './presets-de-personnage.json';
 import type { PresetDePersonnage } from './schemas/defs/presets-de-personnage';
 import godsJson from './gods.json';
@@ -136,7 +136,9 @@ import seaPerilsJson from './sea-perils.json';
 import seaWeatherJson from './sea-weather.json';
 import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
-import { CharKey, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
+import seaCargoJson from './sea-cargo.json';
+import landCargoJson from './land-cargo.json';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
@@ -156,6 +158,8 @@ import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
+import type { SeaCargoData } from './schemas/defs/sea-cargo';
+import type { LandCargoData } from './schemas/defs/land-cargo';
 
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
@@ -1286,11 +1290,13 @@ export interface GroupeDArmure extends GroupeDObjet {
   /** Matériau — source TYPÉE des exemptions de Magie des Arcanes (LDB 46 l.150-152 ; `chaos` = armure du
    *  Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169). */
   material: MatiereDArmure;
-  /** Rang de couche affichée, unique parmi les Groupes d'armure. */
+  /** Rang de couche, unique parmi les Groupes d'armure : la pièce que revêtent deux armures portées est celle du rang
+   *  le plus haut (#3456). */
   couche: number;
-  /** PA à partir desquels une armure de statbloc portée se dessine dans cette matière, unique ; `null` :
-   *  aucune (#2948). */
+  /** PA à partir desquels une armure de statbloc portée est de cette matière, unique ; `null` : aucune (#2948). */
   palierPA: number | null;
+  /** Teinte d'objet (`materials.json`, domaine `objet`) d'une pièce du Groupe, à défaut de la sienne (#3456). */
+  teinte?: { id: string };
 }
 export interface GroupeDInventaire extends GroupeDObjet {
   kind: 'inventory';
@@ -2627,6 +2633,11 @@ export const shipConstruction = shipConstructionJson as ShipConstructionData;
  *  d'export (référence LIVE au même fichier physique relu par `engine/riverNavigation.ts`). */
 export const riverNavigation = riverNavigationJson as RiverNavigationData;
 
+/** Règles de négoce (#3433) : MDG 15 maritime, MSRC 13 terrestre — même patron d'export (référence
+ *  LIVE au même fichier physique relu par `engine/seaVoyage.ts` et `engine/landCargo.ts`). */
+export const seaCargo = seaCargoJson as SeaCargoData;
+export const landCargo = landCargoJson as LandCargoData;
+
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE consommé par
  *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/noyau/worldMap.ts`).
  *  `port`/`marché` gardent leur propre schéma riche ; ce catalogue couvre le RESTE (auberge/temple/
@@ -2885,6 +2896,18 @@ export const findVarianteById = parNature('variante');
 const ensembleParHabille = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));
 /** L'ensemble qui habille `habille` (égalité de `{ id, type }`), `undefined` si la garde-robe n'en déclare pas. */
 export const findEnsembleParHabille = (habille: HabilleDEnsemble): EnsembleDef | undefined => ensembleParHabille(cleDHabille(habille)) as EnsembleDef | undefined;
+/** Les pièces d'armure qui couvrent une des localisations `locs` (`localisations`, #3456), dans l'ordre de la garde-robe. */
+export const piecesCouvrant = (locs: readonly HitLocation[]): PieceId[] =>
+  gardeRobe.flatMap((e) => (e.kind === 'piece' && e.localisations?.some((l) => locs.includes(l)) ? [e.id] : []));
+/** Les pièces que revêt un objet porté : celles de l'ensemble qui habille son trapping `trappingId`, à défaut celles qui
+ *  couvrent ses localisations, `locs`, à défaut celles de son trapping (`localisationsDeLoc`). #3456 */
+export function piecesDeLObjet(trappingId: string | undefined, locs?: readonly HitLocation[]): readonly PieceId[] {
+  const ensemble = trappingId === undefined ? undefined : findEnsembleParHabille({ type: 'trapping', id: trappingId });
+  return ensemble?.pieces ?? piecesCouvrant(locs ?? localisationsDeLoc(findTrappingById(trappingId)?.loc));
+}
+/** La tenue de la garde-robe dont `carriere` est une des `carrieres` (#3456), `undefined` sinon. */
+export const findTenueDeCarriere = (carriere: string | null | undefined): TenueDeGardeRobe | undefined =>
+  gardeRobe.find((e): e is TenueDeGardeRobe => e.kind === 'tenue' && carriere != null && (e.carrieres ?? []).includes(carriere));
 /** Presets de personnage entier (`presets-de-personnage.json`, #3086). */
 export const presetsDePersonnage = presetsDePersonnageJson as unknown as PresetDePersonnage[];
 export const findPresetDePersonnageById = indexParId('presetsDePersonnage', presetsDePersonnage);
@@ -3239,8 +3262,12 @@ export function findWeaponGroupById(id: string | null | undefined): WeaponGroupD
 }
 /** Matière du Groupe d'armure `id` (`material`), `undefined` hors d'un Groupe d'armure. LDB 63 l.41-58 */
 export function matiereDuGroupe(id: string | null | undefined): MatiereDArmure | undefined {
+  return findGroupeDArmureById(id)?.material;
+}
+/** Le Groupe d'armure `id`, `undefined` hors d'un Groupe d'armure. */
+export function findGroupeDArmureById(id: string | null | undefined): GroupeDArmure | undefined {
   const groupe = findWeaponGroupById(id);
-  return groupe?.kind === 'armour' ? groupe.material : undefined;
+  return groupe?.kind === 'armour' ? groupe : undefined;
 }
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function weaponGroupLabel(id: string | null | undefined): PlayerText {
@@ -3604,16 +3631,16 @@ export function skillInstanceLabel(s: { id: string; spec?: string }): PlayerText
 }
 /** La Spé d'une référence vit DANS la référence : `spec` sœur n'existe que sur la branche id. */
 type TestDeclare =
-  | { skill?: string; spec?: string; char?: CharKey }
-  | { skill?: RefASpecialisation; spec?: never; char?: CharKey };
+  | { skill?: string; spec?: string; characteristic?: CharKey }
+  | { skill?: RefASpecialisation; spec?: never; characteristic?: CharKey };
 /** Libellé du Test DÉCLARÉ par ses ids — Compétence (Spé) ou Caractéristique : « Corps à corps (Bagarre) »
  *  (LDB 14 l.155), « Langue (Magick) » (LDB 46 l.24). La Compétence se donne en id (+ `spec`) ou en
  *  référence (`refLabel`, emplacement `choix` compris). `undefined` sans l'une ni l'autre : le repli est au site. */
-export function testSkillLabel(test: { skill: string; spec?: string } | { skill: RefASpecialisation; spec?: never } | { char: CharKey }): PlayerText;
+export function testSkillLabel(test: { skill: string; spec?: string } | { skill: RefASpecialisation; spec?: never } | { characteristic: CharKey }): PlayerText;
 export function testSkillLabel(test: TestDeclare): PlayerText | undefined;
 export function testSkillLabel(test: TestDeclare): PlayerText | undefined {
   if (test.skill) return typeof test.skill === 'string' ? skillInstanceLabel({ id: test.skill, spec: test.spec }) : refLabel('skills', test.skill);
-  return test.char ? dataLabel(CHAR_LABELS[test.char]) : undefined;
+  return test.characteristic ? dataLabel(CHAR_LABELS[test.characteristic]) : undefined;
 }
 /** Libellé d'affichage d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) »). Repli sur l'id. */
 export function talentConcrete(t: { talentId: string; spec?: string }): PlayerText {

@@ -123,7 +123,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
     const a = seul();
     get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
-    const attendue = effectiveTarget(get().party[0], { char: 'initiative' }, 'accessible');
+    const attendue = effectiveTarget(get().party[0], { characteristic: 'initiative' }, 'accessible');
     expect(step.second, 'aucun second Test caché : la rangée le DIT').toEqual({
       label: 'Initiative',
       base: testValue(get().party[0], undefined, 'initiative'),
@@ -145,7 +145,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
       expect(r.second, `la rangée de ${porteur.label} dit sa seconde cible`).toEqual({
         label: 'Initiative',
         base: testValue(porteur, undefined, 'initiative'),
-        target: effectiveTarget(porteur, { char: 'initiative' }, 'accessible'),
+        target: effectiveTarget(porteur, { characteristic: 'initiative' }, 'accessible'),
         difficulty: 'accessible',
       });
     }
@@ -173,7 +173,7 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
    */
   it('LA SECONDE : le même dé, sous le Pari mais au-dessus de l’Initiative, coûte la gorgée', () => {
     const a = seul();
-    const cibleInit = effectiveTarget(a, { char: 'initiative' }, 'accessible');
+    const cibleInit = effectiveTarget(a, { characteristic: 'initiative' }, 'accessible');
     banc.setState({ sequence: partie(a.id) });
     // Dé ENTRE les deux cibles : le Pari passe (cible 95), l'Initiative lâche.
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: cibleInit + 1, target: 95, sl: 5 }, { roll: 10, sl: 1 }));
@@ -189,7 +189,7 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
 
   it('L’ÉCHÉANCE : le TROISIÈME échec d’Initiative appelle l’alcool, pas les deux premiers', () => {
     const a = seul();
-    const cibleInit = effectiveTarget(a, { char: 'initiative' }, 'accessible');
+    const cibleInit = effectiveTarget(a, { characteristic: 'initiative' }, 'accessible');
     const rate = (fails: number): void => {
       banc.setState({ tavernGames: null, journal: [], sequence: partie(a.id, { fails: { player: fails } }) });
       closeSequenceRound(get, banc.setState, tour(a.id, { roll: cibleInit + 1, target: 95, sl: 5 }, { roll: 10, sl: 1 }));

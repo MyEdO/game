@@ -217,7 +217,7 @@ describe('Zones de pièce — hors du monde CUIT, résolues sur la scène VIVE (
  *
  * `propRecipeDeps` porte le domaine `prop` ; les deux autres domaines cuits entrent par `matiereDeps`
  * — les toitures que la SCÈNE nomme, et le domaine `relief` ENTIER (les ids de relief sont écrits dans
- * `builders/floors.ts`, les recopier ici en ferait une seconde vérité).
+ * `noyau/monde/volume/floors.ts`, les recopier ici en ferait une seconde vérité).
  */
 describe('Cuisson du monde — les MATIÈRES entrent dans le read-set (#1686)', () => {
   afterEach(() => resetData());

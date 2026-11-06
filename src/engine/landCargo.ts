@@ -14,6 +14,7 @@
  *    bien correspondant s'y vend le DOUBLE de son prix de base.
  */
 import landCargoJson from '../data/land-cargo.json';
+import type { LandCargoData } from '../data/schemas/defs/land-cargo';
 import { d10, d100, roll as rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
@@ -23,19 +24,10 @@ import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasona
 /** La voie du catalogue que porte la table de ce livre (MSRC 13 l.71-78). */
 export const VOIE_TERRESTRE: Voie = 'terre';
 
-interface WineTier { min: number; max: number; label: string; price: number }
-/** Bande du tableau de la Mise à prix (l.150-156) : fourchette d'Indice de richesse, bornes INCLUSIVES.
- *  Le livre imprime une ligne par indice (l.52-60 : 1 à 5) — les cinq bandes sont FERMÉES. */
-interface OfferRow { min: number; max: number; label: string; pct: number }
-export interface RumourRow { min: number; max: number; biens: string[]; desc: string }
+/** Rangée du Tableau des rumeurs commerciales (l.281-303). */
+export type RumourRow = LandCargoData['rumours'][number];
 
-const LAND = landCargoJson as unknown as {
-  wineQuality: WineTier[];
-  buy: { availabilityMultiplier: number; merchantSkill: { d10: number; plus: number }; partialSurchargePct: number; minEnc: number; wineEvalDifficulty: Difficulty; wineEvalEasyDifficulty: Difficulty; wineAlcoholResistThreshold: number };
-  sell: { targetPerSize: number; commerceBonus: number; dumpingPctOfBase: number; offerByRichesse: OfferRow[] };
-  gossip: { difficulty: Difficulty; mod: number };
-  rumours: RumourRow[];
-};
+const LAND = landCargoJson as LandCargoData;
 
 export const WINE_QUALITY = LAND.wineQuality;
 /** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de
@@ -43,7 +35,7 @@ export const WINE_QUALITY = LAND.wineQuality;
  *  5 Florissant), que l'exemple l.174 confirme contre la colonne Description de l.150-156, décalée
  *  d'un cran dans le livre — arbitrage NOMMÉ en tête de
  *  `scripts/migrations/2026-09-01-1463-gram-seuils-prix-offre.mjs`. */
-export const LAND_RICHESSE_ROWS: readonly OfferRow[] = LAND.sell.offerByRichesse;
+export const LAND_RICHESSE_ROWS: readonly LandCargoData['sell']['offerByRichesse'][number][] = LAND.sell.offerByRichesse;
 
 /** Profil COMMERCIAL d'un Lieu terrestre/fluvial (Index géographique, l.183-278) — porté par le LIEU de
  *  la carte du monde (`MapPlace.market`, donnée d'auteur). Reproduit les colonnes de l'Index. */
@@ -166,12 +158,12 @@ export function wineEvalReveal(basePrice: number, success: boolean, sl: number):
 
 /** Surcoût d'un LOT PARTIEL à l'achat (l.131) : « le prix de base par 10 Points d'Encombrement doit être
  *  augmenté de 10 % ». Les marchands ne vendent pas moins de `minEnc` (l.131). */
-export const partialSurchargePct = LAND.buy.partialSurchargePct;
-export const minCargoEnc = LAND.buy.minEnc;
+export const partialSurchargePct = (): number => LAND.buy.partialSurchargePct;
+export const minCargoEnc = (): number => LAND.buy.minEnc;
 
 /** Compétence Marchandage d'un petit marchand pris au hasard (l.129) : 2d10 + 30 (≈ 32-50). PUR. */
 export function rollMerchantSkill(rng: RNG): number {
-  return rollDice(2, 10, rng) + LAND.buy.merchantSkill.plus;
+  return rollDice(LAND.buy.merchantSkill.d10, 10, rng) + LAND.buy.merchantSkill.plus;
 }
 
 /** Nombre visé du d100 « trouver un acheteur » à la VENTE (l.146) : Taille × 10, +30 si le Lieu a le
@@ -211,7 +203,7 @@ export function rollTradeRumour(rng: RNG): RumourRow {
 /** La cargaison `cargoId` correspond-elle à une rumeur (l.180 : « ils peuvent en vendre autant qu'ils le
  *  souhaitent pour le double du prix de base ») → le prix double. PUR. */
 export function rumourMatches(rumour: RumourRow, cargoId: string): boolean {
-  return rumour.biens.includes(cargoId);
+  return rumour.biens.some((b) => b === cargoId);
 }
 
 /** Rumeur commerciale PERSISTANTE (MSRC 13 l.180) : à l'Emplacement `placeId` (un AUTRE Lieu, tiré via

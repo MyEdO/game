@@ -198,7 +198,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   it('(c) NON-RÉGRESSION : dans la MÊME fenêtre, opposition et Contre-sort restent possédés PAR PARTICIPANT', () => {
     const s = state(CAST_JET, ENEMY, {
       pendingCounterspell: { participants: [{ id: H_GUEST, interactive: true, result: null }] },
-      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H_GUEST, interactive: true, result: null }] },
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H_GUEST, interactive: true, result: null }] },
     } as unknown as Partial<Jeu>);
     // Le contre-lanceur / la cible du siège 1 jouent LEUR rangée…
     expect(intentAllowedFor(s, 1, ...geste('counterspell', 'roll', H_GUEST))).toBe(true);

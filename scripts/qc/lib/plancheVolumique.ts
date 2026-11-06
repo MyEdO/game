@@ -22,14 +22,14 @@
  *   cliquet des littéraux) et `planche-qc-cap-identite.test.ts` (cap peint).
  */
 import { buildPropVolumes } from '../../../src/gameIso/builders/propVolumes';
-import { orienterPoly, shadeFamily, type Vec3 } from '../../../src/gameIso/backends/webgl/worldTris';
+import { orienterPoly, shadeFamily, type Vec3 } from '../../../src/noyau/monde/volume/worldTris';
 import { faceSurface, shadeFactorOf } from '../../../src/gameIso/backends/webgl/faceColors';
 import { affineScales, rotYaw } from '../../../src/gameIso/backends/webgl/cameras';
 import { projectStep, rotOffset, stepOf, type ProjKind, type Rot } from '../../../src/geometry/iso';
 import { propSvg } from '../../../src/gameIso/catalog/decor';
 import { findPropById, props } from '../../../src/data';
 import { defsGlobaux } from '../../../src/gameIso/sprites';
-import type { Face, GP } from '../../../src/gameIso/builders/types';
+import type { Face, GP } from '../../../src/noyau/monde/volume/types';
 import { CAP_IDENTITE_PROP } from '../../../src/data/props.types';
 
 /** DÉRIVÉE du catalogue : une recette de plus entre en planche par sa seule déclaration en donnée —

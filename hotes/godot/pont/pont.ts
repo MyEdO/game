@@ -8,7 +8,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, intentionDEngagement, pagesDeCreation, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, porteeDeComposition, presetDeComposition, volumeDuMonde, type Composition, type LectureAuSchema, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -183,6 +183,11 @@ export function creerPont() {
     vue(json) {
       entreeDe('vue', json, []);
       return { vue: vueDe(demarree()) };
+    },
+    monde(json) {
+      entreeDe('monde', json, []);
+      const scene = demarree().partie.etat().scene;
+      return { monde: scene ? volumeDuMonde(scene) : null };
     },
     jouer(json) {
       const o = demarree();

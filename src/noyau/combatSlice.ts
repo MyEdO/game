@@ -60,7 +60,7 @@ import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
-import { weaponLoaded, reloadProgressOf, aRecharger } from '../engine/weaponLoad';
+import { reloadProgressOf, aRecharger, chambrePleine } from '../engine/weaponLoad';
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -1395,7 +1395,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
       const poste = active.mannedPoste?.item.uid === rw.uid ? active.mannedPoste : undefined;
-      const swapsLoadedShot = (rw.reload ?? 0) > 0 && weaponLoaded(active, rw) && loadedAmmo(active, rw)?.uid !== uid;
+      const swapsLoadedShot = chambrePleine(active, rw) && loadedAmmo(active, rw)?.uid !== uid;
       setAmmoChoice(active, rw, uid, poste); // écrivain UNIQUE : la sélection vit sur CETTE arme (ou sur la pièce servie)
       if (swapsLoadedShot) unloadWeapon(active, rw, poste); // couture UNIQUE : l'arme (et la pièce servie)
       set({ battle: { ...battle } });

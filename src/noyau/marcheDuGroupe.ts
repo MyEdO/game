@@ -121,6 +121,17 @@ export function marcherLeChemin(get: Get, chemin: readonly Pt[]): void {
 export const porteActionnable = (mode: Jeu['mode'], portail: Pick<RoomPortal, 'kind'>): boolean =>
   mode === 'battle' ? portail.kind !== 'passage' : mode === 'exploration' && portail.kind === 'door-closed';
 
+/** Le geste qu'ouvre l'activation d'un accès. */
+export type GesteDuPortail = { verbe: 'actionnerLaPorte'; args: [RoomPortal] } | { verbe: 'cliquerLaCase'; args: [Pt] };
+
+/** Le geste qu'ouvre l'activation d'un accès : l'actionner s'il s'actionne (`porteActionnable`), sinon, la marche
+ *  ouverte (`marcheOuverte`), marcher jusqu'à sa case d'en face ; `null` en dialogue ou sans scène. */
+export function gesteDuPortail(s: Pick<Jeu, 'mode' | 'dialogue' | 'scene'>, portail: RoomPortal): GesteDuPortail | null {
+  if (s.dialogue || !s.scene) return null;
+  if (porteActionnable(s.mode, portail)) return { verbe: 'actionnerLaPorte', args: [portail] };
+  return marcheOuverte(s) ? { verbe: 'cliquerLaCase', args: [portail.to] } : null;
+}
+
 export function creerActionsDeMarche(get: Get, set: Set) {
   return {
     moveParty: (pt) => {

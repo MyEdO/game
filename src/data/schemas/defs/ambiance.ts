@@ -160,7 +160,7 @@ const tintFactor = z.number().min(0).max(1);
  *
  *  `bas` a un producteur : le DESSOUS d'un décor volumique (`gameIso/builders/propVolumes.ts`), dont
  *  chaque face porte son propre dehors jusqu'à la cuisson. Les murs, eux, n'en produisent aucun —
- *  `wallBoxPolys` (`gameIso/backends/webgl/worldTris.ts`) omet le dessous d'un mur, et un sol présente
+ *  `wallBoxPolys` (`noyau/monde/volume/worldTris.ts`) omet le dessous d'un mur, et un sol présente
  *  toujours sa normale vers le haut (`gameIso/stage/modele-forme.test.ts`). */
 const faceShadeSchema = nommerChamps(z
   .strictObject({

@@ -1,0 +1,60 @@
+import { describe, it, expect } from 'vitest';
+import { volumeDuMonde, type VolumeDuMonde } from './volume';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';
+import { couleurDuSol, recetteDuSol, tintVarFactor } from './matieres';
+import { parseHex } from '../../../lib/couleurHex';
+
+/** Les triangles du volume, sommets, normale et couleur du premier sommet. */
+function triangles(v: VolumeDuMonde) {
+  return Array.from({ length: v.positions.length / 9 }, (_, t) => ({
+    ys: [1, 4, 7].map((k) => v.positions[t * 9 + k]),
+    xs: [0, 3, 6].map((k) => v.positions[t * 9 + k]),
+    normale: v.normales.slice(t * 9, t * 9 + 3),
+    couleur: v.couleurs.slice(t * 12, t * 12 + 4),
+    case: v.cases[t],
+  }));
+}
+
+function marche(): Scene {
+  const s = emptyScene('scene-test', 2, 1);
+  s.layers[0].tiles = ['plancher', 'plancher'];
+  s.layers[0].height = [0, 1.2];
+  return s;
+}
+
+describe('volumeDuMonde (#3476)', () => {
+  it('trois sommets par triangle : trois nombres par position et par normale, quatre par couleur opaque, une case par triangle', () => {
+    const v = volumeDuMonde(marche());
+    expect(v.positions.length % 9).toBe(0);
+    expect(v.normales.length).toBe(v.positions.length);
+    expect(v.couleurs.length).toBe((v.positions.length / 3) * 4);
+    expect(v.couleurs.every((c) => c >= 0 && c <= 1)).toBe(true);
+    expect(v.cases.length).toBe(v.positions.length / 9);
+    expect(triangles(v).every((t) => t.couleur[3] === 1)).toBe(true);
+  });
+
+  it('la hauteur de chaque case par couche, la marche de 1,2 m en paroi verticale', () => {
+    const s = marche();
+    const v = volumeDuMonde(s);
+    expect(v.metresParCase).toBe(sceneMetresPerTile(s));
+    expect(v.hauteurs).toEqual([{ z: 0, rangees: [[0, 1.2]] }]);
+    const tris = triangles(v);
+    expect(Math.max(...tris.flatMap((t) => t.ys)), 'le dessus de la case haute').toBe(1.2);
+    const parois = tris.filter((t) => Math.abs(t.normale[1]) < 1e-3);
+    expect(parois.length, 'une paroi entre les deux cases').toBeGreaterThan(0);
+    expect(tris.filter((t) => t.ys.every((y) => y === 1.2)).every((t) => t.case[0] === 1), 'le dessus haut, à la case haute').toBe(true);
+  });
+
+  it('le dessus d’une case : normale en haut, dans sa case, la couleur de son terrain à sa variance de teinte', () => {
+    const s = emptyScene('scene-test', 1, 1);
+    s.layers[0].tiles = ['herbe'];
+    const v = volumeDuMonde(s);
+    const m = { domain: 'terrain' as const, id: 'herbe' };
+    const k = tintVarFactor(recetteDuSol(m), { x: 0, y: 0, z: 0 }) / 255;
+    const attendue = [...parseHex(couleurDuSol(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1];
+    const dessus = triangles(v).filter((t) => t.normale[1] > 0.99);
+    expect(dessus.length).toBeGreaterThan(0);
+    expect(dessus.every((t) => t.xs.every((x) => Math.abs(x) <= v.metresParCase / 2 + 1e-3))).toBe(true);
+    expect(dessus.map((t) => t.couleur)).toContainEqual(attendue);
+  });
+});
