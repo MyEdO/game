@@ -1,0 +1,17 @@
+{
+  "model": "humanoide--vetement--gants.glb",
+  "model_sha256": "711977c72d1a8ff2b43826b5aa91b165cd80e2da58d199b0372aa5951bc1dd90",
+  "importe_le": "2026-11-06",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

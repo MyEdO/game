@@ -33,7 +33,7 @@ describe('libellés de saison — une SOURCE, la donnée (#1659)', () => {
     const initiales = structuredClone(weather);
     let noeudSaisonnier: z.ZodObject | undefined;
     descendre([seaWeatherSchema], ({ noeud, path }) => {
-      if (path === '.seasonMod' && noeud instanceof z.ZodObject) { noeudSaisonnier = noeud; return 'arreter'; }
+      if (path === '.seasonMod.saisons' && noeud instanceof z.ZodObject) { noeudSaisonnier = noeud; return 'arreter'; }
     });
     expect(noeudSaisonnier).toBeDefined();
     if (!noeudSaisonnier) throw new Error('objet saisonnier absent du schéma maritime');

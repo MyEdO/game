@@ -93,7 +93,7 @@ export function seaWeatherLabel(w: SeaWeather): string {
 /** Tire la météo du jour (l.164-166) : 1d10 + saison PAR ASPECT ; mer chaude → −2 (min 1) sur
  *  Température et Visibilité. PUR (RNG injecté). */
 export function rollSeaWeather(season: Season, rng: RNG, warmSea = false): SeaWeather {
-  const mod = DATA.seasonMod[season] ?? 0;
+  const mod = DATA.seasonMod.saisons[season];
   const aspect = (warm: boolean): WeatherRow => {
     let r = d10(rng) + mod;
     if (warm) r = Math.max(1, r + DATA.warmSeaMod);

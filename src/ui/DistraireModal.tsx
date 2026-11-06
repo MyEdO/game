@@ -8,7 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { testBreakdown } from './breakdown';
 import { describeDistraire } from '../noyau/flowOutcomes';
-import { opposedResponded } from './opposedFrozen';
+import { JET_FIGE, jetFigeRevele } from '../noyau/netOwnership';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
@@ -48,9 +48,8 @@ export function DistraireModal() {
 
   // Rangée TÉMOIN : Calme du foe, figé à l'ouverture (jamais relancé) — MASQUÉ tant que le mover n'a
   // pas répondu (#990 : `pd.atk` est SA réponse ; ici le jet FIGÉ est celui du DÉFENSEUR).
-  const foeRow = frozenOpposedRow(useGame.getState(), {
-    ownerId: pd.foeId,
-    responded: opposedResponded(useGame.getState(), [{ id: pd.moverId, interactive: true, result: pd.atk }]),
+  const foeRow = frozenOpposedRow({
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.distraire(pd)),
     row: { combatant: foe, d: testBreakdown(libelleDeTest('calme'), calme.base, pd.defRoll, calme.difficulty, calme.mods) },
   });
   // Rangée INTERACTIVE : Athlétisme du mover, porteur de son cycle d'influence.

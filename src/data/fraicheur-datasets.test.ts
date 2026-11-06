@@ -27,8 +27,7 @@ import { stageWeatherRows } from '../noyau/travelFlow';
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
 import { mutationTableIdFor } from '../noyau/corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from './overrides';
-import { cargoes, findCargoById, type CargoDef } from '../engine/seaVoyage';
-import { landCargoes, findLandCargoById, type LandCargoDef } from '../engine/landCargo';
+import { marchandisesDe, findCargoById, type CargoDef } from '../engine/cargo';
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
@@ -56,9 +55,9 @@ const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationT
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
-  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
+  ['cargoes', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
   (k) => structuredClone(datasetArray(k)),
-) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+) as { [K in 'cargoes' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
@@ -233,20 +232,16 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
 });
 
 describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', () => {
-  it('une marchandise maritime NEUVE : `cargoes` et `findCargoById` la servent', () => {
-    const modele = cargoes()[0];
-    expect(findCargoById('cargo-qc-1692')).toBeUndefined();
-    setDataset('seaCargo', [...datasetArray('seaCargo'), { ...modele, id: 'cargo-qc-1692', label: 'Cargo QC' } as CargoDef]);
-    expect(cargoes().map((c) => c.id)).toContain('cargo-qc-1692');
-    expect(findCargoById('cargo-qc-1692')!.label).toBe('Cargo QC');
-  });
-
-  it('une marchandise terrestre NEUVE : `landCargoes` et `findLandCargoById` la servent', () => {
-    const modele = landCargoes()[0];
-    expect(findLandCargoById('cargo-terre-qc-1692')).toBeUndefined();
-    setDataset('landCargo', [...datasetArray('landCargo'), { ...modele, id: 'cargo-terre-qc-1692', label: 'Cargo terre QC' } as LandCargoDef]);
-    expect(landCargoes().map((c) => c.id)).toContain('cargo-terre-qc-1692');
-    expect(findLandCargoById('cargo-terre-qc-1692')!.label).toBe('Cargo terre QC');
+  it('une marchandise NEUVE : `marchandisesDe` la sert dans SA voie seule, `findCargoById` la résout', () => {
+    for (const voie of ['mer', 'terre'] as const) {
+      const id = `cargo-${voie}-qc-1692`;
+      const autre = voie === 'mer' ? 'terre' : 'mer';
+      expect(findCargoById(id)).toBeUndefined();
+      setDataset('cargoes', [...datasetArray('cargoes'), { ...marchandisesDe(voie)[0], id, label: `Cargo ${voie} QC` } as CargoDef]);
+      expect(marchandisesDe(voie).map((c) => c.id)).toContain(id);
+      expect(marchandisesDe(autre).map((c) => c.id)).not.toContain(id);
+      expect(findCargoById(id)!.label).toBe(`Cargo ${voie} QC`);
+    }
   });
 
   it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {

@@ -1333,7 +1333,7 @@
     "css": "src/ui/styles/spectator-chip.css",
     "concept": "puce qui NOMME le siège attendu quand le geste n’appartient pas au siège local (coop)",
     "perimetre": "arbitre de modales, travée d’attente de la console, zone de choix d’un dialogue",
-    "verrou": "le siège attendu vient de `spectatorSeatOfModal` (src/ui/ownership.ts), source unique"
+    "verrou": "le siège attendu vient de `spectatorSeatOfModal` (src/noyau/combatAuto.ts), source unique"
   },
   {
     "id": "gearAssignList",

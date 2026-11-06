@@ -244,7 +244,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // l.63) ci-dessus, et les quatre colonnes de disponibilité saisonnière (d100). Sans cette ligne,
   // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
   if (categoryKey === 'shipHullSizes') add('lengthM');
-  if (categoryKey === 'seaCargo' || categoryKey === 'landCargo') add('avail');
+  if (categoryKey === 'cargoes') add('avail');
   // #168 : Activité — Test « posté » (contexts/tests « au choix »/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
@@ -391,8 +391,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du 1d10 interne (Étoile du Sorcier, ADE II 03 l.63) → `PlageField`.
   const hasStarSub = categoryKey === 'stars';
-  // Cargaison (maritime/terrestre) : `avail` = quatre colonnes d100, une fourchette par saison.
-  const hasDispoSaisonniere = categoryKey === 'seaCargo' || categoryKey === 'landCargo';
+  // Cargaison : `avail` = quatre colonnes d100, une fourchette par saison.
+  const hasDispoSaisonniere = categoryKey === 'cargoes';
   // Domaine de magie : `castBonus`/`missile`/`casterOps` = attributs de domaine (éditeur dédié).
   const hasDomainEffects = categoryKey === 'domains';
   // Créature : `traits`/`optionals` = TraitPose[] (réutilise `TraitListField` du StatblockEditor),
